@@ -1,0 +1,57 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+web_stage/
+
+# Build and distribution directories
+dist/
+build/
+out/
+.next/
+.nuxt/
+bin/
+obj/
+
+# Media Assets & Final Outputs (crucial for keeping git light)
+**/ASSETS/
+**/OUTPUT/
+ASSETS/
+OUTPUT/
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.webm
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+*.pdf
+
+# Temp files & tool directories
+.gemini/
+.tempmediaStorage/
+browser/
+**/browser/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDEs and editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db

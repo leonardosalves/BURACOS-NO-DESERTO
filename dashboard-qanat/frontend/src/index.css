@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbars for a premium dark mode feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0d0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Glassmorphism custom panel styles */
+.glass-panel {
+  background: rgba(20, 20, 25, 0.45);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel-glow {
+  background: rgba(20, 20, 25, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 197, 0, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(255, 197, 0, 0.02);
+}

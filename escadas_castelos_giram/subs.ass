@@ -1,0 +1,158 @@
+[Script Info]
+Title: Qanat Documentary Subtitles
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,30,30,320,1
+Style: Impact,Arial,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.34,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Você{\c&HFFFFFF&}{\1a&H44&}{\fs48} já reparou que
+Dialogue: 0,0:00:00.34,0:00:00.52,Default,,0,0,0,,{\1a&H44&}{\fs48} Você {\c&HFFE080&}{\1a&H00&}{\fs58}já{\c&HFFFFFF&}{\1a&H44&}{\fs48} reparou que
+Dialogue: 0,0:00:00.52,0:00:00.90,Default,,0,0,0,,{\1a&H44&}{\fs48} Você já {\c&HFFE080&}{\1a&H00&}{\fs58}reparou{\c&HFFFFFF&}{\1a&H44&}{\fs48} que
+Dialogue: 0,0:00:00.90,0:00:01.06,Default,,0,0,0,,{\1a&H44&}{\fs48} Você já reparou {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:01.06,0:00:01.36,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}quase{\c&HFFFFFF&}{\1a&H44&}{\fs48} todo escada em
+Dialogue: 0,0:00:01.36,0:00:01.66,Default,,0,0,0,,{\1a&H44&}{\fs48} quase {\c&HFFE080&}{\1a&H00&}{\fs58}todo{\c&HFFFFFF&}{\1a&H44&}{\fs48} escada em
+Dialogue: 0,0:00:01.66,0:00:02.06,Default,,0,0,0,,{\1a&H44&}{\fs48} quase todo {\c&HFFE080&}{\1a&H00&}{\fs58}escada{\c&HFFFFFF&}{\1a&H44&}{\fs48} em
+Dialogue: 0,0:00:02.06,0:00:02.20,Default,,0,0,0,,{\1a&H44&}{\fs48} quase todo escada {\c&HFFE080&}{\1a&H00&}{\fs58}em{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:02.20,0:00:02.58,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}spiral{\c&HFFFFFF&}{\1a&H44&}{\fs48} nos castelos mediavais
+Dialogue: 0,0:00:02.58,0:00:03.28,Default,,0,0,0,,{\1a&H44&}{\fs48} spiral {\c&HFFE080&}{\1a&H00&}{\fs58}nos{\c&HFFFFFF&}{\1a&H44&}{\fs48} castelos mediavais
+Dialogue: 0,0:00:03.28,0:00:03.70,Default,,0,0,0,,{\1a&H44&}{\fs48} spiral nos {\c&HFFE080&}{\1a&H00&}{\fs58}castelos{\c&HFFFFFF&}{\1a&H44&}{\fs48} mediavais
+Dialogue: 0,0:00:03.70,0:00:04.22,Default,,0,0,0,,{\1a&H44&}{\fs48} spiral nos castelos {\c&HFFE080&}{\1a&H00&}{\fs58}mediavais{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:04.22,0:00:04.56,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}gira{\c&HFFFFFF&}{\1a&H44&}{\fs48} no sentido horário
+Dialogue: 0,0:00:04.56,0:00:04.70,Default,,0,0,0,,{\1a&H44&}{\fs48} gira {\c&HFFE080&}{\1a&H00&}{\fs58}no{\c&HFFFFFF&}{\1a&H44&}{\fs48} sentido horário
+Dialogue: 0,0:00:04.70,0:00:04.98,Default,,0,0,0,,{\1a&H44&}{\fs48} gira no {\c&HFFE080&}{\1a&H00&}{\fs58}sentido{\c&HFFFFFF&}{\1a&H44&}{\fs48} horário
+Dialogue: 0,0:00:04.98,0:00:05.44,Default,,0,0,0,,{\1a&H44&}{\fs48} gira no sentido {\c&HFFE080&}{\1a&H00&}{\fs58}horário{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:05.44,0:00:05.66,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48} a direita?
+Dialogue: 0,0:00:05.66,0:00:05.76,Default,,0,0,0,,{\1a&H44&}{\fs48} para {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} direita?
+Dialogue: 0,0:00:05.76,0:00:06.12,Default,,0,0,0,,{\1a&H44&}{\fs48} para a {\c&HFFE080&}{\1a&H00&}{\fs58}direita?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:06.86,0:00:07.06,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Não{\c&HFFFFFF&}{\1a&H44&}{\fs48} é coincidência. É
+Dialogue: 0,0:00:07.06,0:00:07.24,Default,,0,0,0,,{\1a&H44&}{\fs48} Não {\c&HFFE080&}{\1a&H00&}{\fs58}é{\c&HFFFFFF&}{\1a&H44&}{\fs48} coincidência. É
+Dialogue: 0,0:00:07.24,0:00:08.48,Default,,0,0,0,,{\1a&H44&}{\fs48} Não é {\c&HFFE080&}{\1a&H00&}{\fs58}coincidência.{\c&HFFFFFF&}{\1a&H44&}{\fs48} É
+Dialogue: 0,0:00:08.48,0:00:08.68,Default,,0,0,0,,{\1a&H44&}{\fs48} Não é coincidência. {\c&HFFE080&}{\1a&H00&}{\fs58}É{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:08.68,0:00:08.86,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} arma de engenharia
+Dialogue: 0,0:00:08.86,0:00:09.16,Default,,0,0,0,,{\1a&H44&}{\fs48} uma {\c&H00C5FF&}{\1a&H00&}{\fs58}arma{\c&HFFFFFF&}{\1a&H44&}{\fs48} de engenharia
+Dialogue: 0,0:00:09.16,0:00:09.32,Default,,0,0,0,,{\1a&H44&}{\fs48} uma arma {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} engenharia
+Dialogue: 0,0:00:09.32,0:00:09.82,Default,,0,0,0,,{\1a&H44&}{\fs48} uma arma de {\c&H00C5FF&}{\1a&H00&}{\fs58}engenharia{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:09.82,0:00:10.30,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}mortal.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:10.88,0:00:11.04,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Na{\c&HFFFFFF&}{\1a&H44&}{\fs48} idade média, os
+Dialogue: 0,0:00:11.04,0:00:11.22,Default,,0,0,0,,{\1a&H44&}{\fs48} Na {\c&HFFE080&}{\1a&H00&}{\fs58}idade{\c&HFFFFFF&}{\1a&H44&}{\fs48} média, os
+Dialogue: 0,0:00:11.22,0:00:12.16,Default,,0,0,0,,{\1a&H44&}{\fs48} Na idade {\c&HFFE080&}{\1a&H00&}{\fs58}média,{\c&HFFFFFF&}{\1a&H44&}{\fs48} os
+Dialogue: 0,0:00:12.16,0:00:12.30,Default,,0,0,0,,{\1a&H44&}{\fs48} Na idade média, {\c&HFFE080&}{\1a&H00&}{\fs58}os{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:12.30,0:00:12.72,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}castelos{\c&HFFFFFF&}{\1a&H44&}{\fs48} eram projetados para
+Dialogue: 0,0:00:12.72,0:00:12.90,Default,,0,0,0,,{\1a&H44&}{\fs48} castelos {\c&HFFE080&}{\1a&H00&}{\fs58}eram{\c&HFFFFFF&}{\1a&H44&}{\fs48} projetados para
+Dialogue: 0,0:00:12.90,0:00:13.52,Default,,0,0,0,,{\1a&H44&}{\fs48} castelos eram {\c&HFFE080&}{\1a&H00&}{\fs58}projetados{\c&HFFFFFF&}{\1a&H44&}{\fs48} para
+Dialogue: 0,0:00:13.52,0:00:13.74,Default,,0,0,0,,{\1a&H44&}{\fs48} castelos eram projetados {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:13.74,0:00:14.18,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}resistir{\c&HFFFFFF&}{\1a&H44&}{\fs48} a invasões brutais.
+Dialogue: 0,0:00:14.18,0:00:14.24,Default,,0,0,0,,{\1a&H44&}{\fs48} resistir {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} invasões brutais.
+Dialogue: 0,0:00:14.24,0:00:14.54,Default,,0,0,0,,{\1a&H44&}{\fs48} resistir a {\c&HFFE080&}{\1a&H00&}{\fs58}invasões{\c&HFFFFFF&}{\1a&H44&}{\fs48} brutais.
+Dialogue: 0,0:00:14.54,0:00:15.08,Default,,0,0,0,,{\1a&H44&}{\fs48} resistir a invasões {\c&HFFE080&}{\1a&H00&}{\fs58}brutais.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:15.80,0:00:16.04,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Cada{\c&HFFFFFF&}{\1a&H44&}{\fs48} detalhe era pensado
+Dialogue: 0,0:00:16.04,0:00:16.42,Default,,0,0,0,,{\1a&H44&}{\fs48} Cada {\c&HFFE080&}{\1a&H00&}{\fs58}detalhe{\c&HFFFFFF&}{\1a&H44&}{\fs48} era pensado
+Dialogue: 0,0:00:16.42,0:00:16.54,Default,,0,0,0,,{\1a&H44&}{\fs48} Cada detalhe {\c&HFFE080&}{\1a&H00&}{\fs58}era{\c&HFFFFFF&}{\1a&H44&}{\fs48} pensado
+Dialogue: 0,0:00:16.54,0:00:17.00,Default,,0,0,0,,{\1a&H44&}{\fs48} Cada detalhe era {\c&HFFE080&}{\1a&H00&}{\fs58}pensado{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:17.00,0:00:17.86,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}exclusivamente{\c&HFFFFFF&}{\1a&H44&}{\fs48} para a defesa.
+Dialogue: 0,0:00:17.86,0:00:18.18,Default,,0,0,0,,{\1a&H44&}{\fs48} exclusivamente {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48} a defesa.
+Dialogue: 0,0:00:18.18,0:00:18.30,Default,,0,0,0,,{\1a&H44&}{\fs48} exclusivamente para {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} defesa.
+Dialogue: 0,0:00:18.30,0:00:18.66,Default,,0,0,0,,{\1a&H44&}{\fs48} exclusivamente para a {\c&H00C5FF&}{\1a&H00&}{\fs58}defesa.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:19.16,0:00:19.28,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Se{\c&HFFFFFF&}{\1a&H44&}{\fs48} um inimigo conseguir
+Dialogue: 0,0:00:19.28,0:00:19.42,Default,,0,0,0,,{\1a&H44&}{\fs48} Se {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48} inimigo conseguir
+Dialogue: 0,0:00:19.42,0:00:19.94,Default,,0,0,0,,{\1a&H44&}{\fs48} Se um {\c&HFFE080&}{\1a&H00&}{\fs58}inimigo{\c&HFFFFFF&}{\1a&H44&}{\fs48} conseguir
+Dialogue: 0,0:00:19.94,0:00:20.84,Default,,0,0,0,,{\1a&H44&}{\fs48} Se um inimigo {\c&HFFE080&}{\1a&H00&}{\fs58}conseguir{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:20.84,0:00:21.06,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} romper o portão
+Dialogue: 0,0:00:21.06,0:00:21.36,Default,,0,0,0,,{\1a&H44&}{\fs48} se {\c&HFFE080&}{\1a&H00&}{\fs58}romper{\c&HFFFFFF&}{\1a&H44&}{\fs48} o portão
+Dialogue: 0,0:00:21.36,0:00:21.46,Default,,0,0,0,,{\1a&H44&}{\fs48} se romper {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} portão
+Dialogue: 0,0:00:21.46,0:00:21.74,Default,,0,0,0,,{\1a&H44&}{\fs48} se romper o {\c&HFFE080&}{\1a&H00&}{\fs58}portão{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:21.74,0:00:23.34,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}principal,{\c&HFFFFFF&}{\1a&H44&}{\fs48} ele teria que
+Dialogue: 0,0:00:23.34,0:00:23.46,Default,,0,0,0,,{\1a&H44&}{\fs48} principal, {\c&HFFE080&}{\1a&H00&}{\fs58}ele{\c&HFFFFFF&}{\1a&H44&}{\fs48} teria que
+Dialogue: 0,0:00:23.46,0:00:23.66,Default,,0,0,0,,{\1a&H44&}{\fs48} principal, ele {\c&HFFE080&}{\1a&H00&}{\fs58}teria{\c&HFFFFFF&}{\1a&H44&}{\fs48} que
+Dialogue: 0,0:00:23.66,0:00:23.80,Default,,0,0,0,,{\1a&H44&}{\fs48} principal, ele teria {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:23.80,0:00:24.00,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}subir{\c&HFFFFFF&}{\1a&H44&}{\fs48} essas escadas estreitas
+Dialogue: 0,0:00:24.00,0:00:24.28,Default,,0,0,0,,{\1a&H44&}{\fs48} subir {\c&HFFE080&}{\1a&H00&}{\fs58}essas{\c&HFFFFFF&}{\1a&H44&}{\fs48} escadas estreitas
+Dialogue: 0,0:00:24.28,0:00:24.68,Default,,0,0,0,,{\1a&H44&}{\fs48} subir essas {\c&HFFE080&}{\1a&H00&}{\fs58}escadas{\c&HFFFFFF&}{\1a&H44&}{\fs48} estreitas
+Dialogue: 0,0:00:24.68,0:00:25.16,Default,,0,0,0,,{\1a&H44&}{\fs48} subir essas escadas {\c&HFFE080&}{\1a&H00&}{\fs58}estreitas{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:25.16,0:00:25.30,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} pedra.
+Dialogue: 0,0:00:25.30,0:00:25.68,Default,,0,0,0,,{\1a&H44&}{\fs48} de {\c&HFFE080&}{\1a&H00&}{\fs58}pedra.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:25.68,0:00:26.26,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}E{\c&HFFFFFF&}{\1a&H44&}{\fs48} é aqui que
+Dialogue: 0,0:00:26.26,0:00:26.34,Default,,0,0,0,,{\1a&H44&}{\fs48} E {\c&HFFE080&}{\1a&H00&}{\fs58}é{\c&HFFFFFF&}{\1a&H44&}{\fs48} aqui que
+Dialogue: 0,0:00:26.34,0:00:26.54,Default,,0,0,0,,{\1a&H44&}{\fs48} E é {\c&HFFE080&}{\1a&H00&}{\fs58}aqui{\c&HFFFFFF&}{\1a&H44&}{\fs48} que
+Dialogue: 0,0:00:26.54,0:00:26.68,Default,,0,0,0,,{\1a&H44&}{\fs48} E é aqui {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:26.68,0:00:26.78,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} design se torna
+Dialogue: 0,0:00:26.78,0:00:26.96,Default,,0,0,0,,{\1a&H44&}{\fs48} o {\c&HFFE080&}{\1a&H00&}{\fs58}design{\c&HFFFFFF&}{\1a&H44&}{\fs48} se torna
+Dialogue: 0,0:00:26.96,0:00:27.16,Default,,0,0,0,,{\1a&H44&}{\fs48} o design {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} torna
+Dialogue: 0,0:00:27.16,0:00:27.42,Default,,0,0,0,,{\1a&H44&}{\fs48} o design se {\c&HFFE080&}{\1a&H00&}{\fs58}torna{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:27.42,0:00:27.80,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&H00C5FF&}{\1a&H00&}{\fs58}letal.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:28.16,0:00:28.40,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Como{\c&HFFFFFF&}{\1a&H44&}{\fs48} a maioria dos
+Dialogue: 0,0:00:28.40,0:00:28.48,Default,,0,0,0,,{\1a&H44&}{\fs48} Como {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} maioria dos
+Dialogue: 0,0:00:28.48,0:00:28.68,Default,,0,0,0,,{\1a&H44&}{\fs48} Como a {\c&HFFE080&}{\1a&H00&}{\fs58}maioria{\c&HFFFFFF&}{\1a&H44&}{\fs48} dos
+Dialogue: 0,0:00:28.68,0:00:28.94,Default,,0,0,0,,{\1a&H44&}{\fs48} Como a maioria {\c&HFFE080&}{\1a&H00&}{\fs58}dos{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:28.94,0:00:29.26,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}guerreiros{\c&HFFFFFF&}{\1a&H44&}{\fs48} era destra?
+Dialogue: 0,0:00:29.26,0:00:29.44,Default,,0,0,0,,{\1a&H44&}{\fs48} guerreiros {\c&HFFE080&}{\1a&H00&}{\fs58}era{\c&HFFFFFF&}{\1a&H44&}{\fs48} destra?
+Dialogue: 0,0:00:29.44,0:00:29.96,Default,,0,0,0,,{\1a&H44&}{\fs48} guerreiros era {\c&H00C5FF&}{\1a&H00&}{\fs58}destra?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:30.82,0:00:31.06,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Um{\c&HFFFFFF&}{\1a&H44&}{\fs48} invasor subindo a
+Dialogue: 0,0:00:31.06,0:00:31.38,Default,,0,0,0,,{\1a&H44&}{\fs48} Um {\c&HFFE080&}{\1a&H00&}{\fs58}invasor{\c&HFFFFFF&}{\1a&H44&}{\fs48} subindo a
+Dialogue: 0,0:00:31.38,0:00:31.74,Default,,0,0,0,,{\1a&H44&}{\fs48} Um invasor {\c&HFFE080&}{\1a&H00&}{\fs58}subindo{\c&HFFFFFF&}{\1a&H44&}{\fs48} a
+Dialogue: 0,0:00:31.74,0:00:31.84,Default,,0,0,0,,{\1a&H44&}{\fs48} Um invasor subindo {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:31.84,0:00:32.12,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}escada{\c&HFFFFFF&}{\1a&H44&}{\fs48} tinha sua espada
+Dialogue: 0,0:00:32.12,0:00:32.36,Default,,0,0,0,,{\1a&H44&}{\fs48} escada {\c&HFFE080&}{\1a&H00&}{\fs58}tinha{\c&HFFFFFF&}{\1a&H44&}{\fs48} sua espada
+Dialogue: 0,0:00:32.36,0:00:32.54,Default,,0,0,0,,{\1a&H44&}{\fs48} escada tinha {\c&HFFE080&}{\1a&H00&}{\fs58}sua{\c&HFFFFFF&}{\1a&H44&}{\fs48} espada
+Dialogue: 0,0:00:32.54,0:00:32.88,Default,,0,0,0,,{\1a&H44&}{\fs48} escada tinha sua {\c&HFFE080&}{\1a&H00&}{\fs58}espada{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:32.88,0:00:33.38,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&H00C5FF&}{\1a&H00&}{\fs58}bloqueada{\c&HFFFFFF&}{\1a&H44&}{\fs48} pela coluna central
+Dialogue: 0,0:00:33.38,0:00:33.62,Default,,0,0,0,,{\1a&H44&}{\fs48} bloqueada {\c&HFFE080&}{\1a&H00&}{\fs58}pela{\c&HFFFFFF&}{\1a&H44&}{\fs48} coluna central
+Dialogue: 0,0:00:33.62,0:00:33.96,Default,,0,0,0,,{\1a&H44&}{\fs48} bloqueada pela {\c&HFFE080&}{\1a&H00&}{\fs58}coluna{\c&HFFFFFF&}{\1a&H44&}{\fs48} central
+Dialogue: 0,0:00:33.96,0:00:34.32,Default,,0,0,0,,{\1a&H44&}{\fs48} bloqueada pela coluna {\c&HFFE080&}{\1a&H00&}{\fs58}central{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:34.32,0:00:34.56,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}da{\c&HFFFFFF&}{\1a&H44&}{\fs48} curva.
+Dialogue: 0,0:00:34.56,0:00:34.90,Default,,0,0,0,,{\1a&H44&}{\fs48} da {\c&HFFE080&}{\1a&H00&}{\fs58}curva.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:35.40,0:00:35.50,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Mas{\c&HFFFFFF&}{\1a&H44&}{\fs48} o defensor, descendo,
+Dialogue: 0,0:00:35.50,0:00:35.60,Default,,0,0,0,,{\1a&H44&}{\fs48} Mas {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} defensor, descendo,
+Dialogue: 0,0:00:35.60,0:00:36.46,Default,,0,0,0,,{\1a&H44&}{\fs48} Mas o {\c&HFFE080&}{\1a&H00&}{\fs58}defensor,{\c&HFFFFFF&}{\1a&H44&}{\fs48} descendo,
+Dialogue: 0,0:00:36.46,0:00:37.08,Default,,0,0,0,,{\1a&H44&}{\fs48} Mas o defensor, {\c&HFFE080&}{\1a&H00&}{\fs58}descendo,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:37.38,0:00:37.62,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}tinha{\c&HFFFFFF&}{\1a&H44&}{\fs48} o braço direito
+Dialogue: 0,0:00:37.62,0:00:37.78,Default,,0,0,0,,{\1a&H44&}{\fs48} tinha {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} braço direito
+Dialogue: 0,0:00:37.78,0:00:38.04,Default,,0,0,0,,{\1a&H44&}{\fs48} tinha o {\c&HFFE080&}{\1a&H00&}{\fs58}braço{\c&HFFFFFF&}{\1a&H44&}{\fs48} direito
+Dialogue: 0,0:00:38.04,0:00:38.30,Default,,0,0,0,,{\1a&H44&}{\fs48} tinha o braço {\c&HFFE080&}{\1a&H00&}{\fs58}direito{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:38.30,0:00:38.86,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}totalmente{\c&HFFFFFF&}{\1a&H44&}{\fs48} livre
+Dialogue: 0,0:00:38.86,0:00:39.30,Default,,0,0,0,,{\1a&H44&}{\fs48} totalmente {\c&H00C5FF&}{\1a&H00&}{\fs58}livre{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:39.30,0:00:39.92,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48} golpear com força
+Dialogue: 0,0:00:39.92,0:00:40.34,Default,,0,0,0,,{\1a&H44&}{\fs48} para {\c&HFFE080&}{\1a&H00&}{\fs58}golpear{\c&HFFFFFF&}{\1a&H44&}{\fs48} com força
+Dialogue: 0,0:00:40.34,0:00:40.52,Default,,0,0,0,,{\1a&H44&}{\fs48} para golpear {\c&HFFE080&}{\1a&H00&}{\fs58}com{\c&HFFFFFF&}{\1a&H44&}{\fs48} força
+Dialogue: 0,0:00:40.52,0:00:40.82,Default,,0,0,0,,{\1a&H44&}{\fs48} para golpear com {\c&HFFE080&}{\1a&H00&}{\fs58}força{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:40.82,0:00:41.32,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}máxima{\c&HFFFFFF&}{\1a&H44&}{\fs48} de cima para
+Dialogue: 0,0:00:41.32,0:00:41.42,Default,,0,0,0,,{\1a&H44&}{\fs48} máxima {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} cima para
+Dialogue: 0,0:00:41.42,0:00:41.70,Default,,0,0,0,,{\1a&H44&}{\fs48} máxima de {\c&HFFE080&}{\1a&H00&}{\fs58}cima{\c&HFFFFFF&}{\1a&H44&}{\fs48} para
+Dialogue: 0,0:00:41.70,0:00:41.90,Default,,0,0,0,,{\1a&H44&}{\fs48} máxima de cima {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:41.90,0:00:42.30,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}baixo.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:42.80,0:00:42.96,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} simples curva de
+Dialogue: 0,0:00:42.96,0:00:43.30,Default,,0,0,0,,{\1a&H44&}{\fs48} Uma {\c&HFFE080&}{\1a&H00&}{\fs58}simples{\c&HFFFFFF&}{\1a&H44&}{\fs48} curva de
+Dialogue: 0,0:00:43.30,0:00:43.70,Default,,0,0,0,,{\1a&H44&}{\fs48} Uma simples {\c&HFFE080&}{\1a&H00&}{\fs58}curva{\c&HFFFFFF&}{\1a&H44&}{\fs48} de
+Dialogue: 0,0:00:43.70,0:00:43.84,Default,,0,0,0,,{\1a&H44&}{\fs48} Uma simples curva {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:43.84,0:00:44.26,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}pedra{\c&HFFFFFF&}{\1a&H44&}{\fs48} neutralizava exército os
+Dialogue: 0,0:00:44.26,0:00:45.34,Default,,0,0,0,,{\1a&H44&}{\fs48} pedra {\c&H00C5FF&}{\1a&H00&}{\fs58}neutralizava{\c&HFFFFFF&}{\1a&H44&}{\fs48} exército os
+Dialogue: 0,0:00:45.34,0:00:45.82,Default,,0,0,0,,{\1a&H44&}{\fs48} pedra neutralizava {\c&HFFE080&}{\1a&H00&}{\fs58}exército{\c&HFFFFFF&}{\1a&H44&}{\fs48} os
+Dialogue: 0,0:00:45.82,0:00:45.96,Default,,0,0,0,,{\1a&H44&}{\fs48} pedra neutralizava exército {\c&HFFE080&}{\1a&H00&}{\fs58}os{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:45.96,0:00:46.34,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}inteiros.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:47.10,0:00:47.72,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Genial,{\c&HFFFFFF&}{\1a&H44&}{\fs48} né?
+Dialogue: 0,0:00:47.72,0:00:47.80,Default,,0,0,0,,{\1a&H44&}{\fs48} Genial, {\c&HFFE080&}{\1a&H00&}{\fs58}né?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:48.30,0:00:48.40,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Se{\c&HFFFFFF&}{\1a&H44&}{\fs48} você ama o
+Dialogue: 0,0:00:48.40,0:00:48.62,Default,,0,0,0,,{\1a&H44&}{\fs48} Se {\c&HFFE080&}{\1a&H00&}{\fs58}você{\c&HFFFFFF&}{\1a&H44&}{\fs48} ama o
+Dialogue: 0,0:00:48.62,0:00:48.78,Default,,0,0,0,,{\1a&H44&}{\fs48} Se você {\c&HFFE080&}{\1a&H00&}{\fs58}ama{\c&HFFFFFF&}{\1a&H44&}{\fs48} o
+Dialogue: 0,0:00:48.78,0:00:48.82,Default,,0,0,0,,{\1a&H44&}{\fs48} Se você ama {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:48.82,0:00:49.14,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}segredo{\c&HFFFFFF&}{\1a&H44&}{\fs48} da história, se
+Dialogue: 0,0:00:49.14,0:00:49.26,Default,,0,0,0,,{\1a&H44&}{\fs48} segredo {\c&HFFE080&}{\1a&H00&}{\fs58}da{\c&HFFFFFF&}{\1a&H44&}{\fs48} história, se
+Dialogue: 0,0:00:49.26,0:00:50.12,Default,,0,0,0,,{\1a&H44&}{\fs48} segredo da {\c&HFFE080&}{\1a&H00&}{\fs58}história,{\c&HFFFFFF&}{\1a&H44&}{\fs48} se
+Dialogue: 0,0:00:50.12,0:00:50.22,Default,,0,0,0,,{\1a&H44&}{\fs48} segredo da história, {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:50.22,0:00:50.60,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}inscreve{\c&HFFFFFF&}{\1a&H44&}{\fs48} para não perder
+Dialogue: 0,0:00:50.60,0:00:50.74,Default,,0,0,0,,{\1a&H44&}{\fs48} inscreve {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48} não perder
+Dialogue: 0,0:00:50.74,0:00:50.86,Default,,0,0,0,,{\1a&H44&}{\fs48} inscreve para {\c&HFFE080&}{\1a&H00&}{\fs58}não{\c&HFFFFFF&}{\1a&H44&}{\fs48} perder
+Dialogue: 0,0:00:50.86,0:00:51.08,Default,,0,0,0,,{\1a&H44&}{\fs48} inscreve para não {\c&HFFE080&}{\1a&H00&}{\fs58}perder{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:51.08,0:00:51.14,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} próximo.
+Dialogue: 0,0:00:51.14,0:00:51.50,Default,,0,0,0,,{\1a&H44&}{\fs48} o {\c&HFFE080&}{\1a&H00&}{\fs58}próximo.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:00.00,0:00:05.00,Impact,,0,0,0,,ARMA SECRETA?
+Dialogue: 0,0:00:34.16,0:00:28.16,Impact,,0,0,0,,DESIGN LETAL
+Dialogue: 0,0:00:53.16,0:00:42.80,Impact,,0,0,0,,BLOQUEIO TOTAL
+Dialogue: 0,0:01:20.80,0:00:51.50,Impact,,0,0,0,,GENIALIDADE MEDIEVAL

@@ -1,0 +1,220 @@
+{
+  "gemini_api_key": "AQ.Ab8RN6IhG61WfwiUWYHdDjC2KbngAnLAzhk96WcflL6fK2YgyQ",
+  "highlight_keywords": [
+    "pirâmides",
+    "tumbas",
+    "verdade",
+    "chocante",
+    "propósito",
+    "energia",
+    "cósmica",
+    "observatórios",
+    "estelares",
+    "portais",
+    "mistério",
+    "história",
+    "lacunas",
+    "complexidade",
+    "precisão",
+    "materiais",
+    "ressonância",
+    "eletromagnético",
+    "astronomia",
+    "matemática",
+    "alinhamentos",
+    "constelações",
+    "solstícios",
+    "equinócios",
+    "comunicação",
+    "geometria",
+    "vibracional",
+    "dimensões",
+    "civilizações",
+    "conhecimento",
+    "oculto",
+    "multifuncionais",
+    "iniciação",
+    "cura",
+    "muografia",
+    "descoberta",
+    "cavidade",
+    "enigmas",
+    "reavaliar",
+    "passado",
+    "futuro"
+  ],
+  "bgm_mappings": [
+    {
+      "block": 1,
+      "file": "Ancient Desert Cinematic .mp3"
+    },
+    {
+      "block": 2,
+      "file": "Historical Tension Strings.mp3"
+    },
+    {
+      "block": 3,
+      "file": "Middle Eastern Ambient Drone.mp3"
+    },
+    {
+      "block": 4,
+      "file": "Ancient Desert Cinematic .mp3"
+    },
+    {
+      "block": 5,
+      "file": "Persian Mystical Oasis.mp3"
+    },
+    {
+      "block": 6,
+      "file": "Cinematic Duduk Sadness.mp3"
+    },
+    {
+      "block": 7,
+      "file": "Arabian Caravan Cinematic.mp3"
+    },
+    {
+      "block": 8,
+      "file": "Historical Tension Strings.mp3"
+    },
+    {
+      "block": 9,
+      "file": "Ancient Desert Cinematic .mp3"
+    },
+    {
+      "block": 10,
+      "file": "Middle Eastern Ambient Drone.mp3"
+    },
+    {
+      "block": 11,
+      "file": "Persian Mystical Oasis.mp3"
+    },
+    {
+      "block": 12,
+      "file": "Arabian Caravan Cinematic.mp3"
+    }
+  ],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 3,
+      "text": "NÃO ERAM TÚMULOS?"
+    },
+    {
+      "block": 2,
+      "start_offset": 0,
+      "end_offset": 3,
+      "text": "O REAL PROPÓSITO REVELADO"
+    },
+    {
+      "block": 3,
+      "start_offset": 0,
+      "end_offset": 2,
+      "text": "LACUNAS NA HISTÓRIA"
+    },
+    {
+      "block": 4,
+      "start_offset": 0,
+      "end_offset": 3,
+      "text": "PIRÂMIDES: USINAS DE ENERGIA?"
+    },
+    {
+      "block": 5,
+      "start_offset": 0,
+      "end_offset": 2.5,
+      "text": "OBSERVATÓRIOS CÓSMICOS"
+    },
+    {
+      "block": 6,
+      "start_offset": 0,
+      "end_offset": 3,
+      "text": "PORTAIS PARA OUTROS REINOS?"
+    },
+    {
+      "block": 7,
+      "start_offset": 0,
+      "end_offset": 2,
+      "text": "MÚLTIPLOS PROPÓSITOS"
+    },
+    {
+      "block": 8,
+      "start_offset": 0,
+      "end_offset": 2,
+      "text": "A GRANDE CAVIDADE"
+    },
+    {
+      "block": 9,
+      "start_offset": 0,
+      "end_offset": 2,
+      "text": "QUEM CONSTRUIU? COMO?"
+    },
+    {
+      "block": 10,
+      "start_offset": 0,
+      "end_offset": 2,
+      "text": "EXPANDA SUA MENTE"
+    },
+    {
+      "block": 11,
+      "start_offset": 0,
+      "end_offset": 2.5,
+      "text": "O MAIOR MISTÉRIO DA HUMANIDADE"
+    },
+    {
+      "block": 12,
+      "start_offset": 0,
+      "end_offset": 2,
+      "text": "QUAL SUA TEORIA?"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "Por milênios, fomos ensinados que as pirâmides do Egito eram monumentos grandiosos, tumbas para faraós."
+    },
+    {
+      "block": 2,
+      "phrase": "Prepare-se para uma jornada que vai desvendar os véus da história oficial."
+    },
+    {
+      "block": 3,
+      "phrase": "A narrativa das pirâmides como meras tumbas, embora amplamente aceita, sempre teve suas lacunas."
+    },
+    {
+      "block": 4,
+      "phrase": "Uma das teorias mais fascinantes aponta para as pirâmides como verdadeiras usinas de energia."
+    },
+    {
+      "block": 5,
+      "phrase": "Indo além da energia, muitos estudiosos argumentam que as pirâmides funcionavam como observatórios cósmicos ou calendários gigantes."
+    },
+    {
+      "block": 6,
+      "phrase": "E se as pirâmides fossem ainda mais extraordinárias?"
+    },
+    {
+      "block": 7,
+      "phrase": "Talvez a verdade seja ainda mais complexa: e se as pirâmides não tivessem *um* propósito, mas múltiplos?"
+    },
+    {
+      "block": 8,
+      "phrase": "Recentemente, avanços tecnológicos como a muografia têm revelado segredos surpreendentes."
+    },
+    {
+      "block": 9,
+      "phrase": "A questão fundamental que permanece é: quem realmente construiu as pirâmides com tal sofisticação e conhecimento?"
+    },
+    {
+      "block": 10,
+      "phrase": "Em resumo, as pirâmides do Egito podem ter sido muito mais do que meras tumbas."
+    },
+    {
+      "block": 11,
+      "phrase": "A verdade é que as pirâmides continuam sendo um dos maiores enigmas da humanidade."
+    },
+    {
+      "block": 12,
+      "phrase": "Qual dessas teorias você acha mais convincente?"
+    }
+  ]
+}
