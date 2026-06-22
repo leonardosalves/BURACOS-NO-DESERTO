@@ -6,15 +6,32 @@ import re
 BLOCK_PHRASES = []
 
 import os
-if os.path.exists('config_qanat.json'):
+if os.path.exists('storyboard.json'):
+    try:
+        import json
+        with open('storyboard.json', 'r', encoding='utf-8') as f:
+            sb = json.load(f)
+        if 'visual_prompts' in sb:
+            block_to_phrase = {}
+            for vp in sb['visual_prompts']:
+                block_num = vp.get('block')
+                if block_num and block_num not in block_to_phrase:
+                    text = vp.get('narration_text', '')
+                    if text:
+                        phrase_words = text.split()
+                        short_phrase = " ".join(phrase_words[:5])
+                        block_to_phrase[block_num] = short_phrase
+            BLOCK_PHRASES = sorted([(k, v) for k, v in block_to_phrase.items()], key=lambda x: x[0])
+            print("Loaded dynamic block phrases from storyboard.json")
+    except Exception as e:
+        print("Warning: Failed to load from storyboard.json:", e)
+
+if not BLOCK_PHRASES and os.path.exists('config_qanat.json'):
     try:
         import json
         with open('config_qanat.json', 'r', encoding='utf-8') as f:
             cfg = json.load(f)
         if 'block_phrases' in cfg:
-            # We want to clean or trim these phrases, or take them directly.
-            # To match the window logic, a shorter phrase of 4-6 words is ideal.
-            # Let's take the first 4-6 words of the phrase.
             BLOCK_PHRASES = []
             for item in cfg['block_phrases']:
                 phrase_words = item['phrase'].split()
