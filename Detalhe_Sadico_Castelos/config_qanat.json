@@ -1,0 +1,358 @@
+{
+  "highlight_keywords": [
+    "sádico",
+    "castelos",
+    "escadas",
+    "caracol",
+    "matemática",
+    "armadilha",
+    "geometria",
+    "destro",
+    "canhotos"
+  ],
+  "bgm_mappings": [
+    {
+      "block": 1,
+      "file": "Dark Cinematic Drone  Suspense Opressivo.mp3"
+    },
+    {
+      "block": 2,
+      "file": "Ticking Suspense (Cinematic Minimalist.mp3"
+    },
+    {
+      "block": 3,
+      "file": "Dark Cinematic Drone  Suspense Opressivo.mp3"
+    },
+    {
+      "block": 4,
+      "file": "Mathematical Rhythm  Minimalist Industrial .mp3"
+    },
+    {
+      "block": 5,
+      "file": "War Drums Action Percussion.mp3"
+    },
+    {
+      "block": 6,
+      "file": "dissonant_violin.mp3"
+    },
+    {
+      "block": 7,
+      "file": "Gothic Choir  Dramatic Rise.mp3"
+    },
+    {
+      "block": 8,
+      "file": "Heartbeat  Low Ambient .mp3"
+    },
+    {
+      "block": 9,
+      "file": "Tragic  Funeral March.mp3"
+    },
+    {
+      "block": 10,
+      "file": "Celtic War Strings  Dark Folk .mp3"
+    },
+    {
+      "block": 11,
+      "file": "Epic Resolve Cinematic Climático.mp3"
+    },
+    {
+      "block": 12,
+      "file": "Outro Fadeout  Ambient Mystery.mp3"
+    }
+  ],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 4.5,
+      "text": "ARMADILHA MEDIEVAL"
+    },
+    {
+      "block": 5,
+      "start_offset": 0,
+      "end_offset": 5,
+      "text": "O VIÉS DO DESTRO"
+    },
+    {
+      "block": 6,
+      "start_offset": 0,
+      "end_offset": 5,
+      "text": "DEGRAUS DE TROPEÇO"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "Imagina subir uma escadaria escura"
+    },
+    {
+      "block": 2,
+      "phrase": "Hoje, quando visitamos as ruínas"
+    },
+    {
+      "block": 3,
+      "phrase": "Para entender essa genialidade cruel"
+    },
+    {
+      "block": 4,
+      "phrase": "A primeira grande arma dessas escadas"
+    },
+    {
+      "block": 5,
+      "phrase": "But o detalhe mais sádico e calculado"
+    },
+    {
+      "block": 6,
+      "phrase": "Se você acha que isso é cruel"
+    },
+    {
+      "block": 7,
+      "phrase": "Bastava um milímetro de diferença"
+    },
+    {
+      "block": 8,
+      "phrase": "A essa armadilha física"
+    },
+    {
+      "block": 9,
+      "phrase": "O impacto psicológico dessa subida"
+    },
+    {
+      "block": 10,
+      "phrase": "No entanto, a engenharia militar"
+    },
+    {
+      "block": 11,
+      "phrase": "Embora alguns historiadores modernos"
+    },
+    {
+      "block": 12,
+      "phrase": "Se você estivesse no comando"
+    }
+  ],
+  "timeline_assets": {
+    "1": [
+      {
+        "asset": "cena_1.jpeg",
+        "type": "image",
+        "fixed": 9.2
+      },
+      {
+        "asset": "cena_2.jpeg",
+        "type": "image",
+        "fixed": 10.2
+      },
+      {
+        "asset": "cena_3.mp4",
+        "type": "video",
+        "fixed": 4.5
+      },
+      {
+        "asset": "cena_4.jpeg",
+        "type": "image",
+        "fixed": 17.6
+      }
+    ],
+    "2": [
+      {
+        "asset": "cena_5.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_6.mp4",
+        "type": "video",
+        "fixed": 6
+      },
+      {
+        "asset": "cena_7.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_8.jpeg",
+        "type": "image"
+      }
+    ],
+    "3": [
+      {
+        "asset": "cena_9.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_10.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_11.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_12.jpeg",
+        "type": "image"
+      }
+    ],
+    "4": [
+      {
+        "asset": "cena_13.mp4",
+        "type": "video",
+        "fixed": 6
+      },
+      {
+        "asset": "A_line_of_armored_medieval_202606211349.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_16.jpeg",
+        "type": "image"
+      }
+    ],
+    "5": [
+      {
+        "asset": "cena_17.jpg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_18.mp4",
+        "type": "video",
+        "fixed": 6
+      },
+      {
+        "asset": "cena_19.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_20.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Close-up_of_a_steel_sword_202606211410.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Perspective_of_a_castle_defender_202606211411.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_medieval_defender_in_chainmail_202606211413.jpeg",
+        "type": "image"
+      }
+    ],
+    "6": [
+      {
+        "asset": "A_macro_photograph_of_aged__202606211414.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_clean__modern_concrete_staircase_202606211415.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_medieval_stone-mason_in_coarse_202606211415.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_young_medieval_woman_in_202606211416.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "The_interior_POV_from_inside_202606211417.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "dreamina-2026-06-21-8450-High-action_slow-motion_video_of_a_knigh.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "7": [
+      {
+        "asset": "High-contrast_image_of_a_medieval_202606211434.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Close-up_of_a_narrow_stone_202606211437.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Close-up_of_a_sweaty_medieval_202606211438.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_defender_in_dark_chainmail_202606211439.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "dreamina-2026-06-21-1985-Cinematic_video_of_a_left-handed_medieva.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "8": [
+      {
+        "asset": "An_abstract__moody_representation_of_202606211442.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_close_up_of_medieval_202606211443.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_dark__oppressive_stone_chimney-like_202606211444.jpeg",
+        "type": "image"
+      }
+    ],
+    "9": [
+      {
+        "asset": "Two_heavily_armored_elite_medieval_202606211448_rotated.png",
+        "type": "image"
+      },
+      {
+        "asset": "Discarded_medieval_shields_swords_and_202606211451_rotated.png",
+        "type": "image"
+      }
+    ],
+    "10": [
+      {
+        "asset": "An_ancient__stylized_map_of_202606211454.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_group_of_Scottish_highlanders_202606211458.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Wide_shot_of_the_historic_202606211458.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "dreamina-2026-06-21-1985-Cinematic_video_of_a_left-handed_medieva.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "11": [
+      {
+        "asset": "A_modern_archaeologist_in_a_202606211506.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "A_creative_double_exposure_image__202606211507.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Low_angle_epic_view_of_202606211508.jpeg",
+        "type": "image"
+      }
+    ],
+    "12": [
+      {
+        "asset": "cena_46.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "cena_47.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ]
+  }
+}

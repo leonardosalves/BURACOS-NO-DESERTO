@@ -1,0 +1,832 @@
+[
+    {
+        "index": 1,
+        "filename": "segment_001.mp3",
+        "start_time": 0.0,
+        "duration": 6.12,
+        "end_time": 6.12,
+        "words": [
+            {
+                "word": " Você",
+                "start": 0.0,
+                "end": 0.34
+            },
+            {
+                "word": " já",
+                "start": 0.34,
+                "end": 0.52
+            },
+            {
+                "word": " reparou",
+                "start": 0.52,
+                "end": 0.9
+            },
+            {
+                "word": " que",
+                "start": 0.9,
+                "end": 1.06
+            },
+            {
+                "word": " quase",
+                "start": 1.06,
+                "end": 1.36
+            },
+            {
+                "word": " todo",
+                "start": 1.36,
+                "end": 1.66
+            },
+            {
+                "word": " escada",
+                "start": 1.66,
+                "end": 2.06
+            },
+            {
+                "word": " em",
+                "start": 2.06,
+                "end": 2.2
+            },
+            {
+                "word": " spiral",
+                "start": 2.2,
+                "end": 2.58
+            },
+            {
+                "word": " nos",
+                "start": 2.58,
+                "end": 3.28
+            },
+            {
+                "word": " castelos",
+                "start": 3.28,
+                "end": 3.7
+            },
+            {
+                "word": " mediavais",
+                "start": 3.7,
+                "end": 4.22
+            },
+            {
+                "word": " gira",
+                "start": 4.22,
+                "end": 4.56
+            },
+            {
+                "word": " no",
+                "start": 4.56,
+                "end": 4.7
+            },
+            {
+                "word": " sentido",
+                "start": 4.7,
+                "end": 4.98
+            },
+            {
+                "word": " horário",
+                "start": 4.98,
+                "end": 5.44
+            },
+            {
+                "word": " para",
+                "start": 5.44,
+                "end": 5.66
+            },
+            {
+                "word": " a",
+                "start": 5.66,
+                "end": 5.76
+            },
+            {
+                "word": " direita?",
+                "start": 5.76,
+                "end": 6.12
+            }
+        ],
+        "text": " Você já reparou que quase todo escada em spiral nos castelos mediavais gira no sentido horário para a direita?"
+    },
+    {
+        "index": 2,
+        "filename": "segment_002.mp3",
+        "start_time": 6.86,
+        "duration": 3.4400000000000004,
+        "end_time": 10.3,
+        "words": [
+            {
+                "word": " Não",
+                "start": 0.0,
+                "end": 0.1999999999999993
+            },
+            {
+                "word": " é",
+                "start": 0.1999999999999993,
+                "end": 0.3799999999999999
+            },
+            {
+                "word": " coincidência.",
+                "start": 0.3799999999999999,
+                "end": 1.2199999999999998
+            },
+            {
+                "word": " É",
+                "start": 1.62,
+                "end": 1.8199999999999994
+            },
+            {
+                "word": " uma",
+                "start": 1.8199999999999994,
+                "end": 1.9999999999999991
+            },
+            {
+                "word": " arma",
+                "start": 1.9999999999999991,
+                "end": 2.3
+            },
+            {
+                "word": " de",
+                "start": 2.3,
+                "end": 2.46
+            },
+            {
+                "word": " engenharia",
+                "start": 2.46,
+                "end": 2.96
+            },
+            {
+                "word": " mortal.",
+                "start": 2.96,
+                "end": 3.4400000000000004
+            }
+        ],
+        "text": " Não é coincidência. É uma arma de engenharia mortal."
+    },
+    {
+        "index": 3,
+        "filename": "segment_003.mp3",
+        "start_time": 10.88,
+        "duration": 4.199999999999999,
+        "end_time": 15.08,
+        "words": [
+            {
+                "word": " Na",
+                "start": 0.0,
+                "end": 0.15999999999999837
+            },
+            {
+                "word": " idade",
+                "start": 0.15999999999999837,
+                "end": 0.33999999999999986
+            },
+            {
+                "word": " média,",
+                "start": 0.33999999999999986,
+                "end": 0.6999999999999993
+            },
+            {
+                "word": " os",
+                "start": 1.2799999999999994,
+                "end": 1.42
+            },
+            {
+                "word": " castelos",
+                "start": 1.42,
+                "end": 1.8399999999999999
+            },
+            {
+                "word": " eram",
+                "start": 1.8399999999999999,
+                "end": 2.0199999999999996
+            },
+            {
+                "word": " projetados",
+                "start": 2.0199999999999996,
+                "end": 2.639999999999999
+            },
+            {
+                "word": " para",
+                "start": 2.639999999999999,
+                "end": 2.8599999999999994
+            },
+            {
+                "word": " resistir",
+                "start": 2.8599999999999994,
+                "end": 3.299999999999999
+            },
+            {
+                "word": " a",
+                "start": 3.299999999999999,
+                "end": 3.3599999999999994
+            },
+            {
+                "word": " invasões",
+                "start": 3.3599999999999994,
+                "end": 3.6599999999999984
+            },
+            {
+                "word": " brutais.",
+                "start": 3.6599999999999984,
+                "end": 4.199999999999999
+            }
+        ],
+        "text": " Na idade média, os castelos eram projetados para resistir a invasões brutais."
+    },
+    {
+        "index": 4,
+        "filename": "segment_004.mp3",
+        "start_time": 15.8,
+        "duration": 2.8599999999999994,
+        "end_time": 18.66,
+        "words": [
+            {
+                "word": " Cada",
+                "start": 0.0,
+                "end": 0.23999999999999844
+            },
+            {
+                "word": " detalhe",
+                "start": 0.23999999999999844,
+                "end": 0.620000000000001
+            },
+            {
+                "word": " era",
+                "start": 0.620000000000001,
+                "end": 0.7399999999999984
+            },
+            {
+                "word": " pensado",
+                "start": 0.7399999999999984,
+                "end": 1.1999999999999993
+            },
+            {
+                "word": " exclusivamente",
+                "start": 1.1999999999999993,
+                "end": 2.0599999999999987
+            },
+            {
+                "word": " para",
+                "start": 2.0599999999999987,
+                "end": 2.379999999999999
+            },
+            {
+                "word": " a",
+                "start": 2.379999999999999,
+                "end": 2.5
+            },
+            {
+                "word": " defesa.",
+                "start": 2.5,
+                "end": 2.8599999999999994
+            }
+        ],
+        "text": " Cada detalhe era pensado exclusivamente para a defesa."
+    },
+    {
+        "index": 5,
+        "filename": "segment_005.mp3",
+        "start_time": 19.16,
+        "duration": 6.52,
+        "end_time": 25.68,
+        "words": [
+            {
+                "word": " Se",
+                "start": 0.0,
+                "end": 0.120000000000001
+            },
+            {
+                "word": " um",
+                "start": 0.120000000000001,
+                "end": 0.26000000000000156
+            },
+            {
+                "word": " inimigo",
+                "start": 0.26000000000000156,
+                "end": 0.7800000000000011
+            },
+            {
+                "word": " conseguir",
+                "start": 0.7800000000000011,
+                "end": 1.6799999999999997
+            },
+            {
+                "word": " se",
+                "start": 1.6799999999999997,
+                "end": 1.8999999999999986
+            },
+            {
+                "word": " romper",
+                "start": 1.8999999999999986,
+                "end": 2.1999999999999993
+            },
+            {
+                "word": " o",
+                "start": 2.1999999999999993,
+                "end": 2.3000000000000007
+            },
+            {
+                "word": " portão",
+                "start": 2.3000000000000007,
+                "end": 2.5799999999999983
+            },
+            {
+                "word": " principal,",
+                "start": 2.5799999999999983,
+                "end": 2.9800000000000004
+            },
+            {
+                "word": " ele",
+                "start": 4.18,
+                "end": 4.300000000000001
+            },
+            {
+                "word": " teria",
+                "start": 4.300000000000001,
+                "end": 4.5
+            },
+            {
+                "word": " que",
+                "start": 4.5,
+                "end": 4.640000000000001
+            },
+            {
+                "word": " subir",
+                "start": 4.640000000000001,
+                "end": 4.84
+            },
+            {
+                "word": " essas",
+                "start": 4.84,
+                "end": 5.120000000000001
+            },
+            {
+                "word": " escadas",
+                "start": 5.120000000000001,
+                "end": 5.52
+            },
+            {
+                "word": " estreitas",
+                "start": 5.52,
+                "end": 6.0
+            },
+            {
+                "word": " de",
+                "start": 6.0,
+                "end": 6.140000000000001
+            },
+            {
+                "word": " pedra.",
+                "start": 6.140000000000001,
+                "end": 6.52
+            }
+        ],
+        "text": " Se um inimigo conseguir se romper o portão principal, ele teria que subir essas escadas estreitas de pedra."
+    },
+    {
+        "index": 6,
+        "filename": "segment_006.mp3",
+        "start_time": 25.68,
+        "duration": 2.120000000000001,
+        "end_time": 27.8,
+        "words": [
+            {
+                "word": " E",
+                "start": 0.0,
+                "end": 0.5800000000000018
+            },
+            {
+                "word": " é",
+                "start": 0.5800000000000018,
+                "end": 0.6600000000000001
+            },
+            {
+                "word": " aqui",
+                "start": 0.6600000000000001,
+                "end": 0.8599999999999994
+            },
+            {
+                "word": " que",
+                "start": 0.8599999999999994,
+                "end": 1.0
+            },
+            {
+                "word": " o",
+                "start": 1.0,
+                "end": 1.1000000000000014
+            },
+            {
+                "word": " design",
+                "start": 1.1000000000000014,
+                "end": 1.2800000000000011
+            },
+            {
+                "word": " se",
+                "start": 1.2800000000000011,
+                "end": 1.4800000000000004
+            },
+            {
+                "word": " torna",
+                "start": 1.4800000000000004,
+                "end": 1.740000000000002
+            },
+            {
+                "word": " letal.",
+                "start": 1.740000000000002,
+                "end": 2.120000000000001
+            }
+        ],
+        "text": " E é aqui que o design se torna letal."
+    },
+    {
+        "index": 7,
+        "filename": "segment_007.mp3",
+        "start_time": 28.16,
+        "duration": 1.8000000000000007,
+        "end_time": 29.96,
+        "words": [
+            {
+                "word": " Como",
+                "start": 0.0,
+                "end": 0.23999999999999844
+            },
+            {
+                "word": " a",
+                "start": 0.23999999999999844,
+                "end": 0.3200000000000003
+            },
+            {
+                "word": " maioria",
+                "start": 0.3200000000000003,
+                "end": 0.5199999999999996
+            },
+            {
+                "word": " dos",
+                "start": 0.5199999999999996,
+                "end": 0.7800000000000011
+            },
+            {
+                "word": " guerreiros",
+                "start": 0.7800000000000011,
+                "end": 1.1000000000000014
+            },
+            {
+                "word": " era",
+                "start": 1.1000000000000014,
+                "end": 1.2800000000000011
+            },
+            {
+                "word": " destra?",
+                "start": 1.2800000000000011,
+                "end": 1.8000000000000007
+            }
+        ],
+        "text": " Como a maioria dos guerreiros era destra?"
+    },
+    {
+        "index": 8,
+        "filename": "segment_008.mp3",
+        "start_time": 30.82,
+        "duration": 4.079999999999998,
+        "end_time": 34.9,
+        "words": [
+            {
+                "word": " Um",
+                "start": 0.0,
+                "end": 0.23999999999999844
+            },
+            {
+                "word": " invasor",
+                "start": 0.23999999999999844,
+                "end": 0.5599999999999987
+            },
+            {
+                "word": " subindo",
+                "start": 0.5599999999999987,
+                "end": 0.9199999999999982
+            },
+            {
+                "word": " a",
+                "start": 0.9199999999999982,
+                "end": 1.0199999999999996
+            },
+            {
+                "word": " escada",
+                "start": 1.0199999999999996,
+                "end": 1.2999999999999972
+            },
+            {
+                "word": " tinha",
+                "start": 1.2999999999999972,
+                "end": 1.5399999999999991
+            },
+            {
+                "word": " sua",
+                "start": 1.5399999999999991,
+                "end": 1.7199999999999989
+            },
+            {
+                "word": " espada",
+                "start": 1.7199999999999989,
+                "end": 2.0600000000000023
+            },
+            {
+                "word": " bloqueada",
+                "start": 2.0600000000000023,
+                "end": 2.5600000000000023
+            },
+            {
+                "word": " pela",
+                "start": 2.5600000000000023,
+                "end": 2.799999999999997
+            },
+            {
+                "word": " coluna",
+                "start": 2.799999999999997,
+                "end": 3.1400000000000006
+            },
+            {
+                "word": " central",
+                "start": 3.1400000000000006,
+                "end": 3.5
+            },
+            {
+                "word": " da",
+                "start": 3.5,
+                "end": 3.740000000000002
+            },
+            {
+                "word": " curva.",
+                "start": 3.740000000000002,
+                "end": 4.079999999999998
+            }
+        ],
+        "text": " Um invasor subindo a escada tinha sua espada bloqueada pela coluna central da curva."
+    },
+    {
+        "index": 9,
+        "filename": "segment_009.mp3",
+        "start_time": 35.4,
+        "duration": 3.8999999999999986,
+        "end_time": 39.3,
+        "words": [
+            {
+                "word": " Mas",
+                "start": 0.0,
+                "end": 0.10000000000000142
+            },
+            {
+                "word": " o",
+                "start": 0.10000000000000142,
+                "end": 0.20000000000000284
+            },
+            {
+                "word": " defensor,",
+                "start": 0.20000000000000284,
+                "end": 0.6799999999999997
+            },
+            {
+                "word": " descendo,",
+                "start": 1.0600000000000023,
+                "end": 1.6799999999999997
+            },
+            {
+                "word": " tinha",
+                "start": 1.980000000000004,
+                "end": 2.219999999999999
+            },
+            {
+                "word": " o",
+                "start": 2.219999999999999,
+                "end": 2.3800000000000026
+            },
+            {
+                "word": " braço",
+                "start": 2.3800000000000026,
+                "end": 2.6400000000000006
+            },
+            {
+                "word": " direito",
+                "start": 2.6400000000000006,
+                "end": 2.8999999999999986
+            },
+            {
+                "word": " totalmente",
+                "start": 2.8999999999999986,
+                "end": 3.460000000000001
+            },
+            {
+                "word": " livre",
+                "start": 3.460000000000001,
+                "end": 3.8999999999999986
+            }
+        ],
+        "text": " Mas o defensor, descendo, tinha o braço direito totalmente livre"
+    },
+    {
+        "index": 10,
+        "filename": "segment_010.mp3",
+        "start_time": 39.3,
+        "duration": 3.0,
+        "end_time": 42.3,
+        "words": [
+            {
+                "word": " para",
+                "start": 0.0,
+                "end": 0.6200000000000045
+            },
+            {
+                "word": " golpear",
+                "start": 0.6200000000000045,
+                "end": 1.0400000000000063
+            },
+            {
+                "word": " com",
+                "start": 1.0400000000000063,
+                "end": 1.220000000000006
+            },
+            {
+                "word": " força",
+                "start": 1.220000000000006,
+                "end": 1.5200000000000031
+            },
+            {
+                "word": " máxima",
+                "start": 1.5200000000000031,
+                "end": 2.020000000000003
+            },
+            {
+                "word": " de",
+                "start": 2.020000000000003,
+                "end": 2.1200000000000045
+            },
+            {
+                "word": " cima",
+                "start": 2.1200000000000045,
+                "end": 2.4000000000000057
+            },
+            {
+                "word": " para",
+                "start": 2.4000000000000057,
+                "end": 2.6000000000000014
+            },
+            {
+                "word": " baixo.",
+                "start": 2.6000000000000014,
+                "end": 3.0
+            }
+        ],
+        "text": " para golpear com força máxima de cima para baixo."
+    },
+    {
+        "index": 11,
+        "filename": "segment_011.mp3",
+        "start_time": 42.8,
+        "duration": 3.5400000000000063,
+        "end_time": 46.34,
+        "words": [
+            {
+                "word": " Uma",
+                "start": 0.0,
+                "end": 0.1600000000000037
+            },
+            {
+                "word": " simples",
+                "start": 0.1600000000000037,
+                "end": 0.5
+            },
+            {
+                "word": " curva",
+                "start": 0.5,
+                "end": 0.9000000000000057
+            },
+            {
+                "word": " de",
+                "start": 0.9000000000000057,
+                "end": 1.0400000000000063
+            },
+            {
+                "word": " pedra",
+                "start": 1.0400000000000063,
+                "end": 1.4600000000000009
+            },
+            {
+                "word": " neutralizava",
+                "start": 1.4600000000000009,
+                "end": 2.5400000000000063
+            },
+            {
+                "word": " exército",
+                "start": 2.5400000000000063,
+                "end": 3.020000000000003
+            },
+            {
+                "word": " os",
+                "start": 3.020000000000003,
+                "end": 3.1600000000000037
+            },
+            {
+                "word": " inteiros.",
+                "start": 3.1600000000000037,
+                "end": 3.5400000000000063
+            }
+        ],
+        "text": " Uma simples curva de pedra neutralizava exército os inteiros."
+    },
+    {
+        "index": 12,
+        "filename": "segment_012.mp3",
+        "start_time": 47.1,
+        "duration": 0.6999999999999957,
+        "end_time": 47.8,
+        "words": [
+            {
+                "word": " Genial,",
+                "start": 0.0,
+                "end": 0.519999999999996
+            },
+            {
+                "word": " né?",
+                "start": 0.6199999999999974,
+                "end": 0.6999999999999957
+            }
+        ],
+        "text": " Genial, né?"
+    },
+    {
+        "index": 13,
+        "filename": "segment_013.mp3",
+        "start_time": 48.3,
+        "duration": 3.200000000000003,
+        "end_time": 51.5,
+        "words": [
+            {
+                "word": " Se",
+                "start": 0.0,
+                "end": 0.10000000000000142
+            },
+            {
+                "word": " você",
+                "start": 0.10000000000000142,
+                "end": 0.3200000000000003
+            },
+            {
+                "word": " ama",
+                "start": 0.3200000000000003,
+                "end": 0.480000000000004
+            },
+            {
+                "word": " o",
+                "start": 0.480000000000004,
+                "end": 0.5200000000000031
+            },
+            {
+                "word": " segredo",
+                "start": 0.5200000000000031,
+                "end": 0.8400000000000034
+            },
+            {
+                "word": " da",
+                "start": 0.8400000000000034,
+                "end": 0.9600000000000009
+            },
+            {
+                "word": " história,",
+                "start": 0.9600000000000009,
+                "end": 1.3200000000000003
+            },
+            {
+                "word": " se",
+                "start": 1.8200000000000003,
+                "end": 1.9200000000000017
+            },
+            {
+                "word": " inscreve",
+                "start": 1.9200000000000017,
+                "end": 2.3000000000000043
+            },
+            {
+                "word": " para",
+                "start": 2.3000000000000043,
+                "end": 2.440000000000005
+            },
+            {
+                "word": " não",
+                "start": 2.440000000000005,
+                "end": 2.5600000000000023
+            },
+            {
+                "word": " perder",
+                "start": 2.5600000000000023,
+                "end": 2.780000000000001
+            },
+            {
+                "word": " o",
+                "start": 2.780000000000001,
+                "end": 2.8400000000000034
+            },
+            {
+                "word": " próximo.",
+                "start": 2.8400000000000034,
+                "end": 3.200000000000003
+            }
+        ],
+        "text": " Se você ama o segredo da história, se inscreve para não perder o próximo."
+    }
+]
