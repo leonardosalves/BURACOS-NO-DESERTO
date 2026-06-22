@@ -3714,6 +3714,32 @@ export default function App() {
 
                           </a>
 
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Tem certeza que deseja excluir "${video.name}"? Esta ação não pode ser desfeita.`)) return;
+                              try {
+                                const res = await fetch(getProjectUrl('/api/outputs/delete'), {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ filename: video.name })
+                                });
+                                if (res.ok) {
+                                  toast.success(`Vídeo "${video.name}" excluído com sucesso!`);
+                                  setOutputs(prev => prev.filter(v => v.name !== video.name));
+                                } else {
+                                  const err = await res.json();
+                                  toast.error(err.error || 'Erro ao excluir o vídeo.');
+                                }
+                              } catch (err) {
+                                toast.error('Falha de conexão ao excluir.');
+                              }
+                            }}
+                            className="bg-red-950 border border-red-900/50 text-red-400 hover:bg-red-900 hover:text-red-300 px-3 py-1.5 rounded-lg text-[11px] font-medium transition flex items-center gap-1.5 cursor-pointer"
+                            title={`Excluir ${video.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
                         </div>
 
                       </div>

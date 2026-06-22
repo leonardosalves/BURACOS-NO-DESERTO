@@ -21,7 +21,7 @@
     },
     {
       "block": 3,
-      "file": "Dark Cinematic Drone  Suspense Opressivo.mp3"
+      "file": "Dark Medieval Gothic Orchestral no cpyright.mp3"
     },
     {
       "block": 4,
@@ -140,12 +140,12 @@
       {
         "asset": "cena_2.jpeg",
         "type": "image",
-        "fixed": 10.2
+        "fixed": 5.5
       },
       {
         "asset": "cena_3.mp4",
         "type": "video",
-        "fixed": 4.5
+        "fixed": 9
       },
       {
         "asset": "cena_4.jpeg",
@@ -184,17 +184,17 @@
       {
         "asset": "cena_10.jpeg",
         "type": "image",
-        "fixed": 11.2
+        "fixed": 4
       },
       {
         "asset": "cena_11.jpeg",
         "type": "image",
-        "fixed": 11
+        "fixed": 7
       },
       {
         "asset": "cena_12.jpeg",
         "type": "image",
-        "fixed": 9
+        "fixed": 10
       },
       {
         "asset": "Top-down_geometric_look_of_a_202606211348.jpeg",
@@ -259,7 +259,7 @@
       {
         "asset": "A_macro_photograph_of_aged__202606211414.jpeg",
         "type": "image",
-        "fixed": 12
+        "fixed": 10.5
       },
       {
         "asset": "A_clean__modern_concrete_staircase_202606211415.jpeg",
@@ -274,7 +274,7 @@
       {
         "asset": "A_young_medieval_woman_in_202606211416.jpeg",
         "type": "image",
-        "fixed": 9.8
+        "fixed": 9.5
       },
       {
         "asset": "The_interior_POV_from_inside_202606211417.jpeg",
@@ -284,7 +284,7 @@
       {
         "asset": "dreamina-2026-06-21-8450-High-action_slow-motion_video_of_a_knigh.mp4",
         "type": "video",
-        "fixed": 0.5
+        "fixed": 11.5
       }
     ],
     "7": [
@@ -306,7 +306,7 @@
       {
         "asset": "A_defender_in_dark_chainmail_202606211439.jpeg",
         "type": "image",
-        "fixed": 0.5
+        "fixed": 10
       }
     ],
     "8": [
@@ -323,7 +323,7 @@
       {
         "asset": "A_dark__oppressive_stone_chimney-like_202606211444.jpeg",
         "type": "image",
-        "fixed": 0.5
+        "fixed": 11.5
       }
     ],
     "9": [
@@ -364,12 +364,12 @@
       {
         "asset": "A_modern_archaeologist_in_a_202606211506.jpeg",
         "type": "image",
-        "fixed": 7.3
+        "fixed": 12
       },
       {
         "asset": "A_creative_double_exposure_image__202606211507.jpeg",
         "type": "image",
-        "fixed": 15.8
+        "fixed": 11
       },
       {
         "asset": "Low_angle_epic_view_of_202606211508.jpeg",
@@ -381,12 +381,12 @@
       {
         "asset": "cena_46.jpeg",
         "type": "image",
-        "fixed": 7.5
+        "fixed": 13
       },
       {
         "asset": "cena_47.mp4",
         "type": "video",
-        "fixed": 12.6
+        "fixed": 8
       }
     ]
   }
