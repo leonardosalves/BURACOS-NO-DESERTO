@@ -1094,6 +1094,8 @@ export default function App() {
 
     const configs = config.timeline_assets[blockKey];
 
+    if (!configs || configs[index] === undefined) return 0;
+
     
 
     const sumFixed = configs.reduce((acc: number, c: any) => acc + (c.fixed ? c.fixed : 0), 0);
@@ -1307,6 +1309,8 @@ export default function App() {
       return cache;
 
     }
+
+    const timelineAssets = config.timeline_assets || {};
 
     const PORTUGUESE_STOP_WORDS = new Set([
 
