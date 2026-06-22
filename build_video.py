@@ -314,77 +314,30 @@ def build_timeline():
         flexible_clips = [c for c in configs if "fixed" not in c]
         n_flex = len(flexible_clips)
 
-        if n_flex > 0:
-            remaining = block_duration - sum_fixed
-            if remaining > 0:
-                flex_duration = remaining / n_flex
-                for c_idx, c in enumerate(configs):
-                    dur = c.get("fixed", flex_duration)
+        for c_idx, c in enumerate(configs):
+            editor_notes = ""
+            block_prompts = [p for p in storyboard_prompts if p.get('block') == block_num]
+            if c_idx < len(block_prompts):
+                editor_notes = block_prompts[c_idx].get('editor_notes', "")
 
-                    editor_notes = ""
-                    block_prompts = [p for p in storyboard_prompts if p.get('block') == block_num]
-                    if c_idx < len(block_prompts):
-                        editor_notes = block_prompts[c_idx].get('editor_notes', "")
-
-                    timeline.append({
-                        "block": block_num,
-                        "asset": c["asset"],
-                        "type": c["type"],
-                        "duration": dur,
-                        "editor_notes": editor_notes
-                    })
+            # Se o asset tem duração fixa, SEMPRE respeitar exatamente (igual ao dashboard)
+            if "fixed" in c and c["fixed"] is not None:
+                dur = c["fixed"]
             else:
-                flex_duration = 0.5
-                total_fixed_with_flex = sum_fixed + n_flex * flex_duration
-                scale = block_duration / total_fixed_with_flex
-                for c_idx, c in enumerate(configs):
-                    dur = c.get("fixed", flex_duration) * scale
+                # Para assets sem duração fixa, distribuir o tempo restante do bloco
+                if n_flex > 0:
+                    remaining = max(0.5 * n_flex, block_duration - sum_fixed)
+                    dur = remaining / n_flex
+                else:
+                    dur = 0.5  # fallback mínimo
 
-                    editor_notes = ""
-                    block_prompts = [p for p in storyboard_prompts if p.get('block') == block_num]
-                    if c_idx < len(block_prompts):
-                        editor_notes = block_prompts[c_idx].get('editor_notes', "")
-
-                    timeline.append({
-                        "block": block_num,
-                        "asset": c["asset"],
-                        "type": c["type"],
-                        "duration": dur,
-                        "editor_notes": editor_notes
-                    })
-        else:
-            if sum_fixed > block_duration:
-                scale = block_duration / sum_fixed
-                for c_idx, c in enumerate(configs):
-                    editor_notes = ""
-                    block_prompts = [p for p in storyboard_prompts if p.get('block') == block_num]
-                    if c_idx < len(block_prompts):
-                        editor_notes = block_prompts[c_idx].get('editor_notes', "")
-                    timeline.append({
-                        "block": block_num,
-                        "asset": c["asset"],
-                        "type": c["type"],
-                        "duration": c["fixed"] * scale,
-                        "editor_notes": editor_notes
-                    })
-            else:
-                for c_idx, c in enumerate(configs):
-                    editor_notes = ""
-                    block_prompts = [p for p in storyboard_prompts if p.get('block') == block_num]
-                    if c_idx < len(block_prompts):
-                        editor_notes = block_prompts[c_idx].get('editor_notes', "")
-
-                    dur = c["fixed"]
-                    if c_idx == len(configs) - 1:
-                        dur += (block_duration - sum_fixed)
-
-                    timeline.append({
-                        "block": block_num,
-                        "asset": c["asset"],
-                        "type": c["type"],
-                        "duration": dur,
-                        "editor_notes": editor_notes
-                    })
+            timeline.append({
+                "block": block_num,
+                "asset": c["asset"],
+                "type": c["type"],
+                "duration": dur,
+                "editor_notes": editor_notes
+            })
 
     return timeline
 
@@ -490,13 +443,15 @@ def render_subclip(clip_id, clip_info):
         video_dur = get_video_duration(asset_path)
         effective_dur = video_dur * speed_multiplier
 
-        loop_args = []
+        # Se o vídeo é mais curto que a duração pedida, congelar no último frame
+        # (NÃO fazer loop para evitar repetição)
         if effective_dur > 0 and effective_dur < duration:
-            loop_args = ['-stream_loop', '-1']
+            # Usar tpad para preencher com o último frame ao invés de looping
+            pad_duration = duration - effective_dur
+            vf_string += f",tpad=stop_mode=clone:stop_duration={pad_duration:.3f}"
 
         cmd = [
-            'ffmpeg', '-y'
-        ] + loop_args + [
+            'ffmpeg', '-y',
             '-i', asset_path, '-t', f"{duration:.3f}",
             '-vf', vf_string,
             '-an', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', '60', output_path
