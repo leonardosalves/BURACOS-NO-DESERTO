@@ -314,30 +314,45 @@ def build_timeline():
         flexible_clips = [c for c in configs if "fixed" not in c]
         n_flex = len(flexible_clips)
 
+        # Fase 1: Calcular durações baseadas nas preferências do usuário
+        block_clips = []
         for c_idx, c in enumerate(configs):
             editor_notes = ""
             block_prompts = [p for p in storyboard_prompts if p.get('block') == block_num]
             if c_idx < len(block_prompts):
                 editor_notes = block_prompts[c_idx].get('editor_notes', "")
 
-            # Se o asset tem duração fixa, SEMPRE respeitar exatamente (igual ao dashboard)
             if "fixed" in c and c["fixed"] is not None:
                 dur = c["fixed"]
             else:
-                # Para assets sem duração fixa, distribuir o tempo restante do bloco
                 if n_flex > 0:
                     remaining = max(0.5 * n_flex, block_duration - sum_fixed)
                     dur = remaining / n_flex
                 else:
-                    dur = 0.5  # fallback mínimo
+                    dur = 0.5
 
-            timeline.append({
+            block_clips.append({
                 "block": block_num,
                 "asset": c["asset"],
                 "type": c["type"],
                 "duration": dur,
                 "editor_notes": editor_notes
             })
+
+        # Fase 2: NORMALIZAR para que o total do bloco bata EXATAMENTE com a narração
+        # Isso garante que a narração e o vídeo fiquem 100% sincronizados
+        block_total = sum(clip["duration"] for clip in block_clips)
+        if block_total > 0 and abs(block_total - block_duration) > 0.01:
+            scale = block_duration / block_total
+            for clip in block_clips:
+                clip["duration"] = round(clip["duration"] * scale, 3)
+            # Ajustar o último clip para compensar erros de arredondamento
+            adjusted_total = sum(clip["duration"] for clip in block_clips)
+            if block_clips:
+                block_clips[-1]["duration"] += (block_duration - adjusted_total)
+            print(f"  Bloco {block_num}: normalizado {block_total:.1f}s → {block_duration:.1f}s (escala: {scale:.3f})")
+
+        timeline.extend(block_clips)
 
     return timeline
 
@@ -640,13 +655,19 @@ def main():
         generate_drone(792)
 
     # 1. Build Subtitles
+    print("[PROGRESSO] FASE 1/5 - Gerando legendas dinâmicas...")
+    print("[PROGRESSO] 5%")
     generate_subtitles()
 
     # 2. Build Timeline
+    print("[PROGRESSO] FASE 2/5 - Montando linha do tempo...")
+    print("[PROGRESSO] 10%")
     timeline = build_timeline()
-    print(f"Compiled timeline contains {len(timeline)} clips. Total duration: {sum(c['duration'] for c in timeline):.2f}s.")
+    total_dur = sum(c['duration'] for c in timeline)
+    print(f"Timeline compilada: {len(timeline)} clips, duração total: {total_dur:.2f}s.")
 
-    print("\nStarting parallel rendering of sub-clips...")
+    # 3. Render sub-clips (bulk of the work - 10% to 80%)
+    print("[PROGRESSO] FASE 3/5 - Renderizando sub-clips...")
     max_workers = min(os.cpu_count() or 4, 6)
     rendered_paths = [None] * len(timeline)
 
@@ -659,17 +680,21 @@ def main():
                 path, cached = future.result()
                 rendered_paths[idx] = path
                 completed_count += 1
-                status = "Cached" if cached else "Rendered"
-                print(f"[{completed_count}/{len(timeline)}] {status} clip {idx:03d} -> {path}")
+                pct = 10 + int(70 * completed_count / len(timeline))
+                status = "Cache" if cached else "Renderizado"
+                print(f"[PROGRESSO] {pct}%")
+                print(f"  [{completed_count}/{len(timeline)}] {status} clip {idx:03d} → {os.path.basename(path)}")
             except Exception as e:
-                print(f"Failed rendering future for clip index {idx}: {e}")
+                print(f"ERRO no clip {idx}: {e}")
                 raise e
 
-    print("\nConcatenating all sub-clips into clean video track...")
+    # 4. Concatenate + Audio Mix
+    print("[PROGRESSO] FASE 4/5 - Concatenando clips e mixando áudio...")
+    print("[PROGRESSO] 82%")
     concat_list_path = 'clips_list.txt'
     with open(concat_list_path, 'w', encoding='utf-8') as f:
         for p in rendered_paths:
-            f.write(f"file '{p.replace(chr(92), '/')}'\n")
+            f.write(f"file '{p.replace(chr(92), '/')}'\\n")
 
     clean_video_no_audio = 'clean_video_no_audio.mp4'
     concat_cmd = [
@@ -678,7 +703,7 @@ def main():
     ]
     subprocess.run(concat_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
-    print("\nMixing audio and applying dynamic ducking...")
+    print("[PROGRESSO] 85%")
     no_subs_path = os.path.join(OUTPUT_DIR, 'video_final_60fps_sem_legendas.mp4')
 
     # Check if custom premium BGM track exists, else fallback to synthetic drone
@@ -702,7 +727,10 @@ def main():
     ]
     subprocess.run(mix_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
-    print("\nBurning subtitles and impact text overlays...")
+    # 5. Burn Subtitles
+    print("[PROGRESSO] FASE 5/5 - Gravando legendas no vídeo...")
+    print("[PROGRESSO] 90%")
+
     with_subs_path = os.path.join(OUTPUT_DIR, 'video_final_60fps_com_legendas.mp4')
     sub_filter_path = SUB_PATH.replace('\\', '/').replace(':', '\\:')
 
@@ -730,6 +758,7 @@ def main():
         print(f"Warning: Cleanup failed to remove some files: {e}")
 
     print("\n=======================================================")
+    print("[PROGRESSO] 100%")
     print("SUCCESS! Video generation pipeline complete!")
     print(f"Clean Video: {no_subs_path}")
     print(f"Subtitled Video: {with_subs_path}")
