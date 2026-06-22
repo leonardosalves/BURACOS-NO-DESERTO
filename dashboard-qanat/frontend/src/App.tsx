@@ -214,6 +214,8 @@ export default function App() {
 
   const [deletingProjectName, setDeletingProjectName] = useState<string | null>(null);
 
+  const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
+
   const [chatOpen, setChatOpen] = useState<boolean>(false);
 
   // Creator states
@@ -2955,6 +2957,8 @@ export default function App() {
 
     setRendering(true);
 
+    setRenderProgress({ percent: 0, phase: 'Inicializando...' });
+
     if (!fromWizard) setActiveTab('terminal');
 
     setLogs([]);
@@ -2970,6 +2974,18 @@ export default function App() {
       if (data.type === 'log') {
 
         setLogs(prev => [...prev, data.text]);
+
+        if (data.text.startsWith('[PROGRESSO]')) {
+          const matchPhase = data.text.match(/\[PROGRESSO\] (FASE \d+\/\d+ - .+)/);
+          const matchPct = data.text.match(/\[PROGRESSO\] (\d+)%/);
+
+          setRenderProgress(prev => {
+            const current = prev || { percent: 0, phase: 'Processando...' };
+            if (matchPhase) return { ...current, phase: matchPhase[1] };
+            if (matchPct) return { ...current, percent: parseInt(matchPct[1], 10) };
+            return current;
+          });
+        }
 
       } else if (data.type === 'complete') {
 
@@ -8032,6 +8048,52 @@ export default function App() {
         </div>
 
       )}
+
+      {/* OVERLAY DE PROGRESSO DA RENDERIZAÇÃO */}
+      {rendering && renderProgress && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center z-[100] animate-fade-in font-sans">
+          <div className="w-[600px] max-w-[90vw] flex flex-col items-center text-center">
+            
+            {/* Ícone Animado */}
+            <div className="relative mb-8">
+              <div className="absolute inset-0 bg-gold-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+              <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center relative z-10 shadow-2xl">
+                <svg className="w-10 h-10 text-gold-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Fase e Status */}
+            <h2 className="text-3xl font-light tracking-wide text-white mb-2">
+              Renderizando Vídeo
+            </h2>
+            <p className="text-lg text-gold-400 font-medium tracking-wide mb-8">
+              {renderProgress.phase}
+            </p>
+
+            {/* Barra de Progresso */}
+            <div className="w-full bg-zinc-900 border border-zinc-800 rounded-full h-4 mb-3 overflow-hidden shadow-inner relative">
+              <div 
+                className="h-full bg-gradient-to-r from-gold-600 via-gold-400 to-yellow-300 rounded-full transition-all duration-300 ease-out relative"
+                style={{ width: `${renderProgress.percent}%` }}
+              >
+                {/* Brilho na ponta da barra */}
+                <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-white/40 to-transparent"></div>
+              </div>
+            </div>
+            
+            {/* Porcentagem */}
+            <div className="flex justify-between w-full px-2">
+              <span className="text-zinc-500 text-sm font-mono tracking-wider">PROCESSANDO MÍDIAS...</span>
+              <span className="text-white text-xl font-mono font-medium">{renderProgress.percent}%</span>
+            </div>
+
+            <p className="mt-12 text-sm text-zinc-500">Isso pode levar vários minutos dependendo da resolução e efeitos selecionados.</p>
+          </div>
+        </div>
+      )}
+
 
     </div>
 
