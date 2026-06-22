@@ -958,6 +958,9 @@ export default function App() {
 
   };
 
+  // Debounce ref for auto-saving timeline changes
+  const timelineSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const updateTimelineAssetField = (blockKey: string, index: number, field: string, value: any) => {
 
     if (!config) return;
@@ -986,9 +989,17 @@ export default function App() {
 
     newTimelineAssets[blockKey] = blockAssets;
 
-    
+    const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
 
-    setConfig({ ...config, timeline_assets: newTimelineAssets });
+    setConfig(updatedConfig);
+
+    // Auto-save to server with debounce (800ms)
+    if (timelineSaveTimer.current) {
+      clearTimeout(timelineSaveTimer.current);
+    }
+    timelineSaveTimer.current = setTimeout(() => {
+      saveConfig(updatedConfig);
+    }, 800);
 
   };
 
@@ -1020,7 +1031,9 @@ export default function App() {
 
     newTimelineAssets[blockKey] = blockAssets;
 
-    setConfig({ ...config, timeline_assets: newTimelineAssets });
+    const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
 
   };
 
@@ -1038,7 +1051,9 @@ export default function App() {
 
     newTimelineAssets[blockKey] = blockAssets;
 
-    setConfig({ ...config, timeline_assets: newTimelineAssets });
+    const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
 
     toast.success("Asset removido da linha do tempo!");
 
@@ -1068,7 +1083,9 @@ export default function App() {
 
     newTimelineAssets[blockKey] = blockAssets;
 
-    setConfig({ ...config, timeline_assets: newTimelineAssets });
+    const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
 
   };
 
