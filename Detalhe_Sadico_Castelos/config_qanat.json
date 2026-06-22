@@ -150,208 +150,239 @@
       {
         "asset": "cena_4.jpeg",
         "type": "image",
-        "fixed": 17.6
+        "fixed": 9.4
+      },
+      {
+        "asset": "A_silhouette_of_a_defeated_202606211334.jpeg",
+        "type": "image",
+        "fixed": 8.2
       }
     ],
     "2": [
       {
-        "asset": "cena_5.jpeg",
-        "type": "image"
-      },
-      {
         "asset": "cena_6.mp4",
         "type": "video",
-        "fixed": 6
+        "fixed": 10
       },
       {
         "asset": "cena_7.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 10.8
       },
       {
         "asset": "cena_8.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 24.7
       }
     ],
     "3": [
       {
         "asset": "cena_9.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 14.8
       },
       {
         "asset": "cena_10.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 11.2
       },
       {
         "asset": "cena_11.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 11
       },
       {
         "asset": "cena_12.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9
       }
     ],
     "4": [
       {
         "asset": "cena_13.mp4",
         "type": "video",
-        "fixed": 6
+        "fixed": 8.4
       },
       {
         "asset": "A_line_of_armored_medieval_202606211349.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9
       },
       {
         "asset": "cena_16.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 12.3
       }
     ],
     "5": [
       {
         "asset": "cena_17.jpg",
-        "type": "image"
+        "type": "image",
+        "fixed": 7.8
       },
       {
         "asset": "cena_18.mp4",
         "type": "video",
-        "fixed": 6
+        "fixed": 8.3
       },
       {
         "asset": "cena_19.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9.8
       },
       {
         "asset": "cena_20.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 11.6
       },
       {
         "asset": "Close-up_of_a_steel_sword_202606211410.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 10.7
       },
       {
         "asset": "Perspective_of_a_castle_defender_202606211411.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 6.6
       },
       {
         "asset": "A_medieval_defender_in_chainmail_202606211413.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 10.4
       }
     ],
     "6": [
       {
         "asset": "A_macro_photograph_of_aged__202606211414.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 12
       },
       {
         "asset": "A_clean__modern_concrete_staircase_202606211415.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9.9
       },
       {
         "asset": "A_medieval_stone-mason_in_coarse_202606211415.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 11.7
       },
       {
         "asset": "A_young_medieval_woman_in_202606211416.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9.8
       },
       {
         "asset": "The_interior_POV_from_inside_202606211417.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 10.8
       },
       {
         "asset": "dreamina-2026-06-21-8450-High-action_slow-motion_video_of_a_knigh.mp4",
         "type": "video",
-        "fixed": 8
+        "fixed": 0.5
       }
     ],
     "7": [
       {
         "asset": "High-contrast_image_of_a_medieval_202606211434.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 6.7
       },
       {
         "asset": "Close-up_of_a_narrow_stone_202606211437.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 11.9
       },
       {
         "asset": "Close-up_of_a_sweaty_medieval_202606211438.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 8.3
       },
       {
         "asset": "A_defender_in_dark_chainmail_202606211439.jpeg",
-        "type": "image"
-      },
-      {
-        "asset": "dreamina-2026-06-21-1985-Cinematic_video_of_a_left-handed_medieva.mp4",
-        "type": "video",
-        "fixed": 8
+        "type": "image",
+        "fixed": 0.5
       }
     ],
     "8": [
       {
         "asset": "An_abstract__moody_representation_of_202606211442.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 4.9
       },
       {
         "asset": "A_close_up_of_medieval_202606211443.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 7.8
       },
       {
         "asset": "A_dark__oppressive_stone_chimney-like_202606211444.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 0.5
       }
     ],
     "9": [
       {
         "asset": "Two_heavily_armored_elite_medieval_202606211448_rotated.png",
-        "type": "image"
+        "type": "image",
+        "fixed": 12.7
       },
       {
         "asset": "Discarded_medieval_shields_swords_and_202606211451_rotated.png",
-        "type": "image"
+        "type": "image",
+        "fixed": 13.4
       }
     ],
     "10": [
       {
         "asset": "An_ancient__stylized_map_of_202606211454.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9.3
       },
       {
         "asset": "A_group_of_Scottish_highlanders_202606211458.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 6.8
       },
       {
         "asset": "Wide_shot_of_the_historic_202606211458.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 9.9
       },
       {
         "asset": "dreamina-2026-06-21-1985-Cinematic_video_of_a_left-handed_medieva.mp4",
         "type": "video",
-        "fixed": 8
+        "fixed": 10.7
       }
     ],
     "11": [
       {
         "asset": "A_modern_archaeologist_in_a_202606211506.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 7.3
       },
       {
         "asset": "A_creative_double_exposure_image__202606211507.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 15.8
       },
       {
         "asset": "Low_angle_epic_view_of_202606211508.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 12.5
       }
     ],
     "12": [
       {
         "asset": "cena_46.jpeg",
-        "type": "image"
+        "type": "image",
+        "fixed": 7.5
       },
       {
         "asset": "cena_47.mp4",
         "type": "video",
-        "fixed": 8
+        "fixed": 12.6
       }
     ]
   }

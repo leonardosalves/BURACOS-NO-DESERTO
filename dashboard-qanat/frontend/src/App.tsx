@@ -1590,6 +1590,94 @@ export default function App() {
 
   };
 
+  // === DYNAMIC NARRATION: collect all words per block with audio timestamps ===
+  const blockNarrationWordsCache = useMemo(() => {
+    const cache: Record<string, Array<{ word: string; start: number; end: number }>> = {};
+    if (!config || !config.timeline_assets || !flatTranscriptWords || flatTranscriptWords.length === 0) return cache;
+
+    const timelineAssets = config.timeline_assets;
+    Object.keys(timelineAssets).forEach(blockKey => {
+      const assets = timelineAssets[blockKey] || [];
+      const allWords: Array<{ word: string; start: number; end: number }> = [];
+      const seenPositions = new Set<string>();
+
+      assets.forEach((_, idx) => {
+        const narrationText = getAssetNarration(blockKey, idx);
+        if (!narrationText) return;
+        const matched = narrationMatchesCache[narrationText];
+        if (!matched) return;
+        const words = getStoryboardWordsWithTiming(narrationText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
+        words.forEach(w => {
+          const key = `${w.start.toFixed(3)}-${w.word}`;
+          if (!seenPositions.has(key)) {
+            allWords.push(w);
+            seenPositions.add(key);
+          }
+        });
+      });
+
+      allWords.sort((a, b) => a.start - b.start);
+      cache[blockKey] = allWords;
+    });
+    return cache;
+  }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, narrationMatchesCache, flatTranscriptWords]);
+
+  // Get dynamically distributed words for a specific asset based on its time window
+  const getDynamicAssetWords = (blockKey: string, assetIdx: number): {
+    words: Array<{ word: string; start: number; end: number }>;
+    text: string;
+    assetAudioStart: number;
+    assetAudioEnd: number;
+    blockAudioStart: number;
+    blockAudioEnd: number;
+    totalBlockWords: number;
+    coveredWords: number;
+  } | null => {
+    const blockNum = parseInt(blockKey, 10);
+    const starts = status?.block_timings?.starts;
+    const durations = status?.block_timings?.durations;
+    if (!starts || starts[blockNum - 1] === undefined) return null;
+
+    const blockAudioStart = starts[blockNum - 1];
+    const blockDuration = (durations && durations[blockNum - 1]) || 10.0;
+    const blockAudioEnd = blockAudioStart + blockDuration;
+
+    // Calculate this asset's time window within the block
+    let assetAudioStart = blockAudioStart;
+    for (let i = 0; i < assetIdx; i++) {
+      assetAudioStart += getAssetDuration(blockKey, i);
+    }
+    const assetDuration = getAssetDuration(blockKey, assetIdx);
+    const assetAudioEnd = Math.min(assetAudioStart + assetDuration, blockAudioEnd);
+
+    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
+    if (allBlockWords.length === 0) return null;
+
+    // Filter words that fall within this asset's time window
+    const assetWords = allBlockWords.filter(w =>
+      w.start >= assetAudioStart - 0.15 && w.start < assetAudioEnd - 0.05
+    );
+
+    // Count total words covered by ALL assets in the block
+    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
+    let totalEndTime = blockAudioStart;
+    for (let i = 0; i < totalAssets; i++) {
+      totalEndTime += getAssetDuration(blockKey, i);
+    }
+    const coveredWords = allBlockWords.filter(w => w.start < Math.min(totalEndTime, blockAudioEnd) - 0.05).length;
+
+    return {
+      words: assetWords,
+      text: assetWords.map(w => w.word).join(' '),
+      assetAudioStart,
+      assetAudioEnd,
+      blockAudioStart,
+      blockAudioEnd,
+      totalBlockWords: allBlockWords.length,
+      coveredWords
+    };
+  };
+
   const alignBlockAssetsToSpeech = (blockKey: string) => {
 
     if (!config || !config.timeline_assets || !config.timeline_assets[blockKey]) return;
@@ -5209,206 +5297,113 @@ export default function App() {
 
                                   </div>
 
-                                  {/* Corresponding narration from storyboard */}
+                                  {/* Dynamic narration - words redistribute based on asset duration */}
 
                                   {(() => {
+                                    const dynamicResult = getDynamicAssetWords(blockKey, idx);
+                                    const staticNarration = getAssetNarration(blockKey, idx);
 
-                                    const narrationText = getAssetNarration(blockKey, idx);
-
-                                    if (!narrationText) return null;
-
-                                    
-
-                                    const timeRange = (() => {
-
-                                      const matchedTime = findNarrationTimestamps(narrationText);
-
-                                      if (matchedTime) {
-
-                                        return {
-
-                                          start: matchedTime.start,
-
-                                          end: matchedTime.end,
-
-                                          duration: matchedTime.duration,
-
-                                          isMatched: true,
-
-                                          bestFirstMatchIdx: matchedTime.bestFirstMatchIdx,
-
-                                          bestLastMatchIdx: matchedTime.bestLastMatchIdx
-
-                                        };
-
-                                      }
-
-                                      const blockNum = Number(blockKey);
-
-                                      const starts = status?.block_timings?.starts;
-
-                                      if (!starts || starts[blockNum - 1] === undefined) return null;
-
-                                      
-
-                                      let currentStart = starts[blockNum - 1];
-
-                                      for (let i = 0; i < idx; i++) {
-
-                                        currentStart += getAssetDuration(blockKey, i);
-
-                                      }
-
-                                      const duration = getAssetDuration(blockKey, idx);
-
-                                      return {
-
-                                        start: currentStart,
-
-                                        end: currentStart + duration,
-
-                                        duration,
-
-                                        isMatched: false,
-
-                                        bestFirstMatchIdx: -1,
-
-                                        bestLastMatchIdx: -1
-
-                                      };
-
-                                    })();
-
-                                    
-
-                                    const scenePlayKey = `scene-${blockKey}-${idx}`;
-
-                                    const isPlaying = playingNarration === scenePlayKey;
+                                    if (!dynamicResult && !staticNarration) return null;
 
                                     const actualDuration = getAssetDuration(blockKey, idx);
+                                    const scenePlayKey = `scene-${blockKey}-${idx}`;
+                                    const isPlaying = playingNarration === scenePlayKey;
 
-                                    
+                                    // Use dynamic words if available
+                                    const displayWords = dynamicResult ? dynamicResult.words : [];
+                                    const hasDynamic = dynamicResult !== null && dynamicResult.totalBlockWords > 0;
 
-                                    const wordsWithTiming = timeRange 
-
-                                      ? getStoryboardWordsWithTiming(narrationText, timeRange.bestFirstMatchIdx, timeRange.bestLastMatchIdx)
-
-                                      : [];
+                                    // Coverage info for the whole block (show only on last asset)
+                                    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
+                                    const isLastAsset = idx === totalAssets - 1;
+                                    const coveragePercent = dynamicResult ? Math.round((dynamicResult.coveredWords / dynamicResult.totalBlockWords) * 100) : 0;
+                                    const allWordsCovered = dynamicResult ? dynamicResult.coveredWords >= dynamicResult.totalBlockWords : false;
 
                                     return (
+                                      <div className={`bg-zinc-900/50 p-2.5 rounded-lg border ${
+                                        hasDynamic && displayWords.length > 0
+                                          ? 'border-emerald-900/30'
+                                          : hasDynamic && displayWords.length === 0
+                                            ? 'border-zinc-900/30'
+                                            : 'border-zinc-850/50'
+                                      } flex flex-col gap-1.5 select-text`}>
+                                        <div className="flex items-start gap-2.5">
+                                          <Bot className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-1">
+                                              <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">
+                                                {hasDynamic ? 'Narração Dinâmica' : 'Narração Recomendada'}
+                                              </span>
+                                              {status?.has_narration && dynamicResult && (
+                                                <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-400">
+                                                  <span className="text-emerald-400 font-bold" title="Janela de tempo deste asset na narração">
+                                                    🟢 {formatTime(dynamicResult.assetAudioStart)} - {formatTime(dynamicResult.assetAudioEnd)} ({actualDuration.toFixed(1)}s)
+                                                  </span>
+                                                  <span className="text-zinc-600 text-[8px]">
+                                                    {displayWords.length} palavras
+                                                  </span>
+                                                  <button
+                                                    onClick={() => togglePlaySceneNarration(blockKey, idx)}
+                                                    className={`p-0.5 rounded cursor-pointer transition shrink-0 ${
+                                                      isPlaying
+                                                        ? 'bg-gold-500 text-zinc-950 hover:bg-gold-600 animate-pulse'
+                                                        : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-gold-500'
+                                                    }`}
+                                                    title={isPlaying ? "Pausar" : "Ouvir este trecho"}
+                                                  >
+                                                    {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 text-gold-500" />}
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
 
-                                      <div className="bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-850/50 flex items-start gap-2.5 select-text">
-
-                                        <Bot className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-
-                                        <div className="flex-1 min-w-0">
-
-                                          <div className="flex justify-between items-center mb-1">
-
-                                            <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">Narração Recomendada</span>
-
-                                            {status?.has_narration && timeRange && (
-
-                                              <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-400">
-
-                                                <span 
-
-                                                  className={timeRange.isMatched ? "text-emerald-400 font-bold" : "text-zinc-500"}
-
-                                                  title={timeRange.isMatched ? "Tempo exato da fala alinhado com a transcrição" : "Tempo estimado linear"}
-
-                                                >
-
-                                                  {timeRange.isMatched ? "🟢 " : "⏱️ "}
-
-                                                  {formatTime(timeRange.start)} - {formatTime(timeRange.start + actualDuration)} ({actualDuration.toFixed(1)}s)
-
+                                            <p className="text-[10px] italic leading-relaxed select-text flex flex-wrap" title={displayWords.length > 0 ? dynamicResult?.text : staticNarration}>
+                                              <span className="text-zinc-500 mr-1">"</span>
+                                              {hasDynamic && displayWords.length > 0 ? (
+                                                displayWords.map((part: any, pIdx: number) => (
+                                                  <span
+                                                    key={pIdx}
+                                                    className="text-zinc-100 font-medium mr-1"
+                                                    title={`Fala em ${formatTime(part.start)}`}
+                                                  >
+                                                    {part.word}
+                                                  </span>
+                                                ))
+                                              ) : hasDynamic && displayWords.length === 0 ? (
+                                                <span className="text-zinc-600 italic text-[9px]">
+                                                  (sem palavras nesta janela de tempo — ajuste a duração dos assets anteriores)
                                                 </span>
-
-                                                <button
-
-                                                  onClick={() => togglePlaySceneNarration(blockKey, idx)}
-
-                                                  className={`p-0.5 rounded cursor-pointer transition shrink-0 ${
-
-                                                    isPlaying 
-
-                                                      ? 'bg-gold-500 text-zinc-950 hover:bg-gold-600 animate-pulse' 
-
-                                                      : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-gold-500'
-
-                                                  }`}
-
-                                                  title={isPlaying ? "Pausar" : "Ouvir este trecho"}
-
-                                                >
-
-                                                  {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 text-gold-500" />}
-
-                                                </button>
-
-                                              </div>
-
-                                            )}
-
+                                              ) : (
+                                                <span className="text-zinc-300">{staticNarration}</span>
+                                              )}
+                                              <span className="text-zinc-500">"</span>
+                                            </p>
                                           </div>
-
-                                          <p className="text-[10px] italic leading-relaxed select-text flex flex-wrap" title={narrationText}>
-
-                                            <span className="text-zinc-500 mr-1">"</span>
-
-                                            {wordsWithTiming.map((part: any, pIdx: number) => {
-
-                                              const cutOffTime = timeRange.start + actualDuration;
-
-                                              let wordStyle = "text-zinc-100 font-medium";
-
-                                              let tooltipTitle = "Esta palavra cabe na cena";
-
-                                              if (part.start >= cutOffTime - 0.05) {
-
-                                                wordStyle = "text-zinc-500/40 line-through decoration-zinc-600/50";
-
-                                                tooltipTitle = "Esta palavra fica fora dos " + actualDuration.toFixed(1) + "s (fala prevista em " + formatTime(part.start) + "s)";
-
-                                              } else if (part.end > cutOffTime + 0.05) {
-
-                                                wordStyle = "text-amber-400 font-medium italic underline decoration-amber-500/30";
-
-                                                tooltipTitle = "Esta palavra é parcialmente cortada nos " + actualDuration.toFixed(1) + "s";
-
-                                              }
-
-                                              return (
-
-                                                <span 
-
-                                                  key={pIdx} 
-
-                                                  className={wordStyle + " mr-1"}
-
-                                                  title={tooltipTitle}
-
-                                                >
-
-                                                  {part.word}
-
-                                                </span>
-
-                                              );
-
-                                            })}
-
-                                            <span className="text-zinc-500">"</span>
-
-                                          </p>
-
                                         </div>
 
+                                        {/* Coverage indicator on last asset of block */}
+                                        {isLastAsset && hasDynamic && (
+                                          <div className="flex items-center gap-2 mt-1 pl-6">
+                                            <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                              <div
+                                                className={`h-full rounded-full transition-all duration-300 ${
+                                                  allWordsCovered ? 'bg-emerald-500' : coveragePercent >= 80 ? 'bg-amber-500' : 'bg-red-500'
+                                                }`}
+                                                style={{ width: `${Math.min(coveragePercent, 100)}%` }}
+                                              />
+                                            </div>
+                                            <span className={`text-[8px] font-mono font-bold ${
+                                              allWordsCovered ? 'text-emerald-400' : coveragePercent >= 80 ? 'text-amber-400' : 'text-red-400'
+                                            }`}>
+                                              {allWordsCovered
+                                                ? `✅ ${dynamicResult!.totalBlockWords} palavras cobertas`
+                                                : `⚠️ ${dynamicResult!.coveredWords}/${dynamicResult!.totalBlockWords} palavras (${coveragePercent}%) — aumente a duração dos assets`
+                                              }
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
-
                                     );
-
                                   })()}
 
                                   {/* Asset info */}
