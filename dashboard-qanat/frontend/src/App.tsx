@@ -383,8 +383,14 @@ export default function App() {
     try {
 
       const configRes = await fetch(getProjectUrl('/api/config'));
-
-      if (configRes.ok) setConfig(await configRes.json());
+      if (configRes.ok) {
+        const loadedConfig = await configRes.json();
+        // Auto-set aspect_ratio if not defined, based on format
+        if (!loadedConfig.aspect_ratio) {
+          loadedConfig.aspect_ratio = formatSelector === 'SHORTS' ? '9:16' : '16:9';
+        }
+        setConfig(loadedConfig);
+      }
 
       const musicRes = await fetch(getProjectUrl('/api/music'));
 
@@ -2275,6 +2281,52 @@ export default function App() {
 
   };
 
+  // AI BGM Suggestion
+  const [suggestingBGM, setSuggestingBGM] = useState<boolean>(false);
+
+  const handleSuggestBGM = async () => {
+    if (!hasApiKey || !config) return;
+    setSuggestingBGM(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/suggest-bgm'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: formatSelector })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (formatSelector === 'SHORTS' && data.file) {
+          // Single BGM for entire video
+          const updatedConfig = {
+            ...config,
+            use_single_bgm: true,
+            single_bgm: data.file,
+            bgm_mappings: [{ block: 1, file: data.file }]
+          };
+          await saveConfig(updatedConfig);
+          toast.success(`🎵 IA sugeriu: ${data.file}\n${data.reason || ''}`);
+        } else if (data.suggestions && Array.isArray(data.suggestions)) {
+          // Per-block BGM
+          const newMappings = data.suggestions.map((s: any) => ({
+            block: s.block,
+            file: s.file
+          }));
+          const updatedConfig = { ...config, bgm_mappings: newMappings };
+          await saveConfig(updatedConfig);
+          toast.success(`🎵 IA mapeou trilhas para ${newMappings.length} blocos!`);
+        } else {
+          toast.error('Resposta da IA não contém sugestões válidas.');
+        }
+      } else {
+        toast.error(data.error || 'Erro ao sugerir BGM.');
+      }
+    } catch (err) {
+      toast.error('Falha na conexão ao sugerir BGM.');
+    } finally {
+      setSuggestingBGM(false);
+    }
+  };
+
   // Generate Script & Alignment config using Gemini
 
   const handleGenerateCreatorScript = async () => {
@@ -2995,6 +3047,10 @@ export default function App() {
 
         setRendering(false);
 
+        setRenderProgress(prev => prev ? { ...prev, percent: 100, phase: 'Concluído!' } : null);
+
+        setTimeout(() => setRenderProgress(null), 4000);
+
         fetchData();
 
       } else if (data.type === 'failed') {
@@ -3004,6 +3060,10 @@ export default function App() {
         eventSource.close();
 
         setRendering(false);
+
+        setRenderProgress(prev => prev ? { ...prev, phase: 'Erro na renderização!' } : null);
+
+        setTimeout(() => setRenderProgress(null), 5000);
 
         fetchData();
 
@@ -4301,6 +4361,15 @@ export default function App() {
 
                       </label>
 
+                      <button
+                        disabled={suggestingBGM || !hasApiKey}
+                        onClick={handleSuggestBGM}
+                        className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        {suggestingBGM ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        <span>{suggestingBGM ? 'Analisando...' : 'Sugerir BGM com IA'}</span>
+                      </button>
+
                     </div>
 
                   </div>
@@ -4575,9 +4644,11 @@ export default function App() {
 
                     ) : youtubeMetadata ? (
 
-                      <div className="space-y-4">
+                      <div className="space-y-3">
 
-                        <div className="absolute right-4 top-4">
+                        {/* Copiar Tudo */}
+
+                        <div className="flex justify-end">
 
                           <button 
 
@@ -4595,11 +4666,59 @@ export default function App() {
 
                         </div>
 
-                        <div className="prose prose-invert max-w-none">
+                        {/* Render sections with individual copy buttons */}
 
-                          {renderFormattedText(youtubeMetadata)}
+                        {(() => {
 
-                        </div>
+                          const sections = youtubeMetadata.split(/^## /m).filter(Boolean);
+
+                          return sections.map((section, sIdx) => {
+
+                            const lines = section.split('\n');
+
+                            const title = lines[0]?.trim() || `Seção ${sIdx + 1}`;
+
+                            const content = lines.slice(1).join('\n').trim();
+
+                            const sectionKey = `meta-${sIdx}`;
+
+                            return (
+
+                              <div key={sIdx} className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 relative group">
+
+                                <div className="flex items-center justify-between mb-2">
+
+                                  <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">{title}</h3>
+
+                                  <button
+
+                                    onClick={() => copyToClipboard(content, sectionKey)}
+
+                                    className="bg-zinc-900 border border-zinc-800 text-gray-500 hover:text-white px-2.5 py-1 rounded-lg text-[9px] flex items-center gap-1 transition cursor-pointer opacity-60 group-hover:opacity-100"
+
+                                  >
+
+                                    {copiedSection === sectionKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+
+                                    <span>{copiedSection === sectionKey ? 'Copiado!' : 'Copiar'}</span>
+
+                                  </button>
+
+                                </div>
+
+                                <div className="prose prose-invert max-w-none">
+
+                                  {renderFormattedText(content)}
+
+                                </div>
+
+                              </div>
+
+                            );
+
+                          });
+
+                        })()}
 
                       </div>
 
@@ -7063,11 +7182,32 @@ export default function App() {
 
                                   {timelineAssets[blockNum].map((clip: any, idx: number) => (
 
-                                    <div key={idx} className="p-1.5 bg-zinc-900 rounded border border-zinc-800 flex justify-between items-center text-[9px]">
+                                    <div key={idx} className="p-1.5 bg-zinc-900 rounded border border-zinc-800 flex items-center gap-2 text-[9px]">
 
-                                      <span className="text-zinc-300 truncate max-w-[150px]">{clip.asset}</span>
+                                      {/* Thumbnail preview */}
+                                      <div className="w-10 h-7 rounded overflow-hidden bg-zinc-950 border border-zinc-800 flex-shrink-0">
+                                        {clip.type === 'video' ? (
+                                          <video
+                                            src={getAssetUrl(clip.asset)}
+                                            className="w-full h-full object-cover"
+                                            muted
+                                            loop
+                                            autoPlay
+                                            playsInline
+                                          />
+                                        ) : (
+                                          <img
+                                            src={getAssetUrl(clip.asset)}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                          />
+                                        )}
+                                      </div>
 
-                                      <span className="text-zinc-500 font-mono">{clip.type} {clip.fixed ? `(${clip.fixed}s)` : '(flex)'}</span>
+                                      <span className="text-zinc-300 truncate max-w-[120px] flex-1">{clip.asset}</span>
+
+                                      <span className="text-zinc-500 font-mono flex-shrink-0">{clip.type} {clip.fixed ? `(${clip.fixed}s)` : '(flex)'}</span>
 
                                     </div>
 
@@ -8049,47 +8189,59 @@ export default function App() {
 
       )}
 
-      {/* OVERLAY DE PROGRESSO DA RENDERIZAÇÃO */}
-      {rendering && renderProgress && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center z-[100] animate-fade-in font-sans">
-          <div className="w-[600px] max-w-[90vw] flex flex-col items-center text-center">
-            
-            {/* Ícone Animado */}
-            <div className="relative mb-8">
-              <div className="absolute inset-0 bg-gold-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
-              <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center relative z-10 shadow-2xl">
-                <svg className="w-10 h-10 text-gold-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+      {/* WIDGET COMPACTO DE PROGRESSO DA RENDERIZAÇÃO */}
+      {renderProgress && (
+        <div className="fixed bottom-6 right-6 z-[100] w-[340px] font-sans" style={{ animation: 'slideInRight 0.4s ease-out' }}>
+          <div className="bg-zinc-950/95 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-1">
+              <div className="flex items-center gap-2.5">
+                <div className="relative">
+                  {renderProgress.percent >= 100 ? (
+                    <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-4.5 h-4.5 text-emerald-400" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 bg-gold-500/15 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gold-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-white tracking-wide block leading-tight">
+                    {renderProgress.percent >= 100 ? 'Renderização Concluída' : 'Renderizando Vídeo'}
+                  </span>
+                  <span className="text-[9px] text-zinc-500 leading-tight block mt-0.5">{renderProgress.phase}</span>
+                </div>
               </div>
-            </div>
-
-            {/* Fase e Status */}
-            <h2 className="text-3xl font-light tracking-wide text-white mb-2">
-              Renderizando Vídeo
-            </h2>
-            <p className="text-lg text-gold-400 font-medium tracking-wide mb-8">
-              {renderProgress.phase}
-            </p>
-
-            {/* Barra de Progresso */}
-            <div className="w-full bg-zinc-900 border border-zinc-800 rounded-full h-4 mb-3 overflow-hidden shadow-inner relative">
-              <div 
-                className="h-full bg-gradient-to-r from-gold-600 via-gold-400 to-yellow-300 rounded-full transition-all duration-300 ease-out relative"
-                style={{ width: `${renderProgress.percent}%` }}
+              <button
+                onClick={() => setRenderProgress(null)}
+                className="text-zinc-600 hover:text-zinc-400 transition cursor-pointer p-1"
               >
-                {/* Brilho na ponta da barra */}
-                <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-white/40 to-transparent"></div>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {/* Progress bar */}
+            <div className="px-4 pb-3 pt-1.5">
+              <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${
+                    renderProgress.percent >= 100
+                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-400'
+                      : 'bg-gradient-to-r from-gold-600 via-gold-400 to-yellow-300'
+                  }`}
+                  style={{ width: `${Math.min(renderProgress.percent, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[9px] text-zinc-600 font-mono">PROCESSANDO</span>
+                <span className={`text-[11px] font-mono font-bold ${
+                  renderProgress.percent >= 100 ? 'text-emerald-400' : 'text-gold-400'
+                }`}>{renderProgress.percent}%</span>
               </div>
             </div>
-            
-            {/* Porcentagem */}
-            <div className="flex justify-between w-full px-2">
-              <span className="text-zinc-500 text-sm font-mono tracking-wider">PROCESSANDO MÍDIAS...</span>
-              <span className="text-white text-xl font-mono font-medium">{renderProgress.percent}%</span>
-            </div>
-
-            <p className="mt-12 text-sm text-zinc-500">Isso pode levar vários minutos dependendo da resolução e efeitos selecionados.</p>
           </div>
         </div>
       )}

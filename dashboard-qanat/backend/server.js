@@ -782,12 +782,57 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       }
     }
     
-    const prompt = `Analise o roteiro do documentário e as configurações do projeto para gerar o seguinte pacote de metadados para postagem no YouTube Studio:
+    // Load storyboard for extra context
+    let storyboard = {};
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(storyboardPath)) {
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+    }
+    
+    const storyContext = storyboard.strategy ? `
+Contexto Estratégico do Vídeo:
+- Título Original: ${storyboard.strategy.title_main || "N/A"}
+- Hook: ${storyboard.strategy.hook || "N/A"}
+- Público-alvo: ${storyboard.strategy.target_audience || "N/A"}
+- Tom: ${storyboard.strategy.tone || "N/A"}
+- Comentário Pinado Sugerido: ${storyboard.strategy.pinned_comment || "N/A"}
+- CTA: ${storyboard.strategy.cta || "N/A"}
+` : "";
 
-1. 5 Opções de Títulos (Formato de Teste A/B: Emocionais, Curiosidade e Focados em Números/Listas)
-2. Descrição Otimizada para SEO (as duas primeiras linhas devem ser extremamente impactantes e diretas, contendo palavras-chave essenciais para engajar o usuário sem precisar clicar em "Mostrar mais")
-3. 15 Tags ordenadas por volume de pesquisa estimado (do maior para o menor)
-4. Lista de Capítulos com Timestamps reais do projeto (veja abaixo a lista com as marcas de tempo calculadas do projeto).
+    const prompt = `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
+
+Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVEL:
+
+## REGRAS PARA OS TÍTULOS:
+- Use "curiosity gap" (lacuna de curiosidade): o espectador PRECISA clicar para descobrir a resposta
+- Inclua gatilhos emocionais: medo, surpresa, indignação, fascinação
+- Use números quando possível ("A razão nº 1...", "99% das pessoas não sabem...")
+- Evite clickbait vazio: o título deve prometer algo que o vídeo ENTREGA
+- Máximo 60 caracteres por título
+- Gere 5 opções variadas (curiosidade, emoção, número, urgência, provocação)
+
+## REGRAS PARA A DESCRIÇÃO:
+- As 2 PRIMEIRAS LINHAS são CRUCIAIS (aparecem sem precisar clicar "Mostrar mais")
+- Primeira linha: gancho emocional que complementa o título
+- Segunda linha: promessa concreta do que o espectador vai aprender
+- Resto: SEO keywords naturais, links, call-to-action
+- Inclua 3-5 hashtags relevantes no final
+
+## REGRAS PARA AS TAGS:
+- 15 tags ordenadas por volume de busca estimado
+- Mix de tags genéricas (alto volume) + específicas (baixa competição)
+- Inclua variações com erros de digitação comuns se relevante
+
+## REGRAS PARA O COMENTÁRIO PINADO:
+- Crie um comentário que PROVOQUE respostas dos espectadores
+- Use uma pergunta aberta que gere debate nos comentários
+- Inclua CTA sutil para inscrição
+
+## REGRAS PARA OS CAPÍTULOS:
+- Use os timestamps reais fornecidos abaixo
+- Nomes dos capítulos devem ser chamativos e curiosos (não genéricos como "Introdução")
+
+${storyContext}
 
 Roteiro do Vídeo:
 ${transcript}
@@ -795,7 +840,23 @@ ${transcript}
 Marcadores com tempos exatos do projeto:
 ${chaptersText}
 
-Retorne a resposta em formato Markdown muito bem estruturado, limpo, pronto para copiar e colar diretamente. Organize em seções claras: "TÍTULOS", "DESCRIÇÃO", "TAGS" e "CAPÍTULOS".`;
+FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
+
+## TÍTULOS
+(liste os 5 títulos numerados)
+
+## DESCRIÇÃO
+(descrição completa pronta para colar)
+
+## TAGS
+(tags separadas por vírgula)
+
+## COMENTÁRIO PINADO
+(texto do comentário pinado)
+
+## CAPÍTULOS
+(lista de capítulos com timestamps)`;
+
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
@@ -819,6 +880,119 @@ Retorne a resposta em formato Markdown muito bem estruturado, limpo, pronto para
     res.json({ text: responseText });
   } catch (err) {
     res.status(500).json({ error: "Erro ao otimizar metadados", details: err.message });
+  }
+});
+// API: AI-powered BGM suggestion per block
+app.post("/api/ai/suggest-bgm", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const apiKey = getApiKey(projDir);
+  if (!apiKey) {
+    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  }
+
+  try {
+    const { mode } = req.body; // 'LONGO' or 'SHORTS'
+    
+    // Get available music files
+    const musicExts = [".mp3", ".wav", ".ogg", ".m4a"];
+    const musicFiles = fs.readdirSync(projDir)
+      .filter(f => musicExts.includes(path.extname(f).toLowerCase()))
+      .filter(f => f !== "narracao_mestra_premium.mp3" && !f.startsWith("cinematic_drone"));
+    
+    if (musicFiles.length === 0) {
+      return res.status(400).json({ error: "Nenhum arquivo de música encontrado no projeto." });
+    }
+    
+    // Get storyboard for context
+    let storyboard = {};
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(storyboardPath)) {
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+    }
+    
+    // Get transcript for context
+    let transcript = "";
+    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+    if (fs.existsSync(transcriptPath)) {
+      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
+    }
+    
+    // Build block summaries from storyboard
+    let blockSummaries = "";
+    if (storyboard.visual_prompts) {
+      const blocks = {};
+      storyboard.visual_prompts.forEach(vp => {
+        const b = vp.block;
+        if (!blocks[b]) blocks[b] = [];
+        blocks[b].push(vp.narration_text || "");
+      });
+      Object.keys(blocks).sort((a,b) => a-b).forEach(b => {
+        blockSummaries += `Bloco ${b}: ${blocks[b].join(" ").substring(0, 200)}...\n`;
+      });
+    }
+    
+    const musicListStr = musicFiles.map((f, i) => `${i+1}. "${f}"`).join("\n");
+    
+    let bgmPrompt;
+    if (mode === "SHORTS") {
+      bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora. Analise o roteiro do vídeo curto (Shorts) abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
+
+Arquivos de música disponíveis:
+${musicListStr}
+
+Roteiro:
+${transcript || blockSummaries}
+
+Responda APENAS com um JSON válido no formato:
+{"file": "nome_exato_do_arquivo.mp3", "reason": "explicação breve de por que esta trilha combina"}`;
+    } else {
+      bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora para documentários. Analise o tom emocional de cada bloco do roteiro e sugira a melhor trilha sonora para CADA bloco.
+
+Arquivos de música disponíveis:
+${musicListStr}
+
+Resumo por bloco:
+${blockSummaries}
+
+Regras:
+- O mesmo arquivo pode ser usado em múltiplos blocos se for adequado
+- Priorize transições suaves entre blocos adjacentes
+- Escolha trilhas que amplificam a emoção do texto narrado
+
+Responda APENAS com um JSON válido no formato:
+{"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
+    }
+    
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: bgmPrompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      }
+    );
+    
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    
+    let parsed;
+    try { parsed = JSON.parse(responseText); } catch(e) {
+      // Try to extract JSON from response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    }
+    
+    res.json(parsed);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao sugerir BGM", details: err.message });
   }
 });
 
@@ -984,7 +1158,12 @@ app.post("/api/upload-scene-asset", (req, res) => {
         const assetIdx = parseInt(idx, 10);
         config.timeline_assets[blockKey][assetIdx] = assetItem;
       } else {
-        config.timeline_assets[String(scene)] = [assetItem];
+        // Extract block number (integer part) from scene number (e.g. "6" from "6.3")
+        const blockKey = String(Math.floor(parseFloat(scene)));
+        if (!config.timeline_assets[blockKey]) {
+          config.timeline_assets[blockKey] = [];
+        }
+        config.timeline_assets[blockKey].push(assetItem);
       }
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
