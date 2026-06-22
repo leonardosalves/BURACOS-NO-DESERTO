@@ -1581,25 +1581,22 @@ export default function App() {
     coveredWords: number;
   } | null => {
     const blockNum = parseInt(blockKey, 10);
-    const starts = status?.block_timings?.starts;
-    const durations = status?.block_timings?.durations;
-    if (!starts || starts[blockNum - 1] === undefined) return null;
 
-    const blockAudioStart = starts[blockNum - 1];
-    const blockNarrationDuration = (durations && durations[blockNum - 1]) || 10.0;
-    const blockNarrationEnd = blockAudioStart + blockNarrationDuration;
+    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
+    if (allBlockWords.length === 0) return null;
 
-    // Calculate this asset's time window based on cumulative asset durations
-    let assetAudioStart = blockAudioStart;
+    // Usar o timestamp da PRIMEIRA PALAVRA real como ponto de partida
+    // Isso garante que o asset 1 sempre começa onde a narração realmente está no áudio
+    const narrationStart = allBlockWords[0].start;
+    const narrationLastEnd = allBlockWords[allBlockWords.length - 1].end;
+
+    // Calculate this asset's time window starting from the first narration word
+    let assetAudioStart = narrationStart;
     for (let i = 0; i < assetIdx; i++) {
       assetAudioStart += getAssetDuration(blockKey, i);
     }
     const assetDuration = getAssetDuration(blockKey, assetIdx);
-    // NÃO limitar ao blockEnd - o usuário controla as durações livremente
     const assetAudioEnd = assetAudioStart + assetDuration;
-
-    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
-    if (allBlockWords.length === 0) return null;
 
     // Filter words that fall within this asset's time window
     // Words are bounded by the block's actual narration words (never leaks to next block)
@@ -1609,7 +1606,7 @@ export default function App() {
 
     // Count total words covered by ALL assets in the block
     const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
-    let totalEndTime = blockAudioStart;
+    let totalEndTime = narrationStart;
     for (let i = 0; i < totalAssets; i++) {
       totalEndTime += getAssetDuration(blockKey, i);
     }
@@ -1621,8 +1618,8 @@ export default function App() {
       text: assetWords.map(w => w.word).join(' '),
       assetAudioStart,
       assetAudioEnd,
-      blockAudioStart,
-      blockAudioEnd: blockNarrationEnd,
+      blockAudioStart: narrationStart,
+      blockAudioEnd: narrationLastEnd,
       totalBlockWords: allBlockWords.length,
       coveredWords
     };
