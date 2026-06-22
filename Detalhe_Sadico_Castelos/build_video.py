@@ -694,7 +694,7 @@ def main():
     concat_list_path = 'clips_list.txt'
     with open(concat_list_path, 'w', encoding='utf-8') as f:
         for p in rendered_paths:
-            f.write(f"file '{p.replace(chr(92), '/')}'\\n")
+            f.write(f"file '{p.replace(chr(92), '/')}'\n")
 
     clean_video_no_audio = 'clean_video_no_audio.mp4'
     concat_cmd = [
