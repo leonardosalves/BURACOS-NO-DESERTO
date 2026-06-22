@@ -29,15 +29,24 @@ function getProjectDir(req) {
   return WORKSPACE_DIR; // Default root project (Buracos no Deserto / Qanat)
 }
 
-// Helper: Auto-copy missing timing and render template files to project folder on-demand
+// Helper: Auto-copy missing or outdated timing and render template files to project folder on-demand
 function ensureFileExists(fileName, targetDir) {
   const targetPath = path.join(targetDir, fileName);
+  const srcPath = path.join(WORKSPACE_DIR, fileName);
+  if (!fs.existsSync(srcPath)) return;
+
   if (!fs.existsSync(targetPath)) {
-    const srcPath = path.join(WORKSPACE_DIR, fileName);
-    if (fs.existsSync(srcPath)) {
-      fs.mkdirSync(targetDir, { recursive: true });
+    // File missing in project - copy from root
+    fs.mkdirSync(targetDir, { recursive: true });
+    fs.copyFileSync(srcPath, targetPath);
+    console.log(`Copied template ${fileName} from root to ${targetDir}`);
+  } else {
+    // File exists - update if root version is newer
+    const srcMtime = fs.statSync(srcPath).mtimeMs;
+    const targetMtime = fs.statSync(targetPath).mtimeMs;
+    if (srcMtime > targetMtime) {
       fs.copyFileSync(srcPath, targetPath);
-      console.log(`Copied template ${fileName} from root to ${targetDir}`);
+      console.log(`Updated ${fileName} in ${targetDir} (root version is newer)`);
     }
   }
 }
@@ -149,6 +158,16 @@ app.post("/api/projects/delete", (req, res) => {
 app.get("/api/status", (req, res) => {
   try {
     const projDir = getProjectDir(req);
+
+    // Auto-sync template scripts when project is accessed
+    if (projDir !== WORKSPACE_DIR) {
+      ensureFileExists("build_video.py", projDir);
+      ensureFileExists("build_video_destacado.py", projDir);
+      ensureFileExists("mix_bgm.py", projDir);
+      ensureFileExists("find_block_timings.py", projDir);
+      ensureFileExists("align_transcripts.py", projDir);
+    }
+
     const assetsDir = path.join(projDir, "ASSETS");
     const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
     
