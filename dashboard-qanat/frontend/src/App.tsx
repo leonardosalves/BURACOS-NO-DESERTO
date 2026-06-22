@@ -1704,6 +1704,73 @@ export default function App() {
 
   };
 
+  const alignAllBlocksToSpeech = () => {
+    if (!config || !config.timeline_assets) return;
+    if (!wordTranscripts || wordTranscripts.length === 0) {
+      toast.error("Transcrições da voz não carregadas ou indisponíveis para este projeto.");
+      return;
+    }
+
+    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
+    const newTimelineAssets = { ...config.timeline_assets };
+    let totalAligned = 0;
+
+    for (let blockNum = 1; blockNum <= maxBlocks; blockNum++) {
+      const blockKey = String(blockNum);
+      if (!newTimelineAssets[blockKey]) continue;
+
+      const updatedAssets = [...newTimelineAssets[blockKey]];
+      const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+      const starts = status?.block_timings?.starts;
+      if (!starts || starts[blockNum - 1] === undefined) continue;
+
+      const blockStart = starts[blockNum - 1];
+      const blockEnd = blockStart + blockDuration;
+
+      const getNextMatchedStartLocal = (startIdx: number): number | null => {
+        for (let i = startIdx; i < updatedAssets.length; i++) {
+          const text = getAssetNarration(blockKey, i);
+          const match = findNarrationTimestamps(text);
+          if (match) return match.start;
+        }
+        return null;
+      };
+
+      updatedAssets.forEach((asset, idx) => {
+        const narrationText = getAssetNarration(blockKey, idx);
+        const matched = findNarrationTimestamps(narrationText);
+        if (matched) {
+          if (idx === updatedAssets.length - 1) {
+            asset.fixed = parseFloat(Math.max(0.5, blockEnd - matched.start).toFixed(1));
+          } else {
+            const nextStart = getNextMatchedStartLocal(idx + 1);
+            if (nextStart !== null) {
+              asset.fixed = parseFloat(Math.max(0.5, nextStart - matched.start).toFixed(1));
+            } else {
+              asset.fixed = parseFloat(matched.duration.toFixed(1));
+            }
+          }
+          totalAligned++;
+        }
+      });
+
+      newTimelineAssets[blockKey] = updatedAssets;
+    }
+
+    if (totalAligned === 0) {
+      toast.error("Nenhuma cena pôde ser alinhada com a transcrição da voz.");
+      return;
+    }
+
+    const newConfig = {
+      ...config,
+      timeline_assets: newTimelineAssets
+    };
+
+    saveConfig(newConfig);
+    toast.success(`✅ ${totalAligned} cenas de TODOS os blocos sincronizadas com a voz!`);
+  };
+
   const getNarrationAudio = () => {
 
     if (!narrationAudioRef.current) {
@@ -4835,6 +4902,24 @@ export default function App() {
                         <Save className="w-3.5 h-3.5" /> Salvar Linha do Tempo
 
                       </button>
+
+                      {status?.has_narration && (
+
+                        <button
+
+                          onClick={() => alignAllBlocksToSpeech()}
+
+                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+
+                          title="Sincronizar TODOS os blocos automaticamente com o tempo da voz da narração"
+
+                        >
+
+                          <Sparkles className="w-3.5 h-3.5" /> Sincronizar Todos com a Voz
+
+                        </button>
+
+                      )}
 
                     </div>
 
