@@ -350,7 +350,7 @@ def build_timeline():
             adjusted_total = sum(clip["duration"] for clip in block_clips)
             if block_clips:
                 block_clips[-1]["duration"] += (block_duration - adjusted_total)
-            print(f"  Bloco {block_num}: normalizado {block_total:.1f}s → {block_duration:.1f}s (escala: {scale:.3f})")
+            print(f"      Bloco {block_num}: normalizado {block_total:.1f}s -> {block_duration:.1f}s (escala: {scale:.3f})")
 
         timeline.extend(block_clips)
 
@@ -683,7 +683,7 @@ def main():
                 pct = 10 + int(70 * completed_count / len(timeline))
                 status = "Cache" if cached else "Renderizado"
                 print(f"[PROGRESSO] {pct}%")
-                print(f"  [{completed_count}/{len(timeline)}] {status} clip {idx:03d} → {os.path.basename(path)}")
+                print(f"  [{completed_count}/{len(timeline)}] {status} clip {idx:03d} -> {os.path.basename(path)}")
             except Exception as e:
                 print(f"ERRO no clip {idx}: {e}")
                 raise e
