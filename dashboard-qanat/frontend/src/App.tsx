@@ -1085,83 +1085,30 @@ export default function App() {
   };
 
   const getAssetDuration = (blockKey: string, index: number) => {
-
     if (!config || !config.timeline_assets || !config.timeline_assets[blockKey]) return 0;
-
     const blockNum = parseInt(blockKey, 10);
-
     const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
-
     const configs = config.timeline_assets[blockKey];
-
     if (!configs || configs[index] === undefined) return 0;
 
-    
+    const current = configs[index];
 
-    const sumFixed = configs.reduce((acc: number, c: any) => acc + (c.fixed ? c.fixed : 0), 0);
-
-    const flexibleClips = configs.filter((c: any) => c.fixed === undefined || c.fixed === null);
-
-    const nFlex = flexibleClips.length;
-
-    
-
-    if (nFlex > 0) {
-
-      const remaining = blockDuration - sumFixed;
-
-      if (remaining > 0) {
-
-        const flexDuration = remaining / nFlex;
-
-        const current = configs[index];
-
-        return current.fixed !== undefined && current.fixed !== null ? current.fixed : flexDuration;
-
-      } else {
-
-        const flexDuration = 0.5;
-
-        const totalFixedWithFlex = sumFixed + nFlex * flexDuration;
-
-        const scale = blockDuration / totalFixedWithFlex;
-
-        const current = configs[index];
-
-        const baseDur = current.fixed !== undefined && current.fixed !== null ? current.fixed : flexDuration;
-
-        return baseDur * scale;
-
-      }
-
-    } else {
-
-      if (sumFixed > blockDuration) {
-
-        const scale = blockDuration / sumFixed;
-
-        const current = configs[index];
-
-        return (current.fixed || 0) * scale;
-
-      } else {
-
-        const current = configs[index];
-
-        let dur = current.fixed || 0;
-
-        if (index === configs.length - 1) {
-
-          dur += (blockDuration - sumFixed);
-
-        }
-
-        return dur;
-
-      }
-
+    // Se o asset tem duração fixa definida pelo usuário, SEMPRE respeitar exatamente
+    if (current.fixed !== undefined && current.fixed !== null) {
+      return current.fixed;
     }
 
+    // Para assets sem duração fixa, distribuir o tempo restante do bloco
+    const sumFixed = configs.reduce((acc: number, c: any) => acc + (c.fixed ? c.fixed : 0), 0);
+    const flexibleClips = configs.filter((c: any) => c.fixed === undefined || c.fixed === null);
+    const nFlex = flexibleClips.length;
+
+    if (nFlex > 0) {
+      const remaining = Math.max(0.5 * nFlex, blockDuration - sumFixed);
+      return remaining / nFlex;
+    }
+
+    return 0.5; // fallback mínimo
   };
 
   const getTotalVideoDuration = () => {
@@ -1639,21 +1586,23 @@ export default function App() {
     if (!starts || starts[blockNum - 1] === undefined) return null;
 
     const blockAudioStart = starts[blockNum - 1];
-    const blockDuration = (durations && durations[blockNum - 1]) || 10.0;
-    const blockAudioEnd = blockAudioStart + blockDuration;
+    const blockNarrationDuration = (durations && durations[blockNum - 1]) || 10.0;
+    const blockNarrationEnd = blockAudioStart + blockNarrationDuration;
 
-    // Calculate this asset's time window within the block
+    // Calculate this asset's time window based on cumulative asset durations
     let assetAudioStart = blockAudioStart;
     for (let i = 0; i < assetIdx; i++) {
       assetAudioStart += getAssetDuration(blockKey, i);
     }
     const assetDuration = getAssetDuration(blockKey, assetIdx);
-    const assetAudioEnd = Math.min(assetAudioStart + assetDuration, blockAudioEnd);
+    // NÃO limitar ao blockEnd - o usuário controla as durações livremente
+    const assetAudioEnd = assetAudioStart + assetDuration;
 
     const allBlockWords = blockNarrationWordsCache[blockKey] || [];
     if (allBlockWords.length === 0) return null;
 
     // Filter words that fall within this asset's time window
+    // Words are bounded by the block's actual narration words (never leaks to next block)
     const assetWords = allBlockWords.filter(w =>
       w.start >= assetAudioStart - 0.15 && w.start < assetAudioEnd - 0.05
     );
@@ -1664,7 +1613,8 @@ export default function App() {
     for (let i = 0; i < totalAssets; i++) {
       totalEndTime += getAssetDuration(blockKey, i);
     }
-    const coveredWords = allBlockWords.filter(w => w.start < Math.min(totalEndTime, blockAudioEnd) - 0.05).length;
+    // Coverage: how many of the block's narration words are within the total asset time span
+    const coveredWords = allBlockWords.filter(w => w.start < totalEndTime - 0.05).length;
 
     return {
       words: assetWords,
@@ -1672,7 +1622,7 @@ export default function App() {
       assetAudioStart,
       assetAudioEnd,
       blockAudioStart,
-      blockAudioEnd,
+      blockAudioEnd: blockNarrationEnd,
       totalBlockWords: allBlockWords.length,
       coveredWords
     };
@@ -5023,7 +4973,11 @@ export default function App() {
 
                         const blockKey = String(blockNum);
 
-                        const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+                        const blockNarrationDur = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+
+                        // Calculate actual total from asset durations
+                        const blockAssets = config.timeline_assets?.[blockKey] || [];
+                        const actualBlockTotal = blockAssets.reduce((_sum: number, _: any, i: number) => _sum + getAssetDuration(blockKey, i), 0);
 
                         return (
 
@@ -5035,7 +4989,12 @@ export default function App() {
 
                                 <h4 className="font-cinzel text-md font-bold text-gold-500">Bloco {blockKey}</h4>
 
-                                <span className="text-[10px] text-zinc-500 font-mono">Duração Total: {blockDuration.toFixed(1)}s</span>
+                                <span className="text-[10px] text-zinc-500 font-mono">
+                                  Duração Total: {actualBlockTotal.toFixed(1)}s
+                                  <span className={`ml-2 ${Math.abs(actualBlockTotal - blockNarrationDur) < 0.3 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                    (Narração: {blockNarrationDur.toFixed(1)}s)
+                                  </span>
+                                </span>
 
                               </div>
 
