@@ -444,11 +444,18 @@ def render_subclip(clip_id, clip_info):
         effective_dur = video_dur * speed_multiplier
 
         # Se o vídeo é mais curto que a duração pedida, congelar no último frame
-        # (NÃO fazer loop para evitar repetição)
+        # com efeito de slow pan lateral + gentle zoom para não ficar estático
         if effective_dur > 0 and effective_dur < duration:
-            # Usar tpad para preencher com o último frame ao invés de looping
             pad_duration = duration - effective_dur
+            # Congelar último frame
             vf_string += f",tpad=stop_mode=clone:stop_duration={pad_duration:.3f}"
+            # Slow pan lateral durante a parte congelada
+            # Crop levemente menor e move pro lado - efeito cinematográfico suave
+            pan_px = 30
+            # Pan linear suave ao longo de toda a duração (quase imperceptível no vídeo real,
+            # mas visível e bonito na parte congelada)
+            crop_expr = f"crop=w=iw-{pan_px}:h=ih-{pan_px//2}:x={pan_px}*t/{duration:.3f}:y={pan_px//4}"
+            vf_string += f",{crop_expr},scale={WIDTH}:{HEIGHT}"
 
         cmd = [
             'ffmpeg', '-y',
