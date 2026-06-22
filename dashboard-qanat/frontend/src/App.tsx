@@ -174,6 +174,8 @@ export default function App() {
 
   const [projects, setProjects] = useState<{ name: string; path: string }[]>([]);
 
+  const [videoFileDurations, setVideoFileDurations] = useState<Record<string, number>>({});
+
   const [activeProject, setActiveProject] = useState<string>('Buracos no Deserto');
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -958,9 +960,11 @@ export default function App() {
 
   const updateTimelineAssetField = (blockKey: string, index: number, field: string, value: any) => {
 
-    if (!config || !config.timeline_assets) return;
+    if (!config) return;
 
-    const newTimelineAssets = { ...config.timeline_assets };
+    const timelineAssets = config.timeline_assets || {};
+
+    const newTimelineAssets = { ...timelineAssets };
 
     const blockAssets = [...(newTimelineAssets[blockKey] || [])];
 
@@ -990,9 +994,11 @@ export default function App() {
 
   const moveTimelineAsset = (blockKey: string, index: number, direction: 'up' | 'down') => {
 
-    if (!config || !config.timeline_assets) return;
+    if (!config) return;
 
-    const newTimelineAssets = { ...config.timeline_assets };
+    const timelineAssets = config.timeline_assets || {};
+
+    const newTimelineAssets = { ...timelineAssets };
 
     const blockAssets = [...(newTimelineAssets[blockKey] || [])];
 
@@ -1020,9 +1026,11 @@ export default function App() {
 
   const deleteTimelineAsset = (blockKey: string, index: number) => {
 
-    if (!config || !config.timeline_assets) return;
+    if (!config) return;
 
-    const newTimelineAssets = { ...config.timeline_assets };
+    const timelineAssets = config.timeline_assets || {};
+
+    const newTimelineAssets = { ...timelineAssets };
 
     const blockAssets = (newTimelineAssets[blockKey] || []).filter((_, idx) => idx !== index);
 
@@ -1038,9 +1046,11 @@ export default function App() {
 
   const addTimelineAsset = (blockKey: string) => {
 
-    if (!config || !config.timeline_assets) return;
+    if (!config) return;
 
-    const newTimelineAssets = { ...config.timeline_assets };
+    const timelineAssets = config.timeline_assets || {};
+
+    const newTimelineAssets = { ...timelineAssets };
 
     const blockAssets = [...(newTimelineAssets[blockKey] || [])];
 
@@ -1154,13 +1164,19 @@ export default function App() {
 
   const getTotalVideoDuration = () => {
 
-    if (!config || !config.timeline_assets) return 0;
+    if (!config) return 0;
+
+    const timelineAssets = config.timeline_assets || {};
+
+    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
 
     let total = 0;
 
-    Object.keys(config.timeline_assets).forEach(blockKey => {
+    for (let blockNum = 1; blockNum <= maxBlocks; blockNum++) {
 
-      const assets = config.timeline_assets[blockKey] || [];
+      const blockKey = String(blockNum);
+
+      const assets = timelineAssets[blockKey] || [];
 
       assets.forEach((_, idx) => {
 
@@ -1168,7 +1184,7 @@ export default function App() {
 
       });
 
-    });
+    }
 
     return total;
 
@@ -1244,13 +1260,15 @@ export default function App() {
 
   const narrationTextsListString = useMemo(() => {
 
-    if (!config || !config.timeline_assets) return "";
+    if (!config) return "";
+
+    const timelineAssets = config.timeline_assets || {};
 
     const texts: string[] = [];
 
-    Object.keys(config.timeline_assets).forEach(blockKey => {
+    Object.keys(timelineAssets).forEach(blockKey => {
 
-      const assets = config.timeline_assets[blockKey] || [];
+      const assets = timelineAssets[blockKey] || [];
 
       assets.forEach((_, idx) => {
 
@@ -1284,7 +1302,7 @@ export default function App() {
 
     }> = {};
 
-    if (!flatTranscriptWords || flatTranscriptWords.length === 0 || !config || !config.timeline_assets) {
+    if (!flatTranscriptWords || flatTranscriptWords.length === 0 || !config) {
 
       return cache;
 
@@ -1328,9 +1346,9 @@ export default function App() {
 
     const uniqueTexts = new Set<string>();
 
-    Object.keys(config.timeline_assets).forEach(blockKey => {
+    Object.keys(timelineAssets).forEach(blockKey => {
 
-      const assets = config.timeline_assets?.[blockKey] || [];
+      const assets = timelineAssets[blockKey] || [];
 
       assets.forEach((asset, idx) => {
 
@@ -4738,7 +4756,7 @@ export default function App() {
 
                 </div>
 
-                {config && config.timeline_assets && (
+                {config && (
 
                   <div className="text-xs text-zinc-400 font-mono flex items-center gap-1.5 bg-zinc-950/40 px-3 py-1.5 rounded-lg border border-zinc-900">
 
@@ -4756,7 +4774,7 @@ export default function App() {
 
               </div>
 
-              {editorSubTab === 'assets' && config && config.timeline_assets && (
+              {editorSubTab === 'assets' && config && (
 
                 <div className="space-y-6">
 
@@ -4820,17 +4838,11 @@ export default function App() {
 
                   {(() => {
 
-                    const maxBlocks = config.block_phrases ? config.block_phrases.length : 12;
+                    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
 
-                    return Object.keys(config.timeline_assets)
+                    const blockNums = Array.from({ length: maxBlocks }, (_, i) => i + 1);
 
-                      .map(Number)
-
-                      .filter(blockNum => blockNum <= maxBlocks)
-
-                      .sort((a, b) => a - b)
-
-                      .map((blockNum) => {
+                    return blockNums.map((blockNum) => {
 
                         const blockKey = String(blockNum);
 
@@ -4988,7 +5000,7 @@ export default function App() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                              {(config.timeline_assets[blockKey] || []).map((asset: any, idx: number) => (
+                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => (
 
                                 <div key={idx} className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex flex-col justify-between space-y-3 hover:border-zinc-855 transition">
 
@@ -5027,6 +5039,24 @@ export default function App() {
                                         autoPlay 
 
                                         playsInline 
+
+                                        onLoadedMetadata={(e) => {
+
+                                          const dur = e.currentTarget.duration;
+
+                                          if (dur && !isNaN(dur)) {
+
+                                            setVideoFileDurations(prev => {
+
+                                              if (prev[asset.asset] === dur) return prev;
+
+                                              return { ...prev, [asset.asset]: dur };
+
+                                            });
+
+                                          }
+
+                                        }}
 
                                         onLoadedData={(e) => {
 
@@ -5075,6 +5105,16 @@ export default function App() {
                                     <div className="absolute bottom-2 right-2 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
 
                                       ⏱️ {getAssetDuration(blockKey, idx).toFixed(1)}s
+
+                                      {asset.type === 'video' && videoFileDurations[asset.asset] !== undefined && (
+
+                                        <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
+
+                                          / {videoFileDurations[asset.asset].toFixed(1)}s
+
+                                        </span>
+
+                                      )}
 
                                     </div>
 
@@ -5310,7 +5350,7 @@ export default function App() {
 
                                         <button
 
-                                          disabled={idx === (config.timeline_assets[blockKey] || []).length - 1}
+                                          disabled={idx === (config.timeline_assets?.[blockKey] || []).length - 1}
 
                                           onClick={() => moveTimelineAsset(blockKey, idx, 'down')}
 
@@ -5706,6 +5746,24 @@ export default function App() {
 
                                             playsInline 
 
+                                            onLoadedMetadata={(e) => {
+
+                                              const dur = e.currentTarget.duration;
+
+                                              if (dur && !isNaN(dur)) {
+
+                                                setVideoFileDurations(prev => {
+
+                                                  if (prev[correspondingAsset.asset] === dur) return prev;
+
+                                                  return { ...prev, [correspondingAsset.asset]: dur };
+
+                                                });
+
+                                              }
+
+                                            }}
+
                                             onLoadedData={(e) => {
 
                                               e.currentTarget.style.display = 'block';
@@ -5755,6 +5813,16 @@ export default function App() {
                                         <div className="absolute bottom-1 right-1 bg-black/70 text-white font-mono text-[8px] px-1 py-0.2 rounded font-bold">
 
                                           ⏱️ {getAssetDuration(blockKey, assetIdx).toFixed(1)}s
+
+                                          {correspondingAsset.type === 'video' && videoFileDurations[correspondingAsset.asset] !== undefined && (
+
+                                            <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
+
+                                              / {videoFileDurations[correspondingAsset.asset].toFixed(1)}s
+
+                                            </span>
+
+                                          )}
 
                                         </div>
 
