@@ -1,0 +1,692 @@
+[
+    {
+        "index": 1,
+        "filename": "segment_001.mp3",
+        "start_time": 0.0,
+        "duration": 4.84,
+        "end_time": 4.84,
+        "words": [
+            {
+                "word": " Você",
+                "start": 0.0,
+                "end": 0.3
+            },
+            {
+                "word": " sabia",
+                "start": 0.3,
+                "end": 0.72
+            },
+            {
+                "word": " que",
+                "start": 0.72,
+                "end": 1.0
+            },
+            {
+                "word": " irá",
+                "start": 1.0,
+                "end": 1.22
+            },
+            {
+                "word": " o",
+                "start": 1.22,
+                "end": 1.32
+            },
+            {
+                "word": " banheiro",
+                "start": 1.32,
+                "end": 1.6
+            },
+            {
+                "word": " na",
+                "start": 1.6,
+                "end": 1.86
+            },
+            {
+                "word": " romantiga,",
+                "start": 1.86,
+                "end": 2.48
+            },
+            {
+                "word": " podia",
+                "start": 2.76,
+                "end": 3.02
+            },
+            {
+                "word": " literalmente",
+                "start": 3.02,
+                "end": 3.88
+            },
+            {
+                "word": " te",
+                "start": 3.88,
+                "end": 4.26
+            },
+            {
+                "word": " explodir?",
+                "start": 4.26,
+                "end": 4.84
+            }
+        ],
+        "text": " Você sabia que irá o banheiro na romantiga, podia literalmente te explodir?"
+    },
+    {
+        "index": 2,
+        "filename": "segment_002.mp3",
+        "start_time": 5.46,
+        "duration": 0.54,
+        "end_time": 6.0,
+        "words": [
+            {
+                "word": " Pois",
+                "start": 0.0,
+                "end": 0.3600000000000003
+            },
+            {
+                "word": " é.",
+                "start": 0.3600000000000003,
+                "end": 0.54
+            }
+        ],
+        "text": " Pois é."
+    },
+    {
+        "index": 3,
+        "filename": "segment_003.mp3",
+        "start_time": 6.52,
+        "duration": 4.26,
+        "end_time": 10.78,
+        "words": [
+            {
+                "word": " Os",
+                "start": 0.0,
+                "end": 0.08000000000000007
+            },
+            {
+                "word": " famosos",
+                "start": 0.08000000000000007,
+                "end": 0.4800000000000004
+            },
+            {
+                "word": " banheiros",
+                "start": 0.4800000000000004,
+                "end": 0.9200000000000008
+            },
+            {
+                "word": " públicos",
+                "start": 0.9200000000000008,
+                "end": 1.4800000000000004
+            },
+            {
+                "word": " romanos",
+                "start": 1.4800000000000004,
+                "end": 1.9800000000000004
+            },
+            {
+                "word": " eram",
+                "start": 1.9800000000000004,
+                "end": 2.360000000000001
+            },
+            {
+                "word": " verdadeiras",
+                "start": 2.360000000000001,
+                "end": 3.040000000000001
+            },
+            {
+                "word": " armadilhas",
+                "start": 3.040000000000001,
+                "end": 3.7200000000000006
+            },
+            {
+                "word": " mortais.",
+                "start": 3.7200000000000006,
+                "end": 4.26
+            }
+        ],
+        "text": " Os famosos banheiros públicos romanos eram verdadeiras armadilhas mortais."
+    },
+    {
+        "index": 4,
+        "filename": "segment_004.mp3",
+        "start_time": 11.48,
+        "duration": 5.559999999999999,
+        "end_time": 17.04,
+        "words": [
+            {
+                "word": " Em",
+                "start": 0.0,
+                "end": 0.11999999999999922
+            },
+            {
+                "word": " baixo",
+                "start": 0.11999999999999922,
+                "end": 0.41999999999999993
+            },
+            {
+                "word": " daqueles",
+                "start": 0.41999999999999993,
+                "end": 0.8200000000000003
+            },
+            {
+                "word": " acentos",
+                "start": 0.8200000000000003,
+                "end": 1.3399999999999999
+            },
+            {
+                "word": " de",
+                "start": 1.3399999999999999,
+                "end": 1.459999999999999
+            },
+            {
+                "word": " pedra",
+                "start": 1.459999999999999,
+                "end": 1.7599999999999998
+            },
+            {
+                "word": " fria",
+                "start": 1.7599999999999998,
+                "end": 2.139999999999999
+            },
+            {
+                "word": " ficavam",
+                "start": 2.139999999999999,
+                "end": 2.8200000000000003
+            },
+            {
+                "word": " forças",
+                "start": 2.8200000000000003,
+                "end": 3.24
+            },
+            {
+                "word": " profundas",
+                "start": 3.24,
+                "end": 3.9399999999999995
+            },
+            {
+                "word": " e",
+                "start": 3.9399999999999995,
+                "end": 4.219999999999999
+            },
+            {
+                "word": " escuras,",
+                "start": 4.219999999999999,
+                "end": 4.459999999999999
+            },
+            {
+                "word": " onde",
+                "start": 4.859999999999999,
+                "end": 5.0
+            },
+            {
+                "word": " dejetos",
+                "start": 5.0,
+                "end": 5.559999999999999
+            }
+        ],
+        "text": " Em baixo daqueles acentos de pedra fria ficavam forças profundas e escuras, onde dejetos"
+    },
+    {
+        "index": 5,
+        "filename": "segment_005.mp3",
+        "start_time": 17.04,
+        "duration": 1.2200000000000024,
+        "end_time": 18.26,
+        "words": [
+            {
+                "word": " acumulavam",
+                "start": 0.0,
+                "end": 0.5800000000000018
+            },
+            {
+                "word": " por",
+                "start": 0.5800000000000018,
+                "end": 0.8399999999999999
+            },
+            {
+                "word": " meses.",
+                "start": 0.8399999999999999,
+                "end": 1.2200000000000024
+            }
+        ],
+        "text": " acumulavam por meses."
+    },
+    {
+        "index": 6,
+        "filename": "segment_006.mp3",
+        "start_time": 18.96,
+        "duration": 6.059999999999999,
+        "end_time": 25.02,
+        "words": [
+            {
+                "word": " Sem",
+                "start": 0.0,
+                "end": 0.33999999999999986
+            },
+            {
+                "word": " ventilação,",
+                "start": 0.33999999999999986,
+                "end": 0.9600000000000009
+            },
+            {
+                "word": " essa",
+                "start": 1.3599999999999994,
+                "end": 1.5599999999999987
+            },
+            {
+                "word": " mistura",
+                "start": 1.5599999999999987,
+                "end": 1.9600000000000009
+            },
+            {
+                "word": " gerava",
+                "start": 1.9600000000000009,
+                "end": 2.3200000000000003
+            },
+            {
+                "word": " uma",
+                "start": 2.3200000000000003,
+                "end": 2.5
+            },
+            {
+                "word": " quantidade",
+                "start": 2.5,
+                "end": 2.8999999999999986
+            },
+            {
+                "word": " massiva",
+                "start": 2.8999999999999986,
+                "end": 3.5599999999999987
+            },
+            {
+                "word": " de",
+                "start": 3.5599999999999987,
+                "end": 3.759999999999998
+            },
+            {
+                "word": " gas",
+                "start": 3.759999999999998,
+                "end": 3.9399999999999977
+            },
+            {
+                "word": " metano",
+                "start": 3.9399999999999977,
+                "end": 4.419999999999998
+            },
+            {
+                "word": " altamente",
+                "start": 4.419999999999998,
+                "end": 5.279999999999998
+            },
+            {
+                "word": " inflamável.",
+                "start": 5.279999999999998,
+                "end": 6.059999999999999
+            }
+        ],
+        "text": " Sem ventilação, essa mistura gerava uma quantidade massiva de gas metano altamente inflamável."
+    },
+    {
+        "index": 7,
+        "filename": "segment_007.mp3",
+        "start_time": 25.58,
+        "duration": 1.2200000000000024,
+        "end_time": 26.8,
+        "words": [
+            {
+                "word": " Bastava",
+                "start": 0.0,
+                "end": 0.5
+            },
+            {
+                "word": " uma",
+                "start": 0.5,
+                "end": 0.7000000000000028
+            },
+            {
+                "word": " faísca.",
+                "start": 0.7000000000000028,
+                "end": 1.2200000000000024
+            }
+        ],
+        "text": " Bastava uma faísca."
+    },
+    {
+        "index": 8,
+        "filename": "segment_008.mp3",
+        "start_time": 26.8,
+        "duration": 2.379999999999999,
+        "end_time": 29.18,
+        "words": [
+            {
+                "word": " Ou",
+                "start": 0.0,
+                "end": 0.6999999999999993
+            },
+            {
+                "word": " o",
+                "start": 0.6999999999999993,
+                "end": 0.9600000000000009
+            },
+            {
+                "word": " calor",
+                "start": 0.9600000000000009,
+                "end": 1.120000000000001
+            },
+            {
+                "word": " de",
+                "start": 1.120000000000001,
+                "end": 1.3399999999999999
+            },
+            {
+                "word": " uma",
+                "start": 1.3399999999999999,
+                "end": 1.5
+            },
+            {
+                "word": " lâmpada",
+                "start": 1.5,
+                "end": 1.879999999999999
+            },
+            {
+                "word": " de",
+                "start": 1.879999999999999,
+                "end": 2.120000000000001
+            },
+            {
+                "word": " óleo.",
+                "start": 2.120000000000001,
+                "end": 2.379999999999999
+            }
+        ],
+        "text": " Ou o calor de uma lâmpada de óleo."
+    },
+    {
+        "index": 9,
+        "filename": "segment_009.mp3",
+        "start_time": 29.56,
+        "duration": 3.360000000000003,
+        "end_time": 32.92,
+        "words": [
+            {
+                "word": " Para",
+                "start": 0.0,
+                "end": 0.240000000000002
+            },
+            {
+                "word": " provocar",
+                "start": 0.240000000000002,
+                "end": 0.7000000000000028
+            },
+            {
+                "word": " uma",
+                "start": 0.7000000000000028,
+                "end": 0.8800000000000026
+            },
+            {
+                "word": " explosão",
+                "start": 0.8800000000000026,
+                "end": 1.4000000000000021
+            },
+            {
+                "word": " de",
+                "start": 1.4000000000000021,
+                "end": 1.5400000000000027
+            },
+            {
+                "word": " fogo",
+                "start": 1.5400000000000027,
+                "end": 1.9600000000000009
+            },
+            {
+                "word": " bem",
+                "start": 1.9600000000000009,
+                "end": 2.34
+            },
+            {
+                "word": " debaixo",
+                "start": 2.34,
+                "end": 2.900000000000002
+            },
+            {
+                "word": " de",
+                "start": 2.900000000000002,
+                "end": 3.0400000000000027
+            },
+            {
+                "word": " você.",
+                "start": 3.0400000000000027,
+                "end": 3.360000000000003
+            }
+        ],
+        "text": " Para provocar uma explosão de fogo bem debaixo de você."
+    },
+    {
+        "index": 10,
+        "filename": "segment_010.mp3",
+        "start_time": 33.7,
+        "duration": 5.82,
+        "end_time": 39.52,
+        "words": [
+            {
+                "word": " E",
+                "start": 0.0,
+                "end": 0.19999999999999574
+            },
+            {
+                "word": " se",
+                "start": 0.19999999999999574,
+                "end": 0.3399999999999963
+            },
+            {
+                "word": " isso",
+                "start": 0.3399999999999963,
+                "end": 0.5599999999999952
+            },
+            {
+                "word": " não",
+                "start": 0.5599999999999952,
+                "end": 0.6999999999999957
+            },
+            {
+                "word": " bastasse,",
+                "start": 0.6999999999999957,
+                "end": 1.2399999999999949
+            },
+            {
+                "word": " ratazanas",
+                "start": 1.6599999999999966,
+                "end": 2.1199999999999974
+            },
+            {
+                "word": " gigantes",
+                "start": 2.1199999999999974,
+                "end": 2.6799999999999997
+            },
+            {
+                "word": " frequentemente",
+                "start": 2.6799999999999997,
+                "end": 3.6400000000000006
+            },
+            {
+                "word": " subiam",
+                "start": 3.6400000000000006,
+                "end": 4.239999999999995
+            },
+            {
+                "word": " pelos",
+                "start": 4.239999999999995,
+                "end": 4.5
+            },
+            {
+                "word": " buracos",
+                "start": 4.5,
+                "end": 5.039999999999999
+            },
+            {
+                "word": " para",
+                "start": 5.039999999999999,
+                "end": 5.419999999999995
+            },
+            {
+                "word": " atacar",
+                "start": 5.419999999999995,
+                "end": 5.82
+            }
+        ],
+        "text": " E se isso não bastasse, ratazanas gigantes frequentemente subiam pelos buracos para atacar"
+    },
+    {
+        "index": 11,
+        "filename": "segment_011.mp3",
+        "start_time": 39.52,
+        "duration": 0.5799999999999983,
+        "end_time": 40.1,
+        "words": [
+            {
+                "word": " as",
+                "start": 0.0,
+                "end": 0.17999999999999972
+            },
+            {
+                "word": " pessoas.",
+                "start": 0.17999999999999972,
+                "end": 0.5799999999999983
+            }
+        ],
+        "text": " as pessoas."
+    },
+    {
+        "index": 12,
+        "filename": "segment_012.mp3",
+        "start_time": 41.06,
+        "duration": 3.259999999999998,
+        "end_time": 44.32,
+        "words": [
+            {
+                "word": " Sobreviver",
+                "start": 0.0,
+                "end": 0.7399999999999949
+            },
+            {
+                "word": " a",
+                "start": 0.7399999999999949,
+                "end": 0.8200000000000003
+            },
+            {
+                "word": " uma",
+                "start": 0.8200000000000003,
+                "end": 0.9399999999999977
+            },
+            {
+                "word": " ida",
+                "start": 0.9399999999999977,
+                "end": 1.1799999999999997
+            },
+            {
+                "word": " ao",
+                "start": 1.1799999999999997,
+                "end": 1.2999999999999972
+            },
+            {
+                "word": " banheiro",
+                "start": 1.2999999999999972,
+                "end": 1.6599999999999966
+            },
+            {
+                "word": " era",
+                "start": 1.6599999999999966,
+                "end": 2.1599999999999966
+            },
+            {
+                "word": " um",
+                "start": 2.1599999999999966,
+                "end": 2.280000000000001
+            },
+            {
+                "word": " milagre",
+                "start": 2.280000000000001,
+                "end": 2.780000000000001
+            },
+            {
+                "word": " diário.",
+                "start": 2.780000000000001,
+                "end": 3.259999999999998
+            }
+        ],
+        "text": " Sobreviver a uma ida ao banheiro era um milagre diário."
+    },
+    {
+        "index": 13,
+        "filename": "segment_013.mp3",
+        "start_time": 45.08,
+        "duration": 0.7600000000000051,
+        "end_time": 45.84,
+        "words": [
+            {
+                "word": " Teria",
+                "start": 0.0,
+                "end": 0.28000000000000114
+            },
+            {
+                "word": " coragem?",
+                "start": 0.28000000000000114,
+                "end": 0.7600000000000051
+            }
+        ],
+        "text": " Teria coragem?"
+    },
+    {
+        "index": 14,
+        "filename": "segment_014.mp3",
+        "start_time": 46.54,
+        "duration": 2.8999999999999986,
+        "end_time": 49.44,
+        "words": [
+            {
+                "word": " Comente",
+                "start": 0.0,
+                "end": 0.4200000000000017
+            },
+            {
+                "word": " e",
+                "start": 0.4200000000000017,
+                "end": 0.6400000000000006
+            },
+            {
+                "word": " se",
+                "start": 0.6400000000000006,
+                "end": 0.740000000000002
+            },
+            {
+                "word": " inscreva",
+                "start": 0.740000000000002,
+                "end": 1.2000000000000028
+            },
+            {
+                "word": " para",
+                "start": 1.2000000000000028,
+                "end": 1.3999999999999986
+            },
+            {
+                "word": " mais",
+                "start": 1.3999999999999986,
+                "end": 1.7199999999999989
+            },
+            {
+                "word": " bizarrices",
+                "start": 1.7199999999999989,
+                "end": 2.3000000000000043
+            },
+            {
+                "word": " da",
+                "start": 2.3000000000000043,
+                "end": 2.480000000000004
+            },
+            {
+                "word": " história.",
+                "start": 2.480000000000004,
+                "end": 2.8999999999999986
+            }
+        ],
+        "text": " Comente e se inscreva para mais bizarrices da história."
+    }
+]

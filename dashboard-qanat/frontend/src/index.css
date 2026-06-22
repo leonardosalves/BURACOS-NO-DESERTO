@@ -34,3 +34,15 @@
   border: 1px solid rgba(255, 197, 0, 0.15);
   box-shadow: 0 8px 32px 0 rgba(255, 197, 0, 0.02);
 }
+
+/* Render progress widget slide-in animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

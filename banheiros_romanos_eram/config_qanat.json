@@ -1,0 +1,200 @@
+{
+  "highlight_keywords": [
+    "explodir",
+    "metano",
+    "ratazanas",
+    "milagre"
+  ],
+  "bgm_mappings": [
+    {
+      "block": 1,
+      "file": "roma_comica_abertura.mp3"
+    },
+    {
+      "block": 3,
+      "file": "tensao_metano_esgoto.mp3"
+    },
+    {
+      "block": 5,
+      "file": "ratazana_corrida_final.mp3"
+    }
+  ],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 4.5,
+      "text": "BANHEIRO EXPLOSIVO?"
+    },
+    {
+      "block": 3,
+      "start_offset": 12,
+      "end_offset": 18,
+      "text": "GÁS METANO PERIGOSO"
+    },
+    {
+      "block": 5,
+      "start_offset": 28,
+      "end_offset": 34,
+      "text": "RATAZANAS GIGANTES!"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "Você sabia que ir ao banheiro na Roma Antiga podia literalmente te explodir?"
+    },
+    {
+      "block": 2,
+      "phrase": "Os famosos banheiros públicos romanos eram verdadeiras armadilhas mortais."
+    },
+    {
+      "block": 3,
+      "phrase": "Embaixo daqueles assentos de pedra fria, ficavam fossas profundas"
+    },
+    {
+      "block": 4,
+      "phrase": "Bastava uma faísca ou o calor de uma lâmpada"
+    },
+    {
+      "block": 5,
+      "phrase": "E se isso não bastasse, ratazanas gigantes"
+    }
+  ],
+  "timeline_assets": {
+    "1": [
+      {
+        "asset": "grok-video-0ecb3ae0-69ef-42f6-ae34-2272162adc15.mp4",
+        "type": "video",
+        "fixed": 6
+      }
+    ],
+    "2": [
+      {
+        "asset": "Photorealistic_2k_resolution__wide-angle_cinematic_202606220116.jpeg",
+        "type": "image"
+      }
+    ],
+    "3": [
+      {
+        "asset": "Photorealistic_2k_resolution__cross-section_view_202606220117.jpeg",
+        "type": "image",
+        "fixed": 7
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__close-up_of_202606220118.jpeg",
+        "type": "image"
+      }
+    ],
+    "4": [
+      {
+        "asset": "grok-video-a2136ccd-09eb-4812-9a29-2ec7a0d751ab.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "5": [
+      {
+        "asset": "Photorealistic_2k_resolution__dramatic_close-up_202606220121.jpeg",
+        "type": "image",
+        "fixed": 6.5
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__a_modern_202606220122.jpeg",
+        "type": "image"
+      }
+    ],
+    "6": [
+      {
+        "asset": "Photorealistic_2k_resolution__cross-section_view_202606220117.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "grok-video-0ecb3ae0-69ef-42f6-ae34-2272162adc15.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "7": [
+      {
+        "asset": "Photorealistic_2k_resolution__cross-section_view_202606220117.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__close-up_of_202606220118.jpeg",
+        "type": "image"
+      }
+    ],
+    "8": [
+      {
+        "asset": "grok-video-a2136ccd-09eb-4812-9a29-2ec7a0d751ab.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__dramatic_close-up_202606220121.jpeg",
+        "type": "image"
+      }
+    ],
+    "9": [
+      {
+        "asset": "Photorealistic_2k_resolution__dramatic_close-up_202606220121.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "grok-video-0ecb3ae0-69ef-42f6-ae34-2272162adc15.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "grok-video-a2136ccd-09eb-4812-9a29-2ec7a0d751ab.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "10": [
+      {
+        "asset": "Photorealistic_2k_resolution__close-up_of_202606220118.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__dramatic_close-up_202606220121.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "grok-video-0ecb3ae0-69ef-42f6-ae34-2272162adc15.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "11": [
+      {
+        "asset": "Photorealistic_2k_resolution__wide-angle_cinematic_202606220116.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "grok-video-a2136ccd-09eb-4812-9a29-2ec7a0d751ab.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "12": [
+      {
+        "asset": "Photorealistic_2k_resolution__a_modern_202606220122.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__wide-angle_cinematic_202606220116.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "grok-video-0ecb3ae0-69ef-42f6-ae34-2272162adc15.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ]
+  },
+  "aspect_ratio": "9:16",
+  "use_single_bgm": true,
+  "single_bgm": "ES_Terra Requiem II - Dian Shuai.mp3"
+}

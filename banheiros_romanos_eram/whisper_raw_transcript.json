@@ -1,0 +1,1103 @@
+{
+    "text": " Você sabia que irá o banheiro na romantiga, podia literalmente te explodir? Pois é. Os famosos banheiros públicos romanos eram verdadeiras armadilhas mortais. Em baixo daqueles acentos de pedra fria ficavam forças profundas e escuras, onde dejetos acumulavam por meses. Sem ventilação, essa mistura gerava uma quantidade massiva de gas metano altamente inflamável. Bastava uma faísca. Ou o calor de uma lâmpada de óleo. Para provocar uma explosão de fogo bem debaixo de você. E se isso não bastasse, ratazanas gigantes frequentemente subiam pelos buracos para atacar as pessoas. Sobreviver a uma ida ao banheiro era um milagre diário. Teria coragem? Comente e se inscreva para mais bizarrices da história.",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.0,
+            "end": 4.84,
+            "text": " Você sabia que irá o banheiro na romantiga, podia literalmente te explodir?",
+            "tokens": [
+                50364,
+                9781,
+                36388,
+                631,
+                3418,
+                842,
+                277,
+                5643,
+                20267,
+                1667,
+                7438,
+                394,
+                9900,
+                11,
+                46689,
+                20411,
+                4082,
+                535,
+                1490,
+                378,
+                347,
+                30,
+                50624
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " Você",
+                    "start": 0.0,
+                    "end": 0.3,
+                    "probability": 0.6252410411834717
+                },
+                {
+                    "word": " sabia",
+                    "start": 0.3,
+                    "end": 0.72,
+                    "probability": 0.933550238609314
+                },
+                {
+                    "word": " que",
+                    "start": 0.72,
+                    "end": 1.0,
+                    "probability": 0.9872936010360718
+                },
+                {
+                    "word": " irá",
+                    "start": 1.0,
+                    "end": 1.22,
+                    "probability": 0.48199865221977234
+                },
+                {
+                    "word": " o",
+                    "start": 1.22,
+                    "end": 1.32,
+                    "probability": 0.7989679574966431
+                },
+                {
+                    "word": " banheiro",
+                    "start": 1.32,
+                    "end": 1.6,
+                    "probability": 0.9532181918621063
+                },
+                {
+                    "word": " na",
+                    "start": 1.6,
+                    "end": 1.86,
+                    "probability": 0.9887434244155884
+                },
+                {
+                    "word": " romantiga,",
+                    "start": 1.86,
+                    "end": 2.48,
+                    "probability": 0.7683641711870829
+                },
+                {
+                    "word": " podia",
+                    "start": 2.76,
+                    "end": 3.02,
+                    "probability": 0.9703730344772339
+                },
+                {
+                    "word": " literalmente",
+                    "start": 3.02,
+                    "end": 3.88,
+                    "probability": 0.9370996057987213
+                },
+                {
+                    "word": " te",
+                    "start": 3.88,
+                    "end": 4.26,
+                    "probability": 0.9610210061073303
+                },
+                {
+                    "word": " explodir?",
+                    "start": 4.26,
+                    "end": 4.84,
+                    "probability": 0.9748693903287252
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "seek": 0,
+            "start": 5.46,
+            "end": 6.0,
+            "text": " Pois é.",
+            "tokens": [
+                50624,
+                48274,
+                1136,
+                13,
+                50684
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " Pois",
+                    "start": 5.46,
+                    "end": 5.82,
+                    "probability": 0.985018789768219
+                },
+                {
+                    "word": " é.",
+                    "start": 5.82,
+                    "end": 6.0,
+                    "probability": 0.9972251653671265
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "seek": 0,
+            "start": 6.52,
+            "end": 10.78,
+            "text": " Os famosos banheiros públicos romanos eram verdadeiras armadilhas mortais.",
+            "tokens": [
+                50684,
+                8875,
+                1087,
+                33894,
+                5643,
+                675,
+                21633,
+                15392,
+                329,
+                41362,
+                329,
+                34664,
+                15203,
+                23342,
+                3726,
+                345,
+                388,
+                12438,
+                6599,
+                1527,
+                13,
+                50924
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " Os",
+                    "start": 6.52,
+                    "end": 6.6,
+                    "probability": 0.7386475801467896
+                },
+                {
+                    "word": " famosos",
+                    "start": 6.6,
+                    "end": 7.0,
+                    "probability": 0.986538290977478
+                },
+                {
+                    "word": " banheiros",
+                    "start": 7.0,
+                    "end": 7.44,
+                    "probability": 0.9525442322095236
+                },
+                {
+                    "word": " públicos",
+                    "start": 7.44,
+                    "end": 8.0,
+                    "probability": 0.9865008294582367
+                },
+                {
+                    "word": " romanos",
+                    "start": 8.0,
+                    "end": 8.5,
+                    "probability": 0.8628753423690796
+                },
+                {
+                    "word": " eram",
+                    "start": 8.5,
+                    "end": 8.88,
+                    "probability": 0.9819745421409607
+                },
+                {
+                    "word": " verdadeiras",
+                    "start": 8.88,
+                    "end": 9.56,
+                    "probability": 0.9513639509677887
+                },
+                {
+                    "word": " armadilhas",
+                    "start": 9.56,
+                    "end": 10.24,
+                    "probability": 0.9707052409648895
+                },
+                {
+                    "word": " mortais.",
+                    "start": 10.24,
+                    "end": 10.78,
+                    "probability": 0.9942726194858551
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "seek": 0,
+            "start": 11.48,
+            "end": 17.04,
+            "text": " Em baixo daqueles acentos de pedra fria ficavam forças profundas e escuras, onde dejetos",
+            "tokens": [
+                50924,
+                3968,
+                30934,
+                1120,
+                358,
+                6972,
+                696,
+                317,
+                329,
+                368,
+                5670,
+                424,
+                431,
+                654,
+                14591,
+                22561,
+                337,
+                20016,
+                40958,
+                296,
+                308,
+                4721,
+                12907,
+                11,
+                14396,
+                368,
+                7108,
+                329,
+                51216
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " Em",
+                    "start": 11.48,
+                    "end": 11.6,
+                    "probability": 0.9268884062767029
+                },
+                {
+                    "word": " baixo",
+                    "start": 11.6,
+                    "end": 11.9,
+                    "probability": 0.9878333806991577
+                },
+                {
+                    "word": " daqueles",
+                    "start": 11.9,
+                    "end": 12.3,
+                    "probability": 0.898983359336853
+                },
+                {
+                    "word": " acentos",
+                    "start": 12.3,
+                    "end": 12.82,
+                    "probability": 0.7668180763721466
+                },
+                {
+                    "word": " de",
+                    "start": 12.82,
+                    "end": 12.94,
+                    "probability": 0.9987975358963013
+                },
+                {
+                    "word": " pedra",
+                    "start": 12.94,
+                    "end": 13.24,
+                    "probability": 0.8663585186004639
+                },
+                {
+                    "word": " fria",
+                    "start": 13.24,
+                    "end": 13.62,
+                    "probability": 0.7707069218158722
+                },
+                {
+                    "word": " ficavam",
+                    "start": 13.62,
+                    "end": 14.3,
+                    "probability": 0.8751163184642792
+                },
+                {
+                    "word": " forças",
+                    "start": 14.3,
+                    "end": 14.72,
+                    "probability": 0.8707092106342316
+                },
+                {
+                    "word": " profundas",
+                    "start": 14.72,
+                    "end": 15.42,
+                    "probability": 0.889132171869278
+                },
+                {
+                    "word": " e",
+                    "start": 15.42,
+                    "end": 15.7,
+                    "probability": 0.9915069937705994
+                },
+                {
+                    "word": " escuras,",
+                    "start": 15.7,
+                    "end": 15.94,
+                    "probability": 0.9720899760723114
+                },
+                {
+                    "word": " onde",
+                    "start": 16.34,
+                    "end": 16.48,
+                    "probability": 0.9969722032546997
+                },
+                {
+                    "word": " dejetos",
+                    "start": 16.48,
+                    "end": 17.04,
+                    "probability": 0.8276771306991577
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "seek": 0,
+            "start": 17.04,
+            "end": 18.26,
+            "text": " acumulavam por meses.",
+            "tokens": [
+                51216,
+                41343,
+                425,
+                22561,
+                1515,
+                23922,
+                13,
+                51314
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " acumulavam",
+                    "start": 17.04,
+                    "end": 17.62,
+                    "probability": 0.9491874972979227
+                },
+                {
+                    "word": " por",
+                    "start": 17.62,
+                    "end": 17.88,
+                    "probability": 0.9927049279212952
+                },
+                {
+                    "word": " meses.",
+                    "start": 17.88,
+                    "end": 18.26,
+                    "probability": 0.9572920799255371
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "seek": 0,
+            "start": 18.96,
+            "end": 25.02,
+            "text": " Sem ventilação, essa mistura gerava uma quantidade massiva de gas metano altamente inflamável.",
+            "tokens": [
+                51314,
+                14421,
+                27498,
+                6670,
+                11,
+                7208,
+                3544,
+                2991,
+                5713,
+                4061,
+                2772,
+                39639,
+                2758,
+                5931,
+                368,
+                4211,
+                1131,
+                3730,
+                4955,
+                3439,
+                15987,
+                20224,
+                13,
+                51638
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " Sem",
+                    "start": 18.96,
+                    "end": 19.3,
+                    "probability": 0.9357239603996277
+                },
+                {
+                    "word": " ventilação,",
+                    "start": 19.3,
+                    "end": 19.92,
+                    "probability": 0.9649003446102142
+                },
+                {
+                    "word": " essa",
+                    "start": 20.32,
+                    "end": 20.52,
+                    "probability": 0.9830819964408875
+                },
+                {
+                    "word": " mistura",
+                    "start": 20.52,
+                    "end": 20.92,
+                    "probability": 0.9881792366504669
+                },
+                {
+                    "word": " gerava",
+                    "start": 20.92,
+                    "end": 21.28,
+                    "probability": 0.9757038950920105
+                },
+                {
+                    "word": " uma",
+                    "start": 21.28,
+                    "end": 21.46,
+                    "probability": 0.9972266554832458
+                },
+                {
+                    "word": " quantidade",
+                    "start": 21.46,
+                    "end": 21.86,
+                    "probability": 0.9947401881217957
+                },
+                {
+                    "word": " massiva",
+                    "start": 21.86,
+                    "end": 22.52,
+                    "probability": 0.8642162084579468
+                },
+                {
+                    "word": " de",
+                    "start": 22.52,
+                    "end": 22.72,
+                    "probability": 0.9986253976821899
+                },
+                {
+                    "word": " gas",
+                    "start": 22.72,
+                    "end": 22.9,
+                    "probability": 0.7943717837333679
+                },
+                {
+                    "word": " metano",
+                    "start": 22.9,
+                    "end": 23.38,
+                    "probability": 0.9470874667167664
+                },
+                {
+                    "word": " altamente",
+                    "start": 23.38,
+                    "end": 24.24,
+                    "probability": 0.9651539921760559
+                },
+                {
+                    "word": " inflamável.",
+                    "start": 24.24,
+                    "end": 25.02,
+                    "probability": 0.8626080751419067
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "seek": 0,
+            "start": 25.58,
+            "end": 26.8,
+            "text": " Bastava uma faísca.",
+            "tokens": [
+                51638,
+                363,
+                525,
+                4061,
+                2772,
+                2050,
+                5113,
+                496,
+                13,
+                51726
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27250888483311103,
+            "compression_ratio": 1.5,
+            "no_speech_prob": 0.0018249033018946648,
+            "words": [
+                {
+                    "word": " Bastava",
+                    "start": 25.58,
+                    "end": 26.08,
+                    "probability": 0.7605727712313334
+                },
+                {
+                    "word": " uma",
+                    "start": 26.08,
+                    "end": 26.28,
+                    "probability": 0.9986774325370789
+                },
+                {
+                    "word": " faísca.",
+                    "start": 26.28,
+                    "end": 26.8,
+                    "probability": 0.9065083265304565
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "seek": 2680,
+            "start": 26.8,
+            "end": 29.18,
+            "text": " Ou o calor de uma lâmpada de óleo.",
+            "tokens": [
+                50364,
+                11710,
+                277,
+                31575,
+                368,
+                2772,
+                48835,
+                2455,
+                1538,
+                368,
+                11857,
+                41041,
+                13,
+                50512
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " Ou",
+                    "start": 26.8,
+                    "end": 27.5,
+                    "probability": 0.08939822018146515
+                },
+                {
+                    "word": " o",
+                    "start": 27.5,
+                    "end": 27.76,
+                    "probability": 0.9411783814430237
+                },
+                {
+                    "word": " calor",
+                    "start": 27.76,
+                    "end": 27.92,
+                    "probability": 0.9923863410949707
+                },
+                {
+                    "word": " de",
+                    "start": 27.92,
+                    "end": 28.14,
+                    "probability": 0.9940172433853149
+                },
+                {
+                    "word": " uma",
+                    "start": 28.14,
+                    "end": 28.3,
+                    "probability": 0.9957705140113831
+                },
+                {
+                    "word": " lâmpada",
+                    "start": 28.3,
+                    "end": 28.68,
+                    "probability": 0.7996122638384501
+                },
+                {
+                    "word": " de",
+                    "start": 28.68,
+                    "end": 28.92,
+                    "probability": 0.9826123714447021
+                },
+                {
+                    "word": " óleo.",
+                    "start": 28.92,
+                    "end": 29.18,
+                    "probability": 0.9851795434951782
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "seek": 2680,
+            "start": 29.56,
+            "end": 32.92,
+            "text": " Para provocar uma explosão de fogo bem debaixo de você.",
+            "tokens": [
+                50512,
+                11107,
+                24568,
+                289,
+                2772,
+                9215,
+                1076,
+                368,
+                13648,
+                78,
+                7577,
+                3001,
+                64,
+                15617,
+                368,
+                2723,
+                13,
+                50702
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " Para",
+                    "start": 29.56,
+                    "end": 29.8,
+                    "probability": 0.9815857410430908
+                },
+                {
+                    "word": " provocar",
+                    "start": 29.8,
+                    "end": 30.26,
+                    "probability": 0.884128600358963
+                },
+                {
+                    "word": " uma",
+                    "start": 30.26,
+                    "end": 30.44,
+                    "probability": 0.9966514706611633
+                },
+                {
+                    "word": " explosão",
+                    "start": 30.44,
+                    "end": 30.96,
+                    "probability": 0.9373113512992859
+                },
+                {
+                    "word": " de",
+                    "start": 30.96,
+                    "end": 31.1,
+                    "probability": 0.9982081651687622
+                },
+                {
+                    "word": " fogo",
+                    "start": 31.1,
+                    "end": 31.52,
+                    "probability": 0.9747960269451141
+                },
+                {
+                    "word": " bem",
+                    "start": 31.52,
+                    "end": 31.9,
+                    "probability": 0.8552045226097107
+                },
+                {
+                    "word": " debaixo",
+                    "start": 31.9,
+                    "end": 32.46,
+                    "probability": 0.8731636802355448
+                },
+                {
+                    "word": " de",
+                    "start": 32.46,
+                    "end": 32.6,
+                    "probability": 0.9984184503555298
+                },
+                {
+                    "word": " você.",
+                    "start": 32.6,
+                    "end": 32.92,
+                    "probability": 0.996336817741394
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "seek": 2680,
+            "start": 33.7,
+            "end": 39.52,
+            "text": " E se isso não bastasse, ratazanas gigantes frequentemente subiam pelos buracos para atacar",
+            "tokens": [
+                50702,
+                462,
+                369,
+                4616,
+                2431,
+                8414,
+                8604,
+                11,
+                5937,
+                921,
+                14292,
+                8741,
+                9327,
+                18004,
+                16288,
+                1422,
+                2918,
+                38304,
+                2779,
+                326,
+                329,
+                1690,
+                41015,
+                289,
+                51002
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " E",
+                    "start": 33.7,
+                    "end": 33.9,
+                    "probability": 0.8989090919494629
+                },
+                {
+                    "word": " se",
+                    "start": 33.9,
+                    "end": 34.04,
+                    "probability": 0.9346179366111755
+                },
+                {
+                    "word": " isso",
+                    "start": 34.04,
+                    "end": 34.26,
+                    "probability": 0.9943072199821472
+                },
+                {
+                    "word": " não",
+                    "start": 34.26,
+                    "end": 34.4,
+                    "probability": 0.9985125660896301
+                },
+                {
+                    "word": " bastasse,",
+                    "start": 34.4,
+                    "end": 34.94,
+                    "probability": 0.9788431227207184
+                },
+                {
+                    "word": " ratazanas",
+                    "start": 35.36,
+                    "end": 35.82,
+                    "probability": 0.7301829953988394
+                },
+                {
+                    "word": " gigantes",
+                    "start": 35.82,
+                    "end": 36.38,
+                    "probability": 0.9865632355213165
+                },
+                {
+                    "word": " frequentemente",
+                    "start": 36.38,
+                    "end": 37.34,
+                    "probability": 0.9112994372844696
+                },
+                {
+                    "word": " subiam",
+                    "start": 37.34,
+                    "end": 37.94,
+                    "probability": 0.943143755197525
+                },
+                {
+                    "word": " pelos",
+                    "start": 37.94,
+                    "end": 38.2,
+                    "probability": 0.9906259775161743
+                },
+                {
+                    "word": " buracos",
+                    "start": 38.2,
+                    "end": 38.74,
+                    "probability": 0.9901695450146993
+                },
+                {
+                    "word": " para",
+                    "start": 38.74,
+                    "end": 39.12,
+                    "probability": 0.9648570418357849
+                },
+                {
+                    "word": " atacar",
+                    "start": 39.12,
+                    "end": 39.52,
+                    "probability": 0.9934087693691254
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "seek": 2680,
+            "start": 39.52,
+            "end": 40.1,
+            "text": " as pessoas.",
+            "tokens": [
+                51002,
+                382,
+                10021,
+                13,
+                51094
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " as",
+                    "start": 39.52,
+                    "end": 39.7,
+                    "probability": 0.9882841110229492
+                },
+                {
+                    "word": " pessoas.",
+                    "start": 39.7,
+                    "end": 40.1,
+                    "probability": 0.9985018968582153
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "seek": 2680,
+            "start": 41.06,
+            "end": 44.32,
+            "text": " Sobreviver a uma ida ao banheiro era um milagre diário.",
+            "tokens": [
+                51094,
+                407,
+                2672,
+                85,
+                1837,
+                257,
+                2772,
+                220,
+                2887,
+                8130,
+                5643,
+                20267,
+                4249,
+                1105,
+                1962,
+                559,
+                265,
+                1026,
+                12657,
+                13,
+                51280
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " Sobreviver",
+                    "start": 41.06,
+                    "end": 41.8,
+                    "probability": 0.900268480181694
+                },
+                {
+                    "word": " a",
+                    "start": 41.8,
+                    "end": 41.88,
+                    "probability": 0.45943737030029297
+                },
+                {
+                    "word": " uma",
+                    "start": 41.88,
+                    "end": 42.0,
+                    "probability": 0.8982282876968384
+                },
+                {
+                    "word": " ida",
+                    "start": 42.0,
+                    "end": 42.24,
+                    "probability": 0.6939954161643982
+                },
+                {
+                    "word": " ao",
+                    "start": 42.24,
+                    "end": 42.36,
+                    "probability": 0.7317067384719849
+                },
+                {
+                    "word": " banheiro",
+                    "start": 42.36,
+                    "end": 42.72,
+                    "probability": 0.9708677232265472
+                },
+                {
+                    "word": " era",
+                    "start": 42.72,
+                    "end": 43.22,
+                    "probability": 0.8711478114128113
+                },
+                {
+                    "word": " um",
+                    "start": 43.22,
+                    "end": 43.34,
+                    "probability": 0.9825284481048584
+                },
+                {
+                    "word": " milagre",
+                    "start": 43.34,
+                    "end": 43.84,
+                    "probability": 0.9793773094813029
+                },
+                {
+                    "word": " diário.",
+                    "start": 43.84,
+                    "end": 44.32,
+                    "probability": 0.9398917257785797
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "seek": 2680,
+            "start": 45.08,
+            "end": 45.84,
+            "text": " Teria coragem?",
+            "tokens": [
+                51280,
+                6564,
+                654,
+                1181,
+                14767,
+                30,
+                51356
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " Teria",
+                    "start": 45.08,
+                    "end": 45.36,
+                    "probability": 0.8602389693260193
+                },
+                {
+                    "word": " coragem?",
+                    "start": 45.36,
+                    "end": 45.84,
+                    "probability": 0.8480486869812012
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "seek": 2680,
+            "start": 46.54,
+            "end": 49.44,
+            "text": " Comente e se inscreva para mais bizarrices da história.",
+            "tokens": [
+                51356,
+                2432,
+                1576,
+                308,
+                369,
+                27824,
+                2757,
+                1690,
+                2420,
+                7390,
+                2284,
+                1473,
+                1120,
+                20670,
+                13,
+                51500
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.27567530123986933,
+            "compression_ratio": 1.4663677130044843,
+            "no_speech_prob": 0.0213442612439394,
+            "words": [
+                {
+                    "word": " Comente",
+                    "start": 46.54,
+                    "end": 46.96,
+                    "probability": 0.9662973582744598
+                },
+                {
+                    "word": " e",
+                    "start": 46.96,
+                    "end": 47.18,
+                    "probability": 0.99598228931427
+                },
+                {
+                    "word": " se",
+                    "start": 47.18,
+                    "end": 47.28,
+                    "probability": 0.9976044297218323
+                },
+                {
+                    "word": " inscreva",
+                    "start": 47.28,
+                    "end": 47.74,
+                    "probability": 0.9917652606964111
+                },
+                {
+                    "word": " para",
+                    "start": 47.74,
+                    "end": 47.94,
+                    "probability": 0.9925387501716614
+                },
+                {
+                    "word": " mais",
+                    "start": 47.94,
+                    "end": 48.26,
+                    "probability": 0.9905283451080322
+                },
+                {
+                    "word": " bizarrices",
+                    "start": 48.26,
+                    "end": 48.84,
+                    "probability": 0.6539807220300039
+                },
+                {
+                    "word": " da",
+                    "start": 48.84,
+                    "end": 49.02,
+                    "probability": 0.9987912774085999
+                },
+                {
+                    "word": " história.",
+                    "start": 49.02,
+                    "end": 49.44,
+                    "probability": 0.9572962522506714
+                }
+            ]
+        }
+    ],
+    "language": "pt"
+}
