@@ -162,12 +162,12 @@
       {
         "asset": "cena_6.mp4",
         "type": "video",
-        "fixed": 6
+        "fixed": 10
       },
       {
         "asset": "cena_7.jpeg",
         "type": "image",
-        "fixed": 14
+        "fixed": 10.5
       },
       {
         "asset": "cena_8.jpeg",
@@ -205,12 +205,12 @@
       {
         "asset": "cena_13.mp4",
         "type": "video",
-        "fixed": 7.5
+        "fixed": 8
       },
       {
         "asset": "A_line_of_armored_medieval_202606211349.jpeg",
         "type": "image",
-        "fixed": 11
+        "fixed": 9
       },
       {
         "asset": "cena_16.jpeg",
@@ -227,7 +227,7 @@
       {
         "asset": "cena_18.mp4",
         "type": "video",
-        "fixed": 8.3
+        "fixed": 8
       },
       {
         "asset": "cena_19.jpeg",
@@ -381,7 +381,7 @@
       {
         "asset": "cena_46.jpeg",
         "type": "image",
-        "fixed": 13
+        "fixed": 12.5
       },
       {
         "asset": "cena_47.mp4",
