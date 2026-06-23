@@ -2953,7 +2953,17 @@ export default function App() {
 
         setTimelineAssets(data.timeline_assets);
 
-        toast.success('Assets associados inteligentemente aos blocos com sucesso!');
+        if (data.warnings && data.warnings.length > 0) {
+
+          toast.success(`Linha do tempo sincronizada com ${data.warnings.length} aviso(s).`);
+
+          console.warn('Avisos da sincronização de assets:', data.warnings);
+
+        } else {
+
+          toast.success('Linha do tempo sincronizada com o roteiro!');
+
+        }
 
         setCreatorStep(5);
 
@@ -3227,7 +3237,7 @@ export default function App() {
 
   // SSE video rendering
 
-  const triggerRender = (mode: 'standard' | 'highlighted', fromWizard = false) => {
+  const triggerRender = (mode: 'standard' | 'highlighted' | 'remotion', fromWizard = false) => {
 
     if (rendering) return;
 
@@ -3971,23 +3981,27 @@ export default function App() {
 
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
 
-                      Preview em tempo real e linha do tempo de frames via React. Use o comando terminal local para abrir a GUI.
+                      Monta o vÃ­deo pela linha do tempo mapeada, narraÃ§Ã£o sincronizada e legendas geradas a partir da transcriÃ§Ã£o.
 
                     </p>
 
-                    <div className="mt-3 bg-zinc-950 p-2 rounded-lg border border-zinc-900">
-
-                      <code className="text-[10px] text-emerald-400 font-mono">npx remotion preview</code>
-
-                    </div>
-
                   </div>
 
-                  <div className="text-[10px] text-gray-500">
+                  <button
 
-                    Remotion local workspace montado e componentizado em React/TS.
+                    disabled={rendering || !status?.has_narration}
 
-                  </div>
+                    onClick={() => triggerRender('remotion')}
+
+                    className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
+
+                  >
+
+                    <ExternalLink className="w-4 h-4" />
+
+                    <span>Renderizar via Remotion</span>
+
+                  </button>
 
                 </div>
 
