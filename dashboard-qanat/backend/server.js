@@ -10,6 +10,8 @@ const __dirname = path.dirname(__filename);
 
 // Workspace is the parent of dashboard-qanat
 const WORKSPACE_DIR = path.resolve(__dirname, "../..");
+const REMOTION_DIR = path.resolve(__dirname, "../remotion-renderer");
+const REMOTION_PUBLIC_DIR = path.join(REMOTION_DIR, "public");
 const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
 const app = express();
@@ -431,6 +433,89 @@ app.post("/api/music/mix", (req, res) => {
 app.get("/api/render/:mode", (req, res) => {
   const projDir = getProjectDir(req);
   const mode = req.params.mode; // 'standard' or 'highlighted'
+
+  if (mode === "remotion") {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    const sendLog = (text) => {
+      res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+    };
+
+    let child = null;
+
+    try {
+      sendLog("[Remotion] Preparando linha do tempo, assets, narração e legendas...");
+      const renderPlan = prepareRemotionRender(projDir);
+      sendLog(`[PROGRESSO] 10%`);
+      sendLog(`[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`);
+      sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
+
+      child = spawn("npx", [
+        "remotion",
+        "render",
+        "src/index.ts",
+        "LumieraTimeline",
+        renderPlan.outputPath,
+        "--props",
+        renderPlan.propsPath,
+        "--codec",
+        "h264",
+      ], {
+        cwd: REMOTION_DIR,
+        shell: true,
+        env: { ...process.env }
+      });
+
+      child.stdout.on("data", (data) => {
+        const text = data.toString().trim();
+        if (text) {
+          const lines = text.split(/\r?\n/);
+          for (const line of lines) {
+            sendLog(`[Remotion] ${line}`);
+            const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
+            if (progressMatch) {
+              const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
+              sendLog(`[PROGRESSO] ${pct}%`);
+            }
+          }
+        }
+      });
+
+      child.stderr.on("data", (data) => {
+        const text = data.toString().trim();
+        if (text) {
+          const lines = text.split(/\r?\n/);
+          for (const line of lines) {
+            sendLog(`[Remotion] ${line}`);
+          }
+        }
+      });
+
+      child.on("close", (code) => {
+        if (code === 0) {
+          sendLog("[PROGRESSO] 100%");
+          sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
+          res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
+        } else {
+          res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+        }
+        res.end();
+      });
+    } catch (err) {
+      sendLog(`[ERRO] ${err.message}`);
+      res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+      res.end();
+    }
+
+    req.on("close", () => {
+      if (child) child.kill();
+    });
+
+    return;
+  }
+
   const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
   ensureFileExists(scriptName, projDir);
   const scriptPath = path.join(projDir, scriptName);
@@ -498,6 +583,345 @@ function readJsonFile(filePath) {
   } catch (e) {
     return null;
   }
+}
+
+function safeProjectSlug(projectDir) {
+  return path.basename(projectDir).replace(/[^a-zA-Z0-9_-]/g, "_") || "default";
+}
+
+function readProjectJson(projectDir, fileName, fallback = {}) {
+  const filePath = path.join(projectDir, fileName);
+  if (!fs.existsSync(filePath)) return fallback;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function findProjectFile(projectDir, fileName) {
+  if (!fileName) return null;
+  const safeName = path.basename(fileName);
+  const candidates = [
+    path.join(projectDir, safeName),
+    path.join(projectDir, "ASSETS", safeName),
+    path.join(projectDir, "ASSETS", "images", safeName),
+    path.join(projectDir, "ASSETS", "videos", safeName),
+    path.join(projectDir, "ASSETS", "audio", safeName),
+    path.join(projectDir, "MUSICAS", safeName),
+  ];
+
+  return candidates.find(candidate => fs.existsSync(candidate)) || null;
+}
+
+function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
+  if (!sourcePath || !fs.existsSync(sourcePath)) return null;
+  fs.mkdirSync(targetDir, { recursive: true });
+  const parsed = path.parse(sourcePath);
+  const safeBase = `${prefix}${parsed.name}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const destName = `${safeBase}${parsed.ext.toLowerCase()}`;
+  const destPath = path.join(targetDir, destName);
+  fs.copyFileSync(sourcePath, destPath);
+  return destName;
+}
+
+function parseDurationSeconds(value, fallback) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const match = value.replace(",", ".").match(/[\d.]+/);
+    if (match) return Number(match[0]);
+  }
+  return fallback;
+}
+
+function captionsFromWordTranscripts(wordTranscripts) {
+  const captions = [];
+  if (!Array.isArray(wordTranscripts)) return captions;
+
+  for (const segment of wordTranscripts) {
+    const segmentStart = Number(segment?.start_time || 0);
+    if (!Array.isArray(segment?.words)) continue;
+    for (const word of segment.words) {
+      const start = segmentStart + Number(word?.start || 0);
+      const end = segmentStart + Number(word?.end || word?.start || 0.4);
+      captions.push({
+        text: String(word?.word || "").trimStart(),
+        startMs: Math.max(0, Math.round(start * 1000)),
+        endMs: Math.max(0, Math.round(end * 1000)),
+        timestampMs: Math.max(0, Math.round(start * 1000)),
+        confidence: null,
+      });
+    }
+  }
+
+  return captions.filter(caption => caption.text.trim());
+}
+
+function fallbackCaptionsFromScenes(scenes) {
+  const captions = [];
+  for (const scene of scenes) {
+    const words = String(scene.narrationText || "").split(/\s+/).filter(Boolean);
+    if (words.length === 0) continue;
+    const step = Math.max(180, (scene.duration * 1000) / words.length);
+    words.forEach((word, index) => {
+      const startMs = Math.round((scene.start * 1000) + (index * step));
+      captions.push({
+        text: index === 0 ? word : ` ${word}`,
+        startMs,
+        endMs: Math.round(startMs + step),
+        timestampMs: startMs,
+        confidence: null,
+      });
+    });
+  }
+  return captions;
+}
+
+function prepareRemotionRender(projectDir) {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const projectSlug = safeProjectSlug(projectDir);
+  const publicProjectDir = path.join(REMOTION_PUBLIC_DIR, "projects", projectSlug);
+
+  if (!publicProjectDir.startsWith(path.join(REMOTION_PUBLIC_DIR, "projects"))) {
+    throw new Error("Caminho Remotion inválido.");
+  }
+
+  fs.rmSync(publicProjectDir, { recursive: true, force: true });
+  fs.mkdirSync(publicProjectDir, { recursive: true });
+
+  const timelineAssets = config.timeline_assets || {};
+  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const promptByBlock = new Map();
+  for (const prompt of visualPrompts) {
+    const block = Number(prompt?.block || 1);
+    if (!promptByBlock.has(block)) promptByBlock.set(block, []);
+    promptByBlock.get(block).push(prompt);
+  }
+
+  const blockNumbers = [...new Set([
+    ...Object.keys(timelineAssets).map(Number).filter(Boolean),
+    ...visualPrompts.map(prompt => Number(prompt?.block || 0)).filter(Boolean),
+    ...(Array.isArray(config.block_phrases) ? config.block_phrases.map(item => Number(item?.block || 0)).filter(Boolean) : []),
+  ])].sort((a, b) => a - b);
+
+  const scenes = [];
+  let runningStart = 0;
+
+  for (const block of blockNumbers) {
+    const blockIndex = Math.max(0, block - 1);
+    const blockStart = Number(timings.starts?.[blockIndex]);
+    const blockDuration = Number(timings.durations?.[blockIndex]);
+    const start = Number.isFinite(blockStart) ? blockStart : runningStart;
+    const duration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : 8;
+    const mappedAssets = Array.isArray(timelineAssets[String(block)]) ? timelineAssets[String(block)] : [];
+    const prompts = promptByBlock.get(block) || [];
+    const fixedTotal = mappedAssets.reduce((sum, item) => sum + (Number(item?.fixed) || 0), 0);
+    const autoCount = mappedAssets.filter(item => !Number(item?.fixed)).length;
+    const autoDuration = autoCount > 0 ? Math.max(1, (duration - fixedTotal) / autoCount) : duration;
+    let localStart = start;
+
+    if (mappedAssets.length > 0) {
+      mappedAssets.forEach((item, index) => {
+        const sourcePath = findProjectFile(projectDir, item?.asset);
+        const copiedName = copyRemotionAsset(sourcePath, publicProjectDir, `b${block}_${index + 1}_`);
+        if (!copiedName) return;
+
+        const sceneDuration = Math.max(1, Number(item?.fixed) || autoDuration);
+        const prompt = prompts[index] || prompts[0] || {};
+        scenes.push({
+          block,
+          asset: `projects/${projectSlug}/${copiedName}`,
+          type: item?.type === "video" ? "video" : "image",
+          start: localStart,
+          duration: sceneDuration,
+          narrationText: prompt?.narration_text || "",
+          editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
+        });
+        localStart += sceneDuration;
+      });
+    } else {
+      prompts.forEach((prompt, index) => {
+        const sceneDuration = parseDurationSeconds(prompt?.duration, Math.max(2, duration / Math.max(1, prompts.length)));
+        scenes.push({
+          block,
+          asset: "",
+          type: "image",
+          start: localStart,
+          duration: sceneDuration,
+          narrationText: prompt?.narration_text || "",
+          editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
+        });
+        localStart += sceneDuration;
+      });
+    }
+
+    runningStart = Math.max(runningStart, start + duration);
+  }
+
+  const validScenes = scenes.filter(scene => scene.asset);
+  if (validScenes.length === 0) {
+    throw new Error("Nenhum asset mapeado encontrado na linha do tempo para renderizar via Remotion.");
+  }
+
+  const narrationSource = findProjectFile(projectDir, "narracao_mestra_premium.mp3");
+  const narration = copyRemotionAsset(narrationSource, publicProjectDir, "narration_");
+
+  const totalDuration = Math.max(
+    Number(timings.total_duration || 0),
+    ...validScenes.map(scene => scene.start + scene.duration),
+    1
+  );
+
+  const blockRanges = blockNumbers.map((block) => {
+    const blockIndex = Math.max(0, block - 1);
+    const blockStart = Number(timings.starts?.[blockIndex]);
+    const blockDuration = Number(timings.durations?.[blockIndex]);
+    const scenesForBlock = validScenes.filter(scene => scene.block === block);
+    const start = Number.isFinite(blockStart) ? blockStart : Math.min(...scenesForBlock.map(scene => scene.start));
+    const duration = Number.isFinite(blockDuration) ? blockDuration : Math.max(...scenesForBlock.map(scene => scene.start + scene.duration)) - start;
+    return { block, start: Number.isFinite(start) ? start : 0, duration: Number.isFinite(duration) ? duration : totalDuration };
+  });
+
+  const bgmTracks = [];
+  if (config.use_single_bgm && config.single_bgm) {
+    const source = findProjectFile(projectDir, config.single_bgm);
+    const copied = copyRemotionAsset(source, publicProjectDir, "bgm_single_");
+    if (copied) {
+      bgmTracks.push({ block: 0, file: `projects/${projectSlug}/${copied}`, start: 0, duration: totalDuration });
+    }
+  } else if (Array.isArray(config.bgm_mappings)) {
+    for (const mapping of config.bgm_mappings) {
+      const block = Number(mapping?.block || 0);
+      const range = blockRanges.find(item => item.block === block);
+      const source = findProjectFile(projectDir, mapping?.file);
+      const copied = copyRemotionAsset(source, publicProjectDir, `bgm_b${block}_`);
+      if (copied && range) {
+        bgmTracks.push({ block, file: `projects/${projectSlug}/${copied}`, start: range.start, duration: range.duration });
+      }
+    }
+  }
+
+  const captions = captionsFromWordTranscripts(wordTranscripts);
+  const finalCaptions = captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+  const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
+
+  const props = {
+    projectName: path.basename(projectDir),
+    format,
+    totalDuration,
+    scenes: validScenes,
+    captions: finalCaptions,
+    narration: narration ? `projects/${projectSlug}/${narration}` : null,
+    bgmTracks,
+    editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
+  };
+
+  const propsPath = path.join(publicProjectDir, "props.json");
+  fs.writeFileSync(propsPath, JSON.stringify(props, null, 2), "utf8");
+
+  const outputDir = path.join(projectDir, "OUTPUT", "qanat_persa_video_final");
+  fs.mkdirSync(outputDir, { recursive: true });
+  const outputPath = path.join(outputDir, `remotion_${Date.now()}.mp4`);
+
+  return { propsPath, outputPath, totalDuration, sceneCount: validScenes.length, captionCount: finalCaptions.length };
+}
+
+function getMediaTypeFromName(fileName) {
+  const ext = path.extname(fileName).toLowerCase();
+  if ([".mp4", ".mov", ".webm", ".mkv"].includes(ext)) return "video";
+  if (ext === ".svg") return "svg";
+  return "image";
+}
+
+function listProjectMediaAssets(projectDir) {
+  const assetsDir = path.join(projectDir, "ASSETS");
+  const assetFiles = [];
+  if (!fs.existsSync(assetsDir)) return assetFiles;
+
+  const scan = (dir) => {
+    const items = fs.readdirSync(dir);
+    for (const item of items) {
+      const fullPath = path.join(dir, item);
+      if (fs.statSync(fullPath).isDirectory()) {
+        scan(fullPath);
+      } else {
+        const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
+        const ext = path.extname(rel).toLowerCase();
+        if ([".mp4", ".mov", ".webm", ".mkv", ".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(ext)) {
+          assetFiles.push(rel);
+        }
+      }
+    }
+  };
+
+  scan(assetsDir);
+  return assetFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+}
+
+function buildTimelineFromStoryboard(projectDir) {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { durations: [] });
+  const assetFiles = listProjectMediaAssets(projectDir);
+  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+
+  if (assetFiles.length === 0) {
+    throw new Error("Nenhum arquivo de mídia encontrado em ASSETS.");
+  }
+
+  const promptsByBlock = new Map();
+  for (const prompt of visualPrompts) {
+    const block = Number(prompt?.block || 1);
+    if (!promptsByBlock.has(block)) promptsByBlock.set(block, []);
+    promptsByBlock.get(block).push(prompt);
+  }
+
+  let blocks = [...promptsByBlock.keys()].sort((a, b) => a - b);
+  if (blocks.length === 0) {
+    const totalBlocks = Array.isArray(config.block_phrases) && config.block_phrases.length > 0
+      ? config.block_phrases.length
+      : 12;
+    blocks = Array.from({ length: totalBlocks }, (_, index) => index + 1);
+  }
+
+  const timelineAssets = {};
+  const warnings = [];
+  let assetIndex = 0;
+
+  for (const block of blocks) {
+    const expectedScenes = promptsByBlock.get(block) || [];
+    const expectedCount = Math.max(1, expectedScenes.length || 1);
+    const blockDuration = Number(timings.durations?.[block - 1]);
+    const effectiveBlockDuration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : expectedCount * 4;
+    const slotDuration = Math.max(0.5, effectiveBlockDuration / expectedCount);
+    const blockAssets = [];
+
+    for (let slot = 0; slot < expectedCount && assetIndex < assetFiles.length; slot++) {
+      const asset = assetFiles[assetIndex++];
+      blockAssets.push({
+        asset,
+        type: getMediaTypeFromName(asset),
+        fixed: Number(slotDuration.toFixed(1)),
+      });
+    }
+
+    if (blockAssets.length > 0) {
+      timelineAssets[String(block)] = blockAssets;
+    }
+
+    if (blockAssets.length < expectedCount) {
+      warnings.push(`Bloco ${block}: esperava ${expectedCount} asset(s), mas só havia ${blockAssets.length} disponível(is).`);
+    }
+  }
+
+  if (assetIndex < assetFiles.length) {
+    warnings.push(`${assetFiles.length - assetIndex} asset(s) extra foram ignorados para preservar a quantidade original do roteiro.`);
+  }
+
+  return { timelineAssets, assetCount: assetFiles.length, warnings };
 }
 
 function normalizeApiKeys(...values) {
@@ -1730,6 +2154,7 @@ function normalizeKeys(data) {
   if (bgmRecKey && Array.isArray(data[bgmRecKey])) {
     normalized.bgm_recommendations = data[bgmRecKey].map(r => ({
       block: r.block || r.bloco || 0,
+      scope: r.scope || r.escopo || (r.block || r.bloco ? "block" : "video"),
       recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || ""
     }));
   } else {
@@ -1961,7 +2386,7 @@ REGRAS FINAIS:
     const newConfig = {
       gemini_api_key: currentConfig.gemini_api_key,
       highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
-      bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
+      bgm_mappings: [],
       impact_texts: parsedData.technical_config?.impact_texts || [],
       block_phrases: parsedData.technical_config?.block_phrases || []
     };
@@ -1981,12 +2406,25 @@ REGRAS FINAIS:
 // API: Automap available files in ASSETS to script narrative blocks using Gemini
 app.post("/api/ai/auto-map-assets", async (req, res) => {
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
   
   try {
+    const mapped = buildTimelineFromStoryboard(projDir);
+    const autoConfigPath = path.join(projDir, "config_qanat.json");
+    let autoConfig = {};
+    if (fs.existsSync(autoConfigPath)) {
+      autoConfig = JSON.parse(fs.readFileSync(autoConfigPath, "utf8"));
+    }
+
+    autoConfig.timeline_assets = mapped.timelineAssets;
+    fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
+
+    return res.json({
+      success: true,
+      timeline_assets: mapped.timelineAssets,
+      asset_count: mapped.assetCount,
+      warnings: mapped.warnings,
+    });
+
     // List available assets
     const assetsDir = path.join(projDir, "ASSETS");
     let assetFiles = [];
