@@ -1,0 +1,772 @@
+{
+  "projectName": "Concreto_ROMANO_NUNCA",
+  "format": "9:16",
+  "totalDuration": 41.38,
+  "scenes": [
+    {
+      "block": 1,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b1_1_Photorealistic_2k_resolution__cinematic_lighting__202606231221.jpeg",
+      "type": "image",
+      "start": 0,
+      "duration": 5.58,
+      "narrationText": "Você sabia que o concreto romano, feito há 2 mil anos, ainda está de pé?",
+      "editorNotes": "Ken Burns zoom out lento do óculo, revelando a magnitude da cúpula. Transição suave para a próxima cena. Este é o gancho inicial, mostrando a prova da durabilidade romana."
+    },
+    {
+      "block": 1,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b1_2_Photorealistic_2k_resolution__cinematic_lighting__202606231222.jpeg",
+      "type": "image",
+      "start": 5.58,
+      "duration": 5.58,
+      "narrationText": "Enquanto o nosso... bem, o nosso mal dura 50 anos sem rachar!",
+      "editorNotes": "Corte seco do majestoso para o degradado. Ken Burns zoom in lento nas rachaduras para enfatizar a fragilidade do concreto moderno. Quebra de expectativa visual."
+    },
+    {
+      "block": 2,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b2_1_Photorealistic_2k_resolution__cinematic_lighting__202606231224.jpeg",
+      "type": "image",
+      "start": 11.16,
+      "duration": 4,
+      "narrationText": "É uma diferença absurda que desafia a engenharia moderna.",
+      "editorNotes": "Corte para a grandeza do aqueduto. Ken Burns pan da esquerda para a direita, mostrando a extensão da estrutura. Reforça a admiração e a escala do mistério."
+    },
+    {
+      "block": 2,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b2_2_Photorealistic_2k_resolution__cinematic_lighting__202606231225.jpeg",
+      "type": "image",
+      "start": 15.16,
+      "duration": 4.32,
+      "narrationText": "Como eles faziam essa maravilha que até se 'cura' sozinha?",
+      "editorNotes": "Close-up enigmático na textura. Ken Burns zoom in muito lento e estável, quase imperceptível, para criar suspense e focar no detalhe da superfície que parece se regenerar."
+    },
+    {
+      "block": 3,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b3_1_Flow_202606231229.mp4",
+      "type": "video",
+      "start": 19.48,
+      "duration": 5,
+      "narrationText": "O segredo não era mágica, mas uma química genial.",
+      "editorNotes": "Corte rápido para a explicação. Imagem estática, clara e direta. Transmite a ideia de que é uma 'fórmula'."
+    },
+    {
+      "block": 3,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b3_2_Photorealistic_2k_resolution__cinematic_lighting__202606231227.jpeg",
+      "type": "image",
+      "start": 24.48,
+      "duration": 2.5,
+      "narrationText": "Eles usavam cinza vulcânica, a 'Pozolana', e cal virgem.",
+      "editorNotes": "Vídeo para mostrar a origem do material. Movimento dinâmico do vulcão e das cinzas para trazer energia e contexto à 'Pozolana'."
+    },
+    {
+      "block": 4,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b4_1_Crystalline_structures_growing_s__202606231232.mp4",
+      "type": "video",
+      "start": 32.1,
+      "duration": 4.5,
+      "narrationText": "Uma tecnologia que se regenera, muito à frente do seu tempo. Será que estamos prontos para aprender com o passado?",
+      "editorNotes": "Câmera aérea para um 'payoff' visual grandioso. Ken Burns zoom out lento, revelando a escala das ruínas e convidando à reflexão. A admiração final."
+    },
+    {
+      "block": 4,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b4_2_Photorealistic_2k_resolution__cinematic_lighting__202606231233.jpeg",
+      "type": "image",
+      "start": 36.6,
+      "duration": 2.5,
+      "narrationText": "Uma tecnologia que se regenera, muito à frente do seu tempo. Será que estamos prontos para aprender com o passado?",
+      "editorNotes": "Câmera aérea para um 'payoff' visual grandioso. Ken Burns zoom out lento, revelando a escala das ruínas e convidando à reflexão. A admiração final."
+    },
+    {
+      "block": 5,
+      "asset": "projects/Concreto_ROMANO_NUNCA/b5_1_Photorealistic_2k_resolution__cinematic_lighting__202606231234.jpeg",
+      "type": "image",
+      "start": 39.86,
+      "duration": 1.5,
+      "narrationText": "Deixe sua opinião nos comentários!",
+      "editorNotes": "Corte seco para a cena final de reflexão e CTA. Ken Burns zoom in sutil na face do engenheiro. A 'ponte' entre o passado e o presente para o CTA."
+    }
+  ],
+  "captions": [
+    {
+      "text": "Você",
+      "startMs": 0,
+      "endMs": 340,
+      "timestampMs": 0,
+      "confidence": null
+    },
+    {
+      "text": "sabia",
+      "startMs": 340,
+      "endMs": 720,
+      "timestampMs": 340,
+      "confidence": null
+    },
+    {
+      "text": "que",
+      "startMs": 720,
+      "endMs": 960,
+      "timestampMs": 720,
+      "confidence": null
+    },
+    {
+      "text": "o",
+      "startMs": 960,
+      "endMs": 1040,
+      "timestampMs": 960,
+      "confidence": null
+    },
+    {
+      "text": "concreto",
+      "startMs": 1040,
+      "endMs": 1380,
+      "timestampMs": 1040,
+      "confidence": null
+    },
+    {
+      "text": "romano,",
+      "startMs": 1380,
+      "endMs": 1920,
+      "timestampMs": 1380,
+      "confidence": null
+    },
+    {
+      "text": "feito",
+      "startMs": 1920,
+      "endMs": 2140,
+      "timestampMs": 1920,
+      "confidence": null
+    },
+    {
+      "text": "há",
+      "startMs": 2140,
+      "endMs": 2320,
+      "timestampMs": 2140,
+      "confidence": null
+    },
+    {
+      "text": "2",
+      "startMs": 2320,
+      "endMs": 2760,
+      "timestampMs": 2320,
+      "confidence": null
+    },
+    {
+      "text": "mil",
+      "startMs": 2760,
+      "endMs": 2880,
+      "timestampMs": 2760,
+      "confidence": null
+    },
+    {
+      "text": "anos,",
+      "startMs": 2880,
+      "endMs": 3260,
+      "timestampMs": 2880,
+      "confidence": null
+    },
+    {
+      "text": "ainda",
+      "startMs": 3260,
+      "endMs": 3820,
+      "timestampMs": 3260,
+      "confidence": null
+    },
+    {
+      "text": "está",
+      "startMs": 3820,
+      "endMs": 4160,
+      "timestampMs": 3820,
+      "confidence": null
+    },
+    {
+      "text": "de",
+      "startMs": 4160,
+      "endMs": 4300,
+      "timestampMs": 4160,
+      "confidence": null
+    },
+    {
+      "text": "pé?",
+      "startMs": 4300,
+      "endMs": 4460,
+      "timestampMs": 4300,
+      "confidence": null
+    },
+    {
+      "text": "Enquanto",
+      "startMs": 5480,
+      "endMs": 5920,
+      "timestampMs": 5480,
+      "confidence": null
+    },
+    {
+      "text": "o",
+      "startMs": 5920,
+      "endMs": 6060,
+      "timestampMs": 5920,
+      "confidence": null
+    },
+    {
+      "text": "nosso...",
+      "startMs": 6060,
+      "endMs": 6880,
+      "timestampMs": 6060,
+      "confidence": null
+    },
+    {
+      "text": "bem,",
+      "startMs": 6880,
+      "endMs": 7200,
+      "timestampMs": 6880,
+      "confidence": null
+    },
+    {
+      "text": "o",
+      "startMs": 7660,
+      "endMs": 7800,
+      "timestampMs": 7660,
+      "confidence": null
+    },
+    {
+      "text": "nosso",
+      "startMs": 7800,
+      "endMs": 8120,
+      "timestampMs": 7800,
+      "confidence": null
+    },
+    {
+      "text": "mal",
+      "startMs": 8120,
+      "endMs": 8500,
+      "timestampMs": 8120,
+      "confidence": null
+    },
+    {
+      "text": "dura",
+      "startMs": 8500,
+      "endMs": 8780,
+      "timestampMs": 8500,
+      "confidence": null
+    },
+    {
+      "text": "50",
+      "startMs": 8780,
+      "endMs": 9200,
+      "timestampMs": 8780,
+      "confidence": null
+    },
+    {
+      "text": "anos",
+      "startMs": 9200,
+      "endMs": 9820,
+      "timestampMs": 9200,
+      "confidence": null
+    },
+    {
+      "text": "sem",
+      "startMs": 9820,
+      "endMs": 10020,
+      "timestampMs": 9820,
+      "confidence": null
+    },
+    {
+      "text": "rachar!",
+      "startMs": 10020,
+      "endMs": 10480,
+      "timestampMs": 10020,
+      "confidence": null
+    },
+    {
+      "text": "É",
+      "startMs": 11160,
+      "endMs": 11320,
+      "timestampMs": 11160,
+      "confidence": null
+    },
+    {
+      "text": "uma",
+      "startMs": 11320,
+      "endMs": 11440,
+      "timestampMs": 11320,
+      "confidence": null
+    },
+    {
+      "text": "diferença",
+      "startMs": 11440,
+      "endMs": 11760,
+      "timestampMs": 11440,
+      "confidence": null
+    },
+    {
+      "text": "absurda",
+      "startMs": 11760,
+      "endMs": 12720,
+      "timestampMs": 11760,
+      "confidence": null
+    },
+    {
+      "text": "que",
+      "startMs": 12720,
+      "endMs": 12880,
+      "timestampMs": 12720,
+      "confidence": null
+    },
+    {
+      "text": "desafia",
+      "startMs": 12880,
+      "endMs": 13560,
+      "timestampMs": 12880,
+      "confidence": null
+    },
+    {
+      "text": "a",
+      "startMs": 14020,
+      "endMs": 14120,
+      "timestampMs": 14020,
+      "confidence": null
+    },
+    {
+      "text": "engenharia",
+      "startMs": 14120,
+      "endMs": 14560,
+      "timestampMs": 14120,
+      "confidence": null
+    },
+    {
+      "text": "moderna.",
+      "startMs": 14120,
+      "endMs": 41380,
+      "timestampMs": 14120,
+      "confidence": null
+    },
+    {
+      "text": "Como",
+      "startMs": 15120,
+      "endMs": 15400,
+      "timestampMs": 15120,
+      "confidence": null
+    },
+    {
+      "text": "eles",
+      "startMs": 15400,
+      "endMs": 15580,
+      "timestampMs": 15400,
+      "confidence": null
+    },
+    {
+      "text": "faziam",
+      "startMs": 15580,
+      "endMs": 16060,
+      "timestampMs": 15580,
+      "confidence": null
+    },
+    {
+      "text": "essa",
+      "startMs": 16060,
+      "endMs": 16280,
+      "timestampMs": 16060,
+      "confidence": null
+    },
+    {
+      "text": "maravilha",
+      "startMs": 16280,
+      "endMs": 16920,
+      "timestampMs": 16280,
+      "confidence": null
+    },
+    {
+      "text": "que",
+      "startMs": 16920,
+      "endMs": 17220,
+      "timestampMs": 16920,
+      "confidence": null
+    },
+    {
+      "text": "até",
+      "startMs": 17220,
+      "endMs": 17460,
+      "timestampMs": 17220,
+      "confidence": null
+    },
+    {
+      "text": "se",
+      "startMs": 17460,
+      "endMs": 17680,
+      "timestampMs": 17460,
+      "confidence": null
+    },
+    {
+      "text": "'cura'",
+      "startMs": 17680,
+      "endMs": 18240,
+      "timestampMs": 17680,
+      "confidence": null
+    },
+    {
+      "text": "sozinha?",
+      "startMs": 18240,
+      "endMs": 18780,
+      "timestampMs": 18240,
+      "confidence": null
+    },
+    {
+      "text": "O",
+      "startMs": 19480,
+      "endMs": 19580,
+      "timestampMs": 19480,
+      "confidence": null
+    },
+    {
+      "text": "segredo",
+      "startMs": 19580,
+      "endMs": 20000,
+      "timestampMs": 19580,
+      "confidence": null
+    },
+    {
+      "text": "não",
+      "startMs": 20000,
+      "endMs": 20120,
+      "timestampMs": 20000,
+      "confidence": null
+    },
+    {
+      "text": "era",
+      "startMs": 20120,
+      "endMs": 20300,
+      "timestampMs": 20120,
+      "confidence": null
+    },
+    {
+      "text": "mágica,",
+      "startMs": 20300,
+      "endMs": 20820,
+      "timestampMs": 20300,
+      "confidence": null
+    },
+    {
+      "text": "mas",
+      "startMs": 21100,
+      "endMs": 21240,
+      "timestampMs": 21100,
+      "confidence": null
+    },
+    {
+      "text": "uma",
+      "startMs": 21240,
+      "endMs": 21440,
+      "timestampMs": 21240,
+      "confidence": null
+    },
+    {
+      "text": "química",
+      "startMs": 21440,
+      "endMs": 22020,
+      "timestampMs": 21440,
+      "confidence": null
+    },
+    {
+      "text": "genial.",
+      "startMs": 22020,
+      "endMs": 22600,
+      "timestampMs": 22020,
+      "confidence": null
+    },
+    {
+      "text": "Eles",
+      "startMs": 23380,
+      "endMs": 23540,
+      "timestampMs": 23380,
+      "confidence": null
+    },
+    {
+      "text": "usavam",
+      "startMs": 23540,
+      "endMs": 23980,
+      "timestampMs": 23540,
+      "confidence": null
+    },
+    {
+      "text": "cinza",
+      "startMs": 23980,
+      "endMs": 24480,
+      "timestampMs": 23980,
+      "confidence": null
+    },
+    {
+      "text": "vulcânica,",
+      "startMs": 24480,
+      "endMs": 25140,
+      "timestampMs": 24480,
+      "confidence": null
+    },
+    {
+      "text": "a",
+      "startMs": 25440,
+      "endMs": 25780,
+      "timestampMs": 25440,
+      "confidence": null
+    },
+    {
+      "text": "'Pozolana',",
+      "startMs": 25780,
+      "endMs": 26120,
+      "timestampMs": 25780,
+      "confidence": null
+    },
+    {
+      "text": "e",
+      "startMs": 26120,
+      "endMs": 26500,
+      "timestampMs": 26120,
+      "confidence": null
+    },
+    {
+      "text": "cal",
+      "startMs": 26500,
+      "endMs": 26870,
+      "timestampMs": 26500,
+      "confidence": null
+    },
+    {
+      "text": "virgem.",
+      "startMs": 26870,
+      "endMs": 27240,
+      "timestampMs": 26870,
+      "confidence": null
+    },
+    {
+      "text": "Essa",
+      "startMs": 27240,
+      "endMs": 28220,
+      "timestampMs": 27240,
+      "confidence": null
+    },
+    {
+      "text": "mistura",
+      "startMs": 28220,
+      "endMs": 28720,
+      "timestampMs": 28220,
+      "confidence": null
+    },
+    {
+      "text": "criava",
+      "startMs": 28720,
+      "endMs": 29240,
+      "timestampMs": 28720,
+      "confidence": null
+    },
+    {
+      "text": "cristais",
+      "startMs": 29240,
+      "endMs": 29700,
+      "timestampMs": 29240,
+      "confidence": null
+    },
+    {
+      "text": "que",
+      "startMs": 29700,
+      "endMs": 29900,
+      "timestampMs": 29700,
+      "confidence": null
+    },
+    {
+      "text": "preenchiam",
+      "startMs": 29900,
+      "endMs": 30440,
+      "timestampMs": 29900,
+      "confidence": null
+    },
+    {
+      "text": "as",
+      "startMs": 30440,
+      "endMs": 30620,
+      "timestampMs": 30440,
+      "confidence": null
+    },
+    {
+      "text": "micro-rachaduras.",
+      "startMs": 30620,
+      "endMs": 31600,
+      "timestampMs": 30620,
+      "confidence": null
+    },
+    {
+      "text": "Uma",
+      "startMs": 32100,
+      "endMs": 32320,
+      "timestampMs": 32100,
+      "confidence": null
+    },
+    {
+      "text": "tecnologia",
+      "startMs": 32320,
+      "endMs": 32900,
+      "timestampMs": 32320,
+      "confidence": null
+    },
+    {
+      "text": "que",
+      "startMs": 32900,
+      "endMs": 33200,
+      "timestampMs": 32900,
+      "confidence": null
+    },
+    {
+      "text": "se",
+      "startMs": 33200,
+      "endMs": 33340,
+      "timestampMs": 33200,
+      "confidence": null
+    },
+    {
+      "text": "regenera,",
+      "startMs": 33340,
+      "endMs": 33980,
+      "timestampMs": 33340,
+      "confidence": null
+    },
+    {
+      "text": "muito",
+      "startMs": 33980,
+      "endMs": 34580,
+      "timestampMs": 33980,
+      "confidence": null
+    },
+    {
+      "text": "à",
+      "startMs": 34580,
+      "endMs": 34880,
+      "timestampMs": 34580,
+      "confidence": null
+    },
+    {
+      "text": "frente",
+      "startMs": 34880,
+      "endMs": 35120,
+      "timestampMs": 34880,
+      "confidence": null
+    },
+    {
+      "text": "do",
+      "startMs": 35120,
+      "endMs": 35340,
+      "timestampMs": 35120,
+      "confidence": null
+    },
+    {
+      "text": "seu",
+      "startMs": 35340,
+      "endMs": 35500,
+      "timestampMs": 35340,
+      "confidence": null
+    },
+    {
+      "text": "tempo.",
+      "startMs": 35500,
+      "endMs": 35920,
+      "timestampMs": 35500,
+      "confidence": null
+    },
+    {
+      "text": "Será",
+      "startMs": 36680,
+      "endMs": 36920,
+      "timestampMs": 36680,
+      "confidence": null
+    },
+    {
+      "text": "que",
+      "startMs": 36920,
+      "endMs": 37100,
+      "timestampMs": 36920,
+      "confidence": null
+    },
+    {
+      "text": "estamos",
+      "startMs": 37100,
+      "endMs": 37360,
+      "timestampMs": 37100,
+      "confidence": null
+    },
+    {
+      "text": "prontos",
+      "startMs": 37360,
+      "endMs": 37860,
+      "timestampMs": 37360,
+      "confidence": null
+    },
+    {
+      "text": "para",
+      "startMs": 37860,
+      "endMs": 38020,
+      "timestampMs": 37860,
+      "confidence": null
+    },
+    {
+      "text": "aprender",
+      "startMs": 38020,
+      "endMs": 38380,
+      "timestampMs": 38020,
+      "confidence": null
+    },
+    {
+      "text": "com",
+      "startMs": 38380,
+      "endMs": 38560,
+      "timestampMs": 38380,
+      "confidence": null
+    },
+    {
+      "text": "o",
+      "startMs": 38560,
+      "endMs": 38640,
+      "timestampMs": 38560,
+      "confidence": null
+    },
+    {
+      "text": "passado?",
+      "startMs": 38640,
+      "endMs": 38980,
+      "timestampMs": 38640,
+      "confidence": null
+    },
+    {
+      "text": "Deixe",
+      "startMs": 39860,
+      "endMs": 40080,
+      "timestampMs": 39860,
+      "confidence": null
+    },
+    {
+      "text": "sua",
+      "startMs": 40080,
+      "endMs": 40260,
+      "timestampMs": 40080,
+      "confidence": null
+    },
+    {
+      "text": "opinião",
+      "startMs": 40260,
+      "endMs": 40680,
+      "timestampMs": 40260,
+      "confidence": null
+    },
+    {
+      "text": "nos",
+      "startMs": 40680,
+      "endMs": 40820,
+      "timestampMs": 40680,
+      "confidence": null
+    },
+    {
+      "text": "comentários!",
+      "startMs": 40820,
+      "endMs": 41380,
+      "timestampMs": 40820,
+      "confidence": null
+    }
+  ],
+  "narration": "projects/Concreto_ROMANO_NUNCA/narration_narracao_mestra_premium.mp3",
+  "bgmTracks": [],
+  "editingMap": "O vídeo deve ter um ritmo acelerado, mas permitindo pausas estratégicas para a informação 'sentar'. Transições rápidas (cortes secos) entre cenas de contraste (ex: Pantheon vs. concreto rachado) e transições mais suaves (dissolves leves ou Ken Burns) para cenas que exigem contemplação ou continuidade (ex: aqueduto, ruínas). Uso consistente do Ken Burns para dar movimento às imagens estáticas. Elementos visuais como o infográfico e as animações devem ser claros e concisos. As tags de áudio na narração_tagged devem ser seguidas à risca para o ritmo e a emoção da voz. CTA visual claro e direto."
+}

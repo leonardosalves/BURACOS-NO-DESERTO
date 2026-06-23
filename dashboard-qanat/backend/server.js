@@ -460,9 +460,9 @@ app.get("/api/render/:mode", (req, res) => {
         "render",
         "src/index.ts",
         "LumieraTimeline",
-        renderPlan.outputPath,
+        `"${renderPlan.outputPath}"`,
         "--props",
-        renderPlan.propsPath,
+        `"${renderPlan.propsPath}"`,
         "--codec",
         "h264",
       ], {
@@ -945,6 +945,62 @@ function buildTimelineFromStoryboard(projectDir) {
   return { timelineAssets, assetCount: assetFiles.length, warnings };
 }
 
+// Gemini API call with automatic retry and model fallback for 503/429 errors
+const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.1-flash-lite"];
+
+async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = GEMINI_MODELS, bodyOverride = null } = {}) {
+  let lastError = null;
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const requestBody = bodyOverride || {
+          contents: [{ role: "user", parts: [{ text: promptOrBody }] }]
+        };
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+          console.log(`[Gemini] Success with model=${model} on attempt ${attempt}`);
+          return responseText;
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || response.statusText;
+        const status = response.status;
+
+        if (status === 503 || status === 429) {
+          const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          console.warn(`[Gemini] ${status} from ${model} (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`);
+          lastError = new Error(`${model}: ${errMsg}`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        // For non-retryable errors (400, 401, 403, etc.), throw immediately
+        throw new Error(errMsg);
+      } catch (err) {
+        if (err.message && !err.message.includes(model)) {
+          throw err; // Re-throw non-retryable errors
+        }
+        lastError = err;
+      }
+    }
+    console.warn(`[Gemini] All ${maxRetries} attempts failed for ${model}, trying next model...`);
+  }
+
+  throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
+}
+
 function normalizeApiKeys(...values) {
   const keys = [];
   for (const value of values) {
@@ -1251,29 +1307,15 @@ app.post("/api/ai/chat", async (req, res) => {
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }]
     }));
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: formattedContents,
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
-          }
-        })
+    const chatBody = {
+      contents: formattedContents,
+      systemInstruction: {
+        parts: [{ text: systemInstruction }]
       }
-    );
+    };
+    const responseText = await callGeminiWithRetry(apiKey, null, { bodyOverride: chatBody });
     
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui obter uma resposta.";
-    
-    res.json({ text: responseText });
+    res.json({ text: responseText || "Desculpe, não consegui obter uma resposta." });
   } catch (err) {
     res.status(500).json({ error: "Erro ao consultar IA", details: err.message });
   }
@@ -1585,33 +1627,12 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
       return res.json({ text: responseText, provider: "xai" });
     }
 
-    for (let index = 0; index < apiKeys.length; index++) {
-      const apiKey = apiKeys[index];
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }]
-          })
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar metadados.";
-        return res.json({ text: responseText, key_index: index + 1, tried_keys: index + 1 });
-      }
-
-      let errData = {};
-      try {
-        errData = await response.json();
-      } catch (e) {}
-
-      const message = errData.error?.message || `Erro do Gemini: ${response.statusText}`;
-      const quotaExceeded = response.status === 429 || /quota|rate limit|retry/i.test(message);
-      errors.push({ status: response.status, message, quotaExceeded });
+    try {
+      const apiKey = apiKeys[0];
+      const responseText = await callGeminiWithRetry(apiKey, prompt);
+      return res.json({ text: responseText || "Erro ao gerar metadados.", tried_keys: 1 });
+    } catch (geminiErr) {
+      errors.push({ status: 503, message: geminiErr.message, quotaExceeded: true });
     }
 
     if (xaiKey) {
@@ -1742,25 +1763,7 @@ Regras:
 Responda APENAS com um JSON valido no formato:
 {"mode": "LONGO", "suggestions": [{"block": 1, "recommendation": "ideia de trilha para este bloco", "reason": "breve"}], "manual_note": "Escolha manualmente as faixas em Por Bloco."}`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: bgmPrompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      }
-    );
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const responseText = await callGeminiWithRetry(apiKey, bgmPrompt);
     
     let parsed;
     try { parsed = JSON.parse(responseText); } catch(e) {
@@ -2024,28 +2027,7 @@ Você deve responder com um objeto JSON válido contendo exatamente as seguintes
 Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`json ou explicações antes ou depois. Responda apenas com o JSON estruturado.`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: promptSystem }] }]
-        })
-      }
-    );
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
-    // Clean up codeblocks if present
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    
+    const responseText = await callGeminiWithRetry(apiKey, promptSystem);
     const parsedData = JSON.parse(responseText);
     
     // Save script to transcripts_readable.txt
@@ -2127,32 +2109,12 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 }`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}` }]
-          }]
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-
+    const fullPrompt = `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}`;
+    const responseText = await callGeminiWithRetry(apiKey, fullPrompt);
     const parsedData = JSON.parse(responseText);
     res.json(parsedData);
   } catch (err) {
+    console.error("[IDEAS ENDPOINT ERROR]", err.message);
     res.status(500).json({ error: "Erro ao gerar ideias/diagnóstico", details: err.message });
   }
 });
@@ -2403,28 +2365,7 @@ REGRAS FINAIS:
 
   let responseText = "";
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: promptSystem }]
-          }]
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    responseText = await callGeminiWithRetry(apiKey, promptSystem);
 
     const rawData = JSON.parse(responseText);
     const parsedData = normalizeKeys(rawData);
@@ -2551,25 +2492,7 @@ Regras importantes:
 - Se for "video", adicione uma propriedade "fixed" indicando quanto tempo o vídeo é exibido (geralmente 8.00 ou 10.00 segundos). Se for "image", não inclua "fixed" (ela será esticada ou encurtada de forma flexível pelo editor).
 - Mapeie de forma a contar a história visualmente do bloco de acordo com o texto da narração correspondente.`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
-      }
-    );
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const responseText = await callGeminiWithRetry(apiKey, prompt);
     
     const parsedData = JSON.parse(responseText);
     

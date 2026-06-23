@@ -2511,6 +2511,7 @@ export default function App() {
 
   // AI BGM Suggestion
   const [suggestingBGM, setSuggestingBGM] = useState<boolean>(false);
+  const [bgmSuggestions, setBgmSuggestions] = useState<{ mode?: string; recommendation?: string; suggestions?: { block: number; recommendation: string; reason?: string }[]; manual_note?: string } | null>(null);
 
   const handleSuggestBGM = async () => {
     if (!hasApiKey || !config) return;
@@ -2523,43 +2524,8 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
-        if (formatSelector === 'SHORTS' && data.recommendation) {
-          toast.success(`Ideia de BGM para o vídeo inteiro:\n${data.recommendation}\n\nEscolha a faixa manualmente em Trilha Única.`, { duration: 9000 });
-          return;
-        }
-
-        if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.some((s: any) => s.recommendation)) {
-          const summary = data.suggestions
-            .slice(0, 6)
-            .map((s: any) => `Bloco ${s.block}: ${s.recommendation || s.reason || ''}`)
-            .join('\n');
-          const extra = data.suggestions.length > 6 ? `\n...+${data.suggestions.length - 6} bloco(s)` : '';
-          toast.success(`Ideias de BGM por bloco:\n${summary}${extra}\n\nEscolha as faixas manualmente em Por Bloco.`, { duration: 12000 });
-          return;
-        }
-
-        if (false && formatSelector === 'SHORTS' && data.file) {
-          // Single BGM for entire video
-          const updatedConfig = {
-            ...config,
-            use_single_bgm: true,
-            single_bgm: data.file,
-            bgm_mappings: [{ block: 1, file: data.file }]
-          };
-          await saveConfig(updatedConfig);
-          toast.success(`🎵 IA sugeriu: ${data.file}\n${data.reason || ''}`);
-        } else if (false && data.suggestions && Array.isArray(data.suggestions)) {
-          // Per-block BGM
-          const newMappings = data.suggestions.map((s: any) => ({
-            block: s.block,
-            file: s.file
-          }));
-          const updatedConfig = { ...config, bgm_mappings: newMappings };
-          await saveConfig(updatedConfig);
-          toast.success(`🎵 IA mapeou trilhas para ${newMappings.length} blocos!`);
-        } else {
-          toast.error('Resposta da IA não contém sugestões válidas.');
-        }
+        setBgmSuggestions(data);
+        toast.success('✨ Sugestões de BGM geradas! Veja abaixo de cada bloco.', { duration: 3000 });
       } else {
         toast.error(data.error || 'Erro ao sugerir BGM.');
       }
@@ -4554,7 +4520,12 @@ export default function App() {
 
                       </div>
 
-                      
+                      {bgmSuggestions?.recommendation && (
+                        <div className="bg-zinc-950 border border-gold-500/30 rounded-xl p-4 space-y-1 animate-fade-in">
+                          <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider flex items-center gap-1">✨ Sugestão da IA</span>
+                          <p className="text-[11px] text-zinc-300 leading-relaxed italic">{bgmSuggestions.recommendation}</p>
+                        </div>
+                      )}
 
                       <div className="space-y-1.5">
 
@@ -4616,52 +4587,60 @@ export default function App() {
 
                       {(config.bgm_mappings || []).map(bgm => (
 
-                        <div key={bgm.block} className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
+                        <div key={bgm.block} className="space-y-1">
+                          <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
 
-                          <span className="text-xs font-bold text-white font-mono shrink-0">Bloco {bgm.block}</span>
+                            <span className="text-xs font-bold text-white font-mono shrink-0">Bloco {bgm.block}</span>
 
-                          
+                            <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
 
-                          <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
+                              <select 
 
-                            <select 
+                                value={bgm.file}
 
-                              value={bgm.file}
+                                onChange={(e) => handleMusicChange(bgm.block, e.target.value)}
 
-                              onChange={(e) => handleMusicChange(bgm.block, e.target.value)}
-
-                              className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
-
-                            >
-
-                              {musicFiles.map(file => (
-
-                                <option key={file.name} value={file.name}>{file.name}</option>
-
-                              ))}
-
-                            </select>
-
-                            {bgm.file && (
-
-                              <button
-
-                                onClick={() => togglePlayMusic(bgm.file)}
-
-                                className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
-
-                                title="Ouvir trilha"
+                                className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
 
                               >
 
-                                {playingMusic === bgm.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+                                {musicFiles.map(file => (
 
-                              </button>
+                                  <option key={file.name} value={file.name}>{file.name}</option>
 
-                            )}
+                                ))}
+
+                              </select>
+
+                              {bgm.file && (
+
+                                <button
+
+                                  onClick={() => togglePlayMusic(bgm.file)}
+
+                                  className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+
+                                  title="Ouvir trilha"
+
+                                >
+
+                                  {playingMusic === bgm.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+
+                                </button>
+
+                              )}
+
+                            </div>
 
                           </div>
-
+                          {bgmSuggestions?.suggestions?.find((s: any) => s.block === bgm.block) && (
+                            <div className="ml-2 px-3 py-1.5 border-l-2 border-gold-500/40 animate-fade-in">
+                              <p className="text-[10px] text-zinc-400 leading-relaxed">
+                                <span className="text-gold-500 font-bold">✨ IA:</span>{' '}
+                                {bgmSuggestions.suggestions.find((s: any) => s.block === bgm.block)?.recommendation}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                       ))}

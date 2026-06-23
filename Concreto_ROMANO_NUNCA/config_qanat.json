@@ -1,0 +1,121 @@
+{
+  "highlight_keywords": [
+    "romano",
+    "concreto",
+    "degrada",
+    "segredo",
+    "durabilidade",
+    "engenharia",
+    "moderna",
+    "pozolana",
+    "vulcânica",
+    "cristais",
+    "autocura",
+    "passado"
+  ],
+  "bgm_mappings": [],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 4,
+      "text": "CONCRETO ROMANO: 2000 ANOS DE PÉ!"
+    },
+    {
+      "block": 1,
+      "start_offset": 4.5,
+      "end_offset": 8.5,
+      "text": "NOSSO CONCRETO: RACHA EM 50 ANOS!"
+    },
+    {
+      "block": 3,
+      "start_offset": 16,
+      "end_offset": 20,
+      "text": "O SEGREDO: POZOLANA E AUTOCURA!"
+    },
+    {
+      "block": 4,
+      "start_offset": 24,
+      "end_offset": 28,
+      "text": "APRENDER COM O PASSADO?"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "Você sabia que o concreto romano"
+    },
+    {
+      "block": 2,
+      "phrase": "É uma diferença absurda"
+    },
+    {
+      "block": 3,
+      "phrase": "O segredo não era mágica"
+    },
+    {
+      "block": 4,
+      "phrase": "Uma tecnologia que se regenera"
+    },
+    {
+      "block": 5,
+      "phrase": "Deixe sua opinião nos comentários!"
+    }
+  ],
+  "timeline_assets": {
+    "1": [
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231221.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231222.jpeg",
+        "type": "image"
+      }
+    ],
+    "2": [
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231224.jpeg",
+        "type": "image",
+        "fixed": 4
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231225.jpeg",
+        "type": "image"
+      }
+    ],
+    "3": [
+      {
+        "asset": "Flow_202606231229.mp4",
+        "type": "video",
+        "fixed": 5
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231227.jpeg",
+        "type": "image",
+        "fixed": 2.5
+      }
+    ],
+    "4": [
+      {
+        "asset": "Crystalline_structures_growing_s__202606231232.mp4",
+        "type": "video",
+        "fixed": 4.5
+      },
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231233.jpeg",
+        "type": "image",
+        "fixed": 2.5
+      }
+    ],
+    "5": [
+      {
+        "asset": "Photorealistic_2k_resolution__cinematic_lighting__202606231234.jpeg",
+        "type": "image",
+        "fixed": 1.5
+      }
+    ]
+  },
+  "aspect_ratio": "9:16",
+  "use_single_bgm": true
+}
