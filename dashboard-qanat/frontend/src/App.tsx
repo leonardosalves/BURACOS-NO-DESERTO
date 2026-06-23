@@ -4879,6 +4879,33 @@ Regras:
 
               </div>
 
+              {/* IA Status widget (Puter.js vs Google AI Studio) */}
+              <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4 flex items-center justify-between gap-4 shrink-0 font-sans text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center relative">
+                    <Bot className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white tracking-wide uppercase font-cinzel">Status do Motor de Inteligência Artificial</h4>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {hasApiKey 
+                        ? 'Servidor prioritário: Google AI Studio (Gemini-3.5-Flash) ativo.' 
+                        : 'Google AI Studio API Key ausente. Utilizando Puter.js (Gemini-2.5-Flash) cliente gratuito de backup.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-500 mr-1">Conexão IA:</span>
+                  <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-md">
+                    <span className={`w-1.5 h-1.5 rounded-full ${hasApiKey ? 'bg-emerald-500' : 'bg-amber-500'} animate-ping`}></span>
+                    <span className="text-white text-[9px] font-bold font-mono">
+                      {hasApiKey ? 'STUDIO_ACTIVE' : 'PUTER_FAILOVER'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Two Column Layout: YouTube Metadata & AI Chat */}
 
               <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
