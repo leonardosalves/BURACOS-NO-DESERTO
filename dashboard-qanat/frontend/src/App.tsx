@@ -66,7 +66,11 @@ import {
 
   Bot,
 
-  Pause
+  Pause,
+
+  CalendarDays,
+
+  Thermometer
 
 } from 'lucide-react';
 
@@ -143,6 +147,12 @@ interface MusicFile {
   name: string;
 
   sizeBytes: number;
+
+}
+
+interface HeaderWeather {
+
+  temperature: number | null;
 
 }
 
@@ -233,6 +243,10 @@ export default function App() {
   const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
 
   const [chatOpen, setChatOpen] = useState<boolean>(false);
+
+  const [headerDate, setHeaderDate] = useState<Date>(new Date());
+
+  const [headerWeather, setHeaderWeather] = useState<HeaderWeather>({ temperature: null });
 
   // Creator states
 
@@ -343,6 +357,32 @@ export default function App() {
     return `${endpoint}${separator}project=${encodeURIComponent(p)}`;
 
   };
+
+  const formattedHeaderDate = useMemo(() => {
+
+    return new Intl.DateTimeFormat('pt-BR', {
+
+      day: '2-digit',
+
+      month: '2-digit',
+
+      year: 'numeric',
+
+      hour: '2-digit',
+
+      minute: '2-digit',
+
+      timeZone: 'America/Sao_Paulo',
+
+    }).format(headerDate);
+
+  }, [headerDate]);
+
+  const headerTemperatureLabel = headerWeather.temperature === null
+
+    ? '--'
+
+    : `${Math.round(headerWeather.temperature)}\u00b0C`;
 
   // Fetch valid projects list
 
@@ -500,11 +540,33 @@ export default function App() {
 
   };
 
+  const fetchHeaderWeather = async () => {
+
+    try {
+
+      const weatherRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-30.0346&longitude=-51.2177&current=temperature_2m&timezone=America%2FSao_Paulo&forecast_days=1');
+
+      if (!weatherRes.ok) return;
+
+      const weatherData = await weatherRes.json();
+
+      const temperature = Number(weatherData?.current?.temperature_2m);
+
+      setHeaderWeather({ temperature: Number.isFinite(temperature) ? temperature : null });
+
+    } catch (err) {
+
+      console.error("Error loading Porto Alegre weather:", err);
+
+    }
+
+  };
+
   // Keep a combined fetchData for manual triggers and lifecycle events
 
   const fetchData = async () => {
 
-    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs()]);
+    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs(), fetchHeaderWeather()]);
 
   };
 
@@ -527,6 +589,22 @@ export default function App() {
     fetchData();
 
   }, [activeProject]);
+
+  useEffect(() => {
+
+    const clockInterval = setInterval(() => setHeaderDate(new Date()), 60000);
+
+    const weatherInterval = setInterval(fetchHeaderWeather, 600000);
+
+    return () => {
+
+      clearInterval(clockInterval);
+
+      clearInterval(weatherInterval);
+
+    };
+
+  }, []);
 
   useEffect(() => {
 
@@ -3275,11 +3353,33 @@ export default function App() {
 
         <div className="flex items-center gap-4">
 
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs">
+          <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs">
 
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <div className="flex items-center gap-2">
 
-            <span className="text-gray-300 font-medium">Servidor Ativo</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+
+              <span className="text-gray-300 font-medium whitespace-nowrap">Servidor Ativo</span>
+
+            </div>
+
+            <span className="h-4 w-px bg-zinc-700"></span>
+
+            <div className="flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
+
+              <CalendarDays className="w-3.5 h-3.5 text-gold-500" />
+
+              <span>{formattedHeaderDate}</span>
+
+            </div>
+
+            <div className="flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
+
+              <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+
+              <span>{headerTemperatureLabel}</span>
+
+            </div>
 
           </div>
 
