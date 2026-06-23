@@ -482,6 +482,30 @@ def resolve_asset_path(asset_path):
         if files:
             return os.path.join(dir_name, files[0])
 
+    # Fallback to parent directory if running inside a subproject
+    parent_dir_name = os.path.join("..", dir_name)
+    if os.path.exists(parent_dir_name):
+        direct_parent = os.path.join(parent_dir_name, base_name)
+        if os.path.exists(direct_parent):
+            return direct_parent
+
+        if '_' in name_no_ext:
+            spaced_name = name_no_ext.replace('_', ' ') + ext
+            spaced_path = os.path.join(parent_dir_name, spaced_name)
+            if os.path.exists(spaced_path):
+                return spaced_path
+
+        if nums:
+            target_num = int(nums[0])
+            for f in os.listdir(parent_dir_name):
+                f_nums = re.findall(r'\d+', f)
+                if f_nums and int(f_nums[0]) == target_num:
+                    return os.path.join(parent_dir_name, f)
+
+        files = sorted([f for f in os.listdir(parent_dir_name) if f.lower().endswith(ext.lower())])
+        if files:
+            return os.path.join(parent_dir_name, files[0])
+
     raise FileNotFoundError(f"Could not resolve asset path: {asset_path}")
 
 def render_subclip(clip_id, clip_info):
