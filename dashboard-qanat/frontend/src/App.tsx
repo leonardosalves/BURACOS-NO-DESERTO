@@ -6,6 +6,8 @@ import {
 
   Video, 
 
+  Image,
+
   Music, 
 
   Settings, 
@@ -216,6 +218,19 @@ export default function App() {
 
   const [savingAiSettings, setSavingAiSettings] = useState<boolean>(false);
 
+  const [logoStatus, setLogoStatus] = useState<{
+    hasProjectLogo: boolean;
+    projectLogoUrl: string | null;
+    globalLogoUrl: string;
+    currentLogoUrl: string;
+  } | null>(null);
+
+  const [logoTimestamp, setLogoTimestamp] = useState<number>(Date.now());
+
+  const [uploadingLogo, setUploadingLogo] = useState<boolean>(false);
+
+  const [uploadScope, setUploadScope] = useState<'project' | 'global'>('project');
+
   const [chatInput, setChatInput] = useState<string>('');
 
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
@@ -387,6 +402,78 @@ export default function App() {
     ? '--'
 
     : `${Math.round(headerWeather.temperature)}\u00b0C`;
+
+  // Logo utilities and API handlers
+  const fetchLogoStatus = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/logo/status'));
+      if (res.ok) {
+        setLogoStatus(await res.json());
+      }
+    } catch (err) {
+      console.error("Error fetching logo status:", err);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.png')) {
+      toast.error("O logotipo precisa ser um arquivo PNG (.png).");
+      return;
+    }
+
+    setUploadingLogo(true);
+    const scopeParam = uploadScope === 'global' ? 'true' : 'false';
+    try {
+      const res = await fetch(getProjectUrl(`/api/logo/upload?global=${scopeParam}`), {
+        method: 'POST',
+        body: file,
+        headers: {
+          'Content-Type': 'image/png'
+        }
+      });
+
+      if (res.ok) {
+        toast.success(`Logotipo ${uploadScope === 'global' ? 'global' : 'do projeto'} atualizado com sucesso!`);
+        setLogoTimestamp(Date.now());
+        fetchLogoStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Falha ao enviar logotipo.");
+      }
+    } catch (err) {
+      console.error("Error uploading logo:", err);
+      toast.error("Erro de conexão ao enviar o logotipo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleResetLogo = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/logo/reset'), {
+        method: 'POST'
+      });
+
+      if (res.ok) {
+        toast.success("Logotipo redefinido para o padrão global!");
+        setLogoTimestamp(Date.now());
+        fetchLogoStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Falha ao redefinir logotipo.");
+      }
+    } catch (err) {
+      console.error("Error resetting logo:", err);
+      toast.error("Erro de conexão ao redefinir o logotipo.");
+    }
+  };
+
+  useEffect(() => {
+    setUploadScope(activeProject === 'Buracos no Deserto' ? 'global' : 'project');
+  }, [activeProject]);
 
   // Fetch valid projects list
 
@@ -570,7 +657,7 @@ export default function App() {
 
   const fetchData = async () => {
 
-    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs(), fetchHeaderWeather()]);
+    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs(), fetchHeaderWeather(), fetchLogoStatus()]);
 
   };
 
@@ -6890,6 +6977,131 @@ export default function App() {
                     <span>{savingAiSettings ? 'Salvando...' : 'Salvar Configurações'}</span>
 
                   </button>
+
+                </div>
+
+              </div>
+
+              {/* SEÇÃO LOGOTIPO DO VÍDEO */}
+              <div className="glass-panel p-6 rounded-3xl space-y-5">
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+
+                  <div>
+
+                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+
+                      <Image className="w-4 h-4 text-gold-500" /> LOGOTIPO DO FINAL DO VÍDEO
+
+                    </h3>
+
+                    <p className="text-xs text-gray-400 mt-1">
+                      Personalize a marca exibida no encerramento de seus vídeos. Ideal para alternar logos entre canais ou nichos.
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
+                  {/* Preview Box */}
+                  <div className="space-y-2">
+
+                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Visualização Atual</span>
+
+                    <div className="bg-zinc-950 border border-zinc-850 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[160px] relative overflow-hidden group">
+
+                      {logoStatus?.currentLogoUrl ? (
+
+                        <img 
+                          src={`${logoStatus.currentLogoUrl}${logoStatus.currentLogoUrl.includes('?') ? '&' : '?'}t=${logoTimestamp}`} 
+                          alt="Logo Final" 
+                          className="max-h-24 max-w-full object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-105"
+                        />
+
+                      ) : (
+
+                        <div className="text-zinc-600 text-xs font-mono">Sem logo configurado</div>
+
+                      )}
+
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-[9px] text-zinc-500 bg-zinc-950/80 px-2.5 py-1 rounded-lg">
+
+                        <span>Escopo: {logoStatus?.hasProjectLogo ? 'Personalizado do Projeto' : 'Padrão Global'}</span>
+
+                        {logoStatus?.hasProjectLogo && (
+
+                          <button 
+                            type="button"
+                            onClick={handleResetLogo}
+                            className="text-red-400 hover:text-red-300 font-semibold cursor-pointer transition"
+                          >
+                            Resetar para Global
+                          </button>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  {/* Upload Box */}
+                  <div className="space-y-4">
+
+                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Enviar Novo Logo (PNG)</span>
+
+                    <div className="space-y-3">
+
+                      {activeProject !== 'Buracos no Deserto' && (
+
+                        <div className="flex gap-2">
+
+                          <button 
+                            type="button"
+                            onClick={() => setUploadScope('project')}
+                            className={`flex-1 text-center py-2 rounded-xl border text-[10px] font-bold transition cursor-pointer ${uploadScope === 'project' ? 'border-gold-500 bg-gold-500/10 text-gold-500' : 'border-zinc-850 bg-zinc-950/40 text-gray-400 hover:border-zinc-700'}`}
+                          >
+                            Exclusivo deste Projeto
+                          </button>
+
+                          <button 
+                            type="button"
+                            onClick={() => setUploadScope('global')}
+                            className={`flex-1 text-center py-2 rounded-xl border text-[10px] font-bold transition cursor-pointer ${uploadScope === 'global' ? 'border-gold-500 bg-gold-500/10 text-gold-500' : 'border-zinc-850 bg-zinc-950/40 text-gray-400 hover:border-zinc-700'}`}
+                          >
+                            Padrão Global
+                          </button>
+
+                        </div>
+
+                      )}
+
+                      <label className="border-2 border-dashed border-zinc-800 hover:border-gold-500/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[108px] bg-zinc-950/20 hover:bg-zinc-950/40">
+
+                        <Upload className="w-6 h-6 text-zinc-500 mb-2" />
+
+                        <span className="text-xs text-gray-400 font-semibold">
+                          {uploadingLogo ? 'Enviando imagem...' : 'Escolher imagem (logo.png)'}
+                        </span>
+
+                        <span className="text-[9px] text-zinc-500 mt-1">Recomendado: imagem com fundo transparente</span>
+
+                        <input 
+                          type="file" 
+                          accept="image/png" 
+                          className="hidden" 
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                        />
+
+                      </label>
+
+                    </div>
+
+                  </div>
 
                 </div>
 
