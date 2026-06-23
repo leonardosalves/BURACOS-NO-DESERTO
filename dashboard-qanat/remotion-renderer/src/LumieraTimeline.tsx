@@ -157,7 +157,7 @@ const SceneMedia: React.FC<{
       <Video
         src={assetUrl(scene.asset)}
         muted
-        loop
+        loop={false}
         volume={0}
         style={commonStyle}
       />
