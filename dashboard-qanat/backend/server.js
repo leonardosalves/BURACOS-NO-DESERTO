@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -640,6 +640,17 @@ function findProjectFile(projectDir, fileName) {
     path.join(projectDir, "MUSICAS", safeName),
   ];
 
+  // Fallback to workspace root directory if not found in project folder
+  if (projectDir !== WORKSPACE_DIR) {
+    candidates.push(
+      path.join(WORKSPACE_DIR, safeName),
+      path.join(WORKSPACE_DIR, "ASSETS", safeName),
+      path.join(WORKSPACE_DIR, "ASSETS", "images", safeName),
+      path.join(WORKSPACE_DIR, "ASSETS", "videos", safeName),
+      path.join(WORKSPACE_DIR, "ASSETS", "audio", safeName)
+    );
+  }
+
   return candidates.find(candidate => fs.existsSync(candidate)) || null;
 }
 
@@ -652,6 +663,19 @@ function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
   const destPath = path.join(targetDir, destName);
   fs.copyFileSync(sourcePath, destPath);
   return destName;
+}
+
+function getAudioDuration(filePath) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return 0;
+    const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
+    const output = execSync(cmd, { encoding: "utf8" }).trim();
+    const dur = parseFloat(output);
+    return Number.isFinite(dur) ? dur : 0;
+  } catch (e) {
+    console.error("Error getting audio duration:", e.message);
+    return 0;
+  }
 }
 
 function parseDurationSeconds(value, fallback) {
@@ -797,10 +821,12 @@ function prepareRemotionRender(projectDir) {
 
   const narrationSource = findProjectFile(projectDir, "narracao_mestra_premium.mp3");
   const narration = copyRemotionAsset(narrationSource, publicProjectDir, "narration_");
+  const narrationDuration = narrationSource ? getAudioDuration(narrationSource) : 0;
 
   const totalDurationBeforeLogo = Math.max(
     Number(timings.total_duration || 0),
     ...validScenes.map(scene => scene.start + scene.duration),
+    narrationDuration,
     1
   );
 
@@ -823,6 +849,7 @@ function prepareRemotionRender(projectDir) {
   const totalDuration = Math.max(
     Number(timings.total_duration || 0),
     ...validScenes.map(scene => scene.start + scene.duration),
+    narrationDuration,
     1
   );
 
