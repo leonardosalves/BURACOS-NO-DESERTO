@@ -51,6 +51,43 @@ function ensureFileExists(fileName, targetDir) {
   }
 }
 
+// Central helper: Try calling Gemini models in order of priority (Gemini 3.5 Flash -> 3.1 Lite -> 2.5 Flash -> 2.5 Lite)
+async function fetchGeminiWithFallback(apiKey, body) {
+  const models = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite"
+  ];
+  
+  let lastError = null;
+  for (const model of models) {
+    try {
+      console.log(`Tentando chamar Gemini via API: ${model}...`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      
+      if (response.ok) {
+        console.log(`Sucesso com o modelo: ${model}`);
+        return response;
+      }
+      
+      const errData = await response.json();
+      lastError = new Error(errData.error?.message || `Erro do Gemini (${model}): ${response.statusText}`);
+      console.warn(`Falha no modelo ${model}: ${lastError.message}`);
+    } catch (err) {
+      lastError = err;
+      console.warn(`Erro de rede no modelo ${model}: ${err.message}`);
+    }
+  }
+  
+  throw lastError || new Error("Falha ao comunicar com todas as versões da API Gemini.");
+}
+
 // API: List valid projects in workspace
 app.get("/api/projects", (req, res) => {
   try {
@@ -653,19 +690,12 @@ app.post("/api/ai/chat", async (req, res) => {
       parts: [{ text: msg.content }]
     }));
     
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: formattedContents,
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
-          }
-        })
+    const response = await fetchGeminiWithFallback(apiKey, {
+      contents: formattedContents,
+      systemInstruction: {
+        parts: [{ text: systemInstruction }]
       }
-    );
+    });
     
     if (!response.ok) {
       const errData = await response.json();
@@ -858,16 +888,9 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 (lista de capítulos com timestamps)`;
 
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
-      }
-    );
+    const response = await fetchGeminiWithFallback(apiKey, {
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    });
     
     if (!response.ok) {
       const errData = await response.json();
@@ -963,17 +986,10 @@ Responda APENAS com um JSON válido no formato:
 {"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
     }
     
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: bgmPrompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      }
-    );
+    const response = await fetchGeminiWithFallback(apiKey, {
+      contents: [{ role: "user", parts: [{ text: bgmPrompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
     
     if (!response.ok) {
       const errData = await response.json();
@@ -1231,16 +1247,9 @@ Você deve responder com um objeto JSON válido contendo exatamente as seguintes
 Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`json ou explicações antes ou depois. Responda apenas com o JSON estruturado.`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: promptSystem }] }]
-        })
-      }
-    );
+    const response = await fetchGeminiWithFallback(apiKey, {
+      contents: [{ role: "user", parts: [{ text: promptSystem }] }]
+    });
     
     if (!response.ok) {
       const errData = await response.json();
@@ -1660,6 +1669,91 @@ REGRAS FINAIS:
   }
 });
 
+// API: Save script data (for client-side Puter.js fallback)
+app.post("/api/ai/creator/save-script", async (req, res) => {
+  const projDir = getProjectDir(req);
+  if (!projDir) return res.status(400).json({ error: "project required" });
+
+  const { scriptData } = req.body;
+  if (!scriptData) return res.status(400).json({ error: "scriptData required" });
+
+  // Automatically create and template project directory on-the-fly if it doesn't exist
+  if (!fs.existsSync(projDir)) {
+    try {
+      fs.mkdirSync(projDir, { recursive: true });
+      fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
+      fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
+      
+      ensureFileExists("build_video.py", projDir);
+      ensureFileExists("build_video_destacado.py", projDir);
+      ensureFileExists("mix_bgm.py", projDir);
+      ensureFileExists("find_block_timings.py", projDir);
+      ensureFileExists("align_transcripts.py", projDir);
+      
+      const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
+      const defaultConfigDest = path.join(projDir, "config_qanat.json");
+      if (fs.existsSync(defaultConfigSrc)) {
+        fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
+        try {
+          const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
+          if (cfg.gemini_api_key) {
+            delete cfg.gemini_api_key;
+            fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
+          }
+        } catch (e) {}
+      }
+      
+      fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
+        starts: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
+        durations: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+        total_duration: 120
+      }, null, 4), "utf8");
+    } catch (err) {
+      return res.status(500).json({ error: "Erro ao criar pasta do novo projeto", details: err.message });
+    }
+  }
+
+  try {
+    const parsedData = normalizeKeys(scriptData);
+
+    // Save full storyboard JSON
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    fs.writeFileSync(storyboardPath, JSON.stringify(parsedData, null, 2), "utf8");
+
+    // Save technical configurations to active project directory
+    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+    let scriptText = parsedData.technical_config?.script || parsedData.script;
+    if (Array.isArray(scriptText)) {
+      scriptText = scriptText.join("\n\n");
+    } else if (typeof scriptText !== "string") {
+      scriptText = String(scriptText || "");
+    }
+    fs.writeFileSync(transcriptPath, scriptText, "utf8");
+
+    const configPath = path.join(projDir, "config_qanat.json");
+    let currentConfig = {};
+    if (fs.existsSync(configPath)) {
+      try { currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+    }
+
+    const newConfig = {
+      gemini_api_key: currentConfig.gemini_api_key,
+      highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
+      bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
+      impact_texts: parsedData.technical_config?.impact_texts || [],
+      block_phrases: parsedData.technical_config?.block_phrases || []
+    };
+
+    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Erro no endpoint /api/ai/creator/save-script:", err);
+    res.status(500).json({ error: "Erro ao salvar roteiro no servidor", details: err.message });
+  }
+});
+
+
 // API: Automap available files in ASSETS to script narrative blocks using Gemini
 app.post("/api/ai/auto-map-assets", async (req, res) => {
   const projDir = getProjectDir(req);
@@ -1845,6 +1939,226 @@ app.get("/api/sync-timings", (req, res) => {
   req.on("close", () => {
     child1.kill();
   });
+});
+
+// ============================================
+// TITLE OPTIMIZER — YouTube Channel Analysis
+// ============================================
+
+// API: Fetch YouTube channel videos via RSS feed
+// API: Fetch YouTube channel videos via RSS or shoffing.com
+app.get("/api/youtube/channel-videos", async (req, res) => {
+  const channel = req.query.channel || "@AIConstructionStories";
+  const shoffingUrl = `https://shoffing.com/project/youtube_sort/get_videos/${encodeURIComponent(channel)}`;
+  
+  try {
+    const response = await fetch(shoffingUrl);
+    if (!response.ok) {
+      throw new Error(`Falha ao buscar dados no shoffing: ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (!data.videos || !Array.isArray(data.videos)) {
+      throw new Error("Formato inválido retornado pelo shoffing");
+    }
+    
+    // Map shoffing format to our expected format
+    const entries = data.videos.map(v => {
+      const isShort = v.duration && v.duration <= 60;
+      return {
+        videoId: v.id,
+        title: v.title,
+        published: v.date,
+        thumbnail: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
+        views: v.views || 0,
+        likes: v.likes || 0,
+        description: v.title,
+        isShort: !!isShort,
+        url: isShort
+          ? `https://www.youtube.com/shorts/${v.id}`
+          : `https://www.youtube.com/watch?v=${v.id}`
+      };
+    });
+    
+    // Sort by views ascending (lowest first)
+    entries.sort((a, b) => a.views - b.views);
+    
+    // Return top 10 lowest
+    const lowest10 = entries.slice(0, 10);
+    
+    res.json({
+      channelName: "AI Construction Stories",
+      channelId: "UCYYcyky9A8fob3t6TlIENYA",
+      totalVideos: entries.length,
+      videos: lowest10,
+      fetchedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn("Erro ao buscar do shoffing, tentando RSS feed fallback:", err.message);
+    // Fallback: Use YouTube RSS
+    try {
+      const channelId = "UCYYcyky9A8fob3t6TlIENYA";
+      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+      const fallbackResponse = await fetch(rssUrl);
+      if (!fallbackResponse.ok) {
+        return res.status(502).json({ error: "Falha ao buscar vídeos do canal no shoffing e no fallback do YouTube" });
+      }
+      const xml = await fallbackResponse.text();
+      
+      const entries = [];
+      const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+      let match;
+      while ((match = entryRegex.exec(xml)) !== null) {
+        const entry = match[1];
+        const getTag = (tag) => {
+          const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`));
+          return m ? m[1].trim() : "";
+        };
+        const getAttr = (tag, attr) => {
+          const m = entry.match(new RegExp(`<${tag}[^>]*${attr}="([^"]*)"`, "i"));
+          return m ? m[1] : "";
+        };
+        
+        const videoId = getTag("yt:videoId");
+        const title = getTag("title");
+        const published = getTag("published");
+        const thumbnail = getAttr("media:thumbnail", "url");
+        const viewsMatch = entry.match(/views="(\d+)"/);
+        const views = viewsMatch ? parseInt(viewsMatch[1], 10) : 0;
+        const likesMatch = entry.match(/count="(\d+)"\s+average/);
+        const likes = likesMatch ? parseInt(likesMatch[1], 10) : 0;
+        const description = getTag("media:description").substring(0, 300);
+        const isShort = entry.includes("/shorts/");
+        
+        entries.push({
+          videoId,
+          title,
+          published,
+          thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+          views,
+          likes,
+          description,
+          isShort,
+          url: isShort
+            ? `https://www.youtube.com/shorts/${videoId}`
+            : `https://www.youtube.com/watch?v=${videoId}`
+        });
+      }
+      
+      entries.sort((a, b) => a.views - b.views);
+      const lowest10 = entries.slice(0, 10);
+      
+      res.json({
+        channelName: "AI Construction Stories",
+        channelId,
+        totalVideos: entries.length,
+        videos: lowest10,
+        fetchedAt: new Date().toISOString()
+      });
+    } catch (fallbackErr) {
+      res.status(500).json({ error: "Erro ao buscar vídeos do canal", details: fallbackErr.message });
+    }
+  }
+});
+
+
+// API: Generate optimized title variations via Gemini AI
+app.post("/api/ai/title-optimizer", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const apiKey = getApiKey(projDir);
+  if (!apiKey) {
+    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  }
+  
+  const { videos, channelName } = req.body;
+  if (!videos || !Array.isArray(videos) || videos.length === 0) {
+    return res.status(400).json({ error: "Lista de vídeos não fornecida" });
+  }
+  
+  const videosList = videos.map((v, i) => 
+    `${i + 1}. Título: "${v.title}" | Views: ${v.views} | Likes: ${v.likes} | ${v.isShort ? 'Short' : 'Video'}`
+  ).join("\n");
+  
+  const prompt = `Você é um especialista em otimização de títulos de vídeos do YouTube, com profundo conhecimento em gatilhos psicológicos, SEO, e estratégias de alcance de audiência.
+
+O canal "${channelName || 'AI Construction Stories'}" é em PORTUGUÊS DO BRASIL e fala sobre curiosidades históricas, construções incríveis e fatos bizarros da história.
+
+Aqui estão os vídeos com MENOS visualizações do canal:
+${videosList}
+
+Para CADA vídeo, analise o título atual e gere otimizações. Responda SOMENTE em JSON válido (sem markdown code blocks) com este formato exato:
+
+{
+  "optimizations": [
+    {
+      "originalTitle": "título original",
+      "views": 123,
+      "impact": "high",
+      "opportunity": "breve explicação do problema do título atual",
+      "timingStrategy": "estratégia de timing para este tipo de conteúdo",
+      "coreTitle": {
+        "title": "título otimizado para audiência core (+20%)",
+        "description": "por que este título funciona para o público core"
+      },
+      "expandedTitle": {
+        "title": "título otimizado para alcance expandido (5x)",
+        "description": "por que este título alcança mais pessoas"
+      },
+      "broadTitle": {
+        "title": "título otimizado para apelo amplo (10x)",
+        "description": "por que este título tem máximo alcance"
+      },
+      "bestNow": "core",
+      "titleFormula": "fórmula usada (ex: Pergunta + Risco, Números + Mistério)",
+      "triggers": ["gatilho1", "gatilho2"],
+      "contentType": "tipo de conteúdo (ex: Curiosidades Históricas)",
+      "audienceStrategy": "estratégia de expansão da audiência"
+    }
+  ]
+}
+
+REGRAS:
+- Todos os títulos otimizados devem ser em PORTUGUÊS DO BRASIL
+- Use letras maiúsculas estrategicamente (1-2 palavras em CAPS)
+- Títulos devem ter entre 40-70 caracteres
+- Use gatilhos psicológicos: curiosidade, medo, urgência, exclusividade
+- O campo "impact" deve ser "high", "medium" ou "low"
+- O campo "bestNow" deve ser "core", "expanded" ou "broad"
+- Responda SOMENTE com o JSON, sem texto adicional`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.8,
+            maxOutputTokens: 8192
+          }
+        })
+      }
+    );
+    
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    // Clean up response - remove markdown code blocks if present
+    responseText = responseText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    
+    const parsed = JSON.parse(responseText);
+    res.json(parsed);
+  } catch (err) {
+    console.error("Title optimizer error:", err.message);
+    res.status(500).json({ error: "Erro ao gerar otimizações de título", details: err.message });
+  }
 });
 
 // Serve frontend build static files in production

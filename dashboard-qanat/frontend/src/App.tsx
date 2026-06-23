@@ -2,6 +2,8 @@ import toast, { Toaster } from 'react-hot-toast';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
+import { TitleStrategyWizard } from './TitleStrategyWizard';
+
 import { 
 
   Video, 
@@ -66,7 +68,9 @@ import {
 
   Bot,
 
-  Pause
+  Pause,
+
+  TrendingUp
 
 } from 'lucide-react';
 
@@ -148,7 +152,7 @@ interface MusicFile {
 
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'title-optimizer'>('status');
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -316,6 +320,39 @@ export default function App() {
 
   const activeNarrationStateRef = useRef<{ target: number | string; endTime: number } | null>(null);
 
+  // Title Optimizer states
+  const [titleOptVideos, setTitleOptVideos] = useState<any[]>([]);
+  const [titleOptResults, setTitleOptResults] = useState<any>(null);
+  const [titleOptLoading, setTitleOptLoading] = useState(false);
+  const [titleOptStep, setTitleOptStep] = useState(0);
+  const [titleOptSelectedIdx, setTitleOptSelectedIdx] = useState(0);
+  const [titleOptLastUpdate, setTitleOptLastUpdate] = useState<string | null>(null);
+
+  // Title Strategy Wizard states
+  const [showTitleWizard, setShowTitleWizard] = useState<boolean>(false);
+  const [wizardStep, setWizardStep] = useState<number>(1);
+  const [wizardExpandedCategory, setWizardExpandedCategory] = useState<string>('Educational/Tutorial');
+  const [selectedContentType, setSelectedContentType] = useState<string>('Conceptual Teaching');
+  const [selectedSubTags, setSelectedSubTags] = useState<string[]>([]);
+  const [selectedBrandVoice, setSelectedBrandVoice] = useState<string>('The Authority');
+
+  // Target Audience states
+  const [audienceDescription, setAudienceDescription] = useState<string>('');
+  const [audienceAgeRange, setAudienceAgeRange] = useState<string>('');
+  const [audiencePainPoints, setAudiencePainPoints] = useState<string[]>([]);
+  const [audienceAspirations, setAudienceAspirations] = useState<string[]>([]);
+  const [audienceCoreValues, setAudienceCoreValues] = useState<string[]>([]);
+  const [newPainPoint, setNewPainPoint] = useState<string>('');
+  const [newAspiration, setNewAspiration] = useState<string>('');
+  const [newCoreValue, setNewCoreValue] = useState<string>('');
+
+  // Evolution state
+  const [selectedEvolutionStrategy, setSelectedEvolutionStrategy] = useState<string>('Standard Evolution');
+
+  // Psychological triggers & formulas
+  const [selectedPsychologicalTriggers, setSelectedPsychologicalTriggers] = useState<string[]>(['Curiosity Gap']);
+  const [selectedTitleFormulas, setSelectedTitleFormulas] = useState<string[]>(['Why Questions']);
+
   // Helper: Append active project context dynamically to backend URL queries
 
   const getProjectUrl = (endpoint: string, projectOverride?: string) => {
@@ -326,6 +363,164 @@ export default function App() {
 
     return `${endpoint}${separator}project=${encodeURIComponent(p)}`;
 
+  };
+
+  // Helper to prioritize Backend Gemini and failover to client-side Puter.js
+  const callAIEngine = async (
+    endpoint: string,
+    payload: any,
+    fallbackPrompt: string,
+    puterModel = 'google/gemini-2.5-flash'
+  ): Promise<any> => {
+    try {
+      const res = await fetch(getProjectUrl(endpoint), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && !data.error) {
+        return data;
+      }
+      console.warn(`Backend Gemini failed on ${endpoint}: ${data.error || 'Unknown error'}. Trying Puter.js...`);
+    } catch (err: any) {
+      console.warn(`Backend Gemini connection failed: ${err.message}. Trying Puter.js...`);
+    }
+
+    // Puter.js Fallback
+    if (typeof (window as any).puter !== 'undefined') {
+      try {
+        toast.loading('Gemini offline. Usando IA Puter.js...', { id: 'puter-ai-toast', duration: 3000 });
+        const response = await (window as any).puter.ai.chat(fallbackPrompt, { model: puterModel });
+        let responseText = response.message?.content || response || "";
+        
+        const isJsonExpected = endpoint.includes('title-optimizer') || endpoint.includes('suggest-bgm') || endpoint.includes('creator') || payload.expectJson;
+        if (isJsonExpected) {
+          let cleanText = responseText.replace(/```json\s*/i, '').replace(/```\s*$/i, '').trim();
+          const firstBrace = cleanText.indexOf('{');
+          const firstBracket = cleanText.indexOf('[');
+          let startIdx = -1;
+          let endIdx = -1;
+          if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+            startIdx = firstBrace;
+            endIdx = cleanText.lastIndexOf('}');
+          } else if (firstBracket !== -1) {
+            startIdx = firstBracket;
+            endIdx = cleanText.lastIndexOf(']');
+          }
+          if (startIdx !== -1 && endIdx !== -1) {
+            cleanText = cleanText.substring(startIdx, endIdx + 1);
+          }
+          return JSON.parse(cleanText);
+        }
+        
+        return { text: responseText, success: true };
+      } catch (puterErr: any) {
+        console.error('Puter.js failover failed:', puterErr);
+        throw new Error(`Ambas as conexões de IA (API Gemini & Puter.js) falharam.`);
+      }
+    } else {
+      throw new Error('Chave de API do Google AI Studio offline e o SDK Puter.js não está carregado.');
+    }
+  };
+
+  const runTitleOptimizer = async () => {
+    setTitleOptLoading(true);
+    setTitleOptStep(1);
+    try {
+      const videosRes = await fetch(getProjectUrl('/api/youtube/channel-videos'));
+      if (!videosRes.ok) {
+        throw new Error('Falha ao buscar vídeos do canal no YouTube.');
+      }
+      const videosData = await videosRes.json();
+      const vids = videosData.videos || [];
+      setTitleOptVideos(vids);
+      
+      if (vids.length === 0) {
+        throw new Error('Nenhum vídeo retornado para otimização.');
+      }
+
+      setTitleOptStep(2);
+
+      const videosList = vids.map((v: any, i: number) => 
+        `${i + 1}. Título: "${v.title}" | Views: ${v.views} | Likes: ${v.likes} | ${v.isShort ? 'Short' : 'Video'}`
+      ).join("\n");
+
+      const prompt = `Você é um especialista em otimização de títulos de vídeos do YouTube, com profundo conhecimento em gatilhos psicológicos, SEO, e estratégias de alcance de audiência.
+
+O canal "AI Construction Stories" é em PORTUGUÊS DO BRASIL e fala sobre curiosidades históricas, construções incríveis e fatos bizarros da história.
+
+Aqui estão os vídeos com MENOS visualizações do canal:
+${videosList}
+
+Abaixo estão as DIRETRIZES DE CUSTOMIZAÇÃO DA ESTRATÉGIA para gerar as otimizações:
+- Tipo de Conteúdo Principal: ${selectedContentType} (${selectedSubTags.join(', ') || 'Nenhum sub-tag selecionado'})
+- Voz da Marca (Brand Voice): ${selectedBrandVoice}
+- Público-Alvo: ${audienceDescription || 'Niche curiosidades históricas e fatos bizarros'}
+  * Faixa Etária: ${audienceAgeRange || 'Geral'}
+  * Dores/Problemas: ${audiencePainPoints.join(', ') || 'Nenhum'}
+  * Aspirações: ${audienceAspirations.join(', ') || 'Nenhum'}
+  * Valores Core: ${audienceCoreValues.join(', ') || 'Nenhum'}
+- Estratégia de Evolução de Títulos: ${selectedEvolutionStrategy}
+- Gatilhos Psicológicos Escolhidos: ${selectedPsychologicalTriggers.join(', ')}
+- Fórmulas/Padrões de Títulos Preferidos: ${selectedTitleFormulas.join(', ')}
+
+Para CADA vídeo, analise o título atual e gere otimizações alinhadas com as diretrizes acima. Responda SOMENTE em JSON válido (sem markdown code blocks) com este formato exato:
+
+{
+  "optimizations": [
+    {
+      "originalTitle": "título original",
+      "views": 123,
+      "impact": "high",
+      "opportunity": "breve explicação do problema do título atual e como a nova estratégia o resolve",
+      "timingStrategy": "estratégia de timing recomendada",
+      "coreTitle": {
+        "title": "título otimizado para audiência core (+20%)",
+        "description": "por que funciona para a audiência core com base nos valores e dores"
+      },
+      "expandedTitle": {
+        "title": "título otimizado para alcance expandido (5x)",
+        "description": "por que funciona para alcance expandido usando a fórmula selecionada"
+      },
+      "broadTitle": {
+        "title": "título otimizado para apelo amplo (10x)",
+        "description": "por que funciona para apelo amplo usando os gatilhos psicológicos selecionados"
+      },
+      "bestNow": "core",
+      "titleFormula": "nome da fórmula/padrão utilizado",
+      "triggers": ["gatilho1", "gatilho2"],
+      "contentType": "${selectedContentType}",
+      "audienceStrategy": "como a nova estratégia expande o alcance"
+    }
+  ]
+}
+
+REGRAS:
+- Todos os títulos otimizados devem ser em PORTUGUÊS DO BRASIL
+- Use letras maiúsculas estrategicamente
+- Títulos devem ter entre 40-70 caracteres
+- O campo "impact" deve ser "high", "medium" ou "low"
+- O campo "bestNow" deve ser "core", "expanded" ou "broad"
+- Responda SOMENTE com o JSON, sem texto adicional`;
+
+      setTitleOptStep(3);
+
+      const result = await callAIEngine(
+        '/api/ai/title-optimizer',
+        { videos: vids, channelName: "AI Construction Stories" },
+        prompt
+      );
+
+      setTitleOptResults(result);
+      setTitleOptSelectedIdx(0);
+      setTitleOptLastUpdate(new Date().toLocaleString());
+      toast.success('Otimizações de título geradas com sucesso!');
+    } catch (err: any) {
+      toast.error('Erro na otimização de títulos: ' + err.message);
+    } finally {
+      setTitleOptLoading(false);
+    }
   };
 
   // Fetch valid projects list
@@ -2253,25 +2448,45 @@ export default function App() {
 
     setYoutubeMetadata('');
 
+    const scriptText = generatedScriptData?.narrative_script || creatorScript || "";
+
+    const fallbackPrompt = `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
+
+Analise o roteiro e as informações abaixo para gerar metadados otimizados em PORTUGUÊS DO BRASIL:
+
+Roteiro do Vídeo:
+${scriptText}
+
+FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
+
+## TÍTULOS
+(liste 5 títulos numerados focados em curiosidade/CTR, máx 60 caracteres)
+
+## DESCRIÇÃO
+(descrição pronta para copiar e colar com as duas primeiras linhas de impacto, palavras-chave e hashtags)
+
+## TAGS
+(15 tags relevantes separadas por vírgula)
+
+## COMENTÁRIO PINADO
+(comentário engajante com pergunta para gerar debate)
+
+## CAPÍTULOS
+(sugira capítulos com base no roteiro)`;
+
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/optimize-youtube'), { method: 'POST' });
+      const data = await callAIEngine(
+        '/api/ai/optimize-youtube',
+        { script: scriptText },
+        fallbackPrompt
+      );
 
-      const data = await res.json();
+      setYoutubeMetadata(data.text);
 
-      if (res.ok) {
+    } catch (err: any) {
 
-        setYoutubeMetadata(data.text);
-
-      } else {
-
-        setYoutubeMetadata(`[Erro] ${data.error || 'Falha ao gerar metadados do YouTube.'}`);
-
-      }
-
-    } catch (err) {
-
-      setYoutubeMetadata(`[Erro] Falha na conexão com o servidor.`);
+      setYoutubeMetadata(`[Erro] ${err.message || 'Falha ao gerar metadados.'}`);
 
     } finally {
 
@@ -3513,6 +3728,53 @@ export default function App() {
 
                           </button>
 
+                          <button 
+
+                            onClick={() => setActiveTab('title-optimizer')}
+
+                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+
+                              activeTab === 'title-optimizer' 
+
+                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
+
+                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+
+                            }`}
+
+                          >
+
+                            <Sparkles className="w-3.5 h-3.5 shrink-0 text-gold-500" />
+
+                            <span>Title Optimizer</span>
+
+                          </button>
+
+                          {/* Verificações Ativas inside submenu */}
+                          {status && (
+                            <div className="mt-3 p-3 bg-zinc-950/60 border border-zinc-900/60 rounded-xl space-y-2 text-left">
+                              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
+                              <div className="space-y-1.5 text-[10px]">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-400 font-sans">Narração Master</span>
+                                  {status.has_narration ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
+                                  {status.has_soundtrack ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-400 font-sans">Clipe Infográfico</span>
+                                  {status.has_highlight_clip ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-400 font-sans">Assets de B-roll</span>
+                                  <span className="font-mono text-white text-[9px] bg-zinc-900 px-1 py-0.5 rounded">{status.assets_count} arqs</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                         </div>
 
                       )}
@@ -3526,58 +3788,6 @@ export default function App() {
               </div>
 
             </div>
-
-            
-
-            {/* Status Panel Quick view */}
-
-            {status && (
-
-              <div className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
-
-                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
-
-                
-
-                <div className="space-y-2 text-xs">
-
-                  <div className="flex justify-between items-center">
-
-                    <span className="text-gray-400 font-sans">Narração Master</span>
-
-                    {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-                  </div>
-
-                  <div className="flex justify-between items-center">
-
-                    <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
-
-                    {status.has_soundtrack ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-                  </div>
-
-                  <div className="flex justify-between items-center">
-
-                    <span className="text-gray-400 font-sans">Clipe Infográfico</span>
-
-                    {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-                  </div>
-
-                  <div className="flex justify-between items-center">
-
-                    <span className="text-gray-400 font-sans">Assets de B-roll</span>
-
-                    <span className="font-mono text-white text-[11px] bg-zinc-900 px-1.5 py-0.5 rounded">{status.assets_count} arquivos</span>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            )}
 
           </div>
 
@@ -7830,6 +8040,345 @@ export default function App() {
             </div>
 
           )}
+
+      {activeTab === 'title-optimizer' && (
+        <div className="space-y-0 animate-fade-in flex flex-col h-[calc(100vh-120px)] overflow-hidden font-sans">
+          {showTitleWizard ? (
+            <TitleStrategyWizard
+              onClose={() => {
+                setShowTitleWizard(false);
+                setWizardStep(1);
+              }}
+              onApply={(configData) => {
+                setShowTitleWizard(false);
+                setSelectedContentType(configData.contentType);
+                setSelectedSubTags(configData.subTags);
+                setSelectedBrandVoice(configData.brandVoice);
+                setAudienceDescription(configData.audienceDescription);
+                setAudienceAgeRange(configData.audienceAgeRange);
+                setAudiencePainPoints(configData.audiencePainPoints);
+                setAudienceAspirations(configData.audienceAspirations);
+                setAudienceCoreValues(configData.audienceCoreValues);
+                setSelectedEvolutionStrategy(configData.evolutionStrategy);
+                setSelectedPsychologicalTriggers(configData.psychologicalTriggers);
+                setSelectedTitleFormulas(configData.titleFormulas);
+                
+                setTimeout(() => {
+                  runTitleOptimizer();
+                }, 100);
+              }}
+              initialConfig={{
+                contentType: selectedContentType,
+                subTags: selectedSubTags,
+                brandVoice: selectedBrandVoice,
+                audienceDescription,
+                audienceAgeRange,
+                audiencePainPoints,
+                audienceAspirations,
+                audienceCoreValues,
+                evolutionStrategy: selectedEvolutionStrategy,
+                psychologicalTriggers: selectedPsychologicalTriggers,
+                titleFormulas: selectedTitleFormulas
+              }}
+            />
+          ) : (
+            <>
+              {/* Header */}
+              <div className="flex justify-between items-start pb-4 shrink-0 text-left">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2 font-cinzel">
+                    <span className="text-2xl">✨</span> Title Optimizer
+                  </h2>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 font-sans">AI-powered title optimization to expand your video reach to new audiences</p>
+                  {titleOptLastUpdate && titleOptResults && (
+                    <p className="text-[10px] text-zinc-500 mt-1 font-sans">
+                      Analyzed {titleOptResults.optimizations?.length || 0} recent videos from AI Construction Stories
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0 font-sans">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setWizardStep(1);
+                        setShowTitleWizard(true);
+                      }}
+                      disabled={titleOptLoading}
+                      className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 animate-fade-in"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-gold-500" />
+                      Customize
+                    </button>
+                    <button
+                      onClick={runTitleOptimizer}
+                      disabled={titleOptLoading}
+                      className="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${titleOptLoading ? 'animate-spin' : ''}`} />
+                      Reanalyze
+                    </button>
+                  </div>
+                  {titleOptLastUpdate && (
+                    <span className="text-[9px] text-zinc-600 font-mono mt-1">Last updated: {titleOptLastUpdate}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Loading State */}
+              {titleOptLoading && (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="glass-panel p-8 rounded-2xl max-w-lg w-full space-y-6">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center text-lg animate-pulse">✨</div>
+                      <div>
+                        <h3 className="text-white font-bold text-sm font-cinzel">Analyzing Your Video Titles</h3>
+                        <p className="text-amber-400/80 text-[11px] font-sans font-medium">Examining recent videos from AI Construction Stories</p>
+                      </div>
+                    </div>
+                    <div className="w-full h-1 bg-zinc-850 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${titleOptStep * 33}%` }} />
+                    </div>
+                    <div className="space-y-4 text-left">
+                      {[
+                        { step: 1, title: 'Identifying psychological triggers in titles', desc: 'Analyzing title patterns and emotional hooks' },
+                        { step: 2, title: 'Analyzing audience reach potential', desc: 'Evaluating potential viewer segments' },
+                        { step: 3, title: 'Generating optimized title variations', desc: 'Creating title variations for different audiences' }
+                      ].map(s => (
+                        <div key={s.step} className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 transition-all ${
+                            titleOptStep > s.step ? 'bg-amber-400' : titleOptStep === s.step ? 'bg-amber-500 animate-pulse' : 'bg-zinc-700'
+                          }`} />
+                          <div className="font-sans text-left">
+                            <p className={`text-xs font-semibold ${titleOptStep >= s.step ? 'text-white' : 'text-zinc-500'}`}>{s.title}</p>
+                            <p className={`text-[10px] ${titleOptStep >= s.step ? 'text-zinc-400' : 'text-zinc-650'}`}>{s.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-center text-[10px] text-zinc-650 font-sans">This typically takes 10-15 seconds</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Results */}
+              {!titleOptLoading && titleOptResults && titleOptResults.optimizations && (
+                <div className="flex gap-0 flex-1 min-h-0 overflow-hidden rounded-2xl border border-zinc-900 font-sans">
+
+                  {/* LEFT: Video List */}
+                  <div className="w-[300px] shrink-0 bg-zinc-950/80 border-r border-zinc-900 flex flex-col text-left">
+                    <div className="p-4 border-b border-zinc-900">
+                      <h3 className="text-white font-bold text-xs font-cinzel">Title Opportunities</h3>
+                      <p className="text-[9px] text-zinc-500 mt-0.5">{titleOptResults.optimizations.length} title improvements • Sorted by views (lowest first)</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {titleOptResults.optimizations.map((opt: any, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={() => setTitleOptSelectedIdx(idx)}
+                          className={`w-full text-left p-3 border-b border-zinc-900/50 transition cursor-pointer flex items-start gap-3 ${
+                            titleOptSelectedIdx === idx
+                              ? 'bg-zinc-900/60 border-l-2 border-l-gold-500'
+                              : 'hover:bg-zinc-900/30 border-l-2 border-l-transparent'
+                          }`}
+                        >
+                          <span className={`font-mono text-[10px] font-bold shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                            titleOptSelectedIdx === idx ? 'bg-gold-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
+                          }`}>{idx + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-[11px] font-semibold truncate ${titleOptSelectedIdx === idx ? 'text-white' : 'text-zinc-300'}`}>
+                              {opt.originalTitle}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                                opt.impact === 'high' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                                opt.impact === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
+                                'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                              }`}>
+                                <TrendingUp className="w-2.5 h-2.5" />
+                                {opt.impact === 'high' ? 'High Impact' : opt.impact === 'medium' ? 'Medium Impact' : 'Low Impact'}
+                              </span>
+                              <span className="text-[9px] text-zinc-500 font-mono">{opt.views?.toLocaleString()} views</span>
+                            </div>
+                          </div>
+                          {titleOptSelectedIdx === idx && <ChevronRight className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-1" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* RIGHT: Optimization Details */}
+                  <div className="flex-1 bg-zinc-950/40 overflow-y-auto text-left">
+                    {(() => {
+                      const opt = titleOptResults.optimizations[titleOptSelectedIdx];
+                      if (!opt) return null;
+                      return (
+                        <div className="p-6 space-y-5">
+                          {/* Header */}
+                          <div>
+                            <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-mono">Title Optimization #{titleOptSelectedIdx + 1}</p>
+                            <h3 className="text-white font-bold text-base mt-1 font-sans">{opt.originalTitle}</h3>
+                            <span className={`inline-flex items-center gap-1 mt-2 text-[9px] font-bold px-2 py-0.5 rounded ${
+                              opt.impact === 'high' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                              opt.impact === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
+                              'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                            }`}>
+                              <TrendingUp className="w-2.5 h-2.5" />
+                              {opt.impact === 'high' ? 'High Impact Potential' : opt.impact === 'medium' ? 'Medium Impact Potential' : 'Low Impact'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="glass-panel p-5 rounded-xl space-y-1 text-left">
+                              <h4 className="text-zinc-500 text-[9px] font-bold uppercase tracking-wider">Historical Performance</h4>
+                              <div className="text-2xl font-bold text-white flex items-baseline gap-1">
+                                {opt.views?.toLocaleString() || '0'}
+                                <span className="text-[10px] text-zinc-500 font-normal">views</span>
+                              </div>
+                              <p className="text-[9px] text-zinc-500">Performed below channel average, making it a prime candidate for optimization.</p>
+                            </div>
+
+                            <div className="glass-panel p-5 rounded-xl space-y-1 text-left">
+                              <h4 className="text-zinc-500 text-[9px] font-bold uppercase tracking-wider">Audience Strategy</h4>
+                              <p className="text-zinc-300 text-xs font-semibold">{opt.contentType || 'N/A'}</p>
+                              <p className="text-[9px] text-zinc-500">{opt.audienceStrategy || 'By adjusting the cognitive trigger, we can expand demographics.'}</p>
+                            </div>
+                          </div>
+
+                          {/* Options details */}
+                          <div className="glass-panel p-5 rounded-xl space-y-4">
+                            <h4 className="text-white font-bold text-xs flex items-center gap-2 font-cinzel">
+                              <span className="text-base">💡</span> Optimized Title Variations
+                            </h4>
+
+                            {/* Info banner */}
+                            <div className="bg-zinc-900/50 border border-zinc-850 rounded-lg p-3.5 space-y-1">
+                              <p className="text-[10px] text-zinc-400 flex items-center gap-1.5 font-sans">
+                                <span className="text-gold-500">💡</span> {opt.opportunity || 'Title can be improved for better reach and engagement.'}
+                              </p>
+                              {opt.timingStrategy && (
+                                <div className="mt-1">
+                                  <span className="text-[9px] text-zinc-500 font-semibold font-mono">Timing Strategy:</span>
+                                  <p className="text-[10px] text-zinc-400">{opt.timingStrategy}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Current Title */}
+                            <div className="space-y-1 pb-2 border-b border-zinc-900">
+                              <span className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider block font-mono">Current Title</span>
+                              <p className="text-zinc-400 text-sm font-semibold">{opt.originalTitle}</p>
+                            </div>
+
+                            {/* Core Audience Title */}
+                            <div className={`rounded-xl p-4 space-y-2 text-left border ${opt.bestNow === 'core' ? 'border-gold-500/50 bg-gold-500/5' : 'border-zinc-900 bg-zinc-900/20'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-white">Core Audience Title</span>
+                                  <span className="bg-zinc-800 text-zinc-300 text-[8px] font-bold px-1.5 py-0.5 rounded">Core (+20%)</span>
+                                  {opt.bestNow === 'core' && <span className="bg-gold-500/20 text-gold-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30 flex items-center gap-0.5 font-mono">⚡ Best Now</span>}
+                                </div>
+                                <button onClick={() => { navigator.clipboard.writeText(opt.coreTitle?.title || ''); toast.success('Título copiado!'); }}
+                                  className="text-zinc-500 hover:text-white text-[9px] flex items-center gap-1 transition cursor-pointer border border-zinc-800 rounded px-2 py-0.5">
+                                  <Copy className="w-3 h-3" /> Copy
+                                </button>
+                              </div>
+                              <p className="text-gold-400 text-sm font-semibold">"{opt.coreTitle?.title || ''}"</p>
+                              <p className="text-[10px] text-zinc-400">{opt.coreTitle?.description || ''}</p>
+                            </div>
+
+                            {/* Expanded Reach Title */}
+                            <div className={`rounded-xl p-4 space-y-2 text-left border ${opt.bestNow === 'expanded' ? 'border-gold-500/50 bg-gold-500/5' : 'border-zinc-900 bg-zinc-900/20'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-white">Expanded Reach Title</span>
+                                  <span className="bg-blue-500/15 text-blue-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-500/20">Expanded (5x)</span>
+                                  {opt.bestNow === 'expanded' && <span className="bg-gold-500/20 text-gold-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30 flex items-center gap-0.5 font-mono">⚡ Best Now</span>}
+                                </div>
+                                <button onClick={() => { navigator.clipboard.writeText(opt.expandedTitle?.title || ''); toast.success('Título copiado!'); }}
+                                  className="text-zinc-500 hover:text-white text-[9px] flex items-center gap-1 transition cursor-pointer border border-zinc-800 rounded px-2 py-0.5">
+                                  <Copy className="w-3 h-3" /> Copy
+                                </button>
+                              </div>
+                              <p className="text-white text-sm font-semibold">"{opt.expandedTitle?.title || ''}"</p>
+                              <p className="text-[10px] text-zinc-400">{opt.expandedTitle?.description || ''}</p>
+                            </div>
+
+                            {/* Broad Appeal Title */}
+                            <div className={`rounded-xl p-4 space-y-2 text-left border ${opt.bestNow === 'broad' ? 'border-gold-500/50 bg-gold-500/5' : 'border-zinc-900 bg-zinc-900/20'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-white">Broad Appeal Title</span>
+                                  <span className="bg-purple-500/15 text-purple-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-purple-500/20">Broad (10x)</span>
+                                  {opt.bestNow === 'broad' && <span className="bg-gold-500/20 text-gold-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30 flex items-center gap-0.5 font-mono">⚡ Best Now</span>}
+                                </div>
+                                <button onClick={() => { navigator.clipboard.writeText(opt.broadTitle?.title || ''); toast.success('Título copiado!'); }}
+                                  className="text-zinc-500 hover:text-white text-[9px] flex items-center gap-1 transition cursor-pointer border border-zinc-800 rounded px-2 py-0.5">
+                                  <Copy className="w-3 h-3" /> Copy
+                                </button>
+                              </div>
+                              <p className="text-white text-sm font-semibold">"{opt.broadTitle?.title || ''}"</p>
+                              <p className="text-[10px] text-zinc-400">{opt.broadTitle?.description || ''}</p>
+                            </div>
+                          </div>
+
+                          {/* Extra info cards */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl text-left">
+                              <span className="text-[8px] text-zinc-500 uppercase font-bold font-mono">Selected Formula</span>
+                              <p className="text-white text-xs font-semibold mt-1">{opt.titleFormula || 'N/A'}</p>
+                            </div>
+                            <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl text-left">
+                              <span className="text-[8px] text-zinc-500 uppercase font-bold font-mono">Triggers Identified</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {(opt.triggers || []).map((t: string) => (
+                                  <span key={t} className="bg-zinc-850 text-zinc-300 text-[8px] font-semibold px-2 py-0.5 rounded border border-zinc-800">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl text-left font-sans">
+                              <p className="text-zinc-400 text-[10px] flex items-center gap-1.5">
+                                <span className="text-gold-500">📄</span>
+                                <span className="font-semibold text-white">Content Type:</span> {opt.contentType || 'N/A'}
+                              </p>
+                              {opt.audienceStrategy && (
+                                <p className="text-zinc-550 text-[9px] mt-1 italic">{opt.audienceStrategy}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!titleOptLoading && !titleOptResults && (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <div className="text-5xl animate-pulse">✨</div>
+                    <h3 className="text-white font-bold text-sm font-cinzel">Title Optimizer</h3>
+                    <p className="text-zinc-400 text-xs max-w-sm font-sans leading-relaxed">
+                      Analyze recent videos from your channel and generate high-impact title variations tailored to your specific audience targeting strategy.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setWizardStep(1);
+                        setShowTitleWizard(true);
+                      }}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-950 px-5 py-2.5 rounded-xl text-xs font-bold transition hover:scale-105 cursor-pointer shadow-lg shadow-amber-500/20"
+                    >
+                      Set Up Strategy Wizard
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
         </main>
 

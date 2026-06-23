@@ -46,51 +46,23 @@
   "bgm_mappings": [
     {
       "block": 1,
-      "file": "Ancient Desert Cinematic .mp3"
+      "file": "Persian Mystical Oasis.mp3"
     },
     {
       "block": 2,
-      "file": "Historical Tension Strings.mp3"
+      "file": "Arabian Caravan Cinematic.mp3"
     },
     {
       "block": 3,
-      "file": "Middle Eastern Ambient Drone.mp3"
-    },
-    {
-      "block": 4,
-      "file": "Ancient Desert Cinematic .mp3"
-    },
-    {
-      "block": 5,
-      "file": "Persian Mystical Oasis.mp3"
-    },
-    {
-      "block": 6,
-      "file": "Cinematic Duduk Sadness.mp3"
-    },
-    {
-      "block": 7,
-      "file": "Arabian Caravan Cinematic.mp3"
-    },
-    {
-      "block": 8,
       "file": "Historical Tension Strings.mp3"
     },
     {
-      "block": 9,
+      "block": 4,
+      "file": "Cinematic Duduk Sadness.mp3"
+    },
+    {
+      "block": 5,
       "file": "Ancient Desert Cinematic .mp3"
-    },
-    {
-      "block": 10,
-      "file": "Middle Eastern Ambient Drone.mp3"
-    },
-    {
-      "block": 11,
-      "file": "Persian Mystical Oasis.mp3"
-    },
-    {
-      "block": 12,
-      "file": "Arabian Caravan Cinematic.mp3"
     }
   ],
   "impact_texts": [
@@ -216,5 +188,6 @@
       "block": 12,
       "phrase": "Qual dessas teorias você acha mais convincente?"
     }
-  ]
+  ],
+  "aspect_ratio": "16:9"
 }
