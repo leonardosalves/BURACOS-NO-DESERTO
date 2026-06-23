@@ -162,10 +162,10 @@ def generate_subtitles():
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        # Default: Arial 48, Translucent Black background shadow
-        f"Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,30,30,{margin_v},1",
-        # Impact: Arial 72 bold, Gold/Yellow color, Middle Center alignment
-        "Style: Impact,Arial,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1",
+        # Default: Arial Black 52, Translucent Black background shadow
+        f"Style: Default,Arial Black,52,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,30,30,{margin_v},1",
+        # Impact: Arial Black 72 bold, Gold/Yellow color, Middle Center alignment
+        "Style: Impact,Arial Black,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
@@ -175,7 +175,7 @@ def generate_subtitles():
         data = json.load(f)
 
     events = []
-    max_words_per_chunk = 4
+    max_words_per_chunk = 2
 
     for item in data:
         segment_start = item['start_time']
@@ -219,14 +219,14 @@ def generate_subtitles():
                     if j == i:
                         color = COLOR_GOLD if is_keyword(w_text) else COLOR_WATER
                         if w_text.startswith(" "):
-                            line_parts.append(f" {{\\c&H{color}&}}{{\\1a&H00&}}{{\\fs58}}{w_text[1:]}{{\\c&H{COLOR_WHITE}&}}{{\\1a&H44&}}{{\\fs48}}")
+                            line_parts.append(f" {{\\c&H{color}&}}{{\\1a&H00&}}{w_text[1:]}{{\\c&H{COLOR_WHITE}&}}{{\\1a&H44&}}")
                         else:
-                            line_parts.append(f"{{\\c&H{color}&}}{{\\1a&H00&}}{{\\fs58}}{w_text}{{\\c&H{COLOR_WHITE}&}}{{\\1a&H44&}}{{\\fs48}}")
+                            line_parts.append(f"{{\\c&H{color}&}}{{\\1a&H00&}}{w_text}{{\\c&H{COLOR_WHITE}&}}{{\\1a&H44&}}")
                     else:
                         line_parts.append(w_text)
 
                 full_text = "".join(line_parts)
-                full_line = f"{{\\1a&H44&}}{{\\fs48}}{full_text}"
+                full_line = f"{{\\1a&H44&}}{{\\fs52}}{full_text}"
                 events.append(f"Dialogue: 0,{to_ass_time(w_start)},{to_ass_time(w_end)},Default,,0,0,0,,{full_line}")
 
     # Load block timings
@@ -429,6 +429,18 @@ def build_timeline():
                         "editor_notes": editor_notes
                     })
 
+    # Append the logo clip at the end of the video for 3 seconds with a zoom-in effect
+    logo_path = resolve_asset_path(os.path.join('ASSETS', 'logo.png'))
+    if os.path.exists(logo_path):
+        timeline.append({
+            "block": num_blocks + 1,
+            "asset": "logo.png",
+            "type": "image",
+            "duration": 3.0,
+            "editor_notes": "zoom in, logo final da marca"
+        })
+        print("Appended final logo clip to timeline.")
+
     return timeline
 
 def get_video_duration(file_path):
@@ -598,6 +610,23 @@ def render_subclip(clip_id, clip_info):
 
         try:
             im = Image.open(asset_path)
+            # Center the logo on a dark background to prevent cropping
+            if "logo.png" in asset_path.lower():
+                bg = Image.new("RGB", (WIDTH, HEIGHT), (5, 5, 6))
+                max_w = int(WIDTH * 0.8)
+                max_h = int(HEIGHT * 0.8)
+                orig_w, orig_h = im.size
+                scale_fit = min(max_w / orig_w, max_h / orig_h)
+                new_w = int(orig_w * scale_fit)
+                new_h = int(orig_h * scale_fit)
+                resized_logo = im.resize((new_w, new_h), Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.ANTIALIAS)
+                if im.mode == 'RGBA' or 'transparency' in im.info:
+                    logo_rgba = im.convert('RGBA').resize((new_w, new_h), Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.ANTIALIAS)
+                    bg.paste(logo_rgba, ((WIDTH - new_w) // 2, (HEIGHT - new_h) // 2), logo_rgba)
+                else:
+                    bg.paste(resized_logo, ((WIDTH - new_w) // 2, (HEIGHT - new_h) // 2))
+                im = bg
+
             if im.mode != 'RGB':
                 im = im.convert('RGB')
 
