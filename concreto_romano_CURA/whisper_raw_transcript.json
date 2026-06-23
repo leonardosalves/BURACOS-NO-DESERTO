@@ -1,0 +1,1391 @@
+{
+    "text": " O nosso concreto raxa em décadas. Mas este piere romano existe intacto a 2 mil anos sobre a força da água salgada. O segredo? Ele se cura sozinho. Sientistas do M, te finalmente desvendaram em se mistério milenar. Os romanos misturavam calviva em temperaturas extremas, criando pequenos fragmentos brancos conhecidos como clastos de cál. Quando uma rachadura começa a se abrir, e a água da chuva ou do mar penetra na estrutura, ela dissolve esses pedaços de cál acumulados. Essa solução rica em cálcio recristaliza rapidamente, preenchendo a fenda e colando o concreto de volta antes que o estragualmente. Enquanto nossas pontes modernas desmoronam e exigen uma notensão constante, a engenharia antiga usava a própria natureza para se reconstruir. Se você acha que deveríamos adotar essa tecnologia hoje, se inscreve no canal.",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.0,
+            "end": 2.3,
+            "text": " O nosso concreto raxa em décadas.",
+            "tokens": [
+                50364,
+                422,
+                14347,
+                1588,
+                47330,
+                367,
+                2797,
+                64,
+                846,
+                9198,
+                6872,
+                13,
+                50491
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " O",
+                    "start": 0.0,
+                    "end": 0.16,
+                    "probability": 0.4667154848575592
+                },
+                {
+                    "word": " nosso",
+                    "start": 0.16,
+                    "end": 0.38,
+                    "probability": 0.995116114616394
+                },
+                {
+                    "word": " concreto",
+                    "start": 0.38,
+                    "end": 1.0,
+                    "probability": 0.9650020599365234
+                },
+                {
+                    "word": " raxa",
+                    "start": 1.0,
+                    "end": 1.62,
+                    "probability": 0.4397692084312439
+                },
+                {
+                    "word": " em",
+                    "start": 1.62,
+                    "end": 1.72,
+                    "probability": 0.9372696876525879
+                },
+                {
+                    "word": " décadas.",
+                    "start": 1.72,
+                    "end": 2.3,
+                    "probability": 0.98841392993927
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "seek": 0,
+            "start": 3.44,
+            "end": 6.94,
+            "text": " Mas este piere romano existe intacto a 2 mil anos",
+            "tokens": [
+                50531,
+                5224,
+                4065,
+                3895,
+                323,
+                7438,
+                3730,
+                16304,
+                23493,
+                78,
+                257,
+                568,
+                1962,
+                13592,
+                50716
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " Mas",
+                    "start": 3.44,
+                    "end": 3.56,
+                    "probability": 0.9573635458946228
+                },
+                {
+                    "word": " este",
+                    "start": 3.56,
+                    "end": 3.92,
+                    "probability": 0.9449367523193359
+                },
+                {
+                    "word": " piere",
+                    "start": 3.92,
+                    "end": 4.24,
+                    "probability": 0.34823864698410034
+                },
+                {
+                    "word": " romano",
+                    "start": 4.24,
+                    "end": 4.68,
+                    "probability": 0.8273148238658905
+                },
+                {
+                    "word": " existe",
+                    "start": 4.68,
+                    "end": 5.16,
+                    "probability": 0.5990573167800903
+                },
+                {
+                    "word": " intacto",
+                    "start": 5.16,
+                    "end": 5.94,
+                    "probability": 0.9002479612827301
+                },
+                {
+                    "word": " a",
+                    "start": 5.94,
+                    "end": 6.02,
+                    "probability": 0.1984199732542038
+                },
+                {
+                    "word": " 2",
+                    "start": 6.02,
+                    "end": 6.4,
+                    "probability": 0.5728672742843628
+                },
+                {
+                    "word": " mil",
+                    "start": 6.4,
+                    "end": 6.56,
+                    "probability": 0.6300880312919617
+                },
+                {
+                    "word": " anos",
+                    "start": 6.56,
+                    "end": 6.94,
+                    "probability": 0.9025237560272217
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "seek": 0,
+            "start": 6.94,
+            "end": 8.64,
+            "text": " sobre a força da água salgada.",
+            "tokens": [
+                50716,
+                5473,
+                257,
+                32878,
+                1120,
+                23824,
+                1845,
+                70,
+                1538,
+                13,
+                50806
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " sobre",
+                    "start": 6.94,
+                    "end": 7.18,
+                    "probability": 0.655962347984314
+                },
+                {
+                    "word": " a",
+                    "start": 7.18,
+                    "end": 7.34,
+                    "probability": 0.9986427426338196
+                },
+                {
+                    "word": " força",
+                    "start": 7.34,
+                    "end": 7.68,
+                    "probability": 0.9896236062049866
+                },
+                {
+                    "word": " da",
+                    "start": 7.68,
+                    "end": 7.88,
+                    "probability": 0.988004207611084
+                },
+                {
+                    "word": " água",
+                    "start": 7.88,
+                    "end": 8.08,
+                    "probability": 0.9390926957130432
+                },
+                {
+                    "word": " salgada.",
+                    "start": 8.08,
+                    "end": 8.64,
+                    "probability": 0.9589268366495768
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "seek": 0,
+            "start": 9.54,
+            "end": 10.2,
+            "text": " O segredo?",
+            "tokens": [
+                50841,
+                422,
+                3896,
+                986,
+                78,
+                30,
+                50884
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " O",
+                    "start": 9.54,
+                    "end": 9.68,
+                    "probability": 0.9588331580162048
+                },
+                {
+                    "word": " segredo?",
+                    "start": 9.68,
+                    "end": 10.2,
+                    "probability": 0.9860543409983317
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "seek": 0,
+            "start": 10.96,
+            "end": 12.34,
+            "text": " Ele se cura sozinho.",
+            "tokens": [
+                50913,
+                8024,
+                369,
+                1262,
+                64,
+                370,
+                31282,
+                13,
+                50993
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " Ele",
+                    "start": 10.96,
+                    "end": 11.22,
+                    "probability": 0.969532310962677
+                },
+                {
+                    "word": " se",
+                    "start": 11.22,
+                    "end": 11.38,
+                    "probability": 0.5043228268623352
+                },
+                {
+                    "word": " cura",
+                    "start": 11.38,
+                    "end": 11.76,
+                    "probability": 0.9782314598560333
+                },
+                {
+                    "word": " sozinho.",
+                    "start": 11.76,
+                    "end": 12.34,
+                    "probability": 0.9637624323368073
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "seek": 0,
+            "start": 13.5,
+            "end": 14.42,
+            "text": " Sientistas do M,",
+            "tokens": [
+                51031,
+                318,
+                1196,
+                14858,
+                360,
+                376,
+                11,
+                51096
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " Sientistas",
+                    "start": 13.5,
+                    "end": 14.02,
+                    "probability": 0.6226765811443329
+                },
+                {
+                    "word": " do",
+                    "start": 14.02,
+                    "end": 14.2,
+                    "probability": 0.9907441735267639
+                },
+                {
+                    "word": " M,",
+                    "start": 14.2,
+                    "end": 14.42,
+                    "probability": 0.45754575729370117
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "seek": 0,
+            "start": 14.74,
+            "end": 17.42,
+            "text": " te finalmente desvendaram em se mistério milenar.",
+            "tokens": [
+                51096,
+                535,
+                35577,
+                730,
+                85,
+                10292,
+                335,
+                846,
+                369,
+                3544,
+                37237,
+                1962,
+                268,
+                289,
+                13,
+                51241
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " te",
+                    "start": 14.74,
+                    "end": 14.82,
+                    "probability": 0.3688800632953644
+                },
+                {
+                    "word": " finalmente",
+                    "start": 14.82,
+                    "end": 15.38,
+                    "probability": 0.911469042301178
+                },
+                {
+                    "word": " desvendaram",
+                    "start": 15.38,
+                    "end": 16.22,
+                    "probability": 0.8200600147247314
+                },
+                {
+                    "word": " em",
+                    "start": 16.22,
+                    "end": 16.34,
+                    "probability": 0.44838130474090576
+                },
+                {
+                    "word": " se",
+                    "start": 16.34,
+                    "end": 16.4,
+                    "probability": 0.5299175381660461
+                },
+                {
+                    "word": " mistério",
+                    "start": 16.4,
+                    "end": 16.84,
+                    "probability": 0.9569918513298035
+                },
+                {
+                    "word": " milenar.",
+                    "start": 16.84,
+                    "end": 17.42,
+                    "probability": 0.8426533937454224
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "seek": 0,
+            "start": 18.12,
+            "end": 21.26,
+            "text": " Os romanos misturavam calviva em temperaturas extremas,",
+            "tokens": [
+                51273,
+                8875,
+                41362,
+                329,
+                3544,
+                374,
+                22561,
+                2104,
+                85,
+                5931,
+                846,
+                3393,
+                267,
+                12907,
+                4040,
+                296,
+                11,
+                51436
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " Os",
+                    "start": 18.12,
+                    "end": 18.36,
+                    "probability": 0.9772289991378784
+                },
+                {
+                    "word": " romanos",
+                    "start": 18.36,
+                    "end": 18.82,
+                    "probability": 0.895701140165329
+                },
+                {
+                    "word": " misturavam",
+                    "start": 18.82,
+                    "end": 19.3,
+                    "probability": 0.9744336207707723
+                },
+                {
+                    "word": " calviva",
+                    "start": 19.3,
+                    "end": 19.92,
+                    "probability": 0.7065172592798868
+                },
+                {
+                    "word": " em",
+                    "start": 19.92,
+                    "end": 20.08,
+                    "probability": 0.9881938695907593
+                },
+                {
+                    "word": " temperaturas",
+                    "start": 20.08,
+                    "end": 20.58,
+                    "probability": 0.9873137275377909
+                },
+                {
+                    "word": " extremas,",
+                    "start": 20.58,
+                    "end": 21.26,
+                    "probability": 0.9875774383544922
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "seek": 0,
+            "start": 21.62,
+            "end": 23.5,
+            "text": " criando pequenos fragmentos brancos",
+            "tokens": [
+                51436,
+                12815,
+                1806,
+                26758,
+                20161,
+                26424,
+                329,
+                738,
+                4463,
+                329,
+                51547
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " criando",
+                    "start": 21.62,
+                    "end": 21.9,
+                    "probability": 0.977189302444458
+                },
+                {
+                    "word": " pequenos",
+                    "start": 21.9,
+                    "end": 22.4,
+                    "probability": 0.9950656890869141
+                },
+                {
+                    "word": " fragmentos",
+                    "start": 22.4,
+                    "end": 23.02,
+                    "probability": 0.9920404255390167
+                },
+                {
+                    "word": " brancos",
+                    "start": 23.02,
+                    "end": 23.5,
+                    "probability": 0.8498480717341105
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "seek": 0,
+            "start": 23.5,
+            "end": 25.58,
+            "text": " conhecidos como clastos de cál.",
+            "tokens": [
+                51547,
+                15440,
+                46579,
+                2617,
+                596,
+                525,
+                329,
+                368,
+                6476,
+                75,
+                13,
+                51651
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " conhecidos",
+                    "start": 23.5,
+                    "end": 24.2,
+                    "probability": 0.8715616762638092
+                },
+                {
+                    "word": " como",
+                    "start": 24.2,
+                    "end": 24.5,
+                    "probability": 0.9970211386680603
+                },
+                {
+                    "word": " clastos",
+                    "start": 24.5,
+                    "end": 25.08,
+                    "probability": 0.5105058401823044
+                },
+                {
+                    "word": " de",
+                    "start": 25.08,
+                    "end": 25.26,
+                    "probability": 0.9902363419532776
+                },
+                {
+                    "word": " cál.",
+                    "start": 25.26,
+                    "end": 25.58,
+                    "probability": 0.7354777157306671
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "seek": 0,
+            "start": 26.2,
+            "end": 28.16,
+            "text": " Quando uma rachadura começa a se abrir,",
+            "tokens": [
+                51685,
+                18725,
+                2772,
+                367,
+                608,
+                25154,
+                32568,
+                257,
+                369,
+                27446,
+                11,
+                51789
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.4137122595488136,
+            "compression_ratio": 1.5078740157480315,
+            "no_speech_prob": 0.0017975884256884456,
+            "words": [
+                {
+                    "word": " Quando",
+                    "start": 26.2,
+                    "end": 26.66,
+                    "probability": 0.9893736243247986
+                },
+                {
+                    "word": " uma",
+                    "start": 26.66,
+                    "end": 26.8,
+                    "probability": 0.9976353645324707
+                },
+                {
+                    "word": " rachadura",
+                    "start": 26.8,
+                    "end": 27.18,
+                    "probability": 0.8117257754007975
+                },
+                {
+                    "word": " começa",
+                    "start": 27.18,
+                    "end": 27.64,
+                    "probability": 0.9884846806526184
+                },
+                {
+                    "word": " a",
+                    "start": 27.64,
+                    "end": 27.92,
+                    "probability": 0.9770583510398865
+                },
+                {
+                    "word": " se",
+                    "start": 27.92,
+                    "end": 27.96,
+                    "probability": 0.9729318618774414
+                },
+                {
+                    "word": " abrir,",
+                    "start": 27.96,
+                    "end": 28.16,
+                    "probability": 0.9917855858802795
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "seek": 2816,
+            "start": 28.16,
+            "end": 31.54,
+            "text": " e a água da chuva ou do mar penetra na estrutura,",
+            "tokens": [
+                50388,
+                308,
+                257,
+                23824,
+                1120,
+                40215,
+                2757,
+                2820,
+                360,
+                1849,
+                16183,
+                424,
+                1667,
+                45899,
+                2991,
+                11,
+                50536
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " e",
+                    "start": 28.16,
+                    "end": 28.4,
+                    "probability": 0.39702272415161133
+                },
+                {
+                    "word": " a",
+                    "start": 28.4,
+                    "end": 28.9,
+                    "probability": 0.7451029419898987
+                },
+                {
+                    "word": " água",
+                    "start": 28.9,
+                    "end": 29.12,
+                    "probability": 0.9754971265792847
+                },
+                {
+                    "word": " da",
+                    "start": 29.12,
+                    "end": 29.3,
+                    "probability": 0.9923343062400818
+                },
+                {
+                    "word": " chuva",
+                    "start": 29.3,
+                    "end": 29.74,
+                    "probability": 0.976660281419754
+                },
+                {
+                    "word": " ou",
+                    "start": 29.74,
+                    "end": 29.88,
+                    "probability": 0.9287286996841431
+                },
+                {
+                    "word": " do",
+                    "start": 29.88,
+                    "end": 30.02,
+                    "probability": 0.9784116744995117
+                },
+                {
+                    "word": " mar",
+                    "start": 30.02,
+                    "end": 30.18,
+                    "probability": 0.9323671460151672
+                },
+                {
+                    "word": " penetra",
+                    "start": 30.18,
+                    "end": 30.84,
+                    "probability": 0.9436438977718353
+                },
+                {
+                    "word": " na",
+                    "start": 30.84,
+                    "end": 30.96,
+                    "probability": 0.9820815920829773
+                },
+                {
+                    "word": " estrutura,",
+                    "start": 30.96,
+                    "end": 31.54,
+                    "probability": 0.9961645007133484
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "seek": 2816,
+            "start": 31.98,
+            "end": 34.6,
+            "text": " ela dissolve esses pedaços de cál acumulados.",
+            "tokens": [
+                50557,
+                7175,
+                15840,
+                303,
+                18966,
+                5670,
+                64,
+                26828,
+                368,
+                6476,
+                75,
+                41343,
+                425,
+                4181,
+                13,
+                50692
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " ela",
+                    "start": 31.98,
+                    "end": 32.22,
+                    "probability": 0.979023814201355
+                },
+                {
+                    "word": " dissolve",
+                    "start": 32.22,
+                    "end": 32.82,
+                    "probability": 0.4411691427230835
+                },
+                {
+                    "word": " esses",
+                    "start": 32.82,
+                    "end": 33.0,
+                    "probability": 0.5893797874450684
+                },
+                {
+                    "word": " pedaços",
+                    "start": 33.0,
+                    "end": 33.48,
+                    "probability": 0.986710766951243
+                },
+                {
+                    "word": " de",
+                    "start": 33.48,
+                    "end": 33.68,
+                    "probability": 0.9988992214202881
+                },
+                {
+                    "word": " cál",
+                    "start": 33.68,
+                    "end": 33.94,
+                    "probability": 0.5779883712530136
+                },
+                {
+                    "word": " acumulados.",
+                    "start": 33.94,
+                    "end": 34.6,
+                    "probability": 0.7218386481205622
+                }
+            ]
+        },
+        {
+            "id": 13,
+            "seek": 2816,
+            "start": 35.26,
+            "end": 38.82,
+            "text": " Essa solução rica em cálcio recristaliza rapidamente,",
+            "tokens": [
+                50733,
+                22818,
+                24807,
+                2917,
+                367,
+                2262,
+                846,
+                6476,
+                75,
+                8529,
+                850,
+                12940,
+                304,
+                13427,
+                7558,
+                3439,
+                11,
+                50904
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " Essa",
+                    "start": 35.26,
+                    "end": 35.74,
+                    "probability": 0.9190295934677124
+                },
+                {
+                    "word": " solução",
+                    "start": 35.74,
+                    "end": 36.2,
+                    "probability": 0.999058723449707
+                },
+                {
+                    "word": " rica",
+                    "start": 36.2,
+                    "end": 36.6,
+                    "probability": 0.973162978887558
+                },
+                {
+                    "word": " em",
+                    "start": 36.6,
+                    "end": 36.78,
+                    "probability": 0.9906065464019775
+                },
+                {
+                    "word": " cálcio",
+                    "start": 36.78,
+                    "end": 37.18,
+                    "probability": 0.9428324699401855
+                },
+                {
+                    "word": " recristaliza",
+                    "start": 37.18,
+                    "end": 38.06,
+                    "probability": 0.8588030636310577
+                },
+                {
+                    "word": " rapidamente,",
+                    "start": 38.06,
+                    "end": 38.82,
+                    "probability": 0.9312780499458313
+                }
+            ]
+        },
+        {
+            "id": 14,
+            "seek": 2816,
+            "start": 39.28,
+            "end": 42.0,
+            "text": " preenchendo a fenda e colando o concreto de volta",
+            "tokens": [
+                50904,
+                659,
+                40765,
+                3999,
+                257,
+                283,
+                7639,
+                308,
+                1173,
+                1806,
+                277,
+                1588,
+                47330,
+                368,
+                18765,
+                51066
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " preenchendo",
+                    "start": 39.28,
+                    "end": 39.7,
+                    "probability": 0.899062971274058
+                },
+                {
+                    "word": " a",
+                    "start": 39.7,
+                    "end": 39.86,
+                    "probability": 0.9120267629623413
+                },
+                {
+                    "word": " fenda",
+                    "start": 39.86,
+                    "end": 40.16,
+                    "probability": 0.8979783952236176
+                },
+                {
+                    "word": " e",
+                    "start": 40.16,
+                    "end": 40.52,
+                    "probability": 0.9322339296340942
+                },
+                {
+                    "word": " colando",
+                    "start": 40.52,
+                    "end": 40.94,
+                    "probability": 0.9839602708816528
+                },
+                {
+                    "word": " o",
+                    "start": 40.94,
+                    "end": 41.16,
+                    "probability": 0.9624297618865967
+                },
+                {
+                    "word": " concreto",
+                    "start": 41.16,
+                    "end": 41.4,
+                    "probability": 0.9882581830024719
+                },
+                {
+                    "word": " de",
+                    "start": 41.4,
+                    "end": 41.68,
+                    "probability": 0.9961333274841309
+                },
+                {
+                    "word": " volta",
+                    "start": 41.68,
+                    "end": 42.0,
+                    "probability": 0.9979521632194519
+                }
+            ]
+        },
+        {
+            "id": 15,
+            "seek": 2816,
+            "start": 42.0,
+            "end": 43.7,
+            "text": " antes que o estragualmente.",
+            "tokens": [
+                51066,
+                11014,
+                631,
+                277,
+                871,
+                3731,
+                901,
+                4082,
+                13,
+                51146
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " antes",
+                    "start": 42.0,
+                    "end": 42.56,
+                    "probability": 0.9345645308494568
+                },
+                {
+                    "word": " que",
+                    "start": 42.56,
+                    "end": 42.76,
+                    "probability": 0.9844657182693481
+                },
+                {
+                    "word": " o",
+                    "start": 42.76,
+                    "end": 42.82,
+                    "probability": 0.959629476070404
+                },
+                {
+                    "word": " estragualmente.",
+                    "start": 42.82,
+                    "end": 43.7,
+                    "probability": 0.4991648271679878
+                }
+            ]
+        },
+        {
+            "id": 16,
+            "seek": 2816,
+            "start": 44.36,
+            "end": 47.1,
+            "text": " Enquanto nossas pontes modernas desmoronam",
+            "tokens": [
+                51193,
+                2193,
+                358,
+                5857,
+                44041,
+                18770,
+                279,
+                4363,
+                296,
+                730,
+                40220,
+                266,
+                335,
+                51311
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " Enquanto",
+                    "start": 44.36,
+                    "end": 45.12,
+                    "probability": 0.9842002391815186
+                },
+                {
+                    "word": " nossas",
+                    "start": 45.12,
+                    "end": 45.4,
+                    "probability": 0.9616919159889221
+                },
+                {
+                    "word": " pontes",
+                    "start": 45.4,
+                    "end": 45.8,
+                    "probability": 0.9048737585544586
+                },
+                {
+                    "word": " modernas",
+                    "start": 45.8,
+                    "end": 46.38,
+                    "probability": 0.9816227555274963
+                },
+                {
+                    "word": " desmoronam",
+                    "start": 46.38,
+                    "end": 47.1,
+                    "probability": 0.8109496980905533
+                }
+            ]
+        },
+        {
+            "id": 17,
+            "seek": 2816,
+            "start": 47.1,
+            "end": 49.06,
+            "text": " e exigen uma notensão constante,",
+            "tokens": [
+                51311,
+                308,
+                454,
+                3213,
+                2772,
+                406,
+                694,
+                1076,
+                47343,
+                11,
+                51416
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " e",
+                    "start": 47.1,
+                    "end": 47.42,
+                    "probability": 0.9518267512321472
+                },
+                {
+                    "word": " exigen",
+                    "start": 47.42,
+                    "end": 47.74,
+                    "probability": 0.6892149448394775
+                },
+                {
+                    "word": " uma",
+                    "start": 47.74,
+                    "end": 47.98,
+                    "probability": 0.677952229976654
+                },
+                {
+                    "word": " notensão",
+                    "start": 47.98,
+                    "end": 48.42,
+                    "probability": 0.7170618871847788
+                },
+                {
+                    "word": " constante,",
+                    "start": 48.42,
+                    "end": 49.06,
+                    "probability": 0.9953398704528809
+                }
+            ]
+        },
+        {
+            "id": 18,
+            "seek": 2816,
+            "start": 49.78,
+            "end": 53.58,
+            "text": " a engenharia antiga usava a própria natureza para se reconstruir.",
+            "tokens": [
+                51446,
+                257,
+                1741,
+                268,
+                5854,
+                654,
+                2511,
+                9900,
+                505,
+                4061,
+                257,
+                39608,
+                3687,
+                2394,
+                1690,
+                369,
+                16891,
+                894,
+                347,
+                13,
+                51638
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " a",
+                    "start": 49.78,
+                    "end": 49.9,
+                    "probability": 0.9923883080482483
+                },
+                {
+                    "word": " engenharia",
+                    "start": 49.9,
+                    "end": 50.4,
+                    "probability": 0.9672372192144394
+                },
+                {
+                    "word": " antiga",
+                    "start": 50.4,
+                    "end": 50.9,
+                    "probability": 0.8984785974025726
+                },
+                {
+                    "word": " usava",
+                    "start": 50.9,
+                    "end": 51.5,
+                    "probability": 0.9710216224193573
+                },
+                {
+                    "word": " a",
+                    "start": 51.5,
+                    "end": 51.74,
+                    "probability": 0.8851933479309082
+                },
+                {
+                    "word": " própria",
+                    "start": 51.74,
+                    "end": 52.02,
+                    "probability": 0.9869248867034912
+                },
+                {
+                    "word": " natureza",
+                    "start": 52.02,
+                    "end": 52.6,
+                    "probability": 0.9861096739768982
+                },
+                {
+                    "word": " para",
+                    "start": 52.6,
+                    "end": 52.8,
+                    "probability": 0.9809337258338928
+                },
+                {
+                    "word": " se",
+                    "start": 52.8,
+                    "end": 52.96,
+                    "probability": 0.9850296378135681
+                },
+                {
+                    "word": " reconstruir.",
+                    "start": 52.96,
+                    "end": 53.58,
+                    "probability": 0.9955142935117086
+                }
+            ]
+        },
+        {
+            "id": 19,
+            "seek": 2816,
+            "start": 54.56,
+            "end": 57.58,
+            "text": " Se você acha que deveríamos adotar essa tecnologia hoje,",
+            "tokens": [
+                51689,
+                1100,
+                2723,
+                37338,
+                631,
+                40739,
+                16275,
+                614,
+                310,
+                289,
+                7208,
+                44905,
+                13458,
+                11,
+                51839
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.3203029087611607,
+            "compression_ratio": 1.5683453237410072,
+            "no_speech_prob": 0.0016274257795885205,
+            "words": [
+                {
+                    "word": " Se",
+                    "start": 54.56,
+                    "end": 54.78,
+                    "probability": 0.9911724925041199
+                },
+                {
+                    "word": " você",
+                    "start": 54.78,
+                    "end": 55.02,
+                    "probability": 0.9963846206665039
+                },
+                {
+                    "word": " acha",
+                    "start": 55.02,
+                    "end": 55.28,
+                    "probability": 0.9852504730224609
+                },
+                {
+                    "word": " que",
+                    "start": 55.28,
+                    "end": 55.44,
+                    "probability": 0.9996604919433594
+                },
+                {
+                    "word": " deveríamos",
+                    "start": 55.44,
+                    "end": 55.92,
+                    "probability": 0.9911024868488312
+                },
+                {
+                    "word": " adotar",
+                    "start": 55.92,
+                    "end": 56.36,
+                    "probability": 0.9569579561551412
+                },
+                {
+                    "word": " essa",
+                    "start": 56.36,
+                    "end": 56.56,
+                    "probability": 0.9541164636611938
+                },
+                {
+                    "word": " tecnologia",
+                    "start": 56.56,
+                    "end": 56.9,
+                    "probability": 0.993378221988678
+                },
+                {
+                    "word": " hoje,",
+                    "start": 56.9,
+                    "end": 57.58,
+                    "probability": 0.9981908202171326
+                }
+            ]
+        },
+        {
+            "id": 20,
+            "seek": 5758,
+            "start": 57.58,
+            "end": 58.76,
+            "text": " se inscreve no canal.",
+            "tokens": [
+                50377,
+                369,
+                27824,
+                303,
+                572,
+                9911,
+                13,
+                50431
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.6207960446675619,
+            "compression_ratio": 0.7241379310344828,
+            "no_speech_prob": 0.4222159683704376,
+            "words": [
+                {
+                    "word": " se",
+                    "start": 57.58,
+                    "end": 58.0,
+                    "probability": 0.22308798134326935
+                },
+                {
+                    "word": " inscreve",
+                    "start": 58.0,
+                    "end": 58.42,
+                    "probability": 0.9764271676540375
+                },
+                {
+                    "word": " no",
+                    "start": 58.42,
+                    "end": 58.52,
+                    "probability": 0.988228440284729
+                },
+                {
+                    "word": " canal.",
+                    "start": 58.52,
+                    "end": 58.76,
+                    "probability": 0.9818649291992188
+                }
+            ]
+        }
+    ],
+    "language": "pt"
+}

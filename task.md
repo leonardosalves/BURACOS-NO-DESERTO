@@ -1,5 +1,4 @@
-- [x] Alinhar prompt do script em `handleGenerateFullScript` no `App.tsx` para incluir `strategy`, `checklist` e `technical_config`
-- [x] Integrar `'packaging-assistant'` na aba global e no menu lateral do `App.tsx`
-- [x] Implementar interface de sugestões de trilhas BGM abaixo de cada bloco na aba Músicas em `App.tsx`
-- [x] Executar build check `npx tsc --noEmit`
-- [/] Commitar e dar push no Git
+- [x] Ajustar `align_transcripts.py` com Levenshtein Fuzzy Matching, Lookahead e Interpolação Monotônica
+- [x] Executar `align_transcripts.py` para gerar novos tempos
+- [/] Executar `build_video.py` para renderizar o vídeo final
+- [ ] Commitar e dar push no Git
