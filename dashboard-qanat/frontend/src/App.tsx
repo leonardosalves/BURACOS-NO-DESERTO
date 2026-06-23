@@ -2511,7 +2511,7 @@ export default function App() {
 
   // AI BGM Suggestion
   const [suggestingBGM, setSuggestingBGM] = useState<boolean>(false);
-  const [bgmSuggestions, setBgmSuggestions] = useState<{ mode?: string; recommendation?: string; suggestions?: { block: number; recommendation: string; reason?: string }[]; manual_note?: string } | null>(null);
+  const [bgmSuggestions, setBgmSuggestions] = useState<{ mode?: string; recommendation?: string; search_theme?: string; suggestions?: { block: number; recommendation: string; reason?: string; search_theme?: string }[]; manual_note?: string } | null>(null);
 
   const handleSuggestBGM = async () => {
     if (!hasApiKey || !config) return;
@@ -4521,9 +4521,41 @@ export default function App() {
                       </div>
 
                       {bgmSuggestions?.recommendation && (
-                        <div className="bg-zinc-950 border border-gold-500/30 rounded-xl p-4 space-y-1 animate-fade-in">
-                          <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider flex items-center gap-1">✨ Sugestão da IA</span>
+                        <div className="bg-zinc-950 border border-gold-500/30 rounded-xl p-4 space-y-2 animate-fade-in relative group">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider flex items-center gap-1">✨ Sugestão da IA</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(bgmSuggestions.recommendation || '');
+                                  toast.success('Ideia copiada!');
+                                }}
+                                className="text-[10px] text-zinc-400 hover:text-white px-2 py-0.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+                                title="Copiar sugestão"
+                              >
+                                <Copy className="w-3 h-3" /> Copiar Ideia
+                              </button>
+                              {(bgmSuggestions as any).search_theme && (
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText((bgmSuggestions as any).search_theme || '');
+                                    toast.success('Termo de busca copiado!');
+                                  }}
+                                  className="text-[10px] text-gold-500 hover:text-gold-400 px-2 py-0.5 bg-gold-950/20 border border-gold-500/30 hover:border-gold-500/50 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+                                  title="Copiar termo de busca"
+                                >
+                                  <Search className="w-3 h-3" /> Copiar Busca
+                                </button>
+                              )}
+                            </div>
+                          </div>
                           <p className="text-[11px] text-zinc-300 leading-relaxed italic">{bgmSuggestions.recommendation}</p>
+                          {(bgmSuggestions as any).search_theme && (
+                            <div className="text-[10px] text-zinc-400 font-sans border-t border-zinc-900 pt-2 flex items-center gap-1.5">
+                              <span className="font-bold text-gold-500">🔍 Buscar por:</span>
+                              <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">{(bgmSuggestions as any).search_theme}</code>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -4633,14 +4665,50 @@ export default function App() {
                             </div>
 
                           </div>
-                          {bgmSuggestions?.suggestions?.find((s: any) => s.block === bgm.block) && (
-                            <div className="ml-2 px-3 py-1.5 border-l-2 border-gold-500/40 animate-fade-in">
-                              <p className="text-[10px] text-zinc-400 leading-relaxed">
-                                <span className="text-gold-500 font-bold">✨ IA:</span>{' '}
-                                {bgmSuggestions.suggestions.find((s: any) => s.block === bgm.block)?.recommendation}
-                              </p>
-                            </div>
-                          )}
+                          {(() => {
+                            const suggestion = bgmSuggestions?.suggestions?.find((s: any) => s.block === bgm.block);
+                            if (!suggestion) return null;
+                            return (
+                              <div className="ml-2 px-3 py-2 border-l-2 border-gold-500/40 bg-zinc-950/40 rounded-r space-y-1.5 animate-fade-in">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider">✨ Sugestão da IA (Bloco {bgm.block})</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(suggestion.recommendation || '');
+                                        toast.success('Ideia do bloco copiada!');
+                                      }}
+                                      className="text-[9px] text-zinc-400 hover:text-white px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+                                      title="Copiar sugestão"
+                                    >
+                                      <Copy className="w-2.5 h-2.5" /> Copiar Ideia
+                                    </button>
+                                    {suggestion.search_theme && (
+                                      <button
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(suggestion.search_theme || '');
+                                          toast.success('Busca do bloco copiada!');
+                                        }}
+                                        className="text-[9px] text-gold-500 hover:text-gold-400 px-1.5 py-0.5 bg-gold-950/20 border border-gold-500/30 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+                                        title="Copiar busca"
+                                      >
+                                        <Search className="w-2.5 h-2.5" /> Copiar Busca
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-zinc-300 leading-relaxed italic">
+                                  {suggestion.recommendation}
+                                </p>
+                                {suggestion.search_theme && (
+                                  <div className="text-[9px] text-zinc-400 font-sans pt-1.5 border-t border-zinc-900 flex items-center gap-1.5">
+                                    <span className="font-bold text-gold-500">🔍 Buscar:</span>
+                                    <code className="px-1 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">{suggestion.search_theme}</code>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                       ))}

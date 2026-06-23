@@ -1748,7 +1748,7 @@ Importante:
 - A configuracao real continua manual na opcao Trilha Unica.
 
 Responda APENAS com um JSON valido no formato:
-{"mode": "SHORTS", "recommendation": "descricao da ideia de trilha para o video inteiro", "reason": "explicacao breve", "manual_note": "Escolha manualmente uma faixa em Trilha Unica."}`
+{"mode": "SHORTS", "recommendation": "descricao da ideia de trilha para o video inteiro", "search_theme": "3 a 5 palavras-chave em ingles para busca (ex: cinematic mystery dark tension)", "reason": "explicacao breve", "manual_note": "Escolha manualmente uma faixa em Trilha Unica."}`
       : `Voce e um editor de video especialista em trilha sonora para documentarios. Analise o tom emocional de cada bloco do roteiro e recomende apenas a IDEIA de trilha sonora ideal para CADA bloco.
 
 Resumo por bloco:
@@ -1761,7 +1761,7 @@ Regras:
 - A configuracao real continua manual na opcao Por Bloco.
 
 Responda APENAS com um JSON valido no formato:
-{"mode": "LONGO", "suggestions": [{"block": 1, "recommendation": "ideia de trilha para este bloco", "reason": "breve"}], "manual_note": "Escolha manualmente as faixas em Por Bloco."}`;
+{"mode": "LONGO", "suggestions": [{"block": 1, "recommendation": "ideia de trilha para este bloco", "search_theme": "3 a 5 palavras-chave em ingles para busca (ex: epic tribal drums action)", "reason": "breve"}], "manual_note": "Escolha manualmente as faixas em Por Bloco."}`;
 
     const responseText = await callGeminiWithRetry(apiKey, bgmPrompt);
     
