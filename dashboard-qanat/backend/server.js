@@ -730,6 +730,85 @@ app.post("/api/ai/execute-action", async (req, res) => {
 });
 
 // API: Generate YouTube Metadata (SEO Titles, Description, Tags, Chapters)
+function getFirstSentences(text, count = 2) {
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .filter(Boolean)
+    .slice(0, count)
+    .join(" ");
+}
+
+function extractKeywords(text, limit = 15) {
+  const stopWords = new Set([
+    "a", "o", "os", "as", "um", "uma", "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas",
+    "e", "ou", "que", "para", "por", "com", "sem", "como", "mais", "mas", "foi", "ser", "são", "seu",
+    "sua", "seus", "suas", "esse", "essa", "este", "esta", "isso", "não", "sim", "ao", "aos", "pela",
+    "pelo", "pelos", "pelas", "quando", "onde", "porque", "sobre", "entre", "até", "também", "muito"
+  ]);
+
+  const counts = new Map();
+  const words = String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .match(/[a-z0-9]{4,}/g) || [];
+
+  for (const word of words) {
+    if (!stopWords.has(word)) {
+      counts.set(word, (counts.get(word) || 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([word]) => word);
+}
+
+function buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard }) {
+  const strategy = storyboard?.strategy || {};
+  const baseTitle = strategy.title_main || getFirstSentences(transcript, 1) || "O Segredo Escondido no Deserto";
+  const hook = strategy.hook || getFirstSentences(transcript, 2) || "Uma história que parece impossível, mas foi real.";
+  const keywords = extractKeywords(`${baseTitle} ${hook} ${transcript}`, 15);
+  const tags = [...new Set([
+    ...keywords,
+    "documentario",
+    "historia",
+    "curiosidades",
+    "engenharia antiga",
+    "misterios antigos"
+  ])].slice(0, 15);
+
+  const chapters = chaptersText?.trim()
+    ? chaptersText.trim().split(/\r?\n/).map(line => line.replace(" - Bloco ", " - O segredo do bloco ")).join("\n")
+    : "00:00 - O começo do mistério";
+
+  return `## TÍTULOS
+1. ${baseTitle.slice(0, 58)}
+2. O detalhe que quase ninguém percebeu nessa história
+3. Como isso foi possível no meio do deserto?
+4. A engenharia antiga que ainda intriga especialistas
+5. Você nunca mais vai olhar para isso do mesmo jeito
+
+## DESCRIÇÃO
+${hook}
+Neste vídeo, você vai entender os detalhes por trás dessa história e por que ela continua chamando atenção até hoje.
+
+Assista até o final para ver como cada peça se conecta e revela algo maior do que parece.
+
+#documentario #historia #curiosidades #engenharia #misterios
+
+## TAGS
+${tags.join(", ")}
+
+## COMENTÁRIO PINADO
+Qual detalhe dessa história mais te surpreendeu? Comenta aqui embaixo, porque eu quero ver qual parte chamou mais atenção.
+
+## CAPÍTULOS
+${chapters}`;
+}
+
 app.post("/api/ai/optimize-youtube", async (req, res) => {
   const projDir = getProjectDir(req);
   const apiKey = getApiKey(projDir);
@@ -870,8 +949,29 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
     );
     
     if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
+      let errData = {};
+      try {
+        errData = await response.json();
+      } catch (e) {}
+
+      const message = errData.error?.message || `Erro do Gemini: ${response.statusText}`;
+      const quotaExceeded = response.status === 429 || /quota|rate limit|retry/i.test(message);
+
+      if (quotaExceeded) {
+        const retryMatch = message.match(/retry in ([0-9.]+)s/i);
+        const retryAfterSeconds = retryMatch ? Math.ceil(Number(retryMatch[1])) : null;
+        const fallbackText = buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard });
+
+        return res.json({
+          text: fallbackText,
+          fallback: true,
+          warning: retryAfterSeconds
+            ? `A API do Gemini atingiu o limite temporário. Gere novamente em cerca de ${retryAfterSeconds}s para usar IA.`
+            : "A API do Gemini atingiu o limite temporário. Estes metadados foram gerados localmente."
+        });
+      }
+
+      throw new Error(message);
     }
     
     const result = await response.json();

@@ -2313,9 +2313,17 @@ export default function App() {
 
         setYoutubeMetadata(data.text);
 
+        if (data.warning) {
+
+          toast(data.warning);
+
+        }
+
       } else {
 
-        setYoutubeMetadata(`[Erro] ${data.error || 'Falha ao gerar metadados do YouTube.'}`);
+        const details = data.details ? `\n\n${data.details}` : '';
+
+        setYoutubeMetadata(`[Erro] ${data.error || 'Falha ao gerar metadados do YouTube.'}${details}`);
 
       }
 
