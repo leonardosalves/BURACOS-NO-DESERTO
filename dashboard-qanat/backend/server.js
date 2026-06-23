@@ -255,7 +255,9 @@ app.get("/api/outputs", (req, res) => {
         return {
           name: f,
           sizeBytes: stats.size,
-          modifiedAt: stats.mtime
+          modifiedAt: stats.mtime,
+          renderEngine: f.toLowerCase().startsWith("remotion_") ? "remotion" : "standard",
+          renderEngineLabel: f.toLowerCase().startsWith("remotion_") ? "Remotion" : "Renderizador Padrão"
         };
       });
     res.json(files);

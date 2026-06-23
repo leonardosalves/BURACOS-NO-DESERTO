@@ -140,6 +140,10 @@ interface OutputVideo {
 
   modifiedAt: string;
 
+  renderEngine?: 'remotion' | 'standard';
+
+  renderEngineLabel?: string;
+
 }
 
 interface MusicFile {
@@ -4120,7 +4124,25 @@ export default function App() {
 
                           <div>
 
-                            <span className="text-xs font-semibold text-white block">{video.name}</span>
+                            <div className="flex items-center gap-2">
+
+                              <span className="text-xs font-semibold text-white block">{video.name}</span>
+
+                              <span className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+
+                                video.renderEngine === 'remotion'
+
+                                  ? 'text-water-300 bg-water-500/10 border-water-400/20'
+
+                                  : 'text-gold-500 bg-gold-500/10 border-gold-500/20'
+
+                              }`}>
+
+                                {video.renderEngineLabel || (video.name.toLowerCase().startsWith('remotion_') ? 'Remotion' : 'Renderizador Padrão')}
+
+                              </span>
+
+                            </div>
 
                             <span className="text-[10px] text-gray-500">Modificado em {new Date(video.modifiedAt).toLocaleString('pt-BR')}</span>
 
