@@ -153,7 +153,7 @@ interface MusicFile {
 
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'title-optimizer'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'title-optimizer' | 'year-in-review'>('status');
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -2539,7 +2539,7 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
     
     const format = formatSelector || 'LONGO';
     const musicListStr = musicFiles.map((f, i) => `${i + 1}. "${f.name}"`).join("\n");
-    const blocksDesc = (config.blocks || []).map((b: any, idx: number) => `Bloco ${idx + 1}: ${b.narrative_text || ''}`).join("\n");
+    const blocksDesc = ((config as any).blocks || []).map((b: any, idx: number) => `Bloco ${idx + 1}: ${b.narrative_text || ''}`).join("\n");
 
     const fallbackPrompt = format === 'SHORTS'
       ? `Você é um editor de vídeo especialista em trilha sonora para vídeos curtos. Analise o roteiro do vídeo abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
