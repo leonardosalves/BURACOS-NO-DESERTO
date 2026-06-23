@@ -2724,83 +2724,93 @@ Regras:
   // SCRIPT MASTER: Generate Strategy and full narrative script
 
   const handleGenerateFullScript = async () => {
-
     if (!ideasData || selectedIdeaIndex === -1) return;
-
     if (!creatorProjectName.trim()) {
-
       toast.error("Por favor, digite o nome do projeto/pasta.");
-
       return;
-
     }
 
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-
     setCreatorLoading(true);
-
     setGeneratedScriptData(null);
 
+    const idea = (ideasData.ideas || [])[selectedIdeaIndex];
+    const format = formatSelector || 'LONGO';
+    const niche = nicheInput.trim();
+
+    const fallbackPrompt = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
+Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente (imagem 2K ou vídeo IA máx 10s). A narração inteira deve ser coberta — sem lacunas. 
+
+Ideia Selecionada:
+- Título: "${idea.title}"
+- Promessa: "${idea.promise || idea.hook || ''}"
+- Emoção: "${idea.emotion || idea.brief || ''}"
+- Formato: "${format}"
+- Nicho: "${niche}"
+
+Retorne estritamente um JSON no formato abaixo, sem tags de markdown ou texto extra:
+{
+  "project_name": "${safeProjectName}",
+  "niche": "${niche}",
+  "format": "${format}",
+  "target_audience": "Descrição breve do público-alvo",
+  "theme_color": "#FFC000",
+  "narrative_script": "Texto completo da narração corrida",
+  "narrative_script_tagged": "Texto da narração com tags de entonação vocal",
+  "voice_id": "eleven_multilingual_v2_danny",
+  "visual_prompts": [
+    {
+      "block": 1,
+      "text": "Frase da narração deste bloco",
+      "visual_prompt": "Prompt altamente detalhado em inglês para gerador de imagens/vídeos",
+      "image_search_query": "Palavra-chave em inglês para buscar banco de imagens",
+      "duration": 8,
+      "bgm_volume": 0.15,
+      "voice_rate": 1.0,
+      "voice_pitch": 1.0
+    }
+  ]
+}
+
+Regras:
+- Gere pelo menos 10 blocos na lista "visual_prompts".
+- O campo "narrative_script" deve conter a soma de todos os textos de narração dos blocos.
+- Todos os campos textuais devem estar em PORTUGUÊS DO BRASIL (exceto visual_prompt e image_search_query, que devem ser em INGLÊS).`;
+
     try {
+      const data = await callAIEngine(
+        '/api/ai/creator/script',
+        { niche, format, idea, project: safeProjectName, expectJson: true },
+        fallbackPrompt
+      );
 
-      const res = await fetch('/api/ai/creator/script', {
-
-        method: 'POST',
-
-        headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({
-
-          niche: nicheInput.trim(),
-
-          format: formatSelector,
-
-          idea: (ideasData?.ideas || [])[selectedIdeaIndex],
-
-          project: safeProjectName
-
-        })
-
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-
-        setGeneratedScriptData(data);
-
-        setCreatorScript(data.narrative_script);
-
-        setCreatorStep(2);
-
-        
-
-        // Refresh project list and select the new project context
-
-        await fetchProjects();
-
-        setActiveProject(safeProjectName);
-
-        fetchData();
-
-      } else {
-
-        toast.error('Erro na IA: ' + (data.details || data.error || 'Erro desconhecido'));
-
+      let finalData = data;
+      if (!data.savedOnServer) {
+        const saveRes = await fetch(getProjectUrl('/api/ai/creator/save-script', safeProjectName), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scriptData: data })
+        });
+        if (saveRes.ok) {
+          finalData = await saveRes.json();
+        } else {
+          console.warn("Could not save client-side generated script to backend disk.");
+        }
       }
 
-    } catch (err) {
-
-      console.error(err);
-
-      toast.error('Conexão falhou ao gerar roteiro.');
-
+      setGeneratedScriptData(finalData);
+      setCreatorScript(finalData.narrative_script || finalData.script || '');
+      setCreatorStep(2);
+      
+      await fetchProjects();
+      setActiveProject(safeProjectName);
+      fetchData();
+      toast.success('Roteiro e storyboard salvos com sucesso!');
+    } catch (err: any) {
+      toast.error('Erro ao gerar roteiro: ' + err.message);
     } finally {
-
       setCreatorLoading(false);
-
     }
-
   };
 
   // Upload narration file binary stream
