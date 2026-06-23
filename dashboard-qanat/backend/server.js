@@ -439,11 +439,88 @@ app.post("/api/music/mix", (req, res) => {
   });
 });
 
+
+function sanitizeProjectBlockTimings(projDir) {
+  const timingsPath = path.join(projDir, "block_timings.json");
+  if (!fs.existsSync(timingsPath)) return { changed: false, message: "" };
+
+  let timings;
+  try {
+    timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+  } catch (err) {
+    return { changed: false, message: `block_timings.json invalido: ${err.message}` };
+  }
+
+  const starts = Array.isArray(timings.starts) ? timings.starts.map(Number) : [];
+  const durations = Array.isArray(timings.durations) ? timings.durations.map(Number) : [];
+  const blockCount = Math.max(starts.length, durations.length);
+  if (blockCount === 0) return { changed: false, message: "" };
+
+  const totalFromFile = Number(timings.total_duration);
+  const finitePositiveDurations = durations.filter(value => Number.isFinite(value) && value > 0.25);
+  const fallbackDuration = finitePositiveDurations.length
+    ? finitePositiveDurations.reduce((sum, value) => sum + value, 0) / finitePositiveDurations.length
+    : 8;
+  const totalDuration = Number.isFinite(totalFromFile) && totalFromFile > 0
+    ? totalFromFile
+    : Math.max(1, finitePositiveDurations.reduce((sum, value) => sum + value, 0));
+
+  let maxSeenStart = -Infinity;
+  const unreliable = [];
+  const sanitizedDurations = [];
+
+  for (let i = 0; i < blockCount; i++) {
+    const start = starts[i];
+    const duration = durations[i];
+    const startIsOutOfOrder = Number.isFinite(start) && start + 0.05 < maxSeenStart;
+    const durationIsInvalid = !Number.isFinite(duration) || duration <= 0.25;
+    const durationIsSuspicious = Number.isFinite(duration) && blockCount > 3 && duration > totalDuration * 0.4;
+
+    if (Number.isFinite(start) && start > maxSeenStart) maxSeenStart = start;
+
+    if (startIsOutOfOrder || durationIsInvalid || durationIsSuspicious) {
+      unreliable.push(i);
+      sanitizedDurations[i] = null;
+    } else {
+      sanitizedDurations[i] = duration;
+    }
+  }
+
+  if (unreliable.length === 0) return { changed: false, message: "" };
+
+  const reliableTotal = sanitizedDurations.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  const remaining = Math.max(unreliable.length * 1, totalDuration - reliableTotal);
+  const replacementDuration = Math.max(1, remaining / unreliable.length || fallbackDuration);
+  for (const index of unreliable) sanitizedDurations[index] = replacementDuration;
+
+  const sanitizedStarts = [];
+  let cursor = 0;
+  for (let i = 0; i < blockCount; i++) {
+    sanitizedStarts.push(Number(cursor.toFixed(3)));
+    sanitizedDurations[i] = Number(Math.max(0.5, sanitizedDurations[i]).toFixed(3));
+    cursor += sanitizedDurations[i];
+  }
+
+  fs.writeFileSync(timingsPath, JSON.stringify({
+    ...timings,
+    starts: sanitizedStarts,
+    durations: sanitizedDurations,
+    total_duration: Number(cursor.toFixed(3))
+  }, null, 2), "utf8");
+
+  return {
+    changed: true,
+    message: `block_timings corrigido: ${unreliable.length} bloco(s) com tempo invalido ou fora de ordem.`
+  };
+}
+
 // API: Render videos streaming logs via Server-Sent Events (SSE)
 app.get("/api/render/:mode", (req, res) => {
   const projDir = getProjectDir(req);
   const mode = req.params.mode; // 'standard' or 'highlighted'
   const withoutImpactTitles = req.query.withoutImpactTitles === "1";
+
+  const timingSanitization = sanitizeProjectBlockTimings(projDir);
 
   if (mode === "remotion") {
     res.setHeader("Content-Type", "text/event-stream");
@@ -453,6 +530,10 @@ app.get("/api/render/:mode", (req, res) => {
     const sendLog = (text) => {
       res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
     };
+
+    if (timingSanitization.message) {
+      sendLog(`[Dashboard] ${timingSanitization.message}`);
+    }
 
     let child = null;
 
@@ -543,6 +624,10 @@ app.get("/api/render/:mode", (req, res) => {
   const sendLog = (text) => {
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
   };
+
+  if (timingSanitization.message) {
+    sendLog(`[Dashboard] ${timingSanitization.message}`);
+  }
 
   let runScriptName = scriptName;
   let tempScriptPath = null;
