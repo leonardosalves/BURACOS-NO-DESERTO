@@ -44,6 +44,29 @@ if not BLOCK_PHRASES and os.path.exists('config_qanat.json'):
 def clean_word(w):
     return re.sub(r'[^a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]', '', w).lower()
 
+def levenshtein_distance(s1, s2):
+    if len(s1) > len(s2):
+        s1, s2 = s2, s1
+    distances = range(len(s1) + 1)
+    for i2, c2 in enumerate(s2):
+        distances_ = [i2+1]
+        for i1, c1 in enumerate(s1):
+            if c1 == c2:
+                distances_.append(distances[i1])
+            else:
+                distances_.append(1 + min((distances[i1], distances[i1+1], distances_[-1])))
+        distances = distances_
+    return distances[-1]
+
+def words_similar(w1, w2):
+    if w1 == w2:
+        return True
+    if len(w1) <= 3 or len(w2) <= 3:
+        return False
+    dist = levenshtein_distance(w1, w2)
+    max_dist = 1 if len(w1) <= 5 else 2
+    return dist <= max_dist
+
 def main():
     with open("whisper_raw_transcript.json", "r", encoding="utf-8") as f:
         raw_data = json.load(f)
@@ -111,11 +134,20 @@ def main():
         best_idx = -1
         best_score = 0
         
-        for i in range(len(flat_words) - n_p + 1):
+        for i in range(len(flat_words) - n_p - 2):
             score = 0
+            curr_idx = i
             for j in range(n_p):
-                if flat_words[i+j]['clean'] == phrase_words[j]:
-                    score += 1
+                found = False
+                for k in range(3):
+                    if curr_idx + k < len(flat_words):
+                        if words_similar(flat_words[curr_idx + k]['clean'], phrase_words[j]):
+                            score += 1
+                            curr_idx = curr_idx + k + 1
+                            found = True
+                            break
+                if not found:
+                    curr_idx += 1
             if score > best_score:
                 best_score = score
                 best_idx = i
@@ -126,7 +158,6 @@ def main():
             print(f"Block {block_num} start matched: '{phrase}' at {block_starts[block_num]:.3f}s (matched {best_score}/{n_p} words)")
         else:
             print(f"WARNING: Could not find reliable match for Block {block_num}: '{phrase}'")
-            # Fallback based on relative position if match fails
             
     # Print out Python code to copy-paste into build_video.py and build_video_destacado.py
     print("\nTIMELINE CODE GENERATION:")
@@ -135,11 +166,37 @@ def main():
     # Let's compute durations of each block based on starts
     num_blocks = max(b[0] for b in BLOCK_PHRASES) if BLOCK_PHRASES else 12
     starts = [0.0] * (num_blocks + 1)
+    starts[1] = 0.0
+    
     for b in range(1, num_blocks + 1):
-        starts[b] = block_starts.get(b, 0.0)
-    # The end of the last block is the end of the last segment
+        if b in block_starts:
+            starts[b] = block_starts[b]
+            
     starts.append(segments[-1]['end'])
     
+    # Monotonic linear interpolation for zero starts
+    print(f"Matched starts before interpolation: {starts}")
+    i = 2
+    while i < num_blocks:
+        if starts[i] == 0.0:
+            j = i
+            while j < num_blocks and starts[j] == 0.0:
+                j += 1
+            val_start = starts[i-1]
+            val_end = starts[j]
+            steps = j - i + 1
+            step_size = (val_end - val_start) / steps
+            for k in range(i, j):
+                starts[k] = val_start + step_size * (k - i + 1)
+            i = j
+        else:
+            i += 1
+            
+    # Guarantee minimum duration of 1.5s per block to prevent rendering errors
+    for b in range(1, num_blocks):
+        if starts[b+1] - starts[b] < 1.5:
+            starts[b+1] = min(starts[-1] - (num_blocks - b - 1) * 1.5, starts[b] + 1.5)
+            
     durations = {}
     for b in range(1, num_blocks + 1):
         durations[b] = starts[b+1] - starts[b]
