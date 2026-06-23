@@ -1230,7 +1230,6 @@ app.post("/api/ai/chat", async (req, res) => {
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }]
     }));
-    
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
@@ -1635,16 +1634,6 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
   try {
     const { mode } = req.body; // 'LONGO' or 'SHORTS'
     
-    // Get available music files
-    const musicExts = [".mp3", ".wav", ".ogg", ".m4a"];
-    const musicFiles = fs.readdirSync(projDir)
-      .filter(f => musicExts.includes(path.extname(f).toLowerCase()))
-      .filter(f => f !== "narracao_mestra_premium.mp3" && !f.startsWith("cinematic_drone"));
-    
-    if (musicFiles.length === 0) {
-      return res.status(400).json({ error: "Nenhum arquivo de música encontrado no projeto." });
-    }
-    
     // Get storyboard for context
     let storyboard = {};
     const storyboardPath = path.join(projDir, "storyboard.json");
@@ -1673,8 +1662,8 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
       });
     }
     
-    const musicListStr = musicFiles.map((f, i) => `${i+1}. "${f}"`).join("\n");
-    
+    const musicListStr = "";
+
     let bgmPrompt;
     if (mode === "SHORTS") {
       bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora. Analise o roteiro do vídeo curto (Shorts) abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
@@ -1705,6 +1694,33 @@ Responda APENAS com um JSON válido no formato:
 {"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
     }
     
+    bgmPrompt = mode === "SHORTS"
+      ? `Voce e um editor de video especialista em trilha sonora. Analise o roteiro do video curto (Shorts) abaixo e recomende apenas a IDEIA de trilha sonora ideal para o video inteiro.
+
+Roteiro:
+${transcript || blockSummaries}
+
+Importante:
+- Nao escolha arquivo de musica.
+- Nao cite nomes de faixas enviadas.
+- A configuracao real continua manual na opcao Trilha Unica.
+
+Responda APENAS com um JSON valido no formato:
+{"mode": "SHORTS", "recommendation": "descricao da ideia de trilha para o video inteiro", "reason": "explicacao breve", "manual_note": "Escolha manualmente uma faixa em Trilha Unica."}`
+      : `Voce e um editor de video especialista em trilha sonora para documentarios. Analise o tom emocional de cada bloco do roteiro e recomende apenas a IDEIA de trilha sonora ideal para CADA bloco.
+
+Resumo por bloco:
+${blockSummaries || transcript}
+
+Regras:
+- Nao escolha arquivos de musica.
+- Nao cite nomes de faixas enviadas.
+- Descreva estilo, instrumentos, energia, clima emocional e progressao.
+- A configuracao real continua manual na opcao Por Bloco.
+
+Responda APENAS com um JSON valido no formato:
+{"mode": "LONGO", "suggestions": [{"block": 1, "recommendation": "ideia de trilha para este bloco", "reason": "breve"}], "manual_note": "Escolha manualmente as faixas em Por Bloco."}`;
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
