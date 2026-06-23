@@ -3801,28 +3801,6 @@ Responda APENAS com um JSON válido no formato:
 
                           </button>
 
-                          <button 
-
-                            onClick={() => setActiveTab('title-optimizer')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'title-optimizer' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Sparkles className="w-3.5 h-3.5 shrink-0 text-gold-500" />
-
-                            <span>Title Optimizer</span>
-
-                          </button>
-
                           {/* Verificações Ativas inside submenu */}
                           {status && (
                             <div className="mt-3 p-3 bg-zinc-950/60 border border-zinc-900/60 rounded-xl space-y-2 text-left">
@@ -3858,6 +3836,36 @@ Responda APENAS com um JSON válido no formato:
 
                 })}
 
+              </div>
+
+              {/* Global Tools Section */}
+              <div className="space-y-2 mt-4 pt-4 border-t border-zinc-900/50">
+                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block px-1 text-left">Ferramentas de Canal</span>
+                <div className="space-y-1 font-sans">
+                  <button
+                    onClick={() => setActiveTab('title-optimizer')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+                      activeTab === 'title-optimizer'
+                        ? 'text-gold-500 bg-gold-500/5 font-bold'
+                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-gold-500" />
+                    <span>Title Optimizer</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('year-in-review')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+                      activeTab === 'year-in-review'
+                        ? 'text-gold-500 bg-gold-500/5 font-bold'
+                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                    <span>Retrospectiva 2025</span>
+                  </button>
+                </div>
               </div>
 
             </div>
