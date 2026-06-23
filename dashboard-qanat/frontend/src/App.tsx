@@ -4,10 +4,13 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 import { TitleStrategyWizard } from './TitleStrategyWizard';
 import { YearInReview } from './YearInReview';
+import PackagingAssistant from './PackagingAssistant';
 
 import { 
 
   Video, 
+
+  Sliders,
 
   Music, 
 
@@ -153,7 +156,7 @@ interface MusicFile {
 
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'title-optimizer' | 'year-in-review'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'title-optimizer' | 'year-in-review' | 'packaging-assistant'>('status');
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -203,6 +206,7 @@ export default function App() {
   const [mixing, setMixing] = useState<boolean>(false);
 
   const [playingMusic, setPlayingMusic] = useState<string | null>(null);
+  const [aiBgmSuggestions, setAiBgmSuggestions] = useState<{ block: number; file: string; reason: string }[]>([]);
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
@@ -2569,24 +2573,11 @@ Responda APENAS com um JSON válido no formato:
       );
 
       if (format === 'SHORTS' && data.file) {
-        // Single BGM for entire video
-        const updatedConfig = {
-          ...config,
-          use_single_bgm: true,
-          single_bgm: data.file,
-          bgm_mappings: [{ block: 1, file: data.file }]
-        };
-        await saveConfig(updatedConfig);
-        toast.success(`🎵 IA sugeriu: ${data.file}\n${data.reason || ''}`);
+        setAiBgmSuggestions([{ block: 1, file: data.file, reason: data.reason || '' }]);
+        toast.success(`🎵 IA sugeriu a trilha: ${data.file}! Veja abaixo para aplicar.`);
       } else if (data.suggestions && Array.isArray(data.suggestions)) {
-        // Per-block BGM
-        const newMappings = data.suggestions.map((s: any) => ({
-          block: s.block,
-          file: s.file
-        }));
-        const updatedConfig = { ...config, bgm_mappings: newMappings };
-        await saveConfig(updatedConfig);
-        toast.success(`🎵 IA mapeou trilhas para ${newMappings.length} blocos!`);
+        setAiBgmSuggestions(data.suggestions);
+        toast.success(`🎵 IA sugeriu trilhas para ${data.suggestions.length} blocos! Veja e aplique abaixo.`);
       } else {
         toast.error('Resposta da IA não contém sugestões válidas.');
       }
@@ -2741,7 +2732,7 @@ Regras:
     const niche = nicheInput.trim();
 
     const fallbackPrompt = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
-Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente (imagem 2K ou vídeo IA máx 10s). A narração inteira deve ser coberta — sem lacunas. 
+Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente. A narração inteira deve ser coberta — sem lacunas. 
 
 Ideia Selecionada:
 - Título: "${idea.title}"
@@ -2755,29 +2746,54 @@ Retorne estritamente um JSON no formato abaixo, sem tags de markdown ou texto ex
   "project_name": "${safeProjectName}",
   "niche": "${niche}",
   "format": "${format}",
-  "target_audience": "Descrição breve do público-alvo",
-  "theme_color": "#FFC000",
+  "strategy": {
+    "title_main": "Título principal com alta taxa de clique",
+    "title_variations": ["var1", "var2", "var3", "var4", "var5"],
+    "hook": "Gancho de 3 segundos",
+    "target_audience": "Público-alvo",
+    "tone": "Tom do vídeo",
+    "pinned_comment": "Comentário fixado estratégico",
+    "cta": "CTA suave"
+  },
   "narrative_script": "Texto completo da narração corrida",
-  "narrative_script_tagged": "Texto da narração com tags de entonação vocal",
-  "voice_id": "eleven_multilingual_v2_danny",
+  "narrative_script_tagged": "Texto da narração com tags de entonação vocal (use [pause], (sigh), (breath), <break time=\\"1.5s\\"/>)",
   "visual_prompts": [
     {
+      "scene": "1.1",
       "block": 1,
-      "text": "Frase da narração deste bloco",
-      "visual_prompt": "Prompt altamente detalhado em inglês para gerador de imagens/vídeos",
-      "image_search_query": "Palavra-chave em inglês para buscar banco de imagens",
-      "duration": 8,
-      "bgm_volume": 0.15,
-      "voice_rate": 1.0,
-      "voice_pitch": 1.0
+      "narration_text": "O trecho EXATO da narração falado durante esta cena",
+      "type": "imagem IA 2k",
+      "duration": "3 a 5 segundos",
+      "prompt": "Prompt cinematográfico completo em inglês para gerador de imagens",
+      "editor_notes": "Instruções de edição",
+      "stock_query": "Termo curto em inglês para busca no Pexels"
     }
-  ]
+  ],
+  "bgm_recommendations": [
+    {
+      "block": 1,
+      "recommendation": "Tipo de trilha sonora ideal"
+    }
+  ],
+  "checklist": {
+    "click_potential": 9,
+    "retention_potential": 8,
+    "comments_potential": 9,
+    "feedback": "Avaliação rápida de qualidade"
+  },
+  "technical_config": {
+    "script": "Texto da narração dividido em parágrafos separados por quebra de linha",
+    "block_phrases": [{"block": 1, "phrase": "Frase inicial do bloco para sincronizar"}],
+    "impact_texts": [{"block": 1, "start_offset": 0.0, "end_offset": 4.5, "text": "TEXTO IMPACTO"}],
+    "highlight_keywords": ["palavra1", "palavra2"],
+    "bgm_mappings": [{"block": 1, "file": "Persian Mystical Oasis.mp3"}]
+  }
 }
 
 Regras:
-- Gere pelo menos 10 blocos na lista "visual_prompts".
-- O campo "narrative_script" deve conter a soma de todos os textos de narração dos blocos.
-- Todos os campos textuais devem estar em PORTUGUÊS DO BRASIL (exceto visual_prompt e image_search_query, que devem ser em INGLÊS).`;
+- O array visual_prompts deve conter pelo menos 10 objetos sequenciais cobrindo toda a narração.
+- Em bgm_mappings, use apenas arquivos disponíveis do projeto (ex: Persian Mystical Oasis.mp3, Arabian Caravan Cinematic.mp3, Historical Tension Strings.mp3, Cinematic Duduk Sadness.mp3, Ancient Desert Cinematic .mp3).
+- Todos os campos textuais de narração e títulos devem estar em PORTUGUÊS DO BRASIL (exceto prompts visuais e stock_query, que devem ser em INGLÊS).`;
 
     try {
       const data = await callAIEngine(
@@ -3859,6 +3875,18 @@ Regras:
                   </button>
 
                   <button
+                    onClick={() => setActiveTab('packaging-assistant')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+                      activeTab === 'packaging-assistant'
+                        ? 'text-gold-500 bg-gold-500/5 font-bold'
+                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5 shrink-0 text-gold-500" />
+                    <span>Packaging Assistant</span>
+                  </button>
+
+                  <button
                     onClick={() => setActiveTab('year-in-review')}
                     className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
                       activeTab === 'year-in-review'
@@ -4526,6 +4554,42 @@ Regras:
 
                         </div>
 
+                        {/* Single BGM Suggestion Box */}
+                        {(() => {
+                          const singleSuggestion = aiBgmSuggestions.find(s => s.block === 1);
+                          if (!singleSuggestion) return null;
+                          return (
+                            <div className="bg-gold-500/5 border border-gold-500/10 rounded-xl p-3 flex items-center justify-between gap-3 text-[10px] animate-fade-in mt-2">
+                              <div className="space-y-0.5 flex-1 min-w-0">
+                                <div className="flex items-center gap-1 text-gold-500 font-bold uppercase tracking-wider text-[9px]">
+                                  <Sparkles className="w-3.5 h-3.5 text-gold-500 animate-pulse" />
+                                  <span>Sugestão Única da IA</span>
+                                </div>
+                                <p className="text-gray-300 font-semibold truncate">Trilha: <span className="text-white font-mono">{singleSuggestion.file}</span></p>
+                                <p className="text-zinc-550 italic truncate">"{singleSuggestion.reason}"</p>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button 
+                                  onClick={() => togglePlayMusic(singleSuggestion.file)}
+                                  className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-900 cursor-pointer transition"
+                                  title="Ouvir trilha sugerida"
+                                >
+                                  {playingMusic === singleSuggestion.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    saveConfig({ ...config, single_bgm: singleSuggestion.file });
+                                    toast.success("Trilha única atualizada!");
+                                  }}
+                                  className="bg-gold-500 hover:bg-gold-600 text-zinc-950 font-bold px-3 py-1 rounded text-[10px] transition cursor-pointer"
+                                >
+                                  Aplicar
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                       </div>
 
                     </div>
@@ -4534,57 +4598,94 @@ Regras:
 
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
 
-                      {(config.bgm_mappings || []).map(bgm => (
+                      {(config.bgm_mappings || []).map(bgm => {
+                        const suggestion = aiBgmSuggestions.find(s => s.block === bgm.block);
+                        return (
 
-                        <div key={bgm.block} className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
+                          <div key={bgm.block} className="p-3 bg-zinc-950 border border-zinc-900 rounded-xl space-y-2">
 
-                          <span className="text-xs font-bold text-white font-mono shrink-0">Bloco {bgm.block}</span>
+                            <div className="flex justify-between items-center gap-4">
 
-                          
+                              <span className="text-xs font-bold text-white font-mono shrink-0">Bloco {bgm.block}</span>
 
-                          <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
+                              <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
 
-                            <select 
+                                <select 
 
-                              value={bgm.file}
+                                  value={bgm.file}
 
-                              onChange={(e) => handleMusicChange(bgm.block, e.target.value)}
+                                  onChange={(e) => handleMusicChange(bgm.block, e.target.value)}
 
-                              className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
+                                  className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
 
-                            >
+                                >
 
-                              {musicFiles.map(file => (
+                                  {musicFiles.map(file => (
 
-                                <option key={file.name} value={file.name}>{file.name}</option>
+                                    <option key={file.name} value={file.name}>{file.name}</option>
 
-                              ))}
+                                  ))}
 
-                            </select>
+                                </select>
 
-                            {bgm.file && (
+                                {bgm.file && (
 
-                              <button
+                                  <button
 
-                                onClick={() => togglePlayMusic(bgm.file)}
+                                    onClick={() => togglePlayMusic(bgm.file)}
 
-                                className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+                                    className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
 
-                                title="Ouvir trilha"
+                                    title="Ouvir trilha"
 
-                              >
+                                  >
 
-                                {playingMusic === bgm.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+                                    {playingMusic === bgm.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
 
-                              </button>
+                                  </button>
 
+                                )}
+
+                              </div>
+
+                            </div>
+
+                            {/* Render AI Suggestion Box */}
+                            {suggestion && (
+                              <div className="bg-gold-500/5 border border-gold-500/10 rounded-lg p-2.5 flex items-center justify-between gap-3 text-[10px] animate-fade-in">
+                                <div className="space-y-0.5 flex-1 min-w-0">
+                                  <div className="flex items-center gap-1 text-gold-500 font-bold uppercase tracking-wider text-[9px]">
+                                    <Sparkles className="w-3 h-3 text-gold-500" />
+                                    <span>Sugestão da IA</span>
+                                  </div>
+                                  <p className="text-gray-300 truncate font-semibold">Trilha: <span className="text-white font-mono">{suggestion.file}</span></p>
+                                  <p className="text-zinc-550 italic truncate">"{suggestion.reason}"</p>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button 
+                                    onClick={() => togglePlayMusic(suggestion.file)}
+                                    className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-900 cursor-pointer transition"
+                                    title="Ouvir trilha sugerida"
+                                  >
+                                    {playingMusic === suggestion.file ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      handleMusicChange(bgm.block, suggestion.file);
+                                      toast.success(`Trilha do Bloco ${bgm.block} atualizada!`);
+                                    }}
+                                    className="bg-gold-500 hover:bg-gold-600 text-zinc-950 font-bold px-2 py-1 rounded text-[9px] transition cursor-pointer"
+                                  >
+                                    Aplicar
+                                  </button>
+                                </div>
+                              </div>
                             )}
 
                           </div>
 
-                        </div>
-
-                      ))}
+                        );
+                      })}
 
                     </div>
 
@@ -8515,6 +8616,14 @@ Regras:
         <YearInReview
           onClose={() => setActiveTab('status')}
           getProjectUrl={getProjectUrl}
+        />
+      )}
+
+      {activeTab === 'packaging-assistant' && (
+        <PackagingAssistant
+          activeProject={activeProject}
+          getProjectUrl={getProjectUrl}
+          callAIEngine={callAIEngine}
         />
       )}
 
