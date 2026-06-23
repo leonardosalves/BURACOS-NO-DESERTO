@@ -2519,7 +2519,22 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
-        if (formatSelector === 'SHORTS' && data.file) {
+        if (formatSelector === 'SHORTS' && data.recommendation) {
+          toast.success(`Ideia de BGM para o vídeo inteiro:\n${data.recommendation}\n\nEscolha a faixa manualmente em Trilha Única.`, { duration: 9000 });
+          return;
+        }
+
+        if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.some((s: any) => s.recommendation)) {
+          const summary = data.suggestions
+            .slice(0, 6)
+            .map((s: any) => `Bloco ${s.block}: ${s.recommendation || s.reason || ''}`)
+            .join('\n');
+          const extra = data.suggestions.length > 6 ? `\n...+${data.suggestions.length - 6} bloco(s)` : '';
+          toast.success(`Ideias de BGM por bloco:\n${summary}${extra}\n\nEscolha as faixas manualmente em Por Bloco.`, { duration: 12000 });
+          return;
+        }
+
+        if (false && formatSelector === 'SHORTS' && data.file) {
           // Single BGM for entire video
           const updatedConfig = {
             ...config,
@@ -2529,7 +2544,7 @@ export default function App() {
           };
           await saveConfig(updatedConfig);
           toast.success(`🎵 IA sugeriu: ${data.file}\n${data.reason || ''}`);
-        } else if (data.suggestions && Array.isArray(data.suggestions)) {
+        } else if (false && data.suggestions && Array.isArray(data.suggestions)) {
           // Per-block BGM
           const newMappings = data.suggestions.map((s: any) => ({
             block: s.block,
@@ -4696,10 +4711,11 @@ export default function App() {
                       <button
                         disabled={suggestingBGM || !hasApiKey}
                         onClick={handleSuggestBGM}
+                        title="Gera apenas ideias de trilha. A escolha do arquivo continua manual em Por Bloco ou Trilha Única."
                         className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
                       >
                         {suggestingBGM ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                        <span>{suggestingBGM ? 'Analisando...' : 'Sugerir BGM com IA'}</span>
+                        <span>{suggestingBGM ? 'Analisando...' : 'Ideias de BGM com IA'}</span>
                       </button>
 
                     </div>
