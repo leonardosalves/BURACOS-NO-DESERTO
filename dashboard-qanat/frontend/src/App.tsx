@@ -164,6 +164,39 @@ export default function App() {
 
   const [logs, setLogs] = useState<string[]>([]);
 
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [portoAlegreTemp, setPortoAlegreTemp] = useState<string>('Carregando...');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR'));
+    }, 1000);
+
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-30.0331&longitude=-51.2300&current=temperature_2m');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.current && data.current.temperature_2m !== undefined) {
+            setPortoAlegreTemp(`${data.current.temperature_2m}°C`);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch Porto Alegre weather:", err);
+        setPortoAlegreTemp('--°C');
+      }
+    };
+
+    fetchWeather();
+    const weatherTimer = setInterval(fetchWeather, 300000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(weatherTimer);
+    };
+  }, []);
+
   const [rendering, setRendering] = useState<boolean>(false);
 
   const [mixing, setMixing] = useState<boolean>(false);
@@ -3372,11 +3405,23 @@ Responda APENAS com um JSON válido no formato:
 
         <div className="flex items-center gap-4">
 
-          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs">
+          <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3.5 py-1.5 rounded-lg text-xs font-sans">
 
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <div className="flex items-center gap-1.5 border-r border-zinc-800 pr-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span className="text-gray-300 font-medium">Servidor Ativo</span>
+            </div>
 
-            <span className="text-gray-300 font-medium">Servidor Ativo</span>
+            {currentTime && (
+              <span className="text-zinc-500 font-mono border-r border-zinc-800 pr-3">
+                {currentTime}
+              </span>
+            )}
+
+            <div className="flex items-center gap-1 text-amber-500 font-semibold font-mono">
+              <span>📍 Porto Alegre:</span>
+              <span className="text-zinc-300">{portoAlegreTemp}</span>
+            </div>
 
           </div>
 
