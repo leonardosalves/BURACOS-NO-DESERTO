@@ -223,6 +223,8 @@ export default function App() {
   // AI Agent states
 
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [apiProvider, setApiProvider] = useState<'gemini' | 'groq' | 'openrouter'>('gemini');
+  const [apiModel, setApiModel] = useState<string>('');
 
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
 
@@ -632,6 +634,8 @@ REGRAS:
         const keyData = await aiKeyStatusRes.json();
 
         setHasApiKey(keyData.has_key);
+        setApiProvider(keyData.provider || 'gemini');
+        setApiModel(keyData.model || '');
 
       }
 
@@ -2298,46 +2302,35 @@ REGRAS:
 
   // Save API Key
 
-  const handleSaveApiKey = async () => {
-
+  const handleSaveApiKey = async (customProvider?: 'gemini' | 'groq' | 'openrouter', customModel?: string) => {
     if (!apiKeyInput.trim()) return;
 
+    const prov = customProvider || apiProvider;
+    const mod = customModel || apiModel;
+
     try {
-
       const res = await fetch(getProjectUrl('/api/ai/save-key'), {
-
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ key: apiKeyInput.trim() })
-
+        body: JSON.stringify({ 
+          key: apiKeyInput.trim(),
+          provider: prov,
+          model: mod
+        })
       });
 
       if (res.ok) {
-
         setHasApiKey(true);
-
         setApiKeyInput('');
-
         setShowKeyInput(false);
-
-        toast.success('Chave de API do Google AI Studio salva com sucesso!');
-
+        toast.success(`Chave de API do ${prov.toUpperCase()} salva com sucesso!`);
         fetchData();
-
       } else {
-
         toast.error('Erro ao salvar a chave de API.');
-
       }
-
     } catch (err) {
-
       console.error(err);
-
     }
-
   };
 
   // Parse and execute lumiera-action blocks from AI responses
@@ -2667,24 +2660,33 @@ Responda APENAS com um JSON válido no formato:
     const niche = nicheInput.trim();
     const format = formatSelector || 'LONGO';
 
-    const prompt = `Você é um roteirista profissional do YouTube. Crie 10 ideias de vídeos de alta retenção no nicho "${niche}".
-O formato desejado é: ${format}.
+    const prompt = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
+Analise de forma rápida e estratégica o nicho "${niche}" e crie 10 ideias de vídeo virais exclusivas para o formato: ${format}.
 
 Retorne estritamente um JSON no formato abaixo, sem tags de markdown ou texto extra:
 {
-  "niche": "${niche}",
-  "format": "${format}",
+  "diagnostic": {
+    "looking_for": "O que as pessoas estão procurando nesse nicho agora",
+    "pain_points": "Principais dores desse público",
+    "desires": "Desejos que movem o público",
+    "retention_fears": "Medos ou dúvidas que geram retenção",
+    "comment_hooks": "Curiosidades ou polêmicas que geram comentários",
+    "title_style": "Que tipo de título teria mais chance de clique",
+    "core_emotion": "Emoção principal a ser ativada",
+    "retention_topics": "Tópicos com maior potencial de retenção",
+    "strong_angle": "Qual o ângulo mais forte para o vídeo"
+  },
   "ideas": [
     {
-      "title": "título do vídeo 1",
-      "hook": "gancho inicial de 3 segundos",
-      "brief": "breve descrição de 2 frases sobre o enredo",
-      "difficulty": "fácil/médio/difícil",
-      "suggested_duration": "duração recomendada",
-      "retention_score": 95
+      "title": "Título provisório instigante",
+      "promise": "Promessa clara do vídeo",
+      "emotion": "Emoção dominante",
+      "why_works": "Por que esse vídeo pode funcionar",
+      "best_format": "${format}"
     }
   ],
-  "best_idea_index": 0
+  "best_idea_index": 0,
+  "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"
 }
 
 Regras:
@@ -3867,6 +3869,18 @@ Regras:
                     <TrendingUp className="w-3.5 h-3.5 shrink-0 text-amber-500" />
                     <span>Retrospectiva 2025</span>
                   </button>
+
+                  <button
+                    onClick={() => setActiveTab('ai')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+                      activeTab === 'ai'
+                        ? 'text-gold-500 bg-gold-500/5 font-bold'
+                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+                    }`}
+                  >
+                    <Settings className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
+                    <span>Configurações da API</span>
+                  </button>
                 </div>
               </div>
 
@@ -4801,82 +4815,89 @@ Regras:
 
               {/* API Key Banner */}
 
-              <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
-
-                <div className="flex items-center gap-3">
-
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-
-                    {hasApiKey ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-
+              {/* API Key Banner */}
+              <div className="glass-panel p-5 rounded-2xl flex flex-col gap-4 shrink-0 font-sans">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                      {hasApiKey ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white tracking-wide font-cinzel">CONFIGURAÇÃO DA API DE INTELIGÊNCIA ARTIFICIAL</h4>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {hasApiKey 
+                          ? `Conectado com sucesso via ${apiProvider.toUpperCase()} (${apiModel || 'Modelo Padrão'}).` 
+                          : 'Selecione um provedor e insira sua chave de API para habilitar o Criador e Otimizador de Vídeos.'}
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-
-                    <h4 className="text-xs font-bold text-white tracking-wide font-cinzel">CONFIGURAÇÃO DA API DO GOOGLE AI STUDIO</h4>
-
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-
-                      {hasApiKey ? 'Conectado à API do Gemini com sucesso.' : 'Insira sua chave de API do Gemini para habilitar o Assistente de Inteligência Artificial.'}
-
-                    </p>
-
-                  </div>
-
+                  {hasApiKey && !showKeyInput && (
+                    <button 
+                      onClick={() => {
+                        setShowKeyInput(true);
+                        setApiKeyInput('');
+                      }}
+                      className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                    >
+                      Alterar Configuração
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-
-                  {(!hasApiKey || showKeyInput) ? (
-
-                    <div className="flex items-center gap-2 w-full sm:w-80">
-
-                      <input 
-
-                        type="password"
-
-                        placeholder="Cole sua API Key (AI Studio)..."
-
-                        value={apiKeyInput}
-
-                        onChange={(e) => setApiKeyInput(e.target.value)}
-
-                        className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 flex-1"
-
-                      />
-
-                      <button 
-
-                        onClick={handleSaveApiKey}
-
-                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
-
+                {(!hasApiKey || showKeyInput) && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 border-t border-zinc-900/60 pt-4 mt-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">Provedor API</span>
+                      <select
+                        value={apiProvider}
+                        onChange={(e) => {
+                          const val = e.target.value as 'gemini' | 'groq' | 'openrouter';
+                          setApiProvider(val);
+                          // Auto fill model defaults
+                          if (val === 'gemini') setApiModel('gemini-3.5-flash');
+                          else if (val === 'groq') setApiModel('llama-3.3-70b-versatile');
+                          else if (val === 'openrouter') setApiModel('google/gemini-2.5-flash');
+                        }}
+                        className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
                       >
-
-                        Salvar
-
-                      </button>
-
+                        <option value="gemini">Google AI Studio (Gemini)</option>
+                        <option value="groq">Groq (Llama 3.3 / Ultra-Rápido)</option>
+                        <option value="openrouter">OpenRouter (20+ Modelos Gratuitos)</option>
+                      </select>
                     </div>
 
-                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">Modelo da IA</span>
+                      <input 
+                        type="text"
+                        placeholder="Ex: gemini-3.5-flash"
+                        value={apiModel}
+                        onChange={(e) => setApiModel(e.target.value)}
+                        className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500"
+                      />
+                    </div>
 
-                    <button 
-
-                      onClick={() => setShowKeyInput(true)}
-
-                      className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
-
-                    >
-
-                      Alterar Chave
-
-                    </button>
-
-                  )}
-
-                </div>
-
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">Chave de API (API Key)</span>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="password"
+                          placeholder="Insira a chave..."
+                          value={apiKeyInput}
+                          onChange={(e) => setApiKeyInput(e.target.value)}
+                          className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 flex-1"
+                        />
+                        <button 
+                          onClick={() => handleSaveApiKey(apiProvider, apiModel)}
+                          className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-4 py-1.5 rounded-lg transition cursor-pointer shrink-0"
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* IA Status widget (Puter.js vs Google AI Studio) */}
@@ -8565,7 +8586,7 @@ Regras:
 
                   />
 
-                  <button onClick={handleSaveApiKey} className="bg-gold-500 text-zinc-950 text-[9px] font-bold px-2 py-1 rounded cursor-pointer">OK</button>
+                  <button onClick={() => handleSaveApiKey()} className="bg-gold-500 text-zinc-950 text-[9px] font-bold px-2 py-1 rounded cursor-pointer">OK</button>
 
                 </div>
 

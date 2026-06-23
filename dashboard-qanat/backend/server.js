@@ -554,37 +554,38 @@ function getApiKey(projectDir = WORKSPACE_DIR) {
   return null;
 }
 
-// API: Check if Gemini API key exists
+// API: Check if AI API key exists and get provider settings
 app.get("/api/ai/key-status", (req, res) => {
   const projDir = getProjectDir(req);
   const configPath = path.join(projDir, "config_qanat.json");
-  let hasKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
-  if (!hasKey && fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (config.gemini_api_key) {
-        hasKey = true;
-      }
-    } catch (e) {}
+  
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
   }
-  // Try fallback to root config
-  if (!hasKey && projDir !== WORKSPACE_DIR) {
+  if (!config.api_provider && projDir !== WORKSPACE_DIR) {
     const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
     if (fs.existsSync(rootConfigPath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8"));
-        if (config.gemini_api_key) {
-          hasKey = true;
-        }
-      } catch (e) {}
+      try { config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8")); } catch (e) {}
     }
   }
-  res.json({ has_key: hasKey });
+
+  const provider = config.api_provider || "gemini";
+  let hasKey = false;
+  if (provider === "gemini") {
+    hasKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY || !!config.gemini_api_key;
+  } else if (provider === "groq") {
+    hasKey = !!process.env.GROQ_API_KEY || !!config.groq_api_key;
+  } else if (provider === "openrouter") {
+    hasKey = !!process.env.OPENROUTER_API_KEY || !!config.openrouter_api_key;
+  }
+
+  res.json({ has_key: hasKey, provider, model: config.api_model || "" });
 });
 
-// API: Save Gemini API key to config_qanat.json
+// API: Save AI API key and provider settings to config_qanat.json
 app.post("/api/ai/save-key", (req, res) => {
-  const { key } = req.body;
+  const { key, provider, model } = req.body;
   if (!key) {
     return res.status(400).json({ error: "Chave de API não fornecida" });
   }
@@ -595,13 +596,163 @@ app.post("/api/ai/save-key", (req, res) => {
     if (fs.existsSync(configPath)) {
       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     }
-    config.gemini_api_key = key;
+    const apiProvider = provider || "gemini";
+    config.api_provider = apiProvider;
+    config.api_model = model || "";
+    
+    if (apiProvider === "gemini") {
+      config.gemini_api_key = key;
+    } else if (apiProvider === "groq") {
+      config.groq_api_key = key;
+    } else if (apiProvider === "openrouter") {
+      config.openrouter_api_key = key;
+    }
+    
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    res.json({ success: true, message: "Chave de API salva com sucesso no config_qanat.json" });
+    res.json({ success: true, message: `Chave de API do ${apiProvider} salva com sucesso no config_qanat.json` });
   } catch (err) {
     res.status(500).json({ error: "Erro ao salvar a chave", details: err.message });
   }
 });
+
+// Helper: Call AI API based on configured provider (Gemini, Groq, OpenRouter)
+async function callAIBackend(projDir, prompt, systemInstruction = null, responseMimeType = null) {
+  let config = {};
+  const configPath = path.join(projDir, "config_qanat.json");
+  if (fs.existsSync(configPath)) {
+    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+  }
+  if (!config.api_provider && projDir !== WORKSPACE_DIR) {
+    const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+    if (fs.existsSync(rootConfigPath)) {
+      try { config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8")); } catch (e) {}
+    }
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || config.gemini_api_key;
+  const groqKey = process.env.GROQ_API_KEY || config.groq_api_key;
+  const openrouterKey = process.env.OPENROUTER_API_KEY || config.openrouter_api_key;
+
+  const provider = config.api_provider || (geminiKey ? "gemini" : groqKey ? "groq" : openrouterKey ? "openrouter" : null);
+  if (!provider) {
+    throw new Error("Nenhum provedor de API de IA configurado ou chave ausente.");
+  }
+
+  if (provider === "gemini") {
+    if (!geminiKey) throw new Error("Chave de API do Gemini não fornecida.");
+    const model = config.api_model || "gemini-3.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+    
+    const requestBody = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 8192
+      }
+    };
+    if (responseMimeType) {
+      requestBody.generationConfig.responseMimeType = responseMimeType;
+    }
+    if (systemInstruction) {
+      requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Google API returned status ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+      throw new Error("Resposta inválida retornada pelo Gemini.");
+    }
+    return data.candidates[0].content.parts[0].text;
+
+  } else if (provider === "groq") {
+    if (!groqKey) throw new Error("Chave de API do Groq não fornecida.");
+    const model = config.api_model || "llama-3.3-70b-versatile";
+    const url = "https://api.groq.com/openai/v1/chat/completions";
+
+    const messages = [];
+    if (systemInstruction) {
+      messages.push({ role: "system", content: systemInstruction });
+    }
+    messages.push({ role: "user", content: prompt });
+
+    const requestBody = {
+      model,
+      messages,
+      temperature: 0.8
+    };
+    if (responseMimeType === "application/json") {
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Groq API returned status ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+
+  } else if (provider === "openrouter") {
+    if (!openrouterKey) throw new Error("Chave de API do OpenRouter não fornecida.");
+    const model = config.api_model || "google/gemini-2.5-flash";
+    const url = "https://openrouter.ai/api/v1/chat/completions";
+
+    const messages = [];
+    if (systemInstruction) {
+      messages.push({ role: "system", content: systemInstruction });
+    }
+    messages.push({ role: "user", content: prompt });
+
+    const requestBody = {
+      model,
+      messages,
+      temperature: 0.8
+    };
+    if (responseMimeType === "application/json") {
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openrouterKey}`,
+        "HTTP-Referer": "http://localhost:3005",
+        "X-Title": "Lumiera Studio"
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter API returned status ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } else {
+    throw new Error(`Provedor desconhecido: ${provider}`);
+  }
+}
 
 // Helper: Generate system instructions with workspace script context
 function getProjectContext(projectDir) {
@@ -908,10 +1059,7 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 // API: AI-powered BGM suggestion per block
 app.post("/api/ai/suggest-bgm", async (req, res) => {
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
+
 
   try {
     const { mode } = req.body; // 'LONGO' or 'SHORTS'
@@ -986,26 +1134,15 @@ Responda APENAS com um JSON válido no formato:
 {"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
     }
     
-    const response = await fetchGeminiWithFallback(apiKey, {
-      contents: [{ role: "user", parts: [{ text: bgmPrompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    });
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    
+    let responseText = await callAIBackend(projDir, bgmPrompt, null, "application/json");
+    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+
     let parsed;
     try { parsed = JSON.parse(responseText); } catch(e) {
       // Try to extract JSON from response
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     }
-    
     res.json(parsed);
   } catch (err) {
     res.status(500).json({ error: "Erro ao sugerir BGM", details: err.message });
@@ -1335,29 +1472,13 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 }`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}` }]
-          }]
-        })
-      }
+    let responseText = await callAIBackend(
+      projDir,
+      `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}`,
+      null,
+      "application/json"
     );
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
     responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-
     const parsedData = JSON.parse(responseText);
     res.json(parsedData);
   } catch (err) {
@@ -1469,10 +1590,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
   const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
   const projDir = path.join(WORKSPACE_DIR, safeProjectName);
 
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
+
 
   // Automatically create and template project directory on-the-fly if it doesn't exist
   if (!fs.existsSync(projDir)) {
@@ -1603,27 +1721,7 @@ REGRAS FINAIS:
 
   let responseText = "";
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: promptSystem }]
-          }]
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    responseText = await callAIBackend(projDir, promptSystem, null, "application/json");
     responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
     const rawData = JSON.parse(responseText);
@@ -1951,6 +2049,69 @@ app.get("/api/youtube/channel-videos", async (req, res) => {
   const channel = req.query.channel || "@AIConstructionStories";
   const shoffingUrl = `https://shoffing.com/project/youtube_sort/get_videos/${encodeURIComponent(channel)}`;
   
+  // 1. Fetch RSS feed in parallel to use as an accurate UTF-8 titles dictionary
+  let rssTitles = {};
+  try {
+    const channelId = "UCYYcyky9A8fob3t6TlIENYA";
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+    const rssResponse = await fetch(rssUrl);
+    if (rssResponse.ok) {
+      const xml = await rssResponse.text();
+      const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+      let match;
+      while ((match = entryRegex.exec(xml)) !== null) {
+        const entry = match[1];
+        const idMatch = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
+        const titleMatch = entry.match(/<title>([^<]+)<\/title>/);
+        if (idMatch && titleMatch) {
+          rssTitles[idMatch[1].trim()] = titleMatch[1].trim();
+        }
+      }
+    }
+  } catch (rssErr) {
+    console.warn("Failed to fetch RSS titles dictionary:", rssErr.message);
+  }
+
+  const fixTitleAccents = (title) => {
+    if (!title) return "";
+    let t = title;
+    // Common Portuguese accent corrections for database question marks
+    t = t.replace(/\bj\?/gi, "já");
+    t = t.replace(/constru\?do/gi, "construído");
+    t = t.replace(/Pr\?dios/gi, "Prédios");
+    t = t.replace(/pr\?dio/gi, "prédio");
+    t = t.replace(/Voc\?/gi, "Você");
+    t = t.replace(/incr\?vel/gi, "incrível");
+    t = t.replace(/hist\?ria/gi, "história");
+    t = t.replace(/\bat\?/gi, "até");
+    t = t.replace(/\bs\?/gi, "só");
+    t = t.replace(/n\?o/gi, "não");
+    t = t.replace(/tamb\?m/gi, "também");
+    t = t.replace(/ent\?o/gi, "então");
+    t = t.replace(/pr\?prio/gi, "próprio");
+    t = t.replace(/s\?culo/gi, "século");
+    t = t.replace(/c\?pula/gi, "cúpula");
+    t = t.replace(/cat\?strofe/gi, "catástrofe");
+    t = t.replace(/subterr\?neo/gi, "subterrâneo");
+    t = t.replace(/mist\?rio/gi, "mistério");
+    t = t.replace(/p\?blico/gi, "público");
+    t = t.replace(/t\?mulo/gi, "túmulo");
+    t = t.replace(/milh\?es/gi, "milhões");
+    t = t.replace(/bilh\?es/gi, "bilhões");
+    t = t.replace(/incr\?veis/gi, "incríveis");
+    t = t.replace(/subterr\?neas/gi, "subterrâneas");
+    t = t.replace(/subterr\?neos/gi, "subterrâneos");
+    t = t.replace(/antig\?/gi, "antiga");
+    t = t.replace(/constru\?da/gi, "construída");
+    t = t.replace(/constru\?das/gi, "construídas");
+    t = t.replace(/constru\?dos/gi, "construídos");
+    t = t.replace(/b\?blia/gi, "bíblia");
+    t = t.replace(/b\?blico/gi, "bíblico");
+    t = t.replace(/arque\?logos/gi, "arqueólogos");
+    t = t.replace(/arque\?logo/gi, "arqueólogo");
+    return t;
+  };
+
   try {
     const response = await fetch(shoffingUrl);
     if (!response.ok) {
@@ -1961,17 +2122,18 @@ app.get("/api/youtube/channel-videos", async (req, res) => {
       throw new Error("Formato inválido retornado pelo shoffing");
     }
     
-    // Map shoffing format to our expected format
+    // Map shoffing format to our expected format with accent repairs
     const entries = data.videos.map(v => {
       const isShort = v.duration && v.duration <= 60;
+      const cleanTitle = rssTitles[v.id] || fixTitleAccents(v.title);
       return {
         videoId: v.id,
-        title: v.title,
+        title: cleanTitle,
         published: v.date,
         thumbnail: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
         views: v.views || 0,
         likes: v.likes || 0,
-        description: v.title,
+        description: cleanTitle,
         isShort: !!isShort,
         url: isShort
           ? `https://www.youtube.com/shorts/${v.id}`
@@ -2064,10 +2226,6 @@ app.get("/api/youtube/channel-videos", async (req, res) => {
 // API: Generate optimized title variations via Gemini AI
 app.post("/api/ai/title-optimizer", async (req, res) => {
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
   
   const { videos, channelName } = req.body;
   if (!videos || !Array.isArray(videos) || videos.length === 0) {
@@ -2079,14 +2237,11 @@ app.post("/api/ai/title-optimizer", async (req, res) => {
   ).join("\n");
   
   const prompt = `Você é um especialista em otimização de títulos de vídeos do YouTube, com profundo conhecimento em gatilhos psicológicos, SEO, e estratégias de alcance de audiência.
-
 O canal "${channelName || 'AI Construction Stories'}" é em PORTUGUÊS DO BRASIL e fala sobre curiosidades históricas, construções incríveis e fatos bizarros da história.
-
 Aqui estão os vídeos com MENOS visualizações do canal:
 ${videosList}
 
 Para CADA vídeo, analise o título atual e gere otimizações. Responda SOMENTE em JSON válido (sem markdown code blocks) com este formato exato:
-
 {
   "optimizations": [
     {
@@ -2126,33 +2281,8 @@ REGRAS:
 - Responda SOMENTE com o JSON, sem texto adicional`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.8,
-            maxOutputTokens: 8192
-          }
-        })
-      }
-    );
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
-    // Clean up response - remove markdown code blocks if present
+    let responseText = await callAIBackend(projDir, prompt, null, "application/json");
     responseText = responseText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    
     const parsed = JSON.parse(responseText);
     res.json(parsed);
   } catch (err) {
