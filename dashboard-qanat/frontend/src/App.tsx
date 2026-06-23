@@ -3802,13 +3802,13 @@ export default function App() {
 
                             <div className="mt-4 p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
 
-                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">VerificaÃ§Ãµes Ativas</span>
+                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
 
                               <div className="space-y-2 text-xs">
 
                                 <div className="flex justify-between items-center">
 
-                                  <span className="text-gray-400 font-sans">NarraÃ§Ã£o Master</span>
+                                  <span className="text-gray-400 font-sans">Narração Master</span>
 
                                   {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
 
@@ -3824,7 +3824,7 @@ export default function App() {
 
                                 <div className="flex justify-between items-center">
 
-                                  <span className="text-gray-400 font-sans">Clipe InfogrÃ¡fico</span>
+                                  <span className="text-gray-400 font-sans">Clipe Infográfico</span>
 
                                   {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
 
@@ -4052,7 +4052,7 @@ export default function App() {
 
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
 
-                      Monta o vÃ­deo pela linha do tempo mapeada, narraÃ§Ã£o sincronizada e legendas geradas a partir da transcriÃ§Ã£o.
+                      Monta o vídeo pela linha do tempo mapeada, narração sincronizada e legendas geradas a partir da transcrição.
 
                     </p>
 
