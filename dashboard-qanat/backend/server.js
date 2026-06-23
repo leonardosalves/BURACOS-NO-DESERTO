@@ -103,6 +103,14 @@ app.post("/api/projects/create", (req, res) => {
     ensureFileExists("find_block_timings.py", projDir);
     ensureFileExists("align_transcripts.py", projDir);
     
+    // Copy logo.png if it exists in root ASSETS folder
+    const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+    const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
+    if (fs.existsSync(rootLogoPath)) {
+      fs.copyFileSync(rootLogoPath, destLogoPath);
+      console.log(`Copied logo.png to new project ${safeName}`);
+    }
+    
     // Copy config
     const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
     const defaultConfigDest = path.join(projDir, "config_qanat.json");
@@ -900,14 +908,43 @@ function listProjectMediaAssets(projectDir) {
         const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
         const ext = path.extname(rel).toLowerCase();
         if ([".mp4", ".mov", ".webm", ".mkv", ".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(ext)) {
-          assetFiles.push(rel);
+          assetFiles.push({
+            rel,
+            mtime: fs.statSync(fullPath).mtimeMs
+          });
         }
       }
     }
   };
 
   scan(assetsDir);
-  return assetFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+
+  const getAssetSortKey = (filename, mtime) => {
+    const baseName = path.basename(filename);
+    // Matches 12 to 14 digit timestamps e.g. 202606231437
+    const match = baseName.match(/_?(\d{12,14})(?=\.[a-zA-Z0-9]+$)/);
+    if (match) {
+      return { timestamp: Number(match[1]), mtime };
+    }
+    const fallbackMatch = baseName.match(/(\d{8,14})/);
+    if (fallbackMatch) {
+      return { timestamp: Number(fallbackMatch[1]), mtime };
+    }
+    return { timestamp: 0, mtime };
+  };
+
+  return assetFiles
+    .sort((a, b) => {
+      const keyA = getAssetSortKey(a.rel, a.mtime);
+      const keyB = getAssetSortKey(b.rel, b.mtime);
+      if (keyA.timestamp > 0 && keyB.timestamp > 0) {
+        if (keyA.timestamp !== keyB.timestamp) {
+          return keyA.timestamp - keyB.timestamp;
+        }
+      }
+      return keyA.mtime - keyB.mtime;
+    })
+    .map(x => x.rel);
 }
 
 function buildTimelineFromStoryboard(projectDir) {
@@ -2344,6 +2381,14 @@ app.post("/api/ai/creator/script", async (req, res) => {
       ensureFileExists("mix_bgm.py", projDir);
       ensureFileExists("find_block_timings.py", projDir);
       ensureFileExists("align_transcripts.py", projDir);
+      
+      // Copy logo.png if it exists in root ASSETS folder
+      const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+      const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
+      if (fs.existsSync(rootLogoPath)) {
+        fs.copyFileSync(rootLogoPath, destLogoPath);
+        console.log(`Copied logo.png to new project ${safeProjectName}`);
+      }
       
       const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
       const defaultConfigDest = path.join(projDir, "config_qanat.json");
