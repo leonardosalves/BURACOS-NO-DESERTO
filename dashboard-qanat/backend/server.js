@@ -435,6 +435,7 @@ app.post("/api/music/mix", (req, res) => {
 app.get("/api/render/:mode", (req, res) => {
   const projDir = getProjectDir(req);
   const mode = req.params.mode; // 'standard' or 'highlighted'
+  const withoutImpactTitles = req.query.withoutImpactTitles === "1";
 
   if (mode === "remotion") {
     res.setHeader("Content-Type", "text/event-stream");
@@ -535,9 +536,23 @@ app.get("/api/render/:mode", (req, res) => {
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
   };
 
-  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}...`);
+  let runScriptName = scriptName;
+  let tempScriptPath = null;
 
-  const child = spawn(PYTHON_PATH, [scriptName], {
+  if (withoutImpactTitles) {
+    const sourceCode = fs.readFileSync(scriptPath, "utf8");
+    const patchedCode = sourceCode.replace(
+      /_raw_impacts\s*=\s*_config\.get\(['"]impact_texts['"],\s*\[\]\)/,
+      "_raw_impacts = []"
+    );
+    runScriptName = `.render_sem_titulos_${scriptName}`;
+    tempScriptPath = path.join(projDir, runScriptName);
+    fs.writeFileSync(tempScriptPath, patchedCode, "utf8");
+  }
+
+  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}...`);
+
+  const child = spawn(PYTHON_PATH, [runScriptName], {
     cwd: projDir,
     shell: true,
     env: { ...process.env, PYTHONUNBUFFERED: "1" }
@@ -564,6 +579,10 @@ app.get("/api/render/:mode", (req, res) => {
   });
 
   child.on("close", (code) => {
+    if (tempScriptPath && fs.existsSync(tempScriptPath)) {
+      try { fs.unlinkSync(tempScriptPath); } catch (e) {}
+    }
+
     if (code === 0) {
       res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
     } else {

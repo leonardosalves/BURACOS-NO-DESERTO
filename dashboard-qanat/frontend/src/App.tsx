@@ -3256,7 +3256,7 @@ export default function App() {
 
   // SSE video rendering
 
-  const triggerRender = (mode: 'standard' | 'highlighted' | 'remotion', fromWizard = false) => {
+  const triggerRender = (mode: 'standard' | 'highlighted' | 'remotion', fromWizard = false, withoutImpactTitles = false) => {
 
     if (rendering) return;
 
@@ -3270,7 +3270,7 @@ export default function App() {
 
     
 
-    const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}`));
+    const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${withoutImpactTitles ? '?withoutImpactTitles=1' : ''}`));
 
     eventSource.onmessage = (event) => {
 
@@ -3972,7 +3972,7 @@ export default function App() {
 
                 {/* Compiler Card */}
 
-                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
+                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-64 font-sans">
 
                   <div>
 
@@ -4005,6 +4005,24 @@ export default function App() {
                     <Play className="w-4 h-4 fill-current" />
 
                     <span>Iniciar Compilação Padrão</span>
+
+                  </button>
+
+                  <button
+
+                    disabled={rendering || !status?.has_narration}
+
+                    onClick={() => triggerRender('standard', false, true)}
+
+                    className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-gold-500 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
+
+                    title="Renderiza mantendo as legendas normais, mas removendo os textos grandes de impacto no centro da tela."
+
+                  >
+
+                    <Video className="w-3.5 h-3.5" />
+
+                    <span>Render sem Titulos Grandes</span>
 
                   </button>
 
