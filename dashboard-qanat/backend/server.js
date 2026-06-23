@@ -491,6 +491,15 @@ app.get("/api/render/:mode", (req, res) => {
 });
 
 // Helper: Get configured API key
+function readJsonFile(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+  } catch (e) {
+    return null;
+  }
+}
+
 function normalizeApiKeys(...values) {
   const keys = [];
   for (const value of values) {
@@ -515,11 +524,10 @@ function getApiKeys(projectDir = WORKSPACE_DIR) {
   );
 
   const appendConfigKeys = (configPath) => {
-    if (!fs.existsSync(configPath)) return;
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const config = readJsonFile(configPath);
+    if (config) {
       keys.push(...normalizeApiKeys(config.gemini_api_keys, config.google_api_keys, config.gemini_api_key, config.google_api_key));
-    } catch (e) {}
+    }
   };
 
   appendConfigKeys(path.join(projectDir, "config_qanat.json"));
@@ -540,21 +548,17 @@ function getApiKey(projectDir = WORKSPACE_DIR) {
   
   // Try current project dir first
   const configPath = path.join(projectDir, "config_qanat.json");
-  if (fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (config.gemini_api_key) return config.gemini_api_key;
-    } catch (e) {}
+  const projectConfig = readJsonFile(configPath);
+  if (projectConfig?.gemini_api_key) {
+    return projectConfig.gemini_api_key;
   }
   
   // Fallback to workspace root
   if (projectDir !== WORKSPACE_DIR) {
     const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
-    if (fs.existsSync(rootConfigPath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8"));
-        if (config.gemini_api_key) return config.gemini_api_key;
-      } catch (e) {}
+    const rootConfig = readJsonFile(rootConfigPath);
+    if (rootConfig?.gemini_api_key) {
+      return rootConfig.gemini_api_key;
     }
   }
   return null;
@@ -564,13 +568,8 @@ function getXaiApiKey(projectDir = WORKSPACE_DIR) {
   if (process.env.XAI_API_KEY) return process.env.XAI_API_KEY;
 
   const readConfigKey = (configPath) => {
-    if (!fs.existsSync(configPath)) return null;
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      return config.xai_api_key || config.grok_api_key || null;
-    } catch (e) {
-      return null;
-    }
+    const config = readJsonFile(configPath);
+    return config?.xai_api_key || config?.grok_api_key || null;
   };
 
   const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
@@ -585,13 +584,8 @@ function getXaiApiKey(projectDir = WORKSPACE_DIR) {
 
 function getAiProvider(projectDir = WORKSPACE_DIR) {
   const readProvider = (configPath) => {
-    if (!fs.existsSync(configPath)) return null;
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      return config.ai_provider || config.metadata_provider || null;
-    } catch (e) {
-      return null;
-    }
+    const config = readJsonFile(configPath);
+    return config?.ai_provider || config?.metadata_provider || null;
   };
 
   return readProvider(path.join(projectDir, "config_qanat.json")) ||
@@ -696,10 +690,7 @@ app.post("/api/ai/settings", (req, res) => {
   const { provider, gemini_key, gemini_keys, xai_key } = req.body || {};
 
   try {
-    let config = {};
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    }
+    let config = readJsonFile(configPath) || {};
 
     if (provider === "gemini" || provider === "xai") {
       config.ai_provider = provider;
@@ -712,7 +703,8 @@ app.post("/api/ai/settings", (req, res) => {
     }
 
     if (typeof xai_key === "string" && xai_key.trim()) {
-      config.xai_api_key = xai_key.trim();
+      const trimmedXaiKey = xai_key.trim();
+      config.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
     }
 
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
@@ -971,6 +963,36 @@ Qual detalhe dessa história mais te surpreendeu? Comenta aqui embaixo, porque e
 ${chapters}`;
 }
 
+function buildProjectTranscript({ transcript, config, storyboard }) {
+  const candidates = [];
+
+  if (typeof transcript === "string") {
+    candidates.push(transcript);
+  }
+
+  if (typeof storyboard?.narrative_script === "string") {
+    candidates.push(storyboard.narrative_script);
+  }
+
+  if (Array.isArray(storyboard?.visual_prompts)) {
+    candidates.push(storyboard.visual_prompts
+      .map(item => item?.narration_text)
+      .filter(Boolean)
+      .join("\n\n"));
+  }
+
+  if (Array.isArray(config?.block_phrases)) {
+    candidates.push(config.block_phrases
+      .map(item => item?.phrase)
+      .filter(Boolean)
+      .join("\n\n"));
+  }
+
+  return candidates
+    .map(value => String(value || "").trim())
+    .find(value => value.length > 120) || "";
+}
+
 app.post("/api/ai/optimize-youtube", async (req, res) => {
   const projDir = getProjectDir(req);
   const apiKeys = getApiKeys(projDir);
@@ -1031,6 +1053,14 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
     if (fs.existsSync(storyboardPath)) {
       try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
     }
+
+    transcript = buildProjectTranscript({ transcript, config, storyboard });
+    if (!transcript) {
+      return res.status(400).json({
+        error: "Roteiro não encontrado para este projeto.",
+        details: "Crie ou carregue transcripts_readable.txt, storyboard.json com narrative_script/visual_prompts, ou config_qanat.json com block_phrases."
+      });
+    }
     
     const storyContext = storyboard.strategy ? `
 Contexto Estratégico do Vídeo:
@@ -1078,7 +1108,11 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 ${storyContext}
 
 Roteiro do Vídeo:
+IMPORTANTE: o roteiro completo do projeto está abaixo. Use este conteúdo como fonte principal. Não diga que o roteiro não foi fornecido.
+
+--- INÍCIO DO ROTEIRO ---
 ${transcript}
+--- FIM DO ROTEIRO ---
 
 Marcadores com tempos exatos do projeto:
 ${chaptersText}
