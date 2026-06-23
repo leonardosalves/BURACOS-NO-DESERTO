@@ -214,6 +214,10 @@ export default function App() {
 
   const [deletingProjectName, setDeletingProjectName] = useState<string | null>(null);
 
+  const [pendingOutputDelete, setPendingOutputDelete] = useState<OutputVideo | null>(null);
+
+  const [deletingOutput, setDeletingOutput] = useState<boolean>(false);
+
   const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
 
   const [chatOpen, setChatOpen] = useState<boolean>(false);
@@ -883,6 +887,52 @@ export default function App() {
       console.error(err);
 
       try { toast.error('Falha na conexão ao excluir projeto.'); } catch (e) {}
+
+    }
+
+  };
+
+  const handleDeleteOutputVideo = async () => {
+
+    if (!pendingOutputDelete) return;
+
+    setDeletingOutput(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/outputs/delete'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({ filename: pendingOutputDelete.name })
+
+      });
+
+      if (res.ok) {
+
+        toast.success(`Vídeo "${pendingOutputDelete.name}" excluído com sucesso!`);
+
+        setOutputs(prev => prev.filter(v => v.name !== pendingOutputDelete.name));
+
+        setPendingOutputDelete(null);
+
+      } else {
+
+        const err = await res.json();
+
+        toast.error(err.error || 'Erro ao excluir o vídeo.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao excluir.');
+
+    } finally {
+
+      setDeletingOutput(false);
 
     }
 
@@ -3808,25 +3858,7 @@ export default function App() {
                           </a>
 
                           <button
-                            onClick={async () => {
-                              if (!confirm(`Tem certeza que deseja excluir "${video.name}"? Esta ação não pode ser desfeita.`)) return;
-                              try {
-                                const res = await fetch(getProjectUrl('/api/outputs/delete'), {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ filename: video.name })
-                                });
-                                if (res.ok) {
-                                  toast.success(`Vídeo "${video.name}" excluído com sucesso!`);
-                                  setOutputs(prev => prev.filter(v => v.name !== video.name));
-                                } else {
-                                  const err = await res.json();
-                                  toast.error(err.error || 'Erro ao excluir o vídeo.');
-                                }
-                              } catch (err) {
-                                toast.error('Falha de conexão ao excluir.');
-                              }
-                            }}
+                            onClick={() => setPendingOutputDelete(video)}
                             className="bg-red-950 border border-red-900/50 text-red-400 hover:bg-red-900 hover:text-red-300 px-3 py-1.5 rounded-lg text-[11px] font-medium transition flex items-center gap-1.5 cursor-pointer"
                             title={`Excluir ${video.name}`}
                           >
@@ -4563,6 +4595,30 @@ export default function App() {
                         Salvar
 
                       </button>
+
+                      {hasApiKey && (
+
+                        <button
+
+                          onClick={() => {
+
+                            setShowKeyInput(false);
+
+                            setApiKeyInput('');
+
+                          }}
+
+                          className="border border-zinc-850 hover:bg-zinc-900 text-gray-400 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
+
+                          title="Cancelar troca de chave"
+
+                        >
+
+                          Cancelar
+
+                        </button>
+
+                      )}
 
                     </div>
 
@@ -7901,11 +7957,53 @@ export default function App() {
 
                   <button onClick={handleSaveApiKey} className="bg-gold-500 text-zinc-950 text-[9px] font-bold px-2 py-1 rounded cursor-pointer">OK</button>
 
+                  {hasApiKey && (
+
+                    <button
+
+                      onClick={() => {
+
+                        setShowKeyInput(false);
+
+                        setApiKeyInput('');
+
+                      }}
+
+                      className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition cursor-pointer"
+
+                      title="Cancelar troca de chave"
+
+                    >
+
+                      <X className="w-3.5 h-3.5" />
+
+                    </button>
+
+                  )}
+
                 </div>
 
               ) : (
 
-                <span className="text-[9px] text-emerald-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />API</span>
+                <div className="flex items-center gap-1">
+
+                  <span className="text-[9px] text-emerald-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />API</span>
+
+                  <button
+
+                    onClick={() => setShowKeyInput(true)}
+
+                    className="text-zinc-500 hover:text-gold-500 p-1 rounded hover:bg-zinc-900 transition cursor-pointer"
+
+                    title="Trocar chave API"
+
+                  >
+
+                    <Settings className="w-3.5 h-3.5" />
+
+                  </button>
+
+                </div>
 
               )}
 
@@ -8120,6 +8218,90 @@ export default function App() {
               >
 
                 Criar Projeto
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* Output Delete Confirmation Modal */}
+
+      {pendingOutputDelete && (
+
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in font-sans">
+
+          <div className="bg-[#0c0c0e] border border-red-900/40 rounded-3xl p-6 w-[440px] max-w-[92%] space-y-5 shadow-2xl shadow-red-950/30">
+
+            <div className="flex items-start gap-4">
+
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+
+                <Trash2 className="w-5 h-5 text-red-400" />
+
+              </div>
+
+              <div className="min-w-0">
+
+                <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">Excluir vídeo renderizado?</h3>
+
+                <p className="text-xs text-gray-400 leading-relaxed mt-2">
+
+                  O arquivo será removido da pasta OUTPUT. Esta ação não pode ser desfeita.
+
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-3 flex items-center gap-3">
+
+              <Video className="w-4 h-4 text-gold-500 shrink-0" />
+
+              <div className="min-w-0">
+
+                <p className="text-xs text-white font-semibold truncate">{pendingOutputDelete.name}</p>
+
+                <p className="text-[10px] text-zinc-500 font-mono">{getFormatBytes(pendingOutputDelete.sizeBytes)}</p>
+
+              </div>
+
+            </div>
+
+            <div className="flex justify-end gap-3 text-xs font-semibold pt-1">
+
+              <button
+
+                onClick={() => setPendingOutputDelete(null)}
+
+                disabled={deletingOutput}
+
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-gray-400 hover:text-white rounded-xl transition cursor-pointer disabled:opacity-50"
+
+              >
+
+                Cancelar
+
+              </button>
+
+              <button
+
+                onClick={handleDeleteOutputVideo}
+
+                disabled={deletingOutput}
+
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl transition shadow-lg shadow-red-950/30 cursor-pointer flex items-center gap-2"
+
+              >
+
+                {deletingOutput ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+
+                <span>{deletingOutput ? 'Excluindo...' : 'Excluir vídeo'}</span>
 
               </button>
 
