@@ -542,6 +542,7 @@ app.get("/api/render/:mode", (req, res) => {
       const renderPlan = prepareRemotionRender(projDir);
       sendLog(`[PROGRESSO] 10%`);
       sendLog(`[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`);
+      sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
       sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
 
       child = spawn("npx", [
@@ -795,6 +796,34 @@ function captionsFromWordTranscripts(wordTranscripts) {
   return captions.filter(caption => caption.text.trim());
 }
 
+
+function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
+  const maxMs = Math.max(1000, Math.round((Number(maxDurationSeconds) || 0) * 1000));
+  const sorted = (Array.isArray(captions) ? captions : [])
+    .map((caption) => ({
+      ...caption,
+      text: String(caption?.text || "").trimStart(),
+      startMs: Math.max(0, Number(caption?.startMs || 0)),
+      endMs: Math.max(0, Number(caption?.endMs || 0)),
+    }))
+    .filter((caption) => caption.text.trim() && Number.isFinite(caption.startMs) && caption.startMs < maxMs)
+    .sort((a, b) => a.startMs - b.startMs);
+
+  return sorted.map((caption, index) => {
+    const nextStart = sorted[index + 1]?.startMs;
+    const naturalEnd = caption.endMs > caption.startMs ? caption.endMs : caption.startMs + 420;
+    const maxWordEnd = caption.startMs + 900;
+    const nextLimitedEnd = Number.isFinite(nextStart) ? Math.max(caption.startMs + 120, nextStart - 40) : maxMs;
+    const endMs = Math.min(naturalEnd, maxWordEnd, nextLimitedEnd, maxMs);
+    return {
+      ...caption,
+      startMs: Math.round(caption.startMs),
+      endMs: Math.round(Math.max(caption.startMs + 120, endMs)),
+      timestampMs: Math.round(caption.startMs),
+    };
+  });
+}
+
 function fallbackCaptionsFromScenes(scenes) {
   const captions = [];
   for (const scene of scenes) {
@@ -813,6 +842,32 @@ function fallbackCaptionsFromScenes(scenes) {
     });
   }
   return captions;
+}
+
+
+function collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration) {
+  const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", { sfx_events: [] });
+  const events = Array.isArray(sfxTimeline.sfx_events) ? sfxTimeline.sfx_events : [];
+  const tracks = [];
+
+  for (const [index, event] of events.entries()) {
+    const start = Math.max(0, Number(event?.time || 0));
+    if (!Number.isFinite(start) || start >= totalDuration) continue;
+
+    const source = findProjectFile(projectDir, event?.file);
+    const copied = copyRemotionAsset(source, publicProjectDir, `sfx_${index + 1}_`);
+    if (!copied) continue;
+
+    const rawVolume = Number(event?.volume);
+    tracks.push({
+      file: `projects/${projectSlug}/${copied}`,
+      start,
+      duration: Math.max(0.3, Math.min(6, totalDuration - start)),
+      volume: Math.min(0.12, Math.max(0.025, Number.isFinite(rawVolume) ? rawVolume * 0.45 : 0.06)),
+    });
+  }
+
+  return tracks;
 }
 
 function prepareRemotionRender(projectDir) {
@@ -970,11 +1025,13 @@ function prepareRemotionRender(projectDir) {
   // Ensure the last BGM track extends to totalDuration to cover the logo scene
   if (bgmTracks.length > 0) {
     const lastBgm = bgmTracks[bgmTracks.length - 1];
-    lastBgm.duration = totalDuration - lastBgm.start;
+    lastBgm.duration = Math.max(0.5, Math.min(lastBgm.duration, totalDuration - lastBgm.start));
   }
 
   const captions = captionsFromWordTranscripts(wordTranscripts);
-  const finalCaptions = captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+  const rawCaptions = captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+  const finalCaptions = sanitizeCaptionsForRemotion(rawCaptions, narrationDuration || totalDuration);
+  const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
   const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 
   const props = {
@@ -984,7 +1041,9 @@ function prepareRemotionRender(projectDir) {
     scenes: validScenes,
     captions: finalCaptions,
     narration: narration ? `projects/${projectSlug}/${narration}` : null,
+    narrationDuration: narrationDuration || 0,
     bgmTracks,
+    sfxTracks,
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
   };
 
@@ -995,7 +1054,7 @@ function prepareRemotionRender(projectDir) {
   fs.mkdirSync(outputDir, { recursive: true });
   const outputPath = path.join(outputDir, `remotion_${Date.now()}.mp4`);
 
-  return { propsPath, outputPath, totalDuration, sceneCount: validScenes.length, captionCount: finalCaptions.length };
+  return { propsPath, outputPath, totalDuration, sceneCount: validScenes.length, captionCount: finalCaptions.length, sfxCount: sfxTracks.length };
 }
 
 function getMediaTypeFromName(fileName) {

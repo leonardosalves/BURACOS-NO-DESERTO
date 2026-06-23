@@ -35,6 +35,13 @@ type BgmTrack = {
   duration: number;
 };
 
+type SfxTrack = {
+  file: string;
+  start: number;
+  duration: number;
+  volume: number;
+};
+
 export type LumieraTimelineProps = {
   projectName: string;
   format: "16:9" | "9:16";
@@ -42,7 +49,9 @@ export type LumieraTimelineProps = {
   scenes: TimelineScene[];
   captions: Caption[];
   narration?: string | null;
+  narrationDuration?: number;
   bgmTracks: BgmTrack[];
+  sfxTracks?: SfxTrack[];
   editingMap?: string;
 };
 
@@ -53,7 +62,9 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   scenes: [],
   captions: [],
   narration: null,
+  narrationDuration: 0,
   bgmTracks: [],
+  sfxTracks: [],
 };
 
 const assetUrl = (file: string) => staticFile(file.replace(/\\/g, "/"));
@@ -184,16 +195,28 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
     const list: WordChunk[] = [];
     let currentChunk: Caption[] = [];
 
-    for (let j = 0; j < captions.length; j++) {
-      const cap = captions[j];
+    const safeCaptions = captions
+      .filter((caption) => caption.text.trim() && Number.isFinite(caption.startMs) && Number.isFinite(caption.endMs))
+      .map((caption) => ({
+        ...caption,
+        endMs: Math.min(caption.endMs, caption.startMs + 900),
+      }))
+      .sort((a, b) => a.startMs - b.startMs);
+
+    for (let j = 0; j < safeCaptions.length; j++) {
+      const cap = safeCaptions[j];
       const lastCap = currentChunk[currentChunk.length - 1];
 
-      if (currentChunk.length === 2 || (lastCap && cap.startMs - lastCap.endMs > 600)) {
+      if (
+        currentChunk.length === 2 ||
+        (lastCap && cap.startMs - lastCap.endMs > 600) ||
+        (currentChunk.length > 0 && cap.endMs - currentChunk[0].startMs > 2200)
+      ) {
         if (currentChunk.length > 0) {
           list.push({
             words: currentChunk,
             startMs: currentChunk[0].startMs,
-            endMs: currentChunk[currentChunk.length - 1].endMs,
+            endMs: Math.min(currentChunk[currentChunk.length - 1].endMs, currentChunk[0].startMs + 2400),
           });
         }
         currentChunk = [cap];
@@ -205,7 +228,7 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
       list.push({
         words: currentChunk,
         startMs: currentChunk[0].startMs,
-        endMs: currentChunk[currentChunk.length - 1].endMs,
+        endMs: Math.min(currentChunk[currentChunk.length - 1].endMs, currentChunk[0].startMs + 2400),
       });
     }
     return list;
@@ -270,10 +293,13 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
 const BgmAudio: React.FC<{
   track: BgmTrack;
   captions: Caption[];
-}> = ({ track, captions }) => {
+  narrationDuration?: number;
+}> = ({ track, captions, narrationDuration = 0 }) => {
   const { fps, durationInFrames } = useVideoConfig();
   const totalDurationMs = (durationInFrames / fps) * 1000;
   const startFrame = Math.round(track.start * fps);
+  const trackDurationMs = Math.max(500, track.duration * 1000);
+  const narrationDurationMs = Math.max(0, narrationDuration * 1000);
 
   return (
     <Audio
@@ -283,46 +309,85 @@ const BgmAudio: React.FC<{
         const absoluteFrame = startFrame + localFrame;
         const currentMs = (absoluteFrame / fps) * 1000;
 
+        const localMs = (localFrame / fps) * 1000;
+
+        const fadeIn = interpolate(localMs, [0, 1800], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        const fadeOut = interpolate(trackDurationMs - localMs, [0, 2200], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        const envelope = Math.min(fadeIn, fadeOut);
+
         // 1. Logo Outro Crescendo (last 3 seconds)
         const logoStartMs = totalDurationMs - 3000;
         if (currentMs >= logoStartMs) {
           const progress = (currentMs - logoStartMs) / 3000;
-          return interpolate(progress, [0, 1], [0.22, 0.45], {
+          return interpolate(progress, [0, 1], [0.04, 0.12], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
-          });
+          }) * envelope;
         }
 
         // 2. Check distance to narrator speaking interval
         let minDistance = Infinity;
-        let isSpeaking = false;
+        let isSpeaking = narrationDurationMs > 0 && currentMs <= narrationDurationMs - 250;
 
-        for (const cap of captions) {
-          if (currentMs >= cap.startMs && currentMs <= cap.endMs) {
-            isSpeaking = true;
-            break;
-          }
-          const distToStart = Math.abs(currentMs - cap.startMs);
-          const distToEnd = Math.abs(currentMs - cap.endMs);
-          const dist = Math.min(distToStart, distToEnd);
-          if (dist < minDistance) {
-            minDistance = dist;
+        if (!isSpeaking) {
+          for (const cap of captions) {
+            if (currentMs >= cap.startMs && currentMs <= cap.endMs) {
+              isSpeaking = true;
+              break;
+            }
+            const distToStart = Math.abs(currentMs - cap.startMs);
+            const distToEnd = Math.abs(currentMs - cap.endMs);
+            const dist = Math.min(distToStart, distToEnd);
+            if (dist < minDistance) {
+              minDistance = dist;
+            }
           }
         }
 
         if (isSpeaking) {
-          return 0.06; // duck BGM to 0.06 when narrator is speaking
+          return 0.026 * envelope;
         }
 
-        // Smooth transition over 400ms before/after narration starts/stops
-        if (minDistance < 400) {
-          return interpolate(minDistance, [0, 400], [0.06, 0.22], {
+        // Smooth transition over 600ms before/after narration starts/stops
+        if (minDistance < 600) {
+          return interpolate(minDistance, [0, 600], [0.026, 0.075], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
-          });
+          }) * envelope;
         }
 
-        return 0.22; // normal BGM volume when narrator is silent
+        return 0.075 * envelope;
+      }}
+    />
+  );
+};
+
+
+const SfxAudio: React.FC<{ track: SfxTrack }> = ({ track }) => {
+  const { fps } = useVideoConfig();
+  const durationMs = Math.max(300, track.duration * 1000);
+  const baseVolume = Math.min(0.12, Math.max(0.02, track.volume || 0.05));
+
+  return (
+    <Audio
+      src={assetUrl(track.file)}
+      volume={(localFrame) => {
+        const localMs = (localFrame / fps) * 1000;
+        const fadeIn = interpolate(localMs, [0, 120], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        const fadeOut = interpolate(durationMs - localMs, [0, 300], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        });
+        return baseVolume * Math.min(fadeIn, fadeOut);
       }}
     />
   );
@@ -332,7 +397,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   scenes,
   captions,
   narration,
+  narrationDuration = 0,
   bgmTracks,
+  sfxTracks = [],
 }) => {
   const { fps } = useVideoConfig();
   const transitionFrames = 12; // 0.4 seconds overlap transition
@@ -364,7 +431,18 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
           durationInFrames={Math.max(1, Math.round(track.duration * fps))}
           premountFor={fps}
         >
-          <BgmAudio track={track} captions={captions} />
+          <BgmAudio track={track} captions={captions} narrationDuration={narrationDuration} />
+        </Sequence>
+      ))}
+
+      {sfxTracks.map((track, index) => (
+        <Sequence
+          key={`${track.file}-${index}`}
+          from={Math.max(0, Math.round(track.start * fps))}
+          durationInFrames={Math.max(1, Math.round(track.duration * fps))}
+          premountFor={fps}
+        >
+          <SfxAudio track={track} />
         </Sequence>
       ))}
 
