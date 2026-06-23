@@ -3,6 +3,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 import { TitleStrategyWizard } from './TitleStrategyWizard';
+import { YearInReview } from './YearInReview';
 
 import { 
 
@@ -8459,6 +8460,13 @@ Responda APENAS com um JSON válido no formato:
             </>
           )}
         </div>
+      )}
+
+      {activeTab === 'year-in-review' && (
+        <YearInReview
+          onClose={() => setActiveTab('status')}
+          getProjectUrl={getProjectUrl}
+        />
       )}
 
         </main>
