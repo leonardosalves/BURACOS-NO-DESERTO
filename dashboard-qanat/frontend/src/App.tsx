@@ -2500,43 +2500,71 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
   const [suggestingBGM, setSuggestingBGM] = useState<boolean>(false);
 
   const handleSuggestBGM = async () => {
-    if (!hasApiKey || !config) return;
+    if (!config) return;
     setSuggestingBGM(true);
+    
+    const format = formatSelector || 'LONGO';
+    const musicListStr = musicFiles.map((f, i) => `${i + 1}. "${f.name}"`).join("\n");
+    const blocksDesc = (config.blocks || []).map((b: any, idx: number) => `Bloco ${idx + 1}: ${b.narrative_text || ''}`).join("\n");
+
+    const fallbackPrompt = format === 'SHORTS'
+      ? `Você é um editor de vídeo especialista em trilha sonora para vídeos curtos. Analise o roteiro do vídeo abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
+
+Arquivos de música disponíveis:
+${musicListStr}
+
+Roteiro:
+${blocksDesc}
+
+Responda APENAS com um JSON válido no formato:
+{"file": "nome_exato_do_arquivo.mp3", "reason": "explicação breve de por que esta trilha combina"}`
+      : `Você é um editor de vídeo especialista em trilha sonora para documentários. Analise o tom emocional de cada bloco do roteiro e sugira a melhor trilha sonora para CADA bloco.
+
+Arquivos de música disponíveis:
+${musicListStr}
+
+Resumo por bloco:
+${blocksDesc}
+
+Regras:
+- O mesmo arquivo pode ser usado em múltiplos blocos se for adequado
+- Priorize transições suaves entre blocos adjacentes
+- Escolha trilhas que amplificam a emoção do texto narrado
+
+Responda APENAS com um JSON válido no formato:
+{"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
+
     try {
-      const res = await fetch(getProjectUrl('/api/ai/suggest-bgm'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: formatSelector })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        if (formatSelector === 'SHORTS' && data.file) {
-          // Single BGM for entire video
-          const updatedConfig = {
-            ...config,
-            use_single_bgm: true,
-            single_bgm: data.file,
-            bgm_mappings: [{ block: 1, file: data.file }]
-          };
-          await saveConfig(updatedConfig);
-          toast.success(`🎵 IA sugeriu: ${data.file}\n${data.reason || ''}`);
-        } else if (data.suggestions && Array.isArray(data.suggestions)) {
-          // Per-block BGM
-          const newMappings = data.suggestions.map((s: any) => ({
-            block: s.block,
-            file: s.file
-          }));
-          const updatedConfig = { ...config, bgm_mappings: newMappings };
-          await saveConfig(updatedConfig);
-          toast.success(`🎵 IA mapeou trilhas para ${newMappings.length} blocos!`);
-        } else {
-          toast.error('Resposta da IA não contém sugestões válidas.');
-        }
+      const data = await callAIEngine(
+        '/api/ai/suggest-bgm',
+        { mode: format, expectJson: true },
+        fallbackPrompt
+      );
+
+      if (format === 'SHORTS' && data.file) {
+        // Single BGM for entire video
+        const updatedConfig = {
+          ...config,
+          use_single_bgm: true,
+          single_bgm: data.file,
+          bgm_mappings: [{ block: 1, file: data.file }]
+        };
+        await saveConfig(updatedConfig);
+        toast.success(`🎵 IA sugeriu: ${data.file}\n${data.reason || ''}`);
+      } else if (data.suggestions && Array.isArray(data.suggestions)) {
+        // Per-block BGM
+        const newMappings = data.suggestions.map((s: any) => ({
+          block: s.block,
+          file: s.file
+        }));
+        const updatedConfig = { ...config, bgm_mappings: newMappings };
+        await saveConfig(updatedConfig);
+        toast.success(`🎵 IA mapeou trilhas para ${newMappings.length} blocos!`);
       } else {
-        toast.error(data.error || 'Erro ao sugerir BGM.');
+        toast.error('Resposta da IA não contém sugestões válidas.');
       }
-    } catch (err) {
-      toast.error('Falha na conexão ao sugerir BGM.');
+    } catch (err: any) {
+      toast.error('Erro ao sugerir BGM: ' + err.message);
     } finally {
       setSuggestingBGM(false);
     }
