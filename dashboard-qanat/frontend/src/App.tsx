@@ -3813,6 +3813,52 @@ export default function App() {
 
                           </button>
 
+                          {status && (
+
+                            <div className="mt-4 p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
+
+                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">VerificaÃ§Ãµes Ativas</span>
+
+                              <div className="space-y-2 text-xs">
+
+                                <div className="flex justify-between items-center">
+
+                                  <span className="text-gray-400 font-sans">NarraÃ§Ã£o Master</span>
+
+                                  {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+
+                                </div>
+
+                                <div className="flex justify-between items-center">
+
+                                  <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
+
+                                  {status.has_soundtrack ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+
+                                </div>
+
+                                <div className="flex justify-between items-center">
+
+                                  <span className="text-gray-400 font-sans">Clipe InfogrÃ¡fico</span>
+
+                                  {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+
+                                </div>
+
+                                <div className="flex justify-between items-center">
+
+                                  <span className="text-gray-400 font-sans">Assets de B-roll</span>
+
+                                  <span className="font-mono text-white text-[11px] bg-zinc-900 px-1.5 py-0.5 rounded">{status.assets_count} arquivos</span>
+
+                                </div>
+
+                              </div>
+
+                            </div>
+
+                          )}
+
                         </div>
 
                       )}
@@ -3831,7 +3877,7 @@ export default function App() {
 
             {/* Status Panel Quick view */}
 
-            {status && (
+            {false && status && (
 
               <div className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
 
