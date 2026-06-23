@@ -2057,6 +2057,103 @@ app.post("/api/upload-scene-asset", (req, res) => {
   });
 });
 
+// API: Logo endpoints (Status, Upload, Reset)
+app.get("/api/logo/status", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const activeProject = req.query.project || "Buracos no Deserto";
+    
+    const localLogoAssets = path.join(projDir, "ASSETS", "logo.png");
+    const localLogoRoot = path.join(projDir, "logo.png");
+
+    let hasProjectLogo = false;
+    let projectLogoPath = null;
+    if (activeProject !== "Buracos no Deserto") {
+      if (fs.existsSync(localLogoAssets)) {
+        hasProjectLogo = true;
+        projectLogoPath = `/api/projects-media/${encodeURIComponent(activeProject)}/ASSETS/logo.png`;
+      } else if (fs.existsSync(localLogoRoot)) {
+        hasProjectLogo = true;
+        projectLogoPath = `/api/projects-media/${encodeURIComponent(activeProject)}/logo.png`;
+      }
+    }
+
+    const globalLogoUrl = `/api/projects-media/ASSETS/logo.png`;
+    const currentLogoUrl = hasProjectLogo ? projectLogoPath : globalLogoUrl;
+
+    res.json({
+      hasProjectLogo,
+      projectLogoUrl: projectLogoPath,
+      globalLogoUrl,
+      currentLogoUrl
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao obter status do logotipo", details: err.message });
+  }
+});
+
+app.post("/api/logo/upload", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const isGlobal = req.query.global === "true";
+    
+    let targetPath;
+    if (isGlobal) {
+      targetPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+    } else {
+      const assetsDir = path.join(projDir, "ASSETS");
+      if (!fs.existsSync(assetsDir)) {
+        fs.mkdirSync(assetsDir, { recursive: true });
+      }
+      targetPath = path.join(assetsDir, "logo.png");
+    }
+
+    const writeStream = fs.createWriteStream(targetPath);
+    req.pipe(writeStream);
+
+    writeStream.on("finish", () => {
+      res.json({ success: true, message: "Logo salvo com sucesso!" });
+    });
+
+    writeStream.on("error", (err) => {
+      res.status(500).json({ error: "Erro ao salvar arquivo de logo", details: err.message });
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao inicializar upload do logotipo", details: err.message });
+  }
+});
+
+app.post("/api/logo/reset", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const activeProject = req.query.project || "Buracos no Deserto";
+
+    if (activeProject === "Buracos no Deserto") {
+      return res.status(400).json({ error: "Não é possível resetar o logo do projeto padrão (ele já é o padrão global)." });
+    }
+
+    const localLogoAssets = path.join(projDir, "ASSETS", "logo.png");
+    const localLogoRoot = path.join(projDir, "logo.png");
+
+    let deleted = false;
+    if (fs.existsSync(localLogoAssets)) {
+      fs.unlinkSync(localLogoAssets);
+      deleted = true;
+    }
+    if (fs.existsSync(localLogoRoot)) {
+      fs.unlinkSync(localLogoRoot);
+      deleted = true;
+    }
+
+    res.json({ 
+      success: true, 
+      message: deleted ? "Logo do projeto removido. Usando logo global." : "Nenhum logo de projeto personalizado encontrado." 
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao redefinir logotipo", details: err.message });
+  }
+});
+
 // API: Generate complete custom video script & JSON configurations
 const SCRIPT_CREATIVE_REINFORCEMENT = `
 REFORCO CRIATIVO NAO OBRIGATORIO:
