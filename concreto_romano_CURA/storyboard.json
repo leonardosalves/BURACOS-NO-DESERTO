@@ -1,0 +1,160 @@
+{
+  "strategy": {
+    "title_main": "",
+    "title_variations": [],
+    "hook": "",
+    "target_audience": "",
+    "tone": "",
+    "pinned_comment": "",
+    "cta": ""
+  },
+  "narrative_script": "Seu concreto moderno? Em 10 anos já racha. Mas o romano? Dura mais de 2.000 anos e fica mais forte! Qual o segredo dessa maravilha esquecida? Não é só cinza vulcânica, como muitos pensam. O pulo do gato está na CAL VIRGEM... aquecida a altas temperaturas, formando 'clastos' de cal! Quando uma microfissura aparece e a água entra... essa água reage com os clastos e gera novos cristais. A fissura se cura! O concreto fica mais denso e forte! Um segredo de 2 mil anos que ainda nos assombra. Por que não usamos HOJE?!",
+  "visual_prompts": [
+    {
+      "scene": 1,
+      "block": 1,
+      "narration_text": "",
+      "function": "",
+      "duration": 4,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 2,
+      "block": 2,
+      "narration_text": "",
+      "function": "",
+      "duration": 5,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 3,
+      "block": 3,
+      "narration_text": "",
+      "function": "",
+      "duration": 4,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 4,
+      "block": 4,
+      "narration_text": "",
+      "function": "",
+      "duration": 4,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 5,
+      "block": 5,
+      "narration_text": "",
+      "function": "",
+      "duration": 3,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 6,
+      "block": 6,
+      "narration_text": "",
+      "function": "",
+      "duration": 4,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 7,
+      "block": 7,
+      "narration_text": "",
+      "function": "",
+      "duration": 4,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 8,
+      "block": 8,
+      "narration_text": "",
+      "function": "",
+      "duration": 5,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 9,
+      "block": 9,
+      "narration_text": "",
+      "function": "",
+      "duration": 4,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    },
+    {
+      "scene": 10,
+      "block": 10,
+      "narration_text": "",
+      "function": "",
+      "duration": 6,
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "",
+      "text_overlay": "",
+      "editor_notes": "",
+      "stock_query": ""
+    }
+  ],
+  "editing_map": "",
+  "hyperframe_prompt": "",
+  "bgm_recommendations": [],
+  "checklist": {
+    "click_potential": 0,
+    "retention_potential": 0,
+    "comments_potential": 0,
+    "feedback": ""
+  },
+  "technical_config": {
+    "script": "",
+    "block_phrases": [],
+    "impact_texts": [],
+    "highlight_keywords": [],
+    "bgm_mappings": []
+  }
+}

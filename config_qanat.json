@@ -1,5 +1,5 @@
 {
-  "gemini_api_key": "AQ.Ab8RN6IhG61WfwiUWYHdDjC2KbngAnLAzhk96WcflL6fK2YgyQ",
+  "gemini_api_key": "AIzaSyCK2xSuCo75Oid6iRodooEk9DwHDNONBzo",
   "highlight_keywords": [
     "pirâmides",
     "tumbas",
@@ -46,22 +46,6 @@
   "bgm_mappings": [
     {
       "block": 1,
-      "file": "Persian Mystical Oasis.mp3"
-    },
-    {
-      "block": 2,
-      "file": "Arabian Caravan Cinematic.mp3"
-    },
-    {
-      "block": 3,
-      "file": "Historical Tension Strings.mp3"
-    },
-    {
-      "block": 4,
-      "file": "Cinematic Duduk Sadness.mp3"
-    },
-    {
-      "block": 5,
       "file": "Ancient Desert Cinematic .mp3"
     }
   ],
@@ -189,5 +173,7 @@
       "phrase": "Qual dessas teorias você acha mais convincente?"
     }
   ],
-  "aspect_ratio": "16:9"
+  "aspect_ratio": "16:9",
+  "use_single_bgm": true,
+  "single_bgm": "Ancient Desert Cinematic .mp3"
 }
