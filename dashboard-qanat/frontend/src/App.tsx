@@ -414,7 +414,7 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok && !data.error) {
-        return data;
+        return { ...data, savedOnServer: true };
       }
       console.warn(`Backend Gemini failed on ${endpoint}: ${data.error || 'Unknown error'}. Trying Puter.js...`);
     } catch (err: any) {
@@ -2659,75 +2659,66 @@ Responda APENAS com um JSON válido no formato:
   // SCRIPT MASTER: Generate 10 ideas
 
   const handleGenerateIdeas = async () => {
-
     if (!nicheInput.trim()) return;
-
     setCreatorLoading(true);
-
     setIdeasData(null);
-
     setSelectedIdeaIndex(-1);
 
-    try {
+    const niche = nicheInput.trim();
+    const format = formatSelector || 'LONGO';
 
-      const res = await fetch(getProjectUrl('/api/ai/creator/ideas'), {
+    const prompt = `Você é um roteirista profissional do YouTube. Crie 10 ideias de vídeos de alta retenção no nicho "${niche}".
+O formato desejado é: ${format}.
 
-        method: 'POST',
-
-        headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ niche: nicheInput.trim(), format: formatSelector })
-
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-
-        setIdeasData(data);
-
-        setSelectedIdeaIndex(data.best_idea_index);
-
-        // Auto-fill project name from best idea title (short 3-word summary)
-
-        const bestTitle = data.ideas[data.best_idea_index]?.title || '';
-
-        const stopWords = ['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','no','na','nos','nas','em','por','para','com','e','que','se','ou','ao','à','pelo','pela','pelos','pelas','entre','sobre','sob','até','como','mais','menos','muito','tudo','isso','este','esta','esse','essa','qual','quais'];
-
-        const shortName = bestTitle
-
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-
-          .replace(/[^a-zA-Z0-9\s]/g, '')
-
-          .split(/\s+/)
-
-          .filter(w => w.length > 1 && !stopWords.includes(w.toLowerCase()))
-
-          .slice(0, 3)
-
-          .join('_');
-
-        setCreatorProjectName(shortName);
-
-      } else {
-
-        toast.error('Erro ao analisar o nicho: ' + (data.error || 'Erro desconhecido'));
-
-      }
-
-    } catch (err) {
-
-      console.error(err);
-
-      toast.error('Conexão falhou ao analisar o nicho.');
-
-    } finally {
-
-      setCreatorLoading(false);
-
+Retorne estritamente um JSON no formato abaixo, sem tags de markdown ou texto extra:
+{
+  "niche": "${niche}",
+  "format": "${format}",
+  "ideas": [
+    {
+      "title": "título do vídeo 1",
+      "hook": "gancho inicial de 3 segundos",
+      "brief": "breve descrição de 2 frases sobre o enredo",
+      "difficulty": "fácil/médio/difícil",
+      "suggested_duration": "duração recomendada",
+      "retention_score": 95
     }
+  ],
+  "best_idea_index": 0
+}
 
+Regras:
+- O campo "best_idea_index" deve indicar o índice da melhor ideia (entre 0 e 9).
+- Todos os títulos e textos devem ser em PORTUGUÊS DO BRASIL.
+- O JSON deve ser perfeitamente parseável.`;
+
+    try {
+      const data = await callAIEngine(
+        '/api/ai/creator/ideas',
+        { niche, format, expectJson: true },
+        prompt
+      );
+
+      setIdeasData(data);
+      setSelectedIdeaIndex(data.best_idea_index);
+
+      // Auto-fill project name from best idea title (short 3-word summary)
+      const bestTitle = data.ideas[data.best_idea_index]?.title || '';
+      const stopWords = ['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','no','na','nos','nas','em','por','para','com','e','que','se','ou','ao','à','pelo','pela','pelos','pelas','entre','sobre','sob','até','como','mais','menos','muito','tudo','isso','este','esta','esse','essa','qual','quais'];
+      const shortName = bestTitle
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .split(/\s+/)
+        .filter(w => w.length > 1 && !stopWords.includes(w.toLowerCase()))
+        .slice(0, 3)
+        .join('_');
+
+      setCreatorProjectName(shortName);
+    } catch (err: any) {
+      toast.error('Erro ao analisar o nicho: ' + err.message);
+    } finally {
+      setCreatorLoading(false);
+    }
   };
 
   // SCRIPT MASTER: Generate Strategy and full narrative script
