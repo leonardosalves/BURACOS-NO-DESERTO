@@ -491,7 +491,50 @@ app.get("/api/render/:mode", (req, res) => {
 });
 
 // Helper: Get configured API key
+function normalizeApiKeys(...values) {
+  const keys = [];
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      keys.push(...value);
+    } else if (typeof value === "string" && value.includes(",")) {
+      keys.push(...value.split(","));
+    } else if (value) {
+      keys.push(value);
+    }
+  }
+
+  return [...new Set(keys.map(key => String(key).trim()).filter(Boolean))];
+}
+
+function getApiKeys(projectDir = WORKSPACE_DIR) {
+  const keys = normalizeApiKeys(
+    process.env.GEMINI_API_KEYS,
+    process.env.GOOGLE_API_KEYS,
+    process.env.GEMINI_API_KEY,
+    process.env.GOOGLE_API_KEY
+  );
+
+  const appendConfigKeys = (configPath) => {
+    if (!fs.existsSync(configPath)) return;
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      keys.push(...normalizeApiKeys(config.gemini_api_keys, config.google_api_keys, config.gemini_api_key, config.google_api_key));
+    } catch (e) {}
+  };
+
+  appendConfigKeys(path.join(projectDir, "config_qanat.json"));
+
+  if (projectDir !== WORKSPACE_DIR) {
+    appendConfigKeys(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+
+  return [...new Set(keys)];
+}
+
 function getApiKey(projectDir = WORKSPACE_DIR) {
+  const keys = getApiKeys(projectDir);
+  if (keys.length > 0) return keys[0];
+
   if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
   if (process.env.GOOGLE_API_KEY) return process.env.GOOGLE_API_KEY;
   
@@ -520,6 +563,11 @@ function getApiKey(projectDir = WORKSPACE_DIR) {
 // API: Check if Gemini API key exists
 app.get("/api/ai/key-status", (req, res) => {
   const projDir = getProjectDir(req);
+  const configuredKeys = getApiKeys(projDir);
+  if (configuredKeys.length > 0) {
+    return res.json({ has_key: true, key_count: configuredKeys.length });
+  }
+
   const configPath = path.join(projDir, "config_qanat.json");
   let hasKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
   if (!hasKey && fs.existsSync(configPath)) {
@@ -811,8 +859,8 @@ ${chapters}`;
 
 app.post("/api/ai/optimize-youtube", async (req, res) => {
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
+  const apiKeys = getApiKeys(projDir);
+  if (apiKeys.length === 0) {
     return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
   }
   
@@ -936,19 +984,27 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 ## CAPÍTULOS
 (lista de capítulos com timestamps)`;
 
+    const errors = [];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
+    for (let index = 0; index < apiKeys.length; index++) {
+      const apiKey = apiKeys[index];
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
+          })
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar metadados.";
+        return res.json({ text: responseText, key_index: index + 1, tried_keys: index + 1 });
       }
-    );
-    
-    if (!response.ok) {
+
       let errData = {};
       try {
         errData = await response.json();
@@ -956,28 +1012,22 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 
       const message = errData.error?.message || `Erro do Gemini: ${response.statusText}`;
       const quotaExceeded = response.status === 429 || /quota|rate limit|retry/i.test(message);
-
-      if (quotaExceeded) {
-        const retryMatch = message.match(/retry in ([0-9.]+)s/i);
-        const retryAfterSeconds = retryMatch ? Math.ceil(Number(retryMatch[1])) : null;
-        const fallbackText = buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard });
-
-        return res.json({
-          text: fallbackText,
-          fallback: true,
-          warning: retryAfterSeconds
-            ? `A API do Gemini atingiu o limite temporário. Gere novamente em cerca de ${retryAfterSeconds}s para usar IA.`
-            : "A API do Gemini atingiu o limite temporário. Estes metadados foram gerados localmente."
-        });
-      }
-
-      throw new Error(message);
+      errors.push({ status: response.status, message, quotaExceeded });
     }
-    
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar metadados.";
-    
-    res.json({ text: responseText });
+
+    const fallbackText = buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard });
+    const quotaErrors = errors.filter(error => error.quotaExceeded).length;
+
+    return res.json({
+      text: fallbackText,
+      fallback: true,
+      tried_keys: apiKeys.length,
+      warning: quotaErrors === apiKeys.length
+        ? `Todas as ${apiKeys.length} chaves cadastradas atingiram limite temporário. Usei metadados locais por enquanto.`
+        : `Não consegui gerar com Gemini usando as ${apiKeys.length} chaves cadastradas. Usei metadados locais por enquanto.`
+    });
+
+
   } catch (err) {
     res.status(500).json({ error: "Erro ao otimizar metadados", details: err.message });
   }
