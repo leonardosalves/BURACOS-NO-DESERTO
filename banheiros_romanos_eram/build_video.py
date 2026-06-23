@@ -22,6 +22,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Keywords for highlighting in Gold (case-insensitive) - dynamically loaded from config
 HIGHLIGHT_KEYWORDS = []
+SUBTITLE_CORRECTIONS = {}
 
 # Color codes
 COLOR_GOLD = "00C5FF"      # Gold/Yellow BGR hex for active keywords
@@ -42,6 +43,7 @@ if os.path.exists('config_qanat.json'):
         with open('config_qanat.json', 'r', encoding='utf-8') as f:
             _config = json.load(f)
         HIGHLIGHT_KEYWORDS = _config.get('highlight_keywords', HIGHLIGHT_KEYWORDS)
+        SUBTITLE_CORRECTIONS = _config.get('subtitle_corrections', {}) or {}
         _raw_impacts = _config.get('impact_texts', [])
         if _raw_impacts:
             IMPACT_TEXTS_OFFSETS = [
@@ -102,6 +104,46 @@ def is_keyword(word):
     w_clean = re.sub(r'[^a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]', '', word).lower()
     return w_clean in HIGHLIGHT_KEYWORDS or any(kw == w_clean for kw in HIGHLIGHT_KEYWORDS)
 
+def repair_mojibake(text):
+    """Repair common UTF-8 text that was accidentally decoded as latin-1/cp1252."""
+    if not isinstance(text, str) or ("Ã" not in text and "Â" not in text):
+        return text
+    try:
+        repaired = text.encode("latin1").decode("utf-8")
+        if repaired.count("Ã") + repaired.count("Â") < text.count("Ã") + text.count("Â"):
+            return repaired
+    except UnicodeError:
+        pass
+    return text
+
+def preserve_case(source, replacement):
+    if source.isupper():
+        return replacement.upper()
+    if source[:1].isupper():
+        return replacement[:1].upper() + replacement[1:]
+    return replacement
+
+def clean_subtitle_word(word):
+    """Fix encoding glitches and optional project-specific Portuguese corrections."""
+    if not isinstance(word, str):
+        return word
+
+    leading = re.match(r'^\s*', word).group(0)
+    trailing = re.search(r'\s*$', word).group(0)
+    core = word[len(leading):len(word) - len(trailing) if trailing else len(word)]
+    core = repair_mojibake(core)
+
+    match = re.match(r'^([^\wÀ-ÿ]*)(.*?)([^\wÀ-ÿ]*)$', core, flags=re.UNICODE)
+    if not match:
+        return leading + core + trailing
+
+    prefix, token, suffix = match.groups()
+    replacement = SUBTITLE_CORRECTIONS.get(token.lower())
+    if replacement:
+        token = preserve_case(token, str(replacement))
+
+    return leading + prefix + token + suffix + trailing
+
 def generate_subtitles():
     """Build the Advanced SubStation Alpha subtitle file with dynamic highlight hopping."""
     print("Generating ASS dynamic subtitles file with text overlays...")
@@ -141,6 +183,7 @@ def generate_subtitles():
 
         if not words:
             fallback_text = item.get('text', '')
+            fallback_text = repair_mojibake(fallback_text)
             words_static = re.split(r'(\s+)', fallback_text)
             highlighted = []
             for w in words_static:
@@ -171,7 +214,7 @@ def generate_subtitles():
                 line_parts = []
                 for j in range(n_c):
                     w_dict = chunk[j]
-                    w_text = w_dict['word']
+                    w_text = clean_subtitle_word(w_dict['word'])
 
                     if j == i:
                         color = COLOR_GOLD if is_keyword(w_text) else COLOR_WATER
