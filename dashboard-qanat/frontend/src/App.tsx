@@ -148,7 +148,7 @@ interface MusicFile {
 
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings'>('status');
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -189,6 +189,18 @@ export default function App() {
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
 
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
+
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'xai'>('gemini');
+
+  const [geminiKeysInput, setGeminiKeysInput] = useState<string>('');
+
+  const [xaiKeyInput, setXaiKeyInput] = useState<string>('');
+
+  const [geminiKeyCount, setGeminiKeyCount] = useState<number>(0);
+
+  const [hasXaiKey, setHasXaiKey] = useState<boolean>(false);
+
+  const [savingAiSettings, setSavingAiSettings] = useState<boolean>(false);
 
   const [chatInput, setChatInput] = useState<string>('');
 
@@ -407,6 +419,24 @@ export default function App() {
         const keyData = await aiKeyStatusRes.json();
 
         setHasApiKey(keyData.has_key);
+
+        if (typeof keyData.key_count === 'number') setGeminiKeyCount(keyData.key_count);
+
+      }
+
+      const aiSettingsRes = await fetch(getProjectUrl('/api/ai/settings'));
+
+      if (aiSettingsRes.ok) {
+
+        const settingsData = await aiSettingsRes.json();
+
+        setAiProvider(settingsData.provider === 'xai' ? 'xai' : 'gemini');
+
+        setGeminiKeyCount(settingsData.gemini_key_count || 0);
+
+        setHasXaiKey(!!settingsData.has_xai_key);
+
+        setHasApiKey((settingsData.gemini_key_count || 0) > 0 || !!settingsData.has_xai_key);
 
       }
 
@@ -2161,6 +2191,64 @@ export default function App() {
 
   };
 
+  const handleSaveAiSettings = async () => {
+
+    setSavingAiSettings(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/ai/settings'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({
+
+          provider: aiProvider,
+
+          gemini_keys: geminiKeysInput,
+
+          xai_key: xaiKeyInput
+
+        })
+
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+
+        setGeminiKeyCount(data.gemini_key_count || 0);
+
+        setHasXaiKey(!!data.has_xai_key);
+
+        setHasApiKey((data.gemini_key_count || 0) > 0 || !!data.has_xai_key);
+
+        setGeminiKeysInput('');
+
+        setXaiKeyInput('');
+
+        toast.success('Configurações de IA salvas com sucesso!');
+
+      } else {
+
+        toast.error(data.error || 'Erro ao salvar configurações.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao salvar configurações.');
+
+    } finally {
+
+      setSavingAiSettings(false);
+
+    }
+
+  };
+
   // Parse and execute lumiera-action blocks from AI responses
 
   const executeAgentActions = async (text: string) => {
@@ -3551,6 +3639,28 @@ export default function App() {
 
                           <button 
 
+                            onClick={() => setActiveTab('settings')}
+
+                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+
+                              activeTab === 'settings' 
+
+                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
+
+                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+
+                            }`}
+
+                          >
+
+                            <Settings className="w-3.5 h-3.5 shrink-0" />
+
+                            <span>Configurações</span>
+
+                          </button>
+
+                          <button 
+
                             onClick={() => setActiveTab('terminal')}
 
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
@@ -4546,8 +4656,6 @@ export default function App() {
 
               
 
-              {/* API Key Banner */}
-
               <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
 
                 <div className="flex items-center gap-3">
@@ -4560,11 +4668,11 @@ export default function App() {
 
                   <div>
 
-                    <h4 className="text-xs font-bold text-white tracking-wide font-cinzel">CONFIGURAÇÃO DA API DO GOOGLE AI STUDIO</h4>
+                    <h4 className="text-xs font-bold text-white tracking-wide font-cinzel">PROVEDOR DE IA</h4>
 
                     <p className="text-[10px] text-gray-400 mt-0.5">
 
-                      {hasApiKey ? 'Conectado à API do Gemini com sucesso.' : 'Insira sua chave de API do Gemini para habilitar o Assistente de Inteligência Artificial.'}
+                      {hasApiKey ? `Conectado via ${aiProvider === 'xai' ? 'Grok / xAI' : 'Gemini'}.` : 'Configure um provedor para habilitar a IA.'}
 
                     </p>
 
@@ -4574,77 +4682,19 @@ export default function App() {
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
 
-                  {(!hasApiKey || showKeyInput) ? (
+                  <button 
 
-                    <div className="flex items-center gap-2 w-full sm:w-80">
+                    onClick={() => setActiveTab('settings')}
 
-                      <input 
+                    className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5"
 
-                        type="password"
+                  >
 
-                        placeholder="Cole sua API Key (AI Studio)..."
+                    <Settings className="w-3.5 h-3.5" />
 
-                        value={apiKeyInput}
+                    Configurações
 
-                        onChange={(e) => setApiKeyInput(e.target.value)}
-
-                        className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 flex-1"
-
-                      />
-
-                      <button 
-
-                        onClick={handleSaveApiKey}
-
-                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
-
-                      >
-
-                        Salvar
-
-                      </button>
-
-                      {hasApiKey && (
-
-                        <button
-
-                          onClick={() => {
-
-                            setShowKeyInput(false);
-
-                            setApiKeyInput('');
-
-                          }}
-
-                          className="border border-zinc-850 hover:bg-zinc-900 text-gray-400 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer"
-
-                          title="Cancelar troca de chave"
-
-                        >
-
-                          Cancelar
-
-                        </button>
-
-                      )}
-
-                    </div>
-
-                  ) : (
-
-                    <button 
-
-                      onClick={() => setShowKeyInput(true)}
-
-                      className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
-
-                    >
-
-                      Alterar Chave
-
-                    </button>
-
-                  )}
+                  </button>
 
                 </div>
 
@@ -6462,6 +6512,108 @@ export default function App() {
 
           )}
 
+          {activeTab === 'settings' && (
+
+            <div className="space-y-6 animate-fade-in font-sans">
+
+              <div className="glass-panel p-6 rounded-3xl space-y-5">
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+
+                  <div>
+
+                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+
+                      <Settings className="w-4 h-4 text-gold-500" /> CONFIGURAÇÕES DE IA
+
+                    </h3>
+
+                    <p className="text-xs text-gray-400 mt-1">Escolha o provedor usado para metadados e agente. As chaves ficam salvas no config local do projeto.</p>
+
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+
+                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">Gemini: {geminiKeyCount} chave(s)</span>
+
+                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">xAI: {hasXaiKey ? 'configurado' : 'vazio'}</span>
+
+                  </div>
+
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                  <button onClick={() => setAiProvider('gemini')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'gemini' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="text-xs font-bold text-white font-cinzel">Gemini</span>
+
+                      {aiProvider === 'gemini' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa as chaves Google AI Studio em rotação. Se todas falharem, usa xAI/Grok como fallback.</p>
+
+                  </button>
+
+                  <button onClick={() => setAiProvider('xai')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'xai' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="text-xs font-bold text-white font-cinzel">Grok / xAI</span>
+
+                      {aiProvider === 'xai' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API da xAI como provedor principal para metadados quando selecionado.</p>
+
+                  </button>
+
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                  <div className="space-y-2">
+
+                    <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chaves Gemini</label>
+
+                    <textarea value={geminiKeysInput} onChange={(e) => setGeminiKeysInput(e.target.value)} placeholder="Cole uma ou várias chaves Gemini, uma por linha. Deixe vazio para manter as atuais." className="w-full h-32 bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white resize-none" />
+
+                  </div>
+
+                  <div className="space-y-2">
+
+                    <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave xAI / Grok</label>
+
+                    <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+
+                    <p className="text-[10px] text-zinc-500 leading-relaxed">A xAI será usada como fallback quando o Gemini esgotar todas as chaves ou como principal se você selecionar Grok / xAI.</p>
+
+                  </div>
+
+                </div>
+
+                <div className="flex justify-end">
+
+                  <button onClick={handleSaveAiSettings} disabled={savingAiSettings} className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-2">
+
+                    {savingAiSettings ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+
+                    <span>{savingAiSettings ? 'Salvando...' : 'Salvar Configurações'}</span>
+
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          )}
+
           {/* TAB 6: AI VIDEO CREATOR */}
 
           {activeTab === 'creator' && (
@@ -6612,7 +6764,7 @@ export default function App() {
 
                               type="text"
 
-                              placeholder={hasApiKey ? "Ex: construções históricas, engenharia antiga e curiosidades..." : "Configure a API Key na aba Agente IA primeiro..."}
+                              placeholder={hasApiKey ? "Ex: construções históricas, engenharia antiga e curiosidades..." : "Configure um provedor na aba Configurações primeiro..."}
 
                               value={nicheInput}
 
@@ -7949,57 +8101,25 @@ export default function App() {
 
             <div className="flex items-center gap-2">
 
-              {(!hasApiKey || showKeyInput) ? (
-
                 <div className="flex items-center gap-1">
 
-                  <input 
+                  <span className={`text-[9px] flex items-center gap-1 ${hasApiKey ? 'text-emerald-500' : 'text-amber-500'}`}>
 
-                    type="password" placeholder="API Key..."
+                    {hasApiKey ? <CheckCircle className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
 
-                    value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)}
+                    {hasApiKey ? (aiProvider === 'xai' ? 'xAI' : 'Gemini') : 'API'}
 
-                    className="bg-zinc-950 border border-zinc-800 text-[10px] text-white rounded px-2 py-1 w-32 focus:outline-none focus:border-gold-500"
-
-                  />
-
-                  <button onClick={handleSaveApiKey} className="bg-gold-500 text-zinc-950 text-[9px] font-bold px-2 py-1 rounded cursor-pointer">OK</button>
-
-                  {hasApiKey && (
-
-                    <button
-
-                      onClick={() => {
-
-                        setShowKeyInput(false);
-
-                        setApiKeyInput('');
-
-                      }}
-
-                      className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition cursor-pointer"
-
-                      title="Cancelar troca de chave"
-
-                    >
-
-                      <X className="w-3.5 h-3.5" />
-
-                    </button>
-
-                  )}
-
-                </div>
-
-              ) : (
-
-                <div className="flex items-center gap-1">
-
-                  <span className="text-[9px] text-emerald-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />API</span>
+                  </span>
 
                   <button
 
-                    onClick={() => setShowKeyInput(true)}
+                    onClick={() => {
+
+                      setChatOpen(false);
+
+                      setActiveTab('settings');
+
+                    }}
 
                     className="text-zinc-500 hover:text-gold-500 p-1 rounded hover:bg-zinc-900 transition cursor-pointer"
 
@@ -8012,8 +8132,6 @@ export default function App() {
                   </button>
 
                 </div>
-
-              )}
 
               <button onClick={() => setChatOpen(false)} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition cursor-pointer">
 
@@ -8125,7 +8243,7 @@ export default function App() {
 
               type="text"
 
-              placeholder={hasApiKey ? "Peça qualquer coisa ao agente..." : "Configure a API Key primeiro..."}
+              placeholder={hasApiKey ? "Peça qualquer coisa ao agente..." : "Configure um provedor em Configurações primeiro..."}
 
               value={chatInput}
 

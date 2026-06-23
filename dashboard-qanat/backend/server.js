@@ -560,6 +560,73 @@ function getApiKey(projectDir = WORKSPACE_DIR) {
   return null;
 }
 
+function getXaiApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.XAI_API_KEY) return process.env.XAI_API_KEY;
+
+  const readConfigKey = (configPath) => {
+    if (!fs.existsSync(configPath)) return null;
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      return config.xai_api_key || config.grok_api_key || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+
+  if (projectDir !== WORKSPACE_DIR) {
+    return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+
+  return null;
+}
+
+function getAiProvider(projectDir = WORKSPACE_DIR) {
+  const readProvider = (configPath) => {
+    if (!fs.existsSync(configPath)) return null;
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      return config.ai_provider || config.metadata_provider || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  return readProvider(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR ? readProvider(path.join(WORKSPACE_DIR, "config_qanat.json")) : null) ||
+    "gemini";
+}
+
+async function generateMetadataWithXai(prompt, apiKey) {
+  const response = await fetch("https://api.x.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "grok-4.3",
+      messages: [
+        { role: "system", content: "Você é um especialista em SEO para YouTube. Retorne apenas o markdown solicitado." },
+        { role: "user", content: prompt }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    let errData = {};
+    try {
+      errData = await response.json();
+    } catch (e) {}
+    throw new Error(errData.error?.message || `Erro da xAI: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  return result.choices?.[0]?.message?.content || "Erro ao gerar metadados com Grok.";
+}
+
 // API: Check if Gemini API key exists
 app.get("/api/ai/key-status", (req, res) => {
   const projDir = getProjectDir(req);
@@ -611,6 +678,53 @@ app.post("/api/ai/save-key", (req, res) => {
     res.json({ success: true, message: "Chave de API salva com sucesso no config_qanat.json" });
   } catch (err) {
     res.status(500).json({ error: "Erro ao salvar a chave", details: err.message });
+  }
+});
+
+app.get("/api/ai/settings", (req, res) => {
+  const projDir = getProjectDir(req);
+  res.json({
+    provider: getAiProvider(projDir),
+    gemini_key_count: getApiKeys(projDir).length,
+    has_xai_key: !!getXaiApiKey(projDir)
+  });
+});
+
+app.post("/api/ai/settings", (req, res) => {
+  const projDir = getProjectDir(req);
+  const configPath = path.join(projDir, "config_qanat.json");
+  const { provider, gemini_key, gemini_keys, xai_key } = req.body || {};
+
+  try {
+    let config = {};
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    }
+
+    if (provider === "gemini" || provider === "xai") {
+      config.ai_provider = provider;
+    }
+
+    const parsedGeminiKeys = normalizeApiKeys(gemini_keys, gemini_key);
+    if (parsedGeminiKeys.length > 0) {
+      config.gemini_api_keys = parsedGeminiKeys;
+      config.gemini_api_key = parsedGeminiKeys[0];
+    }
+
+    if (typeof xai_key === "string" && xai_key.trim()) {
+      config.xai_api_key = xai_key.trim();
+    }
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    res.json({
+      success: true,
+      provider: config.ai_provider || "gemini",
+      gemini_key_count: normalizeApiKeys(config.gemini_api_keys, config.gemini_api_key).length,
+      has_xai_key: !!config.xai_api_key
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar configurações de IA", details: err.message });
   }
 });
 
@@ -860,8 +974,10 @@ ${chapters}`;
 app.post("/api/ai/optimize-youtube", async (req, res) => {
   const projDir = getProjectDir(req);
   const apiKeys = getApiKeys(projDir);
-  if (apiKeys.length === 0) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  const xaiKey = getXaiApiKey(projDir);
+  const aiProvider = getAiProvider(projDir);
+  if (apiKeys.length === 0 && !xaiKey) {
+    return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
   }
   
   try {
@@ -986,6 +1102,11 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 
     const errors = [];
 
+    if (aiProvider === "xai" && xaiKey) {
+      const responseText = await generateMetadataWithXai(prompt, xaiKey);
+      return res.json({ text: responseText, provider: "xai" });
+    }
+
     for (let index = 0; index < apiKeys.length; index++) {
       const apiKey = apiKeys[index];
       const response = await fetch(
@@ -1013,6 +1134,19 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
       const message = errData.error?.message || `Erro do Gemini: ${response.statusText}`;
       const quotaExceeded = response.status === 429 || /quota|rate limit|retry/i.test(message);
       errors.push({ status: response.status, message, quotaExceeded });
+    }
+
+    if (xaiKey) {
+      try {
+        const responseText = await generateMetadataWithXai(prompt, xaiKey);
+        return res.json({
+          text: responseText,
+          provider: "xai",
+          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei Grok/xAI como fallback.`
+        });
+      } catch (err) {
+        errors.push({ status: "xai", message: err.message, quotaExceeded: false });
+      }
     }
 
     const fallbackText = buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard });
