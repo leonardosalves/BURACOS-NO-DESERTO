@@ -1926,6 +1926,18 @@ app.post("/api/upload-scene-asset", (req, res) => {
 });
 
 // API: Generate complete custom video script & JSON configurations
+const SCRIPT_CREATIVE_REINFORCEMENT = `
+REFORCO CRIATIVO NAO OBRIGATORIO:
+Use estas ideias apenas como apoio de qualidade narrativa, sem mudar o formato de resposta, sem mudar a divisao em blocos e sem impor novas regras ao fluxo existente.
+- Antes de propor ideias ou roteiro, pense no que o publico desse nicho busca agora: duvidas fortes, medos, desejos, polemicas, curiosidades, tendencias e formatos que prendem atencao.
+- Evite ideias genericas e repetidas. Varie os angulos entre misterio, descoberta, conflito, erro historico, detalhe esquecido, comparacao inesperada, pergunta provocadora, mito versus realidade e payoff emocional.
+- Cada ideia deve ter promessa clara, emocao dominante e motivo concreto para funcionar.
+- Na narracao, priorize voz humana, direta, brasileira e cinematografica, com frases que abrem loops e depois entregam recompensa real.
+- Reforce os primeiros segundos com gancho forte, quebra de expectativa e uma pergunta implicita que faca a pessoa querer continuar.
+- Use tensao progressiva, microcliffhangers, prova, revelacao e payoff final para sustentar retencao.
+- O resultado deve satisfazer o espectador; curiosidade sem entrega nao serve.
+`;
+
 app.post("/api/ai/generate-creator-script", async (req, res) => {
   const projDir = getProjectDir(req);
   const apiKey = getApiKey(projDir);
@@ -1941,6 +1953,8 @@ app.post("/api/ai/generate-creator-script", async (req, res) => {
   const promptSystem = `Você é o "AI Video Creator Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um roteirista profissional, estrategista de retenção e editor de vídeos para YouTube.
 O usuário deseja criar um documentário cinematográfico de 12 blocos sobre o tema: "${prompt}".
 Sua missão é criar ideias, roteiros e instruções de edição com alto potencial de clique, retenção, comentários, compartilhamentos, inscritos e satisfação real do público.
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
 
 Regras Gerais:
 - Esqueça qualquer tema ou vídeo anterior para não ficar repetitivo.
@@ -2040,6 +2054,14 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   const promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas (evitando temas genéricos, sem focar em projetos passados de Qanat para evitar repetições).
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+Diversidade obrigatoria de ideias:
+- As 10 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
+- Misture pelo menos estes tipos de abordagem quando fizer sentido: misterio, erro historico, detalhe esquecido, revelacao cientifica, comparacao improvavel, historia humana, mito versus realidade, pergunta provocadora, conflito moral e curiosidade visual.
+- Evite repetir estruturas como "o segredo de..." em muitas ideias. Varie promessa, emocao e mecanismo de clique.
+- Escolha a melhor ideia pelo potencial de retencao e comentario, nao apenas pelo titulo mais chamativo.
 
 Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos de código com markdown \`\`\`json ou textos antes/depois. O JSON deve possuir exatamente a seguinte estrutura:
 {
@@ -2252,6 +2274,13 @@ Emoção: "${idea.emotion}"
 
 SUA MISSÃO PRINCIPAL:
 Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente (imagem 2K ou vídeo IA máx 10s). A narração inteira deve ser coberta — sem lacunas. Se precisar de 50, 80 ou 100 segmentos, gere todos. O array "visual_prompts" É o roteiro do vídeo.
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+Reforco especifico para montagem do roteiro:
+- Use o reforco acima para melhorar promessa, ritmo, tensao, payoff e naturalidade da narracao.
+- Preserve exatamente o formato JSON solicitado abaixo e a estrutura atual de blocos/segmentos.
+- Nao reduza a cobertura visual: o array visual_prompts continua cobrindo toda a narracao, como o programa ja espera.
 
 Regras do Roteiro:
 1. Pesquise internamente o nicho (tendências, dores, desejos, medos, polêmicas, curiosidades).
