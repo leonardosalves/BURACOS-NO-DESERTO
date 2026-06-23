@@ -1093,6 +1093,81 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
   throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
 }
 
+
+function extractJsonCandidate(text) {
+  const raw = String(text || "").replace(/^\uFEFF/, "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const firstObject = raw.indexOf("{");
+  const firstArray = raw.indexOf("[");
+  const start = firstObject === -1 ? firstArray : firstArray === -1 ? firstObject : Math.min(firstObject, firstArray);
+  if (start === -1) return raw;
+
+  const closeForOpen = raw[start] === "{" ? "}" : "]";
+  const stack = [closeForOpen];
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start + 1; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === "{" || ch === "[") {
+      stack.push(ch === "{" ? "}" : "]");
+    } else if (ch === "}" || ch === "]") {
+      if (ch !== stack.pop()) break;
+      if (stack.length === 0) return raw.slice(start, i + 1);
+    }
+  }
+
+  const fallback = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+  return fallback ? fallback[0] : raw;
+}
+
+function parseJsonCandidate(text) {
+  const candidate = extractJsonCandidate(text);
+  const variants = [
+    candidate,
+    candidate.replace(/,\s*([}\]])/g, "$1"),
+    candidate.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/,\s*([}\]])/g, "$1")
+  ];
+
+  let lastError;
+  for (const variant of variants) {
+    try {
+      return JSON.parse(variant);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
+async function parseAiJsonResponse(responseText, apiKey, contextLabel = "resposta da IA") {
+  try {
+    return parseJsonCandidate(responseText);
+  } catch (firstError) {
+    const candidate = extractJsonCandidate(responseText);
+    const repairPrompt = `Corrija o texto abaixo para JSON 100% valido. Preserve todos os dados e textos originais, apenas corrija sintaxe JSON, aspas internas, virgulas e escapes. Retorne APENAS o JSON corrigido, sem markdown.\n\n${candidate}`;
+    try {
+      const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, { maxRetries: 2, models: ["gemini-2.5-flash", "gemini-2.0-flash"] });
+      return parseJsonCandidate(repairedText);
+    } catch (repairError) {
+      repairError.message = `${contextLabel}: ${firstError.message}`;
+      throw repairError;
+    }
+  }
+}
+
 function normalizeApiKeys(...values) {
   const keys = [];
   for (const value of values) {
@@ -1857,12 +1932,7 @@ Responda APENAS com um JSON valido no formato:
 
     const responseText = await callGeminiWithRetry(apiKey, bgmPrompt);
     
-    let parsed;
-    try { parsed = JSON.parse(responseText); } catch(e) {
-      // Try to extract JSON from response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    }
+    const parsed = await parseAiJsonResponse(responseText, apiKey, "Sugestao de BGM");
     
     res.json(parsed);
   } catch (err) {
@@ -2217,7 +2287,7 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
 
   try {
     const responseText = await callGeminiWithRetry(apiKey, promptSystem);
-    const parsedData = JSON.parse(responseText);
+    const parsedData = await parseAiJsonResponse(responseText, apiKey, "Roteiro/configuracao");
     
     // Save script to transcripts_readable.txt
     const transcriptPath = path.join(projDir, "transcripts_readable.txt");
@@ -2375,7 +2445,7 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
   try {
     const fullPrompt = `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}\n${exclusionInstruction}`;
     const responseText = await callGeminiWithRetry(apiKey, fullPrompt);
-    const parsedData = JSON.parse(responseText);
+    const parsedData = await parseAiJsonResponse(responseText, apiKey, "Ideias e diagnostico");
     res.json(parsedData);
   } catch (err) {
     console.error("[IDEAS ENDPOINT ERROR]", err.message);
@@ -2639,7 +2709,7 @@ REGRAS FINAIS:
   try {
     responseText = await callGeminiWithRetry(apiKey, promptSystem);
 
-    const rawData = JSON.parse(responseText);
+    const rawData = await parseAiJsonResponse(responseText, apiKey, "Roteiro e estrategia");
     const parsedData = normalizeKeys(rawData);
 
     // Save full storyboard JSON
@@ -2766,7 +2836,7 @@ Regras importantes:
 
     const responseText = await callGeminiWithRetry(apiKey, prompt);
     
-    const parsedData = JSON.parse(responseText);
+    const parsedData = await parseAiJsonResponse(responseText, apiKey, "Mapeamento de assets");
     
     // Save back to config
     const configPath = path.join(projDir, "config_qanat.json");
