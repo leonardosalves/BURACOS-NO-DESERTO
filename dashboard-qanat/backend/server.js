@@ -790,6 +790,28 @@ function prepareRemotionRender(projectDir) {
   const narrationSource = findProjectFile(projectDir, "narracao_mestra_premium.mp3");
   const narration = copyRemotionAsset(narrationSource, publicProjectDir, "narration_");
 
+  const totalDurationBeforeLogo = Math.max(
+    Number(timings.total_duration || 0),
+    ...validScenes.map(scene => scene.start + scene.duration),
+    1
+  );
+
+  const logoSource = findProjectFile(projectDir, "logo.png");
+  if (logoSource) {
+    const copiedLogo = copyRemotionAsset(logoSource, publicProjectDir, "logo_final_");
+    if (copiedLogo) {
+      validScenes.push({
+        block: blockNumbers.length + 1,
+        asset: `projects/${projectSlug}/${copiedLogo}`,
+        type: "image",
+        start: totalDurationBeforeLogo,
+        duration: 3.0,
+        narrationText: "",
+        editorNotes: "zoom in, logo final da marca",
+      });
+    }
+  }
+
   const totalDuration = Math.max(
     Number(timings.total_duration || 0),
     ...validScenes.map(scene => scene.start + scene.duration),
@@ -823,6 +845,12 @@ function prepareRemotionRender(projectDir) {
         bgmTracks.push({ block, file: `projects/${projectSlug}/${copied}`, start: range.start, duration: range.duration });
       }
     }
+  }
+
+  // Ensure the last BGM track extends to totalDuration to cover the logo scene
+  if (bgmTracks.length > 0) {
+    const lastBgm = bgmTracks[bgmTracks.length - 1];
+    lastBgm.duration = totalDuration - lastBgm.start;
   }
 
   const captions = captionsFromWordTranscripts(wordTranscripts);
