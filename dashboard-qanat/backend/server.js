@@ -2085,6 +2085,64 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
   }
 });
 
+function getExistingProjectsMetadata(workspaceDir) {
+  const projects = [];
+  try {
+    // 1. Root project
+    const rootConfigPath = path.join(workspaceDir, "config_qanat.json");
+    const rootStoryboardPath = path.join(workspaceDir, "storyboard.json");
+    let rootTitle = "Buracos no Deserto";
+    let rootFormat = "LONGO";
+    if (fs.existsSync(rootConfigPath)) {
+      try {
+        const config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8"));
+        if (config.aspect_ratio === "9:16") rootFormat = "SHORTS";
+      } catch (e) {}
+    }
+    if (fs.existsSync(rootStoryboardPath)) {
+      try {
+        const sb = JSON.parse(fs.readFileSync(rootStoryboardPath, "utf8"));
+        if (sb.strategy?.title_main) rootTitle = sb.strategy.title_main;
+      } catch (e) {}
+    }
+    projects.push({ name: "Buracos no Deserto", title: rootTitle, format: rootFormat });
+
+    // 2. Subfolders
+    if (fs.existsSync(workspaceDir)) {
+      const items = fs.readdirSync(workspaceDir);
+      for (const item of items) {
+        const fullPath = path.join(workspaceDir, item);
+        try {
+          if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "dashboard-qanat", "dashboard-premium", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
+            if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
+              let title = item;
+              let format = "LONGO";
+              const configPath = path.join(fullPath, "config_qanat.json");
+              const storyboardPath = path.join(fullPath, "storyboard.json");
+              if (fs.existsSync(configPath)) {
+                try {
+                  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+                  if (config.aspect_ratio === "9:16") format = "SHORTS";
+                } catch (e) {}
+              }
+              if (fs.existsSync(storyboardPath)) {
+                try {
+                  const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+                  if (sb.strategy?.title_main) title = sb.strategy.title_main;
+                } catch (e) {}
+              }
+              projects.push({ name: item, title, format });
+            }
+          }
+        } catch (err) {}
+      }
+    }
+  } catch (e) {
+    console.error("Error reading existing projects metadata:", e);
+  }
+  return projects;
+}
+
 // API: SCRIPT MASTER Step 1 - Generate Research & 10 Ideas
 app.post("/api/ai/creator/ideas", async (req, res) => {
   const projDir = getProjectDir(req);
@@ -2096,6 +2154,23 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   const { niche, format } = req.body;
   if (!niche || !format) {
     return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
+  }
+
+  const projectsMeta = getExistingProjectsMetadata(WORKSPACE_DIR);
+  const sameFormatTitles = projectsMeta
+    .filter(p => p.format === format)
+    .map(p => p.title);
+  const otherFormat = format === "SHORTS" ? "LONGO" : "SHORTS";
+  const otherFormatTitles = projectsMeta
+    .filter(p => p.format === otherFormat)
+    .map(p => p.title);
+
+  let exclusionInstruction = "";
+  if (sameFormatTitles.length > 0) {
+    exclusionInstruction += `\nIMPORTANTE: Os seguintes temas JÁ foram criados no formato ${format}. Você NÃO PODE, sob hipótese alguma, sugerir ou repetir nenhuma ideia parecida ou com esses mesmos temas para o formato ${format}:\n` + sameFormatTitles.map(t => `- ${t}`).join("\n") + "\n";
+  }
+  if (otherFormatTitles.length > 0) {
+    exclusionInstruction += `\nNOTA: Os seguintes temas foram criados no formato ${otherFormat}. Você PODE sugerir adaptações deles para o formato ${format} (por exemplo, transformar um tema que era de vídeo curto em um vídeo longo ou vice-versa, se for estratégico e relevante), mas NÃO os repita no mesmo formato:\n` + otherFormatTitles.map(t => `- ${t}`).join("\n") + "\n";
   }
 
   const promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
@@ -2137,7 +2212,7 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 }`;
 
   try {
-    const fullPrompt = `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}`;
+    const fullPrompt = `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}\n${exclusionInstruction}`;
     const responseText = await callGeminiWithRetry(apiKey, fullPrompt);
     const parsedData = JSON.parse(responseText);
     res.json(parsedData);
