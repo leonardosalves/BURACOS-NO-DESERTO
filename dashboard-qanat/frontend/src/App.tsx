@@ -3395,6 +3395,28 @@ export default function App() {
 
           <button 
 
+            onClick={() => setActiveTab('settings')}
+
+            className={`p-2 border rounded-lg transition duration-150 cursor-pointer ${
+
+              activeTab === 'settings'
+
+                ? 'bg-gold-500/10 border-gold-500/30 text-gold-500'
+
+                : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:text-white'
+
+            }`}
+
+            title="Configurações"
+
+          >
+
+            <Settings className="w-4 h-4" />
+
+          </button>
+
+          <button 
+
             onClick={fetchData} 
 
             className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 hover:text-white transition duration-150 cursor-pointer"
@@ -3751,7 +3773,7 @@ export default function App() {
 
                             onClick={() => setActiveTab('settings')}
 
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+                            className={`hidden w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition items-center gap-2 cursor-pointer ${
 
                               activeTab === 'settings' 
 
