@@ -1,0 +1,1210 @@
+{
+    "text": " A 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância, antes de qualquer um sentir o chão tremer. Na China antiga, tremores eram vistos como fúria dos deuses, até que o inventor Zan Heng desafiou o inexplicável. Ele criou um seismógrafo genial. Dragões de bronze cercavam o vaso, cada um segurando uma esfera sobre a boca de sapos famintos. Internamente, um pêndulo ultra-sensível captava ondas sísmicas invisíveis. Um dia, uma esfera caiu, apontando para o Oeste, mas ninguém sentiu nada. Todos riram de Zang. Dias depois, um mensageiro exausto chegou a cavalo. Um terremoto devastador havia destruído o Oeste do Imperio. Como uma tecnologia tão antiga superou seu próprio tempo. Se você ama mistérios da história, se inscreve no canal.",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.0,
+            "end": 5.98,
+            "text": " A 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância,",
+            "tokens": [
+                50364,
+                316,
+                28898,
+                13592,
+                11,
+                4065,
+                15181,
+                340,
+                368,
+                25454,
+                12642,
+                5951,
+                1105,
+                1796,
+                2579,
+                6738,
+                257,
+                1489,
+                11581,
+                368,
+                31619,
+                2851,
+                29570,
+                368,
+                1483,
+                25677,
+                11,
+                50679
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22739435414798925,
+            "compression_ratio": 1.4714828897338403,
+            "no_speech_prob": 0.004442256409674883,
+            "words": [
+                {
+                    "word": " A",
+                    "start": 0.0,
+                    "end": 0.18,
+                    "probability": 0.6822934746742249
+                },
+                {
+                    "word": " 1900",
+                    "start": 0.18,
+                    "end": 0.76,
+                    "probability": 0.7365846037864685
+                },
+                {
+                    "word": " anos,",
+                    "start": 0.76,
+                    "end": 1.48,
+                    "probability": 0.9831525087356567
+                },
+                {
+                    "word": " este",
+                    "start": 1.74,
+                    "end": 1.96,
+                    "probability": 0.898975670337677
+                },
+                {
+                    "word": " jarro",
+                    "start": 1.96,
+                    "end": 2.3,
+                    "probability": 0.8120411932468414
+                },
+                {
+                    "word": " de",
+                    "start": 2.3,
+                    "end": 2.42,
+                    "probability": 0.9987230896949768
+                },
+                {
+                    "word": " bronze",
+                    "start": 2.42,
+                    "end": 2.7,
+                    "probability": 0.8911137580871582
+                },
+                {
+                    "word": " previu",
+                    "start": 2.7,
+                    "end": 3.14,
+                    "probability": 0.6555849611759186
+                },
+                {
+                    "word": " um",
+                    "start": 3.14,
+                    "end": 3.32,
+                    "probability": 0.9703485369682312
+                },
+                {
+                    "word": " terremoto",
+                    "start": 3.32,
+                    "end": 3.74,
+                    "probability": 0.9628940423329672
+                },
+                {
+                    "word": " a",
+                    "start": 3.74,
+                    "end": 3.96,
+                    "probability": 0.5087563991546631
+                },
+                {
+                    "word": " centenas",
+                    "start": 3.96,
+                    "end": 4.5,
+                    "probability": 0.9845027923583984
+                },
+                {
+                    "word": " de",
+                    "start": 4.5,
+                    "end": 4.64,
+                    "probability": 0.997747004032135
+                },
+                {
+                    "word": " quilômetros",
+                    "start": 4.64,
+                    "end": 5.2,
+                    "probability": 0.9461787939071655
+                },
+                {
+                    "word": " de",
+                    "start": 5.2,
+                    "end": 5.4,
+                    "probability": 0.9971611499786377
+                },
+                {
+                    "word": " distância,",
+                    "start": 5.4,
+                    "end": 5.98,
+                    "probability": 0.9782386124134064
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "seek": 0,
+            "start": 6.46,
+            "end": 8.78,
+            "text": " antes de qualquer um sentir o chão tremer.",
+            "tokens": [
+                50679,
+                11014,
+                368,
+                20437,
+                1105,
+                23963,
+                277,
+                417,
+                1076,
+                7813,
+                260,
+                13,
+                50831
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22739435414798925,
+            "compression_ratio": 1.4714828897338403,
+            "no_speech_prob": 0.004442256409674883,
+            "words": [
+                {
+                    "word": " antes",
+                    "start": 6.46,
+                    "end": 6.76,
+                    "probability": 0.9987192153930664
+                },
+                {
+                    "word": " de",
+                    "start": 6.76,
+                    "end": 6.96,
+                    "probability": 0.9961101412773132
+                },
+                {
+                    "word": " qualquer",
+                    "start": 6.96,
+                    "end": 7.22,
+                    "probability": 0.9846481084823608
+                },
+                {
+                    "word": " um",
+                    "start": 7.22,
+                    "end": 7.68,
+                    "probability": 0.9817900061607361
+                },
+                {
+                    "word": " sentir",
+                    "start": 7.68,
+                    "end": 8.02,
+                    "probability": 0.9145583510398865
+                },
+                {
+                    "word": " o",
+                    "start": 8.02,
+                    "end": 8.24,
+                    "probability": 0.9851503968238831
+                },
+                {
+                    "word": " chão",
+                    "start": 8.24,
+                    "end": 8.36,
+                    "probability": 0.927374541759491
+                },
+                {
+                    "word": " tremer.",
+                    "start": 8.36,
+                    "end": 8.78,
+                    "probability": 0.6347804516553879
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "seek": 0,
+            "start": 9.42,
+            "end": 12.96,
+            "text": " Na China antiga, tremores eram vistos como fúria dos deuses,",
+            "tokens": [
+                50831,
+                6056,
+                3533,
+                2511,
+                9900,
+                11,
+                7813,
+                2706,
+                34664,
+                40247,
+                329,
+                2617,
+                283,
+                2481,
+                4668,
+                4491,
+                368,
+                8355,
+                11,
+                51028
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22739435414798925,
+            "compression_ratio": 1.4714828897338403,
+            "no_speech_prob": 0.004442256409674883,
+            "words": [
+                {
+                    "word": " Na",
+                    "start": 9.42,
+                    "end": 9.62,
+                    "probability": 0.965174674987793
+                },
+                {
+                    "word": " China",
+                    "start": 9.62,
+                    "end": 9.9,
+                    "probability": 0.8182276487350464
+                },
+                {
+                    "word": " antiga,",
+                    "start": 9.9,
+                    "end": 10.36,
+                    "probability": 0.8050848543643951
+                },
+                {
+                    "word": " tremores",
+                    "start": 10.76,
+                    "end": 11.06,
+                    "probability": 0.975543200969696
+                },
+                {
+                    "word": " eram",
+                    "start": 11.06,
+                    "end": 11.3,
+                    "probability": 0.9922671914100647
+                },
+                {
+                    "word": " vistos",
+                    "start": 11.3,
+                    "end": 11.74,
+                    "probability": 0.9825506508350372
+                },
+                {
+                    "word": " como",
+                    "start": 11.74,
+                    "end": 11.94,
+                    "probability": 0.9971464276313782
+                },
+                {
+                    "word": " fúria",
+                    "start": 11.94,
+                    "end": 12.38,
+                    "probability": 0.7615846196810404
+                },
+                {
+                    "word": " dos",
+                    "start": 12.38,
+                    "end": 12.58,
+                    "probability": 0.9867544770240784
+                },
+                {
+                    "word": " deuses,",
+                    "start": 12.58,
+                    "end": 12.96,
+                    "probability": 0.8475074470043182
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "seek": 0,
+            "start": 13.3,
+            "end": 16.86,
+            "text": " até que o inventor Zan Heng desafiou o inexplicável.",
+            "tokens": [
+                51028,
+                8784,
+                631,
+                277,
+                41593,
+                1176,
+                282,
+                389,
+                1501,
+                34587,
+                72,
+                263,
+                277,
+                29961,
+                4770,
+                20224,
+                13,
+                51241
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22739435414798925,
+            "compression_ratio": 1.4714828897338403,
+            "no_speech_prob": 0.004442256409674883,
+            "words": [
+                {
+                    "word": " até",
+                    "start": 13.3,
+                    "end": 13.68,
+                    "probability": 0.9946309328079224
+                },
+                {
+                    "word": " que",
+                    "start": 13.68,
+                    "end": 13.86,
+                    "probability": 0.9985528588294983
+                },
+                {
+                    "word": " o",
+                    "start": 13.86,
+                    "end": 13.94,
+                    "probability": 0.9529978036880493
+                },
+                {
+                    "word": " inventor",
+                    "start": 13.94,
+                    "end": 14.32,
+                    "probability": 0.9407932162284851
+                },
+                {
+                    "word": " Zan",
+                    "start": 14.32,
+                    "end": 14.72,
+                    "probability": 0.5197309851646423
+                },
+                {
+                    "word": " Heng",
+                    "start": 14.72,
+                    "end": 15.04,
+                    "probability": 0.6347166448831558
+                },
+                {
+                    "word": " desafiou",
+                    "start": 15.04,
+                    "end": 15.94,
+                    "probability": 0.8054883480072021
+                },
+                {
+                    "word": " o",
+                    "start": 15.94,
+                    "end": 16.14,
+                    "probability": 0.5210801362991333
+                },
+                {
+                    "word": " inexplicável.",
+                    "start": 16.14,
+                    "end": 16.86,
+                    "probability": 0.9622397224108378
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "seek": 0,
+            "start": 17.6,
+            "end": 19.3,
+            "text": " Ele criou um seismógrafo genial.",
+            "tokens": [
+                51241,
+                8024,
+                12815,
+                263,
+                1105,
+                40159,
+                14047,
+                10437,
+                78,
+                48228,
+                13,
+                51354
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22739435414798925,
+            "compression_ratio": 1.4714828897338403,
+            "no_speech_prob": 0.004442256409674883,
+            "words": [
+                {
+                    "word": " Ele",
+                    "start": 17.6,
+                    "end": 17.86,
+                    "probability": 0.9869509339332581
+                },
+                {
+                    "word": " criou",
+                    "start": 17.86,
+                    "end": 18.18,
+                    "probability": 0.9818407595157623
+                },
+                {
+                    "word": " um",
+                    "start": 18.18,
+                    "end": 18.32,
+                    "probability": 0.9823920130729675
+                },
+                {
+                    "word": " seismógrafo",
+                    "start": 18.32,
+                    "end": 18.94,
+                    "probability": 0.8262835592031479
+                },
+                {
+                    "word": " genial.",
+                    "start": 18.94,
+                    "end": 19.3,
+                    "probability": 0.9648060202598572
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "seek": 0,
+            "start": 19.98,
+            "end": 25.46,
+            "text": " Dragões de bronze cercavam o vaso, cada um segurando uma esfera sobre a boca de sapos famintos.",
+            "tokens": [
+                51354,
+                8832,
+                6036,
+                368,
+                25454,
+                36099,
+                22561,
+                277,
+                11481,
+                78,
+                11,
+                8411,
+                1105,
+                22179,
+                1806,
+                2772,
+                785,
+                45635,
+                5473,
+                257,
+                34624,
+                368,
+                18985,
+                329,
+                1087,
+                686,
+                329,
+                13,
+                51664
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22739435414798925,
+            "compression_ratio": 1.4714828897338403,
+            "no_speech_prob": 0.004442256409674883,
+            "words": [
+                {
+                    "word": " Dragões",
+                    "start": 19.98,
+                    "end": 20.28,
+                    "probability": 0.9002643525600433
+                },
+                {
+                    "word": " de",
+                    "start": 20.28,
+                    "end": 20.48,
+                    "probability": 0.9976252913475037
+                },
+                {
+                    "word": " bronze",
+                    "start": 20.48,
+                    "end": 20.76,
+                    "probability": 0.9905310273170471
+                },
+                {
+                    "word": " cercavam",
+                    "start": 20.76,
+                    "end": 21.36,
+                    "probability": 0.9352652728557587
+                },
+                {
+                    "word": " o",
+                    "start": 21.36,
+                    "end": 21.56,
+                    "probability": 0.9877655506134033
+                },
+                {
+                    "word": " vaso,",
+                    "start": 21.56,
+                    "end": 21.88,
+                    "probability": 0.9630614519119263
+                },
+                {
+                    "word": " cada",
+                    "start": 22.2,
+                    "end": 22.38,
+                    "probability": 0.99358069896698
+                },
+                {
+                    "word": " um",
+                    "start": 22.38,
+                    "end": 22.58,
+                    "probability": 0.9579005241394043
+                },
+                {
+                    "word": " segurando",
+                    "start": 22.58,
+                    "end": 23.04,
+                    "probability": 0.9257034063339233
+                },
+                {
+                    "word": " uma",
+                    "start": 23.04,
+                    "end": 23.24,
+                    "probability": 0.9854807257652283
+                },
+                {
+                    "word": " esfera",
+                    "start": 23.24,
+                    "end": 23.56,
+                    "probability": 0.9291005730628967
+                },
+                {
+                    "word": " sobre",
+                    "start": 23.56,
+                    "end": 23.92,
+                    "probability": 0.9821467995643616
+                },
+                {
+                    "word": " a",
+                    "start": 23.92,
+                    "end": 24.06,
+                    "probability": 0.9922590851783752
+                },
+                {
+                    "word": " boca",
+                    "start": 24.06,
+                    "end": 24.2,
+                    "probability": 0.9768992066383362
+                },
+                {
+                    "word": " de",
+                    "start": 24.2,
+                    "end": 24.48,
+                    "probability": 0.9929108023643494
+                },
+                {
+                    "word": " sapos",
+                    "start": 24.48,
+                    "end": 24.9,
+                    "probability": 0.98675537109375
+                },
+                {
+                    "word": " famintos.",
+                    "start": 24.9,
+                    "end": 25.46,
+                    "probability": 0.8579667806625366
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "seek": 2546,
+            "start": 26.1,
+            "end": 31.2,
+            "text": " Internamente, um pêndulo ultra-sensível captava ondas sísmicas invisíveis.",
+            "tokens": [
+                50396,
+                4844,
+                3439,
+                11,
+                1105,
+                280,
+                1307,
+                273,
+                13455,
+                14808,
+                12,
+                82,
+                694,
+                13185,
+                3770,
+                4061,
+                322,
+                27476,
+                262,
+                5113,
+                76,
+                9150,
+                13308,
+                34934,
+                13,
+                50692
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.24120702062334334,
+            "compression_ratio": 1.4703389830508475,
+            "no_speech_prob": 0.004619495011866093,
+            "words": [
+                {
+                    "word": " Internamente,",
+                    "start": 26.1,
+                    "end": 26.86,
+                    "probability": 0.5852178260684013
+                },
+                {
+                    "word": " um",
+                    "start": 27.24,
+                    "end": 27.34,
+                    "probability": 0.9764800667762756
+                },
+                {
+                    "word": " pêndulo",
+                    "start": 27.34,
+                    "end": 27.84,
+                    "probability": 0.8091952800750732
+                },
+                {
+                    "word": " ultra",
+                    "start": 27.84,
+                    "end": 28.28,
+                    "probability": 0.7687638998031616
+                },
+                {
+                    "word": "-sensível",
+                    "start": 28.28,
+                    "end": 28.9,
+                    "probability": 0.8313801437616348
+                },
+                {
+                    "word": " captava",
+                    "start": 28.9,
+                    "end": 29.54,
+                    "probability": 0.984382152557373
+                },
+                {
+                    "word": " ondas",
+                    "start": 29.54,
+                    "end": 29.88,
+                    "probability": 0.6730716526508331
+                },
+                {
+                    "word": " sísmicas",
+                    "start": 29.88,
+                    "end": 30.5,
+                    "probability": 0.7356464490294456
+                },
+                {
+                    "word": " invisíveis.",
+                    "start": 30.5,
+                    "end": 31.2,
+                    "probability": 0.9893001616001129
+                }
+            ]
+        },
+        {
+            "id": 7,
+            "seek": 2546,
+            "start": 31.92,
+            "end": 38.02,
+            "text": " Um dia, uma esfera caiu, apontando para o Oeste, mas ninguém sentiu nada.",
+            "tokens": [
+                50692,
+                3301,
+                6801,
+                11,
+                2772,
+                785,
+                45635,
+                46523,
+                84,
+                11,
+                1882,
+                896,
+                1806,
+                1690,
+                277,
+                422,
+                8887,
+                11,
+                2300,
+                30091,
+                2279,
+                5951,
+                8096,
+                13,
+                51034
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.24120702062334334,
+            "compression_ratio": 1.4703389830508475,
+            "no_speech_prob": 0.004619495011866093,
+            "words": [
+                {
+                    "word": " Um",
+                    "start": 31.92,
+                    "end": 32.28,
+                    "probability": 0.9699759483337402
+                },
+                {
+                    "word": " dia,",
+                    "start": 32.28,
+                    "end": 32.58,
+                    "probability": 0.9984661340713501
+                },
+                {
+                    "word": " uma",
+                    "start": 32.9,
+                    "end": 33.06,
+                    "probability": 0.9872670769691467
+                },
+                {
+                    "word": " esfera",
+                    "start": 33.06,
+                    "end": 33.32,
+                    "probability": 0.9272371530532837
+                },
+                {
+                    "word": " caiu,",
+                    "start": 33.32,
+                    "end": 33.84,
+                    "probability": 0.9709085524082184
+                },
+                {
+                    "word": " apontando",
+                    "start": 34.36,
+                    "end": 34.96,
+                    "probability": 0.9878473877906799
+                },
+                {
+                    "word": " para",
+                    "start": 34.96,
+                    "end": 35.14,
+                    "probability": 0.9760379791259766
+                },
+                {
+                    "word": " o",
+                    "start": 35.14,
+                    "end": 35.28,
+                    "probability": 0.9809004664421082
+                },
+                {
+                    "word": " Oeste,",
+                    "start": 35.28,
+                    "end": 35.66,
+                    "probability": 0.7319102883338928
+                },
+                {
+                    "word": " mas",
+                    "start": 36.4,
+                    "end": 36.54,
+                    "probability": 0.9755354523658752
+                },
+                {
+                    "word": " ninguém",
+                    "start": 36.54,
+                    "end": 36.88,
+                    "probability": 0.9939069151878357
+                },
+                {
+                    "word": " sentiu",
+                    "start": 36.88,
+                    "end": 37.52,
+                    "probability": 0.9270604252815247
+                },
+                {
+                    "word": " nada.",
+                    "start": 37.52,
+                    "end": 38.02,
+                    "probability": 0.9963093400001526
+                }
+            ]
+        },
+        {
+            "id": 8,
+            "seek": 2546,
+            "start": 38.9,
+            "end": 40.02,
+            "text": " Todos riram de Zang.",
+            "tokens": [
+                51034,
+                35447,
+                367,
+                40359,
+                368,
+                1176,
+                656,
+                13,
+                51127
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.24120702062334334,
+            "compression_ratio": 1.4703389830508475,
+            "no_speech_prob": 0.004619495011866093,
+            "words": [
+                {
+                    "word": " Todos",
+                    "start": 38.9,
+                    "end": 39.16,
+                    "probability": 0.9845239520072937
+                },
+                {
+                    "word": " riram",
+                    "start": 39.16,
+                    "end": 39.56,
+                    "probability": 0.8312832713127136
+                },
+                {
+                    "word": " de",
+                    "start": 39.56,
+                    "end": 39.7,
+                    "probability": 0.9652741551399231
+                },
+                {
+                    "word": " Zang.",
+                    "start": 39.7,
+                    "end": 40.02,
+                    "probability": 0.5745773166418076
+                }
+            ]
+        },
+        {
+            "id": 9,
+            "seek": 2546,
+            "start": 40.76,
+            "end": 43.76,
+            "text": " Dias depois, um mensageiro exausto chegou a cavalo.",
+            "tokens": [
+                51127,
+                413,
+                4609,
+                13880,
+                11,
+                1105,
+                10923,
+                609,
+                5182,
+                454,
+                64,
+                48260,
+                36799,
+                257,
+                13971,
+                10334,
+                13,
+                51300
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.24120702062334334,
+            "compression_ratio": 1.4703389830508475,
+            "no_speech_prob": 0.004619495011866093,
+            "words": [
+                {
+                    "word": " Dias",
+                    "start": 40.76,
+                    "end": 41.02,
+                    "probability": 0.8294554650783539
+                },
+                {
+                    "word": " depois,",
+                    "start": 41.02,
+                    "end": 41.32,
+                    "probability": 0.9972266554832458
+                },
+                {
+                    "word": " um",
+                    "start": 41.76,
+                    "end": 41.86,
+                    "probability": 0.8037858605384827
+                },
+                {
+                    "word": " mensageiro",
+                    "start": 41.86,
+                    "end": 42.4,
+                    "probability": 0.9388230443000793
+                },
+                {
+                    "word": " exausto",
+                    "start": 42.4,
+                    "end": 42.92,
+                    "probability": 0.7476639747619629
+                },
+                {
+                    "word": " chegou",
+                    "start": 42.92,
+                    "end": 43.18,
+                    "probability": 0.9945363998413086
+                },
+                {
+                    "word": " a",
+                    "start": 43.18,
+                    "end": 43.36,
+                    "probability": 0.9724864959716797
+                },
+                {
+                    "word": " cavalo.",
+                    "start": 43.36,
+                    "end": 43.76,
+                    "probability": 0.8793715238571167
+                }
+            ]
+        },
+        {
+            "id": 10,
+            "seek": 2546,
+            "start": 44.2,
+            "end": 48.02,
+            "text": " Um terremoto devastador havia destruído o Oeste do Imperio.",
+            "tokens": [
+                51300,
+                3301,
+                1796,
+                2579,
+                6738,
+                13959,
+                5409,
+                28855,
+                34235,
+                28470,
+                277,
+                422,
+                8887,
+                360,
+                18360,
+                1004,
+                13,
+                51524
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.24120702062334334,
+            "compression_ratio": 1.4703389830508475,
+            "no_speech_prob": 0.004619495011866093,
+            "words": [
+                {
+                    "word": " Um",
+                    "start": 44.2,
+                    "end": 44.34,
+                    "probability": 0.9852860569953918
+                },
+                {
+                    "word": " terremoto",
+                    "start": 44.34,
+                    "end": 44.9,
+                    "probability": 0.9622292915980021
+                },
+                {
+                    "word": " devastador",
+                    "start": 44.9,
+                    "end": 45.78,
+                    "probability": 0.9852319955825806
+                },
+                {
+                    "word": " havia",
+                    "start": 45.78,
+                    "end": 46.26,
+                    "probability": 0.9792606234550476
+                },
+                {
+                    "word": " destruído",
+                    "start": 46.26,
+                    "end": 46.9,
+                    "probability": 0.9816524684429169
+                },
+                {
+                    "word": " o",
+                    "start": 46.9,
+                    "end": 47.08,
+                    "probability": 0.897549569606781
+                },
+                {
+                    "word": " Oeste",
+                    "start": 47.08,
+                    "end": 47.42,
+                    "probability": 0.981743574142456
+                },
+                {
+                    "word": " do",
+                    "start": 47.42,
+                    "end": 47.56,
+                    "probability": 0.9919220209121704
+                },
+                {
+                    "word": " Imperio.",
+                    "start": 47.56,
+                    "end": 48.02,
+                    "probability": 0.7236126810312271
+                }
+            ]
+        },
+        {
+            "id": 11,
+            "seek": 2546,
+            "start": 48.58,
+            "end": 51.92,
+            "text": " Como uma tecnologia tão antiga superou seu próprio tempo.",
+            "tokens": [
+                51524,
+                11913,
+                2772,
+                44905,
+                18012,
+                2511,
+                9900,
+                1687,
+                263,
+                7986,
+                36394,
+                8972,
+                13,
+                51732
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.24120702062334334,
+            "compression_ratio": 1.4703389830508475,
+            "no_speech_prob": 0.004619495011866093,
+            "words": [
+                {
+                    "word": " Como",
+                    "start": 48.58,
+                    "end": 48.86,
+                    "probability": 0.9806874394416809
+                },
+                {
+                    "word": " uma",
+                    "start": 48.86,
+                    "end": 49.08,
+                    "probability": 0.9975825548171997
+                },
+                {
+                    "word": " tecnologia",
+                    "start": 49.08,
+                    "end": 49.64,
+                    "probability": 0.9826529026031494
+                },
+                {
+                    "word": " tão",
+                    "start": 49.64,
+                    "end": 50.02,
+                    "probability": 0.9925456643104553
+                },
+                {
+                    "word": " antiga",
+                    "start": 50.02,
+                    "end": 50.5,
+                    "probability": 0.9473726749420166
+                },
+                {
+                    "word": " superou",
+                    "start": 50.5,
+                    "end": 50.96,
+                    "probability": 0.9575569927692413
+                },
+                {
+                    "word": " seu",
+                    "start": 50.96,
+                    "end": 51.14,
+                    "probability": 0.8219138979911804
+                },
+                {
+                    "word": " próprio",
+                    "start": 51.14,
+                    "end": 51.48,
+                    "probability": 0.9977375268936157
+                },
+                {
+                    "word": " tempo.",
+                    "start": 51.48,
+                    "end": 51.92,
+                    "probability": 0.9946611523628235
+                }
+            ]
+        },
+        {
+            "id": 12,
+            "seek": 5192,
+            "start": 51.92,
+            "end": 55.86,
+            "text": " Se você ama mistérios da história, se inscreve no canal.",
+            "tokens": [
+                50408,
+                1100,
+                2723,
+                10889,
+                3544,
+                12052,
+                329,
+                1120,
+                20670,
+                11,
+                369,
+                27824,
+                303,
+                572,
+                9911,
+                13,
+                50572
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.37857328520880806,
+            "compression_ratio": 0.9076923076923077,
+            "no_speech_prob": 0.6779586672782898,
+            "words": [
+                {
+                    "word": " Se",
+                    "start": 51.92,
+                    "end": 52.98,
+                    "probability": 0.8623988628387451
+                },
+                {
+                    "word": " você",
+                    "start": 52.98,
+                    "end": 53.24,
+                    "probability": 0.9967597126960754
+                },
+                {
+                    "word": " ama",
+                    "start": 53.24,
+                    "end": 53.44,
+                    "probability": 0.8625258207321167
+                },
+                {
+                    "word": " mistérios",
+                    "start": 53.44,
+                    "end": 54.02,
+                    "probability": 0.8486407995223999
+                },
+                {
+                    "word": " da",
+                    "start": 54.02,
+                    "end": 54.1,
+                    "probability": 0.9967002272605896
+                },
+                {
+                    "word": " história,",
+                    "start": 54.1,
+                    "end": 54.52,
+                    "probability": 0.9740388989448547
+                },
+                {
+                    "word": " se",
+                    "start": 54.88,
+                    "end": 54.96,
+                    "probability": 0.9960688352584839
+                },
+                {
+                    "word": " inscreve",
+                    "start": 54.96,
+                    "end": 55.44,
+                    "probability": 0.9818775951862335
+                },
+                {
+                    "word": " no",
+                    "start": 55.44,
+                    "end": 55.54,
+                    "probability": 0.9939011335372925
+                },
+                {
+                    "word": " canal.",
+                    "start": 55.54,
+                    "end": 55.86,
+                    "probability": 0.9832330346107483
+                }
+            ]
+        }
+    ],
+    "language": "pt"
+}

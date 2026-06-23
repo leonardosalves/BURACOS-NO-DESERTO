@@ -1,0 +1,211 @@
+{
+  "strategy": {
+    "title_main": "O Detector de Terremotos de 1900 Anos que Intrigou a Ciência",
+    "title_variations": [
+      "A incrível máquina antiga que previa terremotos",
+      "O mistério do sismógrafo de dragão da China Antiga",
+      "Como este vaso de bronze previu um desastre a 500km?",
+      "Tecnologia impossível: O sismógrafo de Zhang Heng",
+      "O segredo dos dragões de bronze de 132 d.C."
+    ],
+    "hook": "Há 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância... antes de qualquer um sentir o chão tremer.",
+    "target_audience": "Fãs de curiosidades históricas, engenharia antiga, arqueologia misteriosa e tecnologia ancestral.",
+    "tone": "Misterioso, dramático, científico e admirável.",
+    "pinned_comment": "Você acredita que essa tecnologia foi perdida ou os antigos tinham conhecimentos que ainda não compreendemos? Comente abaixo!",
+    "cta": "Se você ama os maiores mistérios da história, se inscreva no canal para mais!"
+  },
+  "narrative_script": "Há 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância... antes de qualquer um sentir o chão tremer. Na China Antiga, tremores eram vistos como fúria dos deuses, até que o inventor Zhang Heng desafiou o inexplicável. Ele criou um sismógrafo genial: dragões de bronze cercavam o vaso, cada um segurando uma esfera sobre a boca de sapos famintos. Internamente, um pêndulo ultrassensível captava ondas sísmicas invisíveis. Um dia, uma esfera caiu apontando para o oeste. Mas ninguém sentiu nada e todos riram de Zhang. Dias depois, um mensageiro exausto chegou a cavalo: um terremoto devastador havia destruído o oeste do império. Como uma tecnologia tão antiga superou seu próprio tempo? Se você ama mistérios da história, se inscreve no canal!",
+  "visual_prompts": [
+    {
+      "scene": "1.1",
+      "block": 1,
+      "narration_text": "Há 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância... antes de qualquer um sentir o chão tremer.",
+      "function": "",
+      "duration": "6 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic slow motion shot of a massive ancient Chinese bronze vessel, ornate dragons carved on the surface, dusty mystical temple atmosphere, low angle camera slide, high detail, photorealistic 2k resolution, no text.",
+      "text_overlay": "",
+      "editor_notes": "Corte seco para iniciar com alto impacto visual. Zoom lento (Ken Burns) aproximando-se da cabeça de um dragão de bronze.",
+      "stock_query": "ancient chinese bronze vessel dragon"
+    },
+    {
+      "scene": "1.2",
+      "block": 2,
+      "narration_text": "Na China Antiga, tremores eram vistos como fúria dos deuses, até que o inventor Zhang Heng desafiou o inexplicável.",
+      "function": "",
+      "duration": "5 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Photorealistic 2k resolution of Zhang Heng, a wise Chinese scholar with a long beard and ancient robes, standing inside a traditional study filled with bamboo scrolls and astronomical instruments, warm dramatic side-lighting, cinematic composition, no text.",
+      "text_overlay": "",
+      "editor_notes": "Dissolvência suave. Imagem estática com efeito Ken Burns afastando para revelar o personagem histórico e o ambiente.",
+      "stock_query": "ancient chinese scholar study"
+    },
+    {
+      "scene": "1.3",
+      "block": 3,
+      "narration_text": "Ele criou um sismógrafo genial: dragões de bronze cercavam o vaso, cada um segurando uma esfera sobre a boca de sapos famintos.",
+      "function": "",
+      "duration": "6 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Extreme close-up photorealistic 2k resolution of a beautifully sculpted bronze dragon head on the urn, its mouth open, holding a shiny metal ball directly above a wide-open bronze toad's mouth waiting below, intricate ancient Chinese craftsmanship, atmospheric depth of field, no text.",
+      "text_overlay": "",
+      "editor_notes": "Corte rápido para close-up extremo. Foco nítido na esfera de bronze e na boca do dragão para explicar visualmente o mecanismo.",
+      "stock_query": "bronze dragon sculpture detail close up"
+    },
+    {
+      "scene": "1.4",
+      "block": 3,
+      "narration_text": "Internamente, um pêndulo ultrassensível captava ondas sísmicas invisíveis.",
+      "function": "",
+      "duration": "5 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Cutaway X-ray view diagram of the inner mechanism of the ancient Chinese bronze urn, showing a central copper pendulum suspended in the dark center, connected to delicate gears and levers, glowing faint blue energy lines representing kinetic force, hyper-detailed, photorealistic, no text.",
+      "text_overlay": "",
+      "editor_notes": "Efeito de raio-X/transparência para revelar o interior misterioso do vaso. Zoom in lento em direção ao pêndulo interno.",
+      "stock_query": "ancient mechanism gears blueprint"
+    },
+    {
+      "scene": "1.5",
+      "block": 4,
+      "narration_text": "Um dia, uma esfera caiu apontando para o oeste. Mas ninguém sentiu nada e todos riram de Zhang.",
+      "function": "",
+      "duration": "6 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic slow motion video of a bronze ball falling from a dragon's mouth and clanging into the bronze toad's mouth below, dust flying, dramatic side lighting, high-speed camera capture, no text.",
+      "text_overlay": "",
+      "editor_notes": "Vídeo dinâmico de alta velocidade mostrando o exato momento da queda da esfera. Som de impacto metálico seco ('CLANG') destacado no áudio.",
+      "stock_query": "ball falling metal impact slow motion"
+    },
+    {
+      "scene": "1.6",
+      "block": 4,
+      "narration_text": "Dias depois, um mensageiro exausto chegou a cavalo: um terremoto devastador havia destruído o oeste do império.",
+      "function": "",
+      "duration": "6 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic tracking shot of an ancient Chinese messenger on a sweating horse riding fast through a dusty road, ancient city gates in the background, cinematic sunset light, dynamic motion, high tension, no text.",
+      "text_overlay": "",
+      "editor_notes": "Vídeo dinâmico para dar sensação de urgência e velocidade. Contraste dramático com o silêncio anterior da cena.",
+      "stock_query": "ancient chinese messenger horse riding fast"
+    },
+    {
+      "scene": "1.7",
+      "block": 5,
+      "narration_text": "Como uma tecnologia tão antiga superou seu próprio tempo? Se você ama mistérios da história, se inscreve no canal!",
+      "function": "",
+      "duration": "6 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Wide angle photorealistic 2k resolution of the completed bronze seismoscope sitting majestically in an ancient palace hall, golden light rays piercing through high windows, mystical and revered atmosphere, cinematic depth of field, no text.",
+      "text_overlay": "",
+      "editor_notes": "Encerramento triunfal. Transição para plano aberto do sismoscópio brilhando. Inserir botão de inscrição animado por cima da imagem nos segundos finais.",
+      "stock_query": "ancient chinese palace hall light rays"
+    }
+  ],
+  "editing_map": "Mantenha o ritmo dinâmico ideal para Shorts (cortes a cada 5-6 segundos no máximo). Use transições sutis como 'film burn' ou 'zoom-in transition' para manter o espectador hipnotizado. Adicione legendas dinâmicas centralizadas com palavras coloridas (branco e amarelo/verde para destaque) acompanhando o ritmo acelerado da narração. Use efeitos sonoros (SFX) cruciais: som de terra tremendo no início, gongo suave, engrenagens rodando no bloco 3, um 'CLANG' metálico alto e nítido no bloco 4 e galope de cavalo em seguida.",
+  "hyperframe_prompt": "Crie uma sequência visual altamente cinematográfica para vídeo curto do sismógrafo de bronze de Zhang Heng de 132 d.C. O estilo deve evocar admiração e realismo histórico profundo: use iluminação dramática de chiaroscuro, fumaça sutil de incenso no ar e close-ups texturizados do metal oxidado e das esferas douradas caindo nas bocas dos sapos. Evite qualquer anacronismo e mantenha a estética imperial chinesa fiel e grandiosa.",
+  "bgm_recommendations": [
+    {
+      "block": 1,
+      "recommendation": "Início com um som misterioso de gongo oriental distante fundido com um drone de suspense tenso e de baixa frequência."
+    },
+    {
+      "block": 2,
+      "recommendation": "Flauta chinesa tradicional (Dizi) tocando uma melodia melancólica e misteriosa sobre uma base de cordas suaves."
+    },
+    {
+      "block": 3,
+      "recommendation": "Batidas de percussão lentas, como tambores Taiko sutis, aumentando a tensão à medida que o mecanismo interno é revelado."
+    },
+    {
+      "block": 4,
+      "recommendation": "Silêncio dramático logo após a queda da bola, seguido por uma batida rápida e tensa de tambores quando o mensageiro a cavalo é introduzido."
+    },
+    {
+      "block": 5,
+      "recommendation": "Trilha sonora orquestral épica crescendo, misturando instrumentos tradicionais e modernos, culminando no fechamento e chamada para ação."
+    }
+  ],
+  "checklist": {
+    "click_potential": 9,
+    "retention_potential": 10,
+    "comments_potential": 9,
+    "feedback": "O gancho forte ligado à previsão impossível ativa o viés de curiosidade imediata do espectador de Shorts. O ritmo da narração constrói uma narrativa curta perfeita com introdução, desenvolvimento e uma reviravolta histórica real de grande impacto."
+  },
+  "technical_config": {
+    "script": "Há 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância... antes de qualquer um sentir o chão tremer.\nNa China Antiga, tremores eram vistos como fúria dos deuses, até que o inventor Zhang Heng desafiou o inexplicável.\nEle criou um sismógrafo genial: dragões de bronze cercavam o vaso, cada um segurando uma esfera sobre a boca de sapos famintos.\nInternamente, um pêndulo ultrassensível captava ondas sísmicas invisíveis.\nUm dia, uma esfera caiu apontando para o oeste. Mas ninguém sentiu nada e todos riram de Zhang. Dias depois, um mensageiro exausto chegou a cavalo: um terremoto devastador havia destruído o oeste do império.\nComo uma tecnologia tão antiga superou seu próprio tempo? Se você ama mistérios da história, se inscreve no canal!",
+    "block_phrases": [
+      {
+        "block": 1,
+        "phrase": "Há 1900 anos, este jarro de bronze previu"
+      },
+      {
+        "block": 2,
+        "phrase": "Na China Antiga, tremores"
+      },
+      {
+        "block": 3,
+        "phrase": "Ele criou um sismógrafo genial"
+      },
+      {
+        "block": 4,
+        "phrase": "Um dia, uma esfera caiu"
+      },
+      {
+        "block": 5,
+        "phrase": "Como uma tecnologia tão antiga"
+      }
+    ],
+    "impact_texts": [
+      {
+        "block": 1,
+        "start_offset": 0,
+        "end_offset": 4,
+        "text": "PREVIU O IMPOSSÍVEL"
+      },
+      {
+        "block": 3,
+        "start_offset": 12,
+        "end_offset": 16.5,
+        "text": "MECANISMO GENIAL"
+      },
+      {
+        "block": 4,
+        "start_offset": 23,
+        "end_offset": 28,
+        "text": "ELES RIRAM DELE"
+      }
+    ],
+    "highlight_keywords": [
+      "jarro de bronze",
+      "terremoto",
+      "fúria dos deuses",
+      "Zhang Heng",
+      "sismógrafo",
+      "dragões",
+      "pêndulo",
+      "mensageiro exausto",
+      "tecnologia antiga"
+    ],
+    "bgm_mappings": [
+      {
+        "block": 1,
+        "file": "ancient_mystery_intro.mp3"
+      },
+      {
+        "block": 3,
+        "file": "chinese_tension_drums.mp3"
+      },
+      {
+        "block": 4,
+        "file": "dramatic_climax_reveal.mp3"
+      }
+    ]
+  }
+}

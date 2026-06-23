@@ -1,0 +1,767 @@
+[
+    {
+        "index": 1,
+        "filename": "segment_001.mp3",
+        "start_time": 0.0,
+        "duration": 5.98,
+        "end_time": 5.98,
+        "words": [
+            {
+                "word": " A",
+                "start": 0.0,
+                "end": 0.18
+            },
+            {
+                "word": " 1900",
+                "start": 0.18,
+                "end": 0.76
+            },
+            {
+                "word": " anos,",
+                "start": 0.76,
+                "end": 1.48
+            },
+            {
+                "word": " este",
+                "start": 1.74,
+                "end": 1.96
+            },
+            {
+                "word": " jarro",
+                "start": 1.96,
+                "end": 2.3
+            },
+            {
+                "word": " de",
+                "start": 2.3,
+                "end": 2.42
+            },
+            {
+                "word": " bronze",
+                "start": 2.42,
+                "end": 2.7
+            },
+            {
+                "word": " previu",
+                "start": 2.7,
+                "end": 3.14
+            },
+            {
+                "word": " um",
+                "start": 3.14,
+                "end": 3.32
+            },
+            {
+                "word": " terremoto",
+                "start": 3.32,
+                "end": 3.74
+            },
+            {
+                "word": " a",
+                "start": 3.74,
+                "end": 3.96
+            },
+            {
+                "word": " centenas",
+                "start": 3.96,
+                "end": 4.5
+            },
+            {
+                "word": " de",
+                "start": 4.5,
+                "end": 4.64
+            },
+            {
+                "word": " quilômetros",
+                "start": 4.64,
+                "end": 5.2
+            },
+            {
+                "word": " de",
+                "start": 5.2,
+                "end": 5.4
+            },
+            {
+                "word": " distância,",
+                "start": 5.4,
+                "end": 5.98
+            }
+        ],
+        "text": " A 1900 anos, este jarro de bronze previu um terremoto a centenas de quilômetros de distância,"
+    },
+    {
+        "index": 2,
+        "filename": "segment_002.mp3",
+        "start_time": 6.46,
+        "duration": 2.3199999999999994,
+        "end_time": 8.78,
+        "words": [
+            {
+                "word": " antes",
+                "start": 0.0,
+                "end": 0.2999999999999998
+            },
+            {
+                "word": " de",
+                "start": 0.2999999999999998,
+                "end": 0.5
+            },
+            {
+                "word": " qualquer",
+                "start": 0.5,
+                "end": 0.7599999999999998
+            },
+            {
+                "word": " um",
+                "start": 0.7599999999999998,
+                "end": 1.2199999999999998
+            },
+            {
+                "word": " sentir",
+                "start": 1.2199999999999998,
+                "end": 1.5599999999999996
+            },
+            {
+                "word": " o",
+                "start": 1.5599999999999996,
+                "end": 1.7800000000000002
+            },
+            {
+                "word": " chão",
+                "start": 1.7800000000000002,
+                "end": 1.8999999999999995
+            },
+            {
+                "word": " tremer.",
+                "start": 1.8999999999999995,
+                "end": 2.3199999999999994
+            }
+        ],
+        "text": " antes de qualquer um sentir o chão tremer."
+    },
+    {
+        "index": 3,
+        "filename": "segment_003.mp3",
+        "start_time": 9.42,
+        "duration": 3.540000000000001,
+        "end_time": 12.96,
+        "words": [
+            {
+                "word": " Na",
+                "start": 0.0,
+                "end": 0.1999999999999993
+            },
+            {
+                "word": " China",
+                "start": 0.1999999999999993,
+                "end": 0.4800000000000004
+            },
+            {
+                "word": " antiga,",
+                "start": 0.4800000000000004,
+                "end": 0.9399999999999995
+            },
+            {
+                "word": " tremores",
+                "start": 1.3399999999999999,
+                "end": 1.6400000000000006
+            },
+            {
+                "word": " eram",
+                "start": 1.6400000000000006,
+                "end": 1.8800000000000008
+            },
+            {
+                "word": " vistos",
+                "start": 1.8800000000000008,
+                "end": 2.3200000000000003
+            },
+            {
+                "word": " como",
+                "start": 2.3200000000000003,
+                "end": 2.5199999999999996
+            },
+            {
+                "word": " fúria",
+                "start": 2.5199999999999996,
+                "end": 2.960000000000001
+            },
+            {
+                "word": " dos",
+                "start": 2.960000000000001,
+                "end": 3.16
+            },
+            {
+                "word": " deuses,",
+                "start": 3.16,
+                "end": 3.540000000000001
+            }
+        ],
+        "text": " Na China antiga, tremores eram vistos como fúria dos deuses,"
+    },
+    {
+        "index": 4,
+        "filename": "segment_004.mp3",
+        "start_time": 13.3,
+        "duration": 3.5599999999999987,
+        "end_time": 16.86,
+        "words": [
+            {
+                "word": " até",
+                "start": 0.0,
+                "end": 0.379999999999999
+            },
+            {
+                "word": " que",
+                "start": 0.379999999999999,
+                "end": 0.5599999999999987
+            },
+            {
+                "word": " o",
+                "start": 0.5599999999999987,
+                "end": 0.6399999999999988
+            },
+            {
+                "word": " inventor",
+                "start": 0.6399999999999988,
+                "end": 1.0199999999999996
+            },
+            {
+                "word": " Zan",
+                "start": 1.0199999999999996,
+                "end": 1.42
+            },
+            {
+                "word": " Heng",
+                "start": 1.42,
+                "end": 1.7399999999999984
+            },
+            {
+                "word": " desafiou",
+                "start": 1.7399999999999984,
+                "end": 2.639999999999999
+            },
+            {
+                "word": " o",
+                "start": 2.639999999999999,
+                "end": 2.84
+            },
+            {
+                "word": " inexplicável.",
+                "start": 2.84,
+                "end": 3.5599999999999987
+            }
+        ],
+        "text": " até que o inventor Zan Heng desafiou o inexplicável."
+    },
+    {
+        "index": 5,
+        "filename": "segment_005.mp3",
+        "start_time": 17.6,
+        "duration": 1.6999999999999993,
+        "end_time": 19.3,
+        "words": [
+            {
+                "word": " Ele",
+                "start": 0.0,
+                "end": 0.259999999999998
+            },
+            {
+                "word": " criou",
+                "start": 0.259999999999998,
+                "end": 0.5799999999999983
+            },
+            {
+                "word": " um",
+                "start": 0.5799999999999983,
+                "end": 0.7199999999999989
+            },
+            {
+                "word": " seismógrafo",
+                "start": 0.7199999999999989,
+                "end": 1.3399999999999999
+            },
+            {
+                "word": " genial.",
+                "start": 1.3399999999999999,
+                "end": 1.6999999999999993
+            }
+        ],
+        "text": " Ele criou um seismógrafo genial."
+    },
+    {
+        "index": 6,
+        "filename": "segment_006.mp3",
+        "start_time": 19.98,
+        "duration": 5.48,
+        "end_time": 25.46,
+        "words": [
+            {
+                "word": " Dragões",
+                "start": 0.0,
+                "end": 0.3000000000000007
+            },
+            {
+                "word": " de",
+                "start": 0.3000000000000007,
+                "end": 0.5
+            },
+            {
+                "word": " bronze",
+                "start": 0.5,
+                "end": 0.7800000000000011
+            },
+            {
+                "word": " cercavam",
+                "start": 0.7800000000000011,
+                "end": 1.379999999999999
+            },
+            {
+                "word": " o",
+                "start": 1.379999999999999,
+                "end": 1.5799999999999983
+            },
+            {
+                "word": " vaso,",
+                "start": 1.5799999999999983,
+                "end": 1.8999999999999986
+            },
+            {
+                "word": " cada",
+                "start": 2.219999999999999,
+                "end": 2.3999999999999986
+            },
+            {
+                "word": " um",
+                "start": 2.3999999999999986,
+                "end": 2.599999999999998
+            },
+            {
+                "word": " segurando",
+                "start": 2.599999999999998,
+                "end": 3.0599999999999987
+            },
+            {
+                "word": " uma",
+                "start": 3.0599999999999987,
+                "end": 3.259999999999998
+            },
+            {
+                "word": " esfera",
+                "start": 3.259999999999998,
+                "end": 3.5799999999999983
+            },
+            {
+                "word": " sobre",
+                "start": 3.5799999999999983,
+                "end": 3.9400000000000013
+            },
+            {
+                "word": " a",
+                "start": 3.9400000000000013,
+                "end": 4.079999999999998
+            },
+            {
+                "word": " boca",
+                "start": 4.079999999999998,
+                "end": 4.219999999999999
+            },
+            {
+                "word": " de",
+                "start": 4.219999999999999,
+                "end": 4.5
+            },
+            {
+                "word": " sapos",
+                "start": 4.5,
+                "end": 4.919999999999998
+            },
+            {
+                "word": " famintos.",
+                "start": 4.919999999999998,
+                "end": 5.48
+            }
+        ],
+        "text": " Dragões de bronze cercavam o vaso, cada um segurando uma esfera sobre a boca de sapos famintos."
+    },
+    {
+        "index": 7,
+        "filename": "segment_007.mp3",
+        "start_time": 26.1,
+        "duration": 5.099999999999998,
+        "end_time": 31.2,
+        "words": [
+            {
+                "word": " Internamente,",
+                "start": 0.0,
+                "end": 0.759999999999998
+            },
+            {
+                "word": " um",
+                "start": 1.139999999999997,
+                "end": 1.2399999999999984
+            },
+            {
+                "word": " pêndulo",
+                "start": 1.2399999999999984,
+                "end": 1.7399999999999984
+            },
+            {
+                "word": " ultra",
+                "start": 1.7399999999999984,
+                "end": 2.1799999999999997
+            },
+            {
+                "word": "-sensível",
+                "start": 2.1799999999999997,
+                "end": 2.799999999999997
+            },
+            {
+                "word": " captava",
+                "start": 2.799999999999997,
+                "end": 3.4399999999999977
+            },
+            {
+                "word": " ondas",
+                "start": 3.4399999999999977,
+                "end": 3.7799999999999976
+            },
+            {
+                "word": " sísmicas",
+                "start": 3.7799999999999976,
+                "end": 4.399999999999999
+            },
+            {
+                "word": " invisíveis.",
+                "start": 4.399999999999999,
+                "end": 5.099999999999998
+            }
+        ],
+        "text": " Internamente, um pêndulo ultra-sensível captava ondas sísmicas invisíveis."
+    },
+    {
+        "index": 8,
+        "filename": "segment_008.mp3",
+        "start_time": 31.92,
+        "duration": 6.100000000000001,
+        "end_time": 38.02,
+        "words": [
+            {
+                "word": " Um",
+                "start": 0.0,
+                "end": 0.35999999999999943
+            },
+            {
+                "word": " dia,",
+                "start": 0.35999999999999943,
+                "end": 0.6599999999999966
+            },
+            {
+                "word": " uma",
+                "start": 0.9799999999999969,
+                "end": 1.1400000000000006
+            },
+            {
+                "word": " esfera",
+                "start": 1.1400000000000006,
+                "end": 1.3999999999999986
+            },
+            {
+                "word": " caiu,",
+                "start": 1.3999999999999986,
+                "end": 1.9200000000000017
+            },
+            {
+                "word": " apontando",
+                "start": 2.4399999999999977,
+                "end": 3.039999999999999
+            },
+            {
+                "word": " para",
+                "start": 3.039999999999999,
+                "end": 3.219999999999999
+            },
+            {
+                "word": " o",
+                "start": 3.219999999999999,
+                "end": 3.3599999999999994
+            },
+            {
+                "word": " Oeste,",
+                "start": 3.3599999999999994,
+                "end": 3.739999999999995
+            },
+            {
+                "word": " mas",
+                "start": 4.479999999999997,
+                "end": 4.619999999999997
+            },
+            {
+                "word": " ninguém",
+                "start": 4.619999999999997,
+                "end": 4.960000000000001
+            },
+            {
+                "word": " sentiu",
+                "start": 4.960000000000001,
+                "end": 5.600000000000001
+            },
+            {
+                "word": " nada.",
+                "start": 5.600000000000001,
+                "end": 6.100000000000001
+            }
+        ],
+        "text": " Um dia, uma esfera caiu, apontando para o Oeste, mas ninguém sentiu nada."
+    },
+    {
+        "index": 9,
+        "filename": "segment_009.mp3",
+        "start_time": 38.9,
+        "duration": 1.1200000000000045,
+        "end_time": 40.02,
+        "words": [
+            {
+                "word": " Todos",
+                "start": 0.0,
+                "end": 0.259999999999998
+            },
+            {
+                "word": " riram",
+                "start": 0.259999999999998,
+                "end": 0.6600000000000037
+            },
+            {
+                "word": " de",
+                "start": 0.6600000000000037,
+                "end": 0.8000000000000043
+            },
+            {
+                "word": " Zang.",
+                "start": 0.8000000000000043,
+                "end": 1.1200000000000045
+            }
+        ],
+        "text": " Todos riram de Zang."
+    },
+    {
+        "index": 10,
+        "filename": "segment_010.mp3",
+        "start_time": 40.76,
+        "duration": 3.0,
+        "end_time": 43.76,
+        "words": [
+            {
+                "word": " Dias",
+                "start": 0.0,
+                "end": 0.2600000000000051
+            },
+            {
+                "word": " depois,",
+                "start": 0.2600000000000051,
+                "end": 0.5600000000000023
+            },
+            {
+                "word": " um",
+                "start": 1.0,
+                "end": 1.1000000000000014
+            },
+            {
+                "word": " mensageiro",
+                "start": 1.1000000000000014,
+                "end": 1.6400000000000006
+            },
+            {
+                "word": " exausto",
+                "start": 1.6400000000000006,
+                "end": 2.1600000000000037
+            },
+            {
+                "word": " chegou",
+                "start": 2.1600000000000037,
+                "end": 2.4200000000000017
+            },
+            {
+                "word": " a",
+                "start": 2.4200000000000017,
+                "end": 2.6000000000000014
+            },
+            {
+                "word": " cavalo.",
+                "start": 2.6000000000000014,
+                "end": 3.0
+            }
+        ],
+        "text": " Dias depois, um mensageiro exausto chegou a cavalo."
+    },
+    {
+        "index": 11,
+        "filename": "segment_011.mp3",
+        "start_time": 44.2,
+        "duration": 3.8200000000000003,
+        "end_time": 48.02,
+        "words": [
+            {
+                "word": " Um",
+                "start": 0.0,
+                "end": 0.14000000000000057
+            },
+            {
+                "word": " terremoto",
+                "start": 0.14000000000000057,
+                "end": 0.6999999999999957
+            },
+            {
+                "word": " devastador",
+                "start": 0.6999999999999957,
+                "end": 1.5799999999999983
+            },
+            {
+                "word": " havia",
+                "start": 1.5799999999999983,
+                "end": 2.059999999999995
+            },
+            {
+                "word": " destruído",
+                "start": 2.059999999999995,
+                "end": 2.6999999999999957
+            },
+            {
+                "word": " o",
+                "start": 2.6999999999999957,
+                "end": 2.8799999999999955
+            },
+            {
+                "word": " Oeste",
+                "start": 2.8799999999999955,
+                "end": 3.219999999999999
+            },
+            {
+                "word": " do",
+                "start": 3.219999999999999,
+                "end": 3.3599999999999994
+            },
+            {
+                "word": " Imperio.",
+                "start": 3.3599999999999994,
+                "end": 3.8200000000000003
+            }
+        ],
+        "text": " Um terremoto devastador havia destruído o Oeste do Imperio."
+    },
+    {
+        "index": 12,
+        "filename": "segment_012.mp3",
+        "start_time": 48.58,
+        "duration": 3.3400000000000034,
+        "end_time": 51.92,
+        "words": [
+            {
+                "word": " Como",
+                "start": 0.0,
+                "end": 0.28000000000000114
+            },
+            {
+                "word": " uma",
+                "start": 0.28000000000000114,
+                "end": 0.5
+            },
+            {
+                "word": " tecnologia",
+                "start": 0.5,
+                "end": 1.0600000000000023
+            },
+            {
+                "word": " tão",
+                "start": 1.0600000000000023,
+                "end": 1.4400000000000048
+            },
+            {
+                "word": " antiga",
+                "start": 1.4400000000000048,
+                "end": 1.9200000000000017
+            },
+            {
+                "word": " superou",
+                "start": 1.9200000000000017,
+                "end": 2.3800000000000026
+            },
+            {
+                "word": " seu",
+                "start": 2.3800000000000026,
+                "end": 2.5600000000000023
+            },
+            {
+                "word": " próprio",
+                "start": 2.5600000000000023,
+                "end": 2.8999999999999986
+            },
+            {
+                "word": " tempo.",
+                "start": 2.8999999999999986,
+                "end": 3.3400000000000034
+            }
+        ],
+        "text": " Como uma tecnologia tão antiga superou seu próprio tempo."
+    },
+    {
+        "index": 13,
+        "filename": "segment_013.mp3",
+        "start_time": 51.92,
+        "duration": 3.9399999999999977,
+        "end_time": 55.86,
+        "words": [
+            {
+                "word": " Se",
+                "start": 0.0,
+                "end": 1.0599999999999952
+            },
+            {
+                "word": " você",
+                "start": 1.0599999999999952,
+                "end": 1.3200000000000003
+            },
+            {
+                "word": " ama",
+                "start": 1.3200000000000003,
+                "end": 1.519999999999996
+            },
+            {
+                "word": " mistérios",
+                "start": 1.519999999999996,
+                "end": 2.1000000000000014
+            },
+            {
+                "word": " da",
+                "start": 2.1000000000000014,
+                "end": 2.1799999999999997
+            },
+            {
+                "word": " história,",
+                "start": 2.1799999999999997,
+                "end": 2.6000000000000014
+            },
+            {
+                "word": " se",
+                "start": 2.960000000000001,
+                "end": 3.039999999999999
+            },
+            {
+                "word": " inscreve",
+                "start": 3.039999999999999,
+                "end": 3.519999999999996
+            },
+            {
+                "word": " no",
+                "start": 3.519999999999996,
+                "end": 3.6199999999999974
+            },
+            {
+                "word": " canal.",
+                "start": 3.6199999999999974,
+                "end": 3.9399999999999977
+            }
+        ],
+        "text": " Se você ama mistérios da história, se inscreve no canal."
+    }
+]

@@ -1,0 +1,144 @@
+[Script Info]
+Title: Qanat Documentary Subtitles
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,30,30,320,1
+Style: Impact,Arial,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.18,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}A{\c&HFFFFFF&}{\1a&H44&}{\fs48} 1900 anos, este
+Dialogue: 0,0:00:00.18,0:00:00.76,Default,,0,0,0,,{\1a&H44&}{\fs48} A {\c&HFFE080&}{\1a&H00&}{\fs58}1900{\c&HFFFFFF&}{\1a&H44&}{\fs48} anos, este
+Dialogue: 0,0:00:00.76,0:00:01.74,Default,,0,0,0,,{\1a&H44&}{\fs48} A 1900 {\c&HFFE080&}{\1a&H00&}{\fs58}anos,{\c&HFFFFFF&}{\1a&H44&}{\fs48} este
+Dialogue: 0,0:00:01.74,0:00:01.96,Default,,0,0,0,,{\1a&H44&}{\fs48} A 1900 anos, {\c&HFFE080&}{\1a&H00&}{\fs58}este{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:01.96,0:00:02.30,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}jarro{\c&HFFFFFF&}{\1a&H44&}{\fs48} de bronze previu
+Dialogue: 0,0:00:02.30,0:00:02.42,Default,,0,0,0,,{\1a&H44&}{\fs48} jarro {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} bronze previu
+Dialogue: 0,0:00:02.42,0:00:02.70,Default,,0,0,0,,{\1a&H44&}{\fs48} jarro de {\c&HFFE080&}{\1a&H00&}{\fs58}bronze{\c&HFFFFFF&}{\1a&H44&}{\fs48} previu
+Dialogue: 0,0:00:02.70,0:00:03.14,Default,,0,0,0,,{\1a&H44&}{\fs48} jarro de bronze {\c&HFFE080&}{\1a&H00&}{\fs58}previu{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:03.14,0:00:03.32,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48} terremoto a centenas
+Dialogue: 0,0:00:03.32,0:00:03.74,Default,,0,0,0,,{\1a&H44&}{\fs48} um {\c&H00C5FF&}{\1a&H00&}{\fs58}terremoto{\c&HFFFFFF&}{\1a&H44&}{\fs48} a centenas
+Dialogue: 0,0:00:03.74,0:00:03.96,Default,,0,0,0,,{\1a&H44&}{\fs48} um terremoto {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} centenas
+Dialogue: 0,0:00:03.96,0:00:04.50,Default,,0,0,0,,{\1a&H44&}{\fs48} um terremoto a {\c&HFFE080&}{\1a&H00&}{\fs58}centenas{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:04.50,0:00:04.64,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} quilômetros de distância,
+Dialogue: 0,0:00:04.64,0:00:05.20,Default,,0,0,0,,{\1a&H44&}{\fs48} de {\c&HFFE080&}{\1a&H00&}{\fs58}quilômetros{\c&HFFFFFF&}{\1a&H44&}{\fs48} de distância,
+Dialogue: 0,0:00:05.20,0:00:05.40,Default,,0,0,0,,{\1a&H44&}{\fs48} de quilômetros {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} distância,
+Dialogue: 0,0:00:05.40,0:00:05.98,Default,,0,0,0,,{\1a&H44&}{\fs48} de quilômetros de {\c&HFFE080&}{\1a&H00&}{\fs58}distância,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:06.46,0:00:06.76,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}antes{\c&HFFFFFF&}{\1a&H44&}{\fs48} de qualquer um
+Dialogue: 0,0:00:06.76,0:00:06.96,Default,,0,0,0,,{\1a&H44&}{\fs48} antes {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} qualquer um
+Dialogue: 0,0:00:06.96,0:00:07.22,Default,,0,0,0,,{\1a&H44&}{\fs48} antes de {\c&HFFE080&}{\1a&H00&}{\fs58}qualquer{\c&HFFFFFF&}{\1a&H44&}{\fs48} um
+Dialogue: 0,0:00:07.22,0:00:07.68,Default,,0,0,0,,{\1a&H44&}{\fs48} antes de qualquer {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:07.68,0:00:08.02,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}sentir{\c&HFFFFFF&}{\1a&H44&}{\fs48} o chão tremer.
+Dialogue: 0,0:00:08.02,0:00:08.24,Default,,0,0,0,,{\1a&H44&}{\fs48} sentir {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} chão tremer.
+Dialogue: 0,0:00:08.24,0:00:08.36,Default,,0,0,0,,{\1a&H44&}{\fs48} sentir o {\c&HFFE080&}{\1a&H00&}{\fs58}chão{\c&HFFFFFF&}{\1a&H44&}{\fs48} tremer.
+Dialogue: 0,0:00:08.36,0:00:08.78,Default,,0,0,0,,{\1a&H44&}{\fs48} sentir o chão {\c&HFFE080&}{\1a&H00&}{\fs58}tremer.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:09.42,0:00:09.62,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Na{\c&HFFFFFF&}{\1a&H44&}{\fs48} China antiga, tremores
+Dialogue: 0,0:00:09.62,0:00:09.90,Default,,0,0,0,,{\1a&H44&}{\fs48} Na {\c&HFFE080&}{\1a&H00&}{\fs58}China{\c&HFFFFFF&}{\1a&H44&}{\fs48} antiga, tremores
+Dialogue: 0,0:00:09.90,0:00:10.76,Default,,0,0,0,,{\1a&H44&}{\fs48} Na China {\c&HFFE080&}{\1a&H00&}{\fs58}antiga,{\c&HFFFFFF&}{\1a&H44&}{\fs48} tremores
+Dialogue: 0,0:00:10.76,0:00:11.06,Default,,0,0,0,,{\1a&H44&}{\fs48} Na China antiga, {\c&HFFE080&}{\1a&H00&}{\fs58}tremores{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:11.06,0:00:11.30,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}eram{\c&HFFFFFF&}{\1a&H44&}{\fs48} vistos como fúria
+Dialogue: 0,0:00:11.30,0:00:11.74,Default,,0,0,0,,{\1a&H44&}{\fs48} eram {\c&HFFE080&}{\1a&H00&}{\fs58}vistos{\c&HFFFFFF&}{\1a&H44&}{\fs48} como fúria
+Dialogue: 0,0:00:11.74,0:00:11.94,Default,,0,0,0,,{\1a&H44&}{\fs48} eram vistos {\c&HFFE080&}{\1a&H00&}{\fs58}como{\c&HFFFFFF&}{\1a&H44&}{\fs48} fúria
+Dialogue: 0,0:00:11.94,0:00:12.38,Default,,0,0,0,,{\1a&H44&}{\fs48} eram vistos como {\c&HFFE080&}{\1a&H00&}{\fs58}fúria{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:12.38,0:00:12.58,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}dos{\c&HFFFFFF&}{\1a&H44&}{\fs48} deuses,
+Dialogue: 0,0:00:12.58,0:00:12.96,Default,,0,0,0,,{\1a&H44&}{\fs48} dos {\c&HFFE080&}{\1a&H00&}{\fs58}deuses,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:13.30,0:00:13.68,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}até{\c&HFFFFFF&}{\1a&H44&}{\fs48} que o inventor
+Dialogue: 0,0:00:13.68,0:00:13.86,Default,,0,0,0,,{\1a&H44&}{\fs48} até {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} o inventor
+Dialogue: 0,0:00:13.86,0:00:13.94,Default,,0,0,0,,{\1a&H44&}{\fs48} até que {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} inventor
+Dialogue: 0,0:00:13.94,0:00:14.32,Default,,0,0,0,,{\1a&H44&}{\fs48} até que o {\c&HFFE080&}{\1a&H00&}{\fs58}inventor{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:14.32,0:00:14.72,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Zan{\c&HFFFFFF&}{\1a&H44&}{\fs48} Heng desafiou o
+Dialogue: 0,0:00:14.72,0:00:15.04,Default,,0,0,0,,{\1a&H44&}{\fs48} Zan {\c&HFFE080&}{\1a&H00&}{\fs58}Heng{\c&HFFFFFF&}{\1a&H44&}{\fs48} desafiou o
+Dialogue: 0,0:00:15.04,0:00:15.94,Default,,0,0,0,,{\1a&H44&}{\fs48} Zan Heng {\c&HFFE080&}{\1a&H00&}{\fs58}desafiou{\c&HFFFFFF&}{\1a&H44&}{\fs48} o
+Dialogue: 0,0:00:15.94,0:00:16.14,Default,,0,0,0,,{\1a&H44&}{\fs48} Zan Heng desafiou {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:16.14,0:00:16.86,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}inexplicável.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:17.60,0:00:17.86,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Ele{\c&HFFFFFF&}{\1a&H44&}{\fs48} criou um seismógrafo
+Dialogue: 0,0:00:17.86,0:00:18.18,Default,,0,0,0,,{\1a&H44&}{\fs48} Ele {\c&HFFE080&}{\1a&H00&}{\fs58}criou{\c&HFFFFFF&}{\1a&H44&}{\fs48} um seismógrafo
+Dialogue: 0,0:00:18.18,0:00:18.32,Default,,0,0,0,,{\1a&H44&}{\fs48} Ele criou {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48} seismógrafo
+Dialogue: 0,0:00:18.32,0:00:18.94,Default,,0,0,0,,{\1a&H44&}{\fs48} Ele criou um {\c&HFFE080&}{\1a&H00&}{\fs58}seismógrafo{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:18.94,0:00:19.30,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}genial.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:19.98,0:00:20.28,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&H00C5FF&}{\1a&H00&}{\fs58}Dragões{\c&HFFFFFF&}{\1a&H44&}{\fs48} de bronze cercavam
+Dialogue: 0,0:00:20.28,0:00:20.48,Default,,0,0,0,,{\1a&H44&}{\fs48} Dragões {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} bronze cercavam
+Dialogue: 0,0:00:20.48,0:00:20.76,Default,,0,0,0,,{\1a&H44&}{\fs48} Dragões de {\c&HFFE080&}{\1a&H00&}{\fs58}bronze{\c&HFFFFFF&}{\1a&H44&}{\fs48} cercavam
+Dialogue: 0,0:00:20.76,0:00:21.36,Default,,0,0,0,,{\1a&H44&}{\fs48} Dragões de bronze {\c&HFFE080&}{\1a&H00&}{\fs58}cercavam{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:21.36,0:00:21.56,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} vaso, cada um
+Dialogue: 0,0:00:21.56,0:00:22.20,Default,,0,0,0,,{\1a&H44&}{\fs48} o {\c&HFFE080&}{\1a&H00&}{\fs58}vaso,{\c&HFFFFFF&}{\1a&H44&}{\fs48} cada um
+Dialogue: 0,0:00:22.20,0:00:22.38,Default,,0,0,0,,{\1a&H44&}{\fs48} o vaso, {\c&HFFE080&}{\1a&H00&}{\fs58}cada{\c&HFFFFFF&}{\1a&H44&}{\fs48} um
+Dialogue: 0,0:00:22.38,0:00:22.58,Default,,0,0,0,,{\1a&H44&}{\fs48} o vaso, cada {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:22.58,0:00:23.04,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}segurando{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma esfera sobre
+Dialogue: 0,0:00:23.04,0:00:23.24,Default,,0,0,0,,{\1a&H44&}{\fs48} segurando {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} esfera sobre
+Dialogue: 0,0:00:23.24,0:00:23.56,Default,,0,0,0,,{\1a&H44&}{\fs48} segurando uma {\c&HFFE080&}{\1a&H00&}{\fs58}esfera{\c&HFFFFFF&}{\1a&H44&}{\fs48} sobre
+Dialogue: 0,0:00:23.56,0:00:23.92,Default,,0,0,0,,{\1a&H44&}{\fs48} segurando uma esfera {\c&HFFE080&}{\1a&H00&}{\fs58}sobre{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:23.92,0:00:24.06,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} boca de sapos
+Dialogue: 0,0:00:24.06,0:00:24.20,Default,,0,0,0,,{\1a&H44&}{\fs48} a {\c&HFFE080&}{\1a&H00&}{\fs58}boca{\c&HFFFFFF&}{\1a&H44&}{\fs48} de sapos
+Dialogue: 0,0:00:24.20,0:00:24.48,Default,,0,0,0,,{\1a&H44&}{\fs48} a boca {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} sapos
+Dialogue: 0,0:00:24.48,0:00:24.90,Default,,0,0,0,,{\1a&H44&}{\fs48} a boca de {\c&HFFE080&}{\1a&H00&}{\fs58}sapos{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:24.90,0:00:25.46,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}famintos.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:26.10,0:00:27.24,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Internamente,{\c&HFFFFFF&}{\1a&H44&}{\fs48} um pêndulo ultra
+Dialogue: 0,0:00:27.24,0:00:27.34,Default,,0,0,0,,{\1a&H44&}{\fs48} Internamente, {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48} pêndulo ultra
+Dialogue: 0,0:00:27.34,0:00:27.84,Default,,0,0,0,,{\1a&H44&}{\fs48} Internamente, um {\c&H00C5FF&}{\1a&H00&}{\fs58}pêndulo{\c&HFFFFFF&}{\1a&H44&}{\fs48} ultra
+Dialogue: 0,0:00:27.84,0:00:28.28,Default,,0,0,0,,{\1a&H44&}{\fs48} Internamente, um pêndulo {\c&HFFE080&}{\1a&H00&}{\fs58}ultra{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:28.28,0:00:28.90,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}-sensível{\c&HFFFFFF&}{\1a&H44&}{\fs48} captava ondas sísmicas
+Dialogue: 0,0:00:28.90,0:00:29.54,Default,,0,0,0,,{\1a&H44&}{\fs48}-sensível {\c&HFFE080&}{\1a&H00&}{\fs58}captava{\c&HFFFFFF&}{\1a&H44&}{\fs48} ondas sísmicas
+Dialogue: 0,0:00:29.54,0:00:29.88,Default,,0,0,0,,{\1a&H44&}{\fs48}-sensível captava {\c&HFFE080&}{\1a&H00&}{\fs58}ondas{\c&HFFFFFF&}{\1a&H44&}{\fs48} sísmicas
+Dialogue: 0,0:00:29.88,0:00:30.50,Default,,0,0,0,,{\1a&H44&}{\fs48}-sensível captava ondas {\c&HFFE080&}{\1a&H00&}{\fs58}sísmicas{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:30.50,0:00:31.20,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}invisíveis.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:31.92,0:00:32.28,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Um{\c&HFFFFFF&}{\1a&H44&}{\fs48} dia, uma esfera
+Dialogue: 0,0:00:32.28,0:00:32.90,Default,,0,0,0,,{\1a&H44&}{\fs48} Um {\c&HFFE080&}{\1a&H00&}{\fs58}dia,{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma esfera
+Dialogue: 0,0:00:32.90,0:00:33.06,Default,,0,0,0,,{\1a&H44&}{\fs48} Um dia, {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} esfera
+Dialogue: 0,0:00:33.06,0:00:33.32,Default,,0,0,0,,{\1a&H44&}{\fs48} Um dia, uma {\c&HFFE080&}{\1a&H00&}{\fs58}esfera{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:33.32,0:00:34.36,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}caiu,{\c&HFFFFFF&}{\1a&H44&}{\fs48} apontando para o
+Dialogue: 0,0:00:34.36,0:00:34.96,Default,,0,0,0,,{\1a&H44&}{\fs48} caiu, {\c&HFFE080&}{\1a&H00&}{\fs58}apontando{\c&HFFFFFF&}{\1a&H44&}{\fs48} para o
+Dialogue: 0,0:00:34.96,0:00:35.14,Default,,0,0,0,,{\1a&H44&}{\fs48} caiu, apontando {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48} o
+Dialogue: 0,0:00:35.14,0:00:35.28,Default,,0,0,0,,{\1a&H44&}{\fs48} caiu, apontando para {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:35.28,0:00:36.40,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Oeste,{\c&HFFFFFF&}{\1a&H44&}{\fs48} mas ninguém sentiu
+Dialogue: 0,0:00:36.40,0:00:36.54,Default,,0,0,0,,{\1a&H44&}{\fs48} Oeste, {\c&HFFE080&}{\1a&H00&}{\fs58}mas{\c&HFFFFFF&}{\1a&H44&}{\fs48} ninguém sentiu
+Dialogue: 0,0:00:36.54,0:00:36.88,Default,,0,0,0,,{\1a&H44&}{\fs48} Oeste, mas {\c&HFFE080&}{\1a&H00&}{\fs58}ninguém{\c&HFFFFFF&}{\1a&H44&}{\fs48} sentiu
+Dialogue: 0,0:00:36.88,0:00:37.52,Default,,0,0,0,,{\1a&H44&}{\fs48} Oeste, mas ninguém {\c&HFFE080&}{\1a&H00&}{\fs58}sentiu{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:37.52,0:00:38.02,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}nada.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:38.90,0:00:39.16,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Todos{\c&HFFFFFF&}{\1a&H44&}{\fs48} riram de Zang.
+Dialogue: 0,0:00:39.16,0:00:39.56,Default,,0,0,0,,{\1a&H44&}{\fs48} Todos {\c&HFFE080&}{\1a&H00&}{\fs58}riram{\c&HFFFFFF&}{\1a&H44&}{\fs48} de Zang.
+Dialogue: 0,0:00:39.56,0:00:39.70,Default,,0,0,0,,{\1a&H44&}{\fs48} Todos riram {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} Zang.
+Dialogue: 0,0:00:39.70,0:00:40.02,Default,,0,0,0,,{\1a&H44&}{\fs48} Todos riram de {\c&HFFE080&}{\1a&H00&}{\fs58}Zang.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:40.76,0:00:41.02,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Dias{\c&HFFFFFF&}{\1a&H44&}{\fs48} depois, um mensageiro
+Dialogue: 0,0:00:41.02,0:00:41.76,Default,,0,0,0,,{\1a&H44&}{\fs48} Dias {\c&HFFE080&}{\1a&H00&}{\fs58}depois,{\c&HFFFFFF&}{\1a&H44&}{\fs48} um mensageiro
+Dialogue: 0,0:00:41.76,0:00:41.86,Default,,0,0,0,,{\1a&H44&}{\fs48} Dias depois, {\c&HFFE080&}{\1a&H00&}{\fs58}um{\c&HFFFFFF&}{\1a&H44&}{\fs48} mensageiro
+Dialogue: 0,0:00:41.86,0:00:42.40,Default,,0,0,0,,{\1a&H44&}{\fs48} Dias depois, um {\c&HFFE080&}{\1a&H00&}{\fs58}mensageiro{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:42.40,0:00:42.92,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}exausto{\c&HFFFFFF&}{\1a&H44&}{\fs48} chegou a cavalo.
+Dialogue: 0,0:00:42.92,0:00:43.18,Default,,0,0,0,,{\1a&H44&}{\fs48} exausto {\c&HFFE080&}{\1a&H00&}{\fs58}chegou{\c&HFFFFFF&}{\1a&H44&}{\fs48} a cavalo.
+Dialogue: 0,0:00:43.18,0:00:43.36,Default,,0,0,0,,{\1a&H44&}{\fs48} exausto chegou {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} cavalo.
+Dialogue: 0,0:00:43.36,0:00:43.76,Default,,0,0,0,,{\1a&H44&}{\fs48} exausto chegou a {\c&HFFE080&}{\1a&H00&}{\fs58}cavalo.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:44.20,0:00:44.34,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Um{\c&HFFFFFF&}{\1a&H44&}{\fs48} terremoto devastador havia
+Dialogue: 0,0:00:44.34,0:00:44.90,Default,,0,0,0,,{\1a&H44&}{\fs48} Um {\c&H00C5FF&}{\1a&H00&}{\fs58}terremoto{\c&HFFFFFF&}{\1a&H44&}{\fs48} devastador havia
+Dialogue: 0,0:00:44.90,0:00:45.78,Default,,0,0,0,,{\1a&H44&}{\fs48} Um terremoto {\c&HFFE080&}{\1a&H00&}{\fs58}devastador{\c&HFFFFFF&}{\1a&H44&}{\fs48} havia
+Dialogue: 0,0:00:45.78,0:00:46.26,Default,,0,0,0,,{\1a&H44&}{\fs48} Um terremoto devastador {\c&HFFE080&}{\1a&H00&}{\fs58}havia{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:46.26,0:00:46.90,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}destruído{\c&HFFFFFF&}{\1a&H44&}{\fs48} o Oeste do
+Dialogue: 0,0:00:46.90,0:00:47.08,Default,,0,0,0,,{\1a&H44&}{\fs48} destruído {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} Oeste do
+Dialogue: 0,0:00:47.08,0:00:47.42,Default,,0,0,0,,{\1a&H44&}{\fs48} destruído o {\c&HFFE080&}{\1a&H00&}{\fs58}Oeste{\c&HFFFFFF&}{\1a&H44&}{\fs48} do
+Dialogue: 0,0:00:47.42,0:00:47.56,Default,,0,0,0,,{\1a&H44&}{\fs48} destruído o Oeste {\c&HFFE080&}{\1a&H00&}{\fs58}do{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:47.56,0:00:48.02,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Imperio.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:48.58,0:00:48.86,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Como{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma tecnologia tão
+Dialogue: 0,0:00:48.86,0:00:49.08,Default,,0,0,0,,{\1a&H44&}{\fs48} Como {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} tecnologia tão
+Dialogue: 0,0:00:49.08,0:00:49.64,Default,,0,0,0,,{\1a&H44&}{\fs48} Como uma {\c&HFFE080&}{\1a&H00&}{\fs58}tecnologia{\c&HFFFFFF&}{\1a&H44&}{\fs48} tão
+Dialogue: 0,0:00:49.64,0:00:50.02,Default,,0,0,0,,{\1a&H44&}{\fs48} Como uma tecnologia {\c&HFFE080&}{\1a&H00&}{\fs58}tão{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:50.02,0:00:50.50,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}antiga{\c&HFFFFFF&}{\1a&H44&}{\fs48} superou seu próprio
+Dialogue: 0,0:00:50.50,0:00:50.96,Default,,0,0,0,,{\1a&H44&}{\fs48} antiga {\c&HFFE080&}{\1a&H00&}{\fs58}superou{\c&HFFFFFF&}{\1a&H44&}{\fs48} seu próprio
+Dialogue: 0,0:00:50.96,0:00:51.14,Default,,0,0,0,,{\1a&H44&}{\fs48} antiga superou {\c&HFFE080&}{\1a&H00&}{\fs58}seu{\c&HFFFFFF&}{\1a&H44&}{\fs48} próprio
+Dialogue: 0,0:00:51.14,0:00:51.48,Default,,0,0,0,,{\1a&H44&}{\fs48} antiga superou seu {\c&HFFE080&}{\1a&H00&}{\fs58}próprio{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:51.48,0:00:51.92,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}tempo.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:51.92,0:00:52.98,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Se{\c&HFFFFFF&}{\1a&H44&}{\fs48} você ama mistérios
+Dialogue: 0,0:00:52.98,0:00:53.24,Default,,0,0,0,,{\1a&H44&}{\fs48} Se {\c&HFFE080&}{\1a&H00&}{\fs58}você{\c&HFFFFFF&}{\1a&H44&}{\fs48} ama mistérios
+Dialogue: 0,0:00:53.24,0:00:53.44,Default,,0,0,0,,{\1a&H44&}{\fs48} Se você {\c&HFFE080&}{\1a&H00&}{\fs58}ama{\c&HFFFFFF&}{\1a&H44&}{\fs48} mistérios
+Dialogue: 0,0:00:53.44,0:00:54.02,Default,,0,0,0,,{\1a&H44&}{\fs48} Se você ama {\c&HFFE080&}{\1a&H00&}{\fs58}mistérios{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:54.02,0:00:54.10,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}da{\c&HFFFFFF&}{\1a&H44&}{\fs48} história, se inscreve
+Dialogue: 0,0:00:54.10,0:00:54.88,Default,,0,0,0,,{\1a&H44&}{\fs48} da {\c&HFFE080&}{\1a&H00&}{\fs58}história,{\c&HFFFFFF&}{\1a&H44&}{\fs48} se inscreve
+Dialogue: 0,0:00:54.88,0:00:54.96,Default,,0,0,0,,{\1a&H44&}{\fs48} da história, {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} inscreve
+Dialogue: 0,0:00:54.96,0:00:55.44,Default,,0,0,0,,{\1a&H44&}{\fs48} da história, se {\c&HFFE080&}{\1a&H00&}{\fs58}inscreve{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:55.44,0:00:55.54,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}no{\c&HFFFFFF&}{\1a&H44&}{\fs48} canal.
+Dialogue: 0,0:00:55.54,0:00:55.86,Default,,0,0,0,,{\1a&H44&}{\fs48} no {\c&HFFE080&}{\1a&H00&}{\fs58}canal.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:00.00,0:00:04.00,Impact,,0,0,0,,PREVIU O IMPOSSÍVEL
+Dialogue: 0,0:00:29.60,0:00:31.92,Impact,,0,0,0,,MECANISMO GENIAL
+Dialogue: 0,0:00:54.92,0:00:48.58,Impact,,0,0,0,,ELES RIRAM DELE

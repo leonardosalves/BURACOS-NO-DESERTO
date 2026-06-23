@@ -1,0 +1,194 @@
+{
+  "highlight_keywords": [
+    "jarro de bronze",
+    "terremoto",
+    "fúria dos deuses",
+    "Zhang Heng",
+    "sismógrafo",
+    "dragões",
+    "pêndulo",
+    "mensageiro exausto",
+    "tecnologia antiga"
+  ],
+  "bgm_mappings": [
+    {
+      "block": 1,
+      "file": "ancient_mystery_intro.mp3"
+    },
+    {
+      "block": 3,
+      "file": "chinese_tension_drums.mp3"
+    },
+    {
+      "block": 4,
+      "file": "dramatic_climax_reveal.mp3"
+    }
+  ],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 4,
+      "text": "PREVIU O IMPOSSÍVEL"
+    },
+    {
+      "block": 3,
+      "start_offset": 12,
+      "end_offset": 16.5,
+      "text": "MECANISMO GENIAL"
+    },
+    {
+      "block": 4,
+      "start_offset": 23,
+      "end_offset": 28,
+      "text": "ELES RIRAM DELE"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "Há 1900 anos, este jarro de bronze previu"
+    },
+    {
+      "block": 2,
+      "phrase": "Na China Antiga, tremores"
+    },
+    {
+      "block": 3,
+      "phrase": "Ele criou um sismógrafo genial"
+    },
+    {
+      "block": 4,
+      "phrase": "Um dia, uma esfera caiu"
+    },
+    {
+      "block": 5,
+      "phrase": "Como uma tecnologia tão antiga"
+    }
+  ],
+  "timeline_assets": {
+    "1": [
+      {
+        "asset": "Ancient_Chinese_bronze_vessel_dr__202606230157.mp4",
+        "type": "video",
+        "fixed": 8.5
+      }
+    ],
+    "2": [
+      {
+        "asset": "Photorealistic_2k_resolution_of_Zhang_202606230158.jpeg",
+        "type": "image"
+      }
+    ],
+    "3": [
+      {
+        "asset": "Extreme_close-up_photorealistic_2k_resolution_202606230200.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Cutaway_X-ray_view_diagram_of_202606230202.jpeg",
+        "type": "image"
+      }
+    ],
+    "4": [
+      {
+        "asset": "Bronze_ball_falling_dragon_mouth_202606230204.mp4",
+        "type": "video",
+        "fixed": 10
+      },
+      {
+        "asset": "Messenger_riding_horse_dusty_road_202606230206.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "5": [
+      {
+        "asset": "Wide_angle_photorealistic_2k_resolution_202606230208.jpeg",
+        "type": "image"
+      }
+    ],
+    "6": [
+      {
+        "asset": "Bronze_ball_falling_dragon_mouth_202606230204.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Extreme_close-up_photorealistic_2k_resolution_202606230200.jpeg",
+        "type": "image"
+      }
+    ],
+    "7": [
+      {
+        "asset": "Cutaway_X-ray_view_diagram_of_202606230202.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Extreme_close-up_photorealistic_2k_resolution_202606230200.jpeg",
+        "type": "image"
+      }
+    ],
+    "8": [
+      {
+        "asset": "Bronze_ball_falling_dragon_mouth_202606230204.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Cutaway_X-ray_view_diagram_of_202606230202.jpeg",
+        "type": "image"
+      }
+    ],
+    "9": [
+      {
+        "asset": "Photorealistic_2k_resolution_of_Zhang_202606230158.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Wide_angle_photorealistic_2k_resolution_202606230208.jpeg",
+        "type": "image"
+      }
+    ],
+    "10": [
+      {
+        "asset": "Messenger_riding_horse_dusty_road_202606230206.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Wide_angle_photorealistic_2k_resolution_202606230208.jpeg",
+        "type": "image"
+      }
+    ],
+    "11": [
+      {
+        "asset": "Wide_angle_photorealistic_2k_resolution_202606230208.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Messenger_riding_horse_dusty_road_202606230206.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "12": [
+      {
+        "asset": "Ancient_Chinese_bronze_vessel_dr__202606230157.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Photorealistic_2k_resolution_of_Zhang_202606230158.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Wide_angle_photorealistic_2k_resolution_202606230208.jpeg",
+        "type": "image"
+      }
+    ]
+  },
+  "aspect_ratio": "9:16",
+  "use_single_bgm": true,
+  "single_bgm": "ES_Merry on the Moor - Bonnie Grace.mp3"
+}
