@@ -1494,6 +1494,57 @@ export default function App() {
 
   };
 
+  const bgmBlockRows = useMemo(() => {
+    if (!config) return [];
+
+    const blockSet = new Set<number>();
+
+    (config.block_phrases || []).forEach((item: any) => {
+      const block = Number(item.block);
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+    });
+
+    Object.keys(config.timeline_assets || {}).forEach((key) => {
+      const block = Number(key);
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+    });
+
+    (storyboardData?.bgm_recommendations || []).forEach((item: any) => {
+      const block = Number(item.block);
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+    });
+
+    (storyboardData?.visual_prompts || []).forEach((item: any) => {
+      const block = Number(item.block);
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+    });
+
+    (config.bgm_mappings || []).forEach((item: any) => {
+      const block = Number(item.block);
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+    });
+
+    if (blockSet.size === 0) {
+      const fallbackCount = status?.block_timings?.durations?.length || 12;
+      for (let block = 1; block <= fallbackCount; block++) blockSet.add(block);
+    }
+
+    const mappings = config.bgm_mappings || [];
+    return Array.from(blockSet)
+      .sort((a, b) => a - b)
+      .map((block) => ({
+        block,
+        file: mappings.find((mapping: any) => Number(mapping.block) === block)?.file || ""
+      }));
+  }, [
+    config?.block_phrases,
+    config?.timeline_assets,
+    config?.bgm_mappings,
+    storyboardData?.bgm_recommendations,
+    storyboardData?.visual_prompts,
+    status?.block_timings?.durations
+  ]);
+
   // Memoized cache for narration timestamp matching
 
   const narrationTextsListString = useMemo(() => {
@@ -3347,17 +3398,11 @@ export default function App() {
 
     if (!config) return;
 
-    const updatedBgm = config.bgm_mappings.map(mapping => {
+    const withoutBlock = (config.bgm_mappings || []).filter(mapping => mapping.block !== blockNum);
 
-      if (mapping.block === blockNum) {
-
-        return { ...mapping, file: fileName };
-
-      }
-
-      return mapping;
-
-    });
+    const updatedBgm = fileName
+      ? [...withoutBlock, { block: blockNum, file: fileName }].sort((a, b) => a.block - b.block)
+      : withoutBlock;
 
     const updated = { ...config, bgm_mappings: updatedBgm };
 
@@ -4850,7 +4895,7 @@ export default function App() {
 
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
 
-                      {(config.bgm_mappings || []).map(bgm => (
+                      {bgmBlockRows.map(bgm => (
 
                         <div key={bgm.block} className="space-y-1">
                           <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
@@ -4868,6 +4913,8 @@ export default function App() {
                                 className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
 
                               >
+
+                                <option value="">-- Nenhuma --</option>
 
                                 {musicFiles.map(file => (
 
