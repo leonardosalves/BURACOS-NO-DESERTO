@@ -6560,7 +6560,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
 
-  const projDir = path.join(WORKSPACE_DIR, safeProjectName);
+  const isShort = (format === "SHORTS");
+
+  const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
+
+  const projDir = path.join(targetParentDir, safeProjectName);
 
   const apiKey = getApiKey(projDir);
 
