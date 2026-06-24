@@ -738,7 +738,7 @@ export default function App() {
 
 
 
-  const [activeProject, setActiveProject] = useState<string>('Buracos no Deserto');
+  const [activeProject, setActiveProject] = useState<string>(localStorage.getItem('qanat_active_project') || 'Buracos no Deserto');
 
 
 
@@ -1043,26 +1043,11 @@ export default function App() {
 
 
   const [ideasData, setIdeasData] = useState<{
-
-
-
     diagnostic: any;
-
-
-
     ideas: any[];
-
-
-
     best_idea_index: number;
-
-
-
     best_idea_reason: string;
-
-
-
-  } | null>(null);
+  } | null>(savedCreatorState.ideasData || null);
 
 
 
@@ -1310,7 +1295,7 @@ export default function App() {
 
 
 
-  const [creatorProjectName, setCreatorProjectName] = useState<string>('');
+  const [creatorProjectName, setCreatorProjectName] = useState<string>(savedCreatorState.creatorProjectName || '');
 
 
 
@@ -2140,15 +2125,21 @@ export default function App() {
 
 
 
+    useEffect(() => {
+    localStorage.setItem('qanat_creator_state', JSON.stringify({ 
+      creatorStep, 
+      nicheInput, 
+      formatSelector, 
+      ideasData, 
+      selectedIdeaIndex, 
+      generatedScriptData,
+      creatorProjectName
+    }));
+  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName]);
+
   useEffect(() => {
-
-
-
-    localStorage.setItem('qanat_creator_state', JSON.stringify({ creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData }));
-
-
-
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData]);
+    localStorage.setItem('qanat_active_project', activeProject);
+  }, [activeProject]);
 
 
 
@@ -17906,30 +17897,13 @@ export default function App() {
 
 
                     localStorage.removeItem('qanat_creator_state');
-
-
-
                     setCreatorStep(1);
-
-
-
                     setNicheInput('');
-
-
-
                     setIdeasData(null);
-
-
-
                     setSelectedIdeaIndex(-1);
-
-
-
                     setGeneratedScriptData(null);
-
-
-
                     setFormatSelector('LONGO');
+                    setCreatorProjectName('');
 
 
 
