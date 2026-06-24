@@ -1824,6 +1824,9 @@ function listProjectMediaAssets(projectDir) {
       } else {
         const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
         const ext = path.extname(rel).toLowerCase();
+        if (rel.toLowerCase() === "logo.png" || path.basename(rel).toLowerCase() === "logo.png") {
+          continue;
+        }
         if ([".mp4", ".mov", ".webm", ".mkv", ".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(ext)) {
           assetFiles.push({
             rel,
