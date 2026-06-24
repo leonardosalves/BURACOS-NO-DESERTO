@@ -452,27 +452,66 @@ function clearBgmReferences(projDir, removedNames) {
   }
 }
 
-// API: Delete one background music track
-app.delete("/api/music/:filename", (req, res) => {
-  const projDir = getProjectDir(req);
-  const fileName = req.params.filename;
+function clearAudioReferences(projDir, removedNames) {
+  clearBgmReferences(projDir, removedNames);
 
+  const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
+  const sfxTimeline = readJsonFile(sfxTimelinePath);
+  if (!sfxTimeline || !Array.isArray(sfxTimeline.sfx_events)) return;
+
+  const removed = new Set(removedNames.map(name => String(name).toLowerCase()));
+  const nextEvents = sfxTimeline.sfx_events.filter(event => !removed.has(String(event.file || "").toLowerCase()));
+  if (nextEvents.length !== sfxTimeline.sfx_events.length) {
+    sfxTimeline.sfx_events = nextEvents;
+    fs.writeFileSync(sfxTimelinePath, JSON.stringify(sfxTimeline, null, 2), "utf8");
+  }
+}
+
+function deleteProjectAudioFile(projDir, fileName) {
   if (!isDeletableBgmFile(fileName)) {
-    return res.status(400).json({ error: "Arquivo de trilha invÃ¡lido ou protegido." });
+    const err = new Error("Arquivo de audio invalido ou protegido.");
+    err.statusCode = 400;
+    throw err;
   }
 
+  const root = path.resolve(projDir);
   const targetPath = path.resolve(projDir, fileName);
-  if (!targetPath.startsWith(path.resolve(projDir) + path.sep)) {
-    return res.status(400).json({ error: "Caminho invÃ¡lido." });
+  if (!targetPath.startsWith(root + path.sep)) {
+    const err = new Error("Caminho invalido.");
+    err.statusCode = 400;
+    throw err;
   }
 
   if (!fs.existsSync(targetPath)) {
-    return res.status(404).json({ error: "Trilha nÃ£o encontrada." });
+    const err = new Error("Arquivo de audio nao encontrado.");
+    err.statusCode = 404;
+    throw err;
   }
 
   fs.unlinkSync(targetPath);
-  clearBgmReferences(projDir, [fileName]);
-  res.json({ success: true, deleted: [fileName] });
+  clearAudioReferences(projDir, [fileName]);
+  return fileName;
+}
+
+// API: Delete one background music track
+app.delete("/api/music/:filename", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const deleted = deleteProjectAudioFile(projDir, req.params.filename);
+    res.json({ success: true, deleted: [deleted] });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+app.post("/api/music/delete", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const deleted = deleteProjectAudioFile(projDir, req.body?.filename);
+    res.json({ success: true, deleted: [deleted] });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
 });
 
 // API: Delete all user/downloaded background music tracks from the current project
@@ -480,20 +519,31 @@ app.delete("/api/music", (req, res) => {
   const projDir = getProjectDir(req);
   try {
     const deleted = [];
-    const root = path.resolve(projDir);
 
     for (const fileName of fs.readdirSync(projDir)) {
       if (!isDeletableBgmFile(fileName)) continue;
-      const targetPath = path.resolve(projDir, fileName);
-      if (!targetPath.startsWith(root + path.sep)) continue;
-      fs.unlinkSync(targetPath);
-      deleted.push(fileName);
+      deleted.push(deleteProjectAudioFile(projDir, fileName));
     }
 
-    clearBgmReferences(projDir, deleted);
     res.json({ success: true, deleted });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+app.post("/api/music/delete-all", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const deleted = [];
+
+    for (const fileName of fs.readdirSync(projDir)) {
+      if (!isDeletableBgmFile(fileName)) continue;
+      deleted.push(deleteProjectAudioFile(projDir, fileName));
+    }
+
+    res.json({ success: true, deleted });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
   }
 });
 
