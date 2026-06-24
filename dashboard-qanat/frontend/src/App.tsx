@@ -268,6 +268,10 @@ export default function App() {
 
   const [deletingOutput, setDeletingOutput] = useState<boolean>(false);
 
+  const [pendingMusicDelete, setPendingMusicDelete] = useState<MusicFile | { name: "__all__"; sizeBytes: number } | null>(null);
+
+  const [deletingMusic, setDeletingMusic] = useState<boolean>(false);
+
   const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
 
   const [chatOpen, setChatOpen] = useState<boolean>(false);
@@ -3362,47 +3366,50 @@ export default function App() {
   };
 
   const handleDeleteMusic = async (fileName: string) => {
-    if (!confirm(`Excluir a trilha "${fileName}" deste projeto?`)) return;
+    const file = musicFiles.find(item => item.name === fileName);
+    setPendingMusicDelete(file || { name: fileName, sizeBytes: 0 });
+  };
+
+  const handleDeleteAllMusic = async () => {
+    if (!musicFiles.length) return;
+    setPendingMusicDelete({
+      name: "__all__",
+      sizeBytes: musicFiles.reduce((sum, file) => sum + file.sizeBytes, 0)
+    });
+  };
+
+  const handleConfirmDeleteMusic = async () => {
+    if (!pendingMusicDelete) return;
+
+    const deletingAll = pendingMusicDelete.name === "__all__";
+
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.src = "";
+      audioPlayerRef.current.load();
+    }
+    setPlayingMusic(null);
+    setDeletingMusic(true);
 
     try {
-      const res = await fetch(getProjectUrl(`/api/music/${encodeURIComponent(fileName)}`), {
-        method: 'DELETE'
+      const res = await fetch(getProjectUrl(deletingAll ? '/api/music/delete-all' : '/api/music/delete'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: deletingAll ? JSON.stringify({}) : JSON.stringify({ filename: pendingMusicDelete.name })
       });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        if (playingMusic === fileName) {
-          setPlayingMusic(null);
-        }
-        toast.success(`Trilha ${fileName} excluída.`);
+        toast.success(deletingAll ? `${data.deleted?.length || 0} trilhas excluídas.` : `Trilha ${pendingMusicDelete.name} excluída.`);
+        setPendingMusicDelete(null);
         fetchData();
       } else {
         toast.error(data.error || 'Erro ao excluir trilha.');
       }
     } catch (err) {
       toast.error('Falha de conexão ao excluir trilha.');
-    }
-  };
-
-  const handleDeleteAllMusic = async () => {
-    if (!musicFiles.length) return;
-    if (!confirm(`Excluir todas as ${musicFiles.length} trilhas sonoras deste projeto? A narração será preservada.`)) return;
-
-    try {
-      const res = await fetch(getProjectUrl('/api/music'), {
-        method: 'DELETE'
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (res.ok) {
-        setPlayingMusic(null);
-        toast.success(`${data.deleted?.length || 0} trilhas excluídas.`);
-        fetchData();
-      } else {
-        toast.error(data.error || 'Erro ao limpar trilhas.');
-      }
-    } catch (err) {
-      toast.error('Falha de conexão ao limpar trilhas.');
+    } finally {
+      setDeletingMusic(false);
     }
   };
 
@@ -9177,6 +9184,96 @@ export default function App() {
               >
 
                 Criar Projeto
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* Music Delete Confirmation Modal */}
+
+      {pendingMusicDelete && (
+
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in font-sans">
+
+          <div className="bg-[#0c0c0e] border border-red-900/40 rounded-3xl p-6 w-[440px] max-w-[92%] space-y-5 shadow-2xl shadow-red-950/30">
+
+            <div className="flex items-start gap-4">
+
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+
+                <Trash2 className="w-5 h-5 text-red-400" />
+
+              </div>
+
+              <div className="min-w-0">
+
+                <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">
+                  {pendingMusicDelete.name === "__all__" ? "Limpar trilhas sonoras?" : "Excluir trilha sonora?"}
+                </h3>
+
+                <p className="text-xs text-gray-400 leading-relaxed mt-2">
+
+                  {pendingMusicDelete.name === "__all__"
+                    ? "Todas as trilhas e efeitos listados serão removidos deste projeto. A narração será preservada."
+                    : "O arquivo será removido deste projeto e também sairá do mapeamento de BGM/SFX. Esta ação não pode ser desfeita."}
+
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-3 flex items-center gap-3">
+
+              <Music className="w-4 h-4 text-gold-500 shrink-0" />
+
+              <div className="min-w-0">
+
+                <p className="text-xs text-white font-semibold truncate">
+                  {pendingMusicDelete.name === "__all__" ? `${musicFiles.length} arquivos de áudio` : pendingMusicDelete.name}
+                </p>
+
+                <p className="text-[10px] text-zinc-500 font-mono">{getFormatBytes(pendingMusicDelete.sizeBytes)}</p>
+
+              </div>
+
+            </div>
+
+            <div className="flex justify-end gap-3 text-xs font-semibold pt-1">
+
+              <button
+
+                onClick={() => setPendingMusicDelete(null)}
+
+                disabled={deletingMusic}
+
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-gray-400 hover:text-white rounded-xl transition cursor-pointer disabled:opacity-50"
+
+              >
+
+                Cancelar
+
+              </button>
+
+              <button
+
+                onClick={handleConfirmDeleteMusic}
+
+                disabled={deletingMusic}
+
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl transition shadow-lg shadow-red-950/30 cursor-pointer flex items-center gap-2"
+
+              >
+
+                {deletingMusic ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+
+                <span>{deletingMusic ? 'Excluindo...' : pendingMusicDelete.name === "__all__" ? 'Limpar trilhas' : 'Excluir trilha'}</span>
 
               </button>
 
