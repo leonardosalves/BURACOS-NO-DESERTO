@@ -1608,6 +1608,22 @@ app.post("/api/projects/storyboard", (req, res) => {
 
 
 
+  } catch (err) {
+
+
+
+    res.status(500).json({ error: "Erro ao salvar o storyboard", details: err.message });
+
+
+
+  }
+
+
+
+});
+
+
+
 // GET /api/render/config
 
 
@@ -1717,22 +1733,6 @@ app.post("/api/render/config", (req, res) => {
 
 
     res.status(500).json({ error: "Erro ao salvar configurações globais." });
-
-
-
-  }
-
-
-
-});
-
-
-
-  } catch (err) {
-
-
-
-    res.status(500).json({ error: "Erro ao salvar o storyboard", details: err.message });
 
 
 
