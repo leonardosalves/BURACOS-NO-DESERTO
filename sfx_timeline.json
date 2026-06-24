@@ -1,0 +1,94 @@
+{
+  "sfx_events": [
+    {
+      "time": 0,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 61.82,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 128.18,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 215.72,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 279.12,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 358.74,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 445.56,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 510.66,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 581.4,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 654.28,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 708.28,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 758.52,
+      "file": "sfx_whoosh_transition.mp3",
+      "volume": 0.18
+    },
+    {
+      "time": 0,
+      "file": "sfx_earthquake.mp3",
+      "volume": 0.25
+    },
+    {
+      "time": 0,
+      "file": "sfx_earthquake.mp3",
+      "volume": 0.25
+    },
+    {
+      "time": 62.82,
+      "file": "sfx_metal_drop.mp3",
+      "volume": 0.2
+    },
+    {
+      "time": 129.18,
+      "file": "sfx_earthquake.mp3",
+      "volume": 0.25
+    },
+    {
+      "time": 216.72,
+      "file": "sfx_wind.mp3",
+      "volume": 0.12
+    },
+    {
+      "time": 280.12,
+      "file": "sfx_earthquake.mp3",
+      "volume": 0.25
+    }
+  ]
+}

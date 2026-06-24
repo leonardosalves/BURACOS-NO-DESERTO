@@ -1,0 +1,713 @@
+{
+    "text": " Como eles atravessavam o seano sem bústula e no meio de uma nevo afechada, durante séculos o segredo da navegação Viking foi um mistério, até que arqueólogos encontraram cristal estranho em um naufragem. Chamada de pedra do Sol, essa calcita tem uma habilidade impressionante. Ela polariza a luz e revela a posição do Sol, mesmo atrás de nuvens densas. É engenharia natural pura usada para dominar os mares. Você usaria essa tecnologia ou confiaria na sorte?",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.0,
+            "end": 4.04,
+            "text": " Como eles atravessavam o seano sem bústula e no meio de uma nevo afechada,",
+            "tokens": [
+                50364,
+                11913,
+                10244,
+                33325,
+                442,
+                22561,
+                277,
+                369,
+                3730,
+                4361,
+                272,
+                2481,
+                372,
+                3780,
+                308,
+                572,
+                17706,
+                368,
+                2772,
+                408,
+                3080,
+                257,
+                2106,
+                339,
+                1538,
+                11,
+                50574
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " Como",
+                    "start": 0.0,
+                    "end": 0.26,
+                    "probability": 0.667925238609314
+                },
+                {
+                    "word": " eles",
+                    "start": 0.26,
+                    "end": 0.5,
+                    "probability": 0.9865531325340271
+                },
+                {
+                    "word": " atravessavam",
+                    "start": 0.5,
+                    "end": 1.16,
+                    "probability": 0.9911198814709982
+                },
+                {
+                    "word": " o",
+                    "start": 1.16,
+                    "end": 1.34,
+                    "probability": 0.9608629941940308
+                },
+                {
+                    "word": " seano",
+                    "start": 1.34,
+                    "end": 1.62,
+                    "probability": 0.4015935957431793
+                },
+                {
+                    "word": " sem",
+                    "start": 1.62,
+                    "end": 1.88,
+                    "probability": 0.8981630802154541
+                },
+                {
+                    "word": " bústula",
+                    "start": 1.88,
+                    "end": 2.38,
+                    "probability": 0.727230504155159
+                },
+                {
+                    "word": " e",
+                    "start": 2.38,
+                    "end": 2.52,
+                    "probability": 0.8965848088264465
+                },
+                {
+                    "word": " no",
+                    "start": 2.52,
+                    "end": 2.64,
+                    "probability": 0.6848283410072327
+                },
+                {
+                    "word": " meio",
+                    "start": 2.64,
+                    "end": 2.82,
+                    "probability": 0.997474730014801
+                },
+                {
+                    "word": " de",
+                    "start": 2.82,
+                    "end": 2.98,
+                    "probability": 0.9866982102394104
+                },
+                {
+                    "word": " uma",
+                    "start": 2.98,
+                    "end": 3.16,
+                    "probability": 0.9887351393699646
+                },
+                {
+                    "word": " nevo",
+                    "start": 3.16,
+                    "end": 3.44,
+                    "probability": 0.7926184237003326
+                },
+                {
+                    "word": " afechada,",
+                    "start": 3.44,
+                    "end": 4.04,
+                    "probability": 0.8707486093044281
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "seek": 0,
+            "start": 4.28,
+            "end": 7.8,
+            "text": " durante séculos o segredo da navegação Viking foi um mistério,",
+            "tokens": [
+                50574,
+                14427,
+                7910,
+                32397,
+                277,
+                3896,
+                986,
+                78,
+                1120,
+                39376,
+                3680,
+                2917,
+                691,
+                13085,
+                6901,
+                1105,
+                3544,
+                37237,
+                11,
+                50768
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " durante",
+                    "start": 4.28,
+                    "end": 4.54,
+                    "probability": 0.9943291544914246
+                },
+                {
+                    "word": " séculos",
+                    "start": 4.54,
+                    "end": 5.14,
+                    "probability": 0.8977311551570892
+                },
+                {
+                    "word": " o",
+                    "start": 5.14,
+                    "end": 5.34,
+                    "probability": 0.5975341796875
+                },
+                {
+                    "word": " segredo",
+                    "start": 5.34,
+                    "end": 5.72,
+                    "probability": 0.989169160525004
+                },
+                {
+                    "word": " da",
+                    "start": 5.72,
+                    "end": 5.84,
+                    "probability": 0.997201681137085
+                },
+                {
+                    "word": " navegação",
+                    "start": 5.84,
+                    "end": 6.42,
+                    "probability": 0.977459728717804
+                },
+                {
+                    "word": " Viking",
+                    "start": 6.42,
+                    "end": 6.8,
+                    "probability": 0.45146670937538147
+                },
+                {
+                    "word": " foi",
+                    "start": 6.8,
+                    "end": 7.08,
+                    "probability": 0.9315443634986877
+                },
+                {
+                    "word": " um",
+                    "start": 7.08,
+                    "end": 7.24,
+                    "probability": 0.9892526268959045
+                },
+                {
+                    "word": " mistério,",
+                    "start": 7.24,
+                    "end": 7.8,
+                    "probability": 0.9561894536018372
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "seek": 0,
+            "start": 8.16,
+            "end": 11.54,
+            "text": " até que arqueólogos encontraram cristal estranho em um naufragem.",
+            "tokens": [
+                50768,
+                8784,
+                631,
+                594,
+                1077,
+                812,
+                4987,
+                329,
+                17525,
+                335,
+                35608,
+                304,
+                49461,
+                1289,
+                846,
+                1105,
+                297,
+                9507,
+                16223,
+                76,
+                13,
+                50944
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " até",
+                    "start": 8.16,
+                    "end": 8.38,
+                    "probability": 0.9944714307785034
+                },
+                {
+                    "word": " que",
+                    "start": 8.38,
+                    "end": 8.52,
+                    "probability": 0.9978663325309753
+                },
+                {
+                    "word": " arqueólogos",
+                    "start": 8.52,
+                    "end": 9.1,
+                    "probability": 0.9025766968727111
+                },
+                {
+                    "word": " encontraram",
+                    "start": 9.1,
+                    "end": 9.68,
+                    "probability": 0.9803488552570343
+                },
+                {
+                    "word": " cristal",
+                    "start": 9.68,
+                    "end": 10.14,
+                    "probability": 0.7582859098911285
+                },
+                {
+                    "word": " estranho",
+                    "start": 10.14,
+                    "end": 10.66,
+                    "probability": 0.9900861382484436
+                },
+                {
+                    "word": " em",
+                    "start": 10.66,
+                    "end": 10.76,
+                    "probability": 0.5643271803855896
+                },
+                {
+                    "word": " um",
+                    "start": 10.76,
+                    "end": 10.9,
+                    "probability": 0.9360435605049133
+                },
+                {
+                    "word": " naufragem.",
+                    "start": 10.9,
+                    "end": 11.54,
+                    "probability": 0.6452369764447212
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "seek": 0,
+            "start": 11.72,
+            "end": 15.82,
+            "text": " Chamada de pedra do Sol, essa calcita tem uma habilidade impressionante.",
+            "tokens": [
+                50944,
+                18054,
+                1538,
+                368,
+                5670,
+                424,
+                360,
+                7026,
+                11,
+                7208,
+                2104,
+                66,
+                2786,
+                1383,
+                2772,
+                36565,
+                6014,
+                9995,
+                2879,
+                13,
+                51164
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " Chamada",
+                    "start": 11.72,
+                    "end": 12.04,
+                    "probability": 0.9183133244514465
+                },
+                {
+                    "word": " de",
+                    "start": 12.04,
+                    "end": 12.24,
+                    "probability": 0.9956516623497009
+                },
+                {
+                    "word": " pedra",
+                    "start": 12.24,
+                    "end": 12.6,
+                    "probability": 0.8673527836799622
+                },
+                {
+                    "word": " do",
+                    "start": 12.6,
+                    "end": 12.74,
+                    "probability": 0.9909430146217346
+                },
+                {
+                    "word": " Sol,",
+                    "start": 12.74,
+                    "end": 13.02,
+                    "probability": 0.439988374710083
+                },
+                {
+                    "word": " essa",
+                    "start": 13.24,
+                    "end": 13.44,
+                    "probability": 0.9499204754829407
+                },
+                {
+                    "word": " calcita",
+                    "start": 13.44,
+                    "end": 13.94,
+                    "probability": 0.9314300219217936
+                },
+                {
+                    "word": " tem",
+                    "start": 13.94,
+                    "end": 14.12,
+                    "probability": 0.9841130375862122
+                },
+                {
+                    "word": " uma",
+                    "start": 14.12,
+                    "end": 14.24,
+                    "probability": 0.9927976727485657
+                },
+                {
+                    "word": " habilidade",
+                    "start": 14.24,
+                    "end": 14.7,
+                    "probability": 0.9935368001461029
+                },
+                {
+                    "word": " impressionante.",
+                    "start": 14.7,
+                    "end": 15.82,
+                    "probability": 0.9603254199028015
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "seek": 0,
+            "start": 16.08,
+            "end": 20.72,
+            "text": " Ela polariza a luz e revela a posição do Sol, mesmo atrás de nuvens densas.",
+            "tokens": [
+                51164,
+                17637,
+                12367,
+                13427,
+                257,
+                20671,
+                308,
+                15262,
+                64,
+                257,
+                49842,
+                360,
+                7026,
+                11,
+                9082,
+                22906,
+                368,
+                3822,
+                33302,
+                24505,
+                296,
+                13,
+                51406
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " Ela",
+                    "start": 16.08,
+                    "end": 16.24,
+                    "probability": 0.981775164604187
+                },
+                {
+                    "word": " polariza",
+                    "start": 16.24,
+                    "end": 16.94,
+                    "probability": 0.9694297611713409
+                },
+                {
+                    "word": " a",
+                    "start": 16.94,
+                    "end": 17.12,
+                    "probability": 0.936866819858551
+                },
+                {
+                    "word": " luz",
+                    "start": 17.12,
+                    "end": 17.22,
+                    "probability": 0.9891536831855774
+                },
+                {
+                    "word": " e",
+                    "start": 17.22,
+                    "end": 17.44,
+                    "probability": 0.9974215030670166
+                },
+                {
+                    "word": " revela",
+                    "start": 17.44,
+                    "end": 17.72,
+                    "probability": 0.968961626291275
+                },
+                {
+                    "word": " a",
+                    "start": 17.72,
+                    "end": 17.92,
+                    "probability": 0.9535710215568542
+                },
+                {
+                    "word": " posição",
+                    "start": 17.92,
+                    "end": 18.18,
+                    "probability": 0.9787039756774902
+                },
+                {
+                    "word": " do",
+                    "start": 18.18,
+                    "end": 18.42,
+                    "probability": 0.9979416728019714
+                },
+                {
+                    "word": " Sol,",
+                    "start": 18.42,
+                    "end": 18.76,
+                    "probability": 0.7185196876525879
+                },
+                {
+                    "word": " mesmo",
+                    "start": 18.98,
+                    "end": 19.3,
+                    "probability": 0.9921220541000366
+                },
+                {
+                    "word": " atrás",
+                    "start": 19.3,
+                    "end": 19.6,
+                    "probability": 0.9838066101074219
+                },
+                {
+                    "word": " de",
+                    "start": 19.6,
+                    "end": 19.82,
+                    "probability": 0.9990763664245605
+                },
+                {
+                    "word": " nuvens",
+                    "start": 19.82,
+                    "end": 20.18,
+                    "probability": 0.9260559380054474
+                },
+                {
+                    "word": " densas.",
+                    "start": 20.18,
+                    "end": 20.72,
+                    "probability": 0.8037446141242981
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "seek": 0,
+            "start": 20.92,
+            "end": 24.26,
+            "text": " É engenharia natural pura usada para dominar os mares.",
+            "tokens": [
+                51406,
+                4922,
+                1741,
+                268,
+                5854,
+                654,
+                3303,
+                1864,
+                64,
+                505,
+                1538,
+                1690,
+                3285,
+                6470,
+                3003,
+                463,
+                495,
+                13,
+                51586
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " É",
+                    "start": 20.92,
+                    "end": 21.02,
+                    "probability": 0.9457342624664307
+                },
+                {
+                    "word": " engenharia",
+                    "start": 21.02,
+                    "end": 21.6,
+                    "probability": 0.8870700150728226
+                },
+                {
+                    "word": " natural",
+                    "start": 21.6,
+                    "end": 21.92,
+                    "probability": 0.986650824546814
+                },
+                {
+                    "word": " pura",
+                    "start": 21.92,
+                    "end": 22.58,
+                    "probability": 0.7304256558418274
+                },
+                {
+                    "word": " usada",
+                    "start": 22.58,
+                    "end": 23.06,
+                    "probability": 0.9739247560501099
+                },
+                {
+                    "word": " para",
+                    "start": 23.06,
+                    "end": 23.28,
+                    "probability": 0.9038170576095581
+                },
+                {
+                    "word": " dominar",
+                    "start": 23.28,
+                    "end": 23.68,
+                    "probability": 0.9852228760719299
+                },
+                {
+                    "word": " os",
+                    "start": 23.68,
+                    "end": 23.88,
+                    "probability": 0.9971518516540527
+                },
+                {
+                    "word": " mares.",
+                    "start": 23.88,
+                    "end": 24.26,
+                    "probability": 0.9112237095832825
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "seek": 0,
+            "start": 24.52,
+            "end": 27.72,
+            "text": " Você usaria essa tecnologia ou confiaria na sorte?",
+            "tokens": [
+                51586,
+                9781,
+                14745,
+                654,
+                7208,
+                44905,
+                2820,
+                1497,
+                9448,
+                654,
+                1667,
+                25559,
+                30,
+                51764
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.22725654134944995,
+            "compression_ratio": 1.5359477124183007,
+            "no_speech_prob": 0.007200914900749922,
+            "words": [
+                {
+                    "word": " Você",
+                    "start": 24.52,
+                    "end": 24.72,
+                    "probability": 0.941154956817627
+                },
+                {
+                    "word": " usaria",
+                    "start": 24.72,
+                    "end": 25.18,
+                    "probability": 0.8755757212638855
+                },
+                {
+                    "word": " essa",
+                    "start": 25.18,
+                    "end": 25.36,
+                    "probability": 0.979788601398468
+                },
+                {
+                    "word": " tecnologia",
+                    "start": 25.36,
+                    "end": 25.96,
+                    "probability": 0.9912554025650024
+                },
+                {
+                    "word": " ou",
+                    "start": 25.96,
+                    "end": 26.56,
+                    "probability": 0.7144362926483154
+                },
+                {
+                    "word": " confiaria",
+                    "start": 26.56,
+                    "end": 27.24,
+                    "probability": 0.9750345349311829
+                },
+                {
+                    "word": " na",
+                    "start": 27.24,
+                    "end": 27.34,
+                    "probability": 0.9416444897651672
+                },
+                {
+                    "word": " sorte?",
+                    "start": 27.34,
+                    "end": 27.72,
+                    "probability": 0.9443098902702332
+                }
+            ]
+        }
+    ],
+    "language": "pt"
+}

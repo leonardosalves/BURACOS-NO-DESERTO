@@ -1,0 +1,60 @@
+{
+    "highlight_keywords": [
+        "impossível",
+        "computador",
+        "antikythera"
+    ],
+    "bgm_mappings": [],
+    "impact_texts": [
+        {
+            "block": 1,
+            "start_offset": 0,
+            "end_offset": 4.5,
+            "text": "O COMPUTADOR PROIBIDO"
+        }
+    ],
+    "block_phrases": [
+        {
+            "block": 1,
+            "phrase": "Em 1901"
+        }
+    ],
+    "timeline_assets": {
+        "1": [
+            {
+                "asset": "Flow_202606231437.mp4",
+                "type": "video",
+                "fixed": 6
+            },
+            {
+                "asset": "Macro_shot_of_a_heavily_202606231438.jpeg",
+                "type": "image",
+                "fixed": 3.5
+            },
+            {
+                "asset": "X-ray_visualization_of_the_Antikythera_202606231439.jpeg",
+                "type": "image",
+                "fixed": 4
+            },
+            {
+                "asset": "Stunning_3D_recreation_of_the_202606231440.jpeg",
+                "type": "image",
+                "fixed": 8
+            },
+            {
+                "asset": "Astronomy_diagram_showing_planets_aligning__202606231441.jpeg",
+                "type": "image",
+                "fixed": 5
+            },
+            {
+                "asset": "Silhouette_of_an_ancient_Greek_202606231442.jpeg",
+                "type": "image",
+                "fixed": 6.5
+            }
+        ]
+    },
+    "aspect_ratio": "9:16",
+    "use_single_bgm": true,
+    "single_bgm": "ES_77 Cycles - Lennon Hutton.mp3",
+    "epidemic_sound_key": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ4NENRVjFLS3NVRFppX0VYSm0tUE5pZUFMS3Fyemx4MlZnSUJURVB6THFnIn0.eyJleHAiOjE3ODQ4MjkzMzQsImlhdCI6MTc4MjIzNzMzNCwiYXV0aF90aW1lIjoxNzgxMjMxOTgwLCJqdGkiOiJudHJ0dGU6YjAyODNhOTctZWMyZS02YTYyLWY2MmUtMDYwOTk2ZjVkZDY2IiwiaXNzIjoiaHR0cHM6Ly9sb2dpbi5lcGlkZW1pY3NvdW5kLmNvbS9hdXRoL3JlYWxtcy9hY2NvdW50cyIsImF1ZCI6ImVwaWRlbWljLWFwaSIsInN1YiI6ImRhM2RmZTgwLTM0ZGMtNGJkZC05NGRmLWExMDg5YTFkNWM4MiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImVwaWRlbWljLWFwaSIsInNpZCI6IjJUSEdwb05aWmozVDM3b01qZUt3M1pPNyIsInNjb3BlIjoiZW1haWwiLCJ3b3Jrc3BhY2VfaWQiOiIxYWNhNzllMi1kNDdjLTRiM2MtOWVkMi02ODNjMjRkZjA3OTIiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibG9jYWxlIjoiZW4tdXMiLCJlbWFpbCI6InBvdXBlbm9saW5rQGdtYWlsLmNvbSJ9.I2s6EbfB9vLjnGuSLGhRNZ1MhM3U6C7L6ZB4pI0V3ho8bkTJJKYPY4Pa6JZEs8lxApXunhaVn3c4be_JZUtBJTKW_htnjnNG8FLEL-KzkfDzL_OZMK_fhiBNVfzY_1Rmj4Hisatt46nTGSWG1hWAFrVM1ezS-c6TiJsC2Aycbk0ZuSYRu1HBPl94nlXbG2gnsDpsiqz-7zuPEkxzQHPEHmQgJQhKMKH_hwrMfhxipF4CjCB-fJeQnE58LdTRJv8lUW4HhSIvnxl36JiAJJ28LeL1rorQwWybibl2VoktIPi4xakqbyXV06st6umSyO1MlNzNsApRZXU_aXXah3DZvQ"
+}

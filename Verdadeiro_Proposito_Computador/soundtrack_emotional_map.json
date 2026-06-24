@@ -1,0 +1,586 @@
+{
+  "video_type": "Documentário histórico e científico de mistério",
+  "main_topic": "O Mecanismo de Anticítera (o primeiro computador analógico do mundo)",
+  "overall_mood": "Misterioso, épico, revelador, intelectualmente instigante e cósmico",
+  "energy_curve": "Inicia em alta energia e mistério, mergulha em uma calmaria profunda subaquática, cresce gradativamente com as revelações científicas, atinge picos épicos de admiração tecnológica, passa por um vale dramático de declínio histórico e finaliza com uma atmosfera inspiradora de reflexão e maravilhamento cósmico.",
+  "music_should_be": {
+    "style": "cinematic hybrid mystery and dark ancient epic orchestral",
+    "avoid": [
+      "happy",
+      "dance",
+      "corporate",
+      "pop",
+      "comedy",
+      "lofi",
+      "bright acoustic"
+    ],
+    "vocalType": "NONE",
+    "bpm_range": [
+      75,
+      105
+    ]
+  },
+  "segments": [
+    {
+      "block": 1,
+      "start": "0.0s",
+      "end": "7.5s",
+      "narration": "Imagine um computador. Uma máquina complexa, cheia de engrenagens, capaz de calcular e prever eventos com precisão assombrosa.",
+      "emotion": "Curiosidade Tecnológica",
+      "energy": 6,
+      "music_keywords": [
+        "cinematic modern ambient",
+        "futuristic minimal synth",
+        "subtle clockwork rhythm"
+      ],
+      "sfx_candidates": [
+        "high tech glitch hum",
+        "digital data processing"
+      ]
+    },
+    {
+      "block": 1,
+      "start": "7.5s",
+      "end": "15.3s",
+      "narration": "Agora, imagine que essa máquina não é moderna. Ela tem DOIS MIL ANOS. E ela foi criada na Grécia Antiga.",
+      "emotion": "Choque Histórico",
+      "energy": 8,
+      "music_keywords": [
+        "cinematic hybrid drop",
+        "dark epic orchestral swell",
+        "ancient mystery impact"
+      ],
+      "sfx_candidates": [
+        "heavy metal slam impact",
+        "ancient sword unsheathe scrape"
+      ]
+    },
+    {
+      "block": 2,
+      "start": "15.3s",
+      "end": "29.0s",
+      "narration": "O que você faria se encontrasse algo assim? É exatamente isso que aconteceu quando mergulhadores descobriram uma caixa enferrujada no fundo do mar, que mudaria tudo o que pensávamos saber sobre a inteligência da humanidade antiga.",
+      "emotion": "Mistério Subaquático",
+      "energy": 5,
+      "music_keywords": [
+        "underwater ambient drone",
+        "slow mysterious tension",
+        "deep atmospheric strings"
+      ],
+      "sfx_candidates": [
+        "deep water bubbles",
+        "underwater sonar ping"
+      ]
+    },
+    {
+      "block": 2,
+      "start": "29.0s",
+      "end": "42.7s",
+      "narration": "Prepare-se, porque o que vamos desvendar hoje é a história do Mecanismo de Anticítera: o verdadeiro propósito do computador de 2 mil anos, a máquina grega que previa o destino e por que tentaram escondê-la.",
+      "emotion": "Excitação Dramática",
+      "energy": 7,
+      "music_keywords": [
+        "driving orchestral tension",
+        "mysterious epic build",
+        "cinematic percussion"
+      ],
+      "sfx_candidates": [
+        "metallic gears kinetic whirring",
+        "cinematic rising transition whoosh"
+      ]
+    },
+    {
+      "block": 3,
+      "start": "42.7s",
+      "end": "56.5s",
+      "narration": "No ano de 1900, em meio às águas cristalinas perto da ilha grega de Anticítera, um grupo de mergulhadores de esponjas fazia uma descoberta que ecoaria por séculos.",
+      "emotion": "Descoberta Intrigante",
+      "energy": 5,
+      "music_keywords": [
+        "historical orchestral slow",
+        "solemn strings mystery",
+        "gentle ocean wind tone"
+      ],
+      "sfx_candidates": [
+        "calm sea waves lapping",
+        "wooden boat creaking"
+      ]
+    },
+    {
+      "block": 3,
+      "start": "56.5s",
+      "end": "70.5s",
+      "narration": "Eles tropeçaram em um naufrágio romano, repleto de tesouros de arte e artefatos. Mas entre as estátuas e joias, algo singular chamou a atenção: uma massa corroída de bronze e madeira, irreconhecível, mas estranhamente geométrica.",
+      "emotion": "Espanto e Curiosidade",
+      "energy": 6,
+      "music_keywords": [
+        "creepy historical ambiance",
+        "low woodwind tension",
+        "minimalist dark piano"
+      ],
+      "sfx_candidates": [
+        "underwater muffled scrape",
+        "vintage heavy breathing regulator"
+      ]
+    },
+    {
+      "block": 4,
+      "start": "70.5s",
+      "end": "79.0s",
+      "narration": "Ninguém imaginava que aquela relíquia deteriorada era, na verdade, um portal para um passado inimaginável.",
+      "emotion": "Tensão Estática",
+      "energy": 4,
+      "music_keywords": [
+        "eerie synth pads",
+        "minimalistic dark tension",
+        "faint clockwork echo"
+      ],
+      "sfx_candidates": [
+        "hollow wind draft",
+        "low brass drone"
+      ]
+    },
+    {
+      "block": 4,
+      "start": "79.0s",
+      "end": "88.0s",
+      "narration": "Por décadas, o objeto foi um mistério, relegado a depósitos de museus, visto como um mero amontoado de peças sem valor.",
+      "emotion": "Melancolia e Esquecimento",
+      "energy": 4,
+      "music_keywords": [
+        "sad minimalist piano",
+        "dusty museum atmosphere",
+        "soft string drone"
+      ],
+      "sfx_candidates": [
+        "dragging wooden box scrape",
+        "camera shutter click"
+      ]
+    },
+    {
+      "block": 4,
+      "start": "88.0s",
+      "end": "96.7s",
+      "narration": "A verdadeira natureza do Mecanismo de Anticítera só começaria a ser desvendada anos depois, à medida que a tecnologia de raios-X e tomografias revelava suas entranhas secretas.",
+      "emotion": "Revelação Científica",
+      "energy": 7,
+      "music_keywords": [
+        "modern science pulse synth",
+        "epic hybrid rise",
+        "high tech discovery beats"
+      ],
+      "sfx_candidates": [
+        "xray scanner swipe hum",
+        "digital data screen processing"
+      ]
+    },
+    {
+      "block": 5,
+      "start": "96.7s",
+      "end": "104.5s",
+      "narration": "E o que se revelou? Não era um artefato religioso simples, nem uma peça de arte exótica.",
+      "emotion": "Admiração Crescente",
+      "energy": 6,
+      "music_keywords": [
+        "staccato cinematic strings",
+        "puzzled investigation theme",
+        "tempo acceleration transition"
+      ],
+      "sfx_candidates": [
+        "sudden silence stop",
+        "soft metallic click"
+      ]
+    },
+    {
+      "block": 5,
+      "start": "104.5s",
+      "end": "112.5s",
+      "narration": "Era um dispositivo mecânico com mais de 30 engrenagens de bronze interligadas, algumas com dentes tão finos quanto um milímetro.",
+      "emotion": "Fascínio Técnico",
+      "energy": 8,
+      "music_keywords": [
+        "intricate string rhythm",
+        "clockwork cinematic orchestration",
+        "complex mechanical drive"
+      ],
+      "sfx_candidates": [
+        "rapid precise clock ticking",
+        "micro metal gear spins"
+      ]
+    },
+    {
+      "block": 5,
+      "start": "112.5s",
+      "end": "120.2s",
+      "narration": "Uma complexidade que desafiava a compreensão de uma tecnologia que deveria surgir apenas na Renascença, mais de mil e quinhentos anos depois.",
+      "emotion": "Assombro Cronológico",
+      "energy": 8,
+      "music_keywords": [
+        "epic historical brass brass",
+        "majestic grand crescendo",
+        "timeless orchestral triumph"
+      ],
+      "sfx_candidates": [
+        "gregorian church bell toll",
+        "dramatic wind sweep"
+      ]
+    },
+    {
+      "block": 6,
+      "start": "120.2s",
+      "end": "131.0s",
+      "narration": "Era um computador analógico. Sim, um computador. Uma calculadora astronômica tão sofisticada que podia prever a posição do Sol, da Lua e de, pelo menos, cinco planetas conhecidos na época, com uma precisão assombrosa.",
+      "emotion": "Deslumbre Cósmico",
+      "energy": 8,
+      "music_keywords": [
+        "celestial ambient space",
+        "inspiring synth strings blend",
+        "uplifting scientific epic"
+      ],
+      "sfx_candidates": [
+        "crystal chime sweep",
+        "holographic computer activation"
+      ]
+    },
+    {
+      "block": 6,
+      "start": "131.0s",
+      "end": "142.2s",
+      "narration": "Imagine ter o cosmos na palma da sua mão, calculando eclipses solares e lunares com anos de antecedência.",
+      "emotion": "Maravilhamento Universal",
+      "energy": 9,
+      "music_keywords": [
+        "massive starfield crescendo",
+        "grand orchestral awe",
+        "celestial space flight"
+      ],
+      "sfx_candidates": [
+        "deep space cosmic hum",
+        "low orbital wind whoosh"
+      ]
+    },
+    {
+      "block": 7,
+      "start": "142.2s",
+      "end": "150.0s",
+      "narration": "Mas não era só isso. O Mecanismo de Anticítera também monitorava ciclos importantes para a sociedade grega.",
+      "emotion": "Foco Histórico",
+      "energy": 6,
+      "music_keywords": [
+        "ancient greek flute mystery",
+        "rhythmic hand percussion",
+        "subtle brass tension"
+      ],
+      "sfx_candidates": [
+        "ancient coin rustle",
+        "heavy stone gate slide"
+      ]
+    },
+    {
+      "block": 7,
+      "start": "150.0s",
+      "end": "158.0s",
+      "narration": "Ele tinha mostradores que exibiam o calendário egípcio, o calendário Metônico (para prever fases da lua), e até mesmo os ciclos dos Jogos Pan-Helênicos, incluindo as Olimpíadas!",
+      "emotion": "Celebração e Orgulho",
+      "energy": 8,
+      "music_keywords": [
+        "triumphant historical anthem",
+        "epic brass fanfare",
+        "dynamic epic percussion"
+      ],
+      "sfx_candidates": [
+        "crowd stadium roaring roar",
+        "bronze gong strike"
+      ]
+    },
+    {
+      "block": 7,
+      "start": "158.0s",
+      "end": "165.6s",
+      "narration": "Era uma máquina que unia ciência, religião e cultura de uma forma sem precedentes.",
+      "emotion": "Integração Sagrada",
+      "energy": 7,
+      "music_keywords": [
+        "spiritual chamber string",
+        "ancient temple ambient",
+        "soft choral backing drone"
+      ],
+      "sfx_candidates": [
+        "vibrating metal chime",
+        "soft paper page turn"
+      ]
+    },
+    {
+      "block": 8,
+      "start": "165.6s",
+      "end": "177.0s",
+      "narration": "Na Grécia Antiga, o céu era um livro aberto onde se tentava ler o destino. Astrônomos e filósofos dedicavam suas vidas a mapear os movimentos celestes.",
+      "emotion": "Misticismo e Filosofia",
+      "energy": 6,
+      "music_keywords": [
+        "meditative ancient harp",
+        "ethereal atmospheric pads",
+        "scholarly slow tempo"
+      ],
+      "sfx_candidates": [
+        "crackling wood campfire",
+        "soft nighttime crickets"
+      ]
+    },
+    {
+      "block": 8,
+      "start": "177.0s",
+      "end": "189.0s",
+      "narration": "Ter uma ferramenta como Anticítera não era apenas uma proeza de engenharia; era poder. Ele oferecia controle sobre o tempo, o ritmo das estações, e até mesmo sobre o sagrado, legitimando líderes e decisões através da suposta previsão divina.",
+      "emotion": "Intriga Política e Poder",
+      "energy": 8,
+      "music_keywords": [
+        "dark imperial tension",
+        "intense cello rhythmic drive",
+        "suspenseful political strings"
+      ],
+      "sfx_candidates": [
+        "heavy iron door bang",
+        "intense crown applause echo"
+      ]
+    },
+    {
+      "block": 9,
+      "start": "189.0s",
+      "end": "199.0s",
+      "narration": "Mas então, surge a grande questão: se essa tecnologia era tão avançada, por que ela desapareceu? Por que não temos outros registros ou exemplares de máquinas tão complexas?",
+      "emotion": "Vazio e Desolação",
+      "energy": 4,
+      "music_keywords": [
+        "melancholic solo cello",
+        "sad empty ruins atmosphere",
+        "minimalist dark ambient"
+      ],
+      "sfx_candidates": [
+        "lonely wind blowing ruins",
+        "crumbling sand dust fall"
+      ]
+    },
+    {
+      "block": 9,
+      "start": "199.0s",
+      "end": "208.8s",
+      "narration": "A história, como a conhecemos, sugere que um salto tecnológico dessa magnitude só aconteceria muito, muito mais tarde.",
+      "emotion": "Frustração Intelectual",
+      "energy": 5,
+      "music_keywords": [
+        "puzzled string sequence",
+        "tragic historical piano",
+        "low synth swell"
+      ],
+      "sfx_candidates": [
+        "subtle clock rewind effect",
+        "soft transition downswell"
+      ]
+    },
+    {
+      "block": 10,
+      "start": "208.8s",
+      "end": "221.0s",
+      "narration": "Existem algumas teorias intrigantes. Talvez fosse uma peça única, talvez um projeto ultra-secreto de um gênio solitário como Arquimedes, que nunca chegou a ser replicado em massa.",
+      "emotion": "Curiosidade Conspiratória",
+      "energy": 6,
+      "music_keywords": [
+        "detective mystery staccato",
+        "secret chamber pluck strings",
+        "subtle sci-fi curiosity"
+      ],
+      "sfx_candidates": [
+        "ink quill writing scratch",
+        "parchment scroll roll out"
+      ]
+    },
+    {
+      "block": 10,
+      "start": "221.0s",
+      "end": "234.0s",
+      "narration": "Ou, quem sabe, o conhecimento para construí-lo era tão restrito, tão valioso, que foi guardado a sete chaves por uma elite, ou até mesmo perdido intencionalmente para evitar que caísse nas mãos erradas.",
+      "emotion": "Suspense e Segredo",
+      "energy": 7,
+      "music_keywords": [
+        "tense dark conspiratorial",
+        "pulsating bass synth",
+        "heavy cinematic heartbeats"
+      ],
+      "sfx_candidates": [
+        "whispering shadows voices",
+        "metal lock key turn key"
+      ]
+    },
+    {
+      "block": 11,
+      "start": "234.0s",
+      "end": "245.0s",
+      "narration": "Outra possibilidade é que o declínio da civilização greco-romana, com suas guerras e instabilidades, levou à perda gradual desse conhecimento.",
+      "emotion": "Guerra e Tragédia Histórica",
+      "energy": 7,
+      "music_keywords": [
+        "epic tragic battle theme",
+        "somber war drums",
+        "fading brass wail"
+      ],
+      "sfx_candidates": [
+        "distant war horn blast",
+        "burning wood crackling fire"
+      ]
+    },
+    {
+      "block": 11,
+      "start": "245.0s",
+      "end": "257.4s",
+      "narration": "Sem a demanda, a expertise e os recursos, a arte de criar máquinas tão complexas pode ter simplesmente desaparecido, tornando-se mais uma das muitas maravilhas esquecidas pelo tempo.",
+      "emotion": "Luto pelo Conhecimento Perdido",
+      "energy": 4,
+      "music_keywords": [
+        "sorrowful solo violin",
+        "slow fading drone piano",
+        "cold wind atmospheric"
+      ],
+      "sfx_candidates": [
+        "deep sigh exhale",
+        "dust blowing away sound"
+      ]
+    },
+    {
+      "block": 12,
+      "start": "257.4s",
+      "end": "265.0s",
+      "narration": "Hoje, o Mecanismo de Anticítera continua a ser estudado, remontado e recriado em modelos digitais e físicos.",
+      "emotion": "Esperança e Ciência Moderna",
+      "energy": 6,
+      "music_keywords": [
+        "hopeful cinematic strings",
+        "tech ambient reconstruction",
+        "gentle piano arpeggio"
+      ],
+      "sfx_candidates": [
+        "digital keyboard typing click",
+        "camera focus beep"
+      ]
+    },
+    {
+      "block": 12,
+      "start": "265.0s",
+      "end": "273.0s",
+      "narration": "Cada nova pesquisa nos aproxima um pouco mais de entender não só o seu funcionamento, mas também a mente brilhante de seus criadores.",
+      "emotion": "Integração Temporal",
+      "energy": 7,
+      "music_keywords": [
+        "inspiring hybrid crescendo",
+        "building scientific optimism",
+        "majestic modern orchestra"
+      ],
+      "sfx_candidates": [
+        "high tech screen swipe",
+        "smooth atmospheric riser whoosh"
+      ]
+    },
+    {
+      "block": 12,
+      "start": "273.0s",
+      "end": "280.8s",
+      "narration": "Ele é um lembrete vívido de que a história está sempre sendo reescrita, e que o passado guarda mistérios que ainda têm o poder de nos espantar.",
+      "emotion": "Admiração Humilde",
+      "energy": 7,
+      "music_keywords": [
+        "epic realization theme",
+        "beautiful violin swell",
+        "inspiring historical grandeur"
+      ],
+      "sfx_candidates": [
+        "museum group ambient murmurs",
+        "soft metallic ding ring"
+      ]
+    },
+    {
+      "block": 13,
+      "start": "280.8s",
+      "end": "292.5s",
+      "narration": "O Mecanismo de Anticítera não era apenas um relógio ou um calendário. Era uma afirmação da capacidade humana de olhar para o céu, desvendar seus segredos e, de alguma forma, trazer um pedaço da vastidão cósmica para a Terra.",
+      "emotion": "Transcendência Cósmica",
+      "energy": 9,
+      "music_keywords": [
+        "powerful space celestial theme",
+        "inspiring full orchestra brass",
+        "cosmic eternity rise"
+      ],
+      "sfx_candidates": [
+        "massive celestial shimmer chime",
+        "deep planetary rumble"
+      ]
+    },
+    {
+      "block": 13,
+      "start": "292.5s",
+      "end": "304.2s",
+      "narration": "Um “computador” que, em sua essência, nos ajudava a prever, a entender e talvez até a moldar o nosso próprio destino.",
+      "emotion": "Epifania Filosófica",
+      "energy": 9,
+      "music_keywords": [
+        "grand destiny resolve strings",
+        "glorious cinematic peak",
+        "profound emotional orchestra"
+      ],
+      "sfx_candidates": [
+        "majestic low impact sub",
+        "accelerating precise clockwork tick"
+      ]
+    },
+    {
+      "block": 14,
+      "start": "304.2s",
+      "end": "314.0s",
+      "narration": "É inacreditável pensar que há dois mil anos existia uma máquina que fazia o que hoje consideramos alta tecnologia. Esse objeto nos força a reconsiderar a genialidade dos antigos e a humildade com que encaramos a história.",
+      "emotion": "Respeito e Humildade",
+      "energy": 6,
+      "music_keywords": [
+        "tender reflective acoustic piano",
+        "soft strings wind down",
+        "thoughtful history outro"
+      ],
+      "sfx_candidates": [
+        "deep warm breathing sigh",
+        "soft ticking watch wind down"
+      ]
+    },
+    {
+      "block": 14,
+      "start": "314.0s",
+      "end": "324.0s",
+      "narration": "O que mais nos espera ser descoberto nas profundezas do tempo? Que outros segredos a engenharia antiga ainda guarda, esperando por um novo olhar?",
+      "emotion": "Mistério Contínuo",
+      "energy": 5,
+      "music_keywords": [
+        "deep dark echo pad",
+        "unsolved historical secret ambient",
+        "subtle lingering piano"
+      ],
+      "sfx_candidates": [
+        "distant water drop echoing",
+        "low rumble cavern wind"
+      ]
+    },
+    {
+      "block": 14,
+      "start": "324.0s",
+      "end": "334.7s",
+      "narration": "A história do Mecanismo de Anticítera é um convite para olhar o passado com novos olhos e questionar o que realmente sabemos.",
+      "emotion": "Iluminação Final",
+      "energy": 4,
+      "music_keywords": [
+        "inspiring minimal resolution chord",
+        "mysterious cosmic fading tail",
+        "philosophical quiet ending"
+      ],
+      "sfx_candidates": [
+        "soft reverse whoosh swell",
+        "final glass chime bell ring"
+      ]
+    }
+  ]
+}

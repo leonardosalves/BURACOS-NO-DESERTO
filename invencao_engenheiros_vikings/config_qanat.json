@@ -1,0 +1,83 @@
+{
+  "highlight_keywords": [
+    "Viking",
+    "Pedra do Sol",
+    "Engenharia"
+  ],
+  "bgm_mappings": [
+    {
+      "block": 1,
+      "file": "ES_Last_Breath.mp3"
+    }
+  ],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 3,
+      "text": "COMO NAVEGAR SEM BÚSSOLA?"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "Como eles atravessavam oceanos sem bússola e no meio de uma névoa fechada?"
+    },
+    {
+      "block": 2,
+      "phrase": "Durante séculos, o segredo da navegação Viking foi um mistério, até que arqueólogos encontraram um cristal estranho em um naufrágio."
+    },
+    {
+      "block": 3,
+      "phrase": "Chamada de Pedra do Sol, essa calcita tem uma habilidade impressionante: ela polariza a luz e revela a posição do sol, mesmo atrás de nuvens densas."
+    },
+    {
+      "block": 4,
+      "phrase": "É engenharia natural pura usada para dominar os mares."
+    },
+    {
+      "block": 5,
+      "phrase": "Você usaria essa tecnologia ou confiaria na sorte?"
+    }
+  ],
+  "timeline_assets": {
+    "1": [
+      {
+        "asset": "Flow_1080p_202606241505.mp4",
+        "type": "video",
+        "fixed": 5
+      }
+    ],
+    "2": [
+      {
+        "asset": "Close-up_of_an_ancient_calcite_202606241516.jpeg",
+        "type": "image",
+        "fixed": 7.4
+      }
+    ],
+    "3": [
+      {
+        "asset": "Side-by-side_visualization__left_side_shows_202606241517.jpeg",
+        "type": "image",
+        "fixed": 9.2
+      }
+    ],
+    "4": [
+      {
+        "asset": "Dramatic_stormy_sea__open_ocean__202606241518.jpeg",
+        "type": "image",
+        "fixed": 3.6
+      }
+    ],
+    "5": [
+      {
+        "asset": "Viking_warrior_holding_stone_sky_202606241519.mp4",
+        "type": "video",
+        "fixed": 6
+      }
+    ]
+  },
+  "use_single_bgm": true,
+  "single_bgm": "ES_Last_Breath.mp3",
+  "aspect_ratio": "9:16"
+}

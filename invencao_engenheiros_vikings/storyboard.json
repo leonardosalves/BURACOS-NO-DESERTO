@@ -1,0 +1,156 @@
+{
+  "strategy": {
+    "title_main": "A 'Pedra Mágica' que salvava os Vikings na névoa",
+    "title_variations": [
+      "O segredo viking para navegar sem sol",
+      "Como os vikings não se perdiam no mar?",
+      "A verdade sobre a Pedra do Sol viking",
+      "Engenharia Viking: O cristal que via o sol",
+      "O mistério da navegação viking resolvido"
+    ],
+    "hook": "Como eles atravessavam oceanos sem bússola e no meio de uma névoa fechada?",
+    "target_audience": "Curiosos por história, entusiastas de tecnologia antiga e engenharia.",
+    "tone": "Misterioso, educativo e dinâmico.",
+    "pinned_comment": "Você teria coragem de cruzar o Atlântico Norte só com uma pedra na mão? Deixa aqui nos comentários!",
+    "cta": "Se você ama descobrir como o passado era mais tecnológico do que parece, já se inscreve."
+  },
+  "narrative_script": "Como eles atravessavam oceanos sem bússola e no meio de uma névoa fechada? Durante séculos, o segredo da navegação Viking foi um mistério, até que arqueólogos encontraram um cristal estranho em um naufrágio. Chamada de Pedra do Sol, essa calcita tem uma habilidade impressionante: ela polariza a luz e revela a posição do sol, mesmo atrás de nuvens densas. É engenharia natural pura usada para dominar os mares. Você usaria essa tecnologia ou confiaria na sorte?",
+  "visual_prompts": [
+    {
+      "scene": "1.1",
+      "block": 1,
+      "narration_text": "Como eles atravessavam oceanos sem bússola e no meio de uma névoa fechada?",
+      "function": "",
+      "duration": "4.5 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic shot of a wooden viking longship struggling in heavy ocean mist, rough waves, dramatic lighting, 2k, photorealistic.",
+      "text_overlay": "",
+      "editor_notes": "Zoom lento para dentro da névoa.",
+      "stock_query": "viking ship sea mist",
+      "duration_seconds": 4.5,
+      "asset": {
+        "asset": "Flow_1080p_202606241505.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    },
+    {
+      "scene": "1.2",
+      "block": 2,
+      "narration_text": "Durante séculos, o segredo da navegação Viking foi um mistério, até que arqueólogos encontraram um cristal estranho em um naufrágio.",
+      "function": "",
+      "duration": "7.1 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Close-up of an ancient calcite crystal held in a rugged hand, archaeological find aesthetic, dark moody lighting, 2k.",
+      "text_overlay": "",
+      "editor_notes": "Corte seco para o close do cristal.",
+      "stock_query": "calcite crystal artifact",
+      "duration_seconds": 7.1,
+      "asset": {
+        "asset": "Close-up_of_an_ancient_calcite_202606241516.jpeg",
+        "type": "image"
+      }
+    },
+    {
+      "scene": "1.3",
+      "block": 3,
+      "narration_text": "Chamada de Pedra do Sol, essa calcita tem uma habilidade impressionante: ela polariza a luz e revela a posição do sol, mesmo atrás de nuvens densas.",
+      "function": "",
+      "duration": "9.6 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Side-by-side visualization: left side shows grey cloudy sky, right side shows a bright glowing sun position through a transparent crystal, conceptual, 2k.",
+      "text_overlay": "",
+      "editor_notes": "Efeito de transição de luz através do cristal.",
+      "stock_query": "birefringence crystal light",
+      "duration_seconds": 9.6,
+      "asset": {
+        "asset": "Side-by-side_visualization__left_side_shows_202606241517.jpeg",
+        "type": "image"
+      }
+    },
+    {
+      "scene": "1.4",
+      "block": 4,
+      "narration_text": "É engenharia natural pura usada para dominar os mares.",
+      "function": "",
+      "duration": "5 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic low angle shot of a viking warrior looking at the sky, holding a stone, ocean horizon in background, motion blur, 2k.",
+      "text_overlay": "",
+      "editor_notes": "Câmera lenta no olhar do guerreiro.",
+      "stock_query": "viking warrior look sky",
+      "duration_seconds": 5,
+      "asset": {
+        "asset": "Viking_warrior_holding_stone_sky_202606241519.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    },
+    {
+      "scene": "1.5",
+      "block": 5,
+      "narration_text": "Você usaria essa tecnologia ou confiaria na sorte?",
+      "function": "",
+      "duration": "5 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Dramatic stormy sea, open ocean, cinematic lighting, vast horizon, 2k.",
+      "text_overlay": "",
+      "editor_notes": "Zoom out final para dar sensação de imensidão.",
+      "stock_query": "stormy ocean horizon",
+      "duration_seconds": 5,
+      "asset": {
+        "asset": "Dramatic_stormy_sea__open_ocean__202606241518.jpeg",
+        "type": "image"
+      }
+    }
+  ],
+  "editing_map": "Ritmo rápido, cortes precisos no tempo da música, uso de efeitos sonoros de vento e ondas para imersão.",
+  "hyperframe_prompt": "Crie um short de 40 segundos sobre a pedra do sol dos vikings, foco em suspense histórico e tecnologia antiga, voz profunda e grave.",
+  "bgm_recommendations": [
+    {
+      "block": 1,
+      "scope": "block",
+      "recommendation": "Trilha sonora tensa com sons de mar e vento.",
+      "search_theme": "dark ambient nordic mystery"
+    }
+  ],
+  "checklist": {
+    "click_potential": 9,
+    "retention_potential": 9,
+    "comments_potential": 8,
+    "feedback": "O gancho visual e a promessa de uma 'tecnologia perdida' funcionam muito bem para Shorts."
+  },
+  "technical_config": {
+    "script": "Como eles atravessavam oceanos sem bússola e no meio de uma névoa fechada?\nDurante séculos, o segredo da navegação Viking foi um mistério, até que arqueólogos encontraram um cristal estranho em um naufrágio.\nChamada de Pedra do Sol, essa calcita tem uma habilidade impressionante: ela polariza a luz e revela a posição do sol, mesmo atrás de nuvens densas.\nÉ engenharia natural pura usada para dominar os mares.\nVocê usaria essa tecnologia ou confiaria na sorte?",
+    "block_phrases": [
+      {
+        "block": 1,
+        "phrase": "Como eles atravessavam"
+      }
+    ],
+    "impact_texts": [
+      {
+        "block": 1,
+        "start_offset": 0,
+        "end_offset": 3,
+        "text": "COMO NAVEGAR SEM BÚSSOLA?"
+      }
+    ],
+    "highlight_keywords": [
+      "Viking",
+      "Pedra do Sol",
+      "Engenharia"
+    ],
+    "bgm_mappings": [
+      {
+        "block": 1,
+        "file": "viking_suspense.mp3"
+      }
+    ]
+  }
+}
