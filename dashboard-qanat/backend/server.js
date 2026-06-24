@@ -15,6 +15,16 @@ const REMOTION_DIR = path.resolve(__dirname, "../remotion-renderer");
 const REMOTION_PUBLIC_DIR = path.join(REMOTION_DIR, "public");
 const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
+// OpenRouter Settings
+const OPENROUTER_DEFAULT_KEY = "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";
+const OPENROUTER_FREE_MODELS = [
+  "google/gemma-4-31b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "meta-llama/llama-3.2-3b-instruct:free",
+  "nousresearch/hermes-3-llama-3.1-405b:free",
+  "qwen/qwen3-coder:free"
+];
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -22,14 +32,16 @@ app.use("/api/projects-media", express.static(WORKSPACE_DIR));
 
 // Helper: Resolve active project directory dynamically based on request parameters
 function getProjectDir(req) {
-  const projName = req.query.project || req.body.project;
+  const projName = req.query?.project || req.body?.project;
+  let resolvedPath = WORKSPACE_DIR;
   if (projName && projName !== "Buracos no Deserto") {
-    const resolvedPath = path.join(WORKSPACE_DIR, projName);
-    if (fs.existsSync(resolvedPath)) {
-      return resolvedPath;
+    const candidatePath = path.join(WORKSPACE_DIR, projName);
+    if (fs.existsSync(candidatePath)) {
+      resolvedPath = candidatePath;
     }
   }
-  return WORKSPACE_DIR; // Default root project (Buracos no Deserto / Qanat)
+  global.lastActiveProjectDir = resolvedPath;
+  return resolvedPath;
 }
 
 // Helper: Auto-copy missing or outdated timing and render template files to project folder on-demand
@@ -1915,10 +1927,137 @@ function buildTimelineFromStoryboard(projectDir) {
   return { timelineAssets, assetCount: assetFiles.length, warnings };
 }
 
+function getOpenRouterApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
+
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.openrouter_api_key || null;
+  };
+
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+
+  if (projectDir !== WORKSPACE_DIR) {
+    const rootKey = readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+    if (rootKey) return rootKey;
+  }
+
+  return OPENROUTER_DEFAULT_KEY;
+}
+
+function convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride) {
+  const messages = [];
+
+  if (bodyOverride?.systemInstruction?.parts?.[0]?.text) {
+    messages.push({
+      role: "system",
+      content: bodyOverride.systemInstruction.parts[0].text
+    });
+  } else if (bodyOverride?.system_instruction?.parts?.[0]?.text) {
+    messages.push({
+      role: "system",
+      content: bodyOverride.system_instruction.parts[0].text
+    });
+  }
+
+  if (bodyOverride?.contents && Array.isArray(bodyOverride.contents)) {
+    for (const item of bodyOverride.contents) {
+      const role = item.role === "model" ? "assistant" : "user";
+      const content = item.parts?.[0]?.text || "";
+      messages.push({ role, content });
+    }
+  } else if (promptOrBody) {
+    messages.push({
+      role: "user",
+      content: promptOrBody
+    });
+  }
+
+  return messages;
+}
+
+async function callOpenRouterWithRetry(promptOrBody, { maxRetries = 2, bodyOverride = null, projectDir = WORKSPACE_DIR } = {}) {
+  const apiKey = getOpenRouterApiKey(projectDir);
+  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+
+  let lastError = null;
+
+  for (const model of OPENROUTER_FREE_MODELS) {
+    console.log("\n==================================================");
+    console.log(`[OpenRouter] ATIVO - TENTANDO MODELO: ${model}`);
+    console.log("==================================================");
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+            "HTTP-Referer": "https://github.com/leonardosalves/BURACOS-NO-DESERTO",
+            "X-Title": "Lumiera Cinematic Studio"
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: messages
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          let responseText = result.choices?.[0]?.message?.content || "";
+          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+          console.log("\n==================================================");
+          console.log(`[OpenRouter] SUCESSO - MODELO EM USO: ${model}`);
+          console.log(`[OpenRouter] Sucesso na tentativa ${attempt} do modelo ${model}`);
+          console.log("==================================================");
+
+          return responseText;
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || response.statusText;
+        const status = response.status;
+
+        console.warn(`[OpenRouter] Erro ${status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
+        lastError = new Error(`OpenRouter [${model}]: ${errMsg}`);
+
+        const isQuotaOrRateLimit = (status === 429 || status === 403 || status === 402 || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("credit"));
+        const isUnavailableOrNotFound = (status === 404 || status === 400 || status === 401 || errMsg.toLowerCase().includes("unavailable") || errMsg.toLowerCase().includes("no endpoints found"));
+        
+        if (isQuotaOrRateLimit || isUnavailableOrNotFound) {
+          console.warn(`[OpenRouter] Erro crítico/limite/indisponibilidade detectado para ${model} (${status}: ${errMsg}). Rotacionando imediatamente...`);
+          break;
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+        await new Promise(r => setTimeout(r, delay));
+
+      } catch (err) {
+        console.error(`[OpenRouter] Exceção na tentativa ${attempt} para ${model}:`, err.message);
+        lastError = err;
+      }
+    }
+
+    console.warn(`[OpenRouter] Todas as tentativas falharam para o modelo ${model}. Tentando o proximo...`);
+  }
+
+  throw lastError || new Error("Todos os modelos OpenRouter livres falharam após múltiplas tentativas.");
+}
+
 // Gemini API call with automatic retry and model fallback for 503/429 errors
 const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.1-flash-lite"];
 
 async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = GEMINI_MODELS, bodyOverride = null } = {}) {
+  const projDir = global.lastActiveProjectDir || WORKSPACE_DIR;
+  const provider = getAiProvider(projDir);
+
+  if (provider === "openrouter") {
+    return await callOpenRouterWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir });
+  }
+
   let lastError = null;
 
   for (const model of models) {
@@ -2085,6 +2224,11 @@ function getApiKeys(projectDir = WORKSPACE_DIR) {
 }
 
 function getApiKey(projectDir = WORKSPACE_DIR) {
+  const provider = getAiProvider(projectDir);
+  if (provider === "openrouter") {
+    return getOpenRouterApiKey(projectDir);
+  }
+
   const keys = getApiKeys(projectDir);
   if (keys.length > 0) return keys[0];
 
@@ -2186,6 +2330,13 @@ async function generateMetadataWithXai(prompt, apiKey) {
 // API: Check if Gemini API key exists
 app.get("/api/ai/key-status", (req, res) => {
   const projDir = getProjectDir(req);
+  const provider = getAiProvider(projDir);
+  if (provider === "openrouter") {
+    return res.json({ has_key: !!getOpenRouterApiKey(projDir), provider: "openrouter" });
+  }
+  if (provider === "xai") {
+    return res.json({ has_key: !!getXaiApiKey(projDir), provider: "xai" });
+  }
   const configuredKeys = getApiKeys(projDir);
   if (configuredKeys.length > 0) {
     return res.json({ has_key: true, key_count: configuredKeys.length });
@@ -2244,6 +2395,7 @@ app.get("/api/ai/settings", (req, res) => {
     provider: getAiProvider(projDir),
     gemini_key_count: getApiKeys(projDir).length,
     has_xai_key: !!getXaiApiKey(projDir),
+    has_openrouter_key: !!config.openrouter_api_key,
     has_epidemic_key: true
   });
 });
@@ -2251,12 +2403,12 @@ app.get("/api/ai/settings", (req, res) => {
 app.post("/api/ai/settings", (req, res) => {
   const projDir = getProjectDir(req);
   const configPath = path.join(projDir, "config_qanat.json");
-  const { provider, gemini_key, gemini_keys, xai_key, epidemic_sound_key } = req.body || {};
+  const { provider, gemini_key, gemini_keys, xai_key, openrouter_key, epidemic_sound_key } = req.body || {};
 
   try {
     let config = readJsonFile(configPath) || {};
 
-    if (provider === "gemini" || provider === "xai") {
+    if (provider === "gemini" || provider === "xai" || provider === "openrouter") {
       config.ai_provider = provider;
     }
 
@@ -2271,6 +2423,10 @@ app.post("/api/ai/settings", (req, res) => {
       config.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
     }
 
+    if (typeof openrouter_key === "string" && openrouter_key.trim()) {
+      config.openrouter_api_key = openrouter_key.trim();
+    }
+
     if (typeof epidemic_sound_key === "string") {
       config.epidemic_sound_key = epidemic_sound_key.trim();
     }
@@ -2282,6 +2438,7 @@ app.post("/api/ai/settings", (req, res) => {
       provider: config.ai_provider || "gemini",
       gemini_key_count: normalizeApiKeys(config.gemini_api_keys, config.gemini_api_key).length,
       has_xai_key: !!config.xai_api_key,
+      has_openrouter_key: !!config.openrouter_api_key,
       has_epidemic_key: true
     });
   } catch (err) {
@@ -2552,7 +2709,8 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
   const apiKeys = getApiKeys(projDir);
   const xaiKey = getXaiApiKey(projDir);
   const aiProvider = getAiProvider(projDir);
-  if (apiKeys.length === 0 && !xaiKey) {
+  const openrouterKey = getOpenRouterApiKey(projDir);
+  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey)) {
     return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
   }
   
