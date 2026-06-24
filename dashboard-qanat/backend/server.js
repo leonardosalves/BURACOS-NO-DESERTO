@@ -609,7 +609,7 @@ app.post("/api/epidemic/download", async (req, res) => {
   const projDir = getProjectDir(req);
   const token = getEpidemicSoundKey(projDir) || "";
 
-  const { id, type, title, block } = req.body;
+  const { id, type, title, block, previewUrl } = req.body;
   if (!id || !type) {
     return res.status(400).json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
   }
@@ -624,14 +624,14 @@ app.post("/api/epidemic/download", async (req, res) => {
       const filename = `sfx_${safeTitle}.mp3`;
       const destPath = path.join(assetsDir, filename);
       
-      await downloadSoundEffect(token, id, destPath);
+      await downloadSoundEffect(token, id, destPath, previewUrl);
       res.json({ success: true, filename, type: "sfx", message: `Efeito sonoro baixado e salvo em ASSETS/${filename}` });
     } else {
       // Save BGM directly to project folder
       const filename = `ES_${safeTitle}.mp3`;
       const destPath = path.join(projDir, filename);
       
-      await downloadMusicTrack(token, id, destPath);
+      await downloadMusicTrack(token, id, destPath, previewUrl);
       
       // Auto-map BGM based on block
       const configPath = path.join(projDir, "config_qanat.json");
@@ -860,7 +860,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
         const filename = makeEpidemicFilename(track.title);
         const destPath = path.join(projDir, filename);
         logs.push(`Baixando faixa: "${track.title}"...`);
-        await downloadMusicTrack(token, track.id, destPath);
+        await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
         
         config.single_bgm = filename;
         config.use_single_bgm = true;
@@ -909,7 +909,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
           const filename = makeEpidemicFilename(track.title);
           const destPath = path.join(projDir, filename);
           logs.push(`[Bloco ${block}] Baixando: "${track.title}"...`);
-          await downloadMusicTrack(token, track.id, destPath);
+          await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
 
           config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== block);
           config.bgm_mappings.push({ block, file: filename });
@@ -999,7 +999,7 @@ async function ensureProjectBgmTracks(projDir) {
         if (tracks.length > 0) {
           const track = tracks[0];
           console.log(`[BGM Auto-Fetch] Baixando "${track.title}" para ${filename}...`);
-          await downloadMusicTrack(token, track.id, destPath);
+          await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
         }
       } catch (err) {
         console.error(`[BGM Auto-Fetch] Falha ao baixar ${filename}:`, err.message);
@@ -1211,6 +1211,19 @@ app.get("/api/render/:mode", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  // Heartbeat to keep connection alive during long renders/downloads
+  const heartbeat = setInterval(() => {
+    res.write(":\n\n");
+  }, 15000);
+
+  const cleanup = () => {
+    clearInterval(heartbeat);
+  };
+
+  req.on("close", cleanup);
 
   const sendLog = (text) => {
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
@@ -3748,26 +3761,45 @@ Regras importantes:
 
 // API: Run dynamic whisper transcription sync sequentially
 app.get("/api/sync-timings", (req, res) => {
-  const projDir = getProjectDir(req);
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
+const projDir = getProjectDir(req);
+res.setHeader("Content-Type", "text/event-stream");
+res.setHeader("Cache-Control", "no-cache");
+res.setHeader("Connection", "keep-alive");
+res.setHeader("X-Accel-Buffering", "no");
+res.flushHeaders();
 
-  const sendLog = (text) => {
-    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-  };
+// Heartbeat to keep connection alive during long sync runs
+const heartbeat = setInterval(() => {
+  res.write(":\n\n");
+}, 15000);
 
-  sendLog("[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição...");
-  sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
+let activeChild = null;
 
-  ensureFileExists("find_block_timings.py", projDir);
-  ensureFileExists("align_transcripts.py", projDir);
+const cleanup = () => {
+  clearInterval(heartbeat);
+  if (activeChild) {
+    try { activeChild.kill(); } catch (e) {}
+  }
+};
 
-  const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
-    cwd: projDir,
-    shell: true,
-    env: { ...process.env, PYTHONUNBUFFERED: "1" }
-  });
+req.on("close", cleanup);
+
+const sendLog = (text) => {
+  res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+};
+
+sendLog("[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição...");
+sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
+
+ensureFileExists("find_block_timings.py", projDir);
+ensureFileExists("align_transcripts.py", projDir);
+
+const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
+  cwd: projDir,
+  shell: true,
+  env: { ...process.env, PYTHONUNBUFFERED: "1" }
+});
+activeChild = child1;
 
   child1.stdout.on("data", (data) => {
     const text = data.toString().trim();
@@ -3796,6 +3828,7 @@ app.get("/api/sync-timings", (req, res) => {
       shell: true,
       env: { ...process.env, PYTHONUNBUFFERED: "1" }
     });
+    activeChild = child2;
 
     child2.stdout.on("data", (data) => {
       const text = data.toString().trim();
@@ -3812,19 +3845,17 @@ app.get("/api/sync-timings", (req, res) => {
     });
 
     child2.on("close", (code2) => {
+      activeChild = null;
       if (code2 === 0) {
         res.write(`data: ${JSON.stringify({ type: "complete", code: code2 })}\n\n`);
       } else {
         res.write(`data: ${JSON.stringify({ type: "failed", code: code2 })}\n\n`);
       }
+      cleanup();
       res.end();
     });
-  });
-
-  req.on("close", () => {
-    child1.kill();
-  });
-});
+    });
+    });
 
 // Serve frontend build static files in production
 const frontendDist = path.join(__dirname, "../frontend/dist");

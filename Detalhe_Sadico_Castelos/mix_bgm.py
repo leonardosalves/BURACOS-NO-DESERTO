@@ -206,6 +206,37 @@ def main():
         # Advance output write position by actual duration of the block
         current_start_sample += int(dur * SR)
 
+    # Mix Sound Effects (SFX) if timeline exists
+    if os.path.exists('sfx_timeline.json'):
+        print("Mixing Sound Effects (SFX) into timeline...")
+        try:
+            with open('sfx_timeline.json', 'r', encoding='utf-8') as f:
+                sfx_config = json.load(f)
+            sfx_events = sfx_config.get('sfx_events', [])
+            
+            for event in sfx_events:
+                sfx_file = event.get('file', '')
+                time_s = event.get('time', 0.0)
+                vol = event.get('volume', 0.2)
+                
+                if sfx_file and os.path.exists(sfx_file):
+                    sfx_dur = get_duration(sfx_file)
+                    print(f"  Mixing SFX '{sfx_file}' at {time_s:.2f}s (dur={sfx_dur:.2f}s, vol={vol})")
+                    
+                    sfx_pcm = load_pcm(sfx_file, 0.0, sfx_dur).astype(np.float32)
+                    
+                    start_sample = int(time_s * SR)
+                    if start_sample < 0:
+                        crop_samples = -start_sample
+                        sfx_pcm = sfx_pcm[crop_samples:]
+                        start_sample = 0
+                        
+                    mix_len = min(len(sfx_pcm), len(output_audio) - start_sample)
+                    if mix_len > 0:
+                        output_audio[start_sample:start_sample+mix_len] += sfx_pcm[:mix_len] * vol
+        except Exception as e:
+            print(f"Warning: Failed to mix SFX: {e}")
+
     # Trim output audio to exactly the narration length + a tiny 0.5s safety padding
     final_len = int((total_duration + 0.5) * SR)
     output_audio = output_audio[:final_len]

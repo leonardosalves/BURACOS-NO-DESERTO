@@ -7,108 +7,108 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,30,30,320,1
-Style: Impact,Arial,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1
+Style: Default,Arial Black,52,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,30,30,320,1
+Style: Impact,Arial Black,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.00,0:00:00.34,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Você{\c&HFFFFFF&}{\1a&H44&}{\fs48} sabia que o
-Dialogue: 0,0:00:00.34,0:00:00.72,Default,,0,0,0,,{\1a&H44&}{\fs48}Você {\c&HFFE080&}{\1a&H00&}{\fs58}sabia{\c&HFFFFFF&}{\1a&H44&}{\fs48} que o
-Dialogue: 0,0:00:00.72,0:00:00.96,Default,,0,0,0,,{\1a&H44&}{\fs48}Você sabia {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} o
-Dialogue: 0,0:00:00.96,0:00:01.04,Default,,0,0,0,,{\1a&H44&}{\fs48}Você sabia que {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:01.04,0:00:01.38,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&H00C5FF&}{\1a&H00&}{\fs58}concreto{\c&HFFFFFF&}{\1a&H44&}{\fs48} romano, feito há
-Dialogue: 0,0:00:01.38,0:00:01.92,Default,,0,0,0,,{\1a&H44&}{\fs48} concreto {\c&H00C5FF&}{\1a&H00&}{\fs58}romano,{\c&HFFFFFF&}{\1a&H44&}{\fs48} feito há
-Dialogue: 0,0:00:01.92,0:00:02.14,Default,,0,0,0,,{\1a&H44&}{\fs48} concreto romano, {\c&HFFE080&}{\1a&H00&}{\fs58}feito{\c&HFFFFFF&}{\1a&H44&}{\fs48} há
-Dialogue: 0,0:00:02.14,0:00:02.32,Default,,0,0,0,,{\1a&H44&}{\fs48} concreto romano, feito {\c&HFFE080&}{\1a&H00&}{\fs58}há{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:02.32,0:00:02.76,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}2{\c&HFFFFFF&}{\1a&H44&}{\fs48} mil anos, ainda
-Dialogue: 0,0:00:02.76,0:00:02.88,Default,,0,0,0,,{\1a&H44&}{\fs48} 2 {\c&HFFE080&}{\1a&H00&}{\fs58}mil{\c&HFFFFFF&}{\1a&H44&}{\fs48} anos, ainda
-Dialogue: 0,0:00:02.88,0:00:03.26,Default,,0,0,0,,{\1a&H44&}{\fs48} 2 mil {\c&HFFE080&}{\1a&H00&}{\fs58}anos,{\c&HFFFFFF&}{\1a&H44&}{\fs48} ainda
-Dialogue: 0,0:00:03.26,0:00:03.82,Default,,0,0,0,,{\1a&H44&}{\fs48} 2 mil anos, {\c&HFFE080&}{\1a&H00&}{\fs58}ainda{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:03.82,0:00:04.16,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}está{\c&HFFFFFF&}{\1a&H44&}{\fs48} de pé?
-Dialogue: 0,0:00:04.16,0:00:04.30,Default,,0,0,0,,{\1a&H44&}{\fs48} está {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} pé?
-Dialogue: 0,0:00:04.30,0:00:04.46,Default,,0,0,0,,{\1a&H44&}{\fs48} está de {\c&HFFE080&}{\1a&H00&}{\fs58}pé?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:05.48,0:00:05.92,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Enquanto{\c&HFFFFFF&}{\1a&H44&}{\fs48} o nosso... bem,
-Dialogue: 0,0:00:05.92,0:00:06.06,Default,,0,0,0,,{\1a&H44&}{\fs48}Enquanto {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} nosso... bem,
-Dialogue: 0,0:00:06.06,0:00:06.88,Default,,0,0,0,,{\1a&H44&}{\fs48}Enquanto o {\c&HFFE080&}{\1a&H00&}{\fs58}nosso...{\c&HFFFFFF&}{\1a&H44&}{\fs48} bem,
-Dialogue: 0,0:00:06.88,0:00:07.20,Default,,0,0,0,,{\1a&H44&}{\fs48}Enquanto o nosso... {\c&HFFE080&}{\1a&H00&}{\fs58}bem,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:07.66,0:00:07.80,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} nosso mal dura
-Dialogue: 0,0:00:07.80,0:00:08.12,Default,,0,0,0,,{\1a&H44&}{\fs48} o {\c&HFFE080&}{\1a&H00&}{\fs58}nosso{\c&HFFFFFF&}{\1a&H44&}{\fs48} mal dura
-Dialogue: 0,0:00:08.12,0:00:08.50,Default,,0,0,0,,{\1a&H44&}{\fs48} o nosso {\c&HFFE080&}{\1a&H00&}{\fs58}mal{\c&HFFFFFF&}{\1a&H44&}{\fs48} dura
-Dialogue: 0,0:00:08.50,0:00:08.78,Default,,0,0,0,,{\1a&H44&}{\fs48} o nosso mal {\c&HFFE080&}{\1a&H00&}{\fs58}dura{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:08.78,0:00:09.20,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}50{\c&HFFFFFF&}{\1a&H44&}{\fs48} anos sem rachar!
-Dialogue: 0,0:00:09.20,0:00:09.82,Default,,0,0,0,,{\1a&H44&}{\fs48} 50 {\c&HFFE080&}{\1a&H00&}{\fs58}anos{\c&HFFFFFF&}{\1a&H44&}{\fs48} sem rachar!
-Dialogue: 0,0:00:09.82,0:00:10.02,Default,,0,0,0,,{\1a&H44&}{\fs48} 50 anos {\c&HFFE080&}{\1a&H00&}{\fs58}sem{\c&HFFFFFF&}{\1a&H44&}{\fs48} rachar!
-Dialogue: 0,0:00:10.02,0:00:10.48,Default,,0,0,0,,{\1a&H44&}{\fs48} 50 anos sem {\c&HFFE080&}{\1a&H00&}{\fs58}rachar!{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:11.16,0:00:11.32,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}É{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma diferença absurda
-Dialogue: 0,0:00:11.32,0:00:11.44,Default,,0,0,0,,{\1a&H44&}{\fs48}É {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} diferença absurda
-Dialogue: 0,0:00:11.44,0:00:11.76,Default,,0,0,0,,{\1a&H44&}{\fs48}É uma {\c&HFFE080&}{\1a&H00&}{\fs58}diferença{\c&HFFFFFF&}{\1a&H44&}{\fs48} absurda
-Dialogue: 0,0:00:11.76,0:00:12.72,Default,,0,0,0,,{\1a&H44&}{\fs48}É uma diferença {\c&HFFE080&}{\1a&H00&}{\fs58}absurda{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:12.72,0:00:12.88,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} desafia a engenharia
-Dialogue: 0,0:00:12.88,0:00:14.02,Default,,0,0,0,,{\1a&H44&}{\fs48} que {\c&HFFE080&}{\1a&H00&}{\fs58}desafia{\c&HFFFFFF&}{\1a&H44&}{\fs48} a engenharia
-Dialogue: 0,0:00:14.02,0:00:14.12,Default,,0,0,0,,{\1a&H44&}{\fs48} que desafia {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} engenharia
-Dialogue: 0,0:00:14.12,0:00:14.56,Default,,0,0,0,,{\1a&H44&}{\fs48} que desafia a {\c&H00C5FF&}{\1a&H00&}{\fs58}engenharia{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:14.12,0:00:41.38,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&H00C5FF&}{\1a&H00&}{\fs58}moderna.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:15.12,0:00:15.40,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Como{\c&HFFFFFF&}{\1a&H44&}{\fs48} eles faziam essa
-Dialogue: 0,0:00:15.40,0:00:15.58,Default,,0,0,0,,{\1a&H44&}{\fs48}Como {\c&HFFE080&}{\1a&H00&}{\fs58}eles{\c&HFFFFFF&}{\1a&H44&}{\fs48} faziam essa
-Dialogue: 0,0:00:15.58,0:00:16.06,Default,,0,0,0,,{\1a&H44&}{\fs48}Como eles {\c&HFFE080&}{\1a&H00&}{\fs58}faziam{\c&HFFFFFF&}{\1a&H44&}{\fs48} essa
-Dialogue: 0,0:00:16.06,0:00:16.28,Default,,0,0,0,,{\1a&H44&}{\fs48}Como eles faziam {\c&HFFE080&}{\1a&H00&}{\fs58}essa{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:16.28,0:00:16.92,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}maravilha{\c&HFFFFFF&}{\1a&H44&}{\fs48} que até se
-Dialogue: 0,0:00:16.92,0:00:17.22,Default,,0,0,0,,{\1a&H44&}{\fs48} maravilha {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} até se
-Dialogue: 0,0:00:17.22,0:00:17.46,Default,,0,0,0,,{\1a&H44&}{\fs48} maravilha que {\c&HFFE080&}{\1a&H00&}{\fs58}até{\c&HFFFFFF&}{\1a&H44&}{\fs48} se
-Dialogue: 0,0:00:17.46,0:00:17.68,Default,,0,0,0,,{\1a&H44&}{\fs48} maravilha que até {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:17.68,0:00:18.24,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}'cura'{\c&HFFFFFF&}{\1a&H44&}{\fs48} sozinha?
-Dialogue: 0,0:00:18.24,0:00:18.78,Default,,0,0,0,,{\1a&H44&}{\fs48} 'cura' {\c&HFFE080&}{\1a&H00&}{\fs58}sozinha?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:19.48,0:00:19.58,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}O{\c&HFFFFFF&}{\1a&H44&}{\fs48} segredo não era
-Dialogue: 0,0:00:19.58,0:00:20.00,Default,,0,0,0,,{\1a&H44&}{\fs48}O {\c&H00C5FF&}{\1a&H00&}{\fs58}segredo{\c&HFFFFFF&}{\1a&H44&}{\fs48} não era
-Dialogue: 0,0:00:20.00,0:00:20.12,Default,,0,0,0,,{\1a&H44&}{\fs48}O segredo {\c&HFFE080&}{\1a&H00&}{\fs58}não{\c&HFFFFFF&}{\1a&H44&}{\fs48} era
-Dialogue: 0,0:00:20.12,0:00:20.30,Default,,0,0,0,,{\1a&H44&}{\fs48}O segredo não {\c&HFFE080&}{\1a&H00&}{\fs58}era{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:20.30,0:00:21.10,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}mágica,{\c&HFFFFFF&}{\1a&H44&}{\fs48} mas uma química
-Dialogue: 0,0:00:21.10,0:00:21.24,Default,,0,0,0,,{\1a&H44&}{\fs48} mágica, {\c&HFFE080&}{\1a&H00&}{\fs58}mas{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma química
-Dialogue: 0,0:00:21.24,0:00:21.44,Default,,0,0,0,,{\1a&H44&}{\fs48} mágica, mas {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} química
-Dialogue: 0,0:00:21.44,0:00:22.02,Default,,0,0,0,,{\1a&H44&}{\fs48} mágica, mas uma {\c&HFFE080&}{\1a&H00&}{\fs58}química{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:22.02,0:00:22.60,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}genial.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:23.38,0:00:23.54,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Eles{\c&HFFFFFF&}{\1a&H44&}{\fs48} usavam cinza vulcânica,
-Dialogue: 0,0:00:23.54,0:00:23.98,Default,,0,0,0,,{\1a&H44&}{\fs48}Eles {\c&HFFE080&}{\1a&H00&}{\fs58}usavam{\c&HFFFFFF&}{\1a&H44&}{\fs48} cinza vulcânica,
-Dialogue: 0,0:00:23.98,0:00:24.48,Default,,0,0,0,,{\1a&H44&}{\fs48}Eles usavam {\c&HFFE080&}{\1a&H00&}{\fs58}cinza{\c&HFFFFFF&}{\1a&H44&}{\fs48} vulcânica,
-Dialogue: 0,0:00:24.48,0:00:25.14,Default,,0,0,0,,{\1a&H44&}{\fs48}Eles usavam cinza {\c&H00C5FF&}{\1a&H00&}{\fs58}vulcânica,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:25.44,0:00:25.78,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} 'Pozolana', e cal
-Dialogue: 0,0:00:25.78,0:00:26.12,Default,,0,0,0,,{\1a&H44&}{\fs48} a {\c&H00C5FF&}{\1a&H00&}{\fs58}'Pozolana',{\c&HFFFFFF&}{\1a&H44&}{\fs48} e cal
-Dialogue: 0,0:00:26.12,0:00:26.50,Default,,0,0,0,,{\1a&H44&}{\fs48} a 'Pozolana', {\c&HFFE080&}{\1a&H00&}{\fs58}e{\c&HFFFFFF&}{\1a&H44&}{\fs48} cal
-Dialogue: 0,0:00:26.50,0:00:26.87,Default,,0,0,0,,{\1a&H44&}{\fs48} a 'Pozolana', e {\c&HFFE080&}{\1a&H00&}{\fs58}cal{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:26.87,0:00:27.24,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}virgem.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:27.24,0:00:28.22,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Essa{\c&HFFFFFF&}{\1a&H44&}{\fs48} mistura criava cristais
-Dialogue: 0,0:00:28.22,0:00:28.72,Default,,0,0,0,,{\1a&H44&}{\fs48}Essa {\c&HFFE080&}{\1a&H00&}{\fs58}mistura{\c&HFFFFFF&}{\1a&H44&}{\fs48} criava cristais
-Dialogue: 0,0:00:28.72,0:00:29.24,Default,,0,0,0,,{\1a&H44&}{\fs48}Essa mistura {\c&HFFE080&}{\1a&H00&}{\fs58}criava{\c&HFFFFFF&}{\1a&H44&}{\fs48} cristais
-Dialogue: 0,0:00:29.24,0:00:29.70,Default,,0,0,0,,{\1a&H44&}{\fs48}Essa mistura criava {\c&H00C5FF&}{\1a&H00&}{\fs58}cristais{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:29.70,0:00:29.90,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} preenchiam as micro-rachaduras.
-Dialogue: 0,0:00:29.90,0:00:30.44,Default,,0,0,0,,{\1a&H44&}{\fs48} que {\c&HFFE080&}{\1a&H00&}{\fs58}preenchiam{\c&HFFFFFF&}{\1a&H44&}{\fs48} as micro-rachaduras.
-Dialogue: 0,0:00:30.44,0:00:30.62,Default,,0,0,0,,{\1a&H44&}{\fs48} que preenchiam {\c&HFFE080&}{\1a&H00&}{\fs58}as{\c&HFFFFFF&}{\1a&H44&}{\fs48} micro-rachaduras.
-Dialogue: 0,0:00:30.62,0:00:31.60,Default,,0,0,0,,{\1a&H44&}{\fs48} que preenchiam as {\c&HFFE080&}{\1a&H00&}{\fs58}micro-rachaduras.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:32.10,0:00:32.32,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} tecnologia que se
-Dialogue: 0,0:00:32.32,0:00:32.90,Default,,0,0,0,,{\1a&H44&}{\fs48}Uma {\c&HFFE080&}{\1a&H00&}{\fs58}tecnologia{\c&HFFFFFF&}{\1a&H44&}{\fs48} que se
-Dialogue: 0,0:00:32.90,0:00:33.20,Default,,0,0,0,,{\1a&H44&}{\fs48}Uma tecnologia {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} se
-Dialogue: 0,0:00:33.20,0:00:33.34,Default,,0,0,0,,{\1a&H44&}{\fs48}Uma tecnologia que {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:33.34,0:00:33.98,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}regenera,{\c&HFFFFFF&}{\1a&H44&}{\fs48} muito à frente
-Dialogue: 0,0:00:33.98,0:00:34.58,Default,,0,0,0,,{\1a&H44&}{\fs48} regenera, {\c&HFFE080&}{\1a&H00&}{\fs58}muito{\c&HFFFFFF&}{\1a&H44&}{\fs48} à frente
-Dialogue: 0,0:00:34.58,0:00:34.88,Default,,0,0,0,,{\1a&H44&}{\fs48} regenera, muito {\c&HFFE080&}{\1a&H00&}{\fs58}à{\c&HFFFFFF&}{\1a&H44&}{\fs48} frente
-Dialogue: 0,0:00:34.88,0:00:35.12,Default,,0,0,0,,{\1a&H44&}{\fs48} regenera, muito à {\c&HFFE080&}{\1a&H00&}{\fs58}frente{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:35.12,0:00:35.34,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}do{\c&HFFFFFF&}{\1a&H44&}{\fs48} seu tempo.
-Dialogue: 0,0:00:35.34,0:00:35.50,Default,,0,0,0,,{\1a&H44&}{\fs48} do {\c&HFFE080&}{\1a&H00&}{\fs58}seu{\c&HFFFFFF&}{\1a&H44&}{\fs48} tempo.
-Dialogue: 0,0:00:35.50,0:00:35.92,Default,,0,0,0,,{\1a&H44&}{\fs48} do seu {\c&HFFE080&}{\1a&H00&}{\fs58}tempo.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:36.68,0:00:36.92,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Será{\c&HFFFFFF&}{\1a&H44&}{\fs48} que estamos prontos
-Dialogue: 0,0:00:36.92,0:00:37.10,Default,,0,0,0,,{\1a&H44&}{\fs48}Será {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} estamos prontos
-Dialogue: 0,0:00:37.10,0:00:37.36,Default,,0,0,0,,{\1a&H44&}{\fs48}Será que {\c&HFFE080&}{\1a&H00&}{\fs58}estamos{\c&HFFFFFF&}{\1a&H44&}{\fs48} prontos
-Dialogue: 0,0:00:37.36,0:00:37.86,Default,,0,0,0,,{\1a&H44&}{\fs48}Será que estamos {\c&HFFE080&}{\1a&H00&}{\fs58}prontos{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:37.86,0:00:38.02,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48} aprender com o
-Dialogue: 0,0:00:38.02,0:00:38.38,Default,,0,0,0,,{\1a&H44&}{\fs48} para {\c&HFFE080&}{\1a&H00&}{\fs58}aprender{\c&HFFFFFF&}{\1a&H44&}{\fs48} com o
-Dialogue: 0,0:00:38.38,0:00:38.56,Default,,0,0,0,,{\1a&H44&}{\fs48} para aprender {\c&HFFE080&}{\1a&H00&}{\fs58}com{\c&HFFFFFF&}{\1a&H44&}{\fs48} o
-Dialogue: 0,0:00:38.56,0:00:38.64,Default,,0,0,0,,{\1a&H44&}{\fs48} para aprender com {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:38.64,0:00:38.98,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&H00C5FF&}{\1a&H00&}{\fs58}passado?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:39.86,0:00:40.08,Default,,0,0,0,,{\1a&H44&}{\fs48}{\c&HFFE080&}{\1a&H00&}{\fs58}Deixe{\c&HFFFFFF&}{\1a&H44&}{\fs48} sua opinião nos
-Dialogue: 0,0:00:40.08,0:00:40.26,Default,,0,0,0,,{\1a&H44&}{\fs48}Deixe {\c&HFFE080&}{\1a&H00&}{\fs58}sua{\c&HFFFFFF&}{\1a&H44&}{\fs48} opinião nos
-Dialogue: 0,0:00:40.26,0:00:40.68,Default,,0,0,0,,{\1a&H44&}{\fs48}Deixe sua {\c&HFFE080&}{\1a&H00&}{\fs58}opinião{\c&HFFFFFF&}{\1a&H44&}{\fs48} nos
-Dialogue: 0,0:00:40.68,0:00:40.82,Default,,0,0,0,,{\1a&H44&}{\fs48}Deixe sua opinião {\c&HFFE080&}{\1a&H00&}{\fs58}nos{\c&HFFFFFF&}{\1a&H44&}{\fs48}
-Dialogue: 0,0:00:40.82,0:00:41.38,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}comentários!{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:00.00,0:00:00.34,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Você{\c&HFFFFFF&}{\1a&H44&} sabia
+Dialogue: 0,0:00:00.34,0:00:00.72,Default,,0,0,0,,{\1a&H44&}{\fs52}Você {\c&HFFE080&}{\1a&H00&}sabia{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:00.72,0:00:00.96,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}que{\c&HFFFFFF&}{\1a&H44&} o
+Dialogue: 0,0:00:00.96,0:00:01.04,Default,,0,0,0,,{\1a&H44&}{\fs52} que {\c&HFFE080&}{\1a&H00&}o{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:01.04,0:00:01.38,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&H00C5FF&}{\1a&H00&}concreto{\c&HFFFFFF&}{\1a&H44&} romano,
+Dialogue: 0,0:00:01.38,0:00:01.92,Default,,0,0,0,,{\1a&H44&}{\fs52} concreto {\c&H00C5FF&}{\1a&H00&}romano,{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:01.92,0:00:02.14,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}feito{\c&HFFFFFF&}{\1a&H44&} há
+Dialogue: 0,0:00:02.14,0:00:02.32,Default,,0,0,0,,{\1a&H44&}{\fs52} feito {\c&HFFE080&}{\1a&H00&}há{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:02.32,0:00:02.76,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}2{\c&HFFFFFF&}{\1a&H44&} mil
+Dialogue: 0,0:00:02.76,0:00:02.88,Default,,0,0,0,,{\1a&H44&}{\fs52} 2 {\c&HFFE080&}{\1a&H00&}mil{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:02.88,0:00:03.26,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}anos,{\c&HFFFFFF&}{\1a&H44&} ainda
+Dialogue: 0,0:00:03.26,0:00:03.82,Default,,0,0,0,,{\1a&H44&}{\fs52} anos, {\c&HFFE080&}{\1a&H00&}ainda{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:03.82,0:00:04.16,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}está{\c&HFFFFFF&}{\1a&H44&} de
+Dialogue: 0,0:00:04.16,0:00:04.30,Default,,0,0,0,,{\1a&H44&}{\fs52} está {\c&HFFE080&}{\1a&H00&}de{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:04.30,0:00:04.46,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}pé?{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:05.48,0:00:05.92,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Enquanto{\c&HFFFFFF&}{\1a&H44&} o
+Dialogue: 0,0:00:05.92,0:00:06.06,Default,,0,0,0,,{\1a&H44&}{\fs52}Enquanto {\c&HFFE080&}{\1a&H00&}o{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:06.06,0:00:06.88,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}nosso...{\c&HFFFFFF&}{\1a&H44&} bem,
+Dialogue: 0,0:00:06.88,0:00:07.20,Default,,0,0,0,,{\1a&H44&}{\fs52} nosso... {\c&HFFE080&}{\1a&H00&}bem,{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:07.66,0:00:07.80,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}o{\c&HFFFFFF&}{\1a&H44&} nosso
+Dialogue: 0,0:00:07.80,0:00:08.12,Default,,0,0,0,,{\1a&H44&}{\fs52} o {\c&HFFE080&}{\1a&H00&}nosso{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:08.12,0:00:08.50,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}mal{\c&HFFFFFF&}{\1a&H44&} dura
+Dialogue: 0,0:00:08.50,0:00:08.78,Default,,0,0,0,,{\1a&H44&}{\fs52} mal {\c&HFFE080&}{\1a&H00&}dura{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:08.78,0:00:09.20,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}50{\c&HFFFFFF&}{\1a&H44&} anos
+Dialogue: 0,0:00:09.20,0:00:09.82,Default,,0,0,0,,{\1a&H44&}{\fs52} 50 {\c&HFFE080&}{\1a&H00&}anos{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:09.82,0:00:10.02,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}sem{\c&HFFFFFF&}{\1a&H44&} rachar!
+Dialogue: 0,0:00:10.02,0:00:10.48,Default,,0,0,0,,{\1a&H44&}{\fs52} sem {\c&HFFE080&}{\1a&H00&}rachar!{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:11.16,0:00:11.32,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}É{\c&HFFFFFF&}{\1a&H44&} uma
+Dialogue: 0,0:00:11.32,0:00:11.44,Default,,0,0,0,,{\1a&H44&}{\fs52}É {\c&HFFE080&}{\1a&H00&}uma{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:11.44,0:00:11.76,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}diferença{\c&HFFFFFF&}{\1a&H44&} absurda
+Dialogue: 0,0:00:11.76,0:00:12.72,Default,,0,0,0,,{\1a&H44&}{\fs52} diferença {\c&HFFE080&}{\1a&H00&}absurda{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:12.72,0:00:12.88,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}que{\c&HFFFFFF&}{\1a&H44&} desafia
+Dialogue: 0,0:00:12.88,0:00:13.56,Default,,0,0,0,,{\1a&H44&}{\fs52} que {\c&HFFE080&}{\1a&H00&}desafia{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:14.02,0:00:14.12,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}a{\c&HFFFFFF&}{\1a&H44&} engenharia
+Dialogue: 0,0:00:14.12,0:00:14.56,Default,,0,0,0,,{\1a&H44&}{\fs52} a {\c&H00C5FF&}{\1a&H00&}engenharia{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:14.12,0:00:41.38,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&H00C5FF&}{\1a&H00&}moderna.{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:15.12,0:00:15.40,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Como{\c&HFFFFFF&}{\1a&H44&} eles
+Dialogue: 0,0:00:15.40,0:00:15.58,Default,,0,0,0,,{\1a&H44&}{\fs52}Como {\c&HFFE080&}{\1a&H00&}eles{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:15.58,0:00:16.06,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}faziam{\c&HFFFFFF&}{\1a&H44&} essa
+Dialogue: 0,0:00:16.06,0:00:16.28,Default,,0,0,0,,{\1a&H44&}{\fs52} faziam {\c&HFFE080&}{\1a&H00&}essa{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:16.28,0:00:16.92,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}maravilha{\c&HFFFFFF&}{\1a&H44&} que
+Dialogue: 0,0:00:16.92,0:00:17.22,Default,,0,0,0,,{\1a&H44&}{\fs52} maravilha {\c&HFFE080&}{\1a&H00&}que{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:17.22,0:00:17.46,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}até{\c&HFFFFFF&}{\1a&H44&} se
+Dialogue: 0,0:00:17.46,0:00:17.68,Default,,0,0,0,,{\1a&H44&}{\fs52} até {\c&HFFE080&}{\1a&H00&}se{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:17.68,0:00:18.24,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}'cura'{\c&HFFFFFF&}{\1a&H44&} sozinha?
+Dialogue: 0,0:00:18.24,0:00:18.78,Default,,0,0,0,,{\1a&H44&}{\fs52} 'cura' {\c&HFFE080&}{\1a&H00&}sozinha?{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:19.48,0:00:19.58,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}O{\c&HFFFFFF&}{\1a&H44&} segredo
+Dialogue: 0,0:00:19.58,0:00:20.00,Default,,0,0,0,,{\1a&H44&}{\fs52}O {\c&H00C5FF&}{\1a&H00&}segredo{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:20.00,0:00:20.12,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}não{\c&HFFFFFF&}{\1a&H44&} era
+Dialogue: 0,0:00:20.12,0:00:20.30,Default,,0,0,0,,{\1a&H44&}{\fs52} não {\c&HFFE080&}{\1a&H00&}era{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:20.30,0:00:21.10,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}mágica,{\c&HFFFFFF&}{\1a&H44&} mas
+Dialogue: 0,0:00:21.10,0:00:21.24,Default,,0,0,0,,{\1a&H44&}{\fs52} mágica, {\c&HFFE080&}{\1a&H00&}mas{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:21.24,0:00:21.44,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}uma{\c&HFFFFFF&}{\1a&H44&} química
+Dialogue: 0,0:00:21.44,0:00:22.02,Default,,0,0,0,,{\1a&H44&}{\fs52} uma {\c&HFFE080&}{\1a&H00&}química{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:22.02,0:00:22.60,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}genial.{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:23.38,0:00:23.54,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Eles{\c&HFFFFFF&}{\1a&H44&} usavam
+Dialogue: 0,0:00:23.54,0:00:23.98,Default,,0,0,0,,{\1a&H44&}{\fs52}Eles {\c&HFFE080&}{\1a&H00&}usavam{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:23.98,0:00:24.48,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}cinza{\c&HFFFFFF&}{\1a&H44&} vulcânica,
+Dialogue: 0,0:00:24.48,0:00:25.14,Default,,0,0,0,,{\1a&H44&}{\fs52} cinza {\c&H00C5FF&}{\1a&H00&}vulcânica,{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:25.44,0:00:25.78,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}a{\c&HFFFFFF&}{\1a&H44&} 'Pozolana',
+Dialogue: 0,0:00:25.78,0:00:26.12,Default,,0,0,0,,{\1a&H44&}{\fs52} a {\c&H00C5FF&}{\1a&H00&}'Pozolana',{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:26.12,0:00:26.50,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}e{\c&HFFFFFF&}{\1a&H44&} cal
+Dialogue: 0,0:00:26.50,0:00:26.87,Default,,0,0,0,,{\1a&H44&}{\fs52} e {\c&HFFE080&}{\1a&H00&}cal{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:26.87,0:00:27.24,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}virgem.{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:27.24,0:00:28.22,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Essa{\c&HFFFFFF&}{\1a&H44&} mistura
+Dialogue: 0,0:00:28.22,0:00:28.72,Default,,0,0,0,,{\1a&H44&}{\fs52}Essa {\c&HFFE080&}{\1a&H00&}mistura{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:28.72,0:00:29.24,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}criava{\c&HFFFFFF&}{\1a&H44&} cristais
+Dialogue: 0,0:00:29.24,0:00:29.70,Default,,0,0,0,,{\1a&H44&}{\fs52} criava {\c&H00C5FF&}{\1a&H00&}cristais{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:29.70,0:00:29.90,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}que{\c&HFFFFFF&}{\1a&H44&} preenchiam
+Dialogue: 0,0:00:29.90,0:00:30.44,Default,,0,0,0,,{\1a&H44&}{\fs52} que {\c&HFFE080&}{\1a&H00&}preenchiam{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:30.44,0:00:30.62,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}as{\c&HFFFFFF&}{\1a&H44&} micro-rachaduras.
+Dialogue: 0,0:00:30.62,0:00:31.60,Default,,0,0,0,,{\1a&H44&}{\fs52} as {\c&HFFE080&}{\1a&H00&}micro-rachaduras.{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:32.10,0:00:32.32,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Uma{\c&HFFFFFF&}{\1a&H44&} tecnologia
+Dialogue: 0,0:00:32.32,0:00:32.90,Default,,0,0,0,,{\1a&H44&}{\fs52}Uma {\c&HFFE080&}{\1a&H00&}tecnologia{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:32.90,0:00:33.20,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}que{\c&HFFFFFF&}{\1a&H44&} se
+Dialogue: 0,0:00:33.20,0:00:33.34,Default,,0,0,0,,{\1a&H44&}{\fs52} que {\c&HFFE080&}{\1a&H00&}se{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:33.34,0:00:33.98,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}regenera,{\c&HFFFFFF&}{\1a&H44&} muito
+Dialogue: 0,0:00:33.98,0:00:34.58,Default,,0,0,0,,{\1a&H44&}{\fs52} regenera, {\c&HFFE080&}{\1a&H00&}muito{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:34.58,0:00:34.88,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}à{\c&HFFFFFF&}{\1a&H44&} frente
+Dialogue: 0,0:00:34.88,0:00:35.12,Default,,0,0,0,,{\1a&H44&}{\fs52} à {\c&HFFE080&}{\1a&H00&}frente{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:35.12,0:00:35.34,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}do{\c&HFFFFFF&}{\1a&H44&} seu
+Dialogue: 0,0:00:35.34,0:00:35.50,Default,,0,0,0,,{\1a&H44&}{\fs52} do {\c&HFFE080&}{\1a&H00&}seu{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:35.50,0:00:35.92,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}tempo.{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:36.68,0:00:36.92,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Será{\c&HFFFFFF&}{\1a&H44&} que
+Dialogue: 0,0:00:36.92,0:00:37.10,Default,,0,0,0,,{\1a&H44&}{\fs52}Será {\c&HFFE080&}{\1a&H00&}que{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:37.10,0:00:37.36,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}estamos{\c&HFFFFFF&}{\1a&H44&} prontos
+Dialogue: 0,0:00:37.36,0:00:37.86,Default,,0,0,0,,{\1a&H44&}{\fs52} estamos {\c&HFFE080&}{\1a&H00&}prontos{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:37.86,0:00:38.02,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}para{\c&HFFFFFF&}{\1a&H44&} aprender
+Dialogue: 0,0:00:38.02,0:00:38.38,Default,,0,0,0,,{\1a&H44&}{\fs52} para {\c&HFFE080&}{\1a&H00&}aprender{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:38.38,0:00:38.56,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}com{\c&HFFFFFF&}{\1a&H44&} o
+Dialogue: 0,0:00:38.56,0:00:38.64,Default,,0,0,0,,{\1a&H44&}{\fs52} com {\c&HFFE080&}{\1a&H00&}o{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:38.64,0:00:38.98,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&H00C5FF&}{\1a&H00&}passado?{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:39.86,0:00:40.08,Default,,0,0,0,,{\1a&H44&}{\fs52}{\c&HFFE080&}{\1a&H00&}Deixe{\c&HFFFFFF&}{\1a&H44&} sua
+Dialogue: 0,0:00:40.08,0:00:40.26,Default,,0,0,0,,{\1a&H44&}{\fs52}Deixe {\c&HFFE080&}{\1a&H00&}sua{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:40.26,0:00:40.68,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}opinião{\c&HFFFFFF&}{\1a&H44&} nos
+Dialogue: 0,0:00:40.68,0:00:40.82,Default,,0,0,0,,{\1a&H44&}{\fs52} opinião {\c&HFFE080&}{\1a&H00&}nos{\c&HFFFFFF&}{\1a&H44&}
+Dialogue: 0,0:00:40.82,0:00:41.38,Default,,0,0,0,,{\1a&H44&}{\fs52} {\c&HFFE080&}{\1a&H00&}comentários!{\c&HFFFFFF&}{\1a&H44&}
 Dialogue: 0,0:00:00.00,0:00:04.00,Impact,,0,0,0,,CONCRETO ROMANO: 2000 ANOS DE PÉ!
 Dialogue: 0,0:00:04.50,0:00:08.50,Impact,,0,0,0,,NOSSO CONCRETO: RACHA EM 50 ANOS!
 Dialogue: 0,0:00:35.48,0:00:32.10,Impact,,0,0,0,,O SEGREDO: POZOLANA E AUTOCURA!

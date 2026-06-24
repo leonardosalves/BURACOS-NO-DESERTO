@@ -544,6 +544,11 @@ def render_subclip(clip_id, clip_info):
     elif asset_type == 'video':
         vf_filters = [f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=decrease,pad={WIDTH}:{HEIGHT}:(ow-iw)/2:(oh-ih)/2,fps=60"]
 
+        is_transition = clip_info.get('is_transition', False)
+        if is_transition:
+            # Zoom punch: starts at +6% and relaxes to normal size (1.0) in 0.4s
+            vf_filters.append("crop=w=iw/(1.0+0.06*max(0\\,1-t/0.4)):h=ih/(1.0+0.06*max(0\\,1-t/0.4)):x=(iw-ow)/2:y=(ih-oh)/2")
+
         speed_multiplier = 1.0
         if "fast motion" in notes or "speed up" in notes or "fast-motion" in notes:
             vf_filters.append("setpts=0.5*PTS")
@@ -681,51 +686,56 @@ def render_subclip(clip_id, clip_info):
 
                 t = i / max(1, total_frames - 1)
 
+                is_transition = clip_info.get('is_transition', False)
+                sec = t * duration
+                scale_punch = 0.06 * (1.0 - sec / 0.4) if (is_transition and sec < 0.4) else 0.0
+
                 if movement_type == 'zoom_in':
                     scale = 1.0 + 0.04 * t
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     x, y = cx, cy
                 elif movement_type == 'zoom_out':
                     scale = 1.04 - 0.04 * t
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     x, y = cx, cy
                 elif movement_type == 'pan_right':
                     scale = 1.04
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     max_shift = (crop_w - w) / 2.0
                     x = cx - max_shift + 2.0 * max_shift * t
                     y = cy
                 elif movement_type == 'pan_left':
                     scale = 1.04
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     max_shift = (crop_w - w) / 2.0
                     x = cx + max_shift - 2.0 * max_shift * t
                     y = cy
                 elif movement_type == 'pan_up':
                     scale = 1.04
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     max_shift = (crop_h - h) / 2.0
                     x = cx
                     y = cy + max_shift - 2.0 * max_shift * t
                 elif movement_type == 'pan_down':
                     scale = 1.04
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     max_shift = (crop_h - h) / 2.0
                     x = cx
                     y = cy - max_shift + 2.0 * max_shift * t
                 elif movement_type == 'gentle_zoom':
                     scale = 1.0 + 0.02 * t
-                    w = crop_w / scale
-                    h = crop_h / scale
+                    w = crop_w / (scale + scale_punch)
+                    h = crop_h / (scale + scale_punch)
                     x, y = cx, cy
                 else:
-                    w, h = crop_w, crop_h
+                    w = crop_w / (1.0 + scale_punch)
+                    h = crop_h / (1.0 + scale_punch)
                     x, y = cx, cy
 
                 left = x - w / 2.0
@@ -778,6 +788,8 @@ def main():
 
     # 2. Build Timeline
     timeline = build_timeline()
+    for idx, clip in enumerate(timeline):
+        clip['is_transition'] = (idx > 0 and timeline[idx-1]['block'] != clip['block'])
     print(f"Compiled highlighted timeline contains {len(timeline)} clips. Total duration: {sum(c['duration'] for c in timeline):.2f}s.")
 
     print("\nStarting parallel rendering of sub-clips (highlighted)...")
