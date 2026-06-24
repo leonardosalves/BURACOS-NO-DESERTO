@@ -135,7 +135,7 @@ const SceneMedia: React.FC<{
   }
 
   // 4. Video Manipulation & Cinematic Color Grading
-  let filter = "none";
+  let filter = "";
   if (!isLogo) {
     const effectType = index % 4;
     if (effectType === 0) {
@@ -147,6 +147,23 @@ const SceneMedia: React.FC<{
     } else if (effectType === 2) {
       // Cinematic cool grading
       filter = "hue-rotate(-5deg) contrast(1.05) saturate(1.02)";
+    } else {
+      filter = "contrast(1.0) brightness(1.0)";
+    }
+  } else {
+    filter = "none";
+  }
+
+  // 5. Professional Depth-of-Field Blur Entry (Focus Effect)
+  if (!isLogo && frame < 15) {
+    const entryBlur = interpolate(frame, [0, 15], [10, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    if (filter !== "none") {
+      filter += ` blur(${entryBlur}px)`;
+    } else {
+      filter = `blur(${entryBlur}px)`;
     }
   }
 
@@ -165,17 +182,47 @@ const SceneMedia: React.FC<{
 
   if (scene.type === "video") {
     return (
-      <Video
-        src={assetUrl(scene.asset)}
-        muted
-        loop={false}
-        volume={0}
-        style={commonStyle}
-      />
+      <AbsoluteFill style={{ overflow: "hidden" }}>
+        <Video
+          src={assetUrl(scene.asset)}
+          muted
+          loop={false}
+          volume={0}
+          style={commonStyle}
+        />
+        {!isLogo && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              background: "radial-gradient(circle, transparent 35%, rgba(0,0,0,0.7) 100%)",
+              mixBlendMode: "multiply",
+              opacity: 0.85,
+            }}
+          />
+        )}
+      </AbsoluteFill>
     );
   }
 
-  return <Img src={assetUrl(scene.asset)} style={commonStyle} />;
+  return (
+    <AbsoluteFill style={{ overflow: "hidden" }}>
+      <Img src={assetUrl(scene.asset)} style={commonStyle} />
+      {!isLogo && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            background: "radial-gradient(circle, transparent 35%, rgba(0,0,0,0.7) 100%)",
+            mixBlendMode: "multiply",
+            opacity: 0.85,
+          }}
+        />
+      )}
+    </AbsoluteFill>
+  );
 };
 
 interface WordChunk {
@@ -194,7 +241,6 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
   const chunks: WordChunk[] = React.useMemo(() => {
     const list: WordChunk[] = [];
     let currentChunk: Caption[] = [];
-
     const safeCaptions = captions
       .filter((caption) => caption.text.trim() && Number.isFinite(caption.startMs) && Number.isFinite(caption.endMs))
       .map((caption) => ({
@@ -257,9 +303,10 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
-          gap: 16,
+          columnGap: isVertical ? 22 : 18,
+          rowGap: isVertical ? 14 : 10,
           maxWidth: isVertical ? 900 : 1280,
-          filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.85))",
+          filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.72))",
         }}
       >
         {activeChunk.words.map((word, index) => {
@@ -268,17 +315,21 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
             <span
               key={`${word.startMs}-${index}`}
               style={{
-                color: active ? "#FFE600" : "#FFFFFF", // Premium gold/yellow active, pure white inactive
+                color: active ? "#F8FAFC" : "rgba(248,250,252,0.84)",
                 fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
-                fontSize: isVertical ? 80 : 60, // Large sophisticated Shorts sizes
-                fontWeight: 900,
-                lineHeight: 1.05,
-                WebkitTextStroke: isVertical ? "5px #000000" : "4px #000000", // Heavy black outline for premium readability
+                fontSize: isVertical ? 72 : 54,
+                fontWeight: 850,
+                lineHeight: 1.16,
+                letterSpacing: "0.035em",
+                WebkitTextStroke: isVertical ? "2px rgba(2,6,23,0.92)" : "1.6px rgba(2,6,23,0.92)",
                 textTransform: "uppercase",
                 whiteSpace: "pre",
-                transform: active ? "scale(1.1)" : "scale(1.0)",
-                transition: "transform 0.08s ease-out, color 0.08s ease-out",
-                opacity: active ? 1 : 0.88, // slightly translucent for inactive words
+                textShadow: active
+                  ? "0 0 22px rgba(250,204,21,0.38), 0 3px 10px rgba(0,0,0,0.8)"
+                  : "0 3px 10px rgba(0,0,0,0.72)",
+                transform: active ? "translateY(-2px) scale(1.045)" : "scale(1.0)",
+                transition: "transform 0.08s ease-out, color 0.08s ease-out, text-shadow 0.08s ease-out",
+                opacity: active ? 1 : 0.86,
               }}
             >
               {word.text}
@@ -308,7 +359,6 @@ const BgmAudio: React.FC<{
       volume={(localFrame) => {
         const absoluteFrame = startFrame + localFrame;
         const currentMs = (absoluteFrame / fps) * 1000;
-
         const localMs = (localFrame / fps) * 1000;
 
         const fadeIn = interpolate(localMs, [0, 1800], [0, 1], {
@@ -325,7 +375,7 @@ const BgmAudio: React.FC<{
         const logoStartMs = totalDurationMs - 3000;
         if (currentMs >= logoStartMs) {
           const progress = (currentMs - logoStartMs) / 3000;
-          return interpolate(progress, [0, 1], [0.04, 0.12], {
+          return interpolate(progress, [0, 1], [0.024, 0.065], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }) * envelope;
@@ -351,28 +401,28 @@ const BgmAudio: React.FC<{
         }
 
         if (isSpeaking) {
-          return 0.026 * envelope;
+          const breath = (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
+          return interpolate(breath, [0, 1], [0.008, 0.018]) * envelope;
         }
 
         // Smooth transition over 600ms before/after narration starts/stops
-        if (minDistance < 600) {
-          return interpolate(minDistance, [0, 600], [0.026, 0.075], {
+        if (minDistance < 900) {
+          return interpolate(minDistance, [0, 900], [0.018, 0.045], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }) * envelope;
         }
 
-        return 0.075 * envelope;
+        return 0.045 * envelope;
       }}
     />
   );
 };
 
-
 const SfxAudio: React.FC<{ track: SfxTrack }> = ({ track }) => {
   const { fps } = useVideoConfig();
   const durationMs = Math.max(300, track.duration * 1000);
-  const baseVolume = Math.min(0.12, Math.max(0.02, track.volume || 0.05));
+  const baseVolume = Math.min(0.07, Math.max(0.012, track.volume || 0.035));
 
   return (
     <Audio

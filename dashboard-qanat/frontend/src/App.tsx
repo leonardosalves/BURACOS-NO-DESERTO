@@ -241,6 +241,15 @@ export default function App() {
 
   const [chatLoading, setChatLoading] = useState<boolean>(false);
 
+  const [epidemicKeyInput, setEpidemicKeyInput] = useState<string>('');
+  const [hasEpidemicKey, setHasEpidemicKey] = useState<boolean>(false);
+  const [epidemicSearchQuery, setEpidemicSearchQuery] = useState<string>('');
+  const [epidemicSearchResults, setEpidemicSearchResults] = useState<any[]>([]);
+  const [searchingEpidemic, setSearchingEpidemic] = useState<boolean>(false);
+  const [downloadingEpidemicId, setDownloadingEpidemicId] = useState<string | null>(null);
+  const [autoSoundtracking, setAutoSoundtracking] = useState<boolean>(false);
+  const [epidemicSearchType, setEpidemicSearchType] = useState<'bgm' | 'sfx'>('bgm');
+
   
 
   // YouTube states
@@ -566,6 +575,8 @@ export default function App() {
         setGeminiKeyCount(settingsData.gemini_key_count || 0);
 
         setHasXaiKey(!!settingsData.has_xai_key);
+
+        setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
         setHasApiKey((settingsData.gemini_key_count || 0) > 0 || !!settingsData.has_xai_key);
 
@@ -2280,7 +2291,7 @@ export default function App() {
 
       }
 
-      const url = getMusicUrl(fileName);
+      const url = fileName.startsWith("http") ? fileName : getMusicUrl(fileName);
 
       const audio = new Audio(url);
 
@@ -2360,6 +2371,83 @@ export default function App() {
 
   };
 
+    const handleSearchEpidemic = async () => {
+    if (!epidemicSearchQuery.trim()) {
+      toast.error('Digite um termo para pesquisar.');
+      return;
+    }
+    setSearchingEpidemic(true);
+    try {
+      const res = await fetch(getProjectUrl(`/api/epidemic/search?query=${encodeURIComponent(epidemicSearchQuery)}&type=${epidemicSearchType}`));
+      const data = await res.json();
+      if (res.ok) {
+        setEpidemicSearchResults(data);
+        if (data.length === 0) {
+          toast(`Nenhum item encontrado no Epidemic Sound (${epidemicSearchType.toUpperCase()}).`);
+        } else {
+          toast.success(`${data.length} itens encontrados (${epidemicSearchType.toUpperCase()})!`);
+        }
+      } else {
+        toast.error(data.error || 'Erro ao pesquisar.');
+      }
+    } catch (err) {
+      toast.error('Falha de conexão ao pesquisar.');
+    } finally {
+      setSearchingEpidemic(false);
+    }
+  };
+
+  const handleDownloadEpidemic = async (track: any, blockNumber?: number) => {
+    setDownloadingEpidemicId(track.id);
+    try {
+      const res = await fetch(getProjectUrl('/api/epidemic/download'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: track.id,
+          type: epidemicSearchType,
+          title: track.title,
+          block: blockNumber
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || 'Arquivo baixado com sucesso!');
+        fetchData(); // Refresh local list and BGM config
+      } else {
+        toast.error(data.error || 'Erro ao baixar.');
+      }
+    } catch (err) {
+      toast.error('Falha de conexão ao baixar.');
+    } finally {
+      setDownloadingEpidemicId(null);
+    }
+  };
+
+  const handleAutoSoundtrack = async () => {
+    setAutoSoundtracking(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/epidemic/auto-soundtrack'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: formatSelector
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Sonoplastia automática concluída com sucesso!');
+        fetchData();
+      } else {
+        toast.error((data.error && data.details) ? `${data.error}: ${data.details}` : (data.error || 'Erro na trilha sonora automática.'));
+      }
+    } catch (err) {
+      toast.error('Falha de conexão ao processar sonoplastia automática.');
+    } finally {
+      setAutoSoundtracking(false);
+    }
+  };
+
   const handleSaveAiSettings = async () => {
 
     setSavingAiSettings(true);
@@ -2378,7 +2466,9 @@ export default function App() {
 
           gemini_keys: geminiKeysInput,
 
-          xai_key: xaiKeyInput
+          xai_key: xaiKeyInput,
+          
+          epidemic_sound_key: epidemicKeyInput
 
         })
 
@@ -2391,12 +2481,16 @@ export default function App() {
         setGeminiKeyCount(data.gemini_key_count || 0);
 
         setHasXaiKey(!!data.has_xai_key);
+        
+        setHasEpidemicKey(!!data.has_epidemic_key);
 
         setHasApiKey((data.gemini_key_count || 0) > 0 || !!data.has_xai_key);
 
         setGeminiKeysInput('');
 
         setXaiKeyInput('');
+        
+        setEpidemicKeyInput('');
 
         toast.success('Configurações de IA salvas com sucesso!');
 
@@ -3265,6 +3359,51 @@ export default function App() {
 
     saveConfig(updated);
 
+  };
+
+  const handleDeleteMusic = async (fileName: string) => {
+    if (!confirm(`Excluir a trilha "${fileName}" deste projeto?`)) return;
+
+    try {
+      const res = await fetch(getProjectUrl(`/api/music/${encodeURIComponent(fileName)}`), {
+        method: 'DELETE'
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        if (playingMusic === fileName) {
+          setPlayingMusic(null);
+        }
+        toast.success(`Trilha ${fileName} excluída.`);
+        fetchData();
+      } else {
+        toast.error(data.error || 'Erro ao excluir trilha.');
+      }
+    } catch (err) {
+      toast.error('Falha de conexão ao excluir trilha.');
+    }
+  };
+
+  const handleDeleteAllMusic = async () => {
+    if (!musicFiles.length) return;
+    if (!confirm(`Excluir todas as ${musicFiles.length} trilhas sonoras deste projeto? A narração será preservada.`)) return;
+
+    try {
+      const res = await fetch(getProjectUrl('/api/music'), {
+        method: 'DELETE'
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setPlayingMusic(null);
+        toast.success(`${data.deleted?.length || 0} trilhas excluídas.`);
+        fetchData();
+      } else {
+        toast.error(data.error || 'Erro ao limpar trilhas.');
+      }
+    } catch (err) {
+      toast.error('Falha de conexão ao limpar trilhas.');
+    }
   };
 
   // Mix background music
@@ -4818,6 +4957,15 @@ export default function App() {
 
                       <span className="text-[10px] text-zinc-500 font-mono">{musicFiles.length} arquivos</span>
 
+                      <button
+                        disabled={!musicFiles.length}
+                        onClick={handleDeleteAllMusic}
+                        title="Excluir todas as trilhas deste projeto mantendo a narração"
+                        className="bg-red-950/40 border border-red-900/60 hover:border-red-500/70 text-red-300 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Limpar Trilhas
+                      </button>
+
                       <input 
 
                         type="file" 
@@ -4944,7 +5092,16 @@ export default function App() {
 
                           </div>
 
-                          <span className="text-[10px] font-mono text-zinc-500 shrink-0">{getFormatBytes(file.sizeBytes)}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-mono text-zinc-500">{getFormatBytes(file.sizeBytes)}</span>
+                            <button
+                              onClick={() => handleDeleteMusic(file.name)}
+                              className="text-red-400 hover:text-red-300 p-1.5 rounded-lg bg-red-950/25 border border-red-900/40 hover:bg-red-950/50 cursor-pointer transition"
+                              title="Excluir trilha"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
 
                         </div>
 
@@ -4952,6 +5109,172 @@ export default function App() {
 
                 </div>
 
+              </div>
+
+              {/* Integração Epidemic Sound */}
+              <div className="glass-panel p-6 rounded-3xl space-y-6 mt-6 animate-fade-in">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+                  <div>
+                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                      <Music className="w-5 h-5 text-gold-500" /> API EPIDEMIC SOUND (MCP SSE)
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-1">Busque faixas e efeitos sonoros livres de copyright diretamente do catálogo da Epidemic Sound ou gere uma trilha sonora inteligente automática baseada no seu roteiro.</p>
+                  </div>
+                  
+                  {hasEpidemicKey ? (
+                    <button
+                      disabled={autoSoundtracking}
+                      onClick={handleAutoSoundtrack}
+                      className="bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-600 hover:to-amber-600 disabled:opacity-50 text-zinc-950 text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-gold-500/10 cursor-pointer flex items-center gap-2"
+                    >
+                      {autoSoundtracking ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      <span>{autoSoundtracking ? 'Processando Sonoplastia...' : 'Sonoplastia IA Inteligente (Autodetect & Download)'}</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs bg-red-950/40 border border-red-800 text-red-400 px-3 py-1.5 rounded-xl font-bold font-sans">
+                      ⚠️ Configure a Chave da API nas Configurações para habilitar a busca e automação
+                    </span>
+                  )}
+                </div>
+
+                {hasEpidemicKey && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Search and Filters Column */}
+                    <div className="lg:col-span-1 space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Tipo de Busca</label>
+                        <div className="grid grid-cols-2 gap-2 bg-zinc-950 p-1 rounded-xl border border-zinc-900">
+                          <button
+                            onClick={() => { setEpidemicSearchType('bgm'); setEpidemicSearchResults([]); }}
+                            className={`py-2 text-xs font-bold rounded-lg transition cursor-pointer ${epidemicSearchType === 'bgm' ? 'bg-gold-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+                          >
+                            Músicas (BGM)
+                          </button>
+                          <button
+                            onClick={() => { setEpidemicSearchType('sfx'); setEpidemicSearchResults([]); }}
+                            className={`py-2 text-xs font-bold rounded-lg transition cursor-pointer ${epidemicSearchType === 'sfx' ? 'bg-gold-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+                          >
+                            Efeitos (SFX)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Buscar por Termo</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={epidemicSearchQuery}
+                            onChange={(e) => setEpidemicSearchQuery(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSearchEpidemic(); }}
+                            placeholder={epidemicSearchType === 'bgm' ? 'Ex: cinematic ancient tension...' : 'Ex: whoosh, desert wind...'}
+                            className="flex-1 bg-zinc-950 border border-zinc-850 focus:outline-none focus:border-gold-500 rounded-xl px-4 py-2.5 text-xs text-white"
+                          />
+                          <button
+                            onClick={handleSearchEpidemic}
+                            disabled={searchingEpidemic}
+                            className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center"
+                          >
+                            {searchingEpidemic ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-zinc-950/60 border border-zinc-900 rounded-2xl p-4 space-y-3">
+                        <h5 className="text-xs font-bold text-white tracking-wide">Como Funciona?</h5>
+                        <ul className="text-[10px] text-zinc-400 space-y-2 leading-relaxed list-disc list-inside font-sans">
+                          <li><strong>Músicas (BGM)</strong>: Quando baixadas, são salvas no projeto e associadas ao bloco desejado ou como trilha sonora única.</li>
+                          <li><strong>Efeitos (SFX)</strong>: São salvos diretamente na pasta <code>ASSETS/</code> como <code>sfx_*.mp3</code> para uso em cortes de vídeo.</li>
+                          <li><strong>Sonoplastia IA Inteligente</strong>: Analisa o roteiro do vídeo e temas recomendados para baixar e mapear automaticamente todas as faixas.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Results Column */}
+                    <div className="lg:col-span-2 space-y-3">
+                      <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Resultados da Busca</label>
+                        <span className="text-[10px] text-zinc-500 font-mono">{epidemicSearchResults.length} encontrados</span>
+                      </div>
+
+                      <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-2">
+                        {epidemicSearchResults.length === 0 ? (
+                          <div className="h-[200px] border border-dashed border-zinc-850 rounded-2xl flex flex-col items-center justify-center text-center p-4">
+                            <Music className="w-8 h-8 text-zinc-700 mb-2" />
+                            <p className="text-xs text-zinc-500">Nenhum resultado para exibir. Faça uma busca no painel ao lado.</p>
+                          </div>
+                        ) : (
+                          epidemicSearchResults.map((track) => (
+                            <div key={track.id} className="p-3 bg-zinc-950 border border-zinc-900 hover:border-zinc-800 rounded-xl flex items-center justify-between gap-4 transition group">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                {track.previewUrl && (
+                                  <button
+                                    onClick={() => togglePlayMusic(track.previewUrl)}
+                                    className="text-gold-500 hover:text-gold-400 p-2 rounded-xl bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+                                    title="Ouvir demonstração"
+                                  >
+                                    {playingMusic === track.previewUrl ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+                                  </button>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-white truncate">{track.title}</p>
+                                  <p className="text-[10px] text-zinc-400 font-sans mt-0.5 truncate">
+                                    {track.artist && <span>{track.artist}</span>}
+                                    {track.bpm && <span className="ml-2 px-1 py-0.5 bg-zinc-900 rounded text-zinc-500 text-[9px] font-mono">{track.bpm} BPM</span>}
+                                    {track.duration && <span className="ml-2 font-mono text-[9px] text-zinc-500">{Math.round(track.duration / 1000)}s</span>}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {epidemicSearchType === 'bgm' ? (
+                                  <>
+                                    {/* Mapear para bloco específico */}
+                                    <div className="hidden group-hover:flex items-center gap-1 animate-fade-in">
+                                      <select
+                                        onChange={(e) => {
+                                          const block = Number(e.target.value);
+                                          if (block > 0) {
+                                            handleDownloadEpidemic(track, block);
+                                            e.target.value = ""; // reset dropdown
+                                          }
+                                        }}
+                                        disabled={downloadingEpidemicId !== null}
+                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 hover:border-zinc-700 rounded px-1.5 py-1 cursor-pointer focus:outline-none"
+                                      >
+                                        <option value="">Map Bloco...</option>
+                                        {Array.from({ length: Math.max(1, (config.bgm_mappings || []).length || (storyboardData?.bgm_recommendations || []).length || 10) }, (_, i) => i + 1).map(num => (
+                                          <option key={num} value={num}>Bloco {num}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <button
+                                      disabled={downloadingEpidemicId !== null}
+                                      onClick={() => handleDownloadEpidemic(track)}
+                                      className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 hover:bg-gold-500/10 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {downloadingEpidemicId === track.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                                      <span>Trilha Única</span>
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    disabled={downloadingEpidemicId !== null}
+                                    onClick={() => handleDownloadEpidemic(track)}
+                                    className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 hover:bg-gold-500/10 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    {downloadingEpidemicId === track.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                                    <span>Baixar SFX</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -6956,13 +7279,26 @@ export default function App() {
 
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-4">
 
-                    <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave xAI / Grok</label>
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave xAI / Grok</label>
+                      <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">A xAI será usada como fallback quando o Gemini esgotar todas as chaves ou como principal se você selecionar Grok / xAI.</p>
+                    </div>
 
-                    <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
-
-                    <p className="text-[10px] text-zinc-500 leading-relaxed">A xAI será usada como fallback quando o Gemini esgotar todas as chaves ou como principal se você selecionar Grok / xAI.</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave Epidemic Sound (MCP)</label>
+                        {hasEpidemicKey ? (
+                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Ativa</span>
+                        ) : (
+                          <span className="text-[9px] bg-red-950/80 border border-red-800 text-red-400 px-2 py-0.5 rounded-full font-bold">Não Configurada</span>
+                        )}
+                      </div>
+                      <input type="password" value={epidemicKeyInput} onChange={(e) => setEpidemicKeyInput(e.target.value)} placeholder="Cole o token JWT do Epidemic Sound. Deixe vazio para manter o atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">Necessária para buscar trilhas e efeitos sonoros diretamente pela API da Epidemic Sound.</p>
+                    </div>
 
                   </div>
 

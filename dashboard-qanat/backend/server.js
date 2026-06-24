@@ -1,4 +1,5 @@
 import express from "express";
+import { searchMusic, downloadMusicTrack, searchSoundEffects, downloadSoundEffect } from "./epidemicService.js";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
@@ -405,6 +406,97 @@ app.get("/api/music", (req, res) => {
   }
 });
 
+const AUDIO_TRACK_EXTENSIONS = new Set([".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"]);
+const PROTECTED_AUDIO_FILES = new Set([
+  "narracao_mestra_premium.mp3",
+  "narracao_master.mp3",
+  "voiceover.mp3",
+  "1.mp3",
+  "2.mp3",
+  "3.mp3"
+]);
+
+function isDeletableBgmFile(fileName) {
+  const safeName = path.basename(String(fileName || ""));
+  const lower = safeName.toLowerCase();
+  return (
+    safeName &&
+    safeName === fileName &&
+    AUDIO_TRACK_EXTENSIONS.has(path.extname(lower)) &&
+    !PROTECTED_AUDIO_FILES.has(lower)
+  );
+}
+
+function clearBgmReferences(projDir, removedNames) {
+  const configPath = path.join(projDir, "config_qanat.json");
+  const config = readJsonFile(configPath);
+  if (!config) return;
+
+  const removed = new Set(removedNames.map(name => String(name).toLowerCase()));
+  let changed = false;
+
+  if (Array.isArray(config.bgm_mappings)) {
+    const nextMappings = config.bgm_mappings.filter(mapping => !removed.has(String(mapping.file || "").toLowerCase()));
+    changed = changed || nextMappings.length !== config.bgm_mappings.length;
+    config.bgm_mappings = nextMappings;
+  }
+
+  if (config.single_bgm && removed.has(String(config.single_bgm).toLowerCase())) {
+    config.single_bgm = "";
+    config.use_single_bgm = false;
+    changed = true;
+  }
+
+  if (changed) {
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  }
+}
+
+// API: Delete one background music track
+app.delete("/api/music/:filename", (req, res) => {
+  const projDir = getProjectDir(req);
+  const fileName = req.params.filename;
+
+  if (!isDeletableBgmFile(fileName)) {
+    return res.status(400).json({ error: "Arquivo de trilha invÃ¡lido ou protegido." });
+  }
+
+  const targetPath = path.resolve(projDir, fileName);
+  if (!targetPath.startsWith(path.resolve(projDir) + path.sep)) {
+    return res.status(400).json({ error: "Caminho invÃ¡lido." });
+  }
+
+  if (!fs.existsSync(targetPath)) {
+    return res.status(404).json({ error: "Trilha nÃ£o encontrada." });
+  }
+
+  fs.unlinkSync(targetPath);
+  clearBgmReferences(projDir, [fileName]);
+  res.json({ success: true, deleted: [fileName] });
+});
+
+// API: Delete all user/downloaded background music tracks from the current project
+app.delete("/api/music", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const deleted = [];
+    const root = path.resolve(projDir);
+
+    for (const fileName of fs.readdirSync(projDir)) {
+      if (!isDeletableBgmFile(fileName)) continue;
+      const targetPath = path.resolve(projDir, fileName);
+      if (!targetPath.startsWith(root + path.sep)) continue;
+      fs.unlinkSync(targetPath);
+      deleted.push(fileName);
+    }
+
+    clearBgmReferences(projDir, deleted);
+    res.json({ success: true, deleted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API: Mix soundtrack (runs mix_bgm.py)
 app.post("/api/music/mix", (req, res) => {
   const projDir = getProjectDir(req);
@@ -439,10 +531,352 @@ app.post("/api/music/mix", (req, res) => {
   });
 });
 
+// API: Search music/SFX on Epidemic Sound MCP
+app.get("/api/epidemic/search", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  const { query, type } = req.query;
+  if (!query) {
+    return res.status(400).json({ error: "O termo de busca (query) é obrigatório." });
+  }
+
+  try {
+    if (type === "sfx") {
+      const results = await searchSoundEffects(token, query);
+      res.json(results);
+    } else {
+      const results = await searchMusic(token, query);
+      res.json(results);
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao buscar na Epidemic Sound", details: err.message });
+  }
+});
+
+// API: Download track/SFX and auto-map
+app.post("/api/epidemic/download", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  const { id, type, title, block } = req.body;
+  if (!id || !type) {
+    return res.status(400).json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
+  }
+
+  try {
+    const safeTitle = (title || `audio_${id}`).replace(/[^a-zA-Z0-9_-]/g, "_");
+    
+    if (type === "sfx") {
+      // Save SFX directly to project ASSETS folder
+      const assetsDir = path.join(projDir, "ASSETS");
+      fs.mkdirSync(assetsDir, { recursive: true });
+      const filename = `sfx_${safeTitle}.mp3`;
+      const destPath = path.join(assetsDir, filename);
+      
+      await downloadSoundEffect(token, id, destPath);
+      res.json({ success: true, filename, type: "sfx", message: `Efeito sonoro baixado e salvo em ASSETS/${filename}` });
+    } else {
+      // Save BGM directly to project folder
+      const filename = `ES_${safeTitle}.mp3`;
+      const destPath = path.join(projDir, filename);
+      
+      await downloadMusicTrack(token, id, destPath);
+      
+      // Auto-map BGM based on block
+      const configPath = path.join(projDir, "config_qanat.json");
+      let config = readJsonFile(configPath) || {};
+      
+      if (block !== undefined && block > 0) {
+        // Map BGM to specific block
+        if (!Array.isArray(config.bgm_mappings)) {
+          config.bgm_mappings = [];
+        }
+        
+        // Remove existing mapping for this block if any
+        config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== Number(block));
+        config.bgm_mappings.push({
+          block: Number(block),
+          file: filename
+        });
+        config.bgm_mappings.sort((a, b) => a.block - b.block);
+        
+        config.use_single_bgm = false;
+        console.log(`[Epidemic MCP] Auto-mapped BGM ${filename} to block ${block}`);
+      } else {
+        // Map BGM as single BGM
+        config.single_bgm = filename;
+        config.use_single_bgm = true;
+        console.log(`[Epidemic MCP] Auto-mapped BGM ${filename} as single soundtrack`);
+      }
+      
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      
+      res.json({ 
+        success: true, 
+        filename, 
+        type: "bgm", 
+        message: `Música baixada e mapeada com sucesso: ${filename}` 
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao baixar arquivo da Epidemic Sound", details: err.message });
+  }
+});
+
+// Helper: Translate Portuguese query terms to English and sanitize for Epidemic Sound search
+function translateOrCleanQuery(query) {
+  if (!query) return "cinematic mystery";
+  let q = query.toLowerCase();
+  
+  const translations = {
+    "misterioso": "mysterious",
+    "misteriosa": "mysterious",
+    "mistério": "mystery",
+    "misterio": "mystery",
+    "tensão": "tension",
+    "tensao": "tension",
+    "triste": "sad",
+    "tristeza": "sadness",
+    "alegre": "happy",
+    "feliz": "happy",
+    "épico": "epic",
+    "epico": "epic",
+    "épica": "epic",
+    "epica": "epic",
+    "ação": "action",
+    "acao": "action",
+    "documentário": "documentary",
+    "documentario": "documentary",
+    "sombrio": "dark",
+    "sombria": "dark",
+    "escuro": "dark",
+    "leve": "light",
+    "suave": "soft",
+    "rápido": "fast",
+    "rapido": "fast",
+    "lento": "slow",
+    "percussão": "percussion",
+    "percussao": "percussion",
+    "bateria": "drums",
+    "cordas": "strings",
+    "piano": "piano",
+    "flauta": "flute",
+    "suspeito": "suspense",
+    "suspense": "suspense",
+    "dramático": "dramatic",
+    "dramatico": "dramatic",
+    "dramática": "dramatic",
+    "dramatica": "dramatic",
+    "urgente": "urgent",
+    "urgência": "urgent",
+    "urgencia": "urgent",
+    "clímax": "climax",
+    "climax": "climax",
+    "final": "ending",
+    "fechamento": "outro",
+    "abertura": "intro",
+    "introdução": "intro",
+    "introducao": "intro",
+    "crescente": "building",
+    "esferas": "spheres",
+    "bronze": "bronze",
+    "vento": "wind",
+    "deserto": "desert",
+    "areias": "sand",
+    "antigo": "ancient",
+    "antiga": "ancient"
+  };
+
+  for (const [pt, en] of Object.entries(translations)) {
+    const regex = new RegExp(`\\b${pt}\\b`, "g");
+    q = q.replace(regex, en);
+  }
+
+  q = q.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ");
+  q = q.replace(/\s+/g, " ").trim();
+  return q;
+}
+
+// Helper: Run automated soundtrack selection and download logic
+async function runAutoSoundtrackLogic(projDir, token, mode) {
+  const bgmSuggestionsPath = path.join(projDir, "storyboard.json");
+  const configPath = path.join(projDir, "config_qanat.json");
+  let config = readJsonFile(configPath) || {};
+  const logs = [];
+
+  if (!fs.existsSync(bgmSuggestionsPath)) {
+    logs.push("storyboard.json ausente. Download automatico de BGM ignorado para evitar trilha generica fora de contexto.");
+    return logs;
+  }
+
+  const storyboard = JSON.parse(fs.readFileSync(bgmSuggestionsPath, "utf8"));
+
+  if (mode === "SHORTS" || config.use_single_bgm) {
+    const rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
+    if (!String(rawSearchTheme).trim()) {
+      logs.push("SHORTS/trilha unica sem tema de BGM no roteiro. Nenhum download automatico feito.");
+      return logs;
+    }
+    const searchTheme = translateOrCleanQuery(rawSearchTheme);
+    logs.push(`Buscando trilha única para o tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
+    try {
+      let tracks = await searchMusic(token, searchTheme);
+      if (tracks.length > 0) {
+        const track = tracks[0];
+        const filename = `ES_${track.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
+        const destPath = path.join(projDir, filename);
+        logs.push(`Baixando faixa: "${track.title}"...`);
+        await downloadMusicTrack(token, track.id, destPath);
+        
+        config.single_bgm = filename;
+        config.use_single_bgm = true;
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+        logs.push(`Sucesso! Trilha única mapeada: ${filename}`);
+      } else {
+        logs.push(`Nenhuma música encontrada para o tema "${searchTheme}".`);
+      }
+    } catch (err) {
+      logs.push(`Erro ao buscar/baixar trilha única: ${err.message}`);
+      throw err;
+    }
+  } else {
+    const suggestions = storyboard.bgm_recommendations || [];
+    if (suggestions.length === 0) {
+      logs.push("bgm_recommendations vazio. Nenhum download automatico feito para evitar trilhas genericas e repetidas.");
+      return logs;
+    }
+
+    logs.push(`Processando ${suggestions.length} blocos para download automático...`);
+    config.bgm_mappings = [];
+    config.use_single_bgm = false;
+    config.single_bgm = "";
+    const usedTracks = new Set();
+
+    for (const sug of suggestions) {
+      const block = Number(sug.block || 1);
+      const rawSearchTheme = sug.search_theme || sug.recommendation || "";
+      if (!String(rawSearchTheme).trim()) {
+        logs.push(`[Bloco ${block}] Sem tema/recomendacao de BGM. Ignorado.`);
+        continue;
+      }
+      const searchTheme = translateOrCleanQuery(rawSearchTheme);
+      logs.push(`[Bloco ${block}] Buscando por tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
+      try {
+        let tracks = await searchMusic(token, searchTheme);
+        const track = tracks.find(item => {
+          const key = String(item.id || item.title || "").toLowerCase();
+          return key && !usedTracks.has(key);
+        });
+        if (track) {
+          usedTracks.add(String(track.id || track.title || "").toLowerCase());
+          const filename = `ES_${track.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
+          const destPath = path.join(projDir, filename);
+          logs.push(`[Bloco ${block}] Baixando: "${track.title}"...`);
+          await downloadMusicTrack(token, track.id, destPath);
+
+          config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== block);
+          config.bgm_mappings.push({ block, file: filename });
+          logs.push(`[Bloco ${block}] Mapeada com sucesso: ${filename}`);
+        } else {
+          logs.push(`[Bloco ${block}] Nenhuma musica nova encontrada para o tema "${searchTheme}".`);
+        }
+      } catch (e) {
+        logs.push(`[Bloco ${block}] Erro ao processar: ${e.message}`);
+      }
+    }
+
+    config.bgm_mappings.sort((a, b) => a.block - b.block);
+    config.use_single_bgm = false;
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+    logs.push("Download e mapeamento por blocos concluído!");
+  }
+
+  return logs;
+}
+
+// API: Auto-soundtrack project blocks using AI recommendations search themes
+app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  try {
+    const { mode } = req.body;
+    const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ error: "Erro no processo de automação de trilha", details: err.message });
+  }
+});
+
+// Helper: Ensure all mapped BGM files are downloaded from Epidemic Sound before rendering
+async function ensureProjectBgmTracks(projDir) {
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  const configPath = path.join(projDir, "config_qanat.json");
+  if (!fs.existsSync(configPath)) return;
+
+  let config = {};
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch (e) {
+    return;
+  }
+
+  // Check if BGM mappings are completely empty
+  const hasMappings = (config.use_single_bgm && config.single_bgm) || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length > 0);
+  
+  if (!hasMappings) {
+    console.log("[BGM Auto-Fetch] Nenhum mapeamento de trilha sonora encontrado. Executando sonoplastia inteligente automática...");
+    try {
+      await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
+      config = JSON.parse(fs.readFileSync(configPath, "utf8")); // reload config
+    } catch (err) {
+      console.error("[BGM Auto-Fetch] Falha na sonoplastia automática pré-render:", err.message);
+    }
+  }
+
+  const filesToDownload = [];
+  if (config.use_single_bgm && config.single_bgm) {
+    filesToDownload.push(config.single_bgm);
+  } else if (Array.isArray(config.bgm_mappings)) {
+    for (const m of config.bgm_mappings) {
+      if (m.file) filesToDownload.push(m.file);
+    }
+  }
+
+  for (const filename of filesToDownload) {
+    const destPath = path.join(projDir, filename);
+    if (!fs.existsSync(destPath)) {
+      console.log(`[BGM Auto-Fetch] Arquivo ${filename} ausente. Tentando baixar do Epidemic Sound...`);
+      let cleanTitle = filename;
+      if (cleanTitle.startsWith("ES_")) {
+        cleanTitle = cleanTitle.substring(3);
+      }
+      if (cleanTitle.endsWith(".mp3")) {
+        cleanTitle = cleanTitle.substring(0, cleanTitle.length - 4);
+      }
+      cleanTitle = cleanTitle.replace(/_/g, " ").trim();
+
+      try {
+        const tracks = await searchMusic(token, cleanTitle);
+        if (tracks.length > 0) {
+          const track = tracks[0];
+          console.log(`[BGM Auto-Fetch] Baixando "${track.title}" para ${filename}...`);
+          await downloadMusicTrack(token, track.id, destPath);
+        }
+      } catch (err) {
+        console.error(`[BGM Auto-Fetch] Falha ao baixar ${filename}:`, err.message);
+      }
+    }
+  }
+}
 
 function sanitizeProjectBlockTimings(projDir) {
   const timingsPath = path.join(projDir, "block_timings.json");
-  if (!fs.existsSync(timingsPath)) return { changed: false, message: "" };
+  if (!fs.existsSync(timingsPath)) {
+    return { changed: false, message: "" };
+  }
 
   let timings;
   try {
@@ -454,7 +888,9 @@ function sanitizeProjectBlockTimings(projDir) {
   const starts = Array.isArray(timings.starts) ? timings.starts.map(Number) : [];
   const durations = Array.isArray(timings.durations) ? timings.durations.map(Number) : [];
   const blockCount = Math.max(starts.length, durations.length);
-  if (blockCount === 0) return { changed: false, message: "" };
+  if (blockCount === 0) {
+    return { changed: false, message: "" };
+  }
 
   const totalFromFile = Number(timings.total_duration);
   const finitePositiveDurations = durations.filter(value => Number.isFinite(value) && value > 0.25);
@@ -476,7 +912,9 @@ function sanitizeProjectBlockTimings(projDir) {
     const durationIsInvalid = !Number.isFinite(duration) || duration <= 0.25;
     const durationIsSuspicious = Number.isFinite(duration) && blockCount > 3 && duration > totalDuration * 0.4;
 
-    if (Number.isFinite(start) && start > maxSeenStart) maxSeenStart = start;
+    if (Number.isFinite(start) && start > maxSeenStart) {
+      maxSeenStart = start;
+    }
 
     if (startIsOutOfOrder || durationIsInvalid || durationIsSuspicious) {
       unreliable.push(i);
@@ -486,12 +924,16 @@ function sanitizeProjectBlockTimings(projDir) {
     }
   }
 
-  if (unreliable.length === 0) return { changed: false, message: "" };
+  if (unreliable.length === 0) {
+    return { changed: false, message: "" };
+  }
 
   const reliableTotal = sanitizedDurations.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
   const remaining = Math.max(unreliable.length * 1, totalDuration - reliableTotal);
   const replacementDuration = Math.max(1, remaining / unreliable.length || fallbackDuration);
-  for (const index of unreliable) sanitizedDurations[index] = replacementDuration;
+  for (const index of unreliable) {
+    sanitizedDurations[index] = replacementDuration;
+  }
 
   const sanitizedStarts = [];
   let cursor = 0;
@@ -501,12 +943,13 @@ function sanitizeProjectBlockTimings(projDir) {
     cursor += sanitizedDurations[i];
   }
 
-  fs.writeFileSync(timingsPath, JSON.stringify({
+  const sanitized = {
     ...timings,
     starts: sanitizedStarts,
     durations: sanitizedDurations,
     total_duration: Number(cursor.toFixed(3))
-  }, null, 2), "utf8");
+  };
+  fs.writeFileSync(timingsPath, JSON.stringify(sanitized, null, 2), "utf8");
 
   return {
     changed: true,
@@ -514,27 +957,181 @@ function sanitizeProjectBlockTimings(projDir) {
   };
 }
 
+// Helper: Detect, search, download and map sound effects (SFX) based on storyboard keywords
+async function ensureProjectSfxTracks(projDir) {
+  const token = getEpidemicSoundKey(projDir) || "";
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  const timingsPath = path.join(projDir, "block_timings.json");
+
+  if (!fs.existsSync(storyboardPath) || !fs.existsSync(timingsPath)) {
+    console.log("[SFX Auto-Fetch] storyboard.json ou block_timings.json ausente. Pulando SFX.");
+    return;
+  }
+
+  let storyboard = {};
+  let timings = {};
+  try {
+    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+  } catch (e) {
+    console.error("[SFX Auto-Fetch] Erro ao ler arquivos:", e.message);
+    return;
+  }
+
+  const starts = [0.0].concat(timings.starts || []);
+  const visualPrompts = storyboard.visual_prompts || [];
+  const sfxEvents = [];
+
+  // 1. Download transition whoosh sfx
+  const whooshFile = "sfx_whoosh_transition.mp3";
+  const whooshPath = path.join(projDir, whooshFile);
+  if (!fs.existsSync(whooshPath)) {
+    try {
+      console.log("[SFX Auto-Fetch] Buscando transição whoosh...");
+      const sfxs = await searchSoundEffects(token, "cinematic whoosh transition");
+      if (sfxs && sfxs.length > 0) {
+        console.log(`[SFX Auto-Fetch] Baixando ${sfxs[0].title} para transições...`);
+        await downloadSoundEffect(token, sfxs[0].id, whooshPath, sfxs[0].previewUrl);
+      }
+    } catch (err) {
+      console.error("[SFX Auto-Fetch] Falha ao baixar transição whoosh:", err.message);
+    }
+  }
+
+  // Map whoosh transitions (peaks at start of each block transition, starting from block 2)
+  if (fs.existsSync(whooshPath)) {
+    for (let i = 1; i < starts.length; i++) {
+      const blockTime = starts[i];
+      sfxEvents.push({
+        time: Math.max(0, blockTime - 1.0),
+        file: whooshFile,
+        volume: 0.18
+      });
+    }
+  }
+
+  // 2. Thematic SFX mapping rules
+  const sfxRules = [
+    { keywords: ["terremoto", "tremor", "sismo", "chão tremer", "earthquake"], term: "earthquake rumble", file: "sfx_earthquake.mp3", volume: 0.25 },
+    { keywords: ["vento", "sopro", "wind", "tempestade", "deserto", "oasis"], term: "desert wind loop", file: "sfx_wind.mp3", volume: 0.12 },
+    { keywords: ["metal", "bronze", "vaso", "jarro", "dragões de bronze", "metal ball"], term: "metal resonance drop", file: "sfx_metal_drop.mp3", volume: 0.20 },
+    { keywords: ["dragão", "dragao", "dragon"], term: "creature growl roar", file: "sfx_dragon.mp3", volume: 0.20 },
+    { keywords: ["sapo", "toad", "frog"], term: "frog croak", file: "sfx_frog.mp3", volume: 0.18 },
+    { keywords: ["cavalo", "horse", "galope", "mensageiro"], term: "horse gallop fast", file: "sfx_horse.mp3", volume: 0.18 },
+    { keywords: ["rir", "riram", "oficiais riram", "laugh", "laughing"], term: "man chuckle laugh", file: "sfx_laugh.mp3", volume: 0.15 },
+    { keywords: ["caiu", "queda", "queda da esfera", "impact", "fall", "impacto"], term: "heavy impact hit", file: "sfx_impact.mp3", volume: 0.22 }
+  ];
+
+  // Scan visual prompts for keywords
+  for (const vp of visualPrompts) {
+    const blockNum = Number(vp.block || 1);
+    if (blockNum > starts.length) continue;
+
+    const blockStart = starts[blockNum - 1];
+    const contextText = `${vp.narration_text || ""} ${vp.prompt || ""} ${vp.editor_notes || ""}`.toLowerCase();
+
+    for (const rule of sfxRules) {
+      const matches = rule.keywords.some(kw => contextText.includes(kw));
+      if (matches) {
+        const destPath = path.join(projDir, rule.file);
+        if (!fs.existsSync(destPath)) {
+          try {
+            console.log(`[SFX Auto-Fetch] Bloco ${blockNum} combina com "${rule.term}". Buscando SFX...`);
+            const sfxs = await searchSoundEffects(token, rule.term);
+            if (sfxs && sfxs.length > 0) {
+              console.log(`[SFX Auto-Fetch] Baixando ${sfxs[0].title} para ${rule.file}...`);
+              await downloadSoundEffect(token, sfxs[0].id, destPath, sfxs[0].previewUrl);
+            }
+          } catch (err) {
+            console.error(`[SFX Auto-Fetch] Falha ao baixar SFX para ${rule.term}:`, err.message);
+          }
+        }
+
+        if (fs.existsSync(destPath)) {
+          sfxEvents.push({
+            time: blockStart,
+            file: rule.file,
+            volume: rule.volume
+          });
+          console.log(`[SFX Auto-Fetch] Bloco ${blockNum} sonoplastia mapeada: ${rule.file} em ${blockStart}s`);
+        }
+        break; // Max 1 thematic SFX per block
+      }
+    }
+  }
+
+  // Write map to sfx_timeline.json
+  const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
+  fs.writeFileSync(sfxTimelinePath, JSON.stringify({ sfx_events: sfxEvents }, null, 2), "utf8");
+  console.log(`[SFX Auto-Fetch] Timeline de sonoplastia salva em ${sfxTimelinePath} com ${sfxEvents.length} eventos.`);
+}
+
 // API: Render videos streaming logs via Server-Sent Events (SSE)
-app.get("/api/render/:mode", (req, res) => {
+app.get("/api/render/:mode", async (req, res) => {
   const projDir = getProjectDir(req);
   const mode = req.params.mode; // 'standard' or 'highlighted'
   const withoutImpactTitles = req.query.withoutImpactTitles === "1";
 
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const sendLog = (text) => {
+    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+  };
+
   const timingSanitization = sanitizeProjectBlockTimings(projDir);
+  if (timingSanitization.message) {
+    sendLog(`[Dashboard] ${timingSanitization.message}`);
+  }
+
+  // Pre-download missing BGM files from Epidemic Sound
+  try {
+    sendLog("[Dashboard] Verificando trilhas sonoras de fundo (BGM)...");
+    await ensureProjectBgmTracks(projDir);
+  } catch (err) {
+    sendLog(`[BGM Auto-Fetch] Erro: ${err.message}`);
+  }
+
+  // Pre-download and map SFX
+  try {
+    sendLog("[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)...");
+    await ensureProjectSfxTracks(projDir);
+  } catch (err) {
+    sendLog(`[SFX Auto-Fetch] Erro: ${err.message}`);
+  }
+
+  // Mix soundtrack
+  try {
+    sendLog("[Dashboard] Iniciando mixagem da trilha sonora (mix_bgm.py)...");
+    await new Promise((resolve) => {
+      const mixProcess = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+        cwd: projDir,
+        shell: true
+      });
+      
+      mixProcess.stdout.on("data", (data) => {
+        const lines = data.toString().split("\n");
+        for (const line of lines) {
+          const cleanLine = line.trim();
+          if (cleanLine) sendLog(`[BGM Mixer] ${cleanLine}`);
+        }
+      });
+
+      mixProcess.on("close", (code) => {
+        if (code === 0) {
+          sendLog("[BGM Mixer] Trilha final trilha_documentario.mp3 gerada!");
+        } else {
+          sendLog("[BGM Mixer] Aviso: O mixador de BGM retornou código não-zero.");
+        }
+        resolve();
+      });
+    });
+  } catch (err) {
+    sendLog(`[BGM Mixer] Erro: ${err.message}`);
+  }
 
   if (mode === "remotion") {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-
-    const sendLog = (text) => {
-      res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-    };
-
-    if (timingSanitization.message) {
-      sendLog(`[Dashboard] ${timingSanitization.message}`);
-    }
-
     let child = null;
 
     try {
@@ -614,20 +1211,10 @@ app.get("/api/render/:mode", (req, res) => {
   const scriptPath = path.join(projDir, scriptName);
 
   if (!fs.existsSync(scriptPath)) {
-    res.status(404).json({ error: `${scriptName} não encontrado no workspace` });
+    sendLog(`[ERRO] ${scriptName} não encontrado no workspace`);
+    res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+    res.end();
     return;
-  }
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
-  const sendLog = (text) => {
-    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-  };
-
-  if (timingSanitization.message) {
-    sendLog(`[Dashboard] ${timingSanitization.message}`);
   }
 
   let runScriptName = scriptName;
@@ -796,7 +1383,6 @@ function captionsFromWordTranscripts(wordTranscripts) {
   return captions.filter(caption => caption.text.trim());
 }
 
-
 function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
   const maxMs = Math.max(1000, Math.round((Number(maxDurationSeconds) || 0) * 1000));
   const sorted = (Array.isArray(captions) ? captions : [])
@@ -843,7 +1429,6 @@ function fallbackCaptionsFromScenes(scenes) {
   }
   return captions;
 }
-
 
 function collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration) {
   const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", { sfx_events: [] });
@@ -1022,7 +1607,7 @@ function prepareRemotionRender(projectDir) {
     }
   }
 
-  // Ensure the last BGM track extends to totalDuration to cover the logo scene
+  // Keep the last BGM from running past its own block into unrelated narration.
   if (bgmTracks.length > 0) {
     const lastBgm = bgmTracks[bgmTracks.length - 1];
     lastBgm.duration = Math.max(0.5, Math.min(lastBgm.duration, totalDuration - lastBgm.start));
@@ -1237,7 +1822,6 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
   throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
 }
 
-
 function extractJsonCandidate(text) {
   const raw = String(text || "").replace(/^\uFEFF/, "").replace(/```json/gi, "").replace(/```/g, "").trim();
   const firstObject = raw.indexOf("{");
@@ -1405,6 +1989,23 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
     "gemini";
 }
 
+function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
+  const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
+  if (config?.epidemic_sound_key && config.epidemic_sound_key.trim().length > 100) {
+    return config.epidemic_sound_key.trim();
+  }
+  if (projectDir !== WORKSPACE_DIR) {
+    const rootConfig = readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json"));
+    if (rootConfig?.epidemic_sound_key && rootConfig.epidemic_sound_key.trim().length > 100) {
+      return rootConfig.epidemic_sound_key.trim();
+    }
+  }
+  if (process.env.EPIDEMIC_SOUND_API_KEY && process.env.EPIDEMIC_SOUND_API_KEY.trim().length > 100) {
+    return process.env.EPIDEMIC_SOUND_API_KEY.trim();
+  }
+  return null;
+}
+
 async function generateMetadataWithXai(prompt, apiKey) {
   const response = await fetch("https://api.x.ai/v1/chat/completions", {
     method: "POST",
@@ -1489,17 +2090,19 @@ app.post("/api/ai/save-key", (req, res) => {
 
 app.get("/api/ai/settings", (req, res) => {
   const projDir = getProjectDir(req);
+  const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
   res.json({
     provider: getAiProvider(projDir),
     gemini_key_count: getApiKeys(projDir).length,
-    has_xai_key: !!getXaiApiKey(projDir)
+    has_xai_key: !!getXaiApiKey(projDir),
+    has_epidemic_key: true
   });
 });
 
 app.post("/api/ai/settings", (req, res) => {
   const projDir = getProjectDir(req);
   const configPath = path.join(projDir, "config_qanat.json");
-  const { provider, gemini_key, gemini_keys, xai_key } = req.body || {};
+  const { provider, gemini_key, gemini_keys, xai_key, epidemic_sound_key } = req.body || {};
 
   try {
     let config = readJsonFile(configPath) || {};
@@ -1519,13 +2122,18 @@ app.post("/api/ai/settings", (req, res) => {
       config.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
     }
 
+    if (typeof epidemic_sound_key === "string") {
+      config.epidemic_sound_key = epidemic_sound_key.trim();
+    }
+
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
     res.json({
       success: true,
       provider: config.ai_provider || "gemini",
       gemini_key_count: normalizeApiKeys(config.gemini_api_keys, config.gemini_api_key).length,
-      has_xai_key: !!config.xai_api_key
+      has_xai_key: !!config.xai_api_key,
+      has_epidemic_key: true
     });
   } catch (err) {
     res.status(500).json({ error: "Erro ao salvar configurações de IA", details: err.message });
@@ -2368,10 +2976,12 @@ app.post("/api/logo/reset", (req, res) => {
   }
 });
 
-// API: Generate complete custom video script & JSON configurations
 const SCRIPT_CREATIVE_REINFORCEMENT = `
 REFORCO CRIATIVO NAO OBRIGATORIO:
 Use estas ideias apenas como apoio de qualidade narrativa, sem mudar o formato de resposta, sem mudar a divisao em blocos e sem impor novas regras ao fluxo existente.
+- HUMANIZAÇÃO EXTREMA E NATURALIDADE: A narração deve soar 100% como um contador de histórias humano, dinâmico e envolvente. Evite a todo custo frases robóticas, jargões frios, explicações prolixas ou transições mecânicas. Prefira português brasileiro natural, fluido e coloquial/cinematográfico.
+- COERÊNCIA E SENTIDO ABSOLUTO DAS FRASES: Analise criticamente cada frase dentro de cada bloco. Certifique-se de que cada sentença tenha um fluxo perfeito, faça sentido lógico claro e esteja diretamente conectada à anterior e à próxima. Não permita frases vazias, soltas, incompletas, confusas ou sem sentido contextual.
+- DAR VIDA AO VÍDEO: Injete energia, emoção e mistério no texto. Use ganchos intrigantes, perguntas retóricas que façam o espectador pensar, e crie contrastes dramáticos de ritmo e tom para manter o interesse no auge.
 - Antes de propor ideias ou roteiro, pense no que o publico desse nicho busca agora: duvidas fortes, medos, desejos, polemicas, curiosidades, tendencias e formatos que prendem atencao.
 - Evite ideias genericas e repetidas. Varie os angulos entre misterio, descoberta, conflito, erro historico, detalhe esquecido, comparacao inesperada, pergunta provocadora, mito versus realidade e payoff emocional.
 - Cada ideia deve ter promessa clara, emocao dominante e motivo concreto para funcionar.
@@ -2401,7 +3011,7 @@ ${SCRIPT_CREATIVE_REINFORCEMENT}
 
 Regras Gerais:
 - Esqueça qualquer tema ou vídeo anterior para não ficar repetitivo.
-- A narração do roteiro deve soar humana, natural, direta e com ritmo de vídeo viral. Evite frases robotizadas e explicações lentas.
+- A narração do roteiro deve soar extremamente humana, natural, direta, fluida e com ritmo de vídeo viral. Revise atentamente cada frase de cada bloco para garantir sentido lógico total e fluxo perfeito, eliminando explicações lentas, frases vagas ou robotizadas.
 - O roteiro completo deve durar entre 2 e 5 minutos (cerca de 300 a 600 palavras) e ser dividido em 12 blocos lógicos.
 - Crie um gancho inicial que prenda a atenção nos primeiros 3 segundos do bloco 1.
 - Utilize técnicas de retenção (open loops, curiosidade progressiva, microcliffhangers, payoff final).
@@ -2654,7 +3264,8 @@ function normalizeKeys(data) {
     normalized.bgm_recommendations = data[bgmRecKey].map(r => ({
       block: r.block || r.bloco || 0,
       scope: r.scope || r.escopo || (r.block || r.bloco ? "block" : "video"),
-      recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || ""
+      recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || "",
+      search_theme: r.search_theme || r.searchTheme || r.tema_busca || ""
     }));
   } else {
     normalized.bgm_recommendations = [];
@@ -2772,7 +3383,7 @@ Regras do Roteiro:
 2. Não repita temas de vídeos anteriores.
 3. Prenda a atenção nos primeiros 3 segundos.
 4. Use open loop, curiosidade progressiva, microcliffhangers e payoff final.
-5. Narração em português brasileiro, natural, humana e direta.
+5. Narração em português brasileiro: deve ser extremamente humana, fluida, natural, carismática e cheia de vida. Revise cada frase de cada bloco para garantir um sentido lógico impecável e um fluxo narrativo harmonioso. Elimine totalmente sentenças robotizadas, vagas ou desconexas.
 6. Formato: "${format}".
    - SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA).
    - LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.
@@ -2819,7 +3430,8 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
    GERE UM OBJETO PARA CADA BLOCO DA NARRATIVA.
    {
      "block": 1,
-     "recommendation": "Descreva o tipo de trilha sonora ideal para este bloco (ex: drone tenso de suspense, bateria tribal épica crescendo, piano triste e suave)."
+     "recommendation": "Descreva o tipo de trilha sonora ideal para este bloco em português.",
+     "search_theme": "A short English search query for Epidemic Sound (ex: 'cinematic tension strings', 'epic ethnic percussion', 'sad duduk drone')"
    }
 ]
 
