@@ -43,7 +43,7 @@ function httpsGet(url, headers = {}) {
 // They work without authentication for search, and include preview audio URLs
 
 async function esInternalSearchMusic(query) {
-  const url = `${ES_SEARCH_BASE}/tracks/?term=${encodeURIComponent(query)}&limit=10`;
+  const url = `${ES_SEARCH_BASE}/tracks/?term=${encodeURIComponent(query)}&limit=30`;
   console.log(`[Epidemic] Searching music via internal API: "${query}" ...`);
   
   const res = await httpsGet(url, { "Accept": "application/json" });
@@ -124,7 +124,7 @@ async function esDownloadFromPreviewUrl(trackId, destPath, previewUrl) {
 // ==================== PARTNER REST API (for API Key holders) ====================
 
 async function restSearchMusic(token, query) {
-  const url = `${REST_API_BASE}/v0/tracks/search?term=${encodeURIComponent(query)}&limit=10`;
+  const url = `${REST_API_BASE}/v0/tracks/search?term=${encodeURIComponent(query)}&limit=30`;
   console.log(`[Epidemic REST] Searching music: "${query}" ...`);
   
   const res = await httpsGet(url, {

@@ -748,6 +748,84 @@ function translateOrCleanQuery(query) {
   return q;
 }
 
+function normalizeAudioChoiceKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/^es_/, "")
+    .replace(/\.(mp3|wav|m4a|aac|flac|ogg)$/i, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function makeEpidemicFilename(title) {
+  return `ES_${String(title || "track").replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
+}
+
+function collectExistingAutoBgmKeys(projDir, config) {
+  const keys = new Set();
+
+  try {
+    for (const fileName of fs.readdirSync(projDir)) {
+      if (/^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName)) {
+        keys.add(normalizeAudioChoiceKey(fileName));
+      }
+    }
+  } catch (err) {}
+
+  if (config?.single_bgm) {
+    keys.add(normalizeAudioChoiceKey(config.single_bgm));
+  }
+
+  if (Array.isArray(config?.bgm_mappings)) {
+    for (const mapping of config.bgm_mappings) {
+      if (mapping?.file) keys.add(normalizeAudioChoiceKey(mapping.file));
+    }
+  }
+
+  return keys;
+}
+
+function deleteGeneratedBgmCycleFiles(projDir) {
+  const deleted = [];
+
+  try {
+    for (const fileName of fs.readdirSync(projDir)) {
+      const isGeneratedBgm = /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName) || fileName === "trilha_documentario.mp3";
+      if (!isGeneratedBgm) continue;
+
+      const targetPath = path.resolve(projDir, fileName);
+      if (!targetPath.startsWith(path.resolve(projDir) + path.sep)) continue;
+      fs.unlinkSync(targetPath);
+      deleted.push(fileName);
+    }
+  } catch (err) {}
+
+  return deleted;
+}
+
+function pickFreshTrack(tracks, usedKeys, excludedKeys, block) {
+  const candidates = (tracks || []).filter((track) => {
+    const titleKey = normalizeAudioChoiceKey(track.title);
+    const fileKey = normalizeAudioChoiceKey(makeEpidemicFilename(track.title));
+    const idKey = String(track.id || "").toLowerCase();
+    return (
+      titleKey &&
+      !usedKeys.has(titleKey) &&
+      !usedKeys.has(fileKey) &&
+      !usedKeys.has(idKey) &&
+      !excludedKeys.has(titleKey) &&
+      !excludedKeys.has(fileKey) &&
+      !excludedKeys.has(idKey)
+    );
+  });
+
+  if (candidates.length === 0) return null;
+
+  // Do not always take position 0; the Epidemic API often returns the same safe top results.
+  const rotatedIndex = Math.min(candidates.length - 1, Math.abs(Number(block) || 1) % Math.min(candidates.length, 4));
+  return candidates[rotatedIndex];
+}
+
 // Helper: Run automated soundtrack selection and download logic
 async function runAutoSoundtrackLogic(projDir, token, mode) {
   const bgmSuggestionsPath = path.join(projDir, "storyboard.json");
@@ -761,6 +839,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
   }
 
   const storyboard = JSON.parse(fs.readFileSync(bgmSuggestionsPath, "utf8"));
+  const previousAutoBgmKeys = collectExistingAutoBgmKeys(projDir, config);
 
   if (mode === "SHORTS" || config.use_single_bgm) {
     const rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
@@ -771,10 +850,14 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
     const searchTheme = translateOrCleanQuery(rawSearchTheme);
     logs.push(`Buscando trilha única para o tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
     try {
+      const removed = deleteGeneratedBgmCycleFiles(projDir);
+      if (removed.length > 0) {
+        logs.push(`Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher uma nova trilha.`);
+      }
       let tracks = await searchMusic(token, searchTheme);
-      if (tracks.length > 0) {
-        const track = tracks[0];
-        const filename = `ES_${track.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
+      const track = pickFreshTrack(tracks, new Set(), previousAutoBgmKeys, 1);
+      if (track) {
+        const filename = makeEpidemicFilename(track.title);
         const destPath = path.join(projDir, filename);
         logs.push(`Baixando faixa: "${track.title}"...`);
         await downloadMusicTrack(token, track.id, destPath);
@@ -798,6 +881,10 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
     }
 
     logs.push(`Processando ${suggestions.length} blocos para download automático...`);
+    const removed = deleteGeneratedBgmCycleFiles(projDir);
+    if (removed.length > 0) {
+      logs.push(`Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher novas trilhas.`);
+    }
     config.bgm_mappings = [];
     config.use_single_bgm = false;
     config.single_bgm = "";
@@ -814,13 +901,12 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
       logs.push(`[Bloco ${block}] Buscando por tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
       try {
         let tracks = await searchMusic(token, searchTheme);
-        const track = tracks.find(item => {
-          const key = String(item.id || item.title || "").toLowerCase();
-          return key && !usedTracks.has(key);
-        });
+        const track = pickFreshTrack(tracks, usedTracks, previousAutoBgmKeys, block);
         if (track) {
-          usedTracks.add(String(track.id || track.title || "").toLowerCase());
-          const filename = `ES_${track.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
+          usedTracks.add(String(track.id || "").toLowerCase());
+          usedTracks.add(normalizeAudioChoiceKey(track.title));
+          usedTracks.add(normalizeAudioChoiceKey(makeEpidemicFilename(track.title)));
+          const filename = makeEpidemicFilename(track.title);
           const destPath = path.join(projDir, filename);
           logs.push(`[Bloco ${block}] Baixando: "${track.title}"...`);
           await downloadMusicTrack(token, track.id, destPath);
