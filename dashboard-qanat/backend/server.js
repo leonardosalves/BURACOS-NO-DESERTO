@@ -9008,7 +9008,7 @@ app.get("/api/ai/settings", (req, res) => {
 
 
 
-    has_openrouter_key: !!config.openrouter_api_key,
+    has_openrouter_key: !!getOpenRouterApiKey(projDir),
 
 
 
@@ -9136,15 +9136,15 @@ app.post("/api/ai/settings", (req, res) => {
 
 
 
-      gemini_key_count: normalizeApiKeys(config.gemini_api_keys, config.gemini_api_key).length,
+      gemini_key_count: getApiKeys(projDir).length,
 
 
 
-      has_xai_key: !!config.xai_api_key,
+      has_xai_key: !!getXaiApiKey(projDir),
 
 
 
-      has_openrouter_key: !!config.openrouter_api_key,
+      has_openrouter_key: !!getOpenRouterApiKey(projDir),
 
 
 
