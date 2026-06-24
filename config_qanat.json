@@ -1,222 +1,5 @@
 {
   "gemini_api_key": "AQ.Ab8RN6KA6hIdOPkWmcyU9vgNqO2cFKlGXC1PzJan4Am9_g9Hkg",
-  "highlight_keywords": [
-    "pirâmides",
-    "tumbas",
-    "verdade",
-    "chocante",
-    "propósito",
-    "energia",
-    "cósmica",
-    "observatórios",
-    "estelares",
-    "portais",
-    "mistério",
-    "história",
-    "lacunas",
-    "complexidade",
-    "precisão",
-    "materiais",
-    "ressonância",
-    "eletromagnético",
-    "astronomia",
-    "matemática",
-    "alinhamentos",
-    "constelações",
-    "solstícios",
-    "equinócios",
-    "comunicação",
-    "geometria",
-    "vibracional",
-    "dimensões",
-    "civilizações",
-    "conhecimento",
-    "oculto",
-    "multifuncionais",
-    "iniciação",
-    "cura",
-    "muografia",
-    "descoberta",
-    "cavidade",
-    "enigmas",
-    "reavaliar",
-    "passado",
-    "futuro"
-  ],
-  "bgm_mappings": [
-    {
-      "block": 1,
-      "file": "ES_Mental_Strain.mp3"
-    },
-    {
-      "block": 2,
-      "file": "ES_Our_Part_of_the_Universe.mp3"
-    },
-    {
-      "block": 3,
-      "file": "ES_Placebo__Instrumental_Version_.mp3"
-    },
-    {
-      "block": 4,
-      "file": "ES_Out_Of_Time__No_Illusion___Instrumental_Version_.mp3"
-    },
-    {
-      "block": 5,
-      "file": "ES_Sun_Kiss.mp3"
-    },
-    {
-      "block": 6,
-      "file": "ES_Quit_Calling_Me_Your_Lover__Instrumental_Version_.mp3"
-    },
-    {
-      "block": 7,
-      "file": "ES_Everything_I_Didn_t_Do_for_You.mp3"
-    },
-    {
-      "block": 8,
-      "file": "Historical Tension Strings.mp3"
-    },
-    {
-      "block": 9,
-      "file": "Ancient Desert Cinematic .mp3"
-    },
-    {
-      "block": 10,
-      "file": "Middle Eastern Ambient Drone.mp3"
-    },
-    {
-      "block": 11,
-      "file": "Persian Mystical Oasis.mp3"
-    },
-    {
-      "block": 12,
-      "file": "Arabian Caravan Cinematic.mp3"
-    }
-  ],
-  "impact_texts": [
-    {
-      "block": 1,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "NÃƒO ERAM TÃšMULOS?"
-    },
-    {
-      "block": 2,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "O REAL PROPÃ“SITO REVELADO"
-    },
-    {
-      "block": 3,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "LACUNAS NA HISTÃ“RIA"
-    },
-    {
-      "block": 4,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "PIRÃ‚MIDES: USINAS DE ENERGIA?"
-    },
-    {
-      "block": 5,
-      "start_offset": 0,
-      "end_offset": 2.5,
-      "text": "OBSERVATÃ“RIOS CÃ“SMICOS"
-    },
-    {
-      "block": 6,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "PORTAIS PARA OUTROS REINOS?"
-    },
-    {
-      "block": 7,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "MÃšLTIPLOS PROPÃ“SITOS"
-    },
-    {
-      "block": 8,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "A GRANDE CAVIDADE"
-    },
-    {
-      "block": 9,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "QUEM CONSTRUIU? COMO?"
-    },
-    {
-      "block": 10,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "EXPANDA SUA MENTE"
-    },
-    {
-      "block": 11,
-      "start_offset": 0,
-      "end_offset": 2.5,
-      "text": "O MAIOR MISTÃ‰RIO DA HUMANIDADE"
-    },
-    {
-      "block": 12,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "QUAL SUA TEORIA?"
-    }
-  ],
-  "block_phrases": [
-    {
-      "block": 1,
-      "phrase": "Por milênios, fomos ensinados que as pirâmides do Egito eram monumentos grandiosos, tumbas para faraós."
-    },
-    {
-      "block": 2,
-      "phrase": "Prepare-se para uma jornada que vai desvendar os véus da história oficial."
-    },
-    {
-      "block": 3,
-      "phrase": "A narrativa das pirâmides como meras tumbas, embora amplamente aceita, sempre teve suas lacunas."
-    },
-    {
-      "block": 4,
-      "phrase": "Uma das teorias mais fascinantes aponta para as pirâmides como verdadeiras usinas de energia."
-    },
-    {
-      "block": 5,
-      "phrase": "Indo além da energia, muitos estudiosos argumentam que as pirâmides funcionavam como observatórios cósmicos ou calendários gigantes."
-    },
-    {
-      "block": 6,
-      "phrase": "E se as pirâmides fossem ainda mais extraordinárias?"
-    },
-    {
-      "block": 7,
-      "phrase": "Talvez a verdade seja ainda mais complexa: e se as pirâmides não tivessem *um* propósito, mas múltiplos?"
-    },
-    {
-      "block": 8,
-      "phrase": "Recentemente, avanços tecnológicos como a muografia têm revelado segredos surpreendentes."
-    },
-    {
-      "block": 9,
-      "phrase": "A questão fundamental que permanece é: quem realmente construiu as pirâmides com tal sofisticação e conhecimento?"
-    },
-    {
-      "block": 10,
-      "phrase": "Em resumo, as pirâmides do Egito podem ter sido muito mais do que meras tumbas."
-    },
-    {
-      "block": 11,
-      "phrase": "A verdade é que as pirâmides continuam sendo um dos maiores enigmas da humanidade."
-    },
-    {
-      "block": 12,
-      "phrase": "Qual dessas teorias você acha mais convincente?"
-    }
-  ],
   "gemini_api_keys": [
     "AQ.Ab8RN6KA6hIdOPkWmcyU9vgNqO2cFKlGXC1PzJan4Am9_g9Hkg",
     "AQ.Ab8RN6Iww09baAEAtunhbVdmztSuCAglzS9Y2_PbJLVzjcuhkw",
@@ -229,8 +12,50 @@
     "AQ.Ab8RN6IN5eOEaIgVg2oLmyIynJhaUvP_IPjYgkFsSkKY8rybHQ",
     "AQ.Ab8RN6IkRZOB8I2XcJH6hj71ojqZKtqfWinN2ypusX9Vcwmqww"
   ],
-  "ai_provider": "gemini",
   "xai_api_key": "xai-JF3eqntgM2tbQEh6oQI6hwtuNuhnoFOH3RZcFX154PmVMAgI7Yt1JNP0y54DAX6cNO0pW0fllP0uHKOj",
   "epidemic_sound_key": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ4NENRVjFLS3NVRFppX0VYSm0tUE5pZUFMS3Fyemx4MlZnSUJURVB6THFnIn0.eyJleHAiOjE3ODQ4MjkzMzQsImlhdCI6MTc4MjIzNzMzNCwiYXV0aF90aW1lIjoxNzgxMjMxOTgwLCJqdGkiOiJudHJ0dGU6YjAyODNhOTctZWMyZS02YTYyLWY2MmUtMDYwOTk2ZjVkZDY2IiwiaXNzIjoiaHR0cHM6Ly9sb2dpbi5lcGlkZW1pY3NvdW5kLmNvbS9hdXRoL3JlYWxtcy9hY2NvdW50cyIsImF1ZCI6ImVwaWRlbWljLWFwaSIsInN1YiI6ImRhM2RmZTgwLTM0ZGMtNGJkZC05NGRmLWExMDg5YTFkNWM4MiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImVwaWRlbWljLWFwaSIsInNpZCI6IjJUSEdwb05aWmozVDM3b01qZUt3M1pPNyIsInNjb3BlIjoiZW1haWwiLCJ3b3Jrc3BhY2VfaWQiOiIxYWNhNzllMi1kNDdjLTRiM2MtOWVkMi02ODNjMjRkZjA3OTIiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibG9jYWxlIjoiZW4tdXMiLCJlbWFpbCI6InBvdXBlbm9saW5rQGdtYWlsLmNvbSJ9.I2s6EbfB9vLjnGuSLGhRNZ1MhM3U6C7L6ZB4pI0V3ho8bkTJJKYPY4Pa6JZEs8lxApXunhaVn3c4be_JZUtBJTKW_htnjnNG8FLEL-KzkfDzL_OZMK_fhiBNVfzY_1Rmj4Hisatt46nTGSWG1hWAFrVM1ezS-c6TiJsC2Aycbk0ZuSYRu1HBPl94nlXbG2gnsDpsiqz-7zuPEkxzQHPEHmQgJQhKMKH_hwrMfhxipF4CjCB-fJeQnE58LdTRJv8lUW4HhSIvnxl36JiAJJ28LeL1rorQwWybibl2VoktIPi4xakqbyXV06st6umSyO1MlNzNsApRZXU_aXXah3DZvQ",
-  "use_single_bgm": false
+  "ai_provider": "gemini",
+  "highlight_keywords": [
+    "pir\u00e2mides",
+    "tumbas",
+    "verdade",
+    "chocante",
+    "prop\u00f3sito",
+    "energia",
+    "c\u00f3smica",
+    "observat\u00f3rios",
+    "estelares",
+    "portais",
+    "mist\u00e9rio",
+    "hist\u00f3ria",
+    "lacunas",
+    "complexidade",
+    "precis\u00e3o",
+    "materiais",
+    "resson\u00e2ncia",
+    "eletromagn\u00e9tico",
+    "astronomia",
+    "matem\u00e1tica",
+    "alinhamentos",
+    "constela\u00e7\u00f5es",
+    "solst\u00edcios",
+    "equin\u00f3cios",
+    "comunica\u00e7\u00e3o",
+    "geometria",
+    "vibracional",
+    "dimens\u00f5es",
+    "civiliza\u00e7\u00f5es",
+    "conhecimento",
+    "oculto",
+    "multifuncionais",
+    "inicia\u00e7\u00e3o",
+    "cura",
+    "muografia",
+    "descoberta",
+    "cavidade",
+    "enigmas",
+    "reavaliar",
+    "passado",
+    "futuro"
+  ]
 }
