@@ -353,6 +353,7 @@ def generate_subtitles():
     events = []
 
     max_words_per_chunk = 2
+    previous_w_end = 0.0
 
 
 
@@ -421,6 +422,12 @@ def generate_subtitles():
                 else:
 
                     w_end = segment_start + active_word['end']
+
+                if w_start < previous_w_end:
+                    w_start = previous_w_end
+                if w_end <= w_start:
+                    w_end = w_start + 0.05
+                previous_w_end = w_end
 
 
 
