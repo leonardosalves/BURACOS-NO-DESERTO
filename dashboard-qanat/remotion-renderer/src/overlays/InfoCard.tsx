@@ -62,7 +62,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
   if (position.includes("top")) {
     positionStyle.top = isVertical ? 180 : 80;
   } else {
-    positionStyle.bottom = isVertical ? 640 : 140;
+    positionStyle.bottom = isVertical ? 640 : 210;
   }
 
   if (position.includes("left")) {
