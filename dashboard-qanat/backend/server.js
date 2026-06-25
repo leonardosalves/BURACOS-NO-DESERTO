@@ -28937,7 +28937,62 @@ Estrutura de cada tipo de overlay no JSON:
       "suffix": "Anos",
       "formatNumber": true,
       "accentColor": "#00E5FF",
-      "position": "bottom-right"
+      "position": "bottom-right",
+      "theme": "tech",
+      "customStyle": {
+        "background": "rgba(5, 10, 15, 0.95)",
+        "border": "1px solid #00E5FF",
+        "borderRadius": "0px",
+        "boxShadow": "0 0 25px rgba(0, 229, 255, 0.35)",
+        "colorValue": "#00E5FF",
+        "fontFamilyValue": "Courier New"
+      }
+    }
+  },
+  {
+    "id": "bar-1",
+    "type": "bar-chart",
+    "start": 18.0,
+    "duration": 6.0,
+    "props": {
+      "title": "COMPARAÇÃO DE ALTURA",
+      "items": [
+        { "label": "Gizé", "value": 146, "displayValue": "146m", "color": "#D4AF37" },
+        { "label": "Burj Khalifa", "value": 828, "displayValue": "828m", "color": "#00E5FF" }
+      ],
+      "accentColor": "#D4AF37",
+      "position": "bottom-center",
+      "theme": "ancient",
+      "customStyle": {
+        "background": "linear-gradient(135deg, #1e1510 0%, #2b1f18 100%)",
+        "border": "3px double #D4AF37",
+        "borderRadius": "8px",
+        "fontFamilyTitle": "Cinzel"
+      }
+    }
+  },
+  {
+    "id": "timeline-1",
+    "type": "timeline",
+    "start": 25.0,
+    "duration": 7.0,
+    "props": {
+      "title": "LINHA DO TEMPO ROMANA",
+      "events": [
+        { "year": "753 a.C.", "description": "Fundação de Roma", "highlight": false },
+        { "year": "27 a.C.", "description": "Início do Império", "highlight": false },
+        { "year": "476 d.C.", "description": "Queda do Império", "highlight": true }
+      ],
+      "accentColor": "#FF3D00",
+      "orientation": "horizontal",
+      "theme": "classic",
+      "customStyle": {
+        "background": "rgba(10, 10, 15, 0.90)",
+        "border": "1px solid rgba(255, 61, 0, 0.3)",
+        "borderRadius": "12px",
+        "fontFamilyTitle": "Cinzel",
+        "colorTitle": "#FFD700"
+      }
     }
   }
 ]`;
