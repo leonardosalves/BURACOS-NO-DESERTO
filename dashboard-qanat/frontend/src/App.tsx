@@ -2114,6 +2114,18 @@ export default function App() {
   const [customIdeaEmotion, setCustomIdeaEmotion] = useState("");
   const [customIdeaBlocks, setCustomIdeaBlocks] = useState("");
 
+  const [ideationTab, setIdeationTab] = useState<'ai' | 'custom'>(savedCreatorState.ideationTab || 'ai');
+  const [customTitle, setCustomTitle] = useState<string>(savedCreatorState.customTitle || '');
+  const [customHooks, setCustomHooks] = useState<string>(savedCreatorState.customHooks || '');
+  const [customOutline, setCustomOutline] = useState<string>(savedCreatorState.customOutline || '');
+  const [customBlocks, setCustomBlocks] = useState<{block: number, content: string}[]>(
+    savedCreatorState.customBlocks || [
+      { block: 1, content: '' },
+      { block: 2, content: '' },
+      { block: 3, content: '' }
+    ]
+  );
+
   const [generatedScriptData, setGeneratedScriptData] = useState<any | null>(savedCreatorState.generatedScriptData || null);
 
 
@@ -4255,26 +4267,21 @@ export default function App() {
 
 
     useEffect(() => {
-
     localStorage.setItem('qanat_creator_state', JSON.stringify({ 
-
       creatorStep, 
-
       nicheInput, 
-
       formatSelector, 
-
       ideasData, 
-
       selectedIdeaIndex, 
-
       generatedScriptData,
-
-      creatorProjectName
-
+      creatorProjectName,
+      ideationTab,
+      customTitle,
+      customHooks,
+      customOutline,
+      customBlocks
     }));
-
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName]);
+  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks]);
 
 
 
@@ -14786,128 +14793,45 @@ export default function App() {
 
 
   const handleGenerateFullScript = async () => {
-
-
-
-
-
-
-
-    if (!ideasData || selectedIdeaIndex === -1) return;
-
-
-
-
-
-
-
-    if (!creatorProjectName.trim()) {
-
-
-
-
-
-
-
-      toast.error("Por favor, digite o nome do projeto/pasta.");
-
-
-
-
-
-
-
+    const isCustom = ideationTab === 'custom';
+    if (!isCustom && (!ideasData || selectedIdeaIndex === -1)) return;
+    if (isCustom && !customTitle.trim()) {
+      toast.error("Por favor, preencha o título da sua ideia.");
       return;
-
-
-
-
-
-
-
     }
 
-
-
-
-
-
+    if (!creatorProjectName.trim()) {
+      toast.error("Por favor, digite o nome do projeto/pasta.");
+      return;
+    }
 
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-
-
-
-
-
-
-
     setCreatorLoading(true);
-
-
-
-
-
-
-
     setGeneratedScriptData(null);
 
-
-
-
-
-
-
     try {
-
-
-
-
-
-
-
       const res = await fetch('/api/ai/creator/script', {
-
-
-
-
-
-
-
         method: 'POST',
-
-
-
-
-
-
-
         headers: { 'Content-Type': 'application/json' },
-
-
-
-
-
-
-
         body: JSON.stringify({
-          niche: nicheInput.trim(),
+          niche: isCustom ? 'Customized' : nicheInput.trim(),
           format: formatSelector,
-          idea: {
+          idea: isCustom ? {
+            title: customTitle.trim(),
+            promise: customOutline.trim(),
+            emotion: "Curiosity / Action",
+            isCustom: true,
+            hooks: customHooks.trim(),
+            blocks: customBlocks.filter(b => b.content.trim() !== '')
+          } : (selectedIdeaIndex === 999 ? {
             title: customIdeaTitle,
             promise: customIdeaPromise,
             emotion: customIdeaEmotion,
             hook: customIdeaHook,
             blocks: customIdeaBlocks,
-          },
+          } : (ideasData?.ideas || [])[selectedIdeaIndex]),
           project: safeProjectName
         })
-
-
-
-
-
-
-
       });
 
 
@@ -35029,13 +34953,179 @@ export default function App() {
 
                   <div className="space-y-8 max-w-4xl mx-auto font-sans">
 
+                    {/* Step 1 Header & Tabs Selector */}
+                    <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
+                      <div>
+                        <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 1: Pesquisa e Ideias (Script Master)</h4>
+                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                          Defina o assunto e a estrutura do seu vídeo. Você pode usar a inteligência artificial para propor 10 ideias ou inserir manualmente um roteiro personalizado com blocos definidos em inglês para a IA expandir em português.
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2 border-t border-zinc-900/60 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => setIdeationTab('ai')}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            ideationTab === 'ai'
+                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
+                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
+                          }`}
+                        >
+                          <span>💡 Gerar com IA</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIdeationTab('custom')}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            ideationTab === 'custom'
+                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
+                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
+                          }`}
+                        >
+                          <span>✏️ Ideia Personalizada</span>
+                        </button>
+                      </div>
+                    </div>
 
+                    {ideationTab === 'custom' ? (
+                      <div className="space-y-6 max-w-2xl mx-auto">
+                        <div className="space-y-4">
+                          {/* Title input */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Título do Vídeo (em Inglês)</label>
+                            <input 
+                              type="text"
+                              placeholder="Ex: The Secrets Behind the Great Wall of China"
+                              value={customTitle}
+                              onChange={(e) => setCustomTitle(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                            />
+                          </div>
 
+                          {/* Hooks input */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Ganchos / Hooks de Retenção (em Inglês)</label>
+                            <textarea 
+                              rows={2}
+                              placeholder="Ex: What if the Great Wall wasn't built to keep humans out, but to lock something else inside?"
+                              value={customHooks}
+                              onChange={(e) => setCustomHooks(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                            />
+                          </div>
 
+                          {/* Outline / Promise input */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Roteiro Base / Promessa Geral (em Inglês)</label>
+                            <textarea 
+                              rows={3}
+                              placeholder="Ex: A historical documentary uncovering unknown architectural elements and defense strategies of the ancient Great Wall..."
+                              value={customOutline}
+                              onChange={(e) => setCustomOutline(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                            />
+                          </div>
 
+                          {/* Format dropdown */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Formato do Vídeo</label>
+                            <select
+                              value={formatSelector}
+                              onChange={(e) => setFormatSelector(e.target.value as 'LONGO' | 'SHORTS')}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white cursor-pointer font-sans"
+                            >
+                              <option value="LONGO">Vídeo Longo (6 a 12 minutos - Documentário)</option>
+                              <option value="SHORTS">Shorts (30 a 50 segundos - Rápido e Viral)</option>
+                            </select>
+                          </div>
 
+                          {/* Dynamic Blocks */}
+                          <div className="space-y-4 pt-2 font-sans">
+                            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Estrutura de Blocos (em Inglês)</label>
+                              <span className="text-[9px] bg-zinc-900 px-2 py-0.5 rounded text-zinc-400 font-mono font-bold">
+                                {customBlocks.length} {customBlocks.length === 1 ? 'bloco' : 'blocos'}
+                              </span>
+                            </div>
 
-                    {!ideasData ? (
+                            <div className="space-y-3">
+                              {customBlocks.map((b, idx) => (
+                                <div key={idx} className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-xl space-y-2 relative">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] text-zinc-500 font-bold uppercase">Bloco {idx + 1}</span>
+                                    {customBlocks.length > 1 && (
+                                      <button 
+                                        type="button"
+                                        onClick={() => {
+                                          const newBlocks = customBlocks.filter((_, i) => i !== idx)
+                                            .map((block, i) => ({ ...block, block: i + 1 }));
+                                          setCustomBlocks(newBlocks);
+                                        }}
+                                        className="text-red-500/70 hover:text-red-400 text-[10px] font-bold cursor-pointer transition"
+                                      >
+                                        Remover
+                                      </button>
+                                    )}
+                                  </div>
+                                  <textarea
+                                    rows={2}
+                                    placeholder={`Descreva o conteúdo do bloco ${idx + 1} em inglês (ex: Explain how the foundation was built...)`}
+                                    value={b.content}
+                                    onChange={(e) => {
+                                      const newBlocks = [...customBlocks];
+                                      newBlocks[idx].content = e.target.value;
+                                      setCustomBlocks(newBlocks);
+                                    }}
+                                    className="w-full bg-zinc-950 border border-zinc-900/60 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomBlocks([...customBlocks, { block: customBlocks.length + 1, content: "" }]);
+                              }}
+                              className="w-full bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>+ Adicionar Bloco</span>
+                            </button>
+                          </div>
+
+                          {/* Folder input */}
+                          <div className="bg-zinc-950/40 border border-zinc-900/60 p-5 rounded-2xl space-y-2 mt-4 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                              Nome do Novo Projeto (Nome da Pasta)
+                            </label>
+                            <input 
+                              disabled={creatorLoading}
+                              type="text"
+                              placeholder="Ex: Secrets_Roman_Concrete, Great_Wall_Secrets, etc."
+                              value={creatorProjectName}
+                              onChange={(e) => setCreatorProjectName(e.target.value)}
+                              className="w-full bg-white border border-zinc-300 hover:border-zinc-400 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-900 font-semibold placeholder:text-zinc-400"
+                            />
+                            <span className="text-[9px] text-zinc-500 block leading-normal mt-1">
+                              * A IA traduzirá a narração para Português BR e gerará os ganchos, prompts e assets baseados no seu roteiro personalizado em inglês.
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Submit Button */}
+                        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-900">
+                          <button
+                            disabled={creatorLoading || !customTitle.trim() || !creatorProjectName.trim()}
+                            onClick={handleGenerateFullScript}
+                            className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 w-full justify-center sm:w-auto font-sans"
+                          >
+                            {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            <span>Gerar Roteiro e Estratégia</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : !ideasData ? (
 
 
 
@@ -36305,13 +36395,6 @@ export default function App() {
 
 
                     )}
-
-
-
-
-
-
-
                   </div>
 
 
