@@ -216,6 +216,7 @@ import {
 
   Folder,
   Smartphone,
+  Share2,
 
 
 
@@ -456,6 +457,7 @@ interface ConfigData {
 
 
   single_bgm?: string;
+  upload_metadata?: any;
 
 
 
@@ -1367,7 +1369,7 @@ export default function App() {
 
 
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload'>('status');
 
 
 
@@ -1467,6 +1469,26 @@ export default function App() {
   const [newProjectNiche, setNewProjectNiche] = useState<string>('Geral');
   const [collapsedNiches, setCollapsedNiches] = useState<Record<string, boolean>>({});
   const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
+  const [uploadStatus, setUploadStatus] = useState<{ youtube: any; instagram: any; tiktok: any; kwai: any }>({
+    youtube: { connected: false, has_secrets: false, client_id: null },
+    instagram: { connected: false, account_id: null },
+    tiktok: { connected: false },
+    kwai: { connected: false }
+  });
+  const [ytClientId, setYtClientId] = useState<string>('');
+  const [ytClientSecret, setYtClientSecret] = useState<string>('');
+  const [igAccountId, setIgAccountId] = useState<string>('');
+  const [igAccessToken, setIgAccessToken] = useState<string>('');
+  const [ytTitle, setYtTitle] = useState<string>('');
+  const [ytDescription, setYtDescription] = useState<string>('');
+  const [ytPrivacy, setYtPrivacy] = useState<string>('private');
+  const [igCaption, setIgCaption] = useState<string>('');
+  const [ttCaption, setTtCaption] = useState<string>('');
+  const [kwCaption, setKwCaption] = useState<string>('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Record<string, boolean>>({ youtube: true, instagram: false, tiktok: false, kwai: false });
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploadLogs, setUploadLogs] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const [newProjectFormat, setNewProjectFormat] = useState<'LONGO' | 'SHORTS'>('LONGO');
 
@@ -3486,6 +3508,20 @@ export default function App() {
 
 
 
+  const fetchUploadStatus = async () => {
+    try {
+      const res = await fetch('/api/upload/status');
+      if (res.ok) {
+        const data = await res.json();
+        setUploadStatus(data);
+        if (data.youtube?.client_id) setYtClientId(data.youtube.client_id);
+        if (data.instagram?.account_id) setIgAccountId(data.instagram.account_id);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar status de upload:", e);
+    }
+  };
+
   const fetchProjects = async () => {
 
 
@@ -3751,6 +3787,14 @@ export default function App() {
 
 
         setConfig(loadedConfig);
+        const meta = loadedConfig.upload_metadata || {};
+        setYtTitle(meta.youtube?.title || '');
+        setYtDescription(meta.youtube?.description || '');
+        setYtPrivacy(meta.youtube?.privacy || 'private');
+        setIgCaption(meta.instagram?.title || '');
+        setTtCaption(meta.tiktok?.title || '');
+        setKwCaption(meta.kwai?.title || '');
+        fetchUploadStatus();
 
 
 
@@ -18408,6 +18452,18 @@ export default function App() {
                             <span>Agente IA & Metadados</span>
                           </button>
 
+            <button 
+              onClick={() => setActiveTab('upload')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
+                activeTab === 'upload' 
+                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
+                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
+              }`}
+            >
+              <Share2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Upload & Distribuição</span>
+            </button>
+
                           <button 
                             onClick={() => setActiveTab('editor')}
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
@@ -26024,7 +26080,453 @@ export default function App() {
 
 
 
-          {activeTab === 'editor' && (
+          {/* TAB: UPLOAD MULTI & DISTRIBUICAO */}
+          {activeTab === 'upload' && (
+            <div className="space-y-6 animate-fade-in font-sans">
+              <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
+                <div>
+                  <h2 className="text-sm font-cinzel font-bold text-white tracking-wide">Upload & Distribuição Multi-Plataforma</h2>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Prepare os metadados e publique seus vídeos nas redes sociais de forma automatizada.</p>
+                </div>
+              </div>
+
+              {/* Step 1: Select platforms & Edit metadata */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Metadados por Plataforma */}
+                <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* YouTube Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-yt"
+                          checked={selectedPlatforms.youtube}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, youtube: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-yt" className="text-xs font-bold text-zinc-200 cursor-pointer flex items-center gap-1.5">
+                          <span>YouTube (Videos / Shorts)</span>
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.youtube?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.youtube?.connected ? 'Conectado' : 'Não Conectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.youtube && (
+                      <div className="space-y-4 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Título no YouTube</label>
+                          <input
+                            type="text"
+                            maxLength={100}
+                            value={ytTitle}
+                            onChange={(e) => setYtTitle(e.target.value)}
+                            placeholder="Insira o título do vídeo para o YouTube"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs"
+                          />
+                          <span className="text-[9px] text-zinc-600 block text-right">{ytTitle.length}/100</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Descrição do YouTube</label>
+                          <textarea
+                            rows={3}
+                            value={ytDescription}
+                            onChange={(e) => setYtDescription(e.target.value)}
+                            placeholder="Descrição completa para SEO, links e hashtags"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Privacidade</label>
+                          <select
+                            value={ytPrivacy}
+                            onChange={(e) => setYtPrivacy(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white font-sans text-xs"
+                          >
+                            <option value="private">Privado (Recomendado)</option>
+                            <option value="public">Público</option>
+                            <option value="unlisted">Não listado</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Instagram Reels Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-ig"
+                          checked={selectedPlatforms.instagram}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, instagram: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-ig" className="text-xs font-bold text-zinc-200 cursor-pointer">
+                          Instagram Reels
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.instagram?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.instagram?.connected ? 'Conectado' : 'Não Conectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.instagram && (
+                      <div className="space-y-3 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Legenda do Reels (Caption)</label>
+                          <textarea
+                            rows={3}
+                            value={igCaption}
+                            onChange={(e) => setIgCaption(e.target.value)}
+                            placeholder="Legenda para o Reels com hashtags"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* TikTok Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-tt"
+                          checked={selectedPlatforms.tiktok}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, tiktok: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-tt" className="text-xs font-bold text-zinc-200 cursor-pointer">
+                          TikTok (Playwright Automação)
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.tiktok?.connected ? 'Sessão Ativa' : 'Desconectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.tiktok && (
+                      <div className="space-y-3 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Legenda do TikTok</label>
+                          <textarea
+                            rows={3}
+                            value={ttCaption}
+                            onChange={(e) => setTtCaption(e.target.value)}
+                            placeholder="Legenda curta e tags virais"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Kwai Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-kw"
+                          checked={selectedPlatforms.kwai}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, kwai: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-kw" className="text-xs font-bold text-zinc-200 cursor-pointer">
+                          Kwai (Playwright Automação)
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.kwai?.connected ? 'Sessão Ativa' : 'Desconectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.kwai && (
+                      <div className="space-y-3 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Legenda do Kwai</label>
+                          <textarea
+                            rows={3}
+                            value={kwCaption}
+                            onChange={(e) => setKwCaption(e.target.value)}
+                            placeholder="Legenda para o Kwai"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Account Auth Connection Panel */}
+                <div className="space-y-6">
+                  
+                  {/* Salvar Metadados GLOBAIS */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Ações Globais</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const upload_metadata = {
+                            youtube: { title: ytTitle.trim(), description: ytDescription.trim(), privacy: ytPrivacy },
+                            instagram: { title: igCaption.trim() },
+                            tiktok: { title: ttCaption.trim() },
+                            kwai: { title: kwCaption.trim() }
+                          };
+                          const res = await fetch(getProjectUrl('/api/config'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ upload_metadata })
+                          });
+                          if (res.ok) {
+                            toast("Metadados salvos com sucesso!");
+                          }
+                        } catch (e) {
+                          toast("Erro ao salvar metadados.");
+                        }
+                      }}
+                      className="w-full bg-zinc-900 border border-zinc-800 hover:border-gold-500/20 text-gold-500 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                    >
+                      Salvar Metadados do Projeto
+                    </button>
+                    <button
+                      onClick={async () => {
+                        // Generate pipeline execution
+                        setUploading(true);
+                        setUploadLogs([]);
+                        setUploadProgress(0);
+                        const platformList = Object.entries(selectedPlatforms)
+                          .filter(([_, active]) => active)
+                          .map(([key]) => key)
+                          .join(",");
+                        
+                        const eventSource = new EventSource(getProjectUrl(`/api/projects/upload-pipeline?platforms=${platformList}`));
+                        eventSource.onmessage = (event) => {
+                          const data = JSON.parse(event.data);
+                          if (data.type === "log") {
+                            setUploadLogs(prev => [...prev, data.text]);
+                            const progressMatch = data.text.match(/\[PROGRESSO\] (\d+)%/);
+                            if (progressMatch) {
+                              setUploadProgress(parseInt(progressMatch[1]));
+                            }
+                          } else if (data.type === "complete") {
+                            eventSource.close();
+                            setUploading(false);
+                            setUploadProgress(100);
+                            toast("Upload concluído com sucesso!");
+                          } else if (data.type === "error") {
+                            eventSource.close();
+                            setUploading(false);
+                            toast("Erro ao executar pipeline: " + data.message);
+                          }
+                        };
+                        eventSource.onerror = () => {
+                          eventSource.close();
+                          setUploading(false);
+                          toast("Falha na conexão SSE.");
+                        };
+                      }}
+                      disabled={uploading}
+                      className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 font-bold py-3 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-gold-500/10"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>{uploading ? "Publicando..." : "Publicar nas Selecionadas"}</span>
+                    </button>
+                  </div>
+
+                  {/* Auth Configuration */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Configuração de Integrações</span>
+                    
+                    {/* YouTube API Auth card */}
+                    <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
+                      <span className="font-bold block text-zinc-300">Autenticação do YouTube</span>
+                      {!uploadStatus.youtube?.has_secrets ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Client ID"
+                            value={ytClientId}
+                            onChange={(e) => setYtClientId(e.target.value)}
+                            className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                          />
+                          <input
+                            type="password"
+                            placeholder="Client Secret"
+                            value={ytClientSecret}
+                            onChange={(e) => setYtClientSecret(e.target.value)}
+                            className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                          />
+                          <button
+                            onClick={async () => {
+                              const res = await fetch('/api/upload/youtube/save-credentials', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ client_id: ytClientId.trim(), client_secret: ytClientSecret.trim() })
+                              });
+                              if (res.ok) {
+                                toast("Credenciais do YouTube salvas!");
+                                fetchUploadStatus();
+                              }
+                            }}
+                            className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                          >
+                            Salvar Chaves YouTube
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-zinc-400">Credenciais configuradas.</p>
+                          {!uploadStatus.youtube?.connected && (
+                            <button
+                              onClick={async () => {
+                                const res = await fetch('/api/upload/youtube/auth-url');
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  window.open(data.url, '_blank');
+                                  toast("Link aberto para autorização.");
+                                }
+                              }}
+                              className="w-full bg-gold-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
+                            >
+                              Vincular Conta Google
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Instagram Graph API Auth card */}
+                    <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
+                      <span className="font-bold block text-zinc-300">Autenticação do Instagram</span>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="ID da Conta Business"
+                          value={igAccountId}
+                          onChange={(e) => setIgAccountId(e.target.value)}
+                          className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Token de Acesso Graph API"
+                          value={igAccessToken}
+                          onChange={(e) => setIgAccessToken(e.target.value)}
+                          className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                        />
+                        <button
+                          onClick={async () => {
+                            const res = await fetch('/api/upload/instagram/save-credentials', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ instagram_business_account_id: igAccountId.trim(), access_token: igAccessToken.trim() })
+                            });
+                            if (res.ok) {
+                              toast("Credenciais do Instagram salvas!");
+                              fetchUploadStatus();
+                            }
+                          }}
+                          className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                        >
+                          Salvar Chaves Instagram
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* TikTok Playwright Auth card */}
+                    <div className="space-y-2 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-zinc-300">TikTok Session</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
+                          {uploadStatus.tiktok?.connected ? 'Sessão Ativa' : 'Inativa'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch('/api/upload/launch-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ platform: 'tiktok' })
+                          });
+                          if (res.ok) {
+                            toast("Navegador de Login aberto. Faça o login e feche a janela!");
+                          }
+                        }}
+                        className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                      >
+                        Iniciar Login no TikTok
+                      </button>
+                    </div>
+
+                    {/* Kwai Playwright Auth card */}
+                    <div className="space-y-2 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-zinc-300">Kwai Session</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
+                          {uploadStatus.kwai?.connected ? 'Sessão Ativa' : 'Inativa'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch('/api/upload/launch-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ platform: 'kwai' })
+                          });
+                          if (res.ok) {
+                            toast("Navegador de Login aberto. Faça o login e feche a janela!");
+                          }
+                        }}
+                        className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                      >
+                        Iniciar Login no Kwai
+                      </button>
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* Progress and Live Terminal log view */}
+              {(uploading || uploadLogs.length > 0) && (
+                <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Progresso do Envio</span>
+                    <span className="text-xs font-mono font-bold text-gold-500">{uploadProgress}%</span>
+                  </div>
+
+                  <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800">
+                    <div
+                      className="bg-gold-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+
+                  <div className="bg-black/60 border border-zinc-950 rounded-xl p-4 h-64 overflow-y-auto font-mono text-[10px] text-emerald-400 space-y-1">
+                    {uploadLogs.map((log, idx) => (
+                      <div key={idx} className="leading-relaxed">
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+
+                    {activeTab === 'editor' && (
 
 
 

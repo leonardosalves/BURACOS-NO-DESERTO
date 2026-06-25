@@ -893,6 +893,12 @@ app.post("/api/projects/create", (req, res) => {
 
     ensureFileExists("align_transcripts.py", projDir);
 
+    ensureFileExists("upload_pipeline.py", projDir);
+
+    ensureFileExists("upload_youtube.py", projDir);
+
+    ensureFileExists("upload_instagram.py", projDir);
+
     ensureFileExists("upload_tiktok_playwright.py", projDir);
 
     ensureFileExists("upload_kwai_playwright.py", projDir);
@@ -1843,6 +1849,220 @@ app.post("/api/config", (req, res) => {
 
 
 
+});
+
+// POST /api/upload/youtube/save-credentials
+app.post("/api/upload/youtube/save-credentials", (req, res) => {
+  const { client_id, client_secret } = req.body;
+  if (!client_id || !client_secret) {
+    return res.status(400).json({ error: "Client ID e Client Secret são obrigatórios" });
+  }
+  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  try {
+    fs.writeFileSync(secretsPath, JSON.stringify({ client_id, client_secret }, null, 2), "utf8");
+    res.json({ success: true, message: "Credenciais de API do YouTube salvas com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar credenciais do YouTube", details: err.message });
+  }
+});
+
+// POST /api/upload/instagram/save-credentials
+app.post("/api/upload/instagram/save-credentials", (req, res) => {
+  const { instagram_business_account_id, access_token } = req.body;
+  if (!instagram_business_account_id || !access_token) {
+    return res.status(400).json({ error: "ID da conta Business e Token de Acesso são obrigatórios" });
+  }
+  const secretsPath = path.join(WORKSPACE_DIR, "instagram_secrets.json");
+  try {
+    fs.writeFileSync(secretsPath, JSON.stringify({ instagram_business_account_id, access_token }, null, 2), "utf8");
+    res.json({ success: true, message: "Credenciais de API do Instagram salvas com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar credenciais do Instagram", details: err.message });
+  }
+});
+
+// GET /api/upload/status
+app.get("/api/upload/status", (req, res) => {
+  const ytSecrets = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  const ytToken = path.join(WORKSPACE_DIR, "youtube_token.json");
+  const igSecrets = path.join(WORKSPACE_DIR, "instagram_secrets.json");
+  const ttCookies = path.join(WORKSPACE_DIR, "tiktok_cookies.json");
+  const kwCookies = path.join(WORKSPACE_DIR, "kwai_cookies.json");
+
+  let yt_client_id = null;
+  if (fs.existsSync(ytSecrets)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(ytSecrets, "utf8"));
+      yt_client_id = data.client_id;
+    } catch (e) {}
+  }
+
+  let ig_account_id = null;
+  if (fs.existsSync(igSecrets)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(igSecrets, "utf8"));
+      ig_account_id = data.instagram_business_account_id;
+    } catch (e) {}
+  }
+
+  res.json({
+    youtube: {
+      connected: fs.existsSync(ytSecrets) && fs.existsSync(ytToken),
+      has_secrets: fs.existsSync(ytSecrets),
+      client_id: yt_client_id
+    },
+    instagram: {
+      connected: fs.existsSync(igSecrets),
+      account_id: ig_account_id
+    },
+    tiktok: {
+      connected: fs.existsSync(ttCookies)
+    },
+    kwai: {
+      connected: fs.existsSync(kwCookies)
+    }
+  });
+});
+
+// GET /api/upload/youtube/auth-url
+app.get("/api/upload/youtube/auth-url", (req, res) => {
+  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  if (!fs.existsSync(secretsPath)) {
+    return res.status(400).json({ error: "Credenciais do YouTube ausentes no servidor." });
+  }
+  try {
+    const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
+    const redirectUri = "http://localhost:3005/api/upload/youtube/callback";
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${secrets.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https://www.googleapis.com/auth/youtube.upload&access_type=offline&prompt=consent`;
+    res.json({ url: authUrl });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar URL do YouTube", details: err.message });
+  }
+});
+
+// GET /api/upload/youtube/callback
+app.get("/api/upload/youtube/callback", async (req, res) => {
+  const { code } = req.query;
+  if (!code) {
+    return res.status(400).send("Código não fornecido.");
+  }
+  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  if (!fs.existsSync(secretsPath)) {
+    return res.status(400).send("Credenciais do YouTube ausentes.");
+  }
+  try {
+    const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
+    const redirectUri = "http://localhost:3005/api/upload/youtube/callback";
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: secrets.client_id,
+        client_secret: secrets.client_secret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code"
+      })
+    });
+    const tokens = await response.json();
+    if (tokens.error) {
+      return res.status(400).send(`Erro ao obter tokens: ${tokens.error_description || tokens.error}`);
+    }
+    const tokenPath = path.join(WORKSPACE_DIR, "youtube_token.json");
+    fs.writeFileSync(tokenPath, JSON.stringify(tokens, null, 2), "utf8");
+    res.send(`
+      <html>
+        <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
+          <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
+            <h1 style="color:#d4af37;">YouTube Conectado!</h1>
+            <p style="color:#a1a1aa;">Conta vinculada com sucesso. Você já pode fechar esta aba.</p>
+            <button onclick="window.close()" style="background:#d4af37; border:none; padding:0.5rem 1.5rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;">Fechar</button>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    res.status(500).send(`Erro: ${err.message}`);
+  }
+});
+
+// POST /api/upload/launch-login
+app.post("/api/upload/launch-login", (req, res) => {
+  const { platform } = req.body;
+  if (!platform || !["tiktok", "kwai"].includes(platform.toLowerCase())) {
+    return res.status(400).json({ error: "Plataforma inválida." });
+  }
+  
+  // Start capture_cookies.py in headful mode in background
+  const cpScript = path.join(WORKSPACE_DIR, "capture_cookies.py");
+  if (!fs.existsSync(cpScript)) {
+    return res.status(404).json({ error: "Script capture_cookies.py não encontrado." });
+  }
+  
+  const child = spawn(PYTHON_PATH, ["capture_cookies.py", platform.toLowerCase()], {
+    cwd: WORKSPACE_DIR,
+    shell: True,
+    detached: true,
+    stdio: 'ignore'
+  });
+  child.unref();
+  
+  res.json({ success: true, message: `Navegador aberto na sua área de trabalho para login do ${platform.toUpperCase()}. Realize o login e feche-o para concluir.` });
+});
+
+// GET /api/projects/upload-pipeline
+app.get("/api/projects/upload-pipeline", (req, res) => {
+  const projDir = getProjectDir(req);
+  const platforms = req.query.platforms || "";
+  
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const sendLog = (text) => {
+    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+  };
+
+  sendLog(`[Pipeline] Iniciando Upload Automatizado com plataformas: ${platforms}...`);
+  
+  const scriptPath = path.join(projDir, "upload_pipeline.py");
+  if (!fs.existsSync(scriptPath)) {
+    ensureFileExists("upload_pipeline.py", projDir);
+  }
+
+  const child = spawn(PYTHON_PATH, ["upload_pipeline.py", projDir, platforms], {
+    cwd: projDir,
+    shell: True
+  });
+
+  child.stdout.on("data", (data) => {
+    const lines = data.toString().split("\n");
+    for (const line of lines) {
+      if (line.strip ? line.strip() : line.trim()) {
+        sendLog(line.strip ? line.strip() : line.trim());
+      }
+    }
+  });
+
+  child.stderr.on("data", (data) => {
+    const lines = data.toString().split("\n");
+    for (const line of lines) {
+      if (line.strip ? line.strip() : line.trim()) {
+        sendLog(`[Error] ${line.strip() ? line.strip() : line.trim()}`);
+      }
+    }
+  });
+
+  child.on("close", (code) => {
+    if (code === 0) {
+      res.write(`data: ${JSON.stringify({ type: "complete", message: "Processo de upload concluído!" })}\n\n`);
+    } else {
+      res.write(`data: ${JSON.stringify({ type: "error", message: `O processo encerrou com código ${code}` })}\n\n`);
+    }
+    res.end();
+  });
 });
 
 
