@@ -4319,6 +4319,7 @@ export default function App() {
     setUploadingNarration(false);
     setSyncingTimings(false);
     setDragActive(false);
+    setUploadedScenes({});
     fetchData();
   }, [activeProject]);
 
