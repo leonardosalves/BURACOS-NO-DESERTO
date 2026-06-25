@@ -28858,7 +28858,7 @@ async function generateOverlaysWithAI(projectDir) {
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
 
   const systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
-Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares.
+Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
 
 REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
@@ -28868,19 +28868,28 @@ REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 3. RELEVÂNCIA: Crie overlays apenas para dados, números ou curiosidades históricas/científicas altamente surpreendentes e impactantes, que agreguem valor real e chamem a atenção do espectador. Nunca crie overlays com informações óbvias ou repetitivas.
 4. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
 5. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
-6. VARIABILIDADE E CORES DINÂMICAS:
-   - Em todo overlay, defina o campo "accentColor" escolhendo uma cor hexadecimal dinâmica da paleta cinematográfica que melhor represente o assunto daquele bloco/roteiro:
-     * #D4AF37 (Ouro clássico/premium) -> Para história, realeza, mistérios arqueológicos, conquistas monumentais, ouro.
-     * #00E5FF (Ciano elétrico) -> Para ciência, tecnologia, água, gelo, espaço sideral, futuro.
-     * #FF3D00 (Laranja de fogo) -> Para vulcões, guerras, calor, perigo, ação, destruição, fogo.
-     * #00E676 (Verde esmeralda) -> Para florestas, biologia, natureza, venenos, mistérios orgânicos.
-     * #D500F9 (Roxo violeta) -> Para mistérios insolúveis, psicologia, magia, universo profundo, segredos.
-   - VARIE OS ESTILOS: Distribua bem os tipos de overlays ao longo do vídeo:
-     * "lower-third": Use no início de blocos importantes (Start = início do bloco, Duration = 3.5s). O "title" deve ser o TÓPICO resumido do bloco em letras maiúsculas. O "subtitle" deve ser VAZIO ("") para nunca exibir a palavra "BLOCO X".
-     * "info-card": Um painel glassmórfico elegante no topo da tela (posição "top-left" ou "top-right"). Contém um "title" (palavra-chave em caixa alta), uma "description" (fato complementar de até 80 caracteres) e um "iconType" animado ("sparkles", "flame", "earth", "gear", "shield", "crown", "info" - escolha o que combine com o assunto).
-     * "counter": Para dados numéricos interessantes relacionados ao assunto. Contém "value" (número inteiro), "label" (descrição) e "suffix" (unidade). Fica na posição "bottom-right".
-     * "bar-chart": Para comparações de tamanho ou valores. Contém um array "items" (com "label" e "value"). Fica na posição "bottom-center" ou "right".
-     * "timeline": Para datas históricas.
+
+6. VARIABILIDADE DE DESIGN, LAYOUTS E CORES DINÂMICAS:
+   - Paleta de Cores ("accentColor"): Em todo overlay, escolha uma cor hexadecimal que combine tematicamente com o assunto específico do bloco:
+     * #D4AF37 (Ouro clássico/premium) -> Para história, realeza, mistérios arqueológicos, conquistas monumentais, ouro, tesouros.
+     * #00E5FF (Ciano elétrico) -> Para ciência avançada, astronomia, tecnologia, água, gelo, espaço sideral, futuro.
+     * #FF3D00 (Laranja de fogo) -> Para vulcões, geologia terrestre, guerras, calor, perigo, ação, destruição, fogo.
+     * #00E676 (Verde esmeralda) -> Para florestas, biologia, medicina, natureza, venenos, mistérios orgânicos.
+     * #D500F9 (Roxo violeta) -> Para mistérios insolúveis, psicologia humana, segredos profundos, magia, mistério inexplicável.
+   - Variantes de Card ("variant"): Para "info-card", mude o design visual de acordo com o contexto:
+     * "glass" -> Visual premium padrão com vidro fosco translúcido. Use para curiosidades gerais.
+     * "minimal" -> Design limpo, sem bordas completas (borda tracejada na esquerda). Ótimo para detalhes secundários rápidos.
+     * "accent" -> Design colorido sutil integrado à cor do tema do bloco. Perfeito para destacar fatos e descobertas principais.
+     * "floating" -> Card flutuante com borda sólida e sombra brilhante. Excelente para marcos históricos cruciais ou grandes revelações.
+   - Ícones Animados ("iconType"): Para "info-card", escolha o ícone/desenho animado específico que corresponda à informação descrita:
+     * "sparkles" (estrelas brilhantes) | "crown" (realeza/impérios) | "info" (dados clássicos)
+     * "flame" (fogo/vulcanismo) | "earth" (geologia/geografia/planeta) | "gear" (engenharia/construção)
+     * "shield" (defesa/exército/guerras) | "science" (átomo orbitando/física) | "history" (ampulheta/tempo)
+     * "nature" (folha balançando) | "money" (moedas girando) | "warning" (alerta piscando)
+     * "compass" (bússola/navegação/descobertas) | "book" (livro/textos antigos/cultura)
+     * "heart" (emoção/vida/biologia) | "swords" (batalhas/confrontos) | "lightbulb" (ideias/invenções)
+   - Distribua bem as posições ("position"): "top-left", "top-right", "bottom-left", "bottom-right" para os cards informativos, variando o canto da tela para não cansar o olhar.
+
 7. Mantenha os textos curtos, sofisticados e de leitura rápida.
 8. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
 
@@ -28910,7 +28919,8 @@ Estrutura de cada tipo de overlay no JSON:
       "description": "A cinza vulcânica permitia ao concreto romano se autocuidar sob a água.",
       "iconType": "flame",
       "position": "top-right",
-      "accentColor": "#FF3D00"
+      "accentColor": "#FF3D00",
+      "variant": "accent"
     }
   },
   {
