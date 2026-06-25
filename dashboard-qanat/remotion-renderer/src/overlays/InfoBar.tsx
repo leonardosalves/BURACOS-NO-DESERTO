@@ -114,7 +114,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
             backdropFilter: "blur(14px)",
             borderRadius: isVertical ? 20 : 16,
             padding: isVertical ? "28px 36px" : "20px 28px",
-            border: `1px solid rgba(212,175,55,0.15)`,
+            border: `1px solid ${accentColor}26`,
             display: "flex",
             flexDirection: "column",
             gap: isVertical ? 22 : 16,

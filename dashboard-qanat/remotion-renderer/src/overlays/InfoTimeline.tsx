@@ -104,7 +104,7 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
             backdropFilter: "blur(14px)",
             borderRadius: isVertical ? 16 : 12,
             padding: isVertical ? "16px 32px" : "12px 24px",
-            border: `1px solid rgba(212,175,55,0.15)`,
+            border: `1px solid ${accentColor}26`,
           }}
         >
           <div

@@ -145,9 +145,9 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           gap: 4,
           maxWidth: isVertical ? 860 : 640,
           clipPath: `inset(0 ${(1 - panelExpand) * 100}% 0 0)`,
-          borderTop: `1px solid rgba(212,175,55,0.15)`,
-          borderRight: `1px solid rgba(212,175,55,0.08)`,
-          borderBottom: `1px solid rgba(212,175,55,0.15)`,
+          borderTop: `1px solid ${accentColor}26`,
+          borderRight: `1px solid ${accentColor}14`,
+          borderBottom: `1px solid ${accentColor}26`,
         }}
       >
         {/* Title */}
