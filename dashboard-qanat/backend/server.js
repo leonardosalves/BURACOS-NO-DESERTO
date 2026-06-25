@@ -28857,25 +28857,29 @@ async function generateOverlaysWithAI(projectDir) {
 
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
 
-  const systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels).
+  const systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
 Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares.
 
-REGRAS IMPORTANTES:
-1. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares sobre o assunto daquele trecho.
-2. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
-3. VARIE OS ESTILOS: Distribua bem os tipos de overlays ao longo do vídeo:
-   - "lower-third": Use no início de cada bloco (Start = início do bloco, Duration = 3.5s). O "title" deve ser o TÓPICO resumido do bloco em letras maiúsculas (ex: "CIÊNCIA ANCIÃ", "O MISTÉRIO DE GIZÉ"). O "subtitle" deve ser VAZIO ("") para nunca exibir a palavra "BLOCO X".
+REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
+1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
+2. LIMITES POR FORMATO:
+   - Para vídeos curtos (SHORTS/REELS/TIKTOK - duração total menor que 60 segundos): No máximo 1 ou 2 overlays informativos (como "info-card", "counter" ou "bar-chart") NO VÍDEO INTEIRO, e no máximo 1 ou 2 "lower-third" (somente nos blocos mais importantes).
+   - Para vídeos LONGOS: Garanta um intervalo de pelo menos 15 a 20 segundos "limpo" (sem nenhum overlay) entre a exibição de um overlay e outro.
+3. RELEVÂNCIA: Crie overlays apenas para dados, números ou curiosidades históricas/científicas altamente surpreendentes e impactantes, que agreguem valor real e chamem a atenção do espectador. Nunca crie overlays com informações óbvias ou repetitivas.
+4. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
+5. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
+6. VARIE OS ESTILOS: Distribua bem os tipos de overlays ao longo do vídeo:
+   - "lower-third": Use no início de blocos importantes (Start = início do bloco, Duration = 3.5s). O "title" deve ser o TÓPICO resumido do bloco em letras maiúsculas (ex: "CIÊNCIA ANCIÃ", "O MISTÉRIO DE GIZÉ"). O "subtitle" deve ser VAZIO ("") para nunca exibir a palavra "BLOCO X".
    - "info-card": Um painel glassmórfico elegante no topo da tela (posição "top-left" ou "top-right"). Contém um "title" (palavra-chave em caixa alta), uma "description" (fato complementar de até 80 caracteres) e um "iconType" animado ("sparkles", "flame", "earth", "building", "info", "gear", "shield", "crown").
    - "counter": Para dados numéricos interessantes relacionados ao assunto (ex: "3.000 anos", "45 metros", "70 toneladas"). Contém "value" (número inteiro), "label" (descrição) e "suffix" (unidade). Fica na posição "bottom-right".
    - "bar-chart": Para comparações de tamanho ou valores (ex: "Pirâmide vs Estátua"). Contém um array "items" (com "label" e "value"). Fica na posição "bottom-center" ou "right".
    - "timeline": Para datas históricas.
-4. Mantenha os textos curtos, sofisticados e de leitura rápida.
-5. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
+7. Mantenha os textos curtos, sofisticados e de leitura rápida.
+8. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
 
 Retorne APENAS um array JSON contendo os objetos de overlay. Não inclua markdown além de blocos de código JSON ou explicações fora do JSON.
 
 Estrutura de cada tipo de overlay no JSON:
-
 [
   {
     "id": "lt-block-1",
