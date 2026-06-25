@@ -15620,415 +15620,69 @@ const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash
 
 
 async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = GEMINI_MODELS, bodyOverride = null, temperature = null } = {}) {
-
-
-
-
-
-
-
   const projDir = global.lastActiveProjectDir || WORKSPACE_DIR;
-
-
-
-
-
-
-
   const provider = getAiProvider(projDir);
-
-
-
-
-
-
-
   if (provider === "openrouter") {
-
-
-
-
-
-
-
     return await callOpenRouterWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
-
-
-
-
-
-
-
   }
-
-
-
-
-
-
-
   if (provider === "xai") {
-
-
-
-
-
-
-
     return await callXaiWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
-
-
-
-
-
-
-
   }
-
-
-
-
-
-
-
+  
   let lastError = null;
-
-
-
-
-
-
+  const keys = [...new Set([apiKey, ...getApiKeys(projDir)].filter(Boolean))];
+  
+  if (keys.length === 0) {
+    throw new Error("Nenhuma chave de API do Gemini configurada.");
+  }
 
   for (const model of models) {
-
-
-
-
-
-
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-
-
-
-
-
-
-
-      try {
-
-
-
-
-
-
-
-        const requestBody = bodyOverride || { contents: [{ role: "user", parts: [{ text: promptOrBody }] }], ...(temperature !== null ? { generationConfig: { temperature } } : {}) };
-
-
-
-
-
-
-
-        const response = await fetch(
-
-
-
-
-
-
-
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-
-
-
-
-
-
-
-          {
-
-
-
-
-
-
-
-            method: "POST",
-
-
-
-
-
-
-
-            headers: { "Content-Type": "application/json" },
-
-
-
-
-
-
-
-            body: JSON.stringify(requestBody)
-
-
-
-
-
-
-
+    for (const currentKey of keys) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const requestBody = bodyOverride || { contents: [{ role: "user", parts: [{ text: promptOrBody }] }], ...(temperature !== null ? { generationConfig: { temperature } } : {}) };
+          console.log(`[Gemini] Tentando modelo: ${model} com chave: ${currentKey.substring(0, 10)}... (Tentativa ${attempt}/${maxRetries})`);
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(requestBody)
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+            console.log(`[Gemini] Sucesso com modelo=${model} usando chave=${currentKey.substring(0, 10)}... na tentativa ${attempt}`);
+            return responseText;
           }
 
-
-
-
-
-
-
-        );
-
-
-
-
-
-
-
-        if (response.ok) {
-
-
-
-
-
-
-
-          const result = await response.json();
-
-
-
-
-
-
-
-          let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-
-
-
-
-
-
-          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-
-
-
-
-
-
-
-          console.log(`[Gemini] Success with model=${model} on attempt ${attempt}`);
-
-
-
-
-
-
-
-          return responseText;
-
-
-
-
-
-
-
-        }
-
-
-
-
-
-
-
-        const errData = await response.json().catch(() => ({}));
-
-
-
-
-
-
-
-        const errMsg = errData.error?.message || response.statusText;
-
-
-
-
-
-
-
-        const status = response.status;
-
-
-
-
-
-
-
-        if (status === 503 || status === 429) {
-
-
-
-
-
-
-
-          const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
-
-
-
-
-
-
-
-          console.warn(`[Gemini] ${status} from ${model} (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`);
-
-
-
-
-
-
-
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || response.statusText;
+          const status = response.status;
+
+          console.warn(`[Gemini] ${status} de ${model} (tentativa ${attempt}/${maxRetries}) usando chave ${currentKey.substring(0, 10)}...: ${errMsg}`);
           lastError = new Error(`${model}: ${errMsg}`);
 
-
-
-
-
-
-
-          await new Promise(r => setTimeout(r, delay));
-
-
-
-
-
-
-
-          continue;
-
-
-
-
-
-
-
+          if (status === 503 || status === 429) {
+            const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          break; // Go to next key for this model
+        } catch (err) {
+          lastError = err;
+          console.warn(`[Gemini] Erro na tentativa ${attempt} para ${model} usando chave ${currentKey.substring(0, 10)}...: ${err.message}`);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
         }
-
-
-
-
-
-
-
-        // For non-retryable errors (400, 401, 403, etc.), throw immediately
-
-
-
-
-
-
-
-        throw new Error(errMsg);
-
-
-
-
-
-
-
-      } catch (err) {
-
-
-
-
-
-
-
-        if (err.message && !err.message.includes(model)) {
-
-
-
-
-
-
-
-          throw err; // Re-throw non-retryable errors
-
-
-
-
-
-
-
-        }
-
-
-
-
-
-
-
-        lastError = err;
-
-
-
-
-
-
-
       }
-
-
-
-
-
-
-
     }
-
-
-
-
-
-
-
-    console.warn(`[Gemini] All ${maxRetries} attempts failed for ${model}, trying next model...`);
-
-
-
-
-
-
-
+    console.warn(`[Gemini] Todos os modelos/tentativas falharam para ${model}, tentando próximo modelo...`);
   }
-
-
-
-
-
-
-
   throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
-
-
-
-
-
-
-
 }
-
 
 
 
