@@ -893,6 +893,10 @@ app.post("/api/projects/create", (req, res) => {
 
     ensureFileExists("align_transcripts.py", projDir);
 
+    ensureFileExists("upload_tiktok_playwright.py", projDir);
+
+    ensureFileExists("upload_kwai_playwright.py", projDir);
+
 
 
     
