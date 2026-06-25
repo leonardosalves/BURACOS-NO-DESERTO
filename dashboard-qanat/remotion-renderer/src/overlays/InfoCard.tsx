@@ -31,6 +31,7 @@ export interface InfoCardProps {
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   accentColor?: string;
   variant?: "glass" | "minimal" | "accent" | "floating";
+  theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
 }
 
 const ANIM_IN_FRAMES = 15;
@@ -321,6 +322,46 @@ const LightbulbSVG: React.FC<{ size: number; color: string }> = ({ size, color }
   </svg>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Corner Ornaments Components for Themes
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TechCorners: React.FC<{ color: string }> = ({ color }) => (
+  <>
+    <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
+    <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
+    <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
+    <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
+  </>
+);
+
+const AncientCorners: React.FC<{ color: string }> = ({ color }) => (
+  <>
+    <div style={{ position: "absolute", top: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+    <div style={{ position: "absolute", top: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+    <div style={{ position: "absolute", bottom: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+    <div style={{ position: "absolute", bottom: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+  </>
+);
+
+const IndustrialRivets: React.FC = () => (
+  <>
+    <div style={{ position: "absolute", top: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+    <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+    <div style={{ position: "absolute", bottom: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+    <div style={{ position: "absolute", bottom: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+  </>
+);
+
+const MysteriousStars: React.FC<{ color: string }> = ({ color }) => (
+  <>
+    <div style={{ position: "absolute", top: 1, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+    <div style={{ position: "absolute", top: 1, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+    <div style={{ position: "absolute", bottom: 5, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+    <div style={{ position: "absolute", bottom: 5, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+  </>
+);
+
 export const InfoCard: React.FC<InfoCardProps> = ({
   title,
   description,
@@ -328,6 +369,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
   position = "top-left",
   accentColor = "#D4AF37",
   variant = "glass",
+  theme = "classic",
 }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -416,7 +458,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
     }
   };
 
-  // Layout variants mapping
+  // Layout variants mapping (classic style)
   const variantStyles: Record<string, React.CSSProperties> = {
     glass: {
       background: "linear-gradient(135deg, rgba(6,6,10,0.95) 0%, rgba(14,14,20,0.92) 100%)",
@@ -444,7 +486,79 @@ export const InfoCard: React.FC<InfoCardProps> = ({
       backdropFilter: "blur(16px)",
       border: `2px solid ${accentColor}`,
       borderRadius: "16px",
-      boxShadow: `0 8px 32px ${accentColor}20`,
+    }
+  };
+
+  // Theme custom styling mapper
+  const getThemeStyle = (): React.CSSProperties => {
+    switch (theme) {
+      case "ancient":
+        return {
+          background: "linear-gradient(135deg, rgba(20, 16, 12, 0.97) 0%, rgba(32, 24, 18, 0.95) 100%)",
+          border: `3px double ${accentColor}`,
+          borderRadius: "4px",
+          boxShadow: `0 8px 24px rgba(0,0,0,0.6), inset 0 0 10px ${accentColor}15`,
+        };
+      case "tech":
+        return {
+          background: "rgba(4, 8, 12, 0.93)",
+          backgroundImage: `radial-gradient(${accentColor}15 1px, transparent 0)`,
+          backgroundSize: "8px 8px",
+          border: `1px solid ${accentColor}33`,
+          borderRadius: "0px",
+          boxShadow: `0 0 20px ${accentColor}15`,
+        };
+      case "nature":
+        return {
+          background: "linear-gradient(135deg, rgba(6, 12, 8, 0.97) 0%, rgba(12, 24, 16, 0.95) 100%)",
+          border: `1px solid ${accentColor}30`,
+          borderLeft: `4px solid ${accentColor}`,
+          borderRadius: "24px 6px 24px 6px",
+          boxShadow: `0 8px 32px ${accentColor}15`,
+        };
+      case "industrial":
+        return {
+          background: "linear-gradient(135deg, rgba(14, 14, 16, 0.99) 0%, rgba(24, 24, 28, 0.97) 100%)",
+          border: `2px solid #333336`,
+          borderLeft: `6px solid ${accentColor}`,
+          borderRadius: "2px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
+        };
+      case "mysterious":
+        return {
+          background: "linear-gradient(135deg, rgba(10, 6, 14, 0.96) 0%, rgba(20, 12, 28, 0.94) 100%)",
+          border: `1px solid ${accentColor}40`,
+          borderRadius: "12px",
+          boxShadow: `0 8px 32px ${accentColor}25, inset 0 0 15px rgba(255,255,255,0.03)`,
+        };
+      case "classic":
+      default:
+        return variantStyles[variant];
+    }
+  };
+
+  // Theme custom typography mapper
+  const getThemeFont = (type: "title" | "desc") => {
+    if (type === "title") {
+      switch (theme) {
+        case "ancient":
+        case "mysterious":
+          return { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+        case "tech":
+          return { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
+        case "industrial":
+          return { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+        case "nature":
+        default:
+          return { fontFamily: "'Montserrat', sans-serif", fontWeight: 900 };
+      }
+    } else {
+      switch (theme) {
+        case "tech":
+          return { fontFamily: "'Courier New', Courier, monospace", fontSize: isVertical ? 14 : 9.5 };
+        default:
+          return { fontFamily: "'Inter', sans-serif" };
+      }
     }
   };
 
@@ -465,14 +579,20 @@ export const InfoCard: React.FC<InfoCardProps> = ({
           display: "flex",
           flexDirection: "row",
           alignItems: "flex-start",
-          padding: variant === "floating" 
+          padding: variant === "floating" || theme === "ancient" || theme === "mysterious"
             ? (isVertical ? "20px 24px" : "12px 18px")
             : (isVertical ? "16px 20px" : "10px 14px"),
           gap: isVertical ? 16 : 10,
-          ...variantStyles[variant],
-          boxShadow: variant === "floating" ? `0 8px 32px ${accentColor}20` : "0 6px 24px rgba(0, 0, 0, 0.45)",
+          position: "relative",
+          ...getThemeStyle(),
         }}
       >
+        {/* Render Corner Decorator components based on theme */}
+        {theme === "tech" && <TechCorners color={accentColor} />}
+        {theme === "ancient" && <AncientCorners color={accentColor} />}
+        {theme === "industrial" && <IndustrialRivets />}
+        {theme === "mysterious" && <MysteriousStars color={accentColor} />}
+
         {/* Animated Vector SVG Container */}
         <div
           style={{
@@ -492,11 +612,10 @@ export const InfoCard: React.FC<InfoCardProps> = ({
           <span
             style={{
               color: accentColor,
-              fontFamily: "'Cinzel', 'Playfair Display', serif",
               fontSize: isVertical ? 20 : 13,
-              fontWeight: 700,
-              letterSpacing: "0.04em",
               textTransform: "uppercase",
+              lineHeight: 1.2,
+              ...getThemeFont("title")
             }}
           >
             {title}
@@ -504,10 +623,10 @@ export const InfoCard: React.FC<InfoCardProps> = ({
           <span
             style={{
               color: "rgba(248,250,252,0.9)",
-              fontFamily: "'Inter', sans-serif",
               fontSize: isVertical ? 16 : 10.5,
               fontWeight: 400,
               lineHeight: 1.4,
+              ...getThemeFont("desc")
             }}
           >
             {description}

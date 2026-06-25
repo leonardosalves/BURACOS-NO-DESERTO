@@ -28865,30 +28865,36 @@ REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 2. LIMITES POR FORMATO:
    - Para vídeos curtos (SHORTS/REELS/TIKTOK - duração total menor que 60 segundos): No máximo 1 ou 2 overlays informativos (como "info-card", "counter" ou "bar-chart") NO VÍDEO INTEIRO, e no máximo 1 ou 2 "lower-third" (somente nos blocos mais importantes).
    - Para vídeos LONGOS: Garanta um intervalo de pelo menos 15 a 20 segundos "limpo" (sem nenhum overlay) entre a exibição de um overlay e outro.
-3. RELEVÂNCIA: Crie overlays apenas para dados, números ou curiosidades históricas/científicas altamente surpreendentes e impactantes, que agreguem valor real e chamem a atenção do espectador. Nunca crie overlays com informações óbvias ou repetitivas.
+3. RELEVÂNCIA: Crie overlays apenas para dados, numbers ou curiosidades históricas/científicas altamente surpreendentes e impactantes, que agreguem valor real e chamem a atenção do espectador. Nunca crie overlays com informações óbvias ou repetitivas.
 4. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
 5. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
 
-6. VARIABILIDADE DE DESIGN, LAYOUTS E CORES DINÂMICAS:
-   - Paleta de Cores ("accentColor"): Em todo overlay, escolha uma cor hexadecimal que combine tematicamente com o assunto específico do bloco:
-     * #D4AF37 (Ouro clássico/premium) -> Para história, realeza, mistérios arqueológicos, conquistas monumentais, ouro, tesouros.
-     * #00E5FF (Ciano elétrico) -> Para ciência avançada, astronomia, tecnologia, água, gelo, espaço sideral, futuro.
-     * #FF3D00 (Laranja de fogo) -> Para vulcões, geologia terrestre, guerras, calor, perigo, ação, destruição, fogo.
-     * #00E676 (Verde esmeralda) -> Para florestas, biologia, medicina, natureza, venenos, mistérios orgânicos.
-     * #D500F9 (Roxo violeta) -> Para mistérios insolúveis, psicologia humana, segredos profundos, magia, mistério inexplicável.
-   - Variantes de Card ("variant"): Para "info-card", mude o design visual de acordo com o contexto:
-     * "glass" -> Visual premium padrão com vidro fosco translúcido. Use para curiosidades gerais.
-     * "minimal" -> Design limpo, sem bordas completas (borda tracejada na esquerda). Ótimo para detalhes secundários rápidos.
-     * "accent" -> Design colorido sutil integrado à cor do tema do bloco. Perfeito para destacar fatos e descobertas principais.
-     * "floating" -> Card flutuante com borda sólida e sombra brilhante. Excelente para marcos históricos cruciais ou grandes revelações.
-   - Ícones Animados ("iconType"): Para "info-card", escolha o ícone/desenho animado específico que corresponda à informação descrita:
-     * "sparkles" (estrelas brilhantes) | "crown" (realeza/impérios) | "info" (dados clássicos)
-     * "flame" (fogo/vulcanismo) | "earth" (geologia/geografia/planeta) | "gear" (engenharia/construção)
-     * "shield" (defesa/exército/guerras) | "science" (átomo orbitando/física) | "history" (ampulheta/tempo)
-     * "nature" (folha balançando) | "money" (moedas girando) | "warning" (alerta piscando)
-     * "compass" (bússola/navegação/descobertas) | "book" (livro/textos antigos/cultura)
-     * "heart" (emoção/vida/biologia) | "swords" (batalhas/confrontos) | "lightbulb" (ideias/invenções)
-   - Distribua bem as posições ("position"): "top-left", "top-right", "bottom-left", "bottom-right" para os cards informativos, variando o canto da tela para não cansar o olhar.
+6. VARIABILIDADE DE DESIGN, LAYOUTS, MOODS E CORES DINÂMICAS:
+   - Temática Visual ("theme"): Em todo overlay, defina o campo "theme" de acordo com o tema/assunto do vídeo inteiro ou daquele trecho específico:
+     * "ancient" -> Para história antiga, civilizações do passado, arqueologia, monumentos de pedra, realeza clássica. (Aplica bordas duplas em ouro, fontes com serifa premium e ornamentos clássicos).
+     * "tech" -> Para espaço sideral, tecnologia, robótica, matemática, física avançada, ficção científica. (Aplica grades internas HUD, cantos com suportes lineares de neon e fontes monoespaçadas digitais).
+     * "nature" -> Para florestas, oceanos, animais selvagens, meio ambiente, biologia orgânica. (Aplica cantos arredondados orgânicos suaves e sombras verdes).
+     * "industrial" -> Para engenharia, estruturas militares, armas de guerra, batalhas de metal, construções pesadas. (Aplica parafusos de metal nos cantos, borda de aço grosso e fontes grossas e agressivas).
+     * "mysterious" -> Para psicologia humana, mistérios cósmicos, segredos governamentais, paranormalidade, magia. (Aplica estrelas luminosas nos cantos e fundos degradê violeta profundo).
+     * "classic" -> HUD padrão de vidro fosco para temas contemporâneos genéricos.
+   - Paleta de Cores ("accentColor"): Escolha um hexadecimal que combine com o tema e o mood visual:
+     * #D4AF37 (Ouro clássico/premium) -> Para história, realeza, mistérios arqueológicos, ouro.
+     * #00E5FF (Ciano elétrico) -> Para ciência, tecnologia, água, gelo, espaço sideral, futuro.
+     * #FF3D00 (Laranja de fogo) -> Para vulcões, guerras, calor, perigo, ação, destruição, fogo.
+     * #00E676 (Verde esmeralda) -> Para florestas, biologia, natureza, venenos, mistérios orgânicos.
+     * #D500F9 (Roxo violeta) -> Para mistérios insolúveis, psicologia humana, segredos profundos, magia.
+   - Variantes de Card ("variant"): Para "info-card", altere o layout de acordo com a prioridade da informação:
+     * "glass" -> Vidro translúcido elegante (padrão).
+     * "minimal" -> Sem bordas, tracejado fino à esquerda (para detalhes secundários rápidos).
+     * "accent" -> Com cor integrada ao fundo (para destacar descobertas principais).
+     * "floating" -> Borda sólida e sombra brilhante (para marcos cruciais ou revelações fantásticas).
+   - Ícones Animados ("iconType"): Para "info-card", selecione o desenho animado vetorizado específico que combine com a informação:
+     * "sparkles" (estrelas) | "crown" (realeza) | "info" (dados clássicos) | "flame" (fogo/energia)
+     * "earth" (globo/geologia) | "gear" (máquinas/engenharia) | "shield" (defesa/fortaleza)
+     * "science" (átomo orbitando) | "history" (ampulheta/tempo) | "nature" (folha) | "money" (moedas)
+     * "warning" (perigo) | "compass" (navegação) | "book" (livros/manuscritos) | "heart" (vida)
+     * "swords" (batalhas/confrontos) | "lightbulb" (ideias/invenções)
+   - Varie a posição ("position"): "top-left", "top-right", "bottom-left", "bottom-right" para evitar repetição.
 
 7. Mantenha os textos curtos, sofisticados e de leitura rápida.
 8. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
@@ -28920,7 +28926,8 @@ Estrutura de cada tipo de overlay no JSON:
       "iconType": "flame",
       "position": "top-right",
       "accentColor": "#FF3D00",
-      "variant": "accent"
+      "variant": "accent",
+      "theme": "industrial"
     }
   },
   {
