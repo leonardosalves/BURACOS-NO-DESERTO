@@ -90,12 +90,12 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         }
       : position === "bottom-center"
       ? {
-          bottom: isVertical ? 640 : 140,
+          bottom: isVertical ? 640 : 210,
           left: "50%",
           transform: `translateX(-50%) translateX(${translateX}px)`,
         }
       : {
-          bottom: isVertical ? 640 : 140,
+          bottom: isVertical ? 640 : 210,
           left: isVertical ? 48 : 64,
         };
 
