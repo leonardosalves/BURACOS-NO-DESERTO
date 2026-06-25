@@ -9954,7 +9954,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
 
-  if (mode === "remotion") {
+  if (mode === "remotion" || mode === "remotion-pro") {
 
 
 
@@ -9986,7 +9986,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
 
-      const renderPlan = prepareRemotionRender(projDir);
+      const renderPlan = await prepareRemotionRender(projDir);
 
 
 
@@ -10179,61 +10179,23 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
           for (const line of lines) {
-
-
-
-
-
-
-
             sendLog(`[Remotion] ${line}`);
 
-
-
-
-
-
-
             const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
-
-
-
-
-
-
-
             if (progressMatch) {
-
-
-
-
-
-
-
               const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
-
-
-
-
-
-
-
               sendLog(`[PROGRESSO] ${pct}%`);
-
-
-
-
-
-
-
             }
 
-
-
-
-
-
-
+            const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
+            if (remotionMatch) {
+              const renderedFrames = parseInt(remotionMatch[1], 10);
+              const totalFrames = parseInt(remotionMatch[2], 10);
+              if (totalFrames > 0) {
+                const pct = Math.min(99, Math.max(10, Math.round((renderedFrames / totalFrames) * 100)));
+                sendLog(`[PROGRESSO] ${pct}%`);
+              }
+            }
           }
 
 
@@ -10291,21 +10253,23 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
           for (const line of lines) {
-
-
-
-
-
-
-
             sendLog(`[Remotion] ${line}`);
 
+            const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
+            if (progressMatch) {
+              const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
+              sendLog(`[PROGRESSO] ${pct}%`);
+            }
 
-
-
-
-
-
+            const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
+            if (remotionMatch) {
+              const renderedFrames = parseInt(remotionMatch[1], 10);
+              const totalFrames = parseInt(remotionMatch[2], 10);
+              if (totalFrames > 0) {
+                const pct = Math.min(99, Math.max(10, Math.round((renderedFrames / totalFrames) * 100)));
+                sendLog(`[PROGRESSO] ${pct}%`);
+              }
+            }
           }
 
 
@@ -12234,7 +12198,7 @@ function collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, tot
 
 
 
-function prepareRemotionRender(projectDir) {
+async function prepareRemotionRender(projectDir) {
 
 
 
@@ -13746,110 +13710,31 @@ function prepareRemotionRender(projectDir) {
 
 
 
+  // Generate overlays via AI
+  const overlays = await generateOverlaysWithAI(projectDir);
+  
+  // Save overlays to storyboard
+  storyboard.overlays = overlays;
+  try {
+    fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+  } catch (e) {
+    console.error("Error writing storyboard overlays:", e);
+  }
+
   const props = {
-
-
-
-
-
-
-
     projectName: path.basename(projectDir),
-
-
-
-
-
-
-
     format,
-
-
-
-
-
-
-
     totalDuration,
-
-
-
-
-
-
-
     scenes: validScenes,
-
-
-
-
-
-
-
     captions: finalCaptions,
-
-
-
-
-
-
-
     narration: narration ? `projects/${projectSlug}/${narration}` : null,
-
-
-
-
-
-
-
     narrationDuration: narrationDuration || 0,
-
-
-
-
-
-
-
     bgmTracks,
-
-
-
-
-
-
-
     sfxTracks,
-
-
-
-
-
-
-
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
-
-
-
-
-
-
-
     musicVolume: globalConfig.musicVolume,
-
-
-
-
-
-
-
     debugOverlay: globalConfig.debugOverlay,
-
-
-
-
-
-
-
+    overlays,
   };
 
 
@@ -26438,7 +26323,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
 
 
-  const promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
+  let promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
 
 
@@ -26470,7 +26355,7 @@ Promessa: "${idea.promise}"
 
 
 
-Emoção: "${idea.emotion}"
+Emoção: "${idea.emotion}"`;
 
 
 
@@ -26478,7 +26363,55 @@ Emoção: "${idea.emotion}"
 
 
 
-SUA MISSÃO PRINCIPAL:
+  if (idea.hook) {
+
+
+
+
+
+
+
+    promptSystem += `\nGancho de Retenção Inicial (Hook) sugerido: "${idea.hook}"`;
+
+
+
+
+
+
+
+  }
+
+
+
+
+
+
+
+  if (idea.blocks) {
+
+
+
+
+
+
+
+    promptSystem += `\nEstrutura/Ganchos por Bloco recomendados pelo usuário:\n"${idea.blocks}"`;
+
+
+
+
+
+
+
+  }
+
+
+
+
+
+
+
+  promptSystem += `\n\nSUA MISSÃO PRINCIPAL:
 
 
 
@@ -28898,3 +28831,156 @@ app.listen(PORT, () => {
 
 
 
+
+
+// AI-driven overlay planning for Remotion PRO using Gemini API
+async function generateOverlaysWithAI(projectDir) {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
+
+  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const starts = Array.isArray(timings.starts) ? timings.starts : [];
+  const durations = Array.isArray(timings.durations) ? timings.durations : [];
+  const apiKey = getApiKey(projectDir);
+
+  if (!apiKey || blockPhrases.length === 0) {
+    console.log("[Overlays] Fallback: No API Key or empty phrases. Using rule-based generation.");
+    return generateOverlaysRuleBased(config, storyboard, starts, durations);
+  }
+
+  const blockContexts = blockPhrases.map((bp) => {
+    const idx = Number(bp.block || 1) - 1;
+    return {
+      block: bp.block,
+      start: starts[idx] || (idx * 15),
+      duration: durations[idx] || 15,
+      narration: bp.phrase || "",
+    };
+  });
+
+  const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
+
+  const systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels).
+Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares.
+
+REGRAS IMPORTANTES:
+1. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares sobre o assunto daquele trecho.
+2. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
+3. VARIE OS ESTILOS: Distribua bem os tipos de overlays ao longo do vídeo:
+   - "lower-third": Use no início de cada bloco (Start = início do bloco, Duration = 3.5s). O "title" deve ser o TÓPICO resumido do bloco em letras maiúsculas (ex: "CIÊNCIA ANCIÃ", "O MISTÉRIO DE GIZÉ"). O "subtitle" deve ser VAZIO ("") para nunca exibir a palavra "BLOCO X".
+   - "info-card": Um painel glassmórfico elegante no topo da tela (posição "top-left" ou "top-right"). Contém um "title" (palavra-chave em caixa alta), uma "description" (fato complementar de até 80 caracteres) e um "iconType" animado ("sparkles", "flame", "earth", "building", "info", "gear", "shield", "crown").
+   - "counter": Para dados numéricos interessantes relacionados ao assunto (ex: "3.000 anos", "45 metros", "70 toneladas"). Contém "value" (número inteiro), "label" (descrição) e "suffix" (unidade). Fica na posição "bottom-right".
+   - "bar-chart": Para comparações de tamanho ou valores (ex: "Pirâmide vs Estátua"). Contém um array "items" (com "label" e "value"). Fica na posição "bottom-center" ou "right".
+   - "timeline": Para datas históricas.
+4. Mantenha os textos curtos, sofisticados e de leitura rápida.
+5. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
+
+Retorne APENAS um array JSON contendo os objetos de overlay. Não inclua markdown além de blocos de código JSON ou explicações fora do JSON.
+
+Estrutura de cada tipo de overlay no JSON:
+
+[
+  {
+    "id": "lt-block-1",
+    "type": "lower-third",
+    "start": 0.3,
+    "duration": 3.5,
+    "props": {
+      "title": "CIÊNCIA SECRETA",
+      "subtitle": "",
+      "accentColor": "#D4AF37",
+      "position": "bottom-left"
+    }
+  },
+  {
+    "id": "info-1",
+    "type": "info-card",
+    "start": 4.5,
+    "duration": 5.0,
+    "props": {
+      "title": "VULCANISMO",
+      "description": "A cinza vulcânica permitia ao concreto romano se autocuidar sob a água.",
+      "iconType": "flame",
+      "position": "top-right",
+      "accentColor": "#D4AF37"
+    }
+  },
+  {
+    "id": "counter-1",
+    "type": "counter",
+    "start": 12.0,
+    "duration": 4.5,
+    "props": {
+      "value": 2000,
+      "label": "Resistência a terremotos",
+      "suffix": "Anos",
+      "formatNumber": true,
+      "accentColor": "#D4AF37",
+      "position": "bottom-right"
+    }
+  }
+]`;
+
+  const userPrompt = `Aqui está o roteiro estruturado por blocos de tempo:
+${JSON.stringify(blockContexts, null, 2)}
+
+Gere o plano de overlays seguindo rigorosamente as regras de complementariedade, variação de estilos e sem usar textos intrusivos no centro do vídeo.`;
+
+  try {
+    const rawResponse = await callGeminiWithRetry(apiKey, `${systemPrompt}\n\n${userPrompt}`);
+    
+    let cleaned = rawResponse.trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+    }
+    const parsedOverlays = JSON.parse(cleaned);
+    
+    if (Array.isArray(parsedOverlays)) {
+      console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
+      return parsedOverlays;
+    }
+  } catch (err) {
+    console.error("[Overlays] Erro ao chamar IA para overlays:", err);
+  }
+
+  // Fallback to rule-based
+  return generateOverlaysRuleBased(config, storyboard, starts, durations);
+}
+
+function generateOverlaysRuleBased(config, storyboard, starts, durations) {
+  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const startsList = Array.isArray(starts) ? starts : [];
+  const overlays = [];
+  let overlayIndex = 0;
+
+  for (const bp of blockPhrases) {
+    const blockNum = Number(bp.block || 0);
+    if (blockNum <= 0) continue;
+    const blockIdx = blockNum - 1;
+    const blockStart = Number(startsList[blockIdx]);
+    if (!Number.isFinite(blockStart)) continue;
+
+    const phrase = (bp.phrase || "").trim();
+    const words = phrase.split(/\s+/);
+    const title = words.slice(0, 5).join(" ").toUpperCase();
+    if (!title) continue;
+
+    const ltStart = blockNum === 1 ? blockStart + 0.5 : blockStart + 0.3;
+
+    overlays.push({
+      id: `lt-block-${blockNum}`,
+      type: "lower-third",
+      start: ltStart,
+      duration: 3.5,
+      props: {
+        title: title,
+        subtitle: "",
+        accentColor: "#D4AF37",
+        position: "bottom-left"
+      }
+    });
+    overlayIndex++;
+  }
+  return overlays;
+}

@@ -40,6 +40,8 @@ import {
 
 import { Audio, Video } from "@remotion/media";
 
+import { OverlayLayer, Overlay } from "./overlays/OverlayLayer";
+
 
 
 
@@ -206,6 +208,10 @@ export type LumieraTimelineProps = {
 
   musicVolume?: number;
 
+  /** Professional overlay elements (infographics, lower thirds, kinetic text) */
+
+  overlays?: Overlay[];
+
 
 
 };
@@ -253,6 +259,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
 
   sfxTracks: [],
+
+  overlays: [],
 
 
 
@@ -1153,201 +1161,60 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
 
 
   return (
-
-
-
     <AbsoluteFill
-
-
-
       style={{
-
-
-
         justifyContent: "flex-end",
-
-
-
         alignItems: "center",
-
-
-
         padding: isVertical ? "0 72px 280px" : "0 180px 110px",
-
-
-
         pointerEvents: "none",
-
-
-
       }}
-
-
-
     >
-
-
-
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');
+        `}
+      </style>
       <div
-
-
-
         style={{
-
-
-
           display: "flex",
-
-
-
           flexWrap: "wrap",
-
-
-
           justifyContent: "center",
-
-
-
-          columnGap: isVertical ? 22 : 18,
-
-
-
+          columnGap: isVertical ? 24 : 18,
           rowGap: isVertical ? 14 : 10,
-
-
-
-          maxWidth: isVertical ? 900 : 1280,
-
-
-
-          filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.72))",
-
-
-
+          maxWidth: isVertical ? 960 : 1280,
+          filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.85))",
         }}
-
-
-
       >
-
-
-
         {activeChunk.words.map((word, index) => {
-
-
-
           const active = currentMs >= word.startMs && currentMs <= word.endMs;
-
-
-
           return (
-
-
-
             <span
-
-
-
               key={`${word.startMs}-${index}`}
-
-
-
               style={{
-
-
-
-                color: active ? "#F8FAFC" : "rgba(248,250,252,0.84)",
-
-
-
+                display: "inline-block",
+                color: active ? "#FACC15" : "#FFFFFF",
                 fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
-
-
-
-                fontSize: isVertical ? 72 : 54,
-
-
-
-                fontWeight: 850,
-
-
-
-                lineHeight: 1.16,
-
-
-
-                letterSpacing: "0.035em",
-
-
-
-                WebkitTextStroke: isVertical ? "2px rgba(2,6,23,0.92)" : "1.6px rgba(2,6,23,0.92)",
-
-
-
+                fontSize: isVertical ? 76 : 56,
+                fontWeight: 900,
+                lineHeight: 1.15,
+                letterSpacing: "0.04em",
+                WebkitTextStroke: isVertical ? "3px #020617" : "2px #020617",
                 textTransform: "uppercase",
-
-
-
                 whiteSpace: "pre",
-
-
-
                 textShadow: active
-
-
-
-                  ? "0 0 22px rgba(250,204,21,0.38), 0 3px 10px rgba(0,0,0,0.8)"
-
-
-
-                  : "0 3px 10px rgba(0,0,0,0.72)",
-
-
-
-                transform: active ? "translateY(-2px) scale(1.045)" : "scale(1.0)",
-
-
-
-                transition: "transform 0.08s ease-out, color 0.08s ease-out, text-shadow 0.08s ease-out",
-
-
-
-                opacity: active ? 1 : 0.86,
-
-
-
+                  ? "0 0 16px rgba(250,204,21,0.5), 0 4px 12px rgba(0,0,0,0.9)"
+                  : "0 4px 12px rgba(0,0,0,0.8)",
+                transform: active ? "translateY(-4px) scale(1.15) rotate(-1deg)" : "scale(0.95)",
+                transition: "transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.1s ease, opacity 0.1s ease",
+                opacity: active ? 1 : 0.45,
               }}
-
-
-
             >
-
-
-
               {word.text}
-
-
-
             </span>
-
-
-
           );
-
-
-
         })}
-
-
-
       </div>
-
-
-
     </AbsoluteFill>
-
-
-
   );
 
 
@@ -1375,7 +1242,7 @@ const BgmAudio: React.FC<{
   return (
     <Audio
       src={assetUrl(track.file)}
-      startFrom={track.startFrom ? Math.round(track.startFrom * fps) : 0}
+      trimBefore={track.startFrom ? Math.round(track.startFrom * fps) : 0}
       loop
       volume={(localFrame) => {
         const volScale = musicVolume / 0.15;
@@ -1568,6 +1435,8 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   sfxTracks = [],
 
   musicVolume = 0.15,
+
+  overlays = [],
 
 
 
@@ -1772,6 +1641,11 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
       <CaptionLayer captions={captions} />
+
+
+
+      {/* Professional overlays: infographics, lower thirds, kinetic text */}
+      <OverlayLayer overlays={overlays} />
 
 
 
