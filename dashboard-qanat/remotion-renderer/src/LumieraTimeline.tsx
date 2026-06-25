@@ -1170,11 +1170,6 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
         zIndex: 90,
       }}
     >
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');
-        `}
-      </style>
       <div
         style={{
           display: "flex",
@@ -1467,9 +1462,11 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
     <AbsoluteFill style={{ backgroundColor: "#050506" }}>
-
-
-
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');
+        `}
+      </style>
       {scenes.map((scene, index) => {
 
 
