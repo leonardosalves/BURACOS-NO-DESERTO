@@ -28868,12 +28868,19 @@ REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 3. RELEVÂNCIA: Crie overlays apenas para dados, números ou curiosidades históricas/científicas altamente surpreendentes e impactantes, que agreguem valor real e chamem a atenção do espectador. Nunca crie overlays com informações óbvias ou repetitivas.
 4. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
 5. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
-6. VARIE OS ESTILOS: Distribua bem os tipos de overlays ao longo do vídeo:
-   - "lower-third": Use no início de blocos importantes (Start = início do bloco, Duration = 3.5s). O "title" deve ser o TÓPICO resumido do bloco em letras maiúsculas (ex: "CIÊNCIA ANCIÃ", "O MISTÉRIO DE GIZÉ"). O "subtitle" deve ser VAZIO ("") para nunca exibir a palavra "BLOCO X".
-   - "info-card": Um painel glassmórfico elegante no topo da tela (posição "top-left" ou "top-right"). Contém um "title" (palavra-chave em caixa alta), uma "description" (fato complementar de até 80 caracteres) e um "iconType" animado ("sparkles", "flame", "earth", "building", "info", "gear", "shield", "crown").
-   - "counter": Para dados numéricos interessantes relacionados ao assunto (ex: "3.000 anos", "45 metros", "70 toneladas"). Contém "value" (número inteiro), "label" (descrição) e "suffix" (unidade). Fica na posição "bottom-right".
-   - "bar-chart": Para comparações de tamanho ou valores (ex: "Pirâmide vs Estátua"). Contém um array "items" (com "label" e "value"). Fica na posição "bottom-center" ou "right".
-   - "timeline": Para datas históricas.
+6. VARIABILIDADE E CORES DINÂMICAS:
+   - Em todo overlay, defina o campo "accentColor" escolhendo uma cor hexadecimal dinâmica da paleta cinematográfica que melhor represente o assunto daquele bloco/roteiro:
+     * #D4AF37 (Ouro clássico/premium) -> Para história, realeza, mistérios arqueológicos, conquistas monumentais, ouro.
+     * #00E5FF (Ciano elétrico) -> Para ciência, tecnologia, água, gelo, espaço sideral, futuro.
+     * #FF3D00 (Laranja de fogo) -> Para vulcões, guerras, calor, perigo, ação, destruição, fogo.
+     * #00E676 (Verde esmeralda) -> Para florestas, biologia, natureza, venenos, mistérios orgânicos.
+     * #D500F9 (Roxo violeta) -> Para mistérios insolúveis, psicologia, magia, universo profundo, segredos.
+   - VARIE OS ESTILOS: Distribua bem os tipos de overlays ao longo do vídeo:
+     * "lower-third": Use no início de blocos importantes (Start = início do bloco, Duration = 3.5s). O "title" deve ser o TÓPICO resumido do bloco em letras maiúsculas. O "subtitle" deve ser VAZIO ("") para nunca exibir a palavra "BLOCO X".
+     * "info-card": Um painel glassmórfico elegante no topo da tela (posição "top-left" ou "top-right"). Contém um "title" (palavra-chave em caixa alta), uma "description" (fato complementar de até 80 caracteres) e um "iconType" animado ("sparkles", "flame", "earth", "gear", "shield", "crown", "info" - escolha o que combine com o assunto).
+     * "counter": Para dados numéricos interessantes relacionados ao assunto. Contém "value" (número inteiro), "label" (descrição) e "suffix" (unidade). Fica na posição "bottom-right".
+     * "bar-chart": Para comparações de tamanho ou valores. Contém um array "items" (com "label" e "value"). Fica na posição "bottom-center" ou "right".
+     * "timeline": Para datas históricas.
 7. Mantenha os textos curtos, sofisticados e de leitura rápida.
 8. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
 
@@ -28903,7 +28910,7 @@ Estrutura de cada tipo de overlay no JSON:
       "description": "A cinza vulcânica permitia ao concreto romano se autocuidar sob a água.",
       "iconType": "flame",
       "position": "top-right",
-      "accentColor": "#D4AF37"
+      "accentColor": "#FF3D00"
     }
   },
   {
@@ -28916,7 +28923,7 @@ Estrutura de cada tipo de overlay no JSON:
       "label": "Resistência a terremotos",
       "suffix": "Anos",
       "formatNumber": true,
-      "accentColor": "#D4AF37",
+      "accentColor": "#00E5FF",
       "position": "bottom-right"
     }
   }
