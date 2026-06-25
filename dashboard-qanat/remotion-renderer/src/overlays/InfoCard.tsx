@@ -9,16 +9,35 @@ import {
 export interface InfoCardProps {
   title: string;
   description: string;
-  iconType?: "sparkles" | "gear" | "shield" | "flame" | "info" | "earth" | "building" | "crown";
+  iconType?: 
+    | "sparkles" 
+    | "gear" 
+    | "shield" 
+    | "flame" 
+    | "info" 
+    | "earth" 
+    | "building" 
+    | "crown"
+    | "science"
+    | "history"
+    | "nature"
+    | "money"
+    | "warning"
+    | "compass"
+    | "book"
+    | "heart"
+    | "swords"
+    | "lightbulb";
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   accentColor?: string;
+  variant?: "glass" | "minimal" | "accent" | "floating";
 }
 
 const ANIM_IN_FRAMES = 15;
 const ANIM_OUT_FRAMES = 12;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Premium Animated SVG Vector Drawings
+// Premium Animated SVG Vector Drawings (Expanded Arsenal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SparklesSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
@@ -161,12 +180,154 @@ const InfoSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => 
   </svg>
 );
 
+const AtomSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5">
+    <style>
+      {`
+        @keyframes orbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .orbit1 { animation: orbit 4s infinite linear; transform-origin: 12px 12px; }
+        .orbit2 { animation: orbit 6s infinite linear; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <circle cx="12" cy="12" r="2" fill={color} />
+    <ellipse className="orbit1" cx="12" cy="12" rx="10" ry="3" />
+    <ellipse className="orbit2" style={{ transform: "rotate(60deg)", transformOrigin: "12px 12px" }} cx="12" cy="12" rx="10" ry="3" />
+    <ellipse className="orbit1" style={{ transform: "rotate(120deg)", transformOrigin: "12px 12px" }} cx="12" cy="12" rx="10" ry="3" />
+  </svg>
+);
+
+const HourglassSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <style>
+      {`
+        @keyframes flip { 0%, 90% { transform: rotate(0deg); } 100% { transform: rotate(180deg); } }
+        .hourglass-flip { animation: flip 4s infinite ease-in-out; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <g className="hourglass-flip">
+      <path d="M5 2h14M5 22h14M19 2v4a7 7 0 0 1-7 7 7 7 0 0 1-7-7V2M5 22v-4a7 7 0 0 1 7-7 7 7 0 0 1 7 7v4" />
+      <circle cx="12" cy="5" r="1" fill={color} />
+      <circle cx="12" cy="19" r="2" fill={color} />
+    </g>
+  </svg>
+);
+
+const LeafSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <style>
+      {`
+        @keyframes sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(10deg); } }
+        .leaf-sway { animation: sway 3s infinite ease-in-out; transform-origin: 2px 22px; }
+      `}
+    </style>
+    <path className="leaf-sway" d="M2 22C2 22 6 18 8 16M11 2C4 2 2 9 2 9C2 9 9 11 16 4C16 4 19 8 17 13C15 18 10 20 10 20C10 20 12 14 11 11" />
+  </svg>
+);
+
+const CoinSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <style>
+      {`
+        @keyframes coin-spin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+        .coin-spin { animation: coin-spin 3s infinite linear; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <circle className="coin-spin" cx="12" cy="12" r="10" stroke={color} strokeWidth="2" fill={`${color}20`} />
+    <path className="coin-spin" d="M12 6v12M14.5 9H11a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9" stroke={color} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const AlertSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <style>
+      {`
+        @keyframes blink-alert { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .alert-blink { animation: blink-alert 1.2s infinite ease-in-out; }
+      `}
+    </style>
+    <path className="alert-blink" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill={`${color}15`} />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const CompassSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <style>
+      {`
+        @keyframes wiggle { 0%, 100% { transform: rotate(-15deg); } 50% { transform: rotate(15deg); } }
+        .compass-wiggle { animation: wiggle 2.5s infinite ease-in-out; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <circle cx="12" cy="12" r="10" />
+    <polygon className="compass-wiggle" points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill={`${color}25`} />
+  </svg>
+);
+
+const BookSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <style>
+      {`
+        @keyframes page-turn { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
+        .page-turn { animation: page-turn 3s infinite ease-in-out; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path className="page-turn" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill={`${color}10`} />
+  </svg>
+);
+
+const HeartSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <style>
+      {`
+        @keyframes heartbeat { 0%, 100% { transform: scale(0.9); } 25%, 60% { transform: scale(1.1); } }
+        .heartbeat { animation: heartbeat 1.5s infinite ease-in-out; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <path className="heartbeat" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill={color} />
+  </svg>
+);
+
+const SwordsSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <style>
+      {`
+        @keyframes clash {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          50% { transform: translate(1px, -1px) rotate(5deg); }
+        }
+        .swords-clash { animation: clash 1s infinite ease-in-out; transform-origin: 12px 12px; }
+      `}
+    </style>
+    <g className="swords-clash">
+      <line x1="2" y1="22" x2="22" y2="2" />
+      <line x1="22" y1="22" x2="2" y2="2" />
+      <path d="M5 15l4 4M19 15l-4 4" />
+    </g>
+  </svg>
+);
+
+const LightbulbSVG: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <style>
+      {`
+        @keyframes glow { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .bulb-glow { animation: glow 2s infinite ease-in-out; }
+      `}
+    </style>
+    <path className="bulb-glow" d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.5 1.5 3.5.7.8 1.3 1.5 1.5 2.5" fill={`${color}15`} />
+    <path d="M9 18h6M10 22h4" />
+  </svg>
+);
+
 export const InfoCard: React.FC<InfoCardProps> = ({
   title,
   description,
   iconType = "info",
   position = "top-left",
   accentColor = "#D4AF37",
+  variant = "glass",
 }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -221,6 +382,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
       case "flame":
         return <FlameSVG size={size} color={accentColor} />;
       case "earth":
+      case "building":
         return <EarthSVG size={size} color={accentColor} />;
       case "gear":
         return <GearSVG size={size} color={accentColor} />;
@@ -228,9 +390,61 @@ export const InfoCard: React.FC<InfoCardProps> = ({
         return <ShieldSVG size={size} color={accentColor} />;
       case "crown":
         return <CrownSVG size={size} color={accentColor} />;
+      case "science":
+        return <AtomSVG size={size} color={accentColor} />;
+      case "history":
+        return <HourglassSVG size={size} color={accentColor} />;
+      case "nature":
+        return <LeafSVG size={size} color={accentColor} />;
+      case "money":
+        return <CoinSVG size={size} color={accentColor} />;
+      case "warning":
+        return <AlertSVG size={size} color={accentColor} />;
+      case "compass":
+        return <CompassSVG size={size} color={accentColor} />;
+      case "book":
+        return <BookSVG size={size} color={accentColor} />;
+      case "heart":
+        return <HeartSVG size={size} color={accentColor} />;
+      case "swords":
+        return <SwordsSVG size={size} color={accentColor} />;
+      case "lightbulb":
+        return <LightbulbSVG size={size} color={accentColor} />;
       case "info":
       default:
         return <InfoSVG size={size} color={accentColor} />;
+    }
+  };
+
+  // Layout variants mapping
+  const variantStyles: Record<string, React.CSSProperties> = {
+    glass: {
+      background: "linear-gradient(135deg, rgba(6,6,10,0.95) 0%, rgba(14,14,20,0.92) 100%)",
+      backdropFilter: "blur(12px)",
+      border: "1px solid rgba(255,255,255,0.05)",
+      borderLeft: `3px solid ${accentColor}`,
+      borderRadius: "8px",
+    },
+    minimal: {
+      background: "rgba(5, 5, 8, 0.65)",
+      backdropFilter: "blur(20px)",
+      border: "none",
+      borderLeft: `2.5px dashed ${accentColor}`,
+      borderRadius: "4px",
+    },
+    accent: {
+      background: `linear-gradient(135deg, rgba(6,6,10,0.95) 0%, ${accentColor}12 100%)`,
+      backdropFilter: "blur(14px)",
+      border: `1px solid ${accentColor}40`,
+      borderLeft: `4px solid ${accentColor}`,
+      borderRadius: "6px",
+    },
+    floating: {
+      background: "rgba(10,10,15,0.98)",
+      backdropFilter: "blur(16px)",
+      border: `2px solid ${accentColor}`,
+      borderRadius: "16px",
+      boxShadow: `0 8px 32px ${accentColor}20`,
     }
   };
 
@@ -251,14 +465,12 @@ export const InfoCard: React.FC<InfoCardProps> = ({
           display: "flex",
           flexDirection: "row",
           alignItems: "flex-start",
-          background: "linear-gradient(135deg, rgba(6,6,10,0.95) 0%, rgba(14,14,20,0.92) 100%)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.05)",
-          borderLeft: `3px solid ${accentColor}`,
-          borderRadius: "8px",
-          padding: isVertical ? "16px 20px" : "10px 14px",
-          boxShadow: "0 6px 24px rgba(0, 0, 0, 0.45)",
+          padding: variant === "floating" 
+            ? (isVertical ? "20px 24px" : "12px 18px")
+            : (isVertical ? "16px 20px" : "10px 14px"),
           gap: isVertical ? 16 : 10,
+          ...variantStyles[variant],
+          boxShadow: variant === "floating" ? `0 8px 32px ${accentColor}20` : "0 6px 24px rgba(0, 0, 0, 0.45)",
         }}
       >
         {/* Animated Vector SVG Container */}
