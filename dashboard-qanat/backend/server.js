@@ -26388,21 +26388,17 @@ Emoção: "${idea.emotion}"`;
 
 
   if (idea.blocks) {
+    let blocksStr = "";
+    if (Array.isArray(idea.blocks)) {
+      blocksStr = idea.blocks.map(b => `Block ${b.block || b.index || 1}: ${b.content}`).join("\n");
+    } else {
+      blocksStr = String(idea.blocks);
+    }
+    promptSystem += `\nEstrutura/Ganchos por Bloco recomendados pelo usuário:\n"${blocksStr}"`;
+  }
 
-
-
-
-
-
-
-    promptSystem += `\nEstrutura/Ganchos por Bloco recomendados pelo usuário:\n"${idea.blocks}"`;
-
-
-
-
-
-
-
+  if (idea.isCustom) {
+    promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário estão em inglês. Você DEVE obrigatoriamente traduzir o roteiro gerado e a narração para o Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante. No entanto, os ganchos visuais ("visual_prompts") e termos de busca devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
   }
 
 
