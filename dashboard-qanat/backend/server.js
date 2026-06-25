@@ -2001,7 +2001,7 @@ app.post("/api/upload/launch-login", (req, res) => {
   
   const child = spawn(PYTHON_PATH, ["capture_cookies.py", platform.toLowerCase()], {
     cwd: WORKSPACE_DIR,
-    shell: True,
+    shell: true,
     detached: true,
     stdio: 'ignore'
   });
@@ -2034,7 +2034,7 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
 
   const child = spawn(PYTHON_PATH, ["upload_pipeline.py", projDir, platforms], {
     cwd: projDir,
-    shell: True
+    shell: true
   });
 
   child.stdout.on("data", (data) => {
