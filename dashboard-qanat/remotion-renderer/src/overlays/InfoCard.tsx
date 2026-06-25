@@ -32,6 +32,22 @@ export interface InfoCardProps {
   accentColor?: string;
   variant?: "glass" | "minimal" | "accent" | "floating";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
+  customStyle?: {
+    background?: string;
+    border?: string;
+    borderLeft?: string;
+    borderRadius?: string;
+    boxShadow?: string;
+    padding?: string;
+    fontFamilyTitle?: string;
+    fontFamilyDesc?: string;
+    letterSpacingTitle?: string;
+    textTransformTitle?: "uppercase" | "none" | "capitalize";
+    fontSizeTitle?: number;
+    fontSizeDesc?: number;
+    colorTitle?: string;
+    colorDesc?: string;
+  };
 }
 
 const ANIM_IN_FRAMES = 15;
@@ -370,6 +386,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
   accentColor = "#D4AF37",
   variant = "glass",
   theme = "classic",
+  customStyle,
 }) => {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -491,16 +508,18 @@ export const InfoCard: React.FC<InfoCardProps> = ({
 
   // Theme custom styling mapper
   const getThemeStyle = (): React.CSSProperties => {
+    let base: React.CSSProperties = {};
     switch (theme) {
       case "ancient":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(20, 16, 12, 0.97) 0%, rgba(32, 24, 18, 0.95) 100%)",
           border: `3px double ${accentColor}`,
           borderRadius: "4px",
           boxShadow: `0 8px 24px rgba(0,0,0,0.6), inset 0 0 10px ${accentColor}15`,
         };
+        break;
       case "tech":
-        return {
+        base = {
           background: "rgba(4, 8, 12, 0.93)",
           backgroundImage: `radial-gradient(${accentColor}15 1px, transparent 0)`,
           backgroundSize: "8px 8px",
@@ -508,58 +527,87 @@ export const InfoCard: React.FC<InfoCardProps> = ({
           borderRadius: "0px",
           boxShadow: `0 0 20px ${accentColor}15`,
         };
+        break;
       case "nature":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(6, 12, 8, 0.97) 0%, rgba(12, 24, 16, 0.95) 100%)",
           border: `1px solid ${accentColor}30`,
           borderLeft: `4px solid ${accentColor}`,
           borderRadius: "24px 6px 24px 6px",
           boxShadow: `0 8px 32px ${accentColor}15`,
         };
+        break;
       case "industrial":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(14, 14, 16, 0.99) 0%, rgba(24, 24, 28, 0.97) 100%)",
           border: `2px solid #333336`,
           borderLeft: `6px solid ${accentColor}`,
           borderRadius: "2px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
         };
+        break;
       case "mysterious":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(10, 6, 14, 0.96) 0%, rgba(20, 12, 28, 0.94) 100%)",
           border: `1px solid ${accentColor}40`,
           borderRadius: "12px",
           boxShadow: `0 8px 32px ${accentColor}25, inset 0 0 15px rgba(255,255,255,0.03)`,
         };
+        break;
       case "classic":
       default:
-        return variantStyles[variant];
+        base = { ...variantStyles[variant] };
+        break;
     }
+
+    if (customStyle) {
+      base = {
+        ...base,
+        ...customStyle,
+      };
+    }
+    return base;
   };
 
   // Theme custom typography mapper
   const getThemeFont = (type: "title" | "desc") => {
+    let fontStyle: React.CSSProperties = {};
     if (type === "title") {
       switch (theme) {
         case "ancient":
         case "mysterious":
-          return { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+          fontStyle = { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+          break;
         case "tech":
-          return { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
+          fontStyle = { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
+          break;
         case "industrial":
-          return { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+          fontStyle = { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+          break;
         case "nature":
         default:
-          return { fontFamily: "'Montserrat', sans-serif", fontWeight: 900 };
+          fontStyle = { fontFamily: "'Montserrat', sans-serif", fontWeight: 900 };
+          break;
       }
+      if (customStyle?.fontFamilyTitle) fontStyle.fontFamily = customStyle.fontFamilyTitle;
+      if (customStyle?.letterSpacingTitle) fontStyle.letterSpacing = customStyle.letterSpacingTitle;
+      if (customStyle?.textTransformTitle) fontStyle.textTransform = customStyle.textTransformTitle;
+      if (customStyle?.fontSizeTitle) fontStyle.fontSize = isVertical ? customStyle.fontSizeTitle * 1.4 : customStyle.fontSizeTitle;
+      if (customStyle?.colorTitle) fontStyle.color = customStyle.colorTitle;
     } else {
       switch (theme) {
         case "tech":
-          return { fontFamily: "'Courier New', Courier, monospace", fontSize: isVertical ? 14 : 9.5 };
+          fontStyle = { fontFamily: "'Courier New', Courier, monospace", fontSize: isVertical ? 14 : 9.5 };
+          break;
         default:
-          return { fontFamily: "'Inter', sans-serif" };
+          fontStyle = { fontFamily: "'Inter', sans-serif" };
+          break;
       }
+      if (customStyle?.fontFamilyDesc) fontStyle.fontFamily = customStyle.fontFamilyDesc;
+      if (customStyle?.fontSizeDesc) fontStyle.fontSize = isVertical ? customStyle.fontSizeDesc * 1.4 : customStyle.fontSizeDesc;
+      if (customStyle?.colorDesc) fontStyle.color = customStyle.colorDesc;
     }
+    return fontStyle;
   };
 
   return (

@@ -16,6 +16,19 @@ export interface InfoCounterProps {
   accentColor?: string;
   position?: "center" | "bottom-right" | "bottom-left" | "top-right";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
+  customStyle?: {
+    background?: string;
+    border?: string;
+    borderRadius?: string;
+    boxShadow?: string;
+    padding?: string;
+    fontFamilyLabel?: string;
+    fontFamilyValue?: string;
+    fontSizeLabel?: number;
+    fontSizeValue?: number;
+    colorLabel?: string;
+    colorValue?: string;
+  };
 }
 
 const formatWithSeparator = (n: number): string => {
@@ -71,6 +84,7 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
   accentColor = "#D4AF37",
   position = "center",
   theme = "classic",
+  customStyle,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
@@ -146,17 +160,19 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
 
   // Theme custom styling mapper
   const getThemeStyle = (): React.CSSProperties => {
+    let base: React.CSSProperties = {};
     switch (theme) {
       case "ancient":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(20, 16, 12, 0.97) 0%, rgba(32, 24, 18, 0.95) 100%)",
           border: `3px double ${accentColor}`,
           borderRadius: "4px",
           padding: isVertical ? "32px 52px" : "24px 40px",
           boxShadow: `0 8px 24px rgba(0,0,0,0.6), inset 0 0 10px ${accentColor}15`,
         };
+        break;
       case "tech":
-        return {
+        base = {
           background: "rgba(4, 8, 12, 0.93)",
           backgroundImage: `radial-gradient(${accentColor}15 1px, transparent 0)`,
           backgroundSize: "8px 8px",
@@ -165,8 +181,9 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
           padding: isVertical ? "24px 40px" : "18px 30px",
           boxShadow: `0 0 20px ${accentColor}15`,
         };
+        break;
       case "nature":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(6, 12, 8, 0.97) 0%, rgba(12, 24, 16, 0.95) 100%)",
           border: `1px solid ${accentColor}30`,
           borderLeft: `4px solid ${accentColor}`,
@@ -174,8 +191,9 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
           padding: isVertical ? "30px 48px" : "22px 36px",
           boxShadow: `0 8px 32px ${accentColor}15`,
         };
+        break;
       case "industrial":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(14, 14, 16, 0.99) 0%, rgba(24, 24, 28, 0.97) 100%)",
           border: `2px solid #333336`,
           borderLeft: `6px solid ${accentColor}`,
@@ -183,50 +201,72 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
           padding: isVertical ? "30px 48px" : "22px 36px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
         };
+        break;
       case "mysterious":
-        return {
+        base = {
           background: "linear-gradient(135deg, rgba(10, 6, 14, 0.96) 0%, rgba(20, 12, 28, 0.94) 100%)",
           border: `1px solid ${accentColor}40`,
           borderRadius: "12px",
           padding: isVertical ? "32px 52px" : "24px 40px",
           boxShadow: `0 8px 32px ${accentColor}25, inset 0 0 15px rgba(255,255,255,0.03)`,
         };
+        break;
       case "classic":
       default:
-        return {
+        base = {
           background: "linear-gradient(145deg, rgba(8,8,12,0.88) 0%, rgba(18,18,26,0.85) 100%)",
           borderRadius: isVertical ? 24 : 18,
           padding: isVertical ? "32px 52px" : "24px 40px",
           border: `1px solid ${accentColor}2e`,
         };
+        break;
     }
+    if (customStyle) {
+      base = { ...base, ...customStyle };
+    }
+    return base;
   };
 
   // Theme custom typography mapper
   const getThemeFont = (type: "label" | "value") => {
+    let fontStyle: React.CSSProperties = {};
     if (type === "label") {
       switch (theme) {
         case "ancient":
         case "mysterious":
-          return { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+          fontStyle = { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+          break;
         case "tech":
-          return { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
+          fontStyle = { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
+          break;
         case "industrial":
-          return { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+          fontStyle = { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+          break;
         case "nature":
         default:
-          return { fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.08em" };
+          fontStyle = { fontFamily: "'Montserrat', sans-serif", fontWeight: 500, letterSpacing: "0.08em" };
+          break;
       }
+      if (customStyle?.fontFamilyLabel) fontStyle.fontFamily = customStyle.fontFamilyLabel;
+      if (customStyle?.fontSizeLabel) fontStyle.fontSize = isVertical ? customStyle.fontSizeLabel * 1.4 : customStyle.fontSizeLabel;
+      if (customStyle?.colorLabel) fontStyle.color = customStyle.colorLabel;
     } else {
       switch (theme) {
         case "tech":
-          return { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700 };
+          fontStyle = { fontFamily: "'Courier New', Courier, monospace" };
+          break;
         case "industrial":
-          return { fontFamily: "'Oswald', sans-serif", fontWeight: 800 };
+          fontStyle = { fontFamily: "'Oswald', sans-serif" };
+          break;
         default:
-          return { fontFamily: "'Montserrat', sans-serif", fontWeight: 800 };
+          fontStyle = { fontFamily: "'Montserrat', sans-serif" };
+          break;
       }
+      if (customStyle?.fontFamilyValue) fontStyle.fontFamily = customStyle.fontFamilyValue;
+      if (customStyle?.fontSizeValue) fontStyle.fontSize = isVertical ? customStyle.fontSizeValue * 1.4 : customStyle.fontSizeValue;
+      if (customStyle?.colorValue) fontStyle.color = customStyle.colorValue;
     }
+    return fontStyle;
   };
 
   return (
