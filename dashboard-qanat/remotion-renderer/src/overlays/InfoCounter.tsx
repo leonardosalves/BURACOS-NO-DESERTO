@@ -145,7 +145,7 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
             backdropFilter: "blur(16px)",
             borderRadius: isVertical ? 24 : 18,
             padding: isVertical ? "32px 52px" : "24px 40px",
-            border: `1px solid rgba(212,175,55,0.18)`,
+            border: `1px solid ${accentColor}2e`,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
