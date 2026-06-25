@@ -4,34 +4,67 @@ import {
   interpolate,
   useCurrentFrame,
   useVideoConfig,
+  spring,
 } from "remotion";
 
-// ─────────────────────────────────────────────────────────────────────
-// Lower Third — Animated title card for block introductions
-// Appears at the bottom of the screen with a gold accent bar and
-// smooth slide-in / slide-out animation.
-// ─────────────────────────────────────────────────────────────────────
-
 export interface LowerThirdProps {
-  /** Main title text */
   title: string;
-  /** Optional subtitle / description */
   subtitle?: string;
-  /** Accent color (hex). Defaults to gold */
   accentColor?: string;
-  /** Position: 'bottom-left' | 'bottom-center' | 'top-left' */
   position?: "bottom-left" | "bottom-center" | "top-left";
+  theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
 }
 
 const ANIM_IN_FRAMES = 18; // 0.6s at 30fps
 const ANIM_OUT_FRAMES = 14; // ~0.47s
 const ACCENT_BAR_WIDTH = 5;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Corner Ornaments Components for Themes
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TechCorners: React.FC<{ color: string }> = ({ color }) => (
+  <>
+    <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
+    <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
+    <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
+    <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
+  </>
+);
+
+const AncientCorners: React.FC<{ color: string }> = ({ color }) => (
+  <>
+    <div style={{ position: "absolute", top: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+    <div style={{ position: "absolute", top: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+    <div style={{ position: "absolute", bottom: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+    <div style={{ position: "absolute", bottom: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
+  </>
+);
+
+const IndustrialRivets: React.FC = () => (
+  <>
+    <div style={{ position: "absolute", top: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+    <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+    <div style={{ position: "absolute", bottom: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+    <div style={{ position: "absolute", bottom: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
+  </>
+);
+
+const MysteriousStars: React.FC<{ color: string }> = ({ color }) => (
+  <>
+    <div style={{ position: "absolute", top: 1, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+    <div style={{ position: "absolute", top: 1, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+    <div style={{ position: "absolute", bottom: 5, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+    <div style={{ position: "absolute", bottom: 5, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
+  </>
+);
+
 export const LowerThird: React.FC<LowerThirdProps> = ({
   title,
   subtitle,
   accentColor = "#D4AF37",
   position = "bottom-left",
+  theme = "classic",
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
@@ -66,7 +99,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
   const translateX = slideIn + slideOut;
   const opacity = Math.min(fadeIn, fadeOut);
 
-  // Accent bar reveal (grows from 0 to full height)
+  // Accent bar reveal
   const barScale = interpolate(frame, [0, ANIM_IN_FRAMES * 0.6], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -99,11 +132,90 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           left: isVertical ? 48 : 64,
         };
 
-  // When position is not bottom-center, apply translateX normally
   const transformStyle =
     position === "bottom-center"
       ? positionStyle.transform
       : `translateX(${translateX}px)`;
+
+  // Theme custom styling mapper
+  const getThemeStyle = (): React.CSSProperties => {
+    switch (theme) {
+      case "ancient":
+        return {
+          background: "linear-gradient(135deg, rgba(20, 16, 12, 0.97) 0%, rgba(32, 24, 18, 0.95) 100%)",
+          border: `3px double ${accentColor}`,
+          borderLeft: `5px double ${accentColor}`,
+          borderRadius: "4px",
+          boxShadow: `0 8px 24px rgba(0,0,0,0.6), inset 0 0 10px ${accentColor}15`,
+        };
+      case "tech":
+        return {
+          background: "rgba(4, 8, 12, 0.93)",
+          backgroundImage: `radial-gradient(${accentColor}15 1px, transparent 0)`,
+          backgroundSize: "8px 8px",
+          border: `1px solid ${accentColor}33`,
+          borderRadius: "0px",
+          boxShadow: `0 0 20px ${accentColor}15`,
+        };
+      case "nature":
+        return {
+          background: "linear-gradient(135deg, rgba(6, 12, 8, 0.97) 0%, rgba(12, 24, 16, 0.95) 100%)",
+          border: `1px solid ${accentColor}30`,
+          borderLeft: `4.5px solid ${accentColor}`,
+          borderRadius: "24px 6px 24px 6px",
+          boxShadow: `0 8px 32px ${accentColor}15`,
+        };
+      case "industrial":
+        return {
+          background: "linear-gradient(135deg, rgba(14, 14, 16, 0.99) 0%, rgba(24, 24, 28, 0.97) 100%)",
+          border: `2px solid #333336`,
+          borderLeft: `7px solid ${accentColor}`,
+          borderRadius: "2px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
+        };
+      case "mysterious":
+        return {
+          background: "linear-gradient(135deg, rgba(10, 6, 14, 0.96) 0%, rgba(20, 12, 28, 0.94) 100%)",
+          border: `1px solid ${accentColor}40`,
+          borderRadius: "12px",
+          boxShadow: `0 8px 32px ${accentColor}25, inset 0 0 15px rgba(255,255,255,0.03)`,
+        };
+      case "classic":
+      default:
+        return {
+          background: "linear-gradient(135deg, rgba(10,10,14,0.92) 0%, rgba(20,20,28,0.88) 100%)",
+          borderRadius: "0 8px 8px 0",
+          borderTop: `1px solid ${accentColor}26`,
+          borderRight: `1px solid ${accentColor}14`,
+          borderBottom: `1px solid ${accentColor}26`,
+        };
+    }
+  };
+
+  // Theme custom typography mapper
+  const getThemeFont = (type: "title" | "subtitle") => {
+    if (type === "title") {
+      switch (theme) {
+        case "ancient":
+        case "mysterious":
+          return { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+        case "tech":
+          return { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
+        case "industrial":
+          return { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+        case "nature":
+        default:
+          return { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+      }
+    } else {
+      switch (theme) {
+        case "tech":
+          return { fontFamily: "'Courier New', Courier, monospace", fontSize: isVertical ? 24 : 18 };
+        default:
+          return { fontFamily: "'Inter', sans-serif" };
+      }
+    }
+  };
 
   return (
     <div
@@ -120,24 +232,24 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         zIndex: 50,
       }}
     >
-      {/* Gold Accent Bar */}
-      <div
-        style={{
-          width: ACCENT_BAR_WIDTH,
-          backgroundColor: accentColor,
-          borderRadius: "3px 0 0 3px",
-          transform: `scaleY(${barScale})`,
-          transformOrigin: "center",
-          minHeight: 48,
-        }}
-      />
+      {/* Accent Bar (only in classic mode) */}
+      {theme === "classic" && (
+        <div
+          style={{
+            width: ACCENT_BAR_WIDTH,
+            backgroundColor: accentColor,
+            borderRadius: "3px 0 0 3px",
+            transform: `scaleY(${barScale})`,
+            transformOrigin: "center",
+            minHeight: 48,
+          }}
+        />
+      )}
 
       {/* Content Panel */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(10,10,14,0.92) 0%, rgba(20,20,28,0.88) 100%)",
           backdropFilter: "blur(12px)",
-          borderRadius: "0 8px 8px 0",
           padding: isVertical ? "20px 36px" : "14px 28px",
           display: "flex",
           flexDirection: "column",
@@ -145,23 +257,26 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           gap: 4,
           maxWidth: isVertical ? 860 : 640,
           clipPath: `inset(0 ${(1 - panelExpand) * 100}% 0 0)`,
-          borderTop: `1px solid ${accentColor}26`,
-          borderRight: `1px solid ${accentColor}14`,
-          borderBottom: `1px solid ${accentColor}26`,
+          position: "relative",
+          ...getThemeStyle(),
         }}
       >
+        {/* Render Corner Decorator components based on theme */}
+        {theme === "tech" && <TechCorners color={accentColor} />}
+        {theme === "ancient" && <AncientCorners color={accentColor} />}
+        {theme === "industrial" && <IndustrialRivets />}
+        {theme === "mysterious" && <MysteriousStars color={accentColor} />}
+
         {/* Title */}
         <span
           style={{
             color: "#F8FAFC",
-            fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif",
             fontSize: isVertical ? 38 : 28,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
             textTransform: "uppercase",
             lineHeight: 1.2,
             whiteSpace: "nowrap",
             textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+            ...getThemeFont("title")
           }}
         >
           {title}
@@ -172,13 +287,12 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           <span
             style={{
               color: "rgba(248,250,252,0.72)",
-              fontFamily: "'Inter', 'Montserrat', Arial, sans-serif",
-              fontSize: isVertical ? 24 : 18,
               fontWeight: 400,
               letterSpacing: "0.02em",
               lineHeight: 1.3,
               whiteSpace: "nowrap",
               marginTop: 2,
+              ...getThemeFont("subtitle")
             }}
           >
             {subtitle}
@@ -186,18 +300,20 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         )}
       </div>
 
-      {/* Decorative line extending from panel */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: ACCENT_BAR_WIDTH,
-          right: 0,
-          height: 1,
-          background: `linear-gradient(to right, ${accentColor}80, transparent)`,
-          opacity: panelExpand,
-        }}
-      />
+      {/* Decorative line extending from panel (only in classic mode) */}
+      {theme === "classic" && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: ACCENT_BAR_WIDTH,
+            right: 0,
+            height: 1,
+            background: `linear-gradient(to right, ${accentColor}80, transparent)`,
+            opacity: panelExpand,
+          }}
+        />
+      )}
     </div>
   );
 };
