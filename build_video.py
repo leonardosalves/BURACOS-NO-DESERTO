@@ -923,21 +923,33 @@ def resolve_asset_path(asset_path):
 
 
 
-    nums = re.findall(r'\d+', name_no_ext)
+    # Match exact numeric digits in filename if digits exist (e.g., cena_1.2 vs cena_1.1)
 
-    if nums:
+    target_digits = [int(n) for n in re.findall(r'\d+', name_no_ext)]
 
-        target_num = int(nums[0])
+    if target_digits:
 
         if os.path.exists(dir_name):
 
             for f in os.listdir(dir_name):
 
-                f_nums = re.findall(r'\d+', f)
+                full_f_path = os.path.join(dir_name, f)
 
-                if f_nums and int(f_nums[0]) == target_num:
+                if not os.path.isfile(full_f_path):
 
-                    return os.path.join(dir_name, f)
+                    continue
+
+                f_name_no_ext, f_ext = os.path.splitext(f)
+
+                if f_ext.lower() != ext.lower():
+
+                    continue
+
+                f_digits = [int(n) for n in re.findall(r'\d+', f_name_no_ext)]
+
+                if f_digits == target_digits:
+
+                    return full_f_path
 
 
 
@@ -977,17 +989,27 @@ def resolve_asset_path(asset_path):
 
 
 
-        if nums:
-
-            target_num = int(nums[0])
+        if target_digits:
 
             for f in os.listdir(parent_dir_name):
 
-                f_nums = re.findall(r'\d+', f)
+                full_f_path = os.path.join(parent_dir_name, f)
 
-                if f_nums and int(f_nums[0]) == target_num:
+                if not os.path.isfile(full_f_path):
 
-                    return os.path.join(parent_dir_name, f)
+                    continue
+
+                f_name_no_ext, f_ext = os.path.splitext(f)
+
+                if f_ext.lower() != ext.lower():
+
+                    continue
+
+                f_digits = [int(n) for n in re.findall(r'\d+', f_name_no_ext)]
+
+                if f_digits == target_digits:
+
+                    return full_f_path
 
 
 
