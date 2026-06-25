@@ -2108,11 +2108,11 @@ export default function App() {
 
   const [selectedIdeaIndex, setSelectedIdeaIndex] = useState<number>(savedCreatorState.selectedIdeaIndex !== undefined ? savedCreatorState.selectedIdeaIndex : -1);
 
-
-
-
-
-
+  const [customIdeaTitle, setCustomIdeaTitle] = useState("");
+  const [customIdeaPromise, setCustomIdeaPromise] = useState("");
+  const [customIdeaHook, setCustomIdeaHook] = useState("");
+  const [customIdeaEmotion, setCustomIdeaEmotion] = useState("");
+  const [customIdeaBlocks, setCustomIdeaBlocks] = useState("");
 
   const [generatedScriptData, setGeneratedScriptData] = useState<any | null>(savedCreatorState.generatedScriptData || null);
 
@@ -14890,45 +14890,16 @@ export default function App() {
 
 
         body: JSON.stringify({
-
-
-
-
-
-
-
           niche: nicheInput.trim(),
-
-
-
-
-
-
-
           format: formatSelector,
-
-
-
-
-
-
-
-          idea: (ideasData?.ideas || [])[selectedIdeaIndex],
-
-
-
-
-
-
-
+          idea: {
+            title: customIdeaTitle,
+            promise: customIdeaPromise,
+            emotion: customIdeaEmotion,
+            hook: customIdeaHook,
+            blocks: customIdeaBlocks,
+          },
           project: safeProjectName
-
-
-
-
-
-
-
         })
 
 
@@ -17329,7 +17300,7 @@ export default function App() {
 
 
 
-  const triggerRender = (mode: 'standard' | 'highlighted' | 'remotion', fromWizard = false, withoutImpactTitles = false) => {
+  const triggerRender = (mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro', fromWizard = false, withoutImpactTitles = false) => {
 
 
 
@@ -19675,326 +19646,47 @@ export default function App() {
 
 
 
-                {/* Highlight Compiler Card */}
-
-
-
-
-
-
-
-                <div className="glass-panel-glow p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
-
-
-
-
-
-
-
+                {/* Remotion Quick info */}
+                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
                   <div>
-
-
-
-
-
-
-
-                    <div className="flex justify-between items-start">
-
-
-
-
-
-
-
-                      <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-
-
-
-
-
-
-                        <Sparkles className="w-4 h-4 text-gold-500" /> VERSÃO DESTACADA
-
-
-
-
-
-
-
-                      </h3>
-
-
-
-
-
-
-
-                      <span className="bg-gold-500/15 text-gold-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
+                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-water-300" /> REMOTION ENGINE
+                    </h3>
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-
-
-
-
-
-
-
-                      Substitui o B-roll de imagem 32 pelo clipe infográfico dinâmico com overlay de scanner green-radar e fluxo hidráulico animado.
-
-
-
-
-
-
-
+                      Monta o vídeo pela linha do tempo mapeada, narração sincronizada e legendas geradas a partir da transcrição.
                     </p>
-
-
-
-
-
-
-
                   </div>
-
-
-
-
-
-
-
-                  <button 
-
-
-
-
-
-
-
-                    disabled={rendering || !status?.has_narration || !status?.has_highlight_clip}
-
-
-
-
-
-
-
-                    onClick={() => triggerRender('highlighted')}
-
-
-
-
-
-
-
-                    className="bg-zinc-100 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-xl cursor-pointer w-full"
-
-
-
-
-
-
-
+                  <button
+                    disabled={rendering || !status?.has_narration}
+                    onClick={() => triggerRender('remotion')}
+                    className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
                   >
-
-
-
-
-
-
-
-                    <Video className="w-4 h-4" />
-
-
-
-
-
-
-
-                    <span>Renderizar Versão Destacada</span>
-
-
-
-
-
-
-
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Renderizar via Remotion</span>
                   </button>
-
-
-
-
-
-
-
                 </div>
 
-
-
-
-
-
-
-                {/* Remotion Quick info */}
-
-
-
-
-
-
-
-                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
-
-
-
-
-
-
-
+                {/* Remotion PRO Card */}
+                <div className="glass-panel-glow border border-amber-500/30 p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
                   <div>
-
-
-
-
-
-
-
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-
-
-
-
-
-
-                      <ExternalLink className="w-4 h-4 text-water-300" /> REMOTION ENGINE
-
-
-
-
-
-
-
-                    </h3>
-
-
-
-
-
-
-
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" /> REMOTION PRO
+                      </h3>
+                      <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
+                    </div>
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-
-
-
-
-
-
-
-                      Monta o vídeo pela linha do tempo mapeada, narração sincronizada e legendas geradas a partir da transcrição.
-
-
-
-
-
-
-
+                      Gera a versão premium contendo infográficos animados automáticos (Lower Thirds, textos cinéticos de impacto e contadores numéricos).
                     </p>
-
-
-
-
-
-
-
                   </div>
-
-
-
-
-
-
-
                   <button
-
-
-
-
-
-
-
                     disabled={rendering || !status?.has_narration}
-
-
-
-
-
-
-
-                    onClick={() => triggerRender('remotion')}
-
-
-
-
-
-
-
-                    className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
-
-
-
-
-
-
-
+                    onClick={() => triggerRender('remotion-pro')}
+                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-amber-500/10 cursor-pointer w-full"
                   >
-
-
-
-
-
-
-
-                    <ExternalLink className="w-4 h-4" />
-
-
-
-
-
-
-
-                    <span>Renderizar via Remotion</span>
-
-
-
-
-
-
-
+                    <Sparkles className="w-4 h-4" />
+                    <span>Renderizar via Remotion PRO</span>
                   </button>
-
-
-
-
-
-
-
                 </div>
 
 
@@ -20355,7 +20047,7 @@ export default function App() {
 
 
 
-                            href={`/api/projects-media${activeProject === "Buracos no Deserto" ? "/OUTPUT/qanat_persa_video_final/" + video.name : "/" + activeProject + "/OUTPUT/qanat_persa_video_final/" + video.name}`} 
+                            href={`/api/projects-media${activeProject === "Buracos no Deserto" ? "/OUTPUT/qanat_persa_video_final/" + video.name : "/" + activeProject + "/OUTPUT/qanat_persa_video_final/" + video.name}?download=true`} 
 
 
 
@@ -35607,14 +35299,28 @@ export default function App() {
 
 
 
-                        <div className="flex justify-end gap-3 pt-2">
-
-
-
-
-
-
-
+                        <div className="flex justify-end gap-3 pt-2 w-full flex-wrap sm:flex-nowrap">
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={() => {
+                              setIdeasData({
+                                diagnostic: null,
+                                ideas: [],
+                                best_idea_index: -1,
+                                best_idea_reason: ""
+                              });
+                              setSelectedIdeaIndex(999);
+                              setCustomIdeaTitle("");
+                              setCustomIdeaPromise("");
+                              setCustomIdeaEmotion("");
+                              setCustomIdeaHook("");
+                              setCustomIdeaBlocks("");
+                            }}
+                            className="bg-zinc-900 hover:bg-zinc-800 text-gold-500 hover:text-white border border-zinc-800 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg w-full justify-center sm:w-auto"
+                          >
+                            ✍️ Escrever Minha Própria Ideia
+                          </button>
                           <button 
 
 
@@ -35712,142 +35418,25 @@ export default function App() {
 
 
                         {/* Diagnostic info banner */}
-
-
-
-
-
-
-
-                        <div className="p-5 bg-zinc-950/60 border border-zinc-900 rounded-2xl space-y-4">
-
-
-
-
-
-
-
-                          <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">DIAGNÓSTICO E PESQUISA DO NICHO</h5>
-
-
-
-
-
-
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-
-
-
-
-
-
-
-                            <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
-
-
-
-
-
-
-
-                              <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">O que procuram</span>
-
-
-
-
-
-
-
-                              <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.looking_for}</p>
-
-
-
-
-
-
-
+                        {ideasData?.diagnostic && (
+                          <div className="p-5 bg-zinc-950/60 border border-zinc-900 rounded-2xl space-y-4">
+                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">DIAGNÓSTICO E PESQUISA DO NICHO</h5>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                              <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
+                                <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">O que procuram</span>
+                                <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.looking_for}</p>
+                              </div>
+                              <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
+                                <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Dores do público</span>
+                                <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.pain_points}</p>
+                              </div>
+                              <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
+                                <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Ângulo de Retenção</span>
+                                <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.strong_angle}</p>
+                              </div>
                             </div>
-
-
-
-
-
-
-
-                            <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
-
-
-
-
-
-
-
-                              <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Dores do público</span>
-
-
-
-
-
-
-
-                              <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.pain_points}</p>
-
-
-
-
-
-
-
-                            </div>
-
-
-
-
-
-
-
-                            <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
-
-
-
-
-
-
-
-                              <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Ângulo de Retenção</span>
-
-
-
-
-
-
-
-                              <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.strong_angle}</p>
-
-
-
-
-
-
-
-                            </div>
-
-
-
-
-
-
-
                           </div>
-
-
-
-
-
-
-
-                        </div>
+                        )}
 
 
 
@@ -35872,29 +35461,23 @@ export default function App() {
 
 
                           <div className="flex justify-between items-center px-1">
-
-
-
-
-
-
-
                             <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Selecione uma das 10 Ideias</h4>
-
-
-
-
-
-
-
-                            <span className="text-[10px] bg-gold-500/10 border border-gold-500/20 text-gold-500 px-2 py-0.5 rounded uppercase tracking-wider font-bold">10 Ideias Geradas</span>
-
-
-
-
-
-
-
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => {
+                                  setSelectedIdeaIndex(999);
+                                  setCustomIdeaTitle("");
+                                  setCustomIdeaPromise("");
+                                  setCustomIdeaEmotion("");
+                                  setCustomIdeaHook("");
+                                  setCustomIdeaBlocks("");
+                                }}
+                                className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 text-gold-500 text-[10px] font-bold px-3 py-1.5 rounded-xl transition cursor-pointer"
+                              >
+                                ✍️ Criar do Zero (Manual)
+                              </button>
+                              <span className="text-[10px] bg-gold-500/10 border border-gold-500/20 text-gold-500 px-2 py-0.5 rounded uppercase tracking-wider font-bold">10 Ideias Geradas</span>
+                            </div>
                           </div>
 
 
@@ -35968,6 +35551,11 @@ export default function App() {
 
 
                                     setSelectedIdeaIndex(index);
+                                    setCustomIdeaTitle(idea.title || "");
+                                    setCustomIdeaPromise(idea.promise || "");
+                                    setCustomIdeaEmotion(idea.emotion || "");
+                                    setCustomIdeaHook("");
+                                    setCustomIdeaBlocks("");
 
 
 
@@ -36343,14 +35931,83 @@ export default function App() {
 
 
 
+                        {selectedIdeaIndex !== -1 && (
+                          <div className="bg-zinc-950/60 border border-zinc-900 p-5 rounded-2xl space-y-4 mt-6 text-left">
+                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">
+                              {selectedIdeaIndex === 999 ? "CRIAR IDEIA MANUAL" : "PERSONALIZAR ESTRATÉGIA DA IDEIA"}
+                            </h5>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Título Principal</label>
+                                <input 
+                                  type="text"
+                                  value={customIdeaTitle}
+                                  onChange={(e) => {
+                                    setCustomIdeaTitle(e.target.value);
+                                    if (selectedIdeaIndex === 999) {
+                                      const stopWords = ['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','no','na','nos','nas','em','por','para','com','e','que','se','ou','ao','à','pelo','pela','pelos','pelas','entre','sobre','sob','até','como','mais','menos','muito','tudo','isso','este','esta','esse','essa','qual','quais'];
+                                      const shortName = e.target.value
+                                        .toLowerCase()
+                                        .replace(/[^a-z0-9\s]/g, "")
+                                        .split(/\s+/)
+                                        .filter((w: string) => w.length > 1 && !stopWords.includes(w.toLowerCase()))
+                                        .slice(0, 3)
+                                        .join('_');
+                                      setCreatorProjectName(shortName);
+                                    }
+                                  }}
+                                  className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                  placeholder="Ex: A bizarra verdade sobre as escadas dos castelos"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Emoção Dominante</label>
+                                <input 
+                                  type="text"
+                                  value={customIdeaEmotion}
+                                  onChange={(e) => setCustomIdeaEmotion(e.target.value)}
+                                  className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                  placeholder="Ex: Curiosidade, Choque, Fascínio"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Promessa do Vídeo</label>
+                              <input 
+                                type="text"
+                                value={customIdeaPromise}
+                                onChange={(e) => setCustomIdeaPromise(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                placeholder="Ex: Revelar o detalhe sádico das escadas medievais"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Gancho de Retenção (Hook)</label>
+                              <input 
+                                type="text"
+                                value={customIdeaHook}
+                                onChange={(e) => setCustomIdeaHook(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                placeholder="Ex: Você sabia que as escadas dos castelos eram armas mortais?"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Estrutura / Temas dos Blocos (Ganchos / Roteiro)</label>
+                              <textarea 
+                                value={customIdeaBlocks}
+                                onChange={(e) => setCustomIdeaBlocks(e.target.value)}
+                                className="w-full min-h-[90px] bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl p-3.5 text-xs text-white leading-relaxed resize-y placeholder:text-zinc-600 font-medium"
+                                placeholder="Ex: Bloco 1: O mistério do sentido das escadas; Bloco 2: A vantagem tática dos defensores destros; Bloco 3: O tropeço mortal..."
+                              />
+                            </div>
+                          </div>
+                        )}
+
                         {/* New Project Name Input */}
-
-
-
-
-
-
-
                         <div className="bg-zinc-950/40 border border-zinc-900/60 p-5 rounded-2xl space-y-2 mt-4 font-sans">
 
 
@@ -38455,178 +38112,38 @@ export default function App() {
 
 
 
-                      {/* Render highlighted card */}
-
-
-
-
-
-
-
+                      {/* Render Remotion card */}
                       <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
-
-
-
-
-
-
-
                         <div>
-
-
-
-
-
-
-
-                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">3. RENDER DESTACADO</h5>
-
-
-
-
-
-
-
-                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera a versão premium destacada contendo infográficos animados adicionais.</p>
-
-
-
-
-
-
-
+                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">3. RENDER REMOTION</h5>
+                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera o vídeo com o motor moderno do Remotion, ideal para Shorts com transições fluidas.</p>
                         </div>
-
-
-
-
-
-
-
                         <button 
-
-
-
-
-
-
-
                           disabled={rendering}
-
-
-
-
-
-
-
-                          onClick={() => triggerRender('highlighted', true)}
-
-
-
-
-
-
-
-                          className="bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
-
-
-
-
-
-
-
+                          onClick={() => triggerRender('remotion', true)}
+                          className="bg-water-500/10 border border-water-500/20 hover:bg-water-500/20 text-water-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
                         >
-
-
-
-
-
-
-
-                          <Video className="w-3.5 h-3.5" />
-
-
-
-
-
-
-
-                          <span>Compilar Destacado</span>
-
-
-
-
-
-
-
+                          <span>Compilar Remotion</span>
                         </button>
-
-
-
-
-
-
-
                       </div>
 
-
-
-
-
-
-
-                      {/* Render Remotion card */}
-
-
-
-                      <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
-
-
-
+                      {/* Render Remotion PRO card */}
+                      <div className="bg-zinc-950 border border-amber-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-amber-500/30 transition">
                         <div>
-
-
-
-                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">4. RENDER REMOTION</h5>
-
-
-
-                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera o vídeo com o motor moderno do Remotion, ideal para Shorts com transições fluidas.</p>
-
-
-
+                          <div className="flex justify-between items-start">
+                            <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">4. REMOTION PRO</h5>
+                            <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">PRO</span>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera a versão premium contendo infográficos animados automáticos (Lower Thirds, kinetic text e contadores).</p>
                         </div>
-
-
-
                         <button 
-
-
-
                           disabled={rendering}
-
-
-
-                          onClick={() => triggerRender('remotion', true)}
-
-
-
-                          className="bg-water-500/10 border border-water-500/20 hover:bg-water-500/20 text-water-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
-
-
-
+                          onClick={() => triggerRender('remotion-pro', true)}
+                          className="bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
                         >
-
-
-
-                          <span>Compilar Remotion</span>
-
-
-
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Compilar Remotion PRO</span>
                         </button>
-
-
-
                       </div>
 
 

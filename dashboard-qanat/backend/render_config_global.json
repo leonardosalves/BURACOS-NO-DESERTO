@@ -1,7 +1,7 @@
 {
-  "fps": 30,
-  "blockGapSeconds": 2.0,
-  "musicVolume": 0.15,
+  "fps": 60,
+  "blockGapSeconds": 2,
+  "musicVolume": 0.07,
   "useRemotionByDefault": true,
   "debugOverlay": false
 }

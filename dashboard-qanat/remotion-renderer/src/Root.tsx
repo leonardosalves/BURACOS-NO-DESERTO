@@ -1,5 +1,6 @@
 import { Composition, CalculateMetadataFunction } from "remotion";
 import { LumieraTimeline, LumieraTimelineProps, defaultLumieraProps } from "./LumieraTimeline";
+import type { Overlay } from "./overlays/OverlayLayer";
 
 const FPS = 30;
 
