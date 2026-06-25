@@ -215,6 +215,7 @@ import {
 
 
   Folder,
+  Smartphone,
 
 
 
@@ -1462,7 +1463,10 @@ export default function App() {
 
 
 
-  const [projects, setProjects] = useState<{ name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string }[]>([]);
+  const [projects, setProjects] = useState<{ name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string }[]>([]);
+  const [newProjectNiche, setNewProjectNiche] = useState<string>('Geral');
+  const [collapsedNiches, setCollapsedNiches] = useState<Record<string, boolean>>({});
+  const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
 
   const [newProjectFormat, setNewProjectFormat] = useState<'LONGO' | 'SHORTS'>('LONGO');
 
@@ -5648,7 +5652,7 @@ export default function App() {
 
 
 
-        body: JSON.stringify({ name: newProjectName.trim(), format: newProjectFormat })
+        body: JSON.stringify({ name: newProjectName.trim(), format: newProjectFormat, niche: newProjectNiche.trim() })
 
 
 
@@ -18272,752 +18276,321 @@ export default function App() {
 
 
 
-            <div className="space-y-4">
-
-              <div className="flex justify-between items-center px-1">
-
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Vídeos Longos (16:9)</span>
-
-                <button 
-
-                  onClick={() => {
-
-                    setNewProjectFormat('LONGO');
-
-                    setShowCreateModal(true);
-
-                  }} 
-
-                  className="p-1 bg-zinc-900 border border-zinc-800 rounded hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-
-                  title="Criar Novo Projeto Longo"
-
-                >
-
-                  <Plus className="w-3 h-3" />
-
-                </button>
-
-              </div>
-
-
-
-              <div className="space-y-1">
-
-                {projects.filter(p => p.format !== "SHORTS").map((proj) => {
-
+                        <div className="space-y-6 font-sans animate-fade-in">
+              {(() => {
+                const renderProjectItem = (proj: typeof projects[0]) => {
                   const isSelected = activeProject === proj.name;
-
+                  const isShort = proj.format === "SHORTS";
+                  const isProjCollapsed = collapsedProjects[proj.name] ?? false;
                   return (
-
-                    <div key={proj.name} className="space-y-1 group">
-
+                    <div key={proj.name} className="space-y-1 group animate-fade-in">
                       <div className="flex items-center justify-between gap-1">
-
                         <button
-
                           onClick={() => {
-
-                            setActiveProject(proj.name);
-
-                            if (activeTab === 'creator') {
-
-                              setActiveTab('status');
-
+                            if (isSelected) {
+                              setCollapsedProjects(prev => ({ ...prev, [proj.name]: !prev[proj.name] }));
+                            } else {
+                              setActiveProject(proj.name);
+                              setCollapsedProjects(prev => ({ ...prev, [proj.name]: false }));
+                              if (activeTab === 'creator') {
+                                setActiveTab('status');
+                              }
                             }
-
                           }}
-
                           className={`flex-1 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
-
-                            isSelected 
-
-                              ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' 
-
+                            isSelected
+                              ? 'bg-zinc-900 border border-zinc-800 text-white font-bold'
                               : 'text-gray-400 border border-transparent hover:bg-zinc-900/30 hover:text-gray-200'
-
                           }`}
-
                         >
-
                           <div className="flex items-center gap-2">
-
-                            <Folder className={`w-4 h-4 ${isSelected ? 'text-gold-500' : 'text-zinc-500'}`} />
-
+                            {isShort ? (
+                              <Smartphone className={`w-3.5 h-3.5 ${isSelected ? 'text-amber-500' : 'text-zinc-500'}`} />
+                            ) : (
+                              <Tv className={`w-3.5 h-3.5 ${isSelected ? 'text-gold-500' : 'text-zinc-500'}`} />
+                            )}
                             <span className="truncate max-w-[120px] font-sans" title={proj.title || proj.name}>
-
                               {proj.title || proj.name}
-
                             </span>
-
                           </div>
-
-                          {isSelected ? (
-
+                          {isSelected && !isProjCollapsed ? (
                             <ChevronDown className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-
                           ) : (
-
                             <ChevronRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-
                           )}
-
                         </button>
 
-
-
                         <div className="flex items-center gap-1 shrink-0">
-
                           {deletingProjectName === proj.name ? (
-
                             <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-1 animate-fade-in shrink-0">
-
                               <button
-
                                 onClick={(e) => {
-
                                   e.stopPropagation();
-
                                   handleDeleteProject(proj.name);
-
                                 }}
-
                                 className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-2 py-1 rounded transition cursor-pointer"
-
                                 title="Confirmar exclusão"
-
                               >
-
                                 Sim
-
                               </button>
-
                               <button
-
                                 onClick={(e) => {
-
                                   e.stopPropagation();
-
                                   setDeletingProjectName(null);
-
                                 }}
-
                                 className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white px-2 py-1 rounded transition cursor-pointer ml-1"
-
                               >
-
                                 Não
-
                               </button>
-
                             </div>
-
                           ) : (
-
                             <button
-
                               onClick={(e) => {
-
-                                  e.stopPropagation();
-
-                                  setDeletingProjectName(proj.name);
-
+                                e.stopPropagation();
+                                setDeletingProjectName(proj.name);
                               }}
-
                               className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0"
-
                               title="Excluir Projeto"
-
                             >
-
                               <Trash2 className="w-3.5 h-3.5" />
-
                             </button>
-
                           )}
-
                         </div>
-
                       </div>
 
-
-
-                      {isSelected && (
-
+                      {isSelected && !isProjCollapsed && (
                         <div className="pl-3 ml-2 border-l border-zinc-800 space-y-1 mt-1 font-sans">
-
                           <button 
-
                             onClick={() => setActiveTab('status')}
-
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
                               activeTab === 'status' 
-
                                 ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
                                 : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
                             }`}
-
                           >
-
                             <Tv className="w-3.5 h-3.5 shrink-0" />
-
                             <span>Geral e Render</span>
-
                           </button>
 
                           <button 
-
                             onClick={() => setActiveTab('timeline')}
-
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
                               activeTab === 'timeline' 
-
                                 ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
                                 : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
                             }`}
-
                           >
-
                             <Layers className="w-3.5 h-3.5 shrink-0" />
-
                             <span>Roteiro e Tags</span>
-
                           </button>
 
                           <button 
-
                             onClick={() => setActiveTab('music')}
-
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
                               activeTab === 'music' 
-
                                 ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
                                 : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
                             }`}
-
                           >
-
                             <Music className="w-3.5 h-3.5 shrink-0" />
-
                             <span>Trilha BGM</span>
-
                           </button>
 
                           <button 
-
                             onClick={() => setActiveTab('ai')}
-
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
                               activeTab === 'ai' 
-
                                 ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
                                 : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
                             }`}
-
                           >
-
                             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-
                             <span>Agente IA & Metadados</span>
-
                           </button>
 
                           <button 
-
                             onClick={() => setActiveTab('editor')}
-
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
                               activeTab === 'editor' 
-
                                 ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
                                 : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
                             }`}
-
                           >
-
                             <Settings className="w-3.5 h-3.5 shrink-0" />
-
                             <span>Editor de Projeto</span>
-
                           </button>
 
                           <button 
-
                             onClick={() => setActiveTab('terminal')}
-
                             className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
                               activeTab === 'terminal' 
-
                                 ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
                                 : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
                             }`}
-
                           >
-
                             <Terminal className="w-3.5 h-3.5 shrink-0" />
-
                             <span>Terminal</span>
-
                           </button>
 
                           {status && (
-
                             <div className="mt-4 p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
-
-                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
-
+                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block font-sans">Verificações Ativas</span>
                               <div className="space-y-2 text-xs">
-
                                 <div className="flex justify-between items-center">
-
                                   <span className="text-gray-400 font-sans">Narração Master</span>
-
                                   {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
                                 </div>
-
                                 <div className="flex justify-between items-center">
-
                                   <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
-
                                   {status.has_soundtrack ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
                                 </div>
-
                                 <div className="flex justify-between items-center">
-
                                   <span className="text-gray-400 font-sans">Clipe Infográfico</span>
-
                                   {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
                                 </div>
-
                                 <div className="flex justify-between items-center">
-
                                   <span className="text-gray-400 font-sans">Assets de B-roll</span>
-
                                   <span className="font-mono text-white text-[11px] bg-zinc-900 px-1.5 py-0.5 rounded">{status.assets_count} arquivos</span>
-
                                 </div>
-
                               </div>
-
                             </div>
-
                           )}
-
                         </div>
-
                       )}
-
                     </div>
-
                   );
-
-                })}
-
-                {projects.filter(p => p.format !== "SHORTS").length === 0 && (
-
-                  <p className="text-[10px] text-zinc-600 italic px-3 py-1 font-sans">Nenhum projeto longo</p>
-
-                )}
-
-              </div>
-
-
-
-              {/* Section: Vídeos Curtos / Shorts */}
-
-              <div className="space-y-2 pt-2 border-t border-zinc-900/60">
-
-                <div className="flex justify-between items-center px-1">
-
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Vídeos Curtos / Shorts (9:16)</span>
-
-                  <button 
-
-                    onClick={() => {
-
-                      setNewProjectFormat('SHORTS');
-
-                      setShowCreateModal(true);
-
-                    }} 
-
-                    className="p-1 bg-zinc-900 border border-zinc-800 rounded hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-
-                    title="Criar Novo Projeto Curto"
-
-                  >
-
-                    <Plus className="w-3 h-3" />
-
-                  </button>
-
-                </div>
-
-
-
-                <div className="space-y-1">
-
-                  {projects.filter(p => p.format === "SHORTS").map((proj) => {
-
-                    const isSelected = activeProject === proj.name;
-
-                    return (
-
-                      <div key={proj.name} className="space-y-1 group">
-
-                        <div className="flex items-center justify-between gap-1">
-
-                          <button
-
-                            onClick={() => {
-
-                              setActiveProject(proj.name);
-
-                              if (activeTab === 'creator') {
-
-                                setActiveTab('status');
-
-                              }
-
-                            }}
-
-                            className={`flex-1 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
-
-                              isSelected 
-
-                                ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' 
-
-                                : 'text-gray-400 border border-transparent hover:bg-zinc-900/30 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <div className="flex items-center gap-2">
-
-                              <Folder className={`w-4 h-4 ${isSelected ? 'text-gold-500' : 'text-zinc-500'}`} />
-
-                              <span className="truncate max-w-[120px] font-sans" title={proj.title || proj.name}>
-
-                                {proj.title || proj.name}
-
-                              </span>
-
-                            </div>
-
-                            {isSelected ? (
-
-                              <ChevronDown className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-
-                            ) : (
-
-                              <ChevronRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-
-                            )}
-
-                          </button>
-
-
-
-                          <div className="flex items-center gap-1 shrink-0">
-
-                            {deletingProjectName === proj.name ? (
-
-                              <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-1 animate-fade-in shrink-0">
-
-                                <button
-
-                                  onClick={(e) => {
-
-                                    e.stopPropagation();
-
-                                    handleDeleteProject(proj.name);
-
-                                  }}
-
-                                  className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-2 py-1 rounded transition cursor-pointer"
-
-                                  title="Confirmar exclusão"
-
-                                >
-
-                                  Sim
-
-                                </button>
-
-                                <button
-
-                                  onClick={(e) => {
-
-                                    e.stopPropagation();
-
-                                    setDeletingProjectName(null);
-
-                                  }}
-
-                                  className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white px-2 py-1 rounded transition cursor-pointer ml-1"
-
-                                >
-
-                                  Não
-
-                                </button>
-
-                              </div>
-
-                            ) : (
-
-                              <button
-
-                                onClick={(e) => {
-
-                                    e.stopPropagation();
-
-                                    setDeletingProjectName(proj.name);
-
-                                }}
-
-                                className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0"
-
-                                title="Excluir Projeto"
-
-                              >
-
-                                <Trash2 className="w-3.5 h-3.5" />
-
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        </div>
-
-
-
-                        {isSelected && (
-
-                          <div className="pl-3 ml-2 border-l border-zinc-800 space-y-1 mt-1 font-sans">
-
-                            <button 
-
-                              onClick={() => setActiveTab('status')}
-
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                                activeTab === 'status' 
-
-                                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                              }`}
-
-                            >
-
-                              <Tv className="w-3.5 h-3.5 shrink-0" />
-
-                              <span>Geral e Render</span>
-
-                            </button>
-
-                            <button 
-
-                              onClick={() => setActiveTab('timeline')}
-
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                                activeTab === 'timeline' 
-
-                                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                              }`}
-
-                            >
-
-                              <Layers className="w-3.5 h-3.5 shrink-0" />
-
-                              <span>Roteiro e Tags</span>
-
-                            </button>
-
-                            <button 
-
-                              onClick={() => setActiveTab('music')}
-
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                                activeTab === 'music' 
-
-                                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                              }`}
-
-                            >
-
-                              <Music className="w-3.5 h-3.5 shrink-0" />
-
-                              <span>Trilha BGM</span>
-
-                            </button>
-
-                            <button 
-
-                              onClick={() => setActiveTab('ai')}
-
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                                activeTab === 'ai' 
-
-                                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                              }`}
-
-                            >
-
-                              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-
-                              <span>Agente IA & Metadados</span>
-
-                            </button>
-
-                            <button 
-
-                              onClick={() => setActiveTab('editor')}
-
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                                activeTab === 'editor' 
-
-                                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                              }`}
-
-                            >
-
-                              <Settings className="w-3.5 h-3.5 shrink-0" />
-
-                              <span>Editor de Projeto</span>
-
-                            </button>
-
-                            <button 
-
-                              onClick={() => setActiveTab('terminal')}
-
-                              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                                activeTab === 'terminal' 
-
-                                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                              }`}
-
-                            >
-
-                              <Terminal className="w-3.5 h-3.5 shrink-0" />
-
-                              <span>Terminal</span>
-
-                            </button>
-
-                            {status && (
-
-                              <div className="mt-4 p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
-
-                                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
-
-                                <div className="space-y-2 text-xs">
-
-                                  <div className="flex justify-between items-center">
-
-                                    <span className="text-gray-400 font-sans">Narração Master</span>
-
-                                    {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-                                  </div>
-
-                                  <div className="flex justify-between items-center">
-
-                                    <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
-
-                                    {status.has_soundtrack ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-                                  </div>
-
-                                  <div className="flex justify-between items-center">
-
-                                    <span className="text-gray-400 font-sans">Clipe Infográfico</span>
-
-                                    {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-                                  </div>
-
-                                  <div className="flex justify-between items-center">
-
-                                    <span className="text-gray-400 font-sans">Assets de B-roll</span>
-
-                                    <span className="font-mono text-white text-[11px] bg-zinc-900 px-1.5 py-0.5 rounded">{status.assets_count} arquivos</span>
-
-                                  </div>
-
-                                </div>
-
-                              </div>
-
-                            )}
-
-                          </div>
-
-                        )}
-
+                };
+
+                return (
+                  <>
+                    {/* Vídeos Longos (16:9) */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1 border-b border-zinc-900 pb-2">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block font-sans">Vídeos Longos (16:9)</span>
+                        <button 
+                          onClick={() => {
+                            setNewProjectFormat('LONGO');
+                            setNewProjectNiche('Geral');
+                            setShowCreateModal(true);
+                          }} 
+                          className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
+                          title="Criar Novo Projeto Longo"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
                       </div>
 
-                    );
+                      <div className="space-y-1.5">
+                        {(() => {
+                          const filtered = projects.filter(p => p.format !== "SHORTS");
+                          if (filtered.length === 0) {
+                            return <p className="text-[10px] text-zinc-650 italic px-3 py-1 font-sans">Nenhum projeto longo</p>;
+                          }
+                          
+                          const grouped = filtered.reduce<Record<string, typeof projects>>((acc, proj) => {
+                            const nicheName = proj.niche || "Geral";
+                            if (!acc[nicheName]) acc[nicheName] = [];
+                            acc[nicheName].push(proj);
+                            return acc;
+                          }, {});
 
-                  })}
+                          return Object.entries(grouped).map(([nicheName, projList]) => {
+                            const collapseKey = `long-${nicheName}`;
+                            const isCollapsed = collapsedNiches[collapseKey] ?? false;
+                            return (
+                              <div key={nicheName} className="space-y-1.5 border border-zinc-900/40 bg-zinc-950/10 rounded-2xl p-2">
+                                <button
+                                  onClick={() => setCollapsedNiches(prev => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
+                                  className="w-full flex items-center justify-between text-left px-2 py-1 text-gray-500 hover:text-gray-300 transition text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Folder className="w-3.5 h-3.5 text-gold-500/60" />
+                                    <span>{nicheName} ({projList.length})</span>
+                                  </div>
+                                  {isCollapsed ? (
+                                    <ChevronRight className="w-3 h-3 text-gray-600" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3 text-gray-400" />
+                                  )}
+                                </button>
 
-                  {projects.filter(p => p.format === "SHORTS").length === 0 && (
+                                {!isCollapsed && (
+                                  <div className="space-y-1 pt-1">
+                                    {projList.map(proj => renderProjectItem(proj))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
 
-                    <p className="text-[10px] text-zinc-600 italic px-3 py-1 font-sans">Nenhum projeto short</p>
+                    {/* Vídeos Curtos / Shorts (9:16) */}
+                    <div className="space-y-2 pt-2 border-t border-zinc-900/60">
+                      <div className="flex justify-between items-center px-1 border-b border-zinc-900 pb-2">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block font-sans">Vídeos Curtos / Shorts (9:16)</span>
+                        <button 
+                          onClick={() => {
+                            setNewProjectFormat('SHORTS');
+                            setNewProjectNiche('Geral');
+                            setShowCreateModal(true);
+                          }} 
+                          className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
+                          title="Criar Novo Projeto Curto"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-                  )}
+                      <div className="space-y-1.5">
+                        {(() => {
+                          const filtered = projects.filter(p => p.format === "SHORTS");
+                          if (filtered.length === 0) {
+                            return <p className="text-[10px] text-zinc-650 italic px-3 py-1 font-sans">Nenhum projeto short</p>;
+                          }
+                          
+                          const grouped = filtered.reduce<Record<string, typeof projects>>((acc, proj) => {
+                            const nicheName = proj.niche || "Geral";
+                            if (!acc[nicheName]) acc[nicheName] = [];
+                            acc[nicheName].push(proj);
+                            return acc;
+                          }, {});
 
-                </div>
+                          return Object.entries(grouped).map(([nicheName, projList]) => {
+                            const collapseKey = `short-${nicheName}`;
+                            const isCollapsed = collapsedNiches[collapseKey] ?? false;
+                            return (
+                              <div key={nicheName} className="space-y-1.5 border border-zinc-900/40 bg-zinc-950/10 rounded-2xl p-2">
+                                <button
+                                  onClick={() => setCollapsedNiches(prev => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
+                                  className="w-full flex items-center justify-between text-left px-2 py-1 text-gray-500 hover:text-gray-300 transition text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Folder className="w-3.5 h-3.5 text-gold-500/60" />
+                                    <span>{nicheName} ({projList.length})</span>
+                                  </div>
+                                  {isCollapsed ? (
+                                    <ChevronRight className="w-3 h-3 text-gray-600" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3 text-gray-400" />
+                                  )}
+                                </button>
 
-              </div>
-
+                                {!isCollapsed && (
+                                  <div className="space-y-1 pt-1">
+                                    {projList.map(proj => renderProjectItem(proj))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
 
@@ -41162,6 +40735,17 @@ export default function App() {
 
 
 
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block px-1">Nicho do Projeto</label>
+              <input
+                type="text"
+                placeholder="Ex: História, Tecnologia, Geografia, Finanças"
+                value={newProjectNiche}
+                onChange={(e) => setNewProjectNiche(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-855 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white font-sans"
+              />
+            </div>
 
             <div className="flex justify-end gap-3 text-xs font-semibold pt-2 font-sans">
 

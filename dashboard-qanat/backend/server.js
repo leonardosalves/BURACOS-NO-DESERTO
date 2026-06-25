@@ -691,117 +691,70 @@ function ensureFileExists(fileName, targetDir) {
 
 
 app.get("/api/projects", (req, res) => {
-
-
-
   try {
-
-
-
     const projects = [];
-
-
-
     
-
-
-
-    const scanDir = (dir, format) => {
-
-
-
-      if (!fs.existsSync(dir)) return;
-
-
-
-      const items = fs.readdirSync(dir);
-
-
-
-      for (const item of items) {
-
-
-
-        const fullPath = path.join(dir, item);
-
-
-
-        if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
-
-
-
-          if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
-
-
-
-            let title = item;
-
-
-
-            const storyboardPath = path.join(fullPath, "storyboard.json");
-
-
-
-            if (fs.existsSync(storyboardPath)) {
-
-
-
-              try {
-
-
-
-                const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-
-
-
-                if (sb.strategy?.title_main) title = sb.strategy.title_main;
-
-
-
-              } catch (e) {}
-
-
-
-            }
-
-
-
-            projects.push({ name: item, path: fullPath, format, title });
-
-
-
-          }
-
-
-
-        }
-
-
-
+    const inferNiche = (itemName) => {
+      const name = itemName.toLowerCase();
+      if (name.includes("romano") || name.includes("castelo") || name.includes("viking") || name.includes("inca") || name.includes("asteca") || name.includes("muralha") || name.includes("medieval") || name.includes("giram") || name.includes("fortes")) {
+        return "História";
       }
-
-
-
+      if (name.includes("computador") || name.includes("antikythera") || name.includes("tecnologia")) {
+        return "Tecnologia";
+      }
+      if (name.includes("deserto") || name.includes("amazonia") || name.includes("ilhas") || name.includes("flutuantes")) {
+        return "Geografia";
+      }
+      if (name.includes("financas") || name.includes("dinheiro") || name.includes("invest")) {
+        return "Finanças";
+      }
+      return "Curiosidades";
     };
 
+    const scanDir = (dir, format) => {
+      if (!fs.existsSync(dir)) return;
+      const items = fs.readdirSync(dir);
+      for (const item of items) {
+        const fullPath = path.join(dir, item);
+        if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
+          if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
+            let title = item;
+            let niche = "Curiosidades";
 
+            // Check config_qanat.json first
+            const configPath = path.join(fullPath, "config_qanat.json");
+            if (fs.existsSync(configPath)) {
+              try {
+                const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+                if (cfg.niche) {
+                  niche = cfg.niche;
+                } else {
+                  niche = inferNiche(item);
+                  cfg.niche = niche;
+                  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+                }
+              } catch (e) {}
+            } else {
+              niche = inferNiche(item);
+            }
 
+            const storyboardPath = path.join(fullPath, "storyboard.json");
+            if (fs.existsSync(storyboardPath)) {
+              try {
+                const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+                if (sb.strategy?.title_main) title = sb.strategy.title_main;
+              } catch (e) {}
+            }
+
+            projects.push({ name: item, path: fullPath, format, title, niche });
+          }
+        }
+      }
+    };
     
-
-
-
     scanDir(LONGS_DIR, "LONGO");
-
-
-
     scanDir(SHORTS_DIR, "SHORTS");
-
-
-
     
-
-
-
     res.json(projects);
 
 
@@ -838,7 +791,7 @@ app.post("/api/projects/create", (req, res) => {
 
 
 
-  const { name, format } = req.body;
+  const { name, format, niche } = req.body;
 
 
 
@@ -1010,6 +963,10 @@ app.post("/api/projects/create", (req, res) => {
 
 
 
+        cfg.niche = niche || "Geral";
+
+
+
         if (cfg.gemini_api_key) delete cfg.gemini_api_key;
 
 
@@ -1026,7 +983,7 @@ app.post("/api/projects/create", (req, res) => {
 
 
 
-      const cfg = { aspect_ratio: isShort ? "9:16" : "16:9" };
+      const cfg = { aspect_ratio: isShort ? "9:16" : "16:9", niche: niche || "Geral" };
 
 
 
@@ -1786,7 +1743,63 @@ app.post("/api/config", (req, res) => {
 
 
 
-    fs.writeFileSync(configPath, JSON.stringify(req.body, null, 2), "utf8");
+    let existingConfig = {};
+
+
+
+
+
+
+
+    if (fs.existsSync(configPath)) {
+
+
+
+
+
+
+
+      try {
+
+
+
+
+
+
+
+        existingConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+
+
+
+
+
+
+      } catch (e) {}
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+    const mergedConfig = { ...existingConfig, ...req.body };
+
+
+
+
+
+
+
+    fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), "utf8");
 
 
 
@@ -27192,6 +27205,7 @@ REGRAS FINAIS:
 
 
     const newConfig = {
+      niche: niche || currentConfig.niche || "Geral",
 
 
 
