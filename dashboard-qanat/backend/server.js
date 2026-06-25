@@ -28869,32 +28869,22 @@ REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 4. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
 5. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
 
-6. VARIABILIDADE DE DESIGN, LAYOUTS, MOODS E CORES DINÂMICAS:
-   - Temática Visual ("theme"): Em todo overlay, defina o campo "theme" de acordo com o tema/assunto do vídeo inteiro ou daquele trecho específico:
-     * "ancient" -> Para história antiga, civilizações do passado, arqueologia, monumentos de pedra, realeza clássica. (Aplica bordas duplas em ouro, fontes com serifa premium e ornamentos clássicos).
-     * "tech" -> Para espaço sideral, tecnologia, robótica, matemática, física avançada, ficção científica. (Aplica grades internas HUD, cantos com suportes lineares de neon e fontes monoespaçadas digitais).
-     * "nature" -> Para florestas, oceanos, animais selvagens, meio ambiente, biologia orgânica. (Aplica cantos arredondados orgânicos suaves e sombras verdes).
-     * "industrial" -> Para engenharia, estruturas militares, armas de guerra, batalhas de metal, construções pesadas. (Aplica parafusos de metal nos cantos, borda de aço grosso e fontes grossas e agressivas).
-     * "mysterious" -> Para psicologia humana, mistérios cósmicos, segredos governamentais, paranormalidade, magia. (Aplica estrelas luminosas nos cantos e fundos degradê violeta profundo).
-     * "classic" -> HUD padrão de vidro fosco para temas contemporâneos genéricos.
-   - Paleta de Cores ("accentColor"): Escolha um hexadecimal que combine com o tema e o mood visual:
-     * #D4AF37 (Ouro clássico/premium) -> Para história, realeza, mistérios arqueológicos, ouro.
-     * #00E5FF (Ciano elétrico) -> Para ciência, tecnologia, água, gelo, espaço sideral, futuro.
-     * #FF3D00 (Laranja de fogo) -> Para vulcões, guerras, calor, perigo, ação, destruição, fogo.
-     * #00E676 (Verde esmeralda) -> Para florestas, biologia, natureza, venenos, mistérios orgânicos.
-     * #D500F9 (Roxo violeta) -> Para mistérios insolúveis, psicologia humana, segredos profundos, magia.
-   - Variantes de Card ("variant"): Para "info-card", altere o layout de acordo com a prioridade da informação:
-     * "glass" -> Vidro translúcido elegante (padrão).
-     * "minimal" -> Sem bordas, tracejado fino à esquerda (para detalhes secundários rápidos).
-     * "accent" -> Com cor integrada ao fundo (para destacar descobertas principais).
-     * "floating" -> Borda sólida e sombra brilhante (para marcos cruciais ou revelações fantásticas).
-   - Ícones Animados ("iconType"): Para "info-card", selecione o desenho animado vetorizado específico que combine com a informação:
-     * "sparkles" (estrelas) | "crown" (realeza) | "info" (dados clássicos) | "flame" (fogo/energia)
-     * "earth" (globo/geologia) | "gear" (máquinas/engenharia) | "shield" (defesa/fortaleza)
-     * "science" (átomo orbitando) | "history" (ampulheta/tempo) | "nature" (folha) | "money" (moedas)
-     * "warning" (perigo) | "compass" (navegação) | "book" (livros/manuscritos) | "heart" (vida)
-     * "swords" (batalhas/confrontos) | "lightbulb" (ideias/invenções)
-   - Varie a posição ("position"): "top-left", "top-right", "bottom-left", "bottom-right" para evitar repetição.
+6. DESIGN TOTALMENTE FLEXÍVEL, DIVERSIFICADO E CUSTOMIZADO (DESINGESSADO):
+   - Não fique preso aos temas ou cores fixas. Você DEVE personalizar a aparência visual dos overlays no campo "customStyle" dentro de "props" de acordo com o assunto do roteiro!
+   - Campo "customStyle" (Opcional): Crie layouts únicos definindo propriedades CSS personalizadas para o container e o texto:
+     * "background": Gradientes ou cores sólidas que correspondam ao clima (ex: "linear-gradient(135deg, #150505 0%, #300a0a 100%)" para lava/vulcano, ou "rgba(10,20,30,0.92)" para água/ciber).
+     * "border": Molduras customizadas (ex: "2px solid #FF3D00", "3px double #C5A059" para história, "1px dashed #00E5FF").
+     * "borderRadius": Cantos customizados (ex: "16px 2px" para estilo assimétrico agressivo, "0px" para visual tecnológico rígido, "24px" para algo orgânico/suave).
+     * "boxShadow": Sombras e brilhos de glow neon (ex: "0 8px 30px rgba(0, 229, 255, 0.2)" para tecnologia, "0 8px 32px rgba(255, 61, 0, 0.25)" para fogo).
+     * "fontFamilyTitle" e "fontFamilyDesc": Escolha entre as fontes disponíveis que correspondam à era/assunto ('Cinzel' para história/realeza, 'Courier New' para código/tecnologia, 'Oswald' para militar/industrial, 'Montserrat' ou 'Inter' para o clássico).
+     * "fontSizeTitle" (de 11 a 16) e "fontSizeDesc" (de 9 a 13) para balancear o tamanho do texto.
+     * "colorTitle" (ex: "#FFD700", "#00E5FF", "#FFF").
+   - Temática Visual Base ("theme"): Escolha o estilo base ideal ("ancient", "tech", "nature", "industrial", "mysterious", "classic").
+   - Paleta de Cores ("accentColor"): Escolha um hexadecimal que combine com o mood visual (ex: #D4AF37 para ouro/arqueologia, #00E5FF para ciano/ciência, #FF3D00 para fogo/guerra, #00E676 para verde/natureza, #D500F9 para roxo/mistério).
+   - Variantes de Card ("variant"): Escolha entre "glass", "minimal", "accent", "floating".
+   - Ícones Animados ("iconType"): Escolha um dos 17 desenhos animados vetorizados específicos que represente a informação:
+     * "sparkles" (estrelas) | "crown" (realeza) | "info" (dados) | "flame" (fogo/vulcão) | "earth" (globo) | "gear" (engenharia) | "shield" (defesa) | "science" (átomo) | "history" (ampulheta/tempo) | "nature" (folha) | "money" (moedas) | "warning" (alerta) | "compass" (bússola) | "book" (livro) | "heart" (vida) | "swords" (batalha) | "lightbulb" (ideia).
+   - Varie as posições ("position") e cantos da tela.
 
 7. Mantenha os textos curtos, sofisticados e de leitura rápida.
 8. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
@@ -28927,7 +28917,13 @@ Estrutura de cada tipo de overlay no JSON:
       "position": "top-right",
       "accentColor": "#FF3D00",
       "variant": "accent",
-      "theme": "industrial"
+      "theme": "industrial",
+      "customStyle": {
+        "background": "linear-gradient(135deg, #150505 0%, #300a0a 100%)",
+        "border": "2px solid #FF3D00",
+        "borderRadius": "16px 2px",
+        "boxShadow": "0 8px 30px rgba(255, 61, 0, 0.25)"
+      }
     }
   },
   {
