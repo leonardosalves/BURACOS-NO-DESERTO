@@ -73,7 +73,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
       ? {
           justifyContent: "flex-end",
           alignItems: "center",
-          padding: isVertical ? "0 48px 640px" : "0 80px 160px",
+          padding: isVertical ? "0 48px 640px" : "0 80px 220px",
         }
       : position === "right"
       ? {
