@@ -4315,21 +4315,11 @@ export default function App() {
 
 
   useEffect(() => {
-
-
-
-
-
-
-
+    setUploadSuccess(false);
+    setUploadingNarration(false);
+    setSyncingTimings(false);
+    setDragActive(false);
     fetchData();
-
-
-
-
-
-
-
   }, [activeProject]);
 
 
@@ -36761,373 +36751,61 @@ export default function App() {
 
 
                     <div 
-
-
-
-
-
-
-
                       onDragEnter={handleDrag}
-
-
-
-
-
-
-
                       onDragOver={handleDrag}
-
-
-
-
-
-
-
                       onDragLeave={handleDrag}
-
-
-
-
-
-
-
                       onDrop={handleDrop}
-
-
-
-
-
-
-
                       className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-150 font-sans ${
-
-
-
-
-
-
-
                         dragActive 
-
-
-
-
-
-
-
                           ? 'border-gold-500 bg-gold-500/5' 
-
-
-
-
-
-
-
-                          : uploadSuccess 
-
-
-
-
-
-
-
+                          : (uploadSuccess || status?.has_narration)
                             ? 'border-emerald-500 bg-emerald-500/5' 
-
-
-
-
-
-
-
                             : 'border-zinc-800 bg-zinc-950/20 hover:border-zinc-700'
-
-
-
-
-
-
-
                       }`}
-
-
-
-
-
-
-
                     >
-
-
-
-
-
-
-
                       {uploadingNarration ? (
-
-
-
-
-
-
-
                         <div className="flex flex-col items-center gap-3">
-
-
-
-
-
-
-
                           <RefreshCw className="w-8 h-8 text-gold-500 animate-spin" />
-
-
-
-
-
-
-
                           <span className="text-xs text-gray-300">Enviando e salvando áudio...</span>
-
-
-
-
-
-
-
                         </div>
-
-
-
-
-
-
-
                       ) : uploadSuccess ? (
-
-
-
-
-
-
-
                         <div className="flex flex-col items-center gap-3">
-
-
-
-
-
-
-
                           <CheckCircle className="w-10 h-10 text-emerald-500" />
-
-
-
-
-
-
-
                           <span className="text-xs font-bold text-white">Narração Salva com Sucesso!</span>
-
-
-
-
-
-
-
                           <span className="text-[10px] text-gray-500">narracao_mestra_premium.mp3 atualizado no workspace.</span>
-
-
-
-
-
-
-
                         </div>
-
-
-
-
-
-
-
-                      ) : (
-
-
-
-
-
-
-
+                      ) : status?.has_narration ? (
                         <div className="flex flex-col items-center gap-3">
-
-
-
-
-
-
-
-                          <Volume2 className="w-10 h-10 text-zinc-600 animate-pulse" />
-
-
-
-
-
-
-
-                          <div>
-
-
-
-
-
-
-
-                            <span className="text-xs text-gray-300 block font-bold">Arraste seu arquivo MP3 de narração aqui</span>
-
-
-
-
-
-
-
-                            <span className="text-[10px] text-zinc-500 block mt-1">ou clique para selecionar do computador</span>
-
-
-
-
-
-
-
-                          </div>
-
-
-
-
-
-
-
-                          <input 
-
-
-
-
-
-
-
-                            type="file" 
-
-
-
-
-
-
-
-                            accept="audio/mp3,audio/mpeg" 
-
-
-
-
-
-
-
-                            onChange={handleFileInput}
-
-
-
-
-
-
-
-                            className="hidden" 
-
-
-
-
-
-
-
-                            id="file-upload" 
-
-
-
-
-
-
-
-                          />
-
-
-
-
-
-
-
-                          <label 
-
-
-
-
-
-
-
-                            htmlFor="file-upload" 
-
-
-
-
-
-
-
-                            className="mt-2 bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-zinc-850 transition"
-
-
-
-
-
-
-
-                          >
-
-
-
-
-
-
-
-                            Selecionar Arquivo
-
-
-
-
-
-
-
-                          </label>
-
-
-
-
-
-
-
+                          <CheckCircle className="w-10 h-10 text-emerald-500/80 animate-pulse" />
+                          <span className="text-xs font-bold text-white">Narração Existente no Workspace</span>
+                          <span className="text-[10px] text-gray-400">narracao_mestra_premium.mp3 já está salvo no workspace.</span>
                         </div>
-
-
-
-
-
-
-
+                      ) : (
+                        <div className="flex flex-col items-center gap-3">
+                          <Volume2 className="w-10 h-10 text-zinc-600 animate-pulse" />
+                          <div>
+                            <span className="text-xs text-gray-300 block font-bold">Arraste seu arquivo MP3 de narração aqui</span>
+                            <span className="text-[10px] text-zinc-500 block mt-1">ou clique para selecionar do computador</span>
+                          </div>
+                        </div>
                       )}
+                      
+                      <input 
+                        type="file" 
+                        accept="audio/mp3,audio/mpeg" 
+                        onChange={handleFileInput}
+                        className="hidden" 
+                        id="file-upload" 
+                      />
 
-
-
-
-
-
-
+                      {!uploadSuccess && (
+                        <label 
+                          htmlFor="file-upload" 
+                          className="mt-2 bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-zinc-850 transition"
+                        >
+                          {status?.has_narration ? 'Substituir Narração' : 'Selecionar Arquivo'}
+                        </label>
+                      )}
                     </div>
 
 
