@@ -29,8 +29,6 @@ def find_output_video(project_dir):
         mp4_files = glob.glob(os.path.join(project_dir, "*.mp4"))
     if not mp4_files:
         return None
-    
-    # Prioritize standard or newest
     for f in mp4_files:
         if os.path.basename(f) == "video_final_60fps.mp4":
             return f
@@ -52,7 +50,6 @@ def main():
         sys.exit(1)
     print(f"[INFO] Vídeo para upload: {os.path.basename(video_path)}")
     
-    # Determine workspace directory
     workspace_dir = project_dir
     found_ws = False
     for _ in range(5):
@@ -65,7 +62,10 @@ def main():
         
     cookies_path = os.path.join(workspace_dir, "tiktok_cookies.json")
     
-    # Load metadata from config_qanat.json
+    if not os.path.exists(cookies_path):
+        print("[ERROR] Sessão do TikTok não conectada. Por favor, conecte a conta no painel primeiro.")
+        sys.exit(1)
+        
     proj_config_path = os.path.join(project_dir, "config_qanat.json")
     proj_config = load_json(proj_config_path) or {}
     
@@ -80,101 +80,91 @@ def main():
     
     print(f"[INFO] Legenda: {caption}")
     
+    # We update status to 'uploading'
+    if "upload_metadata" not in proj_config:
+        proj_config["upload_metadata"] = {}
+    if "tiktok" not in proj_config["upload_metadata"]:
+        proj_config["upload_metadata"]["tiktok"] = {}
+    proj_config["upload_metadata"]["tiktok"]["status"] = "uploading"
+    save_json(proj_config_path, proj_config)
+    
     with sync_playwright() as p:
-        # Check if cookies exist
-        has_cookies = os.path.exists(cookies_path)
-        
-        # Launch browser. We run headless=False for login setup or visual feedback.
-        # It's safer to run headless=False to avoid bot detection during upload.
-        browser = p.chromium.launch(headless=False)
+        # Launch headful so user can see it on desktop if needed, or headless
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 800}
         )
         
-        if has_cookies:
-            print("[INFO] Carregando cookies de sessão salvos...")
-            with open(cookies_path, 'r', encoding='utf-8') as f:
-                cookies = json.load(f)
-            context.add_cookies(cookies)
+        print("[INFO] Carregando cookies de sessão salvos...")
+        with open(cookies_path, 'r', encoding='utf-8') as f:
+            cookies = json.load(f)
+        context.add_cookies(cookies)
             
         page = context.new_page()
         
-        if not has_cookies:
-            print("\n[REQUIRED] Login do TikTok necessário.")
-            print("[INFO] Abrindo página de login...")
-            page.goto("https://www.tiktok.com/login")
-            
-            print("\n" + "="*70)
-            print("  POR FAVOR, FAÇA LOGIN MANUALMENTE NA JANELA DO NAVEGADOR QUE SE ABRIU.")
-            print("  Depois de logar com sucesso e ver o feed do TikTok:")
-            print("  Pressione [ENTER] aqui no terminal para salvar os cookies de sessão.")
-            print("="*70 + "\n")
-            
-            input("Pressione Enter após logar para continuar...")
-            
-            # Save cookies
-            cookies = context.cookies()
-            with open(cookies_path, 'w', encoding='utf-8') as f:
-                json.dump(cookies, f, indent=2)
-            print("[SUCCESS] Cookies de sessão salvos com sucesso!")
-            
         print("[INFO] Acessando a página de upload do TikTok Studio...")
         page.goto("https://www.tiktok.com/tiktokstudio/upload?from=upload")
-        
-        # Wait for page to load
         page.wait_for_timeout(5000)
         
-        # Check if login is still active, otherwise reset cookies
         if "login" in page.url:
-            print("[ERROR] Sessão expirada. Removendo cookies antigos e solicitando login novamente...")
+            print("[ERROR] Sessão do TikTok expirada. Por favor, reconecte no painel.")
             if os.path.exists(cookies_path):
                 os.remove(cookies_path)
+            proj_config["upload_metadata"]["tiktok"]["status"] = "failed"
+            save_json(proj_config_path, proj_config)
             browser.close()
             sys.exit(1)
             
         print("[INFO] Localizando seletor de arquivos...")
-        
-        # Wait for file input and upload video
         try:
-            # Look for file input
             page.wait_for_selector('input[type="file"]', timeout=30000)
             file_input = page.locator('input[type="file"]')
             file_input.set_input_files(video_path)
-            print("[INFO] Arquivo de vídeo selecionado e enviado para o navegador.")
+            print("[INFO] Arquivo de vídeo selecionado.")
         except Exception as e:
-            print(f"[ERROR] Não foi possível encontrar o seletor de arquivos de upload: {e}")
+            print(f"[ERROR] Seletor de arquivos de upload não encontrado: {e}")
+            proj_config["upload_metadata"]["tiktok"]["status"] = "failed"
+            save_json(proj_config_path, proj_config)
             browser.close()
             sys.exit(1)
             
-        print("[INFO] Aguardando o carregamento e processamento do vídeo...")
-        # Give some time for file parsing
+        print("[INFO] Aguardando processamento inicial do vídeo...")
         page.wait_for_timeout(10000)
         
-        # Fill in the description/caption
         print("[INFO] Preenchendo a legenda...")
         try:
-            # Locate the editor container or text field
             editor_selector = 'div[contenteditable="true"]'
             page.wait_for_selector(editor_selector, timeout=20000)
-            # Clear editor if necessary and type caption
             page.focus(editor_selector)
-            # We select all text and delete it
             page.keyboard.press("Control+A")
             page.keyboard.press("Backspace")
             page.keyboard.type(caption)
             print("[INFO] Legenda preenchida.")
         except Exception as e:
-            print(f"[WARNING] Falha ao preencher legenda automaticamente: {e}. Prossiga manualmente.")
+            print(f"[WARNING] Falha ao preencher legenda: {e}")
             
-        print("\n" + "="*70)
-        print("  O vídeo e a legenda foram carregados no navegador.")
-        print("  Por favor, revise o vídeo e clique em 'Publicar' (ou 'Post') na janela.")
-        print("  Pressione [ENTER] aqui no terminal quando tiver concluído.")
-        print("="*70 + "\n")
+        page.wait_for_timeout(5000)
         
-        input("Pressione Enter após postar o vídeo...")
-        print("[SUCCESS] Upload concluído e finalizado!")
+        # Click publish
+        print("[INFO] Clicando no botão Publicar...")
+        try:
+            # TikTok publish button selector
+            publish_button = page.locator('button:has-text("Publicar"), button:has-text("Post")')
+            publish_button.wait_for(state="visible", timeout=15000)
+            publish_button.click()
+            print("[SUCCESS] Botão de publicação clicado com sucesso!")
+            page.wait_for_timeout(10000)
+            
+            proj_config["upload_metadata"]["tiktok"]["status"] = "success"
+            save_json(proj_config_path, proj_config)
+        except Exception as e:
+            print(f"[ERROR] Falha ao clicar no botão Publicar: {e}")
+            proj_config["upload_metadata"]["tiktok"]["status"] = "failed"
+            save_json(proj_config_path, proj_config)
+            browser.close()
+            sys.exit(1)
+            
         browser.close()
 
 if __name__ == "__main__":
