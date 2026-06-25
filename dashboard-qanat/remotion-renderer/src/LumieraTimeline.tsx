@@ -1165,8 +1165,9 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
       style={{
         justifyContent: "flex-end",
         alignItems: "center",
-        padding: isVertical ? "0 72px 280px" : "0 180px 110px",
+        padding: isVertical ? "0 72px 240px" : "0 180px 70px",
         pointerEvents: "none",
+        zIndex: 90,
       }}
     >
       <style>
@@ -1179,10 +1180,16 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
-          columnGap: isVertical ? 24 : 18,
-          rowGap: isVertical ? 14 : 10,
-          maxWidth: isVertical ? 960 : 1280,
-          filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.85))",
+          alignItems: "center",
+          columnGap: isVertical ? 22 : 16,
+          rowGap: isVertical ? 12 : 8,
+          maxWidth: isVertical ? 800 : 1000,
+          background: "rgba(10, 10, 15, 0.75)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          padding: isVertical ? "20px 40px" : "14px 28px",
+          borderRadius: "99px",
+          boxShadow: "0 16px 40px rgba(0, 0, 0, 0.75)",
         }}
       >
         {activeChunk.words.map((word, index) => {
@@ -1194,19 +1201,18 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
                 display: "inline-block",
                 color: active ? "#FACC15" : "#FFFFFF",
                 fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
-                fontSize: isVertical ? 76 : 56,
+                fontSize: isVertical ? 58 : 38,
                 fontWeight: 900,
-                lineHeight: 1.15,
-                letterSpacing: "0.04em",
-                WebkitTextStroke: isVertical ? "3px #020617" : "2px #020617",
+                lineHeight: 1.1,
+                letterSpacing: "0.05em",
                 textTransform: "uppercase",
                 whiteSpace: "pre",
                 textShadow: active
-                  ? "0 0 16px rgba(250,204,21,0.5), 0 4px 12px rgba(0,0,0,0.9)"
-                  : "0 4px 12px rgba(0,0,0,0.8)",
-                transform: active ? "translateY(-4px) scale(1.15) rotate(-1deg)" : "scale(0.95)",
-                transition: "transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.1s ease, opacity 0.1s ease",
-                opacity: active ? 1 : 0.45,
+                  ? "0 0 16px rgba(250,204,21,0.5), 0 2px 4px rgba(0,0,0,0.5)"
+                  : "0 2px 4px rgba(0,0,0,0.5)",
+                transform: active ? "scale(1.08)" : "scale(1.0)",
+                transition: "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                opacity: active ? 1 : 0.75,
               }}
             >
               {word.text}
