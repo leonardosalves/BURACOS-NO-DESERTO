@@ -101,12 +101,12 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
     "bottom-right": {
       justifyContent: "flex-end",
       alignItems: "flex-end",
-      padding: isVertical ? "0 60px 640px" : "0 100px 160px",
+      padding: isVertical ? "0 60px 640px" : "0 100px 220px",
     },
     "bottom-left": {
       justifyContent: "flex-end",
       alignItems: "flex-start",
-      padding: isVertical ? "0 60px 640px" : "0 100px 160px",
+      padding: isVertical ? "0 60px 640px" : "0 100px 220px",
     },
     "top-right": {
       justifyContent: "flex-start",
