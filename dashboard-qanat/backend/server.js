@@ -15733,7 +15733,7 @@ async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = n
 
 
 
-const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-pro-latest"];
 
 
 
