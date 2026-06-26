@@ -215,6 +215,17 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
     if (customStyle) {
       base = { ...base, ...customStyle };
     }
+    if (customStyle?.borderRadius) {
+      // If a custom border radius is applied, remove the asymmetric borderLeft to prevent browser rendering artifacts
+      delete base.borderLeft;
+      if (theme === "classic") {
+        // For classic theme, add a uniform border all around to match the top/right/bottom border
+        base.border = `1px solid ${accentColor}26`;
+        delete base.borderTop;
+        delete base.borderRight;
+        delete base.borderBottom;
+      }
+    }
     return base;
   };
 
@@ -272,8 +283,8 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         zIndex: 50,
       }}
     >
-      {/* Accent Bar (only in classic mode) */}
-      {theme === "classic" && (
+      {/* Accent Bar (only in classic mode without custom border radius) */}
+      {theme === "classic" && !customStyle?.borderRadius && (
         <div
           style={{
             width: ACCENT_BAR_WIDTH,
@@ -301,11 +312,15 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           ...getThemeStyle(),
         }}
       >
-        {/* Render Corner Decorator components based on theme */}
-        {theme === "tech" && <TechCorners color={accentColor} />}
-        {theme === "ancient" && <AncientCorners color={accentColor} />}
-        {theme === "industrial" && <IndustrialRivets />}
-        {theme === "mysterious" && <MysteriousStars color={accentColor} />}
+        {/* Render Corner Decorator components based on theme (only when not using a custom border radius) */}
+        {!customStyle?.borderRadius && (
+          <>
+            {theme === "tech" && <TechCorners color={accentColor} />}
+            {theme === "ancient" && <AncientCorners color={accentColor} />}
+            {theme === "industrial" && <IndustrialRivets />}
+            {theme === "mysterious" && <MysteriousStars color={accentColor} />}
+          </>
+        )}
 
         {/* Title */}
         <span
@@ -340,8 +355,8 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         )}
       </div>
 
-      {/* Decorative line extending from panel (only in classic mode) */}
-      {theme === "classic" && (
+      {/* Decorative line extending from panel (only in classic mode without custom border radius) */}
+      {theme === "classic" && !customStyle?.borderRadius && (
         <div
           style={{
             position: "absolute",
