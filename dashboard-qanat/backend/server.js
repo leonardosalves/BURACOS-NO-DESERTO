@@ -29190,7 +29190,7 @@ Você deve projetar os overlays usando o catálogo HyperFrames.
 4. Defina "fontFamilyTitle" e "fontFamilyDesc" adequadamente de acordo com o tema.
 5. Se for o tipo "counter", configure a propriedade "customStyle" contendo "colorValue", "fontFamilyValue" (ex: 'Cinzel', 'Oswald', 'Courier New', 'Montserrat') e "fontSizeValue" (ex: 28 a 38) para criar um display numérico espetacular.
 6. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
-` : ""}`
+` : ""}
 
 REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
