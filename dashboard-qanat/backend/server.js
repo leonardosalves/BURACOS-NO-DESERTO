@@ -10223,7 +10223,8 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
 
-      const renderPlan = await prepareRemotionRender(projDir);
+      const isProres = req.query.prores === "1" || req.query.transparent === "1";
+      const renderPlan = await prepareRemotionRender(projDir, isProres);
 
 
 
@@ -10335,7 +10336,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
 
-        "h264",
+        isProres ? "prores" : "h264",
 
 
 
@@ -12506,7 +12507,7 @@ async function scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug) {
   }
 }
 
-async function prepareRemotionRender(projectDir) {
+async function prepareRemotionRender(projectDir, isProres = false) {
 
 
 
@@ -14047,6 +14048,7 @@ async function prepareRemotionRender(projectDir) {
     debugOverlay: globalConfig.debugOverlay,
     overlays,
     youtubeChannelInfo,
+    transparent: isProres,
   };
 
 
@@ -14087,7 +14089,8 @@ async function prepareRemotionRender(projectDir) {
 
 
 
-  const outputPath = path.join(outputDir, `remotion_${Date.now()}.mp4`);
+  const fileExt = isProres ? "mov" : "mp4";
+  const outputPath = path.join(outputDir, `remotion_${Date.now()}.${fileExt}`);
 
 
 
