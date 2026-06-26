@@ -247,52 +247,58 @@ def main():
             json.dump(word_transcripts, f, ensure_ascii=False, indent=4)
         print("Successfully wrote raw word_transcripts.json.")
     
-    # 2. Build flat list of all words with absolute timestamps
-    flat_words = []
-    for seg in segments:
-        for w in seg.get('words', []):
-            flat_words.append({
-                "word": w['word'],
-                "clean": clean_word(w['word']),
-                "start": w['start'],
-                "end": w['end']
-            })
-            
-    # Search for block starts
+    # 2. Build block starts from aligned flat_correct_words
     block_starts = {}
-    
-    # Block 1 starts at 0.0s
     block_starts[1] = 0.0
     
-    # Search phrases
-    # We clean each word in the search phrases
-    for block_num, phrase in BLOCK_PHRASES:
-        if block_num == 1:
+    num_blocks = max(b[0] for b in BLOCK_PHRASES) if BLOCK_PHRASES else 12
+    
+    # Map each block to its line index
+    block_to_line_idx = {}
+    if os.path.exists('storyboard.json'):
+        try:
+            with open('storyboard.json', 'r', encoding='utf-8') as f:
+                sb = json.load(f)
+            if 'visual_prompts' in sb:
+                line_idx_counter = 0
+                for vp in sb['visual_prompts']:
+                    block_num = vp.get('block')
+                    text = vp.get('narration_text', '') or vp.get('text_overlay', '')
+                    if text:
+                        if block_num and block_num not in block_to_line_idx:
+                            block_to_line_idx[block_num] = line_idx_counter
+                        line_idx_counter += 1
+        except Exception as e:
+            print("Error mapping block to line index:", e)
+
+    # Fallback to transcripts_readable.txt mapping: Block N starts at line N-1
+    for b in range(1, num_blocks + 1):
+        if b not in block_to_line_idx:
+            block_to_line_idx[b] = b - 1
+
+    print("\nAligning block starts from word timestamps...")
+    for b in range(1, num_blocks + 1):
+        if b == 1:
+            block_starts[1] = 0.0
             continue
             
-        phrase_words = [clean_word(x) for x in phrase.split()]
-        n_p = len(phrase_words)
-        
-        # We slide a window over flat_words to find the best match
-        best_idx = -1
-        best_score = 0
-        
-        for i in range(len(flat_words) - n_p + 1):
-            score = 0
-            for j in range(n_p):
-                if flat_words[i+j]['clean'] == phrase_words[j]:
-                    score += 1
-            if score > best_score:
-                best_score = score
-                best_idx = i
+        line_idx = block_to_line_idx.get(b, b - 1)
+        # Find first word at or after this line index that has a timestamp
+        matched_start = None
+        for w in flat_correct_words:
+            if w['sentence_idx'] >= line_idx and w['start'] is not None:
+                matched_start = w['start']
+                break
                 
-        # If we found a decent match (at least 60% of words matched)
-        if best_score >= max(2, int(n_p * 0.6)):
-            block_starts[block_num] = flat_words[best_idx]['start']
-            print(f"Block {block_num} start matched: '{phrase}' at {block_starts[block_num]:.3f}s (matched {best_score}/{n_p} words)")
+        if matched_start is not None:
+            block_starts[b] = matched_start
+            print(f"Block {b} start aligned to word at line {line_idx}: {matched_start:.3f}s")
         else:
-            print(f"WARNING: Could not find reliable match for Block {block_num}: '{phrase}'")
-            # Fallback based on relative position if match fails
+            # Fallback if no match: linear interpolation or relative progress
+            prev_start = block_starts.get(b - 1, 0.0)
+            fallback = prev_start + 10.0
+            block_starts[b] = fallback
+            print(f"WARNING: Could not find aligned word for Block {b}. Falling back to {fallback:.3f}s")
             
     # Print out Python code to copy-paste into build_video.py and build_video_destacado.py
     print("\nTIMELINE CODE GENERATION:")
