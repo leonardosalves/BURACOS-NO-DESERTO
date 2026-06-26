@@ -383,6 +383,140 @@ Permite expor verdades consolidadas de forma limpa e impactante.
 
 ---
 
+### 7. 💻 Code Highlight & Terminals (Blocks/Code-Highlight)
+Inspirado na categoria `blocks/code-highlight` do catálogo HyperFrames (HeyGen), ideal para vídeos sobre programação, hacking ético, tutoriais técnicos, inteligência artificial ou automações.
+
+#### A. 🍎 Estilo `macos-bash-terminal` (Terminal macOS Interativo)
+Simula um terminal shell executando comandos com a barra de título clássica com botões coloridos.
+```json
+{
+  "id": "terminal-macos-1",
+  "type": "info-card",
+  "start": 2.0,
+  "duration": 5.5,
+  "props": {
+    "title": "🔴 🟡 🟢 bash ~ user@lumiera-node-1",
+    "description": "$ npm run build\n> lumiera-compiler@4.2.0 build\n> vite build\n\n✓ 142 modules transformed.\noutput/production-render-v1.mp4 (42MB)",
+    "iconType": "gear",
+    "position": "center-left",
+    "accentColor": "#00FF87",
+    "variant": "minimal",
+    "theme": "tech",
+    "customStyle": {
+      "background": "#0F141C",
+      "border": "1px solid #232E3E",
+      "borderRadius": "12px",
+      "boxShadow": "0 20px 50px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 135, 0.1)",
+      "fontFamilyTitle": "Courier New",
+      "fontFamilyDesc": "Courier New",
+      "colorTitle": "#FF8C00",
+      "colorDesc": "#E2E8F0",
+      "fontSizeTitle": 11,
+      "fontSizeDesc": 10
+    }
+  }
+}
+```
+
+#### B. 📝 Estilo `vscode-code-highlight` (Editor VS Code com Sintaxe Colorida)
+Simula um snippet de código destacado de forma profissional em um editor IDE.
+```json
+{
+  "id": "vscode-snippet-1",
+  "type": "info-card",
+  "start": 4.5,
+  "duration": 6.5,
+  "props": {
+    "title": "📄 database.config.ts",
+    "description": "export const db = {\n  host: 'localhost',\n  port: 5432,\n  ssl: true,\n  user: 'postgres'\n};",
+    "iconType": "science",
+    "position": "center-right",
+    "accentColor": "#00E5FF",
+    "variant": "glass",
+    "theme": "tech",
+    "customStyle": {
+      "background": "rgba(30, 30, 30, 0.95)",
+      "backdropFilter": "blur(20px)",
+      "border": "1px solid #3c3c3c",
+      "borderRadius": "14px",
+      "boxShadow": "0 15px 40px rgba(0, 229, 255, 0.15)",
+      "fontFamilyTitle": "Courier New",
+      "fontFamilyDesc": "Courier New",
+      "colorTitle": "#00E5FF",
+      "colorDesc": "#CE9178",
+      "fontSizeTitle": 11,
+      "fontSizeDesc": 11
+    }
+  }
+}
+```
+
+#### C. ➕ Estilo `git-diff-showcase` (Destaque de Modificação de Código / Git Diff)
+Simula um histórico de modificação de código contendo linhas adicionadas em verde e removidas em vermelho.
+```json
+{
+  "id": "git-diff-1",
+  "type": "info-card",
+  "start": 7.0,
+  "duration": 5.5,
+  "props": {
+    "title": "⚙️ git diff src/index.ts",
+    "description": "- const port = 3000;\n+ const port = process.env.PORT || 3005;\n+ console.log(`Running on ${port}`);",
+    "iconType": "warning",
+    "position": "bottom-right",
+    "accentColor": "#FF3D00",
+    "variant": "minimal",
+    "theme": "industrial",
+    "customStyle": {
+      "background": "#0D1117",
+      "border": "1.5px solid #30363D",
+      "borderRadius": "10px",
+      "boxShadow": "0 12px 36px rgba(0,0,0,0.5)",
+      "fontFamilyTitle": "Courier New",
+      "fontFamilyDesc": "Courier New",
+      "colorTitle": "#F0F6FC",
+      "colorDesc": "#FF7B72",
+      "fontSizeTitle": 10,
+      "fontSizeDesc": 10
+    }
+  }
+}
+```
+
+#### D. 🛸 Estilo `hacker-matrix-terminal` (Terminal Retro Hacker)
+Ideal para teorias cibernéticas, segurança da informação, quebra de senhas ou logs de invasão.
+```json
+{
+  "id": "matrix-hacker-1",
+  "type": "info-card",
+  "start": 10.0,
+  "duration": 5.0,
+  "props": {
+    "title": "📡 [INTRUDER ALERT] - PORT SCAN",
+    "description": "[+] Scanning target: 192.168.1.100\n[+] Port 22/tcp (ssh) - OPEN\n[+] Port 80/tcp (http) - OPEN\n[!] EXPLOITING CVE-2026-9912...",
+    "iconType": "warning",
+    "position": "center-left",
+    "accentColor": "#00FF87",
+    "variant": "accent",
+    "theme": "industrial",
+    "customStyle": {
+      "background": "rgba(0, 10, 0, 0.97)",
+      "border": "2px solid #00FF87",
+      "borderRadius": "0px",
+      "boxShadow": "0 0 30px rgba(0, 255, 135, 0.4)",
+      "fontFamilyTitle": "Courier New",
+      "fontFamilyDesc": "Courier New",
+      "colorTitle": "#00FF87",
+      "colorDesc": "#00FF87",
+      "fontSizeTitle": 11,
+      "fontSizeDesc": 10
+    }
+  }
+}
+```
+
+---
+
 ## 🤖 Regras de Orquestração do Gemini
 
 O modelo de Inteligência Artificial deve atuar como o **Designer Chefe** e seguir rigorosamente estas diretrizes ao planejar os overlays de cada vídeo:
