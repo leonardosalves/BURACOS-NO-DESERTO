@@ -29183,14 +29183,21 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
 Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
 
 ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
-Você deve projetar os overlays usando o catálogo HyperFrames.
-1. Para "customStyle", você DEVE definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo (ex: tons de roxo/azul ciber para futurismo, tons escuros de bronze/dourado para arqueologia, tons quentes e laranjas para perigo/aventura/fogo).
+Você deve projetar os overlays usando o catálogo de alta conversão do HyperFrames.
+1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo (ex: tons de roxo/azul ciber para futurismo, tons escuros de bronze/dourado para arqueologia, tons quentes e laranjas para perigo/aventura/fogo).
 2. Adicione uma moldura expressiva usando "border" (ex: "2px solid #FFD700" ou "3px double rgba(0,229,255,0.8)" ou "1.5px dashed #00FF87").
 3. Use obrigatoriamente um sombreado brilhante com "boxShadow" para dar efeito de brilho flutuante neon no vídeo (ex: "0 10px 40px rgba(0, 255, 135, 0.3)" ou "0 12px 36px rgba(255, 61, 0, 0.35)").
 4. Defina "fontFamilyTitle" e "fontFamilyDesc" adequadamente de acordo com o tema.
 5. Se for o tipo "counter", configure a propriedade "customStyle" contendo "colorValue", "fontFamilyValue" (ex: 'Cinzel', 'Oswald', 'Courier New', 'Montserrat') e "fontSizeValue" (ex: 28 a 38) para criar um display numérico espetacular.
 6. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
+7. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
+   - "tiktok-comment", "reddit-post", "instagram-comment" (use o tipo "info-card" com variante "glass" ou "minimal", avatar e títulos de autor como "r/HojeEuAprendi • p/u/User" ou "@username").
+   - "lt-soft-pill" (use o tipo "lower-third" com cantos muito arredondados "40px" e gradientes suaves).
+   - "lt-accent-underline" (use o tipo "lower-third" com borda esquerda colorida "borderLeft: '4px solid #FF3D00'").
+   - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
+   - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).
 ` : ""}
+
 
 REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
