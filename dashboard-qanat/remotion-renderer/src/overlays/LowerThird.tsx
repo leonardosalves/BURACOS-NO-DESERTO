@@ -220,7 +220,9 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
       delete base.borderLeft;
       if (theme === "classic") {
         // For classic theme, add a uniform border all around to match the top/right/bottom border
-        base.border = `1px solid ${accentColor}26`;
+        if (!customStyle.border) {
+          base.border = `1px solid ${accentColor}26`;
+        }
         delete base.borderTop;
         delete base.borderRight;
         delete base.borderBottom;
@@ -349,9 +351,8 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
               marginTop: 2,
               ...getThemeFont("subtitle")
             }}
-          >
-            {subtitle}
-          </span>
+            dangerouslySetInnerHTML={{ __html: subtitle }}
+          />
         )}
       </div>
 

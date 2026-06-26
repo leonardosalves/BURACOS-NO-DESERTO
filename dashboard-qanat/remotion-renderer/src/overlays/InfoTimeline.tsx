@@ -436,9 +436,8 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
                       lineHeight: 1.3,
                       ...getThemeFont("desc"),
                     }}
-                  >
-                    {event.description}
-                  </span>
+                    dangerouslySetInnerHTML={{ __html: event.description }}
+                  />
                 </div>
               </React.Fragment>
             );

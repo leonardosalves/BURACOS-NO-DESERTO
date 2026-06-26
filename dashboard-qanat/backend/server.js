@@ -1,4 +1,5 @@
 import express from "express";
+import https from "https";
 
 
 
@@ -10590,13 +10591,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
         }
-
-
-
-
-
-
-
+        cleanup();
         res.end();
 
 
@@ -10630,13 +10625,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
       res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
-
-
-
-
-
-
-
+      cleanup();
       res.end();
 
 
@@ -10734,13 +10723,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
     res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
-
-
-
-
-
-
-
+    cleanup();
     res.end();
 
 
@@ -11118,13 +11101,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
     }
-
-
-
-
-
-
-
+    cleanup();
     res.end();
 
 
@@ -12435,7 +12412,6 @@ async function scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug) {
   const url = 'https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA';
   try {
     const html = await new Promise((resolve, reject) => {
-      const https = require('https');
       const options = {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -12479,8 +12455,6 @@ async function scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug) {
       const avatarFileName = "youtube_avatar.jpg";
       const destPath = path.join(publicProjectDir, avatarFileName);
       await new Promise((resolve, reject) => {
-        const https = require('https');
-        const fs = require('fs');
         https.get(avatarUrl, (res) => {
           const fileStream = fs.createWriteStream(destPath);
           res.pipe(fileStream);
@@ -26684,22 +26658,9 @@ Emoção: "${idea.emotion}"`;
 
 
 
-  if (idea.hook) {
-
-
-
-
-
-
-
-    promptSystem += `\nGancho de Retenção Inicial (Hook) sugerido: "${idea.hook}"`;
-
-
-
-
-
-
-
+  const customHookVal = idea.hook || idea.hooks || "";
+  if (customHookVal) {
+    promptSystem += `\nGancho de Retenção Inicial (Hook) sugerido: "${customHookVal}"`;
   }
 
 
@@ -26719,7 +26680,7 @@ Emoção: "${idea.emotion}"`;
   }
 
   if (idea.isCustom) {
-    promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário estão em inglês. Você DEVE obrigatoriamente traduzir o roteiro gerado e a narração para o Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante. No entanto, os ganchos visuais ("visual_prompts") e termos de busca devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
+    promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
   }
 
 
@@ -26768,7 +26729,8 @@ Reforco especifico para montagem do roteiro:
 
 
 
-- Preserve exatamente o formato JSON solicitado abaixo e a estrutura atual de blocos/segmentos.
+- Preserve exatamente o formato JSON solicitado abaixo (com todas as chaves, incluindo 'technical_config').
+- Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.
 
 
 
@@ -29179,12 +29141,36 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
 
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
 
+  let skillPrompt = "";
+  if (useHyperframes) {
+    const skillPath = path.join(WORKSPACE_DIR, ".agents", "skills", "hyperframes", "SKILL.md");
+    if (fs.existsSync(skillPath)) {
+      try {
+        const rawContent = fs.readFileSync(skillPath, "utf8");
+        if (rawContent.startsWith("---")) {
+          const parts = rawContent.split("---");
+          if (parts.length >= 3) {
+            skillPrompt = parts.slice(2).join("---").trim();
+          } else {
+            skillPrompt = rawContent;
+          }
+        } else {
+          skillPrompt = rawContent;
+        }
+      } catch (e) {
+        console.error("[Overlays] Erro ao ler SKILL.md do HyperFrames:", e);
+      }
+    }
+  }
+
   let systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
 Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
 
 ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
-Você deve projetar os overlays usando o catálogo de alta conversão do HyperFrames.
-1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo (ex: tons de roxo/azul ciber para futurismo, tons escuros de bronze/dourado para arqueologia, tons quentes e laranjas para perigo/aventura/fogo).
+Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
+Utilize as especificações, formatos (como de posts de redes sociais, pílulas, terminais de código e destaques) e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
+
+${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo (ex: tons de roxo/azul ciber para futurismo, tons escuros de bronze/dourado para arqueologia, tons quentes e laranjas para perigo/aventura/fogo).
 2. Adicione uma moldura expressiva usando "border" (ex: "2px solid #FFD700" ou "3px double rgba(0,229,255,0.8)" ou "1.5px dashed #00FF87").
 3. Use obrigatoriamente um sombreado brilhante com "boxShadow" para dar efeito de brilho flutuante neon no vídeo (ex: "0 10px 40px rgba(0, 255, 135, 0.3)" ou "0 12px 36px rgba(255, 61, 0, 0.35)").
 4. Defina "fontFamilyTitle" e "fontFamilyDesc" adequadamente de acordo com o tema.
@@ -29196,7 +29182,7 @@ Você deve projetar os overlays usando o catálogo de alta conversão do HyperFr
    - "lt-accent-underline" (use o tipo "lower-third" com borda esquerda colorida "borderLeft: '4px solid #FF3D00'").
    - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
    - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).
-   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal efeitos de foco "code-highlight-sweep" contendo tags HTML <pre> e <div> com inline-styles (ex: opacity: 0.35 para linhas comuns, e background: rgba(0,229,255,0.12), border-left: 3px solid #00E5FF, color: #00E5FF para a linha de foco), e sintaxes coloridas com quebras de linha "\\n").
+   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal efeitos de foco "code-highlight-sweep" contendo tags HTML <pre> e <div> com inline-styles (ex: opacity: 0.35 para linhas comuns, e background: rgba(0,229,255,0.12), border-left: 3px solid #00E5FF, color: #00E5FF para a linha de foco), e sintaxes coloridas com quebras de linha "\\n").`}
 ` : ""}
 
 

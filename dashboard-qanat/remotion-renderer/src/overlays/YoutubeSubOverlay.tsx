@@ -1,4 +1,4 @@
-import { spring, interpolate, useCurrentFrame, useVideoConfig, Img } from "remotion";
+import { spring, interpolate, useCurrentFrame, useVideoConfig, Img, staticFile } from "remotion";
 import React from "react";
 
 export type YoutubeChannelInfo = {
@@ -15,7 +15,18 @@ export const YoutubeSubOverlay: React.FC<{
 
   const name = channelInfo?.channelName || "AI Construction Stories";
   const subs = channelInfo?.subscriberCount || "242 inscritos";
-  const avatar = channelInfo?.avatarUrl || "https://yt3.googleusercontent.com/n3hcrupQPiDWs6_xADQ9zrdP69p3hAZo2C9re-cTc8fgipdZiOnNAGeakDxnyzd_11L5eYlsAQ=s900-c-k-c0x00ffffff-no-rj";
+  
+  const getAvatarUrl = () => {
+    if (!channelInfo?.avatarUrl) {
+      return "https://yt3.googleusercontent.com/n3hcrupQPiDWs6_xADQ9zrdP69p3hAZo2C9re-cTc8fgipdZiOnNAGeakDxnyzd_11L5eYlsAQ=s900-c-k-c0x00ffffff-no-rj";
+    }
+    if (channelInfo.avatarUrl.startsWith("http://") || channelInfo.avatarUrl.startsWith("https://")) {
+      return channelInfo.avatarUrl;
+    }
+    return staticFile(channelInfo.avatarUrl.replace(/\\/g, "/"));
+  };
+
+  const avatar = getAvatarUrl();
 
   // 1. Slide-in from bottom center (duration: 15 frames)
   const slideProgress = spring({
