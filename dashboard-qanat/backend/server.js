@@ -16427,7 +16427,7 @@ function normalizeApiKeys(...values) {
 
 
 
-  return [...new Set(keys.map(key => String(key).trim()).filter(k => k && !k.startsWith("AQ.")))];
+  return [...new Set(keys.map(key => String(key).trim()).filter(Boolean))];
 
 
 
