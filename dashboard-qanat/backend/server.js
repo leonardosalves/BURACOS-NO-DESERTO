@@ -20640,7 +20640,7 @@ Contexto Estratégico do Vídeo:
 
 
 
-    const prompt = `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
+    const prompt = `Você é um especialista em SEO para YouTube de alto nível, psicologia de cliques e crescimento orgânico de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
 
 
 
@@ -20648,7 +20648,7 @@ Contexto Estratégico do Vídeo:
 
 
 
-Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVEL:
+Analise o roteiro abaixo e gere metadados que provoquem curiosidade irresistível de forma moderna e autêntica.
 
 
 
@@ -20656,7 +20656,7 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 
 
 
-## REGRAS PARA OS TÍTULOS:
+## REGRAS PARA OS TÍTULOS (ESTRATÉGIA MODERNA DE CTR):
 
 
 
@@ -20664,7 +20664,7 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 
 
 
-- Use "curiosity gap" (lacuna de curiosidade): o espectador PRECISA clicar para descobrir a resposta
+- Use "curiosity gap" (lacuna de curiosidade) moderno: crie uma forte tensão cognitiva ou paradoxo que instigue o clique sem parecer um anúncio ou clickbait óbvio.
 
 
 
@@ -20672,7 +20672,7 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 
 
 
-- Inclua gatilhos emocionais: medo, surpresa, indignação, fascinação
+- PROIBIÇÃO ABSOLUTA DE CLICHÊS DE IA: Nunca use expressões como "99% não sabem", "99% das pessoas", "segredo chocante", "destruição brutal", "a verdade", "revelado", ou verbos no imperativo como "veja", "descubra".
 
 
 
@@ -20680,7 +20680,7 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 
 
 
-- Use números quando possível ("A razão nº 1...", "99% das pessoas não sabem...")
+- LINGUAGEM HUMANA: Escreva títulos como se fossem ditos por um criador de conteúdo real (ex: Veritasium, MagnatesMedia). Use linguagem simples, casual e altamente instigante.
 
 
 
@@ -20688,7 +20688,7 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 
 
 
-- Evite clickbait vazio: o título deve prometer algo que o vídeo ENTREGA
+- TAMANHO OTIMIZADO: Máximo de 45-50 caracteres. Títulos curtos convertem muito melhor e evitam corte em telas mobile.
 
 
 
@@ -20696,7 +20696,7 @@ Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVE
 
 
 
-- Máximo 60 caracteres por título
+- COMPLEMENTARIDADE: O título deve contar metade de uma história interessante, cuja outra metade será completada pela imagem da miniatura (thumbnail).
 
 
 
