@@ -10224,7 +10224,8 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
-      const renderPlan = await prepareRemotionRender(projDir, isProres);
+      const useHyperframes = req.query.hyperframes === "1";
+      const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes);
 
 
 
@@ -12507,7 +12508,7 @@ async function scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug) {
   }
 }
 
-async function prepareRemotionRender(projectDir, isProres = false) {
+async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false) {
 
 
 
@@ -14020,7 +14021,7 @@ async function prepareRemotionRender(projectDir, isProres = false) {
 
 
   // Generate overlays via AI
-  const overlays = await generateOverlaysWithAI(projectDir);
+  const overlays = await generateOverlaysWithAI(projectDir, useHyperframes);
   
   // Scrape YouTube channel info and save avatar locally
   const youtubeChannelInfo = await scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug);
@@ -29151,7 +29152,7 @@ app.listen(PORT, () => {
 
 
 // AI-driven overlay planning for Remotion PRO using Gemini API
-async function generateOverlaysWithAI(projectDir) {
+async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
@@ -29178,8 +29179,18 @@ async function generateOverlaysWithAI(projectDir) {
 
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
 
-  const systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
+  let systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
 Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
+
+${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
+Você deve projetar os overlays usando o catálogo HyperFrames.
+1. Para "customStyle", você DEVE definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo (ex: tons de roxo/azul ciber para futurismo, tons escuros de bronze/dourado para arqueologia, tons quentes e laranjas para perigo/aventura/fogo).
+2. Adicione uma moldura expressiva usando "border" (ex: "2px solid #FFD700" ou "3px double rgba(0,229,255,0.8)" ou "1.5px dashed #00FF87").
+3. Use obrigatoriamente um sombreado brilhante com "boxShadow" para dar efeito de brilho flutuante neon no vídeo (ex: "0 10px 40px rgba(0, 255, 135, 0.3)" ou "0 12px 36px rgba(255, 61, 0, 0.35)").
+4. Defina "fontFamilyTitle" e "fontFamilyDesc" adequadamente de acordo com o tema.
+5. Se for o tipo "counter", configure a propriedade "customStyle" contendo "colorValue", "fontFamilyValue" (ex: 'Cinzel', 'Oswald', 'Courier New', 'Montserrat') e "fontSizeValue" (ex: 28 a 38) para criar um display numérico espetacular.
+6. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
+` : ""}`
 
 REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.

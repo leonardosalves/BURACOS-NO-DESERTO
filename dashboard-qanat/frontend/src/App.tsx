@@ -17272,7 +17272,13 @@ export default function App() {
 
 
 
-  const triggerRender = (mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro', fromWizard = false, withoutImpactTitles = false) => {
+  const triggerRender = (
+    mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro',
+    fromWizard = false,
+    withoutImpactTitles = false,
+    useHyperframes = false,
+    isProres = false
+  ) => {
 
 
 
@@ -17328,7 +17334,13 @@ export default function App() {
 
 
 
-    const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${withoutImpactTitles ? '?withoutImpactTitles=1' : ''}`));
+    let queryParams = [];
+    if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
+    if (useHyperframes) queryParams.push("hyperframes=1");
+    if (isProres) queryParams.push("prores=1");
+    const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
+
+    const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${queryString}`));
 
 
 
@@ -18951,7 +18963,7 @@ export default function App() {
 
 
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
 
 
@@ -19240,6 +19252,42 @@ export default function App() {
                     <Sparkles className="w-4 h-4" />
                     <span>Renderizar via Remotion PRO</span>
                   </button>
+                </div>
+
+                {/* Remotion PRO + HyperFrames AI Card */}
+                <div className="glass-panel-glow border border-emerald-500/30 p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-400" /> HYPERFRAMES AI
+                      </h3>
+                      <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Orquestrado</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 leading-normal">
+                      Orquestração visual por IA baseada no catálogo HyperFrames. Suporta transparência (ProRes) e mola física.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="flex items-center gap-1.5 text-[9px] text-zinc-400 cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        id="prores-alpha-checkbox" 
+                        className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-3 h-3" 
+                      />
+                      <span>Fundo Transparente (ProRes Alpha)</span>
+                    </label>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => {
+                        const proresCheck = document.getElementById('prores-alpha-checkbox') as HTMLInputElement;
+                        triggerRender('remotion-pro', false, false, true, proresCheck?.checked);
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-emerald-500/10 cursor-pointer w-full"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Render HyperFrames AI</span>
+                    </button>
+                  </div>
                 </div>
 
 
@@ -38014,7 +38062,7 @@ export default function App() {
 
 
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 font-sans">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pt-4 font-sans">
 
 
 
@@ -38302,6 +38350,38 @@ export default function App() {
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Compilar Remotion PRO</span>
                         </button>
+                      </div>
+
+                      {/* Render Remotion PRO + HyperFrames AI card */}
+                      <div className="bg-zinc-950 border border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-emerald-500/30 transition">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">5. HYPERFRAMES AI</h5>
+                            <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">AI</span>
+                          </div>
+                          <p className="text-[9px] text-gray-400 mt-1 leading-normal">Orquestração dinâmica via IA do catálogo HyperFrames com suporte a transparência ProRes.</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="flex items-center gap-1 text-[8px] text-zinc-400 cursor-pointer select-none">
+                            <input 
+                              type="checkbox" 
+                              id="wizard-prores-checkbox" 
+                              className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-2.5 h-2.5" 
+                            />
+                            <span>Fundo Transparente (ProRes)</span>
+                          </label>
+                          <button 
+                            disabled={rendering}
+                            onClick={() => {
+                              const proresCheck = document.getElementById('wizard-prores-checkbox') as HTMLInputElement;
+                              triggerRender('remotion-pro', true, false, true, proresCheck?.checked);
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Compilar HyperFrames AI</span>
+                          </button>
+                        </div>
                       </div>
 
 
