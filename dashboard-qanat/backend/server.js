@@ -15788,7 +15788,12 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
           console.warn(`[Gemini] ${status} de ${model} (tentativa ${attempt}/${maxRetries}) usando chave ${currentKey.substring(0, 10)}...: ${errMsg}`);
           lastError = new Error(`${model}: ${errMsg}`);
 
-          if (status === 503 || status === 429) {
+          if (status === 429) {
+            console.warn(`[Gemini] Quota/Limite excedido (429) na chave ${currentKey.substring(0, 10)}... pulando imediatamente para a próxima chave.`);
+            break; // Go to next key for this model
+          }
+
+          if (status === 503) {
             const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
             await new Promise(r => setTimeout(r, delay));
             continue;
