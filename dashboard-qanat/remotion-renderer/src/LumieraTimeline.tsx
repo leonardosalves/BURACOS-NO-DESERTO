@@ -41,6 +41,7 @@ import {
 import { Audio, Video } from "@remotion/media";
 
 import { OverlayLayer, Overlay } from "./overlays/OverlayLayer";
+import { YoutubeSubOverlay, YoutubeChannelInfo } from "./overlays/YoutubeSubOverlay";
 
 
 
@@ -211,9 +212,8 @@ export type LumieraTimelineProps = {
   /** Professional overlay elements (infographics, lower thirds, kinetic text) */
 
   overlays?: Overlay[];
-
-
-
+  youtubeChannelInfo?: YoutubeChannelInfo | null;
+  transparent?: boolean;
 };
 
 
@@ -262,6 +262,10 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   overlays: [],
 
+  youtubeChannelInfo: null,
+
+  transparent: false,
+
 
 
 };
@@ -281,22 +285,11 @@ const assetUrl = (file: string) => staticFile(file.replace(/\\/g, "/"));
 
 
 const SceneMedia: React.FC<{
-
-
-
   scene: TimelineScene;
-
-
-
   isFirst: boolean;
-
-
-
   index: number;
-
-
-
-}> = ({ scene, isFirst, index }) => {
+  youtubeChannelInfo?: YoutubeChannelInfo | null;
+}> = ({ scene, isFirst, index, youtubeChannelInfo }) => {
 
 
 
@@ -692,7 +685,7 @@ const SceneMedia: React.FC<{
 
 
 
-    transform: `scale(${zoomScale * transitionScale})`,
+    transform: isLogo && youtubeChannelInfo ? `scale(${zoomScale * transitionScale}) translateY(-100px)` : `scale(${zoomScale * transitionScale})`,
 
 
 
@@ -1438,9 +1431,8 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   musicVolume = 0.15,
 
   overlays = [],
-
-
-
+  youtubeChannelInfo = null,
+  transparent = false,
 }) => {
 
 
@@ -1457,11 +1449,18 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
+  const lastScene = scenes[scenes.length - 1];
+  const isLastSceneLogo = lastScene && (
+    lastScene.asset.toLowerCase().includes("logo_final_") || 
+    lastScene.asset.toLowerCase().includes("logo.") || 
+    lastScene.asset.toLowerCase().includes("/logo")
+  );
+
   return (
 
 
 
-    <AbsoluteFill style={{ backgroundColor: "#050506" }}>
+    <AbsoluteFill style={{ backgroundColor: transparent ? "transparent" : "#050506" }}>
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');
@@ -1519,7 +1518,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-            <SceneMedia scene={scene} isFirst={index === 0} index={index} />
+            <SceneMedia scene={scene} isFirst={index === 0} index={index} youtubeChannelInfo={youtubeChannelInfo} />
 
 
 
@@ -1649,6 +1648,16 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
       {/* Professional overlays: infographics, lower thirds, kinetic text */}
       <OverlayLayer overlays={overlays} />
+
+      {isLastSceneLogo && youtubeChannelInfo && (
+        <Sequence
+          from={Math.round(lastScene.start * fps)}
+          durationInFrames={Math.max(1, Math.round(lastScene.duration * fps))}
+          premountFor={fps}
+        >
+          <YoutubeSubOverlay channelInfo={youtubeChannelInfo} />
+        </Sequence>
+      )}
 
 
 
