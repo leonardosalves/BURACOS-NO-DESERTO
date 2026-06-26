@@ -14602,21 +14602,7 @@ function buildTimelineFromStoryboard(projectDir) {
 
 
   if (assetFiles.length === 0) {
-
-
-
-
-
-
-
-    throw new Error("Nenhum arquivo de mídia encontrado em ASSETS.");
-
-
-
-
-
-
-
+    console.log("[Timeline] Nenhum arquivo de mídia encontrado em ASSETS. Mapeando apenas os prompts visuais como placeholders.");
   }
 
 
@@ -14809,62 +14795,23 @@ function buildTimelineFromStoryboard(projectDir) {
 
 
 
-    for (let slot = 0; slot < expectedCount && assetIndex < assetFiles.length; slot++) {
-
-
-
-
-
-
-
-      const asset = assetFiles[assetIndex++];
-
-
-
-
-
-
+    for (let slot = 0; slot < expectedCount; slot++) {
+      const promptObj = expectedScenes[slot];
+      const hasAssetFile = assetIndex < assetFiles.length;
+      const asset = hasAssetFile ? assetFiles[assetIndex++] : "";
+      
+      let resolvedType = "image";
+      if (hasAssetFile) {
+        resolvedType = getMediaTypeFromName(asset);
+      } else if (promptObj && promptObj.type) {
+        resolvedType = (promptObj.type.includes("video") || promptObj.type.includes("vídeo")) ? "video" : "image";
+      }
 
       blockAssets.push({
-
-
-
-
-
-
-
         asset,
-
-
-
-
-
-
-
-        type: getMediaTypeFromName(asset),
-
-
-
-
-
-
-
+        type: resolvedType,
         fixed: Number(slotDuration.toFixed(1)),
-
-
-
-
-
-
-
       });
-
-
-
-
-
-
-
     }
 
 
@@ -27474,55 +27421,22 @@ REGRAS FINAIS:
 
 
 
+    let timelineAssets = {};
+    try {
+      const mapped = buildTimelineFromStoryboard(projDir);
+      timelineAssets = mapped.timelineAssets;
+    } catch (e) {
+      console.log("[Creator Script] Falha ao pré-mapear timeline_assets:", e.message);
+    }
+
     const newConfig = {
       niche: niche || currentConfig.niche || "Geral",
-
-
-
-
-
-
-
       gemini_api_key: currentConfig.gemini_api_key,
-
-
-
-
-
-
-
       highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
-
-
-
-
-
-
-
       bgm_mappings: [],
-
-
-
-
-
-
-
       impact_texts: parsedData.technical_config?.impact_texts || [],
-
-
-
-
-
-
-
-      block_phrases: parsedData.technical_config?.block_phrases || []
-
-
-
-
-
-
-
+      block_phrases: parsedData.technical_config?.block_phrases || [],
+      timeline_assets: timelineAssets
     };
 
 
