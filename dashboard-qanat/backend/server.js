@@ -3535,7 +3535,7 @@ app.get("/api/render/config", (req, res) => {
 
 
 
-      blockGapSeconds: 2.0,
+      blockGapSeconds: 1.0,
 
 
 
@@ -12459,7 +12459,7 @@ async function prepareRemotionRender(projectDir) {
 
 
 
-  let globalConfig = { fps: 30, blockGapSeconds: 2.0, musicVolume: 0.15, useRemotionByDefault: true, debugOverlay: false };
+  let globalConfig = { fps: 30, blockGapSeconds: 1.0, musicVolume: 0.15, useRemotionByDefault: true, debugOverlay: false };
 
 
 
