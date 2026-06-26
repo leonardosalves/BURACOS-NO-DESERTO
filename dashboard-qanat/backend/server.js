@@ -275,7 +275,7 @@ app.use("/api/projects-media", (req, res, next) => {
 
 
 
-  const projName = parts[0];
+  const projName = parts[0].replace(/ /g, "_");
 
 
 
@@ -415,19 +415,11 @@ function getProjectDir(req) {
 
 
 
-  const projName = req.query?.project || req.body?.project;
-
-
-
-  if (!projName) {
-
-
-
+  const rawProjName = req.query?.project || req.body?.project;
+  if (!rawProjName) {
     return WORKSPACE_DIR;
-
-
-
   }
+  const projName = rawProjName.replace(/ /g, "_");
 
 
 

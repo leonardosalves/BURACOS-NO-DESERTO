@@ -11557,45 +11557,8 @@ export default function App() {
 
 
   const getMusicUrl = (fileName: string) => {
-
-
-
-
-
-
-
-    if (activeProject === 'Buracos no Deserto') {
-
-
-
-
-
-
-
-      return `/api/projects-media/${encodeURIComponent(fileName)}`;
-
-
-
-
-
-
-
-    }
-
-
-
-
-
-
-
-    return `/api/projects-media/${encodeURIComponent(activeProject)}/${encodeURIComponent(fileName)}`;
-
-
-
-
-
-
-
+    const projKey = activeProject.replace(/ /g, "_");
+    return `/api/projects-media/${encodeURIComponent(projKey)}/${encodeURIComponent(fileName)}`;
   };
 
 
