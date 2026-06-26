@@ -2059,6 +2059,7 @@ export default function App() {
 
 
   const [syncingTimings, setSyncingTimings] = useState<boolean>(false);
+  const [shouldAutoAlign, setShouldAutoAlign] = useState<boolean>(false);
 
 
 
@@ -2146,9 +2147,7 @@ export default function App() {
   const [customOutline, setCustomOutline] = useState<string>(savedCreatorState.customOutline || '');
   const [customBlocks, setCustomBlocks] = useState<{block: number, content: string}[]>(
     savedCreatorState.customBlocks || [
-      { block: 1, content: '' },
-      { block: 2, content: '' },
-      { block: 3, content: '' }
+      { block: 1, content: '' }
     ]
   );
 
@@ -3493,6 +3492,15 @@ export default function App() {
 
 
   }, [activeProject]);
+
+  useEffect(() => {
+    if (shouldAutoAlign && wordTranscripts.length > 0 && config && config.timeline_assets && status?.block_timings) {
+      setShouldAutoAlign(false);
+      setTimeout(() => {
+        alignAllBlocksToSpeech();
+      }, 200);
+    }
+  }, [wordTranscripts, shouldAutoAlign, config, status]);
 
 
 
@@ -14869,6 +14877,7 @@ export default function App() {
             promise: customOutline.trim(),
             emotion: "Curiosity / Action",
             isCustom: true,
+            hook: customHooks.trim(),
             hooks: customHooks.trim(),
             blocks: customBlocks.filter(b => b.content.trim() !== '')
           } : (selectedIdeaIndex === 999 ? {
@@ -15552,6 +15561,7 @@ export default function App() {
 
 
 
+        setShouldAutoAlign(true);
         setCreatorStep(4);
 
 
@@ -17690,6 +17700,3112 @@ export default function App() {
 
 
 
+
+
+  const renderRichTimelineEditor = () => {
+    if (!config) return null;
+    return (
+      <div className="space-y-6">
+
+
+
+
+
+
+
+                  {/* Action buttons row at the top */}
+
+
+
+
+
+
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
+
+
+
+
+
+
+
+                    <div>
+
+
+
+
+
+
+
+                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">Arquivos de Mídia por Bloco</h4>
+
+
+
+
+
+
+
+                      <p className="text-[10px] text-gray-400 mt-0.5">Adicione, ordene, exclua e configure mídias que constituem o vídeo em cada bloco.</p>
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+
+
+
+
+
+
+
+                      <div className="flex items-center gap-2">
+
+
+
+
+
+
+
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Formato:</span>
+
+
+
+
+
+
+
+                        <select
+
+
+
+
+
+
+
+                          value={config.aspect_ratio || '16:9'}
+
+
+
+
+
+
+
+                          onChange={(e) => {
+
+
+
+
+
+
+
+                            const newRatio = e.target.value as '16:9' | '9:16';
+
+
+
+
+
+
+
+                            setConfig({ ...config, aspect_ratio: newRatio });
+
+
+
+
+
+
+
+                          }}
+
+
+
+
+
+
+
+                          className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-2.5 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
+
+
+
+
+
+
+
+                        >
+
+
+
+
+
+
+
+                          <option value="16:9">16:9 (Horizontal)</option>
+
+
+
+
+
+
+
+                          <option value="9:16">9:16 (Vertical)</option>
+
+
+
+
+
+
+
+                        </select>
+
+
+
+
+
+
+
+                      </div>
+
+
+
+
+
+
+
+                                            <button
+                        disabled={creatorLoading}
+                        onClick={handleAutoMapAssets}
+                        className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-gold-500 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                        title="Mapear arquivos locais na pasta ASSETS para as cenas automaticamente com Inteligência Artificial"
+                      >
+                        {creatorLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-gold-500" />}
+                        <span>Associar Mídias com IA</span>
+                      </button>
+
+<button
+
+
+
+
+
+
+
+                        onClick={() => handleSaveConfig()}
+
+
+
+
+
+
+
+                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+
+
+
+
+
+
+
+                      >
+
+
+
+
+
+
+
+                        <Save className="w-3.5 h-3.5" /> Salvar Linha do Tempo
+
+
+
+
+
+
+
+                      </button>
+
+
+
+
+
+
+
+                      {status?.has_narration && (
+
+
+
+
+
+
+
+                        <button
+
+
+
+
+
+
+
+                          onClick={() => alignAllBlocksToSpeech()}
+
+
+
+
+
+
+
+                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+
+
+
+
+
+
+
+                          title="Sincronizar TODOS os blocos automaticamente com o tempo da voz da narração"
+
+
+
+
+
+
+
+                        >
+
+
+
+
+
+
+
+                          <Sparkles className="w-3.5 h-3.5" /> Sincronizar Todos com a Voz
+
+
+
+
+
+
+
+                        </button>
+
+
+
+
+
+
+
+                      )}
+
+
+
+
+
+
+
+                    </div>
+
+
+
+
+
+
+
+                  </div>
+
+
+
+
+
+
+
+                  {(() => {
+
+
+
+
+
+
+
+                    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
+
+
+
+
+
+
+
+                    const blockNums = Array.from({ length: maxBlocks }, (_, i) => i + 1);
+
+
+
+
+
+
+
+                    return blockNums.map((blockNum) => {
+
+
+
+
+
+
+
+                        const blockKey = String(blockNum);
+
+
+
+
+
+
+
+                        const blockNarrationDur = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+
+
+
+
+
+
+
+                        // Calculate actual total from asset durations
+
+
+
+
+
+
+
+                        const blockAssets = config.timeline_assets?.[blockKey] || [];
+
+
+
+
+
+
+
+                        const actualBlockTotal = blockAssets.reduce((_sum: number, _: any, i: number) => _sum + getAssetDuration(blockKey, i), 0);
+
+
+
+
+
+
+
+                        return (
+
+
+
+
+
+
+
+                          <div key={blockKey} className="glass-panel p-6 rounded-3xl space-y-4">
+
+
+
+
+
+
+
+                            <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
+
+
+
+
+
+
+
+                              <div>
+
+
+
+
+
+
+
+                                <h4 className="font-cinzel text-md font-bold text-gold-500">Bloco {blockKey}</h4>
+
+
+
+
+
+
+
+                                <span className="text-[10px] text-zinc-500 font-mono">
+
+
+
+
+
+
+
+                                  Duração Total: {actualBlockTotal.toFixed(1)}s
+
+
+
+
+
+
+
+                                  <span className={`ml-2 ${Math.abs(actualBlockTotal - blockNarrationDur) < 0.3 ? 'text-emerald-500' : 'text-amber-500'}`}>
+
+
+
+
+
+
+
+                                    (Narração: {blockNarrationDur.toFixed(1)}s)
+
+
+
+
+
+
+
+                                  </span>
+
+
+
+
+
+
+
+                                </span>
+
+
+
+
+
+
+
+                              </div>
+
+
+
+
+
+
+
+                              
+
+
+
+
+
+
+
+                              <div className="flex items-center gap-4">
+
+
+
+
+
+
+
+                                {/* Audio Upload for this block */}
+
+
+
+
+
+
+
+                                <div className="flex items-center gap-2">
+
+
+
+
+
+
+
+                                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider">BGM:</span>
+
+
+
+
+
+
+
+                                  {(() => {
+
+
+
+
+
+
+
+                                    const mappedFile = config?.bgm_mappings?.find((m: any) => m.block === blockNum)?.file;
+
+
+
+
+
+
+
+                                    return mappedFile ? (
+
+
+
+
+
+
+
+                                      <div className="flex items-center gap-1.5 min-w-0">
+
+
+
+
+
+
+
+                                        <span className="text-[10px] text-gold-400 font-mono max-w-[100px] truncate" title={mappedFile}>
+
+
+
+
+
+
+
+                                          🎵 {mappedFile}
+
+
+
+
+
+
+
+                                        </span>
+
+
+
+
+
+
+
+                                        <button
+
+
+
+
+
+
+
+                                          onClick={() => togglePlayMusic(mappedFile)}
+
+
+
+
+
+
+
+                                          className="text-gold-500 hover:text-gold-400 hover:bg-zinc-900 p-0.5 rounded cursor-pointer shrink-0 transition"
+
+
+
+
+
+
+
+                                          title="Ouvir trilha"
+
+
+
+
+
+
+
+                                        >
+
+
+
+
+
+
+
+                                          {playingMusic === mappedFile ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+
+
+
+
+
+
+
+                                        </button>
+
+
+
+
+
+
+
+                                      </div>
+
+
+
+
+
+
+
+                                    ) : (
+
+
+
+
+
+
+
+                                      <span className="text-[10px] text-zinc-650 italic">Padrão</span>
+
+
+
+
+
+
+
+                                    );
+
+
+
+
+
+
+
+                                  })()}
+
+
+
+
+
+
+
+                                  <input type="file" accept="audio/mpeg,audio/mp3,audio/wav" className="hidden" id={`bgm-upload-${blockKey}`}
+
+
+
+
+
+
+
+                                         onChange={async (e) => {
+
+
+
+
+
+
+
+                                           if (e.target.files && e.target.files[0]) {
+
+
+
+
+
+
+
+                                              const file = e.target.files[0];
+
+
+
+
+
+
+
+                                              try {
+
+
+
+
+
+
+
+                                                const res = await fetch(getProjectUrl(`/api/upload-bgm?block=${blockKey}&filename=${encodeURIComponent(file.name)}`), {
+
+
+
+
+
+
+
+                                                  method: 'POST', 
+
+
+
+
+
+
+
+                                                  headers: { 'Content-Type': file.type || 'audio/mpeg' },
+
+
+
+
+
+
+
+                                                  body: file
+
+
+
+
+
+
+
+                                                });
+
+
+
+
+
+
+
+                                                if (res.ok) {
+
+
+
+
+
+
+
+                                                  toast.success(`Trilha do Bloco ${blockKey} atualizada!`);
+
+
+
+
+
+
+
+                                                  fetchData();
+
+
+
+
+
+
+
+                                                } else {
+
+
+
+
+
+
+
+                                                  toast.error('Erro ao enviar trilha sonora.');
+
+
+
+
+
+
+
+                                                }
+
+
+
+
+
+
+
+                                              } catch(err) {
+
+
+
+
+
+
+
+                                                toast.error('Falha de conexão.');
+
+
+
+
+
+
+
+                                              }
+
+
+
+
+
+
+
+                                           }
+
+
+
+
+
+
+
+                                         }} />
+
+
+
+
+
+
+
+                                  <label htmlFor={`bgm-upload-${blockKey}`} className="bg-zinc-900 border border-zinc-800 text-white text-[10px] px-3 py-1.5 rounded-lg hover:bg-zinc-800 cursor-pointer flex items-center gap-1.5 transition">
+
+
+
+
+
+
+
+                                    <Upload className="w-3 h-3" /> Upload Trilha
+
+
+
+
+
+
+
+                                  </label>
+
+
+
+
+
+
+
+                                </div>
+
+
+
+
+
+
+
+                                {/* Speech sync button */}
+
+
+
+
+
+
+
+                                {status?.has_narration && (
+
+
+
+
+
+
+
+                                  <button
+
+
+
+
+
+
+
+                                    onClick={() => alignBlockAssetsToSpeech(blockKey)}
+
+
+
+
+
+
+
+                                    className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+
+
+
+
+
+
+
+                                    title="Sincronizar a duração das imagens com a fala da narração"
+
+
+
+
+
+
+
+                                  >
+
+
+
+
+
+
+
+                                    <Sparkles className="w-3.5 h-3.5" /> Sincronizar com a Voz
+
+
+
+
+
+
+
+                                  </button>
+
+
+
+
+
+
+
+                                )}
+
+
+
+
+
+
+
+                                {/* Add asset button */}
+
+
+
+
+
+
+
+                                <button
+
+
+
+
+
+
+
+                                  onClick={() => addTimelineAsset(blockKey)}
+
+
+
+
+
+
+
+                                  className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+
+
+
+
+
+
+
+                                >
+
+
+
+
+
+
+
+                                  <Plus className="w-3.5 h-3.5" /> Add Asset
+
+
+
+
+
+
+
+                                </button>
+
+
+
+
+
+
+
+                              </div>
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+
+
+
+
+
+
+                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => (
+
+
+
+
+
+
+
+                                <div key={idx} className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex flex-col justify-between space-y-3 hover:border-zinc-855 transition">
+
+
+
+
+
+
+
+                                  
+
+
+
+
+
+
+
+                                  {/* Visual Preview */}
+
+
+
+
+
+
+
+                                  <div 
+
+
+
+
+
+
+
+                                    className={`bg-zinc-950 rounded-lg overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview mx-auto ${
+
+
+
+
+
+
+
+                                      config.aspect_ratio === '9:16' ? 'h-64' : 'w-full'
+
+
+
+
+
+
+
+                                    }`}
+
+
+
+
+
+
+
+                                    style={{ aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9' }}
+
+
+
+
+
+
+
+                                  >
+
+
+
+
+
+
+
+                                    {asset.type === 'video' ? (
+
+
+
+
+
+
+
+                                      <video 
+
+
+
+
+
+
+
+                                        key={asset.asset}
+
+
+
+
+
+
+
+                                        src={getAssetUrl(asset.asset)} 
+
+
+
+
+
+
+
+                                        className="w-full h-full object-cover" 
+
+
+
+
+
+
+
+                                        controls={false} 
+
+
+
+
+
+
+
+                                        muted 
+
+
+
+
+
+
+
+                                        loop 
+
+
+
+
+
+
+
+                                        autoPlay 
+
+
+
+
+
+
+
+                                        playsInline 
+
+
+
+
+
+
+
+                                        onLoadedMetadata={(e) => {
+
+
+
+
+
+
+
+                                          const dur = e.currentTarget.duration;
+
+
+
+
+
+
+
+                                          if (dur && !isNaN(dur)) {
+
+
+
+
+
+
+
+                                            setVideoFileDurations(prev => {
+
+
+
+
+
+
+
+                                              if (prev[asset.asset] === dur) return prev;
+
+
+
+
+
+
+
+                                              return { ...prev, [asset.asset]: dur };
+
+
+
+
+
+
+
+                                            });
+
+
+
+
+
+
+
+                                          }
+
+
+
+
+
+
+
+                                        }}
+
+
+
+
+
+
+
+                                        onLoadedData={(e) => {
+
+
+
+
+
+
+
+                                          e.currentTarget.style.display = 'block';
+
+
+
+
+
+
+
+                                        }}
+
+
+
+
+
+
+
+                                        onError={(e) => {
+
+
+
+
+
+
+
+                                          e.currentTarget.style.display = 'none';
+
+
+
+
+
+
+
+                                        }}
+
+
+
+
+
+
+
+                                      />
+
+
+
+
+
+
+
+                                    ) : (
+
+
+
+
+
+
+
+                                      <img 
+
+
+
+
+
+
+
+                                        key={asset.asset}
+
+
+
+
+
+
+
+                                        src={getAssetUrl(asset.asset)} 
+
+
+
+
+
+
+
+                                        className="w-full h-full object-cover" 
+
+
+
+
+
+
+
+                                        alt="Preview" 
+
+
+
+
+
+
+
+                                        onLoad={(e) => {
+
+
+
+
+
+
+
+                                          e.currentTarget.style.display = 'block';
+
+
+
+
+
+
+
+                                        }}
+
+
+
+
+
+
+
+                                        onError={(e) => {
+
+
+
+
+
+
+
+                                          e.currentTarget.style.display = 'none';
+
+
+
+
+
+
+
+                                        }}
+
+
+
+
+
+
+
+                                      />
+
+
+
+
+
+
+
+                                    )}
+
+
+
+
+
+
+
+                                    {/* Overlay duration */}
+
+
+
+
+
+
+
+                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
+
+
+
+
+
+
+
+                                      ⏱️ {getAssetDuration(blockKey, idx).toFixed(1)}s
+
+
+
+
+
+
+
+                                      {asset.type === 'video' && videoFileDurations[asset.asset] !== undefined && (
+
+
+
+
+
+
+
+                                        <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
+
+
+
+
+
+
+
+                                          / {videoFileDurations[asset.asset].toFixed(1)}s
+
+
+
+
+
+
+
+                                        </span>
+
+
+
+
+
+
+
+                                      )}
+
+
+
+
+
+
+
+                                    </div>
+
+
+
+
+
+
+
+                                  </div>
+
+
+
+
+
+
+
+                                  {/* Dynamic narration - words redistribute based on asset duration */}
+
+
+
+
+
+
+
+                                  {(() => {
+
+
+
+
+
+
+
+                                    const dynamicResult = getDynamicAssetWords(blockKey, idx);
+
+
+
+
+
+
+
+                                    const staticNarration = getAssetNarration(blockKey, idx);
+
+
+
+
+
+
+
+                                    if (!dynamicResult && !staticNarration) return null;
+
+
+
+
+
+
+
+                                    const actualDuration = getAssetDuration(blockKey, idx);
+
+
+
+
+
+
+
+                                    const scenePlayKey = `scene-${blockKey}-${idx}`;
+
+
+
+
+
+
+
+                                    const isPlaying = playingNarration === scenePlayKey;
+
+
+
+
+
+
+
+                                    // Use dynamic words if available
+
+
+
+
+
+
+
+                                    const displayWords = dynamicResult ? dynamicResult.words : [];
+
+
+
+
+
+
+
+                                    const hasDynamic = dynamicResult !== null && dynamicResult.totalBlockWords > 0;
+
+
+
+
+
+
+
+                                    // Coverage info for the whole block (show only on last asset)
+
+
+
+
+
+
+
+                                    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
+
+
+
+
+
+
+
+                                    const isLastAsset = idx === totalAssets - 1;
+
+
+
+
+
+
+
+                                    const coveragePercent = dynamicResult ? Math.round((dynamicResult.coveredWords / dynamicResult.totalBlockWords) * 100) : 0;
+
+
+
+
+
+
+
+                                    const allWordsCovered = dynamicResult ? dynamicResult.coveredWords >= dynamicResult.totalBlockWords : false;
+
+
+
+
+
+
+
+                                    return (
+
+
+
+
+
+
+
+                                      <div className={`bg-zinc-900/50 p-2.5 rounded-lg border ${
+
+
+
+
+
+
+
+                                        hasDynamic && displayWords.length > 0
+
+
+
+
+
+
+
+                                          ? 'border-emerald-900/30'
+
+
+
+
+
+
+
+                                          : hasDynamic && displayWords.length === 0
+
+
+
+
+
+
+
+                                            ? 'border-zinc-900/30'
+
+
+
+
+
+
+
+                                            : 'border-zinc-850/50'
+
+
+
+
+
+
+
+                                      } flex flex-col gap-1.5 select-text`}>
+
+
+
+
+
+
+
+                                        <div className="flex items-start gap-2.5">
+
+
+
+
+
+
+
+                                          <Bot className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+
+
+
+
+
+
+
+                                          <div className="flex-1 min-w-0">
+
+
+
+
+
+
+
+                                            <div className="flex justify-between items-center mb-1">
+
+
+
+
+
+
+
+                                              <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">
+
+
+
+
+
+
+
+                                                {hasDynamic ? 'Narração Dinâmica' : 'Narração Recomendada'}
+
+
+
+
+
+
+
+                                              </span>
+
+
+
+
+
+
+
+                                              {status?.has_narration && dynamicResult && (
+
+
+
+
+
+
+
+                                                <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-400">
+
+
+
+
+
+
+
+                                                  <span className="text-emerald-400 font-bold" title="Janela de tempo deste asset na narração">
+
+
+
+
+
+
+
+                                                    🟢 {formatTime(dynamicResult.assetAudioStart)} - {formatTime(dynamicResult.assetAudioEnd)} ({actualDuration.toFixed(1)}s)
+
+
+
+
+
+
+
+                                                  </span>
+
+
+
+
+
+
+
+                                                  <span className="text-zinc-600 text-[8px]">
+
+
+
+
+
+
+
+                                                    {displayWords.length} palavras
+
+
+
+
+
+
+
+                                                  </span>
+
+
+
+
+
+
+
+                                                  <button
+
+
+
+
+
+
+
+                                                    onClick={() => togglePlaySceneNarration(blockKey, idx)}
+
+
+
+
+
+
+
+                                                    className={`p-0.5 rounded cursor-pointer transition shrink-0 ${
+
+
+
+
+
+
+
+                                                      isPlaying
+
+
+
+
+
+
+
+                                                        ? 'bg-gold-500 text-zinc-950 hover:bg-gold-600 animate-pulse'
+
+
+
+
+
+
+
+                                                        : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-gold-500'
+
+
+
+
+
+
+
+                                                    }`}
+
+
+
+
+
+
+
+                                                    title={isPlaying ? "Pausar" : "Ouvir este trecho"}
+
+
+
+
+
+
+
+                                                  >
+
+
+
+
+
+
+
+                                                    {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 text-gold-500" />}
+
+
+
+
+
+
+
+                                                  </button>
+
+
+
+
+
+
+
+                                                </div>
+
+
+
+
+
+
+
+                                              )}
+
+
+
+
+
+
+
+                                            </div>
+
+
+
+
+
+
+
+                                            <p className="text-[10px] italic leading-relaxed select-text flex flex-wrap" title={displayWords.length > 0 ? dynamicResult?.text : staticNarration}>
+
+
+
+
+
+
+
+                                              <span className="text-zinc-500 mr-1">"</span>
+
+
+
+
+
+
+
+                                              {hasDynamic && displayWords.length > 0 ? (
+
+
+
+
+
+
+
+                                                displayWords.map((part: any, pIdx: number) => (
+
+
+
+
+
+
+
+                                                  <span
+
+
+
+
+
+
+
+                                                    key={pIdx}
+
+
+
+
+
+
+
+                                                    className="text-zinc-100 font-medium mr-1"
+
+
+
+
+
+
+
+                                                    title={`Fala em ${formatTime(part.start)}`}
+
+
+
+
+
+
+
+                                                  >
+
+
+
+
+
+
+
+                                                    {part.word}
+
+
+
+
+
+
+
+                                                  </span>
+
+
+
+
+
+
+
+                                                ))
+
+
+
+
+
+
+
+                                              ) : hasDynamic && displayWords.length === 0 ? (
+
+
+
+
+
+
+
+                                                <span className="text-zinc-600 italic text-[9px]">
+
+
+
+
+
+
+
+                                                  (sem palavras nesta janela de tempo — ajuste a duração dos assets anteriores)
+
+
+
+
+
+
+
+                                                </span>
+
+
+
+
+
+
+
+                                              ) : (
+
+
+
+
+
+
+
+                                                <span className="text-zinc-300">{staticNarration}</span>
+
+
+
+
+
+
+
+                                              )}
+
+
+
+
+
+
+
+                                              <span className="text-zinc-500">"</span>
+
+
+
+
+
+
+
+                                            </p>
+
+
+
+
+
+
+
+                                          </div>
+
+
+
+
+
+
+
+                                        </div>
+
+
+
+
+
+
+
+                                        {/* Coverage indicator on last asset of block */}
+
+
+
+
+
+
+
+                                        {isLastAsset && hasDynamic && (
+
+
+
+
+
+
+
+                                          <div className="flex items-center gap-2 mt-1 pl-6">
+
+
+
+
+
+
+
+                                            <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+
+
+
+
+
+
+
+                                              <div
+
+
+
+
+
+
+
+                                                className={`h-full rounded-full transition-all duration-300 ${
+
+
+
+
+
+
+
+                                                  allWordsCovered ? 'bg-emerald-500' : coveragePercent >= 80 ? 'bg-amber-500' : 'bg-red-500'
+
+
+
+
+
+
+
+                                                }`}
+
+
+
+
+
+
+
+                                                style={{ width: `${Math.min(coveragePercent, 100)}%` }}
+
+
+
+
+
+
+
+                                              />
+
+
+
+
+
+
+
+                                            </div>
+
+
+
+
+
+
+
+                                            <span className={`text-[8px] font-mono font-bold ${
+
+
+
+
+
+
+
+                                              allWordsCovered ? 'text-emerald-400' : coveragePercent >= 80 ? 'text-amber-400' : 'text-red-400'
+
+
+
+
+
+
+
+                                            }`}>
+
+
+
+
+
+
+
+                                              {allWordsCovered
+
+
+
+
+
+
+
+                                                ? `✅ ${dynamicResult!.totalBlockWords} palavras cobertas`
+
+
+
+
+
+
+
+                                                : `⚠️ ${dynamicResult!.coveredWords}/${dynamicResult!.totalBlockWords} palavras (${coveragePercent}%) — aumente a duração dos assets`
+
+
+
+
+
+
+
+                                              }
+
+
+
+
+
+
+
+                                            </span>
+
+
+
+
+
+
+
+                                          </div>
+
+
+
+
+
+
+
+                                        )}
+
+
+
+
+
+
+
+                                      </div>
+
+
+
+
+
+
+
+                                    );
+
+
+
+
+
+
+
+                                  })()}
+
+
+
+
+
+
+
+                                  {/* Asset info */}
+
+
+
+
+
+
+
+                                  <div className="space-y-1">
+
+
+
+
+
+
+
+                                    <div className="flex justify-between items-center text-[10px] text-zinc-500 font-mono">
+
+
+
+
+
+
+
+                                      <span>Asset #{idx + 1}</span>
+
+
+
+
+
+
+
+                                      <div className="flex items-center gap-1">
+
+
+
+
+
+
+
+                                        <button
+
+
+
+
+
+
+
+                                          disabled={idx === 0}
+
+
+
+
+
+
+
+                                          onClick={() => moveTimelineAsset(blockKey, idx, 'up')}
+
+
+
+
+
+
+
+                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
+
+
+
+
+
+
+
+                                          title="Subir"
+
+
+
+
+
+
+
+                                        >
+
+
+
+
+
+
+
+                                          <ChevronUp className="w-3.5 h-3.5" />
+
+
+
+
+
+
+
+                                        </button>
+
+
+
+
+
+
+
+                                        <button
+
+
+
+
+
+
+
+                                          disabled={idx === (config.timeline_assets?.[blockKey] || []).length - 1}
+
+
+
+
+
+
+
+                                          onClick={() => moveTimelineAsset(blockKey, idx, 'down')}
+
+
+
+
+
+
+
+                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
+
+
+
+
+
+
+
+                                          title="Descer"
+
+
+
+
+
+
+
+                                        >
+
+
+
+
+
+
+
+                                          <ChevronDown className="w-3.5 h-3.5" />
+
+
+
+
+
+
+
+                                        </button>
+
+
+
+
+
+
+
+                                      </div>
+
+
+
+
+
+
+
+                                    </div>
+
+
+
+
+
+
+
+                                    
+
+
+
+
+
+
+
+                                    <input
+
+
+
+
+
+
+
+                                      type="text"
+
+
+
+
+
+
+
+                                      value={asset.asset}
+
+
+
+
+
+
+
+                                      onChange={(e) => updateTimelineAssetField(blockKey, idx, 'asset', e.target.value)}
+
+
+
+
+
+
+
+                                      placeholder="Nome do arquivo..."
+
+
+
+
+
+
+
+                                      className="w-full bg-zinc-900 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1 text-xs text-white"
+
+
+
+
+
+
+
+                                    />
+
+
+
+
+
+
+
+                                  </div>
+
+
+
+
+
+
+
+                                  {/* Type and fixed duration */}
+
+
+
+
+
+
+
+                                  <div className="flex justify-between items-center gap-2">
+
+
+
+
+
+
+
+                                    <div className="space-y-0.5 flex-1">
+
+
+
+
+
+
+
+                                      <span className="text-[9px] text-zinc-500 uppercase">Tipo</span>
+
+
+
+
+
+
+
+                                      <select
+
+
+
+
+
+
+
+                                        value={asset.type}
+
+
+
+
+
+
+
+                                        onChange={(e) => updateTimelineAssetField(blockKey, idx, 'type', e.target.value)}
+
+
+
+
+
+
+
+                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full focus:outline-none"
+
+
+
+
+
+
+
+                                      >
+
+
+
+
+
+
+
+                                        <option value="image">Imagem</option>
+
+
+
+
+
+
+
+                                        <option value="video">Vídeo</option>
+
+
+
+
+
+
+
+                                        <option value="svg">SVG</option>
+
+
+
+
+
+
+
+                                      </select>
+
+
+
+
+
+
+
+                                    </div>
+
+
+
+
+
+
+
+                                    <div className="space-y-0.5 w-20">
+
+
+
+
+
+
+
+                                      <span className="text-[9px] text-zinc-500 uppercase">Duração (s)</span>
+
+
+
+
+
+
+
+                                      <input
+
+
+
+
+
+
+
+                                        type="number"
+
+
+
+
+
+
+
+                                        step="0.5"
+
+
+
+
+
+
+
+                                        min="0.5"
+
+
+
+
+
+
+
+                                        value={asset.fixed !== undefined && asset.fixed !== null ? asset.fixed : ''}
+
+
+
+
+
+
+
+                                        placeholder={`Auto (${getAssetDuration(blockKey, idx).toFixed(1)}s)`}
+
+
+
+
+
+
+
+                                        onChange={(e) => {
+
+
+
+
+
+
+
+                                          const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+
+
+
+
+
+
+
+                                          updateTimelineAssetField(blockKey, idx, 'fixed', val);
+
+
+
+
+
+
+
+                                        }}
+
+
+
+
+
+
+
+                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full text-center focus:outline-none"
+
+
+
+
+
+
+
+                                      />
+
+
+
+
+
+
+
+                                    </div>
+
+
+
+
+
+
+
+                                  </div>
+
+
+
+
+
+
+
+                                  {/* Actions row: Replace/Substituir and Delete */}
+
+
+
+
+
+
+
+                                  <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
+
+
+
+
+
+
+
+                                    <button
+
+
+
+
+
+
+
+                                      onClick={() => deleteTimelineAsset(blockKey, idx)}
+
+
+
+
+
+
+
+                                      className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
+
+
+
+
+
+
+
+                                    >
+
+
+
+
+
+
+
+                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
+
+
+
+
+
+
+
+                                    </button>
+
+
+
+
+
+
+
+                                    <input type="file" accept={asset.type === 'video' ? "video/mp4" : "image/png,image/jpeg"} className="hidden" id={`asset-upload-${blockKey}-${idx}`}
+
+
+
+
+
+
+
+                                       onChange={(e) => {
+
+
+
+
+
+
+
+                                         if (e.target.files && e.target.files[0]) {
+
+
+
+
+
+
+
+                                            handleUploadSceneAsset(parseInt(blockKey), asset.type === 'video' ? 'video' : 'image', e.target.files[0], idx, selectedProject);
+
+
+
+
+
+
+
+                                         }
+
+
+
+
+
+
+
+                                       }} />
+
+
+
+
+
+
+
+                                    <label htmlFor={`asset-upload-${blockKey}-${idx}`} className="text-gold-500 hover:text-gold-400 text-[10px] cursor-pointer hover:underline flex items-center gap-1.5 transition">
+
+
+
+
+
+
+
+                                      <Upload className="w-3.5 h-3.5" /> Substituir
+
+
+
+
+
+
+
+                                    </label>
+
+
+
+
+
+
+
+                                  </div>
+
+
+
+
+
+
+
+                                </div>
+
+
+
+
+
+
+
+                              ))}
+
+
+
+
+
+
+
+                            </div>
+
+
+
+
+
+
+
+                          </div>
+
+
+
+
+
+
+
+                        );
+
+
+
+
+
+
+
+                      });
+
+
+
+
+
+
+
+                  })()}
+
+
+
+
+
+
+
+                  
+
+
+
+
+
+
+
+                  {/* Save button at bottom too */}
+
+
+
+
+
+
+
+                  <div className="flex justify-end pt-4">
+
+
+
+
+
+
+
+                    <button
+
+
+
+
+
+
+
+                      onClick={() => handleSaveConfig()}
+
+
+
+
+
+
+
+                      className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 transition cursor-pointer"
+
+
+
+
+
+
+
+                    >
+
+
+
+
+
+
+
+                      <Save className="w-4 h-4" /> Salvar Linha do Tempo e Configuração
+
+
+
+
+
+
+
+                    </button>
+
+
+
+
+
+
+
+                  </div>
+
+
+
+
+
+
+
+                </div>
+    );
+  };
 
 
   return (
@@ -26893,3109 +30009,7 @@ export default function App() {
 
 
               {editorSubTab === 'assets' && config && (
-
-
-
-
-
-
-
-                <div className="space-y-6">
-
-
-
-
-
-
-
-                  {/* Action buttons row at the top */}
-
-
-
-
-
-
-
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
-
-
-
-
-
-
-
-                    <div>
-
-
-
-
-
-
-
-                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">Arquivos de Mídia por Bloco</h4>
-
-
-
-
-
-
-
-                      <p className="text-[10px] text-gray-400 mt-0.5">Adicione, ordene, exclua e configure mídias que constituem o vídeo em cada bloco.</p>
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-
-
-
-
-
-
-
-                      <div className="flex items-center gap-2">
-
-
-
-
-
-
-
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Formato:</span>
-
-
-
-
-
-
-
-                        <select
-
-
-
-
-
-
-
-                          value={config.aspect_ratio || '16:9'}
-
-
-
-
-
-
-
-                          onChange={(e) => {
-
-
-
-
-
-
-
-                            const newRatio = e.target.value as '16:9' | '9:16';
-
-
-
-
-
-
-
-                            setConfig({ ...config, aspect_ratio: newRatio });
-
-
-
-
-
-
-
-                          }}
-
-
-
-
-
-
-
-                          className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-2.5 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
-
-
-
-
-
-
-
-                        >
-
-
-
-
-
-
-
-                          <option value="16:9">16:9 (Horizontal)</option>
-
-
-
-
-
-
-
-                          <option value="9:16">9:16 (Vertical)</option>
-
-
-
-
-
-
-
-                        </select>
-
-
-
-
-
-
-
-                      </div>
-
-
-
-
-
-
-
-                      <button
-
-
-
-
-
-
-
-                        onClick={() => handleSaveConfig()}
-
-
-
-
-
-
-
-                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
-
-
-
-
-
-
-
-                      >
-
-
-
-
-
-
-
-                        <Save className="w-3.5 h-3.5" /> Salvar Linha do Tempo
-
-
-
-
-
-
-
-                      </button>
-
-
-
-
-
-
-
-                      {status?.has_narration && (
-
-
-
-
-
-
-
-                        <button
-
-
-
-
-
-
-
-                          onClick={() => alignAllBlocksToSpeech()}
-
-
-
-
-
-
-
-                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
-
-
-
-
-
-
-
-                          title="Sincronizar TODOS os blocos automaticamente com o tempo da voz da narração"
-
-
-
-
-
-
-
-                        >
-
-
-
-
-
-
-
-                          <Sparkles className="w-3.5 h-3.5" /> Sincronizar Todos com a Voz
-
-
-
-
-
-
-
-                        </button>
-
-
-
-
-
-
-
-                      )}
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                  {(() => {
-
-
-
-
-
-
-
-                    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
-
-
-
-
-
-
-
-                    const blockNums = Array.from({ length: maxBlocks }, (_, i) => i + 1);
-
-
-
-
-
-
-
-                    return blockNums.map((blockNum) => {
-
-
-
-
-
-
-
-                        const blockKey = String(blockNum);
-
-
-
-
-
-
-
-                        const blockNarrationDur = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
-
-
-
-
-
-
-
-                        // Calculate actual total from asset durations
-
-
-
-
-
-
-
-                        const blockAssets = config.timeline_assets?.[blockKey] || [];
-
-
-
-
-
-
-
-                        const actualBlockTotal = blockAssets.reduce((_sum: number, _: any, i: number) => _sum + getAssetDuration(blockKey, i), 0);
-
-
-
-
-
-
-
-                        return (
-
-
-
-
-
-
-
-                          <div key={blockKey} className="glass-panel p-6 rounded-3xl space-y-4">
-
-
-
-
-
-
-
-                            <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
-
-
-
-
-
-
-
-                              <div>
-
-
-
-
-
-
-
-                                <h4 className="font-cinzel text-md font-bold text-gold-500">Bloco {blockKey}</h4>
-
-
-
-
-
-
-
-                                <span className="text-[10px] text-zinc-500 font-mono">
-
-
-
-
-
-
-
-                                  Duração Total: {actualBlockTotal.toFixed(1)}s
-
-
-
-
-
-
-
-                                  <span className={`ml-2 ${Math.abs(actualBlockTotal - blockNarrationDur) < 0.3 ? 'text-emerald-500' : 'text-amber-500'}`}>
-
-
-
-
-
-
-
-                                    (Narração: {blockNarrationDur.toFixed(1)}s)
-
-
-
-
-
-
-
-                                  </span>
-
-
-
-
-
-
-
-                                </span>
-
-
-
-
-
-
-
-                              </div>
-
-
-
-
-
-
-
-                              
-
-
-
-
-
-
-
-                              <div className="flex items-center gap-4">
-
-
-
-
-
-
-
-                                {/* Audio Upload for this block */}
-
-
-
-
-
-
-
-                                <div className="flex items-center gap-2">
-
-
-
-
-
-
-
-                                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider">BGM:</span>
-
-
-
-
-
-
-
-                                  {(() => {
-
-
-
-
-
-
-
-                                    const mappedFile = config?.bgm_mappings?.find((m: any) => m.block === blockNum)?.file;
-
-
-
-
-
-
-
-                                    return mappedFile ? (
-
-
-
-
-
-
-
-                                      <div className="flex items-center gap-1.5 min-w-0">
-
-
-
-
-
-
-
-                                        <span className="text-[10px] text-gold-400 font-mono max-w-[100px] truncate" title={mappedFile}>
-
-
-
-
-
-
-
-                                          🎵 {mappedFile}
-
-
-
-
-
-
-
-                                        </span>
-
-
-
-
-
-
-
-                                        <button
-
-
-
-
-
-
-
-                                          onClick={() => togglePlayMusic(mappedFile)}
-
-
-
-
-
-
-
-                                          className="text-gold-500 hover:text-gold-400 hover:bg-zinc-900 p-0.5 rounded cursor-pointer shrink-0 transition"
-
-
-
-
-
-
-
-                                          title="Ouvir trilha"
-
-
-
-
-
-
-
-                                        >
-
-
-
-
-
-
-
-                                          {playingMusic === mappedFile ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
-
-
-
-
-
-
-
-                                        </button>
-
-
-
-
-
-
-
-                                      </div>
-
-
-
-
-
-
-
-                                    ) : (
-
-
-
-
-
-
-
-                                      <span className="text-[10px] text-zinc-650 italic">Padrão</span>
-
-
-
-
-
-
-
-                                    );
-
-
-
-
-
-
-
-                                  })()}
-
-
-
-
-
-
-
-                                  <input type="file" accept="audio/mpeg,audio/mp3,audio/wav" className="hidden" id={`bgm-upload-${blockKey}`}
-
-
-
-
-
-
-
-                                         onChange={async (e) => {
-
-
-
-
-
-
-
-                                           if (e.target.files && e.target.files[0]) {
-
-
-
-
-
-
-
-                                              const file = e.target.files[0];
-
-
-
-
-
-
-
-                                              try {
-
-
-
-
-
-
-
-                                                const res = await fetch(getProjectUrl(`/api/upload-bgm?block=${blockKey}&filename=${encodeURIComponent(file.name)}`), {
-
-
-
-
-
-
-
-                                                  method: 'POST', 
-
-
-
-
-
-
-
-                                                  headers: { 'Content-Type': file.type || 'audio/mpeg' },
-
-
-
-
-
-
-
-                                                  body: file
-
-
-
-
-
-
-
-                                                });
-
-
-
-
-
-
-
-                                                if (res.ok) {
-
-
-
-
-
-
-
-                                                  toast.success(`Trilha do Bloco ${blockKey} atualizada!`);
-
-
-
-
-
-
-
-                                                  fetchData();
-
-
-
-
-
-
-
-                                                } else {
-
-
-
-
-
-
-
-                                                  toast.error('Erro ao enviar trilha sonora.');
-
-
-
-
-
-
-
-                                                }
-
-
-
-
-
-
-
-                                              } catch(err) {
-
-
-
-
-
-
-
-                                                toast.error('Falha de conexão.');
-
-
-
-
-
-
-
-                                              }
-
-
-
-
-
-
-
-                                           }
-
-
-
-
-
-
-
-                                         }} />
-
-
-
-
-
-
-
-                                  <label htmlFor={`bgm-upload-${blockKey}`} className="bg-zinc-900 border border-zinc-800 text-white text-[10px] px-3 py-1.5 rounded-lg hover:bg-zinc-800 cursor-pointer flex items-center gap-1.5 transition">
-
-
-
-
-
-
-
-                                    <Upload className="w-3 h-3" /> Upload Trilha
-
-
-
-
-
-
-
-                                  </label>
-
-
-
-
-
-
-
-                                </div>
-
-
-
-
-
-
-
-                                {/* Speech sync button */}
-
-
-
-
-
-
-
-                                {status?.has_narration && (
-
-
-
-
-
-
-
-                                  <button
-
-
-
-
-
-
-
-                                    onClick={() => alignBlockAssetsToSpeech(blockKey)}
-
-
-
-
-
-
-
-                                    className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-
-
-
-
-
-
-
-                                    title="Sincronizar a duração das imagens com a fala da narração"
-
-
-
-
-
-
-
-                                  >
-
-
-
-
-
-
-
-                                    <Sparkles className="w-3.5 h-3.5" /> Sincronizar com a Voz
-
-
-
-
-
-
-
-                                  </button>
-
-
-
-
-
-
-
-                                )}
-
-
-
-
-
-
-
-                                {/* Add asset button */}
-
-
-
-
-
-
-
-                                <button
-
-
-
-
-
-
-
-                                  onClick={() => addTimelineAsset(blockKey)}
-
-
-
-
-
-
-
-                                  className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-
-
-
-
-
-
-
-                                >
-
-
-
-
-
-
-
-                                  <Plus className="w-3.5 h-3.5" /> Add Asset
-
-
-
-
-
-
-
-                                </button>
-
-
-
-
-
-
-
-                              </div>
-
-
-
-
-
-
-
-                            </div>
-
-
-
-
-
-
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-
-
-
-
-
-
-                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => (
-
-
-
-
-
-
-
-                                <div key={idx} className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex flex-col justify-between space-y-3 hover:border-zinc-855 transition">
-
-
-
-
-
-
-
-                                  
-
-
-
-
-
-
-
-                                  {/* Visual Preview */}
-
-
-
-
-
-
-
-                                  <div 
-
-
-
-
-
-
-
-                                    className={`bg-zinc-950 rounded-lg overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview mx-auto ${
-
-
-
-
-
-
-
-                                      config.aspect_ratio === '9:16' ? 'h-64' : 'w-full'
-
-
-
-
-
-
-
-                                    }`}
-
-
-
-
-
-
-
-                                    style={{ aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9' }}
-
-
-
-
-
-
-
-                                  >
-
-
-
-
-
-
-
-                                    {asset.type === 'video' ? (
-
-
-
-
-
-
-
-                                      <video 
-
-
-
-
-
-
-
-                                        key={asset.asset}
-
-
-
-
-
-
-
-                                        src={getAssetUrl(asset.asset)} 
-
-
-
-
-
-
-
-                                        className="w-full h-full object-cover" 
-
-
-
-
-
-
-
-                                        controls={false} 
-
-
-
-
-
-
-
-                                        muted 
-
-
-
-
-
-
-
-                                        loop 
-
-
-
-
-
-
-
-                                        autoPlay 
-
-
-
-
-
-
-
-                                        playsInline 
-
-
-
-
-
-
-
-                                        onLoadedMetadata={(e) => {
-
-
-
-
-
-
-
-                                          const dur = e.currentTarget.duration;
-
-
-
-
-
-
-
-                                          if (dur && !isNaN(dur)) {
-
-
-
-
-
-
-
-                                            setVideoFileDurations(prev => {
-
-
-
-
-
-
-
-                                              if (prev[asset.asset] === dur) return prev;
-
-
-
-
-
-
-
-                                              return { ...prev, [asset.asset]: dur };
-
-
-
-
-
-
-
-                                            });
-
-
-
-
-
-
-
-                                          }
-
-
-
-
-
-
-
-                                        }}
-
-
-
-
-
-
-
-                                        onLoadedData={(e) => {
-
-
-
-
-
-
-
-                                          e.currentTarget.style.display = 'block';
-
-
-
-
-
-
-
-                                        }}
-
-
-
-
-
-
-
-                                        onError={(e) => {
-
-
-
-
-
-
-
-                                          e.currentTarget.style.display = 'none';
-
-
-
-
-
-
-
-                                        }}
-
-
-
-
-
-
-
-                                      />
-
-
-
-
-
-
-
-                                    ) : (
-
-
-
-
-
-
-
-                                      <img 
-
-
-
-
-
-
-
-                                        key={asset.asset}
-
-
-
-
-
-
-
-                                        src={getAssetUrl(asset.asset)} 
-
-
-
-
-
-
-
-                                        className="w-full h-full object-cover" 
-
-
-
-
-
-
-
-                                        alt="Preview" 
-
-
-
-
-
-
-
-                                        onLoad={(e) => {
-
-
-
-
-
-
-
-                                          e.currentTarget.style.display = 'block';
-
-
-
-
-
-
-
-                                        }}
-
-
-
-
-
-
-
-                                        onError={(e) => {
-
-
-
-
-
-
-
-                                          e.currentTarget.style.display = 'none';
-
-
-
-
-
-
-
-                                        }}
-
-
-
-
-
-
-
-                                      />
-
-
-
-
-
-
-
-                                    )}
-
-
-
-
-
-
-
-                                    {/* Overlay duration */}
-
-
-
-
-
-
-
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
-
-
-
-
-
-
-
-                                      ⏱️ {getAssetDuration(blockKey, idx).toFixed(1)}s
-
-
-
-
-
-
-
-                                      {asset.type === 'video' && videoFileDurations[asset.asset] !== undefined && (
-
-
-
-
-
-
-
-                                        <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
-
-
-
-
-
-
-
-                                          / {videoFileDurations[asset.asset].toFixed(1)}s
-
-
-
-
-
-
-
-                                        </span>
-
-
-
-
-
-
-
-                                      )}
-
-
-
-
-
-
-
-                                    </div>
-
-
-
-
-
-
-
-                                  </div>
-
-
-
-
-
-
-
-                                  {/* Dynamic narration - words redistribute based on asset duration */}
-
-
-
-
-
-
-
-                                  {(() => {
-
-
-
-
-
-
-
-                                    const dynamicResult = getDynamicAssetWords(blockKey, idx);
-
-
-
-
-
-
-
-                                    const staticNarration = getAssetNarration(blockKey, idx);
-
-
-
-
-
-
-
-                                    if (!dynamicResult && !staticNarration) return null;
-
-
-
-
-
-
-
-                                    const actualDuration = getAssetDuration(blockKey, idx);
-
-
-
-
-
-
-
-                                    const scenePlayKey = `scene-${blockKey}-${idx}`;
-
-
-
-
-
-
-
-                                    const isPlaying = playingNarration === scenePlayKey;
-
-
-
-
-
-
-
-                                    // Use dynamic words if available
-
-
-
-
-
-
-
-                                    const displayWords = dynamicResult ? dynamicResult.words : [];
-
-
-
-
-
-
-
-                                    const hasDynamic = dynamicResult !== null && dynamicResult.totalBlockWords > 0;
-
-
-
-
-
-
-
-                                    // Coverage info for the whole block (show only on last asset)
-
-
-
-
-
-
-
-                                    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
-
-
-
-
-
-
-
-                                    const isLastAsset = idx === totalAssets - 1;
-
-
-
-
-
-
-
-                                    const coveragePercent = dynamicResult ? Math.round((dynamicResult.coveredWords / dynamicResult.totalBlockWords) * 100) : 0;
-
-
-
-
-
-
-
-                                    const allWordsCovered = dynamicResult ? dynamicResult.coveredWords >= dynamicResult.totalBlockWords : false;
-
-
-
-
-
-
-
-                                    return (
-
-
-
-
-
-
-
-                                      <div className={`bg-zinc-900/50 p-2.5 rounded-lg border ${
-
-
-
-
-
-
-
-                                        hasDynamic && displayWords.length > 0
-
-
-
-
-
-
-
-                                          ? 'border-emerald-900/30'
-
-
-
-
-
-
-
-                                          : hasDynamic && displayWords.length === 0
-
-
-
-
-
-
-
-                                            ? 'border-zinc-900/30'
-
-
-
-
-
-
-
-                                            : 'border-zinc-850/50'
-
-
-
-
-
-
-
-                                      } flex flex-col gap-1.5 select-text`}>
-
-
-
-
-
-
-
-                                        <div className="flex items-start gap-2.5">
-
-
-
-
-
-
-
-                                          <Bot className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-
-
-
-
-
-
-
-                                          <div className="flex-1 min-w-0">
-
-
-
-
-
-
-
-                                            <div className="flex justify-between items-center mb-1">
-
-
-
-
-
-
-
-                                              <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">
-
-
-
-
-
-
-
-                                                {hasDynamic ? 'Narração Dinâmica' : 'Narração Recomendada'}
-
-
-
-
-
-
-
-                                              </span>
-
-
-
-
-
-
-
-                                              {status?.has_narration && dynamicResult && (
-
-
-
-
-
-
-
-                                                <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-400">
-
-
-
-
-
-
-
-                                                  <span className="text-emerald-400 font-bold" title="Janela de tempo deste asset na narração">
-
-
-
-
-
-
-
-                                                    🟢 {formatTime(dynamicResult.assetAudioStart)} - {formatTime(dynamicResult.assetAudioEnd)} ({actualDuration.toFixed(1)}s)
-
-
-
-
-
-
-
-                                                  </span>
-
-
-
-
-
-
-
-                                                  <span className="text-zinc-600 text-[8px]">
-
-
-
-
-
-
-
-                                                    {displayWords.length} palavras
-
-
-
-
-
-
-
-                                                  </span>
-
-
-
-
-
-
-
-                                                  <button
-
-
-
-
-
-
-
-                                                    onClick={() => togglePlaySceneNarration(blockKey, idx)}
-
-
-
-
-
-
-
-                                                    className={`p-0.5 rounded cursor-pointer transition shrink-0 ${
-
-
-
-
-
-
-
-                                                      isPlaying
-
-
-
-
-
-
-
-                                                        ? 'bg-gold-500 text-zinc-950 hover:bg-gold-600 animate-pulse'
-
-
-
-
-
-
-
-                                                        : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-gold-500'
-
-
-
-
-
-
-
-                                                    }`}
-
-
-
-
-
-
-
-                                                    title={isPlaying ? "Pausar" : "Ouvir este trecho"}
-
-
-
-
-
-
-
-                                                  >
-
-
-
-
-
-
-
-                                                    {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 text-gold-500" />}
-
-
-
-
-
-
-
-                                                  </button>
-
-
-
-
-
-
-
-                                                </div>
-
-
-
-
-
-
-
-                                              )}
-
-
-
-
-
-
-
-                                            </div>
-
-
-
-
-
-
-
-                                            <p className="text-[10px] italic leading-relaxed select-text flex flex-wrap" title={displayWords.length > 0 ? dynamicResult?.text : staticNarration}>
-
-
-
-
-
-
-
-                                              <span className="text-zinc-500 mr-1">"</span>
-
-
-
-
-
-
-
-                                              {hasDynamic && displayWords.length > 0 ? (
-
-
-
-
-
-
-
-                                                displayWords.map((part: any, pIdx: number) => (
-
-
-
-
-
-
-
-                                                  <span
-
-
-
-
-
-
-
-                                                    key={pIdx}
-
-
-
-
-
-
-
-                                                    className="text-zinc-100 font-medium mr-1"
-
-
-
-
-
-
-
-                                                    title={`Fala em ${formatTime(part.start)}`}
-
-
-
-
-
-
-
-                                                  >
-
-
-
-
-
-
-
-                                                    {part.word}
-
-
-
-
-
-
-
-                                                  </span>
-
-
-
-
-
-
-
-                                                ))
-
-
-
-
-
-
-
-                                              ) : hasDynamic && displayWords.length === 0 ? (
-
-
-
-
-
-
-
-                                                <span className="text-zinc-600 italic text-[9px]">
-
-
-
-
-
-
-
-                                                  (sem palavras nesta janela de tempo — ajuste a duração dos assets anteriores)
-
-
-
-
-
-
-
-                                                </span>
-
-
-
-
-
-
-
-                                              ) : (
-
-
-
-
-
-
-
-                                                <span className="text-zinc-300">{staticNarration}</span>
-
-
-
-
-
-
-
-                                              )}
-
-
-
-
-
-
-
-                                              <span className="text-zinc-500">"</span>
-
-
-
-
-
-
-
-                                            </p>
-
-
-
-
-
-
-
-                                          </div>
-
-
-
-
-
-
-
-                                        </div>
-
-
-
-
-
-
-
-                                        {/* Coverage indicator on last asset of block */}
-
-
-
-
-
-
-
-                                        {isLastAsset && hasDynamic && (
-
-
-
-
-
-
-
-                                          <div className="flex items-center gap-2 mt-1 pl-6">
-
-
-
-
-
-
-
-                                            <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-
-
-
-
-
-
-
-                                              <div
-
-
-
-
-
-
-
-                                                className={`h-full rounded-full transition-all duration-300 ${
-
-
-
-
-
-
-
-                                                  allWordsCovered ? 'bg-emerald-500' : coveragePercent >= 80 ? 'bg-amber-500' : 'bg-red-500'
-
-
-
-
-
-
-
-                                                }`}
-
-
-
-
-
-
-
-                                                style={{ width: `${Math.min(coveragePercent, 100)}%` }}
-
-
-
-
-
-
-
-                                              />
-
-
-
-
-
-
-
-                                            </div>
-
-
-
-
-
-
-
-                                            <span className={`text-[8px] font-mono font-bold ${
-
-
-
-
-
-
-
-                                              allWordsCovered ? 'text-emerald-400' : coveragePercent >= 80 ? 'text-amber-400' : 'text-red-400'
-
-
-
-
-
-
-
-                                            }`}>
-
-
-
-
-
-
-
-                                              {allWordsCovered
-
-
-
-
-
-
-
-                                                ? `✅ ${dynamicResult!.totalBlockWords} palavras cobertas`
-
-
-
-
-
-
-
-                                                : `⚠️ ${dynamicResult!.coveredWords}/${dynamicResult!.totalBlockWords} palavras (${coveragePercent}%) — aumente a duração dos assets`
-
-
-
-
-
-
-
-                                              }
-
-
-
-
-
-
-
-                                            </span>
-
-
-
-
-
-
-
-                                          </div>
-
-
-
-
-
-
-
-                                        )}
-
-
-
-
-
-
-
-                                      </div>
-
-
-
-
-
-
-
-                                    );
-
-
-
-
-
-
-
-                                  })()}
-
-
-
-
-
-
-
-                                  {/* Asset info */}
-
-
-
-
-
-
-
-                                  <div className="space-y-1">
-
-
-
-
-
-
-
-                                    <div className="flex justify-between items-center text-[10px] text-zinc-500 font-mono">
-
-
-
-
-
-
-
-                                      <span>Asset #{idx + 1}</span>
-
-
-
-
-
-
-
-                                      <div className="flex items-center gap-1">
-
-
-
-
-
-
-
-                                        <button
-
-
-
-
-
-
-
-                                          disabled={idx === 0}
-
-
-
-
-
-
-
-                                          onClick={() => moveTimelineAsset(blockKey, idx, 'up')}
-
-
-
-
-
-
-
-                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
-
-
-
-
-
-
-
-                                          title="Subir"
-
-
-
-
-
-
-
-                                        >
-
-
-
-
-
-
-
-                                          <ChevronUp className="w-3.5 h-3.5" />
-
-
-
-
-
-
-
-                                        </button>
-
-
-
-
-
-
-
-                                        <button
-
-
-
-
-
-
-
-                                          disabled={idx === (config.timeline_assets?.[blockKey] || []).length - 1}
-
-
-
-
-
-
-
-                                          onClick={() => moveTimelineAsset(blockKey, idx, 'down')}
-
-
-
-
-
-
-
-                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
-
-
-
-
-
-
-
-                                          title="Descer"
-
-
-
-
-
-
-
-                                        >
-
-
-
-
-
-
-
-                                          <ChevronDown className="w-3.5 h-3.5" />
-
-
-
-
-
-
-
-                                        </button>
-
-
-
-
-
-
-
-                                      </div>
-
-
-
-
-
-
-
-                                    </div>
-
-
-
-
-
-
-
-                                    
-
-
-
-
-
-
-
-                                    <input
-
-
-
-
-
-
-
-                                      type="text"
-
-
-
-
-
-
-
-                                      value={asset.asset}
-
-
-
-
-
-
-
-                                      onChange={(e) => updateTimelineAssetField(blockKey, idx, 'asset', e.target.value)}
-
-
-
-
-
-
-
-                                      placeholder="Nome do arquivo..."
-
-
-
-
-
-
-
-                                      className="w-full bg-zinc-900 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1 text-xs text-white"
-
-
-
-
-
-
-
-                                    />
-
-
-
-
-
-
-
-                                  </div>
-
-
-
-
-
-
-
-                                  {/* Type and fixed duration */}
-
-
-
-
-
-
-
-                                  <div className="flex justify-between items-center gap-2">
-
-
-
-
-
-
-
-                                    <div className="space-y-0.5 flex-1">
-
-
-
-
-
-
-
-                                      <span className="text-[9px] text-zinc-500 uppercase">Tipo</span>
-
-
-
-
-
-
-
-                                      <select
-
-
-
-
-
-
-
-                                        value={asset.type}
-
-
-
-
-
-
-
-                                        onChange={(e) => updateTimelineAssetField(blockKey, idx, 'type', e.target.value)}
-
-
-
-
-
-
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full focus:outline-none"
-
-
-
-
-
-
-
-                                      >
-
-
-
-
-
-
-
-                                        <option value="image">Imagem</option>
-
-
-
-
-
-
-
-                                        <option value="video">Vídeo</option>
-
-
-
-
-
-
-
-                                        <option value="svg">SVG</option>
-
-
-
-
-
-
-
-                                      </select>
-
-
-
-
-
-
-
-                                    </div>
-
-
-
-
-
-
-
-                                    <div className="space-y-0.5 w-20">
-
-
-
-
-
-
-
-                                      <span className="text-[9px] text-zinc-500 uppercase">Duração (s)</span>
-
-
-
-
-
-
-
-                                      <input
-
-
-
-
-
-
-
-                                        type="number"
-
-
-
-
-
-
-
-                                        step="0.5"
-
-
-
-
-
-
-
-                                        min="0.5"
-
-
-
-
-
-
-
-                                        value={asset.fixed !== undefined && asset.fixed !== null ? asset.fixed : ''}
-
-
-
-
-
-
-
-                                        placeholder={`Auto (${getAssetDuration(blockKey, idx).toFixed(1)}s)`}
-
-
-
-
-
-
-
-                                        onChange={(e) => {
-
-
-
-
-
-
-
-                                          const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-
-
-
-
-
-
-
-                                          updateTimelineAssetField(blockKey, idx, 'fixed', val);
-
-
-
-
-
-
-
-                                        }}
-
-
-
-
-
-
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full text-center focus:outline-none"
-
-
-
-
-
-
-
-                                      />
-
-
-
-
-
-
-
-                                    </div>
-
-
-
-
-
-
-
-                                  </div>
-
-
-
-
-
-
-
-                                  {/* Actions row: Replace/Substituir and Delete */}
-
-
-
-
-
-
-
-                                  <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
-
-
-
-
-
-
-
-                                    <button
-
-
-
-
-
-
-
-                                      onClick={() => deleteTimelineAsset(blockKey, idx)}
-
-
-
-
-
-
-
-                                      className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
-
-
-
-
-
-
-
-                                    >
-
-
-
-
-
-
-
-                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
-
-
-
-
-
-
-
-                                    </button>
-
-
-
-
-
-
-
-                                    <input type="file" accept={asset.type === 'video' ? "video/mp4" : "image/png,image/jpeg"} className="hidden" id={`asset-upload-${blockKey}-${idx}`}
-
-
-
-
-
-
-
-                                       onChange={(e) => {
-
-
-
-
-
-
-
-                                         if (e.target.files && e.target.files[0]) {
-
-
-
-
-
-
-
-                                            handleUploadSceneAsset(parseInt(blockKey), asset.type === 'video' ? 'video' : 'image', e.target.files[0], idx, selectedProject);
-
-
-
-
-
-
-
-                                         }
-
-
-
-
-
-
-
-                                       }} />
-
-
-
-
-
-
-
-                                    <label htmlFor={`asset-upload-${blockKey}-${idx}`} className="text-gold-500 hover:text-gold-400 text-[10px] cursor-pointer hover:underline flex items-center gap-1.5 transition">
-
-
-
-
-
-
-
-                                      <Upload className="w-3.5 h-3.5" /> Substituir
-
-
-
-
-
-
-
-                                    </label>
-
-
-
-
-
-
-
-                                  </div>
-
-
-
-
-
-
-
-                                </div>
-
-
-
-
-
-
-
-                              ))}
-
-
-
-
-
-
-
-                            </div>
-
-
-
-
-
-
-
-                          </div>
-
-
-
-
-
-
-
-                        );
-
-
-
-
-
-
-
-                      });
-
-
-
-
-
-
-
-                  })()}
-
-
-
-
-
-
-
-                  
-
-
-
-
-
-
-
-                  {/* Save button at bottom too */}
-
-
-
-
-
-
-
-                  <div className="flex justify-end pt-4">
-
-
-
-
-
-
-
-                    <button
-
-
-
-
-
-
-
-                      onClick={() => handleSaveConfig()}
-
-
-
-
-
-
-
-                      className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 transition cursor-pointer"
-
-
-
-
-
-
-
-                    >
-
-
-
-
-
-
-
-                      <Save className="w-4 h-4" /> Salvar Linha do Tempo e Configuração
-
-
-
-
-
-
-
-                    </button>
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                </div>
-
-
-
-
-
-
-
+                renderRichTimelineEditor()
               )}
 
 
@@ -34511,11 +34525,16 @@ export default function App() {
                     setCustomHooks('');
                     setCustomOutline('');
                     setCustomBlocks([
-                      { block: 1, content: '' },
-                      { block: 2, content: '' },
-                      { block: 3, content: '' }
+                      { block: 1, content: '' }
                     ]);
                     setIdeationTab('ai');
+                    
+                    // Reset custom strategy fields (generated ideas & manual ideas from zero)
+                    setCustomIdeaTitle("");
+                    setCustomIdeaPromise("");
+                    setCustomIdeaEmotion("");
+                    setCustomIdeaHook("");
+                    setCustomIdeaBlocks("");
                     
                     toast.success("Progresso limpo! Novo rascunho iniciado.");
 
@@ -34971,7 +34990,7 @@ export default function App() {
                                     )}
                                   </div>
                                   <textarea
-                                    rows={6}
+                                    rows={3}
                                     placeholder={`Descreva o conteúdo do bloco ${idx + 1} em inglês (ex: Explain how the foundation was built...)`}
                                     value={b.content}
                                     onChange={(e) => {
@@ -36953,806 +36972,28 @@ export default function App() {
 
 
 
-                {creatorStep === 4 && (
-
-
-
-
-
-
-
-                  <div className="space-y-6 max-w-4xl mx-auto">
-
-
-
-
-
-
-
-                    <div className="flex justify-between items-start border-b border-zinc-900 pb-4">
-
-
-
-
-
-
-
-                      <div>
-
-
-
-
-
-
-
-                        <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 4: Associação Inteligente de B-roll (ASSETS)</h4>
-
-
-
-
-
-
-
-                        <p className="text-xs text-gray-400 mt-1 leading-relaxed font-sans">
-
-
-
-
-
-
-
-                          Abaixo estão listados os arquivos de vídeo e imagem encontrados na sua pasta local `ASSETS/`. Clique no botão para a IA mapear estes arquivos para cada bloco do vídeo com base no roteiro gerado.
-
-
-
-
-
-
-
-                        </p>
-
-
-
-
-
-
-
-                      </div>
-
-
-
-
-
-
-
+                {creatorStep === 4 && config && (
+                  <div className="space-y-6 max-w-4xl mx-auto font-sans">
+                    {renderRichTimelineEditor()}
+                    
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between items-center pt-6 border-t border-zinc-900 font-sans">
                       <button 
-
-
-
-
-
-
-
-                        disabled={creatorLoading || creatorAssets.length === 0}
-
-
-
-
-
-
-
-                        onClick={handleAutoMapAssets}
-
-
-
-
-
-
-
-                        className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 font-sans"
-
-
-
-
-
-
-
-                      >
-
-
-
-
-
-
-
-                        {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-
-
-
-
-
-
-
-                        <span>Associar Mídias com IA</span>
-
-
-
-
-
-
-
-                      </button>
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
-
-
-
-
-
-
-
-                      
-
-
-
-
-
-
-
-                      {/* Left: Available Assets */}
-
-
-
-
-
-
-
-                      <div className="md:col-span-1 bg-zinc-950/40 border border-zinc-900 p-5 rounded-2xl flex flex-col h-[350px]">
-
-
-
-
-
-
-
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Mídias Disponíveis</span>
-
-
-
-
-
-
-
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-
-
-
-
-
-
-
-                          {creatorAssets.length === 0 ? (
-
-
-
-
-
-
-
-                            <div className="text-zinc-600 italic text-[11px] py-4">Nenhum arquivo de mídia encontrado na pasta ASSETS.</div>
-
-
-
-
-
-
-
-                          ) : (
-
-
-
-
-
-
-
-                            creatorAssets.map((asset, idx) => (
-
-
-
-
-
-
-
-                              <div key={idx} className="p-2 bg-zinc-950 border border-zinc-900 rounded-lg flex justify-between items-center text-[10px]">
-
-
-
-
-
-
-
-                                <span className="text-gray-300 truncate max-w-[150px]" title={asset.name}>{asset.name}</span>
-
-
-
-
-
-
-
-                                <span className="bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider">{asset.type}</span>
-
-
-
-
-
-
-
-                              </div>
-
-
-
-
-
-
-
-                            ))
-
-
-
-
-
-
-
-                          )}
-
-
-
-
-
-
-
-                        </div>
-
-
-
-
-
-
-
-                      </div>
-
-
-
-
-
-
-
-                      {/* Right: Layout Output Preview */}
-
-
-
-
-
-
-
-                      <div className="md:col-span-2 bg-zinc-950/40 border border-zinc-900 p-5 rounded-2xl flex flex-col h-[350px]">
-
-
-
-
-
-
-
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Layout da Linha do Tempo</span>
-
-
-
-
-
-
-
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-
-
-
-
-
-
-
-                          {timelineAssets ? (
-
-
-
-
-
-
-
-                            Object.keys(timelineAssets).map((blockNum) => (
-
-
-
-
-
-
-
-                              <div key={blockNum} className="p-3 bg-zinc-950 border border-zinc-900 rounded-xl space-y-2">
-
-
-
-
-
-
-
-                                <div className="text-[10px] font-bold text-gold-500 uppercase tracking-wider font-mono">Bloco {blockNum}</div>
-
-
-
-
-
-
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-
-
-
-
-
-
-
-                                  {timelineAssets[blockNum].map((clip: any, idx: number) => (
-
-
-
-
-
-
-
-                                    <div key={idx} className="p-1.5 bg-zinc-900 rounded border border-zinc-800 flex items-center gap-2 text-[9px]">
-
-
-
-
-
-
-
-                                      {/* Thumbnail preview */}
-
-
-
-
-
-
-
-                                      <div className="w-10 h-7 rounded overflow-hidden bg-zinc-950 border border-zinc-800 flex-shrink-0">
-
-
-
-
-
-
-
-                                        {clip.type === 'video' ? (
-
-
-
-
-
-
-
-                                          <video
-
-
-
-
-
-
-
-                                            src={getAssetUrl(clip.asset)}
-
-
-
-
-
-
-
-                                            className="w-full h-full object-cover"
-
-
-
-
-
-
-
-                                            muted
-
-
-
-
-
-
-
-                                            loop
-
-
-
-
-
-
-
-                                            autoPlay
-
-
-
-
-
-
-
-                                            playsInline
-
-
-
-
-
-
-
-                                          />
-
-
-
-
-
-
-
-                                        ) : (
-
-
-
-
-
-
-
-                                          <img
-
-
-
-
-
-
-
-                                            src={getAssetUrl(clip.asset)}
-
-
-
-
-
-
-
-                                            className="w-full h-full object-cover"
-
-
-
-
-
-
-
-                                            alt=""
-
-
-
-
-
-
-
-                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-
-
-
-
-
-
-
-                                          />
-
-
-
-
-
-
-
-                                        )}
-
-
-
-
-
-
-
-                                      </div>
-
-
-
-
-
-
-
-                                      <span className="text-zinc-300 truncate max-w-[120px] flex-1">{clip.asset}</span>
-
-
-
-
-
-
-
-                                      <span className="text-zinc-500 font-mono flex-shrink-0">{clip.type} {clip.fixed ? `(${clip.fixed}s)` : '(flex)'}</span>
-
-
-
-
-
-
-
-                                    </div>
-
-
-
-
-
-
-
-                                  ))}
-
-
-
-
-
-
-
-                                </div>
-
-
-
-
-
-
-
-                              </div>
-
-
-
-
-
-
-
-                            ))
-
-
-
-
-
-
-
-                          ) : (
-
-
-
-
-
-
-
-                            <div className="flex flex-col items-center justify-center h-full text-zinc-600 italic text-xs gap-1.5 py-10">
-
-
-
-
-
-
-
-                              <Sparkles className="w-5 h-5 text-zinc-800" />
-
-
-
-
-
-
-
-                              <span>Clique em "Associar Mídias com IA" para preencher a linha do tempo.</span>
-
-
-
-
-
-
-
-                            </div>
-
-
-
-
-
-
-
-                          )}
-
-
-
-
-
-
-
-                        </div>
-
-
-
-
-
-
-
-                      </div>
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <div className="flex justify-between items-center pt-4 border-t border-zinc-900 font-sans">
-
-
-
-
-
-
-
-                      <button 
-
-
-
-
-
-
-
                         onClick={() => setCreatorStep(3)}
-
-
-
-
-
-
-
                         className="text-xs text-zinc-500 hover:text-white font-semibold transition cursor-pointer"
-
-
-
-
-
-
-
                       >
-
-
-
-
-
-
-
                         ← Voltar para Sincronização
-
-
-
-
-
-
-
                       </button>
-
-
-
-
-
-
-
                       <button 
-
-
-
-
-
-
-
                         disabled={!timelineAssets}
-
-
-
-
-
-
-
                         onClick={() => setCreatorStep(5)}
-
-
-
-
-
-
-
                         className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
-
-
-
-
-
-
-
                       >
-
-
-
-
-
-
-
                         <span>Avançar para Renderização</span>
-
-
-
-
-
-
-
                         <span>→</span>
-
-
-
-
-
-
-
                       </button>
-
-
-
-
-
-
-
                     </div>
-
-
-
-
-
-
-
                   </div>
-
-
-
-
-
-
-
                 )}
 
 
