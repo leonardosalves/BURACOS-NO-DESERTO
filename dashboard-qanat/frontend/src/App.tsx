@@ -34497,29 +34497,26 @@ export default function App() {
 
 
 
-
                     localStorage.removeItem('qanat_creator_state');
-
                     setCreatorStep(1);
-
                     setNicheInput('');
-
                     setIdeasData(null);
-
                     setSelectedIdeaIndex(-1);
-
                     setGeneratedScriptData(null);
-
                     setFormatSelector('LONGO');
-
                     setCreatorProjectName('');
-
-
-
-
-
-
-
+                    
+                    // Reset custom ideas states
+                    setCustomTitle('');
+                    setCustomHooks('');
+                    setCustomOutline('');
+                    setCustomBlocks([
+                      { block: 1, content: '' },
+                      { block: 2, content: '' },
+                      { block: 3, content: '' }
+                    ]);
+                    setIdeationTab('ai');
+                    
                     toast.success("Progresso limpo! Novo rascunho iniciado.");
 
 
@@ -34974,7 +34971,7 @@ export default function App() {
                                     )}
                                   </div>
                                   <textarea
-                                    rows={2}
+                                    rows={6}
                                     placeholder={`Descreva o conteúdo do bloco ${idx + 1} em inglês (ex: Explain how the foundation was built...)`}
                                     value={b.content}
                                     onChange={(e) => {
