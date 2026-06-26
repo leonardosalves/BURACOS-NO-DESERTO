@@ -2184,7 +2184,7 @@ export default function App() {
 
 
 
-  const [globalBlockGap, setGlobalBlockGap] = useState<number>(2.0);
+  const [globalBlockGap, setGlobalBlockGap] = useState<number>(1.0);
 
 
 
@@ -2232,7 +2232,7 @@ export default function App() {
 
 
 
-        setGlobalBlockGap(data.blockGapSeconds || 2.0);
+        setGlobalBlockGap(data.blockGapSeconds !== undefined ? data.blockGapSeconds : 1.0);
 
 
 
