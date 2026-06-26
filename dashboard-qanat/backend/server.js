@@ -15733,7 +15733,7 @@ async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = n
 
 
 
-const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.1-flash-lite"];
+const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro-exp-02-05"];
 
 
 
@@ -16275,7 +16275,7 @@ async function parseAiJsonResponse(responseText, apiKey, contextLabel = "respost
 
 
 
-      const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, { maxRetries: 2, models: ["gemini-2.5-flash", "gemini-2.0-flash"] });
+      const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, { maxRetries: 2, models: ["gemini-1.5-flash", "gemini-2.0-flash"] });
 
 
 
