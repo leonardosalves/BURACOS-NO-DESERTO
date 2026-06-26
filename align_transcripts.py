@@ -76,6 +76,58 @@ def main():
         except Exception as e:
             print("Warning: Failed to load storyboard.json narration:", e)
 
+    # Map each block to its line index early, to be used in transcripts block tagging
+    num_blocks = max(b[0] for b in BLOCK_PHRASES) if BLOCK_PHRASES else 12
+    block_to_line_idx = {}
+    if os.path.exists('storyboard.json'):
+        try:
+            with open('storyboard.json', 'r', encoding='utf-8') as f:
+                sb = json.load(f)
+            if 'visual_prompts' in sb:
+                line_idx_counter = 0
+                for vp in sb['visual_prompts']:
+                    block_num = vp.get('block')
+                    text = vp.get('narration_text', '') or vp.get('text_overlay', '')
+                    if text:
+                        if block_num and block_num not in block_to_line_idx:
+                            block_to_line_idx[block_num] = line_idx_counter
+                        line_idx_counter += 1
+        except Exception as e:
+            print("Error mapping block to line index:", e)
+
+    for b in range(1, num_blocks + 1):
+        if b not in block_to_line_idx:
+            block_to_line_idx[b] = b - 1
+
+    line_to_block = {}
+    if os.path.exists('storyboard.json'):
+        try:
+            with open('storyboard.json', 'r', encoding='utf-8') as f:
+                sb = json.load(f)
+            if 'visual_prompts' in sb:
+                line_idx_counter = 0
+                for vp in sb['visual_prompts']:
+                    block_num = vp.get('block')
+                    text = vp.get('narration_text', '') or vp.get('text_overlay', '')
+                    if text:
+                        if block_num:
+                            line_to_block[line_idx_counter] = int(block_num)
+                        line_idx_counter += 1
+        except Exception as e:
+            pass
+
+    sorted_blocks = sorted(block_to_line_idx.keys())
+    total_lines = len(correct_lines) if correct_lines else len(segments)
+    for idx in range(total_lines):
+        if idx not in line_to_block:
+            assigned_block = sorted_blocks[0] if sorted_blocks else 1
+            for b in sorted_blocks:
+                if block_to_line_idx[b] <= idx:
+                    assigned_block = b
+                else:
+                    break
+            line_to_block[idx] = assigned_block
+
     # 1a. If correct script loaded, align correct words with Whisper timestamps!
     if correct_lines:
         import difflib
@@ -203,6 +255,7 @@ def main():
                 
             word_transcripts.append({
                 "index": line_idx + 1,
+                "block": line_to_block.get(line_idx, 1),
                 "filename": f"segment_{line_idx+1:03d}.mp3",
                 "start_time": seg_start,
                 "duration": max(0.1, seg_end - seg_start),
@@ -235,6 +288,7 @@ def main():
                 
             word_transcripts.append({
                 "index": idx + 1,
+                "block": line_to_block.get(idx, 1),
                 "filename": f"segment_{idx+1:03d}.mp3",
                 "start_time": seg_start,
                 "duration": seg_end - seg_start,
@@ -251,31 +305,6 @@ def main():
     block_starts = {}
     block_starts[1] = 0.0
     
-    num_blocks = max(b[0] for b in BLOCK_PHRASES) if BLOCK_PHRASES else 12
-    
-    # Map each block to its line index
-    block_to_line_idx = {}
-    if os.path.exists('storyboard.json'):
-        try:
-            with open('storyboard.json', 'r', encoding='utf-8') as f:
-                sb = json.load(f)
-            if 'visual_prompts' in sb:
-                line_idx_counter = 0
-                for vp in sb['visual_prompts']:
-                    block_num = vp.get('block')
-                    text = vp.get('narration_text', '') or vp.get('text_overlay', '')
-                    if text:
-                        if block_num and block_num not in block_to_line_idx:
-                            block_to_line_idx[block_num] = line_idx_counter
-                        line_idx_counter += 1
-        except Exception as e:
-            print("Error mapping block to line index:", e)
-
-    # Fallback to transcripts_readable.txt mapping: Block N starts at line N-1
-    for b in range(1, num_blocks + 1):
-        if b not in block_to_line_idx:
-            block_to_line_idx[b] = b - 1
-
     print("\nAligning block starts from word timestamps...")
     for b in range(1, num_blocks + 1):
         if b == 1:
@@ -305,7 +334,6 @@ def main():
     print("====================================")
     
     # Let's compute durations of each block based on starts
-    num_blocks = max(b[0] for b in BLOCK_PHRASES) if BLOCK_PHRASES else 12
     starts = [0.0] * (num_blocks + 1)
     for b in range(1, num_blocks + 1):
         starts[b] = block_starts.get(b, 0.0)
@@ -327,6 +355,37 @@ def main():
             "total_duration": starts[-1]
         }, f, ensure_ascii=False, indent=4)
     print("Wrote block_timings.json.")
+
+    # Physically segment the audio file using FFmpeg
+    import subprocess
+    print("\nPHYSICAL AUDIO SEGMENTATION (FFmpeg):")
+    print("====================================")
+    audio_mestre = "narracao_mestra_premium.mp3"
+    if os.path.exists(audio_mestre):
+        for b in range(1, num_blocks + 1):
+            start_time = starts[b]
+            duration_time = durations[b]
+            out_filename = f"{b}.mp3"
+            
+            # Run ffmpeg command to extract this segment
+            # -y overwrites existing block audios
+            cmd = [
+                "ffmpeg", "-y",
+                "-ss", f"{start_time:.3f}",
+                "-t", f"{duration_time:.3f}",
+                "-i", audio_mestre,
+                "-c:a", "libmp3lame",
+                "-q:a", "2",
+                out_filename
+            ]
+            print(f"Fatiando bloco {b}: {start_time:.2f}s -> {start_time + duration_time:.2f}s ({duration_time:.2f}s)")
+            try:
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                print(f"--> Sucesso! Gerado {out_filename}")
+            except Exception as e:
+                print(f"--> ERRO ao fatiar bloco {b}: {e}")
+    else:
+        print(f"WARNING: Arquivo de narração mestre {audio_mestre} não encontrado. Fatiamento ignorado.")
 
 if __name__ == '__main__':
     main()

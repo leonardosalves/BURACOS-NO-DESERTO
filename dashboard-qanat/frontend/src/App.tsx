@@ -2783,7 +2783,7 @@ export default function App() {
 
 
 
-  const activeNarrationStateRef = useRef<{ target: number | string; endTime: number } | null>(null);
+  const activeNarrationStateRef = useRef<{ target: number | string; endTime: number; startTimeRelative?: number; startTimeAbsolute?: number; endTimeRelative?: number } | null>(null);
 
 
 
@@ -11421,613 +11421,109 @@ export default function App() {
 
 
     toast.success(`✅ ${totalAligned} cenas de TODOS os blocos sincronizadas com a voz!`);
-
-
-
-
-
-
-
   };
 
-
-
-
-
-
-
-  const getNarrationAudio = () => {
-
-
-
-
-
-
+  const getNarrationAudio = (blockNum?: number) => {
+    const fileName = blockNum ? `${blockNum}.mp3` : "narracao_mestra_premium.mp3";
+    const url = getMusicUrl(fileName);
 
     if (!narrationAudioRef.current) {
-
-
-
-
-
-
-
-      const url = getMusicUrl("narracao_mestra_premium.mp3");
-
-
-
-
-
-
-
       const audio = new Audio(url);
-
-
-
-
-
-
-
       
-
-
-
-
-
-
-
       audio.ontimeupdate = () => {
-
-
-
-
-
-
-
-        setNarrationTime(audio.currentTime);
-
-
-
-
-
-
-
         const state = activeNarrationStateRef.current;
-
-
-
-
-
-
-
         if (state) {
-
-
-
-
-
-
-
-          if (audio.currentTime >= state.endTime - 0.05) {
-
-
-
-
-
-
-
-            audio.pause();
-
-
-
-
-
-
-
-            setPlayingNarration(null);
-
-
-
-
-
-
-
-            activeNarrationStateRef.current = null;
-
-
-
-
-
-
-
+          if (state.startTimeRelative !== undefined && state.startTimeAbsolute !== undefined) {
+            const elapsed = audio.currentTime - state.startTimeRelative;
+            const absoluteTime = state.startTimeAbsolute + elapsed;
+            setNarrationTime(absoluteTime);
+          } else {
+            setNarrationTime(audio.currentTime);
           }
 
-
-
-
-
-
-
+          const targetEndTime = state.endTimeRelative !== undefined ? state.endTimeRelative : state.endTime;
+          if (audio.currentTime >= targetEndTime - 0.05) {
+            audio.pause();
+            setPlayingNarration(null);
+            activeNarrationStateRef.current = null;
+          }
+        } else {
+          setNarrationTime(audio.currentTime);
         }
-
-
-
-
-
-
-
       };
-
-
-
-
-
-
 
       audio.onended = () => {
-
-
-
-
-
-
-
         setPlayingNarration(null);
-
-
-
-
-
-
-
         activeNarrationStateRef.current = null;
-
-
-
-
-
-
-
       };
 
-
-
-
-
-
-
       narrationAudioRef.current = audio;
-
-
-
-
-
-
-
+    } else {
+      const audio = narrationAudioRef.current;
+      const fullUrl = new URL(url, window.location.href).href;
+      if (audio.src !== fullUrl) {
+        audio.pause();
+        audio.src = url;
+        audio.load();
+      }
     }
-
-
-
-
-
-
-
     return narrationAudioRef.current;
-
-
-
-
-
-
-
   };
 
-
-
-
-
-
-
   const togglePlaySceneNarration = (blockKey: string, sceneIdx: number) => {
-
-
-
-
-
-
-
     if (playingMusic) {
-
-
-
-
-
-
-
       if (audioPlayerRef.current) {
-
-
-
-
-
-
-
         audioPlayerRef.current.pause();
-
-
-
-
-
-
-
       }
-
-
-
-
-
-
-
       setPlayingMusic(null);
-
-
-
-
-
-
-
     }
-
-
-
-
-
-
-
-    const audio = getNarrationAudio();
-
-
-
-
-
-
-
-    const targetStr = `scene-${blockKey}-${sceneIdx}`;
-
-
-
-
-
-
-
-    if (playingNarration === targetStr) {
-
-
-
-
-
-
-
-      audio.pause();
-
-
-
-
-
-
-
-      setPlayingNarration(null);
-
-
-
-
-
-
-
-      activeNarrationStateRef.current = null;
-
-
-
-
-
-
-
-      return;
-
-
-
-
-
-
-
-    }
-
-
-
-
-
-
-
-    audio.pause();
-
-
-
-
-
-
 
     const blockNum = Number(blockKey);
+    const audio = getNarrationAudio(blockNum);
+    const targetStr = `scene-${blockKey}-${sceneIdx}`;
 
+    if (playingNarration === targetStr) {
+      audio.pause();
+      setPlayingNarration(null);
+      activeNarrationStateRef.current = null;
+      return;
+    }
 
-
-
-
-
-
+    audio.pause();
     const narrationText = getAssetNarration(blockKey, sceneIdx);
-
-
-
-
-
-
-
     const matched = findNarrationTimestamps(narrationText);
-
-
-
-
-
-
-
     const duration = getAssetDuration(blockKey, sceneIdx);
 
+    let startTimeRelative = 0;
+    for (let i = 0; i < sceneIdx; i++) {
+      startTimeRelative += getAssetDuration(blockKey, i);
+    }
+    const endTimeRelative = startTimeRelative + duration;
 
-
-
-
-
-
-    let startTime = 0;
-
-
-
-
-
-
-
-    let endTime = 0;
-
-
-
-
-
-
-
+    let startTimeAbsolute = startTimeRelative;
     const starts = status?.block_timings?.starts;
-
-
-
-
-
-
-
-    let timelineFound = false;
-
-
-
-
-
-
-
     if (starts && starts[blockNum - 1] !== undefined) {
-
-
-
-
-
-
-
-      let currentStart = starts[blockNum - 1];
-
-
-
-
-
-
-
-      for (let i = 0; i < sceneIdx; i++) {
-
-
-
-
-
-
-
-        currentStart += getAssetDuration(blockKey, i);
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-      startTime = currentStart;
-
-
-
-
-
-
-
-      endTime = currentStart + duration;
-
-
-
-
-
-
-
-      timelineFound = true;
-
-
-
-
-
-
-
+      startTimeAbsolute = starts[blockNum - 1] + startTimeRelative;
+    } else if (matched) {
+      startTimeAbsolute = matched.start;
     }
 
-
-
-
-
-
-
-    if (!timelineFound) {
-
-
-
-
-
-
-
-      if (matched) {
-
-
-
-
-
-
-
-        startTime = matched.start;
-
-
-
-
-
-
-
-        endTime = matched.start + duration;
-
-
-
-
-
-
-
-      } else {
-
-
-
-
-
-
-
-        startTime = 0;
-
-
-
-
-
-
-
-        endTime = duration;
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-    }
-
-
-
-
-
-
-
-    audio.currentTime = startTime;
-
-
-
-
-
-
-
-    activeNarrationStateRef.current = { target: targetStr, endTime: endTime };
-
-
-
-
-
-
-
+    activeNarrationStateRef.current = {
+      target: targetStr,
+      startTimeRelative,
+      startTimeAbsolute,
+      endTimeRelative,
+      endTime: endTimeRelative
+    };
+
+    audio.currentTime = startTimeRelative;
     setPlayingNarration(targetStr);
 
-
-
-
-
-
-
     audio.play().catch(err => {
-
-
-
-
-
-
-
       console.error("Failed to play scene narration:", err);
-
-
-
-
-
-
-
       setPlayingNarration(null);
-
-
-
-
-
-
-
       activeNarrationStateRef.current = null;
-
-
-
-
-
-
-
     });
-
-
-
-
-
-
-
   };
 
 
