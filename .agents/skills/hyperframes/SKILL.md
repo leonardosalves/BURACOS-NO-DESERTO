@@ -65,6 +65,35 @@ Perfeito para vídeos de engajamento, relatos do público, dúvidas frequentes o
 }
 ```
 
+#### E. 🧹 Estilo `code-highlight-sweep` (Varredura de Destaque de Código)
+Simula um efeito de foco e varredura onde uma linha específica de código fica destacada e brilhante (com fundo colorido e borda) enquanto as linhas ao redor ficam com opacidade reduzida. Usa HTML e CSS inline na própria descrição.
+```json
+{
+  "id": "code-sweep-1",
+  "type": "info-card",
+  "start": 5.0,
+  "duration": 6.0,
+  "props": {
+    "title": "⚡ code-sweep.js",
+    "description": "<pre style=\"margin:0; font-family:'Courier New'; font-size:11px; line-height:1.7; color:#abb2bf;\"><div style=\"opacity:0.35;\">import { Lumiera } from 'lumiera';</div><div style=\"background:rgba(0, 229, 255, 0.12); border-left:3px solid #00E5FF; padding-left:8px; margin:4px -8px; font-weight:bold; color:#00E5FF; box-shadow:0 0 20px rgba(0, 229, 255, 0.08);\">const video = await Lumiera.render('pro');</div><div style=\"opacity:0.35;\">console.log(`Sucesso: ${video.path}`);</div></pre>",
+    "iconType": "lightbulb",
+    "position": "center-right",
+    "accentColor": "#00E5FF",
+    "variant": "glass",
+    "theme": "tech",
+    "customStyle": {
+      "background": "#1e1e1e",
+      "border": "1px solid #3c3c3c",
+      "borderRadius": "12px",
+      "boxShadow": "0 20px 40px rgba(0,229,255,0.15)",
+      "fontFamilyTitle": "Courier New",
+      "fontFamilyDesc": "Courier New",
+      "colorTitle": "#00E5FF"
+    }
+  }
+}
+```
+
 #### B. 🤖 Estilo `reddit-post-card` (Discussão do Reddit)
 Ideal para teorias da conspiração, debates intelectuais, curiosidades científicas ou histórias de mistério.
 ```json

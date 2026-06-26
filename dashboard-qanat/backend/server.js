@@ -29196,7 +29196,7 @@ Você deve projetar os overlays usando o catálogo de alta conversão do HyperFr
    - "lt-accent-underline" (use o tipo "lower-third" com borda esquerda colorida "borderLeft: '4px solid #FF3D00'").
    - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
    - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).
-   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal e sintaxes coloridas com quebras de linha "\\n").
+   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal efeitos de foco "code-highlight-sweep" contendo tags HTML <pre> e <div> com inline-styles (ex: opacity: 0.35 para linhas comuns, e background: rgba(0,229,255,0.12), border-left: 3px solid #00E5FF, color: #00E5FF para a linha de foco), e sintaxes coloridas com quebras de linha "\\n").
 ` : ""}
 
 
