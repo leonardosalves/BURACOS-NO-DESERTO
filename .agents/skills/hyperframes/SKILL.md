@@ -546,6 +546,30 @@ Ideal para teorias cibernéticas, segurança da informação, quebra de senhas o
 
 ---
 
+### 8. 🎭 CSS Transitions & Animation Styles (Transições e Efeitos de Movimento)
+Inspirado na categoria `CSS Transitions` do catálogo HyperFrames, descreve como a IA pode orquestrar e customizar as animações de entrada, saída e transição física de mola dos overlays.
+
+- **Mola Física (Spring Animation)**: Por padrão, os componentes `InfoCard`, `InfoCounter` e `LowerThird` utilizam a física de mola do Remotion para entradas e saídas fluidas e orgânicas.
+- **Customização de Velocidade e Delay**: A IA pode injetar propriedades no `customStyle` para acelerar ou atrasar transições:
+  * `"animationDuration"`: Define o tempo de transição (ex: `"0.3s"` ou `"0.5s"`).
+  * `"animationDelay"`: Cria efeitos de cascata (ex: `"0.2s"`).
+  * `"transitionTimingFunction"`: Define curvas de velocidade (ex: `"cubic-bezier(0.175, 0.885, 0.32, 1.275)"` para efeito elástico premium).
+  * `"transform"`: Define estados iniciais personalizados (ex: `"translateY(50px) scale(0.95)"`).
+
+---
+
+### 9. 🔠 Text Effects & Kinetic Highlights (Estilização de Texto e Destaques)
+Inspirado na categoria `Text Effects` do catálogo HyperFrames, descreve como a IA pode criar tipografias cinéticas impactantes e destacar palavras-chave específicas dentro do texto.
+
+- **Destaque de Palavras-Chave (Keyword Highlights)**: Para atrair a atenção do espectador, a IA deve envolver termos cruciais em tags `<span>` com estilos personalizados:
+  * Exemplo: `<span style="color:#00FF87; font-weight:bold; text-shadow:0 0 10px rgba(0,255,135,0.3);">Termo Chave</span>`.
+- **Efeitos de Texto Avançados via CSS**:
+  * **Contorno e Sombra**: `"textShadow": "0 2px 10px rgba(0,0,0,0.8)"` para garantir legibilidade sobre qualquer fundo de vídeo.
+  * **Text Stroke (Contorno)**: `"-webkit-text-stroke": "1px #FFD700"` para um visual metálico/premium.
+  * **Espaçamento de Letras**: `"letterSpacing": "2px"` para títulos industriais ou militares (`Oswald`).
+
+---
+
 ## 🤖 Regras de Orquestração do Gemini
 
 O modelo de Inteligência Artificial deve atuar como o **Designer Chefe** e seguir rigorosamente estas diretrizes ao planejar os overlays de cada vídeo:
