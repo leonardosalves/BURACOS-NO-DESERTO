@@ -64,6 +64,7 @@ import {
   buildIdeasQualityAddendum,
   buildListicleIdeasAddendum,
   buildListicleRankingIdeasPrompt,
+  normalizeListicleIdeasResponse,
   buildListicleScriptRules,
   resolveListicleBlockCount,
   clampListicleRankCount,
@@ -7697,8 +7698,20 @@ ${exclusionInstruction}
 [ID: ${Date.now()}]`;
 
   try {
-    const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 1.0 });
-    const parsed = normalizeKeys(await parseAiJsonResponse(responseText, apiKey, "Ranking ideas"));
+    const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.9 });
+    const raw = await parseAiJsonResponse(responseText, apiKey, "Ranking ideas");
+    const parsed = normalizeListicleIdeasResponse(raw);
+
+    if (!parsed.ranking_ideas?.length) {
+      console.warn("[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:", Object.keys(raw || {}));
+      return res.status(502).json({
+        error: "A IA não retornou rankings válidos. Tente novamente ou mude o nicho.",
+        details: `Chaves na resposta: ${Object.keys(raw || {}).join(", ") || "nenhuma"}`,
+        raw_preview: JSON.stringify(raw).slice(0, 500),
+      });
+    }
+
+    console.log(`[LISTICLE IDEAS] ${parsed.ranking_ideas.length} rankings para nicho "${nicheClean}"`);
     res.json(parsed);
   } catch (err) {
     console.error("[LISTICLE IDEAS ERROR]", err.message);
