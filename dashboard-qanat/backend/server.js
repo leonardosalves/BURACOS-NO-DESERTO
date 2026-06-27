@@ -14,6 +14,7 @@ import {
   parseYoutubeMetadataMarkdown,
   resolveYoutubeMetadataContext,
 } from "./youtubeMetadataOptimizer.js";
+import { generateYoutubeThumbnailImages } from "./youtubeThumbnailGenerator.js";
 
 import cors from "cors";
 
@@ -5649,7 +5650,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     const respondWithMetadata = (text, extra = {}) => {
       const parsed = parseYoutubeMetadataMarkdown(text);
-      return res.json({
+      const payload = {
         text,
         format,
         niche,
@@ -5660,7 +5661,29 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
         palette: rpmHint.palette,
         parsed,
         ...extra,
-      });
+      };
+
+      try {
+        fs.writeFileSync(
+          path.join(projDir, "youtube_metadata_cache.json"),
+          JSON.stringify({
+            generatedAt: new Date().toISOString(),
+            format,
+            niche,
+            category,
+            profile: payload.profile,
+            rpm: rpmHint.rpm,
+            palette: rpmHint.palette,
+            parsed,
+            text,
+          }, null, 2),
+          "utf8",
+        );
+      } catch (cacheErr) {
+        console.warn("[YouTube Metadata] Falha ao salvar cache:", cacheErr.message);
+      }
+
+      return res.json(payload);
     };
 
     const errors = [];
@@ -5743,6 +5766,97 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
   }
 
+});
+
+app.get("/api/ai/youtube-metadata-cache", (req, res) => {
+  const projDir = getProjectDir(req);
+  const cachePath = path.join(projDir, "youtube_metadata_cache.json");
+
+  if (!fs.existsSync(cachePath)) {
+    return res.json({ cached: false });
+  }
+
+  try {
+    const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    res.json({ cached: true, ...cache });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao ler cache de metadados", details: err.message });
+  }
+});
+
+app.get("/api/ai/youtube-thumbnails", (req, res) => {
+  const projDir = getProjectDir(req);
+  const projectName = path.basename(projDir);
+  const manifestPath = path.join(projDir, "ASSETS", "youtube_thumbnails", "manifest.json");
+
+  if (!fs.existsSync(manifestPath)) {
+    return res.json({ thumbnails: [] });
+  }
+
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const thumbnails = (manifest.variants || []).map((item) => ({
+      ...item,
+      url: item.url || `/api/projects-media/${encodeURIComponent(projectName)}/ASSETS/${item.fileName}`,
+    }));
+    res.json({ ...manifest, thumbnails });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao ler thumbnails geradas", details: err.message });
+  }
+});
+
+app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const projectName = path.basename(projDir);
+
+  try {
+    let thumbnails = req.body?.thumbnails;
+    let format = req.body?.format;
+    let palette = req.body?.palette || [];
+
+    const cachePath = path.join(projDir, "youtube_metadata_cache.json");
+    if ((!thumbnails || thumbnails.length === 0) && fs.existsSync(cachePath)) {
+      const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+      thumbnails = cache?.parsed?.thumbnails || [];
+      format = format || cache?.format;
+      palette = palette.length ? palette : (cache?.palette || []);
+    }
+
+    if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
+      return res.status(400).json({
+        error: "Nenhuma variante A/B encontrada.",
+        details: "Gere os metadados do YouTube primeiro para obter as 3 variantes de thumbnail.",
+      });
+    }
+
+    let config = {};
+    let storyboard = {};
+    const configPath = path.join(projDir, "config_qanat.json");
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(configPath)) {
+      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+    }
+    if (fs.existsSync(storyboardPath)) {
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+    }
+
+    const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
+    const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
+
+    const result = await generateYoutubeThumbnailImages({
+      projectDir: projDir,
+      projectName,
+      thumbnails,
+      format: resolvedFormat,
+      palette,
+      storyboard,
+      config,
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar thumbnails", details: err.message });
+  }
 });
 
 // API: AI-powered BGM suggestion per block
