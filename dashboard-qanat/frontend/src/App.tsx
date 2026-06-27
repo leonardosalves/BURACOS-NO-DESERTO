@@ -14682,11 +14682,17 @@ export default function App() {
         body: JSON.stringify({ niche: listNiche.trim(), format: formatSelector }),
       });
       const data = await res.json();
-      if (res.ok) {
-        setListicleIdeasData(data);
-        const best = data.best_index ?? 0;
+      const ideas = data.ranking_ideas || data.rankings || data.ideas || [];
+      if (res.ok && Array.isArray(ideas) && ideas.length > 0) {
+        const normalized = {
+          ...data,
+          ranking_ideas: ideas,
+          best_index: data.best_index ?? 0,
+        };
+        setListicleIdeasData(normalized);
+        const best = normalized.best_index ?? 0;
         setSelectedListicleIdeaIndex(best);
-        const pick = data.ranking_ideas?.[best];
+        const pick = ideas[best];
         if (pick) {
           if (pick.list_topic) setListTopic(pick.list_topic);
           if (pick.suggested_rank_count) setRankCount(pick.suggested_rank_count);
@@ -14696,9 +14702,9 @@ export default function App() {
           }
           if (pick.best_format === 'SHORTS' || pick.best_format === 'LONGO') setFormatSelector(pick.best_format);
         }
-        toast.success(`${data.ranking_ideas?.length || 0} rankings sugeridos para "${listNiche.trim()}".`);
+        toast.success(`${ideas.length} rankings sugeridos para "${listNiche.trim()}".`);
       } else {
-        toast.error(data.error || 'Erro ao sugerir rankings.');
+        toast.error(data.error || data.details || 'Nenhum ranking retornado — tente outro nicho ou clique de novo.');
       }
     } catch (err: any) {
       toast.error(err.message || 'Falha ao sugerir rankings.');
