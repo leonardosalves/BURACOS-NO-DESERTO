@@ -85,6 +85,104 @@ Evite ideias cujo título promete algo que 40 segundos (Shorts) ou 12 minutos (L
 `;
 }
 
+export function resolveListicleBlockCount({ rankCount = 20, format = "LONGO" } = {}) {
+  const rank = Math.min(50, Math.max(3, Number(rankCount) || 20));
+  if (format === "SHORTS") return Math.min(rank, 3) + 2;
+  return rank + 2;
+}
+
+export function clampListicleRankCount(rankCount = 20, format = "LONGO") {
+  const rank = Math.min(50, Math.max(3, Number(rankCount) || 20));
+  if (format === "SHORTS") return Math.min(rank, 3);
+  return rank;
+}
+
+export function buildListicleIdeasAddendum({ rankCount = 20, listTopic = "", rankOrder = "desc" } = {}) {
+  const orderLabel = rankOrder === "asc" ? "1 até N (build-up)" : "N até 1 (countdown)";
+  return `
+MODO LISTICLE / TOP N (OBRIGATÓRIO):
+- Gere exatamente 10 ideias de vídeo no formato "Top ${rankCount}" sobre: "${listTopic}"
+- Cada título deve incluir o número (${rankCount}) e o tema de forma específica (ex: "Top ${rankCount} Invenções Chinesas Que o Ocidente Ignora")
+- Ordem narrativa sugerida: ${orderLabel}
+- Em "why_it_works", explique por que o formato ranking retém (curiosidade do #1, debate nos comentários, rewatch)
+- Inclua campo extra em cada ideia: "listicle_angle" (ex: "surpresa histórica", "impacto no dia a dia", "mito vs realidade")
+- Varie o recorte: país, época, categoria técnica, impacto humano, invenções esquecidas
+- Evite itens genéricos repetidos entre ideias (ex: não sugerir 10x "Top ${rankCount} invenções" com o mesmo ângulo)
+`;
+}
+
+export function buildListicleScriptRules({
+  rankCount = 20,
+  rankOrder = "desc",
+  format = "LONGO",
+  listTopic = "",
+  blockCount = 22,
+} = {}) {
+  const orderDesc = rankOrder !== "asc";
+  const itemBlocks = blockCount - 2;
+  const wordsPerItem = format === "SHORTS" ? "25-40" : "80-140";
+  const totalWords = format === "SHORTS" ? "100-160" : `${itemBlocks * 90}-${itemBlocks * 150}`;
+
+  return `
+MODO LISTICLE / TOP N — ESTRUTURA OBRIGATÓRIA (prioridade sobre regras de documentário padrão):
+
+TEMA DA LISTA: "${listTopic}"
+ITENS NA LISTA: ${itemBlocks}
+ORDEM: ${orderDesc ? `countdown ${itemBlocks} → 1 (maior retenção — comece pelo item #${itemBlocks})` : `build-up 1 → ${itemBlocks} (crescendo até o #${itemBlocks})`}
+TOTAL DE BLOCOS: ${blockCount} (bloco 1 = intro, blocos 2-${blockCount - 1} = um item cada, bloco ${blockCount} = recap + CTA)
+
+ESTRUTURA DOS BLOCOS:
+- Bloco 1 (INTRO): gancho em 3 segundos + promessa da lista + por que ESSA lista importa hoje. Não revele o #1 ainda.
+- Blocos 2-${blockCount - 1} (ITENS): EXATAMENTE 1 item por bloco, nesta ordem:
+  ${orderDesc ? `  • Bloco 2 = item #${itemBlocks}, bloco 3 = #${itemBlocks - 1} ... bloco ${blockCount - 1} = #1` : `  • Bloco 2 = item #1, bloco 3 = #2 ... bloco ${blockCount - 1} = #${itemBlocks}`}
+  Cada bloco de item DEVE conter:
+    1. Chamada do ranking ("Número ${orderDesc ? "X" : "X"}..." ou "Em ${orderDesc ? "X" : "X"}º lugar...")
+    2. Nome do item/invenção/evento (claro e específico)
+    3. Contexto: ano, inventor, país ou civilização (quando aplicável)
+    4. 2 fatos concretos que surpreendem
+    5. Impacto no mundo moderno (1 frase)
+    6. Ponte curta para o próximo item (exceto no último item antes do outro)
+- Bloco ${blockCount} (OUTRO): recap do top 3 + pergunta para comentários ("qual você colocaria em 1º?") + CTA leve
+
+REGRAS DE NARRAÇÃO:
+- ${totalWords} palavras no total
+- ~${wordsPerItem} palavras por item
+- Frases curtas, ritmo de countdown — sem enrolação entre itens
+- NUNCA pule um número da lista; NUNCA repita o mesmo item
+- Itens devem ser REAIS e verificáveis — sem invenção fictícia
+- Diversifique tipos de itens (não 20 itens iguais da mesma categoria)
+
+VISUAL_PROMPTS (crítico para listicle):
+- Mínimo 3 cenas por item (bloco de item)
+- A PRIMEIRA cena de cada item deve ter "text_overlay": "#N — NOME DO ITEM" (N = rank daquele bloco)
+- Prompts visuais: objeto/invenção em close, contexto histórico, impacto moderno
+- 80-90% imagem 2K, 10-20% vídeo IA
+
+IMPACT_TEXTS (obrigatório):
+- Um impact_text por bloco de item: {"block": N, "start_offset": 0.0, "end_offset": 4.0, "text": "#20 — NOME"}
+- Intro: {"block": 1, "start_offset": 0.0, "end_offset": 5.0, "text": "TOP ${itemBlocks}"}
+
+CAMPO EXTRA NO JSON — "listicle":
+{
+  "content_mode": "LISTICLE",
+  "rank_count": ${itemBlocks},
+  "rank_order": "${orderDesc ? "desc" : "asc"}",
+  "topic": "${listTopic}"
+}
+
+CAMPO EXTRA — "list_items" (array com ${itemBlocks} objetos):
+{
+  "rank": 20,
+  "title": "Nome do item",
+  "year": "ano ou período",
+  "origin": "país/civilização",
+  "block": 2,
+  "hook_line": "frase de gancho do item",
+  "visual_hook": "english search term for stock"
+}
+`;
+}
+
 export function buildHumanizeRepairPrompt({ format, ideaTitle, rawScript, blockCount }) {
   return `Você é um roteirista brasileiro especialista em clareza e naturalidade para YouTube.
 

@@ -307,6 +307,7 @@ import {
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
+import { ListicleCreatorStep } from './ListicleCreatorStep';
 
 
 
@@ -1960,7 +1961,10 @@ export default function App() {
   const [customIdeaEmotion, setCustomIdeaEmotion] = useState("");
   const [customIdeaBlocks, setCustomIdeaBlocks] = useState("");
 
-  const [ideationTab, setIdeationTab] = useState<'ai' | 'custom'>(savedCreatorState.ideationTab || 'ai');
+  const [ideationTab, setIdeationTab] = useState<'ai' | 'custom' | 'listicle'>(savedCreatorState.ideationTab || 'ai');
+  const [listTopic, setListTopic] = useState<string>(savedCreatorState.listTopic || '');
+  const [rankCount, setRankCount] = useState<number>(savedCreatorState.rankCount || 20);
+  const [rankOrder, setRankOrder] = useState<'desc' | 'asc'>(savedCreatorState.rankOrder || 'desc');
   const [customTitle, setCustomTitle] = useState<string>(savedCreatorState.customTitle || '');
   const [customHooks, setCustomHooks] = useState<string>(savedCreatorState.customHooks || '');
   const [customOutline, setCustomOutline] = useState<string>(savedCreatorState.customOutline || '');
@@ -4209,9 +4213,12 @@ export default function App() {
       customTitle,
       customHooks,
       customOutline,
-      customBlocks
+      customBlocks,
+      listTopic,
+      rankCount,
+      rankOrder,
     }));
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks]);
+  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listTopic, rankCount, rankOrder]);
 
 
 
@@ -14418,7 +14425,16 @@ export default function App() {
 
 
 
-        body: JSON.stringify({ niche: nicheInput.trim(), format: formatSelector })
+        body: JSON.stringify({
+          niche: nicheInput.trim(),
+          format: formatSelector,
+          ...(ideationTab === 'listicle' ? {
+            contentMode: 'LISTICLE',
+            rankCount,
+            rankOrder,
+            listTopic: listTopic.trim() || nicheInput.trim(),
+          } : {}),
+        })
 
 
 
@@ -14642,6 +14658,58 @@ export default function App() {
 
 
 
+  const handleGenerateListicleScript = async () => {
+    if (!listTopic.trim()) {
+      toast.error('Informe o tema da lista (ex: invenções chinesas).');
+      return;
+    }
+    if (!creatorProjectName.trim()) {
+      toast.error('Digite o nome do projeto/pasta.');
+      return;
+    }
+
+    const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const title = `Top ${rankCount} ${listTopic.trim()}`;
+    setCreatorLoading(true);
+    setGeneratedScriptData(null);
+
+    try {
+      const res = await fetch('/api/ai/creator/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          niche: listTopic.trim(),
+          format: formatSelector,
+          contentMode: 'LISTICLE',
+          rankCount,
+          rankOrder,
+          listTopic: listTopic.trim(),
+          idea: {
+            title,
+            promise: `Ranking dos ${rankCount} itens mais importantes sobre ${listTopic.trim()}, com fatos surpreendentes e impacto no mundo moderno.`,
+            emotion: 'Curiosidade / Surpresa',
+          },
+          project: safeProjectName,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedScriptData(data);
+        setCreatorScript(data.narrative_script);
+        setCreatorStep(2);
+        await fetchProjects();
+        setActiveProject(safeProjectName);
+        toast.success(`Roteiro Top ${rankCount} gerado com ${data.list_items?.length || rankCount} itens.`);
+      } else {
+        toast.error(data.error || 'Erro ao gerar roteiro listicle.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha na geração do roteiro.');
+    } finally {
+      setCreatorLoading(false);
+    }
+  };
+
   const handleGenerateFullScript = async () => {
     const isCustom = ideationTab === 'custom';
     if (!isCustom && (!ideasData || selectedIdeaIndex === -1)) return;
@@ -14664,8 +14732,14 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          niche: isCustom ? 'Customized' : nicheInput.trim(),
+          niche: isCustom ? 'Customized' : (ideationTab === 'listicle' ? (listTopic.trim() || nicheInput.trim()) : nicheInput.trim()),
           format: formatSelector,
+          ...(ideationTab === 'listicle' ? {
+            contentMode: 'LISTICLE',
+            rankCount,
+            rankOrder,
+            listTopic: listTopic.trim() || nicheInput.trim(),
+          } : {}),
           idea: isCustom ? {
             title: customTitle.trim(),
             promise: customOutline.trim(),
@@ -35406,6 +35480,17 @@ export default function App() {
                         >
                           <span>✏️ Ideia Personalizada</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setIdeationTab('listicle')}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            ideationTab === 'listicle'
+                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
+                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
+                          }`}
+                        >
+                          <span>📊 Top N / Listicle</span>
+                        </button>
                       </div>
                     </div>
 
@@ -35547,6 +35632,26 @@ export default function App() {
                         </div>
                       </div>
                     ) : !ideasData ? (
+                      ideationTab === 'listicle' ? (
+                        <ListicleCreatorStep
+                          listTopic={listTopic}
+                          setListTopic={setListTopic}
+                          rankCount={rankCount}
+                          setRankCount={setRankCount}
+                          rankOrder={rankOrder}
+                          setRankOrder={setRankOrder}
+                          formatSelector={formatSelector}
+                          setFormatSelector={setFormatSelector}
+                          creatorProjectName={creatorProjectName}
+                          setCreatorProjectName={setCreatorProjectName}
+                          setNicheInput={setNicheInput}
+                          creatorLoading={creatorLoading}
+                          hasApiKey={hasApiKey}
+                          onGenerateIdeas={handleGenerateIdeas}
+                          onGenerateScript={handleGenerateListicleScript}
+                        />
+                      ) : (
+
 
 
 
@@ -35912,6 +36017,7 @@ export default function App() {
 
 
 
+                      )
                     ) : (
 
 
