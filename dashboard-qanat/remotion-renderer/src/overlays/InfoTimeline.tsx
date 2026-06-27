@@ -6,6 +6,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { LottieIcon } from "./LottieIcon";
 
 // ─────────────────────────────────────────────────────────────────────
 // InfoTimeline — Animated historical timeline
@@ -30,6 +31,8 @@ export interface InfoTimelineProps {
   events: TimelineEvent[];
   /** Accent color */
   accentColor?: string;
+  iconType?: string;
+  hyperframesRef?: string;
   /** Orientation */
   orientation?: "horizontal" | "vertical";
   /** Visual Theme */
@@ -94,6 +97,7 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
   title,
   events,
   accentColor = "#D4AF37",
+  iconType = "history",
   orientation = "horizontal",
   theme = "classic",
   customStyle,
@@ -320,6 +324,7 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
           {theme === "industrial" && <IndustrialRivets />}
           {theme === "mysterious" && <MysteriousStars color={accentColor} />}
 
+          <LottieIcon iconType={iconType} size={isVertical ? 32 : 26} />
           <div
             style={{
               width: 4,

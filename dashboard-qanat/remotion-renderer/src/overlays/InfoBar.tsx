@@ -6,6 +6,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { LottieIcon } from "./LottieIcon";
 
 // ─────────────────────────────────────────────────────────────────────
 // InfoBar — Animated comparison bar chart
@@ -28,6 +29,8 @@ export interface InfoBarProps {
   items: InfoBarItem[];
   /** Accent color for main highlights */
   accentColor?: string;
+  iconType?: string;
+  hyperframesRef?: string;
   /** Position on screen */
   position?: "center" | "bottom-center" | "right";
   /** Visual Theme */
@@ -95,6 +98,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
   title,
   items,
   accentColor = "#D4AF37",
+  iconType = "chart",
   position = "center",
   theme = "classic",
   customStyle,
@@ -335,6 +339,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
               gap: 12,
             }}
           >
+            <LottieIcon iconType={iconType} size={isVertical ? 34 : 28} />
             <div
               style={{
                 width: 4,
