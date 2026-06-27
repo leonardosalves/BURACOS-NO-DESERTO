@@ -51,6 +51,7 @@ export interface LowerThirdProps {
   accentColor?: string;
   position?: "bottom-left" | "bottom-center" | "top-left";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
+  variant?: "glass" | "bild" | "accent-underline" | "bold-block" | "clean-bar";
   iconType?: string;
   customStyle?: {
     background?: string;
@@ -76,41 +77,13 @@ const ACCENT_BAR_WIDTH = 5;
 // Corner Ornaments Components for Themes
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TechCorners: React.FC<{ color: string }> = ({ color }) => (
-  <>
-    <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
-    <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
-    <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
-    <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
-  </>
-);
+const TechCorners: React.FC<{ color: string }> = () => null;
 
-const AncientCorners: React.FC<{ color: string }> = ({ color }) => (
-  <>
-    <div style={{ position: "absolute", top: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-    <div style={{ position: "absolute", top: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-    <div style={{ position: "absolute", bottom: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-    <div style={{ position: "absolute", bottom: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-  </>
-);
+const AncientCorners: React.FC<{ color: string }> = () => null;
 
-const IndustrialRivets: React.FC = () => (
-  <>
-    <div style={{ position: "absolute", top: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-    <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-    <div style={{ position: "absolute", bottom: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-    <div style={{ position: "absolute", bottom: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-  </>
-);
+const IndustrialRivets: React.FC = () => null;
 
-const MysteriousStars: React.FC<{ color: string }> = ({ color }) => (
-  <>
-    <div style={{ position: "absolute", top: 1, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-    <div style={{ position: "absolute", top: 1, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-    <div style={{ position: "absolute", bottom: 5, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-    <div style={{ position: "absolute", bottom: 5, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-  </>
-);
+const MysteriousStars: React.FC<{ color: string }> = () => null;
 
 export const LowerThird: React.FC<LowerThirdProps> = ({
   title,
@@ -118,6 +91,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
   accentColor = "#D4AF37",
   position = "bottom-left",
   theme = "classic",
+  variant,
   iconType,
   customStyle,
 }) => {
@@ -310,6 +284,292 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
     return fontStyle;
   };
 
+  // 1. variant === "bild"
+  if (variant === "bild") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          ...positionStyle,
+          transform: transformStyle,
+          opacity,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 6,
+          pointerEvents: "none",
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{
+            background: "#FFFFFF",
+            padding: isVertical ? "12px 24px" : "8px 18px",
+            boxShadow: `4px 4px 0px ${accentColor || "#E50000"}`,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          {iconType && lottieMap[iconType] && (
+            <div style={{ width: isVertical ? 38 : 28, height: isVertical ? 38 : 28 }}>
+              <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
+            </div>
+          )}
+          <span
+            style={{
+              color: "#111111",
+              fontSize: isVertical ? 34 : 24,
+              fontWeight: 900,
+              textTransform: "uppercase",
+              fontFamily: "'Montserrat', sans-serif",
+            }}
+          >
+            {title}
+          </span>
+        </div>
+        {subtitle && (
+          <div
+            style={{
+              background: accentColor || "#E50000",
+              padding: isVertical ? "8px 18px" : "6px 14px",
+              boxShadow: "4px 4px 0px #FFFFFF",
+              marginLeft: 4,
+            }}
+          >
+            <span
+              style={{
+                color: "#FFFFFF",
+                fontSize: isVertical ? 22 : 15,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                fontFamily: "'Montserrat', sans-serif",
+              }}
+              dangerouslySetInnerHTML={{ __html: subtitle }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. variant === "bold-block"
+  if (variant === "bold-block") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          ...positionStyle,
+          transform: transformStyle,
+          opacity,
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "stretch",
+          pointerEvents: "none",
+          filter: "drop-shadow(0 6px 20px rgba(0,0,0,0.65))",
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{
+            background: "#111111",
+            padding: isVertical ? "20px 32px" : "14px 24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            minWidth: 200,
+            border: "1.5px solid rgba(255, 255, 255, 0.15)",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {iconType && lottieMap[iconType] && (
+              <div style={{ width: isVertical ? 36 : 24, height: isVertical ? 36 : 24 }}>
+                <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
+              </div>
+            )}
+            <span
+              style={{
+                color: "#FFFFFF",
+                fontSize: isVertical ? 34 : 24,
+                fontWeight: 900,
+                textTransform: "uppercase",
+                fontFamily: "'Montserrat', sans-serif",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {title}
+            </span>
+          </div>
+          {subtitle && (
+            <div
+              style={{
+                background: accentColor || "gold",
+                padding: "3px 10px",
+                borderRadius: "2px",
+                alignSelf: "flex-start",
+              }}
+            >
+              <span
+                style={{
+                  color: "#111111",
+                  fontSize: isVertical ? 22 : 14,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  fontFamily: "'Montserrat', sans-serif",
+                }}
+                dangerouslySetInnerHTML={{ __html: subtitle }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 3. variant === "accent-underline"
+  if (variant === "accent-underline") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          ...positionStyle,
+          transform: transformStyle,
+          opacity,
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "stretch",
+          pointerEvents: "none",
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            padding: "8px 12px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              borderBottom: `3.5px solid ${accentColor}`,
+              paddingBottom: 6,
+            }}
+          >
+            {iconType && lottieMap[iconType] && (
+              <div style={{ width: isVertical ? 36 : 24, height: isVertical ? 36 : 24 }}>
+                <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
+              </div>
+            )}
+            <span
+              style={{
+                color: "#FFFFFF",
+                fontSize: isVertical ? 38 : 28,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                fontFamily: "'Montserrat', sans-serif",
+                letterSpacing: "0.03em",
+                textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+              }}
+            >
+              {title}
+            </span>
+          </div>
+          {subtitle && (
+            <span
+              style={{
+                color: "rgba(255, 255, 255, 0.85)",
+                fontSize: isVertical ? 26 : 18,
+                fontWeight: 500,
+                fontFamily: "'Inter', sans-serif",
+                textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+                paddingTop: 4,
+              }}
+              dangerouslySetInnerHTML={{ __html: subtitle }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 4. variant === "clean-bar"
+  if (variant === "clean-bar") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          ...positionStyle,
+          transform: transformStyle,
+          opacity,
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "stretch",
+          pointerEvents: "none",
+          filter: "drop-shadow(0 6px 20px rgba(0,0,0,0.55))",
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{
+            width: 6,
+            backgroundColor: accentColor,
+            borderRadius: "4px 0 0 4px",
+          }}
+        />
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)",
+            backdropFilter: "blur(16px)",
+            border: "1.5px solid rgba(255, 255, 255, 0.1)",
+            borderLeft: "none",
+            borderRadius: "0 8px 8px 0",
+            padding: isVertical ? "16px 28px" : "12px 20px",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
+          {iconType && lottieMap[iconType] && (
+            <div style={{ width: isVertical ? 38 : 28, height: isVertical ? 38 : 28 }}>
+              <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span
+              style={{
+                color: "#FFFFFF",
+                fontSize: isVertical ? 34 : 24,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                fontFamily: "'Montserrat', sans-serif",
+              }}
+            >
+              {title}
+            </span>
+            {subtitle && (
+              <span
+                style={{
+                  color: "rgba(255, 255, 255, 0.75)",
+                  fontSize: isVertical ? 22 : 15,
+                  fontFamily: "'Inter', sans-serif",
+                }}
+                dangerouslySetInnerHTML={{ __html: subtitle }}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. Classic Fallback (Default)
   return (
     <div
       style={{

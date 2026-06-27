@@ -29034,21 +29034,15 @@ ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
 Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
 Utilize as especificações, formatos e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
 
-${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo.
-2. Adicione uma moldura expressiva usando "border" (ex: "2px solid #FFD700" ou "3px double rgba(0,229,255,0.8)" ou "1.5px dashed #00FF87").
-3. Use obrigatoriamente um sombreado brilhante com "boxShadow" para dar efeito de brilho flutuante neon no vídeo (ex: "0 10px 40px rgba(0, 255, 135, 0.3)" ou "0 12px 36px rgba(255, 61, 0, 0.35)").
-4. Defina "fontFamilyTitle" e "fontFamilyDesc" adequadamente de acordo com o tema.
-5. Se for o tipo "counter", configure a propriedade "customStyle" contendo "colorValue", "fontFamilyValue" (ex: 'Cinzel', 'Oswald', 'Courier New', 'Montserrat') e "fontSizeValue" (ex: 28 a 38) para criar um display numérico espetacular.
-6. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
-7. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
+${skillPrompt || `1. Para "customStyle", você deve configurar as cores de fundo, bordas e sombras neon livremente de acordo com a variante e tema.
+2. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
+3. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
    - "tiktok-comment", "reddit-post", "instagram-comment" (use o tipo "info-card" com variante "glass" ou "minimal", avatar e títulos de autor como "r/HojeEuAprendi • p/u/User" ou "@username").
-   - "lt-soft-pill" (use o tipo "lower-third" com cantos muito arredondados "40px", gradientes suaves, e o iconType do Lottie correspondente!).
-   - "lt-accent-underline" (use o tipo "lower-third" com borda esquerda colorida "borderLeft: '4px solid #FF3D00'").
+   - "lt-soft-pill" (use o tipo "lower-third" com variante "glass" e cantos muito arredondados "40px", gradientes suaves, e o iconType do Lottie correspondente!).
+   - "lt-accent-underline" (use o tipo "lower-third" com variante "accent-underline" para o título ser sublinhado por uma linha colorida neon grossa).
    - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
-   - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).
-   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal).`}
+   - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).`}
 ` : ""}
-
 
 REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
@@ -29062,7 +29056,16 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 5. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
    - Busque um equilíbrio dinâmico e agradável no posicionamento dos overlays ao longo do vídeo, alternando de forma fluida entre posições superiores (como info-card no topo) e inferiores (como lower-third ou counter na base). Não use o mesmo canto da tela ou o mesmo estilo de forma repetida em sequência. Escolha o posicionamento que melhor se encaixe visualmente com o conteúdo de cada bloco, sem forçar um formato rígido se não for necessário.
 6. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
-   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequadoEstrutura JSON Exigida:
+   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
+7. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
+   - Para o tipo "lower-third", você DEVE definir a propriedade "variant" escolhendo o estilo visual mais adequado ao trecho do vídeo:
+     - "bild": Estilo jornalístico clássico com blocos de fundo sólidos e sombras coloridas projetadas.
+     - "bold-block": Estilo podcast retangular sólido com título grosso e subtítulo em caixa menor em amarelo/accent.
+     - "accent-underline": Estilo minimalista com título sublinhado por linha neon grossa e sem painel de fundo.
+     - "clean-bar": Estilo corporativo limpo com barra lateral neon grossa e fundo de vidro translúcido.
+     - "glass": Estilo padrão translúcido elegante e arredondado.
+
+Estrutura JSON Exigida:
 {
   "planejamento": [
     "Resumo da estratégia de planejamento visual"
@@ -29288,10 +29291,23 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
         }
 
         // 2. Randomização e Diversificação obrigatória de layouts, variantes e posições por vídeo
-        overlay.props.variant = variants[variantIdx % variants.length];
-        overlay.props.position = positions[posIdx % positions.length];
+        if (overlay.type === "lower-third") {
+          const ltVariants = ["glass", "bild", "accent-underline", "bold-block", "clean-bar"];
+          overlay.props.variant = ltVariants[variantIdx % ltVariants.length];
+          variantIdx++;
+        } else if (overlay.type === "info-card") {
+          const cardVariants = ["glass", "minimal", "accent", "floating"];
+          overlay.props.variant = cardVariants[variantIdx % cardVariants.length];
+          variantIdx++;
+        } else {
+          overlay.props.variant = variants[variantIdx % variants.length];
+          variantIdx++;
+        }
         
-        if (overlay.type === "info-card" || overlay.type === "counter" || overlay.type === "bar-chart") {
+        overlay.props.position = positions[posIdx % positions.length];
+        posIdx++;
+        
+        if (overlay.type === "info-card" || overlay.type === "counter" || overlay.type === "bar-chart" || overlay.type === "lower-third") {
           overlay.props.iconType = lotties[lottieIdx % lotties.length];
           lottieIdx++;
         }
