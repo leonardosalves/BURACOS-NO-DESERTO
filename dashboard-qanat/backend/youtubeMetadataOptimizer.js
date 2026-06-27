@@ -4,6 +4,14 @@ import {
   selectVarietyProfile,
   NICHE_RPM_HINTS,
 } from "./overlayOrchestration.js";
+import {
+  buildTitleCraftRules,
+  buildTitleFactsBlock,
+  extractTitleFacts,
+  generateTitlesFromFacts,
+  polishTitles,
+  sanitizeTitle,
+} from "./titleGenerator.js";
 
 const LONG_BLOCK_NAMES = [
   "Abertura",
@@ -190,12 +198,7 @@ Objetivo duplo:
 1. PARAR O SCROLL no feed de Shorts (título + primeiras linhas da descrição)
 2. GERAR REWATCH e comentários rápidos (loop, pergunta binária, payoff no final)
 
-## REGRAS PARA OS TÍTULOS (CTR NO FEED DE SHORTS):
-- Máximo 35-40 caracteres. Títulos ultra-curtos performam melhor no feed mobile.
-- Deve funcionar SOZINHO (muita gente vê o Short antes da thumbnail carregar).
-- 5 opções com ângulos diferentes: pergunta impossível, contraste absurdo, número específico, "ninguém fala sobre isso", cliffhanger de 3 palavras.
-- PROIBIDO: "99% não sabem", "segredo chocante", "revelado", "veja", "descubra", clickbait vazio.
-- Linguagem humana, como criador real (casual, direto, instigante).
+${buildTitleCraftRules("SHORT")}
 
 ## REGRAS PARA A DESCRIÇÃO (DESCOBERTA NO FEED):
 - Linha 1: palavras-chave pesquisáveis + gancho (YouTube indexa isso no Shorts)
@@ -229,12 +232,7 @@ Objetivo triplo:
 2. RETENÇÃO nos primeiros 30s e no meio do vídeo
 3. ENGAJAMENTO em comentários e inscrições
 
-## REGRAS PARA OS TÍTULOS (CTR BUSCA + HOME):
-- Máximo 45-50 caracteres. Curto converte melhor em mobile.
-- Título = metade da história; thumbnail = outra metade (não entregue tudo no título).
-- 5 opções: curiosidade, emoção, número concreto, urgência sutil, provocação inteligente.
-- PROIBIDO: "99% não sabem", "segredo chocante", "revelado", "veja", "descubra", clickbait vazio.
-- Linguagem humana (Veritasium, MagnatesMedia, Tom Scott em PT-BR).
+${buildTitleCraftRules("LONG")}
 
 ## REGRAS PARA A DESCRIÇÃO:
 - Linhas 1-2 CRUCIAIS (aparecem antes de "Mostrar mais"):
@@ -305,6 +303,8 @@ export function buildYoutubeMetadataPrompt({
   rpmHint = {},
 }) {
   const storyContext = buildStoryContext(storyboard);
+  const titleFacts = extractTitleFacts({ transcript, storyboard });
+  const titleFactsBlock = buildTitleFactsBlock(titleFacts);
   const nicheStrategy = buildNicheStrategyBlock({ category, profile, rpmHint, format });
   const formatRules = format === "SHORT" ? buildShortMetadataRules() : buildLongMetadataRules();
   const durationHint = totalDuration > 0
@@ -351,9 +351,11 @@ ${THUMBNAIL_OUTPUT_TEMPLATE}`
 
 ${THUMBNAIL_OUTPUT_TEMPLATE}`;
 
-  return `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento orgânico. Seu objetivo é MAXIMIZAR CTR e engajamento para o formato correto do vídeo.
+  return `Você é um especialista em títulos e SEO para YouTube em PT-BR. Prioridade #1: títulos ESPECÍFICOS ao roteiro, claros e humanos — não clickbait genérico.
 
 ${formatRules}
+
+${titleFactsBlock}
 
 ${nicheStrategy}
 
@@ -405,21 +407,23 @@ function buildFallbackThumbnails({ titles = [], rpmHint = {}, format = "LONG" })
 - Expressão/elemento: dado ou contagem do roteiro em destaque`;
 }
 
-function buildFallbackTitles({ baseTitle, category, profile, format }) {
-  const titleTypes = PROFILE_TITLE_TYPES[profile?.id] || PROFILE_TITLE_TYPES.default;
-  const maxLen = format === "SHORT" ? 38 : 48;
-  const seeds = [
-    baseTitle.slice(0, maxLen),
-    titleTypes[1]?.includes("Número") ? "1 dado que muda tudo" : "O detalhe que ninguém viu",
-    titleTypes[2]?.includes("escala") ? "A escala é absurda" : "Como isso foi possível?",
-    titleTypes[3]?.includes("Pergunta") ? "Por que esconderam isso?" : "Isso não deveria existir",
-    titleTypes[4]?.includes("Revelação") ? "O final explica tudo" : "Você nunca mais vai ver igual",
-  ];
+function buildFallbackTitles({ baseTitle, category, profile, format, facts = {} }) {
+  if (!facts.coreTopic) facts.coreTopic = sanitizeTitle(baseTitle).slice(0, 80);
+  const polished = polishTitles(generateTitlesFromFacts(facts, { format }), { format, facts });
+  const titles = polished.length >= 5
+    ? polished
+    : polishTitles([
+        ...polished,
+        ...generateTitlesFromFacts({ ...facts, coreTopic: baseTitle }, { format }),
+      ], { format, facts });
 
-  return seeds.map((t, i) => {
-    const text = t.slice(0, maxLen);
-    return `${i + 1}. ${text} (${text.length} chars)`;
-  }).join("\n");
+  const final = titles.slice(0, 5);
+  while (final.length < 5 && facts.coreTopic) {
+    const seed = sanitizeTitle(facts.coreTopic).slice(0, format === "SHORT" ? 38 : 48);
+    final.push({ text: seed, chars: seed.length });
+  }
+
+  return final.map((t, i) => `${i + 1}. ${t.text} (${t.text.length} chars)`).join("\n");
 }
 
 export function buildFallbackYoutubeMetadata({
@@ -440,7 +444,8 @@ export function buildFallbackYoutubeMetadata({
   const nicheTags = NICHE_TAG_POOLS[resolvedCategory] || NICHE_TAG_POOLS.default;
   const keywords = extractKeywords(`${baseTitle} ${hook} ${transcript}`, 12);
   const tags = [...new Set([...keywords, ...nicheTags])].slice(0, format === "SHORT" ? 12 : 15);
-  const titlesBlock = buildFallbackTitles({ baseTitle, category: resolvedCategory, profile, format });
+  const titleFacts = extractTitleFacts({ transcript, storyboard });
+  const titlesBlock = buildFallbackTitles({ baseTitle, category: resolvedCategory, profile, format, facts: titleFacts });
   const parsedTitles = parseYoutubeMetadataMarkdown(`## TÍTULOS\n${titlesBlock}`).titles;
   const thumbnailsBlock = buildFallbackThumbnails({ titles: parsedTitles, rpmHint, format });
 
@@ -664,9 +669,12 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     .filter(Boolean)
     .map((line) => {
       const match = line.match(/^(.+?)\s*\((\d+)\s*chars?\)\s*$/i);
-      if (match) return { text: match[1].trim(), chars: Number(match[2]) };
-      return { text: line.replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim(), chars: line.length };
-    });
+      const raw = match ? match[1].trim() : line.replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim();
+      const text = sanitizeTitle(raw);
+      const chars = match ? Number(match[2]) : text.length;
+      return { text, chars: text.length || chars };
+    })
+    .filter((t) => t.text.length >= 8);
 
   const thumbnailsRaw = sections["THUMBNAILS A/B"] || sections["THUMBNAILS AB"] || sections.THUMBNAILS || "";
   let thumbnails = parseThumbnailVariants(thumbnailsRaw);
