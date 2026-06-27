@@ -6,6 +6,44 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { SafeLottie } from "./SafeLottie";
+
+import sparklesLottie from "./lottie_assets/sparkles.json";
+import flameLottie from "./lottie_assets/flame.json";
+import globeLottie from "./lottie_assets/globe.json";
+import infoLottie from "./lottie_assets/info.json";
+import gearLottie from "./lottie_assets/lottie_ui_gear_1.json";
+import lockLottie from "./lottie_assets/lottie_ui_lock_3.json";
+import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
+import apiLottie from "./lottie_assets/lottie_tech_api_1.json";
+import timeLottie from "./lottie_assets/lottie_ui_time_1.json";
+import windLottie from "./lottie_assets/weather_wind.json";
+import moneyLottie from "./lottie_assets/lottie_biz_money_1.json";
+import warningLottie from "./lottie_assets/lottie_ui_warning_1.json";
+import locationLottie from "./lottie_assets/lottie_life_location_1.json";
+import docLottie from "./lottie_assets/lottie_tech_document_1.json";
+import heartLottie from "./lottie_assets/lottie_interact_heart_1.json";
+import ideaLottie from "./lottie_assets/lottie_life_idea_1.json";
+
+const lottieMap: Record<string, any> = {
+  sparkles: sparklesLottie,
+  flame: flameLottie,
+  earth: globeLottie,
+  building: globeLottie,
+  info: infoLottie,
+  gear: gearLottie,
+  shield: lockLottie,
+  crown: crownLottie,
+  science: apiLottie,
+  history: timeLottie,
+  nature: windLottie,
+  money: moneyLottie,
+  warning: warningLottie,
+  compass: locationLottie,
+  book: docLottie,
+  heart: heartLottie,
+  lightbulb: ideaLottie,
+};
 
 export interface LowerThirdProps {
   title: string;
@@ -13,6 +51,7 @@ export interface LowerThirdProps {
   accentColor?: string;
   position?: "bottom-left" | "bottom-center" | "top-left";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
+  iconType?: string;
   customStyle?: {
     background?: string;
     border?: string;
@@ -79,6 +118,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
   accentColor = "#D4AF37",
   position = "bottom-left",
   theme = "classic",
+  iconType,
   customStyle,
 }) => {
   const frame = useCurrentFrame();
@@ -305,9 +345,9 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           backdropFilter: "blur(12px)",
           padding: isVertical ? "20px 36px" : "14px 28px",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          gap: 4,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 16,
           maxWidth: isVertical ? 860 : 640,
           clipPath: `inset(0 ${(1 - panelExpand) * 100}% 0 0)`,
           position: "relative",
@@ -324,36 +364,45 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           </>
         )}
 
-        {/* Title */}
-        <span
-          style={{
-            color: "#F8FAFC",
-            fontSize: isVertical ? 38 : 28,
-            textTransform: "uppercase",
-            lineHeight: 1.2,
-            whiteSpace: "nowrap",
-            textShadow: "0 2px 8px rgba(0,0,0,0.5)",
-            ...getThemeFont("title")
-          }}
-        >
-          {title}
-        </span>
+        {/* Lottie Icon */}
+        {iconType && lottieMap[iconType] && (
+          <div style={{ flexShrink: 0, width: isVertical ? 48 : 36, height: isVertical ? 48 : 36 }}>
+            <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
+          </div>
+        )}
 
-        {/* Subtitle */}
-        {subtitle && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
+          {/* Title */}
           <span
             style={{
-              color: "rgba(248,250,252,0.72)",
-              fontWeight: 400,
-              letterSpacing: "0.02em",
-              lineHeight: 1.3,
+              color: "#F8FAFC",
+              fontSize: isVertical ? 38 : 28,
+              textTransform: "uppercase",
+              lineHeight: 1.2,
               whiteSpace: "nowrap",
-              marginTop: 2,
-              ...getThemeFont("subtitle")
+              textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+              ...getThemeFont("title")
             }}
-            dangerouslySetInnerHTML={{ __html: subtitle }}
-          />
-        )}
+          >
+            {title}
+          </span>
+
+          {/* Subtitle */}
+          {subtitle && (
+            <span
+              style={{
+                color: "rgba(248,250,252,0.72)",
+                fontWeight: 400,
+                letterSpacing: "0.02em",
+                lineHeight: 1.3,
+                whiteSpace: "nowrap",
+                marginTop: 2,
+                ...getThemeFont("subtitle")
+              }}
+              dangerouslySetInnerHTML={{ __html: subtitle }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Decorative line extending from panel (only in classic mode without custom border radius) */}

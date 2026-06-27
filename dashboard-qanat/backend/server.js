@@ -412,101 +412,44 @@ app.use("/api/projects-media", (req, res, next) => {
 
 
 function getProjectDir(req) {
-
-
-
   const rawProjName = req.query?.project || req.body?.project;
   if (!rawProjName) {
     return WORKSPACE_DIR;
   }
-  const projName = rawProjName.replace(/ /g, "_");
 
+  // Test multiple project name variations for robust matching
+  const decoded = decodeURIComponent(rawProjName);
+  const candidates = [
+    rawProjName,
+    decoded,
+    rawProjName.replace(/ /g, "_"),
+    decoded.replace(/ /g, "_"),
+    rawProjName.replace(/%20/g, " "),
+    decoded.replace(/ /g, "%20")
+  ];
 
+  const uniqueCandidates = [...new Set(candidates)];
 
-  
-
-
-
-  const candidateLong = path.join(LONGS_DIR, projName);
-
-
-
-  if (fs.existsSync(candidateLong)) {
-
-
-
-    global.lastActiveProjectDir = candidateLong;
-
-
-
-    return candidateLong;
-
-
-
+  for (const name of uniqueCandidates) {
+    const candidateLong = path.join(LONGS_DIR, name);
+    if (fs.existsSync(candidateLong)) {
+      global.lastActiveProjectDir = candidateLong;
+      return candidateLong;
+    }
+    const candidateShort = path.join(SHORTS_DIR, name);
+    if (fs.existsSync(candidateShort)) {
+      global.lastActiveProjectDir = candidateShort;
+      return candidateShort;
+    }
+    const candidateWork = path.join(WORKSPACE_DIR, name);
+    if (fs.existsSync(candidateWork)) {
+      global.lastActiveProjectDir = candidateWork;
+      return candidateWork;
+    }
   }
-
-
-
-  
-
-
-
-  const candidateShort = path.join(SHORTS_DIR, projName);
-
-
-
-  if (fs.existsSync(candidateShort)) {
-
-
-
-    global.lastActiveProjectDir = candidateShort;
-
-
-
-    return candidateShort;
-
-
-
-  }
-
-
-
-  
-
-
-
-  const candidateWork = path.join(WORKSPACE_DIR, projName);
-
-
-
-  if (fs.existsSync(candidateWork)) {
-
-
-
-    global.lastActiveProjectDir = candidateWork;
-
-
-
-    return candidateWork;
-
-
-
-  }
-
-
-
-  
-
-
 
   global.lastActiveProjectDir = WORKSPACE_DIR;
-
-
-
   return WORKSPACE_DIR;
-
-
-
 }
 
 
@@ -29071,12 +29014,25 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
   }
 
   let systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
-Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
+Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar minuciosamente uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
 O NICHO DO VÍDEO ATUAL É: "${niche}".
+
+Você DEVE realizar um planejamento sistemático e explícito de design e posicionamento das informações antes de gerar cada overlay.
+Retorne um objeto JSON contendo exatamente esta estrutura:
+{
+  "planejamento": [
+    "Sua primeira observação de planejamento aqui (ex: como dividiu as informações ao longo do vídeo de forma balanceada)",
+    "Sua segunda observação (ex: como escolheu variar entre cards no topo e pílulas embaixo para não poluir visualmente)",
+    "Sua terceira observação (ex: como sintetizou os dados do roteiro em textos explicativos curtos e complementares)"
+  ],
+  "overlays": [
+    // Array contendo os objetos de overlay estruturados
+  ]
+}
 
 ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
 Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
-Utilize as especificações, formatos (como de posts de redes sociais, pílulas, terminais de código e destaques) e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
+Utilize as especificações, formatos e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
 
 ${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo.
 2. Adicione uma moldura expressiva usando "border" (ex: "2px solid #FFD700" ou "3px double rgba(0,229,255,0.8)" ou "1.5px dashed #00FF87").
@@ -29086,7 +29042,7 @@ ${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a p
 6. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
 7. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
    - "tiktok-comment", "reddit-post", "instagram-comment" (use o tipo "info-card" com variante "glass" ou "minimal", avatar e títulos de autor como "r/HojeEuAprendi • p/u/User" ou "@username").
-   - "lt-soft-pill" (use o tipo "lower-third" com cantos muito arredondados "40px" e gradientes suaves").
+   - "lt-soft-pill" (use o tipo "lower-third" com cantos muito arredondados "40px", gradientes suaves, e o iconType do Lottie correspondente!).
    - "lt-accent-underline" (use o tipo "lower-third" com borda esquerda colorida "borderLeft: '4px solid #FF3D00'").
    - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
    - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).
@@ -29094,163 +29050,175 @@ ${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a p
 ` : ""}
 
 
-REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
+REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
 2. LIMITES POR FORMATO:
    - Para vídeos curtos (SHORTS/REELS/TIKTOK - duração total menor que 60 segundos): No máximo 1 ou 2 overlays informativos (como "info-card", "counter" ou "bar-chart") NO VÍDEO INTEIRO, e no máximo 1 ou 2 "lower-third" (somente nos blocos mais importantes).
    - Para vídeos LONGOS: Garanta um intervalo de pelo menos 15 a 20 segundos "limpo" (sem nenhum overlay) entre a exibição de um overlay e outro.
 3. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
    - Se o nicho do vídeo atual for diferente de "Tecnologia" ou "Programação" (como é o caso de "História", "Geografia", "Finanças", "Curiosidades", etc. e o atual é "${niche}"), VOCÊ É TERMINANTEMENTE PROIBIDO de gerar qualquer overlay que contenha códigos de programação, código fonte, terminais de comando, imports de bibliotecas (como 'geo-eng' ou '.js'), mockups do VS Code, syntax highlighting ou o tipo "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep". Esses layouts de código e programação irritam o usuário e quebram a imersão em vídeos comuns! Use apenas layouts de postagens comuns (Reddit, TikTok bubble, Instagram comment), pílulas, infográficos, fatos-chave, etc.
-4. DIVERSIFICAÇÃO E RANDOMIZAÇÃO OBRIGATÓRIA:
-   - Você DEVE diversificar e randomizar os estilos de cards e posições ao longo de um mesmo vídeo. Não use o mesmo estilo de card em sequência ou em todos os blocos! Mude o layout (ex: Bloco 1 usa Reddit-post, Bloco 2 usa Key-facts-highlights, Bloco 3 usa gauge/counter, Bloco 4 usa lower-third). Varie as posições na tela (top-left, top-right, bottom-left, bottom-right) para manter o vídeo dinâmico.
-5. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS MODERNOS:
-   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
-6. RELEVÂNCIA: Crie overlays apenas para dados, numbers ou curiosidades históricas/científicas altamente surpreendentes e impactantes. Nunca crie overlays com informações óbvias ou repetitivas.
-7. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
-8. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
-
-9. DESIGN TOTALMENTE FLEXÍVEL, DIVERSIFICADO E CUSTOMIZADO (DESINGESSADO):
-   - Não fique preso aos temas ou cores fixas. Você DEVE personalizar a aparência visual dos overlays no campo "customStyle" dentro de "props" de acordo com o assunto do roteiro!
-   - Campo "customStyle" (Opcional): Crie layouts únicos definindo propriedades CSS personalizadas para o container e o texto:
-     * "background": Gradientes ou cores sólidas que correspondam ao clima (ex: "linear-gradient(135deg, #150505 0%, #300a0a 100%)" para lava/vulcano, ou "rgba(10,20,30,0.92)" para água/ciber).
-     * "border": Molduras customizadas (ex: "2px solid #FF3D00", "3px double #C5A059" para história, "1px dashed #00E5FF").
-     * "borderRadius": Cantos customizados (ex: "16px 2px" para estilo assimétrico agressivo, "0px" para visual tecnológico rígido, "24px" para algo orgânico/suave).
-     * "boxShadow": Sombras e brilhos de glow neon (ex: "0 8px 30px rgba(0, 229, 255, 0.2)" para tecnologia, "0 8px 32px rgba(255, 61, 0, 0.25)" para fogo).
-     * "fontFamilyTitle" e "fontFamilyDesc": Escolha entre as fontes disponíveis que correspondam à era/assunto ('Cinzel' para história/realeza, 'Courier New' para código/tecnologia, 'Oswald' para militar/industrial, 'Montserrat' ou 'Inter' para o clássico).
-     * "fontSizeTitle" (de 11 a 16) e "fontSizeDesc" (de 9 a 13) para balancear o tamanho do texto.
-     * "colorTitle" (ex: "#FFD700", "#00E5FF", "#FFF").
-   - Temática Visual Base ("theme"): Escolha o estilo base ideal ("ancient", "tech", "nature", "industrial", "mysterious", "classic").
-   - Paleta de Cores ("accentColor"): Escolha um hexadecimal que combine com o mood visual (ex: #D4AF37 para ouro/arqueologia, #00E5FF para ciano/ciência, #FF3D00 para fogo/guerra, #00E676 para verde/natureza, #D500F9 para roxo/mistério).
-   - Variantes de Card ("variant"): Escolha entre "glass", "minimal", "accent", "floating".
-   - Ícones Animados ("iconType"): Escolha um dos 17 desenhos animados vetorizados específicos que represente a informação:
-     * "sparkles" (estrelas) | "crown" (realeza) | "info" (dados) | "flame" (fogo/vulcão) | "earth" (globo) | "gear" (engenharia) | "shield" (defesa) | "science" (átomo) | "history" (ampulheta/tempo) | "nature" (folha) | "money" (moedas) | "warning" (alerta) | "compass" (bússola) | "book" (livro) | "heart" (vida) | "swords" (batalha) | "lightbulb" (ideia).
-   - Varie as posições ("position") e cantos da tela.
-
-10. Mantenha os textos curtos, sofisticados e de leitura rápida.
-11. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
-
-Retorne APENAS um array JSON contendo os objetos de overlay. Não inclua markdown além de blocos de código JSON ou explicações fora do JSON.
-
-Estrutura de cada tipo de overlay no JSON:
-[
-  {
-    "id": "lt-block-1",
-    "type": "lower-third",
-    "start": 0.3,
-    "duration": 3.5,
-    "props": {
-      "title": "CIÊNCIA SECRETA",
-      "subtitle": "",
-      "accentColor": "#D4AF37",
-      "position": "bottom-left"
-    }
-  },
-  {
-    "id": "info-1",
-    "type": "info-card",
-    "start": 4.5,
-    "duration": 5.0,
-    "props": {
-      "title": "VULCANISMO",
-      "description": "A cinza vulcânica permitia ao concreto romano se autocuidar sob a água.",
-      "iconType": "flame",
-      "position": "top-right",
-      "accentColor": "#FF3D00",
-      "variant": "accent",
-      "theme": "industrial",
-      "customStyle": {
-        "background": "linear-gradient(135deg, #150505 0%, #300a0a 100%)",
-        "border": "2px solid #FF3D00",
-        "borderRadius": "16px 2px",
-        "boxShadow": "0 8px 30px rgba(255, 61, 0, 0.25)"
+4. TEXTOS CURTOS E NÃO REPETITIVOS (SÍNTESE INTELIGENTE):
+   - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades surpreendentes de leitura ultra-rápida (no máximo 5 a 12 palavras). Nunca cole parágrafos inteiros de texto falado nos cards ou lower-thirds!
+5. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
+   - Busque um equilíbrio dinâmico e agradável no posicionamento dos overlays ao longo do vídeo, alternando de forma fluida entre posições superiores (como info-card no topo) e inferiores (como lower-third ou counter na base). Não use o mesmo canto da tela ou o mesmo estilo de forma repetida em sequência. Escolha o posicionamento que melhor se encaixe visualmente com o conteúdo de cada bloco, sem forçar um formato rígido se não for necessário.
+6. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
+   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequadoEstrutura JSON Exigida:
+{
+  "planejamento": [
+    "Resumo da estratégia de planejamento visual"
+  ],
+  "overlays": [
+    {
+      "id": "lt-block-1",
+      "type": "lower-third",
+      "start": 0.3,
+      "duration": 3.5,
+      "props": {
+        "title": "TECNOLOGIA PREMIUM",
+        "subtitle": "Concreto romano com autocura inteligente.",
+        "accentColor": "#00FF9D",
+        "theme": "classic",
+        "variant": "glass",
+        "iconType": "sparkles",
+        "position": "bottom-left",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(10, 15, 12, 0.85) 0%, rgba(20, 30, 25, 0.8) 100%)",
+          "border": "1.5px solid rgba(0, 255, 157, 0.25)",
+          "borderRadius": "40px",
+          "boxShadow": "0 12px 36px rgba(0, 255, 157, 0.15)",
+          "colorTitle": "#00FF9D",
+          "colorSubtitle": "#E2E8F0"
+        }
+      }
+    },
+    {
+      "id": "info-1",
+      "type": "info-card",
+      "start": 4.5,
+      "duration": 5.0,
+      "props": {
+        "title": "AUTOCURA TÉRMICA",
+        "description": "Cinza vulcânica reage com a água selando fissuras ativamente.",
+        "iconType": "flame",
+        "position": "top-right",
+        "accentColor": "#FF3D00",
+        "variant": "glass",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(15, 10, 10, 0.85) 0%, rgba(30, 15, 15, 0.8) 100%)",
+          "border": "1.5px solid rgba(255, 61, 0, 0.25)",
+          "borderRadius": "16px",
+          "boxShadow": "0 12px 36px rgba(255, 61, 0, 0.15)"
+        }
+      }
+    },
+    {
+      "id": "counter-1",
+      "type": "counter",
+      "start": 12.0,
+      "duration": 4.5,
+      "props": {
+        "value": 2000,
+        "label": "Resistência Estrutural",
+        "suffix": "Anos",
+        "formatNumber": true,
+        "accentColor": "#00E5FF",
+        "position": "bottom-right",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(8, 12, 16, 0.85) 0%, rgba(14, 20, 28, 0.8) 100%)",
+          "border": "1.5px solid rgba(0, 229, 255, 0.25)",
+          "borderRadius": "16px",
+          "boxShadow": "0 12px 36px rgba(0, 229, 255, 0.15)",
+          "colorValue": "#00E5FF"
+        }
+      }
+    },
+    {
+      "id": "bar-1",
+      "type": "bar-chart",
+      "start": 18.0,
+      "duration": 6.0,
+      "props": {
+        "title": "COMPARAÇÃO DE ALTURA",
+        "items": [
+          { "label": "Gizé", "value": 146, "displayValue": "146m", "color": "#D4AF37" },
+          { "label": "Burj Khalifa", "value": 828, "displayValue": "828m", "color": "#00E5FF" }
+        ],
+        "accentColor": "#D4AF37",
+        "position": "bottom-center",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(15, 12, 10, 0.85) 0%, rgba(25, 20, 15, 0.8) 100%)",
+          "border": "1.5px solid rgba(212, 175, 55, 0.25)",
+          "borderRadius": "16px"
+        }
+      }
+    },
+    {
+      "id": "timeline-1",
+      "type": "timeline",
+      "start": 25.0,
+      "duration": 7.0,
+      "props": {
+        "title": "LINHA DO TEMPO ROMANA",
+        "events": [
+          { "year": "753 a.C.", "description": "Fundação de Roma", "highlight": false },
+          { "year": "27 a.C.", "description": "Início do Império", "highlight": false },
+          { "year": "476 d.C.", "description": "Queda do Império", "highlight": true }
+        ],
+        "accentColor": "#FF3D00",
+        "orientation": "horizontal",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(10, 10, 15, 0.85) 0%, rgba(18, 18, 25, 0.8) 100%)",
+          "border": "1.5px solid rgba(255, 61, 0, 0.2)",
+          "borderRadius": "16px",
+          "colorTitle": "#FFD700"
+        }
       }
     }
-  },
-  {
-    "id": "counter-1",
-    "type": "counter",
-    "start": 12.0,
-    "duration": 4.5,
-    "props": {
-      "value": 2000,
-      "label": "Resistência a terremotos",
-      "suffix": "Anos",
-      "formatNumber": true,
-      "accentColor": "#00E5FF",
-      "position": "bottom-right",
-      "theme": "tech",
-      "customStyle": {
-        "background": "rgba(5, 10, 15, 0.95)",
-        "border": "1px solid #00E5FF",
-        "borderRadius": "0px",
-        "boxShadow": "0 0 25px rgba(0, 229, 255, 0.35)",
-        "colorValue": "#00E5FF",
-        "fontFamilyValue": "Courier New"
-      }
-    }
-  },
-  {
-    "id": "bar-1",
-    "type": "bar-chart",
-    "start": 18.0,
-    "duration": 6.0,
-    "props": {
-      "title": "COMPARAÇÃO DE ALTURA",
-      "items": [
-        { "label": "Gizé", "value": 146, "displayValue": "146m", "color": "#D4AF37" },
-        { "label": "Burj Khalifa", "value": 828, "displayValue": "828m", "color": "#00E5FF" }
-      ],
-      "accentColor": "#D4AF37",
-      "position": "bottom-center",
-      "theme": "ancient",
-      "customStyle": {
-        "background": "linear-gradient(135deg, #1e1510 0%, #2b1f18 100%)",
-        "border": "3px double #D4AF37",
-        "borderRadius": "8px",
-        "fontFamilyTitle": "Cinzel"
-      }
-    }
-  },
-  {
-    "id": "timeline-1",
-    "type": "timeline",
-    "start": 25.0,
-    "duration": 7.0,
-    "props": {
-      "title": "LINHA DO TEMPO ROMANA",
-      "events": [
-        { "year": "753 a.C.", "description": "Fundação de Roma", "highlight": false },
-        { "year": "27 a.C.", "description": "Início do Império", "highlight": false },
-        { "year": "476 d.C.", "description": "Queda do Império", "highlight": true }
-      ],
-      "accentColor": "#FF3D00",
-      "orientation": "horizontal",
-      "theme": "classic",
-      "customStyle": {
-        "background": "rgba(10, 10, 15, 0.90)",
-        "border": "1px solid rgba(255, 61, 0, 0.3)",
-        "borderRadius": "12px",
-        "fontFamilyTitle": "Cinzel",
-        "colorTitle": "#FFD700"
-      }
-    }
-  }
-]`;
+  ]
+}
+`;
 
   const userPrompt = `Aqui está o roteiro estruturado por blocos de tempo:
 ${JSON.stringify(blockContexts, null, 2)}
 
-Gere o plano de overlays seguindo rigorosamente as regras de complementariedade, variação de estilos e sem usar textos intrusivos no centro do vídeo.`;
+Gere o plano de planejamento e overlays seguindo rigorosamente as regras de complementariedade, variação de estilos e sem usar textos longos ou intrusivos.`;
 
   try {
     const rawResponse = await callGeminiWithRetry(apiKey, `${systemPrompt}\n\n${userPrompt}`);
-    
+
     let cleaned = rawResponse.trim();
     if (cleaned.startsWith("```")) {
       cleaned = cleaned.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
     }
-    const parsedOverlays = JSON.parse(cleaned);
     
+    let parsedOverlays = [];
+    try {
+      const resultObj = JSON.parse(cleaned);
+      if (Array.isArray(resultObj)) {
+        parsedOverlays = resultObj;
+      } else if (resultObj && Array.isArray(resultObj.overlays)) {
+        parsedOverlays = resultObj.overlays;
+        if (resultObj.planejamento) {
+          console.log("[Overlays Planning] Plano detalhado executado pela IA para este vídeo:");
+          resultObj.planejamento.forEach(p => console.log(`  - ${p}`));
+        }
+      } else {
+        console.warn("[Overlays] Resposta do Gemini não possui formato esperado de planejamento. Tentando usar objeto bruto.");
+        parsedOverlays = resultObj;
+      }
+    } catch (parseErr) {
+      console.error("[Overlays] Erro ao parsear JSON principal, tentando regex de fallback:", parseErr);
+      const match = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (match) {
+        parsedOverlays = JSON.parse(match[0]);
+      } else {
+        throw parseErr;
+      }
+    }
     if (Array.isArray(parsedOverlays)) {
       console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
 

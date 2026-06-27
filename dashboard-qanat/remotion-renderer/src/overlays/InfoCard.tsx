@@ -380,41 +380,13 @@ const LightbulbSVG: React.FC<{ size: number; color: string }> = ({ size, color }
 // Corner Ornaments Components for Themes
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TechCorners: React.FC<{ color: string }> = ({ color }) => (
-  <>
-    <div style={{ position: "absolute", top: 0, left: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
-    <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, borderTop: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
-    <div style={{ position: "absolute", bottom: 0, left: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderLeft: `2px solid ${color}` }} />
-    <div style={{ position: "absolute", bottom: 0, right: 0, width: 8, height: 8, borderBottom: `2px solid ${color}`, borderRight: `2px solid ${color}` }} />
-  </>
-);
+const TechCorners: React.FC<{ color: string }> = () => null;
 
-const AncientCorners: React.FC<{ color: string }> = ({ color }) => (
-  <>
-    <div style={{ position: "absolute", top: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-    <div style={{ position: "absolute", top: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-    <div style={{ position: "absolute", bottom: 3, left: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-    <div style={{ position: "absolute", bottom: 3, right: 3, width: 4, height: 4, borderRadius: "50%", backgroundColor: color }} />
-  </>
-);
+const AncientCorners: React.FC<{ color: string }> = () => null;
 
-const IndustrialRivets: React.FC = () => (
-  <>
-    <div style={{ position: "absolute", top: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-    <div style={{ position: "absolute", top: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-    <div style={{ position: "absolute", bottom: 4, left: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-    <div style={{ position: "absolute", bottom: 4, right: 4, width: 5, height: 5, borderRadius: "50%", background: "radial-gradient(circle, #888, #444)", border: "1px solid #222", opacity: 0.8 }} />
-  </>
-);
+const IndustrialRivets: React.FC = () => null;
 
-const MysteriousStars: React.FC<{ color: string }> = ({ color }) => (
-  <>
-    <div style={{ position: "absolute", top: 1, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-    <div style={{ position: "absolute", top: 1, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-    <div style={{ position: "absolute", bottom: 5, left: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-    <div style={{ position: "absolute", bottom: 5, right: 2, color, fontSize: 10, opacity: 0.8 }}>✦</div>
-  </>
-);
+const MysteriousStars: React.FC<{ color: string }> = () => null;
 
 export const InfoCard: React.FC<InfoCardProps> = ({
   title,
@@ -554,51 +526,60 @@ export const InfoCard: React.FC<InfoCardProps> = ({
     switch (theme) {
       case "ancient":
         base = {
-          background: "linear-gradient(135deg, rgba(20, 16, 12, 0.97) 0%, rgba(32, 24, 18, 0.95) 100%)",
-          border: `3px double ${accentColor}`,
-          borderRadius: "4px",
-          boxShadow: `0 8px 24px rgba(0,0,0,0.6), inset 0 0 10px ${accentColor}15`,
+          background: "linear-gradient(135deg, rgba(22, 16, 12, 0.88) 0%, rgba(36, 26, 20, 0.82) 100%)",
+          backdropFilter: "blur(12px)",
+          border: "1.5px solid rgba(255, 255, 255, 0.08)",
+          borderLeft: `4px solid ${accentColor}`,
+          borderRadius: "16px",
+          boxShadow: `0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px ${accentColor}20`,
         };
         break;
       case "tech":
         base = {
-          background: "rgba(4, 8, 12, 0.93)",
-          backgroundImage: `radial-gradient(${accentColor}15 1px, transparent 0)`,
-          backgroundSize: "8px 8px",
-          border: `1px solid ${accentColor}33`,
-          borderRadius: "0px",
-          boxShadow: `0 0 20px ${accentColor}15`,
+          background: "linear-gradient(135deg, rgba(8, 12, 16, 0.85) 0%, rgba(14, 20, 28, 0.8) 100%)",
+          backdropFilter: "blur(12px)",
+          border: "1.5px solid rgba(255, 255, 255, 0.08)",
+          borderLeft: `4px solid ${accentColor}`,
+          borderRadius: "16px",
+          boxShadow: `0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px ${accentColor}25`,
         };
         break;
       case "nature":
         base = {
-          background: "linear-gradient(135deg, rgba(6, 12, 8, 0.97) 0%, rgba(12, 24, 16, 0.95) 100%)",
-          border: `1px solid ${accentColor}30`,
+          background: "linear-gradient(135deg, rgba(8, 14, 10, 0.85) 0%, rgba(14, 24, 18, 0.8) 100%)",
+          backdropFilter: "blur(12px)",
+          border: "1.5px solid rgba(255, 255, 255, 0.08)",
           borderLeft: `4px solid ${accentColor}`,
-          borderRadius: "24px 6px 24px 6px",
-          boxShadow: `0 8px 32px ${accentColor}15`,
+          borderRadius: "16px",
+          boxShadow: `0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px ${accentColor}20`,
         };
         break;
       case "industrial":
         base = {
-          background: "linear-gradient(135deg, rgba(14, 14, 16, 0.99) 0%, rgba(24, 24, 28, 0.97) 100%)",
-          border: `2px solid #333336`,
-          borderLeft: `6px solid ${accentColor}`,
-          borderRadius: "2px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.8)",
+          background: "linear-gradient(135deg, rgba(16, 16, 18, 0.9) 0%, rgba(26, 26, 30, 0.85) 100%)",
+          backdropFilter: "blur(12px)",
+          border: "1.5px solid rgba(255, 255, 255, 0.08)",
+          borderLeft: `4px solid ${accentColor}`,
+          borderRadius: "16px",
+          boxShadow: `0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px ${accentColor}20`,
         };
         break;
       case "mysterious":
         base = {
-          background: "linear-gradient(135deg, rgba(10, 6, 14, 0.96) 0%, rgba(20, 12, 28, 0.94) 100%)",
-          border: `1px solid ${accentColor}40`,
-          borderRadius: "12px",
-          boxShadow: `0 8px 32px ${accentColor}25, inset 0 0 15px rgba(255,255,255,0.03)`,
+          background: "linear-gradient(135deg, rgba(12, 8, 16, 0.88) 0%, rgba(22, 14, 30, 0.82) 100%)",
+          backdropFilter: "blur(12px)",
+          border: "1.5px solid rgba(255, 255, 255, 0.08)",
+          borderLeft: `4px solid ${accentColor}`,
+          borderRadius: "16px",
+          boxShadow: `0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px ${accentColor}25`,
         };
         break;
       case "classic":
       default:
-        base = { ...variantStyles[variant] };
+        base = {
+          ...variantStyles[variant],
+          borderRadius: "16px", // Ensure standard variants have rounded corners too
+        };
         break;
     }
 
@@ -611,20 +592,17 @@ export const InfoCard: React.FC<InfoCardProps> = ({
     return base;
   };
 
-  // Theme custom typography mapper
   const getThemeFont = (type: "title" | "desc") => {
     let fontStyle: React.CSSProperties = {};
     if (type === "title") {
       switch (theme) {
         case "ancient":
         case "mysterious":
-          fontStyle = { fontFamily: "'Cinzel', 'Playfair Display', serif", fontWeight: 700, letterSpacing: "0.06em" };
+        case "industrial":
+          fontStyle = { fontFamily: "'Montserrat', sans-serif", fontWeight: 800, letterSpacing: "0.03em" };
           break;
         case "tech":
-          fontStyle = { fontFamily: "'Courier New', Courier, monospace", fontWeight: 700, letterSpacing: "0.1em" };
-          break;
-        case "industrial":
-          fontStyle = { fontFamily: "'Oswald', sans-serif", fontWeight: 800, letterSpacing: "0.05em" };
+          fontStyle = { fontFamily: "'Montserrat', sans-serif", fontWeight: 900, letterSpacing: "0.04em" };
           break;
         case "nature":
         default:
@@ -639,8 +617,6 @@ export const InfoCard: React.FC<InfoCardProps> = ({
     } else {
       switch (theme) {
         case "tech":
-          fontStyle = { fontFamily: "'Courier New', Courier, monospace", fontSize: isVertical ? 14 : 9.5 };
-          break;
         default:
           fontStyle = { fontFamily: "'Inter', sans-serif" };
           break;
