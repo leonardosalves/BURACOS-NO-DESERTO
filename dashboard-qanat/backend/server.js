@@ -63,6 +63,7 @@ import {
   buildFormatScriptRules,
   buildIdeasQualityAddendum,
   buildListicleIdeasAddendum,
+  buildListicleRankingIdeasPrompt,
   buildListicleScriptRules,
   resolveListicleBlockCount,
   clampListicleRankCount,
@@ -7653,6 +7654,58 @@ ${varietyInstruction}`;
 
 });
 
+// API: LISTICLE — Sugerir rankings interessantes para um nicho
+
+app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+  const apiKey = getApiKey(projDir);
+
+  if (!apiKey) {
+    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  }
+
+  const { niche, format = "LONGO", useNotebooklm } = req.body;
+
+  if (!niche || !String(niche).trim()) {
+    return res.status(400).json({ error: "Informe o nicho para sugerir rankings." });
+  }
+
+  const nicheClean = String(niche).trim();
+
+  let notebooklmContext = "";
+  if (useNotebooklm !== false) {
+    try {
+      const research = await fetchNotebooklmResearch(nicheClean, format);
+      notebooklmContext = `\nPESQUISA DE MERCADO (${research.available ? "NotebookLM" : "fallback"}):\n${research.summary}\n`;
+    } catch (e) {
+      notebooklmContext = "";
+    }
+  }
+
+  const projectsMeta = getExistingProjectsMetadata(WORKSPACE_DIR);
+  const existingTitles = projectsMeta.map((p) => p.title).filter(Boolean);
+  const exclusionInstruction = existingTitles.length
+    ? `\nEVITE repetir ou parecer com estes vídeos já criados:\n${existingTitles.slice(0, 40).map((t) => `- ${t}`).join("\n")}\n`
+    : "";
+
+  const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format })}
+
+${notebooklmContext}
+${exclusionInstruction}
+
+[ID: ${Date.now()}]`;
+
+  try {
+    const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 1.0 });
+    const parsed = normalizeKeys(await parseAiJsonResponse(responseText, apiKey, "Ranking ideas"));
+    res.json(parsed);
+  } catch (err) {
+    console.error("[LISTICLE IDEAS ERROR]", err.message);
+    res.status(500).json({ error: "Erro ao sugerir rankings", details: err.message });
+  }
+});
+
 function normalizeKeys(data) {
 
   if (!data || typeof data !== "object") return data;
@@ -7947,7 +8000,7 @@ Título: "${idea.title}"
 
 Promessa: "${idea.promise}"
 
-Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\nORDEM DO RANKING: ${rankOrder === "asc" ? "1 → N (build-up)" : "N → 1 (countdown)"}\nBLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)` : ""}`;
+Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\nORDEM DO RANKING: ${rankOrder === "asc" ? "1 → N (build-up)" : "N → 1 (countdown)"}\nBLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)${idea.listicle_angle ? `\nÂNGULO DO RANKING: ${idea.listicle_angle}` : ""}${Array.isArray(idea.sample_items) && idea.sample_items.length ? `\nITENS SUGERIDOS (use ou refine): ${idea.sample_items.join(", ")}` : ""}` : ""}`;
 
   const customHookVal = idea.hook || idea.hooks || "";
   if (customHookVal) {

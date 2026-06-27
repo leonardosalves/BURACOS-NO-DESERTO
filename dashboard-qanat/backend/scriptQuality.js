@@ -111,6 +111,74 @@ MODO LISTICLE / TOP N (OBRIGATÓRIO):
 `;
 }
 
+const LISTICLE_RANKING_ARCHETYPES = [
+  "mais subestimados / esquecidos pelo público",
+  "que mudaram o mundo (impacto global)",
+  "mais perigosos / destrutivos / letais",
+  "mais controversos (geram debate nos comentários)",
+  "que você usa todo dia sem saber a origem",
+  "de um país ou civilização específica",
+  "piores falhas / erros históricos",
+  "recordes que parecem impossíveis",
+  "que especialistas discordam no #1",
+  "para iniciantes entenderem o nicho",
+  "antes vs depois de um evento marcante",
+  "mais lucrativos / de maior ROI / impacto econômico",
+];
+
+export function buildListicleRankingIdeasPrompt({ niche = "", format = "LONGO" } = {}) {
+  const archetypes = LISTICLE_RANKING_ARCHETYPES.map((a, i) => `${i + 1}. ${a}`).join("\n");
+
+  return `Você é um estrategista de YouTube especializado em vídeos LISTICLE / TOP N com alta retenção.
+
+O usuário escolheu o NICHO: "${niche}"
+Formato preferido: ${format}
+
+SUA MISSÃO: Sugerir exatamente 12 ideias de RANKINGS interessantes, específicos e variados DENTRO desse nicho — não títulos genéricos.
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+ARQUÉTIPOS DE RANKING (use pelo menos 8 tipos diferentes entre as 12 ideias):
+${archetypes}
+
+REGRAS DE QUALIDADE (obrigatório):
+- Cada ideia deve ser um ranking DISTINTO — não 12 variações do mesmo tema
+- Títulos em PT-BR, específicos, com número no título (Top 5, 10, 15 ou 20 — varie conforme profundidade do tema)
+- Shorts = rankings menores (Top 3 a 5); Longo = Top 10 a 20
+- Inclua 3 "sample_items" reais que entrariam na lista (nomes concretos, não genéricos)
+- "controversy_hook": por que o #1 vai surpreender ou gerar comentário
+- "why_interesting": 1 frase sobre apelo de retenção (curiosidade, choque, nostalgia, debate)
+- "list_topic": tema interno curto para gerar o roteiro (ex: "invenções chinesas antigas subestimadas")
+- Proibido: rankings vagos ("Top 10 coisas legais"), clichês saturados, itens fictícios
+- Priorize ângulos que o público do nicho BUSCA mas raramente encontra em listas bem feitas
+
+Responda APENAS JSON válido:
+{
+  "niche_analysis": {
+    "audience_profile": "quem assiste esse nicho",
+    "what_they_search": "o que buscam no YouTube",
+    "comment_triggers": "o que faz comentar",
+    "best_ranking_styles": "que estilos de top N funcionam aqui"
+  },
+  "ranking_ideas": [
+    {
+      "title": "Top 15 ...",
+      "suggested_rank_count": 15,
+      "list_topic": "tema curto para roteiro",
+      "listicle_angle": "subestimados | controversos | impacto diário | ...",
+      "promise": "promessa do vídeo",
+      "why_interesting": "por que esse ranking prende",
+      "controversy_hook": "gancho do #1 surpreendente",
+      "sample_items": ["item real 1", "item real 2", "item real 3"],
+      "emotion": "emoção dominante",
+      "best_format": "LONGO ou SHORTS"
+    }
+  ],
+  "best_index": 0,
+  "best_reason": "por que essa é a melhor ideia de ranking agora"
+}`;
+}
+
 export function buildListicleScriptRules({
   rankCount = 20,
   rankOrder = "desc",
