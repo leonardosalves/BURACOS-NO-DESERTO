@@ -10,3 +10,13 @@
 ## 3. Subtitles (Legends) and Overlays Rules
 - **NO OVERLAPS**: Ensure that information cards, charts, timelines, or any other overlays do NOT display on top of the subtitles. Subtitles must remain visible, uncluttered, and readable at all times.
 - **LEGEND STYLING**: Subtitles/legends must look highly premium, organized, and cinematic. Avoid messy, plain, or disorganized formatting. Use clean fonts (e.g., modern uppercase sans-serif like Montserrat or Impact, with text-shadow / outline for readability), proper word-wrapping, and professional layout sizing.
+
+## 4. YouTube SEO, RPM & HyperFrames Orchestration Rules
+- **ROLE**: Act as a professional video design agent that optimizes visual retention based on YouTube's SEO algorithms.
+- **RPM DESIGN STRATEGY**: Adapt visual theme aesthetics based on the video's niche and RPM potential:
+  * *High RPM (Tech/Finance):* Premium dark backgrounds, neon-accented glows, code mockups/terminals, precise numeric counters.
+  * *Medium-High RPM (History/Mystery):* Serif typography (`Cinzel`), double borders, warm ambient glows, "ancient"/"mysterious" styles.
+  * *Medium RPM (Nature/Geography):* Green/earth tones, clean sans-serif layouts (`Montserrat`, `Inter`), minimal side rules.
+- **ELIMINATE THEMATIC FLOATING CARDS**: Convert all text-heavy or thematic `info-card` overlays into elegant `lower-third` overlays (mapping descriptions to subtitles and adjusting positions) to keep the center of the video clean and cinematic.
+- **INFOGRAPHIC PRIORITY**: Always show dynamic infographics (like `counter`, `bar-chart`, `timeline`) on screen instead of text overlays when displaying percentages, statistics, or steps.
+- **CATALOG EXCLUSIVITY**: Use exclusively the Remotion-transformed resources listed in `SKILL.md` (e.g., Soft Pill, Accent Underline, Shimmer, Shaders, macOS bash, etc.) to compose and edit each video.
