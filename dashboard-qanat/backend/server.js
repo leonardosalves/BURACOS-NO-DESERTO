@@ -62,6 +62,10 @@ import {
   SCRIPT_CREATIVE_REINFORCEMENT,
   buildFormatScriptRules,
   buildIdeasQualityAddendum,
+  buildListicleIdeasAddendum,
+  buildListicleScriptRules,
+  resolveListicleBlockCount,
+  clampListicleRankCount,
   buildHumanizeRepairPrompt,
   extractScriptSliceForRepair,
   mergeHumanizedScript,
@@ -7456,13 +7460,17 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 
   }
 
-  const { niche, format, useNotebooklm } = req.body;
+  const { niche, format, useNotebooklm, contentMode, rankCount, rankOrder, listTopic } = req.body;
 
   if (!niche || !format) {
 
     return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
 
   }
+
+  const isListicle = contentMode === "LISTICLE";
+  const listicleRank = clampListicleRankCount(rankCount, format);
+  const listicleTopic = String(listTopic || niche).trim();
 
   let notebooklmContext = "";
   if (useNotebooklm !== false) {
@@ -7528,6 +7536,8 @@ Diversidade obrigatoria de ideias:
 
 ${buildIdeasQualityAddendum()}
 
+${isListicle ? buildListicleIdeasAddendum({ rankCount: listicleRank, listTopic: listicleTopic, rankOrder: rankOrder || "desc" }) : ""}
+
 Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos de código com markdown \`\`\`json ou textos antes/depois. O JSON deve possuir exatamente a seguinte estrutura:
 
 {
@@ -7566,7 +7576,7 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
       "why_works": "Por que esse vídeo pode funcionar",
 
-      "best_format": "LONGO, SHORTS ou AMBOS"
+      "best_format": "LONGO, SHORTS ou AMBOS"${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
 
     }
 
@@ -7574,7 +7584,7 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
   "best_idea_index": 0,
 
-  "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"
+  "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"${isListicle ? ',\n\n  "listicle_meta": {\n    "rank_count": ' + listicleRank + ',\n    "rank_order": "' + (rankOrder || "desc") + '",\n    "topic": "' + listicleTopic.replace(/"/g, '\\"') + '"\n  }' : ""}
 
 }`;
 
@@ -7624,6 +7634,7 @@ Busque mistérios, segredos e fatos históricos menos explorados na internet par
 ENTRADAS:
 NICHO: ${niche}
 FORMATO: ${format}
+${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}
 ${exclusionInstruction}
 ${varietyInstruction}`;
     const responseText = await callGeminiWithRetry(apiKey, fullPrompt, { temperature: 1.15 });
@@ -7816,13 +7827,20 @@ function normalizeKeys(data) {
 
 app.post("/api/ai/creator/script", async (req, res) => {
 
-  const { niche, format, idea, project } = req.body;
+  const { niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic } = req.body;
 
   if (!niche || !format || !idea || !project) {
 
     return res.status(400).json({ error: "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios." });
 
   }
+
+  const isListicle = contentMode === "LISTICLE";
+  const listicleRank = clampListicleRankCount(rankCount, format);
+  const listicleTopic = String(listTopic || idea.title || niche).trim();
+  const listicleBlockCount = isListicle
+    ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+    : (format === "SHORTS" ? 5 : 12);
 
   const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
 
@@ -7900,13 +7918,16 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
       }
 
+      const blockEstimate = isListicle ? 50 : 10;
+      const timingStarts = Array.from({ length: listicleBlockCount }, (_, i) => i * blockEstimate);
+      const timingDurations = Array.from({ length: listicleBlockCount }, () => blockEstimate);
       fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
 
-        starts: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
+        starts: timingStarts,
 
-        durations: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+        durations: timingDurations,
 
-        total_duration: 120
+        total_duration: timingStarts[timingStarts.length - 1] + blockEstimate
 
       }, null, 4), "utf8");
 
@@ -7920,13 +7941,13 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   let promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
-O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}"):
+O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}")${isListicle ? ` — MODO LISTICLE TOP ${listicleRank}` : ""}:
 
 Título: "${idea.title}"
 
 Promessa: "${idea.promise}"
 
-Emoção: "${idea.emotion}"`;
+Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\nORDEM DO RANKING: ${rankOrder === "asc" ? "1 → N (build-up)" : "N → 1 (countdown)"}\nBLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)` : ""}`;
 
   const customHookVal = idea.hook || idea.hooks || "";
   if (customHookVal) {
@@ -7953,7 +7974,15 @@ Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração 
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
-${buildFormatScriptRules(format)}
+${isListicle
+    ? buildListicleScriptRules({
+      rankCount: listicleRank,
+      rankOrder: rankOrder || "desc",
+      format,
+      listTopic: listicleTopic,
+      blockCount: listicleBlockCount,
+    })
+    : buildFormatScriptRules(format)}
 
 ${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
 
@@ -7962,7 +7991,9 @@ Reforco especifico para montagem do roteiro:
 - A MENSAGEM CENTRAL deve estar clara na promessa da ideia ("${idea.promise}"). Cada bloco aproxima o espectador dessa compreensão.
 
 - Preserve exatamente o formato JSON solicitado abaixo (com todas as chaves, incluindo 'technical_config').
-- Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.
+- ${isListicle
+    ? `MODO LISTICLE ATIVO: use EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Cada item = 1 bloco. Não resuma vários itens no mesmo bloco.`
+    : `Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.`}
 
 - Nao reduza a cobertura visual: o array visual_prompts continua cobrindo toda a narracao, como o programa ja espera.
 
@@ -7978,11 +8009,13 @@ Regras do Roteiro:
 
 5. Narração em português brasileiro: deve ser extremamente humana, fluida, natural, carismática e cheia de vida. Revise cada frase de cada bloco para garantir um sentido lógico impecável e um fluxo narrativo harmonioso. Elimine totalmente sentenças robotizadas, vagas ou desconexas.
 
-6. Formato: "${format}".
+6. Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
 
-   - SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA).
+   ${isListicle
+    ? `- LISTICLE: ${listicleBlockCount} blocos obrigatórios. Tempo estimado: ${format === "SHORTS" ? "40-55 segundos" : `${Math.round(listicleRank * 0.75)}-${Math.round(listicleRank * 1.2)} minutos`}. Um item por bloco, ordem ${rankOrder === "asc" ? "crescente" : "decrescente"}.`
+    : `- SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA).
 
-   - LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.
+   - LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.`}
 
 Regras dos Prompts Visuais:
 
@@ -7997,6 +8030,9 @@ Regras dos Prompts Visuais:
 - Nunca coloque texto dentro dos prompts visuais.
 
 - Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
+${isListicle ? `
+- LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").
+- LISTICLE: gere "list_items" e "listicle" conforme especificado nas regras de listicle acima.` : ""}
 
 FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
@@ -8082,7 +8118,7 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
 9. "technical_config": {
 
-   "script": "Narração dividida em 12 parágrafos (Longo) ou 5 (Shorts) separados por quebra de linha.",
+   "script": "Narração dividida em ${listicleBlockCount} parágrafos separados por quebra de linha.",
 
    "block_phrases": [{"block": 1, "phrase": "início do bloco"}],
 
@@ -8092,7 +8128,25 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
    "bgm_mappings": [{"block": 1, "file": "sugestao_nome_trilha.mp3"}]
 
+}${isListicle ? `
+
+10. "listicle": {
+
+   "content_mode": "LISTICLE",
+
+   "rank_count": ${listicleRank},
+
+   "rank_order": "${rankOrder === "asc" ? "asc" : "desc"}",
+
+   "topic": "${listicleTopic.replace(/"/g, '\\"')}"
+
 }
+
+11. "list_items": [
+
+   { "rank": ${listicleRank}, "title": "nome do item", "year": "ano", "origin": "país", "block": 2, "hook_line": "gancho", "visual_hook": "english stock term" }
+
+]` : ""}
 
 REGRAS FINAIS:
 
@@ -8102,20 +8156,29 @@ REGRAS FINAIS:
 
 - O array visual_prompts deve cobrir TODA a narração sem lacunas.
 
-- Gere quantas cenas forem necessárias (40-80+ para Longo, 5-10 para Shorts).`;
+- Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
 
   let responseText = "";
 
   try {
 
-    responseText = await callGeminiWithRetry(apiKey, promptSystem, { temperature: 0.85 });
+    responseText = await callGeminiWithRetry(apiKey, promptSystem, { temperature: isListicle ? 0.75 : 0.85 });
 
     const rawData = await parseAiJsonResponse(responseText, apiKey, "Roteiro e estrategia");
 
     let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
 
+    if (isListicle && !parsedData.listicle) {
+      parsedData.listicle = {
+        content_mode: "LISTICLE",
+        rank_count: listicleRank,
+        rank_order: rankOrder === "asc" ? "asc" : "desc",
+        topic: listicleTopic,
+      };
+    }
+
     try {
-      const blockCount = format === "SHORTS" ? 5 : 12;
+      const blockCount = listicleBlockCount;
       const repairPrompt = buildHumanizeRepairPrompt({
         format,
         ideaTitle: idea.title,
@@ -8190,7 +8253,15 @@ REGRAS FINAIS:
       bgm_mappings: [],
       impact_texts: parsedData.technical_config?.impact_texts || [],
       block_phrases: parsedData.technical_config?.block_phrases || [],
-      timeline_assets: timelineAssets
+      timeline_assets: timelineAssets,
+      aspect_ratio: isShort ? "9:16" : "16:9",
+      video_format: format,
+      ...(isListicle ? {
+        content_mode: "LISTICLE",
+        rank_count: listicleRank,
+        rank_order: rankOrder === "asc" ? "asc" : "desc",
+        list_topic: listicleTopic,
+      } : {}),
     };
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
