@@ -58,6 +58,15 @@ import {
   getInstagramConnectionStatus,
   saveInstagramAppCredentials,
 } from "./instagramOAuth.js";
+import {
+  SCRIPT_CREATIVE_REINFORCEMENT,
+  buildFormatScriptRules,
+  buildIdeasQualityAddendum,
+  buildHumanizeRepairPrompt,
+  extractScriptSliceForRepair,
+  mergeHumanizedScript,
+  applyScriptTextQuality,
+} from "./scriptQuality.js";
 
 import cors from "cors";
 
@@ -7125,34 +7134,6 @@ app.post("/api/logo/reset", (req, res) => {
 
 });
 
-const SCRIPT_CREATIVE_REINFORCEMENT = `
-
-REFORCO CRIATIVO NAO OBRIGATORIO:
-
-Use estas ideias apenas como apoio de qualidade narrativa, sem mudar o formato de resposta, sem mudar a divisao em blocos e sem impor novas regras ao fluxo existente.
-
-- HUMANIZAÇÃO EXTREMA E NATURALIDADE: A narração deve soar 100% como um contador de histórias humano, dinâmico e envolvente. Evite a todo custo frases robóticas, jargões frios, explicações prolixas ou transições mecânicas. Prefira português brasileiro natural, fluido e coloquial/cinematográfico.
-
-- COERÊNCIA E SENTIDO ABSOLUTO DAS FRASES: Analise criticamente cada frase dentro de cada bloco. Certifique-se de que cada sentença tenha um fluxo perfeito, faça sentido lógico claro e esteja diretamente conectada à anterior e à próxima. Não permita frases vazias, soltas, incompletas, confusas ou sem sentido contextual.
-
-- DAR VIDA AO VÍDEO: Injete energia, emoção e mistério no texto. Use ganchos intrigantes, perguntas retóricas que façam o espectador pensar, e crie contrastes dramáticos de ritmo e tom para manter o interesse no auge.
-
-- Antes de propor ideias ou roteiro, pense no que o publico desse nicho busca agora: duvidas fortes, medos, desejos, polemicas, curiosidades, tendencias e formatos que prendem atencao.
-
-- Evite ideias genericas e repetidas. Varie os angulos entre misterio, descoberta, conflito, erro historico, detalhe esquecido, comparacao inesperada, pergunta provocadora, mito versus realidade e payoff emocional.
-
-- Cada ideia deve ter promessa clara, emocao dominante e motivo concreto para funcionar.
-
-- Na narracao, priorize voz humana, direta, brasileira e cinematografica, com frases que abrem loops e depois entregam recompensa real.
-
-- Reforce os primeiros segundos com gancho forte, quebra de expectativa e uma pergunta implicita que faca a pessoa querer continuar.
-
-- Use tensao progressiva, microcliffhangers, prova, revelacao e payoff final para sustentar retencao.
-
-- O resultado deve satisfazer o espectador; curiosidade sem entrega nao serve.
-
-`;
-
 app.post("/api/ai/generate-creator-script", async (req, res) => {
 
   const projDir = getProjectDir(req);
@@ -7185,9 +7166,13 @@ Regras Gerais:
 
 - Esqueça qualquer tema ou vídeo anterior para não ficar repetitivo.
 
-- A narração do roteiro deve soar extremamente humana, natural, direta, fluida e com ritmo de vídeo viral. Revise atentamente cada frase de cada bloco para garantir sentido lógico total e fluxo perfeito, eliminando explicações lentas, frases vagas ou robotizadas.
+- A narração deve soar como pessoa real contando história — frases curtas, exemplos concretos, zero clichê de IA.
+
+- O espectador precisa entender a mensagem central sem esforço; cada bloco avança essa compreensão.
 
 - O roteiro completo deve durar entre 2 e 5 minutos (cerca de 300 a 600 palavras) e ser dividido em 12 blocos lógicos.
+
+${buildFormatScriptRules("LONGO")}
 
 - Crie um gancho inicial que prenda a atenção nos primeiros 3 segundos do bloco 1.
 
@@ -7430,6 +7415,8 @@ Diversidade obrigatoria de ideias:
 - Evite repetir estruturas como "o segredo de..." em muitas ideias. Varie promessa, emocao e mecanismo de clique.
 
 - Escolha a melhor ideia pelo potencial de retencao e comentario, nao apenas pelo titulo mais chamativo.
+
+${buildIdeasQualityAddendum()}
 
 Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos de código com markdown \`\`\`json ou textos antes/depois. O JSON deve possuir exatamente a seguinte estrutura:
 
@@ -7856,9 +7843,11 @@ Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração 
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
+${buildFormatScriptRules(format)}
+
 Reforco especifico para montagem do roteiro:
 
-- Use o reforco acima para melhorar promessa, ritmo, tensao, payoff e naturalidade da narracao.
+- A MENSAGEM CENTRAL deve estar clara na promessa da ideia ("${idea.promise}"). Cada bloco aproxima o espectador dessa compreensão.
 
 - Preserve exatamente o formato JSON solicitado abaixo (com todas as chaves, incluindo 'technical_config').
 - Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.
@@ -8007,11 +7996,31 @@ REGRAS FINAIS:
 
   try {
 
-    responseText = await callGeminiWithRetry(apiKey, promptSystem);
+    responseText = await callGeminiWithRetry(apiKey, promptSystem, { temperature: 0.85 });
 
     const rawData = await parseAiJsonResponse(responseText, apiKey, "Roteiro e estrategia");
 
-    const parsedData = normalizeKeys(rawData);
+    let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
+
+    try {
+      const blockCount = format === "SHORTS" ? 5 : 12;
+      const repairPrompt = buildHumanizeRepairPrompt({
+        format,
+        ideaTitle: idea.title,
+        rawScript: extractScriptSliceForRepair(parsedData),
+        blockCount,
+      });
+      const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+        temperature: 0.55,
+        maxRetries: 2,
+        models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+      });
+      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro"));
+      parsedData = mergeHumanizedScript(parsedData, repaired, format);
+      console.log("[Creator Script] Passagem de humanização/clareza aplicada.");
+    } catch (repairErr) {
+      console.warn("[Creator Script] Humanização secundária falhou, usando rascunho:", repairErr.message);
+    }
 
     // Save full storyboard JSON
 
