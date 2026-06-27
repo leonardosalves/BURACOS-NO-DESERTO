@@ -78,7 +78,7 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
-function detectNicheCategory(niche = "") {
+export function detectNicheCategory(niche = "") {
   const n = niche.toLowerCase();
   if (/finan|negoc|dinheiro|invest|economia/.test(n)) return "finance";
   if (/tecnolog|program|software|ia\b|comput|cyber|ciber/.test(n)) return "tech";

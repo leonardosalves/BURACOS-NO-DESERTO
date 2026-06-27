@@ -8,6 +8,12 @@ import {
   enforceOverlayOrchestration,
   VARIETY_PROFILES,
 } from "./overlayOrchestration.js";
+import {
+  buildYoutubeMetadataPrompt,
+  buildFallbackYoutubeMetadata,
+  parseYoutubeMetadataMarkdown,
+  resolveYoutubeMetadataContext,
+} from "./youtubeMetadataOptimizer.js";
 
 import cors from "cors";
 
@@ -4955,7 +4961,9 @@ function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
 
 }
 
-async function generateMetadataWithXai(prompt, apiKey) {
+async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
+
+  const formatLabel = format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
 
   const response = await fetch("https://api.x.ai/v1/chat/completions", {
 
@@ -4975,7 +4983,7 @@ async function generateMetadataWithXai(prompt, apiKey) {
 
       messages: [
 
-        { role: "system", content: "Você é um especialista em SEO para YouTube. Retorne apenas o markdown solicitado." },
+        { role: "system", content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.` },
 
         { role: "user", content: prompt }
 
@@ -5491,136 +5499,6 @@ app.post("/api/ai/execute-action", async (req, res) => {
 
 // API: Generate YouTube Metadata (SEO Titles, Description, Tags, Chapters)
 
-function getFirstSentences(text, count = 2) {
-
-  return String(text || "")
-
-    .replace(/\s+/g, " ")
-
-    .split(/(?<=[.!?])\s+/)
-
-    .filter(Boolean)
-
-    .slice(0, count)
-
-    .join(" ");
-
-}
-
-function extractKeywords(text, limit = 15) {
-
-  const stopWords = new Set([
-
-    "a", "o", "os", "as", "um", "uma", "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas",
-
-    "e", "ou", "que", "para", "por", "com", "sem", "como", "mais", "mas", "foi", "ser", "são", "seu",
-
-    "sua", "seus", "suas", "esse", "essa", "este", "esta", "isso", "não", "sim", "ao", "aos", "pela",
-
-    "pelo", "pelos", "pelas", "quando", "onde", "porque", "sobre", "entre", "até", "também", "muito"
-
-  ]);
-
-  const counts = new Map();
-
-  const words = String(text || "")
-
-    .toLowerCase()
-
-    .normalize("NFD")
-
-    .replace(/[\u0300-\u036f]/g, "")
-
-    .match(/[a-z0-9]{4,}/g) || [];
-
-  for (const word of words) {
-
-    if (!stopWords.has(word)) {
-
-      counts.set(word, (counts.get(word) || 0) + 1);
-
-    }
-
-  }
-
-  return [...counts.entries()]
-
-    .sort((a, b) => b[1] - a[1])
-
-    .slice(0, limit)
-
-    .map(([word]) => word);
-
-}
-
-function buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard }) {
-
-  const strategy = storyboard?.strategy || {};
-
-  const baseTitle = strategy.title_main || getFirstSentences(transcript, 1) || "O Segredo Escondido no Deserto";
-
-  const hook = strategy.hook || getFirstSentences(transcript, 2) || "Uma história que parece impossível, mas foi real.";
-
-  const keywords = extractKeywords(`${baseTitle} ${hook} ${transcript}`, 15);
-
-  const tags = [...new Set([
-
-    ...keywords,
-
-    "documentario",
-
-    "historia",
-
-    "curiosidades",
-
-    "engenharia antiga",
-
-    "misterios antigos"
-
-  ])].slice(0, 15);
-
-  const chapters = chaptersText?.trim()
-
-    ? chaptersText.trim().split(/\r?\n/).map(line => line.replace(" - Bloco ", " - O segredo do bloco ")).join("\n")
-
-    : "00:00 - O começo do mistério";
-
-  return `## TÍTULOS
-
-1. ${baseTitle.slice(0, 58)}
-
-2. O detalhe que quase ninguém percebeu nessa história
-
-3. Como isso foi possível no meio do deserto?
-
-4. A engenharia antiga que ainda intriga especialistas
-
-5. Você nunca mais vai olhar para isso do mesmo jeito
-
-## DESCRIÇÃO
-
-${hook}
-
-Neste vídeo, você vai entender os detalhes por trás dessa história e por que ela continua chamando atenção até hoje.
-
-Assista até o final para ver como cada peça se conecta e revela algo maior do que parece.
-
-#documentario #historia #curiosidades #engenharia #misterios
-
-## TAGS
-
-${tags.join(", ")}
-
-## COMENTÁRIO PINADO
-
-Qual detalhe dessa história mais te surpreendeu? Comenta aqui embaixo, porque eu quero ver qual parte chamou mais atenção.
-
-## CAPÍTULOS
-
-${chapters}`;
-
-}
-
 function buildProjectTranscript({ transcript, config, storyboard }) {
 
   const candidates = [];
@@ -5719,54 +5597,6 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     }
 
-    const blockNames = [
-
-      "Abertura",
-
-      "Bloco 2",
-
-      "Bloco 3",
-
-      "Bloco 4",
-
-      "Bloco 5",
-
-      "Bloco 6",
-
-      "Bloco 7",
-
-      "Bloco 8",
-
-      "Bloco 9",
-
-      "Bloco 10",
-
-      "Bloco 11",
-
-      "Conclusão"
-
-    ];
-
-    let chaptersText = "";
-
-    if (timings.starts && timings.starts.length > 0) {
-
-      for (let i = 0; i < timings.starts.length && i < blockNames.length; i++) {
-
-        const sec = timings.starts[i];
-
-        const m = Math.floor(sec / 60);
-
-        const s = Math.floor(sec % 60);
-
-        const ts = `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-
-        chaptersText += `${ts} - ${blockNames[i]}\n`;
-
-      }
-
-    }
-
     // Load storyboard for extra context
 
     let storyboard = {};
@@ -5793,121 +5623,41 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     }
 
-    const storyContext = storyboard.strategy ? `
+    const { format, niche, totalDuration, chaptersText } = resolveYoutubeMetadataContext({
+      config,
+      timings,
+      storyboard,
+    });
 
-Contexto Estratégico do Vídeo:
+    const prompt = buildYoutubeMetadataPrompt({
+      transcript,
+      chaptersText,
+      storyboard,
+      config,
+      format,
+      niche,
+      totalDuration,
+    });
 
-- Título Original: ${storyboard.strategy.title_main || "N/A"}
-
-- Hook: ${storyboard.strategy.hook || "N/A"}
-
-- Público-alvo: ${storyboard.strategy.target_audience || "N/A"}
-
-- Tom: ${storyboard.strategy.tone || "N/A"}
-
-- Comentário Pinado Sugerido: ${storyboard.strategy.pinned_comment || "N/A"}
-
-- CTA: ${storyboard.strategy.cta || "N/A"}
-
-` : "";
-
-    const prompt = `Você é um especialista em SEO para YouTube de alto nível, psicologia de cliques e crescimento orgânico de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
-
-Analise o roteiro abaixo e gere metadados que provoquem curiosidade irresistível de forma moderna e autêntica.
-
-## REGRAS PARA OS TÍTULOS (ESTRATÉGIA MODERNA DE CTR):
-
-- Use "curiosity gap" (lacuna de curiosidade) moderno: crie uma forte tensão cognitiva ou paradoxo que instigue o clique sem parecer um anúncio ou clickbait óbvio.
-
-- PROIBIÇÃO ABSOLUTA DE CLICHÊS DE IA: Nunca use expressões como "99% não sabem", "99% das pessoas", "segredo chocante", "destruição brutal", "a verdade", "revelado", ou verbos no imperativo como "veja", "descubra".
-
-- LINGUAGEM HUMANA: Escreva títulos como se fossem ditos por um criador de conteúdo real (ex: Veritasium, MagnatesMedia). Use linguagem simples, casual e altamente instigante.
-
-- TAMANHO OTIMIZADO: Máximo de 45-50 caracteres. Títulos curtos convertem muito melhor e evitam corte em telas mobile.
-
-- COMPLEMENTARIDADE: O título deve contar metade de uma história interessante, cuja outra metade será completada pela imagem da miniatura (thumbnail).
-
-- Gere 5 opções variadas (curiosidade, emoção, número, urgência, provocação)
-
-## REGRAS PARA A DESCRIÇÃO:
-
-- As 2 PRIMEIRAS LINHAS são CRUCIAIS (aparecem sem precisar clicar "Mostrar mais")
-
-- Primeira linha: gancho emocional que complementa o título
-
-- Segunda linha: promessa concreta do que o espectador vai aprender
-
-- Resto: SEO keywords naturais, links, call-to-action
-
-- Inclua 3-5 hashtags relevantes no final
-
-## REGRAS PARA AS TAGS:
-
-- 15 tags ordenadas por volume de busca estimado
-
-- Mix de tags genéricas (alto volume) + específicas (baixa competição)
-
-- Inclua variações com erros de digitação comuns se relevante
-
-## REGRAS PARA O COMENTÁRIO PINADO:
-
-- Crie um comentário que PROVOQUE respostas dos espectadores
-
-- Use uma pergunta aberta que gere debate nos comentários
-
-- Inclua CTA sutil para inscrição
-
-## REGRAS PARA OS CAPÍTULOS:
-
-- Use os timestamps reais fornecidos abaixo
-
-- Nomes dos capítulos devem ser chamativos e curiosos (não genéricos como "Introdução")
-
-${storyContext}
-
-Roteiro do Vídeo:
-
-IMPORTANTE: o roteiro completo do projeto está abaixo. Use este conteúdo como fonte principal. Não diga que o roteiro não foi fornecido.
-
---- INÍCIO DO ROTEIRO ---
-
-${transcript}
-
---- FIM DO ROTEIRO ---
-
-Marcadores com tempos exatos do projeto:
-
-${chaptersText}
-
-FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
-
-## TÍTULOS
-
-(liste os 5 títulos numerados)
-
-## DESCRIÇÃO
-
-(descrição completa pronta para colar)
-
-## TAGS
-
-(tags separadas por vírgula)
-
-## COMENTÁRIO PINADO
-
-(texto do comentário pinado)
-
-## CAPÍTULOS
-
-(lista de capítulos com timestamps)`;
+    const respondWithMetadata = (text, extra = {}) => {
+      const parsed = parseYoutubeMetadataMarkdown(text);
+      return res.json({
+        text,
+        format,
+        niche,
+        totalDuration,
+        parsed,
+        ...extra,
+      });
+    };
 
     const errors = [];
 
     if (aiProvider === "xai" && xaiKey) {
 
-      const responseText = await generateMetadataWithXai(prompt, xaiKey);
+      const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
 
-      return res.json({ text: responseText, provider: "xai" });
+      return respondWithMetadata(responseText, { provider: "xai" });
 
     }
 
@@ -5917,7 +5667,7 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 
       const responseText = await callGeminiWithRetry(apiKey, prompt);
 
-      return res.json({ text: responseText || "Erro ao gerar metadados.", tried_keys: 1 });
+      return respondWithMetadata(responseText || "Erro ao gerar metadados.", { tried_keys: 1 });
 
     } catch (geminiErr) {
 
@@ -5929,11 +5679,9 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 
       try {
 
-        const responseText = await generateMetadataWithXai(prompt, xaiKey);
+        const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
 
-        return res.json({
-
-          text: responseText,
+        return respondWithMetadata(responseText, {
 
           provider: "xai",
 
@@ -5949,13 +5697,18 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 
     }
 
-    const fallbackText = buildFallbackYoutubeMetadata({ transcript, chaptersText, storyboard });
+    const fallbackText = buildFallbackYoutubeMetadata({
+      transcript,
+      chaptersText,
+      storyboard,
+      config,
+      format,
+      niche,
+    });
 
     const quotaErrors = errors.filter(error => error.quotaExceeded).length;
 
-    return res.json({
-
-      text: fallbackText,
+    return respondWithMetadata(fallbackText, {
 
       fallback: true,
 

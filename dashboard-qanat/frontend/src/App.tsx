@@ -1824,6 +1824,12 @@ export default function App() {
 
 
   const [youtubeMetadata, setYoutubeMetadata] = useState<string>('');
+  const [youtubeMetadataFormat, setYoutubeMetadataFormat] = useState<'SHORT' | 'LONG' | ''>('');
+  const [youtubeMetadataParsed, setYoutubeMetadataParsed] = useState<{
+    titles?: { text: string; chars: number }[];
+    description?: string;
+    recommendedTitle?: string;
+  } | null>(null);
 
 
 
@@ -13575,6 +13581,8 @@ export default function App() {
 
 
     setYoutubeMetadata('');
+    setYoutubeMetadataFormat('');
+    setYoutubeMetadataParsed(null);
 
 
 
@@ -13615,6 +13623,8 @@ export default function App() {
 
 
         setYoutubeMetadata(data.text);
+        setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
+        setYoutubeMetadataParsed(data.parsed || null);
 
 
 
@@ -27304,7 +27314,14 @@ export default function App() {
 
 
 
-                      <p className="text-[10px] text-gray-400 mt-1">Gere títulos A/B, descrição SEO, tags e capítulos baseados no roteiro.</p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Títulos magnéticos, descrição para feed (Shorts) ou retenção (Longos), tags e engajamento — detecta o formato do projeto automaticamente.
+                      </p>
+                      {youtubeMetadataFormat && (
+                        <span className={`inline-flex mt-2 text-[9px] font-bold px-2 py-0.5 rounded ${youtubeMetadataFormat === 'SHORT' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-sky-500/10 text-sky-400'}`}>
+                          Estratégia: {youtubeMetadataFormat === 'SHORT' ? 'YouTube Shorts (feed + rewatch)' : 'Vídeo Longo (CTR + retenção)'}
+                        </span>
+                      )}
 
 
 
@@ -27464,7 +27481,7 @@ export default function App() {
 
 
 
-                        {/* Copiar Tudo */}
+                        {/* Aplicar ao Upload + Copiar Tudo */}
 
 
 
@@ -27472,7 +27489,22 @@ export default function App() {
 
 
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-between items-center gap-2 flex-wrap">
+                          {youtubeMetadataParsed?.description && (
+                            <button
+                              onClick={() => {
+                                const title = youtubeMetadataParsed?.recommendedTitle || youtubeMetadataParsed?.titles?.[0]?.text || '';
+                                if (title) setYtTitle(title.slice(0, 100));
+                                setYtDescription(youtubeMetadataParsed.description || '');
+                                toast('Título e descrição aplicados na aba Upload.');
+                              }}
+                              className="bg-gold-500/10 border border-gold-500/30 text-gold-400 hover:bg-gold-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              Aplicar ao Upload
+                            </button>
+                          )}
+                          <div className="flex-1" />
 
 
 
@@ -27705,14 +27737,36 @@ export default function App() {
 
 
                                 <div className="prose prose-invert max-w-none">
-
-
-
-
-
-
-
-                                  {renderFormattedText(content)}
+                                  {/^T[ÍI]TULOS$/i.test(title) && youtubeMetadataParsed?.titles?.length ? (
+                                    <div className="space-y-2 not-prose">
+                                      {youtubeMetadataParsed.titles.map((t, tIdx) => {
+                                        const maxChars = youtubeMetadataFormat === 'SHORT' ? 40 : 50;
+                                        const ok = t.chars <= maxChars;
+                                        return (
+                                          <div key={tIdx} className="flex items-start justify-between gap-2 bg-zinc-900/50 border border-zinc-800 rounded-lg px-3 py-2">
+                                            <div className="min-w-0">
+                                              <span className="text-[10px] text-zinc-500 mr-2">{tIdx + 1}.</span>
+                                              <span className="text-xs text-zinc-200">{t.text}</span>
+                                              <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                {t.chars}/{maxChars}
+                                              </span>
+                                            </div>
+                                            <button
+                                              onClick={() => {
+                                                setYtTitle(t.text.slice(0, 100));
+                                                toast(`Título #${tIdx + 1} aplicado na aba Upload.`);
+                                              }}
+                                              className="shrink-0 text-[9px] font-bold text-gold-500 hover:text-gold-400 px-2 py-1 rounded border border-gold-500/20 hover:border-gold-500/40 transition cursor-pointer"
+                                            >
+                                              Usar
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    renderFormattedText(content)
+                                  )}
 
 
 
