@@ -13815,6 +13815,13 @@ export default function App() {
     youtubeMetadataFormat ? `Formato: ${youtubeMetadataFormat === 'SHORT' ? '9:16 Shorts' : '16:9 Longo'}` : '',
   ].filter(Boolean).join('\n');
 
+  const resolveCanvaCreateUrl = (format: 'SHORT' | 'LONG' | '' = '') => {
+    if (format === 'SHORT') {
+      return 'https://www.canva.com/create/instagram-stories/';
+    }
+    return 'https://www.canva.com/create/youtube-thumbnails/';
+  };
+
   const openCanvaThumbnailDesigner = async (thumb?: {
     id: string;
     label?: string;
@@ -13828,11 +13835,14 @@ export default function App() {
       ? buildThumbnailBrief(thumb)
       : 'YouTube thumbnail — alto CTR, texto curto na capa, contraste forte';
     await copyToClipboard(brief, thumb ? `canva-${thumb.id}` : 'canva-thumb');
-    const canvaUrl = youtubeMetadataFormat === 'SHORT'
-      ? 'https://www.canva.com/create/your-story/'
-      : 'https://www.canva.com/create/youtube-thumbnails/';
+    const isShort = youtubeMetadataFormat === 'SHORT';
+    const canvaUrl = resolveCanvaCreateUrl(youtubeMetadataFormat);
     window.open(canvaUrl, '_blank', 'noopener,noreferrer');
-    toast('Briefing copiado — cole no Canva ao criar o design.');
+    toast(
+      isShort
+        ? 'Briefing copiado. Abrindo Canva (Stories 9:16 — ideal para Shorts).'
+        : 'Briefing copiado. Abrindo Canva (Thumbnail YouTube 16:9).'
+    );
   };
 
   const selectThumbnailForUpload = async (generated: { id: string; fileName?: string; url: string }) => {
