@@ -35,8 +35,69 @@ const PT_STOP_WORDS = new Set([
   "então", "assim", "mesmo", "mesma", "outro", "outra", "cada", "qual", "quais",
 ]);
 
+const INVALID_TITLE_NOUNS = new Set([
+  "você", "voce", "voc", "eu", "ele", "ela", "nós", "nos", "eles", "elas",
+  "isso", "isto", "aquilo", "sem", "com", "para", "mas", "que", "como",
+  "quando", "onde", "por", "se", "já", "ja", "top", "lugar", "número", "numero",
+  "primeiro", "segundo", "terceiro", "ninguém", "ninguem", "alguém", "alguem",
+]);
+
+const INCOMPLETE_ENDINGS = new Set([
+  "o", "a", "os", "as", "um", "uma", "de", "da", "do", "das", "dos",
+  "em", "no", "na", "nos", "nas", "e", "ou", "que", "com", "por", "para", "se",
+  "ao", "aos", "detalhe", "história", "historia", "segredo", "verdade", "coisa", "fato",
+  "mudaram", "mudou", "fez", "era", "eram", "tinha", "foram", "ficou", "parecia",
+]);
+
 function clip(text = "", max = 50) {
   return String(text || "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function isValidTitleNoun(word = "") {
+  const w = String(word || "").trim();
+  if (!w || w.length < 3) return false;
+  const lower = w.toLowerCase().normalize("NFC");
+  if (INVALID_TITLE_NOUNS.has(lower)) return false;
+  if (GENERIC_TITLE_WORDS.has(lower)) return false;
+  if (/^voc$/i.test(w)) return false;
+  return true;
+}
+
+function filterProperNouns(nouns = []) {
+  return nouns.filter((n) => {
+    const parts = String(n).trim().split(/\s+/);
+    return parts.every((p) => isValidTitleNoun(p));
+  });
+}
+
+function isCompleteTitle(text = "", format = "LONG") {
+  const t = sanitizeTitle(text);
+  if (!t || t.length < 10) return false;
+
+  const max = format === "SHORT" ? 40 : 50;
+  if (t.length > max) return false;
+
+  const words = t.split(/\s+/);
+  const lastWord = words[words.length - 1]?.replace(/[.:;!?—–-]+$/, "").toLowerCase();
+  if (INCOMPLETE_ENDINGS.has(lastWord)) return false;
+
+  if (/ e o detalhe$/i.test(t) || / e a história$/i.test(t) || / e o segredo$/i.test(t)) {
+    return false;
+  }
+
+  if (/\bvoc\b/i.test(t) && !/\bvocê\b/i.test(t)) return false;
+  if (/\bvoce\b/i.test(t) && !/\bvocê\b/i.test(t)) return false;
+
+  if (/^\d+\.\d+\s/i.test(t) && !/^\d+\.\d+\s*(mil|%|km|anos?|séculos?|metros?)/i.test(t)) {
+    return false;
+  }
+
+  if (/fez isso e ninguém explicou$/i.test(t)) return false;
+  if (/a conexão que faltava$/i.test(t) && /^(você|voce|voc|sem|isso|ele|ela)\b/i.test(t)) {
+    return false;
+  }
+
+  return true;
 }
 
 function extractKeyPhrases(text = "", limit = 6) {
@@ -50,7 +111,10 @@ function extractKeyPhrases(text = "", limit = 6) {
       .replace(/\s+/g, " ")
       .trim();
 
-    const words = cleaned.split(" ").filter((w) => w.length > 3 && !PT_STOP_WORDS.has(w.toLowerCase()));
+    const words = cleaned
+      .split(" ")
+      .map((w) => w.replace(/[.,;:!?]+$/, ""))
+      .filter((w) => w.length > 3 && !PT_STOP_WORDS.has(w.toLowerCase()));
     if (words.length >= 3) {
       phrases.push(words.slice(0, 5).join(" "));
     }
@@ -73,19 +137,31 @@ export function extractTitleFacts({ transcript = "", storyboard = {} } = {}) {
   const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 12);
   const midIdx = Math.floor(sentences.length / 2);
 
+  const topCount = (strategy.title_main || text).match(/\btop\s+(\d+)\b/i)?.[1]
+    || text.match(/\btop\s+(\d+)\b/i)?.[1]
+    || null;
+
   const numbers = [...text.matchAll(/\b\d+[\d.,]*\s*(?:%|mil|milhões?|bilhões?|anos?|séculos?|km|metros?|toneladas?|pessoas?|dias?|horas?)?\b/gi)]
     .map((m) => m[0].trim())
+    .filter((n) => {
+      const bare = n.replace(/\s/g, "");
+      if (/^\d+\.\d+$/.test(bare)) return false;
+      if (/^\d+$/.test(bare) && bare !== topCount) return false;
+      return true;
+    })
     .slice(0, 6);
 
-  const properNouns = [...text.matchAll(/\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+(?:de|da|do|das|dos)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+|\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+){0,2}\b/g)]
-    .map((m) => m[0])
-    .filter((w) => !["O", "A", "Os", "As", "Um", "Uma", "No", "Na", "Em", "De", "Do", "Da", "E", "Mas", "Se"].includes(w.split(" ")[0]))
-    .slice(0, 10);
+  const properNouns = filterProperNouns(
+    [...text.matchAll(/\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+(?:de|da|do|das|dos)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+|\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+){0,2}\b/g)]
+      .map((m) => m[0])
+      .filter((w) => !["O", "A", "Os", "As", "Um", "Uma", "No", "Na", "Em", "De", "Do", "Da", "E", "Mas", "Se"].includes(w.split(" ")[0])),
+  ).slice(0, 10);
 
   const hook = strategy.hook || sentences[0] || "";
   const payoff = sentences[sentences.length - 1] || "";
   const twist = sentences[midIdx] || sentences[Math.max(0, sentences.length - 3)] || "";
-  const coreTopic = strategy.title_main || extractSubject(text) || sentences.slice(0, 2).join(" ").slice(0, 120);
+  const listicleTitle = storyboard?.listicle?.title || storyboard?.listicle?.ranking_title || "";
+  const coreTopic = strategy.title_main || listicleTitle || extractSubject(text) || sentences.slice(0, 2).join(" ").slice(0, 120);
   const keyPhrases = extractKeyPhrases(text);
 
   return {
@@ -124,7 +200,8 @@ FÓRMULAS QUE FUNCIONAM EM VÍDEOS LONGOS (use 1 por título):
 Cada título deve passar no "teste da avó": uma pessoa leiga entende DO QUE É o vídeo só lendo o título?
 
 REGRAS OBRIGATÓRIAS:
-- Máximo ${maxChars} caracteres (conte antes de responder).
+- Máximo ${maxChars} caracteres (conte antes de responder) — frase COMPLETA, nunca corte no meio.
+- Se não couber em ${maxChars} com sentido completo, reescreva mais curto — nunca termine em "e o detalhe", "de", "o" ou preposição.
 - Ancore em FATOS do roteiro: nomes, lugares, datas, números, objeto concreto do vídeo.
 - 5 títulos com ângulos DIFERENTES — nunca cinco variações da mesma frase.
 - Título entrega metade da curiosidade; NÃO entregue o payoff completo (isso fica no vídeo).
@@ -161,42 +238,69 @@ export function buildTitleFactsBlock(facts = {}) {
 - Resumo em 1 linha: ${facts.oneLineSummary || "—"}`;
 }
 
-function trimToWordBoundary(text, max) {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > max * 0.55 ? cut.slice(0, lastSpace) : cut).trim();
+export function fitTitleToLimit(text, max, format = "LONG") {
+  let t = sanitizeTitle(text);
+  if (!t) return null;
+  if (t.length <= max) return isCompleteTitle(t, format) ? t : null;
+
+  const dashParts = t.split(/\s*[—–-]\s+/);
+  if (dashParts.length > 1) {
+    const head = dashParts[0].trim();
+    if (head.length >= 12 && head.length <= max && isCompleteTitle(head, format)) return head;
+  }
+
+  const words = t.split(/\s+/);
+  while (words.length > 4) {
+    words.pop();
+    const candidate = words.join(" ").replace(/\s*[\u2014\u2013,-]\s*$/, "").trim();
+    if (candidate.length <= max && candidate.length >= 12 && isCompleteTitle(candidate, format)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 export function generateTitlesFromFacts(facts = {}, { format = "LONG" } = {}) {
   const max = format === "SHORT" ? 40 : 50;
-  const noun = facts.properNouns?.[0] || "";
-  const noun2 = facts.properNouns?.[1] || "";
-  const num = facts.numbers?.[0] || "";
+  const noun = facts.properNouns?.find((n) => isValidTitleNoun(n)) || "";
+  const noun2 = facts.properNouns?.filter((n) => n !== noun).find((n) => isValidTitleNoun(n)) || "";
+  const num = facts.numbers?.find((n) => !/^\d+\.\d+$/.test(String(n).replace(/\s/g, ""))) || "";
   const topic = sanitizeTitle(facts.coreTopic);
-  const topicShort = topic.split(/\s+/).slice(0, 4).join(" ");
-  const phrase = facts.keyPhrases?.[0] || topicShort;
+  const topicShort = topic.split(/\s+/).slice(0, 5).join(" ");
+  const phrase = facts.keyPhrases?.find((p) => p.split(/\s+/).length >= 3) || "";
   const twistWords = sanitizeTitle(facts.twist).split(/\s+/).slice(0, 5).join(" ");
+  const topMatch = topic.match(/^top\s+(\d+)\s+(.+)$/i);
+  const isListicle = Boolean(topMatch);
 
   const candidates = [
-    num && noun ? { text: `${num} — o que ${noun} esconde`, angle: "numero" } : null,
+    isListicle && topMatch ? { text: `Top ${topMatch[1]} ${topMatch[2]} imperiais`, angle: "numero" } : null,
+    isListicle && topMatch ? { text: `${topMatch[1]} ${topMatch[2]} que mudaram tudo`, angle: "numero" } : null,
+    isListicle && topMatch ? { text: `${topMatch[1]} ${topMatch[2]} — o último surpreende`, angle: "cliffhanger" } : null,
+    num && noun ? { text: `${num}: o lado oculto de ${noun}`, angle: "numero" } : null,
     noun ? { text: `Por que ${noun} ainda importa hoje`, angle: "pergunta" } : null,
-    noun && noun2 ? { text: `${noun} e ${noun2}: a conexão que faltava`, angle: "nome" } : null,
-    twistWords.length > 12 ? { text: `${twistWords} — mas tem um detalhe`, angle: "paradoxo" } : null,
-    phrase ? { text: `${phrase} não era o que parecia`, angle: "paradoxo" } : null,
-    num ? { text: `${num}: o número que muda a história`, angle: "numero" } : null,
-    noun ? { text: `O que aconteceu com ${noun} depois disso`, angle: "lacuna" } : null,
-    topicShort ? { text: `${topicShort} — e o detalhe esquecido`, angle: "detalhe" } : null,
-    noun ? { text: `${noun} fez isso e ninguém explicou`, angle: "nome" } : null,
-    format === "SHORT" && noun ? { text: `${noun}?`, angle: "cliffhanger" } : null,
-    format === "SHORT" && num ? { text: `${num} em 40 segundos`, angle: "numero" } : null,
+    noun && noun2 ? { text: `${noun} e ${noun2} — a ligação real`, angle: "nome" } : null,
+    twistWords.length > 12 ? { text: `${twistWords}, mas há um porém`, angle: "paradoxo" } : null,
+    phrase ? { text: `${phrase} — a versão real`, angle: "paradoxo" } : null,
+    num && !isListicle ? { text: `${num} e o impacto até hoje`, angle: "numero" } : null,
+    noun ? { text: `O que ${noun} mudou depois disso`, angle: "lacuna" } : null,
+    topicShort && !isListicle ? { text: `${topicShort} — o detalhe esquecido`, angle: "detalhe" } : null,
+    format === "SHORT" && noun ? { text: `${noun} explicado em 40s`, angle: "cliffhanger" } : null,
+    format === "SHORT" && num && !isListicle ? { text: `${num} em 40 segundos`, angle: "numero" } : null,
   ].filter(Boolean);
 
-  return candidates.map((c) => ({
-    text: trimToWordBoundary(sanitizeTitle(c.text), max),
-    angle: c.angle,
-    chars: trimToWordBoundary(sanitizeTitle(c.text), max).length,
-  }));
+  return candidates
+    .map((c) => {
+      const fitted = fitTitleToLimit(c.text, max, format);
+      if (!fitted) return null;
+      return {
+        text: fitted,
+        angle: c.angle,
+        chars: fitted.length,
+        _source: "fallback",
+      };
+    })
+    .filter(Boolean);
 }
 
 export function buildTitleRepairPrompt({ titles = [], transcript = "", format = "LONG", facts = {} }) {
@@ -274,6 +378,7 @@ export function sanitizeTitle(text = "") {
   t = t.replace(/\s*\(\d+\s*chars?\)\s*$/i, "");
   t = t.replace(/^["'""]+|["'""]+$/g, "");
   t = t.replace(/\s+/g, " ");
+  t = t.replace(/[.!?]+$/g, "");
   for (const pattern of BANNED_TITLE_PATTERNS) {
     if (pattern.test(t)) {
       t = t.replace(pattern, "").replace(/\s*—\s*$/, "").trim();
@@ -336,6 +441,8 @@ export function scoreTitle(text = "", format = "LONG", facts = {}) {
   const startsGeneric = /^(como|por que|o que|a verdade|o segredo)\b/i.test(t);
   if (startsGeneric) score -= 3;
 
+  if (!isCompleteTitle(t, format)) score -= 50;
+
   return score;
 }
 
@@ -352,9 +459,10 @@ export function titlesNeedRepair(titles = [], format = "LONG", facts = {}) {
   const scored = titles.map((t) => scoreTitle(t.text || t, format, facts));
   const avg = scored.reduce((a, b) => a + b, 0) / scored.length;
   const hasBanned = titles.some((t) => BANNED_TITLE_PATTERNS.some((p) => p.test(t.text || t)));
+  const hasIncomplete = titles.some((t) => !isCompleteTitle(t.text || t, format));
   const tooFew = titles.length < 5;
   const tooSimilar = titles.length >= 2 && titleSimilarity(titles[0].text || titles[0], titles[1].text || titles[1]) > 0.6;
-  return avg < 28 || hasBanned || tooFew || tooSimilar;
+  return avg < 28 || hasBanned || hasIncomplete || tooFew || tooSimilar;
 }
 
 export function polishTitles(titles = [], { format = "LONG", facts = {} } = {}) {
@@ -363,24 +471,25 @@ export function polishTitles(titles = [], { format = "LONG", facts = {} } = {}) 
   const seen = [];
 
   for (const item of titles) {
-    let text = sanitizeTitle(item.text || item);
-    if (!text) continue;
-    text = trimToWordBoundary(text, max);
+    const fitted = fitTitleToLimit(item.text || item, max, format);
+    if (!fitted) continue;
 
-    const tooSimilar = seen.some((prev) => titleSimilarity(prev, text) > 0.5);
+    const tooSimilar = seen.some((prev) => titleSimilarity(prev, fitted) > 0.5);
     if (tooSimilar) continue;
 
-    const chars = text.length;
-    const score = scoreTitle(text, format, facts);
-    if (score < 5) continue;
+    let score = scoreTitle(fitted, format, facts);
+    if (item._source === "ai" || item._fromAi) score += 12;
+    if (item._source === "fallback") score -= 10;
+    if (score < 10) continue;
 
     polished.push({
-      text,
-      chars,
+      text: fitted,
+      chars: fitted.length,
       score,
       angle: item.angle || null,
+      _source: item._source || (item._fromAi ? "ai" : null),
     });
-    seen.push(text);
+    seen.push(fitted);
   }
 
   polished.sort((a, b) => b.score - a.score);
@@ -389,20 +498,29 @@ export function polishTitles(titles = [], { format = "LONG", facts = {} } = {}) 
 
 export function applyTitleQualityToParsed(parsed = {}, context = {}) {
   const { format = "LONG", facts = {} } = context;
-  let titles = polishTitles(parsed.titles || [], { format, facts });
+  const aiMarked = (parsed.titles || []).map((t) => ({ ...t, _fromAi: true, _source: "ai" }));
+  let titles = polishTitles(aiMarked, { format, facts });
 
-  const generated = generateTitlesFromFacts(facts, { format });
-  titles = polishTitles([...titles, ...generated], { format, facts });
+  const goodAiCount = titles.filter((t) => t.score >= 18 && isCompleteTitle(t.text, format)).length;
+
+  if (goodAiCount < 3) {
+    const generated = generateTitlesFromFacts(facts, { format });
+    titles = polishTitles([...aiMarked, ...generated], { format, facts });
+  }
 
   while (titles.length < 5 && facts.coreTopic) {
-    const seed = trimToWordBoundary(sanitizeTitle(facts.coreTopic), format === "SHORT" ? 38 : 48);
+    const seed = fitTitleToLimit(facts.coreTopic, format === "SHORT" ? 40 : 50, format);
+    if (!seed) break;
     if (!titles.some((t) => titleSimilarity(t.text, seed) > 0.45)) {
-      titles.push({ text: seed, chars: seed.length, score: scoreTitle(seed, format, facts) });
+      const score = scoreTitle(seed, format, facts);
+      if (score >= 5 && isCompleteTitle(seed, format)) {
+        titles.push({ text: seed, chars: seed.length, score, _source: "seed" });
+      }
     } else break;
   }
 
   titles.sort((a, b) => b.score - a.score);
-  titles = titles.slice(0, 5);
+  titles = titles.slice(0, 5).map(({ _source, ...t }) => t);
 
   const recommended = titles[0]?.text || parsed.recommendedTitle || "";
 
@@ -418,13 +536,16 @@ export function enhanceStrategyTitles(strategy = {}, { transcript = "", format =
   const fmt = format === "SHORTS" ? "SHORT" : format;
 
   const rawTitles = [
-    { text: strategy.title_main },
-    ...(strategy.title_variations || []).map((t) => ({ text: t })),
+    { text: strategy.title_main, _fromAi: true, _source: "ai" },
+    ...(strategy.title_variations || []).map((t) => ({ text: t, _fromAi: true, _source: "ai" })),
   ].filter((t) => t.text);
 
   let polished = polishTitles(rawTitles, { format: fmt, facts });
-  const generated = generateTitlesFromFacts(facts, { format: fmt });
-  polished = polishTitles([...polished, ...generated], { format: fmt, facts });
+  const goodCount = polished.filter((t) => t.score >= 18).length;
+  if (goodCount < 3) {
+    const generated = generateTitlesFromFacts(facts, { format: fmt });
+    polished = polishTitles([...rawTitles, ...generated], { format: fmt, facts });
+  }
 
   polished.sort((a, b) => b.score - a.score);
 
@@ -442,6 +563,8 @@ export function mergeRepairedTitles(parsed, repaired = {}) {
     text: sanitizeTitle(t.text),
     chars: sanitizeTitle(t.text).length,
     angle: t.angle,
+    _fromAi: true,
+    _source: "ai",
   }));
 
   const idx = Number(repaired.recommendedIndex) || 0;
