@@ -29287,19 +29287,29 @@ Gere o plano de overlays seguindo rigorosamente as regras de complementariedade,
             overlay.props.variant = "glass";
             
             let title = overlay.props.title || "";
-            if (title.includes(".") || title.includes("/") || title.toLowerCase().includes("bash") || title.toLowerCase().includes("git")) {
-              title = "INFO DESTAQUE";
+            title = title.replace(/\.(js|ts|py|sh|json|cpp|h|cs)$/i, "");
+            title = title.replace(/[📄⚡⚙️📡🔴🟡🟢~#$]+/g, "");
+            title = title.trim();
+            if (!title || title.toLowerCase().includes("bash") || title.toLowerCase().includes("git") || title.toLowerCase().includes("terminal") || title.toLowerCase().includes("code") || title.toLowerCase().includes("sweep")) {
+              title = "INFORMAÇÃO";
             }
             overlay.props.title = title.toUpperCase();
 
-            let desc = overlay.props.description || "";
-            desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
-            desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
-            desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
-            desc = desc.replace(/import\s+[\s\S]*?;/g, "");
-            desc = desc.replace(/console\.log\([\s\S]*?\);?/g, "");
-            desc = desc.replace(/\s+/g, " ").trim();
-            overlay.props.description = desc || "Informação importante de engenharia e história.";
+            // Recupera a narração do bloco para extrair a informação explicativa real
+            const blockNum = Number(overlay.id.replace(/[^\d]/g, "")) || i + 1;
+            const blockCtx = blockContexts.find(bc => Number(bc.block) === blockNum) || blockContexts[i] || blockContexts[0];
+            if (blockCtx && blockCtx.narration) {
+              overlay.props.description = blockCtx.narration.trim();
+            } else {
+              let desc = overlay.props.description || "";
+              desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
+              desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
+              desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
+              desc = desc.replace(/import\s+[\s\S]*?;/g, "");
+              desc = desc.replace(/console\.log\([\s\S]*?\);?/g, "");
+              desc = desc.replace(/\s+/g, " ").trim();
+              overlay.props.description = desc || "Informação importante de engenharia e história.";
+            }
             
             if (overlay.props.customStyle) {
               delete overlay.props.customStyle.fontFamilyTitle;
