@@ -458,6 +458,11 @@ interface ConfigData {
 
   single_bgm?: string;
   upload_metadata?: any;
+  youtube_channel?: {
+    channel_url?: string;
+    channel_name?: string;
+    subscriber_count?: string;
+  };
 
 
 
@@ -2197,7 +2202,11 @@ export default function App() {
 
   const [globalDebugOverlay, setGlobalDebugOverlay] = useState<boolean>(false);
 
-
+  const [globalYoutubeChannelUrl, setGlobalYoutubeChannelUrl] = useState<string>("");
+  const [globalYoutubeChannelName, setGlobalYoutubeChannelName] = useState<string>("");
+  const [globalYoutubeSubscriberCount, setGlobalYoutubeSubscriberCount] = useState<string>("");
+  const [channelConfigScope, setChannelConfigScope] = useState<'project' | 'global'>('global');
+  const [savingChannelConfig, setSavingChannelConfig] = useState<boolean>(false);
 
   const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
 
@@ -2245,7 +2254,9 @@ export default function App() {
 
         setGlobalDebugOverlay(!!data.debugOverlay);
 
-
+        setGlobalYoutubeChannelUrl(data.youtubeChannel?.channelUrl || "");
+        setGlobalYoutubeChannelName(data.youtubeChannel?.channelName || "");
+        setGlobalYoutubeSubscriberCount(data.youtubeChannel?.subscriberCount || "");
 
       }
 
@@ -2315,9 +2326,13 @@ export default function App() {
 
 
 
-          debugOverlay: globalDebugOverlay
+          debugOverlay: globalDebugOverlay,
 
-
+          youtubeChannel: {
+            channelUrl: globalYoutubeChannelUrl,
+            channelName: globalYoutubeChannelName,
+            subscriberCount: globalYoutubeSubscriberCount,
+          },
 
         })
 
@@ -2378,6 +2393,61 @@ export default function App() {
 
 
 
+
+  const handleSaveChannelConfig = async () => {
+    setSavingChannelConfig(true);
+    try {
+      if (channelConfigScope === 'global') {
+        const res = await fetch('/api/render/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fps: globalFps,
+            blockGapSeconds: globalBlockGap,
+            musicVolume: globalMusicVolume,
+            useRemotionByDefault: globalUseRemotion,
+            debugOverlay: globalDebugOverlay,
+            youtubeChannel: {
+              channelUrl: globalYoutubeChannelUrl,
+              channelName: globalYoutubeChannelName,
+              subscriberCount: globalYoutubeSubscriberCount,
+            },
+          }),
+        });
+        if (res.ok) {
+          toast.success('Canal do YouTube (global) salvo com sucesso!');
+        } else {
+          toast.error('Falha ao salvar canal global.');
+        }
+      } else {
+        if (!config) {
+          toast.error('Carregue um projeto antes de salvar o canal.');
+          return;
+        }
+        await saveConfig({
+          ...config,
+          youtube_channel: {
+            channel_url: globalYoutubeChannelUrl,
+            channel_name: globalYoutubeChannelName,
+            subscriber_count: globalYoutubeSubscriberCount,
+          },
+        });
+        toast.success('Canal do YouTube (projeto) salvo com sucesso!');
+      }
+    } catch (err) {
+      console.error('Error saving channel config:', err);
+      toast.error('Erro ao salvar configurações do canal.');
+    } finally {
+      setSavingChannelConfig(false);
+    }
+  };
+
+  useEffect(() => {
+    if (channelConfigScope !== 'project' || !config?.youtube_channel) return;
+    setGlobalYoutubeChannelUrl(config.youtube_channel.channel_url || '');
+    setGlobalYoutubeChannelName(config.youtube_channel.channel_name || '');
+    setGlobalYoutubeSubscriberCount(config.youtube_channel.subscriber_count || '');
+  }, [channelConfigScope, config?.youtube_channel]);
 
   const debounceSaveStoryboard = (scriptData: any) => {
 
@@ -33912,6 +33982,38 @@ export default function App() {
 
 
 
+                </div>
+
+                <div className="border-t border-zinc-900 pt-5 mt-2 space-y-4 md:col-span-2">
+                  <div>
+                    <h4 className="font-cinzel text-xs font-bold text-white tracking-wide flex items-center gap-2">
+                      <Video className="w-4 h-4 text-red-500" /> CANAL DO YOUTUBE (BOTÃO INSCREVER-SE)
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Configure o canal exibido no encerramento com o botão Inscrever-se → Inscrito. Use escopo global ou por projeto.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setChannelConfigScope('global'); fetchGlobalRenderConfig(); }} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                    <button type="button" onClick={() => setChannelConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">URL do Canal</label>
+                      <input type="text" value={globalYoutubeChannelUrl} onChange={(e) => setGlobalYoutubeChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Nome do Canal (opcional)</label>
+                        <input type="text" value={globalYoutubeChannelName} onChange={(e) => setGlobalYoutubeChannelName(e.target.value)} placeholder="Busca automática se vazio" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Inscritos (opcional)</label>
+                        <input type="text" value={globalYoutubeSubscriberCount} onChange={(e) => setGlobalYoutubeSubscriberCount(e.target.value)} placeholder="Ex: 1,2 mil inscritos" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={handleSaveChannelConfig} disabled={savingChannelConfig} className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider transition disabled:opacity-50">{savingChannelConfig ? 'Salvando...' : `Salvar Canal (${channelConfigScope === 'global' ? 'Global' : 'Projeto'})`}</button>
                 </div>
 
 
