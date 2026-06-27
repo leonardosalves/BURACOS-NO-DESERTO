@@ -98,13 +98,15 @@ export function detectVideoFormat(config = {}, totalDuration = 0) {
   return aspect === "16:9" ? "LONG" : "SHORT";
 }
 
-export function selectVarietyProfile(projectName, niche) {
+export function selectVarietyProfile(projectName, niche, { isListicle = false } = {}) {
   const category = detectNicheCategory(niche);
   const seed = hashString(`${projectName || "lumiera"}-${niche || "geral"}`);
   const profileIdx = seed % VARIETY_PROFILES.length;
   let profile = VARIETY_PROFILES[profileIdx];
 
-  if (category === "history" && profile.id === "data-journalist") {
+  if (isListicle && (category === "history" || category === "default")) {
+    profile = VARIETY_PROFILES.find((p) => p.id === "documentary-prestige") || profile;
+  } else if (category === "history" && profile.id === "data-journalist") {
     profile = VARIETY_PROFILES.find((p) => p.id === "mystery-reveal") || profile;
   } else if (category === "nature" && profile.id === "social-proof") {
     profile = VARIETY_PROFILES.find((p) => p.id === "geography-explorer") || profile;
@@ -124,7 +126,8 @@ export function buildOverlayOrchestrationPlan({
   blockCount = 0,
 } = {}) {
   const format = detectVideoFormat(config, totalDuration);
-  const { profile, seed, category } = selectVarietyProfile(projectName, niche);
+  const isListicle = config?.content_mode === "LISTICLE";
+  const { profile, seed, category } = selectVarietyProfile(projectName, niche, { isListicle });
   const rpmHint = NICHE_RPM_HINTS[category] || NICHE_RPM_HINTS.default;
   const isShort = format === "SHORT";
 

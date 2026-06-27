@@ -674,6 +674,20 @@ interface HeaderWeather {
 
 
 
+interface VideoQualityIssue {
+  severity: 'error' | 'warning' | 'info';
+  code: string;
+  message: string;
+}
+
+interface VideoQualityReport {
+  ok: boolean;
+  score: number;
+  issues: VideoQualityIssue[];
+  plan?: { format: string; maxOverlays: number; profile: string };
+  preset?: string | null;
+}
+
 const parseDurationSeconds = (duration: unknown) => {
 
 
@@ -1736,6 +1750,8 @@ export default function App() {
 
 
   const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
+
+  const [videoQuality, setVideoQuality] = useState<VideoQualityReport | null>(null);
 
 
 
@@ -3555,28 +3571,21 @@ export default function App() {
 
     } finally {
 
-
-
-
-
-
-
       setLoadingStoryboard(false);
-
-
-
-
-
-
 
     }
 
+  };
 
-
-
-
-
-
+  const fetchVideoQuality = async (projName = activeProject) => {
+    try {
+      const res = await fetch(getProjectUrl('/api/projects/video-quality', projName));
+      if (res.ok) {
+        setVideoQuality(await res.json());
+      }
+    } catch (err) {
+      console.error('Error fetching video quality:', err);
+    }
   };
 
 
@@ -4184,7 +4193,7 @@ export default function App() {
 
 
 
-    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs(), fetchHeaderWeather(), fetchLogoStatus(), fetchGlobalRenderConfig()]);
+    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs(), fetchHeaderWeather(), fetchLogoStatus(), fetchGlobalRenderConfig(), fetchVideoQuality()]);
 
 
 
@@ -17209,27 +17218,31 @@ export default function App() {
 
 
 
-  const triggerRender = (
+  const triggerRender = async (
     mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro',
     fromWizard = false,
     withoutImpactTitles = false,
     useHyperframes = false,
     isProres = false
   ) => {
-
-
-
-
-
-
-
     if (rendering) return;
 
-
-
-
-
-
+    if (mode === 'remotion' || mode === 'remotion-pro') {
+      try {
+        const res = await fetch(getProjectUrl('/api/projects/video-quality'));
+        if (res.ok) {
+          const report: VideoQualityReport = await res.json();
+          setVideoQuality(report);
+          const errors = report.issues?.filter((i) => i.severity === 'error') || [];
+          if (errors.length > 0) {
+            const msg = `Qualidade ${report.score}/100 — ${errors.length} erro(s):\n\n${errors.map((e) => `• ${e.message}`).join('\n')}\n\nRenderizar mesmo assim?`;
+            if (!window.confirm(msg)) return;
+          }
+        }
+      } catch {
+        /* proceed if quality check unavailable */
+      }
+    }
 
     setRendering(true);
 
@@ -22000,11 +22013,51 @@ export default function App() {
 
             <div className="space-y-8 animate-fade-in">
 
-
-
-
-
-
+              {videoQuality && (
+                <div className="glass-panel p-5 rounded-2xl font-sans">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                      <CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />
+                      Qualidade Pré-Render
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      {videoQuality.preset && (
+                        <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Preset: {videoQuality.preset}</span>
+                      )}
+                      <span className={`text-lg font-bold tabular-nums ${videoQuality.score >= 80 ? 'text-emerald-400' : videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {videoQuality.score}/100
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => fetchVideoQuality()}
+                        className="text-[10px] text-zinc-400 hover:text-gold-400 transition flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Atualizar
+                      </button>
+                    </div>
+                  </div>
+                  {videoQuality.issues.length > 0 ? (
+                    <ul className="mt-3 space-y-1.5 max-h-28 overflow-y-auto">
+                      {videoQuality.issues.slice(0, 6).map((issue, idx) => (
+                        <li
+                          key={`${issue.code}-${idx}`}
+                          className={`text-[11px] leading-snug flex gap-2 ${
+                            issue.severity === 'error' ? 'text-red-300' : issue.severity === 'warning' ? 'text-amber-300/90' : 'text-zinc-500'
+                          }`}
+                        >
+                          <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5 opacity-70" />
+                          <span>{issue.message}</span>
+                        </li>
+                      ))}
+                      {videoQuality.issues.length > 6 && (
+                        <li className="text-[10px] text-zinc-500 pl-5">+{videoQuality.issues.length - 6} observação(ões)</li>
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 
