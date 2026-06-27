@@ -7,7 +7,44 @@ import {
   spring,
 } from "remotion";
 import { SafeLottie } from "./SafeLottie";
-import { lottieMap } from "./lottieRegistry";
+
+import sparklesLottie from "./lottie_assets/sparkles.json";
+import flameLottie from "./lottie_assets/flame.json";
+import globeLottie from "./lottie_assets/globe.json";
+import infoLottie from "./lottie_assets/info.json";
+import gearLottie from "./lottie_assets/lottie_ui_gear_1.json";
+import lockLottie from "./lottie_assets/lottie_ui_lock_3.json";
+import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
+import apiLottie from "./lottie_assets/lottie_tech_api_1.json";
+import boltLottie from "./lottie_assets/lottie_tech_bolt_1.json";
+import timeLottie from "./lottie_assets/lottie_ui_time_1.json";
+import windLottie from "./lottie_assets/weather_wind.json";
+import moneyLottie from "./lottie_assets/lottie_biz_money_1.json";
+import warningLottie from "./lottie_assets/lottie_ui_warning_1.json";
+import locationLottie from "./lottie_assets/lottie_life_location_1.json";
+import docLottie from "./lottie_assets/lottie_tech_document_1.json";
+import heartLottie from "./lottie_assets/lottie_interact_heart_1.json";
+import ideaLottie from "./lottie_assets/lottie_life_idea_1.json";
+
+const lottieMap: Record<string, any> = {
+  sparkles: sparklesLottie,
+  flame: flameLottie,
+  earth: globeLottie,
+  building: globeLottie,
+  info: infoLottie,
+  gear: gearLottie,
+  shield: lockLottie,
+  crown: crownLottie,
+  science: boltLottie,
+  history: timeLottie,
+  nature: windLottie,
+  money: moneyLottie,
+  warning: warningLottie,
+  compass: locationLottie,
+  book: docLottie,
+  heart: heartLottie,
+  lightbulb: ideaLottie,
+};
 
 export interface LowerThirdProps {
   title: string;

@@ -254,38 +254,3 @@ Para programar e orquestrar estes 134 elementos em arquivos do Remotion, o desig
 2.  **Conversão de Cards para Lower Thirds:** Todos os `info-card` temáticos gerados devem ser convertidos na etapa de pós-processamento para `lower-third`, injetando a descrição no `subtitle` do lower-third para manter a integridade visual sem poluir o centro da tela.
 3.  **Uso de Infográficos de Dados:** Se a narração citar números ou estatísticas (por exemplo, porcentagens, comparações de tamanho ou fluxos), a IA deve obrigatoriamente criar objetos do tipo `counter`, `bar-chart` ou `timeline` em vez de texto escrito.
 4.  **Estilização Personalizada (`customStyle`):** Aplique sempre gradientes de cores ricas no `background`, cantos arredondados assimétricos e glows baseados no tema ecológico, antigo, misterioso, industrial ou espacial do vídeo.
-
----
-
-## 🎞️ Integração Lottie + HyperFrames (Dupla Visual)
-
-Cada overlay no Lumiera combina **dois layers de informação**:
-
-| Layer | Campo JSON | Função |
-| :--- | :--- | :--- |
-| **Estilo HyperFrames** | `hyperframesRef` | Define o layout/variante (ex: `lt-kicker-name`, `apple-money-count`, `data-chart`) |
-| **Ícone Lottie** | `iconType` | Animação que reforça a categoria do dado (ex: `gear` para engenharia, `history` para datas) |
-
-### Pareamentos recomendados
-
-| Conteúdo do vídeo | hyperframesRef | iconType Lottie | Tipo Remotion |
-| :--- | :--- | :--- | :--- |
-| Número / estatística | `apple-money-count` | `money`, `coin`, `chart` | `counter` |
-| Comparação / ranking | `data-chart` | `chart`, `analytics`, `target` | `bar-chart` |
-| Cronologia / processo | `flowchart-vertical` | `history`, `calendar`, `check` | `timeline` |
-| Nome / lugar / definição | `lt-kicker-name` | `compass`, `book`, `info` | `lower-third` |
-| Virada narrativa | `caption-kinetic-slam` | `sparkles`, `bolt`, `star` | `kinetic-text` |
-| Mapa / geografia | `world-map` | `globe`, `map`, `pin` | `lower-third` |
-| Curiosidade surpresa | `lt-soft-pill` | `sparkles`, `lightbulb` | `lower-third` |
-| Prova social | `reddit-post` | `message`, `share`, `heart` | `lower-third` |
-
-### Ícones Lottie disponíveis (34 tipos)
-
-`sparkles`, `flame`, `earth`, `globe`, `compass`, `map`, `pin`, `history`, `book`, `shield`, `crown`, `money`, `coin`, `chart`, `analytics`, `warning`, `gear`, `science`, `lightbulb`, `nature`, `heart`, `star`, `award`, `target`, `check`, `calendar`, `bolt`, `code`, `play`, `share`, `message`, `bell`, `building`, `info`
-
-### Regras de ouro Lottie + HyperFrames
-
-1. **Texto + ícone = insight completo** — o Lottie indica a categoria, o texto traz o dado específico novo.
-2. **Nunca repetir** o mesmo `iconType` em overlays consecutivos.
-3. **Nicho história/curiosidades:** priorize `history`, `gear`, `shield`, `crown`, `book` — evite `code`, `bolt` salvo nicho tech.
-4. **Listicle Top N:** use `star`, `award`, `chart` nos counters e `lt-kicker-name` nos itens.

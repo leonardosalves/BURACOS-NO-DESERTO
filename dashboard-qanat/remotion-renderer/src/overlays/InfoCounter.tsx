@@ -6,7 +6,6 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
-import { LottieIcon } from "./LottieIcon";
 
 export interface InfoCounterProps {
   value: number;
@@ -15,8 +14,6 @@ export interface InfoCounterProps {
   prefix?: string;
   formatNumber?: boolean;
   accentColor?: string;
-  iconType?: string;
-  hyperframesRef?: string;
   position?: "center" | "bottom-right" | "bottom-left" | "top-right";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
   customStyle?: {
@@ -85,7 +82,6 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
   prefix = "",
   formatNumber = true,
   accentColor = "#D4AF37",
-  iconType = "chart",
   position = "center",
   theme = "classic",
   customStyle,
@@ -321,21 +317,18 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
             }}
           />
 
-          {/* Label + Lottie */}
-          <div style={{ display: "flex", alignItems: "center", gap: isVertical ? 12 : 8 }}>
-            <LottieIcon iconType={iconType} size={isVertical ? 36 : 28} />
-            <span
-              style={{
-                color: "rgba(248,250,252,0.65)",
-                fontSize: isVertical ? 24 : 18,
-                textTransform: "uppercase",
-                lineHeight: 1,
-                ...getThemeFont("label")
-              }}
-            >
-              {label}
-            </span>
-          </div>
+          {/* Label */}
+          <span
+            style={{
+              color: "rgba(248,250,252,0.65)",
+              fontSize: isVertical ? 24 : 18,
+              textTransform: "uppercase",
+              lineHeight: 1,
+              ...getThemeFont("label")
+            }}
+          >
+            {label}
+          </span>
 
           {/* Counter Value */}
           <div

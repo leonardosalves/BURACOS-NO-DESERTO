@@ -9024,12 +9024,8 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
    - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades surpreendentes de leitura ultra-rápida (no máximo 5 a 12 palavras). Nunca cole parágrafos inteiros de texto falado nos cards ou lower-thirds!
 6. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
    - Busque um equilíbrio dinâmico e agradável no posicionamento dos overlays ao longo do vídeo, alternando de forma fluida entre posições superiores (como info-card no topo) e inferiores (como lower-third ou counter na base). Não use o mesmo canto da tela ou o mesmo estilo de forma repetida em sequência. Escolha o posicionamento que melhor se encaixe visualmente com o conteúdo de cada bloco, sem forçar um formato rígido se não for necessário.
-7. INTEGRAÇÃO LOTTIE + HYPERFRAMES (OBRIGATÓRIO EM TODOS OS OVERLAYS):
-   - Cada overlay DEVE ter \`iconType\` (ícone Lottie animado) E \`hyperframesRef\` (bloco do catálogo que inspira o design).
-   - \`hyperframesRef\` exemplos: \`lt-kicker-name\`, \`apple-money-count\`, \`data-chart\`, \`flowchart-vertical\`, \`world-map\`, \`caption-kinetic-slam\`.
-   - \`iconType\` disponíveis: sparkles, flame, earth, globe, compass, map, history, book, shield, crown, money, coin, chart, analytics, warning, gear, science, lightbulb, nature, heart, star, award, target, check, calendar, bolt, code, play, share, message, bell, building, info.
-   - Pareie semanticamente: número na narração → counter + hyperframesRef \`apple-money-count\` + iconType \`money\`/\`coin\`/\`chart\`; comparação → bar-chart + \`data-chart\` + \`chart\`; cronologia → timeline + \`flowchart-vertical\` + \`history\`/\`calendar\`; nome/lugar → lower-third + \`lt-kicker-name\` + \`compass\`/\`book\`.
-   - Nunca repita o mesmo iconType em overlays consecutivos.
+7. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
+   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
 8. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
    - Para o tipo "lower-third", você DEVE definir a propriedade "variant" escolhendo o estilo visual mais adequado ao trecho do vídeo:
      - "bild": Estilo jornalístico clássico com blocos de fundo sólidos e sombras coloridas projetadas.
@@ -9056,7 +9052,6 @@ Estrutura JSON Exigida:
         "theme": "classic",
         "variant": "glass",
         "iconType": "sparkles",
-        "hyperframesRef": "lt-kicker-name",
         "position": "bottom-left",
         "customStyle": {
           "background": "linear-gradient(135deg, rgba(10, 15, 12, 0.85) 0%, rgba(20, 30, 25, 0.8) 100%)",
@@ -9099,8 +9094,6 @@ Estrutura JSON Exigida:
         "label": "Resistência Estrutural",
         "suffix": "Anos",
         "formatNumber": true,
-        "iconType": "history",
-        "hyperframesRef": "apple-money-count",
         "accentColor": "#00E5FF",
         "position": "bottom-right",
         "theme": "classic",
@@ -9124,8 +9117,6 @@ Estrutura JSON Exigida:
           { "label": "Gizé", "value": 146, "displayValue": "146m", "color": "#D4AF37" },
           { "label": "Burj Khalifa", "value": 828, "displayValue": "828m", "color": "#00E5FF" }
         ],
-        "iconType": "chart",
-        "hyperframesRef": "data-chart",
         "accentColor": "#D4AF37",
         "position": "bottom-center",
         "theme": "classic",
@@ -9148,8 +9139,6 @@ Estrutura JSON Exigida:
           { "year": "27 a.C.", "description": "Início do Império", "highlight": false },
           { "year": "476 d.C.", "description": "Queda do Império", "highlight": true }
         ],
-        "iconType": "calendar",
-        "hyperframesRef": "flowchart-vertical",
         "accentColor": "#FF3D00",
         "orientation": "horizontal",
         "theme": "classic",
@@ -9220,10 +9209,12 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       const orchProfile = VARIETY_PROFILES.find((p) => p.id === orchestrationPlan.varietyProfile) || VARIETY_PROFILES[0];
       const variants = ["glass", "minimal", "accent", "floating"];
       const positions = orchProfile.positions;
+      const lotties = orchProfile.lotties;
       const ltVariants = orchProfile.lowerThirdVariants;
       
       let variantIdx = 0;
       let posIdx = 0;
+      let lottieIdx = 0;
 
       for (let i = 0; i < parsedOverlays.length; i++) {
         const overlay = parsedOverlays[i];
@@ -9333,6 +9324,11 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         
         overlay.props.position = positions[posIdx % positions.length];
         posIdx++;
+        
+        if (overlay.type === "info-card" || overlay.type === "counter" || overlay.type === "bar-chart" || overlay.type === "lower-third") {
+          overlay.props.iconType = lotties[lottieIdx % lotties.length];
+          lottieIdx++;
+        }
 
         // Mapeia temas baseados no nicho
         const cleanNiche = niche.toLowerCase();
