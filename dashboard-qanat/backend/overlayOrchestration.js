@@ -3,6 +3,11 @@
  * Estratégia de retenção YouTube para vídeos LONGOS e CURTOS (Shorts/Reels)
  */
 
+import {
+  applyLottieHyperframesPairing,
+  buildLottieHyperframesGuide,
+} from "./lottieCatalog.js";
+
 const VARIETY_PROFILES = [
   {
     id: "documentary-prestige",
@@ -195,6 +200,7 @@ export function buildOverlayOrchestrationPlan({
       "Nunca 2 overlays simultâneos na tela",
       "Textos de 4-10 palavras (leitura em <1.2s)",
       "Alternar tipo E posição a cada overlay",
+      "Cada overlay: hyperframesRef + iconType Lottie coerente com o conteúdo",
       "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
     ];
   } else {
@@ -231,6 +237,7 @@ export function buildOverlayOrchestrationPlan({
       "Números na narração → counter ou bar-chart obrigatório",
       "Processos/sequências → timeline horizontal",
       "Definições/nomes → lower-third (nunca info-card no centro)",
+      "Todo overlay com iconType Lottie + hyperframesRef do catálogo",
     ];
   }
 
@@ -272,8 +279,10 @@ ${plan.hyperframesRefs.map((r) => `- \`${r}\``).join("\n")}
 ### Rotação de variedade (perfil "${plan.varietyLabel}")
 - Variantes lower-third: ${profile.lowerThirdVariants.join(" → ")}
 - Posições (alternar, nunca repetir em sequência): ${profile.positions.join(" → ")}
-- Ícones Lottie (não repetir): ${profile.lotties.join(", ")}
+- Ícones Lottie sugeridos (não repetir): ${profile.lotties.join(", ")}
 - Paleta de acento sugerida: ${plan.rpmHint.palette.join(", ")}
+
+${buildLottieHyperframesGuide(plan)}
 
 ### Metas de retenção SEO YouTube
 ${plan.retentionGoals.map((g) => `- ${g}`).join("\n")}
@@ -318,7 +327,7 @@ export function enforceOverlayOrchestration(overlays, plan) {
   let lastType = null;
   let variantIdx = 0;
   let posIdx = 0;
-  let lottieIdx = 0;
+  const usedLotties = [];
 
   for (const overlay of sorted) {
     const inForbidden = plan.forbiddenZones.some(
@@ -371,9 +380,13 @@ export function enforceOverlayOrchestration(overlays, plan) {
     overlay.props.position = profile.positions[posIdx % profile.positions.length];
     posIdx++;
 
-    if (["lower-third", "counter", "bar-chart", "info-card"].includes(overlay.type)) {
-      overlay.props.iconType = profile.lotties[lottieIdx % profile.lotties.length];
-      lottieIdx++;
+    if (["lower-third", "counter", "bar-chart", "info-card", "timeline", "kinetic-text"].includes(overlay.type)) {
+      applyLottieHyperframesPairing(overlay, {
+        nicheCategory: plan.category,
+        usedIcons: usedLotties,
+        fallbackPool: profile.lotties,
+      });
+      if (overlay.props?.iconType) usedLotties.push(overlay.props.iconType);
     }
 
     if (plan.rpmHint.theme && !overlay.props.theme) {
