@@ -1852,6 +1852,14 @@ export default function App() {
 
 
   const [youtubeLoading, setYoutubeLoading] = useState<boolean>(false);
+  const [youtubeThumbnailsLoading, setYoutubeThumbnailsLoading] = useState<boolean>(false);
+  const [youtubeThumbnailsGenerated, setYoutubeThumbnailsGenerated] = useState<{
+    id: string;
+    label?: string;
+    overlayText?: string;
+    fileName?: string;
+    url: string;
+  }[]>([]);
 
 
 
@@ -3893,6 +3901,8 @@ export default function App() {
         setTtCaption(meta.tiktok?.title || '');
         setKwCaption(meta.kwai?.title || '');
         fetchUploadStatus();
+        fetchYoutubeMetadataCache();
+        fetchYoutubeThumbnailImages();
 
 
 
@@ -13645,6 +13655,7 @@ export default function App() {
           rpm: data.rpm,
           palette: data.palette,
         });
+        fetchYoutubeThumbnailImages();
 
 
 
@@ -13750,11 +13761,67 @@ export default function App() {
 
   };
 
+  const fetchYoutubeThumbnailImages = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/youtube-thumbnails'));
+      if (res.ok) {
+        const data = await res.json();
+        setYoutubeThumbnailsGenerated(data.thumbnails || []);
+      }
+    } catch {
+      setYoutubeThumbnailsGenerated([]);
+    }
+  };
 
+  const fetchYoutubeMetadataCache = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.cached) return;
+      if (data.text) setYoutubeMetadata(data.text);
+      setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
+      setYoutubeMetadataParsed(data.parsed || null);
+      setYoutubeMetadataStrategy({
+        profileLabel: data.profile?.label,
+        rpm: data.rpm,
+        palette: data.palette,
+      });
+    } catch {
+      // ignore cache load errors
+    }
+  };
 
+  const handleGenerateYoutubeThumbnailImages = async () => {
+    if (!youtubeMetadataParsed?.thumbnails?.length) {
+      toast('Gere os metadados primeiro para obter as variantes A/B.');
+      return;
+    }
 
-
-
+    setYoutubeThumbnailsLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/generate-youtube-thumbnails'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thumbnails: youtubeMetadataParsed.thumbnails,
+          format: youtubeMetadataFormat || undefined,
+          palette: youtubeMetadataStrategy?.palette || [],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setYoutubeThumbnailsGenerated(data.thumbnails || []);
+        toast(`${data.thumbnails?.length || 0} thumbnails geradas com sucesso.`);
+      } else {
+        toast(data.error || 'Falha ao gerar thumbnails.');
+      }
+    } catch {
+      toast('Erro de conexão ao gerar thumbnails.');
+    } finally {
+      setYoutubeThumbnailsLoading(false);
+    }
+  };
 
   // AI BGM Suggestion
 
@@ -27612,13 +27679,34 @@ export default function App() {
 
                         {youtubeMetadataParsed?.thumbnails && youtubeMetadataParsed.thumbnails.length > 0 && (
                           <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">Thumbnails A/B</h3>
-                              <span className="text-[9px] text-zinc-500">3 variantes para testar CTR</span>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div>
+                                <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">Thumbnails A/B</h3>
+                                <span className="text-[9px] text-zinc-500">Briefing + imagens prontas para upload</span>
+                              </div>
+                              <button
+                                disabled={youtubeThumbnailsLoading}
+                                onClick={handleGenerateYoutubeThumbnailImages}
+                                className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                              >
+                                {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                                {youtubeThumbnailsLoading ? 'Gerando imagens...' : 'Gerar Imagens'}
+                              </button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              {youtubeMetadataParsed.thumbnails.map((thumb) => (
+                              {youtubeMetadataParsed.thumbnails.map((thumb) => {
+                                const generated = youtubeThumbnailsGenerated.find((g) => g.id === thumb.id);
+                                return (
                                 <div key={thumb.id} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2">
+                                  {generated?.url && (
+                                    <a href={generated.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border border-zinc-800 hover:border-gold-500/40 transition">
+                                      <img
+                                        src={`${generated.url}?t=${Date.now()}`}
+                                        alt={`Thumbnail variante ${thumb.id}`}
+                                        className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16] max-h-64' : 'aspect-video'}`}
+                                      />
+                                    </a>
+                                  )}
                                   <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-white">Variante {thumb.id}</span>
                                     <span className="text-[9px] text-zinc-500">{thumb.label}</span>
@@ -27666,8 +27754,18 @@ export default function App() {
                                   >
                                     {copiedSection === `thumb-${thumb.id}` ? 'Copiado!' : 'Copiar briefing'}
                                   </button>
+                                  {generated?.url && (
+                                    <a
+                                      href={generated.url}
+                                      download
+                                      className="block w-full text-center text-[9px] font-bold text-gold-500 hover:text-gold-400 py-1.5 rounded border border-gold-500/20 hover:border-gold-500/40 transition"
+                                    >
+                                      Baixar imagem
+                                    </a>
+                                  )}
                                 </div>
-                              ))}
+                              );
+                              })}
                             </div>
                           </div>
                         )}
