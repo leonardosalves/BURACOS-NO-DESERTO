@@ -9,6 +9,7 @@ import {
   buildTitleFactsBlock,
   extractTitleFacts,
   generateTitlesFromFacts,
+  fitTitleToLimit,
   polishTitles,
   sanitizeTitle,
 } from "./titleGenerator.js";
@@ -419,7 +420,8 @@ function buildFallbackTitles({ baseTitle, category, profile, format, facts = {} 
 
   const final = titles.slice(0, 5);
   while (final.length < 5 && facts.coreTopic) {
-    const seed = sanitizeTitle(facts.coreTopic).slice(0, format === "SHORT" ? 38 : 48);
+    const seed = fitTitleToLimit(facts.coreTopic, format === "SHORT" ? 40 : 50, format);
+    if (!seed) break;
     final.push({ text: seed, chars: seed.length });
   }
 
