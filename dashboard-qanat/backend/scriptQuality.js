@@ -283,6 +283,12 @@ ESTRUTURA DOS BLOCOS:
     6. Ponte curta para o próximo item (exceto no último item antes do outro)
 - Bloco ${blockCount} (OUTRO): recap do top 3 + pergunta para comentários ("qual você colocaria em 1º?") + CTA leve
 
+NARRAÇÃO CINEMATOGRÁFICA (narrative_script_tagged):
+- [pausa] antes de cada número do ranking e antes do #1
+- [ênfase] no nome do item e em números/datas
+- [rápido] na ponte entre itens; [lento] no impacto histórico
+- narrative_script = texto limpo SEM marcadores
+
 REGRAS DE NARRAÇÃO:
 - ${totalWords} palavras no total
 - ~${wordsPerItem} palavras por item
@@ -342,6 +348,7 @@ TAREFAS OBRIGATÓRIAS:
 5. Atualize "strategy.hook" se estiver genérico.
 6. Mantenha a TESE do vídeo; remova frases vazias, clichês de IA e trechos que não ajudam o espectador a entender.
 7. NÃO altere visual_prompts, bgm_mappings nem impact_texts.
+8. Em "narrative_script_tagged", use marcadores cinematográficos com moderação: [pausa], [ênfase], [rápido], [lento] — ver regras de narração cinematográfica.
 
 Responda APENAS JSON com as chaves:
 {

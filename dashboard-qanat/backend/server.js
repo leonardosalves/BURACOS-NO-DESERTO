@@ -74,6 +74,14 @@ import {
   applyScriptTextQuality,
 } from "./scriptQuality.js";
 import {
+  applyDocumentaryHistoryPreset,
+  injectListicleRankOverlays,
+  validateVideoQuality,
+  augmentSfxTimelineForOverlays,
+  runVideoQualityCheck,
+  buildCinematicNarrationRules,
+} from "./videoProEnhancements.js";
+import {
   extractTitleFacts,
   buildTitleCraftRules,
   buildTitleRepairPrompt,
@@ -1317,6 +1325,17 @@ app.get("/api/projects/storyboard", (req, res) => {
 
   }
 
+});
+
+// API: Pre-render video quality check (overlays, listicle ranks, hook pollution)
+app.get("/api/projects/video-quality", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const report = runVideoQualityCheck(projDir, readProjectJson);
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
+  }
 });
 
 // API: Save storyboard data
@@ -3832,9 +3851,21 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   }
 
-  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  let config = readProjectJson(projectDir, "config_qanat.json", {});
 
-  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  let storyboard = readProjectJson(projectDir, "storyboard.json", {});
+
+  const presetResult = applyDocumentaryHistoryPreset(config, storyboard, config.niche);
+  if (presetResult.applied) {
+    config = presetResult.config;
+    storyboard = presetResult.storyboard;
+    try {
+      fs.writeFileSync(path.join(projectDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+      console.log("[Remotion] Preset Documentário História aplicado ao projeto.");
+    } catch (e) {
+      console.warn("[Remotion] Falha ao salvar preset no config:", e.message);
+    }
+  }
 
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
 
@@ -4242,8 +4273,6 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const finalCaptions = sanitizeCaptionsForRemotion(rawCaptions, narrationDuration || totalDuration);
 
-  const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
-
   const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 
   // Generate overlays via AI (pass actual scene timeline for precise timing sync)
@@ -4251,12 +4280,17 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     totalDuration,
     projectName: path.basename(projectDir),
   });
-  
+
+  augmentSfxTimelineForOverlays(projectDir, overlays);
+  const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
+
   // Scrape YouTube channel info and save avatar locally
   const youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
   
-  // Save overlays to storyboard
+  // Save overlays + quality report to storyboard
+  const freshSb = readProjectJson(projectDir, "storyboard.json", {});
   storyboard.overlays = overlays;
+  storyboard.quality_report = freshSb.quality_report || storyboard.quality_report;
   try {
     fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
   } catch (e) {
@@ -4279,7 +4313,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     overlays,
     youtubeChannelInfo,
     transparent: isProres,
-    captionStyle: format === "9:16" ? "shorts-viral" : "documentary",
+    captionStyle: config.caption_style || (format === "9:16" ? "shorts-viral" : "documentary"),
+    designPreset: config.design_preset || null,
+    grainOverlay: Boolean(config.grain_overlay),
+    vignette: Boolean(config.vignette),
   };
 
   const propsPath = path.join(publicProjectDir, "props.json");
@@ -8052,6 +8089,8 @@ ${isListicle
 
 ${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
 
+${buildCinematicNarrationRules()}
+
 Reforco especifico para montagem do roteiro:
 
 - A MENSAGEM CENTRAL deve estar clara na promessa da ideia ("${idea.promise}"). Cada bloco aproxima o espectador dessa compreensão.
@@ -8312,7 +8351,7 @@ REGRAS FINAIS:
       console.log("[Creator Script] Falha ao pré-mapear timeline_assets:", e.message);
     }
 
-    const newConfig = {
+    let newConfig = {
       niche: niche || currentConfig.niche || "Geral",
       gemini_api_key: currentConfig.gemini_api_key,
       highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
@@ -8329,6 +8368,12 @@ REGRAS FINAIS:
         list_topic: listicleTopic,
       } : {}),
     };
+
+    const presetApplied = applyDocumentaryHistoryPreset(newConfig, parsedData, newConfig.niche);
+    if (presetApplied.applied) {
+      newConfig = presetApplied.config;
+      console.log("[Creator Script] Preset Documentário História aplicado ao config.");
+    }
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
@@ -8888,6 +8933,36 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
   return parsedOverlays;
 }
 
+function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
+  let result = injectListicleRankOverlays(overlays, storyboard, config, starts, durations);
+  result = injectRetentionOverlays(projectDir, result, starts, durations);
+
+  const quality = validateVideoQuality({
+    overlays: result,
+    config,
+    storyboard,
+    totalDuration,
+    starts,
+    orchestrationPlan,
+  });
+
+  storyboard.quality_report = quality;
+  try {
+    fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+  } catch (e) {
+    console.warn("[Quality] Falha ao salvar quality_report:", e.message);
+  }
+
+  if (quality.issues.length) {
+    console.log(`[Quality] Score ${quality.score}/100 — ${quality.issues.length} observação(ões):`);
+    quality.issues.forEach((i) => console.log(`  [${i.severity}] ${i.message}`));
+  } else {
+    console.log(`[Quality] Score ${quality.score}/100 — sem observações.`);
+  }
+
+  return result;
+}
+
 // AI-driven overlay planning for Remotion PRO using Gemini API
 async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
@@ -8900,9 +8975,27 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   const durations = Array.isArray(timings.durations) ? timings.durations : [];
   const apiKey = getApiKey(projectDir);
 
+  const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
+    config,
+    niche: config.niche || "Geral",
+    totalDuration: Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    projectName: renderContext.projectName || path.basename(projectDir),
+    sceneCount: Array.isArray(actualScenes) ? actualScenes.length : 0,
+    blockCount: blockPhrases.length,
+  });
+
   if (!apiKey || blockPhrases.length === 0) {
     console.log("[Overlays] Fallback: No API Key or empty phrases. Using rule-based generation.");
-    return generateOverlaysRuleBased(config, storyboard, starts, durations);
+    return finalizeProjectOverlays(
+      projectDir,
+      generateOverlaysRuleBased(config, storyboard, starts, durations),
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
   }
 
   const blockContexts = blockPhrases.map((bp) => {
@@ -9452,18 +9545,24 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
 
       parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan);
 
-      return injectRetentionOverlays(projectDir, parsedOverlays, starts, durations);
+      return finalizeProjectOverlays(
+        projectDir, parsedOverlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration,
+      );
     }
   } catch (err) {
     console.error("[Overlays] Erro ao chamar IA para overlays:", err);
   }
 
   // Fallback to rule-based
-  return injectRetentionOverlays(
+  return finalizeProjectOverlays(
     projectDir,
     generateOverlaysRuleBased(config, storyboard, starts, durations),
+    config,
+    storyboard,
     starts,
     durations,
+    orchestrationPlan,
+    totalDuration,
   );
 }
 

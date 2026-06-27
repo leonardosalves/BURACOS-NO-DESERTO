@@ -220,6 +220,9 @@ export type LumieraTimelineProps = {
   transparent?: boolean;
   /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
   captionStyle?: "shorts-viral" | "documentary";
+  designPreset?: string | null;
+  grainOverlay?: boolean;
+  vignette?: boolean;
 };
 
 
@@ -274,7 +277,11 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   captionStyle: "shorts-viral",
 
+  designPreset: null,
 
+  grainOverlay: false,
+
+  vignette: false,
 
 };
 
@@ -1545,8 +1552,12 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   transparent = false,
   format = "9:16",
   captionStyle = "shorts-viral",
+  grainOverlay = false,
+  vignette = false,
 }) => {
   const isShort = format === "9:16";
+  const showVignette = isShort || vignette;
+  const showGrain = isShort || grainOverlay;
 
 
 
@@ -1755,23 +1766,25 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-      {isShort && (
+      {showVignette && (
         <AbsoluteFill
           style={{
             pointerEvents: "none",
             zIndex: 5,
-            background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)",
+            background: isShort
+              ? "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)"
+              : "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35) 100%)",
             mixBlendMode: "multiply",
           }}
         />
       )}
 
-      {isShort && (
+      {showGrain && (
         <AbsoluteFill
           style={{
             pointerEvents: "none",
             zIndex: 6,
-            opacity: 0.06,
+            opacity: isShort ? 0.06 : 0.04,
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
             backgroundSize: "180px 180px",
           }}
