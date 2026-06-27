@@ -29239,12 +29239,30 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
         const overlay = parsedOverlays[i];
         if (!overlay.props) overlay.props = {};
 
+        // 0. Converte info-cards temáticos para lower-thirds (Tirar cards temáticos e colocar lower thirds)
+        if (overlay.type === "info-card") {
+          console.log(`[Overlays Post-Process] Convertendo info-card temático (${overlay.props.title}) para lower-third.`);
+          overlay.type = "lower-third";
+          overlay.props.subtitle = overlay.props.description || "";
+          delete overlay.props.description;
+          
+          // Ajusta a posição para ser compatível com lower-third
+          const pos = overlay.props.position || "bottom-left";
+          if (pos.includes("right")) {
+            overlay.props.position = "bottom-center"; 
+          } else if (pos.includes("top")) {
+            overlay.props.position = "top-left";
+          } else {
+            overlay.props.position = "bottom-left";
+          }
+        }
+
         // 1. Corrigir vazamento de código de programação em vídeos que não são de tecnologia
         if (!isTech) {
           let hasCodeContent = false;
           const codeKeywords = ["import", "const ", "let ", "var ", "console.log", "npm run", ".js", ".ts", ".py", ".json", ".cpp", ".h", ".cs", ".sh", "function ", "void ", "class ", "public ", "private ", "struct ", "def ", "return ", "import {", "<pre", "<code>"];
           
-          const textToCheck = ((overlay.props.title || "") + " " + (overlay.props.description || "")).toLowerCase();
+          const textToCheck = ((overlay.props.title || "") + " " + (overlay.props.description || "") + " " + (overlay.props.subtitle || "")).toLowerCase();
           for (const kw of codeKeywords) {
             if (textToCheck.includes(kw)) {
               hasCodeContent = true;
@@ -29266,8 +29284,8 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
             }
             overlay.props.title = title.toUpperCase();
 
-            // Recupera e limpa a descrição original
-            let desc = overlay.props.description || "";
+            // Recupera e limpa a descrição original ou subtítulo
+            let desc = overlay.props.description || overlay.props.subtitle || "";
             desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
             desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
             desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
@@ -29295,7 +29313,12 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
                 desc = words.slice(0, 12).join(" ") + "...";
               }
             }
-            overlay.props.description = desc;
+            
+            if (overlay.type === "lower-third") {
+              overlay.props.subtitle = desc;
+            } else {
+              overlay.props.description = desc;
+            }
             
             if (overlay.props.customStyle) {
               delete overlay.props.customStyle.fontFamilyTitle;
