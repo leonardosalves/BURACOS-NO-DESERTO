@@ -1841,7 +1841,7 @@ export default function App() {
   const [youtubeMetadata, setYoutubeMetadata] = useState<string>('');
   const [youtubeMetadataFormat, setYoutubeMetadataFormat] = useState<'SHORT' | 'LONG' | ''>('');
   const [youtubeMetadataParsed, setYoutubeMetadataParsed] = useState<{
-    titles?: { text: string; chars: number }[];
+    titles?: { text: string; chars: number; score?: number; angle?: string | null }[];
     description?: string;
     recommendedTitle?: string;
     thumbnails?: {
@@ -28505,12 +28505,13 @@ export default function App() {
                                       {youtubeMetadataParsed.titles.map((t, tIdx) => {
                                         const maxChars = youtubeMetadataFormat === 'SHORT' ? 40 : 50;
                                         const ok = t.chars <= maxChars;
+                                        const isRecommended = tIdx === 0 || t.text === youtubeMetadataParsed.recommendedTitle;
                                         const variantId = String.fromCharCode(65 + tIdx);
                                         const isAbSelected = titleAbSelected[String(tIdx)] !== false;
                                         const isActiveVariant = titleExperiment?.activeVariantId === variantId;
                                         const ranking = titleExperimentRankings.find((r) => r.id === variantId);
                                         return (
-                                          <div key={tIdx} className={`flex items-start justify-between gap-2 bg-zinc-900/50 border rounded-lg px-3 py-2 ${isActiveVariant ? 'border-violet-500/50 ring-1 ring-violet-500/20' : 'border-zinc-800'}`}>
+                                          <div key={tIdx} className={`flex items-start justify-between gap-2 bg-zinc-900/50 border rounded-lg px-3 py-2 ${isRecommended ? 'border-gold-500/40 ring-1 ring-gold-500/15' : isActiveVariant ? 'border-violet-500/50 ring-1 ring-violet-500/20' : 'border-zinc-800'}`}>
                                             <div className="min-w-0 flex items-start gap-2">
                                               <input
                                                 type="checkbox"
@@ -28521,10 +28522,20 @@ export default function App() {
                                               />
                                               <div>
                                                 <span className="text-[10px] text-zinc-500 mr-2">{tIdx + 1}.</span>
+                                                {isRecommended && (
+                                                  <span className="text-[8px] font-bold text-gold-400 bg-gold-500/10 border border-gold-500/30 px-1.5 py-0.5 rounded mr-1.5 uppercase tracking-wide">
+                                                    Recomendado
+                                                  </span>
+                                                )}
                                                 <span className="text-xs text-zinc-200">{t.text}</span>
                                                 <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
                                                   {t.chars}/{maxChars}
                                                 </span>
+                                                {typeof t.score === 'number' && (
+                                                  <span className="ml-1 text-[8px] text-zinc-600 font-mono" title="Score de qualidade">
+                                                    · {t.score}pts
+                                                  </span>
+                                                )}
                                                 {isActiveVariant && <span className="ml-2 text-[8px] text-violet-400 font-bold">ATIVO NO YT</span>}
                                                 {typeof ranking?.periodViews === 'number' && (
                                                   <span className="block text-[8px] text-emerald-500 mt-0.5">
@@ -38317,14 +38328,8 @@ export default function App() {
 
 
                         <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Título Principal</span>
-
-
-
-
-
-
-
                         <p className="text-white font-bold text-sm mt-1">{generatedScriptData.strategy?.title_main || ''}</p>
+                        <p className="text-[9px] text-zinc-500 mt-0.5">Ancorado no roteiro — específico, sem clickbait genérico</p>
 
 
 

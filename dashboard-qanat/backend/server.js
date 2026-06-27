@@ -67,6 +67,17 @@ import {
   mergeHumanizedScript,
   applyScriptTextQuality,
 } from "./scriptQuality.js";
+import {
+  extractTitleFacts,
+  buildTitleCraftRules,
+  buildTitleRepairPrompt,
+  buildStrategyTitleRepairPrompt,
+  applyTitleQualityToParsed,
+  mergeRepairedTitles,
+  mergeRepairedStrategyTitles,
+  enhanceStrategyTitles,
+  titlesNeedRepair,
+} from "./titleGenerator.js";
 
 import cors from "cors";
 
@@ -5752,6 +5763,96 @@ function buildProjectTranscript({ transcript, config, storyboard }) {
 
 }
 
+async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboard, apiKey }) {
+  const facts = extractTitleFacts({ transcript, storyboard });
+  let parsed = parseYoutubeMetadataMarkdown(text);
+  parsed = applyTitleQualityToParsed(parsed, { format, facts });
+
+  const shouldRepair = titlesNeedRepair(parsed.titles || [], format, facts);
+
+  if (apiKey && shouldRepair) {
+    try {
+      const repairPrompt = buildTitleRepairPrompt({
+        titles: parsed.titles,
+        transcript,
+        format,
+        facts,
+      });
+      const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+        temperature: 0.4,
+        maxRetries: 2,
+        models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+      });
+      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos"));
+      parsed = mergeRepairedTitles(parsed, repaired);
+      parsed = applyTitleQualityToParsed(parsed, { format, facts });
+      console.log("[YouTube Metadata] Refino de títulos aplicado (scores baixos detectados).");
+    } catch (err) {
+      console.warn("[YouTube Metadata] Refino de títulos falhou:", err.message);
+    }
+  } else if (!shouldRepair) {
+    console.log("[YouTube Metadata] Títulos com score OK — refino IA ignorado.");
+  }
+
+  return parsed;
+}
+
+async function enhanceCreatorStrategyTitles(parsedData, { transcript, format, apiKey, ideaTitle }) {
+  const fmt = format === "SHORTS" ? "SHORT" : "LONG";
+  const facts = extractTitleFacts({
+    transcript: parsedData.narrative_script || transcript,
+    storyboard: parsedData,
+  });
+  if (ideaTitle) facts.coreTopic = ideaTitle;
+
+  let strategy = enhanceStrategyTitles(parsedData.strategy || {}, {
+    transcript: parsedData.narrative_script || transcript,
+    format: fmt,
+    facts,
+  });
+
+  const allTitles = [
+    { text: strategy.title_main },
+    ...(strategy.title_variations || []).map((t) => ({ text: t })),
+  ];
+
+  if (apiKey && titlesNeedRepair(allTitles, fmt, facts)) {
+    try {
+      const repairPrompt = buildStrategyTitleRepairPrompt({
+        strategy,
+        transcript: parsedData.narrative_script || transcript,
+        format: fmt,
+        facts,
+        ideaTitle,
+      });
+      const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+        temperature: 0.4,
+        maxRetries: 2,
+        models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+      });
+      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos strategy"));
+      strategy = mergeRepairedStrategyTitles(strategy, repaired);
+      strategy = enhanceStrategyTitles(strategy, {
+        transcript: parsedData.narrative_script || transcript,
+        format: fmt,
+        facts,
+      });
+      console.log("[Creator Script] Refino de títulos da estratégia aplicado.");
+    } catch (err) {
+      console.warn("[Creator Script] Refino de títulos falhou:", err.message);
+    }
+  }
+
+  return {
+    ...parsedData,
+    strategy: {
+      ...parsedData.strategy,
+      title_main: strategy.title_main,
+      title_variations: strategy.title_variations,
+    },
+  };
+}
+
 app.post("/api/ai/optimize-youtube", async (req, res) => {
 
   const projDir = getProjectDir(req);
@@ -5852,8 +5953,14 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       rpmHint,
     });
 
-    const respondWithMetadata = (text, extra = {}) => {
-      const parsed = parseYoutubeMetadataMarkdown(text);
+    const respondWithMetadata = async (text, extra = {}) => {
+      const apiKeyForTitles = apiKeys[0] || null;
+      const parsed = await enhanceYoutubeTitlesMetadata(text, {
+        transcript,
+        format,
+        storyboard,
+        apiKey: extra.fallback ? null : apiKeyForTitles,
+      });
       const payload = {
         text,
         format,
@@ -5864,6 +5971,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
         rpm: rpmHint.rpm,
         palette: rpmHint.palette,
         parsed,
+        titleRefined: !extra.fallback,
         ...extra,
       };
 
@@ -5896,7 +6004,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
       const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
 
-      return respondWithMetadata(responseText, { provider: "xai" });
+      return await respondWithMetadata(responseText, { provider: "xai" });
 
     }
 
@@ -5904,9 +6012,9 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
       const apiKey = apiKeys[0];
 
-      const responseText = await callGeminiWithRetry(apiKey, prompt);
+      const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.75 });
 
-      return respondWithMetadata(responseText || "Erro ao gerar metadados.", { tried_keys: 1 });
+      return await respondWithMetadata(responseText || "Erro ao gerar metadados.", { tried_keys: 1 });
 
     } catch (geminiErr) {
 
@@ -5920,7 +6028,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
         const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
 
-        return respondWithMetadata(responseText, {
+        return await respondWithMetadata(responseText, {
 
           provider: "xai",
 
@@ -5950,7 +6058,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     const quotaErrors = errors.filter(error => error.quotaExceeded).length;
 
-    return respondWithMetadata(fallbackText, {
+    return await respondWithMetadata(fallbackText, {
 
       fallback: true,
 
@@ -7406,6 +7514,8 @@ ${notebooklmContext}
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
+${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
+
 Diversidade obrigatoria de ideias:
 
 - As 10 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
@@ -7845,6 +7955,8 @@ ${SCRIPT_CREATIVE_REINFORCEMENT}
 
 ${buildFormatScriptRules(format)}
 
+${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
+
 Reforco especifico para montagem do roteiro:
 
 - A MENSAGEM CENTRAL deve estar clara na promessa da ideia ("${idea.promise}"). Cada bloco aproxima o espectador dessa compreensão.
@@ -7890,9 +8002,9 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
 1. "strategy": {
 
-   "title_main": "Título principal com alta taxa de clique",
+   "title_main": "Título específico ao tema (nome, número ou detalhe concreto — sem clickbait genérico)",
 
-   "title_variations": ["var1", "var2", "var3", "var4", "var5"],
+   "title_variations": ["5 variações com ângulos DIFERENTES: pergunta, número, paradoxo, nome, lacuna"],
 
    "hook": "Gancho de 3 segundos",
 
@@ -8021,6 +8133,13 @@ REGRAS FINAIS:
     } catch (repairErr) {
       console.warn("[Creator Script] Humanização secundária falhou, usando rascunho:", repairErr.message);
     }
+
+    parsedData = await enhanceCreatorStrategyTitles(parsedData, {
+      transcript: parsedData.narrative_script || "",
+      format,
+      apiKey,
+      ideaTitle: idea.title,
+    });
 
     // Save full storyboard JSON
 
