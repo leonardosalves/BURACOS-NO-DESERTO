@@ -10217,7 +10217,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
 
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
-      const useHyperframes = req.query.hyperframes === "1";
+      const useHyperframes = req.query.hyperframes !== "0";
       const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes);
 
 

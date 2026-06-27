@@ -674,6 +674,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
             : (isVertical ? "16px 20px" : "10px 14px"),
           gap: isVertical ? 16 : 10,
           position: "relative",
+          overflow: "hidden",
           ...getThemeStyle(),
         }}
       >
@@ -698,24 +699,26 @@ export const InfoCard: React.FC<InfoCardProps> = ({
         </div>
 
         {/* Content panel */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
           <span
             style={{
               color: accentColor,
               fontSize: isVertical ? 20 : 13,
-              textTransform: "uppercase",
+              textTransform: customStyle?.textTransformTitle || "none",
               lineHeight: 1.2,
               ...getThemeFont("title")
             }}
           >
             {title}
           </span>
-          <span
+          <div
             style={{
               color: "rgba(248,250,252,0.9)",
               fontSize: isVertical ? 16 : 10.5,
               fontWeight: 400,
               lineHeight: 1.4,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
               ...getThemeFont("desc")
             }}
             dangerouslySetInnerHTML={{ __html: description }}
