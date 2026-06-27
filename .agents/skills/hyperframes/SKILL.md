@@ -39,12 +39,13 @@ O backend Lumiera (`overlayOrchestration.js`) aplica automaticamente um **perfil
 ### 📱 SHORTS / REELS / TIKTOK (≤75s, 9:16)
 | Ato | % do vídeo | Overlays | Componentes Remotion | Objetivo de retenção |
 | :--- | :--- | :--- | :--- | :--- |
-| Gancho | 0–22% | 0 | *(tela limpa)* | Reter nos primeiros 3s sem poluição visual |
-| Curiosidade | 22–55% | 1 | `counter` ou `lower-third` glass | Dado surpreendente que complementa a narração |
-| Prova | 55–78% | 1 | `bar-chart` ou `timeline` compacta | Reforço visual de credibilidade |
-| Fechamento | 78–100% | 0–1 | `lower-third` accent-underline | Últimos 3s limpos para CTA natural |
+| Gancho | 0–12% | 0 | *(tela limpa + legenda viral)* | 1.5s limpos — imagem forte + caption palavra-a-palavra |
+| Impacto | 12–35% | 2 | `kinetic-text` slam + `lower-third` glass | Parar o scroll com frase de impacto |
+| Prova | 35–58% | 2 | `counter` + `bar-chart` | Credibilidade visual em 2 segundos |
+| Profundidade | 58–82% | 2 | `timeline` vertical + `lower-third` accent | Manter atenção no meio do vídeo |
+| Fechamento | 82–100% | 1 | `kinetic-text` reveal ou `lower-third` | Últimos 2s limpos |
 
-**Orçamento máximo:** 3 overlays | **Gap mínimo:** 8s | **HyperFrames refs:** `lt-soft-pill`, `reddit-post`, `apple-money-count`
+**Orçamento máximo:** 5–8 overlays (1 a cada ~8s) | **Gap mínimo:** 5s | **Legendas:** estilo `caption-highlight` (palavra ativa com fundo amarelo) | **Assets:** zoom agressivo, 6 transições, vinheta + grain | **HyperFrames refs:** `caption-kinetic-slam`, `lt-soft-pill`, `apple-money-count`, `reddit-post`
 
 ### 🎥 VÍDEOS LONGOS (16:9, >2min)
 | Ato | % do vídeo | Overlays | Componentes Remotion | Objetivo de retenção |

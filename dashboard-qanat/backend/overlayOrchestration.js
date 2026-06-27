@@ -151,37 +151,51 @@ export function buildOverlayOrchestrationPlan({
   };
 
   if (isShort) {
+    const shortMax = Math.min(8, Math.max(5, Math.floor(duration / 8)));
     plan.limits = {
-      maxTotal: 3,
-      maxData: 1,
-      maxLowerThird: 2,
-      maxKinetic: 1,
-      minGapSeconds: 8,
-      maxDurationSeconds: 5,
+      maxTotal: shortMax,
+      maxData: 3,
+      maxLowerThird: 3,
+      maxKinetic: 2,
+      maxTimeline: 2,
+      minGapSeconds: 5,
+      maxDurationSeconds: 4.5,
     };
     plan.rhythm = {
-      hookCleanSeconds: 2,
-      firstOverlayPercent: 0.22,
-      secondOverlayPercent: 0.55,
-      thirdOverlayPercent: 0.78,
-      outroCleanSeconds: 3,
+      hookCleanSeconds: 1.5,
+      firstOverlayPercent: 0.12,
+      secondOverlayPercent: 0.35,
+      thirdOverlayPercent: 0.58,
+      fourthOverlayPercent: 0.75,
+      outroCleanSeconds: 2,
     };
     plan.acts = [
-      { act: 1, label: "Gancho Visual", percent: "0-22%", overlays: 0, goal: "Tela limpa — só imagem + legenda. Retenção nos primeiros 3s." },
-      { act: 2, label: "Curiosidade", percent: "22-55%", overlays: 1, goal: "1 overlay de impacto (counter OU lower-third glass). Dado surpreendente complementar." },
-      { act: 3, label: "Prova", percent: "55-78%", overlays: 1, goal: "1 overlay de dados (bar-chart OU timeline compacta). Reforço visual rápido." },
-      { act: 4, label: "Fechamento", percent: "78-100%", overlays: 1, goal: "Opcional: 1 lower-third accent-underline. Tela limpa nos últimos 3s." },
+      { act: 1, label: "Gancho Visual", percent: "0-12%", overlays: 0, goal: "1.5s limpos — imagem forte + legenda viral palavra-a-palavra." },
+      { act: 2, label: "Impacto", percent: "12-35%", overlays: 2, goal: "kinetic-text slam + lower-third glass. Parar o scroll." },
+      { act: 3, label: "Prova Rápida", percent: "35-58%", overlays: 2, goal: "counter + bar-chart compacto. Credibilidade em 2s." },
+      { act: 4, label: "Profundidade", percent: "58-82%", overlays: 2, goal: "timeline vertical OU lower-third accent + counter. Manter atenção." },
+      { act: 5, label: "Fechamento", percent: "82-100%", overlays: 1, goal: "1 lower-third ou kinetic-text reveal. Últimos 2s limpos." },
     ];
-    plan.componentPalette = profile.componentPriority.slice(0, 3);
+    plan.componentPalette = [
+      "kinetic-text",
+      "lower-third",
+      "counter",
+      "bar-chart",
+      "timeline",
+      ...profile.componentPriority,
+    ].filter((v, i, a) => a.indexOf(v) === i);
     plan.forbiddenZones = [
-      { start: 0, end: 2, reason: "Gancho — sem overlay nos primeiros 2s" },
-      { start: duration - 3, end: duration, reason: "Saída limpa — sem overlay no final" },
+      { start: 0, end: 1.5, reason: "Gancho — sem overlay nos primeiros 1.5s" },
+      { start: duration - 2, end: duration, reason: "Saída limpa — sem overlay nos últimos 2s" },
     ];
     plan.retentionGoals = [
-      "1 overlay a cada ~15-20s no máximo",
-      "Nunca 2 overlays simultâneos",
-      "Textos de 5-8 palavras (leitura em <1.5s)",
-      "Alternar posição: topo ↔ base a cada overlay",
+      `Até ${shortMax} overlays distribuídos com gap mínimo de 5s`,
+      "Use kinetic-text nos momentos de virada narrativa",
+      "Números na narração → counter ou bar-chart obrigatório",
+      "Nunca 2 overlays simultâneos na tela",
+      "Textos de 4-10 palavras (leitura em <1.2s)",
+      "Alternar tipo E posição a cada overlay",
+      "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
     ];
   } else {
     const maxOverlays = Math.min(12, Math.max(4, Math.floor(duration / 50)));
@@ -277,6 +291,7 @@ ${plan.retentionGoals.map((g) => `- ${g}`).join("\n")}
 const DATA_TYPES = new Set(["counter", "bar-chart", "timeline"]);
 const LT_TYPES = new Set(["lower-third"]);
 const KINETIC_TYPES = new Set(["kinetic-text"]);
+const TIMELINE_TYPES = new Set(["timeline"]);
 
 function overlayPriority(overlay) {
   if (DATA_TYPES.has(overlay.type)) return 3;
@@ -297,6 +312,8 @@ export function enforceOverlayOrchestration(overlays, plan) {
   let dataCount = 0;
   let ltCount = 0;
   let kineticCount = 0;
+  let timelineCount = 0;
+  const maxTimeline = plan.limits.maxTimeline || plan.limits.maxData;
   let lastStart = -Infinity;
   let lastType = null;
   let variantIdx = 0;
@@ -322,7 +339,11 @@ export function enforceOverlayOrchestration(overlays, plan) {
       break;
     }
 
-    if (DATA_TYPES.has(overlay.type)) {
+    if (overlay.type === "timeline") {
+      if (timelineCount >= maxTimeline) continue;
+      timelineCount++;
+      dataCount++;
+    } else if (DATA_TYPES.has(overlay.type)) {
       if (dataCount >= plan.limits.maxData) continue;
       dataCount++;
     }
