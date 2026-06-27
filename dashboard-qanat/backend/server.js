@@ -13,6 +13,7 @@ import {
   buildFallbackYoutubeMetadata,
   parseYoutubeMetadataMarkdown,
   resolveYoutubeMetadataContext,
+  ensureThumbnailVariants,
 } from "./youtubeMetadataOptimizer.js";
 import { generateYoutubeThumbnailImages } from "./youtubeThumbnailGenerator.js";
 
@@ -5815,17 +5816,39 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
     let palette = req.body?.palette || [];
 
     const cachePath = path.join(projDir, "youtube_metadata_cache.json");
-    if ((!thumbnails || thumbnails.length === 0) && fs.existsSync(cachePath)) {
-      const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    let cache = null;
+    if (fs.existsSync(cachePath)) {
+      try { cache = JSON.parse(fs.readFileSync(cachePath, "utf8")); } catch (e) {}
+    }
+
+    if ((!thumbnails || thumbnails.length === 0) && cache) {
       thumbnails = cache?.parsed?.thumbnails || [];
       format = format || cache?.format;
       palette = palette.length ? palette : (cache?.palette || []);
     }
 
+    if ((!thumbnails || thumbnails.length === 0) && cache?.text) {
+      const reparsed = parseYoutubeMetadataMarkdown(cache.text);
+      thumbnails = reparsed.thumbnails || [];
+      palette = palette.length ? palette : (cache?.palette || []);
+    }
+
+    if (req.body?.metadataText) {
+      const reparsed = parseYoutubeMetadataMarkdown(req.body.metadataText);
+      if (reparsed.thumbnails?.length) thumbnails = reparsed.thumbnails;
+      else if (reparsed.titles?.length) {
+        thumbnails = ensureThumbnailVariants(reparsed, palette);
+      }
+    }
+
+    if (Array.isArray(thumbnails) && thumbnails.length > 0 && thumbnails.length < 3) {
+      thumbnails = ensureThumbnailVariants({ thumbnails, titles: cache?.parsed?.titles || [] }, palette);
+    }
+
     if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
       return res.status(400).json({
         error: "Nenhuma variante A/B encontrada.",
-        details: "Gere os metadados do YouTube primeiro para obter as 3 variantes de thumbnail.",
+        details: "Gere os metadados do YouTube primeiro. Se já gerou, clique em 'Gerar Metadados' novamente para atualizar o cache.",
       });
     }
 
@@ -5853,7 +5876,12 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
       config,
     });
 
-    res.json(result);
+    const parsed = parseYoutubeMetadataMarkdown(cache?.text || req.body?.metadataText || "");
+    if (!parsed.thumbnails?.length) {
+      parsed.thumbnails = ensureThumbnailVariants(parsed, palette);
+    }
+
+    res.json({ ...result, parsed: { thumbnails: parsed.thumbnails } });
   } catch (err) {
     res.status(500).json({ error: "Erro ao gerar thumbnails", details: err.message });
   }

@@ -561,14 +561,66 @@ function extractKeywords(text, limit = 15) {
     .map(([word]) => word);
 }
 
+function shortOverlayFromTitle(title = "", fallback = "ASSISTA AGORA") {
+  const words = String(title).replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return fallback;
+  const chunk = words.slice(0, 4).join(" ").toUpperCase();
+  return chunk.length > 22 ? `${words.slice(0, 3).join(" ").toUpperCase()}` : chunk;
+}
+
+export function ensureThumbnailVariants(parsed = {}, palette = []) {
+  const existing = Array.isArray(parsed.thumbnails) ? parsed.thumbnails.filter(Boolean) : [];
+  if (existing.length >= 3) return existing.slice(0, 3);
+
+  const titles = parsed.titles || [];
+  const colors = palette.length ? palette : ["#D4AF37", "#00E5FF", "#121214"];
+  const defaults = [
+    {
+      id: "A",
+      label: "Curiosidade",
+      overlayText: parsed.thumbnailHook || shortOverlayFromTitle(titles[0]?.text, "IMPOSSÍVEL?"),
+      pairedTitle: titles[0]?.text ? `1. ${titles[0].text}` : "",
+      colors,
+    },
+    {
+      id: "B",
+      label: "Contraste",
+      overlayText: shortOverlayFromTitle(titles[1]?.text, "ANTES × DEPOIS"),
+      pairedTitle: titles[1]?.text ? `2. ${titles[1].text}` : "",
+      colors,
+    },
+    {
+      id: "C",
+      label: "Prova Visual",
+      overlayText: shortOverlayFromTitle(titles[2]?.text, "O NÚMERO"),
+      pairedTitle: titles[2]?.text ? `3. ${titles[2].text}` : "",
+      colors,
+    },
+  ];
+
+  const merged = [...existing];
+  for (const fallback of defaults) {
+    if (merged.length >= 3) break;
+    if (!merged.some((item) => item.id === fallback.id)) merged.push(fallback);
+  }
+
+  return merged.slice(0, 3);
+}
+
 function parseThumbnailVariants(content = "") {
   const variants = [];
-  const blocks = String(content).split(/^###\s+/m).filter(Boolean);
+  const normalized = String(content).trim();
+  if (!normalized) return variants;
 
-  for (const block of blocks) {
+  const blocks = normalized.split(/^###\s+/m).filter(Boolean);
+  const extraBlocks = normalized.split(/^(?:\*\*)?Variante\s+[A-C]/gim).filter(Boolean);
+  const allBlocks = blocks.length > 1 ? blocks : extraBlocks;
+
+  for (const block of allBlocks) {
     const lines = block.split("\n");
     const header = lines[0]?.trim() || "";
-    const headerMatch = header.match(/^Variante\s+([A-C])\s*[—–-]\s*(.+)$/i);
+    const headerMatch = header.match(/^(?:\*\*)?Variante\s+([A-C])\s*(?:\*\*)?\s*[—–:-]\s*(.+)$/i)
+      || header.match(/^(?:\*\*)?Variante\s+([A-C])\b/i);
     const id = headerMatch?.[1]?.toUpperCase() || String.fromCharCode(65 + variants.length);
     const label = headerMatch?.[2]?.trim() || header;
     const fields = {};
@@ -616,8 +668,13 @@ export function parseYoutubeMetadataMarkdown(text = "") {
       return { text: line.replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim(), chars: line.length };
     });
 
-  const thumbnailsRaw = sections["THUMBNAILS A/B"] || sections["THUMBNAILS AB"] || "";
-  const thumbnails = parseThumbnailVariants(thumbnailsRaw);
+  const thumbnailsRaw = sections["THUMBNAILS A/B"] || sections["THUMBNAILS AB"] || sections.THUMBNAILS || "";
+  let thumbnails = parseThumbnailVariants(thumbnailsRaw);
+  const thumbnailHook = sections["GANCHO PARA THUMBNAIL"] || thumbnails[0]?.overlayText || "";
+
+  if (thumbnails.length < 3) {
+    thumbnails = ensureThumbnailVariants({ titles, thumbnails, thumbnailHook });
+  }
 
   return {
     titles,
@@ -627,7 +684,7 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     pinnedComment: sections["COMENTARIO PINADO"] || "",
     chapters: sections.CAPITULOS || "",
     thumbnails,
-    thumbnailHook: sections["GANCHO PARA THUMBNAIL"] || thumbnails[0]?.overlayText || "",
+    thumbnailHook,
     retentionHook: sections["GANCHO DE RETENCAO"] || "",
     midVideoCta: sections["CTA DE MEIO DE VIDEO"] || "",
     recommendedTitle: titles[0]?.text || "",
