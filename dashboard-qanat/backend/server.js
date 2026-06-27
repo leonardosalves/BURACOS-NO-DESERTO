@@ -29046,6 +29046,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
   });
 
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
+  const niche = config.niche || "Geral";
 
   let skillPrompt = "";
   if (useHyperframes) {
@@ -29071,12 +29072,13 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
 
   let systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
 Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
+O NICHO DO VÍDEO ATUAL É: "${niche}".
 
 ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
 Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
 Utilize as especificações, formatos (como de posts de redes sociais, pílulas, terminais de código e destaques) e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
 
-${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo (ex: tons de roxo/azul ciber para futurismo, tons escuros de bronze/dourado para arqueologia, tons quentes e laranjas para perigo/aventura/fogo).
+${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a propriedade "borderRadius" de forma decorativa e experimental (ex: "32px 4px" ou "0px 24px" ou "20px") e usar gradientes no "background" com cores vibrantes e contrastantes que correspondam ao tema específico do vídeo.
 2. Adicione uma moldura expressiva usando "border" (ex: "2px solid #FFD700" ou "3px double rgba(0,229,255,0.8)" ou "1.5px dashed #00FF87").
 3. Use obrigatoriamente um sombreado brilhante com "boxShadow" para dar efeito de brilho flutuante neon no vídeo (ex: "0 10px 40px rgba(0, 255, 135, 0.3)" ou "0 12px 36px rgba(255, 61, 0, 0.35)").
 4. Defina "fontFamilyTitle" e "fontFamilyDesc" adequadamente de acordo com o tema.
@@ -29084,11 +29086,11 @@ ${skillPrompt || `1. Para "customStyle", você deve definir obrigatoriamente a p
 6. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
 7. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
    - "tiktok-comment", "reddit-post", "instagram-comment" (use o tipo "info-card" com variante "glass" ou "minimal", avatar e títulos de autor como "r/HojeEuAprendi • p/u/User" ou "@username").
-   - "lt-soft-pill" (use o tipo "lower-third" com cantos muito arredondados "40px" e gradientes suaves).
+   - "lt-soft-pill" (use o tipo "lower-third" com cantos muito arredondados "40px" e gradientes suaves").
    - "lt-accent-underline" (use o tipo "lower-third" com borda esquerda colorida "borderLeft: '4px solid #FF3D00'").
    - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
    - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).
-   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal efeitos de foco "code-highlight-sweep" contendo tags HTML <pre> e <div> com inline-styles (ex: opacity: 0.35 para linhas comuns, e background: rgba(0,229,255,0.12), border-left: 3px solid #00E5FF, color: #00E5FF para a linha de foco), e sintaxes coloridas com quebras de linha "\\n").`}
+   - "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep" (use o tipo "info-card" com variante "glass" ou "minimal", e configure fontes monospace como "Courier New", fundos escuros de terminal).`}
 ` : ""}
 
 
@@ -29097,11 +29099,17 @@ REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
 2. LIMITES POR FORMATO:
    - Para vídeos curtos (SHORTS/REELS/TIKTOK - duração total menor que 60 segundos): No máximo 1 ou 2 overlays informativos (como "info-card", "counter" ou "bar-chart") NO VÍDEO INTEIRO, e no máximo 1 ou 2 "lower-third" (somente nos blocos mais importantes).
    - Para vídeos LONGOS: Garanta um intervalo de pelo menos 15 a 20 segundos "limpo" (sem nenhum overlay) entre a exibição de um overlay e outro.
-3. RELEVÂNCIA: Crie overlays apenas para dados, numbers ou curiosidades históricas/científicas altamente surpreendentes e impactantes, que agreguem valor real e chamem a atenção do espectador. Nunca crie overlays com informações óbvias ou repetitivas.
-4. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
-5. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
+3. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
+   - Se o nicho do vídeo atual for diferente de "Tecnologia" ou "Programação" (como é o caso de "História", "Geografia", "Finanças", "Curiosidades", etc. e o atual é "${niche}"), VOCÊ É TERMINANTEMENTE PROIBIDO de gerar qualquer overlay que contenha códigos de programação, código fonte, terminais de comando, imports de bibliotecas (como 'geo-eng' ou '.js'), mockups do VS Code, syntax highlighting ou o tipo "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep". Esses layouts de código e programação irritam o usuário e quebram a imersão em vídeos comuns! Use apenas layouts de postagens comuns (Reddit, TikTok bubble, Instagram comment), pílulas, infográficos, fatos-chave, etc.
+4. DIVERSIFICAÇÃO E RANDOMIZAÇÃO OBRIGATÓRIA:
+   - Você DEVE diversificar e randomizar os estilos de cards e posições ao longo de um mesmo vídeo. Não use o mesmo estilo de card em sequência ou em todos os blocos! Mude o layout (ex: Bloco 1 usa Reddit-post, Bloco 2 usa Key-facts-highlights, Bloco 3 usa gauge/counter, Bloco 4 usa lower-third). Varie as posições na tela (top-left, top-right, bottom-left, bottom-right) para manter o vídeo dinâmico.
+5. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS MODERNOS:
+   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
+6. RELEVÂNCIA: Crie overlays apenas para dados, numbers ou curiosidades históricas/científicas altamente surpreendentes e impactantes. Nunca crie overlays com informações óbvias ou repetitivas.
+7. NÃO repita o texto da narração falada nos overlays. Os overlays devem conter informações novas, fatos históricos, dados estatísticos ou curiosidades complementares.
+8. NUNCA use textos gigantes ou coloque-os no centro da tela (evite kinetic-text centralizado e intrusivo).
 
-6. DESIGN TOTALMENTE FLEXÍVEL, DIVERSIFICADO E CUSTOMIZADO (DESINGESSADO):
+9. DESIGN TOTALMENTE FLEXÍVEL, DIVERSIFICADO E CUSTOMIZADO (DESINGESSADO):
    - Não fique preso aos temas ou cores fixas. Você DEVE personalizar a aparência visual dos overlays no campo "customStyle" dentro de "props" de acordo com o assunto do roteiro!
    - Campo "customStyle" (Opcional): Crie layouts únicos definindo propriedades CSS personalizadas para o container e o texto:
      * "background": Gradientes ou cores sólidas que correspondam ao clima (ex: "linear-gradient(135deg, #150505 0%, #300a0a 100%)" para lava/vulcano, ou "rgba(10,20,30,0.92)" para água/ciber).
@@ -29118,8 +29126,8 @@ REGRAS CRÍTICAS DE MODERAÇÃO E SELETIVIDADE:
      * "sparkles" (estrelas) | "crown" (realeza) | "info" (dados) | "flame" (fogo/vulcão) | "earth" (globo) | "gear" (engenharia) | "shield" (defesa) | "science" (átomo) | "history" (ampulheta/tempo) | "nature" (folha) | "money" (moedas) | "warning" (alerta) | "compass" (bússola) | "book" (livro) | "heart" (vida) | "swords" (batalha) | "lightbulb" (ideia).
    - Varie as posições ("position") e cantos da tela.
 
-7. Mantenha os textos curtos, sofisticados e de leitura rápida.
-8. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
+10. Mantenha os textos curtos, sofisticados e de leitura rápida.
+11. As palavras-chave sugeridas para destaque são: ${highlightKeywords.join(", ")}.
 
 Retorne APENAS um array JSON contendo os objetos de overlay. Não inclua markdown além de blocos de código JSON ou explicações fora do JSON.
 
@@ -29245,6 +29253,146 @@ Gere o plano de overlays seguindo rigorosamente as regras de complementariedade,
     
     if (Array.isArray(parsedOverlays)) {
       console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
+
+      const isTech = niche.toLowerCase().includes("tecnologia") || niche.toLowerCase().includes("programacao") || niche.toLowerCase().includes("computador") || niche.toLowerCase().includes("ciber") || niche.toLowerCase().includes("software");
+      
+      const variants = ["glass", "minimal", "accent", "floating"];
+      const positions = ["top-left", "top-right", "bottom-left", "bottom-right"];
+      const lotties = ["sparkles", "flame", "earth", "gear", "shield", "crown", "science", "history", "nature", "money", "warning", "compass", "book", "heart", "lightbulb"];
+      
+      let variantIdx = 0;
+      let posIdx = 0;
+      let lottieIdx = 0;
+
+      for (let i = 0; i < parsedOverlays.length; i++) {
+        const overlay = parsedOverlays[i];
+        if (!overlay.props) overlay.props = {};
+
+        // 1. Corrigir vazamento de código de programação em vídeos que não são de tecnologia
+        if (!isTech) {
+          let hasCodeContent = false;
+          const codeKeywords = ["import", "const ", "let ", "var ", "console.log", "npm run", ".js", ".ts", ".py", ".json", ".cpp", ".h", ".cs", ".sh", "function ", "void ", "class ", "public ", "private ", "struct ", "def ", "return ", "import {", "<pre", "<code>"];
+          
+          const textToCheck = ((overlay.props.title || "") + " " + (overlay.props.description || "")).toLowerCase();
+          for (const kw of codeKeywords) {
+            if (textToCheck.includes(kw)) {
+              hasCodeContent = true;
+              break;
+            }
+          }
+
+          if (hasCodeContent || overlay.props.theme === "tech") {
+            console.log(`[Overlays Post-Process] Convertendo card de código detectado incorretamente para o nicho ${niche}`);
+            overlay.props.theme = "classic";
+            overlay.props.variant = "glass";
+            
+            let title = overlay.props.title || "";
+            if (title.includes(".") || title.includes("/") || title.toLowerCase().includes("bash") || title.toLowerCase().includes("git")) {
+              title = "INFO DESTAQUE";
+            }
+            overlay.props.title = title.toUpperCase();
+
+            let desc = overlay.props.description || "";
+            desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
+            desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
+            desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
+            desc = desc.replace(/import\s+[\s\S]*?;/g, "");
+            desc = desc.replace(/console\.log\([\s\S]*?\);?/g, "");
+            desc = desc.replace(/\s+/g, " ").trim();
+            overlay.props.description = desc || "Informação importante de engenharia e história.";
+            
+            if (overlay.props.customStyle) {
+              delete overlay.props.customStyle.fontFamilyTitle;
+              delete overlay.props.customStyle.fontFamilyDesc;
+              delete overlay.props.customStyle.fontFamilyValue;
+            }
+          }
+        }
+
+        // 2. Randomização e Diversificação obrigatória de layouts, variantes e posições por vídeo
+        overlay.props.variant = variants[variantIdx % variants.length];
+        overlay.props.position = positions[posIdx % positions.length];
+        
+        if (overlay.type === "info-card" || overlay.type === "counter" || overlay.type === "bar-chart") {
+          overlay.props.iconType = lotties[lottieIdx % lotties.length];
+          lottieIdx++;
+        }
+
+        // Mapeia temas baseados no nicho
+        const cleanNiche = niche.toLowerCase();
+        if (!overlay.props.theme || (overlay.props.theme === "tech" && !isTech)) {
+          if (cleanNiche.includes("historia") || cleanNiche.includes("arqueologia") || cleanNiche.includes("inca") || cleanNiche.includes("egito") || cleanNiche.includes("antigo") || cleanNiche.includes("castelo")) {
+            overlay.props.theme = "ancient";
+          } else if (cleanNiche.includes("deserto") || cleanNiche.includes("natureza") || cleanNiche.includes("geografia") || cleanNiche.includes("amazonia")) {
+            overlay.props.theme = "nature";
+          } else if (cleanNiche.includes("militar") || cleanNiche.includes("guerra") || cleanNiche.includes("industrial")) {
+            overlay.props.theme = "industrial";
+          } else {
+            overlay.props.theme = "classic";
+          }
+        }
+
+        // Injeta customStyle decorativo e vibrante correspondente ao tema
+        if (!overlay.props.customStyle) overlay.props.customStyle = {};
+        const accent = overlay.props.accentColor || "#D4AF37";
+        
+        if (overlay.props.theme === "ancient") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(22, 14, 8, 0.97) 0%, rgba(42, 28, 16, 0.94) 100%)",
+            border: `2px double ${accent}`,
+            borderRadius: "16px 2px",
+            boxShadow: `0 10px 40px ${accent}30`,
+            fontFamilyTitle: "Cinzel",
+            fontFamilyDesc: "Inter",
+          };
+        } else if (overlay.props.theme === "nature") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(8, 20, 12, 0.96) 0%, rgba(16, 40, 24, 0.92) 100%)",
+            border: `1.5px solid ${accent}60`,
+            borderRadius: "24px 4px",
+            boxShadow: `0 10px 30px ${accent}25`,
+            fontFamilyTitle: "Montserrat",
+            fontFamilyDesc: "Inter",
+          };
+        } else if (overlay.props.theme === "industrial") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(12, 12, 14, 0.98) 0%, rgba(26, 26, 30, 0.95) 100%)",
+            borderLeft: `5px solid ${accent}`,
+            borderRadius: "0px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.8)",
+            fontFamilyTitle: "Oswald",
+            fontFamilyDesc: "Inter",
+          };
+        } else if (overlay.props.theme === "mysterious") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(10, 5, 18, 0.97) 0%, rgba(24, 12, 40, 0.94) 100%)",
+            border: `1px solid ${accent}40`,
+            borderRadius: "14px",
+            boxShadow: `0 12px 36px ${accent}35, inset 0 0 15px rgba(255,255,255,0.02)`,
+            fontFamilyTitle: "Cinzel",
+            fontFamilyDesc: "Inter",
+          };
+        } else {
+          // Classic / default
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "rgba(18, 18, 20, 0.92)",
+            border: `1.5px solid rgba(255, 255, 255, 0.15)`,
+            borderRadius: "20px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+            fontFamilyTitle: "Inter",
+            fontFamilyDesc: "Inter",
+          };
+        }
+
+        variantIdx++;
+        posIdx++;
+      }
+      
       return parsedOverlays;
     }
   } catch (err) {
