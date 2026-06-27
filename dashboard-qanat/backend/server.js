@@ -3998,6 +3998,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     overlays,
     youtubeChannelInfo,
     transparent: isProres,
+    captionStyle: format === "9:16" ? "shorts-viral" : "documentary",
   };
 
   const propsPath = path.join(publicProjectDir, "props.json");
@@ -8174,19 +8175,25 @@ ${skillPrompt || `1. Para "customStyle", você deve configurar as cores de fundo
 ` : ""}
 
 REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
-1. SEJA EXTREMAMENTE SELETIVO. Não lote a tela de informações. O excesso de elementos visuais polui o vídeo e reduz a retenção. Deixe longos intervalos do vídeo "limpos" sem nenhum overlay na tela.
-2. LIMITES POR FORMATO:
-   - Para vídeos curtos (SHORTS/REELS/TIKTOK - duração total menor que 60 segundos): No máximo 1 ou 2 overlays informativos (como "info-card", "counter" ou "bar-chart") NO VÍDEO INTEIRO, e no máximo 1 ou 2 "lower-third" (somente nos blocos mais importantes).
-   - Para vídeos LONGOS: Garanta um intervalo de pelo menos 15 a 20 segundos "limpo" (sem nenhum overlay) entre a exibição de um overlay e outro.
-3. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
+1. SIGA O PLANO DE ORQUESTRAÇÃO ACIMA — ele define o orçamento exato de overlays para este vídeo. Não exceda os limites, mas USE TODOS os componentes disponíveis dentro do orçamento.
+2. LIMITES POR FORMATO (definidos pelo orquestrador — respeite o orçamento):
+   - Para vídeos curtos (SHORTS/REELS/TIKTOK): Use kinetic-text, counter, bar-chart, timeline e lower-third distribuídos nos atos do plano. Varie tipos e posições. Gap mínimo de 5s entre overlays.
+   - Para vídeos LONGOS: Intervalo de pelo menos 18 segundos "limpo" entre overlays. Priorize dados visuais sobre texto.
+3. COMPONENTES DISPONÍVEIS NO REMOTION (use todos conforme o contexto):
+   - "kinetic-text": frases de impacto com animação slam/reveal/glitch (ideal para viradas narrativas em Shorts)
+   - "lower-third": nomes, definições, contexto (variantes: glass, bild, accent-underline, bold-block, clean-bar)
+   - "counter": números, estatísticas, datas (com suffix e formatNumber)
+   - "bar-chart": comparações visuais (2-4 itens)
+   - "timeline": sequências, processos, linha do tempo (horizontal em longos, vertical em shorts)
+4. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
    - Se o nicho do vídeo atual for diferente de "Tecnologia" ou "Programação" (como é o caso de "História", "Geografia", "Finanças", "Curiosidades", etc. e o atual é "${niche}"), VOCÊ É TERMINANTEMENTE PROIBIDO de gerar qualquer overlay que contenha códigos de programação, código fonte, terminais de comando, imports de bibliotecas (como 'geo-eng' ou '.js'), mockups do VS Code, syntax highlighting ou o tipo "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep". Esses layouts de código e programação irritam o usuário e quebram a imersão em vídeos comuns! Use apenas layouts de postagens comuns (Reddit, TikTok bubble, Instagram comment), pílulas, infográficos, fatos-chave, etc.
-4. TEXTOS CURTOS E NÃO REPETITIVOS (SÍNTESE INTELIGENTE):
+5. TEXTOS CURTOS E NÃO REPETITIVOS (SÍNTESE INTELIGENTE):
    - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades surpreendentes de leitura ultra-rápida (no máximo 5 a 12 palavras). Nunca cole parágrafos inteiros de texto falado nos cards ou lower-thirds!
-5. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
+6. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
    - Busque um equilíbrio dinâmico e agradável no posicionamento dos overlays ao longo do vídeo, alternando de forma fluida entre posições superiores (como info-card no topo) e inferiores (como lower-third ou counter na base). Não use o mesmo canto da tela ou o mesmo estilo de forma repetida em sequência. Escolha o posicionamento que melhor se encaixe visualmente com o conteúdo de cada bloco, sem forçar um formato rígido se não for necessário.
-6. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
+7. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
    - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
-7. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
+8. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
    - Para o tipo "lower-third", você DEVE definir a propriedade "variant" escolhendo o estilo visual mais adequado ao trecho do vídeo:
      - "bild": Estilo jornalístico clássico com blocos de fundo sólidos e sombras coloridas projetadas.
      - "bold-block": Estilo podcast retangular sólido com título grosso e subtítulo em caixa menor em amarelo/accent.

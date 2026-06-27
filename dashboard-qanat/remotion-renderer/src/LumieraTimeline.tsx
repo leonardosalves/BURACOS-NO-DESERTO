@@ -18,6 +18,10 @@ import {
 
 
 
+  spring,
+
+
+
   Sequence,
 
 
@@ -214,6 +218,8 @@ export type LumieraTimelineProps = {
   overlays?: Overlay[];
   youtubeChannelInfo?: YoutubeChannelInfo | null;
   transparent?: boolean;
+  /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
+  captionStyle?: "shorts-viral" | "documentary";
 };
 
 
@@ -266,6 +272,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   transparent: false,
 
+  captionStyle: "shorts-viral",
+
 
 
 };
@@ -289,7 +297,8 @@ const SceneMedia: React.FC<{
   isFirst: boolean;
   index: number;
   youtubeChannelInfo?: YoutubeChannelInfo | null;
-}> = ({ scene, isFirst, index, youtubeChannelInfo }) => {
+  isShort?: boolean;
+}> = ({ scene, isFirst, index, youtubeChannelInfo, isShort = false }) => {
 
 
 
@@ -333,11 +342,11 @@ const SceneMedia: React.FC<{
 
 
 
-  const startScale = isLogo ? 1.0 : 1.04;
+  const startScale = isLogo ? 1.0 : (isShort ? 1.06 : 1.04);
 
 
 
-  const endScale = isLogo ? 1.15 : 1.14;
+  const endScale = isLogo ? 1.15 : (isShort ? 1.22 : 1.14);
 
 
 
@@ -465,7 +474,8 @@ const SceneMedia: React.FC<{
 
 
 
-    const transitionType = index % 3;
+    const transitionMod = isShort ? 6 : 3;
+    const transitionType = index % transitionMod;
 
 
 
@@ -473,11 +483,7 @@ const SceneMedia: React.FC<{
 
 
 
-      // Dreamy Zoom transition
-
-
-
-      transitionScale = interpolate(frame, [0, transFrames], [1.15, 1.0], {
+      transitionScale = interpolate(frame, [0, transFrames], [isShort ? 1.2 : 1.15, 1.0], {
 
 
 
@@ -494,10 +500,6 @@ const SceneMedia: React.FC<{
 
 
     } else if (transitionType === 2) {
-
-
-
-      // Smooth crop wipe from left to right
 
 
 
@@ -518,6 +520,74 @@ const SceneMedia: React.FC<{
 
 
       clipPath = `inset(0 0 0 ${wipePercent}%)`;
+
+
+
+    } else if (isShort && transitionType === 3) {
+
+
+
+      const wipeTop = interpolate(frame, [0, transFrames], [100, 0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+      clipPath = `inset(${wipeTop}% 0 0 0)`;
+
+
+
+    } else if (isShort && transitionType === 4) {
+
+
+
+      transitionScale = interpolate(frame, [0, transFrames], [0.88, 1.0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+    } else if (isShort && transitionType === 5) {
+
+
+
+      const circleSize = interpolate(frame, [0, transFrames], [0, 150], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+      clipPath = `circle(${circleSize}% at 50% 50%)`;
 
 
 
@@ -545,15 +615,11 @@ const SceneMedia: React.FC<{
 
 
 
-    const effectType = index % 4;
+    const effectType = index % (isShort ? 6 : 4);
 
 
 
     if (effectType === 0) {
-
-
-
-      // Warm grading for sand/desert/architecture
 
 
 
@@ -565,10 +631,6 @@ const SceneMedia: React.FC<{
 
 
 
-      // High contrast drama
-
-
-
       filter = "contrast(1.1) brightness(0.98) saturate(1.05)";
 
 
@@ -577,11 +639,31 @@ const SceneMedia: React.FC<{
 
 
 
-      // Cinematic cool grading
-
-
-
       filter = "hue-rotate(-5deg) contrast(1.05) saturate(1.02)";
+
+
+
+    } else if (isShort && effectType === 3) {
+
+
+
+      filter = "contrast(1.14) brightness(1.04) saturate(1.18) hue-rotate(8deg)";
+
+
+
+    } else if (isShort && effectType === 4) {
+
+
+
+      filter = "contrast(1.08) brightness(0.95) saturate(0.92) sepia(0.08)";
+
+
+
+    } else if (isShort && effectType === 5) {
+
+
+
+      filter = "contrast(1.12) brightness(1.0) saturate(1.1)";
 
 
 
@@ -921,7 +1003,10 @@ interface WordChunk {
 
 
 
-const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
+const CaptionLayer: React.FC<{ captions: Caption[]; captionStyle?: "shorts-viral" | "documentary" }> = ({
+  captions,
+  captionStyle = "documentary",
+}) => {
 
 
 
@@ -934,6 +1019,10 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
 
 
   const currentMs = (frame / fps) * 1000;
+  const isViralShorts = captionStyle === "shorts-viral";
+  const maxWordsPerChunk = isViralShorts ? 1 : 2;
+  const pauseThresholdMs = isViralShorts ? 400 : 600;
+  const maxChunkDurationMs = isViralShorts ? 1800 : 2200;
 
 
 
@@ -1013,15 +1102,15 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
 
 
 
-        currentChunk.length === 2 ||
+        currentChunk.length >= maxWordsPerChunk ||
 
 
 
-        (lastCap && cap.startMs - lastCap.endMs > 600) ||
+        (lastCap && cap.startMs - lastCap.endMs > pauseThresholdMs) ||
 
 
 
-        (currentChunk.length > 0 && cap.endMs - currentChunk[0].startMs > 2200)
+        (currentChunk.length > 0 && cap.endMs - currentChunk[0].startMs > maxChunkDurationMs)
 
 
 
@@ -1158,7 +1247,9 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
       style={{
         justifyContent: "flex-end",
         alignItems: "center",
-        padding: isVertical ? "0 72px 240px" : "0 180px 70px",
+        padding: isVertical
+          ? (isViralShorts ? "0 48px 220px" : "0 72px 240px")
+          : "0 180px 70px",
         pointerEvents: "none",
         zIndex: 90,
       }}
@@ -1169,38 +1260,57 @@ const CaptionLayer: React.FC<{ captions: Caption[] }> = ({ captions }) => {
           flexWrap: "wrap",
           justifyContent: "center",
           alignItems: "center",
-          columnGap: isVertical ? 22 : 16,
-          rowGap: isVertical ? 12 : 8,
-          maxWidth: isVertical ? 800 : 1000,
-          background: "rgba(10, 10, 15, 0.75)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          padding: isVertical ? "20px 40px" : "14px 28px",
-          borderRadius: "99px",
-          boxShadow: "0 16px 40px rgba(0, 0, 0, 0.75)",
+          columnGap: isViralShorts ? 14 : (isVertical ? 22 : 16),
+          rowGap: isViralShorts ? 8 : (isVertical ? 12 : 8),
+          maxWidth: isVertical ? (isViralShorts ? 900 : 800) : 1000,
+          background: isViralShorts ? "transparent" : "rgba(10, 10, 15, 0.75)",
+          backdropFilter: isViralShorts ? "none" : "blur(12px)",
+          border: isViralShorts ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+          padding: isViralShorts
+            ? "0"
+            : (isVertical ? "20px 40px" : "14px 28px"),
+          borderRadius: isViralShorts ? 0 : "99px",
+          boxShadow: isViralShorts ? "none" : "0 16px 40px rgba(0, 0, 0, 0.75)",
         }}
       >
         {activeChunk.words.map((word, index) => {
           const active = currentMs >= word.startMs && currentMs <= word.endMs;
+          const wordFrame = Math.max(0, Math.round(((currentMs - word.startMs) / 1000) * fps));
+          const popScale = isViralShorts && active
+            ? spring({ fps, frame: wordFrame, config: { damping: 14, stiffness: 220, mass: 0.5 } })
+            : 1;
           return (
             <span
               key={`${word.startMs}-${index}`}
               style={{
                 display: "inline-block",
-                color: active ? "#FACC15" : "#FFFFFF",
+                color: isViralShorts
+                  ? (active ? "#0A0A0A" : "#FFFFFF")
+                  : (active ? "#FACC15" : "#FFFFFF"),
                 fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
-                fontSize: isVertical ? 58 : 38,
+                fontSize: isVertical
+                  ? (isViralShorts ? 64 : 58)
+                  : (isViralShorts ? 44 : 38),
                 fontWeight: 900,
                 lineHeight: 1.1,
-                letterSpacing: "0.05em",
+                letterSpacing: isViralShorts ? "0.02em" : "0.05em",
                 textTransform: "uppercase",
                 whiteSpace: "pre",
-                textShadow: active
-                  ? "0 0 16px rgba(250,204,21,0.5), 0 2px 4px rgba(0,0,0,0.5)"
-                  : "0 2px 4px rgba(0,0,0,0.5)",
-                transform: active ? "scale(1.08)" : "scale(1.0)",
-                transition: "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
-                opacity: active ? 1 : 0.75,
+                background: isViralShorts && active
+                  ? "linear-gradient(135deg, #FACC15 0%, #FDE047 100%)"
+                  : "transparent",
+                padding: isViralShorts && active ? "6px 18px" : "0",
+                borderRadius: isViralShorts ? "12px" : 0,
+                textShadow: isViralShorts
+                  ? (active ? "0 2px 8px rgba(0,0,0,0.35)" : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
+                  : (active
+                    ? "0 0 16px rgba(250,204,21,0.5), 0 2px 4px rgba(0,0,0,0.5)"
+                    : "0 2px 4px rgba(0,0,0,0.5)"),
+                transform: active
+                  ? `scale(${isViralShorts ? 0.92 + popScale * 0.14 : 1.08})`
+                  : "scale(1.0)",
+                transition: isViralShorts ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                opacity: active ? 1 : (isViralShorts ? 0.92 : 0.75),
               }}
             >
               {word.text}
@@ -1433,7 +1543,10 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   overlays = [],
   youtubeChannelInfo = null,
   transparent = false,
+  format = "9:16",
+  captionStyle = "shorts-viral",
 }) => {
+  const isShort = format === "9:16";
 
 
 
@@ -1518,7 +1631,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-            <SceneMedia scene={scene} isFirst={index === 0} index={index} youtubeChannelInfo={youtubeChannelInfo} />
+            <SceneMedia scene={scene} isFirst={index === 0} index={index} youtubeChannelInfo={youtubeChannelInfo} isShort={isShort} />
 
 
 
@@ -1642,7 +1755,30 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-      <CaptionLayer captions={captions} />
+      {isShort && (
+        <AbsoluteFill
+          style={{
+            pointerEvents: "none",
+            zIndex: 5,
+            background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)",
+            mixBlendMode: "multiply",
+          }}
+        />
+      )}
+
+      {isShort && (
+        <AbsoluteFill
+          style={{
+            pointerEvents: "none",
+            zIndex: 6,
+            opacity: 0.06,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+            backgroundSize: "180px 180px",
+          }}
+        />
+      )}
+
+      <CaptionLayer captions={captions} captionStyle={captionStyle} />
 
 
 
