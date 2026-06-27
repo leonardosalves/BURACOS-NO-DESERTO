@@ -3,5 +3,10 @@
   "blockGapSeconds": 0.5,
   "musicVolume": 0.08,
   "useRemotionByDefault": true,
-  "debugOverlay": false
+  "debugOverlay": false,
+  "youtubeChannel": {
+    "channelUrl": "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA",
+    "channelName": "",
+    "subscriberCount": ""
+  }
 }

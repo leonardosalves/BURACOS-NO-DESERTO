@@ -7,15 +7,27 @@ export type YoutubeChannelInfo = {
   avatarUrl: string | null;
 };
 
+const PRESS_START_FRAME = 35;
+const PRESS_END_FRAME = 43;
+const SUBSCRIBE_SWITCH_FRAME = 47;
+
+function lerpColor(t: number, from: [number, number, number], to: [number, number, number]) {
+  const clamped = Math.max(0, Math.min(1, t));
+  const r = Math.round(from[0] + (to[0] - from[0]) * clamped);
+  const g = Math.round(from[1] + (to[1] - from[1]) * clamped);
+  const b = Math.round(from[2] + (to[2] - from[2]) * clamped);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 export const YoutubeSubOverlay: React.FC<{
   channelInfo: YoutubeChannelInfo | null;
 }> = ({ channelInfo }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
 
-  const name = channelInfo?.channelName || "AI Construction Stories";
-  const subs = channelInfo?.subscriberCount || "242 inscritos";
-  
+  const name = channelInfo?.channelName || "Canal do YouTube";
+  const subs = channelInfo?.subscriberCount || "";
+
   const getAvatarUrl = () => {
     if (!channelInfo?.avatarUrl) {
       return "https://yt3.googleusercontent.com/n3hcrupQPiDWs6_xADQ9zrdP69p3hAZo2C9re-cTc8fgipdZiOnNAGeakDxnyzd_11L5eYlsAQ=s900-c-k-c0x00ffffff-no-rj";
@@ -28,44 +40,54 @@ export const YoutubeSubOverlay: React.FC<{
 
   const avatar = getAvatarUrl();
 
-  // 1. Slide-in from bottom center (duration: 15 frames)
   const slideProgress = spring({
     frame,
     fps,
     config: { damping: 12, mass: 0.5, stiffness: 100 },
-  }); // Goes from 0 to 1
+  });
   const translateY = interpolate(slideProgress, [0, 1], [150, 0]);
   const cardOpacity = interpolate(frame, [0, 10], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // 2. Button press-down animation (starts at frame 35, duration 8 frames)
-  const pressStartFrame = 35;
-  const pressDuration = 8;
-  const releaseFrame = pressStartFrame + pressDuration; // 43
-  
-  let buttonScale = 1.0;
-  let isSubscribed = false;
-
-  if (frame >= pressStartFrame && frame < releaseFrame) {
-    // Pressing down: ease-out interpolation
-    const pressProgress = (frame - pressStartFrame) / pressDuration;
-    const easeOutProgress = 1 - Math.pow(1 - pressProgress, 2);
-    buttonScale = interpolate(easeOutProgress, [0, 1], [1.0, 0.88]);
-  } else if (frame >= releaseFrame) {
-    isSubscribed = true;
-    // Spring release animation with a slight bounce!
+  let buttonScale = 1;
+  if (frame >= PRESS_START_FRAME && frame < PRESS_END_FRAME) {
+    const pressProgress = (frame - PRESS_START_FRAME) / (PRESS_END_FRAME - PRESS_START_FRAME);
+    const eased = 1 - Math.pow(1 - pressProgress, 2);
+    buttonScale = interpolate(eased, [0, 1], [1, 0.9]);
+  } else if (frame >= PRESS_END_FRAME && frame < PRESS_END_FRAME + 14) {
     const releaseSpring = spring({
-      frame: frame - releaseFrame,
+      frame: frame - PRESS_END_FRAME,
       fps,
-      config: { damping: 8, mass: 0.4, stiffness: 120 }, // slight bounce
+      config: { damping: 16, mass: 0.35, stiffness: 200 },
     });
-    buttonScale = interpolate(releaseSpring, [0, 1], [0.88, 1.0]);
+    buttonScale = interpolate(releaseSpring, [0, 1], [0.9, 1]);
   }
 
-  // 3. Fade-out of the entire lower third (last 15 frames)
-  const { durationInFrames } = useVideoConfig();
+  const colorProgress = interpolate(
+    frame,
+    [SUBSCRIBE_SWITCH_FRAME, SUBSCRIBE_SWITCH_FRAME + 6],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  const buttonBg = lerpColor(colorProgress, [15, 15, 15], [242, 242, 242]);
+  const buttonFg = lerpColor(colorProgress, [255, 255, 255], [15, 15, 15]);
+
+  const subscribeTextOpacity = interpolate(
+    frame,
+    [SUBSCRIBE_SWITCH_FRAME - 2, SUBSCRIBE_SWITCH_FRAME + 2],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+  const subscribedTextOpacity = interpolate(
+    frame,
+    [SUBSCRIBE_SWITCH_FRAME, SUBSCRIBE_SWITCH_FRAME + 4],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
   const fadeOutStart = Math.max(0, durationInFrames - 15);
   const exitOpacity = interpolate(frame, [fadeOutStart, durationInFrames - 1], [1, 0], {
     extrapolateLeft: "clamp",
@@ -97,8 +119,7 @@ export const YoutubeSubOverlay: React.FC<{
         zIndex: 100,
       }}
     >
-      {/* Left side: Avatar + Channel Info */}
-      <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", minWidth: 0, flex: 1 }}>
         <div
           style={{
             width: "68px",
@@ -108,6 +129,7 @@ export const YoutubeSubOverlay: React.FC<{
             marginRight: "16px",
             border: "2px solid #f0f0f0",
             backgroundColor: "#f9f9f9",
+            flexShrink: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -122,7 +144,7 @@ export const YoutubeSubOverlay: React.FC<{
             }}
           />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+        <div style={{ display: "flex", flexDirection: "column", textAlign: "left", minWidth: 0 }}>
           <span
             style={{
               fontSize: "20px",
@@ -130,58 +152,78 @@ export const YoutubeSubOverlay: React.FC<{
               color: "#0f0f0f",
               lineHeight: "1.2",
               letterSpacing: "-0.5px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {name}
           </span>
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#606060",
-              marginTop: "4px",
-            }}
-          >
-            {subs}
-          </span>
+          {subs ? (
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#606060",
+                marginTop: "4px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {subs}
+            </span>
+          ) : null}
         </div>
       </div>
 
-      {/* Right side: Subscribe Button */}
       <div
         style={{
-          width: "136px",
+          width: "140px",
           height: "42px",
           borderRadius: "21px",
-          backgroundColor: isSubscribed ? "#f2f2f2" : "#0f0f0f",
+          backgroundColor: buttonBg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: isSubscribed ? "#0f0f0f" : "#ffffff",
+          color: buttonFg,
           fontSize: "14px",
           fontWeight: 700,
-          cursor: "pointer",
           transform: `scale(${buttonScale})`,
-          transition: "background-color 0.1s ease, color 0.1s ease",
           boxSizing: "border-box",
+          flexShrink: 0,
+          marginLeft: "12px",
+          position: "relative",
         }}
       >
-        {isSubscribed ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="currentColor"
-              style={{ flexShrink: 0 }}
-            >
-              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
-            </svg>
-            <span>Inscrito</span>
-          </div>
-        ) : (
-          <span>Inscrever-se</span>
-        )}
+        <span
+          style={{
+            position: "absolute",
+            opacity: subscribeTextOpacity,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+          }}
+        >
+          Inscrever-se
+        </span>
+        <span
+          style={{
+            position: "absolute",
+            opacity: subscribedTextOpacity,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            width: "100%",
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ flexShrink: 0 }}>
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+          </svg>
+          Inscrito
+        </span>
       </div>
     </div>
   );

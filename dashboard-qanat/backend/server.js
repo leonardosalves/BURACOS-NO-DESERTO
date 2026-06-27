@@ -1239,7 +1239,13 @@ app.get("/api/render/config", (req, res) => {
 
       useRemotionByDefault: true,
 
-      debugOverlay: false
+      debugOverlay: false,
+
+      youtubeChannel: {
+        channelUrl: "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA",
+        channelName: "",
+        subscriberCount: "",
+      },
 
     });
 
@@ -3459,78 +3465,145 @@ function collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, tot
 
 }
 
-async function scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug) {
-  const url = 'https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA';
+function normalizeYoutubeChannelUrl(rawUrl) {
+  const trimmed = String(rawUrl || "").trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("@")) return `https://www.youtube.com/${trimmed}`;
+  if (trimmed.includes("youtube.com")) return `https://${trimmed.replace(/^https?:\/\//, "")}`;
+  return trimmed;
+}
+
+function readYoutubeChannelSettings(projectDir, globalConfig = {}) {
+  const projectConfig = readProjectJson(projectDir, "config_qanat.json", {});
+  const projectChannel = projectConfig.youtube_channel || projectConfig.youtubeChannel || {};
+  const globalChannel = globalConfig.youtubeChannel || globalConfig.youtube_channel || {};
+
+  const hasProjectOverride = Boolean(
+    projectChannel.channel_url || projectChannel.channelUrl ||
+    projectChannel.channel_name || projectChannel.channelName ||
+    projectChannel.subscriber_count || projectChannel.subscriberCount
+  );
+
+  const source = hasProjectOverride ? projectChannel : globalChannel;
+
+  return {
+    channelUrl: normalizeYoutubeChannelUrl(source.channel_url || source.channelUrl || ""),
+    channelName: String(source.channel_name || source.channelName || "").trim(),
+    subscriberCount: String(source.subscriber_count || source.subscriberCount || "").trim(),
+    scope: hasProjectOverride ? "project" : "global",
+  };
+}
+
+async function scrapeYoutubeChannelFromUrl(channelUrl) {
+  const url = normalizeYoutubeChannelUrl(channelUrl);
+  if (!url) return null;
+
+  const html = await new Promise((resolve, reject) => {
+    const options = {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+    };
+    https.get(url, options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => resolve(data));
+    }).on("error", (err) => reject(err));
+  });
+
+  let channelName = "";
+  const titleMatch = html.match(/property="og:title"[^>]*content="([^"]+)"/);
+  if (titleMatch) channelName = titleMatch[1];
+
+  let avatarUrl = "";
+  const avatarMatch = html.match(/property="og:image"[^>]*content="([^"]+)"/);
+  if (avatarMatch) avatarUrl = avatarMatch[1];
+
+  let subCount = "";
+  const subMatch1 = html.match(/"accessibilityLabel"\s*:\s*"([^"]+ (?:inscritos|subscribers|seguidores))"/i);
+  if (subMatch1) {
+    subCount = subMatch1[1];
+  } else {
+    const subMatch2 = html.match(/"metadataParts"\s*:\s*\[\s*\{\s*"text"\s*:\s*\{\s*"content"\s*:\s*"([^"]+)"/);
+    if (subMatch2) subCount = subMatch2[1];
+  }
+
+  return { channelName, subscriberCount: subCount, avatarUrl };
+}
+
+async function downloadChannelAvatar(avatarUrl, publicProjectDir, projectSlug) {
+  if (!avatarUrl) return null;
+  const avatarFileName = "youtube_avatar.jpg";
+  const destPath = path.join(publicProjectDir, avatarFileName);
+  await new Promise((resolve, reject) => {
+    https.get(avatarUrl, (res) => {
+      const fileStream = fs.createWriteStream(destPath);
+      res.pipe(fileStream);
+      fileStream.on("finish", () => {
+        fileStream.close();
+        resolve();
+      });
+      fileStream.on("error", reject);
+    }).on("error", reject);
+  });
+  return `projects/${projectSlug}/${avatarFileName}`;
+}
+
+async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig = {}) {
+  const settings = readYoutubeChannelSettings(projectDir, globalConfig);
+  const fallbackUrl = "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA";
+  const channelUrl = settings.channelUrl || fallbackUrl;
+
+  let scraped = null;
   try {
-    const html = await new Promise((resolve, reject) => {
-      const options = {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
-        }
-      };
-      https.get(url, options, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => resolve(data));
-      }).on('error', (err) => reject(err));
-    });
+    scraped = await scrapeYoutubeChannelFromUrl(channelUrl);
+  } catch (e) {
+    console.error("[YouTube Channel] Erro ao buscar dados do canal:", e);
+  }
 
-    let channelName = 'AI Construction Stories';
-    const titleMatch = html.match(/property="og:title"[^>]*content="([^"]+)"/);
-    if (titleMatch) {
-      channelName = titleMatch[1];
-    }
+  const channelName = settings.channelName || scraped?.channelName || "Canal do YouTube";
+  const subscriberCount = settings.subscriberCount || scraped?.subscriberCount || "";
 
-    let avatarUrl = '';
-    const avatarMatch = html.match(/property="og:image"[^>]*content="([^"]+)"/);
-    if (avatarMatch) {
-      avatarUrl = avatarMatch[1];
-    }
+  const localAvatarCandidates = [
+    path.join(projectDir, "ASSETS", "youtube_avatar.png"),
+    path.join(projectDir, "ASSETS", "youtube_avatar.jpg"),
+    path.join(WORKSPACE_DIR, "ASSETS", "youtube_avatar.png"),
+    path.join(WORKSPACE_DIR, "ASSETS", "youtube_avatar.jpg"),
+  ];
 
-    let subCount = '';
-    const subMatch1 = html.match(/"accessibilityLabel"\s*:\s*"([^"]+ (?:inscritos|subscribers|seguidores))"/i);
-    if (subMatch1) {
-      subCount = subMatch1[1];
-    } else {
-      const subMatch2 = html.match(/"metadataParts"\s*:\s*\[\s*\{\s*"text"\s*:\s*\{\s*"content"\s*:\s*"([^"]+)"/);
-      if (subMatch2) {
-        subCount = subMatch2[1];
+  for (const localAvatar of localAvatarCandidates) {
+    if (fs.existsSync(localAvatar)) {
+      const copied = copyRemotionAsset(localAvatar, publicProjectDir, "yt_avatar_");
+      if (copied) {
+        return {
+          channelName,
+          subscriberCount,
+          avatarUrl: `projects/${projectSlug}/${copied}`,
+        };
       }
     }
-
-    if (!subCount) subCount = '242 inscritos';
-
-    let localAvatarPath = null;
-    if (avatarUrl) {
-      const avatarFileName = "youtube_avatar.jpg";
-      const destPath = path.join(publicProjectDir, avatarFileName);
-      await new Promise((resolve, reject) => {
-        https.get(avatarUrl, (res) => {
-          const fileStream = fs.createWriteStream(destPath);
-          res.pipe(fileStream);
-          fileStream.on('finish', () => {
-            fileStream.close();
-            resolve();
-          });
-        }).on('error', (err) => reject(err));
-      });
-      localAvatarPath = `projects/${projectSlug}/${avatarFileName}`;
-    }
-
-    return {
-      channelName,
-      subscriberCount: subCount,
-      avatarUrl: localAvatarPath || avatarUrl,
-    };
-  } catch (e) {
-    console.error("Error scraping YouTube channel:", e);
-    return {
-      channelName: "AI Construction Stories",
-      subscriberCount: "242 inscritos",
-      avatarUrl: null
-    };
   }
+
+  try {
+    if (scraped?.avatarUrl) {
+      const localAvatarPath = await downloadChannelAvatar(scraped.avatarUrl, publicProjectDir, projectSlug);
+      return {
+        channelName,
+        subscriberCount,
+        avatarUrl: localAvatarPath || scraped.avatarUrl,
+      };
+    }
+  } catch (e) {
+    console.error("[YouTube Channel] Erro ao baixar avatar:", e);
+  }
+
+  return {
+    channelName,
+    subscriberCount,
+    avatarUrl: scraped?.avatarUrl || null,
+  };
 }
 
 async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false) {
@@ -3972,7 +4045,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   });
   
   // Scrape YouTube channel info and save avatar locally
-  const youtubeChannelInfo = await scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug);
+  const youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
   
   // Save overlays to storyboard
   storyboard.overlays = overlays;
