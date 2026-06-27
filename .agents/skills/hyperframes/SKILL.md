@@ -27,8 +27,48 @@ Para maximizar a retenção (métrica principal de indicação do algoritmo do Y
     *   *Componentes:* Mapas animados com arcos de fluxo (`nyc-paris-flight`), indicadores circulares e pílulas ecológicas.
 
 ### 2. ⚡ Retenção Visual Contra Fadiga
-*   **Intervalo Seguro:** Exiba um overlay a cada 12 a 18 segundos. Nunca polua a tela com múltiplos blocos simultâneos.
+*   **Intervalo Seguro:** Exiba um overlay a cada 12 a 18 segundos (Shorts) ou 18 a 25 segundos (Longos). Nunca polua a tela com múltiplos blocos simultâneos.
 *   **Textos Ultra-Curtos:** Cards e lower thirds devem ter no máximo **12 palavras**. A narração falada já é exibida pelas legendas (captions); os overlays devem trazer dados complementares novos ou definições rápidas de leitura em menos de 1.5 segundo.
+
+---
+
+## 🎬 Orquestração YouTube: Vídeos Curtos vs Longos
+
+O backend Lumiera (`overlayOrchestration.js`) aplica automaticamente um **perfil de variedade** diferente a cada projeto, garantindo que nenhum vídeo siga o mesmo padrão visual.
+
+### 📱 SHORTS / REELS / TIKTOK (≤75s, 9:16)
+| Ato | % do vídeo | Overlays | Componentes Remotion | Objetivo de retenção |
+| :--- | :--- | :--- | :--- | :--- |
+| Gancho | 0–22% | 0 | *(tela limpa)* | Reter nos primeiros 3s sem poluição visual |
+| Curiosidade | 22–55% | 1 | `counter` ou `lower-third` glass | Dado surpreendente que complementa a narração |
+| Prova | 55–78% | 1 | `bar-chart` ou `timeline` compacta | Reforço visual de credibilidade |
+| Fechamento | 78–100% | 0–1 | `lower-third` accent-underline | Últimos 3s limpos para CTA natural |
+
+**Orçamento máximo:** 3 overlays | **Gap mínimo:** 8s | **HyperFrames refs:** `lt-soft-pill`, `reddit-post`, `apple-money-count`
+
+### 🎥 VÍDEOS LONGOS (16:9, >2min)
+| Ato | % do vídeo | Overlays | Componentes Remotion | Objetivo de retenção |
+| :--- | :--- | :--- | :--- | :--- |
+| Abertura | 0–15% | 1–2 | `lower-third` bild/glass | Contextualizar sem cobrir a imagem |
+| Desenvolvimento | 15–55% | ~45% do orçamento | Rotação: `counter` → `bar-chart` → `timeline` → `lower-third` | Manter interesse a cada 45–50s |
+| Clímax | 55–85% | ~30% do orçamento | `counter` + `lower-third` accent-underline | Pico de retenção com dado de impacto |
+| Resolução | 85–100% | 0–1 | *(tela limpa)* | Últimos 15s sem overlay para logo/outro |
+
+**Orçamento máximo:** `floor(duração/50)`, cap 12 | **Gap mínimo:** 18s | **HyperFrames refs:** `data-chart`, `flowchart`, `lt-kicker-name`, `lt-stack-bars`
+
+### 🔀 Perfis de Variedade (1 por vídeo, rotaciona automaticamente)
+1. **Documentário Premium** — lower-thirds elegantes + timeline + counter
+2. **Jornalismo de Dados** — bar-chart + counter + accent-underline
+3. **Mistério & Revelação** — kinetic-text + lower-thirds minimalistas
+4. **Explorador Geográfico** — timeline + bar-chart + compass icons
+5. **Prova Social Viral** — estilo reddit/x-post em lower-thirds glass
+6. **Impacto Industrial** — counter + bold-block + bar-chart
+
+### 🧠 Regra de Ouro: Complementar > Repetir
+* Se a narração **cita um número** → `counter` ou `bar-chart` (nunca texto escrito)
+* Se a narração **descreve um processo** → `timeline` horizontal
+* Se a narração **nomeia algo** → `lower-third` (nunca info-card flutuante no centro)
+* Se o overlay anterior foi `lower-third` → o próximo DEVE ser tipo diferente
 
 ---
 

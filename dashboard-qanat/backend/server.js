@@ -2,6 +2,12 @@ import express from "express";
 import https from "https";
 
 import { searchMusic, downloadMusicTrack, searchSoundEffects, downloadSoundEffect } from "./epidemicService.js";
+import {
+  buildOverlayOrchestrationPlan,
+  buildOrchestrationPrompt,
+  enforceOverlayOrchestration,
+  VARIETY_PROFILES,
+} from "./overlayOrchestration.js";
 
 import cors from "cors";
 
@@ -3960,7 +3966,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 
   // Generate overlays via AI (pass actual scene timeline for precise timing sync)
-  const overlays = await generateOverlaysWithAI(projectDir, useHyperframes, validScenes);
+  const overlays = await generateOverlaysWithAI(projectDir, useHyperframes, validScenes, {
+    totalDuration,
+    projectName: path.basename(projectDir),
+  });
   
   // Scrape YouTube channel info and save avatar locally
   const youtubeChannelInfo = await scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug);
@@ -8046,7 +8055,7 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 }
 
 // AI-driven overlay planning for Remotion PRO using Gemini API
-async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null) {
+async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
@@ -8074,6 +8083,19 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
 
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
   const niche = config.niche || "Geral";
+  const totalDuration = Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
+  const projectName = renderContext.projectName || path.basename(projectDir);
+
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche,
+    totalDuration,
+    projectName,
+    sceneCount: Array.isArray(actualScenes) ? actualScenes.length : 0,
+    blockCount: blockPhrases.length,
+  });
+  const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
+  console.log(`[Orchestration] Formato: ${orchestrationPlan.format} | Perfil: ${orchestrationPlan.varietyLabel} | Máx overlays: ${orchestrationPlan.limits.maxTotal}`);
 
   const scenesContext = Array.isArray(actualScenes) && actualScenes.length > 0
     ? actualScenes.map((scene) => ({
@@ -8134,6 +8156,8 @@ Retorne um objeto JSON contendo exatamente esta estrutura:
     // Array contendo os objetos de overlay estruturados
   ]
 }
+
+${orchestrationPrompt}
 
 ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
 Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
@@ -8342,10 +8366,11 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts);
 
       const isTech = niche.toLowerCase().includes("tecnologia") || niche.toLowerCase().includes("programacao") || niche.toLowerCase().includes("computador") || niche.toLowerCase().includes("ciber") || niche.toLowerCase().includes("software");
-      
+      const orchProfile = VARIETY_PROFILES.find((p) => p.id === orchestrationPlan.varietyProfile) || VARIETY_PROFILES[0];
       const variants = ["glass", "minimal", "accent", "floating"];
-      const positions = ["top-left", "top-right", "bottom-left", "bottom-right"];
-      const lotties = ["sparkles", "flame", "earth", "gear", "shield", "crown", "science", "history", "nature", "money", "warning", "compass", "book", "heart", "lightbulb"];
+      const positions = orchProfile.positions;
+      const lotties = orchProfile.lotties;
+      const ltVariants = orchProfile.lowerThirdVariants;
       
       let variantIdx = 0;
       let posIdx = 0;
@@ -8446,7 +8471,6 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
 
         // 2. Randomização e Diversificação obrigatória de layouts, variantes e posições por vídeo
         if (overlay.type === "lower-third") {
-          const ltVariants = ["glass", "bild", "accent-underline", "bold-block", "clean-bar"];
           overlay.props.variant = ltVariants[variantIdx % ltVariants.length];
           variantIdx++;
         } else if (overlay.type === "info-card") {
@@ -8584,10 +8608,10 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
           }
         }
 
-        variantIdx++;
-        posIdx++;
       }
-      
+
+      parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan);
+
       return parsedOverlays;
     }
   } catch (err) {
