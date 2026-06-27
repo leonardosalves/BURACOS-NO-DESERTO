@@ -2079,7 +2079,7 @@ app.get("/api/outputs", (req, res) => {
 
 
 
-      .filter(f => f.endsWith(".mp4"))
+      .filter(f => f.endsWith(".mp4") || f.endsWith(".mov") || f.endsWith(".webm"))
 
 
 
@@ -22135,7 +22135,7 @@ app.get("/api/assets/list", (req, res) => {
 
 
 
-          if (relPath.endsWith(".mp4")) {
+          if (relPath.endsWith(".mp4") || relPath.endsWith(".mov") || relPath.endsWith(".webm")) {
 
 
 
@@ -27708,7 +27708,7 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
 
 
 
-            if (rel.endsWith(".mp4") || rel.endsWith(".png") || rel.endsWith(".jpg") || rel.endsWith(".jpeg")) {
+            if (rel.endsWith(".mp4") || rel.endsWith(".mov") || rel.endsWith(".webm") || rel.endsWith(".png") || rel.endsWith(".jpg") || rel.endsWith(".jpeg")) {
 
 
 
