@@ -114,6 +114,49 @@ def initiate_resumable_upload(access_token, video_path, title, description, priv
         print(f"[ERROR] Falha de rede: {e}")
         raise
 
+def resolve_thumbnail_path(project_dir, upload_meta):
+    thumb_rel = upload_meta.get("thumbnail") or upload_meta.get("thumbnail_path")
+    if not thumb_rel:
+        return None
+    candidates = [
+        os.path.join(project_dir, thumb_rel),
+        os.path.join(project_dir, "ASSETS", thumb_rel),
+        os.path.join(project_dir, "ASSETS", "youtube_thumbnails", os.path.basename(thumb_rel)),
+    ]
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return None
+
+def set_video_thumbnail(access_token, video_id, thumbnail_path):
+    print(f"[INFO] Enviando thumbnail customizada: {os.path.basename(thumbnail_path)}")
+    url = f"https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId={video_id}"
+    ext = os.path.splitext(thumbnail_path)[1].lower()
+    content_type = "image/png" if ext == ".png" else "image/jpeg"
+
+    with open(thumbnail_path, "rb") as image_file:
+        image_data = image_file.read()
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": content_type,
+        "Content-Length": str(len(image_data)),
+    }
+
+    req = urllib.request.Request(url, data=image_data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req) as response:
+            response.read()
+            print("[SUCESSO] Thumbnail aplicada no vídeo do YouTube.")
+            return True
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8")
+        print(f"[AVISO] Falha ao enviar thumbnail (vídeo já está no ar): {err_msg}")
+        return False
+    except Exception as e:
+        print(f"[AVISO] Erro ao enviar thumbnail: {e}")
+        return False
+
 def upload_file_chunks(upload_url, video_path):
     print("[INFO] Enviando blocos de vídeo...")
     file_size = os.path.getsize(video_path)
@@ -232,6 +275,11 @@ def main():
         
         if video_id:
             print(f"[SUCESSO] Upload concluído com sucesso! ID do YouTube: {video_id}")
+            thumb_path = resolve_thumbnail_path(project_dir, upload_meta)
+            if thumb_path:
+                set_video_thumbnail(access_token, video_id, thumb_path)
+            else:
+                print("[INFO] Nenhuma thumbnail selecionada em upload_metadata.youtube.thumbnail")
             proj_config["upload_metadata"]["youtube"]["status"] = "success"
             proj_config["upload_metadata"]["youtube"]["post_id"] = video_id
             save_json(proj_config_path, proj_config)

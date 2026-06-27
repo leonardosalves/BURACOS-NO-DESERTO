@@ -1487,6 +1487,8 @@ export default function App() {
   const [ytTitle, setYtTitle] = useState<string>('');
   const [ytDescription, setYtDescription] = useState<string>('');
   const [ytPrivacy, setYtPrivacy] = useState<string>('private');
+  const [ytThumbnailPath, setYtThumbnailPath] = useState<string>('');
+  const [ytThumbnailVariant, setYtThumbnailVariant] = useState<string>('');
   const [igCaption, setIgCaption] = useState<string>('');
   const [ttCaption, setTtCaption] = useState<string>('');
   const [kwCaption, setKwCaption] = useState<string>('');
@@ -3897,6 +3899,8 @@ export default function App() {
         setYtTitle(meta.youtube?.title || '');
         setYtDescription(meta.youtube?.description || '');
         setYtPrivacy(meta.youtube?.privacy || 'private');
+        setYtThumbnailPath(meta.youtube?.thumbnail || '');
+        setYtThumbnailVariant(meta.youtube?.thumbnail_variant || '');
         setIgCaption(meta.instagram?.title || '');
         setTtCaption(meta.tiktok?.title || '');
         setKwCaption(meta.kwai?.title || '');
@@ -13789,6 +13793,79 @@ export default function App() {
       });
     } catch {
       // ignore cache load errors
+    }
+  };
+
+  const buildThumbnailBrief = (thumb: {
+    id: string;
+    label?: string;
+    overlayText?: string;
+    pairedTitle?: string;
+    composition?: string;
+    focalElement?: string;
+    colors?: string[];
+  }) => [
+    `Variante ${thumb.id} — ${thumb.label || 'Thumbnail YouTube'}`,
+    thumb.overlayText ? `Texto na capa: ${thumb.overlayText}` : '',
+    thumb.pairedTitle ? `Título pareado: ${thumb.pairedTitle}` : '',
+    thumb.composition ? `Composição: ${thumb.composition}` : '',
+    thumb.focalElement ? `Foco visual: ${thumb.focalElement}` : '',
+    thumb.colors?.length ? `Paleta: ${thumb.colors.join(', ')}` : '',
+    youtubeMetadataStrategy?.profileLabel ? `Perfil: ${youtubeMetadataStrategy.profileLabel}` : '',
+    youtubeMetadataFormat ? `Formato: ${youtubeMetadataFormat === 'SHORT' ? '9:16 Shorts' : '16:9 Longo'}` : '',
+  ].filter(Boolean).join('\n');
+
+  const openCanvaThumbnailDesigner = async (thumb?: {
+    id: string;
+    label?: string;
+    overlayText?: string;
+    pairedTitle?: string;
+    composition?: string;
+    focalElement?: string;
+    colors?: string[];
+  }) => {
+    const brief = thumb
+      ? buildThumbnailBrief(thumb)
+      : 'YouTube thumbnail — alto CTR, texto curto na capa, contraste forte';
+    await copyToClipboard(brief, thumb ? `canva-${thumb.id}` : 'canva-thumb');
+    const canvaUrl = youtubeMetadataFormat === 'SHORT'
+      ? 'https://www.canva.com/create/your-story/'
+      : 'https://www.canva.com/create/youtube-thumbnails/';
+    window.open(canvaUrl, '_blank', 'noopener,noreferrer');
+    toast('Briefing copiado — cole no Canva ao criar o design.');
+  };
+
+  const selectThumbnailForUpload = async (generated: { id: string; fileName?: string; url: string }) => {
+    const thumbnailPath = generated.fileName ? `ASSETS/${generated.fileName}` : '';
+    if (!thumbnailPath) {
+      toast('Caminho da thumbnail inválido.');
+      return;
+    }
+    setYtThumbnailPath(thumbnailPath);
+    setYtThumbnailVariant(generated.id);
+    try {
+      const res = await fetch(getProjectUrl('/api/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          upload_metadata: {
+            youtube: {
+              title: ytTitle.trim(),
+              description: ytDescription.trim(),
+              privacy: ytPrivacy,
+              thumbnail: thumbnailPath,
+              thumbnail_variant: generated.id,
+            },
+            instagram: { title: igCaption.trim() },
+            tiktok: { title: ttCaption.trim() },
+            kwai: { title: kwCaption.trim() },
+          },
+        }),
+      });
+      if (res.ok) toast(`Thumbnail variante ${generated.id} selecionada para o upload do YouTube.`);
+      else toast('Falha ao salvar thumbnail no projeto.');
+    } catch {
+      toast('Erro ao salvar thumbnail.');
     }
   };
 
@@ -27725,7 +27802,7 @@ export default function App() {
                               {youtubeMetadataParsed.thumbnails.map((thumb) => {
                                 const generated = youtubeThumbnailsGenerated.find((g) => g.id === thumb.id);
                                 return (
-                                <div key={thumb.id} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2">
+                                <div key={thumb.id} className={`bg-zinc-900/50 border rounded-lg p-3 space-y-2 ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}>
                                   {generated?.url && (
                                     <a href={generated.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border border-zinc-800 hover:border-gold-500/40 transition">
                                       <img
@@ -27766,31 +27843,39 @@ export default function App() {
                                       ))}
                                     </div>
                                   )}
-                                  <button
-                                    onClick={() => {
-                                      const brief = [
-                                        `Variante ${thumb.id} — ${thumb.label}`,
-                                        thumb.overlayText ? `Texto: ${thumb.overlayText}` : '',
-                                        thumb.pairedTitle ? `Título pareado: ${thumb.pairedTitle}` : '',
-                                        thumb.composition ? `Composição: ${thumb.composition}` : '',
-                                        thumb.focalElement ? `Foco: ${thumb.focalElement}` : '',
-                                        thumb.colors?.length ? `Cores: ${thumb.colors.join(', ')}` : '',
-                                      ].filter(Boolean).join('\n');
-                                      copyToClipboard(brief, `thumb-${thumb.id}`);
-                                    }}
-                                    className="w-full text-[9px] font-bold text-zinc-400 hover:text-white py-1.5 rounded border border-zinc-800 hover:border-zinc-700 transition cursor-pointer"
-                                  >
-                                    {copiedSection === `thumb-${thumb.id}` ? 'Copiado!' : 'Copiar briefing'}
-                                  </button>
-                                  {generated?.url && (
-                                    <a
-                                      href={generated.url}
-                                      download
-                                      className="block w-full text-center text-[9px] font-bold text-gold-500 hover:text-gold-400 py-1.5 rounded border border-gold-500/20 hover:border-gold-500/40 transition"
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {generated?.url && (
+                                      <button
+                                        onClick={() => selectThumbnailForUpload(generated)}
+                                        className={`text-[9px] font-bold py-1.5 rounded border transition cursor-pointer ${ytThumbnailVariant === thumb.id ? 'bg-gold-500/20 border-gold-500/40 text-gold-300' : 'border-zinc-800 text-zinc-300 hover:border-gold-500/30'}`}
+                                      >
+                                        {ytThumbnailVariant === thumb.id ? '✓ No Upload' : 'Usar no Upload'}
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => openCanvaThumbnailDesigner(thumb)}
+                                      className="text-[9px] font-bold text-sky-400 hover:text-sky-300 py-1.5 rounded border border-sky-500/20 hover:border-sky-500/40 transition cursor-pointer"
                                     >
-                                      Baixar imagem
-                                    </a>
-                                  )}
+                                      {copiedSection === `canva-${thumb.id}` ? 'Brief copiado!' : 'Canva Premium'}
+                                    </button>
+                                    <button
+                                      onClick={() => copyToClipboard(buildThumbnailBrief(thumb), `thumb-${thumb.id}`)}
+                                      className="text-[9px] font-bold text-zinc-400 hover:text-white py-1.5 rounded border border-zinc-800 hover:border-zinc-700 transition cursor-pointer"
+                                    >
+                                      {copiedSection === `thumb-${thumb.id}` ? 'Copiado!' : 'Copiar briefing'}
+                                    </button>
+                                    {generated?.url ? (
+                                      <a
+                                        href={generated.url}
+                                        download
+                                        className="text-center text-[9px] font-bold text-gold-500 hover:text-gold-400 py-1.5 rounded border border-gold-500/20 hover:border-gold-500/40 transition"
+                                      >
+                                        Baixar
+                                      </a>
+                                    ) : (
+                                      <span className="text-[9px] text-zinc-600 text-center py-1.5">Gere imagens</span>
+                                    )}
+                                  </div>
                                 </div>
                               );
                               })}
@@ -28994,25 +29079,42 @@ export default function App() {
                               </button>
                             </div>
                           </div>
+                          {ytThumbnailVariant && (
+                            <p className="text-[9px] text-gold-500/80">
+                              Selecionada para upload: <strong>Variante {ytThumbnailVariant}</strong>
+                            </p>
+                          )}
                           {youtubeThumbnailsGenerated.length > 0 ? (
                             <div className="grid grid-cols-3 gap-2">
                               {youtubeThumbnailsGenerated.map((thumb) => (
-                                <a
+                                <div
                                   key={thumb.id}
-                                  href={thumb.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="group rounded-lg overflow-hidden border border-zinc-800 hover:border-gold-500/40 transition"
+                                  className={`rounded-lg overflow-hidden border transition ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}
                                 >
-                                  <img
-                                    src={`${thumb.url}?t=${Date.now()}`}
-                                    alt={`Thumbnail ${thumb.id}`}
-                                    className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16]' : 'aspect-video'}`}
-                                  />
-                                  <span className="block text-center text-[8px] font-bold text-zinc-500 group-hover:text-gold-400 py-1">
-                                    Variante {thumb.id} · Baixar
-                                  </span>
-                                </a>
+                                  <a href={thumb.url} target="_blank" rel="noreferrer" className="block">
+                                    <img
+                                      src={`${thumb.url}?t=${Date.now()}`}
+                                      alt={`Thumbnail ${thumb.id}`}
+                                      className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16]' : 'aspect-video'}`}
+                                    />
+                                  </a>
+                                  <div className="flex gap-1 p-1 bg-zinc-950/80">
+                                    <button
+                                      type="button"
+                                      onClick={() => selectThumbnailForUpload(thumb)}
+                                      className={`flex-1 text-[8px] font-bold py-1 rounded ${ytThumbnailVariant === thumb.id ? 'bg-gold-500/20 text-gold-300' : 'text-zinc-400 hover:text-white'}`}
+                                    >
+                                      {ytThumbnailVariant === thumb.id ? '✓' : 'Usar'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openCanvaThumbnailDesigner({ id: thumb.id, label: thumb.label, overlayText: thumb.overlayText })}
+                                      className="flex-1 text-[8px] font-bold py-1 rounded text-sky-400 hover:text-sky-300"
+                                    >
+                                      Canva
+                                    </button>
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           ) : (
@@ -29145,7 +29247,13 @@ export default function App() {
                       onClick={async () => {
                         try {
                           const upload_metadata = {
-                            youtube: { title: ytTitle.trim(), description: ytDescription.trim(), privacy: ytPrivacy },
+                            youtube: {
+                              title: ytTitle.trim(),
+                              description: ytDescription.trim(),
+                              privacy: ytPrivacy,
+                              thumbnail: ytThumbnailPath || undefined,
+                              thumbnail_variant: ytThumbnailVariant || undefined,
+                            },
                             instagram: { title: igCaption.trim() },
                             tiktok: { title: ttCaption.trim() },
                             kwai: { title: kwCaption.trim() }
