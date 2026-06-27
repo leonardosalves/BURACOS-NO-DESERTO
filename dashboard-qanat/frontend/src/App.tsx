@@ -13873,21 +13873,23 @@ export default function App() {
     let thumbnails = youtubeMetadataParsed?.thumbnails || [];
     let format = youtubeMetadataFormat || undefined;
     let palette = youtubeMetadataStrategy?.palette || [];
+    let metadataText = youtubeMetadata || '';
 
-    if (!thumbnails.length) {
+    if (!thumbnails.length && metadataText && !metadataText.startsWith('[Erro]')) {
       try {
         const cacheRes = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
         if (cacheRes.ok) {
           const cache = await cacheRes.json();
-          thumbnails = cache?.parsed?.thumbnails || [];
+          thumbnails = cache?.parsed?.thumbnails || thumbnails;
           format = format || cache?.format;
           palette = palette.length ? palette : (cache?.palette || []);
+          metadataText = cache?.text || metadataText;
           if (cache?.parsed) setYoutubeMetadataParsed(cache.parsed);
         }
       } catch { /* ignore */ }
     }
 
-    if (!thumbnails.length) {
+    if (!thumbnails.length && !youtubeMetadataParsed?.titles?.length) {
       toast('Passo 1: clique em "Gerar Metadados" antes de gerar as thumbnails.');
       return;
     }
@@ -13901,17 +13903,21 @@ export default function App() {
           thumbnails,
           format,
           palette,
+          metadataText: metadataText && !metadataText.startsWith('[Erro]') ? metadataText : undefined,
         }),
       });
       const data = await res.json();
       if (res.ok) {
         setYoutubeThumbnailsGenerated(data.thumbnails || []);
+        if (data.parsed?.thumbnails?.length) {
+          setYoutubeMetadataParsed((prev) => ({ ...(prev || {}), thumbnails: data.parsed.thumbnails }));
+        }
         toast(`${data.thumbnails?.length || 0} thumbnails geradas com sucesso.`);
       } else {
-        toast(data.error || 'Falha ao gerar thumbnails.');
+        toast(data.details ? `${data.error}: ${data.details}` : (data.error || 'Falha ao gerar thumbnails.'));
       }
     } catch {
-      toast('Erro de conexão ao gerar thumbnails.');
+      toast('Erro de conexão ao gerar thumbnails. Reinicie o servidor do dashboard se acabou de atualizar.');
     } finally {
       setYoutubeThumbnailsLoading(false);
     }
@@ -27782,7 +27788,7 @@ export default function App() {
 
 
 
-                        {youtubeMetadataParsed?.thumbnails && youtubeMetadataParsed.thumbnails.length > 0 && (
+                        {(youtubeMetadataParsed?.thumbnails?.length || youtubeMetadataParsed?.titles?.length) && (
                           <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div>
@@ -27799,7 +27805,15 @@ export default function App() {
                               </button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              {youtubeMetadataParsed.thumbnails.map((thumb) => {
+                              {(youtubeMetadataParsed.thumbnails?.length
+                                ? youtubeMetadataParsed.thumbnails
+                                : (youtubeMetadataParsed.titles || []).slice(0, 3).map((t, i) => ({
+                                    id: String.fromCharCode(65 + i),
+                                    label: ['Curiosidade', 'Contraste', 'Prova Visual'][i] || 'Variante',
+                                    overlayText: t.text?.split(' ').slice(0, 4).join(' '),
+                                    pairedTitle: `${i + 1}. ${t.text}`,
+                                  }))
+                              ).map((thumb) => {
                                 const generated = youtubeThumbnailsGenerated.find((g) => g.id === thumb.id);
                                 return (
                                 <div key={thumb.id} className={`bg-zinc-900/50 border rounded-lg p-3 space-y-2 ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}>

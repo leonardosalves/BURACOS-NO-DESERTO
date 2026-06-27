@@ -84,31 +84,86 @@ function listImageCandidates(dir, scoreBase = 1) {
   return results;
 }
 
-function extractVideoFrame(projectDir) {
-  const outputDir = path.join(projectDir, "OUTPUT", "qanat_persa_video_final");
-  if (!fs.existsSync(outputDir)) return null;
+function listVideoCandidates(dir, scoreBase = 1, maxDepth = 3, depth = 0) {
+  if (!fs.existsSync(dir) || depth > maxDepth) return [];
+  const results = [];
 
-  const videos = fs.readdirSync(outputDir)
-    .filter((file) => /\.(mp4|mov|webm)$/i.test(file))
-    .map((file) => {
-      const fullPath = path.join(outputDir, file);
-      return { fullPath, mtime: fs.statSync(fullPath).mtimeMs };
-    })
-    .sort((a, b) => b.mtime - a.mtime);
+  for (const entry of fs.readdirSync(dir)) {
+    const fullPath = path.join(dir, entry);
+    let stat;
+    try { stat = fs.statSync(fullPath); } catch { continue; }
 
-  if (videos.length === 0) return null;
+    if (stat.isDirectory()) {
+      results.push(...listVideoCandidates(fullPath, scoreBase - depth * 0.5, maxDepth, depth + 1));
+      continue;
+    }
 
+    if (!/\.(mp4|mov|webm)$/i.test(entry)) continue;
+    results.push({ fullPath, mtime: stat.mtimeMs, score: scoreBase + stat.size / 5_000_000 });
+  }
+
+  return results;
+}
+
+function extractVideoFrame(projectDir, videoPath = null) {
   const tempDir = path.join(projectDir, "ASSETS", "youtube_thumbnails", "_tmp");
   fs.mkdirSync(tempDir, { recursive: true });
   const framePath = path.join(tempDir, `frame_${Date.now()}.jpg`);
 
-  try {
-    const cmd = `ffmpeg -y -ss 00:00:08 -i "${videos[0].fullPath}" -frames:v 1 -q:v 2 "${framePath}"`;
-    execSync(cmd, { stdio: "pipe" });
-    return fs.existsSync(framePath) ? framePath : null;
-  } catch {
-    return null;
+  const tryExtract = (sourcePath, seek = "00:00:03") => {
+    if (!sourcePath || !fs.existsSync(sourcePath)) return null;
+    try {
+      const cmd = `ffmpeg -y -ss ${seek} -i "${sourcePath}" -frames:v 1 -q:v 2 "${framePath}"`;
+      execSync(cmd, { stdio: "pipe" });
+      return fs.existsSync(framePath) ? framePath : null;
+    } catch {
+      return null;
+    }
+  };
+
+  if (videoPath) {
+    const frame = tryExtract(videoPath);
+    if (frame) return frame;
   }
+
+  const videoDirs = [
+    path.join(projectDir, "OUTPUT", "qanat_persa_video_final"),
+    path.join(projectDir, "OUTPUT"),
+    path.join(projectDir, "temp_clips"),
+    path.join(projectDir, "ASSETS", "videos"),
+  ];
+
+  const videos = videoDirs
+    .flatMap((dir, index) => listVideoCandidates(dir, 12 - index))
+    .sort((a, b) => b.score - a.score || b.mtime - a.mtime);
+
+  for (const video of videos) {
+    const frame = tryExtract(video.fullPath, videos[0] === video ? "00:00:08" : "00:00:01");
+    if (frame) return frame;
+  }
+
+  return null;
+}
+
+async function createPlaceholderHero(projectDir, palette = []) {
+  const tempDir = path.join(projectDir, "ASSETS", "youtube_thumbnails", "_tmp");
+  fs.mkdirSync(tempDir, { recursive: true });
+  const outPath = path.join(tempDir, `placeholder_${Date.now()}.jpg`);
+  const c1 = normalizeHex(palette[2] || "#121214").replace("#", "");
+  const c2 = normalizeHex(palette[0] || "#D4AF37").replace("#", "");
+
+  const svg = Buffer.from(`<svg width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#${c1}"/>
+        <stop offset="100%" stop-color="#${c2}" stop-opacity="0.45"/>
+      </linearGradient>
+    </defs>
+    <rect width="1280" height="720" fill="url(#bg)"/>
+  </svg>`);
+
+  await sharp(svg).jpeg({ quality: 90 }).toFile(outPath);
+  return outPath;
 }
 
 export function findHeroImagePath(projectDir, { storyboard = {}, config = {}, format = "LONG" } = {}) {
@@ -141,6 +196,14 @@ export function findHeroImagePath(projectDir, { storyboard = {}, config = {}, fo
 
   candidates.sort((a, b) => b.score - a.score);
   return candidates[0]?.path || null;
+}
+
+export async function resolveHeroImagePath(projectDir, context = {}, palette = []) {
+  const staticHero = findHeroImagePath(projectDir, context);
+  if (staticHero) return staticHero;
+  const frame = extractVideoFrame(projectDir);
+  if (frame) return frame;
+  return createPlaceholderHero(projectDir, palette);
 }
 
 function buildTextLinesSvg(lines, { x, startY, fontSize, fill, stroke = "rgba(0,0,0,0.85)", strokeWidth = 4, anchor = "start" }) {
@@ -252,10 +315,11 @@ export async function generateYoutubeThumbnailImages({
   storyboard = {},
   config = {},
 }) {
-  const heroPath = findHeroImagePath(projectDir, { storyboard, config, format });
-  if (!heroPath) {
-    throw new Error("Nenhuma imagem ou vídeo renderizado encontrado no projeto para gerar thumbnails.");
-  }
+  const heroPath = await resolveHeroImagePath(
+    projectDir,
+    { storyboard, config, format },
+    palette.length ? palette : thumbnails[0]?.colors || [],
+  );
 
   const outDir = path.join(projectDir, "ASSETS", "youtube_thumbnails");
   fs.mkdirSync(outDir, { recursive: true });
