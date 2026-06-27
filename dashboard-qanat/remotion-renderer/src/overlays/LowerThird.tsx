@@ -16,6 +16,7 @@ import gearLottie from "./lottie_assets/lottie_ui_gear_1.json";
 import lockLottie from "./lottie_assets/lottie_ui_lock_3.json";
 import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
 import apiLottie from "./lottie_assets/lottie_tech_api_1.json";
+import boltLottie from "./lottie_assets/lottie_tech_bolt_1.json";
 import timeLottie from "./lottie_assets/lottie_ui_time_1.json";
 import windLottie from "./lottie_assets/weather_wind.json";
 import moneyLottie from "./lottie_assets/lottie_biz_money_1.json";
@@ -34,7 +35,7 @@ const lottieMap: Record<string, any> = {
   gear: gearLottie,
   shield: lockLottie,
   crown: crownLottie,
-  science: apiLottie,
+  science: boltLottie,
   history: timeLottie,
   nature: windLottie,
   money: moneyLottie,
@@ -313,7 +314,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           }}
         >
           {iconType && lottieMap[iconType] && (
-            <div style={{ width: isVertical ? 38 : 28, height: isVertical ? 38 : 28 }}>
+            <div style={{ width: isVertical ? 50 : 36, height: isVertical ? 50 : 36 }}>
               <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
             </div>
           )}
@@ -384,7 +385,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         >
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 12 }}>
             {iconType && lottieMap[iconType] && (
-              <div style={{ width: isVertical ? 36 : 24, height: isVertical ? 36 : 24 }}>
+              <div style={{ width: isVertical ? 46 : 32, height: isVertical ? 46 : 32 }}>
                 <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
               </div>
             )}
@@ -462,7 +463,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
             }}
           >
             {iconType && lottieMap[iconType] && (
-              <div style={{ width: isVertical ? 36 : 24, height: isVertical ? 36 : 24 }}>
+              <div style={{ width: isVertical ? 46 : 32, height: isVertical ? 46 : 32 }}>
                 <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
               </div>
             )}
@@ -537,7 +538,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           }}
         >
           {iconType && lottieMap[iconType] && (
-            <div style={{ width: isVertical ? 38 : 28, height: isVertical ? 38 : 28 }}>
+            <div style={{ width: isVertical ? 50 : 36, height: isVertical ? 50 : 36 }}>
               <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
             </div>
           )}

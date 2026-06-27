@@ -29266,21 +29266,36 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
             }
             overlay.props.title = title.toUpperCase();
 
-            // Recupera a narração do bloco para extrair a informação explicativa real
-            const blockNum = Number(overlay.id.replace(/[^\d]/g, "")) || i + 1;
-            const blockCtx = blockContexts.find(bc => Number(bc.block) === blockNum) || blockContexts[i] || blockContexts[0];
-            if (blockCtx && blockCtx.narration) {
-              overlay.props.description = blockCtx.narration.trim();
+            // Recupera e limpa a descrição original
+            let desc = overlay.props.description || "";
+            desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
+            desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
+            desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
+            desc = desc.replace(/import\s+[\s\S]*?;/g, "");
+            desc = desc.replace(/console\.log\([\s\S]*?\);?/g, "");
+            desc = desc.replace(/\s+/g, " ").trim();
+
+            if (!desc || desc.length < 5) {
+              // Usa uma descrição complementar limpa de alta conversão sem nenhuma relação com o roteiro falado
+              if (overlay.props.theme === "ancient") {
+                desc = "Detalhes e engenharia antiga com curiosidades importantes.";
+              } else if (overlay.props.theme === "nature") {
+                desc = "Aspectos geográficos e dados sobre a região analisada.";
+              } else if (overlay.props.theme === "industrial") {
+                desc = "Propriedades físicas dos materiais e técnicas estruturais.";
+              } else if (overlay.props.theme === "mysterious") {
+                desc = "Teorias, enigmas e hipóteses do período histórico.";
+              } else {
+                desc = "Informações técnicas adicionais sobre este segmento.";
+              }
             } else {
-              let desc = overlay.props.description || "";
-              desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
-              desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
-              desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
-              desc = desc.replace(/import\s+[\s\S]*?;/g, "");
-              desc = desc.replace(/console\.log\([\s\S]*?\);?/g, "");
-              desc = desc.replace(/\s+/g, " ").trim();
-              overlay.props.description = desc || "Informação importante de engenharia e história.";
+              // Trunca a própria descrição para no máximo 12 palavras
+              const words = desc.split(/\s+/);
+              if (words.length > 12) {
+                desc = words.slice(0, 12).join(" ") + "...";
+              }
             }
+            overlay.props.description = desc;
             
             if (overlay.props.customStyle) {
               delete overlay.props.customStyle.fontFamilyTitle;
@@ -29381,6 +29396,53 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
             fontFamilyTitle: "Inter",
             fontFamilyDesc: "Inter",
           };
+        }
+
+        // Detect if the AI duplicated the narration script inside the overlay text, and rewrite/remove it
+        const currentBlockNum = Number(overlay.id.replace(/[^\d]/g, "")) || i + 1;
+        const currentBlockCtx = blockContexts.find(bc => Number(bc.block) === currentBlockNum) || blockContexts[i] || blockContexts[0];
+        if (currentBlockCtx && currentBlockCtx.narration) {
+          const cleanNarr = currentBlockCtx.narration.toLowerCase().replace(/[^\w\s]/g, "").trim();
+          
+          if (overlay.props.description) {
+            const cleanDesc = overlay.props.description.toLowerCase().replace(/[^\w\s]/g, "").trim();
+            if (cleanNarr.includes(cleanDesc) || cleanDesc.includes(cleanNarr) || (cleanDesc.length > 30 && cleanNarr.substring(0, 30) === cleanDesc.substring(0, 30))) {
+              console.log(`[Overlays Post-Process] Duplicação de narração detectada na descrição do overlay ${overlay.id}. Substituindo por curiosidade complementar.`);
+              if (overlay.props.theme === "ancient") {
+                overlay.props.description = "Aspectos históricos e engenharia clássica do período.";
+              } else if (overlay.props.theme === "nature") {
+                overlay.props.description = "Fatores ambientais e especificações da geografia local.";
+              } else if (overlay.props.theme === "industrial") {
+                overlay.props.description = "Propriedades físicas dos materiais e técnicas estruturais.";
+              } else if (overlay.props.theme === "mysterious") {
+                overlay.props.description = "Mistérios intrigantes, segredos e teorias propostas.";
+              } else {
+                overlay.props.description = "Dados de engenharia e informações técnicas adicionais.";
+              }
+            }
+          }
+          
+          if (overlay.props.subtitle) {
+            const cleanSub = overlay.props.subtitle.toLowerCase().replace(/[^\w\s]/g, "").trim();
+            if (cleanNarr.includes(cleanSub) || cleanSub.includes(cleanNarr)) {
+              console.log(`[Overlays Post-Process] Duplicação de narração detectada no subtítulo do overlay ${overlay.id}. Removendo subtítulo.`);
+              overlay.props.subtitle = "";
+            }
+          }
+        }
+
+        // Enforce maximum length of 12 words on descriptions and subtitles to prevent raw script leaking
+        if (overlay.props.description) {
+          const words = overlay.props.description.trim().split(/\s+/);
+          if (words.length > 12) {
+            overlay.props.description = words.slice(0, 12).join(" ") + "...";
+          }
+        }
+        if (overlay.props.subtitle) {
+          const words = overlay.props.subtitle.trim().split(/\s+/);
+          if (words.length > 12) {
+            overlay.props.subtitle = words.slice(0, 12).join(" ") + "...";
+          }
         }
 
         variantIdx++;

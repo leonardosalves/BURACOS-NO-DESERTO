@@ -15,6 +15,7 @@ import gearLottie from "./lottie_assets/lottie_ui_gear_1.json";
 import lockLottie from "./lottie_assets/lottie_ui_lock_3.json";
 import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
 import apiLottie from "./lottie_assets/lottie_tech_api_1.json";
+import boltLottie from "./lottie_assets/lottie_tech_bolt_1.json";
 import timeLottie from "./lottie_assets/lottie_ui_time_1.json";
 import windLottie from "./lottie_assets/weather_wind.json";
 import moneyLottie from "./lottie_assets/lottie_biz_money_1.json";
@@ -33,7 +34,7 @@ const lottieMap: Record<string, any> = {
   gear: gearLottie,
   shield: lockLottie,
   crown: crownLottie,
-  science: apiLottie,
+  science: boltLottie,
   history: timeLottie,
   nature: windLottie,
   money: moneyLottie,
@@ -442,7 +443,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
     positionStyle.transform = `translateX(${slideOut - slideIn}px)`;
   }
 
-  const size = isVertical ? 42 : 32;
+  const size = isVertical ? 60 : 44;
 
   const renderIcon = () => {
     const lottieData = lottieMap[iconType];
