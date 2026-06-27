@@ -1490,8 +1490,18 @@ export default function App() {
   const [ytTitle, setYtTitle] = useState<string>('');
   const [ytDescription, setYtDescription] = useState<string>('');
   const [ytPrivacy, setYtPrivacy] = useState<string>('private');
+  const [ytTags, setYtTags] = useState<string>('');
+  const [ytChapters, setYtChapters] = useState<string>('');
+  const [ytPinnedComment, setYtPinnedComment] = useState<string>('');
+  const [ytPublishAt, setYtPublishAt] = useState<string>('');
+  const [ytCategoryId, setYtCategoryId] = useState<string>('27');
   const [ytThumbnailPath, setYtThumbnailPath] = useState<string>('');
   const [ytThumbnailVariant, setYtThumbnailVariant] = useState<string>('');
+  const [titleRetention, setTitleRetention] = useState<{ velocity?: { views48h?: number }; retention?: { points?: unknown[] } } | null>(null);
+  const [thumbnailExperiment, setThumbnailExperiment] = useState<{ videoId?: string; activeVariantId?: string } | null>(null);
+  const [pipelineRunning, setPipelineRunning] = useState<boolean>(false);
+  const [igAppId, setIgAppId] = useState<string>('');
+  const [igAppSecret, setIgAppSecret] = useState<string>('');
   const [igCaption, setIgCaption] = useState<string>('');
   const [ttCaption, setTtCaption] = useState<string>('');
   const [kwCaption, setKwCaption] = useState<string>('');
@@ -3941,6 +3951,11 @@ export default function App() {
         setYtTitle(meta.youtube?.title || '');
         setYtDescription(meta.youtube?.description || '');
         setYtPrivacy(meta.youtube?.privacy || 'private');
+        setYtTags(meta.youtube?.tags || '');
+        setYtChapters(meta.youtube?.chapters || '');
+        setYtPinnedComment(meta.youtube?.pinned_comment || meta.youtube?.pinnedComment || '');
+        setYtPublishAt(meta.youtube?.publish_at || meta.youtube?.publishAt || '');
+        setYtCategoryId(meta.youtube?.category_id || meta.youtube?.categoryId || '27');
         setYtThumbnailPath(meta.youtube?.thumbnail || '');
         setYtThumbnailVariant(meta.youtube?.thumbnail_variant || '');
         if (meta.youtube?.post_id) setTitleExperimentVideoId(meta.youtube.post_id);
@@ -13850,10 +13865,68 @@ export default function App() {
         toast(err.hint || err.details || err.error || 'Falha ao buscar analytics.');
         if (err.needsReauth) fetchUploadStatus();
       }
+      const retRes = await fetch(getProjectUrl('/api/youtube/title-experiment/retention'));
+      if (retRes.ok) setTitleRetention(await retRes.json());
+      const thumbRes = await fetch(getProjectUrl('/api/youtube/thumbnail-experiment/analytics'));
+      if (thumbRes.ok) {
+        const thumbData = await thumbRes.json();
+        setThumbnailExperiment(thumbData.experiment || null);
+      }
     } catch {
       toast('Erro de conexão ao buscar analytics do YouTube.');
     } finally {
       setTitleExperimentLoading(false);
+    }
+  };
+
+  const applyMetadataToUpload = async () => {
+    const parsed = youtubeMetadataParsed;
+    if (!parsed) {
+      toast('Gere os metadados antes de aplicar.');
+      return;
+    }
+    try {
+      const adaptRes = await fetch(getProjectUrl('/api/ai/adapt-platform-metadata'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parsed, format: youtubeMetadataFormat || 'LONG' }),
+      });
+      const adapted = adaptRes.ok ? (await adaptRes.json()).adapted : null;
+      const yt = adapted?.youtube || {};
+      const title = yt.title || parsed.recommendedTitle || parsed.titles?.[0]?.text || '';
+      setYtTitle(title.slice(0, 100));
+      setYtDescription(yt.description || parsed.description || '');
+      setYtTags(Array.isArray(yt.tags) ? yt.tags.join(', ') : (parsed.tags || ''));
+      setYtChapters(yt.chapters || parsed.chapters || '');
+      setYtPinnedComment(yt.pinned_comment || parsed.pinnedComment || '');
+      setYtCategoryId(yt.category_id || (youtubeMetadataFormat === 'SHORT' ? '22' : '27'));
+      if (adapted?.instagram?.title) setIgCaption(adapted.instagram.title);
+      if (adapted?.tiktok?.title) setTtCaption(adapted.tiktok.title);
+      if (adapted?.kwai?.title) setKwCaption(adapted.kwai.title);
+      toast('Metadados completos aplicados (YouTube + redes).');
+    } catch {
+      toast('Erro ao adaptar metadados.');
+    }
+  };
+
+  const handlePostUploadComplete = async (videoId?: string) => {
+    if (!videoId) return;
+    setTitleExperimentVideoId(videoId);
+    try {
+      const res = await fetch(getProjectUrl('/api/upload/post-upload'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, autoStartTitleTest: true, postPinned: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.titleTestStarted) toast('Teste A/B de títulos iniciado automaticamente.');
+        if (data.pinnedComment?.success) toast('Comentário fixo publicado.');
+        fetchTitleExperiment();
+        fetchTitleExperimentAnalytics();
+      }
+    } catch {
+      // optional hook
     }
   };
 
@@ -27936,16 +28009,11 @@ export default function App() {
                         <div className="flex justify-between items-center gap-2 flex-wrap">
                           {youtubeMetadataParsed?.description && (
                             <button
-                              onClick={() => {
-                                const title = youtubeMetadataParsed?.recommendedTitle || youtubeMetadataParsed?.titles?.[0]?.text || '';
-                                if (title) setYtTitle(title.slice(0, 100));
-                                setYtDescription(youtubeMetadataParsed.description || '');
-                                toast('Título e descrição aplicados na aba Upload.');
-                              }}
+                              onClick={applyMetadataToUpload}
                               className="bg-gold-500/10 border border-gold-500/30 text-gold-400 hover:bg-gold-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                             >
                               <Sparkles className="w-3.5 h-3.5" />
-                              Aplicar ao Upload
+                              Aplicar ao Upload (completo)
                             </button>
                           )}
                           <div className="flex-1" />
@@ -28369,6 +28437,43 @@ export default function App() {
                                                 Líder por views no período: variante {titleExperimentWinner.variantId} ({titleExperimentWinner.views} views)
                                               </p>
                                             )}
+                                            {titleRetention?.velocity?.views48h != null && (
+                                              <p className="text-[9px] text-cyan-400">
+                                                Views 48h: {titleRetention.velocity.views48h}
+                                              </p>
+                                            )}
+                                            <div className="flex gap-2 flex-wrap">
+                                              <button
+                                                type="button"
+                                                disabled={titleExperimentLoading || !titleExperimentWinner}
+                                                onClick={async () => {
+                                                  setTitleExperimentLoading(true);
+                                                  try {
+                                                    const res = await fetch(getProjectUrl('/api/youtube/title-experiment/apply-winner'), { method: 'POST' });
+                                                    const data = await res.json();
+                                                    if (res.ok) {
+                                                      toast(`Vencedor ${data.winner?.variantId} aplicado permanentemente.`);
+                                                      fetchTitleExperimentAnalytics();
+                                                    } else toast(data.error || 'Falha ao aplicar vencedor.');
+                                                  } finally { setTitleExperimentLoading(false); }
+                                                }}
+                                                className="text-[8px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded disabled:opacity-50"
+                                              >
+                                                Aplicar vencedor
+                                              </button>
+                                              <button
+                                                type="button"
+                                                disabled={titleExperimentLoading}
+                                                onClick={async () => {
+                                                  await fetch(getProjectUrl('/api/youtube/title-experiment/stop'), { method: 'POST' });
+                                                  toast('Experimento de títulos encerrado.');
+                                                  fetchTitleExperiment();
+                                                }}
+                                                className="text-[8px] font-bold text-zinc-400 border border-zinc-700 px-2 py-1 rounded"
+                                              >
+                                                Parar teste
+                                              </button>
+                                            </div>
                                           </div>
                                         )}
                                         {uploadStatus.youtube?.connected && uploadStatus.youtube?.titleTestReady === false && (
@@ -29431,6 +29536,55 @@ export default function App() {
                             <option value="unlisted">Não listado</option>
                           </select>
                         </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Tags (vírgula)</label>
+                          <input
+                            type="text"
+                            value={ytTags}
+                            onChange={(e) => setYtTags(e.target.value)}
+                            placeholder="tag1, tag2, tag3..."
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Capítulos (marcadores)</label>
+                          <textarea
+                            rows={2}
+                            value={ytChapters}
+                            onChange={(e) => setYtChapters(e.target.value)}
+                            placeholder="0:00 Intro&#10;1:30 Tema principal"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none font-mono"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Comentário fixo (pós-upload)</label>
+                          <textarea
+                            rows={2}
+                            value={ytPinnedComment}
+                            onChange={(e) => setYtPinnedComment(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Agendar (ISO)</label>
+                            <input
+                              type="datetime-local"
+                              value={ytPublishAt ? ytPublishAt.slice(0, 16) : ''}
+                              onChange={(e) => setYtPublishAt(e.target.value ? new Date(e.target.value).toISOString() : '')}
+                              className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2 text-white text-xs"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Categoria ID</label>
+                            <input
+                              type="text"
+                              value={ytCategoryId}
+                              onChange={(e) => setYtCategoryId(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2 text-white text-xs"
+                            />
+                          </div>
+                        </div>
 
                         <div className="space-y-3 pt-2 border-t border-zinc-900/60">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -29629,6 +29783,11 @@ export default function App() {
                               title: ytTitle.trim(),
                               description: ytDescription.trim(),
                               privacy: ytPrivacy,
+                              tags: ytTags.trim(),
+                              chapters: ytChapters.trim(),
+                              pinned_comment: ytPinnedComment.trim(),
+                              category_id: ytCategoryId.trim() || '27',
+                              publish_at: ytPublishAt.trim() || undefined,
                               thumbnail: ytThumbnailPath || undefined,
                               thumbnail_variant: ytThumbnailVariant || undefined,
                             },
@@ -29672,11 +29831,14 @@ export default function App() {
                             if (progressMatch) {
                               setUploadProgress(parseInt(progressMatch[1]));
                             }
+                          } else if (data.type === "post_upload") {
+                            if (data.videoId) handlePostUploadComplete(data.videoId);
                           } else if (data.type === "complete") {
                             eventSource.close();
                             setUploading(false);
                             setUploadProgress(100);
                             toast("Upload concluído com sucesso!");
+                            if (data.videoId) handlePostUploadComplete(data.videoId);
                           } else if (data.type === "error") {
                             eventSource.close();
                             setUploading(false);
@@ -29695,6 +29857,49 @@ export default function App() {
                       <Share2 className="w-4 h-4" />
                       <span>{uploading ? "Publicando..." : "Publicar nas Selecionadas"}</span>
                     </button>
+                    <button
+                      onClick={() => {
+                        setPipelineRunning(true);
+                        setUploadLogs([]);
+                        const es = new EventSource(getProjectUrl('/api/pipeline/run?steps=mix,thumbnails,upload'));
+                        es.onmessage = (event) => {
+                          const data = JSON.parse(event.data);
+                          if (data.type === 'log') setUploadLogs((prev) => [...prev, data.text]);
+                          if (data.type === 'complete' || data.type === 'error') {
+                            es.close();
+                            setPipelineRunning(false);
+                            toast(data.type === 'complete' ? 'Pipeline concluído!' : data.message);
+                          }
+                        };
+                        es.onerror = () => { es.close(); setPipelineRunning(false); };
+                      }}
+                      disabled={pipelineRunning || uploading}
+                      className="w-full bg-violet-600/20 border border-violet-500/30 hover:bg-violet-600/30 disabled:opacity-50 text-violet-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                    >
+                      {pipelineRunning ? 'Pipeline rodando...' : 'Pipeline rápido (mix → thumbs → upload)'}
+                    </button>
+                    {titleExperimentVideoId && youtubeThumbnailsGenerated.length >= 2 && (
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(getProjectUrl('/api/youtube/thumbnail-experiment/start'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              videoId: titleExperimentVideoId,
+                              thumbnails: youtubeThumbnailsGenerated.map((t) => ({ id: t.id, fileName: t.fileName })),
+                            }),
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setThumbnailExperiment(data.experiment);
+                            toast('Teste A/B de thumbnails iniciado.');
+                          } else toast(data.error || 'Falha ao iniciar teste de capas.');
+                        }}
+                        className="w-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold py-2 rounded-xl text-[10px]"
+                      >
+                        Iniciar A/B de Thumbnails
+                      </button>
+                    )}
                   </div>
 
                   {/* Auth Configuration */}
@@ -29857,6 +30062,41 @@ export default function App() {
                     {/* Instagram Graph API Auth card */}
                     <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
                       <span className="font-bold block text-zinc-300">Autenticação do Instagram</span>
+                      <p className="text-[9px] text-zinc-500">OAuth Meta (recomendado) ou token manual abaixo.</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Meta App ID"
+                          value={igAppId}
+                          onChange={(e) => setIgAppId(e.target.value)}
+                          className="bg-black border border-zinc-850 rounded-lg px-2 py-1.5 text-[11px] text-white"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Meta App Secret"
+                          value={igAppSecret}
+                          onChange={(e) => setIgAppSecret(e.target.value)}
+                          className="bg-black border border-zinc-850 rounded-lg px-2 py-1.5 text-[11px] text-white"
+                        />
+                      </div>
+                      <button
+                        onClick={async () => {
+                          await fetch('/api/upload/instagram/save-app', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ app_id: igAppId.trim(), app_secret: igAppSecret.trim() }),
+                          });
+                          const res = await fetch('/api/upload/instagram/oauth-url');
+                          if (res.ok) {
+                            const data = await res.json();
+                            window.open(data.url, '_blank');
+                            toast('Autorize o Instagram no Meta e volte ao painel.');
+                          } else toast('Configure App ID/Secret primeiro.');
+                        }}
+                        className="w-full bg-pink-500/10 border border-pink-500/30 text-pink-300 font-bold py-1.5 rounded-lg text-[10px]"
+                      >
+                        Conectar Instagram (OAuth)
+                      </button>
                       <div className="space-y-2">
                         <input
                           type="text"
@@ -35160,7 +35400,7 @@ export default function App() {
 
 
 
-                    style={{ width: `${((creatorStep - 1) / 4) * 100}%` }}
+                    style={{ width: `${((creatorStep - 1) / 6) * 100}%` }}
 
 
 
@@ -35176,7 +35416,7 @@ export default function App() {
 
 
 
-                  {[1, 2, 3, 4, 5].map((step) => (
+                  {[1, 2, 3, 4, 5, 6, 7].map((step) => (
 
 
 
@@ -35344,7 +35584,9 @@ export default function App() {
 
 
 
-                  <span>5. Renderizar</span>
+                  <span>5. Render</span>
+                  <span>6. Metadados</span>
+                  <span>7. Publicar</span>
 
 
 
@@ -37954,22 +38196,8 @@ export default function App() {
 
 
 
-                    <div className="flex justify-start pt-6 border-t border-zinc-900 font-sans">
-
-
-
-
-
-
-
-                      <button 
-
-
-
-
-
-
-
+                    <div className="flex justify-between pt-6 border-t border-zinc-900 font-sans">
+                      <button
                         onClick={() => setCreatorStep(4)}
 
 
@@ -38010,7 +38238,33 @@ export default function App() {
 
 
 
+                    
+                      <button
+                        onClick={() => setCreatorStep(6)}
+                {creatorStep === 6 && (
+                  <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
+                    <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button onClick={() => setActiveTab('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
+                      <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>
+                      <button onClick={applyMetadataToUpload} className="sm:col-span-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 py-3 rounded-xl text-xs font-bold">Aplicar ao Upload</button>
                     </div>
+                    <div className="flex justify-between"><button onClick={() => setCreatorStep(5)} className="text-xs text-zinc-500">← Render</button><button onClick={() => setCreatorStep(7)} className="bg-gold-500 text-zinc-950 text-xs font-bold px-5 py-2 rounded-xl">Publicar →</button></div>
+                  </div>
+                )}
+
+                {creatorStep === 7 && (
+                  <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
+                    <h4 className="text-white font-bold text-sm font-cinzel">Passo 7: Publicar</h4>
+                    <button onClick={() => setActiveTab('upload')} className="w-full bg-gold-500 text-zinc-950 font-bold py-3 rounded-xl text-xs">Abrir Upload</button>
+                    <button onClick={() => setCreatorStep(6)} className="text-xs text-zinc-500">← Metadados</button>
+                  </div>
+                )}
+                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition"
+                      >
+                        Avançar para Metadados →
+                      </button>
+</div>
 
 
 
