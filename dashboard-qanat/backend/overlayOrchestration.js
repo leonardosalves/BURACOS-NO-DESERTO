@@ -81,7 +81,7 @@ function hashString(str) {
 export function detectNicheCategory(niche = "") {
   const n = niche.toLowerCase();
   if (/finan|negoc|dinheiro|invest|economia/.test(n)) return "finance";
-  if (/tecnolog|program|software|ia\b|comput|cyber|ciber/.test(n)) return "tech";
+  if (/tecnolog|program|software|inteligencia artificial|\bia generativa\b|comput|cyber|ciber/.test(n)) return "tech";
   if (/histor|arqueolog|antig|castelo|egito|inca|mistério|misterio|curios/.test(n)) return "history";
   if (/geograf|natureza|deserto|amazon|viagem|terra/.test(n)) return "nature";
   if (/militar|guerra|industrial|engenharia/.test(n)) return "industrial";

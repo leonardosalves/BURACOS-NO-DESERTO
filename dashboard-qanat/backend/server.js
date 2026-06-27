@@ -5623,11 +5623,16 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     }
 
-    const { format, niche, totalDuration, chaptersText } = resolveYoutubeMetadataContext({
+    const projectName = path.basename(projDir);
+
+    const metadataCtx = resolveYoutubeMetadataContext({
       config,
       timings,
       storyboard,
+      projectName,
     });
+
+    const { format, niche, totalDuration, chaptersText, category, profile, rpmHint } = metadataCtx;
 
     const prompt = buildYoutubeMetadataPrompt({
       transcript,
@@ -5637,6 +5642,9 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       format,
       niche,
       totalDuration,
+      category,
+      profile,
+      rpmHint,
     });
 
     const respondWithMetadata = (text, extra = {}) => {
@@ -5646,6 +5654,10 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
         format,
         niche,
         totalDuration,
+        category,
+        profile: { id: profile.id, label: profile.label },
+        rpm: rpmHint.rpm,
+        palette: rpmHint.palette,
         parsed,
         ...extra,
       });
@@ -5704,6 +5716,9 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       config,
       format,
       niche,
+      category,
+      profile,
+      rpmHint,
     });
 
     const quotaErrors = errors.filter(error => error.quotaExceeded).length;

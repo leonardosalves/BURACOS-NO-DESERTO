@@ -1829,6 +1829,20 @@ export default function App() {
     titles?: { text: string; chars: number }[];
     description?: string;
     recommendedTitle?: string;
+    thumbnails?: {
+      id: string;
+      label: string;
+      pairedTitle?: string;
+      overlayText?: string;
+      composition?: string;
+      colors?: string[];
+      focalElement?: string;
+    }[];
+  } | null>(null);
+  const [youtubeMetadataStrategy, setYoutubeMetadataStrategy] = useState<{
+    profileLabel?: string;
+    rpm?: string;
+    palette?: string[];
   } | null>(null);
 
 
@@ -13583,6 +13597,7 @@ export default function App() {
     setYoutubeMetadata('');
     setYoutubeMetadataFormat('');
     setYoutubeMetadataParsed(null);
+    setYoutubeMetadataStrategy(null);
 
 
 
@@ -13625,6 +13640,11 @@ export default function App() {
         setYoutubeMetadata(data.text);
         setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
         setYoutubeMetadataParsed(data.parsed || null);
+        setYoutubeMetadataStrategy({
+          profileLabel: data.profile?.label,
+          rpm: data.rpm,
+          palette: data.palette,
+        });
 
 
 
@@ -27317,10 +27337,24 @@ export default function App() {
                       <p className="text-[10px] text-gray-400 mt-1">
                         Títulos magnéticos, descrição para feed (Shorts) ou retenção (Longos), tags e engajamento — detecta o formato do projeto automaticamente.
                       </p>
-                      {youtubeMetadataFormat && (
-                        <span className={`inline-flex mt-2 text-[9px] font-bold px-2 py-0.5 rounded ${youtubeMetadataFormat === 'SHORT' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-sky-500/10 text-sky-400'}`}>
-                          Estratégia: {youtubeMetadataFormat === 'SHORT' ? 'YouTube Shorts (feed + rewatch)' : 'Vídeo Longo (CTR + retenção)'}
-                        </span>
+                      {(youtubeMetadataFormat || youtubeMetadataStrategy?.profileLabel) && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {youtubeMetadataFormat && (
+                            <span className={`inline-flex text-[9px] font-bold px-2 py-0.5 rounded ${youtubeMetadataFormat === 'SHORT' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-sky-500/10 text-sky-400'}`}>
+                              {youtubeMetadataFormat === 'SHORT' ? 'Shorts · feed + rewatch' : 'Longo · CTR + retenção'}
+                            </span>
+                          )}
+                          {youtubeMetadataStrategy?.profileLabel && (
+                            <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                              Perfil: {youtubeMetadataStrategy.profileLabel}
+                            </span>
+                          )}
+                          {youtubeMetadataStrategy?.rpm && (
+                            <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                              RPM {youtubeMetadataStrategy.rpm}
+                            </span>
+                          )}
+                        </div>
                       )}
 
 
@@ -27576,6 +27610,68 @@ export default function App() {
 
 
 
+                        {youtubeMetadataParsed?.thumbnails && youtubeMetadataParsed.thumbnails.length > 0 && (
+                          <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">Thumbnails A/B</h3>
+                              <span className="text-[9px] text-zinc-500">3 variantes para testar CTR</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {youtubeMetadataParsed.thumbnails.map((thumb) => (
+                                <div key={thumb.id} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-white">Variante {thumb.id}</span>
+                                    <span className="text-[9px] text-zinc-500">{thumb.label}</span>
+                                  </div>
+                                  {thumb.overlayText && (
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5">
+                                      <span className="text-[8px] text-zinc-500 uppercase block">Texto na capa</span>
+                                      <span className="text-sm font-black text-gold-400 tracking-wide">{thumb.overlayText}</span>
+                                    </div>
+                                  )}
+                                  {thumb.pairedTitle && (
+                                    <p className="text-[10px] text-zinc-400"><span className="text-zinc-600">Título:</span> {thumb.pairedTitle}</p>
+                                  )}
+                                  {thumb.composition && (
+                                    <p className="text-[10px] text-zinc-400 leading-relaxed">{thumb.composition}</p>
+                                  )}
+                                  {thumb.focalElement && (
+                                    <p className="text-[10px] text-zinc-500"><span className="text-zinc-600">Foco:</span> {thumb.focalElement}</p>
+                                  )}
+                                  {thumb.colors && thumb.colors.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {thumb.colors.map((color, cIdx) => (
+                                        <span
+                                          key={cIdx}
+                                          className="w-4 h-4 rounded-full border border-zinc-700"
+                                          style={{ backgroundColor: color }}
+                                          title={color}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      const brief = [
+                                        `Variante ${thumb.id} — ${thumb.label}`,
+                                        thumb.overlayText ? `Texto: ${thumb.overlayText}` : '',
+                                        thumb.pairedTitle ? `Título pareado: ${thumb.pairedTitle}` : '',
+                                        thumb.composition ? `Composição: ${thumb.composition}` : '',
+                                        thumb.focalElement ? `Foco: ${thumb.focalElement}` : '',
+                                        thumb.colors?.length ? `Cores: ${thumb.colors.join(', ')}` : '',
+                                      ].filter(Boolean).join('\n');
+                                      copyToClipboard(brief, `thumb-${thumb.id}`);
+                                    }}
+                                    className="w-full text-[9px] font-bold text-zinc-400 hover:text-white py-1.5 rounded border border-zinc-800 hover:border-zinc-700 transition cursor-pointer"
+                                  >
+                                    {copiedSection === `thumb-${thumb.id}` ? 'Copiado!' : 'Copiar briefing'}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Render sections with individual copy buttons */}
 
 
@@ -27592,7 +27688,11 @@ export default function App() {
 
 
 
-                          const sections = youtubeMetadata.split(/^## /m).filter(Boolean);
+                          const sections = youtubeMetadata.split(/^## /m).filter(Boolean).filter((section) => {
+                            const sectionTitle = section.split('\n')[0]?.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            if (sectionTitle === 'THUMBNAILS A/B' && youtubeMetadataParsed?.thumbnails?.length) return false;
+                            return true;
+                          });
 
 
 

@@ -1,4 +1,9 @@
-import { detectVideoFormat, detectNicheCategory } from "./overlayOrchestration.js";
+import {
+  detectVideoFormat,
+  detectNicheCategory,
+  selectVarietyProfile,
+  NICHE_RPM_HINTS,
+} from "./overlayOrchestration.js";
 
 const LONG_BLOCK_NAMES = [
   "Abertura",
@@ -22,6 +27,67 @@ const SHORT_BLOCK_NAMES = [
   "Virada",
   "Payoff + CTA",
 ];
+
+const NICHE_TITLE_BIAS = {
+  finance: "Priorize consequência financeira, números concretos e clareza de valor — nicho de RPM alto.",
+  tech: "Priorize novidade, impacto futuro e 'por que isso importa agora'.",
+  history: "Priorize mistério histórico, anacronismos e 'como era possível na época'.",
+  nature: "Priorize escala, contraste visual e fenômenos que desafiam o senso comum.",
+  industrial: "Priorize engenharia, escala humana vs. máquina e impacto físico.",
+  default: "Priorize curiosidade universal e payoff claro no final.",
+};
+
+const PROFILE_TITLE_TYPES = {
+  "documentary-prestige": [
+    "Tom institucional premium (como BBC/Netflix)",
+    "Paradoxo histórico sóbrio",
+    "Detalhe que muda a narrativa oficial",
+    "Pergunta que especialistas evitam",
+    "Consequência que ecoa até hoje",
+  ],
+  "data-journalist": [
+    "Número ou dado concreto chocante",
+    "Comparação de escala (X vs Y)",
+    "Tendência que ninguém conectou",
+    "Causa raiz inesperada",
+    "Projeção futura baseada em fato",
+  ],
+  "mystery-reveal": [
+    "Lacuna temporal (o que aconteceu entre X e Y)",
+    "Paradoxo impossível",
+    "Detalhe ignorado por séculos",
+    "Pergunta sem resposta óbvia",
+    "Revelação que inverte tudo no final",
+  ],
+  "geography-explorer": [
+    "Lugar que desafia a lógica",
+    "Escala geográfica surpreendente",
+    "Fenômeno local com impacto global",
+    "Comparação entre dois territórios",
+    "O que mapas não mostram",
+  ],
+  "social-proof": [
+    "Reação que viralizou por um motivo",
+    "Opinião impopular mas correta",
+    "O que a maioria faz errado",
+    "Prova social inesperada",
+    "Desafio ao senso comum do feed",
+  ],
+  "industrial-impact": [
+    "Engenharia que parece impossível",
+    "Escala industrial absurda",
+    "Falha que virou legado",
+    "Número de tonelada/metros/horas",
+    "O custo humano escondido",
+  ],
+  default: [
+    "Curiosidade pura",
+    "Emoção ou espanto",
+    "Número ou fato concreto",
+    "Urgência sutil",
+    "Provocação inteligente",
+  ],
+};
 
 const NICHE_TAG_POOLS = {
   finance: ["finanças", "investimentos", "dinheiro", "economia", "negócios"],
@@ -61,6 +127,43 @@ export function buildChaptersText(timings = {}, format = "LONG") {
   }
 
   return chaptersText.trim();
+}
+
+function buildNicheStrategyBlock({ category = "default", profile = {}, rpmHint = {}, format = "LONG" }) {
+  const titleTypes = PROFILE_TITLE_TYPES[profile.id] || PROFILE_TITLE_TYPES.default;
+  const bias = NICHE_TITLE_BIAS[category] || NICHE_TITLE_BIAS.default;
+
+  return `
+## ESTRATÉGIA DE NICHO E RPM (obrigatório — alinhe títulos e thumbnails a isto):
+- Categoria: ${category}
+- Perfil criativo do projeto: ${profile.label || "Padrão"} (${profile.id || "default"})
+- RPM estimado: ${rpmHint.rpm || "variável"}
+- Paleta visual (use nas thumbnails): ${(rpmHint.palette || []).join(", ")}
+- Viés de título: ${bias}
+- Os 5 títulos devem seguir EXATAMENTE estes ângulos (1 título por tipo):
+  1. ${titleTypes[0]}
+  2. ${titleTypes[1]}
+  3. ${titleTypes[2]}
+  4. ${titleTypes[3]}
+  5. ${titleTypes[4]}
+- Formato ${format === "SHORT" ? "SHORT" : "LONG"}: ${format === "SHORT"
+    ? "título precisa funcionar sozinho no feed; thumbnail é secundária"
+    : "título + thumbnail formam um par — nunca repita as mesmas palavras nos dois"}`;
+}
+
+function buildThumbnailAbRules(format = "LONG") {
+  const aspect = format === "SHORT" ? "9:16 vertical" : "16:9 horizontal";
+  return `
+## REGRAS PARA THUMBNAILS A/B (3 variantes para teste de CTR):
+- Gere 3 variantes (A, B, C) com abordagens visuais DIFERENTES
+- Cada variante deve parear com um dos títulos gerados (indique qual)
+- Texto na capa: máximo 3-5 palavras, fonte grande, alto contraste
+- NUNCA repita o título palavra por palavra no texto da capa — complemente
+- Composição ${aspect}: indique posição do texto, elemento focal e expressão
+- Use a paleta de cores do nicho fornecida acima
+- Variante A: curiosidade / pergunta visual
+- Variante B: contraste ou escala (antes/depois, pequeno vs gigante)
+- Variante C: número, dado ou prova visual`;
 }
 
 function buildStoryContext(storyboard = {}) {
@@ -114,9 +217,7 @@ Objetivo duplo:
 - Ou enquete implícita com 2-3 opções numeradas
 - Máximo 2 frases — comentários curtos geram mais respostas em Shorts
 
-## GANCHO PARA THUMBNAIL (se houver frame de capa):
-- 1 frase que complementa o título sem repetir palavras
-- Foco em expressão visual ou elemento gráfico chamativo`;
+${buildThumbnailAbRules("SHORT")}`;
 }
 
 function buildLongMetadataRules() {
@@ -163,8 +264,33 @@ Objetivo triplo:
 - Foco em promessa + tensão + "por que agora"
 
 ## CTA DE MEIO DE VÍDEO (~40-50% do runtime):
-- 1-2 frases para reengajar quem está prestes a sair (pergunta, teaser do próximo bloco, mini cliffhanger)`;
+- 1-2 frases para reengajar quem está prestes a sair (pergunta, teaser do próximo bloco, mini cliffhanger)
+
+${buildThumbnailAbRules("LONG")}`;
 }
+
+const THUMBNAIL_OUTPUT_TEMPLATE = `## THUMBNAILS A/B
+
+### Variante A — Curiosidade
+- Título pareado: (número e texto do título escolhido)
+- Texto na capa: (máx 5 palavras)
+- Composição: (layout, posição do texto, elemento focal)
+- Cores: (3 hex da paleta do nicho)
+- Expressão/elemento: (rosto, objeto ou cena de destaque)
+
+### Variante B — Contraste
+- Título pareado: ...
+- Texto na capa: ...
+- Composição: ...
+- Cores: ...
+- Expressão/elemento: ...
+
+### Variante C — Prova Visual
+- Título pareado: ...
+- Texto na capa: ...
+- Composição: ...
+- Cores: ...
+- Expressão/elemento: ...`;
 
 export function buildYoutubeMetadataPrompt({
   transcript,
@@ -174,8 +300,12 @@ export function buildYoutubeMetadataPrompt({
   format = "LONG",
   niche = "Geral",
   totalDuration = 0,
+  category = "default",
+  profile = {},
+  rpmHint = {},
 }) {
   const storyContext = buildStoryContext(storyboard);
+  const nicheStrategy = buildNicheStrategyBlock({ category, profile, rpmHint, format });
   const formatRules = format === "SHORT" ? buildShortMetadataRules() : buildLongMetadataRules();
   const durationHint = totalDuration > 0
     ? `Duração estimada: ~${Math.round(totalDuration)}s (${format === "SHORT" ? "Short" : "Longo"})`
@@ -197,8 +327,7 @@ export function buildYoutubeMetadataPrompt({
 ## COMENTÁRIO PINADO
 (texto do comentário pinado)
 
-## GANCHO PARA THUMBNAIL
-(1 frase para complementar título na capa)`
+${THUMBNAIL_OUTPUT_TEMPLATE}`
     : `## TÍTULOS
 (liste os 5 títulos numerados, com contagem de caracteres ao lado: "1. Título aqui (47 chars)")
 
@@ -218,11 +347,15 @@ export function buildYoutubeMetadataPrompt({
 (2-3 frases para os primeiros 30 segundos)
 
 ## CTA DE MEIO DE VÍDEO
-(1-2 frases para ~40-50% do vídeo)`;
+(1-2 frases para ~40-50% do vídeo)
+
+${THUMBNAIL_OUTPUT_TEMPLATE}`;
 
   return `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento orgânico. Seu objetivo é MAXIMIZAR CTR e engajamento para o formato correto do vídeo.
 
 ${formatRules}
+
+${nicheStrategy}
 
 ${durationHint}
 Nicho do canal/projeto: ${niche}
@@ -243,6 +376,52 @@ FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
 ${outputSections}`;
 }
 
+function buildFallbackThumbnails({ titles = [], rpmHint = {}, format = "LONG" }) {
+  const palette = rpmHint.palette || ["#D4AF37", "#00E5FF", "#121214"];
+  const aspect = format === "SHORT" ? "9:16" : "16:9";
+  const paired = (idx) => titles[idx]?.text || `Título #${idx + 1}`;
+
+  return `## THUMBNAILS A/B
+
+### Variante A — Curiosidade
+- Título pareado: 1. ${paired(0)}
+- Texto na capa: IMPOSÍVEL?
+- Composição: ${aspect}, texto superior esquerdo, elemento focal central grande
+- Cores: ${palette.join(", ")}
+- Expressão/elemento: close no detalhe mais intrigante do vídeo
+
+### Variante B — Contraste
+- Título pareado: 2. ${paired(1)}
+- Texto na capa: ANTES × DEPOIS
+- Composição: ${aspect}, split diagonal, metade escura metade clara
+- Cores: ${palette[0]}, ${palette[2] || "#121214"}, #FFFFFF
+- Expressão/elemento: comparação visual de escala (pequeno vs gigante)
+
+### Variante C — Prova Visual
+- Título pareado: 3. ${paired(2)}
+- Texto na capa: O NÚMERO
+- Composição: ${aspect}, número grande no centro, fundo desfocado
+- Cores: ${palette.join(", ")}
+- Expressão/elemento: dado ou contagem do roteiro em destaque`;
+}
+
+function buildFallbackTitles({ baseTitle, category, profile, format }) {
+  const titleTypes = PROFILE_TITLE_TYPES[profile?.id] || PROFILE_TITLE_TYPES.default;
+  const maxLen = format === "SHORT" ? 38 : 48;
+  const seeds = [
+    baseTitle.slice(0, maxLen),
+    titleTypes[1]?.includes("Número") ? "1 dado que muda tudo" : "O detalhe que ninguém viu",
+    titleTypes[2]?.includes("escala") ? "A escala é absurda" : "Como isso foi possível?",
+    titleTypes[3]?.includes("Pergunta") ? "Por que esconderam isso?" : "Isso não deveria existir",
+    titleTypes[4]?.includes("Revelação") ? "O final explica tudo" : "Você nunca mais vai ver igual",
+  ];
+
+  return seeds.map((t, i) => {
+    const text = t.slice(0, maxLen);
+    return `${i + 1}. ${text} (${text.length} chars)`;
+  }).join("\n");
+}
+
 export function buildFallbackYoutubeMetadata({
   transcript,
   chaptersText = "",
@@ -250,25 +429,26 @@ export function buildFallbackYoutubeMetadata({
   config = {},
   format = "LONG",
   niche = "Geral",
+  category = "default",
+  profile = {},
+  rpmHint = {},
 }) {
   const strategy = storyboard?.strategy || {};
   const baseTitle = strategy.title_main || getFirstSentences(transcript, 1) || "O detalhe que muda tudo nessa história";
   const hook = strategy.hook || getFirstSentences(transcript, 2) || "Uma história que parece impossível, mas foi real.";
-  const category = detectNicheCategory(niche);
-  const nicheTags = NICHE_TAG_POOLS[category] || NICHE_TAG_POOLS.default;
+  const resolvedCategory = category || detectNicheCategory(niche);
+  const nicheTags = NICHE_TAG_POOLS[resolvedCategory] || NICHE_TAG_POOLS.default;
   const keywords = extractKeywords(`${baseTitle} ${hook} ${transcript}`, 12);
   const tags = [...new Set([...keywords, ...nicheTags])].slice(0, format === "SHORT" ? 12 : 15);
+  const titlesBlock = buildFallbackTitles({ baseTitle, category: resolvedCategory, profile, format });
+  const parsedTitles = parseYoutubeMetadataMarkdown(`## TÍTULOS\n${titlesBlock}`).titles;
+  const thumbnailsBlock = buildFallbackThumbnails({ titles: parsedTitles, rpmHint, format });
 
   if (format === "SHORT") {
-    const shortTitle = baseTitle.slice(0, 38);
     const hashtags = `#Shorts #${nicheTags[0].replace(/\s/g, "")} #${nicheTags[1]?.replace(/\s/g, "") || "curiosidades"}`;
     return `## TÍTULOS
 
-1. ${shortTitle} (${shortTitle.length} chars)
-2. Por que ninguém fala disso? (${"Por que ninguém fala disso?".length} chars)
-3. Isso muda tudo (${"Isso muda tudo".length} chars)
-4. Você sabia disso? (${"Você sabia disso?".length} chars)
-5. Espera até o final (${"Espera até o final".length} chars)
+${titlesBlock}
 
 ## DESCRIÇÃO
 
@@ -292,9 +472,7 @@ ${tags.join(", ")}
 
 Você já sabia disso? Comenta: Sim, Não ou Só metade — quero ver quantos se surpreenderam.
 
-## GANCHO PARA THUMBNAIL
-
-O frame mais impactante do vídeo com texto curto que não repete o título.`;
+${thumbnailsBlock}`;
   }
 
   const chapters = chaptersText?.trim()
@@ -308,11 +486,7 @@ O frame mais impactante do vídeo com texto curto que não repete o título.`;
 
   return `## TÍTULOS
 
-1. ${baseTitle.slice(0, 48)} (${Math.min(baseTitle.length, 48)} chars)
-2. O detalhe que quase ninguém percebeu (${"O detalhe que quase ninguém percebeu".length} chars)
-3. Como isso foi possível? (${"Como isso foi possível?".length} chars)
-4. A engenharia que intriga especialistas (${"A engenharia que intriga especialistas".length} chars)
-5. Você nunca mais vai ver igual (${"Você nunca mais vai ver igual".length} chars)
+${titlesBlock}
 
 ## DESCRIÇÃO
 
@@ -346,7 +520,9 @@ Nos primeiros 30 segundos, deixe claro que existe uma resposta concreta no final
 
 ## CTA DE MEIO DE VÍDEO
 
-Se você chegou até aqui, o próximo bloco é onde a história vira de verdade — fica mais um pouco.`;
+Se você chegou até aqui, o próximo bloco é onde a história vira de verdade — fica mais um pouco.
+
+${thumbnailsBlock}`;
 }
 
 function getFirstSentences(text, count = 2) {
@@ -385,6 +561,39 @@ function extractKeywords(text, limit = 15) {
     .map(([word]) => word);
 }
 
+function parseThumbnailVariants(content = "") {
+  const variants = [];
+  const blocks = String(content).split(/^###\s+/m).filter(Boolean);
+
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    const header = lines[0]?.trim() || "";
+    const headerMatch = header.match(/^Variante\s+([A-C])\s*[—–-]\s*(.+)$/i);
+    const id = headerMatch?.[1]?.toUpperCase() || String.fromCharCode(65 + variants.length);
+    const label = headerMatch?.[2]?.trim() || header;
+    const fields = {};
+
+    for (const line of lines.slice(1)) {
+      const fieldMatch = line.match(/^-\s*(.+?):\s*(.+)$/);
+      if (!fieldMatch) continue;
+      const key = fieldMatch[1].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      fields[key] = fieldMatch[2].trim();
+    }
+
+    variants.push({
+      id,
+      label,
+      pairedTitle: fields["titulo pareado"] || fields.titulo || "",
+      overlayText: fields["texto na capa"] || fields.texto || "",
+      composition: fields.composicao || "",
+      colors: (fields.cores || "").split(/[,;]/).map((c) => c.trim()).filter(Boolean),
+      focalElement: fields["expressao/elemento"] || fields.expressao || fields.elemento || fields.foco || "",
+    });
+  }
+
+  return variants;
+}
+
 export function parseYoutubeMetadataMarkdown(text = "") {
   const sections = {};
   const parts = String(text).split(/^## /m).filter(Boolean);
@@ -407,6 +616,9 @@ export function parseYoutubeMetadataMarkdown(text = "") {
       return { text: line.replace(/\s*\(\d+\s*chars?\)\s*$/i, "").trim(), chars: line.length };
     });
 
+  const thumbnailsRaw = sections["THUMBNAILS A/B"] || sections["THUMBNAILS AB"] || "";
+  const thumbnails = parseThumbnailVariants(thumbnailsRaw);
+
   return {
     titles,
     description: sections.DESCRICAO || "",
@@ -414,18 +626,35 @@ export function parseYoutubeMetadataMarkdown(text = "") {
     hashtags: sections["HASHTAGS PRINCIPAIS"] || "",
     pinnedComment: sections["COMENTARIO PINADO"] || "",
     chapters: sections.CAPITULOS || "",
-    thumbnailHook: sections["GANCHO PARA THUMBNAIL"] || "",
+    thumbnails,
+    thumbnailHook: sections["GANCHO PARA THUMBNAIL"] || thumbnails[0]?.overlayText || "",
     retentionHook: sections["GANCHO DE RETENCAO"] || "",
     midVideoCta: sections["CTA DE MEIO DE VIDEO"] || "",
     recommendedTitle: titles[0]?.text || "",
   };
 }
 
-export function resolveYoutubeMetadataContext({ config = {}, timings = {}, storyboard = {} }) {
+export function resolveYoutubeMetadataContext({
+  config = {},
+  timings = {},
+  storyboard = {},
+  projectName = "",
+}) {
   const totalDuration = estimateTotalDuration(timings);
   const format = detectVideoFormat(config, totalDuration);
   const niche = config.niche || storyboard?.strategy?.niche || storyboard?.niche || "Geral";
   const chaptersText = format === "LONG" ? buildChaptersText(timings, format) : "";
+  const { profile, category } = selectVarietyProfile(projectName, niche);
+  const rpmHint = NICHE_RPM_HINTS[category] || NICHE_RPM_HINTS.default;
 
-  return { format, niche, totalDuration, chaptersText };
+  return {
+    format,
+    niche,
+    totalDuration,
+    chaptersText,
+    category,
+    profile,
+    rpmHint,
+    projectName,
+  };
 }
