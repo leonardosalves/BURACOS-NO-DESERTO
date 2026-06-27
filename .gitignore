@@ -58,3 +58,11 @@ Thumbs.db
 
 # Remotion temp project builds
 dashboard-qanat/remotion-renderer/public/projects/
+
+# OAuth tokens and local tool dirs (never commit)
+youtube_token.json
+canva_token.json
+canva_client_secrets.json
+agent-tools/
+mcps/
+terminals/

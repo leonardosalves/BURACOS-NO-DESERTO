@@ -1474,14 +1474,17 @@ export default function App() {
   const [newProjectNiche, setNewProjectNiche] = useState<string>('Geral');
   const [collapsedNiches, setCollapsedNiches] = useState<Record<string, boolean>>({});
   const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
-  const [uploadStatus, setUploadStatus] = useState<{ youtube: any; instagram: any; tiktok: any; kwai: any }>({
+  const [uploadStatus, setUploadStatus] = useState<{ youtube: any; canva?: any; instagram: any; tiktok: any; kwai: any }>({
     youtube: { connected: false, has_secrets: false, client_id: null },
+    canva: { connected: false, hasSecrets: false, clientId: null },
     instagram: { connected: false, account_id: null },
     tiktok: { connected: false },
     kwai: { connected: false }
   });
   const [ytClientId, setYtClientId] = useState<string>('');
   const [ytClientSecret, setYtClientSecret] = useState<string>('');
+  const [canvaClientId, setCanvaClientId] = useState<string>('');
+  const [canvaClientSecret, setCanvaClientSecret] = useState<string>('');
   const [igAccountId, setIgAccountId] = useState<string>('');
   const [igAccessToken, setIgAccessToken] = useState<string>('');
   const [ytTitle, setYtTitle] = useState<string>('');
@@ -1855,13 +1858,51 @@ export default function App() {
 
   const [youtubeLoading, setYoutubeLoading] = useState<boolean>(false);
   const [youtubeThumbnailsLoading, setYoutubeThumbnailsLoading] = useState<boolean>(false);
+  const [canvaThumbnailsLoading, setCanvaThumbnailsLoading] = useState<boolean>(false);
   const [youtubeThumbnailsGenerated, setYoutubeThumbnailsGenerated] = useState<{
     id: string;
     label?: string;
     overlayText?: string;
     fileName?: string;
     url: string;
+    source?: string;
+    editUrl?: string | null;
   }[]>([]);
+  const [titleExperiment, setTitleExperiment] = useState<{
+    videoId?: string;
+    activeVariantId?: string;
+    status?: string;
+    variants?: { id: string; text: string; chars?: number; isActive?: boolean }[];
+  } | null>(null);
+  const [titleExperimentAnalytics, setTitleExperimentAnalytics] = useState<{
+    metrics?: {
+      views?: number;
+      estimatedMinutesWatched?: number;
+      averageViewDuration?: number;
+      likes?: number;
+      comments?: number;
+      shares?: number;
+      subscribersGained?: number;
+    };
+    available?: boolean;
+    error?: string;
+    reachNote?: string;
+  } | null>(null);
+  const [titleExperimentRankings, setTitleExperimentRankings] = useState<{
+    id: string;
+    text: string;
+    periodViews?: number | null;
+    periodAvgDuration?: number | null;
+    isActive?: boolean;
+  }[]>([]);
+  const [titleExperimentWinner, setTitleExperimentWinner] = useState<{
+    variantId?: string;
+    title?: string;
+    views?: number;
+  } | null>(null);
+  const [titleExperimentLoading, setTitleExperimentLoading] = useState<boolean>(false);
+  const [titleAbSelected, setTitleAbSelected] = useState<Record<string, boolean>>({});
+  const [titleExperimentVideoId, setTitleExperimentVideoId] = useState<string>('');
 
 
 
@@ -3623,6 +3664,7 @@ export default function App() {
         const data = await res.json();
         setUploadStatus(data);
         if (data.youtube?.client_id) setYtClientId(data.youtube.client_id);
+        if (data.canva?.clientId) setCanvaClientId(data.canva.clientId);
         if (data.instagram?.account_id) setIgAccountId(data.instagram.account_id);
       }
     } catch (e) {
@@ -3901,12 +3943,14 @@ export default function App() {
         setYtPrivacy(meta.youtube?.privacy || 'private');
         setYtThumbnailPath(meta.youtube?.thumbnail || '');
         setYtThumbnailVariant(meta.youtube?.thumbnail_variant || '');
+        if (meta.youtube?.post_id) setTitleExperimentVideoId(meta.youtube.post_id);
         setIgCaption(meta.instagram?.title || '');
         setTtCaption(meta.tiktok?.title || '');
         setKwCaption(meta.kwai?.title || '');
         fetchUploadStatus();
         fetchYoutubeMetadataCache();
         fetchYoutubeThumbnailImages();
+        fetchTitleExperiment();
 
 
 
@@ -13774,6 +13818,175 @@ export default function App() {
       }
     } catch {
       setYoutubeThumbnailsGenerated([]);
+    }
+  };
+
+  const fetchTitleExperiment = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment'));
+      if (res.ok) {
+        const data = await res.json();
+        setTitleExperiment(data.experiment || null);
+        if (data.videoId) setTitleExperimentVideoId(data.videoId);
+      }
+    } catch {
+      setTitleExperiment(null);
+    }
+  };
+
+  const fetchTitleExperimentAnalytics = async () => {
+    setTitleExperimentLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment/analytics'));
+      if (res.ok) {
+        const data = await res.json();
+        setTitleExperiment(data.experiment || null);
+        setTitleExperimentAnalytics(data.analytics || null);
+        setTitleExperimentRankings(data.rankings || []);
+        setTitleExperimentWinner(data.winner || null);
+        if (data.experiment?.videoId) setTitleExperimentVideoId(data.experiment.videoId);
+      } else {
+        const err = await res.json();
+        toast(err.hint || err.details || err.error || 'Falha ao buscar analytics.');
+        if (err.needsReauth) fetchUploadStatus();
+      }
+    } catch {
+      toast('Erro de conexão ao buscar analytics do YouTube.');
+    } finally {
+      setTitleExperimentLoading(false);
+    }
+  };
+
+  const handleGenerateCanvaThumbnails = async () => {
+    let thumbnails = youtubeMetadataParsed?.thumbnails || [];
+    let format = youtubeMetadataFormat || undefined;
+    let palette = youtubeMetadataStrategy?.palette || [];
+    let metadataText = youtubeMetadata || '';
+
+    if (!thumbnails.length && metadataText && !metadataText.startsWith('[Erro]')) {
+      try {
+        const cacheRes = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+        if (cacheRes.ok) {
+          const cache = await cacheRes.json();
+          thumbnails = cache?.parsed?.thumbnails || thumbnails;
+          format = format || cache?.format;
+          palette = palette.length ? palette : (cache?.palette || []);
+          metadataText = cache?.text || metadataText;
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (!thumbnails.length && !youtubeMetadataParsed?.titles?.length) {
+      toast('Passo 1: gere os metadados antes de usar o Canva.');
+      return;
+    }
+
+    if (!uploadStatus.canva?.connected) {
+      toast('Conecte o Canva em Upload → Configuração de Integrações.');
+      return;
+    }
+
+    setCanvaThumbnailsLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/generate-canva-thumbnails'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thumbnails,
+          format,
+          palette,
+          metadataText: metadataText && !metadataText.startsWith('[Erro]') ? metadataText : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setYoutubeThumbnailsGenerated(data.thumbnails || []);
+        toast(`${data.thumbnails?.length || 0} capas geradas no Canva e salvas no projeto.`);
+      } else {
+        toast(data.details ? `${data.error}: ${data.details}` : (data.error || 'Falha ao gerar no Canva.'));
+      }
+    } catch {
+      toast('Erro de conexão ao gerar capas no Canva.');
+    } finally {
+      setCanvaThumbnailsLoading(false);
+    }
+  };
+
+  const handleStartTitleExperiment = async () => {
+    const selectedTitles = (youtubeMetadataParsed?.titles || [])
+      .filter((_, idx) => titleAbSelected[String(idx)] !== false)
+      .slice(0, 5);
+    const fallbackTitles = youtubeMetadataParsed?.titles?.slice(0, 3) || [];
+    const titles = selectedTitles.length >= 2 ? selectedTitles : fallbackTitles;
+
+    if (titles.length < 2) {
+      toast('Marque pelo menos 2 títulos para o teste A/B.');
+      return;
+    }
+
+    const videoId = titleExperimentVideoId.trim();
+    if (!videoId) {
+      toast('Informe o videoId do YouTube (aparece após publicar).');
+      return;
+    }
+
+    setTitleExperimentLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment/start'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, titles }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTitleExperiment(data.experiment || null);
+        toast('Teste A/B de títulos iniciado.');
+        fetchTitleExperimentAnalytics();
+      } else {
+        toast(data.error || 'Falha ao iniciar teste A/B.');
+      }
+    } catch {
+      toast('Erro ao iniciar teste A/B de títulos.');
+    } finally {
+      setTitleExperimentLoading(false);
+    }
+  };
+
+  const handleRelinkYoutube = async () => {
+    await fetch('/api/upload/youtube/reset-auth', { method: 'POST' });
+    const res = await fetch('/api/upload/youtube/auth-url');
+    if (res.ok) {
+      const data = await res.json();
+      window.open(data.url, '_blank');
+      toast('Autorize TODAS as permissões (upload + editar vídeos + analytics).');
+      fetchUploadStatus();
+    } else {
+      toast('Falha ao abrir autorização do YouTube.');
+    }
+  };
+
+  const handleApplyTitleVariant = async (variantId: string) => {
+    setTitleExperimentLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment/apply'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTitleExperiment(data.experiment || null);
+        if (data.appliedTitle) setYtTitle(data.appliedTitle.slice(0, 100));
+        toast(`Título variante ${variantId} aplicado no YouTube.`);
+        fetchTitleExperimentAnalytics();
+      } else {
+        toast(data.hint || data.details || data.error || 'Falha ao aplicar título.');
+        if (data.needsReauth) fetchUploadStatus();
+      }
+    } catch {
+      toast('Erro ao aplicar título no YouTube.');
+    } finally {
+      setTitleExperimentLoading(false);
     }
   };
 
@@ -27556,7 +27769,16 @@ export default function App() {
 
 
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <button
+                      disabled={canvaThumbnailsLoading || !uploadStatus.canva?.connected}
+                      onClick={handleGenerateCanvaThumbnails}
+                      title={uploadStatus.canva?.connected ? 'Gera capas A/B/C automaticamente via Canva Connect' : 'Conecte o Canva em Upload → Integrações'}
+                      className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/10"
+                    >
+                      {canvaThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      <span>{canvaThumbnailsLoading ? 'Canva...' : 'Gerar no Canva'}</span>
+                    </button>
                     <button
                       disabled={youtubeThumbnailsLoading}
                       onClick={handleGenerateYoutubeThumbnailImages}
@@ -27803,16 +28025,28 @@ export default function App() {
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div>
                                 <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">Thumbnails A/B</h3>
-                                <span className="text-[9px] text-zinc-500">Briefing + imagens prontas para upload</span>
+                                <span className="text-[9px] text-zinc-500">
+                                  {uploadStatus.canva?.connected ? 'Canva automático ou local sharp' : 'Conecte o Canva para gerar capas sem abrir o navegador'}
+                                </span>
                               </div>
-                              <button
-                                disabled={youtubeThumbnailsLoading}
-                                onClick={handleGenerateYoutubeThumbnailImages}
-                                className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
-                              >
-                                {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
-                                {youtubeThumbnailsLoading ? 'Gerando imagens...' : 'Gerar Imagens'}
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  disabled={canvaThumbnailsLoading || !uploadStatus.canva?.connected}
+                                  onClick={handleGenerateCanvaThumbnails}
+                                  className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  {canvaThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                  {canvaThumbnailsLoading ? 'Canva...' : 'Gerar no Canva'}
+                                </button>
+                                <button
+                                  disabled={youtubeThumbnailsLoading}
+                                  onClick={handleGenerateYoutubeThumbnailImages}
+                                  className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                                  {youtubeThumbnailsLoading ? 'Gerando...' : 'Local'}
+                                </button>
+                              </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                               {(youtubeMetadataParsed.thumbnails?.length
@@ -27876,11 +28110,21 @@ export default function App() {
                                         {ytThumbnailVariant === thumb.id ? '✓ No Upload' : 'Usar no Upload'}
                                       </button>
                                     )}
+                                    {generated?.editUrl && (
+                                      <a
+                                        href={generated.editUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-center text-[9px] font-bold text-cyan-400 hover:text-cyan-300 py-1.5 rounded border border-cyan-500/20 hover:border-cyan-500/40 transition"
+                                      >
+                                        Editar no Canva
+                                      </a>
+                                    )}
                                     <button
                                       onClick={() => openCanvaThumbnailDesigner(thumb)}
                                       className="text-[9px] font-bold text-sky-400 hover:text-sky-300 py-1.5 rounded border border-sky-500/20 hover:border-sky-500/40 transition cursor-pointer"
                                     >
-                                      {copiedSection === `canva-${thumb.id}` ? 'Brief copiado!' : 'Canva Premium'}
+                                      {copiedSection === `canva-${thumb.id}` ? 'Brief copiado!' : 'Abrir Canva'}
                                     </button>
                                     <button
                                       onClick={() => copyToClipboard(buildThumbnailBrief(thumb), `thumb-${thumb.id}`)}
@@ -28073,28 +28317,138 @@ export default function App() {
 
                                 <div className="prose prose-invert max-w-none">
                                   {/^T[ÍI]TULOS$/i.test(title) && youtubeMetadataParsed?.titles?.length ? (
-                                    <div className="space-y-2 not-prose">
+                                    <div className="space-y-3 not-prose">
+                                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 space-y-2">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                          <div>
+                                            <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wide">Teste A/B de Títulos</span>
+                                            <p className="text-[9px] text-zinc-500">Publique o vídeo, cole o videoId e alterne títulos com analytics do YouTube.</p>
+                                          </div>
+                                          <button
+                                            disabled={titleExperimentLoading}
+                                            onClick={fetchTitleExperimentAnalytics}
+                                            className="text-[9px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded border border-violet-500/30 hover:border-violet-500/50 transition cursor-pointer"
+                                          >
+                                            {titleExperimentLoading ? 'Atualizando...' : 'Atualizar Analytics'}
+                                          </button>
+                                        </div>
+                                        <input
+                                          type="text"
+                                          placeholder="videoId do YouTube (ex: dQw4w9WgXcQ)"
+                                          value={titleExperimentVideoId}
+                                          onChange={(e) => setTitleExperimentVideoId(e.target.value)}
+                                          className="w-full bg-black border border-zinc-800 focus:border-violet-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                                        />
+                                        {titleExperimentAnalytics?.available && (
+                                          <div className="space-y-2">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Views (28d)</span>
+                                                <span className="text-white font-bold">{titleExperimentAnalytics.metrics?.views ?? 0}</span>
+                                              </div>
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Min. assistidos</span>
+                                                <span className="text-white font-bold">{Math.round(titleExperimentAnalytics.metrics?.estimatedMinutesWatched || 0)}</span>
+                                              </div>
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Retenção média</span>
+                                                <span className="text-white font-bold">{Math.round(titleExperimentAnalytics.metrics?.averageViewDuration || 0)}s</span>
+                                              </div>
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Likes / Coment.</span>
+                                                <span className="text-white font-bold">
+                                                  {titleExperimentAnalytics.metrics?.likes ?? 0} / {titleExperimentAnalytics.metrics?.comments ?? 0}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            {titleExperimentAnalytics.reachNote && (
+                                              <p className="text-[8px] text-zinc-500">{titleExperimentAnalytics.reachNote}</p>
+                                            )}
+                                            {titleExperimentWinner?.variantId && (
+                                              <p className="text-[9px] text-emerald-400 font-bold">
+                                                Líder por views no período: variante {titleExperimentWinner.variantId} ({titleExperimentWinner.views} views)
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+                                        {uploadStatus.youtube?.connected && uploadStatus.youtube?.titleTestReady === false && (
+                                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-2 space-y-1.5">
+                                            <p className="text-[9px] text-amber-400 font-bold">Permissões antigas (só upload)</p>
+                                            <p className="text-[9px] text-amber-500/90">
+                                              Faltam: {(uploadStatus.youtube?.missingScopes || []).join(', ') || 'editar títulos e analytics'}.
+                                            </p>
+                                            <button
+                                              type="button"
+                                              onClick={handleRelinkYoutube}
+                                              className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 text-[9px] font-bold py-1.5 rounded-lg transition cursor-pointer"
+                                            >
+                                              Revincular YouTube (obrigatório)
+                                            </button>
+                                          </div>
+                                        )}
+                                        {titleExperimentAnalytics && !titleExperimentAnalytics.available && titleExperimentAnalytics.error && (
+                                          <p className="text-[9px] text-amber-500">{titleExperimentAnalytics.error}</p>
+                                        )}
+                                        <button
+                                          disabled={titleExperimentLoading || !uploadStatus.youtube?.connected}
+                                          onClick={handleStartTitleExperiment}
+                                          className="w-full bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 disabled:opacity-50 text-[10px] font-bold py-1.5 rounded-lg transition cursor-pointer"
+                                        >
+                                          {titleExperimentLoading ? 'Processando...' : 'Iniciar teste A/B (títulos marcados)'}
+                                        </button>
+                                      </div>
                                       {youtubeMetadataParsed.titles.map((t, tIdx) => {
                                         const maxChars = youtubeMetadataFormat === 'SHORT' ? 40 : 50;
                                         const ok = t.chars <= maxChars;
+                                        const variantId = String.fromCharCode(65 + tIdx);
+                                        const isAbSelected = titleAbSelected[String(tIdx)] !== false;
+                                        const isActiveVariant = titleExperiment?.activeVariantId === variantId;
+                                        const ranking = titleExperimentRankings.find((r) => r.id === variantId);
                                         return (
-                                          <div key={tIdx} className="flex items-start justify-between gap-2 bg-zinc-900/50 border border-zinc-800 rounded-lg px-3 py-2">
-                                            <div className="min-w-0">
-                                              <span className="text-[10px] text-zinc-500 mr-2">{tIdx + 1}.</span>
-                                              <span className="text-xs text-zinc-200">{t.text}</span>
-                                              <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                {t.chars}/{maxChars}
-                                              </span>
+                                          <div key={tIdx} className={`flex items-start justify-between gap-2 bg-zinc-900/50 border rounded-lg px-3 py-2 ${isActiveVariant ? 'border-violet-500/50 ring-1 ring-violet-500/20' : 'border-zinc-800'}`}>
+                                            <div className="min-w-0 flex items-start gap-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={isAbSelected}
+                                                onChange={(e) => setTitleAbSelected((prev) => ({ ...prev, [String(tIdx)]: e.target.checked }))}
+                                                className="mt-1 accent-violet-500"
+                                                title="Incluir no teste A/B"
+                                              />
+                                              <div>
+                                                <span className="text-[10px] text-zinc-500 mr-2">{tIdx + 1}.</span>
+                                                <span className="text-xs text-zinc-200">{t.text}</span>
+                                                <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                  {t.chars}/{maxChars}
+                                                </span>
+                                                {isActiveVariant && <span className="ml-2 text-[8px] text-violet-400 font-bold">ATIVO NO YT</span>}
+                                                {typeof ranking?.periodViews === 'number' && (
+                                                  <span className="block text-[8px] text-emerald-500 mt-0.5">
+                                                    {ranking.periodViews} views no período deste título
+                                                    {ranking.periodAvgDuration ? ` · ${ranking.periodAvgDuration}s retenção` : ''}
+                                                  </span>
+                                                )}
+                                              </div>
                                             </div>
-                                            <button
-                                              onClick={() => {
-                                                setYtTitle(t.text.slice(0, 100));
-                                                toast(`Título #${tIdx + 1} aplicado na aba Upload.`);
-                                              }}
-                                              className="shrink-0 text-[9px] font-bold text-gold-500 hover:text-gold-400 px-2 py-1 rounded border border-gold-500/20 hover:border-gold-500/40 transition cursor-pointer"
-                                            >
-                                              Usar
-                                            </button>
+                                            <div className="flex flex-col gap-1 shrink-0">
+                                              <button
+                                                onClick={() => {
+                                                  setYtTitle(t.text.slice(0, 100));
+                                                  toast(`Título #${tIdx + 1} aplicado na aba Upload.`);
+                                                }}
+                                                className="text-[9px] font-bold text-gold-500 hover:text-gold-400 px-2 py-1 rounded border border-gold-500/20 hover:border-gold-500/40 transition cursor-pointer"
+                                              >
+                                                Usar
+                                              </button>
+                                              {titleExperiment?.videoId && uploadStatus.youtube?.connected && tIdx < 5 && (
+                                                <button
+                                                  disabled={titleExperimentLoading}
+                                                  onClick={() => handleApplyTitleVariant(variantId)}
+                                                  className="text-[9px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded border border-violet-500/20 hover:border-violet-500/40 transition cursor-pointer disabled:opacity-50"
+                                                >
+                                                  Aplicar {variantId}
+                                                </button>
+                                              )}
+                                            </div>
                                           </div>
                                         );
                                       })}
@@ -29347,9 +29701,84 @@ export default function App() {
                   <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Configuração de Integrações</span>
                     
+                    {/* Canva Connect Auth card */}
+                    <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-zinc-300">Canva Connect</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.canva?.connected ? 'bg-cyan-500/10 text-cyan-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                          {uploadStatus.canva?.connected ? 'Conectado' : 'Desconectado'}
+                        </span>
+                      </div>
+                      <p className="text-[9px] text-zinc-500 leading-relaxed">
+                        1) <a href="https://www.canva.com/developers/integrations" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">canva.com/developers/integrations</a> → Create integration (Private)<br />
+                        2) Menu esquerdo: <strong className="text-zinc-300">Authentication</strong> → <strong className="text-zinc-300">Authorized redirects</strong><br />
+                        3) Cole exatamente: <code className="text-cyan-300">http://127.0.0.1:3005/api/canva/callback</code> (Canva não aceita localhost)
+                      </p>
+                      {!uploadStatus.canva?.hasSecrets ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Canva Client ID"
+                            value={canvaClientId}
+                            onChange={(e) => setCanvaClientId(e.target.value)}
+                            className="w-full bg-black border border-zinc-850 focus:border-cyan-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                          />
+                          <input
+                            type="password"
+                            placeholder="Canva Client Secret"
+                            value={canvaClientSecret}
+                            onChange={(e) => setCanvaClientSecret(e.target.value)}
+                            className="w-full bg-black border border-zinc-850 focus:border-cyan-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                          />
+                          <button
+                            onClick={async () => {
+                              const res = await fetch('/api/canva/save-credentials', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  client_id: canvaClientId.trim(),
+                                  client_secret: canvaClientSecret.trim(),
+                                }),
+                              });
+                              if (res.ok) {
+                                toast('Credenciais do Canva salvas!');
+                                fetchUploadStatus();
+                              }
+                            }}
+                            className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                          >
+                            Salvar Chaves Canva
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-zinc-400">Credenciais configuradas.</p>
+                          {!uploadStatus.canva?.connected && (
+                            <button
+                              onClick={async () => {
+                                const res = await fetch('/api/canva/auth-url');
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  window.open(data.url, '_blank');
+                                  toast('Autorize o Canva na nova aba.');
+                                }
+                              }}
+                              className="w-full bg-cyan-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
+                            >
+                              Vincular Conta Canva
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {/* YouTube API Auth card */}
                     <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
                       <span className="font-bold block text-zinc-300">Autenticação do YouTube</span>
+                      <p className="text-[9px] text-zinc-500 leading-relaxed">
+                        Inclui upload + analytics (views por período) para teste A/B de títulos.<br />
+                        Redirect URI no Google Cloud: <code className="text-gold-400">http://127.0.0.1:3005/api/upload/youtube/callback</code>
+                      </p>
                       {!uploadStatus.youtube?.has_secrets ? (
                         <div className="space-y-2">
                           <input
@@ -29385,20 +29814,40 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <p className="text-[10px] text-zinc-400">Credenciais configuradas.</p>
-                          {!uploadStatus.youtube?.connected && (
+                          <p className="text-[10px] text-zinc-400">
+                            {uploadStatus.youtube?.connected
+                              ? (uploadStatus.youtube?.titleTestReady
+                                ? 'Conectado com upload + títulos + analytics.'
+                                : 'Conectado, mas faltam permissões para teste A/B.')
+                              : 'Credenciais configuradas.'}
+                          </p>
+                          {!uploadStatus.youtube?.connected ? (
                             <button
                               onClick={async () => {
                                 const res = await fetch('/api/upload/youtube/auth-url');
                                 if (res.ok) {
                                   const data = await res.json();
                                   window.open(data.url, '_blank');
-                                  toast("Link aberto para autorização.");
+                                  toast('Autorize todas as permissões solicitadas.');
                                 }
                               }}
                               className="w-full bg-gold-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
                             >
                               Vincular Conta Google
+                            </button>
+                          ) : !uploadStatus.youtube?.titleTestReady ? (
+                            <button
+                              onClick={handleRelinkYoutube}
+                              className="w-full bg-amber-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
+                            >
+                              Revincular (ativar teste A/B)
+                            </button>
+                          ) : (
+                            <button
+                              onClick={handleRelinkYoutube}
+                              className="w-full bg-zinc-900 hover:bg-zinc-850 text-zinc-300 font-bold py-1.5 rounded-lg text-[10px]"
+                            >
+                              Reconectar conta
                             </button>
                           )}
                         </div>
