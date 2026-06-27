@@ -38199,48 +38199,20 @@ export default function App() {
                     <div className="flex justify-between pt-6 border-t border-zinc-900 font-sans">
                       <button
                         onClick={() => setCreatorStep(4)}
-
-
-
-
-
-
-
                         className="text-xs text-zinc-500 hover:text-white font-semibold transition cursor-pointer"
-
-
-
-
-
-
-
                       >
-
-
-
-
-
-
-
                         ← Voltar para B-roll
-
-
-
-
-
-
-
                       </button>
-
-
-
-
-
-
-
-                    
                       <button
                         onClick={() => setCreatorStep(6)}
+                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition"
+                      >
+                        Avançar para Metadados →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {creatorStep === 6 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
                     <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
@@ -38249,7 +38221,10 @@ export default function App() {
                       <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>
                       <button onClick={applyMetadataToUpload} className="sm:col-span-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 py-3 rounded-xl text-xs font-bold">Aplicar ao Upload</button>
                     </div>
-                    <div className="flex justify-between"><button onClick={() => setCreatorStep(5)} className="text-xs text-zinc-500">← Render</button><button onClick={() => setCreatorStep(7)} className="bg-gold-500 text-zinc-950 text-xs font-bold px-5 py-2 rounded-xl">Publicar →</button></div>
+                    <div className="flex justify-between">
+                      <button onClick={() => setCreatorStep(5)} className="text-xs text-zinc-500">← Render</button>
+                      <button onClick={() => setCreatorStep(7)} className="bg-gold-500 text-zinc-950 text-xs font-bold px-5 py-2 rounded-xl">Publicar →</button>
+                    </div>
                   </div>
                 )}
 
@@ -38260,33 +38235,6 @@ export default function App() {
                     <button onClick={() => setCreatorStep(6)} className="text-xs text-zinc-500">← Metadados</button>
                   </div>
                 )}
-                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition"
-                      >
-                        Avançar para Metadados →
-                      </button>
-</div>
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                )}
-
-
-
-
-
-
 
               {/* Optional: Script Master Strategy Details Panel */}
 
