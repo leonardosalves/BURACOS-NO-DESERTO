@@ -306,6 +306,8 @@ import {
 
 } from 'lucide-react';
 
+import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
+
 
 
 
@@ -662,279 +664,7 @@ interface HeaderWeather {
 
 
 
-type TaggedNarrationPlatform = 'fish' | 'eleven' | 'minimax';
 
-
-
-
-
-
-
-const taggedNarrationMeta: Record<TaggedNarrationPlatform, { title: string; subtitle: string; accentClass: string; borderClass: string }> = {
-
-
-
-  fish: {
-
-
-
-    title: 'Fish Audio - Tags de Emocao',
-
-
-
-    subtitle: 'Use no fish.audio',
-
-
-
-    accentClass: 'text-cyan-300',
-
-
-
-    borderClass: 'border-cyan-400/20 bg-cyan-500/5'
-
-
-
-  },
-
-
-
-  eleven: {
-
-
-
-    title: 'ElevenLabs v3 - Expressividade',
-
-
-
-    subtitle: 'Use no ElevenLabs v3',
-
-
-
-    accentClass: 'text-purple-300',
-
-
-
-    borderClass: 'border-purple-400/20 bg-purple-500/5'
-
-
-
-  },
-
-
-
-  minimax: {
-
-
-
-    title: 'MiniMax - Direcao Narrativa',
-
-
-
-    subtitle: 'Use no MiniMax',
-
-
-
-    accentClass: 'text-amber-300',
-
-
-
-    borderClass: 'border-amber-400/20 bg-amber-500/5'
-
-
-
-  }
-
-
-
-};
-
-
-
-
-
-
-
-const addExpressionTags = (text: string, platform: TaggedNarrationPlatform) => {
-
-
-
-  const cleanText = (text || '').replace(/\s+/g, ' ').trim();
-
-
-
-  if (!cleanText) return '';
-
-
-
-
-
-
-
-  const sentences = cleanText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleanText];
-
-
-
-
-
-
-
-  const tagForSentence = (sentence: string) => {
-
-
-
-    const lower = sentence.toLowerCase();
-
-
-
-    const isQuestion = sentence.trim().endsWith('?');
-
-
-
-    const hasMystery = /ningu[eé]m sabe|mist[eé]rio|enigma|segredo|fascinante|verdade/.test(lower);
-
-
-
-    const hasReveal = /mas|por[eé]m|s[oó] que|a verdade|no entanto/.test(lower);
-
-
-
-    const hasTension = /nunca|desenterrad|buraco|arma|calibrador|m[ií]stico|continua/.test(lower);
-
-
-
-
-
-
-
-    if (platform === 'fish') {
-
-
-
-      if (isQuestion) return '[curious]';
-
-
-
-      if (hasReveal) return '[dramatic pause]';
-
-
-
-      if (hasTension) return '[tense]';
-
-
-
-      if (hasMystery) return '[mysterious]';
-
-
-
-      return '[focused]';
-
-
-
-    }
-
-
-
-
-
-
-
-    if (platform === 'eleven') {
-
-
-
-      if (isQuestion) return '[intrigued]';
-
-
-
-      if (hasReveal) return '[dramatic]';
-
-
-
-      if (hasTension) return '[whispers]';
-
-
-
-      if (hasMystery) return '[curious]';
-
-
-
-      return '[calm]';
-
-
-
-    }
-
-
-
-
-
-
-
-    if (isQuestion) return '[curious] (pause 500ms)';
-
-
-
-    if (hasReveal) return '[dramatic] (pause 800ms)';
-
-
-
-    if (hasTension) return '[mysterious] (pause 600ms)';
-
-
-
-    if (hasMystery) return '[mysterious]';
-
-
-
-    return '[documentary]';
-
-
-
-  };
-
-
-
-
-
-
-
-  return sentences.map((sentence, index) => {
-
-
-
-    const trimmed = sentence.trim();
-
-
-
-    if (!trimmed) return '';
-
-
-
-    const prefix = platform === 'minimax' && index === 0
-
-
-
-      ? 'Direcao de voz: narrador documental, curioso, misterioso, com pausas naturais.\n\n'
-
-
-
-      : '';
-
-
-
-
-
-
-
-    return `${prefix}${tagForSentence(trimmed)} ${trimmed}`;
-
-
-
-  }).join('\n\n');
-
-
-
-};
 
 
 
@@ -1843,6 +1573,9 @@ export default function App() {
   const [youtubeMetadataParsed, setYoutubeMetadataParsed] = useState<{
     titles?: { text: string; chars: number; score?: number; angle?: string | null }[];
     description?: string;
+    tags?: string;
+    chapters?: string;
+    pinnedComment?: string;
     recommendedTitle?: string;
     thumbnails?: {
       id: string;
@@ -3099,38 +2832,16 @@ export default function App() {
 
 
     const cleanNarration = generatedScriptData?.narrative_script || '';
+    const taggedScript = generatedScriptData?.narrative_script_tagged || '';
 
-
-
-    if (!cleanNarration) return;
-
-
-
-
-
-
+    if (!cleanNarration && !taggedScript) return;
 
     setTaggedNarrations({
-
-
-
-      fish: addExpressionTags(cleanNarration, 'fish'),
-
-
-
-      eleven: addExpressionTags(cleanNarration, 'eleven'),
-
-
-
-      minimax: addExpressionTags(cleanNarration, 'minimax')
-
-
-
+      fish: buildTaggedNarration(cleanNarration, 'fish', { taggedScript }),
+      eleven: buildTaggedNarration(cleanNarration, 'eleven', { taggedScript }),
+      minimax: buildTaggedNarration(cleanNarration, 'minimax', { taggedScript }),
     });
-
-
-
-  }, [generatedScriptData?.narrative_script]);
+  }, [generatedScriptData?.narrative_script, generatedScriptData?.narrative_script_tagged]);
 
 
 
@@ -39725,22 +39436,28 @@ export default function App() {
 
 
 
-                          <p className="text-[10px] text-zinc-500 mt-1">Tres versoes editaveis geradas automaticamente a partir da narracao limpa.</p>
-
-
-
-
-
-
-
+                          <p className="text-[10px] text-zinc-500 mt-1">Tags por frase com pausas em viradas, numeros e gancho — usa a narracao taggeada do roteiro quando disponivel.</p>
                         </div>
-
-
-
-
-
-
-
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cleanNarration = generatedScriptData?.narrative_script || '';
+                            const taggedScript = generatedScriptData?.narrative_script_tagged || '';
+                            if (!cleanNarration && !taggedScript) {
+                              toast('Gere o roteiro primeiro.');
+                              return;
+                            }
+                            setTaggedNarrations({
+                              fish: buildTaggedNarration(cleanNarration, 'fish', { taggedScript }),
+                              eleven: buildTaggedNarration(cleanNarration, 'eleven', { taggedScript }),
+                              minimax: buildTaggedNarration(cleanNarration, 'minimax', { taggedScript }),
+                            });
+                            toast('Tags TTS regeneradas.');
+                          }}
+                          className="text-[9px] font-bold text-purple-300 border border-purple-500/30 hover:border-purple-500/50 px-2.5 py-1.5 rounded-lg transition cursor-pointer shrink-0"
+                        >
+                          Regenerar tags
+                        </button>
                       </div>
 
 
