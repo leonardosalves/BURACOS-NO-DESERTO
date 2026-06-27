@@ -3636,10 +3636,13 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         const sceneDuration = Math.max(1, Number(item?.fixed) || autoDuration);
 
         const prompt = prompts[index] || prompts[0] || {};
+        const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
 
         scenes.push({
 
           block,
+
+          scene_id: sceneId,
 
           asset: `projects/${projectSlug}/${copiedName}`,
 
@@ -3664,10 +3667,13 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       prompts.forEach((prompt, index) => {
 
         const sceneDuration = parseDurationSeconds(prompt?.duration, Math.max(2, duration / Math.max(1, prompts.length)));
+        const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
 
         scenes.push({
 
           block,
+
+          scene_id: sceneId,
 
           asset: "",
 
@@ -3953,8 +3959,8 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 
-  // Generate overlays via AI
-  const overlays = await generateOverlaysWithAI(projectDir, useHyperframes);
+  // Generate overlays via AI (pass actual scene timeline for precise timing sync)
+  const overlays = await generateOverlaysWithAI(projectDir, useHyperframes, validScenes);
   
   // Scrape YouTube channel info and save avatar locally
   const youtubeChannelInfo = await scrapeAndSaveYoutubeChannel(publicProjectDir, projectSlug);
@@ -7862,11 +7868,189 @@ app.listen(PORT, () => {
 
 });
 
+function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
+  const sceneStarts = {};
+  const sceneDurations = {};
+  const sceneNarration = {};
+
+  if (Array.isArray(actualScenes)) {
+    for (const scene of actualScenes) {
+      const sceneId = String(scene.scene_id || `${scene.block}.1`).trim();
+      if (!sceneId) continue;
+      sceneStarts[sceneId] = Number(scene.start) || 0;
+      sceneDurations[sceneId] = Number(scene.duration) || 4;
+      sceneNarration[sceneId] = scene.narrationText || "";
+    }
+  }
+
+  if (Object.keys(sceneStarts).length === 0 && Array.isArray(storyboard?.visual_prompts)) {
+    let cumulativeTime = 0;
+    for (const vp of storyboard.visual_prompts) {
+      const sceneId = String(vp.scene || `${vp.block || 1}.1`).trim();
+      const blockIdx = Math.max(0, Number(vp.block || 1) - 1);
+      const blockStart = Number(starts[blockIdx]);
+      const start = Number.isFinite(blockStart) ? blockStart : cumulativeTime;
+      const dur = Number(vp.duration_seconds) || Number(String(vp.duration || "").replace(/[^\d.]/g, "")) || 5;
+      sceneStarts[sceneId] = start;
+      sceneDurations[sceneId] = dur;
+      sceneNarration[sceneId] = vp.narration_text || "";
+      cumulativeTime = start + dur;
+    }
+  }
+
+  return { sceneStarts, sceneDurations, sceneNarration };
+}
+
+function extractOverlayKeywords(overlay) {
+  const text = [
+    overlay?.props?.title,
+    overlay?.props?.subtitle,
+    overlay?.props?.description,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  return text
+    .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 4)
+    .slice(0, 6);
+}
+
+function findKeywordTimeInRange(wordTranscripts, keywords, rangeStart, rangeEnd) {
+  if (!Array.isArray(wordTranscripts) || keywords.length === 0) return null;
+
+  for (const segment of wordTranscripts) {
+    const segStart = Number(segment.start_time || 0);
+    const words = Array.isArray(segment.words) ? segment.words : [];
+
+    for (const wordEntry of words) {
+      const absStart = segStart + Number(wordEntry.start || 0);
+      if (absStart < rangeStart || absStart > rangeEnd) continue;
+
+      const cleanWord = String(wordEntry.word || "").toLowerCase().replace(/[^\wáàâãéèêíìîóòôõúùûç]/gi, "");
+      if (!cleanWord) continue;
+
+      for (const keyword of keywords) {
+        if (cleanWord.includes(keyword) || keyword.includes(cleanWord)) {
+          return absStart;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
+  const rawStart = overlay.start ?? overlay.scene ?? overlay.block;
+  const rawString = String(rawStart ?? "").trim();
+
+  if (/^\d+\.\d+$/.test(rawString)) {
+    return sceneStarts[rawString] !== undefined ? rawString : null;
+  }
+
+  const idBlockMatch = String(overlay.id || "").match(/(?:block|bloco)[_-]?(\d+)/i);
+  if (idBlockMatch) {
+    const blockNum = Number(idBlockMatch[1]);
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${blockNum}.`));
+    if (blockScene) return blockScene;
+  }
+
+  if (Number.isFinite(Number(rawStart))) {
+    const targetTime = Number(rawStart);
+    let bestSceneId = null;
+    let bestDistance = Infinity;
+
+    for (const [sceneId, sceneStart] of Object.entries(sceneStarts)) {
+      const sceneEnd = sceneStart + (Number(sceneDurations[sceneId]) || 4);
+      if (targetTime >= sceneStart && targetTime <= sceneEnd) {
+        return sceneId;
+      }
+      const distance = Math.abs(sceneStart - targetTime);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestSceneId = sceneId;
+      }
+    }
+
+    if (bestSceneId) return bestSceneId;
+  }
+
+  const blockFromOverlay = Number(overlay.block || overlay.props?.block || 0);
+  if (blockFromOverlay > 0) {
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${blockFromOverlay}.`));
+    if (blockScene) return blockScene;
+  }
+
+  return null;
+}
+
+function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts = []) {
+  const { sceneStarts, sceneDurations, sceneNarration } = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+
+  for (let i = 0; i < parsedOverlays.length; i++) {
+    const overlay = parsedOverlays[i];
+    const rawSceneRef = String(overlay.start ?? overlay.scene ?? "").trim();
+    const resolvedSceneId = resolveOverlaySceneId(overlay, sceneStarts, sceneDurations);
+
+    if (!resolvedSceneId || sceneStarts[resolvedSceneId] === undefined) {
+      const blockMatch = String(overlay.id || "").match(/(?:block|bloco)[_-]?(\d+)/i) || String(overlay.id || "").match(/(\d+)/);
+      if (blockMatch) {
+        const blockNum = Number(blockMatch[1]);
+        const blockIdx = Math.max(0, blockNum - 1);
+        const blockStart = Number(starts[blockIdx]);
+        if (Number.isFinite(blockStart)) {
+          overlay.start = blockStart + 0.5;
+          overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, Number(durations[blockIdx]) || 4));
+          console.log(`[Overlays Post-Process] Fallback por bloco ${blockNum}: start=${overlay.start}s`);
+        }
+      }
+      continue;
+    }
+
+    const sceneStartSec = sceneStarts[resolvedSceneId];
+    const sceneDur = sceneDurations[resolvedSceneId] || 4;
+    const siblingCount = parsedOverlays.slice(0, i).filter((ov) => {
+      const ovScene = String(ov.start ?? ov.scene ?? "").trim();
+      return ovScene === rawSceneRef || ovScene === resolvedSceneId;
+    }).length;
+
+    let start = sceneStartSec + 0.5 + (siblingCount * 2.5);
+
+    const keywords = extractOverlayKeywords(overlay);
+    const narrationKeywords = String(sceneNarration[resolvedSceneId] || "")
+      .toLowerCase()
+      .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 5)
+      .slice(0, 4);
+
+    const keywordTime = findKeywordTimeInRange(
+      wordTranscripts,
+      [...keywords, ...narrationKeywords],
+      sceneStartSec,
+      sceneStartSec + sceneDur
+    );
+
+    if (keywordTime !== null) {
+      start = Math.min(keywordTime + 0.15, sceneStartSec + sceneDur - 1);
+    }
+
+    overlay.start = Math.max(sceneStartSec, start);
+    overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, sceneDur - 0.5));
+
+    console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s`);
+  }
+
+  return parsedOverlays;
+}
+
 // AI-driven overlay planning for Remotion PRO using Gemini API
-async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
+async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
 
   const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
   const starts = Array.isArray(timings.starts) ? timings.starts : [];
@@ -7891,13 +8075,21 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
   const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
   const niche = config.niche || "Geral";
 
-  const scenesContext = (storyboard.visual_prompts || []).map(vp => ({
-    scene_id: String(vp.scene || "").trim(),
-    block: vp.block,
-    duration_seconds: vp.duration_seconds || 5,
-    visual_description: vp.prompt || "",
-    narration_text: vp.narration_text || ""
-  }));
+  const scenesContext = Array.isArray(actualScenes) && actualScenes.length > 0
+    ? actualScenes.map((scene) => ({
+        scene_id: String(scene.scene_id || `${scene.block}.1`).trim(),
+        block: scene.block,
+        start_seconds: Number(scene.start) || 0,
+        duration_seconds: Number(scene.duration) || 4,
+        narration_text: scene.narrationText || "",
+      }))
+    : (storyboard.visual_prompts || []).map((vp) => ({
+        scene_id: String(vp.scene || `${vp.block || 1}.1`).trim(),
+        block: vp.block,
+        duration_seconds: vp.duration_seconds || 5,
+        visual_description: vp.prompt || "",
+        narration_text: vp.narration_text || "",
+      }));
 
   let skillPrompt = "";
   if (useHyperframes) {
@@ -7924,6 +8116,11 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false) {
   let systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
 Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar minuciosamente uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
 O NICHO DO VÍDEO ATUAL É: "${niche}".
+
+IMPORTANTE — SINCRONIZAÇÃO DE TEMPO:
+Cada card informativo ou lower-third DEVE aparecer exatamente quando a cena visual correspondente está na tela.
+Você é terminantemente PROIBIDO de adivinhar ou inventar segundos absolutos para o campo "start".
+O campo "start" na sua resposta JSON deve ser OBRIGATORIAMENTE a string do "scene_id" da cena correta (ex: "1.1", "1.2", "2.1", "3.2").
 
 Você DEVE realizar um planejamento sistemático e explícito de design e posicionamento das informações antes de gerar cada overlay.
 Retorne um objeto JSON contendo exatamente esta estrutura:
@@ -7982,7 +8179,7 @@ Estrutura JSON Exigida:
     {
       "id": "lt-block-1",
       "type": "lower-third",
-      "start": 0.3,
+      "start": "1.1",
       "duration": 3.5,
       "props": {
         "title": "TECNOLOGIA PREMIUM",
@@ -8005,7 +8202,7 @@ Estrutura JSON Exigida:
     {
       "id": "info-1",
       "type": "info-card",
-      "start": 4.5,
+      "start": "1.2",
       "duration": 5.0,
       "props": {
         "title": "AUTOCURA TÉRMICA",
@@ -8026,7 +8223,7 @@ Estrutura JSON Exigida:
     {
       "id": "counter-1",
       "type": "counter",
-      "start": 12.0,
+      "start": "2.1",
       "duration": 4.5,
       "props": {
         "value": 2000,
@@ -8048,7 +8245,7 @@ Estrutura JSON Exigida:
     {
       "id": "bar-1",
       "type": "bar-chart",
-      "start": 18.0,
+      "start": "2.2",
       "duration": 6.0,
       "props": {
         "title": "COMPARAÇÃO DE ALTURA",
@@ -8069,7 +8266,7 @@ Estrutura JSON Exigida:
     {
       "id": "timeline-1",
       "type": "timeline",
-      "start": 25.0,
+      "start": "3.1",
       "duration": 7.0,
       "props": {
         "title": "LINHA DO TEMPO ROMANA",
@@ -8093,10 +8290,13 @@ Estrutura JSON Exigida:
 }
 `;
 
-  const userPrompt = `Aqui está o roteiro estruturado por blocos de tempo:
+  const userPrompt = `Aqui está a lista de CENAS do vídeo com tempos reais, narração e IDs de cena:
+${JSON.stringify(scenesContext, null, 2)}
+
+Contexto adicional por blocos de narração:
 ${JSON.stringify(blockContexts, null, 2)}
 
-Gere o plano de planejamento e overlays seguindo rigorosamente as regras de complementariedade, variação de estilos e sem usar textos longos ou intrusivos.`;
+Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associe cada overlay ao "scene_id" da cena onde a informação é realmente ilustrada visualmente. Use APENAS scene_id no campo "start", nunca segundos absolutos.`;
 
   try {
     const requestBody = {
@@ -8138,6 +8338,8 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras de comp
     }
     if (Array.isArray(parsedOverlays)) {
       console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
+
+      alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts);
 
       const isTech = niche.toLowerCase().includes("tecnologia") || niche.toLowerCase().includes("programacao") || niche.toLowerCase().includes("computador") || niche.toLowerCase().includes("ciber") || niche.toLowerCase().includes("software");
       
