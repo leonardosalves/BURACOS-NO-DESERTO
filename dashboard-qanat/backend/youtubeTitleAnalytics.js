@@ -525,3 +525,83 @@ export function syncExperimentVideoId(projectDir, videoId) {
   saveTitleExperiment(projectDir, experiment);
   return experiment;
 }
+
+export function stopTitleExperiment(projectDir) {
+  const experiment = loadTitleExperiment(projectDir);
+  if (!experiment) return null;
+  experiment.status = "stopped";
+  experiment.stoppedAt = new Date().toISOString();
+  saveTitleExperiment(projectDir, experiment);
+  return experiment;
+}
+
+export async function applyWinnerTitle(workspaceDir, projectDir) {
+  const report = await getTitleExperimentReport(workspaceDir, projectDir);
+  if (!report.winner?.variantId) {
+    throw new Error("Nenhum vencedor com views suficientes para aplicar.");
+  }
+  const result = await applyTitleVariant(workspaceDir, projectDir, report.winner.variantId);
+  const experiment = loadTitleExperiment(projectDir);
+  if (experiment) {
+    experiment.status = "completed";
+    experiment.winnerVariantId = report.winner.variantId;
+    experiment.completedAt = new Date().toISOString();
+    saveTitleExperiment(projectDir, experiment);
+  }
+  return { ...result, winner: report.winner };
+}
+
+export async function fetchRetentionCurve(workspaceDir, videoId, { startDate, endDate } = {}) {
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+
+  const end = endDate || new Date().toISOString().slice(0, 10);
+  const start = startDate || new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const params = new URLSearchParams({
+    ids: "channel==MINE",
+    startDate: start,
+    endDate: end,
+    metrics: "audienceWatchRatio,relativeRetentionPerformance",
+    dimensions: "elapsedVideoTimeRatio",
+    filters: `video==${videoId}`,
+    sort: "elapsedVideoTimeRatio",
+  });
+
+  const analyticsData = await queryYoutubeAnalytics(accessToken, params);
+  const rows = parseAnalyticsRows(analyticsData);
+
+  return {
+    videoId,
+    startDate: start,
+    endDate: end,
+    points: rows.map((row) => ({
+      ratio: Number(row.elapsedVideoTimeRatio || 0),
+      watchRatio: Number(row.audienceWatchRatio || 0),
+      relativePerformance: Number(row.relativeRetentionPerformance || 0),
+    })),
+  };
+}
+
+export async function fetchVideoVelocity(workspaceDir, videoId) {
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+  const end = new Date().toISOString().slice(0, 10);
+  const start = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const params = new URLSearchParams({
+    ids: "channel==MINE",
+    startDate: start,
+    endDate: end,
+    metrics: "views",
+    dimensions: "day",
+    filters: `video==${videoId}`,
+    sort: "day",
+  });
+
+  const analyticsData = await queryYoutubeAnalytics(accessToken, params);
+  const daily = parseAnalyticsRows(analyticsData);
+  const views48h = daily.reduce((sum, row) => sum + Number(row.views || 0), 0);
+
+  return { videoId, views48h, daily };
+}

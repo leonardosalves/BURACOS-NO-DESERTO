@@ -25,18 +25,39 @@ import {
 import { generateCanvaThumbnailImages } from "./canvaThumbnailService.js";
 import {
   applyTitleVariant,
+  applyWinnerTitle,
+  fetchRetentionCurve,
+  fetchVideoVelocity,
   getTitleExperimentReport,
   getYoutubeScopeString,
   getYoutubeTokenScopes,
   loadTitleExperiment,
   resetYoutubeAuth,
   startTitleExperiment,
+  stopTitleExperiment,
   syncExperimentVideoId,
 } from "./youtubeTitleAnalytics.js";
 import {
   LUMIERA_BACKEND_BASE,
   LUMIERA_YOUTUBE_CALLBACK,
 } from "./lumieraUrls.js";
+import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
+import { runPostUploadHooks } from "./postUploadService.js";
+import { startTitleRotationScheduler } from "./titleRotationScheduler.js";
+import {
+  applyThumbnailVariant,
+  getThumbnailExperimentReport,
+  loadThumbnailExperiment,
+  startThumbnailExperiment,
+} from "./thumbnailExperiment.js";
+import { runFullPipeline } from "./pipelineOrchestrator.js";
+import { fetchNotebooklmResearch } from "./notebooklmResearch.js";
+import {
+  buildInstagramAuthUrl,
+  exchangeInstagramCode,
+  getInstagramConnectionStatus,
+  saveInstagramAppCredentials,
+} from "./instagramOAuth.js";
 
 import cors from "cors";
 
@@ -790,8 +811,9 @@ app.get("/api/upload/status", async (req, res) => {
     },
     canva: canvaStatus,
     instagram: {
-      connected: fs.existsSync(igSecrets),
-      account_id: ig_account_id
+      connected: fs.existsSync(igSecrets) || getInstagramConnectionStatus(WORKSPACE_DIR).connected,
+      account_id: ig_account_id,
+      oauthReady: getInstagramConnectionStatus(WORKSPACE_DIR).oauthReady,
     },
     tiktok: {
       connected: fs.existsSync(ttCookies)
@@ -1017,9 +1039,31 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
     }
   });
 
-  child.on("close", (code) => {
+  child.on("close", async (code) => {
     if (code === 0) {
-      res.write(`data: ${JSON.stringify({ type: "complete", message: "Processo de upload concluído!" })}\n\n`);
+      let videoId = null;
+      try {
+        const configPath = path.join(projDir, "config_qanat.json");
+        if (fs.existsSync(configPath)) {
+          const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          videoId = cfg?.upload_metadata?.youtube?.post_id || null;
+        }
+      } catch (e) { /* ignore */ }
+
+      if (videoId) {
+        try {
+          const postResult = await runPostUploadHooks(WORKSPACE_DIR, projDir, {
+            videoId,
+            autoStartTitleTest: true,
+            postPinned: true,
+          });
+          res.write(`data: ${JSON.stringify({ type: "post_upload", ...postResult })}\n\n`);
+        } catch (err) {
+          sendLog(`[PostUpload] ${err.message}`);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ type: "complete", message: "Processo de upload concluído!", videoId })}\n\n`);
     } else {
       res.write(`data: ${JSON.stringify({ type: "error", message: `O processo encerrou com código ${code}` })}\n\n`);
     }
@@ -5580,19 +5624,39 @@ app.post("/api/ai/execute-action", async (req, res) => {
         }
 
         case "trigger_render": {
-
-          results.push({ type: action.type, status: "ok", message: "Render queued" });
-
+          const renderMode = action.render_type || "remotion-pro";
+          results.push({
+            type: action.type,
+            status: "ok",
+            message: `Render ${renderMode} pronto para iniciar`,
+            render_mode: renderMode,
+            render_url: `/api/render/${renderMode}?project=${encodeURIComponent(path.basename(projDir))}`,
+          });
           break;
-
         }
 
         case "trigger_mix": {
-
-          results.push({ type: action.type, status: "ok", message: "Mix queued" });
-
+          ensureFileExists("mix_bgm.py", projDir);
+          const mixScript = path.join(projDir, "mix_bgm.py");
+          if (!fs.existsSync(mixScript)) {
+            results.push({ type: action.type, status: "error", message: "mix_bgm.py não encontrado" });
+            break;
+          }
+          await new Promise((resolve, reject) => {
+            const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+              cwd: projDir,
+              shell: true,
+              env: { ...process.env, PYTHONUNBUFFERED: "1" },
+            });
+            let stderr = "";
+            child.stderr.on("data", (d) => { stderr += d.toString(); });
+            child.on("close", (code) => {
+              if (code === 0) resolve();
+              else reject(new Error(stderr || `Mix falhou (code ${code})`));
+            });
+          });
+          results.push({ type: action.type, status: "ok", message: "Mix BGM concluído" });
           break;
-
         }
 
         case "navigate_tab": {
@@ -6102,7 +6166,7 @@ app.get("/api/youtube/title-experiment", (req, res) => {
   res.json({ experiment, videoId });
 });
 
-app.post("/api/youtube/title-experiment/start", (req, res) => {
+app.post("/api/youtube/title-experiment/start", async (req, res) => {
   const projDir = getProjectDir(req);
   try {
     const experiment = startTitleExperiment(projDir, {
@@ -6110,7 +6174,15 @@ app.post("/api/youtube/title-experiment/start", (req, res) => {
       titles: req.body?.titles || [],
       rotateHours: req.body?.rotateHours || 48,
     });
-    res.json({ success: true, experiment });
+    let applied = null;
+    if (req.body?.applyFirst !== false && experiment.variants?.length) {
+      try {
+        applied = await applyTitleVariant(WORKSPACE_DIR, projDir, experiment.variants[0].id);
+      } catch (applyErr) {
+        applied = { error: applyErr.message };
+      }
+    }
+    res.json({ success: true, experiment: applied?.experiment || experiment, appliedFirst: applied });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -6153,6 +6225,237 @@ app.post("/api/youtube/title-experiment/sync-video", (req, res) => {
     res.json({ success: true, experiment });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/title-experiment/stop", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = stopTitleExperiment(projDir);
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/title-experiment/apply-winner", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const result = await applyWinnerTitle(WORKSPACE_DIR, projDir);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar vencedor");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/title-experiment/apply-first", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = loadTitleExperiment(projDir);
+    if (!experiment?.variants?.length) {
+      return res.status(400).json({ error: "Nenhum experimento ativo." });
+    }
+    const firstId = experiment.variants[0].id;
+    const result = await applyTitleVariant(WORKSPACE_DIR, projDir, firstId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar primeiro título");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/title-experiment/retention", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const experiment = loadTitleExperiment(projDir);
+  const videoId = experiment?.videoId || req.query?.videoId;
+  if (!videoId) {
+    return res.status(400).json({ error: "videoId não encontrado." });
+  }
+  try {
+    const [retention, velocity] = await Promise.all([
+      fetchRetentionCurve(WORKSPACE_DIR, videoId),
+      fetchVideoVelocity(WORKSPACE_DIR, videoId),
+    ]);
+    res.json({ retention, velocity });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar retenção");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/upload/post-upload", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const result = await runPostUploadHooks(WORKSPACE_DIR, projDir, {
+      videoId: req.body?.videoId,
+      autoStartTitleTest: req.body?.autoStartTitleTest !== false,
+      postPinned: req.body?.postPinned !== false,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/ai/adapt-platform-metadata", (req, res) => {
+  const parsed = req.body?.parsed || {};
+  const format = req.body?.format === "SHORT" ? "SHORT" : "LONG";
+  try {
+    const adapted = adaptMetadataForPlatforms(parsed, format);
+    res.json({ success: true, adapted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/thumbnail-experiment", (req, res) => {
+  const projDir = getProjectDir(req);
+  res.json({ experiment: loadThumbnailExperiment(projDir) });
+});
+
+app.post("/api/youtube/thumbnail-experiment/start", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = startThumbnailExperiment(projDir, {
+      videoId: req.body?.videoId,
+      thumbnails: req.body?.thumbnails || [],
+      rotateHours: req.body?.rotateHours || 72,
+    });
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/thumbnail-experiment/apply", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const variantId = String(req.body?.variantId || "").toUpperCase();
+  if (!variantId) {
+    return res.status(400).json({ error: "variantId é obrigatório." });
+  }
+  try {
+    const result = await applyThumbnailVariant(WORKSPACE_DIR, projDir, variantId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar thumbnail");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/thumbnail-experiment/analytics", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const report = await getThumbnailExperimentReport(WORKSPACE_DIR, projDir);
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar analytics de thumbnail");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/pipeline/run", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const stepsParam = req.query?.steps || "mix,upload";
+  const steps = String(stepsParam).split(",").map((s) => s.trim()).filter(Boolean);
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const sendLog = (text) => {
+    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+  };
+
+  try {
+    const results = await runFullPipeline({
+      projDir,
+      pythonPath: PYTHON_PATH,
+      sendLog,
+      steps,
+      handlers: {
+        metadata: async (dir, log) => {
+          const cachePath = path.join(dir, "youtube_metadata_cache.json");
+          if (!fs.existsSync(cachePath)) {
+            log("[Pipeline] Metadados não gerados — pule para Upload ou gere na aba Agente IA.");
+            return;
+          }
+          log("[Pipeline] Metadados em cache encontrados.");
+        },
+        thumbnails: async (dir, log) => {
+          const cachePath = path.join(dir, "youtube_metadata_cache.json");
+          if (!fs.existsSync(cachePath)) return;
+          const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+          const thumbs = cache?.parsed?.thumbnails || [];
+          if (!thumbs.length) return;
+          const result = await generateYoutubeThumbnailImages({
+            projectDir: dir,
+            projectName: path.basename(dir),
+            thumbnails: thumbs,
+            format: cache.format || "LONG",
+            palette: cache.palette || [],
+          });
+          log(`[Pipeline] ${result.thumbnails?.length || 0} thumbnails geradas.`);
+        },
+        render: async (dir, log, mode) => {
+          ensureFileExists("build_video.py", dir);
+          const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+          if (mode === "remotion" || mode === "remotion-pro") {
+            log(`[Pipeline] Render ${mode} — use a aba Render para concluir (passo pesado).`);
+            return;
+          }
+          await new Promise((resolve, reject) => {
+            const child = spawn(PYTHON_PATH, [scriptName], { cwd: dir, shell: true });
+            child.stdout.on("data", (d) => log(d.toString().trim()));
+            child.stderr.on("data", (d) => log(`[stderr] ${d.toString().trim()}`));
+            child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Render exit ${code}`))));
+          });
+        },
+      },
+    });
+    res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`);
+  }
+  res.end();
+});
+
+app.post("/api/upload/instagram/save-app", (req, res) => {
+  const { app_id, app_secret } = req.body;
+  if (!app_id || !app_secret) {
+    return res.status(400).json({ error: "App ID e App Secret são obrigatórios." });
+  }
+  try {
+    saveInstagramAppCredentials(WORKSPACE_DIR, { app_id, app_secret });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/upload/instagram/oauth-url", (req, res) => {
+  const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
+  try {
+    const url = buildInstagramAuthUrl(WORKSPACE_DIR, redirectUri);
+    res.json({ url, redirect_uri: redirectUri });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/upload/instagram/callback", async (req, res) => {
+  const code = req.query?.code;
+  if (!code) {
+    return res.status(400).send("Código OAuth ausente.");
+  }
+  try {
+    const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
+    await exchangeInstagramCode(WORKSPACE_DIR, code, redirectUri);
+    res.send("<html><body><h2>Instagram conectado!</h2><p>Feche esta aba e volte ao Lumiera.</p></body></html>");
+  } catch (err) {
+    res.status(500).send(`Erro: ${err.message}`);
   }
 });
 
@@ -7060,12 +7363,22 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 
   }
 
-  const { niche, format } = req.body;
+  const { niche, format, useNotebooklm } = req.body;
 
   if (!niche || !format) {
 
     return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
 
+  }
+
+  let notebooklmContext = "";
+  if (useNotebooklm !== false) {
+    try {
+      const research = await fetchNotebooklmResearch(niche, format);
+      notebooklmContext = `\nCONTEXTO DE PESQUISA (${research.available ? "NotebookLM" : "fallback"}):\n${research.summary}\n`;
+    } catch (e) {
+      notebooklmContext = "";
+    }
   }
 
   const projectsMeta = getExistingProjectsMetadata(WORKSPACE_DIR);
@@ -7103,6 +7416,8 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 
 Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas (evitando temas genéricos, sem focar em projetos passados de Qanat para evitar repetições).
+
+${notebooklmContext}
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
@@ -8127,6 +8442,7 @@ const PORT = 3005;
 app.listen(PORT, "0.0.0.0", () => {
 
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
+  startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
 
 });
 
@@ -8871,14 +9187,68 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
 
       parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan);
 
-      return parsedOverlays;
+      return injectRetentionOverlays(projectDir, parsedOverlays, starts, durations);
     }
   } catch (err) {
     console.error("[Overlays] Erro ao chamar IA para overlays:", err);
   }
 
   // Fallback to rule-based
-  return generateOverlaysRuleBased(config, storyboard, starts, durations);
+  return injectRetentionOverlays(
+    projectDir,
+    generateOverlaysRuleBased(config, storyboard, starts, durations),
+    starts,
+    durations,
+  );
+}
+
+function injectRetentionOverlays(projectDir, overlays, starts, durations) {
+  const cachePath = path.join(projectDir, "youtube_metadata_cache.json");
+  if (!fs.existsSync(cachePath)) return overlays;
+  let cache;
+  try {
+    cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+  } catch {
+    return overlays;
+  }
+
+  const hook = cache?.parsed?.retentionHook || cache?.parsed?.hook;
+  const cta = cache?.parsed?.midVideoCta;
+  const result = Array.isArray(overlays) ? [...overlays] : [];
+
+  if (hook) {
+    result.unshift({
+      id: "retention-hook",
+      type: "lower-third",
+      start: 0.5,
+      duration: 4,
+      props: {
+        title: String(hook).slice(0, 60).toUpperCase(),
+        subtitle: "",
+        accentColor: "#FF4444",
+        position: "center",
+      },
+    });
+  }
+
+  if (cta && Array.isArray(durations) && durations.length) {
+    const midIdx = Math.floor(durations.length / 2);
+    const midStart = Number(starts?.[midIdx]) || 30;
+    result.push({
+      id: "mid-video-cta",
+      type: "lower-third",
+      start: midStart,
+      duration: 3.5,
+      props: {
+        title: String(cta).slice(0, 50),
+        subtitle: "",
+        accentColor: "#D4AF37",
+        position: "bottom-center",
+      },
+    });
+  }
+
+  return result;
 }
 
 function generateOverlaysRuleBased(config, storyboard, starts, durations) {
