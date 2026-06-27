@@ -33,8 +33,8 @@ async function runTest() {
     await new Promise(r => setTimeout(r, 1000));
 
     // 3. Call the /api/ai/chat endpoint
-    console.log("Sending chat request to http://localhost:3005/api/ai/chat...");
-    const response = await fetch("http://localhost:3005/api/ai/chat", {
+    console.log("Sending chat request to http://127.0.0.1:3005/api/ai/chat...");
+    const response = await fetch("http://127.0.0.1:3005/api/ai/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

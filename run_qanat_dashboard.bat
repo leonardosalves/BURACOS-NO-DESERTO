@@ -20,9 +20,9 @@ if not exist node_modules (
 echo Iniciando servidor Frontend...
 start /b cmd /c "npm run dev"
 
-echo Aguardando inicialização...
-timeout /t 3 /nobreak >nul
-start http://localhost:5176/
+echo Aguardando inicialização (backend + frontend)...
+timeout /t 8 /nobreak >nul
+start http://127.0.0.1:5176/
 
 echo Painel rodando com sucesso!
 pause

@@ -16,6 +16,27 @@ import {
   ensureThumbnailVariants,
 } from "./youtubeMetadataOptimizer.js";
 import { generateYoutubeThumbnailImages } from "./youtubeThumbnailGenerator.js";
+import {
+  buildCanvaAuthUrl,
+  exchangeCanvaAuthCode,
+  getCanvaConnectionStatus,
+  saveCanvaCredentials,
+} from "./canvaClient.js";
+import { generateCanvaThumbnailImages } from "./canvaThumbnailService.js";
+import {
+  applyTitleVariant,
+  getTitleExperimentReport,
+  getYoutubeScopeString,
+  getYoutubeTokenScopes,
+  loadTitleExperiment,
+  resetYoutubeAuth,
+  startTitleExperiment,
+  syncExperimentVideoId,
+} from "./youtubeTitleAnalytics.js";
+import {
+  LUMIERA_BACKEND_BASE,
+  LUMIERA_YOUTUBE_CALLBACK,
+} from "./lumieraUrls.js";
 
 import cors from "cors";
 
@@ -713,8 +734,20 @@ app.post("/api/upload/instagram/save-credentials", (req, res) => {
   }
 });
 
+function youtubeApiErrorPayload(err, fallback = "Erro na API do YouTube") {
+  const needsReauth = Boolean(err?.needsReauth || err?.code === "INSUFFICIENT_SCOPES");
+  return {
+    error: needsReauth ? "Permissões do YouTube insuficientes" : fallback,
+    details: err?.message || String(err),
+    needsReauth,
+    hint: needsReauth
+      ? "Vá em Upload → Integrações → Revincular YouTube e autorize todas as permissões (editar vídeos + analytics)."
+      : undefined,
+  };
+}
+
 // GET /api/upload/status
-app.get("/api/upload/status", (req, res) => {
+app.get("/api/upload/status", async (req, res) => {
   const ytSecrets = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
   const ytToken = path.join(WORKSPACE_DIR, "youtube_token.json");
   const igSecrets = path.join(WORKSPACE_DIR, "instagram_secrets.json");
@@ -737,12 +770,25 @@ app.get("/api/upload/status", (req, res) => {
     } catch (e) {}
   }
 
+  const canvaStatus = getCanvaConnectionStatus(WORKSPACE_DIR);
+  let youtubeScopes = { ready: false, missingLabels: [] };
+  if (fs.existsSync(ytSecrets) && fs.existsSync(ytToken)) {
+    try {
+      youtubeScopes = await getYoutubeTokenScopes(WORKSPACE_DIR);
+    } catch (e) {
+      youtubeScopes = { ready: false, error: e.message, missingLabels: [] };
+    }
+  }
+
   res.json({
     youtube: {
       connected: fs.existsSync(ytSecrets) && fs.existsSync(ytToken),
       has_secrets: fs.existsSync(ytSecrets),
-      client_id: yt_client_id
+      client_id: yt_client_id,
+      titleTestReady: youtubeScopes.ready === true,
+      missingScopes: youtubeScopes.missingLabels || [],
     },
+    canva: canvaStatus,
     instagram: {
       connected: fs.existsSync(igSecrets),
       account_id: ig_account_id
@@ -756,6 +802,85 @@ app.get("/api/upload/status", (req, res) => {
   });
 });
 
+// POST /api/canva/save-credentials
+app.post("/api/canva/save-credentials", (req, res) => {
+  const { client_id, client_secret, redirect_uri } = req.body || {};
+  if (!client_id || !client_secret) {
+    return res.status(400).json({ error: "Client ID e Client Secret do Canva são obrigatórios." });
+  }
+  try {
+    saveCanvaCredentials(WORKSPACE_DIR, { client_id, client_secret, redirect_uri });
+    res.json({ success: true, message: "Credenciais do Canva salvas." });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar credenciais do Canva", details: err.message });
+  }
+});
+
+// GET /api/canva/status
+app.get("/api/canva/status", (req, res) => {
+  res.json(getCanvaConnectionStatus(WORKSPACE_DIR));
+});
+
+// GET /api/canva/auth-url
+app.get("/api/canva/auth-url", (req, res) => {
+  try {
+    const url = buildCanvaAuthUrl(WORKSPACE_DIR);
+    res.json({ url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/canva/callback
+app.get("/api/canva/callback", async (req, res) => {
+  const { code, state, error, error_description: errorDescription } = req.query;
+  if (error) {
+    return res.status(400).send(`Erro Canva: ${errorDescription || error}`);
+  }
+  if (!code || !state) {
+    return res.status(400).send("Código ou state ausente.");
+  }
+  try {
+    await exchangeCanvaAuthCode(WORKSPACE_DIR, { code, state });
+    res.send(`
+      <html>
+        <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
+          <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
+            <h1 style="color:#00c4cc;">Canva Conectado!</h1>
+            <p style="color:#a1a1aa;">Conta vinculada. Você já pode gerar capas automaticamente no Lumiera.</p>
+            <button onclick="window.close()" style="background:#00c4cc; border:none; padding:0.5rem 1.5rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;">Fechar</button>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    res.status(500).send(`Erro: ${err.message}`);
+  }
+});
+
+// GET /api/upload/youtube/scopes-status
+app.get("/api/upload/youtube/scopes-status", async (req, res) => {
+  try {
+    const status = await getYoutubeTokenScopes(WORKSPACE_DIR);
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao verificar escopos", details: err.message });
+  }
+});
+
+// POST /api/upload/youtube/reset-auth — apaga token antigo para forçar novos escopos
+app.post("/api/upload/youtube/reset-auth", (req, res) => {
+  try {
+    resetYoutubeAuth(WORKSPACE_DIR);
+    res.json({
+      success: true,
+      message: "Sessão do YouTube removida. Clique em Vincular Conta Google e autorize todas as permissões.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao resetar autenticação", details: err.message });
+  }
+});
+
 // GET /api/upload/youtube/auth-url
 app.get("/api/upload/youtube/auth-url", (req, res) => {
   const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
@@ -764,8 +889,8 @@ app.get("/api/upload/youtube/auth-url", (req, res) => {
   }
   try {
     const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
-    const redirectUri = "http://localhost:3005/api/upload/youtube/callback";
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${secrets.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https://www.googleapis.com/auth/youtube.upload&access_type=offline&prompt=consent`;
+    const redirectUri = LUMIERA_YOUTUBE_CALLBACK;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${secrets.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(getYoutubeScopeString())}&access_type=offline&prompt=consent`;
     res.json({ url: authUrl });
   } catch (err) {
     res.status(500).json({ error: "Erro ao gerar URL do YouTube", details: err.message });
@@ -784,7 +909,7 @@ app.get("/api/upload/youtube/callback", async (req, res) => {
   }
   try {
     const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
-    const redirectUri = "http://localhost:3005/api/upload/youtube/callback";
+    const redirectUri = LUMIERA_YOUTUBE_CALLBACK;
     const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -801,13 +926,18 @@ app.get("/api/upload/youtube/callback", async (req, res) => {
       return res.status(400).send(`Erro ao obter tokens: ${tokens.error_description || tokens.error}`);
     }
     const tokenPath = path.join(WORKSPACE_DIR, "youtube_token.json");
-    fs.writeFileSync(tokenPath, JSON.stringify(tokens, null, 2), "utf8");
+    const tokenPayload = {
+      ...tokens,
+      linked_at: new Date().toISOString(),
+      scopes_requested: getYoutubeScopeString(),
+    };
+    fs.writeFileSync(tokenPath, JSON.stringify(tokenPayload, null, 2), "utf8");
     res.send(`
       <html>
         <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
           <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
             <h1 style="color:#d4af37;">YouTube Conectado!</h1>
-            <p style="color:#a1a1aa;">Conta vinculada com sucesso. Você já pode fechar esta aba.</p>
+            <p style="color:#a1a1aa;">Upload + edição de títulos + analytics autorizados. Feche esta aba e volte ao Lumiera.</p>
             <button onclick="window.close()" style="background:#d4af37; border:none; padding:0.5rem 1.5rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;">Fechar</button>
           </div>
         </body>
@@ -5887,6 +6017,145 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
   }
 });
 
+app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const projectName = path.basename(projDir);
+
+  try {
+    let thumbnails = req.body?.thumbnails;
+    let format = req.body?.format;
+    let palette = req.body?.palette || [];
+
+    const cachePath = path.join(projDir, "youtube_metadata_cache.json");
+    let cache = null;
+    if (fs.existsSync(cachePath)) {
+      try { cache = JSON.parse(fs.readFileSync(cachePath, "utf8")); } catch (e) {}
+    }
+
+    if ((!thumbnails || thumbnails.length === 0) && cache) {
+      thumbnails = cache?.parsed?.thumbnails || [];
+      format = format || cache?.format;
+      palette = palette.length ? palette : (cache?.palette || []);
+    }
+
+    if (req.body?.metadataText) {
+      const reparsed = parseYoutubeMetadataMarkdown(req.body.metadataText);
+      if (reparsed.thumbnails?.length) thumbnails = reparsed.thumbnails;
+      else if (reparsed.titles?.length) {
+        thumbnails = ensureThumbnailVariants(reparsed, palette);
+      }
+    }
+
+    if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
+      return res.status(400).json({
+        error: "Nenhuma variante A/B encontrada.",
+        details: "Gere os metadados do YouTube primeiro.",
+      });
+    }
+
+    let config = {};
+    let storyboard = {};
+    const configPath = path.join(projDir, "config_qanat.json");
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(configPath)) {
+      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+    }
+    if (fs.existsSync(storyboardPath)) {
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+    }
+
+    const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
+    const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
+
+    const result = await generateCanvaThumbnailImages({
+      workspaceDir: WORKSPACE_DIR,
+      projectDir: projDir,
+      projectName,
+      thumbnails,
+      format: resolvedFormat,
+      palette,
+      storyboard,
+      config,
+      strategy: {
+        profileLabel: cache?.profile?.label || metadataCtx.profile?.label,
+        rpm: cache?.rpm || metadataCtx.rpmHint?.rpm,
+      },
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar capas no Canva", details: err.message });
+  }
+});
+
+app.get("/api/youtube/title-experiment", (req, res) => {
+  const projDir = getProjectDir(req);
+  const experiment = loadTitleExperiment(projDir);
+  const configPath = path.join(projDir, "config_qanat.json");
+  let videoId = experiment?.videoId || null;
+  if (!videoId && fs.existsSync(configPath)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      videoId = config?.upload_metadata?.youtube?.post_id || null;
+    } catch (e) {}
+  }
+  res.json({ experiment, videoId });
+});
+
+app.post("/api/youtube/title-experiment/start", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = startTitleExperiment(projDir, {
+      videoId: req.body?.videoId,
+      titles: req.body?.titles || [],
+      rotateHours: req.body?.rotateHours || 48,
+    });
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/title-experiment/apply", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const variantId = String(req.body?.variantId || "").toUpperCase();
+  if (!variantId) {
+    return res.status(400).json({ error: "variantId é obrigatório." });
+  }
+  try {
+    const result = await applyTitleVariant(WORKSPACE_DIR, projDir, variantId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar título");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/title-experiment/analytics", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const report = await getTitleExperimentReport(WORKSPACE_DIR, projDir);
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar analytics");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/title-experiment/sync-video", (req, res) => {
+  const projDir = getProjectDir(req);
+  const videoId = req.body?.videoId;
+  if (!videoId) {
+    return res.status(400).json({ error: "videoId é obrigatório." });
+  }
+  try {
+    const experiment = syncExperimentVideoId(projDir, videoId);
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API: AI-powered BGM suggestion per block
 
 app.post("/api/ai/suggest-bgm", async (req, res) => {
@@ -7855,9 +8124,9 @@ if (fs.existsSync(frontendDist)) {
 
 const PORT = 3005;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
 
-  console.log(`Backend Server running on http://localhost:${PORT}`);
+  console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
 
 });
 
