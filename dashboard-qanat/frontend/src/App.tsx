@@ -13793,8 +13793,25 @@ export default function App() {
   };
 
   const handleGenerateYoutubeThumbnailImages = async () => {
-    if (!youtubeMetadataParsed?.thumbnails?.length) {
-      toast('Gere os metadados primeiro para obter as variantes A/B.');
+    let thumbnails = youtubeMetadataParsed?.thumbnails || [];
+    let format = youtubeMetadataFormat || undefined;
+    let palette = youtubeMetadataStrategy?.palette || [];
+
+    if (!thumbnails.length) {
+      try {
+        const cacheRes = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+        if (cacheRes.ok) {
+          const cache = await cacheRes.json();
+          thumbnails = cache?.parsed?.thumbnails || [];
+          format = format || cache?.format;
+          palette = palette.length ? palette : (cache?.palette || []);
+          if (cache?.parsed) setYoutubeMetadataParsed(cache.parsed);
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (!thumbnails.length) {
+      toast('Passo 1: clique em "Gerar Metadados" antes de gerar as thumbnails.');
       return;
     }
 
@@ -13804,9 +13821,9 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          thumbnails: youtubeMetadataParsed.thumbnails,
-          format: youtubeMetadataFormat || undefined,
-          palette: youtubeMetadataStrategy?.palette || [],
+          thumbnails,
+          format,
+          palette,
         }),
       });
       const data = await res.json();
@@ -21264,7 +21281,7 @@ export default function App() {
                             }`}
                           >
                             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                            <span>Agente IA & Metadados</span>
+                            <span>Agente IA · Metadados & Thumbnails</span>
                           </button>
 
             <button 
@@ -27402,7 +27419,7 @@ export default function App() {
 
 
                       <p className="text-[10px] text-gray-400 mt-1">
-                        Títulos magnéticos, descrição para feed (Shorts) ou retenção (Longos), tags e engajamento — detecta o formato do projeto automaticamente.
+                        Passo 1: <strong className="text-zinc-300">Gerar Metadados</strong> → Passo 2: <strong className="text-zinc-300">Gerar Thumbnails</strong> (botão verde). Títulos, descrição, tags e 3 capas A/B para upload no YouTube.
                       </p>
                       {(youtubeMetadataFormat || youtubeMetadataStrategy?.profileLabel) && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -27446,6 +27463,16 @@ export default function App() {
 
 
 
+                    <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      disabled={youtubeThumbnailsLoading}
+                      onClick={handleGenerateYoutubeThumbnailImages}
+                      title={youtubeMetadataParsed?.thumbnails?.length ? 'Gera 3 imagens de capa A/B/C' : 'Gere os metadados primeiro (passo 1)'}
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
+                    >
+                      {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                      <span>{youtubeThumbnailsLoading ? 'Gerando...' : 'Gerar Thumbnails'}</span>
+                    </button>
                     <button 
 
 
@@ -27503,6 +27530,7 @@ export default function App() {
 
 
                     </button>
+                    </div>
 
 
 
@@ -28939,6 +28967,59 @@ export default function App() {
                             <option value="public">Público</option>
                             <option value="unlisted">Não listado</option>
                           </select>
+                        </div>
+
+                        <div className="space-y-3 pt-2 border-t border-zinc-900/60">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Thumbnail do YouTube (A/B/C)</label>
+                              <p className="text-[9px] text-zinc-600 mt-0.5">Gera 3 capas com texto overlay a partir dos assets do projeto.</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setActiveTab('ai')}
+                                className="text-[9px] font-bold text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-800 transition cursor-pointer"
+                              >
+                                Agente IA
+                              </button>
+                              <button
+                                type="button"
+                                disabled={youtubeThumbnailsLoading}
+                                onClick={handleGenerateYoutubeThumbnailImages}
+                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                              >
+                                {youtubeThumbnailsLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
+                                {youtubeThumbnailsLoading ? 'Gerando...' : 'Gerar Thumbnails'}
+                              </button>
+                            </div>
+                          </div>
+                          {youtubeThumbnailsGenerated.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              {youtubeThumbnailsGenerated.map((thumb) => (
+                                <a
+                                  key={thumb.id}
+                                  href={thumb.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="group rounded-lg overflow-hidden border border-zinc-800 hover:border-gold-500/40 transition"
+                                >
+                                  <img
+                                    src={`${thumb.url}?t=${Date.now()}`}
+                                    alt={`Thumbnail ${thumb.id}`}
+                                    className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16]' : 'aspect-video'}`}
+                                  />
+                                  <span className="block text-center text-[8px] font-bold text-zinc-500 group-hover:text-gold-400 py-1">
+                                    Variante {thumb.id} · Baixar
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[9px] text-zinc-600 italic">
+                              Nenhuma thumbnail gerada ainda. Use &quot;Gerar Metadados&quot; na aba Agente IA, depois clique em &quot;Gerar Thumbnails&quot;.
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
