@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "render": "remotion render src/index.ts LumieraTimeline",
-    "studio": "remotion studio src/index.ts"
+    "studio": "remotion studio src/index.ts",
+    "lottie:download": "node scripts/download-lottie-pack.mjs",
+    "lottie:registry": "node scripts/generate-lottie-registry.mjs",
+    "lottie:sync": "node scripts/download-lottie-pack.mjs && node scripts/generate-lottie-registry.mjs"
   },
   "dependencies": {
     "@remotion/lottie": "4.0.482",

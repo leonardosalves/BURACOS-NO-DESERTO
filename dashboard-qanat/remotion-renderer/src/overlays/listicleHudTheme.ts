@@ -1,31 +1,7 @@
-import sparklesLottie from "./lottie_assets/sparkles.json";
-import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
-import awardLottie from "./lottie_assets/lottie_biz_award_2.json";
-import timeLottie from "./lottie_assets/lottie_ui_time_1.json";
-import bookLottie from "./lottie_assets/lottie_edu_book_1.json";
-import shieldLottie from "./lottie_assets/lottie_edu_shield_1.json";
-import flameLottie from "./lottie_assets/flame.json";
-import coinLottie from "./lottie_assets/lottie_biz_coin_4.json";
-import chartLottie from "./lottie_assets/lottie_biz_chart_4.json";
-import targetLottie from "./lottie_assets/lottie_biz_target_2.json";
-import compassLottie from "./lottie_assets/lottie_arrow_direction_1.json";
-import mapLottie from "./lottie_assets/lottie_life_map_2.json";
-import gearLottie from "./lottie_assets/lottie_ui_gear_1.json";
+import rulesData from "./listicleLottieRules.json";
+import { LOTTIE_REGISTRY, type LottieRegistryKey } from "./lottieRegistry.generated";
 
-export type ListicleLottieKey =
-  | "sparkles"
-  | "crown"
-  | "award"
-  | "time"
-  | "book"
-  | "shield"
-  | "flame"
-  | "coin"
-  | "chart"
-  | "target"
-  | "compass"
-  | "map"
-  | "gear";
+export type ListicleLottieKey = LottieRegistryKey;
 
 export type ListicleHudTheme =
   | "ancient"
@@ -35,55 +11,50 @@ export type ListicleHudTheme =
   | "tech"
   | "industrial";
 
-const LOTTIE_MAP: Record<ListicleLottieKey, object> = {
-  sparkles: sparklesLottie,
-  crown: crownLottie,
-  award: awardLottie,
-  time: timeLottie,
-  book: bookLottie,
-  shield: shieldLottie,
-  flame: flameLottie,
-  coin: coinLottie,
-  chart: chartLottie,
-  target: targetLottie,
-  compass: compassLottie,
-  map: mapLottie,
-  gear: gearLottie,
+/** Aliases para chaves usadas nas regras mas com nome diferente no registry */
+const KEY_ALIASES: Record<string, LottieRegistryKey> = {
+  compass: "direction",
+  clock: "time",
+  hourglass: "time",
+  ship: "anchor",
+  sword: "shield",
+  temple: "pillar",
+  hammer: "gear",
+  pickaxe: "gear",
+  microscope: "dna",
+  telescope: "rocket",
 };
 
-const RANK_POOL: ListicleLottieKey[] = ["time", "compass", "shield", "flame", "award"];
+function resolveRegistryKey(key: string): LottieRegistryKey | null {
+  const aliased = (KEY_ALIASES[key] || key) as LottieRegistryKey;
+  if (aliased in LOTTIE_REGISTRY) return aliased;
+  return null;
+}
 
-const TITLE_LOTTIE_RULES: Array<{ key: ListicleLottieKey; re: RegExp }> = [
-  { key: "crown", re: /coroa|crown|primeiro|campe|ouro|gold|melhor|vencedor/i },
-  { key: "compass", re: /bússola|bussola|compass|navega|orient|direç|direc/i },
-  { key: "map", re: /mapa|map|geograf|continente|território|territorio|rota/i },
-  { key: "coin", re: /dinheiro|moeda|coin|financ|invest|lucro|dólar|dolar|econom|ouro monet/i },
-  { key: "chart", re: /gráfico|grafico|chart|dados|estat|número|numero|porcent/i },
-  { key: "target", re: /alvo|target|meta|objetiv|foco/i },
-  { key: "gear", re: /engren|gear|mecan|máquina|maquina|motor|torno|relógio|relogio|clock|ponteiro/i },
-  { key: "book", re: /livro|book|históri|histori|antig|document|papiro|manuscrit|biblioteca/i },
-  { key: "shield", re: /escudo|shield|fort|castel|muralha|defesa|guerra|milit|armadura|torre/i },
-  { key: "flame", re: /fogo|flame|chama|explos|incêndio|incendio|foguete|combust/i },
-  { key: "time", re: /tempo|time|século|seculo|era|data|ano|cronolog|século|milênio|milenio/i },
-  { key: "award", re: /prêmio|premio|award|trof|medal|conquista/i },
-  { key: "sparkles", re: /mistério|misterio|enigma|secreto|lendár|lendar|mágic|magic/i },
-];
-
-function matchTitleLottie(title = "", visualHook = ""): ListicleLottieKey | null {
+function matchTitleLottie(title = "", visualHook = ""): LottieRegistryKey | null {
   const titleBlob = String(title).trim();
   const hookBlob = String(visualHook).trim();
-  for (const rule of TITLE_LOTTIE_RULES) {
-    if (rule.re.test(titleBlob)) return rule.key;
+  for (const rule of rulesData.rules) {
+    const re = new RegExp(rule.re, "i");
+    if (re.test(titleBlob)) {
+      const hit = resolveRegistryKey(rule.key);
+      if (hit) return hit;
+    }
   }
-  for (const rule of TITLE_LOTTIE_RULES) {
-    if (rule.re.test(hookBlob)) return rule.key;
+  for (const rule of rulesData.rules) {
+    const re = new RegExp(rule.re, "i");
+    if (re.test(hookBlob)) {
+      const hit = resolveRegistryKey(rule.key);
+      if (hit) return hit;
+    }
   }
   return null;
 }
 
 export function lottieDataForKey(key?: string) {
-  const safe = (key && key in LOTTIE_MAP ? key : "award") as ListicleLottieKey;
-  return LOTTIE_MAP[safe] || awardLottie;
+  const resolved = key ? resolveRegistryKey(key) : null;
+  if (resolved) return LOTTIE_REGISTRY[resolved];
+  return LOTTIE_REGISTRY.award;
 }
 
 export function resolveLottieKey({
@@ -100,16 +71,23 @@ export function resolveLottieKey({
   visualHook?: string;
   title?: string;
   lottieKey?: string;
-}): ListicleLottieKey {
-  if (lottieKey && lottieKey in LOTTIE_MAP) return lottieKey as ListicleLottieKey;
+}): LottieRegistryKey {
+  if (lottieKey) {
+    const fromProp = resolveRegistryKey(lottieKey);
+    if (fromProp) return fromProp;
+  }
   if (isIntro) return "sparkles";
   if (isClimax) return "crown";
 
   const matched = matchTitleLottie(title, visualHook);
   if (matched) return matched;
 
-  const idx = Math.max(0, (Number(rank) || 1) - 1) % RANK_POOL.length;
-  return RANK_POOL[idx];
+  const pool = rulesData.rankPool
+    .map((k) => resolveRegistryKey(k))
+    .filter(Boolean) as LottieRegistryKey[];
+  const safePool = pool.length ? pool : ["time", "direction", "shield", "flame", "award"] as LottieRegistryKey[];
+  const idx = Math.max(0, (Number(rank) || 1) - 1) % safePool.length;
+  return safePool[idx];
 }
 
 export function hudThemeStyles(theme: ListicleHudTheme = "ancient", accent: string, isClimax: boolean) {
