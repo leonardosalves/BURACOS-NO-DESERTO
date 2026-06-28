@@ -59,11 +59,21 @@ export function flattenWordTranscripts(wordTranscripts) {
   return flatList;
 }
 
-export function findNarrationMatch(narrationText, flatTranscriptWords) {
+export function findNarrationMatch(
+  narrationText,
+  flatTranscriptWords,
+  { searchAfter = 0, searchBefore = Infinity } = {},
+) {
   if (!narrationText || !flatTranscriptWords?.length) return null;
 
   const targetWords = cleanText(narrationText);
   if (targetWords.length === 0) return null;
+
+  const eligible = flatTranscriptWords
+    .map((w, idx) => ({ w, idx }))
+    .filter(({ w }) => w.start >= searchAfter - 0.35 && w.start <= searchBefore + 0.5);
+
+  if (eligible.length === 0) return null;
 
   const targetWeights = targetWords.map((w) => (PORTUGUESE_STOP_WORDS.has(w) ? 1 : 10));
   const maxPossibleScore = targetWeights.reduce((acc, val) => acc + val, 0);
@@ -74,15 +84,15 @@ export function findNarrationMatch(narrationText, flatTranscriptWords) {
   let bestFirstMatchIdx = -1;
   let bestLastMatchIdx = -1;
 
-  for (let i = 0; i <= flatTranscriptWords.length - Math.min(N, flatTranscriptWords.length); i++) {
+  for (let i = 0; i <= eligible.length - Math.min(N, eligible.length); i++) {
     let score = 0;
     let firstMatchIdxInWindow = -1;
     let lastMatchIdxInWindow = -1;
     const matchedTargetIndices = new Set();
-    const windowWords = flatTranscriptWords.slice(i, i + W);
+    const windowWords = eligible.slice(i, i + W);
 
-    windowWords.forEach((w, twIdx) => {
-      const cleanTw = w.clean;
+    windowWords.forEach((entry, twIdx) => {
+      const cleanTw = entry.w.clean;
       for (let tIdx = 0; tIdx < targetWords.length; tIdx++) {
         if (!matchedTargetIndices.has(tIdx) && matchWords(targetWords[tIdx], cleanTw)) {
           score += targetWeights[tIdx];
@@ -94,8 +104,8 @@ export function findNarrationMatch(narrationText, flatTranscriptWords) {
       }
     });
 
-    const currentFirstAbs = i + firstMatchIdxInWindow;
-    const currentLastAbs = i + lastMatchIdxInWindow;
+    const currentFirstAbs = eligible[i + firstMatchIdxInWindow]?.idx ?? -1;
+    const currentLastAbs = eligible[i + lastMatchIdxInWindow]?.idx ?? -1;
     const currentSpan = currentLastAbs - currentFirstAbs;
     const bestSpan = bestLastMatchIdx - bestFirstMatchIdx;
 
@@ -116,7 +126,7 @@ export function findNarrationMatch(narrationText, flatTranscriptWords) {
   if (bestScore >= threshold && bestFirstMatchIdx !== -1 && bestLastMatchIdx !== -1) {
     const start = flatTranscriptWords[bestFirstMatchIdx].start;
     const end = flatTranscriptWords[bestLastMatchIdx].end;
-    return { start, end, duration: end - start };
+    return { start, end, duration: end - start, bestFirstMatchIdx, bestLastMatchIdx };
   }
   return null;
 }
@@ -149,11 +159,35 @@ export function computeAssetDuration(asset, allAssets, blockDuration) {
  * Block narration anchor = timestamp of the first matched word across all assets
  * (same as blockNarrationWordsCache[0].start in the editor).
  */
+export function getBlockNarrationText(blockNum, context = {}) {
+  const { visualPrompts = [], blockPhrases = [] } = context;
+  const scenes = visualPrompts.filter((vp) => Number(vp?.block) === blockNum);
+  const sceneTexts = scenes
+    .map((vp) => String(vp?.narration_text || vp?.narration_excerpt || "").trim())
+    .filter(Boolean);
+  if (sceneTexts.length > 0) return sceneTexts.join(" ");
+  const bp = blockPhrases.find((x) => Number(x?.block) === blockNum);
+  return String(bp?.phrase || "").trim();
+}
+
 export function getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, context = {}) {
+  const searchAfter = Number(context.blockStart);
+  const searchBefore = Number(context.blockEnd);
+  const bounds = {
+    searchAfter: Number.isFinite(searchAfter) ? searchAfter : 0,
+    searchBefore: Number.isFinite(searchBefore) ? searchBefore : Infinity,
+  };
+
+  const blockText = getBlockNarrationText(blockNum, context);
+  if (blockText) {
+    const blockMatch = findNarrationMatch(blockText, flatTranscriptWords, bounds);
+    if (blockMatch) return blockMatch.start;
+  }
+
   const allStarts = [];
   for (let idx = 0; idx < assets.length; idx++) {
     const narrationText = getAssetNarrationText(blockNum, idx, context);
-    const matched = findNarrationMatch(narrationText, flatTranscriptWords);
+    const matched = findNarrationMatch(narrationText, flatTranscriptWords, bounds);
     if (matched) allStarts.push(matched.start);
   }
   if (allStarts.length > 0) return Math.min(...allStarts);
