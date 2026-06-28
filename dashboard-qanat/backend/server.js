@@ -97,6 +97,11 @@ import {
   getEpidemicMoodForNiche,
 } from "./videoProEnhancements.js";
 import {
+  needsListItemsRepair,
+  repairListItemsWithAI,
+  ensureListItemsInProject,
+} from "./listicleRepair.js";
+import {
   ensureBrandCatalogMigrated,
   loadRenderConfig,
   saveRenderConfig,
@@ -1362,9 +1367,15 @@ app.get("/api/projects/storyboard", (req, res) => {
 });
 
 // API: Pre-render video quality check (overlays, listicle ranks, hook pollution)
-app.get("/api/projects/video-quality", (req, res) => {
+app.get("/api/projects/video-quality", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
+    await ensureListItemsInProject(projDir, {
+      getApiKey,
+      callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+      parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projDir), label),
+      readProjectJson,
+    });
     const report = runVideoQualityCheck(projDir, readProjectJson);
     res.json(report);
   } catch (err) {
@@ -8636,6 +8647,34 @@ REGRAS FINAIS:
       ideaTitle: idea.title,
     });
 
+    if (isListicle) {
+      const repairConfig = {
+        content_mode: "LISTICLE",
+        rank_count: listicleRank,
+        rank_order: rankOrder === "asc" ? "asc" : "desc",
+        list_topic: listicleTopic,
+        video_format: format,
+        block_phrases: parsedData.technical_config?.block_phrases || [],
+        niche,
+      };
+      if (needsListItemsRepair(repairConfig, parsedData)) {
+        try {
+          const repaired = await repairListItemsWithAI(parsedData, repairConfig, {
+            apiKey,
+            callGemini: (prompt, opts) => callGeminiWithRetry(apiKey, prompt, opts),
+            parseJson: (text, label) => parseAiJsonResponse(text, apiKey, label),
+            format,
+          });
+          if (repaired.repaired) {
+            parsedData = repaired.storyboard;
+            console.log(`[Creator Script] list_items reparado pela IA (${repaired.count} itens).`);
+          }
+        } catch (repairListErr) {
+          console.warn("[Creator Script] Falha ao reparar list_items:", repairListErr.message);
+        }
+      }
+    }
+
     // Save full storyboard JSON
 
     const storyboardPath = path.join(projDir, "storyboard.json");
@@ -9427,8 +9466,15 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
 
 // AI-driven overlay planning for Remotion PRO using Gemini API
 async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}) {
+  await ensureListItemsInProject(projectDir, {
+    getApiKey,
+    callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
+    parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projectDir), label),
+    readProjectJson,
+  });
+
   const config = readProjectJson(projectDir, "config_qanat.json", {});
-  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  let storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
   const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
 
