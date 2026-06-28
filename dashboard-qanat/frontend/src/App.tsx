@@ -7784,6 +7784,7 @@ export default function App() {
 
 
     saveConfig(updatedConfig);
+    alignBlockAssetsToSpeech(blockKey, updatedConfig);
 
 
 
@@ -10931,7 +10932,8 @@ export default function App() {
     return { ...cfg, timeline_assets: timelineAssets };
   };
 
-  const alignBlockAssetsToSpeech = (blockKey: string) => {
+  const alignBlockAssetsToSpeech = (blockKey: string, cfgOverride?: ConfigData) => {
+    const cfg = cfgOverride ?? config;
 
 
 
@@ -10939,7 +10941,7 @@ export default function App() {
 
 
 
-    if (!config || !config.timeline_assets || !config.timeline_assets[blockKey]) return;
+    if (!cfg || !cfg.timeline_assets || !cfg.timeline_assets[blockKey]) return;
 
 
 
@@ -10979,7 +10981,7 @@ export default function App() {
 
 
 
-    const updatedAssets = [...config.timeline_assets[blockKey]];
+    const updatedAssets = [...cfg.timeline_assets[blockKey]];
 
 
 
@@ -11309,7 +11311,7 @@ export default function App() {
 
 
 
-      ...config,
+      ...cfg,
 
 
 
@@ -11325,7 +11327,7 @@ export default function App() {
 
 
 
-        ...config.timeline_assets,
+        ...cfg.timeline_assets,
 
 
 
