@@ -29,6 +29,7 @@ type Props = {
   hasRealListItems?: boolean;
   accentColor?: string;
   hudTheme?: ListicleHudTheme;
+  videoSeed?: string;
 };
 
 const TITLE_WARN_CHARS = 60;
@@ -135,6 +136,7 @@ export function ListicleHudPreview({
   hasRealListItems = false,
   accentColor = '#C5A880',
   hudTheme = 'ancient',
+  videoSeed = '',
 }: Props) {
   const effectiveStyle = resolveHudStyle(hudStyle, rankCount);
   const previewItems = items;
@@ -154,8 +156,9 @@ export function ListicleHudPreview({
     isClimax,
     rank: active.rank,
     title: active.title,
+    videoSeed,
   });
-  const lottieData = lottieDataForKey(lottieKey, lottieVariantSeed([active.rank, active.title, lottieKey]));
+  const lottieData = lottieDataForKey(lottieKey, lottieVariantSeed([videoSeed, active.rank, active.title, lottieKey]));
   const dotCount = Math.min(rankCount, 8);
   const useBar = rankCount > 8;
   const lottieSize = effectiveStyle === 'compact' ? 40 : 52;

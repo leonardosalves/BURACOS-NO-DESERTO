@@ -17,6 +17,7 @@ export interface ListicleRecapProps {
   theme?: string;
   fontTitle?: string;
   position?: "top-center" | "bottom-right" | "bottom-left" | "bottom-center";
+  videoSeed?: string;
 }
 
 export const ListicleRecap: React.FC<ListicleRecapProps> = ({
@@ -26,6 +27,7 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
   accentColor = "#D4AF37",
   fontTitle = "Cinzel",
   position = "top-center",
+  videoSeed = "",
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -100,6 +102,7 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
               isClimax: line.rank === 1,
               rank: line.rank,
               title: line.title,
+              videoSeed,
             });
 
             return (
@@ -116,7 +119,7 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
                 }}
               >
                 <TitleLottieIcon
-                  animationData={lottieDataForKey(iconKey, lottieVariantSeed([line.rank, line.title, iconKey]))}
+                  animationData={lottieDataForKey(iconKey, lottieVariantSeed([videoSeed, line.rank, line.title, iconKey]))}
                   size={isVertical ? 36 : 30}
                 />
                 <span

@@ -35,6 +35,7 @@ export interface RankProgressProps {
   fontTitle?: string;
   secondaryColor?: string;
   thumbnailPalette?: string[];
+  videoSeed?: string;
 }
 
 function resolveSegment(segments: RankProgressSegment[], timeSec: number) {
@@ -61,6 +62,7 @@ export const RankProgress: React.FC<RankProgressProps> = ({
   fontTitle = "Cinzel",
   secondaryColor,
   thumbnailPalette = [],
+  videoSeed = "",
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -118,8 +120,9 @@ export const RankProgress: React.FC<RankProgressProps> = ({
     visualHook: active.visualHook,
     title: titleLine,
     lottieKey: active.lottieKey,
+    videoSeed,
   });
-  const lottieSeed = lottieVariantSeed([displayRank, titleLine, lottieKey]);
+  const lottieSeed = lottieVariantSeed([videoSeed, displayRank, titleLine, lottieKey]);
   const lottieData = lottieDataForKey(lottieKey, lottieSeed);
 
   const brandAccent = thumbnailPalette[0] || accentColor;

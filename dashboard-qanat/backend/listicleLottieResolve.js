@@ -30,12 +30,22 @@ function resolveKey(key) {
   return KEY_ALIASES[key] || key;
 }
 
+function lottieVariantSeed(parts = []) {
+  const raw = parts.filter((p) => p !== undefined && p !== null && String(p).length > 0).join("|");
+  let h = 0;
+  for (let i = 0; i < raw.length; i++) {
+    h = (h * 31 + raw.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
 export function pickListicleLottieKey({
   visualHook = "",
   title = "",
   rank,
   isClimax = false,
   isIntro = false,
+  videoSeed = "",
 } = {}) {
   if (isIntro) return "sparkles";
   if (isClimax || Number(rank) === 1) return "crown";
@@ -55,5 +65,6 @@ export function pickListicleLottieKey({
 
   const pool = rankPool.map(resolveKey).filter(Boolean);
   const safePool = pool.length ? pool : ["time", "direction", "shield", "flame", "award"];
-  return safePool[Math.max(0, (Number(rank) || 1) - 1) % safePool.length];
+  const idx = lottieVariantSeed([videoSeed, rank, titleBlob, hookBlob]) % safePool.length;
+  return safePool[idx];
 }
