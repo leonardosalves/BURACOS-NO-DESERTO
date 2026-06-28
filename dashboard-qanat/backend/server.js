@@ -1493,6 +1493,23 @@ app.post("/api/projects/storyboard", (req, res) => {
 
 });
 
+// API: Limpar cache temporário do Remotion (public/projects — cópias de assets para render)
+app.post("/api/render/cleanup-public-cache", (req, res) => {
+  try {
+    const result = purgeRemotionPublicProjectCache();
+    res.json({
+      ok: true,
+      removed: result.removed,
+      freedMb: result.freedMb,
+      message: result.removed > 0
+        ? `${result.removed} pasta(s) de cache removida(s), ~${result.freedMb} MB liberados.`
+        : "Nenhum cache antigo encontrado em public/projects.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Falha ao limpar cache Remotion", details: err.message });
+  }
+});
+
 // GET /api/render/config
 
 app.get("/api/render/config", (req, res) => {
@@ -3276,6 +3293,11 @@ app.get("/api/render/:mode", async (req, res) => {
 
           sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
 
+          const postClean = purgeRemotionPublicProjectCache();
+          if (postClean.freedMb > 0) {
+            sendLog(`[Remotion] Cache temporário removido (~${postClean.freedMb} MB liberados).`);
+          }
+
           res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
 
         } else {
@@ -3455,6 +3477,49 @@ function safeProjectSlug(projectDir) {
 
   return path.basename(projectDir).replace(/[^a-zA-Z0-9_-]/g, "_") || "default";
 
+}
+
+function remotionPublicProjectsRoot() {
+  return path.join(REMOTION_PUBLIC_DIR, "projects");
+}
+
+function remotionDirSizeBytes(dir) {
+  let total = 0;
+  if (!fs.existsSync(dir)) return 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) total += remotionDirSizeBytes(entryPath);
+    else if (entry.isFile()) {
+      try { total += fs.statSync(entryPath).size; } catch { /* ignore */ }
+    }
+  }
+  return total;
+}
+
+/** Remove past render asset caches from remotion-renderer/public/projects (not the real project folders). */
+function purgeRemotionPublicProjectCache(keepSlug = null) {
+  const projectsRoot = remotionPublicProjectsRoot();
+  if (!fs.existsSync(projectsRoot)) {
+    fs.mkdirSync(projectsRoot, { recursive: true });
+    return { removed: 0, freedMb: 0 };
+  }
+
+  let removed = 0;
+  let freedBytes = 0;
+  for (const name of fs.readdirSync(projectsRoot)) {
+    if (keepSlug && name === keepSlug) continue;
+    const dir = path.join(projectsRoot, name);
+    try {
+      if (!fs.statSync(dir).isDirectory()) continue;
+      freedBytes += remotionDirSizeBytes(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
+      removed++;
+    } catch (e) {
+      console.warn(`[Remotion Cache] Falha ao remover ${name}:`, e.message);
+    }
+  }
+
+  return { removed, freedMb: Math.round(freedBytes / (1024 * 1024)) };
 }
 
 function readProjectJson(projectDir, fileName, fallback = {}) {
@@ -3942,10 +4007,15 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const publicProjectDir = path.join(REMOTION_PUBLIC_DIR, "projects", projectSlug);
 
-  if (!publicProjectDir.startsWith(path.join(REMOTION_PUBLIC_DIR, "projects"))) {
+  if (!publicProjectDir.startsWith(remotionPublicProjectsRoot())) {
 
     throw new Error("Caminho Remotion inválido.");
 
+  }
+
+  const cacheClean = purgeRemotionPublicProjectCache();
+  if (cacheClean.removed > 0) {
+    console.log(`[Remotion Cache] ${cacheClean.removed} cache(s) antigo(s) removido(s) — ~${cacheClean.freedMb} MB liberados`);
   }
 
   fs.rmSync(publicProjectDir, { recursive: true, force: true });
