@@ -159,7 +159,7 @@ REGRAS DE QUALIDADE (obrigatório):
 - Cada ideia deve ser um ranking DISTINTO — não 12 variações do mesmo tema
 - Títulos em PT-BR, específicos, com número no título
 ${formatRules}
-- Inclua 3 "sample_items" reais que entrariam na lista (nomes concretos, não genéricos)
+- Inclua 3 "sample_items" como NOMES CURTOS de itens (máx. 40 caracteres cada — só o nome, sem explicação entre parênteses)
 - "controversy_hook": por que o #1 vai surpreender ou gerar comentário
 - "why_interesting": 1 frase sobre apelo de retenção (curiosidade, choque, nostalgia, debate)
 - "list_topic": tema interno curto para gerar o roteiro (ex: "invenções chinesas antigas subestimadas")
