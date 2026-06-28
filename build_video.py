@@ -108,6 +108,13 @@ if os.path.exists('config_qanat.json'):
 
             WIDTH, HEIGHT = 1080, 1920
 
+        render_resolution = os.environ.get('LUMIERA_RENDER_RESOLUTION', _config.get('render_resolution', '1080p'))
+        if render_resolution == '2k':
+            if ASPECT_RATIO == '9:16':
+                WIDTH, HEIGHT = 1440, 2560
+            else:
+                WIDTH, HEIGHT = 2560, 1440
+
         print(f"Successfully loaded config_qanat.json dynamic properties. Aspect Ratio: {ASPECT_RATIO} ({WIDTH}x{HEIGHT})")
 
     except Exception as e:

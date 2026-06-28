@@ -1184,6 +1184,7 @@ export default function App() {
 
 
   const [rendering, setRendering] = useState<boolean>(false);
+  const [renderIn2k, setRenderIn2k] = useState<boolean>(false);
 
 
 
@@ -17573,7 +17574,8 @@ export default function App() {
     withoutImpactTitles = false,
     useHyperframes = false,
     isProres = false,
-    previewSeconds = 0
+    previewSeconds = 0,
+    resolution: '1080p' | '2k' = renderIn2k ? '2k' : '1080p'
   ) => {
     if (rendering) return;
 
@@ -17639,6 +17641,7 @@ export default function App() {
     if (useHyperframes) queryParams.push("hyperframes=1");
     if (isProres) queryParams.push("prores=1");
     if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
+    if (resolution === '2k') queryParams.push('resolution=2k');
     const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
 
     const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${queryString}`));
@@ -21949,6 +21952,24 @@ export default function App() {
                   )}
                 </div>
               )}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+                <label className="flex items-center gap-2.5 text-xs text-zinc-300 cursor-pointer select-none glass-panel px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-gold-500/30 transition">
+                  <input
+                    type="checkbox"
+                    checked={renderIn2k}
+                    onChange={(e) => setRenderIn2k(e.target.checked)}
+                    className="rounded bg-zinc-900 border-zinc-700 text-gold-500 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                  />
+                  <span>
+                    <span className="font-bold text-gold-400">Renderizar em 2K</span>
+                    <span className="text-zinc-500 ml-1.5">— 2560×1440 (16:9) ou 1440×2560 (9:16)</span>
+                  </span>
+                </label>
+                {renderIn2k && (
+                  <span className="text-[10px] text-amber-400/90 font-semibold uppercase tracking-wider">Render mais lento · maior qualidade</span>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 
