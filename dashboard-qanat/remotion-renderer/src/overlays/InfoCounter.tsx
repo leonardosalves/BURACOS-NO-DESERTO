@@ -15,6 +15,7 @@ export interface InfoCounterProps {
   formatNumber?: boolean;
   accentColor?: string;
   position?: "center" | "bottom-right" | "bottom-left" | "top-right";
+  layoutZone?: "listicle-shorts-safe";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
   customStyle?: {
     background?: string;
@@ -85,10 +86,12 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
   position = "center",
   theme = "classic",
   customStyle,
+  layoutZone,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
+  const listicleShortsSafe = layoutZone === "listicle-shorts-safe" && isVertical;
 
   // Spring animation for scale entrance
   const scaleSpring = spring({
@@ -131,7 +134,7 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
         )
       : 0;
 
-  // Position mapping
+  const shortsListiclePadding = "0 48px 280px";
   const positionStyles: Record<string, React.CSSProperties> = {
     center: {
       justifyContent: "center",
@@ -140,12 +143,12 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
     "bottom-right": {
       justifyContent: "flex-end",
       alignItems: "flex-end",
-      padding: isVertical ? "0 60px 640px" : "0 100px 220px",
+      padding: listicleShortsSafe ? shortsListiclePadding : (isVertical ? "0 60px 640px" : "0 100px 220px"),
     },
     "bottom-left": {
       justifyContent: "flex-end",
       alignItems: "flex-start",
-      padding: isVertical ? "0 60px 640px" : "0 100px 220px",
+      padding: listicleShortsSafe ? shortsListiclePadding : (isVertical ? "0 60px 640px" : "0 100px 220px"),
     },
     "top-right": {
       justifyContent: "flex-start",
@@ -153,6 +156,10 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
       padding: isVertical ? "200px 60px 0" : "100px 100px 0",
     },
   };
+
+  const resolvedPosition = position && positionStyles[position]
+    ? position
+    : (isVertical ? "bottom-right" : "center");
 
   const displayValue = formatNumber
     ? formatWithSeparator(currentValue)
@@ -272,7 +279,7 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
   return (
     <AbsoluteFill
       style={{
-        ...positionStyles[position],
+        ...positionStyles[resolvedPosition],
         pointerEvents: "none",
         opacity,
       }}

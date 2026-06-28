@@ -283,9 +283,10 @@ ${plan.hyperframesRefs.map((r) => `- \`${r}\``).join("\n")}
 ${plan.retentionGoals.map((g) => `- ${g}`).join("\n")}
 
 ${plan.isListicle ? `### LISTICLE / TOP N (prioridade de layout)
-- O topo central da tela é RESERVADO para o contador de ranking (#20 → #1). NUNCA coloque counter, timeline, info-card ou kinetic-text no topo ou centro.
+- O topo central da tela é RESERVADO para o contador de ranking (#N → #1). NUNCA coloque counter, timeline, info-card, lower-third ou kinetic-text no topo ou centro.
 - Datas, anos (ex: "2000 anos", "150 a.C.") e números informativos → counter ou timeline em **bottom-right** ou **bottom-left** apenas.
 - O contador do ranking sempre vai do MAIOR para o MENOR (ex: Top 20 começa em #20 e termina em #1).
+${plan.format === "SHORT" ? `- SHORTS + LISTICLE: posição OBRIGATÓRIA "bottom-left" ou "bottom-right" para TODOS os overlays de dados. O terço inferior da tela é a única zona segura para informações da IA.` : ""}
 
 ` : ""}### Regras de ouro do criador profissional
 1. **Complementar, nunca repetir:** overlays trazem dados NOVOS que a legenda não diz.
@@ -377,9 +378,11 @@ export function enforceOverlayOrchestration(overlays, plan) {
       variantIdx++;
     }
 
+    const listicleBottomPool = plan.format === "SHORT"
+      ? ["bottom-left", "bottom-right"]
+      : ["bottom-right", "bottom-left", "bottom-center"];
     const positionPool = plan.isListicle
-      && ["counter", "timeline", "bar-chart", "info-card"].includes(overlay.type)
-      ? profile.positions.filter((p) => !String(p).includes("top") && p !== "center")
+      ? listicleBottomPool
       : profile.positions;
     const safePool = positionPool.length ? positionPool : ["bottom-right", "bottom-left"];
     overlay.props.position = safePool[posIdx % safePool.length];
