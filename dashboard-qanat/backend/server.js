@@ -71,6 +71,8 @@ import {
   buildIdeasQualityAddendum,
   buildListicleIdeasAddendum,
   buildListicleRankingIdeasPrompt,
+  buildNicheIsolationAddendum,
+  buildNicheVarietyInstruction,
   normalizeListicleIdeasResponse,
   buildListicleScriptRules,
   resolveListicleBlockCount,
@@ -7922,41 +7924,17 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
     }
   }
 
-  const projectsMeta = getExistingProjectsMetadata(WORKSPACE_DIR);
-
-  const sameFormatTitles = projectsMeta
-
-    .filter(p => p.format === format)
-
-    .map(p => p.title);
-
-  const otherFormat = format === "SHORTS" ? "LONGO" : "SHORTS";
-
-  const otherFormatTitles = projectsMeta
-
-    .filter(p => p.format === otherFormat)
-
-    .map(p => p.title);
-
-  let exclusionInstruction = "";
-
-  if (sameFormatTitles.length > 0) {
-
-    exclusionInstruction += `\nIMPORTANTE: Os seguintes temas JÁ foram criados no formato ${format}. Você NÃO PODE, sob hipótese alguma, sugerir ou repetir nenhuma ideia parecida ou com esses mesmos temas para o formato ${format}:\n` + sameFormatTitles.map(t => `- ${t}`).join("\n") + "\n";
-
-  }
-
-  if (otherFormatTitles.length > 0) {
-
-    exclusionInstruction += `\nNOTA: Os seguintes temas foram criados no formato ${otherFormat}. Você PODE sugerir adaptações deles para o formato ${format} (por exemplo, transformar um tema que era de vídeo curto em um vídeo longo ou vice-versa, se for estratégico e relevante), mas NÃO os repita no mesmo formato:\n` + otherFormatTitles.map(t => `- ${t}`).join("\n") + "\n";
-
-  }
+  const nicheClean = String(niche).trim();
 
   const promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
 
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 
-Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas (evitando temas genéricos, sem focar em projetos passados de Qanat para evitar repetições).
+Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas dentro desse nicho.
+
+${buildNicheIsolationAddendum(nicheClean)}
+
+${buildNicheVarietyInstruction(nicheClean)}
 
 ${notebooklmContext}
 
@@ -8030,53 +8008,15 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
   try {
 
-    // Creative sub-themes to inject variety and avoid repeating same topics
-    const creativeSubThemes = [
-      "Mecanismos mecânicos e engrenagens perdidas (ex: máquina de Antikythera, autômatos primitivos, relógios hidráulicos)",
-      "Sistemas de saneamento revolucionários, esgotos monumentais e aquedutos subterrâneos esquecidos",
-      "Arquitetura militar defensiva, fortes intrigantes e táticas de fortificação impenetráveis",
-      "Navegação impossível e instrumentos astronômicos de orientação (ex: astrolábios, bússolas solares vikings)",
-      "Cidades subterrâneas colossais e túneis misteriosos esculpidos sob rochas (ex: Derinkuyu)",
-      "Técnicas metalúrgicas lendárias e materiais perdidos (ex: aço damasceno, pilares de ferro indestrutíveis)",
-      "Sistemas antigos de comunicação em massa ultrarrápidos (ex: telégrafo hidráulico, espelhos e faróis sincronizados)",
-      "Medicina e técnicas cirúrgicas milenares surpreendentes",
-      "Astronomia monumental e alinhamentos celestes bizarros em templos esquecidos",
-      "Desastres, falhas de projeto e colapsos estruturais na engenharia do passado"
-    ];
-
-    // Clichés to ban temporarily if niche is ancient engineering
-    let nicheSpecificBan = "";
-    if (niche.toLowerCase().includes("engenharia") || niche.toLowerCase().includes("antig")) {
-      nicheSpecificBan = `\nIMPORTANTE: Evite os seguintes temas saturados/clichês de engenharia antiga nesta rodada, pois o público já os conhece muito bem:
-- Cimento/concreto romano que se repara sozinho
-- Bateria/pilha de Bagdá
-- Rampas e construção clássica das pirâmides do Egito
-- Linhas de Nazca
-- Acústica do teatro de Epidauro / sussurro grego
-- Cortes perfeitos em rochas egípcias/incas como manteiga (lâmina invisível)`;
-    }
-
-    // Select 2 random sub-themes to force variety
-    const shuffledThemes = [...creativeSubThemes].sort(() => 0.5 - Math.random());
-    const selectedThemes = shuffledThemes.slice(0, 2);
-    const varietyInstruction = `\nDIRETRIZ DE VARIABILIDADE E INOVAÇÃO:
-Para esta geração específica, force-se a explorar pelo menos 3 das 10 ideias baseadas nos seguintes subtemas/ângulos alternativos:
-1. ${selectedThemes[0]}
-2. ${selectedThemes[1]}
-${nicheSpecificBan}
-Busque mistérios, segredos e fatos históricos menos explorados na internet para que as sugestões pareçam totalmente frescas e originais para o usuário.`;
-
     const randomSeed = Math.floor(Math.random() * 1000000);
     const fullPrompt = `${promptSystem}
 
 [ID da Geração: ${randomSeed}]
 
 ENTRADAS:
-NICHO: ${niche}
+NICHO: ${nicheClean}
 FORMATO: ${format}
-${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}
-${exclusionInstruction}
-${varietyInstruction}`;
+${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}`;
     const responseText = await callGeminiWithRetry(apiKey, fullPrompt, { temperature: 1.15 });
 
     const parsedData = await parseAiJsonResponse(responseText, apiKey, "Ideias e diagnostico");
@@ -8125,16 +8065,9 @@ app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
     }
   }
 
-  const projectsMeta = getExistingProjectsMetadata(WORKSPACE_DIR);
-  const existingTitles = projectsMeta.map((p) => p.title).filter(Boolean);
-  const exclusionInstruction = existingTitles.length
-    ? `\nEVITE repetir ou parecer com estes vídeos já criados:\n${existingTitles.slice(0, 40).map((t) => `- ${t}`).join("\n")}\n`
-    : "";
-
   const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format })}
 
 ${notebooklmContext}
-${exclusionInstruction}
 
 [ID: ${Date.now()}]`;
 

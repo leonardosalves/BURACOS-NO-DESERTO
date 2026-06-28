@@ -134,7 +134,7 @@ export function ListicleCreatorStep({
         <input
           type="text"
           disabled={creatorLoading || !hasApiKey}
-          placeholder="Ex: história militar, engenharia antiga, tecnologia, curiosidades científicas..."
+          placeholder="Ex: curiosidades e fatos surpreendentes, finanças, culinária, natureza, esportes..."
           value={listNiche}
           onChange={(e) => setListNiche(e.target.value)}
           className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
