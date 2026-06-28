@@ -8694,7 +8694,7 @@ REGRAS FINAIS:
 
 app.get("/api/notebooklm/status", (_req, res) => {
   try {
-    res.json(getNotebooklmStatus());
+    res.json(getNotebooklmStatus(__dirname));
   } catch (err) {
     res.status(500).json({
       available: false,

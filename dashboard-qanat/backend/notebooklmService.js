@@ -5,11 +5,28 @@ import path from "path";
 const NLM_BIN = process.env.NLM_BIN || "nlm";
 const QUERY_TIMEOUT_MS = Number(process.env.NOTEBOOKLM_QUERY_TIMEOUT_MS || 120000);
 
-function runNlm(args, { timeoutMs = 60000 } = {}) {
+function resolveNotebooklmDataDir(backendDir) {
+  if (process.env.NOTEBOOKLM_MCP_CLI_PATH) {
+    return process.env.NOTEBOOKLM_MCP_CLI_PATH;
+  }
+  if (backendDir) {
+    return path.resolve(backendDir, "..", "..", ".notebooklm-data");
+  }
+  return path.join(process.cwd(), ".notebooklm-data");
+}
+
+function runNlm(args, { timeoutMs = 60000, backendDir } = {}) {
+  const dataDir = resolveNotebooklmDataDir(backendDir);
+  fs.mkdirSync(dataDir, { recursive: true });
+
   const result = spawnSync(NLM_BIN, args, {
     encoding: "utf8",
     timeout: timeoutMs,
     windowsHide: true,
+    env: {
+      ...process.env,
+      NOTEBOOKLM_MCP_CLI_PATH: dataDir,
+    },
   });
 
   if (result.error) throw result.error;
@@ -85,10 +102,10 @@ function isAuthError(message = "") {
   );
 }
 
-export function getNotebooklmStatus() {
+export function getNotebooklmStatus(backendDir) {
   try {
-    runNlm(["login", "--check"], { timeoutMs: 20000 });
-    const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000 });
+    runNlm(["login", "--check"], { timeoutMs: 20000, backendDir });
+    const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000, backendDir });
     const notebooks = parseJsonOutput(listRaw);
     const count = Array.isArray(notebooks) ? notebooks.length : 0;
     return {
@@ -121,7 +138,7 @@ function findOrCreateNotebook(niche, backendDir) {
   const title = `Lumiera: ${String(niche).trim().slice(0, 72) || "Geral"}`;
 
   try {
-    const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000 });
+    const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000, backendDir });
     const notebooks = parseJsonOutput(listRaw) || [];
     if (Array.isArray(notebooks)) {
       const existing = notebooks.find((n) => {
@@ -138,7 +155,7 @@ function findOrCreateNotebook(niche, backendDir) {
     /* continue to create */
   }
 
-  const createRaw = runNlm(["notebook", "create", title, "--json"], { timeoutMs: 30000 });
+  const createRaw = runNlm(["notebook", "create", title, "--json"], { timeoutMs: 30000, backendDir });
   const created = parseJsonOutput(createRaw);
   const id = created?.id || created?.notebook_id || createRaw.trim();
   if (!id) throw new Error("Falha ao criar notebook no NotebookLM.");
@@ -158,7 +175,7 @@ function addTextSource(notebookId, title, text, backendDir) {
   try {
     runNlm(
       ["source", "add", notebookId, "--file", tmpFile, "--title", title.slice(0, 80), "--wait"],
-      { timeoutMs: 120000 },
+      { timeoutMs: 120000, backendDir },
     );
   } finally {
     try {
@@ -169,11 +186,11 @@ function addTextSource(notebookId, title, text, backendDir) {
   }
 }
 
-function runOptionalFastResearch(notebookId, query) {
+function runOptionalFastResearch(notebookId, query, backendDir) {
   try {
     const startRaw = runNlm(
       ["research", "start", query, "--notebook-id", notebookId, "--mode", "fast"],
-      { timeoutMs: 45000 },
+      { timeoutMs: 45000, backendDir },
     );
     const started = parseJsonOutput(startRaw);
     const taskId = started?.task_id || started?.id;
@@ -181,11 +198,11 @@ function runOptionalFastResearch(notebookId, query) {
 
     const statusRaw = runNlm(
       ["research", "status", notebookId, "--task-id", taskId, "--max-wait", "45"],
-      { timeoutMs: 50000 },
+      { timeoutMs: 50000, backendDir },
     );
     const status = parseJsonOutput(statusRaw);
     if (status?.status === "completed" || status?.state === "completed") {
-      runNlm(["research", "import", notebookId, taskId], { timeoutMs: 120000 });
+      runNlm(["research", "import", notebookId, taskId], { timeoutMs: 120000, backendDir });
       return true;
     }
   } catch {
@@ -194,10 +211,10 @@ function runOptionalFastResearch(notebookId, query) {
   return false;
 }
 
-function queryNotebook(notebookId, question) {
+function queryNotebook(notebookId, question, backendDir) {
   const raw = runNlm(
     ["notebook", "query", notebookId, question, "--json"],
-    { timeoutMs: QUERY_TIMEOUT_MS },
+    { timeoutMs: QUERY_TIMEOUT_MS, backendDir },
   );
   const parsed = parseJsonOutput(raw);
   if (parsed) {
@@ -344,7 +361,7 @@ async function runNotebooklmPipeline({
   backendDir,
   runResearch = false,
 }) {
-  const status = getNotebooklmStatus();
+  const status = getNotebooklmStatus(backendDir);
   if (!status.authenticated) {
     return buildFallbackSummary({ niche, format, purpose });
   }
@@ -363,7 +380,7 @@ async function runNotebooklmPipeline({
     const researchQuery = contentMode === "LISTICLE"
       ? `melhores fatos e curiosidades sobre ${listTopic || niche} para vídeo top ${rankCount}`
       : `fatos surpreendentes tendências e perguntas do público sobre ${niche}`;
-    runOptionalFastResearch(notebookId, researchQuery);
+    runOptionalFastResearch(notebookId, researchQuery, backendDir);
   }
 
   let question;
@@ -375,7 +392,7 @@ async function runNotebooklmPipeline({
     question = buildIdeasQuery({ niche, format, contentMode, rankCount, listTopic });
   }
 
-  const answer = queryNotebook(notebookId, question);
+  const answer = queryNotebook(notebookId, question, backendDir);
 
   return {
     available: true,
