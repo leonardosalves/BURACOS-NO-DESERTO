@@ -292,6 +292,7 @@ export function ListicleCreatorStep({
           hudStyle={listicleHudStyle}
           items={hudPreview.items}
           hasRealListItems={hudPreview.hasRealListItems}
+          videoSeed={[listNiche, listTopic, creatorProjectName].filter(Boolean).join('|')}
         />
 
         <div className="space-y-2">

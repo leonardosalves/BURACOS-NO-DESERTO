@@ -85,6 +85,7 @@ export function resolveLottieKey({
   visualHook = "",
   title = "",
   lottieKey,
+  videoSeed = "",
 }: {
   isIntro?: boolean;
   isClimax?: boolean;
@@ -92,6 +93,8 @@ export function resolveLottieKey({
   visualHook?: string;
   title?: string;
   lottieKey?: string;
+  /** Identificador do vídeo (projeto + tema) — varia ícones entre vídeos e itens */
+  videoSeed?: string;
 }): LottieRegistryKey {
   if (lottieKey) {
     const fromProp = resolveRegistryKey(lottieKey);
@@ -107,7 +110,7 @@ export function resolveLottieKey({
     .map((k) => resolveRegistryKey(k))
     .filter(Boolean) as LottieRegistryKey[];
   const safePool = pool.length ? pool : ["time", "direction", "shield", "flame", "award"] as LottieRegistryKey[];
-  const idx = Math.max(0, (Number(rank) || 1) - 1) % safePool.length;
+  const idx = lottieVariantSeed([videoSeed, rank, title, visualHook]) % safePool.length;
   return safePool[idx];
 }
 

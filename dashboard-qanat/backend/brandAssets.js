@@ -157,12 +157,12 @@ export function resolveLogoFilePath(workspaceDir, projectDir, globalConfig, proj
     if (fromCatalog) return fromCatalog;
   }
 
-  const legacyProject = findLegacyProjectLogo(projectDir);
-  if (legacyProject) return legacyProject;
-
   const selectedId = globalConfig.selectedLogoId || globalConfig.brandLogos?.[0]?.id;
   const fromGlobal = tryEntry(resolveLogoEntry(globalConfig, selectedId));
   if (fromGlobal) return fromGlobal;
+
+  const legacyProject = findLegacyProjectLogo(projectDir);
+  if (legacyProject) return legacyProject;
 
   const legacyGlobal = path.join(workspaceDir, "ASSETS", "logo.png");
   return fs.existsSync(legacyGlobal) ? legacyGlobal : null;
@@ -229,6 +229,38 @@ export function selectBrandLogo(backendDir, logoId) {
   config.selectedLogoId = logoId;
   saveRenderConfig(backendDir, config);
   return { selectedLogoId: logoId, entry };
+}
+
+export function youtubeAvatarCacheKey(channelId, channelUrl = "") {
+  const raw = String(channelId || channelUrl || "default").toLowerCase();
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48) || "default";
+}
+
+export function clearYoutubeAvatarCaches(workspaceDir, projectDir = null) {
+  const dirs = [path.join(workspaceDir, "ASSETS")];
+  if (projectDir) dirs.push(path.join(projectDir, "ASSETS"));
+  const legacyNames = ["youtube_avatar.jpg", "youtube_avatar.png", ".youtube_avatar_meta.json"];
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of legacyNames) {
+      const p = path.join(dir, name);
+      if (fs.existsSync(p)) {
+        try { fs.unlinkSync(p); } catch { /* ignore */ }
+      }
+    }
+    try {
+      for (const file of fs.readdirSync(dir)) {
+        if (file.startsWith("youtube_avatar_")) {
+          try { fs.unlinkSync(path.join(dir, file)); } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
+  }
 }
 
 export function deleteBrandLogo(workspaceDir, backendDir, logoId) {

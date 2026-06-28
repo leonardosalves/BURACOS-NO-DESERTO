@@ -3516,6 +3516,11 @@ export default function App() {
         body: JSON.stringify({ id, scope: logoCatalogScope }),
       });
       if (res.ok) {
+        if (logoCatalogScope === 'global') {
+          try {
+            await fetch(getProjectUrl('/api/logo/reset'), { method: 'POST' });
+          } catch { /* ignore */ }
+        }
         toast.success(`Logo ${logoCatalogScope === 'global' ? 'global' : 'do projeto'} selecionado!`);
         setLogoTimestamp(Date.now());
         await fetchBrandCatalog();
@@ -3643,6 +3648,11 @@ export default function App() {
         body: JSON.stringify({ id, scope: channelConfigScope }),
       });
       if (res.ok) {
+        if (channelConfigScope === 'global') {
+          try {
+            await fetch(getProjectUrl('/api/brand/channels/reset-project'), { method: 'POST' });
+          } catch { /* ignore */ }
+        }
         toast.success(`Canal ${channelConfigScope === 'global' ? 'global' : 'do projeto'} selecionado!`);
         await fetchBrandCatalog();
         if (channelConfigScope === 'global') fetchGlobalRenderConfig();

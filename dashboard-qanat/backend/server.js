@@ -132,6 +132,8 @@ import {
   resolveLogoFilePath,
   readYoutubeChannelFromCatalog,
   getLogosDir,
+  youtubeAvatarCacheKey,
+  clearYoutubeAvatarCaches,
 } from "./brandAssets.js";
 import {
   extractTitleFacts,
@@ -3889,9 +3891,9 @@ async function scrapeYoutubeChannelFromUrl(channelUrl) {
   return { channelName, subscriberCount: subCount, avatarUrl };
 }
 
-async function downloadChannelAvatar(avatarUrl, publicProjectDir, projectSlug) {
+async function downloadChannelAvatar(avatarUrl, publicProjectDir, projectSlug, cacheKey) {
   if (!avatarUrl) return null;
-  const avatarFileName = "youtube_avatar.jpg";
+  const avatarFileName = `youtube_avatar_${cacheKey}.jpg`;
   const destPath = path.join(publicProjectDir, avatarFileName);
   await new Promise((resolve, reject) => {
     https.get(avatarUrl, (res) => {
@@ -3907,10 +3909,20 @@ async function downloadChannelAvatar(avatarUrl, publicProjectDir, projectSlug) {
   return `projects/${projectSlug}/${avatarFileName}`;
 }
 
+function findCachedYoutubeAvatar(projectDir, workspaceDir, cacheKey) {
+  const fileName = `youtube_avatar_${cacheKey}.jpg`;
+  const candidates = [
+    path.join(projectDir, "ASSETS", fileName),
+    path.join(workspaceDir, "ASSETS", fileName),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
 async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig = {}) {
   const settings = readYoutubeChannelSettings(projectDir, globalConfig);
   const fallbackUrl = "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA";
   const channelUrl = settings.channelUrl || fallbackUrl;
+  const cacheKey = youtubeAvatarCacheKey(settings.channelId, channelUrl);
 
   let scraped = null;
   try {
@@ -3922,29 +3934,36 @@ async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSl
   const channelName = settings.channelName || scraped?.channelName || "Canal do YouTube";
   const subscriberCount = settings.subscriberCount || scraped?.subscriberCount || "";
 
-  const localAvatarCandidates = [
-    path.join(projectDir, "ASSETS", "youtube_avatar.png"),
-    path.join(projectDir, "ASSETS", "youtube_avatar.jpg"),
-    path.join(WORKSPACE_DIR, "ASSETS", "youtube_avatar.png"),
-    path.join(WORKSPACE_DIR, "ASSETS", "youtube_avatar.jpg"),
-  ];
-
-  for (const localAvatar of localAvatarCandidates) {
-    if (fs.existsSync(localAvatar)) {
-      const copied = copyRemotionAsset(localAvatar, publicProjectDir, "yt_avatar_");
-      if (copied) {
-        return {
-          channelName,
-          subscriberCount,
-          avatarUrl: `projects/${projectSlug}/${copied}`,
-        };
-      }
+  const cachedAvatar = findCachedYoutubeAvatar(projectDir, WORKSPACE_DIR, cacheKey);
+  if (cachedAvatar) {
+    const copied = copyRemotionAsset(cachedAvatar, publicProjectDir, "yt_avatar_");
+    if (copied) {
+      return {
+        channelName,
+        subscriberCount,
+        avatarUrl: `projects/${projectSlug}/${copied}`,
+      };
     }
   }
 
   try {
     if (scraped?.avatarUrl) {
-      const localAvatarPath = await downloadChannelAvatar(scraped.avatarUrl, publicProjectDir, projectSlug);
+      const workspaceAssets = path.join(WORKSPACE_DIR, "ASSETS");
+      fs.mkdirSync(workspaceAssets, { recursive: true });
+      const workspaceCachePath = path.join(workspaceAssets, `youtube_avatar_${cacheKey}.jpg`);
+      await new Promise((resolve, reject) => {
+        https.get(scraped.avatarUrl, (res) => {
+          const fileStream = fs.createWriteStream(workspaceCachePath);
+          res.pipe(fileStream);
+          fileStream.on("finish", () => {
+            fileStream.close();
+            resolve();
+          });
+          fileStream.on("error", reject);
+        }).on("error", reject);
+      });
+
+      const localAvatarPath = await downloadChannelAvatar(scraped.avatarUrl, publicProjectDir, projectSlug, cacheKey);
       return {
         channelName,
         subscriberCount,
@@ -7361,9 +7380,15 @@ app.get("/api/logo/status", (req, res) => {
 
     const resolvedPath = resolveLogoFilePath(WORKSPACE_DIR, projDir, globalConfig, projectConfig);
     const activeCatalogLogo = catalog.activeLogo;
-    const currentLogoUrl = hasProjectLogo
+    const projectLogoId = projectConfig.selected_logo_id || projectConfig.selectedLogoId;
+    const usesProjectCatalogLogo = Boolean(projectLogoId);
+    const usesLegacyProjectLogo = hasProjectLogo && !usesProjectCatalogLogo
+      && !globalConfig.selectedLogoId;
+    const currentLogoUrl = usesLegacyProjectLogo && projectLogoPath
       ? projectLogoPath
-      : (activeCatalogLogo?.url || `/api/projects-media/ASSETS/logo.png`);
+      : (projectLogoId
+        ? (catalog.logos.find((l) => l.id === projectLogoId)?.url || activeCatalogLogo?.url)
+        : activeCatalogLogo?.url) || `/api/projects-media/ASSETS/logo.png`;
 
     res.json({
 
@@ -7447,6 +7472,42 @@ app.post("/api/logo/upload", (req, res) => {
 
   }
 
+});
+
+app.post("/api/brand/channels/reset-project", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const configPath = path.join(projDir, "config_qanat.json");
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    let cleared = false;
+
+    for (const key of [
+      "selected_youtube_channel_id",
+      "selectedYoutubeChannelId",
+      "youtube_channel",
+      "youtubeChannel",
+    ]) {
+      if (projectConfig[key]) {
+        delete projectConfig[key];
+        cleared = true;
+      }
+    }
+
+    if (cleared) {
+      fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2), "utf8");
+    }
+
+    clearYoutubeAvatarCaches(WORKSPACE_DIR, projDir);
+
+    res.json({
+      success: true,
+      message: cleared
+        ? "Canal do projeto removido. Usando canal global."
+        : "Nenhum canal personalizado do projeto encontrado.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao redefinir canal do projeto", details: err.message });
+  }
 });
 
 app.post("/api/logo/reset", (req, res) => {
@@ -7640,6 +7701,7 @@ app.post("/api/brand/channels/select", (req, res) => {
     }
 
     const result = selectYoutubeChannel(__dirname, id);
+    clearYoutubeAvatarCaches(WORKSPACE_DIR);
     const globalConfig = loadRenderConfig(__dirname);
     res.json({
       success: true,

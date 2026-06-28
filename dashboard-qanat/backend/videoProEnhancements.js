@@ -472,6 +472,12 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
   const hudDuration = Math.max(1, hudEnd - hudStart);
   const segments = [];
   const climaxRank = rankOrder === "desc" ? 1 : itemBlocks.length;
+  const videoSeed = [
+    config.niche,
+    storyboard.list_topic || storyboard.listicle_meta?.topic,
+    storyboard.strategy?.title_main,
+    config.project_name,
+  ].filter(Boolean).join("|");
 
   for (let i = 0; i < itemBlocks.length; i++) {
     const { block, rank, title } = itemBlocks[i];
@@ -491,6 +497,7 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
         title: resolvedTitle,
         rank,
         isClimax: rank === climaxRank,
+        videoSeed,
       }),
       progress: i + 1,
     });
@@ -514,6 +521,7 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
       fontTitle: preset?.fontTitle || "Cinzel",
       secondaryColor: preset?.secondaryColor || accent,
       thumbnailPalette: preset?.thumbnailPalette || [accent],
+      videoSeed,
       segments,
     },
   }];
@@ -550,6 +558,12 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
 
   const outroDur = Number(durationsList[outroIdx]) || 6;
   const effectiveRankCount = rankCount || recapLines.length || 3;
+  const videoSeed = [
+    config.niche,
+    storyboard.list_topic || storyboard.listicle_meta?.topic,
+    storyboard.strategy?.title_main,
+    config.project_name,
+  ].filter(Boolean).join("|");
 
   return {
     id: "listicle-recap",
@@ -564,6 +578,7 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
       theme: preset?.theme || "ancient",
       fontTitle: preset?.fontTitle || "Cinzel",
       position: "top-center",
+      videoSeed,
     },
   };
 }
