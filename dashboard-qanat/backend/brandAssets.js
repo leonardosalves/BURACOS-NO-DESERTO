@@ -22,6 +22,7 @@ export function loadRenderConfig(backendDir) {
     musicVolume: 0.15,
     useRemotionByDefault: true,
     debugOverlay: false,
+    renderResolution: "1080p",
     youtubeChannel: {
       channelUrl: "",
       channelName: "",

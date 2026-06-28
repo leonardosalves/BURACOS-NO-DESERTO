@@ -3138,7 +3138,7 @@ app.get("/api/render/:mode", async (req, res) => {
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
       const useHyperframes = req.query.hyperframes !== "0";
       const previewSecs = Math.min(60, Math.max(0, Number(req.query.preview) || 0));
-      const resolution = req.query.resolution === "2k" ? "2k" : "1080p";
+      const resolution = resolveRenderResolution(req);
       const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
         previewDuration: previewSecs > 0 ? previewSecs : undefined,
         resolution,
@@ -3328,7 +3328,7 @@ app.get("/api/render/:mode", async (req, res) => {
 
   }
 
-  const resolution = req.query.resolution === "2k" ? "2k" : "1080p";
+  const resolution = resolveRenderResolution(req);
   sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`);
 
   const child = spawn(PYTHON_PATH, [runScriptName], {
@@ -3858,6 +3858,13 @@ async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSl
     subscriberCount,
     avatarUrl: scraped?.avatarUrl || null,
   };
+}
+
+function resolveRenderResolution(req) {
+  if (req.query.resolution === "2k") return "2k";
+  if (req.query.resolution === "1080p") return "1080p";
+  const globalConfig = loadRenderConfig(__dirname);
+  return globalConfig.renderResolution === "2k" ? "2k" : "1080p";
 }
 
 async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false, options = {}) {
