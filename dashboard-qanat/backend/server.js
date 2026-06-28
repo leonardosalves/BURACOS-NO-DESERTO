@@ -116,6 +116,7 @@ import {
   extractTitleFacts,
   buildTitleCraftRules,
   buildTitleRepairPrompt,
+  titlesLackRelevance,
   buildStrategyTitleRepairPrompt,
   applyTitleQualityToParsed,
   mergeRepairedTitles,
@@ -5830,47 +5831,73 @@ function buildProjectTranscript({ transcript, config, storyboard }) {
 
   const candidates = [];
 
-  if (typeof transcript === "string") {
-
-    candidates.push(transcript);
-
-  }
-
   if (typeof storyboard?.narrative_script === "string") {
 
-    candidates.push(storyboard.narrative_script);
+    const narrative = storyboard.narrative_script.trim();
+
+    if (narrative.length > 80) {
+
+      candidates.push({ text: narrative, priority: 100 });
+
+    }
 
   }
 
   if (Array.isArray(storyboard?.visual_prompts)) {
 
-    candidates.push(storyboard.visual_prompts
+    const fromPrompts = storyboard.visual_prompts
 
-      .map(item => item?.narration_text)
+      .map((item) => item?.narration_text)
 
       .filter(Boolean)
 
-      .join("\n\n"));
+      .join("\n\n")
+
+      .trim();
+
+    if (fromPrompts.length > 120) {
+
+      candidates.push({ text: fromPrompts, priority: 90 });
+
+    }
+
+  }
+
+  if (typeof transcript === "string") {
+
+    const fileTranscript = transcript.trim();
+
+    if (fileTranscript.length > 120) {
+
+      candidates.push({ text: fileTranscript, priority: 70 });
+
+    }
 
   }
 
   if (Array.isArray(config?.block_phrases)) {
 
-    candidates.push(config.block_phrases
+    const fromBlocks = config.block_phrases
 
-      .map(item => item?.phrase)
+      .map((item) => item?.phrase)
 
       .filter(Boolean)
 
-      .join("\n\n"));
+      .join("\n\n")
+
+      .trim();
+
+    if (fromBlocks.length > 120) {
+
+      candidates.push({ text: fromBlocks, priority: 50 });
+
+    }
 
   }
 
-  return candidates
+  candidates.sort((a, b) => b.priority - a.priority || b.text.length - a.text.length);
 
-    .map(value => String(value || "").trim())
-
-    .find(value => value.length > 120) || "";
+  return candidates[0]?.text || "";
 
 }
 
@@ -5879,7 +5906,8 @@ async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboa
   let parsed = parseYoutubeMetadataMarkdown(text);
   parsed = applyTitleQualityToParsed(parsed, { format, facts });
 
-  const shouldRepair = titlesNeedRepair(parsed.titles || [], format, facts);
+  const lacksRelevance = titlesLackRelevance(parsed.titles || [], transcript, facts);
+  const shouldRepair = titlesNeedRepair(parsed.titles || [], format, facts) || lacksRelevance;
 
   if (apiKey && shouldRepair) {
     try {
@@ -5897,7 +5925,7 @@ async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboa
       const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos"));
       parsed = mergeRepairedTitles(parsed, repaired);
       parsed = applyTitleQualityToParsed(parsed, { format, facts });
-      console.log("[YouTube Metadata] Refino de títulos aplicado (scores baixos detectados).");
+      console.log(`[YouTube Metadata] Refino de títulos aplicado (${lacksRelevance ? "baixa relevância ao roteiro" : "scores baixos"}).`);
     } catch (err) {
       console.warn("[YouTube Metadata] Refino de títulos falhou:", err.message);
     }
@@ -6123,7 +6151,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
       const apiKey = apiKeys[0];
 
-      const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.75 });
+      const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.55 });
 
       return await respondWithMetadata(responseText || "Erro ao gerar metadados.", { tried_keys: 1 });
 
