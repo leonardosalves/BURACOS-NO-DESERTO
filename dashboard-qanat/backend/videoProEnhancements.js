@@ -765,21 +765,30 @@ export function validateVideoQuality({
         message: `Dois lower-thirds seguidos (${sorted[i - 1].id} → ${sorted[i].id}) — alterne tipos`,
       });
     }
+
+    const prevHud = isListicleHudOverlay(sorted[i - 1]);
+    const currHud = isListicleHudOverlay(sorted[i]);
+    if (prevHud && currHud) continue;
+
     const gap = sorted[i].start - sorted[i - 1].start;
-    if (gap < plan.limits.minGapSeconds) {
+    const minGap = (prevHud || currHud) && isListicleProject(config, storyboard) && isShort
+      ? 0.5
+      : plan.limits.minGapSeconds;
+    if (gap < minGap) {
       issues.push({
         severity: "info",
         code: "gap_short",
-        message: `Gap de ${gap.toFixed(1)}s entre "${sorted[i - 1].id}" e "${sorted[i].id}" (mín. ${plan.limits.minGapSeconds}s)`,
+        message: `Gap de ${gap.toFixed(1)}s entre "${sorted[i - 1].id}" e "${sorted[i].id}" (mín. ${minGap}s)`,
       });
     }
   }
 
-  if (sorted.length > plan.limits.maxTotal) {
+  const maxOverlaysBudget = Number(plan.limits.finalMaxTotal || plan.limits.maxTotal || 8);
+  if (sorted.length > maxOverlaysBudget) {
     issues.push({
       severity: "error",
       code: "overlay_budget",
-      message: `${sorted.length} overlays — orçamento máximo: ${plan.limits.maxTotal}`,
+      message: `${sorted.length} overlays — orçamento máximo: ${maxOverlaysBudget}`,
     });
   }
 
@@ -872,7 +881,11 @@ export function validateVideoQuality({
     ok: errors === 0,
     score,
     issues,
-    plan: { format: plan.format, maxOverlays: plan.limits.maxTotal, profile: plan.varietyLabel },
+    plan: {
+      format: plan.format,
+      maxOverlays: Number(plan.limits.finalMaxTotal || plan.limits.maxTotal || 8),
+      profile: plan.varietyLabel,
+    },
     preset: resolveDesignPreset(config, storyboard, config.niche)?.id || null,
     epidemicMood: getEpidemicMoodForNiche(config.niche, config, storyboard).label,
   };
@@ -967,12 +980,23 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [], total_duration: 0 });
-  const overlays = storyboard.overlays || [];
 
   const totalDuration = Number(timings.total_duration)
     || (timings.starts?.length && timings.durations?.length
       ? timings.starts[timings.starts.length - 1] + timings.durations[timings.durations.length - 1]
       : 60);
+
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche: config.niche || "Geral",
+    totalDuration,
+    projectName: path.basename(projectDir),
+    blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
+  });
+
+  let overlays = storyboard.overlays || [];
+  overlays = avoidListicleHudCollisions(overlays, config, storyboard);
+  overlays = pruneListicleOverlayDensity(overlays, config, storyboard, orchestrationPlan);
 
   return validateVideoQuality({
     overlays,
@@ -981,6 +1005,7 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     totalDuration,
     starts: timings.starts || [],
     durations: timings.durations || [],
+    orchestrationPlan,
   });
 }
 
