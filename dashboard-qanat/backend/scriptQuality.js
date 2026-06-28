@@ -85,6 +85,29 @@ Evite ideias cujo título promete algo que 40 segundos (Shorts) ou 12 minutos (L
 `;
 }
 
+/** Impede que a busca de nicho puxe temas de outros canais/vídeos anteriores do usuário. */
+export function buildNicheIsolationAddendum(niche = "") {
+  const n = String(niche).trim();
+  return `
+ISOLAMENTO DE NICHO (CRÍTICO — violação invalida a resposta):
+- O usuário está explorando APENAS o nicho: "${n}"
+- NÃO use, adapte, mencione nem sugira temas de outros canais, nichos ou vídeos que o usuário possa ter feito antes — a menos que estejam literalmente dentro de "${n}"
+- Esta busca é independente do histórico do usuário no programa. Trate "${n}" como um canal novo, sem memória de projetos passados
+- Cada sugestão deve ser defensável como pertencente a "${n}"; se não couber, descarte
+- Se "${n}" for amplo, distribua sugestões em subáreas DIFERENTES do próprio nicho (não desvie para nichos adjacentes que o usuário não pediu)`;
+}
+
+/** Variedade de ângulos dentro do nicho informado — sem viés fixo para história/engenharia. */
+export function buildNicheVarietyInstruction(niche = "") {
+  const n = String(niche).trim();
+  return `
+DIRETRIZ DE VARIABILIDADE (somente dentro de "${n}"):
+- Explore ângulos DIFERENTES entre si, todos estritamente dentro de "${n}"
+- Varie quando fizer sentido: perguntas do público, mitos vs realidade, recordes, comparações improváveis, impacto no cotidiano, controverses, ciência, origem surpreendente, antes/depois, erros famosos, lendas verificáveis
+- Proibido puxar temas de engenharia antiga, impérios ou invenções clássicas SE "${n}" não for explicitamente sobre história ou engenharia
+- Busque fatos frescos sobre "${n}" — como se fosse a primeira pesquisa desse canal, sem repetir clichês de outros nichos`;
+}
+
 export const SHORTS_LISTICLE_RANK_OPTIONS = [3, 5];
 
 export function resolveListicleBlockCount({ rankCount = 20, format = "LONGO" } = {}) {
@@ -149,6 +172,10 @@ O usuário escolheu o NICHO: "${niche}"
 Formato preferido: ${format}${isShorts ? " (SHORTS — apenas Top 3 e Top 5)" : ""}
 
 SUA MISSÃO: Sugerir exatamente 12 ideias de RANKINGS interessantes, específicos e variados DENTRO desse nicho — não títulos genéricos.
+
+${buildNicheIsolationAddendum(niche)}
+
+${buildNicheVarietyInstruction(niche)}
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 

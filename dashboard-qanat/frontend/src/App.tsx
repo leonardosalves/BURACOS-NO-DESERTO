@@ -2025,7 +2025,11 @@ export default function App() {
 
     best_idea_reason: string;
 
-  } | null>(savedCreatorState.ideasData || null);
+  } | null>(
+    savedCreatorState.ideasSearchNiche && savedCreatorState.nicheInput?.trim() === savedCreatorState.ideasSearchNiche
+      ? savedCreatorState.ideasData || null
+      : null,
+  );
 
 
 
@@ -2043,13 +2047,19 @@ export default function App() {
 
   const [ideationTab, setIdeationTab] = useState<'ai' | 'custom' | 'listicle'>(savedCreatorState.ideationTab || 'ai');
   const [listNiche, setListNiche] = useState<string>(savedCreatorState.listNiche || '');
+  const [listicleSearchNiche, setListicleSearchNiche] = useState<string>(savedCreatorState.listicleSearchNiche || '');
+  const [ideasSearchNiche, setIdeasSearchNiche] = useState<string>(savedCreatorState.ideasSearchNiche || '');
   const [listTopic, setListTopic] = useState<string>(savedCreatorState.listTopic || '');
   const [rankCount, setRankCount] = useState<number>(savedCreatorState.rankCount || 20);
   const [rankOrder, setRankOrder] = useState<'desc' | 'asc'>(savedCreatorState.rankOrder || 'desc');
   const [listicleHudStyle, setListicleHudStyle] = useState<'full' | 'compact' | 'auto'>(
     savedCreatorState.listicleHudStyle || 'auto',
   );
-  const [listicleIdeasData, setListicleIdeasData] = useState<ListicleIdeasResponse | null>(savedCreatorState.listicleIdeasData || null);
+  const [listicleIdeasData, setListicleIdeasData] = useState<ListicleIdeasResponse | null>(
+    savedCreatorState.listicleSearchNiche && savedCreatorState.listNiche?.trim() === savedCreatorState.listicleSearchNiche
+      ? savedCreatorState.listicleIdeasData || null
+      : null,
+  );
   const [selectedListicleIdeaIndex, setSelectedListicleIdeaIndex] = useState<number>(savedCreatorState.selectedListicleIdeaIndex ?? -1);
   const [customTitle, setCustomTitle] = useState<string>(savedCreatorState.customTitle || '');
   const [customHooks, setCustomHooks] = useState<string>(savedCreatorState.customHooks || '');
@@ -4579,6 +4589,8 @@ export default function App() {
       rankOrder,
       listicleHudStyle,
       listicleIdeasData,
+      listicleSearchNiche,
+      ideasSearchNiche,
       selectedListicleIdeaIndex,
       showNarrationReview,
       narrationDraft,
@@ -4586,7 +4598,21 @@ export default function App() {
       narrationStrategy,
       narrationProjectName,
     }));
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData, selectedListicleIdeaIndex, showNarrationReview, narrationDraft, narrationTaggedDraft, narrationStrategy, narrationProjectName]);
+  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData, listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft, narrationTaggedDraft, narrationStrategy, narrationProjectName]);
+
+  useEffect(() => {
+    if (listicleIdeasData && listicleSearchNiche && listNiche.trim() !== listicleSearchNiche) {
+      setListicleIdeasData(null);
+      setSelectedListicleIdeaIndex(-1);
+    }
+  }, [listNiche, listicleIdeasData, listicleSearchNiche]);
+
+  useEffect(() => {
+    if (ideasData && ideasSearchNiche && nicheInput.trim() !== ideasSearchNiche) {
+      setIdeasData(null);
+      setSelectedIdeaIndex(-1);
+    }
+  }, [nicheInput, ideasData, ideasSearchNiche]);
 
 
 
@@ -15045,6 +15071,7 @@ export default function App() {
 
 
         setIdeasData(data);
+        setIdeasSearchNiche(nicheInput.trim());
 
 
 
@@ -15261,6 +15288,7 @@ export default function App() {
           best_index: data.best_index ?? 0,
         };
         setListicleIdeasData(normalized);
+        setListicleSearchNiche(listNiche.trim());
         const best = normalized.best_index ?? 0;
         setSelectedListicleIdeaIndex(best);
         const pick = ideas[best];
@@ -35529,7 +35557,7 @@ export default function App() {
 
 
 
-                              placeholder={hasApiKey ? "Ex: construções históricas, engenharia antiga e curiosidades..." : "Configure um provedor na aba Configurações primeiro..."}
+                              placeholder={hasApiKey ? "Ex: curiosidades e fatos surpreendentes, finanças, culinária, natureza..." : "Configure um provedor na aba Configurações primeiro..."}
 
 
 
