@@ -6058,44 +6058,10 @@ export default function App() {
 
         toast.success(data.message);
 
-
-
-
-
-
-
-        setNewProjectName('');
-
-
-
-
-
-
-
-        setShowCreateModal(false);
-
-
-
-
-
-
-
-        await fetchProjects();
-
-
-
-
-
-
-
         const safeName = newProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-
-
-
-
-
-
-
+        setNewProjectName('');
+        setShowCreateModal(false);
+        await fetchProjects();
         setActiveProject(safeName);
 
 
@@ -6365,9 +6331,17 @@ export default function App() {
     return !projList.some((p) => p.name === activeProject);
   };
 
+  type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
+
+  const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
+    if (activeTab === 'settings' || activeTab === 'creator') {
+      setActiveTab(tab);
+    }
+  };
+
   const handleSelectProject = (name: string) => {
     setActiveProject(name);
-    if (activeTab === 'creator') setActiveTab('status');
+    leaveGlobalViewForProject('status');
   };
 
   const renderSidebarProjectItem = (proj: ProjectListItem) => {
@@ -16142,13 +16116,7 @@ export default function App() {
 
 
         setCreatorStep(5);
-
-
-
-
-
-
-
+        leaveGlobalViewForProject('status');
         fetchData();
 
 
@@ -37626,7 +37594,7 @@ export default function App() {
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
                     <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button onClick={() => setActiveTab('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
+                      <button onClick={() => leaveGlobalViewForProject('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
                       <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>
                       <button onClick={applyMetadataToUpload} className="sm:col-span-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 py-3 rounded-xl text-xs font-bold">Aplicar ao Upload</button>
                     </div>
@@ -37640,7 +37608,7 @@ export default function App() {
                 {creatorStep === 7 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
                     <h4 className="text-white font-bold text-sm font-cinzel">Passo 7: Publicar</h4>
-                    <button onClick={() => setActiveTab('upload')} className="w-full bg-gold-500 text-zinc-950 font-bold py-3 rounded-xl text-xs">Abrir Upload</button>
+                    <button onClick={() => leaveGlobalViewForProject('upload')} className="w-full bg-gold-500 text-zinc-950 font-bold py-3 rounded-xl text-xs">Abrir Upload</button>
                     <button onClick={() => setCreatorStep(6)} className="text-xs text-zinc-500">← Metadados</button>
                   </div>
                 )}
