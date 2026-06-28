@@ -114,14 +114,25 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
   }
 };
 
+const overlayRenderPriority = (overlay: Overlay) => {
+  if (overlay.type === "rank-progress") return 100;
+  if (overlay.type === "listicle-stinger") return 90;
+  if (overlay.id?.startsWith("listicle-rank") || overlay.id === "listicle-intro-topn") return 80;
+  return 0;
+};
+
 export const OverlayLayer: React.FC<OverlayLayerProps> = ({ overlays }) => {
   const { fps } = useVideoConfig();
 
   if (!overlays || overlays.length === 0) return null;
 
+  const sortedOverlays = [...overlays].sort(
+    (a, b) => overlayRenderPriority(a) - overlayRenderPriority(b),
+  );
+
   return (
     <>
-      {overlays.map((overlay) => {
+      {sortedOverlays.map((overlay) => {
         const fromFrame = Math.max(0, Math.round(overlay.start * fps));
         const durationInFrames = Math.max(1, Math.round(overlay.duration * fps));
 

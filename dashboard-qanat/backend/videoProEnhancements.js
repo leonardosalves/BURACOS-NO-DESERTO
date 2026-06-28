@@ -358,9 +358,11 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
       start: blockStart + 0.1,
       duration: Math.max(2.5, blockDur - 0.3),
       props: {
-        current: i + 1,
+        current: rank,
+        progress: i + 1,
         total: itemBlocks.length,
         rank,
+        rankOrder: rankOrder === "asc" ? "asc" : "desc",
         accentColor: accent,
       },
     });
@@ -438,7 +440,7 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
         text: `TOP ${rankCount}`,
         style: "reveal",
         accentColor: accent,
-        position: "top",
+        position: "center",
       },
     });
   }
@@ -461,7 +463,7 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
         text,
         style: isClimax ? "slam" : "reveal",
         accentColor: isClimax ? "#D4AF37" : accent,
-        position: isClimax ? "center" : "top",
+        position: isClimax ? "center" : "center",
       },
     });
   };
@@ -499,6 +501,54 @@ function mergeOverlays(base = [], additions = []) {
   return merged;
 }
 
+const LISTICLE_HUD_TYPES = new Set(["rank-progress", "listicle-stinger"]);
+const LISTICLE_SAFE_POSITIONS = ["bottom-right", "bottom-left", "bottom-center"];
+
+function isListicleHudOverlay(overlay) {
+  if (!overlay) return false;
+  return LISTICLE_HUD_TYPES.has(overlay.type)
+    || String(overlay.id || "").startsWith("listicle-");
+}
+
+function usesTopScreenZone(position = "") {
+  const pos = String(position).toLowerCase();
+  return pos === "top"
+    || pos === "center"
+    || pos.includes("top");
+}
+
+function relocateOverlayAwayFromListicleHud(overlay) {
+  if (!overlay?.props || isListicleHudOverlay(overlay)) return overlay;
+
+  const pos = overlay.props.position;
+  const needsMove = usesTopScreenZone(pos)
+    || (overlay.type === "counter" && (!pos || pos === "center"))
+    || (overlay.type === "timeline" && (!pos || pos === "center"));
+
+  if (!needsMove) return overlay;
+
+  const next = { ...overlay, props: { ...overlay.props } };
+
+  if (next.type === "counter" || next.type === "timeline" || next.type === "bar-chart") {
+    next.props.position = "bottom-right";
+  } else if (next.type === "info-card") {
+    next.props.position = "bottom-left";
+  } else if (next.type === "kinetic-text") {
+    next.props.position = "bottom";
+  } else if (next.type === "lower-third") {
+    next.props.position = "bottom-left";
+  } else {
+    next.props.position = "bottom-right";
+  }
+
+  return next;
+}
+
+export function avoidListicleHudCollisions(overlays = [], config = {}, storyboard = {}) {
+  if (!isListicleProject(config, storyboard)) return overlays || [];
+  return (overlays || []).map(relocateOverlayAwayFromListicleHud);
+}
+
 export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = []) {
   const batches = [
     buildListicleRankOverlays(storyboard, config, starts, durations),
@@ -512,7 +562,7 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   const recap = buildListicleRecapOverlay(storyboard, config, starts, durations);
   if (recap) batches.push([recap]);
 
-  let merged = overlays || [];
+  let merged = avoidListicleHudCollisions(overlays, config, storyboard);
   let added = 0;
   for (const batch of batches) {
     const before = merged.length;

@@ -4,14 +4,18 @@ import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remo
 export interface RankProgressProps {
   current: number;
   total: number;
+  progress?: number;
   rank?: number;
+  rankOrder?: "asc" | "desc";
   accentColor?: string;
 }
 
 export const RankProgress: React.FC<RankProgressProps> = ({
   current,
   total,
+  progress,
   rank,
+  rankOrder = "desc",
   accentColor = "#C5A880",
 }) => {
   const frame = useCurrentFrame();
@@ -24,13 +28,15 @@ export const RankProgress: React.FC<RankProgressProps> = ({
   });
 
   const safeTotal = Math.max(1, total);
-  const dots = Array.from({ length: safeTotal }, (_, i) => i < current);
+  const filledDots = Math.min(safeTotal, Math.max(0, progress ?? current));
+  const dots = Array.from({ length: safeTotal }, (_, i) => i < filledDots);
+  const displayRank = rank ?? current;
 
   return (
     <AbsoluteFill
       style={{
         pointerEvents: "none",
-        zIndex: 12,
+        zIndex: 30,
         justifyContent: "flex-start",
         alignItems: "center",
         paddingTop: isVertical ? 88 : 36,
@@ -44,21 +50,34 @@ export const RankProgress: React.FC<RankProgressProps> = ({
           gap: 10,
           padding: "8px 16px",
           borderRadius: 999,
-          background: "rgba(0,0,0,0.55)",
+          background: "rgba(0,0,0,0.72)",
           border: `1px solid ${accentColor}44`,
           backdropFilter: "blur(8px)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
         }}
       >
         <span
           style={{
-            fontFamily: "Inter, sans-serif",
-            fontSize: isVertical ? 13 : 11,
-            fontWeight: 700,
-            color: accentColor,
-            letterSpacing: "0.08em",
+            fontFamily: "Cinzel, serif",
+            fontSize: isVertical ? 16 : 14,
+            fontWeight: 800,
+            color: "#FFFFFF",
+            letterSpacing: "0.04em",
           }}
         >
-          {current}/{safeTotal}
+          #{displayRank}
+        </span>
+        <span
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: isVertical ? 11 : 10,
+            fontWeight: 600,
+            color: accentColor,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          {rankOrder === "desc" ? `Top ${safeTotal}` : `Top ${safeTotal}`}
         </span>
         <div style={{ display: "flex", gap: 5 }}>
           {dots.map((filled, i) => (
@@ -74,17 +93,6 @@ export const RankProgress: React.FC<RankProgressProps> = ({
             />
           ))}
         </div>
-        {rank != null && (
-          <span
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: isVertical ? 12 : 10,
-              color: "rgba(255,255,255,0.75)",
-            }}
-          >
-            #{rank}
-          </span>
-        )}
       </div>
     </AbsoluteFill>
   );
