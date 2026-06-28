@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { READABLE_TEXT_SHADOW, lottieDataForKey, resolveLottieKey } from "./listicleHudTheme";
+import { READABLE_TEXT_SHADOW, lottieDataForKey, lottieVariantSeed, resolveLottieKey } from "./listicleHudTheme";
 import { TitleLottieIcon } from "./TitleLottieIcon";
 import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
 
@@ -116,7 +116,7 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
                 }}
               >
                 <TitleLottieIcon
-                  animationData={lottieDataForKey(iconKey)}
+                  animationData={lottieDataForKey(iconKey, lottieVariantSeed([line.rank, line.title, iconKey]))}
                   size={isVertical ? 36 : 30}
                 />
                 <span
