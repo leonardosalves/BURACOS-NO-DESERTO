@@ -8,6 +8,7 @@ import { InfoTimeline, InfoTimelineProps } from "./InfoTimeline";
 import { KineticText, KineticTextProps } from "./KineticText";
 import { InfoCard, InfoCardProps } from "./InfoCard";
 import { ListicleStinger, ListicleStingerProps } from "./ListicleStinger";
+import { ListicleRecap, ListicleRecapProps } from "./ListicleRecap";
 import { RankProgress, RankProgressProps } from "./RankProgress";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@ export type OverlayType =
   | "kinetic-text"
   | "info-card"
   | "listicle-stinger"
+  | "listicle-recap"
   | "rank-progress";
 
 export interface OverlayBase {
@@ -77,6 +79,11 @@ export interface RankProgressOverlay extends OverlayBase {
   props: RankProgressProps;
 }
 
+export interface ListicleRecapOverlay extends OverlayBase {
+  type: "listicle-recap";
+  props: ListicleRecapProps;
+}
+
 export type Overlay =
   | LowerThirdOverlay
   | CounterOverlay
@@ -85,6 +92,7 @@ export type Overlay =
   | KineticTextOverlay
   | InfoCardOverlay
   | ListicleStingerOverlay
+  | ListicleRecapOverlay
   | RankProgressOverlay;
 
 interface OverlayLayerProps {
@@ -107,6 +115,8 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
       return <InfoCard {...overlay.props} />;
     case "listicle-stinger":
       return <ListicleStinger {...overlay.props} />;
+    case "listicle-recap":
+      return <ListicleRecap {...overlay.props} />;
     case "rank-progress":
       return <RankProgress {...overlay.props} />;
     default:

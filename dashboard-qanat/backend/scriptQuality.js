@@ -471,3 +471,346 @@ export function mergeHumanizedScript(original = {}, repaired = {}, format = "LON
   }
   return applyScriptTextQuality(merged, format);
 }
+
+export function buildIdeaContextHeader({
+  niche,
+  format,
+  idea = {},
+  isListicle = false,
+  listicleRank = 20,
+  listicleTopic = "",
+  rankOrder = "desc",
+  listicleBlockCount = 22,
+} = {}) {
+  let header = `O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}")${isListicle ? ` — MODO LISTICLE TOP ${listicleRank}` : ""}:
+
+Título: "${idea.title || ""}"
+
+Promessa: "${idea.promise || ""}"
+
+Emoção: "${idea.emotion || ""}"`;
+
+  if (isListicle) {
+    header += `\n\nTEMA DA LISTA: ${listicleTopic}
+ORDEM DO RANKING: ${rankOrder === "asc" ? "1 → N (build-up)" : "N → 1 (countdown)"}
+BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
+    if (idea.listicle_angle) header += `\nÂNGULO DO RANKING: ${idea.listicle_angle}`;
+    if (Array.isArray(idea.sample_items) && idea.sample_items.length) {
+      header += `\nITENS SUGERIDOS (use ou refine): ${idea.sample_items.join(", ")}`;
+    }
+  }
+
+  const customHookVal = idea.hook || idea.hooks || "";
+  if (customHookVal) {
+    header += `\nGancho de Retenção Inicial (Hook) sugerido: "${customHookVal}"`;
+  }
+
+  if (idea.blocks) {
+    let blocksStr = "";
+    if (Array.isArray(idea.blocks)) {
+      blocksStr = idea.blocks.map((b) => `Block ${b.block || b.index || 1}: ${b.content}`).join("\n");
+    } else {
+      blocksStr = String(idea.blocks);
+    }
+    header += `\nEstrutura/Ganchos por Bloco recomendados pelo usuário:\n"${blocksStr}"`;
+  }
+
+  if (idea.isCustom) {
+    header += `\n\nATENÇÃO: A ideia original pode estar em inglês. A narração deve ser em PT-BR natural e humana.`;
+  }
+
+  return header;
+}
+
+export function buildVisualPromptsRules({ format = "LONGO", isListicle = false, listicleRank = 20 } = {}) {
+  const sceneCount = format === "SHORTS"
+    ? (isListicle ? `${listicleRank * 2 + 4}-${listicleRank * 3 + 6}` : "5-12")
+    : (isListicle ? `${listicleRank * 3}+` : "40-80+");
+
+  return `
+REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizável):
+
+- CUBRA 100% DA NARRAÇÃO APROVADA. Cada 1-2 frases = 1 objeto em visual_prompts.
+- Gere ${sceneCount} cenas no mínimo.
+- CADA objeto DEVE ter "narration_text" preenchido com o trecho EXATO falado na cena (copiado da narração aprovada).
+- CADA objeto DEVE ter "prompt" em inglês (photorealistic 2k / cinematic motion).
+- 80-90% "imagem IA 2k"; 10-20% "vídeo IA (max 10s)" para movimento ativo.
+- Nunca deixe narration_text ou prompt vazios.
+- Inclua stock_query em inglês em cada cena.
+${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}`;
+}
+
+export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = false, listicleRank = 20 } = {}) {
+  return `
+4. "visual_prompts": [
+   GERE UM OBJETO PARA CADA SEGMENTO DA NARRAÇÃO. Cubra o vídeo inteiro. Cada objeto:
+   {
+     "scene": "1.1",
+     "block": 1,
+     "narration_text": "Trecho EXATO da narração aprovada para esta cena (1-2 frases, NUNCA vazio)",
+     "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
+     "duration": "3 a 5 segundos",
+     "prompt": "Prompt cinematográfico completo em inglês (NUNCA vazio)",
+     "editor_notes": "Ken Burns zoom in, dissolve, etc.",
+     "stock_query": "termo curto em inglês"
+   }
+]`;
+}
+
+export function needsVisualPromptsRepair(storyboard = {}) {
+  const vps = storyboard.visual_prompts || [];
+  if (!Array.isArray(vps) || vps.length === 0) return true;
+  const emptyNarr = vps.filter((vp) => !String(vp.narration_text || vp.narracao || "").trim()).length;
+  const emptyPrompt = vps.filter((vp) => !String(vp.prompt || vp.visual_prompt || "").trim()).length;
+  return emptyNarr > 0 || emptyPrompt > 0;
+}
+
+export function buildVisualPromptsFromNarrationPrompt({
+  approvedNarration = "",
+  format = "LONGO",
+  blockCount = 5,
+  isListicle = false,
+  listicleRank = 20,
+  listTopic = "",
+  rankOrder = "desc",
+  ideaTitle = "",
+  existingPrompts = [],
+}) {
+  const skeleton = Array.isArray(existingPrompts) && existingPrompts.length > 0
+    ? `\nESQUELETO DE CENAS (mantenha scene/block/type; PREENCHA narration_text e prompt em TODOS):\n${JSON.stringify(
+      existingPrompts.map((vp) => ({
+        scene: vp.scene,
+        block: vp.block,
+        type: vp.type || "imagem IA 2k",
+        duration: vp.duration || "5 segundos",
+      })),
+      null,
+      2,
+    ).slice(0, 6000)}`
+    : "";
+
+  return `Você é diretor de vídeo YouTube. A narração já foi aprovada pelo usuário — NÃO altere palavras da narração nos trechos das cenas.
+
+TÍTULO: ${ideaTitle}
+FORMATO: ${format}
+BLOCOS: ${blockCount}${isListicle ? ` (LISTICLE TOP ${listicleRank}, ordem ${rankOrder === "asc" ? "1→N" : "N→1"}, tema: ${listTopic})` : ""}
+
+NARRAÇÃO APROVADA (fonte única — copie trechos para narration_text):
+"""
+${approvedNarration.trim()}
+"""
+${skeleton}
+
+${buildVisualPromptsRules({ format, isListicle, listicleRank })}
+
+TAREFA: Gere visual_prompts cobrindo 100% da narração + technical_config com:
+- script: narração dividida em ${blockCount} parágrafos (quebra de linha entre blocos)
+- block_phrases: início exato de cada bloco (4-8 palavras)
+
+Responda APENAS JSON:
+{
+  "visual_prompts": [ { "scene", "block", "narration_text", "type", "duration", "prompt", "editor_notes", "stock_query" } ],
+  "technical_config": {
+    "script": "...",
+    "block_phrases": [{"block": 1, "phrase": "..."}],
+    "impact_texts": [],
+    "highlight_keywords": [],
+    "bgm_mappings": []
+  }
+}`;
+}
+
+export function mergeVisualPromptsRepair(original = {}, repaired = {}) {
+  const merged = { ...original };
+  if (Array.isArray(repaired.visual_prompts) && repaired.visual_prompts.length > 0) {
+    merged.visual_prompts = repaired.visual_prompts;
+  }
+  if (repaired.technical_config) {
+    merged.technical_config = {
+      ...merged.technical_config,
+      ...repaired.technical_config,
+    };
+  }
+  return merged;
+}
+
+export function buildNarrationOnlyPrompt({
+  niche,
+  format,
+  idea = {},
+  isListicle = false,
+  listicleRank = 20,
+  listicleTopic = "",
+  rankOrder = "desc",
+  listicleBlockCount = 22,
+  notebooklmContext = "",
+  cinematicNarrationRules = "",
+}) {
+  const ideaHeader = buildIdeaContextHeader({
+    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+  });
+
+  return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
+
+${ideaHeader}
+${notebooklmContext}
+
+FASE 1 — APENAS NARRAÇÃO (o usuário revisará e aprovará antes dos blocos visuais):
+
+Gere SOMENTE a narração completa do vídeo em português brasileiro. NÃO gere visual_prompts, technical_config, list_items nem bgm ainda.
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+${isListicle
+    ? buildListicleScriptRules({
+      rankCount: listicleRank,
+      rankOrder: rankOrder || "desc",
+      format,
+      listTopic: listicleTopic,
+      blockCount: listicleBlockCount,
+    })
+    : buildFormatScriptRules(format)}
+
+${cinematicNarrationRules}
+
+REGRAS DESTA FASE:
+- Narração humana, fluida, natural — como alguém contando para um amigo inteligente.
+- Revise cada frase: elimine tom robótico, clichês de IA e trechos desconexos.
+- Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
+- ${isListicle
+    ? `Estruture mentalmente em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro), mas entregue a narração em texto corrido.`
+    : format === "SHORTS"
+      ? "30-50 segundos, ~80-130 palavras, uma ideia clara com virada e payoff."
+      : "10-20 minutos, 1500-3000 palavras, narrativa profunda e imersiva."}
+
+Responda APENAS JSON válido (sem markdown):
+{
+  "strategy": {
+    "title_main": "Título específico ao tema",
+    "hook": "Gancho de 3 segundos",
+    "target_audience": "Público-alvo",
+    "tone": "Tom do vídeo"
+  },
+  "narrative_script": "Narração COMPLETA em texto corrido, SEM marcadores de áudio.",
+  "narrative_script_tagged": "A MESMA narração com tags de performance ([pausa], [ênfase], (breath), etc.)"
+}`;
+}
+
+export function buildFullScriptFromNarrationPrompt({
+  niche,
+  format,
+  idea = {},
+  isListicle = false,
+  listicleRank = 20,
+  listicleTopic = "",
+  rankOrder = "desc",
+  listicleBlockCount = 22,
+  approvedNarration = "",
+  approvedNarrationTagged = "",
+  notebooklmContext = "",
+  titleCraftRules = "",
+  epidemicMoodPrompt = "",
+}) {
+  const ideaHeader = buildIdeaContextHeader({
+    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+  });
+
+  const taggedBlock = approvedNarrationTagged?.trim()
+    ? `\nNARRAÇÃO COM TAGS (use se ainda válida após edições do usuário):\n"""\n${approvedNarrationTagged.trim()}\n"""`
+    : "\nGere narrative_script_tagged a partir da narração aprovada com tags cinematográficas moderadas.";
+
+  return `Você é o "Lumiera Script Master" (Roteirista, Diretor Criativo e Editor para YouTube).
+
+${ideaHeader}
+${notebooklmContext}
+
+FASE 2 — ROTEIRO COMPLETO (narração já aprovada pelo usuário):
+
+A narração abaixo foi REVISADA e APROVADA. Use o texto EXATO em "narrative_script" — NÃO reescreva, NÃO resuma, NÃO altere palavras.
+Monte blocos, prompts visuais, trilha e configuração técnica ANCORADOS nesta narração.
+
+NARRAÇÃO APROVADA:
+"""
+${approvedNarration.trim()}
+"""
+${taggedBlock}
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+${isListicle
+    ? buildListicleScriptRules({
+      rankCount: listicleRank,
+      rankOrder: rankOrder || "desc",
+      format,
+      listTopic: listicleTopic,
+      blockCount: listicleBlockCount,
+    })
+    : buildFormatScriptRules(format)}
+
+${titleCraftRules}
+
+${epidemicMoodPrompt}
+
+SUA MISSÃO:
+- narrative_script e narrative_script_tagged = narração aprovada (tagged pode ser gerada/atualizada se o usuário editou só o texto limpo).
+- DIVIDA a narração em segmentos e gere visual_prompts cobrindo 100% do texto — TODOS os campos narration_text e prompt PREENCHIDOS.
+- technical_config.script = narração dividida em ${listicleBlockCount} parágrafos (um por bloco).
+- ${isListicle
+    ? `EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Gere list_items e listicle.`
+    : `Estruture em ${format === "SHORTS" ? "5" : "12"} blocos lógicos em block_phrases.`}
+
+${buildVisualPromptsRules({ format, isListicle, listicleRank })}
+
+FORMATO DE RESPOSTA — JSON válido com:
+1. "strategy" (title_main, title_variations, hook, target_audience, tone, pinned_comment, cta)
+2. "narrative_script" (texto aprovado, idêntico)
+3. "narrative_script_tagged"
+${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, listicleRank })}
+5. "bgm_recommendations"
+6. "editing_map"
+7. "hyperframe_prompt"
+8. "checklist"
+9. "technical_config" (script, block_phrases, impact_texts, highlight_keywords, bgm_mappings)
+${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}
+
+REGRAS FINAIS:
+- Retorne APENAS JSON puro, sem markdown.
+- visual_prompts deve cobrir TODA a narração sem lacunas e sem campos vazios.`;
+}
+
+export function buildNarrationHumanizeRepairPrompt({
+  format,
+  ideaTitle,
+  narrative_script = "",
+  narrative_script_tagged = "",
+  blockCount = 12,
+}) {
+  return `Você é um roteirista brasileiro especialista em narração natural para YouTube.
+
+A narração abaixo pode estar robótica ou confusa. REESCREVA apenas os campos de narração.
+
+FORMATO: ${format}
+TÍTULO: ${ideaTitle}
+BLOCOS ESPERADOS (estrutura mental): ${blockCount}
+
+NARRAÇÃO ATUAL:
+${JSON.stringify({ narrative_script, narrative_script_tagged }, null, 2).slice(0, 10000)}
+
+TAREFAS:
+1. Reescreva "narrative_script" em PT-BR natural — frases que soam bem em voz alta.
+2. Reescreva "narrative_script_tagged" com as mesmas palavras + tags ([pause], (breath), [pausa], [ênfase], etc.).
+3. Mantenha a tese e estrutura; remova clichês de IA e trechos vazios.
+
+Responda APENAS JSON:
+{
+  "narrative_script": "...",
+  "narrative_script_tagged": "..."
+}`;
+}
+
+export function mergeHumanizedNarration(original = {}, repaired = {}, format = "LONGO") {
+  const merged = { ...original };
+  if (repaired.narrative_script) merged.narrative_script = repaired.narrative_script;
+  if (repaired.narrative_script_tagged) merged.narrative_script_tagged = repaired.narrative_script_tagged;
+  return applyScriptTextQuality(merged, format);
+}

@@ -75,11 +75,29 @@ export const DOCUMENTARY_DATA_PRESET = {
   thumbnailPalette: ["#FFFFFF", "#00FF87", "#0D1117"],
 };
 
+export const DOCUMENTARY_FINANCE_PRESET = {
+  id: "documentary-finance",
+  label: "Finanças Premium",
+  captionStyle: { short: "shorts-viral", long: "documentary" },
+  theme: "classic",
+  accentColor: "#D4AF37",
+  secondaryColor: "#00FF87",
+  backgroundTone: "#0D1117",
+  fontTitle: "Cinzel",
+  fontBody: "Inter",
+  varietyProfile: "data-journalist",
+  lowerThirdVariants: ["accent-underline", "bold-block", "clean-bar"],
+  grain: false,
+  vignette: true,
+  thumbnailPalette: ["#D4AF37", "#00FF87", "#0D1117"],
+};
+
 export const DESIGN_PRESETS = {
   [DOCUMENTARY_HISTORY_PRESET.id]: DOCUMENTARY_HISTORY_PRESET,
   [DOCUMENTARY_MYSTERY_PRESET.id]: DOCUMENTARY_MYSTERY_PRESET,
   [DOCUMENTARY_GEOGRAPHY_PRESET.id]: DOCUMENTARY_GEOGRAPHY_PRESET,
   [DOCUMENTARY_DATA_PRESET.id]: DOCUMENTARY_DATA_PRESET,
+  [DOCUMENTARY_FINANCE_PRESET.id]: DOCUMENTARY_FINANCE_PRESET,
 };
 
 export const GLOBAL_SFX_ALIASES = [
@@ -104,6 +122,99 @@ const HISTORY_NICHE_RE = /histor|arqueolog|antig|castelo|egito|inca|curios|roma|
 const MYSTERY_NICHE_RE = /mistér|misterio|enigma|inexplic|paranormal|conspir|desaparec|assassinato|crime/i;
 const GEO_NICHE_RE = /geograf|deserto|amazon|terra|mapa|continente|oceano|viagem|buraco/i;
 const DATA_NICHE_RE = /dados|número|numero|estatíst|estatist|fato|ciência|ciencia|compar|ranking/i;
+const FINANCE_NICHE_RE = /finan|negoc|dinheiro|invest|economia|lucro|bolsa|cripto|empresa/i;
+
+function formatChapterTimestamp(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+export function pickListicleLottieKey({ visualHook = "", title = "", rank, isClimax = false, isIntro = false } = {}) {
+  if (isIntro) return "sparkles";
+  if (isClimax || Number(rank) === 1) return "crown";
+
+  const titleBlob = String(title).trim();
+  const hookBlob = String(visualHook).trim();
+  const rules = [
+    { key: "compass", re: /bússola|bussola|compass|navega|orient|direç|direc/i },
+    { key: "map", re: /mapa|map|geograf|continente|território|territorio|rota/i },
+    { key: "coin", re: /dinheiro|moeda|coin|financ|invest|lucro|dólar|dolar|econom/i },
+    { key: "chart", re: /gráfico|grafico|chart|dados|estat|número|numero|porcent/i },
+    { key: "target", re: /alvo|target|meta|objetiv|foco/i },
+    { key: "gear", re: /engren|gear|mecan|máquina|maquina|motor|torno|relógio|relogio|clock|ponteiro/i },
+    { key: "book", re: /livro|book|históri|histori|antig|document|papiro|manuscrit|biblioteca/i },
+    { key: "shield", re: /escudo|shield|fort|castel|muralha|defesa|guerra|milit|armadura|torre/i },
+    { key: "flame", re: /fogo|flame|chama|explos|incêndio|incendio|foguete|combust/i },
+    { key: "time", re: /tempo|time|século|seculo|era|data|ano|cronolog|milênio|milenio/i },
+    { key: "award", re: /prêmio|premio|award|trof|medal|conquista/i },
+    { key: "sparkles", re: /mistério|misterio|enigma|secreto|lendár|lendar|mágic|magic/i },
+  ];
+
+  for (const rule of rules) {
+    if (rule.re.test(titleBlob)) return rule.key;
+  }
+  for (const rule of rules) {
+    if (rule.re.test(hookBlob)) return rule.key;
+  }
+
+  const pool = ["time", "compass", "shield", "flame", "award"];
+  return pool[Math.max(0, (Number(rank) || 1) - 1) % pool.length];
+}
+
+export function resolveListicleHudStyle(config = {}, storyboard = {}, rankCount = 0) {
+  const explicit = config.listicle_hud_style || storyboard?.listicle?.hud_style;
+  if (explicit === "compact" || explicit === "full" || explicit === "auto") return explicit;
+  return rankCount > 8 ? "compact" : "full";
+}
+
+export function buildListicleYoutubeChapters(storyboard = {}, config = {}, timings = {}) {
+  if (!isListicleProject(config, storyboard)) return "";
+  const starts = Array.isArray(timings.starts) ? timings.starts : [];
+  if (!starts.length) return "";
+
+  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const lines = [];
+
+  if (Number.isFinite(starts[0])) {
+    lines.push(`${formatChapterTimestamp(starts[0])} Introdução`);
+  }
+
+  const itemBlocks = [];
+  if (listItems.length) {
+    for (const item of listItems) {
+      const block = Number(item.block);
+      const rank = Number(item.rank);
+      if (block > 1 && rank) {
+        itemBlocks.push({
+          block,
+          rank,
+          title: String(item.title || item.name || "").trim(),
+        });
+      }
+    }
+  } else if (rankCount > 0) {
+    for (let i = 0; i < rankCount; i++) {
+      const rank = rankOrder === "desc" ? rankCount - i : i + 1;
+      itemBlocks.push({ block: i + 2, rank, title: "" });
+    }
+  }
+
+  itemBlocks.sort((a, b) => a.block - b.block);
+  for (const item of itemBlocks) {
+    const blockStart = Number(starts[item.block - 1]);
+    if (!Number.isFinite(blockStart)) continue;
+    const label = item.title ? `#${item.rank} ${item.title}` : `#${item.rank}`;
+    lines.push(`${formatChapterTimestamp(blockStart)} ${label}`);
+  }
+
+  const outroIdx = Math.max(0, starts.length - 1);
+  if (Number.isFinite(starts[outroIdx]) && outroIdx > 0) {
+    lines.push(`${formatChapterTimestamp(starts[outroIdx])} Recap + CTA`);
+  }
+
+  return lines.join("\n").trim();
+}
 
 export function isListicleProject(config = {}, storyboard = {}) {
   if (config.content_mode === "LISTICLE") return true;
@@ -135,6 +246,7 @@ export function resolveDesignPreset(config = {}, storyboard = {}, niche = "") {
 
   if (MYSTERY_NICHE_RE.test(combined)) return DOCUMENTARY_MYSTERY_PRESET;
   if (GEO_NICHE_RE.test(combined) || detectNicheCategory(niche) === "nature") return DOCUMENTARY_GEOGRAPHY_PRESET;
+  if (FINANCE_NICHE_RE.test(combined) || detectNicheCategory(niche) === "finance") return DOCUMENTARY_FINANCE_PRESET;
   if (isDocumentaryHistoryNiche(niche, config, storyboard)) return DOCUMENTARY_HISTORY_PRESET;
   if (DATA_NICHE_RE.test(combined) || isListicleProject(config, storyboard)) return DOCUMENTARY_DATA_PRESET;
 
@@ -173,6 +285,7 @@ export function getEpidemicMoodForNiche(niche = "", config = {}, storyboard = {}
   const preset = resolveDesignPreset(config, storyboard, niche);
   if (preset?.id === DOCUMENTARY_MYSTERY_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.mystery;
   if (preset?.id === DOCUMENTARY_GEOGRAPHY_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.nature;
+  if (preset?.id === DOCUMENTARY_FINANCE_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.finance;
   if (preset?.id === DOCUMENTARY_DATA_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.default;
 
   const category = detectNicheCategory(niche);
@@ -324,6 +437,23 @@ export function buildListicleStingerOverlays(storyboard = {}, config = {}, start
   return overlays;
 }
 
+function titleForListicleRank(listItems = [], rank) {
+  const item = listItems.find((it) => Number(it.rank) === Number(rank));
+  return String(item?.title || item?.name || "").trim();
+}
+
+function listItemForRank(listItems = [], rank) {
+  return listItems.find((it) => Number(it.rank) === Number(rank)) || null;
+}
+
+function stripLegacyRankProgressOverlays(overlays = []) {
+  return (overlays || []).filter((o) => {
+    if (!o || o.type !== "rank-progress") return true;
+    if (o.id === "listicle-progress-hud") return false;
+    return !/^listicle-progress-\d+$/.test(String(o.id || ""));
+  });
+}
+
 export function buildListicleProgressOverlays(storyboard = {}, config = {}, starts = [], durations = []) {
   if (!isListicleProject(config, storyboard)) return [];
 
@@ -332,53 +462,90 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
   const durationsList = Array.isArray(durations) ? durations : [];
   const preset = resolveDesignPreset(config, storyboard, config.niche);
   const accent = preset?.accentColor || config.accent_color || "#C5A880";
-  const overlays = [];
 
-  const isShort = isShortFormVideo(config);
   const itemBlocks = [];
   if (listItems.length) {
     for (const item of listItems) {
       const block = Number(item.block);
       const rank = Number(item.rank);
-      if (block > 1 && rank) itemBlocks.push({ block, rank });
+      if (block > 1 && rank) {
+        itemBlocks.push({ block, rank, title: titleForListicleRank(listItems, rank) });
+      }
     }
   } else if (rankCount > 0) {
     for (let i = 0; i < rankCount; i++) {
+      const rank = rankOrder === "desc" ? rankCount - i : i + 1;
       itemBlocks.push({
         block: i + 2,
-        rank: rankOrder === "desc" ? rankCount - i : i + 1,
+        rank,
+        title: "",
       });
     }
   }
 
   itemBlocks.sort((a, b) => a.block - b.block);
+  if (!itemBlocks.length) return [];
+
+  const firstItemStart = Number(startsList[itemBlocks[0].block - 1]);
+  const outroBlockStart = Number(startsList[startsList.length - 1]);
+
+  const hudStart = firstItemStart;
+  if (!Number.isFinite(hudStart)) return [];
+
+  let hudEnd = outroBlockStart;
+  if (!Number.isFinite(hudEnd) || hudEnd <= hudStart) {
+    const lastBlock = itemBlocks[itemBlocks.length - 1].block;
+    hudEnd = firstItemStart + (Number(durationsList[lastBlock - 1]) || 6);
+  }
+
+  const hudDuration = Math.max(1, hudEnd - hudStart);
+  const segments = [];
+  const climaxRank = rankOrder === "desc" ? 1 : itemBlocks.length;
 
   for (let i = 0; i < itemBlocks.length; i++) {
-    const { block, rank } = itemBlocks[i];
+    const { block, rank, title } = itemBlocks[i];
     const blockStart = Number(startsList[block - 1]);
     if (!Number.isFinite(blockStart)) continue;
-    const blockDur = Number(durationsList[block - 1]) || 6;
-    const progressDuration = isShort
-      ? Math.min(3.2, Math.max(2.2, blockDur * 0.22))
-      : Math.max(2.5, blockDur - 0.3);
-
-    overlays.push({
-      id: `listicle-progress-${rank}`,
-      type: "rank-progress",
-      start: blockStart + 0.1,
-      duration: progressDuration,
-      props: {
-        current: rank,
-        progress: i + 1,
-        total: itemBlocks.length,
+    const item = listItemForRank(listItems, rank);
+    const resolvedTitle = title || titleForListicleRank(listItems, rank);
+    const visualHook = String(item?.visual_hook || item?.hook || "").trim();
+    segments.push({
+      at: Math.max(0, blockStart - hudStart),
+      mode: "item",
+      rank,
+      title: resolvedTitle,
+      visualHook,
+      lottieKey: pickListicleLottieKey({
+        visualHook,
+        title: resolvedTitle,
         rank,
-        rankOrder: rankOrder === "asc" ? "asc" : "desc",
-        accentColor: accent,
-      },
+        isClimax: rank === climaxRank,
+      }),
+      progress: i + 1,
     });
   }
 
-  return overlays;
+  const hudStyle = resolveListicleHudStyle(config, storyboard, itemBlocks.length);
+
+  return [{
+    id: "listicle-progress-hud",
+    type: "rank-progress",
+    start: hudStart,
+    duration: hudDuration,
+    props: {
+      total: itemBlocks.length,
+      rankOrder: rankOrder === "asc" ? "asc" : "desc",
+      accentColor: accent,
+      persistentHud: true,
+      fadeOnEntry: true,
+      hudStyle,
+      hudTheme: preset?.theme || "ancient",
+      fontTitle: preset?.fontTitle || "Cinzel",
+      secondaryColor: preset?.secondaryColor || accent,
+      thumbnailPalette: preset?.thumbnailPalette || [accent],
+      segments,
+    },
+  }];
 }
 
 export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts = [], durations = []) {
@@ -400,108 +567,55 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
     return rankOrder === "desc" ? ra - rb : rb - ra;
   });
 
-  const topLines = sortedItems.length
-    ? sortedItems.slice(0, 3).map((it) => `#${it.rank} ${String(it.title || it.name || "").trim()}`).filter(Boolean)
+  const recapLines = sortedItems.length
+    ? sortedItems.slice(0, 3).map((it) => ({
+      rank: Number(it.rank),
+      title: String(it.title || it.name || "").trim() || `Item #${it.rank}`,
+    }))
     : Array.from({ length: Math.min(3, rankCount) }, (_, i) => {
       const r = rankOrder === "desc" ? i + 1 : rankCount - i;
-      return `#${r}`;
+      return { rank: r, title: `Item #${r}` };
     });
 
-  const description = topLines.length
-    ? topLines.join(" · ")
-    : "Recap do ranking";
-
   const outroDur = Number(durationsList[outroIdx]) || 6;
+  const effectiveRankCount = rankCount || recapLines.length || 3;
 
   return {
     id: "listicle-recap",
-    type: "info-card",
+    type: "listicle-recap",
     start: outroStart + 0.5,
-    duration: Math.min(outroDur - 0.5, 5),
+    duration: Math.min(outroDur - 0.5, 6),
     props: {
-      title: "TOP 3 — RECAP",
-      description: `${description}\nQual você colocaria em 1º? Comenta!`,
-      iconType: "crown",
-      position: "bottom-right",
-      accentColor: accent,
-      variant: "accent",
+      title: `TOP ${effectiveRankCount} — RECAP`,
+      lines: recapLines,
+      cta: "Qual você colocaria em 1º? Comenta!",
+      accentColor: preset?.accentColor || "#D4AF37",
       theme: preset?.theme || "ancient",
+      fontTitle: preset?.fontTitle || "Cinzel",
+      position: "top-center",
     },
   };
 }
 
-export function buildListicleRankOverlays(storyboard = {}, config = {}, starts = [], durations = []) {
-  if (!isListicleProject(config, storyboard)) return [];
-
-  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
-  const startsList = Array.isArray(starts) ? starts : [];
-  const preset = resolveDesignPreset(config, storyboard, config.niche);
-  const accent = preset?.accentColor || config.accent_color || "#C5A880";
-  const overlays = [];
-  const isShort = isShortFormVideo(config);
-
-  const introStart = Number(startsList[0]);
-  if (Number.isFinite(introStart) && rankCount > 0) {
-    overlays.push({
-      id: "listicle-intro-topn",
-      type: "kinetic-text",
-      start: introStart + 0.8,
-      duration: isShort ? 2.2 : 2.8,
-      props: {
-        text: `TOP ${rankCount}`,
-        style: "reveal",
-        accentColor: accent,
-        position: "center",
-      },
-    });
-  }
-
-  if (isShort) {
-    return overlays;
-  }
-
-  const pushRankOverlay = (rank, title, block, isClimax = false) => {
-    const blockIdx = block - 1;
-    const blockStart = Number(startsList[blockIdx]);
-    if (!Number.isFinite(blockStart)) return;
-
-    const text = title
-      ? `#${rank} — ${String(title).toUpperCase()}`.slice(0, 44)
-      : `#${rank}`;
-
-    overlays.push({
-      id: `listicle-rank-${rank}`,
-      type: "kinetic-text",
-      start: blockStart + 0.35,
-      duration: isClimax ? 3.6 : 2.5,
-      props: {
-        text,
-        style: isClimax ? "slam" : "reveal",
-        accentColor: isClimax ? "#D4AF37" : accent,
-        position: "center",
-      },
-    });
-  };
-
-  if (listItems.length) {
-    for (const item of listItems) {
-      const block = Number(item.block);
-      const rank = Number(item.rank);
-      const title = String(item.title || item.name || "").trim();
-      if (!block || !rank) continue;
-      const isClimax = rankOrder === "desc" ? rank === 1 : rank === rankCount;
-      pushRankOverlay(rank, title, block, isClimax);
+/** Remove kinetic "TOP N" / "#N —" no centro — ranking só via badge rank-progress no topo. */
+export function stripListicleCenterRankKinetics(overlays = [], config = {}, storyboard = {}) {
+  if (!isListicleProject(config, storyboard)) return overlays || [];
+  return (overlays || []).filter((o) => {
+    if (!o) return false;
+    if (o.id === "listicle-intro-topn") return false;
+    if (/^listicle-rank-\d+$/.test(String(o.id || ""))) return false;
+    if (o.type === "kinetic-text" && String(o.props?.position || "").toLowerCase() === "center") {
+      const text = String(o.props?.text || "").trim();
+      if (/^TOP\s*\d+$/i.test(text)) return false;
+      if (/^#\d+(\s*[—-]\s*)?/i.test(text)) return false;
     }
-  } else if (rankCount > 0) {
-    for (let i = 0; i < rankCount; i++) {
-      const block = i + 2;
-      const rank = rankOrder === "desc" ? rankCount - i : i + 1;
-      const isClimax = rank === (rankOrder === "desc" ? 1 : rankCount);
-      pushRankOverlay(rank, "", block, isClimax);
-    }
-  }
+    return true;
+  });
+}
 
-  return overlays;
+export function buildListicleRankOverlays() {
+  // Ranking visual = apenas HUD rank-progress (#N + TOP N no topo). Sem kinetic central.
+  return [];
 }
 
 function mergeOverlays(base = [], additions = []) {
@@ -516,7 +630,7 @@ function mergeOverlays(base = [], additions = []) {
   return merged;
 }
 
-const LISTICLE_HUD_TYPES = new Set(["rank-progress", "listicle-stinger"]);
+const LISTICLE_HUD_TYPES = new Set(["rank-progress", "listicle-stinger", "listicle-recap"]);
 const LISTICLE_BOTTOM_POSITIONS = ["bottom-right", "bottom-left", "bottom-center"];
 
 function isListicleHudOverlay(overlay) {
@@ -587,7 +701,8 @@ const SHORTS_LISTICLE_STRIP_TYPES = new Set([
 function isShortsListicleNoiseOverlay(overlay = {}) {
   if (!overlay) return false;
   if (overlay.id === "listicle-recap") return false;
-  if (overlay.id === "listicle-intro-topn") return false;
+  if (overlay.id === "listicle-intro-topn") return true;
+  if (/^listicle-rank-\d+$/.test(String(overlay.id || ""))) return true;
   if (SHORTS_LISTICLE_STRIP_TYPES.has(overlay.type) && !isListicleHudOverlay(overlay)) return true;
   if (/^listicle-(open-loop|rank-\d+)$/.test(String(overlay.id || ""))) return true;
   if (overlay.type === "listicle-stinger") return true;
@@ -631,7 +746,10 @@ export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboa
 }
 
 export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = []) {
+  if (!isListicleProject(config, storyboard)) return overlays || [];
+
   const isShort = isShortFormVideo(config);
+  let base = stripLegacyRankProgressOverlays(stripListicleCenterRankKinetics(overlays, config, storyboard));
   const batches = [
     buildListicleRankOverlays(storyboard, config, starts, durations),
     buildListicleProgressOverlays(storyboard, config, starts, durations),
@@ -646,13 +764,14 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   const recap = buildListicleRecapOverlay(storyboard, config, starts, durations);
   if (recap) batches.push([recap]);
 
-  let merged = avoidListicleHudCollisions(overlays, config, storyboard);
+  let merged = avoidListicleHudCollisions(base, config, storyboard);
   let added = 0;
   for (const batch of batches) {
     const before = merged.length;
     merged = mergeOverlays(merged, batch);
     added += merged.length - before;
   }
+  merged = stripListicleCenterRankKinetics(merged, config, storyboard);
 
   if (added) {
     console.log(`[Listicle PRO] ${added} overlays profissionais injetados${isShort ? " (modo Shorts minimal)" : ""}.`);
@@ -685,6 +804,18 @@ export function buildBgmDuckPoints(overlays = [], wordTranscripts = []) {
       || overlay.id?.startsWith("listicle-rank")
       || overlay.id === "listicle-intro-topn"
     ) {
+      points.add(Math.max(0, t));
+    }
+
+    if (overlay.id === "listicle-progress-hud" && Array.isArray(overlay.props?.segments)) {
+      const rank1Seg = overlay.props.segments.find((seg) => seg.mode === "item" && Number(seg.rank) === 1);
+      if (rank1Seg) {
+        const dramaticAt = Number(overlay.start) + Number(rank1Seg.at || 0) - 0.3;
+        if (Number.isFinite(dramaticAt)) points.add(Math.max(0, dramaticAt));
+      }
+    }
+
+    if (overlay.type === "listicle-recap") {
       points.add(Math.max(0, t));
     }
   }
@@ -793,13 +924,14 @@ export function validateVideoQuality({
   }
 
   if (isListicleProject(config, storyboard)) {
-    const rankOverlays = sorted.filter((o) => o.id?.startsWith("listicle-rank") || o.id === "listicle-intro-topn");
+    const rankHudOverlays = sorted.filter((o) => o.type === "rank-progress"
+      && (o.id === "listicle-progress-hud" || /^listicle-progress-\d+$/.test(String(o.id || ""))));
     const expected = Number(config.rank_count || storyboard.listicle?.rank_count || 0);
-    if (rankOverlays.length < Math.min(expected, 1)) {
+    if (rankHudOverlays.length < Math.min(expected, 1)) {
       issues.push({
         severity: "warning",
         code: "listicle_no_rank",
-        message: "Listicle sem overlays de ranking #N — contadores visuais ausentes",
+        message: "Listicle sem HUD de ranking (#N no topo) — badge persistente ausente",
       });
     }
 
@@ -873,6 +1005,20 @@ export function validateVideoQuality({
     }
   }
 
+  if (isListicleProject(config, storyboard)) {
+    const { listItems } = getListicleMeta(storyboard, config);
+    for (const item of listItems) {
+      const title = String(item?.title || item?.name || "").trim();
+      if (title.length > 60) {
+        issues.push({
+          severity: "warning",
+          code: "listicle_title_long",
+          message: `#${item.rank} com ${title.length} caracteres no HUD (ideal ≤60): "${title.slice(0, 42)}..."`,
+        });
+      }
+    }
+  }
+
   const errors = issues.filter((i) => i.severity === "error").length;
   const warnings = issues.filter((i) => i.severity === "warning").length;
   const score = Math.max(0, 100 - errors * 25 - warnings * 8 - issues.filter((i) => i.severity === "info").length * 2);
@@ -933,6 +1079,30 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
     if ((overlay.id?.startsWith("listicle-rank") || overlay.id === "listicle-intro-topn")
       && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.25), files.whoosh)) {
       events.push({ time: Math.max(0, t - 0.25), file: files.whoosh, volume: 0.04 });
+    }
+
+    if (overlay.id === "listicle-progress-hud" && Array.isArray(overlay.props?.segments)) {
+      for (const seg of overlay.props.segments) {
+        if (seg.mode !== "item" || !seg.rank) continue;
+        const tickAt = Number(overlay.start) + Number(seg.at || 0);
+        if (!Number.isFinite(tickAt)) continue;
+        if (exists(files.whoosh) && !hasAt(Math.max(0, tickAt - 0.08), files.whoosh)) {
+          events.push({ time: Math.max(0, tickAt - 0.08), file: files.whoosh, volume: 0.038 });
+        }
+        if (exists(files.tick) && !hasAt(tickAt, files.tick)) {
+          events.push({ time: tickAt, file: files.tick, volume: seg.rank === 1 ? 0.06 : 0.05 });
+        }
+        if (seg.rank === 1 && exists(files.impact) && !hasAt(tickAt + 0.08, files.impact)) {
+          events.push({ time: tickAt + 0.08, file: files.impact, volume: 0.055 });
+        }
+        if (seg.rank === 1 && exists(files.riser) && !hasAt(Math.max(0, tickAt - 0.35), files.riser)) {
+          events.push({ time: Math.max(0, tickAt - 0.35), file: files.riser, volume: 0.035 });
+        }
+      }
+    }
+
+    if (overlay.type === "listicle-recap" && exists(files.impact) && !hasAt(t, files.impact)) {
+      events.push({ time: t, file: files.impact, volume: 0.04 });
     }
   }
 
