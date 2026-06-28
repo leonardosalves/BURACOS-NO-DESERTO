@@ -1,7 +1,11 @@
 /**
  * Baixa ícones Lottie gratuitos (LottieFiles CDN) para lottie_assets/
+ *
+ * POLÍTICA: SOMENTE ADICIONAR — nunca apaga nem sobrescreve arquivos existentes.
+ * Arsenal global Lumiera (todos os vídeos futuros), não por projeto.
+ *
  * Run: node scripts/download-lottie-pack.mjs
- * Run again safely — ignora arquivos que já existem.
+ * Depois: npm run lottie:registry
  */
 import fs from "fs";
 import path from "path";
@@ -32,6 +36,24 @@ const PACK = [
   { key: "lock", file: "lottie_ui_lock_1.json", url: "https://assets6.lottiefiles.com/packages/lf20_6o5m2w.json" },
   { key: "lightning", file: "lottie_tech_lightning_1.json", url: "https://assets7.lottiefiles.com/packages/lf20_jcikwtux.json" },
   { key: "earth", file: "lottie_life_earth_1.json", url: "https://assets8.lottiefiles.com/packages/lf20_touohxv0.json" },
+  // Variantes extras (mais opções por vídeo no pool)
+  { key: "scroll", file: "lottie_edu_scroll_2.json", url: "https://assets10.lottiefiles.com/packages/lf20_u4yrau.json" },
+  { key: "pyramid", file: "lottie_nature_pyramid_2.json", url: "https://assets3.lottiefiles.com/packages/lf20_touohxv0.json" },
+  { key: "skull", file: "lottie_life_skull_2.json", url: "https://assets4.lottiefiles.com/packages/lf20_kcsr6fcp.json" },
+  { key: "dna", file: "lottie_tech_dna_2.json", url: "https://assets7.lottiefiles.com/packages/lf20_49rdyysj.json" },
+  { key: "mountain", file: "lottie_nature_mountain_2.json", url: "https://assets1.lottiefiles.com/packages/lf20_x62chJ.json" },
+  { key: "water", file: "lottie_nature_water_2.json", url: "https://assets9.lottiefiles.com/packages/lf20_ydo1amjm.json" },
+  { key: "pillar", file: "lottie_edu_pillar_2.json", url: "https://assets2.lottiefiles.com/packages/lf20_myejiggj.json" },
+  { key: "lightning", file: "lottie_tech_lightning_2.json", url: "https://assets7.lottiefiles.com/packages/lf20_jcikwtux.json" },
+  { key: "anchor", file: "lottie_life_anchor_2.json", url: "https://assets1.lottiefiles.com/packages/lf20_iorpbol0.json" },
+  { key: "sword", file: "lottie_edu_sword_2.json", url: "https://assets2.lottiefiles.com/datafiles/vhvOcuUkV41ZBdr/data.json" },
+  { key: "ship", file: "lottie_life_ship_2.json", url: "https://assets9.lottiefiles.com/packages/lf20_jcikwtux.json" },
+  { key: "hammer", file: "lottie_life_hammer_2.json", url: "https://assets2.lottiefiles.com/packages/lf20_tfa8yebr.json" },
+  { key: "telescope", file: "lottie_tech_telescope_2.json", url: "https://assets8.lottiefiles.com/packages/lf20_ab8hz5ct.json" },
+  { key: "temple", file: "lottie_edu_temple_2.json", url: "https://assets3.lottiefiles.com/packages/lf20_v7id8o.json" },
+  { key: "hourglass", file: "lottie_ui_hourglass_2.json", url: "https://assets4.lottiefiles.com/packages/lf20_kxsdyyzc.json" },
+  { key: "microscope", file: "lottie_tech_microscope_2.json", url: "https://assets6.lottiefiles.com/packages/lf20_1px6dvhc.json" },
+  { key: "pickaxe", file: "lottie_life_pickaxe_2.json", url: "https://assets5.lottiefiles.com/packages/lf20_q5pk4pqs.json" },
 ];
 
 async function downloadOne({ key, file, url }) {

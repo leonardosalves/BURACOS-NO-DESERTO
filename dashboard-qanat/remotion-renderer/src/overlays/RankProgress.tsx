@@ -3,6 +3,7 @@ import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remo
 import {
   hudThemeStyles,
   lottieDataForKey,
+  lottieVariantSeed,
   READABLE_TEXT_SHADOW,
   resolveLottieKey,
   type ListicleHudTheme,
@@ -118,7 +119,8 @@ export const RankProgress: React.FC<RankProgressProps> = ({
     title: titleLine,
     lottieKey: active.lottieKey,
   });
-  const lottieData = lottieDataForKey(lottieKey);
+  const lottieSeed = lottieVariantSeed([displayRank, titleLine, lottieKey]);
+  const lottieData = lottieDataForKey(lottieKey, lottieSeed);
 
   const brandAccent = thumbnailPalette[0] || accentColor;
   const activeAccent = isClimax ? (secondaryColor || "#D4AF37") : brandAccent;

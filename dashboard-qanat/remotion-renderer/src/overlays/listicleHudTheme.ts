@@ -1,5 +1,16 @@
 import rulesData from "./listicleLottieRules.json";
-import { LOTTIE_REGISTRY, type LottieRegistryKey } from "./lottieRegistry.generated";
+import { LOTTIE_BY_FILE, LOTTIE_REGISTRY, type LottieRegistryKey } from "./lottieRegistry.generated";
+import { LOTTIE_POOLS } from "./lottiePools.generated";
+
+/** Seed estável para escolher variante Lottie por vídeo/cena (não por projeto fixo) */
+export function lottieVariantSeed(parts: Array<string | number | undefined | null> = []) {
+  const raw = parts.filter((p) => p !== undefined && p !== null && String(p).length > 0).join("|");
+  let h = 0;
+  for (let i = 0; i < raw.length; i++) {
+    h = (h * 31 + raw.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
 
 export type ListicleLottieKey = LottieRegistryKey;
 
@@ -51,10 +62,20 @@ function matchTitleLottie(title = "", visualHook = ""): LottieRegistryKey | null
   return null;
 }
 
-export function lottieDataForKey(key?: string) {
+/**
+ * Retorna JSON Lottie. Com seed, roda entre TODAS as variantes do pool (por vídeo/cena).
+ */
+export function lottieDataForKey(key?: string, seed?: number) {
   const resolved = key ? resolveRegistryKey(key) : null;
-  if (resolved) return LOTTIE_REGISTRY[resolved];
-  return LOTTIE_REGISTRY.award;
+  if (!resolved) return LOTTIE_REGISTRY.award;
+
+  const pool = LOTTIE_POOLS[resolved];
+  if (pool?.length) {
+    const idx = seed !== undefined ? Math.abs(seed) % pool.length : 0;
+    const file = pool[idx];
+    if (file && LOTTIE_BY_FILE[file]) return LOTTIE_BY_FILE[file];
+  }
+  return LOTTIE_REGISTRY[resolved] || LOTTIE_REGISTRY.award;
 }
 
 export function resolveLottieKey({

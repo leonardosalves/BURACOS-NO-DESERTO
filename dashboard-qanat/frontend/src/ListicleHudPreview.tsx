@@ -3,6 +3,7 @@ import lottie from 'lottie-web';
 import {
   hudThemeStyles,
   lottieDataForKey,
+  lottieVariantSeed,
   resolveLottieKey,
   type ListicleHudTheme,
 } from '@lumiera/overlays/listicleHudTheme';
@@ -154,7 +155,7 @@ export function ListicleHudPreview({
     rank: active.rank,
     title: active.title,
   });
-  const lottieData = lottieDataForKey(lottieKey);
+  const lottieData = lottieDataForKey(lottieKey, lottieVariantSeed([active.rank, active.title, lottieKey]));
   const dotCount = Math.min(rankCount, 8);
   const useBar = rankCount > 8;
   const lottieSize = effectiveStyle === 'compact' ? 40 : 52;
