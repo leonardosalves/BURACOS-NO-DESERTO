@@ -131,14 +131,128 @@ function extractSubject(text = "") {
   return words.slice(0, 3).join(" ") || "";
 }
 
+function isWeakStrategyTitle(title = "") {
+  const t = sanitizeTitle(title);
+  if (!t || t.length < 8) return true;
+  return /^(customized|custom|untitled|test|geral|ideia|video|vídeo)$/i.test(t);
+}
+
+function titleOverlapsTranscript(title = "", transcript = "") {
+  const titleWords = sanitizeTitle(title).toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+  const text = String(transcript).toLowerCase();
+  if (!titleWords.length || !text) return false;
+  const hits = titleWords.filter((w) => text.includes(w)).length;
+  return hits >= Math.min(2, titleWords.length);
+}
+
+function extractContentKeywords(text = "", limit = 12) {
+  const counts = new Map();
+  const words = String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .match(/[a-z]{5,}/g) || [];
+
+  for (const word of words) {
+    if (PT_STOP_WORDS.has(word) || GENERIC_TITLE_WORDS.has(word)) continue;
+    counts.set(word, (counts.get(word) || 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([word]) => word);
+}
+
+function extractStoryboardEntities(storyboard = {}) {
+  const entities = [];
+
+  for (const item of storyboard?.list_items || []) {
+    if (item?.title) entities.push(String(item.title).trim());
+    if (item?.origin) entities.push(String(item.origin).trim());
+  }
+
+  for (const item of storyboard?.impact_texts || []) {
+    const txt = String(item?.text || "").replace(/^#\d+\s*[—-]\s*/i, "").trim();
+    if (txt && txt.length > 3) entities.push(txt);
+  }
+
+  if (storyboard?.listicle?.topic) entities.push(String(storyboard.listicle.topic).trim());
+
+  return [...new Set(entities.filter(Boolean))].slice(0, 12);
+}
+
+function resolveCoreTopic({ text, storyboard = {}, strategy = {} }) {
+  const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 12);
+  const listicle = storyboard?.listicle || {};
+
+  if (listicle.topic) {
+    const rank = listicle.rank_count || text.match(/\btop\s+(\d+)\b/i)?.[1];
+    return rank ? `Top ${rank} ${listicle.topic}` : listicle.topic;
+  }
+
+  const listItems = (storyboard?.list_items || []).map((item) => item?.title).filter(Boolean).slice(0, 3);
+  if (listItems.length >= 2) {
+    return listItems.join(", ");
+  }
+
+  const subject = extractSubject(text);
+  const opening = sentences.slice(0, 2).join(" ").slice(0, 120);
+  const strategyTitle = sanitizeTitle(strategy.title_main || "");
+
+  if (!isWeakStrategyTitle(strategyTitle) && titleOverlapsTranscript(strategyTitle, text)) {
+    return strategyTitle;
+  }
+
+  return subject || opening || strategyTitle || sentences[0] || "";
+}
+
+export function titleRelevanceScore(title = "", transcript = "", facts = {}) {
+  const t = sanitizeTitle(title).toLowerCase();
+  const text = String(transcript).toLowerCase();
+  if (!t || !text) return 0;
+
+  let hits = 0;
+  let checks = 0;
+
+  for (const noun of facts.properNouns || []) {
+    checks += 1;
+    const token = String(noun).toLowerCase().split(/\s+/).find((w) => w.length > 3) || "";
+    if (token && t.includes(token)) hits += 1;
+  }
+
+  for (const kw of facts.contentKeywords || []) {
+    checks += 1;
+    if (t.includes(String(kw).toLowerCase())) hits += 1;
+  }
+
+  if (facts.coreTopic) {
+    const topicWords = facts.coreTopic.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
+    for (const word of topicWords.slice(0, 6)) {
+      checks += 1;
+      if (text.includes(word) && t.includes(word)) hits += 1;
+    }
+  }
+
+  return checks > 0 ? hits / checks : 0;
+}
+
+export function titlesLackRelevance(titles = [], transcript = "", facts = {}) {
+  if (!titles.length || !transcript) return true;
+  const scores = titles.map((item) => titleRelevanceScore(item.text || item, transcript, facts));
+  const avg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  const good = scores.filter((score) => score >= 0.15).length;
+  return avg < 0.12 || good < 2;
+}
+
 export function extractTitleFacts({ transcript = "", storyboard = {} } = {}) {
   const strategy = storyboard?.strategy || {};
   const text = String(transcript || "").replace(/\s+/g, " ").trim();
   const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 12);
   const midIdx = Math.floor(sentences.length / 2);
 
-  const topCount = (strategy.title_main || text).match(/\btop\s+(\d+)\b/i)?.[1]
-    || text.match(/\btop\s+(\d+)\b/i)?.[1]
+  const topCount = text.match(/\btop\s+(\d+)\b/i)?.[1]
+    || storyboard?.listicle?.rank_count
     || null;
 
   const numbers = [...text.matchAll(/\b\d+[\d.,]*\s*(?:%|mil|milhões?|bilhões?|anos?|séculos?|km|metros?|toneladas?|pessoas?|dias?|horas?)?\b/gi)]
@@ -146,22 +260,25 @@ export function extractTitleFacts({ transcript = "", storyboard = {} } = {}) {
     .filter((n) => {
       const bare = n.replace(/\s/g, "");
       if (/^\d+\.\d+$/.test(bare)) return false;
-      if (/^\d+$/.test(bare) && bare !== topCount) return false;
+      if (/^\d+$/.test(bare) && bare !== String(topCount)) return false;
       return true;
     })
     .slice(0, 6);
 
-  const properNouns = filterProperNouns(
+  const capitalized = filterProperNouns(
     [...text.matchAll(/\b[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+(?:\s+(?:de|da|do|das|dos)\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+|\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+){0,2}\b/g)]
       .map((m) => m[0])
       .filter((w) => !["O", "A", "Os", "As", "Um", "Uma", "No", "Na", "Em", "De", "Do", "Da", "E", "Mas", "Se"].includes(w.split(" ")[0])),
-  ).slice(0, 10);
+  );
 
-  const hook = strategy.hook || sentences[0] || "";
+  const storyboardEntities = extractStoryboardEntities(storyboard);
+  const contentKeywords = extractContentKeywords(text);
+  const properNouns = [...new Set([...storyboardEntities, ...capitalized])].slice(0, 12);
+
+  const hook = sentences[0] || strategy.hook || "";
   const payoff = sentences[sentences.length - 1] || "";
   const twist = sentences[midIdx] || sentences[Math.max(0, sentences.length - 3)] || "";
-  const listicleTitle = storyboard?.listicle?.title || storyboard?.listicle?.ranking_title || "";
-  const coreTopic = strategy.title_main || listicleTitle || extractSubject(text) || sentences.slice(0, 2).join(" ").slice(0, 120);
+  const coreTopic = resolveCoreTopic({ text, storyboard, strategy });
   const keyPhrases = extractKeyPhrases(text);
 
   return {
@@ -170,7 +287,8 @@ export function extractTitleFacts({ transcript = "", storyboard = {} } = {}) {
     payoff: clip(payoff, 160),
     twist: clip(twist, 160),
     numbers,
-    properNouns: [...new Set(properNouns)],
+    properNouns,
+    contentKeywords,
     keyPhrases,
     oneLineSummary: sentences.slice(0, 3).join(" ").slice(0, 280),
   };
@@ -227,15 +345,18 @@ CHECKLIST (cada título deve marcar 3+ itens):
 export function buildTitleFactsBlock(facts = {}) {
   if (!facts.coreTopic) return "";
   return `
-## FATOS EXTRAÍDOS DO ROTEIRO (use nos títulos — não invente além disso):
-- Tema central: ${facts.coreTopic}
-- Gancho do vídeo: ${facts.hook || "—"}
+## SOBRE O QUE É ESTE VÍDEO (obrigatório — cada título deve refletir isto)
+- Tema central do roteiro: ${facts.coreTopic}
+- Resumo em 1 linha: ${facts.oneLineSummary || "—"}
+- Gancho real do vídeo: ${facts.hook || "—"}
 - Virada do meio: ${facts.twist || "—"}
 - Payoff / virada final: ${facts.payoff || "—"}
 - Números citados: ${facts.numbers?.length ? facts.numbers.join(", ") : "nenhum — use detalhe concreto do texto"}
-- Nomes/lugares: ${facts.properNouns?.length ? facts.properNouns.join(", ") : "extraia do roteiro"}
+- Nomes, itens e lugares: ${facts.properNouns?.length ? facts.properNouns.join(", ") : "extraia do roteiro"}
+- Palavras-chave do roteiro: ${facts.contentKeywords?.length ? facts.contentKeywords.join(", ") : "—"}
 - Frases-chave: ${facts.keyPhrases?.length ? facts.keyPhrases.join(" | ") : "—"}
-- Resumo em 1 linha: ${facts.oneLineSummary || "—"}`;
+
+REGRA DE OURO: se um título pudesse servir para outro vídeo do mesmo nicho, ele está ERRADO. Use pelo menos 1 nome, número ou termo específico desta lista em cada título.`;
 }
 
 export function fitTitleToLimit(text, max, format = "LONG") {
@@ -309,12 +430,12 @@ export function buildTitleRepairPrompt({ titles = [], transcript = "", format = 
   const generated = generateTitlesFromFacts(facts, { format }).slice(0, 3);
   const examples = generated.map((t) => `- [${t.angle}] ${t.text}`).join("\n");
 
-  return `Você é editor de títulos para YouTube em PT-BR. Os títulos abaixo estão genéricos, robóticos ou confusos. Reescreva os 5 títulos do zero.
+  return `Você é editor de títulos para YouTube em PT-BR. Os títulos abaixo NÃO representam o vídeo real — estão genéricos ou sobre outro assunto. Reescreva os 5 títulos do zero, ancorados no roteiro.
 
 FORMATO: ${format === "SHORT" ? "Shorts" : "Vídeo longo"}
 LIMITE: ${maxChars} caracteres cada (rigoroso)
 
-FATOS DO VÍDEO (obrigatório usar pelo menos 1 fato por título):
+SOBRE O QUE O VÍDEO REALMENTE FALA (use isto, não invente outro tema):
 ${JSON.stringify(facts, null, 2).slice(0, 2500)}
 
 EXEMPLOS DE BOA QUALIDADE (inspire-se no estilo, não copie):
@@ -323,8 +444,8 @@ ${examples || "(use nomes, números e detalhes do roteiro)"}
 TÍTULOS ATUAIS (ruins — descarte o estilo):
 ${titleList}
 
-ROTEIRO (trecho):
-${String(transcript).slice(0, 4000)}
+ROTEIRO COMPLETO (fonte da verdade — cada título deve ser sobre ESTE conteúdo):
+${String(transcript).slice(0, 8000)}
 
 Retorne APENAS JSON:
 {
@@ -416,17 +537,20 @@ export function scoreTitle(text = "", format = "LONG", facts = {}) {
   const factTokens = [
     ...(facts.numbers || []),
     ...(facts.properNouns || []),
+    ...(facts.contentKeywords || []),
     ...(facts.keyPhrases || []),
   ].map((s) => String(s).toLowerCase());
 
   let factHits = 0;
   for (const token of factTokens) {
-    if (token.length > 2 && t.toLowerCase().includes(token.toLowerCase().split(" ")[0])) {
+    const probe = token.split(" ").find((w) => w.length > 3) || token;
+    if (probe.length > 2 && t.toLowerCase().includes(probe)) {
       factHits++;
-      if (factHits >= 2) break;
+      if (factHits >= 3) break;
     }
   }
-  score += factHits * 8;
+  score += factHits * 12;
+  score += Math.round(titleRelevanceScore(t, facts.oneLineSummary || facts.coreTopic || "", facts) * 20);
 
   if (facts.coreTopic) {
     const topicWords = facts.coreTopic.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
@@ -462,7 +586,9 @@ export function titlesNeedRepair(titles = [], format = "LONG", facts = {}) {
   const hasIncomplete = titles.some((t) => !isCompleteTitle(t.text || t, format));
   const tooFew = titles.length < 5;
   const tooSimilar = titles.length >= 2 && titleSimilarity(titles[0].text || titles[0], titles[1].text || titles[1]) > 0.6;
-  return avg < 28 || hasBanned || hasIncomplete || tooFew || tooSimilar;
+  const relevance = titles.map((item) => titleRelevanceScore(item.text || item, facts.oneLineSummary || facts.coreTopic || "", facts));
+  const lowRelevance = relevance.filter((score) => score < 0.12).length >= Math.ceil(titles.length * 0.6);
+  return avg < 28 || hasBanned || hasIncomplete || tooFew || tooSimilar || lowRelevance;
 }
 
 export function polishTitles(titles = [], { format = "LONG", facts = {} } = {}) {
@@ -503,9 +629,12 @@ export function applyTitleQualityToParsed(parsed = {}, context = {}) {
 
   const goodAiCount = titles.filter((t) => t.score >= 18 && isCompleteTitle(t.text, format)).length;
 
-  if (goodAiCount < 3) {
+  const relevance = titles.map((item) => titleRelevanceScore(item.text, facts.oneLineSummary || facts.coreTopic || "", facts));
+  const lowRelevance = relevance.length && relevance.filter((score) => score < 0.12).length >= Math.ceil(relevance.length * 0.6);
+
+  if (goodAiCount < 3 || lowRelevance) {
     const generated = generateTitlesFromFacts(facts, { format });
-    titles = polishTitles([...aiMarked, ...generated], { format, facts });
+    titles = polishTitles([...generated, ...aiMarked], { format, facts });
   }
 
   while (titles.length < 5 && facts.coreTopic) {

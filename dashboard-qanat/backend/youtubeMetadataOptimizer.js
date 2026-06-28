@@ -143,18 +143,18 @@ function buildNicheStrategyBlock({ category = "default", profile = {}, rpmHint =
   const bias = NICHE_TITLE_BIAS[category] || NICHE_TITLE_BIAS.default;
 
   return `
-## ESTRATÉGIA DE NICHO E RPM (obrigatório — alinhe títulos e thumbnails a isto):
+## ESTILO DE NICHO (secundário — só use se couber no tema REAL do roteiro acima):
 - Categoria: ${category}
-- Perfil criativo do projeto: ${profile.label || "Padrão"} (${profile.id || "default"})
-- RPM estimado: ${rpmHint.rpm || "variável"}
-- Paleta visual (use nas thumbnails): ${(rpmHint.palette || []).join(", ")}
-- Viés de título: ${bias}
-- Os 5 títulos devem seguir EXATAMENTE estes ângulos (1 título por tipo):
+- Perfil criativo: ${profile.label || "Padrão"} (${profile.id || "default"})
+- Paleta visual (thumbnails): ${(rpmHint.palette || []).join(", ")}
+- Viés opcional: ${bias}
+- Inspiração de ângulos (1 título por tipo, SOMENTE se aplicável ao assunto do vídeo):
   1. ${titleTypes[0]}
   2. ${titleTypes[1]}
   3. ${titleTypes[2]}
   4. ${titleTypes[3]}
   5. ${titleTypes[4]}
+- NUNCA force um ângulo de nicho que não combine com o roteiro — especificidade do vídeo vem antes de RPM.
 - Formato ${format === "SHORT" ? "SHORT" : "LONG"}: ${format === "SHORT"
     ? "título precisa funcionar sozinho no feed; thumbnail é secundária"
     : "título + thumbnail formam um par — nunca repita as mesmas palavras nos dois"}`;
@@ -177,17 +177,18 @@ function buildThumbnailAbRules(format = "LONG") {
 
 function buildStoryContext(storyboard = {}) {
   const strategy = storyboard.strategy || {};
-  if (!storyboard.strategy) return "";
+  const listicle = storyboard.listicle || {};
+  const listItems = (storyboard.list_items || []).slice(0, 5).map((item) => item?.title).filter(Boolean);
+
+  if (!storyboard.strategy && !listicle.topic && !listItems.length) return "";
 
   return `
-Contexto Estratégico do Vídeo:
-- Título Original: ${strategy.title_main || "N/A"}
-- Hook: ${strategy.hook || "N/A"}
-- Público-alvo: ${strategy.target_audience || "N/A"}
+Contexto auxiliar (NÃO substitui o roteiro — use só se estiver alinhado com a narração):
+- Título de planejamento: ${strategy.title_main || "N/A"}
+- Modo listicle: ${listicle.topic ? `Top ${listicle.rank_count || "?"} — ${listicle.topic}` : "não"}
+- Itens do ranking: ${listItems.length ? listItems.join(", ") : "N/A"}
+- Hook planejado: ${strategy.hook || "N/A"}
 - Tom: ${strategy.tone || "N/A"}
-- Nicho: ${strategy.niche || storyboard.niche || "N/A"}
-- Comentário Pinado Sugerido: ${strategy.pinned_comment || "N/A"}
-- CTA: ${strategy.cta || "N/A"}
 `;
 }
 
@@ -352,11 +353,18 @@ ${THUMBNAIL_OUTPUT_TEMPLATE}`
 
 ${THUMBNAIL_OUTPUT_TEMPLATE}`;
 
-  return `Você é um especialista em títulos e SEO para YouTube em PT-BR. Prioridade #1: títulos ESPECÍFICOS ao roteiro, claros e humanos — não clickbait genérico.
+  return `Você é um especialista em títulos e SEO para YouTube em PT-BR.
 
-${formatRules}
+PRIORIDADE ABSOLUTA: os títulos devem descrever EXATAMENTE o assunto deste vídeo específico, usando nomes, números e termos que aparecem no roteiro. Títulos genéricos de nicho ou clickbait sem ligação ao conteúdo serão rejeitados.
 
 ${titleFactsBlock}
+
+Roteiro do Vídeo (FONTE PRINCIPAL — leia inteiro antes de escrever qualquer título):
+--- INÍCIO DO ROTEIRO ---
+${transcript}
+--- FIM DO ROTEIRO ---
+
+${formatRules}
 
 ${nicheStrategy}
 
@@ -364,13 +372,6 @@ ${durationHint}
 Nicho do canal/projeto: ${niche}
 
 ${storyContext}
-
-Roteiro do Vídeo:
-IMPORTANTE: o roteiro completo está abaixo. Use como fonte principal. Não diga que o roteiro não foi fornecido.
-
---- INÍCIO DO ROTEIRO ---
-${transcript}
---- FIM DO ROTEIRO ---
 
 ${format === "LONG" && chaptersText ? `Marcadores com tempos exatos do projeto:\n${chaptersText}` : ""}
 
