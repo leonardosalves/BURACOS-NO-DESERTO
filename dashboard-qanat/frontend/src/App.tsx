@@ -689,6 +689,20 @@ interface VideoQualityReport {
   epidemicMood?: string | null;
 }
 
+type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
+
+const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
+
+const PROJECT_WORKSPACE_TABS = [
+  { id: 'status' as const, label: 'Geral e Render', icon: Tv },
+  { id: 'timeline' as const, label: 'Roteiro e Tags', icon: Layers },
+  { id: 'music' as const, label: 'Trilha BGM', icon: Music },
+  { id: 'ai' as const, label: 'IA · Metadados', icon: Sparkles },
+  { id: 'upload' as const, label: 'Upload', icon: Share2 },
+  { id: 'editor' as const, label: 'Editor', icon: Settings },
+  { id: 'terminal' as const, label: 'Terminal', icon: Terminal },
+];
+
 const parseDurationSeconds = (duration: unknown) => {
 
 
@@ -1217,10 +1231,11 @@ export default function App() {
 
 
 
-  const [projects, setProjects] = useState<{ name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string }[]>([]);
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [newProjectNiche, setNewProjectNiche] = useState<string>('Geral');
   const [collapsedNiches, setCollapsedNiches] = useState<Record<string, boolean>>({});
-  const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
+  const [projectSearchQuery, setProjectSearchQuery] = useState<string>('');
+  const [recentProjects, setRecentProjects] = useState<string[]>([]);
   const [uploadStatus, setUploadStatus] = useState<{ youtube: any; canva?: any; instagram: any; tiktok: any; kwai: any }>({
     youtube: { connected: false, has_secrets: false, client_id: null },
     canva: { connected: false, hasSecrets: false, clientId: null },
@@ -4245,6 +4260,26 @@ export default function App() {
 
   }, [activeProject]);
 
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_PROJECTS_KEY) || '[]');
+      if (Array.isArray(stored)) {
+        setRecentProjects(stored.filter((item) => typeof item === 'string'));
+      }
+    } catch {
+      setRecentProjects([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeProject) return;
+    setRecentProjects((prev) => {
+      const next = [activeProject, ...prev.filter((name) => name !== activeProject)].slice(0, 5);
+      localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [activeProject]);
+
 
 
 
@@ -5929,6 +5964,90 @@ export default function App() {
 
 
 
+
+  const matchesProjectSearch = (proj: ProjectListItem, query: string) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [proj.name, proj.title, proj.niche, proj.format].some(
+      (field) => String(field || '').toLowerCase().includes(q),
+    );
+  };
+
+  const getNicheCollapsed = (collapseKey: string, projList: ProjectListItem[]) => {
+    if (collapsedNiches[collapseKey] !== undefined) return collapsedNiches[collapseKey];
+    return !projList.some((p) => p.name === activeProject);
+  };
+
+  const handleSelectProject = (name: string) => {
+    setActiveProject(name);
+    if (activeTab === 'creator') setActiveTab('status');
+  };
+
+  const renderSidebarProjectItem = (proj: ProjectListItem) => {
+    const isSelected = activeProject === proj.name;
+    const isShort = proj.format === 'SHORTS';
+    return (
+      <div key={proj.name} className="flex items-center gap-1 group animate-fade-in">
+        <button
+          type="button"
+          onClick={() => handleSelectProject(proj.name)}
+          className={`flex-1 text-left px-2.5 py-2 rounded-lg text-[11px] font-semibold transition flex items-center gap-2 cursor-pointer min-w-0 ${
+            isSelected
+              ? 'bg-gold-500/10 border border-gold-500/25 text-gold-300'
+              : 'text-gray-400 border border-transparent hover:bg-zinc-900/40 hover:text-gray-200'
+          }`}
+        >
+          {isShort ? (
+            <Smartphone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-amber-500' : 'text-zinc-600'}`} />
+          ) : (
+            <Tv className={`w-3 h-3 shrink-0 ${isSelected ? 'text-gold-500' : 'text-zinc-600'}`} />
+          )}
+          <span className="truncate font-sans" title={proj.title || proj.name}>
+            {proj.title || proj.name}
+          </span>
+        </button>
+        {deletingProjectName === proj.name ? (
+          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 animate-fade-in shrink-0">
+            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteProject(proj.name); }} className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-1.5 py-0.5 rounded transition cursor-pointer">Sim</button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProjectName(null); }} className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded transition cursor-pointer ml-0.5">Não</button>
+          </div>
+        ) : (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProjectName(proj.name); }} className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0 opacity-0 group-hover:opacity-100" title="Excluir Projeto">
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderProjectNicheGroups = (formatFilter: 'LONGO' | 'SHORTS') => {
+    const filtered = projects.filter((p) => (formatFilter === 'SHORTS' ? p.format === 'SHORTS' : p.format !== 'SHORTS'));
+    if (filtered.length === 0) {
+      return <p className="text-[10px] text-zinc-650 italic px-2 py-1 font-sans">{formatFilter === 'SHORTS' ? 'Nenhum projeto short' : 'Nenhum projeto longo'}</p>;
+    }
+    const grouped = filtered.reduce<Record<string, ProjectListItem[]>>((acc, proj) => {
+      const nicheName = proj.niche || 'Geral';
+      if (!acc[nicheName]) acc[nicheName] = [];
+      acc[nicheName].push(proj);
+      return acc;
+    }, {});
+    return Object.entries(grouped).map(([nicheName, projList]) => {
+      const collapseKey = `${formatFilter === 'SHORTS' ? 'short' : 'long'}-${nicheName}`;
+      const isCollapsed = getNicheCollapsed(collapseKey, projList);
+      return (
+        <div key={collapseKey} className="space-y-1 border border-zinc-900/40 bg-zinc-950/10 rounded-xl p-1.5">
+          <button type="button" onClick={() => setCollapsedNiches((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))} className="w-full flex items-center justify-between text-left px-1.5 py-1 text-gray-500 hover:text-gray-300 transition text-[9px] font-bold uppercase tracking-widest cursor-pointer select-none">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Folder className="w-3 h-3 text-gold-500/60 shrink-0" />
+              <span className="truncate">{nicheName} ({projList.length})</span>
+            </div>
+            {isCollapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+          </button>
+          {!isCollapsed && <div className="space-y-0.5 pt-0.5">{projList.map((proj) => renderSidebarProjectItem(proj))}</div>}
+        </div>
+      );
+    });
+  };
 
   const handleDeleteOutputVideo = async () => {
 
@@ -21191,15 +21310,9 @@ export default function App() {
 
 
 
-        <aside className="w-64 border-r border-gray-850 bg-[#0a0a0c] p-6 flex flex-col justify-between shrink-0 select-none">
+        <aside className="w-56 border-r border-gray-850 bg-[#0a0a0c] flex flex-col shrink-0 select-none h-full overflow-hidden">
 
-
-
-
-
-
-
-          <div className="space-y-6">
+          <div className="shrink-0 p-4 space-y-3 border-b border-zinc-900/60">
 
 
 
@@ -21383,566 +21496,76 @@ export default function App() {
 
 
 
-            {/* Project List */}
-
-
-
-
-
-
-
-                        <div className="space-y-6 font-sans animate-fade-in">
-              {(() => {
-                const renderProjectItem = (proj: typeof projects[0]) => {
-                  const isSelected = activeProject === proj.name;
-                  const isShort = proj.format === "SHORTS";
-                  const isProjCollapsed = collapsedProjects[proj.name] ?? false;
-                  return (
-                    <div key={proj.name} className="space-y-1 group animate-fade-in">
-                      <div className="flex items-center justify-between gap-1">
-                        <button
-                          onClick={() => {
-                            if (isSelected) {
-                              setCollapsedProjects(prev => ({ ...prev, [proj.name]: !prev[proj.name] }));
-                            } else {
-                              setActiveProject(proj.name);
-                              setCollapsedProjects(prev => ({ ...prev, [proj.name]: false }));
-                              if (activeTab === 'creator') {
-                                setActiveTab('status');
-                              }
-                            }
-                          }}
-                          className={`flex-1 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
-                            isSelected
-                              ? 'bg-zinc-900 border border-zinc-800 text-white font-bold'
-                              : 'text-gray-400 border border-transparent hover:bg-zinc-900/30 hover:text-gray-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {isShort ? (
-                              <Smartphone className={`w-3.5 h-3.5 ${isSelected ? 'text-amber-500' : 'text-zinc-500'}`} />
-                            ) : (
-                              <Tv className={`w-3.5 h-3.5 ${isSelected ? 'text-gold-500' : 'text-zinc-500'}`} />
-                            )}
-                            <span className="truncate max-w-[120px] font-sans" title={proj.title || proj.name}>
-                              {proj.title || proj.name}
-                            </span>
-                          </div>
-                          {isSelected && !isProjCollapsed ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                          )}
-                        </button>
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          {deletingProjectName === proj.name ? (
-                            <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-1 animate-fade-in shrink-0">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteProject(proj.name);
-                                }}
-                                className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-2 py-1 rounded transition cursor-pointer"
-                                title="Confirmar exclusão"
-                              >
-                                Sim
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeletingProjectName(null);
-                                }}
-                                className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white px-2 py-1 rounded transition cursor-pointer ml-1"
-                              >
-                                Não
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingProjectName(proj.name);
-                              }}
-                              className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0"
-                              title="Excluir Projeto"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {isSelected && !isProjCollapsed && (
-                        <div className="pl-3 ml-2 border-l border-zinc-800 space-y-1 mt-1 font-sans">
-                          <button 
-                            onClick={() => setActiveTab('status')}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                              activeTab === 'status' 
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                            }`}
-                          >
-                            <Tv className="w-3.5 h-3.5 shrink-0" />
-                            <span>Geral e Render</span>
-                          </button>
-
-                          <button 
-                            onClick={() => setActiveTab('timeline')}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                              activeTab === 'timeline' 
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                            }`}
-                          >
-                            <Layers className="w-3.5 h-3.5 shrink-0" />
-                            <span>Roteiro e Tags</span>
-                          </button>
-
-                          <button 
-                            onClick={() => setActiveTab('music')}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                              activeTab === 'music' 
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                            }`}
-                          >
-                            <Music className="w-3.5 h-3.5 shrink-0" />
-                            <span>Trilha BGM</span>
-                          </button>
-
-                          <button 
-                            onClick={() => setActiveTab('ai')}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                              activeTab === 'ai' 
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                            }`}
-                          >
-                            <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                            <span>Agente IA · Metadados & Thumbnails</span>
-                          </button>
-
-            <button 
-              onClick={() => setActiveTab('upload')}
-              className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                activeTab === 'upload' 
-                  ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                  : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-              }`}
-            >
-              <Share2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Upload & Distribuição</span>
-            </button>
-
-                          <button 
-                            onClick={() => setActiveTab('editor')}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                              activeTab === 'editor' 
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                            }`}
-                          >
-                            <Settings className="w-3.5 h-3.5 shrink-0" />
-                            <span>Editor de Projeto</span>
-                          </button>
-
-                          <button 
-                            onClick={() => setActiveTab('terminal')}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                              activeTab === 'terminal' 
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                            }`}
-                          >
-                            <Terminal className="w-3.5 h-3.5 shrink-0" />
-                            <span>Terminal</span>
-                          </button>
-
-                          {status && (
-                            <div className="mt-4 p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
-                              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block font-sans">Verificações Ativas</span>
-                              <div className="space-y-2 text-xs">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Narração Master</span>
-                                  {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
-                                  {status.has_soundtrack ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Clipe Infográfico</span>
-                                  {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Assets de B-roll</span>
-                                  <span className="font-mono text-white text-[11px] bg-zinc-900 px-1.5 py-0.5 rounded">{status.assets_count} arquivos</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                };
-
-                return (
-                  <>
-                    {/* Vídeos Longos (16:9) */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center px-1 border-b border-zinc-900 pb-2">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block font-sans">Vídeos Longos (16:9)</span>
-                        <button 
-                          onClick={() => {
-                            setNewProjectFormat('LONGO');
-                            setNewProjectNiche('Geral');
-                            setShowCreateModal(true);
-                          }} 
-                          className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-                          title="Criar Novo Projeto Longo"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        {(() => {
-                          const filtered = projects.filter(p => p.format !== "SHORTS");
-                          if (filtered.length === 0) {
-                            return <p className="text-[10px] text-zinc-650 italic px-3 py-1 font-sans">Nenhum projeto longo</p>;
-                          }
-                          
-                          const grouped = filtered.reduce<Record<string, typeof projects>>((acc, proj) => {
-                            const nicheName = proj.niche || "Geral";
-                            if (!acc[nicheName]) acc[nicheName] = [];
-                            acc[nicheName].push(proj);
-                            return acc;
-                          }, {});
-
-                          return Object.entries(grouped).map(([nicheName, projList]) => {
-                            const collapseKey = `long-${nicheName}`;
-                            const isCollapsed = collapsedNiches[collapseKey] ?? false;
-                            return (
-                              <div key={nicheName} className="space-y-1.5 border border-zinc-900/40 bg-zinc-950/10 rounded-2xl p-2">
-                                <button
-                                  onClick={() => setCollapsedNiches(prev => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
-                                  className="w-full flex items-center justify-between text-left px-2 py-1 text-gray-500 hover:text-gray-300 transition text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Folder className="w-3.5 h-3.5 text-gold-500/60" />
-                                    <span>{nicheName} ({projList.length})</span>
-                                  </div>
-                                  {isCollapsed ? (
-                                    <ChevronRight className="w-3 h-3 text-gray-600" />
-                                  ) : (
-                                    <ChevronDown className="w-3 h-3 text-gray-400" />
-                                  )}
-                                </button>
-
-                                {!isCollapsed && (
-                                  <div className="space-y-1 pt-1">
-                                    {projList.map(proj => renderProjectItem(proj))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Vídeos Curtos / Shorts (9:16) */}
-                    <div className="space-y-2 pt-2 border-t border-zinc-900/60">
-                      <div className="flex justify-between items-center px-1 border-b border-zinc-900 pb-2">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block font-sans">Vídeos Curtos / Shorts (9:16)</span>
-                        <button 
-                          onClick={() => {
-                            setNewProjectFormat('SHORTS');
-                            setNewProjectNiche('Geral');
-                            setShowCreateModal(true);
-                          }} 
-                          className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-                          title="Criar Novo Projeto Curto"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        {(() => {
-                          const filtered = projects.filter(p => p.format === "SHORTS");
-                          if (filtered.length === 0) {
-                            return <p className="text-[10px] text-zinc-650 italic px-3 py-1 font-sans">Nenhum projeto short</p>;
-                          }
-                          
-                          const grouped = filtered.reduce<Record<string, typeof projects>>((acc, proj) => {
-                            const nicheName = proj.niche || "Geral";
-                            if (!acc[nicheName]) acc[nicheName] = [];
-                            acc[nicheName].push(proj);
-                            return acc;
-                          }, {});
-
-                          return Object.entries(grouped).map(([nicheName, projList]) => {
-                            const collapseKey = `short-${nicheName}`;
-                            const isCollapsed = collapsedNiches[collapseKey] ?? false;
-                            return (
-                              <div key={nicheName} className="space-y-1.5 border border-zinc-900/40 bg-zinc-950/10 rounded-2xl p-2">
-                                <button
-                                  onClick={() => setCollapsedNiches(prev => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
-                                  className="w-full flex items-center justify-between text-left px-2 py-1 text-gray-500 hover:text-gray-300 transition text-[10px] font-bold uppercase tracking-widest cursor-pointer select-none"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Folder className="w-3.5 h-3.5 text-gold-500/60" />
-                                    <span>{nicheName} ({projList.length})</span>
-                                  </div>
-                                  {isCollapsed ? (
-                                    <ChevronRight className="w-3 h-3 text-gray-600" />
-                                  ) : (
-                                    <ChevronDown className="w-3 h-3 text-gray-400" />
-                                  )}
-                                </button>
-
-                                {!isCollapsed && (
-                                  <div className="space-y-1 pt-1">
-                                    {projList.map(proj => renderProjectItem(proj))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-
-
-
-
-
-
-
-            
-
-
-
-
-
-
-
-            {/* Status Panel Quick view */}
-
-
-
-
-
-
-
-            {false && status && (
-
-
-
-
-
-
-
-              <div className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-3.5">
-
-
-
-
-
-
-
-                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
-
-
-
-
-
-
-
-                
-
-
-
-
-
-
-
-                <div className="space-y-2 text-xs">
-
-
-
-
-
-
-
-                  <div className="flex justify-between items-center">
-
-
-
-
-
-
-
-                    <span className="text-gray-400 font-sans">Narração Master</span>
-
-
-
-
-
-
-
-                    {status.has_narration ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                  <div className="flex justify-between items-center">
-
-
-
-
-
-
-
-                    <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
-
-
-
-
-
-
-
-                    {status.has_soundtrack ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                  <div className="flex justify-between items-center">
-
-
-
-
-
-
-
-                    <span className="text-gray-400 font-sans">Clipe Infográfico</span>
-
-
-
-
-
-
-
-                    {status.has_highlight_clip ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                  <div className="flex justify-between items-center">
-
-
-
-
-
-
-
-                    <span className="text-gray-400 font-sans">Assets de B-roll</span>
-
-
-
-
-
-
-
-                    <span className="font-mono text-white text-[11px] bg-zinc-900 px-1.5 py-0.5 rounded">{status.assets_count} arquivos</span>
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                </div>
-
-
-
-
-
-
-
-              </div>
-
-
-
-
-
-
-
-            )}
-
-
-
-
-
-
-
           </div>
 
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 font-sans min-h-0">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600 pointer-events-none" />
+              <input
+                type="search"
+                value={projectSearchQuery}
+                onChange={(e) => setProjectSearchQuery(e.target.value)}
+                placeholder="Buscar projeto..."
+                className="w-full pl-8 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40 font-sans"
+              />
+            </div>
 
+            {projectSearchQuery.trim() ? (
+              <div className="space-y-0.5">
+                {projects.filter((p) => matchesProjectSearch(p, projectSearchQuery)).length === 0 ? (
+                  <p className="text-[10px] text-zinc-600 italic px-1">Nenhum projeto encontrado</p>
+                ) : (
+                  projects
+                    .filter((p) => matchesProjectSearch(p, projectSearchQuery))
+                    .map((proj) => renderSidebarProjectItem(proj))
+                )}
+              </div>
+            ) : (
+              <>
+                {recentProjects.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1 block">Recentes</span>
+                    {recentProjects
+                      .map((name) => projects.find((p) => p.name === name))
+                      .filter((proj): proj is ProjectListItem => Boolean(proj))
+                      .map((proj) => renderSidebarProjectItem(proj))}
+                  </div>
+                )}
 
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Longos (16:9)</span>
+                    <button
+                      type="button"
+                      onClick={() => { setNewProjectFormat('LONGO'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
+                      className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
+                      title="Criar Novo Projeto Longo"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">{renderProjectNicheGroups('LONGO')}</div>
+                </div>
 
+                <div className="space-y-2 pt-2 border-t border-zinc-900/60">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Shorts (9:16)</span>
+                    <button
+                      type="button"
+                      onClick={() => { setNewProjectFormat('SHORTS'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
+                      className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
+                      title="Criar Novo Projeto Curto"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">{renderProjectNicheGroups('SHORTS')}</div>
+                </div>
+              </>
+            )}
+          </div>
 
-
-
-          <div className="text-[10px] text-gray-500 leading-normal border-t border-gray-850 pt-4 font-sans">
+          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-normal border-t border-gray-850 font-sans">
 
 
 
@@ -21982,7 +21605,40 @@ export default function App() {
 
 
 
-        <main className="flex-1 overflow-y-auto p-8 bg-[#09090b]">
+        <main className="flex-1 flex flex-col min-w-0 bg-[#09090b]">
+          {activeTab !== 'creator' && activeTab !== 'settings' && (
+            <div className="shrink-0 border-b border-zinc-800/80 bg-[#0a0a0c]/95 backdrop-blur-sm px-6 py-3">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans">Projeto ativo</p>
+                  <p className="text-sm font-bold text-white truncate font-cinzel">{activeProject}</p>
+                </div>
+                <nav className="flex gap-1 overflow-x-auto pb-0.5">
+                  {PROJECT_WORKSPACE_TABS.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                          isActive
+                            ? 'bg-gold-500/15 text-gold-400 border border-gold-500/30'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span className="whitespace-nowrap">{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto p-8">
 
 
 
@@ -39967,6 +39623,7 @@ export default function App() {
 
 
 
+          </div>
         </main>
 
 
