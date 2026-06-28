@@ -314,7 +314,33 @@ function applyLegacyTagHints(sentence: string, platform: TaggedNarrationPlatform
 }
 
 function hasRichLegacyTags(taggedScript: string): boolean {
-  return /\[pause\]|\[pausa\]|\(breath\)|\(sigh\)|<break\s+time=/i.test(taggedScript);
+  return /\[pause\]|\[pausa\]|\[ênfase\]|\[rápido\]|\[lento\]|\(breath\)|\(sigh\)|<break\s+time=/i.test(taggedScript);
+}
+
+function applyCinematicMarkers(taggedScript: string, platform: TaggedNarrationPlatform): string {
+  let result = taggedScript;
+
+  if (platform === 'fish') {
+    result = result
+      .replace(/\[ênfase\]\s*/gi, '[ênfase] ')
+      .replace(/\[rápido\]/gi, '[rápido]')
+      .replace(/\[lento\]/gi, '[lento]')
+      .replace(/\[pausa\]|\[pause\]/gi, '[pausa]');
+  } else if (platform === 'eleven') {
+    result = result
+      .replace(/\[ênfase\]\s*/gi, '[emphasis] ')
+      .replace(/\[rápido\]/gi, '[fast]')
+      .replace(/\[lento\]/gi, '[slowly]')
+      .replace(/\[pausa\]|\[pause\]/gi, '[pause]');
+  } else {
+    result = result
+      .replace(/\[ênfase\]\s*/gi, '[ênfase] ')
+      .replace(/\[rápido\]/gi, '(fast pace)')
+      .replace(/\[lento\]/gi, '(slow pace)')
+      .replace(/\[pausa\]|\[pause\]/gi, '(pause 600ms)');
+  }
+
+  return result.replace(/\s+/g, ' ').trim();
 }
 
 function buildFromAnalyses(
@@ -353,7 +379,8 @@ export function buildTaggedNarration(
   if (!sourceText && !taggedScript) return '';
 
   if (taggedScript && hasRichLegacyTags(taggedScript)) {
-    const converted = applyLegacyTagHints(taggedScript, platform);
+    const cinematic = applyCinematicMarkers(taggedScript, platform);
+    const converted = applyLegacyTagHints(cinematic, platform);
     if (platform === 'minimax') {
       return `Direção de voz: narrador documental em PT-BR, com pausas naturais e entrega humana.\n\n${converted}`;
     }

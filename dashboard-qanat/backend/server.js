@@ -80,6 +80,12 @@ import {
   augmentSfxTimelineForOverlays,
   runVideoQualityCheck,
   buildCinematicNarrationRules,
+  buildEpidemicMoodPrompt,
+  ensureProjectSfxPack,
+  buildBgmDuckPoints,
+  truncatePropsForPreview,
+  resolveThumbnailPalette,
+  getEpidemicMoodForNiche,
 } from "./videoProEnhancements.js";
 import {
   extractTitleFacts,
@@ -435,7 +441,7 @@ app.post("/api/projects/create", (req, res) => {
 
     fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
 
-    
+    ensureProjectSfxPack(projDir);
 
     // Copy templates
 
@@ -2302,14 +2308,12 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
 
   if (mode === "SHORTS" || config.use_single_bgm) {
 
-    const rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
+    let rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
 
     if (!String(rawSearchTheme).trim()) {
-
-      logs.push("SHORTS/trilha unica sem tema de BGM no roteiro. Nenhum download automatico feito.");
-
-      return logs;
-
+      const mood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+      rawSearchTheme = mood.bgm;
+      logs.push(`Tema BGM inferido pelo nicho (${mood.label}): "${rawSearchTheme}"`);
     }
 
     const searchTheme = translateOrCleanQuery(rawSearchTheme);
@@ -2750,6 +2754,29 @@ async function ensureProjectSfxTracks(projDir) {
 
   const token = getEpidemicSoundKey(projDir) || "";
 
+  ensureProjectSfxPack(projDir);
+
+  const packDownloads = [
+    { file: "sfx_tick.mp3", term: "ui tick click short" },
+    { file: "sfx_impact.mp3", term: "cinematic impact hit short" },
+    { file: "sfx_riser.mp3", term: "cinematic riser tension short" },
+    { file: "sfx_room_tone.mp3", term: "room tone ambient air" },
+  ];
+
+  for (const pack of packDownloads) {
+    const packPath = path.join(projDir, pack.file);
+    if (fs.existsSync(packPath)) continue;
+    try {
+      const sfxs = await searchSoundEffects(token, pack.term);
+      if (sfxs && sfxs.length > 0) {
+        console.log(`[SFX Pack] Baixando ${pack.file} (${sfxs[0].title})...`);
+        await downloadSoundEffect(token, sfxs[0].id, packPath, sfxs[0].previewUrl);
+      }
+    } catch (err) {
+      console.warn(`[SFX Pack] Falha ao baixar ${pack.file}:`, err.message);
+    }
+  }
+
   const storyboardPath = path.join(projDir, "storyboard.json");
 
   const timingsPath = path.join(projDir, "block_timings.json");
@@ -3112,7 +3139,10 @@ app.get("/api/render/:mode", async (req, res) => {
 
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
       const useHyperframes = req.query.hyperframes !== "0";
-      const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes);
+      const previewSecs = Math.min(60, Math.max(0, Number(req.query.preview) || 0));
+      const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
+        previewDuration: previewSecs > 0 ? previewSecs : undefined,
+      });
 
       sendLog(`[PROGRESSO] 10%`);
 
@@ -3122,27 +3152,24 @@ app.get("/api/render/:mode", async (req, res) => {
 
       sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
 
-      child = spawn("npx", [
-
+      const remotionArgs = [
         "remotion",
-
         "render",
-
         "src/index.ts",
-
         "LumieraTimeline",
-
         `"${renderPlan.outputPath}"`,
-
         "--props",
-
         `"${renderPlan.propsPath}"`,
-
         "--codec",
-
         isProres ? "prores" : "h264",
+      ];
 
-      ], {
+      if (previewSecs > 0) {
+        remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
+        sendLog(`[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`);
+      }
+
+      child = spawn("npx", remotionArgs, {
 
         cwd: REMOTION_DIR,
 
@@ -3833,7 +3860,7 @@ async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSl
   };
 }
 
-async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false) {
+async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false, options = {}) {
 
   // Load global render config
 
@@ -4281,8 +4308,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     projectName: path.basename(projectDir),
   });
 
-  augmentSfxTimelineForOverlays(projectDir, overlays);
+  ensureProjectSfxPack(projectDir);
+  augmentSfxTimelineForOverlays(projectDir, overlays, timings.starts || []);
   const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
+  const bgmDuckPoints = buildBgmDuckPoints(overlays, wordTranscripts);
 
   // Scrape YouTube channel info and save avatar locally
   const youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
@@ -4317,11 +4346,18 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     designPreset: config.design_preset || null,
     grainOverlay: Boolean(config.grain_overlay),
     vignette: Boolean(config.vignette),
+    bgmDuckPoints,
   };
+
+  let finalProps = props;
+  if (options.previewDuration) {
+    finalProps = truncatePropsForPreview(props, options.previewDuration);
+    console.log(`[Remotion] Modo preview: ${options.previewDuration}s`);
+  }
 
   const propsPath = path.join(publicProjectDir, "props.json");
 
-  fs.writeFileSync(propsPath, JSON.stringify(props, null, 2), "utf8");
+  fs.writeFileSync(propsPath, JSON.stringify(finalProps, null, 2), "utf8");
 
   const outputDir = path.join(projectDir, "OUTPUT", "qanat_persa_video_final");
 
@@ -6217,6 +6253,10 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
       try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
     }
 
+    if (!palette.length) {
+      palette = resolveThumbnailPalette(config, storyboard, config.niche);
+    }
+
     const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
     const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
 
@@ -7973,6 +8013,8 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
       fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
 
+      ensureProjectSfxPack(projDir);
+
       ensureFileExists("build_video.py", projDir);
 
       ensureFileExists("build_video_destacado.py", projDir);
@@ -8090,6 +8132,8 @@ ${isListicle
 ${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
 
 ${buildCinematicNarrationRules()}
+
+${buildEpidemicMoodPrompt(niche, { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic }, { listicle: { topic: listicleTopic } })}
 
 Reforco especifico para montagem do roteiro:
 
@@ -8943,6 +8987,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     storyboard,
     totalDuration,
     starts,
+    durations,
     orchestrationPlan,
   });
 
