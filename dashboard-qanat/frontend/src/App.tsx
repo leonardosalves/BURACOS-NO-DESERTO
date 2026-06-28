@@ -308,6 +308,7 @@ import {
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import { ListicleCreatorStep } from './ListicleCreatorStep';
+import { NarrationReviewPanel } from './NarrationReviewPanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
 
@@ -1917,6 +1918,12 @@ export default function App() {
 
 
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
+  const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full'>('idle');
+  const [showNarrationReview, setShowNarrationReview] = useState<boolean>(savedCreatorState.showNarrationReview || false);
+  const [narrationDraft, setNarrationDraft] = useState<string>(savedCreatorState.narrationDraft || '');
+  const [narrationTaggedDraft, setNarrationTaggedDraft] = useState<string>(savedCreatorState.narrationTaggedDraft || '');
+  const [narrationStrategy, setNarrationStrategy] = useState<any | null>(savedCreatorState.narrationStrategy || null);
+  const [narrationProjectName, setNarrationProjectName] = useState<string>(savedCreatorState.narrationProjectName || '');
   const [useNotebooklm, setUseNotebooklm] = useState<boolean>(true);
   const [notebooklmStatus, setNotebooklmStatus] = useState<{
     available: boolean;
@@ -2038,6 +2045,9 @@ export default function App() {
   const [listTopic, setListTopic] = useState<string>(savedCreatorState.listTopic || '');
   const [rankCount, setRankCount] = useState<number>(savedCreatorState.rankCount || 20);
   const [rankOrder, setRankOrder] = useState<'desc' | 'asc'>(savedCreatorState.rankOrder || 'desc');
+  const [listicleHudStyle, setListicleHudStyle] = useState<'full' | 'compact' | 'auto'>(
+    savedCreatorState.listicleHudStyle || 'auto',
+  );
   const [listicleIdeasData, setListicleIdeasData] = useState<ListicleIdeasResponse | null>(savedCreatorState.listicleIdeasData || null);
   const [selectedListicleIdeaIndex, setSelectedListicleIdeaIndex] = useState<number>(savedCreatorState.selectedListicleIdeaIndex ?? -1);
   const [customTitle, setCustomTitle] = useState<string>(savedCreatorState.customTitle || '');
@@ -4566,10 +4576,16 @@ export default function App() {
       listTopic,
       rankCount,
       rankOrder,
+      listicleHudStyle,
       listicleIdeasData,
       selectedListicleIdeaIndex,
+      showNarrationReview,
+      narrationDraft,
+      narrationTaggedDraft,
+      narrationStrategy,
+      narrationProjectName,
     }));
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleIdeasData, selectedListicleIdeaIndex]);
+  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData, selectedListicleIdeaIndex, showNarrationReview, narrationDraft, narrationTaggedDraft, narrationStrategy, narrationProjectName]);
 
 
 
@@ -7291,6 +7307,7 @@ export default function App() {
 
 
   const saveConfig = async (updatedConfig: ConfigData) => {
+    const configToSave = enrichTimelineAudioStarts(updatedConfig);
 
 
 
@@ -7330,7 +7347,7 @@ export default function App() {
 
 
 
-        body: JSON.stringify(updatedConfig)
+        body: JSON.stringify(configToSave)
 
 
 
@@ -7354,7 +7371,7 @@ export default function App() {
 
 
 
-        setConfig(updatedConfig);
+        setConfig(configToSave);
 
 
 
@@ -7545,6 +7562,10 @@ export default function App() {
 
 
 
+
+    if (field === 'fixed') {
+      blockAssets = recalculateBlockAudioStarts(blockKey, blockAssets, index);
+    }
 
     newTimelineAssets[blockKey] = blockAssets;
 
@@ -10634,7 +10655,13 @@ export default function App() {
 
 
 
-    let assetAudioStart = narrationStart;
+    const currentAsset = config?.timeline_assets?.[blockKey]?.[assetIdx];
+    let assetAudioStart: number;
+
+    if (currentAsset?.audio_start !== undefined && currentAsset?.audio_start !== null) {
+      assetAudioStart = Number(currentAsset.audio_start);
+    } else {
+      assetAudioStart = narrationStart;
 
 
 
@@ -10642,7 +10669,7 @@ export default function App() {
 
 
 
-    for (let i = 0; i < assetIdx; i++) {
+      for (let i = 0; i < assetIdx; i++) {
 
 
 
@@ -10650,14 +10677,8 @@ export default function App() {
 
 
 
-      assetAudioStart += getAssetDuration(blockKey, i);
-
-
-
-
-
-
-
+        assetAudioStart += getAssetDuration(blockKey, i);
+      }
     }
 
 
@@ -10873,6 +10894,42 @@ export default function App() {
 
 
 
+
+  const recalculateBlockAudioStarts = (blockKey: string, assets: any[], preserveUntilIndex = -1): any[] => {
+    const updated = assets.map((a) => ({ ...a }));
+    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
+    const blockNum = parseInt(blockKey, 10);
+    const fallbackStart = status?.block_timings?.starts?.[blockNum - 1] ?? 0;
+    const narrationStart = allBlockWords.length > 0 ? allBlockWords[0].start : fallbackStart;
+
+    let cursor = narrationStart;
+    for (let i = 0; i < updated.length; i++) {
+      if (i <= preserveUntilIndex && updated[i]?.audio_start !== undefined && updated[i]?.audio_start !== null) {
+        cursor = Number(updated[i].audio_start) + getAssetDuration(blockKey, i);
+        continue;
+      }
+      if (i === 0) {
+        updated[i].audio_start = parseFloat(narrationStart.toFixed(3));
+      } else {
+        updated[i].audio_start = parseFloat(cursor.toFixed(3));
+      }
+      cursor = Number(updated[i].audio_start) + getAssetDuration(blockKey, i);
+    }
+    return updated;
+  };
+
+  const enrichTimelineAudioStarts = (cfg: ConfigData): ConfigData => {
+    const timelineAssets = { ...(cfg.timeline_assets || {}) };
+    Object.keys(timelineAssets).forEach((blockKey) => {
+      const assets = timelineAssets[blockKey];
+      if (!assets?.length) return;
+      const hasAny = assets.some((a: any) => a.audio_start !== undefined && a.audio_start !== null);
+      if (!hasAny) {
+        timelineAssets[blockKey] = recalculateBlockAudioStarts(blockKey, assets);
+      }
+    });
+    return { ...cfg, timeline_assets: timelineAssets };
+  };
 
   const alignBlockAssetsToSpeech = (blockKey: string) => {
 
@@ -11185,6 +11242,8 @@ export default function App() {
 
 
 
+
+        asset.audio_start = parseFloat(matched.start.toFixed(3));
 
         alignedCount++;
 
@@ -11649,6 +11708,8 @@ export default function App() {
 
 
 
+
+          asset.audio_start = parseFloat(matched.start.toFixed(3));
 
           totalAligned++;
 
@@ -15227,271 +15288,217 @@ export default function App() {
     }
   };
 
-  const handleGenerateListicleScript = async () => {
-    if (!listTopic.trim()) {
-      toast.error('Escolha ou informe um ranking (tema da lista).');
-      return;
-    }
-    if (!creatorProjectName.trim()) {
-      toast.error('Digite o nome do projeto/pasta.');
-      return;
+  const buildCreatorScriptPayload = (
+    phase: 'narration' | 'full',
+    options?: { approvedNarration?: string; approvedNarrationTagged?: string },
+  ) => {
+    const isCustom = ideationTab === 'custom';
+    const isListicle = ideationTab === 'listicle';
+    const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    if (isListicle) {
+      const selectedRanking = listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex];
+      const title = selectedRanking?.title || `Top ${rankCount} ${listTopic.trim()}`;
+      const nicheForScript = listNiche.trim() || listTopic.trim();
+      return {
+        niche: nicheForScript,
+        format: formatSelector,
+        contentMode: 'LISTICLE',
+        rankCount,
+        rankOrder,
+        listTopic: listTopic.trim(),
+        listicleHudStyle,
+        idea: {
+          title,
+          promise: selectedRanking?.promise || `Ranking dos ${rankCount} itens mais importantes sobre ${listTopic.trim()}, com fatos surpreendentes e impacto no mundo moderno.`,
+          emotion: selectedRanking?.emotion || 'Curiosidade / Surpresa',
+          sample_items: selectedRanking?.sample_items,
+          listicle_angle: selectedRanking?.listicle_angle,
+        },
+        project: safeProjectName,
+        useNotebooklm,
+        phase,
+        ...(phase === 'full' ? {
+          approvedNarration: options?.approvedNarration,
+          approvedNarrationTagged: options?.approvedNarrationTagged,
+        } : {}),
+      };
     }
 
-    const selectedRanking = listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex];
+    return {
+      niche: isCustom ? 'Customized' : nicheInput.trim(),
+      format: formatSelector,
+      idea: isCustom ? {
+        title: customTitle.trim(),
+        promise: customOutline.trim(),
+        emotion: 'Curiosity / Action',
+        isCustom: true,
+        hook: customHooks.trim(),
+        hooks: customHooks.trim(),
+        blocks: customBlocks.filter((b) => b.content.trim() !== ''),
+      } : (selectedIdeaIndex === 999 ? {
+        title: customIdeaTitle,
+        promise: customIdeaPromise,
+        emotion: customIdeaEmotion,
+        hook: customIdeaHook,
+        blocks: customIdeaBlocks,
+      } : (ideasData?.ideas || [])[selectedIdeaIndex]),
+      project: safeProjectName,
+      useNotebooklm,
+      phase,
+      ...(phase === 'full' ? {
+        approvedNarration: options?.approvedNarration,
+        approvedNarrationTagged: options?.approvedNarrationTagged,
+      } : {}),
+    };
+  };
+
+  const validateCreatorScriptInputs = () => {
+    if (ideationTab === 'listicle') {
+      if (!listTopic.trim()) {
+        toast.error('Escolha ou informe um ranking (tema da lista).');
+        return false;
+      }
+    } else if (ideationTab === 'custom') {
+      if (!customTitle.trim()) {
+        toast.error('Por favor, preencha o título da sua ideia.');
+        return false;
+      }
+    } else if (!ideasData || selectedIdeaIndex === -1) {
+      return false;
+    }
+
+    if (!creatorProjectName.trim()) {
+      toast.error('Por favor, digite o nome do projeto/pasta.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleGenerateNarration = async () => {
+    if (!validateCreatorScriptInputs()) return;
+
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-    const title = selectedRanking?.title || `Top ${rankCount} ${listTopic.trim()}`;
-    const nicheForScript = listNiche.trim() || listTopic.trim();
     setCreatorLoading(true);
+    setCreatorLoadingMode('narration');
     setGeneratedScriptData(null);
+    setShowNarrationReview(false);
 
     try {
       const res = await fetch('/api/ai/creator/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          niche: nicheForScript,
-          format: formatSelector,
-          contentMode: 'LISTICLE',
-          rankCount,
-          rankOrder,
-          listTopic: listTopic.trim(),
-          idea: {
-            title,
-            promise: selectedRanking?.promise || `Ranking dos ${rankCount} itens mais importantes sobre ${listTopic.trim()}, com fatos surpreendentes e impacto no mundo moderno.`,
-            emotion: selectedRanking?.emotion || 'Curiosidade / Surpresa',
-            sample_items: selectedRanking?.sample_items,
-            listicle_angle: selectedRanking?.listicle_angle,
-          },
-          project: safeProjectName,
-          useNotebooklm,
-        }),
+        body: JSON.stringify(buildCreatorScriptPayload('narration')),
       });
       const data = await res.json();
       if (res.ok) {
-        setGeneratedScriptData(data);
-        setCreatorScript(data.narrative_script);
-        setCreatorStep(2);
+        setNarrationDraft(data.narrative_script || '');
+        setNarrationTaggedDraft(data.narrative_script_tagged || '');
+        setNarrationStrategy(data.strategy || null);
+        setNarrationProjectName(safeProjectName);
+        setShowNarrationReview(true);
         await fetchProjects();
         setActiveProject(safeProjectName);
-        toast.success(`Roteiro Top ${rankCount} gerado com ${data.list_items?.length || rankCount} itens.`);
+        toast.success('Narração gerada — revise e edite antes de montar o roteiro.');
       } else {
-        toast.error(data.error || 'Erro ao gerar roteiro listicle.');
+        toast.error(data.error || data.details || 'Erro ao gerar narração.');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Falha na geração do roteiro.');
+      toast.error(err.message || 'Falha na geração da narração.');
     } finally {
       setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
     }
   };
 
-  const handleGenerateFullScript = async () => {
-    const isCustom = ideationTab === 'custom';
-    if (!isCustom && (!ideasData || selectedIdeaIndex === -1)) return;
-    if (isCustom && !customTitle.trim()) {
-      toast.error("Por favor, preencha o título da sua ideia.");
+  const handleApproveNarrationAndGenerateScript = async () => {
+    const approved = narrationDraft.trim();
+    if (!approved) {
+      toast.error('A narração não pode estar vazia.');
+      return;
+    }
+    if (!narrationProjectName.trim()) {
+      toast.error('Projeto não definido — gere a narração novamente.');
       return;
     }
 
-    if (!creatorProjectName.trim()) {
-      toast.error("Por favor, digite o nome do projeto/pasta.");
-      return;
-    }
-
-    const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     setCreatorLoading(true);
-    setGeneratedScriptData(null);
+    setCreatorLoadingMode('full');
 
     try {
       const res = await fetch('/api/ai/creator/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          niche: isCustom ? 'Customized' : (ideationTab === 'listicle' ? (listTopic.trim() || nicheInput.trim()) : nicheInput.trim()),
-          format: formatSelector,
-          ...(ideationTab === 'listicle' ? {
-            contentMode: 'LISTICLE',
-            rankCount,
-            rankOrder,
-            listTopic: listTopic.trim() || nicheInput.trim(),
-          } : {}),
-          idea: isCustom ? {
-            title: customTitle.trim(),
-            promise: customOutline.trim(),
-            emotion: "Curiosity / Action",
-            isCustom: true,
-            hook: customHooks.trim(),
-            hooks: customHooks.trim(),
-            blocks: customBlocks.filter(b => b.content.trim() !== '')
-          } : (selectedIdeaIndex === 999 ? {
-            title: customIdeaTitle,
-            promise: customIdeaPromise,
-            emotion: customIdeaEmotion,
-            hook: customIdeaHook,
-            blocks: customIdeaBlocks,
-          } : (ideasData?.ideas || [])[selectedIdeaIndex]),
-          project: safeProjectName,
-          useNotebooklm,
-        })
+        body: JSON.stringify(buildCreatorScriptPayload('full', {
+          approvedNarration: approved,
+          approvedNarrationTagged: narrationTaggedDraft.trim() || undefined,
+        })),
       });
-
-
-
-
-
-
-
       const data = await res.json();
-
-
-
-
-
-
-
       if (res.ok) {
-
-
-
-
-
-
-
         setGeneratedScriptData(data);
-
-
-
-
-
-
-
-        setCreatorScript(data.narrative_script);
-
-
-
-
-
-
-
+        setCreatorScript(data.narrative_script || approved);
+        setShowNarrationReview(false);
         setCreatorStep(2);
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
-        // Refresh project list and select the new project context
-
-
-
-
-
-
-
         await fetchProjects();
-
-
-
-
-
-
-
-        setActiveProject(safeProjectName);
-
-
-
-
-
-
-
+        setActiveProject(narrationProjectName);
         fetchData();
-
-
-
-
-
-
-
+        const listicleMsg = ideationTab === 'listicle'
+          ? ` com ${data.list_items?.length || rankCount} itens`
+          : '';
+        toast.success(`Roteiro completo gerado${listicleMsg}.`);
       } else {
-
-
-
-
-
-
-
-        toast.error('Erro na IA: ' + (data.details || data.error || 'Erro desconhecido'));
-
-
-
-
-
-
-
+        toast.error(data.error || data.details || 'Erro ao gerar roteiro completo.');
       }
-
-
-
-
-
-
-
-    } catch (err) {
-
-
-
-
-
-
-
+    } catch (err: any) {
       console.error(err);
-
-
-
-
-
-
-
       toast.error('Conexão falhou ao gerar roteiro.');
-
-
-
-
-
-
-
     } finally {
-
-
-
-
-
-
-
       setCreatorLoading(false);
-
-
-
-
-
-
-
+      setCreatorLoadingMode('idle');
     }
+  };
 
+  const handleGenerateListicleScript = handleGenerateNarration;
 
+  const handleGenerateFullScript = handleGenerateNarration;
 
+  const creatorScenesNeedRepair = useMemo(() => {
+    const vps = generatedScriptData?.visual_prompts || [];
+    if (!vps.length) return false;
+    return vps.some((vp: any) => !String(vp?.narration_text || vp?.narration_excerpt || '').trim()
+      || !String(vp?.prompt || '').trim());
+  }, [generatedScriptData?.visual_prompts]);
 
-
-
-
+  const handleRepairCreatorVisualPrompts = async () => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const res = await fetch('/api/ai/creator/repair-visual-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGeneratedScriptData(data);
+        setCreatorScript(data.narrative_script || creatorScript);
+        await saveCreatorStoryboard(data);
+        toast.success(`Cenas reparadas — ${data.visual_prompts?.length || 0} prompts com narração e imagem.`);
+      } else {
+        toast.error(data.error || data.details || 'Erro ao reparar cenas.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao reparar cenas.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
   };
 
 
@@ -35178,7 +35185,7 @@ export default function App() {
                       <div>
                         <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 1: Pesquisa e Ideias (Script Master)</h4>
                         <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                          Defina o assunto e a estrutura do seu vídeo. Você pode usar a inteligência artificial para propor 10 ideias ou inserir manualmente um roteiro personalizado com blocos definidos em inglês para a IA expandir em português.
+                          Defina o assunto e a estrutura do seu vídeo. Primeiro a IA gera a narração para você revisar e editar; depois de aprovar, ela monta blocos, prompts visuais e estratégia completa.
                         </p>
                       </div>
 
@@ -35376,7 +35383,7 @@ export default function App() {
                             className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 w-full justify-center sm:w-auto font-sans"
                           >
                             {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                            <span>Gerar Roteiro e Estratégia</span>
+                            <span>{creatorLoading && creatorLoadingMode === 'narration' ? 'Gerando narração...' : 'Gerar Narração'}</span>
                           </button>
                         </div>
                       </div>
@@ -35399,6 +35406,8 @@ export default function App() {
                           hasApiKey={hasApiKey}
                           listicleIdeasData={listicleIdeasData}
                           selectedListicleIdeaIndex={selectedListicleIdeaIndex}
+                          listicleHudStyle={listicleHudStyle}
+                          setListicleHudStyle={setListicleHudStyle}
                           onSuggestRankings={handleSuggestListicleRankings}
                           onSelectRankingIdea={(idx) => setSelectedListicleIdeaIndex(idx)}
                           onGenerateScript={handleGenerateListicleScript}
@@ -36634,7 +36643,7 @@ export default function App() {
 
 
 
-                            <span>Gerar Roteiro e Estratégia</span>
+                            <span>{creatorLoading && creatorLoadingMode === 'narration' ? 'Gerando narração...' : 'Gerar Narração'}</span>
 
 
 
@@ -36667,6 +36676,23 @@ export default function App() {
 
 
                     )}
+                    {showNarrationReview && (
+                      <NarrationReviewPanel
+                        narrativeScript={narrationDraft}
+                        narrativeScriptTagged={narrationTaggedDraft}
+                        strategyHook={narrationStrategy?.hook}
+                        strategyTitle={narrationStrategy?.title_main}
+                        loading={creatorLoading}
+                        loadingMode={creatorLoadingMode === 'idle' ? 'idle' : creatorLoadingMode}
+                        onNarrativeChange={(value) => {
+                          setNarrationDraft(value);
+                          if (narrationTaggedDraft) setNarrationTaggedDraft('');
+                        }}
+                        onRegenerate={handleGenerateNarration}
+                        onApprove={handleApproveNarrationAndGenerateScript}
+                      />
+                    )}
+
                   </div>
 
 
@@ -37833,6 +37859,27 @@ export default function App() {
 
 
 
+                  {(() => {
+                    const longTitles = warnLongListicleTitles(
+                      (generatedScriptData.list_items || []).map((it: { title?: string; name?: string }) => String(it.title || it.name || '')),
+                    );
+                    if (!longTitles.length) return null;
+                    return (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4">
+                        <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wide">
+                          Títulos longos para o HUD
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {longTitles.map((entry) => (
+                            <li key={`long-title-${entry.index}`} className="text-[10px] text-amber-200/90 leading-relaxed">
+                              Item {entry.index + 1}: {entry.title.length} caracteres — encurte antes do render
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
+
                   <h3 className="font-cinzel text-sm font-bold text-white tracking-wide border-b border-zinc-900 pb-2">
 
 
@@ -38215,15 +38262,21 @@ export default function App() {
 
 
 
-                        <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono shrink-0">
-
-
-
-                          {(generatedScriptData?.visual_prompts || []).length} cenas
-
-
-
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {creatorScenesNeedRepair && (
+                            <button
+                              type="button"
+                              disabled={creatorLoading}
+                              onClick={handleRepairCreatorVisualPrompts}
+                              className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer"
+                            >
+                              {creatorLoading && creatorLoadingMode === 'full' ? 'Reparando...' : 'Distribuir narração nas cenas'}
+                            </button>
+                          )}
+                          <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">
+                            {(generatedScriptData?.visual_prompts || []).length} cenas
+                          </span>
+                        </div>
 
 
 
