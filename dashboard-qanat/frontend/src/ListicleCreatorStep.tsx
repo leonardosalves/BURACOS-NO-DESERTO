@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { RefreshCw, Sparkles, Lightbulb } from 'lucide-react';
 import { ListicleRankingIdeas, type ListicleIdeasResponse, type ListicleRankingIdea } from './ListicleRankingIdeas';
-import { ListicleHudPreview } from './ListicleHudPreview';
+import { buildHudPreviewItems, ListicleHudPreview, type HudPreviewListItem } from './ListicleHudPreview';
 
 export const LONGO_RANK_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 export const SHORTS_RANK_OPTIONS = [3, 5] as const;
@@ -71,6 +71,7 @@ type Props = {
   selectedListicleIdeaIndex: number;
   listicleHudStyle: 'full' | 'compact' | 'auto';
   setListicleHudStyle: (v: 'full' | 'compact' | 'auto') => void;
+  listItems?: HudPreviewListItem[];
   onSuggestRankings: () => void;
   onSelectRankingIdea: (index: number, idea: ListicleRankingIdea) => void;
   onGenerateScript: () => void;
@@ -108,24 +109,16 @@ export function ListicleCreatorStep({
   selectedListicleIdeaIndex,
   listicleHudStyle,
   setListicleHudStyle,
+  listItems = [],
   onSuggestRankings,
   onSelectRankingIdea,
   onGenerateScript,
 }: Props) {
   const rankOptions = formatSelector === 'SHORTS' ? SHORTS_RANK_OPTIONS : LONGO_RANK_OPTIONS;
-  const selectedRanking = listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex];
-
-  const previewItems = useMemo(() => {
-    const samples = selectedRanking?.sample_items || [];
-    if (!samples.length) return [];
-    const order = rankOrder === 'desc'
-      ? Array.from({ length: Math.min(samples.length, rankCount) }, (_, i) => rankCount - i)
-      : Array.from({ length: Math.min(samples.length, rankCount) }, (_, i) => i + 1);
-    return order.map((rank, index) => ({
-      rank,
-      title: String(samples[index] || `Item #${rank}`),
-    }));
-  }, [selectedRanking?.sample_items, rankCount, rankOrder]);
+  const hudPreview = useMemo(
+    () => buildHudPreviewItems(rankCount, rankOrder, listItems),
+    [rankCount, rankOrder, listItems],
+  );
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto font-sans">
@@ -297,7 +290,8 @@ export function ListicleCreatorStep({
           rankCount={rankCount}
           rankOrder={rankOrder}
           hudStyle={listicleHudStyle}
-          items={previewItems}
+          items={hudPreview.items}
+          hasRealListItems={hudPreview.hasRealListItems}
         />
 
         <div className="space-y-2">

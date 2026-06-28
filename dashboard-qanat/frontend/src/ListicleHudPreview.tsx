@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import lottie from 'lottie-web';
 import {
   hudThemeStyles,
@@ -9,40 +9,85 @@ import {
 
 type HudStyle = 'full' | 'compact' | 'auto';
 
-type PreviewItem = {
+export type HudPreviewItem = {
   rank: number;
   title: string;
+};
+
+export type HudPreviewListItem = {
+  rank?: number;
+  title?: string;
+  name?: string;
 };
 
 type Props = {
   rankCount: number;
   rankOrder: 'desc' | 'asc';
   hudStyle: HudStyle;
-  items?: PreviewItem[];
+  items?: HudPreviewItem[];
+  hasRealListItems?: boolean;
   accentColor?: string;
   hudTheme?: ListicleHudTheme;
 };
 
 const TITLE_WARN_CHARS = 60;
 
+export function shortenHudTitle(raw: string, maxLen = TITLE_WARN_CHARS): string {
+  if (!raw) return '';
+  let t = raw.trim();
+  const paren = t.indexOf('(');
+  if (paren > 10) t = t.slice(0, paren).trim();
+  const dashExplain = t.match(/^(.{8,50}?)\s*[—–-]\s+/);
+  if (dashExplain) t = dashExplain[1].trim();
+  if (t.length > maxLen) {
+    const cut = t.lastIndexOf(' ', maxLen - 1);
+    t = `${(cut > 20 ? t.slice(0, cut) : t.slice(0, maxLen - 1)).trim()}…`;
+  }
+  return t;
+}
+
+/** Monta itens do HUD a partir de list_items do roteiro (não sample_items das ideias). */
+export function buildHudPreviewItems(
+  rankCount: number,
+  rankOrder: 'desc' | 'asc',
+  listItems: HudPreviewListItem[] = [],
+): { items: HudPreviewItem[]; hasRealListItems: boolean } {
+  const ranks = rankOrder === 'desc'
+    ? Array.from({ length: rankCount }, (_, i) => rankCount - i)
+    : Array.from({ length: rankCount }, (_, i) => i + 1);
+
+  const byRank = new Map<number, string>();
+  for (const entry of listItems) {
+    const rank = Number(entry.rank);
+    const title = shortenHudTitle(String(entry.title || entry.name || '').trim());
+    if (Number.isFinite(rank) && rank > 0 && title) {
+      byRank.set(rank, title);
+    }
+  }
+
+  if (byRank.size === 0 && listItems.length > 0) {
+    const ordered = [...listItems];
+    if (rankOrder === 'desc') ordered.reverse();
+    ordered.forEach((entry, idx) => {
+      const rank = ranks[idx];
+      if (!rank || byRank.has(rank)) return;
+      const title = shortenHudTitle(String(entry.title || entry.name || '').trim());
+      if (title) byRank.set(rank, title);
+    });
+  }
+
+  const hasRealListItems = byRank.size > 0;
+  const items = ranks.map((rank) => ({
+    rank,
+    title: byRank.get(rank) || `Item #${rank}`,
+  }));
+
+  return { items, hasRealListItems };
+}
+
 function resolveHudStyle(hudStyle: HudStyle, rankCount: number) {
   if (hudStyle === 'auto') return rankCount > 8 ? 'compact' : 'full';
   return hudStyle;
-}
-
-function buildPreviewItems(rankCount: number, rankOrder: 'desc' | 'asc', items: PreviewItem[] = []) {
-  if (items.length) return items.slice(0, Math.min(5, items.length));
-  const ranks = Array.from({ length: Math.min(3, rankCount) }, (_, i) => (
-    rankOrder === 'desc' ? rankCount - i : i + 1
-  ));
-  return ranks.map((rank) => ({
-    rank,
-    title: rank === (rankOrder === 'desc' ? 1 : rankCount)
-      ? 'Item destaque do ranking'
-      : rank === (rankOrder === 'desc' ? rankCount : 1)
-        ? 'Primeiro item da lista'
-        : `Exemplo item #${rank}`,
-  }));
 }
 
 function filledProgress(rank: number, rankCount: number, rankOrder: 'desc' | 'asc') {
@@ -86,20 +131,17 @@ export function ListicleHudPreview({
   rankOrder,
   hudStyle,
   items = [],
+  hasRealListItems = false,
   accentColor = '#C5A880',
   hudTheme = 'ancient',
 }: Props) {
   const effectiveStyle = resolveHudStyle(hudStyle, rankCount);
-  const previewItems = useMemo(
-    () => buildPreviewItems(rankCount, rankOrder, items),
-    [rankCount, rankOrder, items],
-  );
+  const previewItems = items;
   const [activeIdx, setActiveIdx] = useState(0);
   const safeIdx = Math.min(activeIdx, Math.max(0, previewItems.length - 1));
   const active = previewItems[safeIdx] ?? previewItems[0];
 
-  const longTitles = [...items, ...previewItems]
-    .filter((item) => item.title.length > TITLE_WARN_CHARS);
+  const longTitles = previewItems.filter((item) => item.title.length > TITLE_WARN_CHARS);
 
   if (!active) return null;
 
@@ -132,6 +174,13 @@ export function ListicleHudPreview({
         O HUD só aparece no <span className="text-zinc-300">1º item da lista</span> — não na intro.
         Ícone Lottie fica só ao lado do título, escolhido pelo texto do item.
       </p>
+
+      {!hasRealListItems && (
+        <p className="text-[10px] text-amber-400/90 leading-relaxed rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+          Os títulos reais do TOP# aparecem aqui depois de gerar o roteiro (campo <span className="font-mono text-amber-200/90">list_items</span>).
+          Não usamos os exemplos das ideias sugeridas.
+        </p>
+      )}
 
       {previewItems.length > 1 && (
         <div className="flex flex-wrap gap-1.5">

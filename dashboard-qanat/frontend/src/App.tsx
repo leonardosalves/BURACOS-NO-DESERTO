@@ -35411,6 +35411,7 @@ export default function App() {
                           selectedListicleIdeaIndex={selectedListicleIdeaIndex}
                           listicleHudStyle={listicleHudStyle}
                           setListicleHudStyle={setListicleHudStyle}
+                          listItems={generatedScriptData?.list_items || storyboardData?.list_items}
                           onSuggestRankings={handleSuggestListicleRankings}
                           onSelectRankingIdea={(idx) => setSelectedListicleIdeaIndex(idx)}
                           onGenerateScript={handleGenerateListicleScript}
