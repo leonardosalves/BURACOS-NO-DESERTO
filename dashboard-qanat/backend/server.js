@@ -84,6 +84,7 @@ import {
   applyDocumentaryHistoryPreset,
   injectListicleRankOverlays,
   avoidListicleHudCollisions,
+  pruneListicleOverlayDensity,
   validateVideoQuality,
   augmentSfxTimelineForOverlays,
   runVideoQualityCheck,
@@ -9395,6 +9396,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   let result = injectListicleRankOverlays(overlays, storyboard, config, starts, durations);
   result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
   result = avoidListicleHudCollisions(result, config, storyboard);
+  result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
 
   const quality = validateVideoQuality({
     overlays: result,
@@ -9482,7 +9484,19 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     blockCount: blockPhrases.length,
   });
   const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
-  console.log(`[Orchestration] Formato: ${orchestrationPlan.format} | Perfil: ${orchestrationPlan.varietyLabel} | Máx overlays: ${orchestrationPlan.limits.maxTotal}`);
+  const isListicleOverlay = config.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const listicleShortsOverlayRules = isListicleOverlay && orchestrationPlan.format === "SHORT"
+    ? `
+MODO LISTICLE SHORTS (CRÍTICO — leia antes de gerar overlays):
+- O sistema JÁ injeta automaticamente: badge #N durante cada item, "TOP N" na intro e recap no final.
+- Você deve gerar NO MÁXIMO ${orchestrationPlan.limits.maxTotal} overlays do tipo "counter" APENAS.
+- PROIBIDO: lower-third, kinetic-text, bar-chart, timeline, info-card.
+- PROIBIDO: 1 overlay por bloco/item do ranking — máximo 1 counter a cada 20 segundos.
+- Cada counter = 1 número impactante que NÃO está na narração (ex: alcance em metros, toneladas).
+- Posição obrigatória: "bottom-left" ou "bottom-right".
+`
+    : "";
+  console.log(`[Orchestration] Formato: ${orchestrationPlan.format} | Perfil: ${orchestrationPlan.varietyLabel} | Máx overlays: ${orchestrationPlan.limits.maxTotal}${isListicleOverlay ? " | LISTICLE" : ""}`);
 
   const scenesContext = Array.isArray(actualScenes) && actualScenes.length > 0
     ? actualScenes.map((scene) => ({
@@ -9545,6 +9559,7 @@ Retorne um objeto JSON contendo exatamente esta estrutura:
 }
 
 ${orchestrationPrompt}
+${listicleShortsOverlayRules}
 
 ${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
 Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
@@ -9561,9 +9576,9 @@ ${skillPrompt || `1. Para "customStyle", você deve configurar as cores de fundo
 ` : ""}
 
 REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
-1. SIGA O PLANO DE ORQUESTRAÇÃO ACIMA — ele define o orçamento exato de overlays para este vídeo. Não exceda os limites, mas USE TODOS os componentes disponíveis dentro do orçamento.
+1. SIGA O PLANO DE ORQUESTRAÇÃO ACIMA — ele define o orçamento exato de overlays para este vídeo. Não exceda os limites.${isListicleOverlay && orchestrationPlan.format === "SHORT" ? " Em LISTICLE SHORTS, gere poucos counters — o HUD de ranking já cobre a identidade visual." : " Use os componentes disponíveis dentro do orçamento."}
 2. LIMITES POR FORMATO (definidos pelo orquestrador — respeite o orçamento):
-   - Para vídeos curtos (SHORTS/REELS/TIKTOK): Use kinetic-text, counter, bar-chart, timeline e lower-third distribuídos nos atos do plano. Varie tipos e posições. Gap mínimo de 5s entre overlays.
+   - Para vídeos curtos (SHORTS/REELS/TIKTOK)${isListicleOverlay ? " em modo LISTICLE: apenas counters (máx. 2), gap 10s+" : ": Use kinetic-text, counter, bar-chart, timeline e lower-third distribuídos nos atos do plano. Varie tipos e posições. Gap mínimo de 5s entre overlays."}
    - Para vídeos LONGOS: Intervalo de pelo menos 18 segundos "limpo" entre overlays. Priorize dados visuais sobre texto.
 3. COMPONENTES DISPONÍVEIS NO REMOTION (use todos conforme o contexto):
    - "kinetic-text": frases de impacto com animação slam/reveal/glitch (ideal para viradas narrativas em Shorts)
@@ -9576,7 +9591,7 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 5. TEXTOS CURTOS E NÃO REPETITIVOS (SÍNTESE INTELIGENTE):
    - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades surpreendentes de leitura ultra-rápida (no máximo 5 a 12 palavras). Nunca cole parágrafos inteiros de texto falado nos cards ou lower-thirds!
 6. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
-   - Busque um equilíbrio dinâmico e agradável no posicionamento dos overlays ao longo do vídeo, alternando de forma fluida entre posições superiores (como info-card no topo) e inferiores (como lower-third ou counter na base). Não use o mesmo canto da tela ou o mesmo estilo de forma repetida em sequência. Escolha o posicionamento que melhor se encaixe visualmente com o conteúdo de cada bloco, sem forçar um formato rígido se não for necessário.
+   - ${isListicleOverlay ? "Em LISTICLE: topo reservado para badge #N — counters só em bottom-left ou bottom-right." : "Busque equilíbrio alternando posições superiores e inferiores. Não repita o mesmo canto em sequência."}
 7. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
    - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
 8. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:

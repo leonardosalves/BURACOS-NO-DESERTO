@@ -155,15 +155,17 @@ export function buildOverlayOrchestrationPlan({
   };
 
   if (isShort) {
-    const shortMax = Math.min(8, Math.max(5, Math.floor(duration / 8)));
+    const shortMax = isListicle ? 8 : Math.min(8, Math.max(5, Math.floor(duration / 8)));
+    const aiBudget = isListicle ? 2 : shortMax;
     plan.limits = {
-      maxTotal: shortMax,
-      maxData: 3,
-      maxLowerThird: 3,
-      maxKinetic: 2,
-      maxTimeline: 2,
-      minGapSeconds: 5,
-      maxDurationSeconds: 4.5,
+      maxTotal: aiBudget,
+      finalMaxTotal: shortMax,
+      maxData: isListicle ? 2 : 3,
+      maxLowerThird: isListicle ? 0 : 3,
+      maxKinetic: isListicle ? 0 : 2,
+      maxTimeline: isListicle ? 0 : 2,
+      minGapSeconds: isListicle ? 10 : 5,
+      maxDurationSeconds: isListicle ? 3 : 4.5,
     };
     plan.rhythm = {
       hookCleanSeconds: 1.5,
@@ -173,13 +175,19 @@ export function buildOverlayOrchestrationPlan({
       fourthOverlayPercent: 0.75,
       outroCleanSeconds: 2,
     };
-    plan.acts = [
-      { act: 1, label: "Gancho Visual", percent: "0-12%", overlays: 0, goal: "1.5s limpos — imagem forte + legenda viral palavra-a-palavra." },
-      { act: 2, label: "Impacto", percent: "12-35%", overlays: 2, goal: "kinetic-text slam + lower-third glass. Parar o scroll." },
-      { act: 3, label: "Prova Rápida", percent: "35-58%", overlays: 2, goal: "counter + bar-chart compacto. Credibilidade em 2s." },
-      { act: 4, label: "Profundidade", percent: "58-82%", overlays: 2, goal: "timeline vertical OU lower-third accent + counter. Manter atenção." },
-      { act: 5, label: "Fechamento", percent: "82-100%", overlays: 1, goal: "1 lower-third ou kinetic-text reveal. Últimos 2s limpos." },
-    ];
+    plan.acts = isListicle
+      ? [
+        { act: 1, label: "Gancho + Ranking", percent: "0-20%", overlays: 0, goal: "HUD de ranking (#N, TOP N) já injetado — tela limpa, só legenda." },
+        { act: 2, label: "Itens #3 e #2", percent: "20-65%", overlays: 1, goal: "Máx. 1 counter com dado novo (não repetir narração)." },
+        { act: 3, label: "Item #1 + Fechamento", percent: "65-100%", overlays: 1, goal: "Máx. 1 counter opcional. Recap automático no final." },
+      ]
+      : [
+        { act: 1, label: "Gancho Visual", percent: "0-12%", overlays: 0, goal: "1.5s limpos — imagem forte + legenda viral palavra-a-palavra." },
+        { act: 2, label: "Impacto", percent: "12-35%", overlays: 2, goal: "kinetic-text slam + lower-third glass. Parar o scroll." },
+        { act: 3, label: "Prova Rápida", percent: "35-58%", overlays: 2, goal: "counter + bar-chart compacto. Credibilidade em 2s." },
+        { act: 4, label: "Profundidade", percent: "58-82%", overlays: 2, goal: "timeline vertical OU lower-third accent + counter. Manter atenção." },
+        { act: 5, label: "Fechamento", percent: "82-100%", overlays: 1, goal: "1 lower-third ou kinetic-text reveal. Últimos 2s limpos." },
+      ];
     plan.componentPalette = [
       "kinetic-text",
       "lower-third",
@@ -192,15 +200,23 @@ export function buildOverlayOrchestrationPlan({
       { start: 0, end: 1.5, reason: "Gancho — sem overlay nos primeiros 1.5s" },
       { start: duration - 2, end: duration, reason: "Saída limpa — sem overlay nos últimos 2s" },
     ];
-    plan.retentionGoals = [
-      `Até ${shortMax} overlays distribuídos com gap mínimo de 5s`,
-      "Use kinetic-text nos momentos de virada narrativa",
-      "Números na narração → counter ou bar-chart obrigatório",
-      "Nunca 2 overlays simultâneos na tela",
-      "Textos de 4-10 palavras (leitura em <1.2s)",
-      "Alternar tipo E posição a cada overlay",
-      "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
-    ];
+    plan.retentionGoals = isListicle
+      ? [
+        `Orçamento TOTAL final (HUD + IA): ${shortMax} overlays — o sistema já injeta badge #N, TOP N e recap`,
+        "IA: gere NO MÁXIMO 2 counters com 1 número impactante cada (dado NOVO, não na narração)",
+        "PROIBIDO em listicle Shorts: lower-third, kinetic-text, bar-chart, timeline, info-card por item",
+        "PROIBIDO overlay por bloco/item — máximo 1 counter a cada 20s de vídeo",
+        "Gap mínimo de 10s entre overlays da IA",
+      ]
+      : [
+        `Até ${shortMax} overlays distribuídos com gap mínimo de 5s`,
+        "Use kinetic-text nos momentos de virada narrativa",
+        "Números na narração → counter ou bar-chart obrigatório",
+        "Nunca 2 overlays simultâneos na tela",
+        "Textos de 4-10 palavras (leitura em <1.2s)",
+        "Alternar tipo E posição a cada overlay",
+        "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
+      ];
   } else {
     const maxOverlays = Math.min(12, Math.max(4, Math.floor(duration / 50)));
     plan.limits = {
@@ -286,7 +302,7 @@ ${plan.isListicle ? `### LISTICLE / TOP N (prioridade de layout)
 - O topo central da tela é RESERVADO para o contador de ranking (#N → #1). NUNCA coloque counter, timeline, info-card, lower-third ou kinetic-text no topo ou centro.
 - Datas, anos (ex: "2000 anos", "150 a.C.") e números informativos → counter ou timeline em **bottom-right** ou **bottom-left** apenas.
 - O contador do ranking sempre vai do MAIOR para o MENOR (ex: Top 20 começa em #20 e termina em #1).
-${plan.format === "SHORT" ? `- SHORTS + LISTICLE: posição OBRIGATÓRIA "bottom-left" ou "bottom-right" para TODOS os overlays de dados. O terço inferior da tela é a única zona segura para informações da IA.` : ""}
+${plan.format === "SHORT" ? `- SHORTS + LISTICLE: posição OBRIGATÓRIA "bottom-left" ou "bottom-right" para counters. O terço inferior é a única zona segura. Gere só counters (máx. 2 no vídeo inteiro).` : ""}
 
 ` : ""}### Regras de ouro do criador profissional
 1. **Complementar, nunca repetir:** overlays trazem dados NOVOS que a legenda não diz.

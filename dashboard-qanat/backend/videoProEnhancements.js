@@ -328,6 +328,7 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
   const accent = preset?.accentColor || config.accent_color || "#C5A880";
   const overlays = [];
 
+  const isShort = isShortFormVideo(config);
   const itemBlocks = [];
   if (listItems.length) {
     for (const item of listItems) {
@@ -351,12 +352,15 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
     const blockStart = Number(startsList[block - 1]);
     if (!Number.isFinite(blockStart)) continue;
     const blockDur = Number(durationsList[block - 1]) || 6;
+    const progressDuration = isShort
+      ? Math.min(3.2, Math.max(2.2, blockDur * 0.22))
+      : Math.max(2.5, blockDur - 0.3);
 
     overlays.push({
       id: `listicle-progress-${rank}`,
       type: "rank-progress",
       start: blockStart + 0.1,
-      duration: Math.max(2.5, blockDur - 0.3),
+      duration: progressDuration,
       props: {
         current: rank,
         progress: i + 1,
@@ -428,6 +432,7 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
   const preset = resolveDesignPreset(config, storyboard, config.niche);
   const accent = preset?.accentColor || config.accent_color || "#C5A880";
   const overlays = [];
+  const isShort = isShortFormVideo(config);
 
   const introStart = Number(startsList[0]);
   if (Number.isFinite(introStart) && rankCount > 0) {
@@ -435,7 +440,7 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
       id: "listicle-intro-topn",
       type: "kinetic-text",
       start: introStart + 0.8,
-      duration: 2.8,
+      duration: isShort ? 2.2 : 2.8,
       props: {
         text: `TOP ${rankCount}`,
         style: "reveal",
@@ -443,6 +448,10 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
         position: "center",
       },
     });
+  }
+
+  if (isShort) {
+    return overlays;
   }
 
   const pushRankOverlay = (rank, title, block, isClimax = false) => {
@@ -454,7 +463,6 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
       ? `#${rank} — ${String(title).toUpperCase()}`.slice(0, 44)
       : `#${rank}`;
 
-    const isShort = isShortFormVideo(config);
     overlays.push({
       id: `listicle-rank-${rank}`,
       type: "kinetic-text",
@@ -562,15 +570,72 @@ export function avoidListicleHudCollisions(overlays = [], config = {}, storyboar
   return (overlays || []).map((overlay) => relocateOverlayAwayFromListicleHud(overlay, { isShort }));
 }
 
+const SHORTS_LISTICLE_STRIP_TYPES = new Set([
+  "lower-third",
+  "kinetic-text",
+  "bar-chart",
+  "timeline",
+  "info-card",
+]);
+
+function isShortsListicleNoiseOverlay(overlay = {}) {
+  if (!overlay) return false;
+  if (overlay.id === "listicle-recap") return false;
+  if (overlay.id === "listicle-intro-topn") return false;
+  if (SHORTS_LISTICLE_STRIP_TYPES.has(overlay.type) && !isListicleHudOverlay(overlay)) return true;
+  if (/^listicle-(open-loop|rank-\d+)$/.test(String(overlay.id || ""))) return true;
+  if (overlay.type === "listicle-stinger") return true;
+  return false;
+}
+
+export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboard = {}, plan = {}) {
+  if (!isListicleProject(config, storyboard) || !isShortFormVideo(config)) {
+    return overlays || [];
+  }
+
+  const maxTotal = Number(plan?.limits?.finalMaxTotal || plan?.limits?.maxTotal || 8);
+  let filtered = (overlays || []).filter((o) => !isShortsListicleNoiseOverlay(o));
+
+  const hud = filtered.filter(isListicleHudOverlay);
+  let counters = filtered
+    .filter((o) => !isListicleHudOverlay(o) && o.type === "counter")
+    .sort((a, b) => (Number(b.props?.value) || 0) - (Number(a.props?.value) || 0));
+
+  const keptCounters = [];
+  for (const counter of counters) {
+    if (keptCounters.length >= 2) break;
+    const start = Number(counter.start) || 0;
+    const tooClose = keptCounters.some((k) => Math.abs((Number(k.start) || 0) - start) < 10);
+    if (!tooClose) keptCounters.push(counter);
+  }
+
+  filtered = [...hud, ...keptCounters];
+
+  if (filtered.length > maxTotal) {
+    const hudOnly = filtered.filter(isListicleHudOverlay);
+    const room = Math.max(0, maxTotal - hudOnly.length);
+    filtered = [...hudOnly, ...keptCounters.slice(0, room)];
+  }
+
+  if (filtered.length < overlays.length) {
+    console.log(`[Listicle Shorts] ${overlays.length} → ${filtered.length} overlays (densidade reduzida)`);
+  }
+
+  return filtered;
+}
+
 export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = []) {
+  const isShort = isShortFormVideo(config);
   const batches = [
     buildListicleRankOverlays(storyboard, config, starts, durations),
-    buildListicleStingerOverlays(storyboard, config, starts),
     buildListicleProgressOverlays(storyboard, config, starts, durations),
   ];
 
-  const openLoop = buildOpenLoopIntroOverlay(storyboard, config, starts);
-  if (openLoop) batches.push([openLoop]);
+  if (!isShort) {
+    batches.push(buildListicleStingerOverlays(storyboard, config, starts));
+    const openLoop = buildOpenLoopIntroOverlay(storyboard, config, starts);
+    if (openLoop) batches.push([openLoop]);
+  }
 
   const recap = buildListicleRecapOverlay(storyboard, config, starts, durations);
   if (recap) batches.push([recap]);
@@ -584,9 +649,18 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   }
 
   if (added) {
-    console.log(`[Listicle PRO] ${added} overlays profissionais injetados.`);
+    console.log(`[Listicle PRO] ${added} overlays profissionais injetados${isShort ? " (modo Shorts minimal)" : ""}.`);
   }
-  return avoidListicleHudCollisions(merged, config, storyboard);
+
+  const plan = buildOverlayOrchestrationPlan({
+    config,
+    niche: config.niche || "Geral",
+    totalDuration: durations.reduce((a, b) => a + (Number(b) || 0), 0),
+    projectName: config.project || "lumiera",
+    blockCount: Array.isArray(starts) ? starts.length : 0,
+  });
+  merged = avoidListicleHudCollisions(merged, config, storyboard);
+  return pruneListicleOverlayDensity(merged, config, storyboard, plan);
 }
 
 function wordCount(text = "") {
