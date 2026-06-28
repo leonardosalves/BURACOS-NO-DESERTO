@@ -2783,6 +2783,17 @@ export default function App() {
 
 
     return `${endpoint}${separator}project=${encodeURIComponent(p)}`;
+  };
+
+  const readApiError = async (res: Response, fallback: string) => {
+    try {
+      const data = await res.json();
+      return data?.error || data?.message || fallback;
+    } catch {
+      return res.status === 404
+        ? 'Rota não encontrada. Reinicie o backend (porta 3005).'
+        : `${fallback} (HTTP ${res.status})`;
+    }
 
 
 
@@ -3207,7 +3218,7 @@ export default function App() {
 
 
 
-        toast.error(data.error || "Falha ao enviar logotipo.");
+        toast.error(await readApiError(res, "Falha ao enviar logotipo."));
 
 
 
@@ -3239,7 +3250,7 @@ export default function App() {
 
 
 
-      toast.error("Erro de conexão ao enviar o logotipo.");
+      toast.error(err instanceof Error ? err.message : "Erro de conexão ao enviar o logotipo.");
 
 
 
