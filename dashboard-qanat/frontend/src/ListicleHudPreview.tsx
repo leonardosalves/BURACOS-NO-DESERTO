@@ -1,3 +1,12 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import lottie from 'lottie-web';
+import {
+  hudThemeStyles,
+  lottieDataForKey,
+  resolveLottieKey,
+  type ListicleHudTheme,
+} from '@lumiera/overlays/listicleHudTheme';
+
 type HudStyle = 'full' | 'compact' | 'auto';
 
 type PreviewItem = {
@@ -11,6 +20,7 @@ type Props = {
   hudStyle: HudStyle;
   items?: PreviewItem[];
   accentColor?: string;
+  hudTheme?: ListicleHudTheme;
 };
 
 const TITLE_WARN_CHARS = 60;
@@ -21,7 +31,7 @@ function resolveHudStyle(hudStyle: HudStyle, rankCount: number) {
 }
 
 function buildPreviewItems(rankCount: number, rankOrder: 'desc' | 'asc', items: PreviewItem[] = []) {
-  if (items.length) return items.slice(0, 3);
+  if (items.length) return items.slice(0, Math.min(5, items.length));
   const ranks = Array.from({ length: Math.min(3, rankCount) }, (_, i) => (
     rankOrder === 'desc' ? rankCount - i : i + 1
   ));
@@ -29,8 +39,46 @@ function buildPreviewItems(rankCount: number, rankOrder: 'desc' | 'asc', items: 
     rank,
     title: rank === (rankOrder === 'desc' ? 1 : rankCount)
       ? 'Item destaque do ranking'
-      : `Item #${rank} do ranking`,
+      : rank === (rankOrder === 'desc' ? rankCount : 1)
+        ? 'Primeiro item da lista'
+        : `Exemplo item #${rank}`,
   }));
+}
+
+function filledProgress(rank: number, rankCount: number, rankOrder: 'desc' | 'asc') {
+  return rankOrder === 'desc' ? rankCount - rank + 1 : rank;
+}
+
+function HudPreviewLottie({ animationData, size }: { animationData: object; size: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const anim = lottie.loadAnimation({
+      container: ref.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData,
+    });
+    return () => {
+      anim.destroy();
+    };
+  }, [animationData]);
+
+  return (
+    <div
+      className="flex items-center justify-center rounded-full bg-white flex-shrink-0"
+      style={{
+        width: size,
+        height: size,
+        border: '2px solid rgba(0,0,0,0.12)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.45)',
+      }}
+    >
+      <div ref={ref} style={{ width: Math.round(size * 0.72), height: Math.round(size * 0.72) }} />
+    </div>
+  );
 }
 
 export function ListicleHudPreview({
@@ -39,90 +87,178 @@ export function ListicleHudPreview({
   hudStyle,
   items = [],
   accentColor = '#C5A880',
+  hudTheme = 'ancient',
 }: Props) {
   const effectiveStyle = resolveHudStyle(hudStyle, rankCount);
-  const previewItems = buildPreviewItems(rankCount, rankOrder, items);
+  const previewItems = useMemo(
+    () => buildPreviewItems(rankCount, rankOrder, items),
+    [rankCount, rankOrder, items],
+  );
+  const [activeIdx, setActiveIdx] = useState(0);
+  const safeIdx = Math.min(activeIdx, Math.max(0, previewItems.length - 1));
+  const active = previewItems[safeIdx] ?? previewItems[0];
+
   const longTitles = [...items, ...previewItems]
     .filter((item) => item.title.length > TITLE_WARN_CHARS);
+
+  if (!active) return null;
+
+  const climaxRank = rankOrder === 'desc' ? 1 : rankCount;
+  const isClimax = active.rank === climaxRank;
+  const progress = filledProgress(active.rank, rankCount, rankOrder);
+  const theme = hudThemeStyles(hudTheme, accentColor, isClimax);
+  const lottieKey = resolveLottieKey({
+    isClimax,
+    rank: active.rank,
+    title: active.title,
+  });
+  const lottieData = lottieDataForKey(lottieKey);
+  const dotCount = Math.min(rankCount, 8);
+  const useBar = rankCount > 8;
+  const lottieSize = effectiveStyle === 'compact' ? 40 : 52;
 
   return (
     <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-          Preview do HUD no vídeo
+          Preview do HUD (igual ao vídeo)
         </p>
         <span className="text-[9px] text-zinc-600 uppercase tracking-wide">
           estilo {effectiveStyle}
         </span>
       </div>
 
-      <div
-        className="relative rounded-2xl overflow-hidden border border-zinc-800"
-        style={{ aspectRatio: '9 / 16', maxHeight: 280 }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-zinc-800 via-zinc-900 to-black" />
-        <div
-          className="absolute inset-x-0 top-0 h-[38%]"
-          style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.72) 0%, transparent 100%)' }}
-        />
+      <p className="text-[10px] text-zinc-500 leading-relaxed">
+        O HUD só aparece no <span className="text-zinc-300">1º item da lista</span> — não na intro.
+        Ícone Lottie fica só ao lado do título, escolhido pelo texto do item.
+      </p>
 
-        <div className="absolute top-4 left-3 right-3 space-y-2">
-          {previewItems.map((item) => (
-            <div
-              key={item.rank}
-              className="rounded-2xl px-4 py-3"
-              style={{
-                background: 'rgba(0,0,0,0.88)',
-                border: `2px solid ${accentColor}66`,
-                boxShadow: `0 8px 24px rgba(0,0,0,0.45)`,
-              }}
+      {previewItems.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {previewItems.map((item, idx) => (
+            <button
+              key={`tab-${item.rank}`}
+              type="button"
+              onClick={() => setActiveIdx(idx)}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border transition-colors ${
+                idx === safeIdx
+                  ? 'bg-gold-500/20 border-gold-500/50 text-gold-300'
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+              }`}
             >
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                <span className="font-cinzel text-white font-extrabold text-xl tracking-wide">
-                  #{item.rank}
-                </span>
-                <span
-                  className="font-sans font-extrabold text-sm uppercase tracking-widest"
-                  style={{ color: accentColor }}
-                >
-                  Top {rankCount}
-                </span>
-              </div>
-
-              {effectiveStyle === 'full' && (
-                <div
-                  className="mt-2 pt-2 flex items-center justify-center gap-2"
-                  style={{ borderTop: `1px solid ${accentColor}33` }}
-                >
-                  <span
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm shadow"
-                    aria-hidden
-                  >
-                    🧭
-                  </span>
-                  <p className="text-white text-sm font-semibold leading-snug break-words text-center">
-                    {item.title}
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-2 flex justify-center gap-1.5">
-                {Array.from({ length: Math.min(rankCount, 8) }, (_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-full"
-                    style={{
-                      width: 10,
-                      height: 10,
-                      background: i < item.rank ? accentColor : 'rgba(255,255,255,0.22)',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+              #{item.rank}
+            </button>
           ))}
         </div>
+      )}
+
+      <div
+        className="relative rounded-2xl overflow-hidden border border-zinc-800 mx-auto"
+        style={{ aspectRatio: '9 / 16', maxHeight: 320, maxWidth: 200 }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-700 via-zinc-900 to-black" />
+        <div
+          className="absolute inset-x-0 top-0 h-[38%] pointer-events-none"
+          style={{ background: theme.topGradient }}
+        />
+
+        <div className="absolute top-5 left-2 right-2">
+          <div
+            className="rounded-[18px] px-4 py-3 flex flex-col gap-2.5"
+            style={{
+              background: theme.cardBackground,
+              border: `2.5px solid ${theme.borderColor}`,
+              boxShadow: theme.glow,
+            }}
+          >
+            <div className="flex items-center justify-center gap-2.5 flex-wrap">
+              <span
+                className="font-cinzel font-extrabold tracking-wide leading-none"
+                style={{
+                  fontSize: 28,
+                  color: isClimax ? '#FFE9A8' : '#FFFFFF',
+                  textShadow: '0 0 2px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.75)',
+                }}
+              >
+                #{active.rank}
+              </span>
+              <span
+                className="font-sans font-extrabold uppercase tracking-widest leading-none"
+                style={{ fontSize: 16, color: accentColor }}
+              >
+                Top {rankCount}
+              </span>
+            </div>
+
+            {effectiveStyle === 'full' && active.title && (
+              <div
+                className="flex items-center justify-center gap-2 pt-2"
+                style={{ borderTop: `1px solid ${theme.divider}` }}
+              >
+                <HudPreviewLottie animationData={lottieData} size={lottieSize} />
+                <p
+                  className="text-white text-xs font-bold leading-snug break-words text-center"
+                  style={{
+                    textShadow: '0 0 2px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.75)',
+                  }}
+                >
+                  {active.title}
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-center pt-0.5">
+              {useBar ? (
+                <div className="flex items-center gap-2 w-full max-w-[140px]">
+                  <div className="flex-1 h-2 rounded-full bg-white/20 overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(progress / rankCount) * 100}%`,
+                        background: `linear-gradient(90deg, ${accentColor}, ${isClimax ? '#FFE9A8' : accentColor})`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-white/95 min-w-[36px] text-right">
+                    {progress}/{rankCount}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex gap-1.5 items-center">
+                  {Array.from({ length: dotCount }, (_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-full"
+                      style={{
+                        width: 10,
+                        height: 10,
+                        background: i < progress ? accentColor : 'rgba(255,255,255,0.22)',
+                        boxShadow: i < progress ? `0 0 10px ${accentColor}` : 'none',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {isClimax && (
+          <div
+            className="absolute top-1 left-1 right-1 rounded-lg px-2 py-1 text-center"
+            style={{ background: 'rgba(0,0,0,0.55)', border: `1px solid ${accentColor}44` }}
+          >
+            <p className="text-[8px] text-zinc-300 uppercase tracking-wider">
+              Recap animado no topo neste momento
+            </p>
+          </div>
+        )}
       </div>
+
+      <p className="text-[9px] text-zinc-600 text-center">
+        Ícone atual: <span className="text-zinc-400">{lottieKey}</span>
+        {active.title ? ` — detectado em “${active.title.slice(0, 40)}${active.title.length > 40 ? '…' : ''}”` : ''}
+      </p>
 
       {longTitles.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">

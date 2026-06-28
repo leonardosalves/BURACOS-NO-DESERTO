@@ -308,6 +308,7 @@ import {
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import { ListicleCreatorStep } from './ListicleCreatorStep';
+import { warnLongListicleTitles } from './ListicleHudPreview';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
@@ -7491,7 +7492,7 @@ export default function App() {
 
 
 
-    const blockAssets = [...(newTimelineAssets[blockKey] || [])];
+    let blockAssets = [...(newTimelineAssets[blockKey] || [])];
 
 
 
