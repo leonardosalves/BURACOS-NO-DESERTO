@@ -85,15 +85,19 @@ Evite ideias cujo título promete algo que 40 segundos (Shorts) ou 12 minutos (L
 `;
 }
 
+export const SHORTS_LISTICLE_RANK_OPTIONS = [3, 5];
+
 export function resolveListicleBlockCount({ rankCount = 20, format = "LONGO" } = {}) {
-  const rank = Math.min(50, Math.max(3, Number(rankCount) || 20));
-  if (format === "SHORTS") return Math.min(rank, 3) + 2;
+  const rank = clampListicleRankCount(rankCount, format);
   return rank + 2;
 }
 
 export function clampListicleRankCount(rankCount = 20, format = "LONGO") {
   const rank = Math.min(50, Math.max(3, Number(rankCount) || 20));
-  if (format === "SHORTS") return Math.min(rank, 3);
+  if (format === "SHORTS") {
+    if (SHORTS_LISTICLE_RANK_OPTIONS.includes(rank)) return rank;
+    return rank <= 4 ? 3 : 5;
+  }
   return rank;
 }
 
@@ -128,11 +132,21 @@ const LISTICLE_RANKING_ARCHETYPES = [
 
 export function buildListicleRankingIdeasPrompt({ niche = "", format = "LONGO" } = {}) {
   const archetypes = LISTICLE_RANKING_ARCHETYPES.map((a, i) => `${i + 1}. ${a}`).join("\n");
+  const isShorts = format === "SHORTS";
+  const formatRules = isShorts
+    ? `- FORMATO SHORTS (exclusivo): "suggested_rank_count" deve ser APENAS 3 ou 5 — nunca outro número
+- Títulos com "Top 3" ou "Top 5" conforme a profundidade do tema no nicho
+- Mix obrigatório: ~6 ideias Top 3 (gancho rápido, 35-50s) e ~6 ideias Top 5 (mais denso, 45-60s)
+- "best_format" sempre "SHORTS" em todas as ideias
+- Rankings Top 3: ângulos de choque imediato, 1 fato forte por item
+- Rankings Top 5: ângulos com mais variedade/categorias, ainda cabendo em Short`
+    : `- FORMATO LONGO: "suggested_rank_count" entre 5 e 20 (varie: Top 5, 10, 15, 20 conforme profundidade)
+- "best_format" preferencialmente "LONGO" (algumas ideias podem ser "SHORTS" se o tema for naturalmente curto)`;
 
   return `Você é um estrategista de YouTube especializado em vídeos LISTICLE / TOP N com alta retenção.
 
 O usuário escolheu o NICHO: "${niche}"
-Formato preferido: ${format}
+Formato preferido: ${format}${isShorts ? " (SHORTS — apenas Top 3 e Top 5)" : ""}
 
 SUA MISSÃO: Sugerir exatamente 12 ideias de RANKINGS interessantes, específicos e variados DENTRO desse nicho — não títulos genéricos.
 
@@ -143,8 +157,8 @@ ${archetypes}
 
 REGRAS DE QUALIDADE (obrigatório):
 - Cada ideia deve ser um ranking DISTINTO — não 12 variações do mesmo tema
-- Títulos em PT-BR, específicos, com número no título (Top 5, 10, 15 ou 20 — varie conforme profundidade do tema)
-- Shorts = rankings menores (Top 3 a 5); Longo = Top 10 a 20
+- Títulos em PT-BR, específicos, com número no título
+${formatRules}
 - Inclua 3 "sample_items" reais que entrariam na lista (nomes concretos, não genéricos)
 - "controversy_hook": por que o #1 vai surpreender ou gerar comentário
 - "why_interesting": 1 frase sobre apelo de retenção (curiosidade, choque, nostalgia, debate)
@@ -207,7 +221,7 @@ function normalizeRankingIdeaItem(item = {}) {
   };
 }
 
-export function normalizeListicleIdeasResponse(data = {}) {
+export function normalizeListicleIdeasResponse(data = {}, { format = "LONGO" } = {}) {
   if (!data || typeof data !== "object") {
     return { niche_analysis: {}, ranking_ideas: [], best_index: 0, best_reason: "" };
   }
@@ -227,6 +241,16 @@ export function normalizeListicleIdeasResponse(data = {}) {
 
   const ranking_ideas = rawIdeas
     .map(normalizeRankingIdeaItem)
+    .map((item) => {
+      if (format !== "SHORTS") return item;
+      const rank = clampListicleRankCount(item.suggested_rank_count, "SHORTS");
+      return {
+        ...item,
+        suggested_rank_count: rank,
+        best_format: "SHORTS",
+        title: item.title.replace(/\btop\s+\d+\b/gi, `Top ${rank}`),
+      };
+    })
     .filter((item) => item.title.length > 3);
 
   const rawAnalysis = data.niche_analysis ?? data[analysisKey] ?? {};
@@ -259,14 +283,20 @@ export function buildListicleScriptRules({
 } = {}) {
   const orderDesc = rankOrder !== "asc";
   const itemBlocks = blockCount - 2;
-  const wordsPerItem = format === "SHORTS" ? "25-40" : "80-140";
-  const totalWords = format === "SHORTS" ? "100-160" : `${itemBlocks * 90}-${itemBlocks * 150}`;
+  const wordsPerItem = format === "SHORTS"
+    ? (itemBlocks >= 5 ? "20-35" : "25-40")
+    : "80-140";
+  const totalWords = format === "SHORTS"
+    ? (itemBlocks >= 5 ? "140-200" : "100-160")
+    : `${itemBlocks * 90}-${itemBlocks * 150}`;
+  const shortsDuration = itemBlocks >= 5 ? "45-60 segundos" : "35-50 segundos";
 
   return `
 MODO LISTICLE / TOP N — ESTRUTURA OBRIGATÓRIA (prioridade sobre regras de documentário padrão):
 
 TEMA DA LISTA: "${listTopic}"
 ITENS NA LISTA: ${itemBlocks}
+${format === "SHORTS" ? `DURAÇÃO ALVO (SHORTS): ${shortsDuration}` : ""}
 ORDEM: ${orderDesc ? `countdown ${itemBlocks} → 1 (maior retenção — comece pelo item #${itemBlocks})` : `build-up 1 → ${itemBlocks} (crescendo até o #${itemBlocks})`}
 TOTAL DE BLOCOS: ${blockCount} (bloco 1 = intro, blocos 2-${blockCount - 1} = um item cada, bloco ${blockCount} = recap + CTA)
 

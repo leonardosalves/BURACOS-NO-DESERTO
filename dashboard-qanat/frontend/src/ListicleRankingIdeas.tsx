@@ -90,6 +90,9 @@ export function ListicleRankingIdeas({ data, selectedIndex, onSelect }: Props) {
               {idea.suggested_rank_count && (
                 <span className="ml-2 text-[8px] text-zinc-500 font-mono">Top {idea.suggested_rank_count}</span>
               )}
+              {idea.best_format === 'SHORTS' && (
+                <span className="ml-1 text-[8px] text-fuchsia-400 font-bold uppercase">Short</span>
+              )}
               {idea.why_interesting && (
                 <p className="text-[9px] text-zinc-500 mt-1.5 leading-relaxed">{idea.why_interesting}</p>
               )}
