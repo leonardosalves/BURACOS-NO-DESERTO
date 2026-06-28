@@ -6,6 +6,9 @@
 import fs from "fs";
 import path from "path";
 import { buildOverlayOrchestrationPlan, detectNicheCategory } from "./overlayOrchestration.js";
+import { pickListicleLottieKey } from "./listicleLottieResolve.js";
+
+export { pickListicleLottieKey };
 
 export const DOCUMENTARY_HISTORY_PRESET = {
   id: "documentary-history",
@@ -128,38 +131,6 @@ function formatChapterTimestamp(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
-
-export function pickListicleLottieKey({ visualHook = "", title = "", rank, isClimax = false, isIntro = false } = {}) {
-  if (isIntro) return "sparkles";
-  if (isClimax || Number(rank) === 1) return "crown";
-
-  const titleBlob = String(title).trim();
-  const hookBlob = String(visualHook).trim();
-  const rules = [
-    { key: "compass", re: /bússola|bussola|compass|navega|orient|direç|direc/i },
-    { key: "map", re: /mapa|map|geograf|continente|território|territorio|rota/i },
-    { key: "coin", re: /dinheiro|moeda|coin|financ|invest|lucro|dólar|dolar|econom/i },
-    { key: "chart", re: /gráfico|grafico|chart|dados|estat|número|numero|porcent/i },
-    { key: "target", re: /alvo|target|meta|objetiv|foco/i },
-    { key: "gear", re: /engren|gear|mecan|máquina|maquina|motor|torno|relógio|relogio|clock|ponteiro/i },
-    { key: "book", re: /livro|book|históri|histori|antig|document|papiro|manuscrit|biblioteca/i },
-    { key: "shield", re: /escudo|shield|fort|castel|muralha|defesa|guerra|milit|armadura|torre/i },
-    { key: "flame", re: /fogo|flame|chama|explos|incêndio|incendio|foguete|combust/i },
-    { key: "time", re: /tempo|time|século|seculo|era|data|ano|cronolog|milênio|milenio/i },
-    { key: "award", re: /prêmio|premio|award|trof|medal|conquista/i },
-    { key: "sparkles", re: /mistério|misterio|enigma|secreto|lendár|lendar|mágic|magic/i },
-  ];
-
-  for (const rule of rules) {
-    if (rule.re.test(titleBlob)) return rule.key;
-  }
-  for (const rule of rules) {
-    if (rule.re.test(hookBlob)) return rule.key;
-  }
-
-  const pool = ["time", "compass", "shield", "flame", "award"];
-  return pool[Math.max(0, (Number(rank) || 1) - 1) % pool.length];
 }
 
 export function resolveListicleHudStyle(config = {}, storyboard = {}, rankCount = 0) {
