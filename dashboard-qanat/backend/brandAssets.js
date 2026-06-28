@@ -209,6 +209,19 @@ export function addBrandLogo(workspaceDir, backendDir, { name = "Novo Logo", sou
   return { entry, selectedLogoId: config.selectedLogoId };
 }
 
+export function updateBrandLogo(backendDir, logoId, { name }) {
+  const config = loadRenderConfig(backendDir);
+  const idx = (config.brandLogos || []).findIndex((l) => l.id === logoId);
+  if (idx < 0) throw new Error("Logo não encontrado.");
+
+  const trimmed = String(name || "").trim().slice(0, 80);
+  if (!trimmed) throw new Error("Nome do logo é obrigatório.");
+
+  config.brandLogos[idx] = { ...config.brandLogos[idx], name: trimmed };
+  saveRenderConfig(backendDir, config);
+  return config.brandLogos[idx];
+}
+
 export function selectBrandLogo(backendDir, logoId) {
   const config = loadRenderConfig(backendDir);
   const entry = resolveLogoEntry(config, logoId);

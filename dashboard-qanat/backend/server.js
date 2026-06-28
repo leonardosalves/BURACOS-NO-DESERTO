@@ -93,6 +93,7 @@ import {
   saveRenderConfig,
   listBrandLogos,
   addBrandLogo,
+  updateBrandLogo,
   selectBrandLogo,
   deleteBrandLogo,
   listYoutubeChannelsFromConfig,
@@ -3863,6 +3864,17 @@ async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSl
 function resolveRenderResolution(req) {
   if (req.query.resolution === "2k") return "2k";
   if (req.query.resolution === "1080p") return "1080p";
+
+  try {
+    const projDir = getProjectDir(req);
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    if (projectConfig.render_resolution === "2k" || projectConfig.render_resolution === "1080p") {
+      return projectConfig.render_resolution;
+    }
+  } catch {
+    /* fall through to global */
+  }
+
   const globalConfig = loadRenderConfig(__dirname);
   return globalConfig.renderResolution === "2k" ? "2k" : "1080p";
 }
@@ -7392,6 +7404,19 @@ app.post("/api/brand/logos/upload", (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Erro no upload de logo", details: err.message });
+  }
+});
+
+app.put("/api/brand/logos/:id", (req, res) => {
+  try {
+    const entry = updateBrandLogo(__dirname, req.params.id, req.body || {});
+    res.json({
+      success: true,
+      entry,
+      catalog: listBrandLogos(WORKSPACE_DIR, __dirname),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

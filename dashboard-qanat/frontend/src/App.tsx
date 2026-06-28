@@ -445,6 +445,7 @@ interface ConfigData {
 
 
   aspect_ratio?: '16:9' | '9:16';
+  render_resolution?: '1080p' | '2k';
 
 
 
@@ -2084,6 +2085,9 @@ export default function App() {
 
   const [globalDebugOverlay, setGlobalDebugOverlay] = useState<boolean>(false);
   const [globalRenderResolution, setGlobalRenderResolution] = useState<'1080p' | '2k'>('1080p');
+  const [resolutionConfigScope, setResolutionConfigScope] = useState<'global' | 'project'>('global');
+  const [projectRenderResolution, setProjectRenderResolution] = useState<'1080p' | '2k'>('1080p');
+  const [savingProjectResolution, setSavingProjectResolution] = useState<boolean>(false);
 
   const [globalYoutubeChannelUrl, setGlobalYoutubeChannelUrl] = useState<string>("");
   const [globalYoutubeChannelName, setGlobalYoutubeChannelName] = useState<string>("");
@@ -2812,6 +2816,21 @@ export default function App() {
 
 
 
+  const effectiveRenderResolution = useMemo<'1080p' | '2k'>(() => {
+    if (config?.render_resolution === '2k' || config?.render_resolution === '1080p') {
+      return config.render_resolution;
+    }
+    return globalRenderResolution;
+  }, [config?.render_resolution, globalRenderResolution]);
+
+  const renderResolutionLabel = useMemo(() => {
+    const ratio = config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9');
+    if (effectiveRenderResolution === '2k') {
+      return ratio === '9:16' ? '2K · 1440×2560' : '2K · 2560×1440';
+    }
+    return ratio === '9:16' ? '1080p · 1080×1920' : '1080p · 1920×1080';
+  }, [effectiveRenderResolution, config?.aspect_ratio, formatSelector]);
+
   const formattedHeaderDate = useMemo(() => {
 
 
@@ -3479,6 +3498,58 @@ export default function App() {
     }
   };
 
+  const handleRenameBrandLogo = async (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    try {
+      const res = await fetch(`/api/brand/logos/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (res.ok) {
+        await fetchBrandCatalog();
+      } else {
+        toast.error(await readApiError(res, 'Falha ao renomear logo.'));
+        await fetchBrandCatalog();
+      }
+    } catch {
+      toast.error('Erro ao renomear logo.');
+    }
+  };
+
+  const handleSaveProjectRenderResolution = async () => {
+    if (!config) {
+      toast.error('Carregue um projeto antes de salvar a resolução.');
+      return;
+    }
+    setSavingProjectResolution(true);
+    try {
+      await saveConfig({ ...config, render_resolution: projectRenderResolution });
+      toast.success('Resolução do projeto salva!');
+    } catch {
+      toast.error('Erro ao salvar resolução do projeto.');
+    } finally {
+      setSavingProjectResolution(false);
+    }
+  };
+
+  const handleClearProjectRenderResolution = async () => {
+    if (!config) return;
+    setSavingProjectResolution(true);
+    try {
+      const updated = { ...config };
+      delete updated.render_resolution;
+      await saveConfig(updated);
+      setResolutionConfigScope('global');
+      toast.success('Projeto usando resolução global.');
+    } catch {
+      toast.error('Erro ao remover resolução do projeto.');
+    } finally {
+      setSavingProjectResolution(false);
+    }
+  };
+
   const handleDeleteBrandLogo = async (id: string) => {
     if (!window.confirm('Remover este logo do catálogo?')) return;
     try {
@@ -3923,6 +3994,12 @@ export default function App() {
 
 
         setConfig(loadedConfig);
+        if (loadedConfig.render_resolution === '2k' || loadedConfig.render_resolution === '1080p') {
+          setProjectRenderResolution(loadedConfig.render_resolution);
+          setResolutionConfigScope('project');
+        } else {
+          setResolutionConfigScope('global');
+        }
         const meta = loadedConfig.upload_metadata || {};
         setYtTitle(meta.youtube?.title || '');
         setYtDescription(meta.youtube?.description || '');
@@ -17577,7 +17654,7 @@ export default function App() {
     useHyperframes = false,
     isProres = false,
     previewSeconds = 0,
-    resolution: '1080p' | '2k' = globalRenderResolution
+    resolution: '1080p' | '2k' = effectiveRenderResolution
   ) => {
     if (rendering) return;
 
@@ -21954,6 +22031,25 @@ export default function App() {
                   )}
                 </div>
               )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80">
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <Tv className="w-3.5 h-3.5 text-gold-500" />
+                  <span>Resolução ativa: <strong className="text-gold-400">{renderResolutionLabel}</strong></span>
+                  {config?.render_resolution ? (
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">· projeto</span>
+                  ) : (
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">· global</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('settings')}
+                  className="text-[10px] text-zinc-500 hover:text-gold-400 transition"
+                >
+                  Alterar em Configurações →
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 
@@ -34175,17 +34271,47 @@ export default function App() {
 
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Resolução de Saída</label>
-                      <select
-                        value={globalRenderResolution}
-                        onChange={(e) => setGlobalRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
-                        className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
-                      >
-                        <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
-                        <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
-                      </select>
-                      <p className="text-[9px] text-zinc-500">Aplica a todos os renders (Padrão, Remotion e PRO). 2K é mais lento e gera arquivos maiores.</p>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setResolutionConfigScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                        <button type="button" onClick={() => setResolutionConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                      </div>
+                      {resolutionConfigScope === 'global' ? (
+                        <>
+                          <select
+                            value={globalRenderResolution}
+                            onChange={(e) => setGlobalRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                          >
+                            <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
+                            <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
+                          </select>
+                          <p className="text-[9px] text-zinc-500">Salve com o botão abaixo. Vale para todos os projetos sem override.</p>
+                        </>
+                      ) : (
+                        <>
+                          <select
+                            value={projectRenderResolution}
+                            onChange={(e) => setProjectRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                          >
+                            <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
+                            <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
+                          </select>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={handleSaveProjectRenderResolution} disabled={savingProjectResolution} className="flex-1 py-2 rounded-xl bg-gold-500/20 hover:bg-gold-500/30 border border-gold-500/30 text-gold-300 text-[10px] font-bold uppercase tracking-wider transition disabled:opacity-50">
+                              {savingProjectResolution ? 'Salvando...' : 'Salvar do Projeto'}
+                            </button>
+                            {config?.render_resolution && (
+                              <button type="button" onClick={handleClearProjectRenderResolution} disabled={savingProjectResolution} className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-bold uppercase tracking-wider hover:border-zinc-700 transition disabled:opacity-50">
+                                Usar Global
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[9px] text-zinc-500">Sobrescreve a resolução global só neste projeto.</p>
+                        </>
+                      )}
                     </div>
 
 
@@ -34396,7 +34522,14 @@ export default function App() {
                             <div className="h-20 flex items-center justify-center mb-2 bg-zinc-950 rounded-xl overflow-hidden">
                               <img src={`${logo.url}${logo.url.includes('?') ? '&' : '?'}t=${logoTimestamp}`} alt={logo.name} className="max-h-16 max-w-full object-contain" />
                             </div>
-                            <p className="text-[10px] text-white font-semibold truncate mb-2" title={logo.name}>{logo.name}</p>
+                            <input
+                              type="text"
+                              value={logo.name}
+                              onChange={(e) => setBrandLogos((prev) => prev.map((l) => (l.id === logo.id ? { ...l, name: e.target.value } : l)))}
+                              onBlur={(e) => handleRenameBrandLogo(logo.id, e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] text-white mb-2 focus:border-gold-500/50 outline-none"
+                              title="Renomear logo"
+                            />
                             <div className="flex gap-1.5">
                               <button type="button" onClick={() => handleSelectBrandLogo(logo.id)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition ${isActive ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-gold-500/30 hover:text-gold-400'}`}>
                                 {isActive ? <span className="flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Ativo</span> : 'Usar'}
