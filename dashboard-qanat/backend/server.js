@@ -88,6 +88,23 @@ import {
   getEpidemicMoodForNiche,
 } from "./videoProEnhancements.js";
 import {
+  ensureBrandCatalogMigrated,
+  loadRenderConfig,
+  saveRenderConfig,
+  listBrandLogos,
+  addBrandLogo,
+  selectBrandLogo,
+  deleteBrandLogo,
+  listYoutubeChannelsFromConfig,
+  addYoutubeChannel,
+  updateYoutubeChannel,
+  selectYoutubeChannel,
+  deleteYoutubeChannel,
+  resolveLogoFilePath,
+  readYoutubeChannelFromCatalog,
+  getLogosDir,
+} from "./brandAssets.js";
+import {
   extractTitleFacts,
   buildTitleCraftRules,
   buildTitleRepairPrompt,
@@ -1458,35 +1475,9 @@ app.post("/api/projects/storyboard", (req, res) => {
 
 app.get("/api/render/config", (req, res) => {
 
-  const globalConfigPath = path.join(__dirname, "render_config_global.json");
-
-  if (!fs.existsSync(globalConfigPath)) {
-
-    return res.json({
-
-      fps: 30,
-
-      blockGapSeconds: 1.0,
-
-      musicVolume: 0.15,
-
-      useRemotionByDefault: true,
-
-      debugOverlay: false,
-
-      youtubeChannel: {
-        channelUrl: "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA",
-        channelName: "",
-        subscriberCount: "",
-      },
-
-    });
-
-  }
-
   try {
 
-    const data = JSON.parse(fs.readFileSync(globalConfigPath, "utf8"));
+    const data = ensureBrandCatalogMigrated(WORKSPACE_DIR, __dirname);
 
     res.json(data);
 
@@ -1502,13 +1493,20 @@ app.get("/api/render/config", (req, res) => {
 
 app.post("/api/render/config", (req, res) => {
 
-  const globalConfigPath = path.join(__dirname, "render_config_global.json");
-
-  const configData = req.body;
+  const configData = req.body || {};
 
   try {
 
-    fs.writeFileSync(globalConfigPath, JSON.stringify(configData, null, 2), "utf8");
+    const existing = loadRenderConfig(__dirname);
+    const merged = {
+      ...existing,
+      ...configData,
+      brandLogos: configData.brandLogos ?? existing.brandLogos,
+      youtubeChannels: configData.youtubeChannels ?? existing.youtubeChannels,
+      selectedLogoId: configData.selectedLogoId ?? existing.selectedLogoId,
+      selectedYoutubeChannelId: configData.selectedYoutubeChannelId ?? existing.selectedYoutubeChannelId,
+    };
+    saveRenderConfig(__dirname, merged);
 
     res.json({ success: true, message: "Configurações globais salvas com sucesso." });
 
@@ -3730,22 +3728,14 @@ function normalizeYoutubeChannelUrl(rawUrl) {
 
 function readYoutubeChannelSettings(projectDir, globalConfig = {}) {
   const projectConfig = readProjectJson(projectDir, "config_qanat.json", {});
-  const projectChannel = projectConfig.youtube_channel || projectConfig.youtubeChannel || {};
-  const globalChannel = globalConfig.youtubeChannel || globalConfig.youtube_channel || {};
-
-  const hasProjectOverride = Boolean(
-    projectChannel.channel_url || projectChannel.channelUrl ||
-    projectChannel.channel_name || projectChannel.channelName ||
-    projectChannel.subscriber_count || projectChannel.subscriberCount
-  );
-
-  const source = hasProjectOverride ? projectChannel : globalChannel;
+  const resolved = readYoutubeChannelFromCatalog(projectConfig, globalConfig);
 
   return {
-    channelUrl: normalizeYoutubeChannelUrl(source.channel_url || source.channelUrl || ""),
-    channelName: String(source.channel_name || source.channelName || "").trim(),
-    subscriberCount: String(source.subscriber_count || source.subscriberCount || "").trim(),
-    scope: hasProjectOverride ? "project" : "global",
+    channelUrl: normalizeYoutubeChannelUrl(resolved.channelUrl || ""),
+    channelName: String(resolved.channelName || "").trim(),
+    subscriberCount: String(resolved.subscriberCount || "").trim(),
+    scope: resolved.scope || "global",
+    channelId: resolved.channelId || null,
   };
 }
 
@@ -4126,7 +4116,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   );
 
-  const logoSource = findProjectFile(projectDir, "logo.png");
+  const globalConfigForLogo = loadRenderConfig(__dirname);
+  const projectConfigForLogo = readProjectJson(projectDir, "config_qanat.json", {});
+  const logoSource = resolveLogoFilePath(WORKSPACE_DIR, projectDir, globalConfigForLogo, projectConfigForLogo)
+    || findProjectFile(projectDir, "logo.png");
 
   if (logoSource) {
 
@@ -7159,7 +7152,9 @@ app.get("/api/logo/status", (req, res) => {
 
     const activeProject = req.query.project;
 
-    
+    const catalog = listBrandLogos(WORKSPACE_DIR, __dirname);
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    const globalConfig = loadRenderConfig(__dirname);
 
     const localLogoAssets = path.join(projDir, "ASSETS", "logo.png");
 
@@ -7168,8 +7163,6 @@ app.get("/api/logo/status", (req, res) => {
     let hasProjectLogo = false;
 
     let projectLogoPath = null;
-
-    
 
     if (activeProject) {
 
@@ -7189,9 +7182,11 @@ app.get("/api/logo/status", (req, res) => {
 
     }
 
-    const globalLogoUrl = `/api/projects-media/ASSETS/logo.png`;
-
-    const currentLogoUrl = hasProjectLogo ? projectLogoPath : globalLogoUrl;
+    const resolvedPath = resolveLogoFilePath(WORKSPACE_DIR, projDir, globalConfig, projectConfig);
+    const activeCatalogLogo = catalog.activeLogo;
+    const currentLogoUrl = hasProjectLogo
+      ? projectLogoPath
+      : (activeCatalogLogo?.url || `/api/projects-media/ASSETS/logo.png`);
 
     res.json({
 
@@ -7199,9 +7194,13 @@ app.get("/api/logo/status", (req, res) => {
 
       projectLogoUrl: projectLogoPath,
 
-      globalLogoUrl,
+      globalLogoUrl: activeCatalogLogo?.url || `/api/projects-media/ASSETS/logo.png`,
 
-      currentLogoUrl
+      currentLogoUrl,
+
+      catalog,
+
+      projectSelectedLogoId: projectConfig.selected_logo_id || null,
 
     });
 
@@ -7309,6 +7308,14 @@ app.post("/api/logo/reset", (req, res) => {
 
     }
 
+    const configPath = path.join(projDir, "config_qanat.json");
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    if (projectConfig.selected_logo_id) {
+      delete projectConfig.selected_logo_id;
+      fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2), "utf8");
+      deleted = true;
+    }
+
     res.json({
 
       success: true,
@@ -7323,6 +7330,150 @@ app.post("/api/logo/reset", (req, res) => {
 
   }
 
+});
+
+// API: Brand catalog — multiple logos and YouTube channels
+
+app.get("/api/brand/catalog", (req, res) => {
+  try {
+    const globalConfig = ensureBrandCatalogMigrated(WORKSPACE_DIR, __dirname);
+    const projDir = getProjectDir(req);
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    res.json({
+      logos: listBrandLogos(WORKSPACE_DIR, __dirname),
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+      projectSelectedLogoId: projectConfig.selected_logo_id || null,
+      projectSelectedChannelId: projectConfig.selected_youtube_channel_id || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar catálogo de marca", details: err.message });
+  }
+});
+
+app.post("/api/brand/logos/upload", (req, res) => {
+  try {
+    const name = String(req.query.name || req.headers["x-logo-name"] || "Novo Logo").trim();
+    const logosDir = getLogosDir(WORKSPACE_DIR);
+    fs.mkdirSync(logosDir, { recursive: true });
+    const tempPath = path.join(logosDir, `_upload_${Date.now()}.png`);
+    const writeStream = fs.createWriteStream(tempPath);
+    req.pipe(writeStream);
+    writeStream.on("finish", () => {
+      try {
+        const result = addBrandLogo(WORKSPACE_DIR, __dirname, { name, sourcePath: tempPath });
+        res.json({ success: true, ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+      } catch (err) {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        res.status(500).json({ error: err.message });
+      }
+    });
+    writeStream.on("error", (err) => {
+      res.status(500).json({ error: "Erro ao salvar logo", details: err.message });
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro no upload de logo", details: err.message });
+  }
+});
+
+app.post("/api/brand/logos/select", (req, res) => {
+  try {
+    const { id, scope = "global" } = req.body || {};
+    if (!id) return res.status(400).json({ error: "id do logo é obrigatório" });
+
+    if (scope === "project") {
+      const projDir = getProjectDir(req);
+      const configPath = path.join(projDir, "config_qanat.json");
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      config.selected_logo_id = id;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      return res.json({ success: true, scope: "project", selectedLogoId: id });
+    }
+
+    const result = selectBrandLogo(__dirname, id);
+    res.json({ success: true, scope: "global", ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/brand/logos/:id", (req, res) => {
+  try {
+    const result = deleteBrandLogo(WORKSPACE_DIR, __dirname, req.params.id);
+    res.json({ success: true, ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/brand/channels", (req, res) => {
+  try {
+    const { label, channelUrl, channelName, subscriberCount } = req.body || {};
+    const result = addYoutubeChannel(__dirname, { label, channelUrl, channelName, subscriberCount });
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      ...result,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put("/api/brand/channels/:id", (req, res) => {
+  try {
+    const entry = updateYoutubeChannel(__dirname, req.params.id, req.body || {});
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      entry,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/brand/channels/select", (req, res) => {
+  try {
+    const { id, scope = "global" } = req.body || {};
+    if (!id) return res.status(400).json({ error: "id do canal é obrigatório" });
+
+    if (scope === "project") {
+      const projDir = getProjectDir(req);
+      const configPath = path.join(projDir, "config_qanat.json");
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      config.selected_youtube_channel_id = id;
+      delete config.youtube_channel;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      return res.json({ success: true, scope: "project", selectedYoutubeChannelId: id });
+    }
+
+    const result = selectYoutubeChannel(__dirname, id);
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      scope: "global",
+      ...result,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/brand/channels/:id", (req, res) => {
+  try {
+    const result = deleteYoutubeChannel(__dirname, req.params.id);
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      ...result,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 app.post("/api/ai/generate-creator-script", async (req, res) => {

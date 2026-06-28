@@ -1458,6 +1458,34 @@ export default function App() {
 
   const [logoTimestamp, setLogoTimestamp] = useState<number>(Date.now());
 
+  interface BrandLogoItem {
+    id: string;
+    name: string;
+    file: string;
+    url: string;
+    exists?: boolean;
+  }
+
+  interface YoutubeChannelItem {
+    id: string;
+    label: string;
+    channelUrl: string;
+    channelName?: string;
+    subscriberCount?: string;
+  }
+
+  const [brandLogos, setBrandLogos] = useState<BrandLogoItem[]>([]);
+  const [selectedLogoId, setSelectedLogoId] = useState<string | null>(null);
+  const [projectSelectedLogoId, setProjectSelectedLogoId] = useState<string | null>(null);
+  const [newLogoName, setNewLogoName] = useState<string>('');
+
+  const [youtubeChannels, setYoutubeChannels] = useState<YoutubeChannelItem[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [projectSelectedChannelId, setProjectSelectedChannelId] = useState<string | null>(null);
+  const [newChannelLabel, setNewChannelLabel] = useState<string>('');
+  const [newChannelUrl, setNewChannelUrl] = useState<string>('');
+  const [logoCatalogScope, setLogoCatalogScope] = useState<'global' | 'project'>('global');
+
 
 
 
@@ -2111,6 +2139,13 @@ export default function App() {
         setGlobalYoutubeChannelUrl(data.youtubeChannel?.channelUrl || "");
         setGlobalYoutubeChannelName(data.youtubeChannel?.channelName || "");
         setGlobalYoutubeSubscriberCount(data.youtubeChannel?.subscriberCount || "");
+        setBrandLogos(Array.isArray(data.brandLogos) ? data.brandLogos.map((l: BrandLogoItem) => ({
+          ...l,
+          url: l.url || `/api/projects-media/ASSETS/logos/${encodeURIComponent(l.file)}`,
+        })) : []);
+        setSelectedLogoId(data.selectedLogoId || null);
+        setYoutubeChannels(Array.isArray(data.youtubeChannels) ? data.youtubeChannels : []);
+        setSelectedChannelId(data.selectedYoutubeChannelId || null);
 
       }
 
@@ -2929,7 +2964,15 @@ export default function App() {
 
 
 
-        setLogoStatus(await res.json());
+        const data = await res.json();
+        setLogoStatus(data);
+        if (data.catalog) {
+          setBrandLogos(Array.isArray(data.catalog.logos) ? data.catalog.logos : []);
+          setSelectedLogoId(data.catalog.selectedLogoId || null);
+        }
+        if (data.projectSelectedLogoId !== undefined) {
+          setProjectSelectedLogoId(data.projectSelectedLogoId);
+        }
 
 
 
@@ -3041,7 +3084,7 @@ export default function App() {
 
 
 
-    const scopeParam = uploadScope === 'global' ? 'true' : 'false';
+    const logoName = newLogoName.trim() || file.name.replace(/\.png$/i, '') || 'Novo Logo';
 
 
 
@@ -3057,7 +3100,7 @@ export default function App() {
 
 
 
-      const res = await fetch(getProjectUrl(`/api/logo/upload?global=${scopeParam}`), {
+      const res = await fetch(getProjectUrl(`/api/brand/logos/upload?name=${encodeURIComponent(logoName)}`), {
 
 
 
@@ -3121,7 +3164,10 @@ export default function App() {
 
 
 
-        toast.success(`Logotipo ${uploadScope === 'global' ? 'global' : 'do projeto'} atualizado com sucesso!`);
+        toast.success('Logo adicionado ao catálogo!');
+        setNewLogoName('');
+        e.target.value = '';
+        await fetchBrandCatalog();
 
 
 
@@ -3282,6 +3328,8 @@ export default function App() {
 
 
         toast.success("Logotipo redefinido para o padrão global!");
+        setProjectSelectedLogoId(null);
+        await fetchBrandCatalog();
 
 
 
@@ -3376,6 +3424,176 @@ export default function App() {
 
 
 
+
+
+  const fetchBrandCatalog = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/brand/catalog'));
+      if (!res.ok) return;
+      const data = await res.json();
+      const logosData = data.logos || {};
+      setBrandLogos(Array.isArray(logosData.logos) ? logosData.logos : []);
+      setSelectedLogoId(logosData.selectedLogoId || null);
+      setProjectSelectedLogoId(data.projectSelectedLogoId || null);
+      const channelsData = data.channels || {};
+      setYoutubeChannels(Array.isArray(channelsData.channels) ? channelsData.channels : []);
+      setSelectedChannelId(channelsData.selectedYoutubeChannelId || null);
+      setProjectSelectedChannelId(data.projectSelectedChannelId || null);
+    } catch (err) {
+      console.error('Error fetching brand catalog:', err);
+    }
+  };
+
+  const handleSelectBrandLogo = async (id: string) => {
+    try {
+      const res = await fetch(getProjectUrl('/api/brand/logos/select'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, scope: logoCatalogScope }),
+      });
+      if (res.ok) {
+        toast.success(`Logo ${logoCatalogScope === 'global' ? 'global' : 'do projeto'} selecionado!`);
+        setLogoTimestamp(Date.now());
+        await fetchBrandCatalog();
+        fetchLogoStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao selecionar logo.');
+      }
+    } catch {
+      toast.error('Erro ao selecionar logo.');
+    }
+  };
+
+  const handleDeleteBrandLogo = async (id: string) => {
+    if (!window.confirm('Remover este logo do catálogo?')) return;
+    try {
+      const res = await fetch(`/api/brand/logos/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Logo removido.');
+        setLogoTimestamp(Date.now());
+        await fetchBrandCatalog();
+        fetchLogoStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao remover logo.');
+      }
+    } catch {
+      toast.error('Erro ao remover logo.');
+    }
+  };
+
+  const handleAddYoutubeChannel = async () => {
+    if (!newChannelUrl.trim()) {
+      toast.error('Informe a URL do canal.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/brand/channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: newChannelLabel.trim() || 'Novo Canal',
+          channelUrl: newChannelUrl.trim(),
+          channelName: globalYoutubeChannelName.trim(),
+          subscriberCount: globalYoutubeSubscriberCount.trim(),
+        }),
+      });
+      if (res.ok) {
+        toast.success('Canal adicionado ao catálogo!');
+        setNewChannelLabel('');
+        setNewChannelUrl('');
+        const data = await res.json();
+        if (data.channels) {
+          setYoutubeChannels(data.channels.channels || []);
+          setSelectedChannelId(data.channels.selectedYoutubeChannelId || null);
+        } else {
+          await fetchBrandCatalog();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao adicionar canal.');
+      }
+    } catch {
+      toast.error('Erro ao adicionar canal.');
+    }
+  };
+
+  const handleSelectYoutubeChannel = async (id: string) => {
+    try {
+      const res = await fetch(getProjectUrl('/api/brand/channels/select'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, scope: channelConfigScope }),
+      });
+      if (res.ok) {
+        toast.success(`Canal ${channelConfigScope === 'global' ? 'global' : 'do projeto'} selecionado!`);
+        await fetchBrandCatalog();
+        if (channelConfigScope === 'global') fetchGlobalRenderConfig();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao selecionar canal.');
+      }
+    } catch {
+      toast.error('Erro ao selecionar canal.');
+    }
+  };
+
+  const handleDeleteYoutubeChannel = async (id: string) => {
+    if (!window.confirm('Remover este canal do catálogo?')) return;
+    try {
+      const res = await fetch(`/api/brand/channels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Canal removido.');
+        const data = await res.json();
+        if (data.channels) {
+          setYoutubeChannels(data.channels.channels || []);
+          setSelectedChannelId(data.channels.selectedYoutubeChannelId || null);
+        } else {
+          await fetchBrandCatalog();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao remover canal.');
+      }
+    } catch {
+      toast.error('Erro ao remover canal.');
+    }
+  };
+
+  const handleUpdateYoutubeChannelField = async (channelId: string, field: keyof YoutubeChannelItem, value: string) => {
+    const channel = youtubeChannels.find((c) => c.id === channelId);
+    if (!channel) return;
+    const updated = { ...channel, [field]: value };
+    setYoutubeChannels((prev) => prev.map((c) => (c.id === channelId ? updated : c)));
+    try {
+      const res = await fetch(`/api/brand/channels/${encodeURIComponent(channelId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: updated.label,
+          channelUrl: updated.channelUrl,
+          channelName: updated.channelName || '',
+          subscriberCount: updated.subscriberCount || '',
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao atualizar canal.');
+        await fetchBrandCatalog();
+      }
+    } catch {
+      toast.error('Erro ao atualizar canal.');
+      await fetchBrandCatalog();
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      fetchBrandCatalog();
+      fetchLogoStatus();
+    }
+  }, [activeTab, activeProject]);
 
   useEffect(() => {
 
@@ -34099,687 +34317,154 @@ export default function App() {
 
 
 
-              <div className="glass-panel p-6 rounded-3xl space-y-5">
-
-
-
-
-
-
-
+                            <div className="glass-panel p-6 rounded-3xl space-y-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-
-
-
-
-
-
-
                   <div>
-
-
-
-
-
-
-
                     <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-
-
-
-
-
-
                       <Image className="w-4 h-4 text-gold-500" /> LOGOTIPO DO FINAL DO VÍDEO
-
-
-
-
-
-
-
                     </h3>
-
-
-
-
-
-
-
                     <p className="text-xs text-gray-400 mt-1">
-
-
-
-
-
-
-
-                      Personalize a marca exibida no encerramento de seus vídeos. Ideal para alternar logos entre canais ou nichos.
-
-
-
-
-
-
-
+                      Adicione vários logotipos ao catálogo e escolha qual exibir no encerramento. Alterne entre escopo global ou por projeto.
                     </p>
-
-
-
-
-
-
-
                   </div>
-
-
-
-
-
-
-
                 </div>
 
-
-
-
-
-
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-
-
-
-
-
-
-
-                  {/* Preview Box */}
-
-
-
-
-
-
-
-                  <div className="space-y-2">
-
-
-
-
-
-
-
-                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Visualização Atual</span>
-
-
-
-
-
-
-
-                    <div className="bg-zinc-950 border border-zinc-850 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[160px] relative overflow-hidden group">
-
-
-
-
-
-
-
-                      {logoStatus?.currentLogoUrl ? (
-
-
-
-
-
-
-
-                        <img 
-
-
-
-
-
-
-
-                          src={`${logoStatus.currentLogoUrl}${logoStatus.currentLogoUrl.includes('?') ? '&' : '?'}t=${logoTimestamp}`} 
-
-
-
-
-
-
-
-                          alt="Logo Final" 
-
-
-
-
-
-
-
-                          className="max-h-24 max-w-full object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-105"
-
-
-
-
-
-
-
-                        />
-
-
-
-
-
-
-
-                      ) : (
-
-
-
-
-
-
-
-                        <div className="text-zinc-600 text-xs font-mono">Sem logo configurado</div>
-
-
-
-
-
-
-
-                      )}
-
-
-
-
-
-
-
-                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-[9px] text-zinc-500 bg-zinc-950/80 px-2.5 py-1 rounded-lg">
-
-
-
-
-
-
-
-                        <span>Escopo: {logoStatus?.hasProjectLogo ? 'Personalizado do Projeto' : 'Padrão Global'}</span>
-
-
-
-
-
-
-
-                        {logoStatus?.hasProjectLogo && (
-
-
-
-
-
-
-
-                          <button 
-
-
-
-
-
-
-
-                            type="button"
-
-
-
-
-
-
-
-                            onClick={handleResetLogo}
-
-
-
-
-
-
-
-                            className="text-red-400 hover:text-red-300 font-semibold cursor-pointer transition"
-
-
-
-
-
-
-
-                          >
-
-
-
-
-
-
-
-                            Resetar para Global
-
-
-
-
-
-
-
-                          </button>
-
-
-
-
-
-
-
-                        )}
-
-
-
-
-
-
-
-                      </div>
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
-                  {/* Upload Box */}
-
-
-
-
-
-
-
-                  <div className="space-y-4">
-
-
-
-
-
-
-
-                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Enviar Novo Logo (PNG)</span>
-
-
-
-
-
-
-
-                    <div className="space-y-3">
-
-
-
-
-
-
-
-                      {activeProject !== 'Buracos no Deserto' && (
-
-
-
-
-
-
-
-                        <div className="flex gap-2">
-
-
-
-
-
-
-
-                          <button 
-
-
-
-
-
-
-
-                            type="button"
-
-
-
-
-
-
-
-                            onClick={() => setUploadScope('project')}
-
-
-
-
-
-
-
-                            className={`flex-1 text-center py-2 rounded-xl border text-[10px] font-bold transition cursor-pointer ${uploadScope === 'project' ? 'border-gold-500 bg-gold-500/10 text-gold-500' : 'border-zinc-850 bg-zinc-950/40 text-gray-400 hover:border-zinc-700'}`}
-
-
-
-
-
-
-
-                          >
-
-
-
-
-
-
-
-                            Exclusivo deste Projeto
-
-
-
-
-
-
-
-                          </button>
-
-
-
-
-
-
-
-                          <button 
-
-
-
-
-
-
-
-                            type="button"
-
-
-
-
-
-
-
-                            onClick={() => setUploadScope('global')}
-
-
-
-
-
-
-
-                            className={`flex-1 text-center py-2 rounded-xl border text-[10px] font-bold transition cursor-pointer ${uploadScope === 'global' ? 'border-gold-500 bg-gold-500/10 text-gold-500' : 'border-zinc-850 bg-zinc-950/40 text-gray-400 hover:border-zinc-700'}`}
-
-
-
-
-
-
-
-                          >
-
-
-
-
-
-
-
-                            Padrão Global
-
-
-
-
-
-
-
-                          </button>
-
-
-
-
-
-
-
-                        </div>
-
-
-
-
-
-
-
-                      )}
-
-
-
-
-
-
-
-                      <label className="border-2 border-dashed border-zinc-800 hover:border-gold-500/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[108px] bg-zinc-950/20 hover:bg-zinc-950/40">
-
-
-
-
-
-
-
-                        <Upload className="w-6 h-6 text-zinc-500 mb-2" />
-
-
-
-
-
-
-
-                        <span className="text-xs text-gray-400 font-semibold">
-
-
-
-
-
-
-
-                          {uploadingLogo ? 'Enviando imagem...' : 'Escolher imagem (logo.png)'}
-
-
-
-
-
-
-
-                        </span>
-
-
-
-
-
-
-
-                        <span className="text-[9px] text-zinc-500 mt-1">Recomendado: imagem com fundo transparente</span>
-
-
-
-
-
-
-
-                        <input 
-
-
-
-
-
-
-
-                          type="file" 
-
-
-
-
-
-
-
-                          accept="image/png" 
-
-
-
-
-
-
-
-                          className="hidden" 
-
-
-
-
-
-
-
-                          onChange={handleLogoUpload}
-
-
-
-
-
-
-
-                          disabled={uploadingLogo}
-
-
-
-
-
-
-
-                        />
-
-
-
-
-
-
-
-                      </label>
-
-
-
-
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                  </div>
-
-
-
-
-
-
-
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setLogoCatalogScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                  <button type="button" onClick={() => setLogoCatalogScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
                 </div>
 
-                <div className="border-t border-zinc-900 pt-5 mt-2 space-y-4 md:col-span-2">
+                <div className="bg-zinc-950 border border-zinc-850 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                  {(() => {
+                    const activeId = logoCatalogScope === 'project' ? (projectSelectedLogoId || selectedLogoId) : selectedLogoId;
+                    const activeLogo = brandLogos.find((l) => l.id === activeId) || brandLogos[0];
+                    const previewUrl = logoStatus?.currentLogoUrl || activeLogo?.url;
+                    return previewUrl ? (
+                      <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}t=${logoTimestamp}`} alt="Logo ativo" className="max-h-24 max-w-full object-contain drop-shadow-lg" />
+                    ) : (
+                      <div className="text-zinc-600 text-xs font-mono">Nenhum logo no catálogo</div>
+                    );
+                  })()}
+                  <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-[9px] text-zinc-500 bg-zinc-950/80 px-2.5 py-1 rounded-lg">
+                    <span>Escopo: {logoCatalogScope === 'project' ? 'Personalizado do Projeto' : 'Padrão Global'}</span>
+                    {logoCatalogScope === 'project' && (projectSelectedLogoId || logoStatus?.hasProjectLogo) && (
+                      <button type="button" onClick={handleResetLogo} className="text-red-400 hover:text-red-300 font-semibold cursor-pointer transition">Usar logo global</button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Catálogo de Logos</span>
+                  {brandLogos.length === 0 ? (
+                    <p className="text-xs text-zinc-500">Nenhum logo cadastrado. Envie o primeiro abaixo.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {brandLogos.map((logo) => {
+                        const activeId = logoCatalogScope === 'project' ? (projectSelectedLogoId || selectedLogoId) : selectedLogoId;
+                        const isActive = logo.id === activeId;
+                        return (
+                          <div key={logo.id} className={`relative rounded-2xl border p-3 bg-zinc-950/40 transition ${isActive ? 'border-gold-500/60 ring-1 ring-gold-500/30' : 'border-zinc-800 hover:border-zinc-700'}`}>
+                            <div className="h-20 flex items-center justify-center mb-2 bg-zinc-950 rounded-xl overflow-hidden">
+                              <img src={`${logo.url}${logo.url.includes('?') ? '&' : '?'}t=${logoTimestamp}`} alt={logo.name} className="max-h-16 max-w-full object-contain" />
+                            </div>
+                            <p className="text-[10px] text-white font-semibold truncate mb-2" title={logo.name}>{logo.name}</p>
+                            <div className="flex gap-1.5">
+                              <button type="button" onClick={() => handleSelectBrandLogo(logo.id)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition ${isActive ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-gold-500/30 hover:text-gold-400'}`}>
+                                {isActive ? <span className="flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Ativo</span> : 'Usar'}
+                              </button>
+                              <button type="button" onClick={() => handleDeleteBrandLogo(logo.id)} className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-500/30 transition" title="Remover">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 border-t border-zinc-900 pt-5">
+                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Adicionar Logo ao Catálogo</span>
+                  <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} placeholder="Nome do logo" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                  <label className="border-2 border-dashed border-zinc-800 hover:border-gold-500/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[96px] bg-zinc-950/20 hover:bg-zinc-950/40">
+                    <Upload className="w-6 h-6 text-zinc-500 mb-2" />
+                    <span className="text-xs text-gray-400 font-semibold">{uploadingLogo ? 'Enviando imagem...' : 'Escolher imagem PNG'}</span>
+                    <span className="text-[9px] text-zinc-500 mt-1">Recomendado: fundo transparente</span>
+                    <input type="file" accept="image/png" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                  </label>
+                </div>
+
+                <div className="border-t border-zinc-900 pt-5 space-y-4">
                   <div>
                     <h4 className="font-cinzel text-xs font-bold text-white tracking-wide flex items-center gap-2">
                       <Video className="w-4 h-4 text-red-500" /> CANAL DO YOUTUBE (BOTÃO INSCREVER-SE)
                     </h4>
                     <p className="text-xs text-gray-400 mt-1">
-                      Configure o canal exibido no encerramento com o botão Inscrever-se → Inscrito. Use escopo global ou por projeto.
+                      Cadastre vários canais e selecione qual usar no encerramento. Escopo global ou por projeto.
                     </p>
                   </div>
+
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setChannelConfigScope('global'); fetchGlobalRenderConfig(); }} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
                     <button type="button" onClick={() => setChannelConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
                   </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">URL do Canal</label>
-                      <input type="text" value={globalYoutubeChannelUrl} onChange={(e) => setGlobalYoutubeChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+
+                  <div className="space-y-3">
+                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Catálogo de Canais</span>
+                    {youtubeChannels.length === 0 ? (
+                      <p className="text-xs text-zinc-500">Nenhum canal cadastrado. Adicione o primeiro abaixo.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {youtubeChannels.map((channel) => {
+                          const activeId = channelConfigScope === 'project' ? (projectSelectedChannelId || selectedChannelId) : selectedChannelId;
+                          const isActive = channel.id === activeId;
+                          return (
+                            <div key={channel.id} className={`rounded-2xl border p-4 space-y-3 transition ${isActive ? 'border-red-500/40 bg-red-500/5' : 'border-zinc-800 bg-zinc-950/30'}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  <input type="text" value={channel.label} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'label', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Rótulo" />
+                                  <input type="text" value={channel.channelUrl} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelUrl', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="URL do canal" />
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <input type="text" value={channel.channelName || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelName', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Nome (opcional)" />
+                                    <input type="text" value={channel.subscriberCount || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'subscriberCount', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Inscritos (opcional)" />
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5 shrink-0">
+                                  <button type="button" onClick={() => handleSelectYoutubeChannel(channel.id)} className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition ${isActive ? 'bg-red-500/20 text-red-300 border border-red-500/40' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-red-500/30 hover:text-red-300'}`}>
+                                    {isActive ? 'Ativo' : 'Usar'}
+                                  </button>
+                                  <button type="button" onClick={() => handleDeleteYoutubeChannel(channel.id)} disabled={youtubeChannels.length <= 1} className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-500/30 transition disabled:opacity-30 disabled:cursor-not-allowed" title="Remover">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 border-t border-zinc-900 pt-4">
+                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Adicionar Canal ao Catálogo</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input type="text" value={newChannelLabel} onChange={(e) => setNewChannelLabel(e.target.value)} placeholder="Rótulo do canal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      <input type="text" value={newChannelUrl} onChange={(e) => setNewChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Nome do Canal (opcional)</label>
-                        <input type="text" value={globalYoutubeChannelName} onChange={(e) => setGlobalYoutubeChannelName(e.target.value)} placeholder="Busca automática se vazio" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Inscritos (opcional)</label>
-                        <input type="text" value={globalYoutubeSubscriberCount} onChange={(e) => setGlobalYoutubeSubscriberCount(e.target.value)} placeholder="Ex: 1,2 mil inscritos" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
-                      </div>
+                      <input type="text" value={globalYoutubeChannelName} onChange={(e) => setGlobalYoutubeChannelName(e.target.value)} placeholder="Nome do canal (opcional)" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      <input type="text" value={globalYoutubeSubscriberCount} onChange={(e) => setGlobalYoutubeSubscriberCount(e.target.value)} placeholder="Inscritos (opcional)" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
                     </div>
+                    <button type="button" onClick={handleAddYoutubeChannel} className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider transition">Adicionar Canal</button>
                   </div>
-                  <button type="button" onClick={handleSaveChannelConfig} disabled={savingChannelConfig} className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider transition disabled:opacity-50">{savingChannelConfig ? 'Salvando...' : `Salvar Canal (${channelConfigScope === 'global' ? 'Global' : 'Projeto'})`}</button>
                 </div>
-
-
-
-
-
-
-
               </div>
-
-
-
-
-
-
 
             </div>
 
-
-
-
-
-
-
           )}
 
-
-
-
-
-
-
-          {/* TAB 6: AI VIDEO CREATOR */}
+                    {/* TAB 6: AI VIDEO CREATOR */}
 
 
 
