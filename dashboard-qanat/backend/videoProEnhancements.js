@@ -106,8 +106,14 @@ const GEO_NICHE_RE = /geograf|deserto|amazon|terra|mapa|continente|oceano|viagem
 const DATA_NICHE_RE = /dados|número|numero|estatíst|estatist|fato|ciência|ciencia|compar|ranking/i;
 
 export function isListicleProject(config = {}, storyboard = {}) {
-  return config.content_mode === "LISTICLE"
-    || storyboard?.listicle?.content_mode === "LISTICLE";
+  if (config.content_mode === "LISTICLE") return true;
+  if (storyboard?.listicle?.content_mode === "LISTICLE") return true;
+  const rankFromConfig = Number(config.rank_count);
+  const rankFromStoryboard = Number(storyboard?.listicle?.rank_count);
+  if (Number.isFinite(rankFromConfig) && rankFromConfig >= 3) return true;
+  if (Number.isFinite(rankFromStoryboard) && rankFromStoryboard >= 3) return true;
+  if (Array.isArray(storyboard?.list_items) && storyboard.list_items.length >= 3) return true;
+  return false;
 }
 
 export function isDocumentaryHistoryNiche(niche = "", config = {}, storyboard = {}) {
