@@ -126,7 +126,8 @@ export function buildOverlayOrchestrationPlan({
   blockCount = 0,
 } = {}) {
   const format = detectVideoFormat(config, totalDuration);
-  const isListicle = config?.content_mode === "LISTICLE";
+  const isListicle = config?.content_mode === "LISTICLE"
+    || (Number(config?.rank_count) >= 3 && Number(config?.rank_count) <= 30);
   const { profile, seed, category } = selectVarietyProfile(projectName, niche, { isListicle });
   const rpmHint = NICHE_RPM_HINTS[category] || NICHE_RPM_HINTS.default;
   const isShort = format === "SHORT";
