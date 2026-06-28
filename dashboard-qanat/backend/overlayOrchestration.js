@@ -137,6 +137,7 @@ export function buildOverlayOrchestrationPlan({
     format,
     niche,
     category,
+    isListicle,
     totalDuration: duration,
     varietyProfile: profile.id,
     varietyLabel: profile.label,
@@ -281,7 +282,12 @@ ${plan.hyperframesRefs.map((r) => `- \`${r}\``).join("\n")}
 ### Metas de retenção SEO YouTube
 ${plan.retentionGoals.map((g) => `- ${g}`).join("\n")}
 
-### Regras de ouro do criador profissional
+${plan.isListicle ? `### LISTICLE / TOP N (prioridade de layout)
+- O topo central da tela é RESERVADO para o contador de ranking (#20 → #1). NUNCA coloque counter, timeline, info-card ou kinetic-text no topo ou centro.
+- Datas, anos (ex: "2000 anos", "150 a.C.") e números informativos → counter ou timeline em **bottom-right** ou **bottom-left** apenas.
+- O contador do ranking sempre vai do MAIOR para o MENOR (ex: Top 20 começa em #20 e termina em #1).
+
+` : ""}### Regras de ouro do criador profissional
 1. **Complementar, nunca repetir:** overlays trazem dados NOVOS que a legenda não diz.
 2. **Um overlay = um insight:** 5-12 palavras. Leitura em menos de 1.5 segundo.
 3. **Rotação de tipos:** se o overlay anterior foi lower-third, o próximo DEVE ser counter, bar-chart, timeline ou kinetic-text.
@@ -371,7 +377,12 @@ export function enforceOverlayOrchestration(overlays, plan) {
       variantIdx++;
     }
 
-    overlay.props.position = profile.positions[posIdx % profile.positions.length];
+    const positionPool = plan.isListicle
+      && ["counter", "timeline", "bar-chart", "info-card"].includes(overlay.type)
+      ? profile.positions.filter((p) => !String(p).includes("top") && p !== "center")
+      : profile.positions;
+    const safePool = positionPool.length ? positionPool : ["bottom-right", "bottom-left"];
+    overlay.props.position = safePool[posIdx % safePool.length];
     posIdx++;
 
     if (["lower-third", "counter", "bar-chart", "info-card"].includes(overlay.type)) {
