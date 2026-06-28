@@ -7,6 +7,8 @@ import { InfoBar, InfoBarProps } from "./InfoBar";
 import { InfoTimeline, InfoTimelineProps } from "./InfoTimeline";
 import { KineticText, KineticTextProps } from "./KineticText";
 import { InfoCard, InfoCardProps } from "./InfoCard";
+import { ListicleStinger, ListicleStingerProps } from "./ListicleStinger";
+import { RankProgress, RankProgressProps } from "./RankProgress";
 
 // ─────────────────────────────────────────────────────────────────────
 // OverlayLayer — Manages rendering of all overlay elements
@@ -20,7 +22,9 @@ export type OverlayType =
   | "bar-chart"
   | "timeline"
   | "kinetic-text"
-  | "info-card";
+  | "info-card"
+  | "listicle-stinger"
+  | "rank-progress";
 
 export interface OverlayBase {
   /** Unique identifier */
@@ -63,13 +67,25 @@ export interface InfoCardOverlay extends OverlayBase {
   props: InfoCardProps;
 }
 
+export interface ListicleStingerOverlay extends OverlayBase {
+  type: "listicle-stinger";
+  props: ListicleStingerProps;
+}
+
+export interface RankProgressOverlay extends OverlayBase {
+  type: "rank-progress";
+  props: RankProgressProps;
+}
+
 export type Overlay =
   | LowerThirdOverlay
   | CounterOverlay
   | BarChartOverlay
   | TimelineOverlay
   | KineticTextOverlay
-  | InfoCardOverlay;
+  | InfoCardOverlay
+  | ListicleStingerOverlay
+  | RankProgressOverlay;
 
 interface OverlayLayerProps {
   overlays: Overlay[];
@@ -89,6 +105,10 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
       return <KineticText {...overlay.props} />;
     case "info-card":
       return <InfoCard {...overlay.props} />;
+    case "listicle-stinger":
+      return <ListicleStinger {...overlay.props} />;
+    case "rank-progress":
+      return <RankProgress {...overlay.props} />;
     default:
       return null;
   }

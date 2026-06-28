@@ -686,6 +686,7 @@ interface VideoQualityReport {
   issues: VideoQualityIssue[];
   plan?: { format: string; maxOverlays: number; profile: string };
   preset?: string | null;
+  epidemicMood?: string | null;
 }
 
 const parseDurationSeconds = (duration: unknown) => {
@@ -17223,7 +17224,8 @@ export default function App() {
     fromWizard = false,
     withoutImpactTitles = false,
     useHyperframes = false,
-    isProres = false
+    isProres = false,
+    previewSeconds = 0
   ) => {
     if (rendering) return;
 
@@ -17288,6 +17290,7 @@ export default function App() {
     if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
     if (useHyperframes) queryParams.push("hyperframes=1");
     if (isProres) queryParams.push("prores=1");
+    if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
     const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
 
     const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${queryString}`));
@@ -22024,6 +22027,9 @@ export default function App() {
                       {videoQuality.preset && (
                         <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Preset: {videoQuality.preset}</span>
                       )}
+                      {videoQuality.epidemicMood && (
+                        <span className="text-[10px] text-zinc-500">BGM: {videoQuality.epidemicMood}</span>
+                      )}
                       <span className={`text-lg font-bold tabular-nums ${videoQuality.score >= 80 ? 'text-emerald-400' : videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
                         {videoQuality.score}/100
                       </span>
@@ -22135,6 +22141,15 @@ export default function App() {
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>Renderizar via Remotion PRO</span>
+                    </button>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('remotion-pro', false, false, false, false, 30)}
+                      className="bg-zinc-900 border border-amber-500/30 hover:border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed text-amber-300 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
+                      title="Renderiza só os primeiros 30 segundos para validar gancho e ritmo"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>Preview 30s (PRO)</span>
                     </button>
                   </div>
                 </div>

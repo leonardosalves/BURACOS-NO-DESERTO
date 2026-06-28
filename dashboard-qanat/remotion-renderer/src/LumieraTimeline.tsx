@@ -223,6 +223,8 @@ export type LumieraTimelineProps = {
   designPreset?: string | null;
   grainOverlay?: boolean;
   vignette?: boolean;
+  bgmDuckPoints?: number[];
+  previewMode?: boolean;
 };
 
 
@@ -1343,7 +1345,8 @@ const BgmAudio: React.FC<{
   captions: Caption[];
   narrationDuration?: number;
   musicVolume?: number;
-}> = ({ track, captions, narrationDuration = 0, musicVolume = 0.15 }) => {
+  bgmDuckPoints?: number[];
+}> = ({ track, captions, narrationDuration = 0, musicVolume = 0.15, bgmDuckPoints = [] }) => {
   const { fps, durationInFrames } = useVideoConfig();
   const totalDurationMs = (durationInFrames / fps) * 1000;
   const startFrame = Math.round(track.start * fps);
@@ -1404,17 +1407,29 @@ const BgmAudio: React.FC<{
             isSpeaking = narrationDurationMs > 0 && currentMs <= narrationDurationMs;
           }
 
+          let duckBoost = 0;
+          for (const point of bgmDuckPoints) {
+            const duckMs = point * 1000;
+            const dist = Math.abs(currentMs - duckMs);
+            if (dist < 700) {
+              duckBoost = Math.max(duckBoost, interpolate(dist, [0, 700], [0.018, 0], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              }));
+            }
+          }
+
           if (isSpeaking) {
             const breath = (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
-            return interpolate(breath, [0, 1], [0.024, 0.045]) * envelope;
+            return Math.max(0.012, interpolate(breath, [0, 1], [0.024, 0.045]) * envelope - duckBoost);
           }
 
           // Smooth transition over 600ms before/after narration starts/stops
           if (minDistance < 900) {
-            return interpolate(minDistance, [0, 900], [0.035, 0.08]) * envelope;
+            return Math.max(0.015, interpolate(minDistance, [0, 900], [0.035, 0.08]) * envelope - duckBoost);
           }
 
-          return 0.09 * envelope;
+          return Math.max(0.02, 0.09 * envelope - duckBoost);
         };
 
         return getBaseVolume() * volScale;
@@ -1554,6 +1569,8 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   captionStyle = "shorts-viral",
   grainOverlay = false,
   vignette = false,
+  bgmDuckPoints = [],
+  previewMode = false,
 }) => {
   const isShort = format === "9:16";
   const showVignette = isShort || vignette;
@@ -1690,7 +1707,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-          <BgmAudio track={track} captions={captions} narrationDuration={narrationDuration} musicVolume={musicVolume} />
+          <BgmAudio track={track} captions={captions} narrationDuration={narrationDuration} musicVolume={musicVolume} bgmDuckPoints={bgmDuckPoints} />
 
 
 
@@ -1789,6 +1806,33 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
             backgroundSize: "180px 180px",
           }}
         />
+      )}
+
+      {previewMode && (
+        <AbsoluteFill
+          style={{
+            pointerEvents: "none",
+            zIndex: 50,
+            justifyContent: "flex-end",
+            alignItems: "flex-end",
+            padding: 16,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#F59E0B",
+              background: "rgba(0,0,0,0.7)",
+              padding: "6px 10px",
+              borderRadius: 8,
+              letterSpacing: "0.06em",
+            }}
+          >
+            PREVIEW 30s
+          </span>
+        </AbsoluteFill>
       )}
 
       <CaptionLayer captions={captions} captionStyle={captionStyle} />
