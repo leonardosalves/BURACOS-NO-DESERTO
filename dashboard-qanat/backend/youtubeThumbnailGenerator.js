@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 import sharp from "sharp";
+import { isListicleProject } from "./videoProEnhancements.js";
 
 const THUMB_DIMS = {
   LONG: { width: 1280, height: 720 },
@@ -214,19 +215,48 @@ function buildTextLinesSvg(lines, { x, startY, fontSize, fill, stroke = "rgba(0,
   }).join("");
 }
 
-function buildOverlaySvg({ width, height, overlayText, colors = [], variantId = "A", format = "LONG" }) {
+function buildListicleHudBadgeSvg({ width, rankCount = 3, accent = "#D4AF37", format = "LONG" }) {
+  if (format !== "SHORT" || !rankCount) return "";
+  const badgeW = Math.round(Math.min(width * 0.52, 320));
+  const badgeH = 74;
+  const x = Math.round((width - badgeW) / 2);
+  const y = 108;
+  const rankLabel = Math.max(1, Number(rankCount) || 3);
+  return `
+    <rect x="${x}" y="${y}" width="${badgeW}" height="${badgeH}" rx="37" fill="rgba(0,0,0,0.88)" stroke="${accent}" stroke-width="3"/>
+    <text x="${x + 42}" y="${y + 48}" font-family="Georgia, 'Times New Roman', serif" font-size="36" font-weight="800" fill="#FFFFFF" stroke="#000000" stroke-width="2.5" paint-order="stroke">#${rankLabel}</text>
+    <text x="${x + 128}" y="${y + 48}" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="800" fill="${accent}" stroke="#000000" stroke-width="1.5" paint-order="stroke">TOP ${rankLabel}</text>
+  `;
+}
+
+function buildOverlaySvg({
+  width,
+  height,
+  overlayText,
+  colors = [],
+  variantId = "A",
+  format = "LONG",
+  listicleRank = 0,
+}) {
   const primary = normalizeHex(colors[0] || "#D4AF37");
   const accent = normalizeHex(colors[1] || "#00E5FF");
   const dark = normalizeHex(colors[2] || "#121214");
   const maxChars = format === "SHORT" ? 12 : 16;
   const fontSize = format === "SHORT" ? 78 : 68;
   const lines = wrapOverlayText(overlayText || "ASSISTA AGORA", maxChars);
+  const hudBadge = buildListicleHudBadgeSvg({
+    width,
+    rankCount: listicleRank,
+    accent: primary,
+    format,
+  });
 
   if (variantId === "B") {
     const panelWidth = Math.round(width * 0.46);
     const textX = Math.round(panelWidth * 0.1);
     const textY = format === "SHORT" ? 220 : 150;
     return Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      ${hudBadge}
       <rect x="0" y="0" width="${panelWidth}" height="${height}" fill="${dark}" fill-opacity="0.88"/>
       <rect x="${panelWidth}" y="0" width="${width - panelWidth}" height="${height}" fill="url(#fade)"/>
       <defs>
@@ -245,6 +275,7 @@ function buildOverlaySvg({ width, height, overlayText, colors = [], variantId = 
     const textY = format === "SHORT" ? height * 0.42 : height * 0.52;
     const bigFont = format === "SHORT" ? 96 : 84;
     return Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      ${hudBadge}
       <rect x="0" y="0" width="${width}" height="${height}" fill="#000000" fill-opacity="0.42"/>
       <circle cx="${width * 0.78}" cy="${height * 0.22}" r="${Math.round(width * 0.18)}" fill="${accent}" fill-opacity="0.18"/>
       ${buildTextLinesSvg(lines, { x: textX, startY: textY, fontSize: bigFont, fill: primary, anchor: "middle", strokeWidth: 6 })}
@@ -260,7 +291,14 @@ function buildOverlaySvg({ width, height, overlayText, colors = [], variantId = 
         <stop offset="55%" stop-color="#000000" stop-opacity="0.15"/>
         <stop offset="100%" stop-color="#000000" stop-opacity="0.82"/>
       </linearGradient>
+      <linearGradient id="topFade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#000000" stop-opacity="0.72"/>
+        <stop offset="45%" stop-color="#000000" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </linearGradient>
     </defs>
+    <rect x="0" y="0" width="${width}" height="${height}" fill="url(#topFade)"/>
+    ${hudBadge}
     <rect x="0" y="0" width="${width}" height="${height}" fill="url(#bottomFade)"/>
     ${buildTextLinesSvg(lines, { x: textX, startY: textY, fontSize, fill: primary })}
     <rect x="${textX}" y="${textY + lines.length * fontSize * 1.08 + 18}" width="${Math.min(width * 0.35, 280)}" height="6" fill="${accent}"/>
@@ -273,6 +311,7 @@ async function renderThumbnailVariant({
   variant,
   format = "LONG",
   palette = [],
+  listicleRank = 0,
 }) {
   const dims = THUMB_DIMS[format] || THUMB_DIMS.LONG;
   const variantId = variant?.id || "A";
@@ -298,6 +337,7 @@ async function renderThumbnailVariant({
     colors: palette.length ? palette : variant?.colors || [],
     variantId,
     format,
+    listicleRank,
   });
 
   await sharp(baseBuffer)
@@ -321,6 +361,10 @@ export async function generateYoutubeThumbnailImages({
     palette.length ? palette : thumbnails[0]?.colors || [],
   );
 
+  const listicleRank = isListicleProject(config, storyboard)
+    ? Number(config.rank_count || storyboard?.listicle?.rank_count || 0)
+    : 0;
+
   const outDir = path.join(projectDir, "ASSETS", "youtube_thumbnails");
   fs.mkdirSync(outDir, { recursive: true });
 
@@ -338,6 +382,7 @@ export async function generateYoutubeThumbnailImages({
       variant: { ...variant, id: safeId },
       format,
       palette: palette.length ? palette : variant.colors || [],
+      listicleRank,
     });
 
     generated.push({

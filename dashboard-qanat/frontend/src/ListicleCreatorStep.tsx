@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { RefreshCw, Sparkles, Lightbulb } from 'lucide-react';
 import { ListicleRankingIdeas, type ListicleIdeasResponse, type ListicleRankingIdea } from './ListicleRankingIdeas';
+import { ListicleHudPreview } from './ListicleHudPreview';
 
 export const LONGO_RANK_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 export const SHORTS_RANK_OPTIONS = [3, 5] as const;
@@ -68,6 +69,8 @@ type Props = {
   hasApiKey: boolean;
   listicleIdeasData: ListicleIdeasResponse | null;
   selectedListicleIdeaIndex: number;
+  listicleHudStyle: 'full' | 'compact' | 'auto';
+  setListicleHudStyle: (v: 'full' | 'compact' | 'auto') => void;
   onSuggestRankings: () => void;
   onSelectRankingIdea: (index: number, idea: ListicleRankingIdea) => void;
   onGenerateScript: () => void;
@@ -103,18 +106,33 @@ export function ListicleCreatorStep({
   hasApiKey,
   listicleIdeasData,
   selectedListicleIdeaIndex,
+  listicleHudStyle,
+  setListicleHudStyle,
   onSuggestRankings,
   onSelectRankingIdea,
   onGenerateScript,
 }: Props) {
   const rankOptions = formatSelector === 'SHORTS' ? SHORTS_RANK_OPTIONS : LONGO_RANK_OPTIONS;
+  const selectedRanking = listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex];
+
+  const previewItems = useMemo(() => {
+    const samples = selectedRanking?.sample_items || [];
+    if (!samples.length) return [];
+    const order = rankOrder === 'desc'
+      ? Array.from({ length: Math.min(samples.length, rankCount) }, (_, i) => rankCount - i)
+      : Array.from({ length: Math.min(samples.length, rankCount) }, (_, i) => i + 1);
+    return order.map((rank, index) => ({
+      rank,
+      title: String(samples[index] || `Item #${rank}`),
+    }));
+  }, [selectedRanking?.sample_items, rankCount, rankOrder]);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto font-sans">
       <div>
         <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Top N — Rankings por Nicho</h4>
         <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-          Escolha um nicho e a IA sugere rankings interessantes (subestimados, controversos, impacto diário…). Selecione um e gere o roteiro completo.
+          Escolha um nicho e a IA sugere rankings interessantes (subestimados, controversos, impacto diário…). Selecione um, gere a narração, revise e só então monte o roteiro completo.
         </p>
       </div>
 
@@ -232,6 +250,20 @@ export function ListicleCreatorStep({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-2 sm:col-span-2">
+            <label className="text-[10px] text-zinc-600 uppercase tracking-wider">Estilo do HUD no vídeo</label>
+            <select
+              value={listicleHudStyle}
+              onChange={(e) => setListicleHudStyle(e.target.value as 'full' | 'compact' | 'auto')}
+              disabled={creatorLoading}
+              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-xs text-white cursor-pointer"
+            >
+              <option value="auto">Automático (compacto em Top 9+)</option>
+              <option value="full">Completo (badge + título + ícone)</option>
+              <option value="compact">Compacto (só #N + TOP N)</option>
+            </select>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[10px] text-zinc-600 uppercase tracking-wider">
               Quantidade {formatSelector === 'SHORTS' ? '(Shorts)' : ''}
@@ -261,6 +293,13 @@ export function ListicleCreatorStep({
           </div>
         </div>
 
+        <ListicleHudPreview
+          rankCount={rankCount}
+          rankOrder={rankOrder}
+          hudStyle={listicleHudStyle}
+          items={previewItems}
+        />
+
         <div className="space-y-2">
           <label className="text-[10px] text-zinc-600 uppercase tracking-wider">Nome do Projeto (pasta)</label>
           <input
@@ -281,7 +320,7 @@ export function ListicleCreatorStep({
             className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10"
           >
             {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            <span>Gerar Roteiro Top {rankCount}</span>
+            <span>Gerar Narração Top {rankCount}</span>
           </button>
         </div>
       </div>

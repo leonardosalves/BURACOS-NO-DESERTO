@@ -5,6 +5,10 @@ import {
   NICHE_RPM_HINTS,
 } from "./overlayOrchestration.js";
 import {
+  buildListicleYoutubeChapters,
+  isListicleProject,
+} from "./videoProEnhancements.js";
+import {
   buildTitleCraftRules,
   buildTitleFactsBlock,
   extractTitleFacts,
@@ -711,7 +715,9 @@ export function resolveYoutubeMetadataContext({
   const totalDuration = estimateTotalDuration(timings);
   const format = detectVideoFormat(config, totalDuration);
   const niche = config.niche || storyboard?.strategy?.niche || storyboard?.niche || "Geral";
-  const chaptersText = format === "LONG" ? buildChaptersText(timings, format) : "";
+  const chaptersText = isListicleProject(config, storyboard)
+    ? buildListicleYoutubeChapters(storyboard, config, timings)
+    : (format === "LONG" ? buildChaptersText(timings, format) : "");
   const { profile, category } = selectVarietyProfile(projectName, niche);
   const rpmHint = NICHE_RPM_HINTS[category] || NICHE_RPM_HINTS.default;
 

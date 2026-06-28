@@ -178,7 +178,7 @@ export function buildOverlayOrchestrationPlan({
     };
     plan.acts = isListicle
       ? [
-        { act: 1, label: "Gancho + Ranking", percent: "0-20%", overlays: 0, goal: "HUD de ranking (#N, TOP N) já injetado — tela limpa, só legenda." },
+        { act: 1, label: "Gancho + Ranking", percent: "0-20%", overlays: 0, goal: "Badge #N no topo já injetado — sem texto central TOP N; tela limpa." },
         { act: 2, label: "Itens #3 e #2", percent: "20-65%", overlays: 1, goal: "Máx. 1 counter com dado novo (não repetir narração)." },
         { act: 3, label: "Item #1 + Fechamento", percent: "65-100%", overlays: 1, goal: "Máx. 1 counter opcional. Recap automático no final." },
       ]
@@ -203,7 +203,7 @@ export function buildOverlayOrchestrationPlan({
     ];
     plan.retentionGoals = isListicle
       ? [
-        `Orçamento TOTAL final (HUD + IA): ${shortMax} overlays — o sistema já injeta badge #N, TOP N e recap`,
+        `Orçamento TOTAL final (HUD + IA): ${shortMax} overlays — o sistema já injeta badge #N no topo (sem TOP N central) e recap`,
         "IA: gere NO MÁXIMO 2 counters com 1 número impactante cada (dado NOVO, não na narração)",
         "PROIBIDO em listicle Shorts: lower-third, kinetic-text, bar-chart, timeline, info-card por item",
         "PROIBIDO overlay por bloco/item — máximo 1 counter a cada 20s de vídeo",

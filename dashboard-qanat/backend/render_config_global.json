@@ -1,12 +1,57 @@
 {
   "fps": 60,
-  "blockGapSeconds": 0.5,
-  "musicVolume": 0.08,
+  "blockGapSeconds": 0,
+  "musicVolume": 0.1,
   "useRemotionByDefault": true,
   "debugOverlay": false,
+  "renderResolution": "2k",
   "youtubeChannel": {
     "channelUrl": "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA",
     "channelName": "",
     "subscriberCount": ""
-  }
+  },
+  "brandLogos": [
+    {
+      "id": "legacy-default",
+      "name": "Ai Construction Stories",
+      "file": "legacy-default.png",
+      "createdAt": "2026-06-28T00:32:45.389Z"
+    },
+    {
+      "id": "logo-mqx22lnm-4a9baa",
+      "name": "Gringo Brasil",
+      "file": "logo-mqx22lnm-4a9baa.png",
+      "createdAt": "2026-06-28T00:33:35.266Z"
+    },
+    {
+      "id": "logo-mqx22veo-1a9f34",
+      "name": "Dicas de Criação",
+      "file": "logo-mqx22veo-1a9f34.png",
+      "createdAt": "2026-06-28T00:33:47.905Z"
+    },
+    {
+      "id": "logo-mqx238vq-44ac7e",
+      "name": "Dicas Financeiras",
+      "file": "logo-mqx238vq-44ac7e.png",
+      "createdAt": "2026-06-28T00:34:05.368Z"
+    },
+    {
+      "id": "logo-mqx23hhy-258371",
+      "name": "Football PLUS",
+      "file": "logo-mqx23hhy-258371.png",
+      "createdAt": "2026-06-28T00:34:16.536Z"
+    }
+  ],
+  "selectedLogoId": "legacy-default",
+  "youtubeChannels": [
+    {
+      "id": "legacy-default",
+      "label": "Canal Padrão",
+      "channelUrl": "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA",
+      "channelName": "",
+      "subscriberCount": "",
+      "createdAt": "2026-06-28T00:32:45.390Z"
+    }
+  ],
+  "selectedYoutubeChannelId": "legacy-default"
 }
