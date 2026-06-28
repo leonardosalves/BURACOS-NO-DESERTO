@@ -4107,12 +4107,22 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     const prompts = promptByBlock.get(block) || [];
 
+    let nextBlockStartForSync = null;
+    const currentBlockIdxInList = blockNumbers.indexOf(block);
+    if (currentBlockIdxInList !== -1 && currentBlockIdxInList < blockNumbers.length - 1) {
+      const nextBlock = blockNumbers[currentBlockIdxInList + 1];
+      const nextBlockIndex = Math.max(0, nextBlock - 1);
+      const nextBlockStartVal = Number(timings.starts?.[nextBlockIndex]);
+      if (Number.isFinite(nextBlockStartVal)) nextBlockStartForSync = nextBlockStartVal;
+    }
+    const blockEndForSync = nextBlockStartForSync ?? (start + duration);
+
     const blockSceneTimings = buildBlockSceneTimings(
       block,
       mappedAssets,
       duration,
       flatTranscriptWords,
-      { ...syncContext, blockStart: start },
+      { ...syncContext, blockStart: start, blockEnd: blockEndForSync },
     );
 
     const hasExplicitSync = blockHasExplicitSync(mappedAssets);
@@ -9201,7 +9211,23 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
 
     }
 
-    autoConfig.timeline_assets = mapped.timelineAssets;
+    const existingTimeline = autoConfig.timeline_assets || {};
+    const mergedTimeline = { ...mapped.timelineAssets };
+    for (const blockKey of Object.keys(mergedTimeline)) {
+      const prevAssets = existingTimeline[blockKey] || [];
+      mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset, idx) => {
+        const prev = prevAssets[idx];
+        if (!prev?.asset || prev.asset !== asset.asset) return asset;
+        return {
+          ...asset,
+          ...(prev.audio_start !== undefined && prev.audio_start !== null
+            ? { audio_start: prev.audio_start }
+            : {}),
+          ...(prev.fixed !== undefined && prev.fixed !== null ? { fixed: prev.fixed } : {}),
+        };
+      });
+    }
+    autoConfig.timeline_assets = mergedTimeline;
 
     fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
 

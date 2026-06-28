@@ -309,6 +309,15 @@ import {
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { warnLongListicleTitles } from './ListicleHudPreview';
+import {
+  findBoundedNarrationMatch,
+  getAssetNarrationText as resolveAssetNarrationText,
+  getBlockNarrationText as resolveBlockNarrationText,
+  getBlockTimeBounds as resolveBlockTimeBounds,
+  narrationCacheKey,
+  swapBlockVisualPromptsInStoryboard,
+  type NarrationSyncContext,
+} from './timelineNarrationSync';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
@@ -8389,149 +8398,16 @@ export default function App() {
 
 
 
+  const buildNarrationSyncContext = (): NarrationSyncContext => ({
+    config,
+    storyboard: storyboardData || undefined,
+    status,
+    getAssetDuration,
+  });
+
   const getAssetNarration = (blockKey: string, assetIdx: number) => {
-
-
-
-
-
-
-
-    const blockNum = parseInt(blockKey, 10);
-
-
-
-
-
-
-
-    if (storyboardData && storyboardData.visual_prompts) {
-
-
-
-
-
-
-
-      const blockScenes = storyboardData.visual_prompts.filter((vp: any) => vp.block === blockNum);
-
-
-
-
-
-
-
-      if (blockScenes.length > 0) {
-
-
-
-
-
-
-
-        const correspondingScene = blockScenes[assetIdx];
-
-
-
-
-
-
-
-        if (correspondingScene && correspondingScene.narration_text) {
-
-
-
-
-
-
-
-          return correspondingScene.narration_text;
-
-
-
-
-
-
-
-        }
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-    }
-
-
-
-
-
-
-
-    // Fallback to config block phrase if available
-
-
-
-
-
-
-
-    if (config && config.block_phrases) {
-
-
-
-
-
-
-
-      const bp = config.block_phrases.find((x: any) => x.block === blockNum);
-
-
-
-
-
-
-
-      if (bp) return bp.phrase;
-
-
-
-
-
-
-
-    }
-
-
-
-
-
-
-
-    return '';
-
-
-
-
-
-
-
+    return resolveAssetNarrationText(buildNarrationSyncContext(), blockKey, assetIdx);
   };
-
-
-
-
-
-
 
   const formatTime = (sec: number): string => {
 
@@ -9893,30 +9769,16 @@ export default function App() {
 
 
 
-  const findNarrationTimestamps = (narrationText: string) => {
-
-
-
-
-
-
-
+  const findNarrationTimestamps = (narrationText: string, blockNum?: number) => {
     if (!narrationText) return null;
-
-
-
-
-
-
-
+    if (blockNum !== undefined) {
+      const cacheKey = narrationCacheKey(blockNum, narrationText);
+      if (narrationMatchesCache[cacheKey]) return narrationMatchesCache[cacheKey];
+      const bounds = resolveBlockTimeBounds(status, blockNum);
+      const hit = findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
+      if (hit) return hit;
+    }
     return narrationMatchesCache[narrationText] || null;
-
-
-
-
-
-
-
   };
 
 
@@ -10389,117 +10251,23 @@ export default function App() {
 
 
 
-      assets.forEach((_, idx) => {
-
-
-
-
-
-
-
-        const narrationText = getAssetNarration(blockKey, idx);
-
-
-
-
-
-
-
-        if (!narrationText) return;
-
-
-
-
-
-
-
-        const matched = narrationMatchesCache[narrationText];
-
-
-
-
-
-
-
-        if (!matched) return;
-
-
-
-
-
-
-
-        const words = getStoryboardWordsWithTiming(narrationText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
-
-
-
-
-
-
-
-        words.forEach(w => {
-
-
-
-
-
-
-
-          const key = `${w.start.toFixed(3)}-${w.word}`;
-
-
-
-
-
-
-
-          if (!seenPositions.has(key)) {
-
-
-
-
-
-
-
-            allWords.push(w);
-
-
-
-
-
-
-
-            seenPositions.add(key);
-
-
-
-
-
-
-
-          }
-
-
-
-
-
-
-
-        });
-
-
-
-
-
-
-
-      });
-
-
-
-
-
-
+      const blockNum = parseInt(blockKey, 10);
+      const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
+      if (blockText) {
+        const bounds = resolveBlockTimeBounds(status, blockNum);
+        const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+        if (matched) {
+          const words = getStoryboardWordsWithTiming(blockText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
+          words.forEach((w) => {
+            if (w.start < bounds.searchAfter - 0.2 || w.start > bounds.searchBefore + 0.15) return;
+            const key = `${w.start.toFixed(3)}-${w.word}`;
+            if (!seenPositions.has(key)) {
+              allWords.push(w);
+              seenPositions.add(key);
+            }
+          });
+        }
+      }
 
       allWords.sort((a, b) => a.start - b.start);
 
@@ -11122,7 +10890,7 @@ export default function App() {
 
 
 
-        const match = findNarrationTimestamps(text);
+        const match = findNarrationTimestamps(text, blockNum);
 
 
 
@@ -11186,7 +10954,7 @@ export default function App() {
 
 
 
-      const matched = findNarrationTimestamps(narrationText);
+      const matched = findNarrationTimestamps(narrationText, blockNum);
 
 
 
@@ -11596,7 +11364,7 @@ export default function App() {
 
 
 
-          const match = findNarrationTimestamps(text);
+          const match = findNarrationTimestamps(text, blockNum);
 
 
 
@@ -11652,7 +11420,7 @@ export default function App() {
 
 
 
-        const matched = findNarrationTimestamps(narrationText);
+        const matched = findNarrationTimestamps(narrationText, blockNum);
 
 
 
@@ -11965,7 +11733,7 @@ export default function App() {
 
     audio.pause();
     const narrationText = getAssetNarration(blockKey, sceneIdx);
-    const matched = findNarrationTimestamps(narrationText);
+    const matched = findNarrationTimestamps(narrationText, blockNum);
     const duration = getAssetDuration(blockKey, sceneIdx);
 
     let startTimeRelative = 0;
