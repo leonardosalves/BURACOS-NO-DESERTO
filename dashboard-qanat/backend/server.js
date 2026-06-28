@@ -8033,7 +8033,7 @@ ${exclusionInstruction}
   try {
     const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.9 });
     const raw = await parseAiJsonResponse(responseText, apiKey, "Ranking ideas");
-    const parsed = normalizeListicleIdeasResponse(raw);
+    const parsed = normalizeListicleIdeasResponse(raw, { format });
 
     if (!parsed.ranking_ideas?.length) {
       console.warn("[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:", Object.keys(raw || {}));
@@ -8442,7 +8442,7 @@ Regras do Roteiro:
 6. Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
 
    ${isListicle
-    ? `- LISTICLE: ${listicleBlockCount} blocos obrigatórios. Tempo estimado: ${format === "SHORTS" ? "40-55 segundos" : `${Math.round(listicleRank * 0.75)}-${Math.round(listicleRank * 1.2)} minutos`}. Um item por bloco, ordem ${rankOrder === "asc" ? "crescente" : "decrescente"}.`
+    ? `- LISTICLE: ${listicleBlockCount} blocos obrigatórios. Tempo estimado: ${format === "SHORTS" ? (listicleRank >= 5 ? "45-60 segundos" : "35-50 segundos") : `${Math.round(listicleRank * 0.75)}-${Math.round(listicleRank * 1.2)} minutos`}. Um item por bloco, ordem ${rankOrder === "asc" ? "crescente" : "decrescente"}.`
     : `- SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA).
 
    - LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.`}

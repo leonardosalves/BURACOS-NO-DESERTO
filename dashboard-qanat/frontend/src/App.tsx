@@ -15202,12 +15202,19 @@ export default function App() {
         const pick = ideas[best];
         if (pick) {
           if (pick.list_topic) setListTopic(pick.list_topic);
-          if (pick.suggested_rank_count) setRankCount(pick.suggested_rank_count);
+          const resolvedFormat = (pick.best_format === 'SHORTS' || pick.best_format === 'LONGO')
+            ? pick.best_format
+            : formatSelector;
+          if (pick.best_format === 'SHORTS' || pick.best_format === 'LONGO') setFormatSelector(pick.best_format);
+          if (pick.suggested_rank_count) {
+            setRankCount(resolvedFormat === 'SHORTS'
+              ? (pick.suggested_rank_count === 5 ? 5 : 3)
+              : pick.suggested_rank_count);
+          }
           if (pick.title) {
             const shortName = pick.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter((w: string) => w.length > 1).slice(0, 4).join('_');
             setCreatorProjectName(shortName || creatorProjectName);
           }
-          if (pick.best_format === 'SHORTS' || pick.best_format === 'LONGO') setFormatSelector(pick.best_format);
         }
         toast.success(`${ideas.length} rankings sugeridos para "${listNiche.trim()}".`);
       } else {

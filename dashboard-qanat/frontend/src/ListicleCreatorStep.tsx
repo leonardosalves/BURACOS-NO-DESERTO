@@ -2,6 +2,9 @@ import React from 'react';
 import { RefreshCw, Sparkles, Lightbulb } from 'lucide-react';
 import { ListicleRankingIdeas, type ListicleIdeasResponse, type ListicleRankingIdea } from './ListicleRankingIdeas';
 
+export const LONGO_RANK_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+export const SHORTS_RANK_OPTIONS = [3, 5] as const;
+
 export const LISTICLE_PRESETS = [
   {
     label: 'Top 20 invenções chinesas',
@@ -25,6 +28,27 @@ export const LISTICLE_PRESETS = [
     project: 'Top20_Industrial_Revolutions',
   },
 ] as const;
+
+export const LISTICLE_SHORTS_PRESETS = [
+  {
+    label: 'Short Top 3 — choque rápido',
+    niche: 'curiosidades e fatos surpreendentes',
+    topic: 'fatos mais chocantes que poucos conhecem',
+    rankCount: 3,
+    project: 'Top3_Shock_Short',
+  },
+  {
+    label: 'Short Top 5 — ranking viral',
+    niche: 'história e tecnologia em formato curto',
+    topic: 'invenções ou eventos que mudaram tudo em segundos',
+    rankCount: 5,
+    project: 'Top5_Viral_Short',
+  },
+] as const;
+
+function clampShortsRankCount(count: number) {
+  return count === 5 ? 5 : 3;
+}
 
 type Props = {
   listNiche: string;
@@ -83,6 +107,8 @@ export function ListicleCreatorStep({
   onSelectRankingIdea,
   onGenerateScript,
 }: Props) {
+  const rankOptions = formatSelector === 'SHORTS' ? SHORTS_RANK_OPTIONS : LONGO_RANK_OPTIONS;
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto font-sans">
       <div>
@@ -104,9 +130,37 @@ export function ListicleCreatorStep({
         />
       </div>
 
+      <div className="space-y-2">
+        <label className="text-[10px] text-zinc-600 uppercase tracking-wider">Formato do vídeo</label>
+        <select
+          value={formatSelector}
+          onChange={(e) => {
+            const nextFormat = e.target.value as 'LONGO' | 'SHORTS';
+            setFormatSelector(nextFormat);
+            if (nextFormat === 'SHORTS' && !SHORTS_RANK_OPTIONS.includes(rankCount as 3 | 5)) {
+              setRankCount(3);
+            } else if (nextFormat === 'LONGO' && SHORTS_RANK_OPTIONS.includes(rankCount as 3 | 5)) {
+              setRankCount(10);
+            }
+          }}
+          disabled={creatorLoading}
+          className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-xs text-white cursor-pointer"
+        >
+          <option value="LONGO">Longo — rankings Top 5 a 30</option>
+          <option value="SHORTS">Shorts — rankings Top 3 ou Top 5 (exclusivo)</option>
+        </select>
+        {formatSelector === 'SHORTS' && (
+          <p className="text-[9px] text-fuchsia-400/80 leading-relaxed">
+            Em Shorts, a IA sugere apenas rankings Top 3 (choque rápido) e Top 5 (mais denso) adaptados ao nicho.
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-[9px] text-zinc-600 uppercase tracking-wider w-full sm:w-auto">Atalhos:</span>
-        {LISTICLE_PRESETS.map((preset) => (
+        <span className="text-[9px] text-zinc-600 uppercase tracking-wider w-full sm:w-auto">
+          {formatSelector === 'SHORTS' ? 'Atalhos Shorts:' : 'Atalhos Longo:'}
+        </span>
+        {(formatSelector === 'SHORTS' ? LISTICLE_SHORTS_PRESETS : LISTICLE_PRESETS).map((preset) => (
           <button
             key={preset.label}
             type="button"
@@ -116,10 +170,14 @@ export function ListicleCreatorStep({
               setRankCount(preset.rankCount);
               setNicheInput(preset.niche);
               setCreatorProjectName(preset.project);
-              setFormatSelector('LONGO');
+              setFormatSelector(formatSelector === 'SHORTS' ? 'SHORTS' : 'LONGO');
               setRankOrder('desc');
             }}
-            className="text-[10px] font-bold px-3 py-2 rounded-lg border border-gold-500/30 bg-gold-500/10 text-gold-300 hover:bg-gold-500/20 transition cursor-pointer"
+            className={`text-[10px] font-bold px-3 py-2 rounded-lg border transition cursor-pointer ${
+              formatSelector === 'SHORTS'
+                ? 'border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200 hover:bg-fuchsia-500/20'
+                : 'border-gold-500/30 bg-gold-500/10 text-gold-300 hover:bg-gold-500/20'
+            }`}
           >
             {preset.label}
           </button>
@@ -143,7 +201,12 @@ export function ListicleCreatorStep({
           onSelect={(index, idea) => {
             onSelectRankingIdea(index, idea);
             if (idea.list_topic) setListTopic(idea.list_topic);
-            if (idea.suggested_rank_count) setRankCount(idea.suggested_rank_count);
+            if (idea.suggested_rank_count) {
+              const nextRank = idea.best_format === 'SHORTS' || formatSelector === 'SHORTS'
+                ? clampShortsRankCount(idea.suggested_rank_count)
+                : idea.suggested_rank_count;
+              setRankCount(nextRank);
+            }
             if (idea.title) setCreatorProjectName(projectNameFromTitle(idea.title));
             if (idea.best_format === 'SHORTS' || idea.best_format === 'LONGO') {
               setFormatSelector(idea.best_format);
@@ -168,16 +231,18 @@ export function ListicleCreatorStep({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-[10px] text-zinc-600 uppercase tracking-wider">Quantidade</label>
+            <label className="text-[10px] text-zinc-600 uppercase tracking-wider">
+              Quantidade {formatSelector === 'SHORTS' ? '(Shorts)' : ''}
+            </label>
             <select
               value={rankCount}
               onChange={(e) => setRankCount(Number(e.target.value))}
               disabled={creatorLoading}
               className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-xs text-white cursor-pointer"
             >
-              {[5, 10, 15, 20, 25, 30].map((n) => (
+              {rankOptions.map((n) => (
                 <option key={n} value={n}>Top {n}</option>
               ))}
             </select>
@@ -192,18 +257,6 @@ export function ListicleCreatorStep({
             >
               <option value="desc">Countdown (N → 1)</option>
               <option value="asc">Build-up (1 → N)</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] text-zinc-600 uppercase tracking-wider">Formato</label>
-            <select
-              value={formatSelector}
-              onChange={(e) => setFormatSelector(e.target.value as 'LONGO' | 'SHORTS')}
-              disabled={creatorLoading}
-              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-4 py-3 text-xs text-white cursor-pointer"
-            >
-              <option value="LONGO">Longo (recomendado)</option>
-              <option value="SHORTS">Shorts (máx. 3 itens)</option>
             </select>
           </div>
         </div>
