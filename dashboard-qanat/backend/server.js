@@ -51,7 +51,14 @@ import {
   startThumbnailExperiment,
 } from "./thumbnailExperiment.js";
 import { runFullPipeline } from "./pipelineOrchestrator.js";
-import { fetchNotebooklmResearch } from "./notebooklmResearch.js";
+import {
+  fetchNotebooklmResearch,
+  fetchNotebooklmScriptContext,
+  fetchNotebooklmScriptImprovements,
+  formatNotebooklmPromptBlock,
+  getNotebooklmStatus,
+  buildNotebooklmImproveApplyPrompt,
+} from "./notebooklmService.js";
 import {
   buildInstagramAuthUrl,
   exchangeInstagramCode,
@@ -7533,7 +7540,7 @@ app.post("/api/ai/generate-creator-script", async (req, res) => {
 
   }
 
-  const { prompt } = req.body;
+  const { prompt, useNotebooklm } = req.body;
 
   if (!prompt) {
 
@@ -7541,9 +7548,25 @@ app.post("/api/ai/generate-creator-script", async (req, res) => {
 
   }
 
+  let notebooklmContext = "";
+  if (useNotebooklm !== false) {
+    try {
+      const research = await fetchNotebooklmScriptContext({
+        backendDir: __dirname,
+        niche: prompt,
+        format: "LONGO",
+        idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA NOTEBOOKLM");
+    } catch (e) {
+      notebooklmContext = "";
+    }
+  }
+
   const promptSystem = `Você é o "AI Video Creator Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um roteirista profissional, estrategista de retenção e editor de vídeos para YouTube.
 
 O usuário deseja criar um documentário cinematográfico de 12 blocos sobre o tema: "${prompt}".
+${notebooklmContext}
 
 Sua missão é criar ideias, roteiros e instruções de edição com alto potencial de clique, retenção, comentários, compartilhamentos, inscritos e satisfação real do público.
 
@@ -7750,8 +7773,14 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   let notebooklmContext = "";
   if (useNotebooklm !== false) {
     try {
-      const research = await fetchNotebooklmResearch(niche, format);
-      notebooklmContext = `\nCONTEXTO DE PESQUISA (${research.available ? "NotebookLM" : "fallback"}):\n${research.summary}\n`;
+      const research = await fetchNotebooklmResearch(niche, format, {
+        backendDir: __dirname,
+        contentMode: isListicle ? "LISTICLE" : undefined,
+        rankCount: listicleRank,
+        listTopic: listicleTopic,
+        rankOrder: rankOrder || "desc",
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "CONTEXTO DE PESQUISA");
     } catch (e) {
       notebooklmContext = "";
     }
@@ -7950,8 +7979,11 @@ app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
   let notebooklmContext = "";
   if (useNotebooklm !== false) {
     try {
-      const research = await fetchNotebooklmResearch(nicheClean, format);
-      notebooklmContext = `\nPESQUISA DE MERCADO (${research.available ? "NotebookLM" : "fallback"}):\n${research.summary}\n`;
+      const research = await fetchNotebooklmResearch(nicheClean, format, {
+        backendDir: __dirname,
+        contentMode: "LISTICLE",
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA DE MERCADO");
     } catch (e) {
       notebooklmContext = "";
     }
@@ -8166,7 +8198,7 @@ function normalizeKeys(data) {
 
 app.post("/api/ai/creator/script", async (req, res) => {
 
-  const { niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic } = req.body;
+  const { niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic, useNotebooklm } = req.body;
 
   if (!niche || !format || !idea || !project) {
 
@@ -8280,6 +8312,31 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   }
 
+  let notebooklmContext = "";
+  if (useNotebooklm !== false) {
+    try {
+      console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
+      const research = await fetchNotebooklmScriptContext({
+        backendDir: __dirname,
+        niche,
+        format,
+        idea,
+        contentMode: isListicle ? "LISTICLE" : undefined,
+        rankCount: listicleRank,
+        listTopic: listicleTopic,
+        rankOrder: rankOrder || "desc",
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA NOTEBOOKLM PARA ROTEIRO");
+      if (research.available) {
+        console.log("[NotebookLM] Contexto de roteiro obtido com sucesso.");
+      } else {
+        console.warn("[NotebookLM] Usando fallback de pesquisa:", research.message || "sem login");
+      }
+    } catch (err) {
+      console.warn("[NotebookLM] Falha ao enriquecer roteiro:", err.message);
+    }
+  }
+
   let promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
 O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}")${isListicle ? ` — MODO LISTICLE TOP ${listicleRank}` : ""}:
@@ -8309,7 +8366,7 @@ Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\n
     promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
   }
 
-  promptSystem += `\n\nSUA MISSÃO PRINCIPAL:
+  promptSystem += `${notebooklmContext}\n\nSUA MISSÃO PRINCIPAL:
 
 Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente (imagem 2K ou vídeo IA máx 10s). A narração inteira deve ser coberta — sem lacunas. Se precisar de 50, 80 ou 100 segmentos, gere todos. O array "visual_prompts" É o roteiro do vídeo.
 
@@ -8633,6 +8690,138 @@ REGRAS FINAIS:
 
   }
 
+});
+
+app.get("/api/notebooklm/status", (_req, res) => {
+  try {
+    res.json(getNotebooklmStatus());
+  } catch (err) {
+    res.status(500).json({
+      available: false,
+      authenticated: false,
+      notebookCount: 0,
+      message: err.message,
+      needsLogin: true,
+    });
+  }
+});
+
+app.post("/api/notebooklm/improve-script", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const apiKey = getApiKey(projDir);
+
+  if (!apiKey) {
+    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  }
+
+  const { niche: nicheBody, format: formatBody, useNotebooklm } = req.body || {};
+  const storyboardPath = path.join(projDir, "storyboard.json");
+
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "storyboard.json não encontrado neste projeto." });
+  }
+
+  let storyboard;
+  try {
+    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+  } catch (err) {
+    return res.status(500).json({ error: "Erro ao ler storyboard.json", details: err.message });
+  }
+
+  const narrativeScript = buildProjectTranscript({ storyboard });
+  if (!narrativeScript || narrativeScript.length < 80) {
+    return res.status(400).json({
+      error: "Roteiro muito curto ou ausente. Gere ou edite a narração antes de enriquecer.",
+    });
+  }
+
+  const configPath = path.join(projDir, "config_qanat.json");
+  let projectConfig = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      projectConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    } catch {
+      projectConfig = {};
+    }
+  }
+
+  const niche = String(
+    nicheBody
+    || storyboard?.strategy?.title_main
+    || storyboard?.listicle?.topic
+    || projectConfig.niche
+    || "documentário",
+  ).trim();
+  const format = formatBody === "SHORTS" ? "SHORTS" : "LONGO";
+  const blockCount = Array.isArray(storyboard?.technical_config?.block_phrases)
+    ? storyboard.technical_config.block_phrases.length
+    : (format === "SHORTS" ? 5 : 12);
+
+  let notebooklmResearch = null;
+  let notebooklmBlock = "";
+
+  if (useNotebooklm !== false) {
+    try {
+      console.log("[NotebookLM] Analisando roteiro para melhorias...");
+      notebooklmResearch = await fetchNotebooklmScriptImprovements({
+        backendDir: __dirname,
+        niche,
+        format,
+        narrativeScript,
+      });
+      notebooklmBlock = formatNotebooklmPromptBlock(notebooklmResearch, "SUGESTÕES NOTEBOOKLM");
+      if (!notebooklmBlock) {
+        notebooklmBlock = "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+      }
+    } catch (err) {
+      console.warn("[NotebookLM] Melhoria de roteiro falhou:", err.message);
+      notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+    }
+  } else {
+    notebooklmBlock = "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+  }
+
+  try {
+    const improvePrompt = buildNotebooklmImproveApplyPrompt({
+      niche,
+      format,
+      rawScript: extractScriptSliceForRepair(storyboard),
+      notebooklmBlock,
+      blockCount,
+    });
+
+    const responseText = await callGeminiWithRetry(apiKey, improvePrompt, {
+      temperature: 0.6,
+      maxRetries: 2,
+      models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+    });
+
+    const repaired = normalizeKeys(await parseAiJsonResponse(responseText, apiKey, "Enriquecer roteiro"));
+    const improved = mergeHumanizedScript(storyboard, repaired, format);
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(improved, null, 2), "utf8");
+
+    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+    let scriptText = improved.technical_config?.script;
+    if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
+    if (typeof scriptText === "string" && scriptText.trim()) {
+      fs.writeFileSync(transcriptPath, scriptText, "utf8");
+    }
+
+    return res.json({
+      success: true,
+      storyboard: improved,
+      notebooklm: notebooklmResearch || {
+        available: false,
+        fallback: true,
+        summary: "",
+      },
+      suggestions: notebooklmResearch?.summary || "",
+    });
+  } catch (err) {
+    console.error("[NotebookLM] Erro ao aplicar melhorias:", err);
+    return res.status(500).json({ error: "Erro ao enriquecer roteiro", details: err.message });
+  }
 });
 
 // API: Automap available files in ASSETS to script narrative blocks using Gemini

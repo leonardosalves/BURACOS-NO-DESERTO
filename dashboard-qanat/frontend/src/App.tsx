@@ -1917,6 +1917,16 @@ export default function App() {
 
 
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
+  const [useNotebooklm, setUseNotebooklm] = useState<boolean>(true);
+  const [notebooklmStatus, setNotebooklmStatus] = useState<{
+    available: boolean;
+    authenticated: boolean;
+    notebookCount?: number;
+    message?: string;
+    needsLogin?: boolean;
+  } | null>(null);
+  const [notebooklmImproving, setNotebooklmImproving] = useState<boolean>(false);
+  const [notebooklmSuggestions, setNotebooklmSuggestions] = useState<string | null>(null);
 
 
 
@@ -4568,6 +4578,12 @@ export default function App() {
     localStorage.setItem('qanat_active_project', activeProject);
 
   }, [activeProject]);
+
+  useEffect(() => {
+    if (activeTab === 'creator' || activeTab === 'editor') {
+      fetchNotebooklmStatus();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     try {
@@ -14654,7 +14670,7 @@ export default function App() {
 
 
 
-        body: JSON.stringify({ prompt: creatorPrompt })
+        body: JSON.stringify({ prompt: creatorPrompt, useNotebooklm })
 
 
 
@@ -14798,6 +14814,58 @@ export default function App() {
 
 
 
+  const fetchNotebooklmStatus = async () => {
+    try {
+      const res = await fetch('/api/notebooklm/status');
+      if (res.ok) {
+        setNotebooklmStatus(await res.json());
+      }
+    } catch {
+      setNotebooklmStatus({
+        available: false,
+        authenticated: false,
+        message: 'NotebookLM indisponível',
+        needsLogin: true,
+      });
+    }
+  };
+
+  const handleNotebooklmImprove = async () => {
+    if (!activeProject || !storyboardData) {
+      toast.error('Selecione um projeto com roteiro primeiro.');
+      return;
+    }
+    const narrative = String(storyboardData.narrative_script || '').trim();
+    if (narrative.length < 80) {
+      toast.error('O roteiro precisa ter narração antes de enriquecer.');
+      return;
+    }
+    setNotebooklmImproving(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/notebooklm/improve-script'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useNotebooklm }),
+      });
+      const data = await res.json();
+      if (res.ok && data.storyboard) {
+        setStoryboardData(data.storyboard);
+        if (data.suggestions) setNotebooklmSuggestions(data.suggestions);
+        toast.success(
+          notebooklmStatus?.authenticated
+            ? 'Roteiro enriquecido com pesquisa NotebookLM!'
+            : 'Roteiro melhorado — execute `nlm login` no terminal para pesquisa real.',
+        );
+      } else {
+        toast.error(data.error || 'Falha ao enriquecer roteiro.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Conexão falhou ao enriquecer roteiro.');
+    } finally {
+      setNotebooklmImproving(false);
+    }
+  };
+
   const handleGenerateIdeas = async () => {
 
 
@@ -14873,6 +14941,7 @@ export default function App() {
         body: JSON.stringify({
           niche: nicheInput.trim(),
           format: formatSelector,
+          useNotebooklm,
           ...(ideationTab === 'listicle' ? {
             contentMode: 'LISTICLE',
             rankCount,
@@ -15117,7 +15186,7 @@ export default function App() {
       const res = await fetch(getProjectUrl('/api/ai/creator/listicle-ideas'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niche: listNiche.trim(), format: formatSelector }),
+        body: JSON.stringify({ niche: listNiche.trim(), format: formatSelector, useNotebooklm }),
       });
       const data = await res.json();
       const ideas = data.ranking_ideas || data.rankings || data.ideas || [];
@@ -15187,6 +15256,7 @@ export default function App() {
             listicle_angle: selectedRanking?.listicle_angle,
           },
           project: safeProjectName,
+          useNotebooklm,
         }),
       });
       const data = await res.json();
@@ -15252,7 +15322,8 @@ export default function App() {
             hook: customIdeaHook,
             blocks: customIdeaBlocks,
           } : (ideasData?.ideas || [])[selectedIdeaIndex]),
-          project: safeProjectName
+          project: safeProjectName,
+          useNotebooklm,
         })
       });
 
@@ -30720,6 +30791,11 @@ export default function App() {
 
 
                       <p className="text-[10px] text-gray-400 mt-0.5">Altere falas de narração, prompts visuais, reordene cenas ou adicione novas.</p>
+                      {notebooklmSuggestions && (
+                        <p className="text-[9px] text-indigo-300/80 mt-1 max-w-md line-clamp-2" title={notebooklmSuggestions}>
+                          Última pesquisa NotebookLM aplicada ao roteiro.
+                        </p>
+                      )}
 
 
 
@@ -30735,7 +30811,19 @@ export default function App() {
 
 
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap justify-end">
+                      <button
+                        type="button"
+                        onClick={handleNotebooklmImprove}
+                        disabled={notebooklmImproving || !storyboardData?.narrative_script}
+                        title={notebooklmStatus?.message || 'Enriquecer roteiro com pesquisa NotebookLM'}
+                        className="bg-indigo-600/20 border border-indigo-500/30 hover:bg-indigo-600/30 disabled:opacity-40 text-indigo-200 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        {notebooklmImproving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        Enriquecer com NotebookLM
+                      </button>
+
+
 
 
 
@@ -35085,6 +35173,30 @@ export default function App() {
                         <p className="text-xs text-gray-400 mt-1 leading-relaxed">
                           Defina o assunto e a estrutura do seu vídeo. Você pode usar a inteligência artificial para propor 10 ideias ou inserir manualmente um roteiro personalizado com blocos definidos em inglês para a IA expandir em português.
                         </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={useNotebooklm}
+                            onChange={(e) => setUseNotebooklm(e.target.checked)}
+                            className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
+                          />
+                          <span className="text-xs text-zinc-300 font-semibold">Usar NotebookLM na pesquisa de roteiro</span>
+                        </label>
+                        {notebooklmStatus && (
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+                              notebooklmStatus.authenticated
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                            }`}
+                            title={notebooklmStatus.message}
+                          >
+                            {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Execute nlm login'}
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex gap-2 border-t border-zinc-900/60 pt-3">
