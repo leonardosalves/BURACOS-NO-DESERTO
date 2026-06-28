@@ -3138,9 +3138,14 @@ app.get("/api/render/:mode", async (req, res) => {
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
       const useHyperframes = req.query.hyperframes !== "0";
       const previewSecs = Math.min(60, Math.max(0, Number(req.query.preview) || 0));
+      const resolution = req.query.resolution === "2k" ? "2k" : "1080p";
       const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
         previewDuration: previewSecs > 0 ? previewSecs : undefined,
+        resolution,
       });
+      if (resolution === "2k") {
+        sendLog("[Remotion] Resolução 2K ativada (2560×1440 ou 1440×2560).");
+      }
 
       sendLog(`[PROGRESSO] 10%`);
 
@@ -3323,7 +3328,8 @@ app.get("/api/render/:mode", async (req, res) => {
 
   }
 
-  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}...`);
+  const resolution = req.query.resolution === "2k" ? "2k" : "1080p";
+  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`);
 
   const child = spawn(PYTHON_PATH, [runScriptName], {
 
@@ -3331,7 +3337,11 @@ app.get("/api/render/:mode", async (req, res) => {
 
     shell: true,
 
-    env: { ...process.env, PYTHONUNBUFFERED: "1" }
+    env: {
+      ...process.env,
+      PYTHONUNBUFFERED: "1",
+      LUMIERA_RENDER_RESOLUTION: resolution,
+    },
 
   });
 
@@ -4319,9 +4329,12 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     console.error("Error writing storyboard overlays:", e);
   }
 
+  const resolution = options.resolution === "2k" ? "2k" : "1080p";
+
   const props = {
     projectName: path.basename(projectDir),
     format,
+    resolution,
     totalDuration,
     scenes: validScenes,
     captions: finalCaptions,

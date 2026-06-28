@@ -177,7 +177,8 @@ export type LumieraTimelineProps = {
 
   format: "16:9" | "9:16";
 
-
+  /** Output resolution — 2k = 2560×1440 (16:9) or 1440×2560 (9:16) */
+  resolution?: "1080p" | "2k";
 
   totalDuration: number;
 
