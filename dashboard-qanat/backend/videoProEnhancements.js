@@ -454,6 +454,7 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
       ? `#${rank} — ${String(title).toUpperCase()}`.slice(0, 44)
       : `#${rank}`;
 
+    const isShort = isShortFormVideo(config);
     overlays.push({
       id: `listicle-rank-${rank}`,
       type: "kinetic-text",
@@ -463,7 +464,7 @@ export function buildListicleRankOverlays(storyboard = {}, config = {}, starts =
         text,
         style: isClimax ? "slam" : "reveal",
         accentColor: isClimax ? "#D4AF37" : accent,
-        position: isClimax ? "center" : "center",
+        position: "center",
       },
     });
   };
@@ -502,7 +503,7 @@ function mergeOverlays(base = [], additions = []) {
 }
 
 const LISTICLE_HUD_TYPES = new Set(["rank-progress", "listicle-stinger"]);
-const LISTICLE_SAFE_POSITIONS = ["bottom-right", "bottom-left", "bottom-center"];
+const LISTICLE_BOTTOM_POSITIONS = ["bottom-right", "bottom-left", "bottom-center"];
 
 function isListicleHudOverlay(overlay) {
   if (!overlay) return false;
@@ -510,35 +511,46 @@ function isListicleHudOverlay(overlay) {
     || String(overlay.id || "").startsWith("listicle-");
 }
 
-function usesTopScreenZone(position = "") {
-  const pos = String(position).toLowerCase();
-  return pos === "top"
-    || pos === "center"
-    || pos.includes("top");
+function isShortFormVideo(config = {}) {
+  const aspect = String(config.aspect_ratio || "").trim();
+  const format = String(config.video_format || config.format_type || "").toUpperCase();
+  return aspect === "9:16" || format === "SHORTS" || format === "SHORT";
 }
 
-function relocateOverlayAwayFromListicleHud(overlay) {
+function listicleHudSlot(overlay = {}) {
+  const seed = String(overlay.id || overlay.type || "overlay");
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function relocateOverlayAwayFromListicleHud(overlay, { isShort = false } = {}) {
   if (!overlay?.props || isListicleHudOverlay(overlay)) return overlay;
 
-  const pos = overlay.props.position;
-  const needsMove = usesTopScreenZone(pos)
-    || (overlay.type === "counter" && (!pos || pos === "center"))
-    || (overlay.type === "timeline" && (!pos || pos === "center"));
-
-  if (!needsMove) return overlay;
-
   const next = { ...overlay, props: { ...overlay.props } };
+  const slot = listicleHudSlot(overlay);
+  const shortPool = ["bottom-left", "bottom-right"];
+  const longPool = LISTICLE_BOTTOM_POSITIONS;
+  const pool = isShort ? shortPool : longPool;
+  const pick = pool[slot % pool.length];
 
   if (next.type === "counter" || next.type === "timeline" || next.type === "bar-chart") {
-    next.props.position = "bottom-right";
+    next.props.position = pick;
   } else if (next.type === "info-card") {
-    next.props.position = "bottom-left";
+    next.props.position = pick === "bottom-center" ? "bottom-right" : pick;
   } else if (next.type === "kinetic-text") {
     next.props.position = "bottom";
   } else if (next.type === "lower-third") {
-    next.props.position = "bottom-left";
+    next.props.position = pick === "bottom-right" ? "bottom-center" : "bottom-left";
   } else {
-    next.props.position = "bottom-right";
+    next.props.position = pick;
+  }
+
+  if (isShort) {
+    next.props.layoutZone = "listicle-shorts-safe";
   }
 
   return next;
@@ -546,7 +558,8 @@ function relocateOverlayAwayFromListicleHud(overlay) {
 
 export function avoidListicleHudCollisions(overlays = [], config = {}, storyboard = {}) {
   if (!isListicleProject(config, storyboard)) return overlays || [];
-  return (overlays || []).map(relocateOverlayAwayFromListicleHud);
+  const isShort = isShortFormVideo(config);
+  return (overlays || []).map((overlay) => relocateOverlayAwayFromListicleHud(overlay, { isShort }));
 }
 
 export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = []) {
@@ -573,7 +586,7 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   if (added) {
     console.log(`[Listicle PRO] ${added} overlays profissionais injetados.`);
   }
-  return merged;
+  return avoidListicleHudCollisions(merged, config, storyboard);
 }
 
 function wordCount(text = "") {

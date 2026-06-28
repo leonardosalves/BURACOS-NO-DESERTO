@@ -83,6 +83,7 @@ import {
 import {
   applyDocumentaryHistoryPreset,
   injectListicleRankOverlays,
+  avoidListicleHudCollisions,
   validateVideoQuality,
   augmentSfxTimelineForOverlays,
   runVideoQualityCheck,
@@ -9392,7 +9393,8 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
   let result = injectListicleRankOverlays(overlays, storyboard, config, starts, durations);
-  result = injectRetentionOverlays(projectDir, result, starts, durations);
+  result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
+  result = avoidListicleHudCollisions(result, config, storyboard);
 
   const quality = validateVideoQuality({
     overlays: result,
@@ -10024,7 +10026,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
   );
 }
 
-function injectRetentionOverlays(projectDir, overlays, starts, durations) {
+function injectRetentionOverlays(projectDir, overlays, starts, durations, config = {}, storyboard = {}) {
   const cachePath = path.join(projectDir, "youtube_metadata_cache.json");
   if (!fs.existsSync(cachePath)) return overlays;
   let cache;
@@ -10037,6 +10039,8 @@ function injectRetentionOverlays(projectDir, overlays, starts, durations) {
   const hook = cache?.parsed?.retentionHook || cache?.parsed?.hook;
   const cta = cache?.parsed?.midVideoCta;
   const result = Array.isArray(overlays) ? [...overlays] : [];
+  const isListicle = config?.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const hookPosition = isListicle ? "bottom-left" : "center";
 
   if (hook) {
     result.unshift({
@@ -10048,7 +10052,7 @@ function injectRetentionOverlays(projectDir, overlays, starts, durations) {
         title: String(hook).slice(0, 60).toUpperCase(),
         subtitle: "",
         accentColor: "#FF4444",
-        position: "center",
+        position: hookPosition,
       },
     });
   }
