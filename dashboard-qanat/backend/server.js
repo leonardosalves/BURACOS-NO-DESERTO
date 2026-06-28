@@ -79,6 +79,13 @@ import {
   extractScriptSliceForRepair,
   mergeHumanizedScript,
   applyScriptTextQuality,
+  buildNarrationOnlyPrompt,
+  buildFullScriptFromNarrationPrompt,
+  buildNarrationHumanizeRepairPrompt,
+  mergeHumanizedNarration,
+  needsVisualPromptsRepair,
+  buildVisualPromptsFromNarrationPrompt,
+  mergeVisualPromptsRepair,
 } from "./scriptQuality.js";
 import {
   applyDocumentaryHistoryPreset,
@@ -96,6 +103,11 @@ import {
   resolveThumbnailPalette,
   getEpidemicMoodForNiche,
 } from "./videoProEnhancements.js";
+import {
+  flattenWordTranscripts,
+  buildBlockSceneTimings,
+  blockHasExplicitSync,
+} from "./timelineSceneSync.js";
 import {
   needsListItemsRepair,
   repairListItemsWithAI,
@@ -1449,34 +1461,35 @@ app.post("/api/projects/storyboard", (req, res) => {
 
     config.block_phrases = blockPhrases;
 
-    // Reconstruct config.timeline_assets from scene assets in storyboardData.visual_prompts
+    // Merge storyboard assets into timeline_assets — preserve user timing edits (fixed, audio_start)
 
-    const nextTimelineAssets = {};
+    const existingTimelineAssets = config.timeline_assets || {};
+    const nextTimelineAssets = { ...existingTimelineAssets };
+    const blockCounters = {};
 
     visualPrompts.forEach((vp) => {
-
       const blockNum = vp.block || 1;
-
       const blockKey = String(blockNum);
+      if (!nextTimelineAssets[blockKey]) nextTimelineAssets[blockKey] = [];
+      if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
+      const assetIdx = blockCounters[blockKey]++;
+      const existing = (existingTimelineAssets[blockKey] || [])[assetIdx];
+      const fromStoryboard = vp.asset && vp.asset.asset ? vp.asset : null;
 
-      if (!nextTimelineAssets[blockKey]) {
-
-        nextTimelineAssets[blockKey] = [];
-
-      }
-
-      const assetIdx = nextTimelineAssets[blockKey].length;
-
-      if (vp.asset && vp.asset.asset) {
-
-        nextTimelineAssets[blockKey][assetIdx] = vp.asset;
-
+      if (existing && fromStoryboard) {
+        nextTimelineAssets[blockKey][assetIdx] = {
+          ...existing,
+          asset: fromStoryboard.asset || existing.asset,
+          type: fromStoryboard.type || existing.type,
+          ...(fromStoryboard.fixed !== undefined ? { fixed: fromStoryboard.fixed } : {}),
+        };
+      } else if (existing) {
+        nextTimelineAssets[blockKey][assetIdx] = existing;
+      } else if (fromStoryboard) {
+        nextTimelineAssets[blockKey][assetIdx] = fromStoryboard;
       } else {
-
         nextTimelineAssets[blockKey][assetIdx] = {};
-
       }
-
     });
 
     config.timeline_assets = nextTimelineAssets;
@@ -4002,6 +4015,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
 
   const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
   const projectSlug = safeProjectSlug(projectDir);
 
@@ -4025,6 +4039,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const timelineAssets = config.timeline_assets || {};
 
   const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const syncContext = {
+    visualPrompts,
+    blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+  };
 
   const promptByBlock = new Map();
 
@@ -4068,19 +4086,23 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     const prompts = promptByBlock.get(block) || [];
 
-    const fixedTotal = mappedAssets.reduce((sum, item) => sum + (Number(item?.fixed) || 0), 0);
+    const blockSceneTimings = buildBlockSceneTimings(
+      block,
+      mappedAssets,
+      duration,
+      flatTranscriptWords,
+      { ...syncContext, blockStart: start },
+    );
 
-    const autoCount = mappedAssets.filter(item => !Number(item?.fixed)).length;
-
-    const autoDuration = autoCount > 0 ? Math.max(1, (duration - fixedTotal) / autoCount) : duration;
-
-    let localStart = start;
+    const hasExplicitSync = blockHasExplicitSync(mappedAssets);
 
     const blockSceneStartIdx = scenes.length;
 
     if (mappedAssets.length > 0) {
 
-      mappedAssets.forEach((item, index) => {
+      blockSceneTimings.forEach((timing, index) => {
+
+        const item = timing.asset;
 
         const sourcePath = findProjectFile(projectDir, item?.asset);
 
@@ -4088,7 +4110,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
         if (!copiedName) return;
 
-        const sceneDuration = Math.max(1, Number(item?.fixed) || autoDuration);
+        const sceneDuration = timing.duration;
 
         const prompt = prompts[index] || prompts[0] || {};
         const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
@@ -4103,7 +4125,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
           type: item?.type === "video" ? "video" : "image",
 
-          start: localStart,
+          start: timing.start,
 
           duration: sceneDuration,
 
@@ -4113,11 +4135,11 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
         });
 
-        localStart += sceneDuration;
-
       });
 
     } else {
+
+      let localStart = start;
 
       prompts.forEach((prompt, index) => {
 
@@ -4174,7 +4196,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     }
 
-    if (nextBlockStart !== null && blockSceneEndIdx > blockSceneStartIdx) {
+    if (!hasExplicitSync && nextBlockStart !== null && blockSceneEndIdx > blockSceneStartIdx) {
 
       const lastSceneOfBlock = scenes[blockSceneEndIdx - 1];
 
@@ -4208,9 +4230,12 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const narrationDuration = narrationSource ? getAudioDuration(narrationSource) : 0;
 
-  // Also extend the last scene of the video (excluding logo) to cover any remaining narration duration
+  // Extend last scene only when timeline was not explicitly synced to speech
 
-  if (scenes.length > 0 && narrationDuration > 0) {
+  const lastBlockAssets = timelineAssets[String(scenes[scenes.length - 1]?.block)] || [];
+  const videoHasExplicitSync = blockHasExplicitSync(lastBlockAssets);
+
+  if (scenes.length > 0 && narrationDuration > 0 && !videoHasExplicitSync) {
 
     const lastSceneOfVideo = scenes[scenes.length - 1];
 
@@ -8191,7 +8216,7 @@ function normalizeKeys(data) {
 
     block: vp.block || vp.bloco || Math.floor(index / 2) + 1,
 
-    narration_text: vp.narration_text || vp.narration_excerpt || vp.trecho_narracao || "",
+    narration_text: vp.narration_text || vp.narration_excerpt || vp.trecho_narracao || vp.narracao || vp.texto_narracao || vp.narration || vp.script_segment || "",
 
     function: vp.function || vp.funcao || "",
 
@@ -8201,7 +8226,7 @@ function normalizeKeys(data) {
 
     aspect_ratio: vp.aspect_ratio || vp.aspectRatio || vp.formato || vp.proporcao || "16:9",
 
-    prompt: vp.prompt || "",
+    prompt: vp.prompt || vp.visual_prompt || vp.image_prompt || vp.prompt_visual || "",
 
     text_overlay: vp.text_overlay || vp.textOverlay || vp.texto_tela || vp.textoTela || vp.texto || "",
 
@@ -8309,7 +8334,15 @@ function normalizeKeys(data) {
 
 app.post("/api/ai/creator/script", async (req, res) => {
 
-  const { niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic, useNotebooklm } = req.body;
+  const {
+    niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic, listicleHudStyle, useNotebooklm,
+    phase = "full",
+    approvedNarration: approvedNarrationRaw,
+    approvedNarrationTagged: approvedNarrationTaggedRaw,
+  } = req.body;
+  const scriptPhase = phase === "narration" ? "narration" : "full";
+  const approvedNarration = String(approvedNarrationRaw || "").trim();
+  const approvedNarrationTagged = String(approvedNarrationTaggedRaw || "").trim();
 
   if (!niche || !format || !idea || !project) {
 
@@ -8448,7 +8481,34 @@ app.post("/api/ai/creator/script", async (req, res) => {
     }
   }
 
-  let promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
+  const promptContext = {
+    niche,
+    format,
+    idea,
+    isListicle,
+    listicleRank,
+    listicleTopic,
+    rankOrder: rankOrder || "desc",
+    listicleBlockCount,
+    notebooklmContext,
+    cinematicNarrationRules: buildCinematicNarrationRules(),
+    titleCraftRules: buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG"),
+    epidemicMoodPrompt: buildEpidemicMoodPrompt(
+      niche,
+      { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic },
+      { listicle: { topic: listicleTopic } },
+    ),
+    approvedNarration,
+    approvedNarrationTagged,
+  };
+
+  let promptSystem;
+  if (scriptPhase === "narration") {
+    promptSystem = buildNarrationOnlyPrompt(promptContext);
+  } else if (approvedNarration) {
+    promptSystem = buildFullScriptFromNarrationPrompt(promptContext);
+  } else {
+  promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
 O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}")${isListicle ? ` — MODO LISTICLE TOP ${listicleRank}` : ""}:
 
@@ -8670,6 +8730,7 @@ REGRAS FINAIS:
 - O array visual_prompts deve cobrir TODA a narração sem lacunas.
 
 - Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
+  }
 
   let responseText = "";
 
@@ -8687,27 +8748,110 @@ REGRAS FINAIS:
         rank_count: listicleRank,
         rank_order: rankOrder === "asc" ? "asc" : "desc",
         topic: listicleTopic,
+        hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
+          ? listicleHudStyle
+          : (listicleRank > 8 ? "compact" : "full"),
       };
+    } else if (isListicle && parsedData.listicle) {
+      parsedData.listicle.hud_style = ["compact", "full", "auto"].includes(listicleHudStyle)
+        ? listicleHudStyle
+        : (parsedData.listicle.hud_style || (listicleRank > 8 ? "compact" : "full"));
     }
 
-    try {
-      const blockCount = listicleBlockCount;
-      const repairPrompt = buildHumanizeRepairPrompt({
-        format,
-        ideaTitle: idea.title,
-        rawScript: extractScriptSliceForRepair(parsedData),
-        blockCount,
+    if (scriptPhase === "narration") {
+      try {
+        const repairPrompt = buildNarrationHumanizeRepairPrompt({
+          format,
+          ideaTitle: idea.title,
+          narrative_script: parsedData.narrative_script,
+          narrative_script_tagged: parsedData.narrative_script_tagged,
+          blockCount: listicleBlockCount,
+        });
+        const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+          temperature: 0.55,
+          maxRetries: 2,
+          models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+        });
+        const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao narracao"));
+        parsedData = mergeHumanizedNarration(parsedData, repaired, format);
+        console.log("[Creator Script] Humanização da narração (fase 1) aplicada.");
+      } catch (repairErr) {
+        console.warn("[Creator Script] Humanização da narração falhou, usando rascunho:", repairErr.message);
+      }
+
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const partialStoryboard = {
+        strategy: parsedData.strategy || {},
+        narrative_script: parsedData.narrative_script || "",
+        narrative_script_tagged: parsedData.narrative_script_tagged || "",
+        _creator_phase: "narration_pending",
+      };
+      fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
+
+      return res.json({
+        phase: "narration",
+        project: safeProjectName,
+        strategy: partialStoryboard.strategy,
+        narrative_script: partialStoryboard.narrative_script,
+        narrative_script_tagged: partialStoryboard.narrative_script_tagged,
       });
-      const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
-        temperature: 0.55,
-        maxRetries: 2,
-        models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-      });
-      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro"));
-      parsedData = mergeHumanizedScript(parsedData, repaired, format);
-      console.log("[Creator Script] Passagem de humanização/clareza aplicada.");
-    } catch (repairErr) {
-      console.warn("[Creator Script] Humanização secundária falhou, usando rascunho:", repairErr.message);
+    }
+
+    if (approvedNarration) {
+      parsedData.narrative_script = approvedNarration;
+      if (approvedNarrationTagged) {
+        parsedData.narrative_script_tagged = approvedNarrationTagged;
+      } else if (!parsedData.narrative_script_tagged?.trim()) {
+        parsedData.narrative_script_tagged = approvedNarration;
+      }
+
+      if (needsVisualPromptsRepair(parsedData)) {
+        try {
+          const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
+            approvedNarration,
+            format,
+            blockCount: listicleBlockCount,
+            isListicle,
+            listicleRank,
+            listTopic: listicleTopic,
+            rankOrder: rankOrder || "desc",
+            ideaTitle: idea.title,
+            existingPrompts: parsedData.visual_prompts || [],
+          });
+          const vpRepairText = await callGeminiWithRetry(apiKey, vpRepairPrompt, {
+            temperature: 0.6,
+            maxRetries: 2,
+            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+          });
+          const vpRepaired = normalizeKeys(await parseAiJsonResponse(vpRepairText, apiKey, "Visual prompts fase 2"));
+          parsedData = mergeVisualPromptsRepair(parsedData, vpRepaired);
+          parsedData.narrative_script = approvedNarration;
+          if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
+          console.log(`[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`);
+        } catch (vpRepairErr) {
+          console.warn("[Creator Script] Falha ao reparar visual_prompts na fase 2:", vpRepairErr.message);
+        }
+      }
+    } else {
+      try {
+        const blockCount = listicleBlockCount;
+        const repairPrompt = buildHumanizeRepairPrompt({
+          format,
+          ideaTitle: idea.title,
+          rawScript: extractScriptSliceForRepair(parsedData),
+          blockCount,
+        });
+        const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+          temperature: 0.55,
+          maxRetries: 2,
+          models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+        });
+        const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro"));
+        parsedData = mergeHumanizedScript(parsedData, repaired, format);
+        console.log("[Creator Script] Passagem de humanização/clareza aplicada.");
+      } catch (repairErr) {
+        console.warn("[Creator Script] Humanização secundária falhou, usando rascunho:", repairErr.message);
+      }
     }
 
     parsedData = await enhanceCreatorStrategyTitles(parsedData, {
@@ -8802,6 +8946,9 @@ REGRAS FINAIS:
         rank_count: listicleRank,
         rank_order: rankOrder === "asc" ? "asc" : "desc",
         list_topic: listicleTopic,
+        listicle_hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
+          ? listicleHudStyle
+          : (listicleRank > 8 ? "compact" : "full"),
       } : {}),
     };
 
@@ -8829,6 +8976,82 @@ REGRAS FINAIS:
 
   }
 
+});
+
+app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  const apiKey = getApiKey(projDir);
+  if (!apiKey) {
+    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  }
+
+  try {
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const approvedNarration = String(storyboard.narrative_script || "").trim();
+    if (!approvedNarration) {
+      return res.status(400).json({ error: "Não há narrative_script no storyboard para distribuir nas cenas." });
+    }
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const isListicle = config.content_mode === "LISTICLE" || storyboard.listicle?.content_mode === "LISTICLE";
+    const format = config.video_format || "LONGO";
+    const listicleRank = config.rank_count || storyboard.listicle?.rank_count || 3;
+    const blockCount = isListicle
+      ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+      : (format === "SHORTS" ? 5 : 12);
+
+    const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
+      approvedNarration,
+      format,
+      blockCount,
+      isListicle,
+      listicleRank,
+      listTopic: config.list_topic || storyboard.listicle?.topic || "",
+      rankOrder: config.rank_order || storyboard.listicle?.rank_order || "desc",
+      ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
+      existingPrompts: storyboard.visual_prompts || [],
+    });
+    const vpRepairText = await callGeminiWithRetry(apiKey, vpRepairPrompt, {
+      temperature: 0.6,
+      maxRetries: 2,
+      models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    const vpRepaired = normalizeKeys(await parseAiJsonResponse(vpRepairText, apiKey, "Repair visual prompts"));
+    storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
+    storyboard.narrative_script = approvedNarration;
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+
+    let scriptText = storyboard.technical_config?.script;
+    if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
+    if (typeof scriptText === "string" && scriptText.trim()) {
+      fs.writeFileSync(path.join(projDir, "transcripts_readable.txt"), scriptText, "utf8");
+    }
+
+    if (storyboard.technical_config?.block_phrases?.length) {
+      const configPath = path.join(projDir, "config_qanat.json");
+      let currentConfig = config;
+      currentConfig.block_phrases = storyboard.technical_config.block_phrases;
+      if (storyboard.technical_config.impact_texts) {
+        currentConfig.impact_texts = storyboard.technical_config.impact_texts;
+      }
+      if (storyboard.technical_config.highlight_keywords) {
+        currentConfig.highlight_keywords = storyboard.technical_config.highlight_keywords;
+      }
+      fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2), "utf8");
+    }
+
+    console.log(`[Creator Repair] visual_prompts reparados (${storyboard.visual_prompts?.length || 0} cenas).`);
+    res.json(storyboard);
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
+    res.status(500).json({ error: "Erro ao reparar cenas do roteiro", details: err.message });
+  }
 });
 
 app.get("/api/notebooklm/status", (_req, res) => {
@@ -9604,7 +9827,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   const listicleShortsOverlayRules = isListicleOverlay && orchestrationPlan.format === "SHORT"
     ? `
 MODO LISTICLE SHORTS (CRÍTICO — leia antes de gerar overlays):
-- O sistema JÁ injeta automaticamente: badge #N durante cada item, "TOP N" na intro e recap no final.
+- O sistema JÁ injeta automaticamente: badge #N persistente no topo durante cada item e recap no final. PROIBIDO kinetic-text central "TOP N" ou "#N — título".
 - Você deve gerar NO MÁXIMO ${orchestrationPlan.limits.maxTotal} overlays do tipo "counter" APENAS.
 - PROIBIDO: lower-third, kinetic-text, bar-chart, timeline, info-card.
 - PROIBIDO: 1 overlay por bloco/item do ranking — máximo 1 counter a cada 20 segundos.
