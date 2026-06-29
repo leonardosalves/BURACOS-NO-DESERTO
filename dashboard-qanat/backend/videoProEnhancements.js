@@ -336,6 +336,59 @@ function getListicleMeta(storyboard = {}, config = {}) {
   return { listItems, rankCount, rankOrder };
 }
 
+export function resolveListicleContext(storyboard = {}, config = {}) {
+  if (!isListicleProject(config, storyboard)) return null;
+
+  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const rawTopic = String(
+    storyboard?.listicle?.topic
+    || config.list_topic
+    || storyboard?.listicle_meta?.topic
+    || "",
+  ).trim();
+
+  const items = listItems
+    .map((item) => ({
+      rank: Number(item.rank) || 0,
+      title: String(item.title || item.name || "").trim(),
+      origin: String(item.origin || item.hook || item.fact || "").trim(),
+      block: Number(item.block) || 0,
+    }))
+    .filter((item) => item.title);
+
+  const itemTitles = items.map((item) => item.title);
+  const effectiveRank = rankCount || itemTitles.length || 3;
+  const topic = rawTopic.replace(/^top\s+\d+\s+/i, "").trim();
+
+  let coreTopic = "";
+  if (topic) {
+    coreTopic = `Top ${effectiveRank} ${topic}`;
+  } else {
+    const topLine = String(storyboard?.strategy?.hook || storyboard?.strategy?.title_main || "").trim();
+    const topFromHook = topLine.match(/\btop\s+(\d+)\b[^.!?]{0,100}/i)?.[0];
+    if (topFromHook) {
+      coreTopic = sanitizeListicleTopic(topFromHook);
+    } else if (itemTitles.length >= 2) {
+      coreTopic = `Top ${effectiveRank} objetos do dia a dia com origens bizarras`;
+    }
+  }
+
+  return {
+    isListicle: true,
+    rankCount: effectiveRank,
+    rankOrder,
+    topic,
+    coreTopic,
+    itemTitles,
+    items,
+    itemsLine: itemTitles.join(" → "),
+  };
+}
+
+function sanitizeListicleTopic(text = "") {
+  return String(text || "").replace(/\s+/g, " ").trim().replace(/[.!?]+$/g, "");
+}
+
 export function buildOpenLoopIntroOverlay(storyboard = {}, config = {}, starts = []) {
   if (!isListicleProject(config, storyboard)) return null;
 

@@ -1,5 +1,7 @@
 /** Geração e refinamento de títulos YouTube (Shorts + Longo) ancorados no roteiro. */
 
+import { resolveListicleContext } from "./videoProEnhancements.js";
+
 const BANNED_TITLE_PATTERNS = [
   /você não vai acreditar/i,
   /99\s*%/i,
@@ -182,18 +184,17 @@ function extractStoryboardEntities(storyboard = {}) {
   return [...new Set(entities.filter(Boolean))].slice(0, 12);
 }
 
-function resolveCoreTopic({ text, storyboard = {}, strategy = {} }) {
+function resolveCoreTopic({ text, storyboard = {}, strategy = {}, config = {} }) {
   const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 12);
-  const listicle = storyboard?.listicle || {};
+  const listicleCtx = resolveListicleContext(storyboard, config);
 
-  if (listicle.topic) {
-    const rank = listicle.rank_count || text.match(/\btop\s+(\d+)\b/i)?.[1];
-    return rank ? `Top ${rank} ${listicle.topic}` : listicle.topic;
+  if (listicleCtx?.coreTopic) {
+    return listicleCtx.coreTopic;
   }
 
-  const listItems = (storyboard?.list_items || []).map((item) => item?.title).filter(Boolean).slice(0, 3);
-  if (listItems.length >= 2) {
-    return listItems.join(", ");
+  const topFromTranscript = text.match(/\btop\s+(\d+)\b[^.!?]{0,100}/i)?.[0];
+  if (topFromTranscript) {
+    return sanitizeTitle(topFromTranscript);
   }
 
   const subject = extractSubject(text);
@@ -245,13 +246,15 @@ export function titlesLackRelevance(titles = [], transcript = "", facts = {}) {
   return avg < 0.12 || good < 2;
 }
 
-export function extractTitleFacts({ transcript = "", storyboard = {} } = {}) {
+export function extractTitleFacts({ transcript = "", storyboard = {}, config = {} } = {}) {
   const strategy = storyboard?.strategy || {};
   const text = String(transcript || "").replace(/\s+/g, " ").trim();
   const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.length > 12);
   const midIdx = Math.floor(sentences.length / 2);
+  const listicle = resolveListicleContext(storyboard, config);
 
   const topCount = text.match(/\btop\s+(\d+)\b/i)?.[1]
+    || listicle?.rankCount
     || storyboard?.listicle?.rank_count
     || null;
 
@@ -278,19 +281,34 @@ export function extractTitleFacts({ transcript = "", storyboard = {} } = {}) {
   const hook = sentences[0] || strategy.hook || "";
   const payoff = sentences[sentences.length - 1] || "";
   const twist = sentences[midIdx] || sentences[Math.max(0, sentences.length - 3)] || "";
-  const coreTopic = resolveCoreTopic({ text, storyboard, strategy });
+  const coreTopic = resolveCoreTopic({ text, storyboard, strategy, config });
   const keyPhrases = extractKeyPhrases(text);
+
+  if (listicle) {
+    for (const title of listicle.itemTitles) {
+      if (title && !properNouns.includes(title)) properNouns.unshift(title);
+    }
+    if (listicle.topic) {
+      const topicWords = listicle.topic.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
+      for (const word of topicWords.slice(0, 4)) {
+        if (!contentKeywords.includes(word)) contentKeywords.unshift(word);
+      }
+    }
+  }
 
   return {
     hook: clip(hook, 200),
-    coreTopic: clip(coreTopic, 160),
+    coreTopic: clip(listicle?.coreTopic || coreTopic, 160),
     payoff: clip(payoff, 160),
     twist: clip(twist, 160),
     numbers,
-    properNouns,
-    contentKeywords,
+    properNouns: [...new Set(properNouns)].slice(0, 12),
+    contentKeywords: [...new Set(contentKeywords)].slice(0, 12),
     keyPhrases,
-    oneLineSummary: sentences.slice(0, 3).join(" ").slice(0, 280),
+    oneLineSummary: listicle?.coreTopic
+      ? clip(`${listicle.coreTopic}. Itens: ${listicle.itemsLine || listicle.itemTitles.join(", ")}`, 280)
+      : sentences.slice(0, 3).join(" ").slice(0, 280),
+    listicle,
   };
 }
 
@@ -344,6 +362,18 @@ CHECKLIST (cada título deve marcar 3+ itens):
 
 export function buildTitleFactsBlock(facts = {}) {
   if (!facts.coreTopic) return "";
+
+  const listicleBlock = facts.listicle?.isListicle
+    ? `
+## FORMATO LISTICLE — TOP ${facts.listicle.rankCount}
+- Tema do ranking: ${facts.listicle.topic || facts.coreTopic}
+- Itens na ordem do vídeo: ${facts.listicle.itemsLine || facts.listicle.itemTitles.join(" → ")}
+- REGRA CRÍTICA: títulos vendem o VÍDEO INTEIRO (Top ${facts.listicle.rankCount}), NÃO um item isolado
+- PROIBIDO título sobre só 1 item (ex: só micro-ondas ou só post-it)
+- Título #1 deve incluir "Top ${facts.listicle.rankCount}" ou o número + tema do ranking
+- No máximo 2 dos 5 títulos podem citar 1 item — sempre com o conceito do ranking junto`
+    : "";
+
   return `
 ## SOBRE O QUE É ESTE VÍDEO (obrigatório — cada título deve refletir isto)
 - Tema central do roteiro: ${facts.coreTopic}
@@ -355,6 +385,7 @@ export function buildTitleFactsBlock(facts = {}) {
 - Nomes, itens e lugares: ${facts.properNouns?.length ? facts.properNouns.join(", ") : "extraia do roteiro"}
 - Palavras-chave do roteiro: ${facts.contentKeywords?.length ? facts.contentKeywords.join(", ") : "—"}
 - Frases-chave: ${facts.keyPhrases?.length ? facts.keyPhrases.join(" | ") : "—"}
+${listicleBlock}
 
 REGRA DE OURO: se um título pudesse servir para outro vídeo do mesmo nicho, ele está ERRADO. Use pelo menos 1 nome, número ou termo específico desta lista em cada título.`;
 }
@@ -382,8 +413,42 @@ export function fitTitleToLimit(text, max, format = "LONG") {
   return null;
 }
 
+function buildListicleTitleCandidates(facts = {}, { format = "LONG" } = {}) {
+  const listicle = facts.listicle;
+  if (!listicle?.isListicle) return [];
+
+  const max = format === "SHORT" ? 40 : 50;
+  const rank = listicle.rankCount || 3;
+  const theme = listicle.topic || facts.coreTopic.replace(/^top\s+\d+\s+/i, "").trim() || "coisas do dia a dia";
+  const itemA = listicle.itemTitles[0] || "";
+  const itemB = listicle.itemTitles[1] || "";
+  const pair = itemA && itemB ? `${itemA} e ${itemB}` : itemA;
+  const hasBizarre = /bizarra|absurda|estranha|inacredit/i.test(theme);
+
+  const templates = [
+    { text: `Top ${rank} coisas com origem bizarra`, angle: "numero" },
+    { text: `Top ${rank} origens bizarras do dia a dia`, angle: "numero" },
+    { text: `Top ${rank} ${theme}`, angle: "numero" },
+    { text: `${rank} objetos do dia a dia — origem absurda`, angle: "paradoxo" },
+    { text: `${rank} coisas que você usa — origem bizarra`, angle: "paradoxo" },
+    { text: `${rank} ${hasBizarre ? theme : "origens bizarras do dia a dia"} — o #1 surpreende`, angle: "cliffhanger" },
+    pair ? { text: `${pair} — origens que ninguém conta`, angle: "nome" } : null,
+    pair ? { text: `${pair} e mais — origens bizarras`, angle: "nome" } : null,
+    { text: `${rank} objetos comuns com história absurda`, angle: "paradoxo" },
+  ].filter(Boolean);
+
+  return templates
+    .map((c) => {
+      const fitted = fitTitleToLimit(c.text, max, format);
+      if (!fitted) return null;
+      return { text: fitted, angle: c.angle, chars: fitted.length, _source: "fallback" };
+    })
+    .filter(Boolean);
+}
+
 export function generateTitlesFromFacts(facts = {}, { format = "LONG" } = {}) {
   const max = format === "SHORT" ? 40 : 50;
+  const listicleCandidates = buildListicleTitleCandidates(facts, { format });
   const noun = facts.properNouns?.find((n) => isValidTitleNoun(n)) || "";
   const noun2 = facts.properNouns?.filter((n) => n !== noun).find((n) => isValidTitleNoun(n)) || "";
   const num = facts.numbers?.find((n) => !/^\d+\.\d+$/.test(String(n).replace(/\s/g, ""))) || "";
@@ -392,21 +457,21 @@ export function generateTitlesFromFacts(facts = {}, { format = "LONG" } = {}) {
   const phrase = facts.keyPhrases?.find((p) => p.split(/\s+/).length >= 3) || "";
   const twistWords = sanitizeTitle(facts.twist).split(/\s+/).slice(0, 5).join(" ");
   const topMatch = topic.match(/^top\s+(\d+)\s+(.+)$/i);
-  const isListicle = Boolean(topMatch);
+  const isListicle = Boolean(topMatch) || facts.listicle?.isListicle;
 
   const candidates = [
-    isListicle && topMatch ? { text: `Top ${topMatch[1]} ${topMatch[2]} imperiais`, angle: "numero" } : null,
-    isListicle && topMatch ? { text: `${topMatch[1]} ${topMatch[2]} que mudaram tudo`, angle: "numero" } : null,
+    ...listicleCandidates,
+    isListicle && topMatch ? { text: `Top ${topMatch[1]} ${topMatch[2]}`, angle: "numero" } : null,
     isListicle && topMatch ? { text: `${topMatch[1]} ${topMatch[2]} — o último surpreende`, angle: "cliffhanger" } : null,
-    num && noun ? { text: `${num}: o lado oculto de ${noun}`, angle: "numero" } : null,
-    noun ? { text: `Por que ${noun} ainda importa hoje`, angle: "pergunta" } : null,
-    noun && noun2 ? { text: `${noun} e ${noun2} — a ligação real`, angle: "nome" } : null,
-    twistWords.length > 12 ? { text: `${twistWords}, mas há um porém`, angle: "paradoxo" } : null,
+    !isListicle && num && noun ? { text: `${num}: o lado oculto de ${noun}`, angle: "numero" } : null,
+    !isListicle && noun ? { text: `Por que ${noun} ainda importa hoje`, angle: "pergunta" } : null,
+    !isListicle && noun && noun2 ? { text: `${noun} e ${noun2} — a ligação real`, angle: "nome" } : null,
+    !isListicle && twistWords.length > 12 ? { text: `${twistWords}, mas há um porém`, angle: "paradoxo" } : null,
     phrase ? { text: `${phrase} — a versão real`, angle: "paradoxo" } : null,
     num && !isListicle ? { text: `${num} e o impacto até hoje`, angle: "numero" } : null,
-    noun ? { text: `O que ${noun} mudou depois disso`, angle: "lacuna" } : null,
+    !isListicle && noun ? { text: `O que ${noun} mudou depois disso`, angle: "lacuna" } : null,
     topicShort && !isListicle ? { text: `${topicShort} — o detalhe esquecido`, angle: "detalhe" } : null,
-    format === "SHORT" && noun ? { text: `${noun} explicado em 40s`, angle: "cliffhanger" } : null,
+    !isListicle && format === "SHORT" && noun ? { text: `${noun} explicado em 40s`, angle: "cliffhanger" } : null,
     format === "SHORT" && num && !isListicle ? { text: `${num} em 40 segundos`, angle: "numero" } : null,
   ].filter(Boolean);
 
@@ -430,7 +495,15 @@ export function buildTitleRepairPrompt({ titles = [], transcript = "", format = 
   const generated = generateTitlesFromFacts(facts, { format }).slice(0, 3);
   const examples = generated.map((t) => `- [${t.angle}] ${t.text}`).join("\n");
 
+  const listicleRules = facts.listicle?.isListicle
+    ? `
+ESTE É UM LISTICLE TOP ${facts.listicle.rankCount} — tema: ${facts.listicle.topic || facts.coreTopic}
+Itens: ${facts.listicle.itemsLine || facts.listicle.itemTitles.join(" → ")}
+Títulos devem vender o RANKING INTEIRO, não um item isolado. Proibido título só sobre micro-ondas, post-it, etc.`
+    : "";
+
   return `Você é editor de títulos para YouTube em PT-BR. Os títulos abaixo NÃO representam o vídeo real — estão genéricos ou sobre outro assunto. Reescreva os 5 títulos do zero, ancorados no roteiro.
+${listicleRules}
 
 FORMATO: ${format === "SHORT" ? "Shorts" : "Vídeo longo"}
 LIMITE: ${maxChars} caracteres cada (rigoroso)
@@ -556,6 +629,24 @@ export function scoreTitle(text = "", format = "LONG", facts = {}) {
     const topicWords = facts.coreTopic.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
     const overlap = topicWords.filter((w) => t.toLowerCase().includes(w)).length;
     score += Math.min(overlap * 4, 16);
+  }
+
+  if (facts.listicle?.isListicle) {
+    const rank = facts.listicle.rankCount || 3;
+    if (/\btop\s*\d+\b/i.test(t) || new RegExp(`\\b${rank}\\b`).test(t)) score += 18;
+    if (facts.listicle.topic) {
+      const themeWords = facts.listicle.topic.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
+      const themeHits = themeWords.filter((w) => t.toLowerCase().includes(w)).length;
+      score += Math.min(themeHits * 5, 15);
+    }
+    const itemHits = (facts.listicle.itemTitles || []).filter((item) => {
+      const probe = String(item).toLowerCase().split(/\s+/).find((w) => w.length > 4) || "";
+      return probe && t.toLowerCase().includes(probe);
+    }).length;
+    if (itemHits === 1 && !/\btop\s*\d+\b/i.test(t) && !new RegExp(`\\b${rank}\\b`).test(t)) {
+      score -= 30;
+    }
+    if (itemHits >= 2) score += 8;
   }
 
   if (t.split(/\s+/).length <= 3 && format === "SHORT") score += 5;

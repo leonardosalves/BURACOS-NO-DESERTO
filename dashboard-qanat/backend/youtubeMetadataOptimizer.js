@@ -7,6 +7,7 @@ import {
 import {
   buildListicleYoutubeChapters,
   isListicleProject,
+  resolveListicleContext,
 } from "./videoProEnhancements.js";
 import {
   buildTitleCraftRules,
@@ -179,21 +180,63 @@ function buildThumbnailAbRules(format = "LONG") {
 - Variante C: número, dado ou prova visual`;
 }
 
-function buildStoryContext(storyboard = {}) {
+function buildStoryContext(storyboard = {}, config = {}) {
   const strategy = storyboard.strategy || {};
-  const listicle = storyboard.listicle || {};
-  const listItems = (storyboard.list_items || []).slice(0, 5).map((item) => item?.title).filter(Boolean);
+  const listicleCtx = resolveListicleContext(storyboard, config);
 
-  if (!storyboard.strategy && !listicle.topic && !listItems.length) return "";
+  if (!storyboard.strategy && !listicleCtx && !(storyboard.list_items || []).length) return "";
+
+  const itemDetails = (listicleCtx?.items || [])
+    .slice(0, 5)
+    .map((item) => {
+      const origin = item.origin ? ` (${item.origin.slice(0, 60)})` : "";
+      return `#${item.rank || "?"} ${item.title}${origin}`;
+    })
+    .join("\n- ");
 
   return `
 Contexto auxiliar (NÃO substitui o roteiro — use só se estiver alinhado com a narração):
 - Título de planejamento: ${strategy.title_main || "N/A"}
-- Modo listicle: ${listicle.topic ? `Top ${listicle.rank_count || "?"} — ${listicle.topic}` : "não"}
-- Itens do ranking: ${listItems.length ? listItems.join(", ") : "N/A"}
-- Hook planejado: ${strategy.hook || "N/A"}
+- Modo listicle: ${listicleCtx ? `Top ${listicleCtx.rankCount} — ${listicleCtx.topic || listicleCtx.coreTopic}` : "não"}
+- Tema do ranking: ${listicleCtx?.topic || config.list_topic || "N/A"}
+- Itens do ranking:
+- ${itemDetails || "N/A"}
+- Hook planejado: ${strategy.hook || storyboard?.listicle?.controversy_hook || "N/A"}
 - Tom: ${strategy.tone || "N/A"}
 `;
+}
+
+function buildListicleMetadataRules(listicleCtx = {}, format = "LONG") {
+  if (!listicleCtx?.isListicle) return "";
+
+  const maxChars = format === "SHORT" ? 40 : 50;
+
+  return `
+## FORMATO LISTICLE / RANKING (PRIORIDADE MÁXIMA — sobrepõe fórmulas genéricas)
+
+Este vídeo é um TOP ${listicleCtx.rankCount} sobre: ${listicleCtx.topic || listicleCtx.coreTopic}
+Itens na ordem do vídeo: ${listicleCtx.itemsLine || listicleCtx.itemTitles.join(" → ")}
+
+REGRAS DE TÍTULO (${maxChars} chars cada):
+- Os 5 títulos vendem o VÍDEO INTEIRO (o ranking Top ${listicleCtx.rankCount}), NÃO um item isolado
+- PROIBIDO título que fale só de 1 item (ex: só "Micro-ondas em 1945" ou só "Post-it em 1968")
+- Título #1 RECOMENDADO: incluir "Top ${listicleCtx.rankCount}" ou o número + tema do ranking
+- Máximo 2 dos 5 títulos podem citar 1 item — sempre com o conceito do ranking junto
+- Ângulos: curiosidade do conjunto, "você usa todo dia", origem bizarra/absurda, cliffhanger do #1
+
+DESCRIÇÃO (listicle):
+- Linha 1: Top ${listicleCtx.rankCount} + tema + gancho
+- Mencione os ${listicleCtx.rankCount} itens pelo nome (${listicleCtx.itemTitles.join(", ")})
+- Comentário pinado: pergunta de escolha entre os itens ou "qual origem te surpreendeu mais?"
+
+EXEMPLOS BONS (estilo, não copie):
+- "Top 3 objetos do dia a dia com origem bizarra"
+- "3 coisas que você usa — a origem é absurda"
+- "${listicleCtx.itemTitles.slice(0, 2).join(", ")} e mais — origens bizarras"
+
+EXEMPLOS RUINS (NÃO gere):
+- Título só sobre 1 item do ranking
+- Títulos genéricos sem "Top ${listicleCtx.rankCount}" ou tema do vídeo`;
 }
 
 function buildShortMetadataRules() {
@@ -308,9 +351,11 @@ export function buildYoutubeMetadataPrompt({
   profile = {},
   rpmHint = {},
 }) {
-  const storyContext = buildStoryContext(storyboard);
-  const titleFacts = extractTitleFacts({ transcript, storyboard });
+  const listicleCtx = resolveListicleContext(storyboard, config);
+  const storyContext = buildStoryContext(storyboard, config);
+  const titleFacts = extractTitleFacts({ transcript, storyboard, config });
   const titleFactsBlock = buildTitleFactsBlock(titleFacts);
+  const listicleRules = buildListicleMetadataRules(listicleCtx, format);
   const nicheStrategy = buildNicheStrategyBlock({ category, profile, rpmHint, format });
   const formatRules = format === "SHORT" ? buildShortMetadataRules() : buildLongMetadataRules();
   const durationHint = totalDuration > 0
@@ -362,6 +407,8 @@ ${THUMBNAIL_OUTPUT_TEMPLATE}`;
 PRIORIDADE ABSOLUTA: os títulos devem descrever EXATAMENTE o assunto deste vídeo específico, usando nomes, números e termos que aparecem no roteiro. Títulos genéricos de nicho ou clickbait sem ligação ao conteúdo serão rejeitados.
 
 ${titleFactsBlock}
+
+${listicleRules}
 
 Roteiro do Vídeo (FONTE PRINCIPAL — leia inteiro antes de escrever qualquer título):
 --- INÍCIO DO ROTEIRO ---
@@ -451,20 +498,33 @@ export function buildFallbackYoutubeMetadata({
   const nicheTags = NICHE_TAG_POOLS[resolvedCategory] || NICHE_TAG_POOLS.default;
   const keywords = extractKeywords(`${baseTitle} ${hook} ${transcript}`, 12);
   const tags = [...new Set([...keywords, ...nicheTags])].slice(0, format === "SHORT" ? 12 : 15);
-  const titleFacts = extractTitleFacts({ transcript, storyboard });
-  const titlesBlock = buildFallbackTitles({ baseTitle, category: resolvedCategory, profile, format, facts: titleFacts });
+  const titleFacts = extractTitleFacts({ transcript, storyboard, config });
+  const listicleCtx = resolveListicleContext(storyboard, config);
+  const titlesBlock = buildFallbackTitles({
+    baseTitle: listicleCtx?.coreTopic || baseTitle,
+    category: resolvedCategory,
+    profile,
+    format,
+    facts: titleFacts,
+  });
   const parsedTitles = parseYoutubeMetadataMarkdown(`## TÍTULOS\n${titlesBlock}`).titles;
   const thumbnailsBlock = buildFallbackThumbnails({ titles: parsedTitles, rpmHint, format });
 
   if (format === "SHORT") {
     const hashtags = `#Shorts #${nicheTags[0].replace(/\s/g, "")} #${nicheTags[1]?.replace(/\s/g, "") || "curiosidades"}`;
+    const listicleIntro = listicleCtx
+      ? `${listicleCtx.coreTopic}. ${listicleCtx.itemTitles.join(", ")}.`
+      : "";
+    const pinnedListicle = listicleCtx?.itemTitles?.length
+      ? `Qual origem te surpreendeu mais? ${listicleCtx.itemTitles.map((t, i) => `${i + 1}) ${t}`).join(" · ")}`
+      : "Você já sabia disso? Comenta: Sim, Não ou Só metade — quero ver quantos se surpreenderam.";
     return `## TÍTULOS
 
 ${titlesBlock}
 
 ## DESCRIÇÃO
 
-${hook}
+${listicleIntro || hook}
 
 ${getFirstSentences(transcript, 1)}
 
@@ -482,7 +542,7 @@ ${tags.join(", ")}
 
 ## COMENTÁRIO PINADO
 
-Você já sabia disso? Comenta: Sim, Não ou Só metade — quero ver quantos se surpreenderam.
+${pinnedListicle}
 
 ${thumbnailsBlock}`;
   }

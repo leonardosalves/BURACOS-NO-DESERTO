@@ -5984,8 +5984,8 @@ function buildProjectTranscript({ transcript, config, storyboard }) {
 
 }
 
-async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboard, apiKey }) {
-  const facts = extractTitleFacts({ transcript, storyboard });
+async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboard, config = {}, apiKey }) {
+  const facts = extractTitleFacts({ transcript, storyboard, config });
   let parsed = parseYoutubeMetadataMarkdown(text);
   parsed = applyTitleQualityToParsed(parsed, { format, facts });
 
@@ -6181,6 +6181,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
         transcript,
         format,
         storyboard,
+        config,
         apiKey: extra.fallback ? null : apiKeyForTitles,
       });
       const payload = {
