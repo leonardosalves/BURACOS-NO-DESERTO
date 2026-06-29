@@ -319,6 +319,7 @@ import {
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
 } from './timelineNarrationSync';
+import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
@@ -7328,7 +7329,15 @@ export default function App() {
 
 
   const saveConfig = async (updatedConfig: ConfigData) => {
-    const configToSave = enrichTimelineAudioStarts(updatedConfig);
+    const { timeline: sanitizedTimeline, removed: dupesRemoved } = sanitizeTimelineAssets(updatedConfig.timeline_assets);
+    const baseConfig = dupesRemoved > 0
+      ? { ...updatedConfig, timeline_assets: sanitizedTimeline }
+      : updatedConfig;
+    if (dupesRemoved > 0) {
+      toast.info(`Removidos ${dupesRemoved} asset(s) repetido(s) consecutivos na timeline.`);
+      setConfig(baseConfig);
+    }
+    const configToSave = enrichTimelineAudioStarts(baseConfig);
 
 
 

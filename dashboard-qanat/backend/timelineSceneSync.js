@@ -206,22 +206,57 @@ export function getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, c
   return null;
 }
 
+/** Remove o mesmo arquivo de mídia em slots consecutivos (evita B-roll repetido). */
+export function dedupeConsecutiveTimelineAssets(assets) {
+  if (!Array.isArray(assets)) return [];
+  const result = [];
+  for (const asset of assets) {
+    const path = String(asset?.asset || "").trim();
+    const last = result[result.length - 1];
+    if (path && last && String(last?.asset || "").trim() === path) continue;
+    result.push(asset);
+  }
+  return result;
+}
+
+/**
+ * Garante que cada cena termina quando a próxima começa — sem sobreposição que deixa vestígio.
+ */
+export function normalizeBlockSceneTimings(timings, blockEnd = Infinity) {
+  if (!Array.isArray(timings) || timings.length === 0) return [];
+  const sorted = [...timings].sort((a, b) => a.start - b.start || a.index - b.index);
+  const out = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const t = { ...sorted[i] };
+    const nextStart = i < sorted.length - 1 ? sorted[i + 1].start : blockEnd;
+    if (Number.isFinite(nextStart) && nextStart > t.start) {
+      t.duration = Math.max(0.5, Math.min(t.duration, nextStart - t.start));
+    }
+    out.push(t);
+  }
+  return out;
+}
+
 /**
  * Build { start, duration } for each asset in a block.
  * Prefers persisted audio_start; falls back to transcript-anchored sequential layout.
  */
 export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTranscriptWords, context = {}) {
-  if (!Array.isArray(assets) || assets.length === 0) return [];
+  const cleanAssets = dedupeConsecutiveTimelineAssets(assets);
+  if (cleanAssets.length === 0) return [];
 
-  const narrationAnchor = getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, context);
+  const blockEnd = Number(context.blockEnd);
+  const safeBlockEnd = Number.isFinite(blockEnd) ? blockEnd : Infinity;
+
+  const narrationAnchor = getBlockNarrationAnchor(blockNum, cleanAssets, flatTranscriptWords, context);
   const fallbackBlockStart = Number(context.blockStart);
   const anchor = narrationAnchor ?? (Number.isFinite(fallbackBlockStart) ? fallbackBlockStart : 0);
 
   let sequentialCursor = anchor;
   const timings = [];
 
-  assets.forEach((asset, index) => {
-    const duration = Math.max(0.5, computeAssetDuration(asset, assets, blockDuration));
+  cleanAssets.forEach((asset, index) => {
+    const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration));
     let start;
 
     if (asset?.audio_start !== undefined && asset?.audio_start !== null && Number.isFinite(Number(asset.audio_start))) {
@@ -235,7 +270,7 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
     timings.push({ index, start, duration, asset });
   });
 
-  return timings;
+  return normalizeBlockSceneTimings(timings, safeBlockEnd);
 }
 
 export function blockHasExplicitSync(assets) {
