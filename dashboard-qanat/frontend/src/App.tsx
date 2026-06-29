@@ -6173,7 +6173,7 @@ export default function App() {
         if (!data.overlayCount || data.overlayCount < 1) {
           setRendering(false);
           setRenderProgress(null);
-          toast.error('Gemini não gerou overlays válidos. Reabra o Chrome e tente o render novamente.');
+          toast.error(data.error || 'Gemini não gerou overlays válidos. Reabra o Chrome e tente o render novamente.');
           return;
         }
         setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount} overlays enriquecidos planejados (sem repetir narração).`]);
