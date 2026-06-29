@@ -153,7 +153,7 @@ const LISTICLE_RANKING_ARCHETYPES = [
   "mais lucrativos / de maior ROI / impacto econômico",
 ];
 
-export function buildListicleRankingIdeasPrompt({ niche = "", format = "LONGO" } = {}) {
+export function buildListicleRankingIdeasPrompt({ niche = "", format = "LONGO", compact = false } = {}) {
   const archetypes = LISTICLE_RANKING_ARCHETYPES.map((a, i) => `${i + 1}. ${a}`).join("\n");
   const isShorts = format === "SHORTS";
   const formatRules = isShorts
@@ -173,11 +173,13 @@ Formato preferido: ${format}${isShorts ? " (SHORTS — apenas Top 3 e Top 5)" : 
 
 SUA MISSÃO: Sugerir exatamente 12 ideias de RANKINGS interessantes, específicos e variados DENTRO desse nicho — não títulos genéricos.
 
-${buildNicheIsolationAddendum(niche)}
+${compact
+  ? `- Foque só no nicho "${niche}". Varie ângulos (subestimados, controversos, recordes, etc.).`
+  : `${buildNicheIsolationAddendum(niche)}
 
 ${buildNicheVarietyInstruction(niche)}
 
-${SCRIPT_CREATIVE_REINFORCEMENT}
+${SCRIPT_CREATIVE_REINFORCEMENT}`}
 
 ARQUÉTIPOS DE RANKING (use pelo menos 8 tipos diferentes entre as 12 ideias):
 ${archetypes}
@@ -249,12 +251,15 @@ function normalizeRankingIdeaItem(item = {}) {
 }
 
 export function normalizeListicleIdeasResponse(data = {}, { format = "LONGO" } = {}) {
+  if (Array.isArray(data)) {
+    return normalizeListicleIdeasResponse({ ranking_ideas: data }, { format });
+  }
   if (!data || typeof data !== "object") {
     return { niche_analysis: {}, ranking_ideas: [], best_index: 0, best_reason: "" };
   }
 
   const ideasKey = Object.keys(data).find((k) =>
-    /ranking_ideas|rankingideas|ideias_ranking|ideias_de_ranking|rankings|rankingideas/i.test(k),
+    /ranking_ideas|rankingideas|ideias_ranking|ideias_de_ranking|lista_rankings|rankings|ideias/i.test(k),
   );
   const analysisKey = Object.keys(data).find((k) =>
     /niche_analysis|analise_nicho|nicheanalysis|analise_do_nicho/i.test(k),
@@ -310,13 +315,14 @@ export function buildListicleScriptRules({
 } = {}) {
   const orderDesc = rankOrder !== "asc";
   const itemBlocks = blockCount - 2;
+  const isShortsTop3 = format === "SHORTS" && itemBlocks <= 3;
   const wordsPerItem = format === "SHORTS"
-    ? (itemBlocks >= 5 ? "20-35" : "25-40")
+    ? (isShortsTop3 ? "15-22" : "20-30")
     : "80-140";
   const totalWords = format === "SHORTS"
-    ? (itemBlocks >= 5 ? "140-200" : "100-160")
+    ? (isShortsTop3 ? "65-95" : "110-150")
     : `${itemBlocks * 90}-${itemBlocks * 150}`;
-  const shortsDuration = itemBlocks >= 5 ? "45-60 segundos" : "35-50 segundos";
+  const shortsDuration = isShortsTop3 ? "30-45 segundos" : "45-60 segundos";
 
   return `
 MODO LISTICLE / TOP N — ESTRUTURA OBRIGATÓRIA (prioridade sobre regras de documentário padrão):
@@ -335,10 +341,20 @@ ESTRUTURA DOS BLOCOS:
     1. Chamada do ranking ("Número ${orderDesc ? "X" : "X"}..." ou "Em ${orderDesc ? "X" : "X"}º lugar...")
     2. Nome do item/invenção/evento (claro e específico)
     3. Contexto: ano, inventor, país ou civilização (quando aplicável)
-    4. 2 fatos concretos que surpreendem
-    5. Impacto no mundo moderno (1 frase)
-    6. Ponte curta para o próximo item (exceto no último item antes do outro)
-- Bloco ${blockCount} (OUTRO): recap do top 3 + pergunta para comentários ("qual você colocaria em 1º?") + CTA leve
+    4. ${format === "SHORTS" ? "1 fato concreto que surpreende (o mais forte — não enfileire fatos)" : "2 fatos concretos que surpreendem"}
+    5. Impacto no mundo moderno (1 frase curta)
+    6. Ponte oral de 3-5 palavras para o próximo item (exceto no último item antes do outro)
+- Bloco ${blockCount} (OUTRO): ${format === "SHORTS" ? "1 frase de recap + pergunta para comentários" : "recap do top 3 + pergunta para comentários (\"qual você colocaria em 1º?\") + CTA leve"}
+${format === "SHORTS" ? `
+NARRAÇÃO SHORTS — HUMANA, ENXUTA E CLARA (prioridade máxima):
+- TOTAL: ${totalWords} palavras. Se passar do teto, CORTE antes de entregar — menos é mais.
+- Por item: ~${wordsPerItem} palavras — nome + 1 fato forte + 1 linha de impacto. Proibido empilhar 3 fatos no mesmo item.
+- Intro: máximo 2 frases curtas (gancho + promessa do ranking).
+- Tom oral PT-BR: como quem CONTA ao vivo — use transições naturais ("Olha isso", "E o mais insano?", "Agora o topo").
+- Frases de até 10-12 palavras na maioria. Ritmo de countdown, zero enrolação.
+- O telespectador deve entender a mensagem de CADA item na primeira escuta, mesmo sem conhecer o tema.
+- 1 ideia por frase. Se uma frase não avança o ranking, remova.
+` : ""}
 
 NARRAÇÃO CINEMATOGRÁFICA (narrative_script_tagged):
 - [pausa] antes de cada número do ranking e antes do #1
@@ -347,8 +363,9 @@ NARRAÇÃO CINEMATOGRÁFICA (narrative_script_tagged):
 - narrative_script = texto limpo SEM marcadores
 
 REGRAS DE NARRAÇÃO:
-- ${totalWords} palavras no total
+- ${totalWords} palavras no total (teto rígido — prefira ficar abaixo do máximo)
 - ~${wordsPerItem} palavras por item
+- Humanize: linguagem falada, transições orais, zero tom de redação ou Wikipedia
 - Frases curtas, ritmo de countdown — sem enrolação entre itens
 - NUNCA pule um número da lista; NUNCA repita o mesmo item
 - Itens devem ser REAIS e verificáveis — sem invenção fictícia
@@ -701,11 +718,13 @@ ${isListicle
 ${cinematicNarrationRules}
 
 REGRAS DESTA FASE:
-- Narração humana, fluida, natural — como alguém contando para um amigo inteligente.
-- Revise cada frase: elimine tom robótico, clichês de IA e trechos desconexos.
+- HUMANIZE: escreva como narração FALADA — alguém contando ao vivo para um amigo curioso. Frases que soam bem em voz alta.
+- RESUMA AO MÁXIMO: cada palavra deve carregar informação. Corte adjetivos vazios, repetições e frases que não avançam a mensagem.
+- CLAREZA: o telespectador precisa entender a tese do vídeo e cada item do ranking na primeira escuta — sem jargão sem explicação.
+- Revise cada frase: elimine tom robótico, clichês de IA, tom de redação escolar e trechos desconexos.
 - Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
 - ${isListicle
-    ? `Estruture mentalmente em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro), mas entregue a narração em texto corrido.`
+    ? `Estruture mentalmente em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro), mas entregue a narração em texto corrido. ${format === "SHORTS" && listicleRank <= 3 ? "Top 3 Short: máximo ~90 palavras, 1 fato forte por item." : ""}`
     : format === "SHORTS"
       ? "30-50 segundos, ~80-130 palavras, uma ideia clara com virada e payoff."
       : "10-20 minutos, 1500-3000 palavras, narrativa profunda e imersiva."}
@@ -811,22 +830,44 @@ export function buildNarrationHumanizeRepairPrompt({
   narrative_script = "",
   narrative_script_tagged = "",
   blockCount = 12,
-}) {
-  return `Você é um roteirista brasileiro especialista em narração natural para YouTube.
+  isListicle = false,
+  listicleRank = 20,
+  listTopic = "",
+} = {}) {
+  const wordCeiling = format === "SHORTS"
+    ? (isListicle && listicleRank <= 3 ? 95 : isListicle ? 150 : 130)
+    : null;
 
-A narração abaixo pode estar robótica ou confusa. REESCREVA apenas os campos de narração.
+  const listicleNote = isListicle
+    ? `
+MODO LISTICLE TOP ${listicleRank}${listTopic ? ` — "${listTopic}"` : ""}:
+- Mantenha TODOS os ${listicleRank} itens do ranking na ordem correta — não pule nem funda itens.
+- Por item: nome + 1 fato forte + impacto em 1 frase. Proibido empilhar vários fatos no mesmo item.
+- Transições orais curtas entre itens ("Agora o #2", "E em primeiro lugar...").
+${wordCeiling ? `- TETO: ${wordCeiling} palavras no total. Se passar, CORTE até caber — priorize clareza sobre volume.` : ""}`
+    : "";
+
+  return `Você é um roteirista brasileiro especialista em narração natural, enxuta e clara para YouTube.
+
+A narração abaixo pode estar robótica, longa demais ou confusa. REESCREVA apenas os campos de narração.
 
 FORMATO: ${format}
 TÍTULO: ${ideaTitle}
 BLOCOS ESPERADOS (estrutura mental): ${blockCount}
+${listicleNote}
 
 NARRAÇÃO ATUAL:
 ${JSON.stringify({ narrative_script, narrative_script_tagged }, null, 2).slice(0, 10000)}
 
+OBJETIVO: deixar a narração O MAIS RESUMIDA POSSÍVEL sem perder clareza — o telespectador deve compreender a mensagem do vídeo na primeira escuta.
+
 TAREFAS:
-1. Reescreva "narrative_script" em PT-BR natural — frases que soam bem em voz alta.
-2. Reescreva "narrative_script_tagged" com as mesmas palavras + tags ([pause], (breath), [pausa], [ênfase], etc.).
-3. Mantenha a tese e estrutura; remova clichês de IA e trechos vazios.
+1. Reescreva "narrative_script" em PT-BR natural e HUMANO — como quem CONTA ao vivo, não quem LÊ um texto.
+2. ENXUGUE: remova adjetivos vazios, repetições, frases de preenchimento e explicações redundantes. 1 fato forte > 3 fatos fracos.
+3. Mantenha nomes, datas, números e o nome de cada item do ranking (âncoras de credibilidade).
+4. Frases curtas (maioria com até 12 palavras). Uma ideia por frase.
+5. Reescreva "narrative_script_tagged" com as MESMAS palavras + tags ([pause], (breath), [pausa], [ênfase], [rápido], [lento]).
+6. Mantenha a tese e a estrutura; remova clichês de IA ("neste vídeo", "prepare-se", "incrível" sem prova).
 
 Responda APENAS JSON:
 {

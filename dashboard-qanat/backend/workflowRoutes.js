@@ -50,13 +50,15 @@ export function registerWorkflowRoutes(app, deps) {
     buildTimelineFromStoryboard,
     enhanceYoutubeTitlesMetadata,
     callGeminiWithRetry,
+    callGeminiLlm,
     generateMetadataWithXai,
     generateYoutubeThumbnailImages,
     runAutoSoundtrackLogic,
     readJsonFile,
   } = deps;
 
-  async function generateYoutubeMetadataForProject(projDir) {
+  async function generateYoutubeMetadataForProject(projDir, ctx = {}) {
+    const { req, res } = ctx;
     const apiKeys = getApiKeys(projDir);
     const xaiKey = getXaiApiKey(projDir);
     const aiProvider = getAiProvider(projDir);
@@ -96,6 +98,38 @@ export function registerWorkflowRoutes(app, deps) {
 
     if (aiProvider === "xai" && xaiKey) {
       text = await generateMetadataWithXai(prompt, xaiKey, format);
+    } else if (req && res && callGeminiLlm) {
+      try {
+        const responseText = await callGeminiLlm(req, res, projDir, {
+          title: "Metadados YouTube (SEO)",
+          prompt,
+          temperature: 0.55,
+        });
+        if (responseText == null) {
+          const err = new Error("Gemini browser pending");
+          err.geminiBrowserPending = true;
+          throw err;
+        }
+        text = responseText;
+      } catch (geminiErr) {
+        if (geminiErr.geminiBrowserPending) throw geminiErr;
+        if (xaiKey) {
+          text = await generateMetadataWithXai(prompt, xaiKey, format);
+        } else {
+          text = buildFallbackYoutubeMetadata({
+            transcript,
+            chaptersText,
+            storyboard,
+            config,
+            format,
+            niche,
+            category,
+            profile,
+            rpmHint,
+          });
+          fallback = true;
+        }
+      }
     } else {
       try {
         text = await callGeminiWithRetry(apiKeys[0], prompt, { temperature: 0.55 });
@@ -351,7 +385,7 @@ export function registerWorkflowRoutes(app, deps) {
       const projDir = getProjectDir(req);
       const logs = [];
       const result = await runPublishPrep(projDir, {
-        generateMetadata: generateYoutubeMetadataForProject,
+        generateMetadata: (dir) => generateYoutubeMetadataForProject(dir, { req, res }),
         generateThumbnails: async (dir, metadata) => generateYoutubeThumbnailImages({
           projectDir: dir,
           projectName: path.basename(dir),
@@ -363,6 +397,7 @@ export function registerWorkflowRoutes(app, deps) {
       });
       res.json({ ...result, logs });
     } catch (err) {
+      if (err?.geminiBrowserPending) return;
       res.status(500).json({ error: err.message });
     }
   });

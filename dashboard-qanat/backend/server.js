@@ -53,6 +53,16 @@ import {
 } from "./thumbnailExperiment.js";
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
+import {
+  getGeminiBrowserMode,
+  buildBrowserChatPrompt,
+  buildBrowserTaskPrompt,
+  buildPromptFromBodyOverride,
+  extractBrowserResponse,
+  offerGeminiBrowserPayload,
+  GEMINI_BROWSER_INSTRUCTIONS,
+  GEMINI_BROWSER_PENDING,
+} from "./geminiBrowser.js";
 import { analyzeSceneGaps, fetchStockForScenes, generateNarrationTts, runPublishPrep } from "./workflowTools.js";
 import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import {
@@ -5243,34 +5253,57 @@ function parseJsonCandidate(text) {
 
 }
 
+function parseJsonLocally(responseText) {
+  const variants = [
+    responseText,
+    String(responseText || "").replace(/^\uFEFF/, "").trim(),
+    extractJsonCandidate(responseText),
+  ];
+  const seen = new Set();
+  let lastError = null;
+  for (const base of variants) {
+    if (!base || seen.has(base)) continue;
+    seen.add(base);
+    const candidate = extractJsonCandidate(base);
+    const attempts = [
+      candidate,
+      candidate.replace(/,\s*([}\]])/g, "$1"),
+      candidate.replace(/[""]/g, '"').replace(/['']/g, "'").replace(/,\s*([}\]])/g, "$1"),
+      candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
+    ];
+    for (const variant of attempts) {
+      try {
+        return JSON.parse(variant);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+  }
+  throw lastError || new Error("JSON inválido");
+}
+
 async function parseAiJsonResponse(responseText, apiKey, contextLabel = "resposta da IA") {
-
   try {
-
-    return parseJsonCandidate(responseText);
-
+    return parseJsonLocally(responseText);
   } catch (firstError) {
+    if (!apiKey) {
+      throw new Error(
+        `${contextLabel}: resposta do Gemini não veio em JSON válido. `
+        + "Tente de novo ou desative o modo navegador e use a API.",
+      );
+    }
 
     const candidate = extractJsonCandidate(responseText);
-
     const repairPrompt = `Corrija o texto abaixo para JSON 100% valido. Preserve todos os dados e textos originais, apenas corrija sintaxe JSON, aspas internas, virgulas e escapes. Retorne APENAS o JSON corrigido, sem markdown.\n\n${candidate}`;
 
     try {
-
       const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, { maxRetries: 2, models: ["gemini-1.5-flash", "gemini-2.0-flash"] });
-
-      return parseJsonCandidate(repairedText);
-
+      return parseJsonLocally(repairedText);
     } catch (repairError) {
-
       repairError.message = `${contextLabel}: ${firstError.message}`;
-
       throw repairError;
-
     }
-
   }
-
 }
 
 function normalizeApiKeys(...values) {
@@ -5437,6 +5470,60 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
 
 }
 
+function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
+  const readMode = (configPath) => {
+    const config = readJsonFile(configPath);
+    return getGeminiBrowserMode(config);
+  };
+  return (
+    readMode(path.join(projectDir, "config_qanat.json"))
+    || (projectDir !== WORKSPACE_DIR ? readMode(path.join(WORKSPACE_DIR, "config_qanat.json")) : false)
+  );
+}
+
+function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
+  return getAiProvider(projectDir) === "gemini" && isGeminiBrowserModeEnabled(projectDir);
+}
+
+/**
+ * Ponto único: API Gemini ou modo navegador (extensão / copiar-colar).
+ * Retorna texto da IA, ou null se já respondeu com needs_browser.
+ */
+async function callGeminiLlm(req, res, projDir, {
+  title = "Consulta IA Lumiera",
+  prompt = null,
+  bodyOverride = null,
+  temperature = null,
+} = {}) {
+  const browserText = extractBrowserResponse(req.body);
+  if (browserText) return browserText;
+
+  if (shouldOfferGeminiBrowser(projDir)) {
+    const promptText = bodyOverride
+      ? buildPromptFromBodyOverride(bodyOverride)
+      : buildBrowserTaskPrompt(title, String(prompt ?? ""));
+    res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+    return null;
+  }
+
+  const provider = getAiProvider(projDir);
+  if (provider === "gemini") {
+    const apiKey = getApiKey(projDir);
+    if (!apiKey) {
+      res.status(401).json({
+        error: "Chave de API não configurada. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+      });
+      return null;
+    }
+  }
+
+  return callGeminiWithRetry(getApiKey(projDir), prompt, {
+    bodyOverride,
+    temperature,
+    projectDir: projDir,
+  });
+}
+
 function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
 
   const globalCfg = loadRenderConfig(__dirname);
@@ -5547,6 +5634,10 @@ app.get("/api/ai/key-status", (req, res) => {
 
     return res.json({ has_key: !!getXaiApiKey(projDir), provider: "xai" });
 
+  }
+
+  if (provider === "gemini" && isGeminiBrowserModeEnabled(projDir)) {
+    return res.json({ has_key: true, provider: "gemini", browser_mode: true, key_count: 0 });
   }
 
   const configuredKeys = getApiKeys(projDir);
@@ -5665,7 +5756,9 @@ app.get("/api/ai/settings", (req, res) => {
 
     has_openrouter_key: !!getOpenRouterApiKey(projDir),
 
-    has_epidemic_key: true
+    has_epidemic_key: true,
+
+    gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
 
   });
 
@@ -5677,7 +5770,7 @@ app.post("/api/ai/settings", (req, res) => {
 
   const configPath = path.join(projDir, "config_qanat.json");
 
-  const { provider, gemini_model, gemini_key, gemini_keys, xai_key, openrouter_key, epidemic_sound_key } = req.body || {};
+  const { provider, gemini_model, gemini_key, gemini_keys, xai_key, openrouter_key, epidemic_sound_key, gemini_browser_mode } = req.body || {};
 
   try {
 
@@ -5731,6 +5824,10 @@ app.post("/api/ai/settings", (req, res) => {
 
     }
 
+    if (typeof gemini_browser_mode === "boolean") {
+      config.gemini_browser_mode = gemini_browser_mode;
+    }
+
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
     res.json({
@@ -5749,7 +5846,9 @@ app.post("/api/ai/settings", (req, res) => {
 
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
 
-      has_epidemic_key: true
+      has_epidemic_key: true,
+
+      gemini_browser_mode: getGeminiBrowserMode(config),
 
     });
 
@@ -5901,15 +6000,7 @@ app.post("/api/ai/chat", async (req, res) => {
 
   const projDir = getProjectDir(req);
 
-  const apiKey = getApiKey(projDir);
-
-  if (!apiKey) {
-
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada. Configure-a na aba Agente IA." });
-
-  }
-
-  const { messages } = req.body;
+  const { messages, browser_response } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
 
@@ -5941,7 +6032,11 @@ app.post("/api/ai/chat", async (req, res) => {
 
     };
 
-    const responseText = await callGeminiWithRetry(apiKey, null, { bodyOverride: chatBody });
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Assistente Lumiera",
+      bodyOverride: chatBody,
+    });
+    if (responseText == null) return;
 
     res.json({ text: responseText || "Desculpe, não consegui obter uma resposta." });
 
@@ -5968,6 +6063,8 @@ app.post("/api/ai/execute-action", async (req, res) => {
   }
 
   const results = [];
+
+  try {
 
   for (const action of actions) {
 
@@ -6094,7 +6191,7 @@ app.post("/api/ai/execute-action", async (req, res) => {
             break;
           }
           const prep = await runPublishPrep(projDir, {
-            generateMetadata: workflowApi.generateYoutubeMetadataForProject,
+            generateMetadata: (dir) => workflowApi.generateYoutubeMetadataForProject(dir, { req, res }),
             generateThumbnails: async (dir, metadata) => generateYoutubeThumbnailImages({
               projectDir: dir,
               projectName: path.basename(dir),
@@ -6147,14 +6244,18 @@ app.post("/api/ai/execute-action", async (req, res) => {
       }
 
     } catch (err) {
-
+      if (err?.geminiBrowserPending) throw err;
       results.push({ type: action.type, status: "error", message: err.message });
-
     }
 
   }
 
   res.json({ results });
+
+  } catch (err) {
+    if (err?.geminiBrowserPending) return;
+    res.status(500).json({ error: err.message });
+  }
 
 });
 
@@ -6379,7 +6480,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
   const openrouterKey = getOpenRouterApiKey(projDir);
 
-  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey)) {
+  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey) && !shouldOfferGeminiBrowser(projDir)) {
 
     return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
 
@@ -6526,9 +6627,12 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     try {
 
-      const apiKey = apiKeys[0];
-
-      const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.55 });
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Metadados YouTube",
+        prompt,
+        temperature: 0.55,
+      });
+      if (responseText == null) return;
 
       return await respondWithMetadata(responseText || "Erro ao gerar metadados.", { tried_keys: 1 });
 
@@ -7123,14 +7227,6 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
 
   const projDir = getProjectDir(req);
 
-  const apiKey = getApiKey(projDir);
-
-  if (!apiKey) {
-
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-
-  }
-
   try {
 
     const { mode } = req.body; // 'LONGO' or 'SHORTS'
@@ -7271,9 +7367,13 @@ Responda APENAS com um JSON valido no formato:
 
 {"mode": "LONGO", "suggestions": [{"block": 1, "recommendation": "ideia de trilha para este bloco", "search_theme": "3 a 5 palavras-chave em ingles para busca (ex: epic tribal drums action)", "reason": "breve"}], "manual_note": "Escolha manualmente as faixas em Por Bloco."}`;
 
-    const responseText = await callGeminiWithRetry(apiKey, bgmPrompt);
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Sugestão de trilha BGM",
+      prompt: bgmPrompt,
+    });
+    if (responseText == null) return;
 
-    const parsed = await parseAiJsonResponse(responseText, apiKey, "Sugestao de BGM");
+    const parsed = await parseAiJsonResponse(responseText, extractBrowserResponse(req.body) ? null : getApiKey(projDir), "Sugestao de BGM");
 
     res.json(parsed);
 
@@ -8001,14 +8101,6 @@ app.post("/api/ai/generate-creator-script", async (req, res) => {
 
   const projDir = getProjectDir(req);
 
-  const apiKey = getApiKey(projDir);
-
-  if (!apiKey) {
-
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-
-  }
-
   const { prompt, useNotebooklm } = req.body;
 
   if (!prompt) {
@@ -8101,9 +8193,17 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
 
   try {
 
-    const responseText = await callGeminiWithRetry(apiKey, promptSystem);
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Roteiro Creator (12 blocos)",
+      prompt: promptSystem,
+    });
+    if (responseText == null) return;
 
-    const parsedData = await parseAiJsonResponse(responseText, apiKey, "Roteiro/configuracao");
+    const parsedData = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Roteiro/configuracao",
+    );
 
     // Save script to transcripts_readable.txt
 
@@ -8219,13 +8319,7 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 
   const projDir = getProjectDir(req);
 
-  const apiKey = getApiKey(projDir);
-
-  if (!apiKey) {
-
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-
-  }
+  const browserText = extractBrowserResponse(req.body);
 
   const { niche, format, useNotebooklm, contentMode, rankCount, rankOrder, listTopic } = req.body;
 
@@ -8348,9 +8442,19 @@ ENTRADAS:
 NICHO: ${nicheClean}
 FORMATO: ${format}
 ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}`;
-    const responseText = await callGeminiWithRetry(apiKey, fullPrompt, { temperature: 1.15 });
 
-    const parsedData = await parseAiJsonResponse(responseText, apiKey, "Ideias e diagnostico");
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Gerar 10 ideias virais",
+      prompt: fullPrompt,
+      temperature: 1.15,
+    });
+    if (responseText == null) return;
+
+    const parsedData = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Ideias e diagnostico",
+    );
 
     res.json(parsedData);
 
@@ -8369,11 +8473,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
 app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
 
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
+  const browserText = extractBrowserResponse(req.body);
 
   const { niche, format = "LONGO", useNotebooklm } = req.body;
 
@@ -8384,7 +8484,8 @@ app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
   const nicheClean = String(niche).trim();
 
   let notebooklmContext = "";
-  if (useNotebooklm !== false) {
+  const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
+  if (useNotebooklm !== false && !skipNotebooklm) {
     try {
       const research = await fetchNotebooklmResearch(nicheClean, format, {
         backendDir: __dirname,
@@ -8396,15 +8497,26 @@ app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
     }
   }
 
-  const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format })}
+  const useCompactPrompt = skipNotebooklm || !!browserText;
+  const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format, compact: useCompactPrompt })}
 
 ${notebooklmContext}
 
 [ID: ${Date.now()}]`;
 
   try {
-    const responseText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.9 });
-    const raw = await parseAiJsonResponse(responseText, apiKey, "Ranking ideas");
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Sugerir rankings (listicle)",
+      prompt,
+      temperature: 0.9,
+    });
+    if (responseText == null) return;
+
+    const raw = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Ranking ideas",
+    );
     const parsed = normalizeListicleIdeasResponse(raw, { format });
 
     if (!parsed.ranking_ideas?.length) {
@@ -8629,12 +8741,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   const projDir = path.join(targetParentDir, safeProjectName);
 
-  const apiKey = getApiKey(projDir);
+  const settingsDir = getProjectDir(req);
+  const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json")) ? projDir : settingsDir;
 
-  if (!apiKey) {
-
+  if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(settingsDir) && !getApiKey(projDir) && !getApiKey(settingsDir)) {
     return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-
   }
 
   // Automatically create and template project directory on-the-fly if it doesn't exist
@@ -8997,12 +9108,22 @@ REGRAS FINAIS:
   }
 
   let responseText = "";
+  const apiKey = getApiKey(projDir) || getApiKey(settingsDir);
 
   try {
 
-    responseText = await callGeminiWithRetry(apiKey, promptSystem, { temperature: isListicle ? 0.75 : 0.85 });
+    responseText = await callGeminiLlm(req, res, llmDir, {
+      title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
+      prompt: promptSystem,
+      temperature: isListicle ? 0.75 : 0.85,
+    });
+    if (responseText == null) return;
 
-    const rawData = await parseAiJsonResponse(responseText, apiKey, "Roteiro e estrategia");
+    const rawData = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : apiKey,
+      "Roteiro e estrategia",
+    );
 
     let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
 
@@ -9030,6 +9151,9 @@ REGRAS FINAIS:
           narrative_script: parsedData.narrative_script,
           narrative_script_tagged: parsedData.narrative_script_tagged,
           blockCount: listicleBlockCount,
+          isListicle,
+          listicleRank,
+          listTopic: listicleTopic,
         });
         const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
           temperature: 0.55,
@@ -9249,11 +9373,6 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
     return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
   }
 
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
-
   try {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const approvedNarration = String(storyboard.narrative_script || "").trim();
@@ -9280,12 +9399,18 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
       ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
       existingPrompts: storyboard.visual_prompts || [],
     });
-    const vpRepairText = await callGeminiWithRetry(apiKey, vpRepairPrompt, {
+    const vpRepairText = await callGeminiLlm(req, res, projDir, {
+      title: "Reparar prompts visuais",
+      prompt: vpRepairPrompt,
       temperature: 0.6,
-      maxRetries: 2,
-      models: ["gemini-2.0-flash", "gemini-1.5-flash"],
     });
-    const vpRepaired = normalizeKeys(await parseAiJsonResponse(vpRepairText, apiKey, "Repair visual prompts"));
+    if (vpRepairText == null) return;
+
+    const vpRepaired = normalizeKeys(await parseAiJsonResponse(
+      vpRepairText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Repair visual prompts",
+    ));
     storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
     storyboard.narrative_script = approvedNarration;
 
@@ -9334,11 +9459,6 @@ app.get("/api/notebooklm/status", (_req, res) => {
 
 app.post("/api/notebooklm/improve-script", async (req, res) => {
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
 
   const { niche: nicheBody, format: formatBody, useNotebooklm } = req.body || {};
   const storyboardPath = path.join(projDir, "storyboard.json");
@@ -9416,13 +9536,18 @@ app.post("/api/notebooklm/improve-script", async (req, res) => {
       blockCount,
     });
 
-    const responseText = await callGeminiWithRetry(apiKey, improvePrompt, {
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Enriquecer roteiro (NotebookLM)",
+      prompt: improvePrompt,
       temperature: 0.6,
-      maxRetries: 2,
-      models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
     });
+    if (responseText == null) return;
 
-    const repaired = normalizeKeys(await parseAiJsonResponse(responseText, apiKey, "Enriquecer roteiro"));
+    const repaired = normalizeKeys(await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Enriquecer roteiro",
+    ));
     const improved = mergeHumanizedScript(storyboard, repaired, format);
 
     fs.writeFileSync(storyboardPath, JSON.stringify(improved, null, 2), "utf8");
@@ -9715,6 +9840,7 @@ workflowApi = registerWorkflowRoutes(app, {
   buildTimelineFromStoryboard,
   enhanceYoutubeTitlesMetadata,
   callGeminiWithRetry,
+  callGeminiLlm,
   generateMetadataWithXai,
   generateYoutubeThumbnailImages,
   runAutoSoundtrackLogic,
