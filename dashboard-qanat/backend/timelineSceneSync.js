@@ -219,6 +219,202 @@ export function dedupeConsecutiveTimelineAssets(assets) {
   return result;
 }
 
+function rotateAssetList(files, offset = 0) {
+  if (!Array.isArray(files) || files.length === 0) return [];
+  const o = Math.abs(Number(offset) || 0) % files.length;
+  return [...files.slice(o), ...files.slice(0, o)];
+}
+
+function pickHintAsset(promptObj, assetFileSet, blockUsed) {
+  if (!promptObj) return "";
+  const hints = [
+    promptObj.asset_file,
+    promptObj.stock_file,
+    promptObj.media_file,
+    promptObj.broll_file,
+  ]
+    .map((v) => String(v || "").replace(/\\/g, "/").trim())
+    .filter(Boolean);
+  for (const hint of hints) {
+    if (assetFileSet.has(hint) && !blockUsed.has(hint)) return hint;
+  }
+  return "";
+}
+
+const RECENT_GLOBAL_WINDOW = 5;
+
+function pickLeastUsedAsset(assetFiles, usageCount, blockUsed, lastPath = "", recentGlobal = []) {
+  const recentSet = new Set(recentGlobal);
+  const candidates = assetFiles
+    .filter((f) => f && !blockUsed.has(f) && f !== lastPath && !recentSet.has(f))
+    .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
+  if (candidates.length) return candidates[0];
+
+  const relaxed = assetFiles
+    .filter((f) => f && !blockUsed.has(f) && f !== lastPath)
+    .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
+  if (relaxed.length) return relaxed[0];
+
+  const fallback = assetFiles
+    .filter((f) => f && f !== lastPath)
+    .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
+  return fallback[0] || "";
+}
+
+function trackRecentGlobal(recentGlobal, assetPath) {
+  if (!assetPath) return;
+  recentGlobal.push(assetPath);
+  while (recentGlobal.length > RECENT_GLOBAL_WINDOW) recentGlobal.shift();
+}
+
+/** Nenhum arquivo repetido dentro do mesmo bloco — troca por alternativa do pool. */
+export function dedupeBlockUniqueAssets(assets, assetFiles = []) {
+  if (!Array.isArray(assets)) return [];
+  const used = new Set();
+  const pool = Array.isArray(assetFiles) ? assetFiles : [];
+  let poolCursor = 0;
+  const result = [];
+
+  for (const asset of assets) {
+    let path = String(asset?.asset || "").trim();
+    if (!path) {
+      result.push(asset);
+      continue;
+    }
+    if (used.has(path)) {
+      let replacement = "";
+      for (let i = 0; i < pool.length; i++) {
+        const candidate = pool[(poolCursor + i) % pool.length];
+        if (candidate && !used.has(candidate) && candidate !== path) {
+          replacement = candidate;
+          poolCursor = (poolCursor + i + 1) % pool.length;
+          break;
+        }
+      }
+      if (!replacement) continue;
+      path = replacement;
+    }
+    used.add(path);
+    result.push({ ...asset, asset: path });
+  }
+  return result;
+}
+
+/** Sanitiza timeline inteira — sem repetição dentro de cada bloco. */
+export function sanitizeFullTimelineAssets(timelineAssets, assetFiles = []) {
+  const src = timelineAssets || {};
+  const next = {};
+  let replaced = 0;
+  for (const blockKey of Object.keys(src)) {
+    const before = src[blockKey] || [];
+    const after = dedupeBlockUniqueAssets(before, assetFiles);
+    replaced += Math.max(0, before.length - after.length);
+    next[blockKey] = dedupeConsecutiveTimelineAssets(after);
+  }
+  return { timeline: next, replaced };
+}
+
+/**
+ * Monta timeline_assets com anti-repetição.
+ * remapping=true (auto-map): redistribui arquivos em vez de congelar o mapeamento anterior.
+ */
+export function buildTimelineAssetMap({
+  blocks = [],
+  promptsByBlock = new Map(),
+  existingTimeline = {},
+  assetFiles = [],
+  timings = { durations: [] },
+  remapping = false,
+  rotateOffset = 0,
+}) {
+  const timelineAssets = {};
+  const warnings = [];
+  const assetFileSet = new Set(assetFiles);
+  const rotatedFiles = rotateAssetList(assetFiles, rotateOffset);
+  const usageCount = new Map();
+  const recentGlobal = [];
+
+  for (const block of blocks) {
+    const blockKey = String(block);
+    const expectedScenes = promptsByBlock.get(block) || [];
+    const existingBlock = Array.isArray(existingTimeline[blockKey]) ? existingTimeline[blockKey] : [];
+    const expectedCount = Math.max(1, expectedScenes.length || existingBlock.length || 1);
+    const blockDuration = Number(timings.durations?.[block - 1]);
+    const effectiveBlockDuration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : expectedCount * 4;
+    const slotDuration = Math.max(0.5, effectiveBlockDuration / expectedCount);
+    const blockUsed = new Set();
+    const blockAssets = [];
+
+    for (let slot = 0; slot < expectedCount; slot++) {
+      const promptObj = expectedScenes[slot];
+      const prevSlot = existingBlock[slot];
+      const lastPath = blockAssets.length
+        ? String(blockAssets[blockAssets.length - 1]?.asset || "").trim()
+        : "";
+
+      let assetPath = "";
+
+      if (!remapping && prevSlot?.asset && assetFileSet.has(prevSlot.asset) && !blockUsed.has(prevSlot.asset)) {
+        assetPath = prevSlot.asset;
+      } else {
+        assetPath = pickHintAsset(promptObj, assetFileSet, blockUsed);
+        if (!assetPath) {
+          assetPath = pickLeastUsedAsset(rotatedFiles, usageCount, blockUsed, lastPath, recentGlobal);
+        }
+      }
+
+      if (assetPath) {
+        usageCount.set(assetPath, (usageCount.get(assetPath) || 0) + 1);
+        blockUsed.add(assetPath);
+        trackRecentGlobal(recentGlobal, assetPath);
+      } else {
+        warnings.push(`Bloco ${block} slot ${slot + 1}: sem mídia disponível sem repetir.`);
+      }
+
+      let resolvedType = "image";
+      if (assetPath) {
+        resolvedType = /\.(mp4|mov|webm)$/i.test(assetPath) ? "video" : "image";
+      } else if (promptObj?.type) {
+        resolvedType = String(promptObj.type).includes("video") || String(promptObj.type).includes("vídeo")
+          ? "video"
+          : "image";
+      } else if (prevSlot?.type) {
+        resolvedType = prevSlot.type;
+      }
+
+      const entry = {
+        asset: assetPath,
+        type: resolvedType,
+        fixed: prevSlot?.fixed !== undefined && prevSlot?.fixed !== null
+          ? Number(prevSlot.fixed)
+          : Number(slotDuration.toFixed(1)),
+      };
+      if (prevSlot?.audio_start !== undefined && prevSlot?.audio_start !== null) {
+        entry.audio_start = prevSlot.audio_start;
+      }
+      if (prevSlot?.narration_segment) {
+        entry.narration_segment = prevSlot.narration_segment;
+      }
+      blockAssets.push(entry);
+    }
+
+    const uniqueBlock = dedupeBlockUniqueAssets(blockAssets, rotatedFiles);
+    if (uniqueBlock.length < blockAssets.length) {
+      warnings.push(`Bloco ${block}: ${blockAssets.length - uniqueBlock.length} repetição(ões) intra-bloco substituída(s).`);
+    }
+    if (uniqueBlock.length > 0) {
+      timelineAssets[blockKey] = dedupeConsecutiveTimelineAssets(uniqueBlock);
+    }
+  }
+
+  const { timeline: sanitized, replaced } = sanitizeFullTimelineAssets(timelineAssets, rotatedFiles);
+  if (replaced > 0) {
+    warnings.push(`${replaced} slot(s) com mídia duplicada foram substituídos globalmente.`);
+  }
+
+  return { timelineAssets: sanitized, warnings, usageCount };
+}
+
 /**
  * Garante que cada cena termina quando a próxima começa — sem sobreposição que deixa vestígio.
  */
