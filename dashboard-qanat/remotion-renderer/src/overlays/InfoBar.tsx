@@ -93,17 +93,20 @@ const MysteriousStars: React.FC<{ color: string }> = ({ color }) => (
 
 export const InfoBar: React.FC<InfoBarProps> = ({
   title,
-  items,
+  items = [],
   accentColor = "#D4AF37",
   position = "center",
   theme = "classic",
   customStyle,
 }) => {
+  const safeItems = Array.isArray(items) ? items : [];
+  if (safeItems.length === 0) return null;
+
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
 
-  const maxValue = Math.max(...items.map((i) => i.value));
+  const maxValue = Math.max(...safeItems.map((i) => i.value), 1);
 
   // Overall fade
   const fadeIn = interpolate(frame, [0, 14], [0, 1], {
@@ -355,7 +358,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
           </div>
 
           {/* Bars */}
-          {items.map((item, index) => {
+          {safeItems.map((item, index) => {
             const staggerDelay = index * 6;
             const barProgress = interpolate(
               frame,

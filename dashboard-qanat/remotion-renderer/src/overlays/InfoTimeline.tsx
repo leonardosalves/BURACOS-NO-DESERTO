@@ -92,12 +92,15 @@ const MysteriousStars: React.FC<{ color: string }> = ({ color }) => (
 
 export const InfoTimeline: React.FC<InfoTimelineProps> = ({
   title,
-  events,
+  events = [],
   accentColor = "#D4AF37",
   orientation = "horizontal",
   theme = "classic",
   customStyle,
 }) => {
+  const safeEvents = Array.isArray(events) ? events : [];
+  if (safeEvents.length === 0) return null;
+
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
@@ -350,8 +353,8 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
             padding: isVertical ? "16px 20px" : "12px 16px",
           }}
         >
-          {events.map((event, index) => {
-            const progress = (index / (events.length - 1)) * 100;
+          {safeEvents.map((event, index) => {
+            const progress = safeEvents.length > 1 ? (index / (safeEvents.length - 1)) * 100 : 0;
             const isRevealed = lineProgress >= progress;
             const dotDelay = 8 + index * 8;
 
@@ -371,7 +374,7 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             );
 
-            const isHighlight = event.highlight || index === events.length - 1;
+            const isHighlight = event.highlight || index === safeEvents.length - 1;
 
             return (
               <React.Fragment key={index}>

@@ -10138,6 +10138,109 @@ const GEMINI_OVERLAY_TYPES = new Set([
   "info-card",
 ]);
 
+function repairOverlayPropsForRemotion(overlay) {
+  if (!overlay || !overlay.type) return null;
+  if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
+  const p = overlay.props;
+
+  if (overlay.type === "timeline") {
+    let events = p.events;
+    if (typeof events === "string") {
+      try { events = JSON.parse(events); } catch { events = []; }
+    }
+    if (!Array.isArray(events)) events = [];
+    events = events.map((ev) => ({
+      year: String(ev?.year || ev?.date || ev?.label || ev?.time || "—"),
+      description: String(ev?.description || ev?.desc || ev?.text || ev?.title || ""),
+      highlight: Boolean(ev?.highlight),
+    })).filter((ev) => ev.year || ev.description);
+
+    if (events.length < 2) {
+      const subtitle = events.map((ev) => ev.description).filter(Boolean).join(" · ");
+      if (p.title || subtitle) {
+        console.log(`[Overlays] Timeline ${overlay.id} incompleto — convertido para lower-third.`);
+        overlay.type = "lower-third";
+        overlay.props = {
+          title: String(p.title || events[0]?.year || "LINHA DO TEMPO"),
+          subtitle,
+          accentColor: p.accentColor || "#D4AF37",
+          position: p.position || "bottom-left",
+          variant: p.variant || "glass",
+          iconType: p.iconType || "history",
+          theme: p.theme || "classic",
+          customStyle: p.customStyle,
+        };
+        return overlay;
+      }
+      console.log(`[Overlays] Timeline ${overlay.id} sem eventos — removido.`);
+      return null;
+    }
+
+    p.events = events;
+    if (!p.title) p.title = "LINHA DO TEMPO";
+  }
+
+  if (overlay.type === "bar-chart") {
+    let items = p.items;
+    if (!Array.isArray(items)) items = [];
+    items = items.map((it) => ({
+      label: String(it?.label || it?.name || "—"),
+      value: Number(it?.value) || 0,
+      displayValue: it?.displayValue != null ? String(it.displayValue) : undefined,
+      color: it?.color,
+    })).filter((it) => it.label && it.value > 0);
+
+    if (items.length < 2) {
+      if (items.length === 1) {
+        console.log(`[Overlays] Bar-chart ${overlay.id} com 1 item — convertido para counter.`);
+        overlay.type = "counter";
+        overlay.props = {
+          value: items[0].value,
+          label: items[0].label,
+          suffix: items[0].displayValue || "",
+          accentColor: p.accentColor || "#D4AF37",
+          position: p.position || "bottom-right",
+          theme: p.theme || "classic",
+          customStyle: p.customStyle,
+        };
+        return overlay;
+      }
+      console.log(`[Overlays] Bar-chart ${overlay.id} sem itens — removido.`);
+      return null;
+    }
+    p.items = items;
+    if (!p.title) p.title = "COMPARAÇÃO";
+  }
+
+  if (overlay.type === "counter") {
+    let value = Number(p.value);
+    if (!Number.isFinite(value)) {
+      value = Number(String(p.value ?? p.text ?? "").replace(/[^\d.]/g, ""));
+    }
+    if (!Number.isFinite(value)) {
+      console.log(`[Overlays] Counter ${overlay.id} sem valor — removido.`);
+      return null;
+    }
+    p.value = value;
+    if (!p.label) p.label = String(p.title || p.text || "DADO");
+  }
+
+  if (overlay.type === "lower-third") {
+    if (!p.title) p.title = String(p.subtitle || p.text || p.label || "INFO");
+    if (!p.position) p.position = "bottom-left";
+  }
+
+  if (overlay.type === "kinetic-text") {
+    if (!p.text) p.text = String(p.title || p.label || "");
+    if (!String(p.text || "").trim()) {
+      console.log(`[Overlays] Kinetic-text ${overlay.id} vazio — removido.`);
+      return null;
+    }
+  }
+
+  return overlay;
+}
+
 function normalizeGeminiOverlayPayload(overlays = []) {
   if (!Array.isArray(overlays)) return [];
 
@@ -10181,7 +10284,9 @@ function normalizeGeminiOverlayPayload(overlays = []) {
     }
 
     return overlay;
-  }).filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type));
+  })
+    .map((overlay) => repairOverlayPropsForRemotion(overlay))
+    .filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type));
 }
 
 function stripSystemInjectedOverlays(overlays = []) {
@@ -10483,13 +10588,15 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
 
   if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
     console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados (re-alinhando com timeline de render).`);
-    const realigned = realignPlannedOverlays(
-      plannedSource,
-      actualScenes,
-      storyboard,
-      starts,
-      durations,
-      wordTranscripts,
+    const realigned = normalizeGeminiOverlayPayload(
+      realignPlannedOverlays(
+        plannedSource,
+        actualScenes,
+        storyboard,
+        starts,
+        durations,
+        wordTranscripts,
+      ),
     );
     return finalizeProjectOverlays(
       projectDir,
