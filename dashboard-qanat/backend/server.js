@@ -3132,17 +3132,19 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       llmText = responseText;
     }
 
-    const overlays = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
+    const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
       llmText,
       skipBrowserCache: true,
+      planningOnly: true,
     });
 
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays = overlays;
+    storyboard.overlays_ai = overlaysAi;
     storyboard.overlays_planned_at = new Date().toISOString();
+    delete storyboard.overlays;
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
 
-    res.json({ success: true, overlayCount: Array.isArray(overlays) ? overlays.length : 0 });
+    res.json({ success: true, overlayCount: Array.isArray(overlaysAi) ? overlaysAi.length : 0 });
   } catch (err) {
     console.error("[Plan Overlays]", err);
     res.status(500).json({ error: err.message || "Falha ao planejar overlays." });
@@ -3304,6 +3306,8 @@ app.get("/api/render/:mode", async (req, res) => {
       sendLog(`[PROGRESSO] 10%`);
 
       sendLog(`[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`);
+
+      sendLog(`[Remotion] ${renderPlan.overlayCount ?? 0} overlays informativos na timeline.`);
 
       sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
 
@@ -4662,7 +4666,15 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const fileExt = isProres ? "mov" : "mp4";
   const outputPath = path.join(outputDir, `remotion_${Date.now()}.${fileExt}`);
 
-  return { propsPath, outputPath, totalDuration, sceneCount: validScenes.length, captionCount: finalCaptions.length, sfxCount: sfxTracks.length };
+  return {
+    propsPath,
+    outputPath,
+    totalDuration,
+    sceneCount: validScenes.length,
+    captionCount: finalCaptions.length,
+    sfxCount: sfxTracks.length,
+    overlayCount: Array.isArray(overlays) ? overlays.length : 0,
+  };
 
 }
 
@@ -10032,6 +10044,64 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
   return null;
 }
 
+function stripSystemInjectedOverlays(overlays = []) {
+  return (overlays || []).filter((overlay) => {
+    if (!overlay) return false;
+    const id = String(overlay.id || "");
+    if (/^listicle-rank-\d+$/.test(id)) return false;
+    if (id === "listicle-recap" || id === "listicle-intro-topn" || id === "listicle-open-loop") return false;
+    if (overlay.type === "rank-progress" || overlay.type === "listicle-stinger" || overlay.type === "listicle-recap") {
+      return false;
+    }
+    return true;
+  });
+}
+
+function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = []) {
+  for (let i = 0; i < parsedOverlays.length; i++) {
+    const overlay = parsedOverlays[i];
+    const raw = overlay.start ?? overlay.scene;
+    const rawStr = String(raw ?? "").trim();
+
+    if (Number.isFinite(Number(raw)) && !/^\d+\.\d+$/.test(rawStr)) {
+      overlay.start = Number(raw);
+      if (!Number.isFinite(overlay.duration) || overlay.duration <= 0) overlay.duration = 4;
+      continue;
+    }
+
+    if (/^\d+\.\d+$/.test(rawStr) && sceneStarts[rawStr] !== undefined) {
+      const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
+      overlay.start = Number(sceneStarts[rawStr]) + 0.5;
+      overlay.duration = Math.min(
+        Number(overlay.duration) || 4,
+        Math.max(1, Number(durations[blockIdx]) || 4),
+      );
+      continue;
+    }
+
+    const blockMatch = String(overlay.id || "").match(/(?:block|bloco|lt-block)[_-]?(\d+)/i)
+      || String(overlay.id || "").match(/(\d+)/);
+    const blockIdx = blockMatch
+      ? Math.max(0, Number(blockMatch[1]) - 1)
+      : Math.min(i, Math.max(0, starts.length - 1));
+    const blockStart = Number(starts[blockIdx]);
+    overlay.start = Number.isFinite(blockStart) ? blockStart + 0.5 : Math.max(0, i * 5);
+    overlay.duration = Math.min(
+      Number(overlay.duration) || 4,
+      Math.max(1, Number(durations[blockIdx]) || 4),
+    );
+    console.log(`[Overlays] Fallback numérico para ${overlay.id}: start=${overlay.start}s`);
+  }
+
+  return parsedOverlays;
+}
+
+function realignPlannedOverlays(plannedRaw, actualScenes, storyboard, starts, durations, wordTranscripts = []) {
+  const cloned = JSON.parse(JSON.stringify(plannedRaw));
+  alignOverlayTimings(cloned, actualScenes, storyboard, starts, durations, wordTranscripts);
+  return cloned;
+}
+
 function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts = []) {
   const { sceneStarts, sceneDurations, sceneNarration } = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
 
@@ -10089,6 +10159,7 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
     console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s`);
   }
 
+  ensureNumericOverlayStarts(parsedOverlays, sceneStarts, starts, durations);
   return parsedOverlays;
 }
 
@@ -10165,7 +10236,11 @@ function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true) {
 
 // AI-driven overlay planning for Remotion PRO using Gemini API
 async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}, options = {}) {
-  const { llmText: injectedLlmText = null, skipBrowserCache = false } = options;
+  const {
+    llmText: injectedLlmText = null,
+    skipBrowserCache = false,
+    planningOnly = false,
+  } = options;
   await ensureListItemsInProject(projectDir, {
     getApiKey,
     callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
@@ -10206,17 +10281,29 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     );
   }
 
-  if (
-    !skipBrowserCache
-    && !injectedLlmText
-    && shouldOfferGeminiBrowser(projectDir)
-    && Array.isArray(storyboard.overlays)
-    && storyboard.overlays.length > 0
-  ) {
-    console.log("[Overlays] Reutilizando overlays planejados via Gemini no Chrome.");
+  const plannedSource = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0
+    ? storyboard.overlays_ai
+    : (
+      storyboard.overlays_planned_at
+      && Array.isArray(storyboard.overlays)
+      && storyboard.overlays.length > 0
+        ? stripSystemInjectedOverlays(storyboard.overlays)
+        : null
+    );
+
+  if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
+    console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados (re-alinhando com timeline de render).`);
+    const realigned = realignPlannedOverlays(
+      plannedSource,
+      actualScenes,
+      storyboard,
+      starts,
+      durations,
+      wordTranscripts,
+    );
     return finalizeProjectOverlays(
       projectDir,
-      storyboard.overlays,
+      realigned,
       config,
       storyboard,
       starts,
@@ -10240,7 +10327,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     );
   }
 
-  if (!injectedLlmText && shouldOfferGeminiBrowser(projectDir)) {
+  if (!injectedLlmText && shouldOfferGeminiBrowser(projectDir) && !(plannedSource && plannedSource.length > 0)) {
     console.log("[Overlays] Modo Gemini Chrome sem planejamento prévio — regras locais.");
     return finalizeProjectOverlays(
       projectDir,
@@ -10538,7 +10625,11 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
 
     let cleaned = rawResponse.trim();
     if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
+    }
+    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
+      const objMatch = cleaned.match(/\{[\s\S]*"overlays"\s*:\s*\[[\s\S]*\]\s*\}/);
+      if (objMatch) cleaned = objMatch[0];
     }
     
     let parsedOverlays = [];
@@ -10816,6 +10907,10 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
 
       parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan);
+
+      if (planningOnly) {
+        return parsedOverlays;
+      }
 
       return finalizeProjectOverlays(
         projectDir, parsedOverlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration,

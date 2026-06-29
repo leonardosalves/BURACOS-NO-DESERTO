@@ -143,8 +143,11 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ overlays }) => {
   return (
     <>
       {sortedOverlays.map((overlay) => {
-        const fromFrame = Math.max(0, Math.round(overlay.start * fps));
-        const durationInFrames = Math.max(1, Math.round(overlay.duration * fps));
+        const startSec = Number(overlay.start);
+        const durationSec = Number(overlay.duration);
+        if (!Number.isFinite(startSec) || !Number.isFinite(durationSec)) return null;
+        const fromFrame = Math.max(0, Math.round(startSec * fps));
+        const durationInFrames = Math.max(1, Math.round(durationSec * fps));
 
         return (
           <Sequence
