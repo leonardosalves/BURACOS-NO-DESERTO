@@ -119,10 +119,9 @@ export const RankProgress: React.FC<RankProgressProps> = ({
     rank: displayRank,
     visualHook: active.visualHook,
     title: titleLine,
-    lottieKey: active.lottieKey,
     videoSeed,
   });
-  const lottieSeed = lottieVariantSeed([videoSeed, displayRank, titleLine, lottieKey]);
+  const lottieSeed = lottieVariantSeed([videoSeed, displayRank, titleLine, active.visualHook || "", lottieKey]);
   const lottieData = lottieDataForKey(lottieKey, lottieSeed);
 
   const brandAccent = thumbnailPalette[0] || accentColor;

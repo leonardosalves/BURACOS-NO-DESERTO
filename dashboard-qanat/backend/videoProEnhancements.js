@@ -6,9 +6,9 @@
 import fs from "fs";
 import path from "path";
 import { buildOverlayOrchestrationPlan, detectNicheCategory } from "./overlayOrchestration.js";
-import { pickListicleLottieKey } from "./listicleLottieResolve.js";
+import { buildListicleVideoSeed, pickListicleLottieKey } from "./listicleLottieResolve.js";
 
-export { pickListicleLottieKey };
+export { buildListicleVideoSeed, pickListicleLottieKey };
 
 export const DOCUMENTARY_HISTORY_PRESET = {
   id: "documentary-history",
@@ -425,7 +425,7 @@ function stripLegacyRankProgressOverlays(overlays = []) {
   });
 }
 
-export function buildListicleProgressOverlays(storyboard = {}, config = {}, starts = [], durations = []) {
+export function buildListicleProgressOverlays(storyboard = {}, config = {}, starts = [], durations = [], projectSlug = "") {
   if (!isListicleProject(config, storyboard)) return [];
 
   const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
@@ -472,12 +472,7 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
   const hudDuration = Math.max(1, hudEnd - hudStart);
   const segments = [];
   const climaxRank = rankOrder === "desc" ? 1 : itemBlocks.length;
-  const videoSeed = [
-    config.niche,
-    storyboard.list_topic || storyboard.listicle_meta?.topic,
-    storyboard.strategy?.title_main,
-    config.project_name,
-  ].filter(Boolean).join("|");
+  const videoSeed = buildListicleVideoSeed(config, storyboard, projectSlug);
 
   for (let i = 0; i < itemBlocks.length; i++) {
     const { block, rank, title } = itemBlocks[i];
@@ -492,13 +487,6 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
       rank,
       title: resolvedTitle,
       visualHook,
-      lottieKey: pickListicleLottieKey({
-        visualHook,
-        title: resolvedTitle,
-        rank,
-        isClimax: rank === climaxRank,
-        videoSeed,
-      }),
       progress: i + 1,
     });
   }
@@ -527,7 +515,7 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
   }];
 }
 
-export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts = [], durations = []) {
+export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts = [], durations = [], projectSlug = "") {
   if (!isListicleProject(config, storyboard)) return null;
 
   const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
@@ -559,12 +547,7 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
 
   const outroDur = Number(durationsList[outroIdx]) || 6;
   const effectiveRankCount = rankCount || recapLines.length || 3;
-  const videoSeed = [
-    config.niche,
-    storyboard.list_topic || storyboard.listicle_meta?.topic,
-    storyboard.strategy?.title_main,
-    config.project_name,
-  ].filter(Boolean).join("|");
+  const videoSeed = buildListicleVideoSeed(config, storyboard, projectSlug);
 
   return {
     id: "listicle-recap",
@@ -732,14 +715,15 @@ export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboa
   return filtered;
 }
 
-export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = []) {
+export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = [], projectDir = "") {
   if (!isListicleProject(config, storyboard)) return overlays || [];
 
+  const projectSlug = projectDir ? path.basename(projectDir) : String(config.project_slug || "");
   const isShort = isShortFormVideo(config);
   let base = stripLegacyRankProgressOverlays(stripListicleCenterRankKinetics(overlays, config, storyboard));
   const batches = [
     buildListicleRankOverlays(storyboard, config, starts, durations),
-    buildListicleProgressOverlays(storyboard, config, starts, durations),
+    buildListicleProgressOverlays(storyboard, config, starts, durations, projectSlug),
   ];
 
   if (!isShort) {
@@ -748,7 +732,7 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
     if (openLoop) batches.push([openLoop]);
   }
 
-  const recap = buildListicleRecapOverlay(storyboard, config, starts, durations);
+  const recap = buildListicleRecapOverlay(storyboard, config, starts, durations, projectSlug);
   if (recap) batches.push([recap]);
 
   let merged = avoidListicleHudCollisions(base, config, storyboard);

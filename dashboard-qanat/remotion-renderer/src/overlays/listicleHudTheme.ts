@@ -42,24 +42,32 @@ function resolveRegistryKey(key: string): LottieRegistryKey | null {
   return null;
 }
 
-function matchTitleLottie(title = "", visualHook = ""): LottieRegistryKey | null {
-  const titleBlob = String(title).trim();
-  const hookBlob = String(visualHook).trim();
-  for (const rule of rulesData.rules) {
-    const re = new RegExp(rule.re, "i");
-    if (re.test(titleBlob)) {
-      const hit = resolveRegistryKey(rule.key);
-      if (hit) return hit;
-    }
-  }
-  for (const rule of rulesData.rules) {
-    const re = new RegExp(rule.re, "i");
-    if (re.test(hookBlob)) {
-      const hit = resolveRegistryKey(rule.key);
-      if (hit) return hit;
-    }
-  }
-  return null;
+function buildLottieCatalog(): LottieRegistryKey[] {
+  const catalog = [
+    ...new Set([
+      ...rulesData.rankPool.map((k) => resolveRegistryKey(k)).filter(Boolean),
+      ...rulesData.rules.map((r) => resolveRegistryKey(r.key)).filter(Boolean),
+    ]),
+  ] as LottieRegistryKey[];
+  return catalog.length ? catalog : ["time", "direction", "shield", "flame", "award"];
+}
+
+/** Identidade única do vídeo — deve bater com buildListicleVideoSeed no backend. */
+export function buildListicleVideoSeed(parts: {
+  projectSlug?: string;
+  niche?: string;
+  listTopic?: string;
+  titleMain?: string;
+  listItemTitles?: string[];
+} = {}): string {
+  const titles = (parts.listItemTitles || []).map((t) => String(t).trim()).filter(Boolean).join("§");
+  return [
+    parts.projectSlug,
+    parts.titleMain,
+    parts.listTopic,
+    parts.niche,
+    titles,
+  ].filter(Boolean).join("|");
 }
 
 /**
@@ -84,7 +92,6 @@ export function resolveLottieKey({
   rank,
   visualHook = "",
   title = "",
-  lottieKey,
   videoSeed = "",
 }: {
   isIntro?: boolean;
@@ -92,26 +99,15 @@ export function resolveLottieKey({
   rank?: number;
   visualHook?: string;
   title?: string;
-  lottieKey?: string;
-  /** Identificador do vídeo (projeto + tema) — varia ícones entre vídeos e itens */
+  /** Identificador do vídeo (pasta + tema + itens) — principal fator entre vídeos */
   videoSeed?: string;
 }): LottieRegistryKey {
-  if (lottieKey) {
-    const fromProp = resolveRegistryKey(lottieKey);
-    if (fromProp) return fromProp;
-  }
   if (isIntro) return "sparkles";
   if (isClimax) return "crown";
 
-  const matched = matchTitleLottie(title, visualHook);
-  if (matched) return matched;
-
-  const pool = rulesData.rankPool
-    .map((k) => resolveRegistryKey(k))
-    .filter(Boolean) as LottieRegistryKey[];
-  const safePool = pool.length ? pool : ["time", "direction", "shield", "flame", "award"] as LottieRegistryKey[];
-  const idx = lottieVariantSeed([videoSeed, rank, title, visualHook]) % safePool.length;
-  return safePool[idx];
+  const pool = buildLottieCatalog();
+  const idx = lottieVariantSeed([videoSeed, rank, title, visualHook]) % pool.length;
+  return pool[idx];
 }
 
 export function hudThemeStyles(theme: ListicleHudTheme = "ancient", accent: string, isClimax: boolean) {
