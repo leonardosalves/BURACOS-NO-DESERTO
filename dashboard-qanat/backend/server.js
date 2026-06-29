@@ -9779,7 +9779,7 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 }
 
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
-  let result = injectListicleRankOverlays(overlays, storyboard, config, starts, durations);
+  let result = injectListicleRankOverlays(overlays, storyboard, config, starts, durations, projectDir);
   result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
   result = avoidListicleHudCollisions(result, config, storyboard);
   result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
