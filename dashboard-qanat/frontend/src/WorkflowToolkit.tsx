@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Download, Mic, Wand2, Play, Music, Upload, AlertTriangle,
   CheckCircle2, Loader2, Sparkles, Image,
@@ -30,6 +30,8 @@ type Props = {
   onNavigateTab?: (tab: string) => void;
   compact?: boolean;
   showPipeline?: boolean;
+  /** When false, skips auto-fetch (reduces load when panel is off-screen). */
+  enabled?: boolean;
 };
 
 export function WorkflowToolkit({
@@ -41,27 +43,40 @@ export function WorkflowToolkit({
   onNavigateTab,
   compact = false,
   showPipeline = true,
+  enabled = true,
 }: Props) {
   const [gaps, setGaps] = useState<SceneGapsReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [pipelineLog, setPipelineLog] = useState<string[]>([]);
+  const lastFetchRef = useRef(0);
+  const mountedRef = useRef(true);
 
-  const refreshGaps = useCallback(async () => {
+  const refreshGaps = useCallback(async (force = false) => {
+    if (!enabled) return;
+    const now = Date.now();
+    if (!force && now - lastFetchRef.current < 8000) return;
+    lastFetchRef.current = now;
     setLoading(true);
     try {
       const res = await fetch(getProjectUrl('/api/workflow/scene-gaps'));
-      if (res.ok) setGaps(await res.json());
+      if (res.ok && mountedRef.current) setGaps(await res.json());
     } catch {
       // ignore
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [getProjectUrl]);
+  }, [enabled, getProjectUrl]);
 
   useEffect(() => {
-    refreshGaps();
-  }, [refreshGaps]);
+    mountedRef.current = true;
+    if (!enabled) return;
+    const t = window.setTimeout(() => refreshGaps(true), 400);
+    return () => {
+      mountedRef.current = false;
+      window.clearTimeout(t);
+    };
+  }, [enabled, refreshGaps]);
 
   const runAction = async (label: string, url: string, options?: RequestInit) => {
     setBusy(label);
@@ -70,7 +85,7 @@ export function WorkflowToolkit({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || data.details || 'Falha');
       toast(data.message || `${label} concluído.`);
-      await refreshGaps();
+      await refreshGaps(true);
       return data;
     } catch (err) {
       toast(`${label}: ${err instanceof Error ? err.message : 'erro'}`);
@@ -112,7 +127,7 @@ export function WorkflowToolkit({
           toast('Pipeline concluído.');
           es.close();
           setBusy(null);
-          refreshGaps();
+          refreshGaps(true);
           onTimelineRefresh?.();
           onMetadataReady?.();
         }
@@ -169,7 +184,7 @@ export function WorkflowToolkit({
             <Sparkles className="w-3.5 h-3.5 text-gold-400" />
             Ferramentas de Workflow
           </h4>
-          <button type="button" onClick={refreshGaps} className="text-[9px] text-zinc-500 hover:text-zinc-300">
+          <button type="button" onClick={() => refreshGaps(true)} className="text-[9px] text-zinc-500 hover:text-zinc-300">
             {loading ? 'Atualizando...' : 'Atualizar'}
           </button>
         </div>
