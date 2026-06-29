@@ -27531,7 +27531,11 @@ export default function App() {
                                         </button>
                                       </div>
                                       {youtubeMetadataParsed.titles.map((t, tIdx) => {
-                                        const maxChars = youtubeMetadataFormat === 'SHORT' ? 40 : 50;
+                                        const hasHashtag = /#[\wÀ-ÿ]+/i.test(t.text);
+                                        const hasEmoji = /\p{Extended_Pictographic}/u.test(t.text);
+                                        const maxChars = youtubeMetadataFormat === 'SHORT'
+                                          ? (hasHashtag || hasEmoji ? 55 : 40)
+                                          : 50;
                                         const ok = t.chars <= maxChars;
                                         const isRecommended = tIdx === 0 || t.text === youtubeMetadataParsed.recommendedTitle;
                                         const variantId = String.fromCharCode(65 + tIdx);
@@ -27555,7 +27559,7 @@ export default function App() {
                                                     Recomendado
                                                   </span>
                                                 )}
-                                                <span className="text-xs text-zinc-200">{t.text}</span>
+                                                <span className="text-xs text-zinc-200 break-words whitespace-normal leading-snug">{t.text}</span>
                                                 <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
                                                   {t.chars}/{maxChars}
                                                 </span>

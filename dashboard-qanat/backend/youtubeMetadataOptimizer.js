@@ -19,7 +19,7 @@ import {
   sanitizeTitle,
 } from "./titleGenerator.js";
 
-export const YOUTUBE_METADATA_PIPELINE_VERSION = 2;
+export const YOUTUBE_METADATA_PIPELINE_VERSION = 3;
 
 const LONG_BLOCK_NAMES = [
   "Abertura",
@@ -225,6 +225,8 @@ REGRAS DE TÍTULO (${maxChars} chars cada):
 - Título #1 RECOMENDADO: incluir "Top ${listicleCtx.rankCount}" ou o número + tema do ranking
 - Máximo 2 dos 5 títulos podem citar 1 item — sempre com o conceito do ranking junto
 - Ângulos: curiosidade do conjunto, "você usa todo dia", origem bizarra/absurda, cliffhanger do #1
+- Variedade Shorts: pelo menos 2 títulos com hashtag (#Shorts + tema) e 2 com 1 emoji (🤯 😳 🔥)
+- Com hashtag/emoji o limite sobe para 55 chars — frase sempre COMPLETA, nunca truncada
 
 DESCRIÇÃO (listicle):
 - Linha 1: Top ${listicleCtx.rankCount} + tema + gancho
@@ -250,6 +252,12 @@ Objetivo duplo:
 2. GERAR REWATCH e comentários rápidos (loop, pergunta binária, payoff no final)
 
 ${buildTitleCraftRules("SHORT")}
+
+## HASHTAGS E EMOJIS NOS TÍTULOS (Shorts):
+- 2 títulos devem ter 1-2 hashtags relevantes no final (ex: #Shorts #Curiosidades #OrigensBizarras)
+- 2 títulos devem ter 1 emoji contextual (🤯 😳 🔥 😱 💡)
+- Pode combinar emoji + hashtag no mesmo título se couber em 55 caracteres
+- Nunca sacrifice o sentido da frase para encaixar hashtag — reescreva mais curto
 
 ## REGRAS PARA A DESCRIÇÃO (DESCOBERTA NO FEED):
 - Linha 1: palavras-chave pesquisáveis + gancho (YouTube indexa isso no Shorts)
