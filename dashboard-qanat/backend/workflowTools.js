@@ -282,7 +282,7 @@ export async function fetchStockForScenes(projDir, {
   if (!keys.pexels && !keys.pixabay) {
     return {
       success: false,
-      error: "Configure pexels_api_key ou pixabay_api_key em Configurações → Workflow.",
+      error: "Configure pexels_api_key ou pixabay_api_key em Configurações → APIs & Mídia.",
       fetched: [],
       skipped: targets.length,
     };
