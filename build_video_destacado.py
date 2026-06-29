@@ -297,6 +297,31 @@ def clean_subtitle_word(word):
 
 
 
+def _subtitle_word_end(segment_start, words, active_word, chunk, chunk_index):
+    """End time for highlighted word — never stretch to a corrupted word['end']."""
+    if chunk_index < len(chunk) - 1:
+        return segment_start + float(chunk[chunk_index + 1]['start'])
+
+    word_index = -1
+    for idx, candidate in enumerate(words):
+        if candidate is active_word:
+            word_index = idx
+            break
+        if (
+            float(candidate.get('start', -1)) == float(active_word.get('start', -2))
+            and candidate.get('word') == active_word.get('word')
+        ):
+            word_index = idx
+            break
+
+    if word_index >= 0 and word_index < len(words) - 1:
+        return segment_start + float(words[word_index + 1]['start'])
+
+    word_start = segment_start + float(active_word.get('start', 0))
+    natural_end = segment_start + float(active_word.get('end', active_word.get('start', 0) + 0.4))
+    return min(natural_end, word_start + 1.5)
+
+
 def generate_subtitles():
 
     """Build the Advanced SubStation Alpha subtitle file with dynamic highlight hopping."""
@@ -422,13 +447,7 @@ def generate_subtitles():
 
 
 
-                if i < n_c - 1:
-
-                    w_end = segment_start + chunk[i+1]['start']
-
-                else:
-
-                    w_end = segment_start + active_word['end']
+                w_end = _subtitle_word_end(segment_start, words, active_word, chunk, i)
 
                 if w_start < previous_w_end:
                     w_start = previous_w_end

@@ -70,3 +70,11 @@ canva_client_secrets.json
 agent-tools/
 mcps/
 terminals/
+
+# ComfyUI local install (cloned by install_comfyui_ltx.bat; models are multi-GB)
+tools/comfyui/ComfyUI/
+
+# Python / test artifacts
+__pycache__/
+*.pyc
+dashboard-qanat/backend/_kokoro_test_proj/

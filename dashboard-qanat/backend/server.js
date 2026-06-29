@@ -54,6 +54,7 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { analyzeSceneGaps, fetchStockForScenes, generateNarrationTts, runPublishPrep } from "./workflowTools.js";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import {
   fetchNotebooklmResearch,
   fetchNotebooklmScriptContext,
@@ -114,6 +115,8 @@ import {
   blockHasExplicitSync,
   buildTimelineAssetMap,
   sanitizeFullTimelineAssets,
+  realignTimelineAssetsToSpeech,
+  fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
 import {
   needsListItemsRepair,
@@ -3709,23 +3712,56 @@ function parseDurationSeconds(value, fallback) {
 
 }
 
+function normalizeWordTranscriptEnds(wordTranscripts) {
+  if (!Array.isArray(wordTranscripts)) return [];
+  return wordTranscripts.map((segment) => {
+    const segmentStart = Number(segment?.start_time || 0);
+    const words = Array.isArray(segment?.words) ? segment.words.map((w) => ({ ...w })) : [];
+    for (let i = 0; i < words.length; i++) {
+      const relStart = Number(words[i]?.start || 0);
+      let relEnd = Number(words[i]?.end || relStart + 0.4);
+      if (relEnd <= relStart) relEnd = relStart + 0.15;
+      if (i < words.length - 1) {
+        const nextStart = Number(words[i + 1]?.start || relEnd);
+        relEnd = Math.min(relEnd, Math.max(relStart + 0.08, nextStart - 0.02));
+      } else {
+        relEnd = Math.min(relEnd, relStart + 1.5);
+      }
+      words[i].start = relStart;
+      words[i].end = relEnd;
+    }
+    const segEnd = words.length
+      ? segmentStart + Number(words[words.length - 1].end || 0)
+      : Number(segment?.end_time || segmentStart);
+    return { ...segment, words, end_time: segEnd };
+  });
+}
+
 function captionsFromWordTranscripts(wordTranscripts) {
 
   const captions = [];
 
-  if (!Array.isArray(wordTranscripts)) return captions;
+  const normalized = normalizeWordTranscriptEnds(wordTranscripts);
 
-  for (const segment of wordTranscripts) {
+  for (const segment of normalized) {
 
     const segmentStart = Number(segment?.start_time || 0);
 
     if (!Array.isArray(segment?.words)) continue;
 
-    for (const word of segment.words) {
+    for (let i = 0; i < segment.words.length; i++) {
+
+      const word = segment.words[i];
 
       const start = segmentStart + Number(word?.start || 0);
 
-      const end = segmentStart + Number(word?.end || word?.start || 0.4);
+      let end = segmentStart + Number(word?.end || word?.start || 0.4);
+
+      if (i < segment.words.length - 1) {
+        end = segmentStart + Number(segment.words[i + 1]?.start || word?.end || 0);
+      }
+
+      end = Math.min(end, start + 1.5);
 
       captions.push({
 
@@ -4084,6 +4120,27 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
+  if (flatTranscriptWords.length > 0 && config.timeline_assets) {
+    const realigned = realignTimelineAssetsToSpeech({
+      timelineAssets: config.timeline_assets,
+      blockTimings: timings,
+      flatTranscriptWords,
+      visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+      blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+    });
+    config.timeline_assets = realigned;
+    try {
+      fs.writeFileSync(
+        path.join(projectDir, "config_qanat.json"),
+        JSON.stringify(config, null, 2),
+        "utf8",
+      );
+      console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
+    } catch (e) {
+      console.warn("[Remotion] Falha ao salvar timeline realinhada:", e.message);
+    }
+  }
+
   const projectSlug = safeProjectSlug(projectDir);
 
   const publicProjectDir = path.join(REMOTION_PUBLIC_DIR, "projects", projectSlug);
@@ -4172,7 +4229,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       { ...syncContext, blockStart: start, blockEnd: blockEndForSync },
     );
 
-    const hasExplicitSync = blockHasExplicitSync(mappedAssets);
+    const hasExplicitSync = blockHasExplicitSync(mappedAssets, { blockStart: start, blockEnd: blockEndForSync });
 
     const blockSceneStartIdx = scenes.length;
 
@@ -4276,7 +4333,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   }
 
-  const validScenes = scenes.filter(scene => scene.asset);
+  let validScenes = scenes.filter(scene => scene.asset);
 
   if (validScenes.length === 0) {
 
@@ -4290,24 +4347,13 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const narrationDuration = narrationSource ? getAudioDuration(narrationSource) : 0;
 
-  // Extend last scene only when timeline was not explicitly synced to speech
-
-  const lastBlockAssets = timelineAssets[String(scenes[scenes.length - 1]?.block)] || [];
-  const videoHasExplicitSync = blockHasExplicitSync(lastBlockAssets);
-
-  if (scenes.length > 0 && narrationDuration > 0 && !videoHasExplicitSync) {
-
-    const lastSceneOfVideo = scenes[scenes.length - 1];
-
-    const sceneEndTime = lastSceneOfVideo.start + lastSceneOfVideo.duration;
-
-    if (narrationDuration > sceneEndTime) {
-
-      lastSceneOfVideo.duration += (narrationDuration - sceneEndTime);
-
-    }
-
-  }
+  const coverageEnd = Math.max(
+    Number(timings.total_duration || 0),
+    narrationDuration,
+    ...validScenes.map((scene) => scene.start + scene.duration),
+    1,
+  );
+  validScenes = fillSceneTimelineGaps(validScenes, coverageEnd);
 
   const totalDurationBeforeLogo = Math.max(
 
@@ -4978,10 +5024,55 @@ async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = n
 
 // Gemini API call with automatic retry and model fallback for 503/429 errors
 
-const GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-pro-latest"];
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
-async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = GEMINI_MODELS, bodyOverride = null, temperature = null } = {}) {
-  const projDir = global.lastActiveProjectDir || WORKSPACE_DIR;
+const GEMINI_MODEL_OPTIONS = [
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Rápido, gratuito no AI Studio, contexto 1M" },
+  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite", hint: "Mais barato/rápido, alto volume" },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Raciocínio avançado" },
+  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", hint: "Fallback estável" },
+  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", hint: "Mais recente, multimodal" },
+  { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", hint: "Leve e econômico" },
+];
+
+const GEMINI_MODEL_FALLBACKS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-pro",
+  "gemini-flash-latest",
+  "gemini-pro-latest",
+];
+
+const GEMINI_MODELS = GEMINI_MODEL_FALLBACKS;
+
+function getGeminiModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(config?.gemini_model || "").trim();
+    return GEMINI_MODEL_FALLBACKS.includes(model) ? model : null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json")) : null) ||
+    process.env.GEMINI_MODEL ||
+    DEFAULT_GEMINI_MODEL
+  );
+}
+
+function getGeminiModelChain(projectDir = WORKSPACE_DIR, overrideModels = null) {
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set(overrideModels.filter(Boolean))];
+  }
+  const primary = getGeminiModel(projectDir);
+  return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
+}
+
+async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = null, bodyOverride = null, temperature = null, projectDir = null } = {}) {
+  const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
+  const modelChain = getGeminiModelChain(projDir, models);
   const provider = getAiProvider(projDir);
   if (provider === "openrouter") {
     return await callOpenRouterWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
@@ -4997,7 +5088,7 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
     throw new Error("Nenhuma chave de API do Gemini configurada.");
   }
 
-  for (const model of models) {
+  for (const model of modelChain) {
     for (const currentKey of keys) {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -5564,6 +5655,10 @@ app.get("/api/ai/settings", (req, res) => {
 
     provider: getAiProvider(projDir),
 
+    gemini_model: getGeminiModel(projDir),
+
+    gemini_model_options: GEMINI_MODEL_OPTIONS,
+
     gemini_key_count: getApiKeys(projDir).length,
 
     has_xai_key: !!getXaiApiKey(projDir),
@@ -5582,7 +5677,7 @@ app.post("/api/ai/settings", (req, res) => {
 
   const configPath = path.join(projDir, "config_qanat.json");
 
-  const { provider, gemini_key, gemini_keys, xai_key, openrouter_key, epidemic_sound_key } = req.body || {};
+  const { provider, gemini_model, gemini_key, gemini_keys, xai_key, openrouter_key, epidemic_sound_key } = req.body || {};
 
   try {
 
@@ -5591,6 +5686,18 @@ app.post("/api/ai/settings", (req, res) => {
     if (provider === "gemini" || provider === "xai" || provider === "openrouter") {
 
       config.ai_provider = provider;
+
+    }
+
+    if (typeof gemini_model === "string" && gemini_model.trim()) {
+
+      const normalizedModel = gemini_model.trim();
+
+      if (GEMINI_MODEL_FALLBACKS.includes(normalizedModel)) {
+
+        config.gemini_model = normalizedModel;
+
+      }
 
     }
 
@@ -5631,6 +5738,10 @@ app.post("/api/ai/settings", (req, res) => {
       success: true,
 
       provider: config.ai_provider || "gemini",
+
+      gemini_model: getGeminiModel(projDir),
+
+      gemini_model_options: GEMINI_MODEL_OPTIONS,
 
       gemini_key_count: getApiKeys(projDir).length,
 
@@ -5758,7 +5869,7 @@ TIPOS DE ACAO:
 
 - "trigger_stock_fetch": Baixa B-roll do Pexels/Pixabay para cenas sem mídia.
 
-- "trigger_tts": Gera narração via Edge-TTS. Params opcionais: {"voice":"pt-BR-AntonioNeural","rate":"+0%"}.
+- "trigger_tts": Gera narração TTS. Params: {"engine":"kokoro","voice":"pm_alex","speed":0.82} ou {"engine":"edge","voice":"pt-BR-AntonioNeural","rate":"+0%"}.
 
 - "trigger_apply_bgm": Aplica trilha Epidemic Sound sugerida pela IA.
 
@@ -5936,7 +6047,7 @@ app.post("/api/ai/execute-action", async (req, res) => {
             break;
           }
           await new Promise((resolve, reject) => {
-            const child = spawn(PYTHON_PATH, ["find_block_timings.py"], { cwd: projDir, shell: true });
+            const child = spawn(PYTHON_PATH, ["find_block_timings.py"], { cwd: projDir, shell: true, env: buildPythonSpawnEnv() });
             child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Sync exit ${code}`))));
           });
           results.push({ type: action.type, status: "ok", message: "Sincronização concluída" });
@@ -5966,7 +6077,13 @@ app.post("/api/ai/execute-action", async (req, res) => {
         }
 
         case "trigger_tts": {
-          const ttsResult = await generateNarrationTts(projDir, { voice: action.voice, rate: action.rate });
+          const ttsResult = await generateNarrationTts(projDir, {
+            voice: action.voice,
+            rate: action.rate,
+            pitch: action.pitch,
+            speed: action.speed,
+            platform: action.engine || action.platform || "kokoro",
+          });
           results.push({ type: action.type, status: "ok", file: ttsResult.file });
           break;
         }
@@ -9376,6 +9493,19 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
       mapped.warnings.push(`${sanitized.replaced} duplicata(s) removida(s) após merge.`);
     }
 
+    const flatWords = flattenWordTranscripts(readProjectJson(projDir, "word_transcripts.json", []));
+    const blockTimings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const storyboardForAlign = readProjectJson(projDir, "storyboard.json", {});
+    if (flatWords.length > 0) {
+      autoConfig.timeline_assets = realignTimelineAssetsToSpeech({
+        timelineAssets: autoConfig.timeline_assets,
+        blockTimings,
+        flatTranscriptWords: flatWords,
+        visualPrompts: Array.isArray(storyboardForAlign.visual_prompts) ? storyboardForAlign.visual_prompts : [],
+        blockPhrases: Array.isArray(autoConfig.block_phrases) ? autoConfig.block_phrases : [],
+      });
+    }
+
     fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
 
     return res.json({
@@ -9446,6 +9576,15 @@ const sendLog = (text) => {
 
 sendLog("[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição...");
 
+const narrationMp3 = path.join(projDir, "narracao_mestra_premium.mp3");
+if (!fs.existsSync(narrationMp3)) {
+  sendLog("[ERRO] narracao_mestra_premium.mp3 não encontrado. Gere a narração (TTS) antes de sincronizar.");
+  res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+  res.end();
+  cleanup();
+  return;
+}
+
 sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
 
 ensureFileExists("find_block_timings.py", projDir);
@@ -9458,7 +9597,7 @@ const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
 
   shell: true,
 
-  env: { ...process.env, PYTHONUNBUFFERED: "1" }
+  env: buildPythonSpawnEnv(),
 
 });
 
@@ -9508,7 +9647,7 @@ activeChild = child1;
 
       shell: true,
 
-      env: { ...process.env, PYTHONUNBUFFERED: "1" }
+      env: buildPythonSpawnEnv(),
 
     });
 
@@ -9600,11 +9739,20 @@ if (fs.existsSync(frontendDist)) {
 
 const PORT = 3005;
 
-app.listen(PORT, "0.0.0.0", () => {
-
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
   startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
+});
 
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `\n[ERRO] Porta ${PORT} já está em uso — o backend já está rodando.\n` +
+      `       Feche a janela anterior ou execute run_qanat_dashboard.bat (ele libera a porta automaticamente).\n`,
+    );
+    process.exit(1);
+  }
+  throw err;
 });
 
 function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
