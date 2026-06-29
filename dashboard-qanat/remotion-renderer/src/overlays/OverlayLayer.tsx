@@ -100,15 +100,22 @@ interface OverlayLayerProps {
 }
 
 const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
+  const props = overlay.props || ({} as Overlay["props"]);
   switch (overlay.type) {
     case "lower-third":
-      return <LowerThird {...overlay.props} />;
+      return <LowerThird {...props} />;
     case "counter":
-      return <InfoCounter {...overlay.props} />;
+      return <InfoCounter {...props} />;
     case "bar-chart":
-      return <InfoBar {...overlay.props} />;
+      if (!Array.isArray((props as { items?: unknown[] }).items) || !(props as { items?: unknown[] }).items?.length) {
+        return null;
+      }
+      return <InfoBar {...props} />;
     case "timeline":
-      return <InfoTimeline {...overlay.props} />;
+      if (!Array.isArray((props as { events?: unknown[] }).events) || !(props as { events?: unknown[] }).events?.length) {
+        return null;
+      }
+      return <InfoTimeline {...props} />;
     case "kinetic-text":
       return <KineticText {...overlay.props} />;
     case "info-card":
