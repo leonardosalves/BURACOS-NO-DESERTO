@@ -3138,13 +3138,27 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       planningOnly: true,
     });
 
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const cleanedAi = filterNarrationEchoOverlays(
+      Array.isArray(overlaysAi) ? overlaysAi : [],
+      blockPhrases,
+    );
+
+    if (cleanedAi.length === 0) {
+      return res.status(422).json({
+        error: "Gemini não gerou overlays válidos (sem repetir narração). Tente enviar o prompt novamente no Chrome.",
+        overlayCount: 0,
+      });
+    }
+
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays_ai = overlaysAi;
+    storyboard.overlays_ai = cleanedAi;
     storyboard.overlays_planned_at = new Date().toISOString();
     delete storyboard.overlays;
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
 
-    res.json({ success: true, overlayCount: Array.isArray(overlaysAi) ? overlaysAi.length : 0 });
+    res.json({ success: true, overlayCount: cleanedAi.length });
   } catch (err) {
     console.error("[Plan Overlays]", err);
     res.status(500).json({ error: err.message || "Falha ao planejar overlays." });
@@ -10044,6 +10058,57 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
   return null;
 }
 
+function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
+  const phrases = Array.isArray(blockPhrases) ? blockPhrases : [];
+
+  return (overlays || []).filter((overlay) => {
+    if (!overlay) return false;
+    const id = String(overlay.id || "");
+    if (/^lt-block-\d+$/.test(id)) {
+      console.log(`[Overlays] Removido echo de narração (fallback legado): ${id}`);
+      return false;
+    }
+
+    const overlayText = [
+      overlay.props?.title,
+      overlay.props?.subtitle,
+      overlay.props?.description,
+      overlay.props?.text,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!overlayText) return true;
+
+    for (const bp of phrases) {
+      const phrase = String(bp.phrase || "")
+        .toLowerCase()
+        .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!phrase || phrase.length < 10) continue;
+
+      const phraseHead = phrase.split(" ").slice(0, 6).join(" ");
+      const overlayHead = overlayText.split(" ").slice(0, 6).join(" ");
+
+      if (
+        phrase.includes(overlayHead)
+        || overlayText.includes(phraseHead)
+        || phraseHead === overlayHead
+      ) {
+        console.log(`[Overlays] Removido overlay que repete narração: ${id}`);
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
 function stripSystemInjectedOverlays(overlays = []) {
   return (overlays || []).filter((overlay) => {
     if (!overlay) return false;
@@ -10196,10 +10261,26 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   return result;
 }
 
+function readHyperframesSkillExcerpt(maxChars = 2800) {
+  const skillPath = path.join(WORKSPACE_DIR, ".agents", "skills", "hyperframes", "SKILL.md");
+  if (!fs.existsSync(skillPath)) return "";
+  try {
+    let raw = fs.readFileSync(skillPath, "utf8");
+    if (raw.startsWith("---")) {
+      const parts = raw.split("---");
+      raw = parts.length >= 3 ? parts.slice(2).join("---").trim() : raw;
+    }
+    return raw.slice(0, maxChars);
+  } catch {
+    return "";
+  }
+}
+
 /** Prompt compacto para planejar overlays via Gemini no Chrome (extensão). */
 function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
   const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
   if (!blockPhrases.length) return null;
 
@@ -10209,28 +10290,50 @@ function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true) {
   const scenes = (storyboard.visual_prompts || []).slice(0, 36).map((vp) => ({
     scene_id: String(vp.scene || `${vp.block || 1}.1`),
     block: vp.block,
-    narration: String(vp.narration_text || "").slice(0, 140),
+    context_hint: String(vp.prompt || vp.visual_description || "").slice(0, 100),
   }));
 
-  const maxOverlays = isListicle && isShort ? 2 : isShort ? 6 : 10;
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche,
+    totalDuration: Number(timings.total_duration) || 0,
+    projectName: path.basename(projectDir),
+    sceneCount: (storyboard.visual_prompts || []).length,
+    blockCount: blockPhrases.length,
+  });
+  const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
+  const hfGuide = useHyperframes ? readHyperframesSkillExcerpt() : "";
+
+  const maxOverlays = orchestrationPlan.limits?.maxTotal || (isListicle && isShort ? 2 : isShort ? 6 : 10);
   const listicleRules = isListicle && isShort
     ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
     : "";
 
   return [
-    `Você é diretor de overlays para vídeo YouTube (nicho: "${niche}").`,
+    `Você é diretor de overlays cinematográficos para vídeo YouTube (nicho: "${niche}").`,
+    "OBJETIVO: enriquecer o vídeo com dados visuais NOVOS — NUNCA repetir, resumir ou parafrasear a narração falada.",
     listicleRules,
-    useHyperframes ? "Modo HyperFrames: use variant glass/accent, iconType temático, customStyle com gradiente." : "",
-    `Retorne APENAS JSON válido: {"planejamento":["3 observações curtas"],"overlays":[...]}`,
+    useHyperframes
+      ? "Modo HyperFrames ATIVO: variantes glass/bild/accent-underline, iconType temático (history, earth, flame, compass…), customStyle com gradiente e glow."
+      : "",
+    `Retorne APENAS JSON válido: {"planejamento":["3 observações"],"overlays":[...]}`,
     `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
-    `Tipos: lower-third, counter, kinetic-text, bar-chart, timeline, info-card.`,
-    `Textos em PT-BR, 5-12 palavras, dados NOVOS (não copie narração). Proibido código/terminal.`,
+    "Tipos obrigatórios a variar: counter (números/datas), bar-chart (comparações), timeline (sequências), lower-third (definições curtas), kinetic-text (virada narrativa).",
+    "PROIBIDO: copiar frases dos blocos de narração; lower-third por bloco; texto >12 palavras; código/terminal.",
+    "Exemplos de bons overlays: counter value=278 com suffix='m' (altura), bar-chart comparando estruturas, timeline com anos, lower-third com definição técnica nova.",
     "",
-    "CENAS:",
+    orchestrationPrompt,
+    hfGuide ? `\nGUIA HYPERFRAMES (trecho):\n${hfGuide}` : "",
+    "",
+    "CENAS (use scene_id no campo start):",
     JSON.stringify(scenes, null, 2),
     "",
-    "BLOCOS:",
-    JSON.stringify(blockPhrases.slice(0, 14), null, 2),
+    "BLOCOS (contexto apenas — NÃO copie estas frases nos overlays):",
+    JSON.stringify(
+      blockPhrases.slice(0, 14).map((bp) => ({ block: bp.block, hint: String(bp.phrase || "").slice(0, 40) + "…" })),
+      null,
+      2,
+    ),
   ].filter(Boolean).join("\n");
 }
 
@@ -10268,10 +10371,11 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   });
 
   if (blockPhrases.length === 0) {
-    console.log("[Overlays] Fallback: blocos vazios. Usando regras locais.");
+    console.log("[Overlays] Sem blocos de narração — nenhum overlay gerado.");
+    if (planningOnly) return [];
     return finalizeProjectOverlays(
       projectDir,
-      generateOverlaysRuleBased(config, storyboard, starts, durations),
+      [],
       config,
       storyboard,
       starts,
@@ -10281,7 +10385,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     );
   }
 
-  const plannedSource = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0
+  const plannedRaw = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0
     ? storyboard.overlays_ai
     : (
       storyboard.overlays_planned_at
@@ -10290,6 +10394,9 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
         ? stripSystemInjectedOverlays(storyboard.overlays)
         : null
     );
+  const plannedSource = plannedRaw
+    ? filterNarrationEchoOverlays(plannedRaw, blockPhrases)
+    : null;
 
   if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
     console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados (re-alinhando com timeline de render).`);
@@ -10314,10 +10421,11 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   }
 
   if (!injectedLlmText && !apiKey && !shouldOfferGeminiBrowser(projectDir)) {
-    console.log("[Overlays] Fallback: sem chave API. Usando regras locais.");
+    console.log("[Overlays] Sem chave API — overlays de IA indisponíveis (narração não será repetida).");
+    if (planningOnly) return [];
     return finalizeProjectOverlays(
       projectDir,
-      generateOverlaysRuleBased(config, storyboard, starts, durations),
+      [],
       config,
       storyboard,
       starts,
@@ -10328,10 +10436,11 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   }
 
   if (!injectedLlmText && shouldOfferGeminiBrowser(projectDir) && !(plannedSource && plannedSource.length > 0)) {
-    console.log("[Overlays] Modo Gemini Chrome sem planejamento prévio — regras locais.");
+    console.log("[Overlays] Gemini Chrome sem planejamento prévio — render sem overlays de narração.");
+    if (planningOnly) return [];
     return finalizeProjectOverlays(
       projectDir,
-      generateOverlaysRuleBased(config, storyboard, starts, durations),
+      [],
       config,
       storyboard,
       starts,
@@ -10906,6 +11015,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
 
       }
 
+      parsedOverlays = filterNarrationEchoOverlays(parsedOverlays, blockPhrases);
       parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan);
 
       if (planningOnly) {
@@ -10918,12 +11028,15 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
     }
   } catch (err) {
     console.error("[Overlays] Erro ao chamar IA para overlays:", err);
+    if (planningOnly) return [];
   }
 
-  // Fallback to rule-based
+  if (planningOnly) return [];
+
+  console.log("[Overlays] IA indisponível — sem fallback de narração.");
   return finalizeProjectOverlays(
     projectDir,
-    generateOverlaysRuleBased(config, storyboard, starts, durations),
+    [],
     config,
     storyboard,
     starts,
@@ -10984,39 +11097,8 @@ function injectRetentionOverlays(projectDir, overlays, starts, durations, config
   return result;
 }
 
-function generateOverlaysRuleBased(config, storyboard, starts, durations) {
-  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
-  const startsList = Array.isArray(starts) ? starts : [];
-  const overlays = [];
-  let overlayIndex = 0;
-
-  for (const bp of blockPhrases) {
-    const blockNum = Number(bp.block || 0);
-    if (blockNum <= 0) continue;
-    const blockIdx = blockNum - 1;
-    const blockStart = Number(startsList[blockIdx]);
-    if (!Number.isFinite(blockStart)) continue;
-
-    const phrase = (bp.phrase || "").trim();
-    const words = phrase.split(/\s+/);
-    const title = words.slice(0, 5).join(" ").toUpperCase();
-    if (!title) continue;
-
-    const ltStart = blockNum === 1 ? blockStart + 0.5 : blockStart + 0.3;
-
-    overlays.push({
-      id: `lt-block-${blockNum}`,
-      type: "lower-third",
-      start: ltStart,
-      duration: 3.5,
-      props: {
-        title: title,
-        subtitle: "",
-        accentColor: "#D4AF37",
-        position: "bottom-left"
-      }
-    });
-    overlayIndex++;
-  }
-  return overlays;
+/** @deprecated Fallback que repetia narração — mantido vazio por compatibilidade. */
+function generateOverlaysRuleBased() {
+  console.log("[Overlays] Fallback local de narração desativado.");
+  return [];
 }
