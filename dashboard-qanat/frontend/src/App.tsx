@@ -12525,19 +12525,6 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="text-left max-w-xl mx-auto pt-2">
-                      <p className="text-[10px] text-zinc-500 text-center mb-2">ou gere a narração automaticamente com TTS</p>
-                      <WorkflowToolkit
-                        getProjectUrl={getProjectUrl}
-                        postAi={postAi}
-                        toast={(msg) => toast(msg)}
-                        compact
-                        showPipeline={false}
-                        onNarrationReady={() => { fetchStatusAndOutputs(); setUploadSuccess(true); }}
-                        onTimelineRefresh={fetchData}
-                      />
-                    </div>
-
 <div className="flex justify-between items-center pt-4 font-sans">
 
                       <button 
@@ -12662,14 +12649,6 @@ export default function App() {
 
                 {creatorStep === 4 && config && (
                   <div className="space-y-6 max-w-4xl mx-auto font-sans">
-                    <WorkflowToolkit
-                      getProjectUrl={getProjectUrl}
-                      postAi={postAi}
-                      toast={(msg) => toast(msg)}
-                      showPipeline={false}
-                      onTimelineRefresh={fetchData}
-                      onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
-                    />
                     {renderRichTimelineEditor()}
                     
                     {/* Navigation Buttons */}
@@ -12706,7 +12685,7 @@ export default function App() {
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
 
-                        O roteiro, a narração, os tempos de blocos e a trilha sonora foram configurados pela IA. Agora você pode gerar a trilha de áudio e compilar o vídeo final.
+                        Roteiro, narração e sincronização prontos. Mixe a trilha e compile o vídeo quando quiser.
 
                       </p>
 
@@ -12842,15 +12821,6 @@ export default function App() {
 
                     </div>
 
-                    <WorkflowToolkit
-                      getProjectUrl={getProjectUrl}
-                      postAi={postAi}
-                      toast={(msg) => toast(msg)}
-                      onTimelineRefresh={fetchData}
-                      onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchData(); }}
-                      onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
-                    />
-
                     <div className="flex justify-between pt-6 border-t border-zinc-900 font-sans">
                       <button
                         onClick={() => setCreatorStep(4)}
@@ -12871,20 +12841,6 @@ export default function App() {
                 {creatorStep === 6 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
                     <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
-                    <WorkflowToolkit
-                      getProjectUrl={getProjectUrl}
-                      postAi={postAi}
-                      toast={(msg) => toast(msg)}
-                      showPipeline={false}
-                      onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchYoutubeThumbnailImages(); fetchData(); }}
-                      onNavigateTab={(tab) => {
-                        if (tab === 'ai' || tab === 'upload' || tab === 'status' || tab === 'workflow' || tab === 'timeline' || tab === 'music' || tab === 'terminal' || tab === 'editor' || tab === 'creator') {
-                          leaveGlobalViewForProject(tab);
-                        } else {
-                          setActiveTab(tab as typeof activeTab);
-                        }
-                      }}
-                    />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button onClick={() => leaveGlobalViewForProject('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
                       <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>

@@ -9311,19 +9311,14 @@ REGRAS FINAIS:
 
     }
 
-    let timelineAssets = {};
-    try {
-      const mapped = buildTimelineFromStoryboard(projDir);
-      timelineAssets = mapped.timelineAssets;
-    } catch (e) {
-      console.log("[Creator Script] Falha ao pré-mapear timeline_assets:", e.message);
-    }
+    // Wizard: não pré-preenche timeline_assets — o usuário associa mídias manualmente no passo B-roll.
+    const timelineAssets = currentConfig.timeline_assets || {};
 
     let newConfig = {
       niche: niche || currentConfig.niche || "Geral",
       gemini_api_key: currentConfig.gemini_api_key,
       highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
-      bgm_mappings: [],
+      bgm_mappings: currentConfig.bgm_mappings || [],
       impact_texts: parsedData.technical_config?.impact_texts || [],
       block_phrases: parsedData.technical_config?.block_phrases || [],
       timeline_assets: timelineAssets,
