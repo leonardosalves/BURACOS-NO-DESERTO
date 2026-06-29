@@ -6164,7 +6164,13 @@ export default function App() {
           toast.error(data.error || 'Falha ao planejar overlays via Gemini no Chrome.');
           return;
         }
-        setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount ?? 0} overlays planejados.`]);
+        if (!data.overlayCount || data.overlayCount < 1) {
+          setRendering(false);
+          setRenderProgress(null);
+          toast.error('Gemini não gerou overlays válidos. Reabra o Chrome e tente o render novamente.');
+          return;
+        }
+        setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount} overlays enriquecidos planejados (sem repetir narração).`]);
       } catch (err: any) {
         setRendering(false);
         setRenderProgress(null);
