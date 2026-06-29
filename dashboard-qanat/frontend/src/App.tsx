@@ -4601,21 +4601,21 @@ export default function App() {
 
   // Generate YouTube Metadata
 
-  const handleGenerateYoutubeMetadata = async () => {
+  const generateYoutubeMetadata = async (options?: { silent?: boolean; keepExistingOnError?: boolean }) => {
+    if (youtubeLoading) return false;
 
     setYoutubeLoading(true);
-
-    setYoutubeMetadata('');
-    setYoutubeMetadataFormat('');
-    setYoutubeMetadataParsed(null);
-    setYoutubeMetadataStrategy(null);
+    if (!options?.keepExistingOnError) {
+      setYoutubeMetadata('');
+      setYoutubeMetadataFormat('');
+      setYoutubeMetadataParsed(null);
+      setYoutubeMetadataStrategy(null);
+    }
 
     try {
-
       const { ok, data } = await postAi('/api/ai/optimize-youtube', { method: 'POST' });
 
-      if (ok && data.text) {
-
+      if (ok && !data.needs_browser && data.text) {
         setYoutubeMetadata(data.text);
         setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
         setYoutubeMetadataParsed(data.parsed || null);
@@ -4626,31 +4626,30 @@ export default function App() {
         });
         fetchYoutubeThumbnailImages();
 
-        if (data.warning) {
-
-          toast(data.warning);
-
-        }
-
-      } else {
-
-        const details = data.details ? `\n\n${data.details}` : '';
-
-        setYoutubeMetadata(`[Erro] ${data.error || 'Falha ao gerar metadados do YouTube.'}${details}`);
-
+        if (data.warning) toast(data.warning);
+        if (!options?.silent) toast.success('Metadados do vídeo gerados pela IA.');
+        return true;
       }
 
-    } catch (err) {
-
-      setYoutubeMetadata(`[Erro] Falha na conexão com o servidor.`);
-
+      const details = data.details ? `\n\n${data.details}` : '';
+      const errMsg = data.error || 'Falha ao gerar metadados do YouTube.';
+      if (!options?.keepExistingOnError) {
+        setYoutubeMetadata(`[Erro] ${errMsg}${details}`);
+      }
+      if (!options?.silent) toast.error(errMsg);
+      return false;
+    } catch {
+      if (!options?.keepExistingOnError) {
+        setYoutubeMetadata('[Erro] Falha na conexão com o servidor.');
+      }
+      if (!options?.silent) toast.error('Falha na conexão ao gerar metadados.');
+      return false;
     } finally {
-
       setYoutubeLoading(false);
-
     }
-
   };
+
+  const handleGenerateYoutubeMetadata = () => { void generateYoutubeMetadata(); };
 
   const fetchYoutubeThumbnailImages = async () => {
     try {
@@ -5792,7 +5791,11 @@ export default function App() {
 
     }
 
-  }, [creatorStep]);
+    if (creatorStep === 5 || creatorStep === 6) {
+      fetchYoutubeMetadataCache();
+    }
+
+  }, [creatorStep, activeProject]);
 
   // Parse suggested config block from AI content
 
@@ -6144,6 +6147,12 @@ export default function App() {
 
     if (!fromWizard) setActiveTab('terminal');
 
+    if (fromWizard) {
+      void generateYoutubeMetadata({ silent: true, keepExistingOnError: true }).then((ok) => {
+        if (ok) toast.success('Metadados (título, descrição, tags) gerados em paralelo ao render.');
+      });
+    }
+
     setLogs([]);
 
     let queryParams = [];
@@ -6197,6 +6206,11 @@ export default function App() {
         setTimeout(() => setRenderProgress(null), 4000);
 
         fetchData();
+
+        if (fromWizard) {
+          void fetchYoutubeMetadataCache();
+          toast.success('Render concluído! Revise títulos e descrição no passo 6.');
+        }
 
       } else if (data.type === 'failed') {
 
@@ -12685,11 +12699,33 @@ export default function App() {
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
 
-                        Roteiro, narração e sincronização prontos. Mixe a trilha e compile o vídeo quando quiser.
+                        Roteiro, narração e sincronização prontos. Ao compilar, a IA gera títulos, descrição e tags em paralelo.
 
                       </p>
 
                     </div>
+
+                    {(youtubeLoading || youtubeMetadataParsed?.titles?.length) && (
+                      <div className={`rounded-2xl border px-4 py-3 text-left text-xs ${
+                        youtubeLoading
+                          ? 'border-gold-500/30 bg-gold-500/5 text-gold-200'
+                          : 'border-emerald-500/30 bg-emerald-500/5 text-emerald-200'
+                      }`}>
+                        {youtubeLoading ? (
+                          <span className="flex items-center gap-2">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            IA gerando metadados do vídeo (títulos, descrição, tags, capítulos)…
+                          </span>
+                        ) : (
+                          <span>
+                            Metadados prontos — título sugerido:{' '}
+                            <strong className="text-white">
+                              {youtubeMetadataParsed?.titles?.[0]?.text || 'ver passo 6'}
+                            </strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pt-4 font-sans">
 
@@ -12840,11 +12876,63 @@ export default function App() {
 
                 {creatorStep === 6 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
-                    <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
+                    <div>
+                      <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        Gerados automaticamente ao renderizar no passo 5 — ou regenere com IA abaixo.
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                          Informações do vídeo (IA)
+                        </span>
+                        <button
+                          type="button"
+                          disabled={youtubeLoading}
+                          onClick={() => void generateYoutubeMetadata()}
+                          className="text-[10px] font-bold text-gold-400 border border-gold-500/30 hover:border-gold-500/50 px-3 py-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {youtubeLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                          {youtubeLoading ? 'Gerando…' : 'Regenerar com IA'}
+                        </button>
+                      </div>
+
+                      {youtubeMetadataParsed?.titles?.length ? (
+                        <ul className="space-y-1.5 text-xs text-zinc-300">
+                          {youtubeMetadataParsed.titles.slice(0, 5).map((t, i) => (
+                            <li key={`wiz-title-${i}`} className="flex gap-2">
+                              <span className="text-gold-500 font-bold shrink-0">{i + 1}.</span>
+                              <span>{t.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : youtubeMetadata && !youtubeMetadata.startsWith('[Erro]') ? (
+                        <p className="text-[10px] text-zinc-400 whitespace-pre-wrap max-h-32 overflow-y-auto">{youtubeMetadata.slice(0, 600)}…</p>
+                      ) : (
+                        <p className="text-[10px] text-zinc-500 italic">
+                          Nenhum metadado ainda — renderize no passo 5 ou clique em Regenerar com IA.
+                        </p>
+                      )}
+
+                      {youtubeMetadataParsed?.description && (
+                        <p className="text-[10px] text-zinc-500 line-clamp-3 border-t border-zinc-800 pt-2">
+                          {youtubeMetadataParsed.description}
+                        </p>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button onClick={() => leaveGlobalViewForProject('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
                       <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>
-                      <button onClick={applyMetadataToUpload} className="sm:col-span-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 py-3 rounded-xl text-xs font-bold">Aplicar ao Upload</button>
+                      <button
+                        onClick={applyMetadataToUpload}
+                        disabled={!youtubeMetadataParsed}
+                        className="sm:col-span-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 py-3 rounded-xl text-xs font-bold disabled:opacity-40"
+                      >
+                        Aplicar ao Upload
+                      </button>
                     </div>
                     <div className="flex justify-between">
                       <button onClick={() => setCreatorStep(5)} className="text-xs text-zinc-500">← Render</button>
