@@ -6,8 +6,14 @@ import fs from "fs";
 import path from "path";
 import https from "https";
 import { spawn } from "child_process";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
 import { convertCinematicMarkersForTts, isListicleProject } from "./videoProEnhancements.js";
+import {
+  synthesizeKokoroNarration,
+  KOKORO_DEFAULT_VOICE,
+  KOKORO_DEFAULT_SPEED,
+} from "./kokoroTts.js";
 
 const NARRATION_FILENAME = "narracao_mestra_premium.mp3";
 
@@ -344,9 +350,12 @@ export async function fetchStockForScenes(projDir, {
 }
 
 export async function generateNarrationTts(projDir, {
-  voice = "pt-BR-AntonioNeural",
+  voice,
   rate = "+0%",
-  platform = "edge",
+  pitch = "+0Hz",
+  speed = KOKORO_DEFAULT_SPEED,
+  platform = "kokoro",
+  onLog = () => {},
 } = {}) {
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
   const tagged = storyboard.narrative_script_tagged || storyboard.narrative_script || "";
@@ -356,33 +365,59 @@ export async function generateNarrationTts(projDir, {
     throw new Error("Roteiro de narração ausente ou muito curto no storyboard.");
   }
 
-  const textForTts = platform === "edge"
-    ? plain
-    : convertCinematicMarkersForTts(tagged, platform);
-
-  if (platform !== "edge") {
-    throw new Error(`Plataforma TTS "${platform}" ainda não integrada. Use engine=edge.`);
-  }
-
-  let EdgeTTS;
-  try {
-    ({ EdgeTTS } = await import("edge-tts-universal"));
-  } catch {
-    throw new Error("Pacote edge-tts-universal não instalado. Rode npm install no backend.");
-  }
-
-  const tts = new EdgeTTS(textForTts, voice, { rate });
-  const result = await tts.synthesize();
-  const buffer = Buffer.from(await result.audio.arrayBuffer());
+  const engine = String(platform || "kokoro").toLowerCase();
   const dest = path.join(projDir, NARRATION_FILENAME);
-  fs.writeFileSync(dest, buffer);
 
-  return {
-    success: true,
-    file: NARRATION_FILENAME,
-    chars: textForTts.length,
-    voice,
-  };
+  if (engine === "kokoro") {
+    const kokoroVoice = voice || KOKORO_DEFAULT_VOICE;
+    const kokoroSpeed = Number(speed);
+    const result = await synthesizeKokoroNarration(plain, {
+      voice: kokoroVoice,
+      speed: Number.isFinite(kokoroSpeed) ? kokoroSpeed : KOKORO_DEFAULT_SPEED,
+      outputPath: dest,
+      workDir: projDir,
+      onLog,
+    });
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: result.chars,
+      voice: result.voice,
+      speed: result.speed,
+      engine: "kokoro",
+      durationSeconds: result.durationSeconds,
+      message: `Narração Kokoro gerada (${result.voice}, ${result.durationSeconds?.toFixed(1) || "?"}s).`,
+    };
+  }
+
+  if (engine === "edge") {
+    const textForTts = plain;
+    const edgeVoice = voice || "pt-BR-AntonioNeural";
+
+    let EdgeTTS;
+    try {
+      ({ EdgeTTS } = await import("edge-tts-universal"));
+    } catch {
+      throw new Error("Pacote edge-tts-universal não instalado. Rode npm install no backend.");
+    }
+
+    const tts = new EdgeTTS(textForTts, edgeVoice, { rate, pitch });
+    const result = await tts.synthesize();
+    const buffer = Buffer.from(await result.audio.arrayBuffer());
+    fs.writeFileSync(dest, buffer);
+
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: textForTts.length,
+      voice: edgeVoice,
+      engine: "edge",
+      message: `Narração Edge TTS gerada (${edgeVoice}).`,
+    };
+  }
+
+  const textForTts = convertCinematicMarkersForTts(tagged, engine);
+  throw new Error(`Engine TTS "${engine}" não suportado. Use engine=kokoro ou engine=edge. Texto preparado: ${textForTts.slice(0, 80)}...`);
 }
 
 export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {
@@ -447,7 +482,7 @@ export function runPythonScript(pythonPath, projDir, script, args = []) {
     const child = spawn(pythonPath, [script, ...args], {
       cwd: projDir,
       shell: true,
-      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      env: buildPythonSpawnEnv(),
     });
     let stdout = "";
     let stderr = "";

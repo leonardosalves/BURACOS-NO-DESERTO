@@ -389,7 +389,7 @@ export function buildTimelineAssetMap({
           ? Number(prevSlot.fixed)
           : Number(slotDuration.toFixed(1)),
       };
-      if (prevSlot?.audio_start !== undefined && prevSlot?.audio_start !== null) {
+      if (!remapping && prevSlot?.audio_start !== undefined && prevSlot?.audio_start !== null) {
         entry.audio_start = prevSlot.audio_start;
       }
       if (prevSlot?.narration_segment) {
@@ -451,12 +451,19 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
   let sequentialCursor = anchor;
   const timings = [];
 
+  const blockStartBound = Number.isFinite(fallbackBlockStart) ? fallbackBlockStart : 0;
+
   cleanAssets.forEach((asset, index) => {
     const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration));
     let start;
 
-    if (asset?.audio_start !== undefined && asset?.audio_start !== null && Number.isFinite(Number(asset.audio_start))) {
-      start = Number(asset.audio_start);
+    const rawAudioStart = Number(asset?.audio_start);
+    const audioStartInBlock = Number.isFinite(rawAudioStart)
+      && rawAudioStart >= blockStartBound - 0.35
+      && rawAudioStart < safeBlockEnd - 0.25;
+
+    if (audioStartInBlock) {
+      start = rawAudioStart;
       sequentialCursor = start + duration;
     } else {
       start = sequentialCursor;
@@ -469,6 +476,129 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
   return normalizeBlockSceneTimings(timings, safeBlockEnd);
 }
 
-export function blockHasExplicitSync(assets) {
-  return Array.isArray(assets) && assets.some((item) => Number.isFinite(Number(item?.audio_start)));
+export function blockHasExplicitSync(assets, { blockStart, blockEnd } = {}) {
+  if (!Array.isArray(assets)) return false;
+  const blockS = Number(blockStart);
+  const blockE = Number(blockEnd);
+  const hasBounds = Number.isFinite(blockS) && Number.isFinite(blockE);
+  return assets.some((item) => {
+    const start = Number(item?.audio_start);
+    if (!Number.isFinite(start)) return false;
+    if (!hasBounds) return true;
+    return start >= blockS - 0.35 && start < blockE - 0.25;
+  });
+}
+
+/**
+ * Estende cada cena até a próxima começar — evita buracos pretos entre B-rolls.
+ */
+export function fillSceneTimelineGaps(scenes, endTime) {
+  if (!Array.isArray(scenes) || scenes.length === 0) return [];
+  const targetEnd = Number(endTime);
+  const sorted = [...scenes]
+    .filter((s) => s?.asset)
+    .sort((a, b) => a.start - b.start || 0);
+  const out = sorted.map((s) => ({ ...s }));
+
+  for (let i = 0; i < out.length - 1; i++) {
+    const sceneEnd = out[i].start + out[i].duration;
+    const nextStart = out[i + 1].start;
+    if (nextStart > sceneEnd + 0.05) {
+      out[i].duration += nextStart - sceneEnd;
+    }
+  }
+
+  if (Number.isFinite(targetEnd) && targetEnd > 0) {
+    const last = out[out.length - 1];
+    const lastEnd = last.start + last.duration;
+    if (targetEnd > lastEnd + 0.05) {
+      last.duration += targetEnd - lastEnd;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Reancora audio_start/fixed de cada bloco dentro de block_timings + transcrição.
+ */
+export function realignTimelineAssetsToSpeech({
+  timelineAssets = {},
+  blockTimings = { starts: [], durations: [] },
+  flatTranscriptWords = [],
+  visualPrompts = [],
+  blockPhrases = [],
+} = {}) {
+  const out = { ...timelineAssets };
+  const starts = blockTimings.starts || [];
+  const durations = blockTimings.durations || [];
+
+  for (const blockKey of Object.keys(out)) {
+    const blockNum = Number(blockKey);
+    if (!Number.isFinite(blockNum) || blockNum < 1) continue;
+
+    const assets = (out[blockKey] || []).map((a) => ({ ...a }));
+    if (!assets.length) continue;
+
+    const blockStart = Number(starts[blockNum - 1]);
+    const blockDuration = Number(durations[blockNum - 1]);
+    if (!Number.isFinite(blockStart) || !Number.isFinite(blockDuration) || blockDuration <= 0) continue;
+
+    const blockEnd = blockStart + blockDuration;
+    const context = {
+      visualPrompts,
+      blockPhrases,
+      timelineAssets: out,
+      blockStart,
+      blockEnd,
+    };
+    const bounds = { searchAfter: blockStart, searchBefore: blockEnd };
+
+    const getNextMatchedStart = (fromIdx) => {
+      for (let i = fromIdx; i < assets.length; i++) {
+        const text = getAssetNarrationText(blockNum, i, context);
+        const match = findNarrationMatch(text, flatTranscriptWords, bounds);
+        if (match) return match.start;
+      }
+      return null;
+    };
+
+    let aligned = 0;
+    for (let idx = 0; idx < assets.length; idx++) {
+      const narrationText = getAssetNarrationText(blockNum, idx, context);
+      const matched = findNarrationMatch(narrationText, flatTranscriptWords, bounds);
+      if (!matched) continue;
+
+      if (idx === assets.length - 1) {
+        assets[idx].fixed = parseFloat(Math.max(0.5, blockEnd - matched.start).toFixed(1));
+      } else {
+        const nextStart = getNextMatchedStart(idx + 1);
+        if (nextStart !== null) {
+          assets[idx].fixed = parseFloat(Math.max(0.5, nextStart - matched.start).toFixed(1));
+        } else {
+          assets[idx].fixed = parseFloat(Math.max(0.5, matched.duration).toFixed(1));
+        }
+      }
+      assets[idx].audio_start = parseFloat(matched.start.toFixed(3));
+      aligned++;
+    }
+
+    if (aligned === 0) {
+      let cursor = blockStart;
+      for (let idx = 0; idx < assets.length; idx++) {
+        if (idx === assets.length - 1) {
+          assets[idx].fixed = parseFloat(Math.max(0.5, blockEnd - cursor).toFixed(1));
+        } else {
+          const dur = computeAssetDuration(assets[idx], assets, blockDuration);
+          assets[idx].fixed = parseFloat(Math.max(0.5, dur).toFixed(1));
+        }
+        assets[idx].audio_start = parseFloat(cursor.toFixed(3));
+        cursor += Number(assets[idx].fixed);
+      }
+    }
+
+    out[blockKey] = assets;
+  }
+
+  return out;
 }

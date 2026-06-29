@@ -225,15 +225,16 @@ def main():
             if not seg_words:
                 continue
                 
-            # Guarantee monotonicity in timings
-            starts_sorted = sorted([w['start'] for w in seg_words])
-            ends_sorted = sorted([w['end'] for w in seg_words])
-            
+            # Guarantee monotonicity without scrambling start/end pairs
+            seg_words.sort(key=lambda w: float(w.get('start', 0)))
             for k in range(len(seg_words)):
-                s = starts_sorted[k]
-                e = ends_sorted[k]
+                s = float(seg_words[k].get('start', 0))
+                e = float(seg_words[k].get('end', s + 0.15))
                 if e <= s:
                     e = s + 0.15
+                if k < len(seg_words) - 1:
+                    next_s = float(seg_words[k + 1].get('start', s + 0.15))
+                    e = min(e, max(s + 0.08, next_s - 0.02))
                 seg_words[k]['start'] = s
                 seg_words[k]['end'] = e
                 

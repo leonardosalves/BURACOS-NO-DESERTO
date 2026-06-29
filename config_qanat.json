@@ -15,6 +15,7 @@
   "xai_api_key": "xai-JF3eqntgM2tbQEh6oQI6hwtuNuhnoFOH3RZcFX154PmVMAgI7Yt1JNP0y54DAX6cNO0pW0fllP0uHKOj",
   "epidemic_sound_key": "",
   "ai_provider": "gemini",
+  "gemini_model": "gemini-2.5-flash",
   "highlight_keywords": [
     "pirâmides",
     "tumbas",

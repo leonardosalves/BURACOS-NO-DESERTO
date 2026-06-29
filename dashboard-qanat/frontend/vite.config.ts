@@ -7,7 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // App.tsx is a large single module; avoid Babel's 500KB "deoptimised" console note.
+      babel: {
+        generatorOpts: {
+          compact: false,
+        },
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@lumiera/overlays': path.resolve(__dirname, '../remotion-renderer/src/overlays'),
