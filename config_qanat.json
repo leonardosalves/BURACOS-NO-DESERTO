@@ -58,5 +58,6 @@
     "reavaliar",
     "passado",
     "futuro"
-  ]
+  ],
+  "gemini_browser_mode": true
 }

@@ -48,6 +48,8 @@ import {
 
   Lock,
 
+  Chrome,
+
   MessageSquare,
 
   Plus,
@@ -74,13 +76,19 @@ import {
 
   CalendarDays,
 
-  Thermometer
+  Thermometer,
+
+  Wand2,
 
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { WorkflowToolkit } from './WorkflowToolkit';
+import { useGeminiBrowserBridge } from './GeminiBrowserBridge';
+import { fetchGeminiAi } from './geminiAiFetch';
+import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
+import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { SettingsApiKeys } from './SettingsApiKeys';
@@ -213,7 +221,8 @@ type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'
 const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
 
 const PROJECT_WORKSPACE_TABS = [
-  { id: 'status' as const, label: 'Geral e Render', icon: Tv },
+  { id: 'status' as const, label: 'Render', icon: Tv },
+  { id: 'workflow' as const, label: 'Workflow e Tarefas', icon: Wand2 },
   { id: 'timeline' as const, label: 'Roteiro e Tags', icon: Layers },
   { id: 'music' as const, label: 'Trilha BGM', icon: Music },
   { id: 'ai' as const, label: 'IA · Metadados', icon: Sparkles },
@@ -402,7 +411,7 @@ const JsonTreeView: React.FC<{ value: any }> = ({ value }) => {
 
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload'>('status');
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -505,6 +514,14 @@ export default function App() {
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState<boolean>(false);
 
   const [savingAiSettings, setSavingAiSettings] = useState<boolean>(false);
+
+  const [geminiBrowserMode, setGeminiBrowserMode] = useState<boolean>(false);
+
+  const { setAutomation } = useGeminiBrowserBridge();
+  const resolveBrowserResponse = useGeminiBrowserResolver(setAutomation);
+  const [geminiExtensionReady, setGeminiExtensionReady] = useState<boolean | null>(null);
+  const [geminiExtensionDiag, setGeminiExtensionDiag] = useState<string>('');
+  const [geminiExtensionTesting, setGeminiExtensionTesting] = useState(false);
 
   const [logoStatus, setLogoStatus] = useState<{
 
@@ -1149,6 +1166,15 @@ export default function App() {
     return `${endpoint}${separator}project=${encodeURIComponent(p)}`;
   }, [activeProject]);
 
+  const postAi = useCallback(async (
+    path: string,
+    init: RequestInit = { method: 'POST' },
+  ) => fetchGeminiAi(
+    getProjectUrl(path),
+    init,
+    { geminiBrowserMode, aiProvider, resolveBrowserResponse },
+  ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
+
   const readApiError = async (res: Response, fallback: string) => {
     try {
       const data = await res.json();
@@ -1766,7 +1792,15 @@ export default function App() {
 
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
-        setHasApiKey((settingsData.gemini_key_count || 0) > 0 || !!settingsData.has_xai_key || settingsData.provider === 'openrouter' || !!settingsData.has_openrouter_key);
+        setGeminiBrowserMode(!!settingsData.gemini_browser_mode);
+
+        setHasApiKey(
+          !!settingsData.gemini_browser_mode
+          || (settingsData.gemini_key_count || 0) > 0
+          || !!settingsData.has_xai_key
+          || settingsData.provider === 'openrouter'
+          || !!settingsData.has_openrouter_key,
+        );
 
       }
 
@@ -1910,6 +1944,30 @@ export default function App() {
       setSelectedIdeaIndex(-1);
     }
   }, [nicheInput, ideasData, ideasSearchNiche]);
+
+  const refreshGeminiExtensionStatus = async () => {
+    resetGeminiExtensionCache();
+    const diag = await diagnoseGeminiExtension();
+    setGeminiExtensionReady(diag.pingOk);
+    if (diag.pingOk) {
+      setGeminiExtensionDiag(diag.version ? `v${diag.version} conectada` : 'conectada');
+    } else {
+      setGeminiExtensionDiag(diag.error || 'Extensão não respondeu');
+    }
+    return diag;
+  };
+
+  useEffect(() => {
+    if (!geminiBrowserMode) {
+      setGeminiExtensionReady(null);
+      setGeminiExtensionDiag('');
+      return;
+    }
+    refreshGeminiExtensionStatus().catch(() => {
+      setGeminiExtensionReady(false);
+      setGeminiExtensionDiag('Falha ao verificar extensão');
+    });
+  }, [geminiBrowserMode]);
 
   useEffect(() => {
 
@@ -4334,7 +4392,9 @@ export default function App() {
 
           xai_key: xaiKeyInput,
 
-          openrouter_key: openrouterKeyInput
+          openrouter_key: openrouterKeyInput,
+
+          gemini_browser_mode: geminiBrowserMode,
 })
 
       });
@@ -4357,7 +4417,15 @@ export default function App() {
 
         setHasEpidemicKey(!!data.has_epidemic_key);
 
-        setHasApiKey((data.gemini_key_count || 0) > 0 || !!data.has_xai_key || data.provider === 'openrouter' || !!data.has_openrouter_key);
+        setGeminiBrowserMode(!!data.gemini_browser_mode);
+
+        setHasApiKey(
+          !!data.gemini_browser_mode
+          || (data.gemini_key_count || 0) > 0
+          || !!data.has_xai_key
+          || data.provider === 'openrouter'
+          || !!data.has_openrouter_key,
+        );
 
         setGeminiKeysInput('');
 
@@ -4403,17 +4471,13 @@ export default function App() {
 
       // Execute on backend
 
-      const res = await fetch(getProjectUrl('/api/ai/execute-action'), {
-
+      const { ok, data } = await postAi('/api/ai/execute-action', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ actions: parsed.actions })
-
+        body: JSON.stringify({ actions: parsed.actions }),
       });
 
-      if (res.ok) {
+      if (ok && !data.needs_browser) {
 
         // Handle frontend-only actions
 
@@ -4494,31 +4558,25 @@ export default function App() {
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/chat'), {
-
+      const { ok, data } = await postAi('/api/ai/chat', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ messages: updatedMessages })
-
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (ok && data.text) {
 
         const aiText = data.text;
-
-        // Strip action block from displayed text
 
         const displayText = aiText.replace(/```lumiera-action[\s\S]*?```/g, '').trim();
 
         setChatMessages(prev => [...prev, { role: 'assistant', content: displayText || aiText }]);
 
-        // Execute any actions
-
         executeAgentActions(aiText);
+
+      } else if (ok) {
+
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '[Erro] Resposta vazia do Gemini.' }]);
 
       } else {
 
@@ -4528,7 +4586,10 @@ export default function App() {
 
     } catch (err) {
 
-      setChatMessages(prev => [...prev, { role: 'assistant', content: `[Erro] Conexão com o servidor falhou.` }]);
+      const msg = err instanceof Error && err.message.includes('cancelado')
+        ? '[Cancelado] Gemini no navegador.'
+        : '[Erro] Conexão com o servidor falhou.';
+      setChatMessages(prev => [...prev, { role: 'assistant', content: msg }]);
 
     } finally {
 
@@ -4551,11 +4612,9 @@ export default function App() {
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/optimize-youtube'), { method: 'POST' });
+      const { ok, data } = await postAi('/api/ai/optimize-youtube', { method: 'POST' });
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (ok && data.text) {
 
         setYoutubeMetadata(data.text);
         setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
@@ -5002,19 +5061,13 @@ export default function App() {
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/suggest-bgm'), {
-
+      const { ok, data } = await postAi('/api/ai/suggest-bgm', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ mode: formatSelector })
-
+        body: JSON.stringify({ mode: formatSelector }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (ok && !data.needs_browser) {
 
         setBgmSuggestions(data);
 
@@ -5050,19 +5103,13 @@ export default function App() {
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/generate-creator-script'), {
-
+      const { ok, data } = await postAi('/api/ai/generate-creator-script', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ prompt: creatorPrompt, useNotebooklm })
-
+        body: JSON.stringify({ prompt: creatorPrompt, useNotebooklm }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (ok && data.script) {
 
         setCreatorScript(data.script);
 
@@ -5120,13 +5167,12 @@ export default function App() {
     }
     setNotebooklmImproving(true);
     try {
-      const res = await fetch(getProjectUrl('/api/notebooklm/improve-script'), {
+      const { ok, data } = await postAi('/api/notebooklm/improve-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ useNotebooklm }),
       });
-      const data = await res.json();
-      if (res.ok && data.storyboard) {
+      if (ok && data.storyboard) {
         setStoryboardData(data.storyboard);
         if (data.suggestions) setNotebooklmSuggestions(data.suggestions);
         toast.success(
@@ -5156,29 +5202,29 @@ export default function App() {
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/creator/ideas'), {
+      if (geminiBrowserMode && aiProvider === 'gemini') {
+        toast.loading('Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
+      }
 
-        method: 'POST',
-
-        headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({
-          niche: nicheInput.trim(),
-          format: formatSelector,
-          useNotebooklm,
-          ...(ideationTab === 'listicle' ? {
-            contentMode: 'LISTICLE',
-            rankCount,
-            rankOrder,
-            listTopic: listTopic.trim() || nicheInput.trim(),
-          } : {}),
-        })
-
+      const body = JSON.stringify({
+        niche: nicheInput.trim(),
+        format: formatSelector,
+        useNotebooklm,
+        ...(ideationTab === 'listicle' ? {
+          contentMode: 'LISTICLE',
+          rankCount,
+          rankOrder,
+          listTopic: listTopic.trim() || nicheInput.trim(),
+        } : {}),
       });
 
-      const data = await res.json();
+      const { ok, data } = await postAi('/api/ai/creator/ideas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
 
-      if (res.ok) {
+      toast.dismiss('gemini-ideas');
+
+      if (ok && data.ideas) {
 
         setIdeasData(data);
         setIdeasSearchNiche(nicheInput.trim());
@@ -5240,14 +5286,19 @@ export default function App() {
     setNicheInput(listNiche.trim());
 
     try {
-      const res = await fetch(getProjectUrl('/api/ai/creator/listicle-ideas'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niche: listNiche.trim(), format: formatSelector, useNotebooklm }),
+      if (geminiBrowserMode && aiProvider === 'gemini') {
+        toast.loading('Sugerindo rankings via Gemini no navegador…', { id: 'gemini-listicle' });
+      }
+
+      const body = JSON.stringify({ niche: listNiche.trim(), format: formatSelector, useNotebooklm });
+      const { ok, data } = await postAi('/api/ai/creator/listicle-ideas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
       });
-      const data = await res.json();
+
+      toast.dismiss('gemini-listicle');
+
       const ideas = data.ranking_ideas || data.rankings || data.ideas || [];
-      if (res.ok && Array.isArray(ideas) && ideas.length > 0) {
+      if (ok && Array.isArray(ideas) && ideas.length > 0) {
         const normalized = {
           ...data,
           ranking_ideas: ideas,
@@ -5276,10 +5327,18 @@ export default function App() {
         }
         toast.success(`${ideas.length} rankings sugeridos para "${listNiche.trim()}".`);
       } else {
-        toast.error(data.error || data.details || 'Nenhum ranking retornado — tente outro nicho ou clique de novo.');
+        const hint = data.details ? ` (${data.details})` : '';
+        const preview = data.raw_preview ? ` — ${String(data.raw_preview).slice(0, 120)}` : '';
+        toast.error((data.error || 'Nenhum ranking retornado') + hint + preview, { duration: 6000 });
       }
     } catch (err: any) {
-      toast.error(err.message || 'Falha ao sugerir rankings.');
+      const msg = err?.message || 'Falha ao sugerir rankings.';
+      toast.error(
+        msg.includes('Extensão') || msg.includes('extensão')
+          ? `${msg} Execute tools/lumiera-gemini-bridge/install.bat e recarregue o dashboard.`
+          : msg,
+        { duration: 7000 },
+      );
     } finally {
       setCreatorLoading(false);
     }
@@ -5382,13 +5441,12 @@ export default function App() {
     setShowNarrationReview(false);
 
     try {
-      const res = await fetch('/api/ai/creator/script', {
+      const { ok, data } = await postAi('/api/ai/creator/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildCreatorScriptPayload('narration')),
       });
-      const data = await res.json();
-      if (res.ok) {
+      if (ok && !data.needs_browser) {
         setNarrationDraft(data.narrative_script || '');
         setNarrationTaggedDraft(data.narrative_script_tagged || '');
         setNarrationStrategy(data.strategy || null);
@@ -5423,7 +5481,7 @@ export default function App() {
     setCreatorLoadingMode('full');
 
     try {
-      const res = await fetch('/api/ai/creator/script', {
+      const { ok, data } = await postAi('/api/ai/creator/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildCreatorScriptPayload('full', {
@@ -5431,8 +5489,7 @@ export default function App() {
           approvedNarrationTagged: narrationTaggedDraft.trim() || undefined,
         })),
       });
-      const data = await res.json();
-      if (res.ok) {
+      if (ok && !data.needs_browser) {
         setGeneratedScriptData(data);
         setCreatorScript(data.narrative_script || approved);
         setShowNarrationReview(false);
@@ -5476,13 +5533,12 @@ export default function App() {
     setCreatorLoading(true);
     setCreatorLoadingMode('full');
     try {
-      const res = await fetch('/api/ai/creator/repair-visual-prompts', {
+      const { ok, data } = await postAi('/api/ai/creator/repair-visual-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      if (ok && !data.needs_browser) {
         setGeneratedScriptData(data);
         setCreatorScript(data.narrative_script || creatorScript);
         await saveCreatorStoryboard(data);
@@ -7240,7 +7296,7 @@ export default function App() {
 
           <div className="flex-1 overflow-y-auto p-8">
 
-          {/* TAB 1: STATUS & RENDER */}
+          {/* TAB: RENDER */}
 
           {activeTab === 'status' && (
 
@@ -7295,15 +7351,19 @@ export default function App() {
                 </div>
               )}
 
-              {config && (
-                <WorkflowToolkit
-                  getProjectUrl={getProjectUrl}
-                  toast={(msg) => toast(msg)}
-                  enabled={activeTab === 'status'}
-                  onTimelineRefresh={() => fetchData()}
-                  onMetadataReady={() => fetchData({ includeVideoQuality: true })}
-                  onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
-                />
+              {config && !status?.has_narration && (
+                <div className="glass-panel px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[11px] text-amber-200/90">
+                    Projeto ainda sem narração ou preparação completa. Use Workflow e Tarefas antes de renderizar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('workflow')}
+                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-3 py-1.5 rounded-lg transition"
+                  >
+                    Ir para Workflow →
+                  </button>
+                </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80">
@@ -7579,7 +7639,38 @@ export default function App() {
 
           )}
 
-          {/* TAB 2: TIMELINE & BLOCKS */}
+          {activeTab === 'workflow' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="glass-panel p-5 rounded-2xl font-sans">
+                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                  <Wand2 className="w-4 h-4 text-gold-400" />
+                  Workflow e Tarefas
+                </h3>
+                <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed max-w-2xl">
+                  Narração TTS, ComfyUI + LTX, B-roll, auto-map, trilha, metadados e pipelines automáticos.
+                  Prepare o projeto aqui; a aba Render fica só para compilar o vídeo final.
+                </p>
+              </div>
+
+              {config ? (
+                <WorkflowToolkit
+                  getProjectUrl={getProjectUrl}
+                  postAi={postAi}
+                  toast={(msg) => toast(msg)}
+                  enabled={activeTab === 'workflow'}
+                  onTimelineRefresh={() => fetchData()}
+                  onMetadataReady={() => fetchData({ includeVideoQuality: true })}
+                  onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
+                />
+              ) : (
+                <div className="glass-panel p-8 rounded-2xl text-center text-zinc-500 text-sm">
+                  Selecione um projeto para ver as ferramentas de workflow.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: TIMELINE & BLOCKS */}
 
           {activeTab === 'timeline' && (
             <TabErrorBoundary label="Roteiro e Tags">
@@ -8810,7 +8901,9 @@ export default function App() {
 
                     <p className="text-[10px] text-gray-400 mt-0.5">
 
-                      {hasApiKey ? `Conectado via ${aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'xai' ? 'Grok / xAI' : 'Gemini'}.` : 'Configure um provedor para habilitar a IA.'}
+                      {hasApiKey
+                        ? `Conectado via ${aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'xai' ? 'Grok / xAI' : geminiBrowserMode ? 'Gemini no Chrome' : 'Gemini API'}.`
+                        : 'Configure um provedor para habilitar a IA.'}
 
                     </p>
 
@@ -10965,6 +11058,62 @@ export default function App() {
 
                 </div>
 
+                {aiProvider === 'gemini' && (
+                  <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-white font-cinzel flex items-center gap-2">
+                          <Chrome className="w-4 h-4 text-violet-400" />
+                          Gemini no Chrome (extensão)
+                        </p>
+                        <p className="text-[10px] text-zinc-400 leading-relaxed max-w-xl">
+                          Ativa todas as chamadas de IA via Gemini no Chrome, de forma autônoma (sem copiar/colar).
+                          Requer a extensão Lumiera em tools/lumiera-gemini-bridge — ela controla gemini.google.com na sua sessão Google.
+                          Desligado, volta a usar a API do AI Studio normalmente.
+                        </p>
+                        {geminiBrowserMode && (
+                          <div className="space-y-1.5">
+                            <p className={`text-[9px] ${geminiExtensionReady ? 'text-emerald-300/90' : 'text-amber-300/90'}`}>
+                              Extensão: {geminiExtensionReady === null ? 'verificando…' : geminiExtensionReady
+                                ? `ativa — ${geminiExtensionDiag || 'automação OK'}`
+                                : 'não conectada'}
+                            </p>
+                            {geminiExtensionDiag && !geminiExtensionReady && (
+                              <p className="text-[9px] text-amber-200/80 leading-relaxed max-w-xl">{geminiExtensionDiag}</p>
+                            )}
+                            <button
+                              type="button"
+                              disabled={geminiExtensionTesting}
+                              onClick={async () => {
+                                setGeminiExtensionTesting(true);
+                                try {
+                                  const d = await refreshGeminiExtensionStatus();
+                                  if (d.pingOk) toast.success(`Extensão OK ${d.version ? `(v${d.version})` : ''}`);
+                                  else toast.error(d.error || 'Extensão não conectada', { duration: 8000 });
+                                } finally {
+                                  setGeminiExtensionTesting(false);
+                                }
+                              }}
+                              className="text-[9px] text-violet-300 hover:text-violet-100 border border-violet-500/30 px-2 py-1 rounded-lg transition disabled:opacity-50"
+                            >
+                              {geminiExtensionTesting ? 'Testando…' : 'Testar extensão'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                        <span className="text-[10px] text-zinc-400">{geminiBrowserMode ? 'Ativo' : 'Desligado'}</span>
+                        <input
+                          type="checkbox"
+                          checked={geminiBrowserMode}
+                          onChange={(e) => setGeminiBrowserMode(e.target.checked)}
+                          className="accent-violet-500 w-4 h-4"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
                   <div className="space-y-4">
@@ -12380,6 +12529,7 @@ export default function App() {
                       <p className="text-[10px] text-zinc-500 text-center mb-2">ou gere a narração automaticamente com TTS</p>
                       <WorkflowToolkit
                         getProjectUrl={getProjectUrl}
+                        postAi={postAi}
                         toast={(msg) => toast(msg)}
                         compact
                         showPipeline={false}
@@ -12514,6 +12664,7 @@ export default function App() {
                   <div className="space-y-6 max-w-4xl mx-auto font-sans">
                     <WorkflowToolkit
                       getProjectUrl={getProjectUrl}
+                      postAi={postAi}
                       toast={(msg) => toast(msg)}
                       showPipeline={false}
                       onTimelineRefresh={fetchData}
@@ -12693,6 +12844,7 @@ export default function App() {
 
                     <WorkflowToolkit
                       getProjectUrl={getProjectUrl}
+                      postAi={postAi}
                       toast={(msg) => toast(msg)}
                       onTimelineRefresh={fetchData}
                       onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchData(); }}
@@ -12721,11 +12873,12 @@ export default function App() {
                     <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
                     <WorkflowToolkit
                       getProjectUrl={getProjectUrl}
+                      postAi={postAi}
                       toast={(msg) => toast(msg)}
                       showPipeline={false}
                       onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchYoutubeThumbnailImages(); fetchData(); }}
                       onNavigateTab={(tab) => {
-                        if (tab === 'ai' || tab === 'upload' || tab === 'status' || tab === 'timeline' || tab === 'music' || tab === 'terminal' || tab === 'editor' || tab === 'creator') {
+                        if (tab === 'ai' || tab === 'upload' || tab === 'status' || tab === 'workflow' || tab === 'timeline' || tab === 'music' || tab === 'terminal' || tab === 'editor' || tab === 'creator') {
                           leaveGlobalViewForProject(tab);
                         } else {
                           setActiveTab(tab as typeof activeTab);

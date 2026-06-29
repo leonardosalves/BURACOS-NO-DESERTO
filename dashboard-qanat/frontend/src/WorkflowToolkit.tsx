@@ -35,8 +35,11 @@ type TtsEngineOption = {
   voices: TtsVoiceOption[];
 };
 
+type AiFetchResult = { ok: boolean; status: number; data: Record<string, unknown> };
+
 type Props = {
   getProjectUrl: (path: string) => string;
+  postAi?: (path: string, init?: RequestInit) => Promise<AiFetchResult>;
   toast: (msg: string) => void;
   onNarrationReady?: () => void;
   onTimelineRefresh?: () => void;
@@ -50,6 +53,7 @@ type Props = {
 
 export function WorkflowToolkit({
   getProjectUrl,
+  postAi,
   toast,
   onNarrationReady,
   onTimelineRefresh,
@@ -385,13 +389,24 @@ export function WorkflowToolkit({
     }
   };
 
-  const runAction = async (label: string, url: string, options?: RequestInit) => {
+  const runAction = async (label: string, url: string, options?: RequestInit, useAi = false) => {
     setBusy(label);
     try {
-      const res = await fetch(getProjectUrl(url), options);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || data.details || 'Falha');
-      toast(data.message || `${label} concluído.`);
+      const aiPaths = ['/api/ai/publish-prep'];
+      const shouldUseAi = useAi || (postAi && aiPaths.some((p) => url.startsWith(p)));
+      let data: Record<string, unknown> = {};
+      let ok = false;
+      if (shouldUseAi && postAi) {
+        const result = await postAi(url, options);
+        ok = result.ok;
+        data = result.data;
+      } else {
+        const res = await fetch(getProjectUrl(url), options);
+        data = await res.json().catch(() => ({}));
+        ok = res.ok;
+      }
+      if (!ok || data.needs_browser) throw new Error(String(data.error || data.details || 'Falha'));
+      toast(String(data.message || `${label} concluído.`));
       await refreshGaps(true);
       return data;
     } catch (err) {
@@ -536,8 +551,19 @@ export function WorkflowToolkit({
           ))}
         </div>
       ) : gaps ? (
-        <div className="text-[9px] text-emerald-400 flex items-center gap-1">
-          <CheckCircle2 className="w-3 h-3" /> Projeto pronto para render
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-[9px] text-emerald-400 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> Projeto pronto para render
+          </div>
+          {onNavigateTab && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab('status')}
+              className="text-[9px] font-bold text-gold-400 hover:text-gold-300 border border-gold-500/30 px-2 py-1 rounded-lg transition"
+            >
+              Ir para Render →
+            </button>
+          )}
         </div>
       ) : null}
 

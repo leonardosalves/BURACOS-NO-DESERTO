@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Lumiera Gemini Bridge",
+  "version": "1.1.8",
+  "description": "Automatiza o Gemini no Chrome para o dashboard Lumiera — sem copiar/colar.",
+  "permissions": ["tabs", "scripting", "storage"],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1:5176/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:5176/*",
+        "http://localhost:5173/*"
+      ],
+      "js": ["content-lumiera.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["content-gemini.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "http://127.0.0.1:5176/*",
+      "http://127.0.0.1:5173/*",
+      "http://localhost:5176/*",
+      "http://localhost:5173/*"
+    ]
+  }
+}
