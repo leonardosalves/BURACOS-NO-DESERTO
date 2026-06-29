@@ -3994,80 +3994,129 @@ export default function App() {
     }
 
     const blockNum = Number(blockKey);
-    const audio = getNarrationAudio(blockNum);
     const targetStr = `scene-${blockKey}-${sceneIdx}`;
 
     if (playingNarration === targetStr) {
-      audio.pause();
+      const audio = narrationAudioRef.current;
+      audio?.pause();
       setPlayingNarration(null);
       activeNarrationStateRef.current = null;
       return;
     }
 
-    audio.pause();
+    const dynamic = getDynamicAssetWords(blockKey, sceneIdx);
+    const blockAssets = config?.timeline_assets?.[blockKey] || [];
+    const isLastAssetInBlock = sceneIdx === blockAssets.length - 1;
+    const duration = getAssetDuration(blockKey, sceneIdx);
+    const starts = status?.block_timings?.starts;
+    const blockStart = starts?.[blockNum - 1];
     const narrationText = getAssetNarration(blockKey, sceneIdx);
     const matched = findNarrationTimestamps(narrationText, blockNum);
-    const duration = getAssetDuration(blockKey, sceneIdx);
 
     let startTimeRelative = 0;
     for (let i = 0; i < sceneIdx; i++) {
       startTimeRelative += getAssetDuration(blockKey, i);
     }
-    const endTimeRelative = startTimeRelative + duration;
 
     let startTimeAbsolute = startTimeRelative;
-    let endTimeAbsolute = endTimeRelative;
-    const starts = status?.block_timings?.starts;
-    if (starts && starts[blockNum - 1] !== undefined) {
-      startTimeAbsolute = starts[blockNum - 1] + startTimeRelative;
+    let endTimeAbsolute = startTimeRelative + duration;
+    if (blockStart !== undefined) {
+      startTimeAbsolute = blockStart + startTimeRelative;
       endTimeAbsolute = startTimeAbsolute + duration;
     } else if (matched) {
       startTimeAbsolute = matched.start;
-      endTimeAbsolute = matched.start + duration;
-    } else {
-      startTimeAbsolute = 0;
-      endTimeAbsolute = duration;
+      endTimeAbsolute = matched.start + (matched.duration || duration);
     }
 
-    activeNarrationStateRef.current = {
-      target: targetStr,
-      startTimeRelative,
-      startTimeAbsolute,
-      endTimeRelative,
-      endTime: endTimeAbsolute
+    if (dynamic) {
+      startTimeAbsolute = dynamic.assetAudioStart;
+      const lastWord = dynamic.words[dynamic.words.length - 1];
+      endTimeAbsolute = lastWord
+        ? lastWord.end + 0.3
+        : dynamic.assetAudioEnd;
+      if (isLastAssetInBlock) {
+        endTimeAbsolute = Math.max(endTimeAbsolute, dynamic.blockAudioEnd + 0.3);
+      }
+      endTimeAbsolute = Math.max(endTimeAbsolute, startTimeAbsolute + 0.35);
+    } else if (matched?.end) {
+      endTimeAbsolute = Math.max(endTimeAbsolute, matched.end + 0.2);
+    }
+
+    const useMasterTimeline = Boolean(
+      status?.has_narration && blockStart !== undefined && Number.isFinite(blockStart),
+    );
+    const audio = getNarrationAudio(useMasterTimeline ? undefined : blockNum);
+    audio.pause();
+
+    const beginPlayback = () => {
+      if (useMasterTimeline) {
+        activeNarrationStateRef.current = {
+          target: targetStr,
+          startTimeAbsolute,
+          endTime: endTimeAbsolute,
+        };
+        audio.currentTime = startTimeAbsolute;
+      } else {
+        const relStart = Number.isFinite(blockStart)
+          ? Math.max(0, startTimeAbsolute - Number(blockStart))
+          : startTimeRelative;
+        const relEnd = Number.isFinite(blockStart)
+          ? Math.max(relStart + 0.35, endTimeAbsolute - Number(blockStart))
+          : relStart + duration;
+        activeNarrationStateRef.current = {
+          target: targetStr,
+          startTimeRelative: relStart,
+          startTimeAbsolute,
+          endTimeRelative: relEnd,
+          endTime: endTimeAbsolute,
+        };
+        audio.currentTime = relStart;
+      }
+
+      setPlayingNarration(targetStr);
+      audio.play().catch((err) => {
+        console.error("Failed to play scene narration:", err);
+        if (!audio.src.includes("narracao_mestra_premium.mp3")) {
+          console.warn("Play failed for segment. Forcing fallback to master narration.");
+          const masterUrl = getMusicUrl("narracao_mestra_premium.mp3");
+          audio.pause();
+          audio.src = masterUrl;
+          audio.load();
+          activeNarrationStateRef.current = {
+            target: targetStr,
+            startTimeAbsolute,
+            endTime: endTimeAbsolute,
+          };
+          audio.oncanplay = () => {
+            audio.currentTime = startTimeAbsolute;
+            audio.play().catch((e) => {
+              console.error("Fallback play trigger failed:", e);
+              setPlayingNarration(null);
+              activeNarrationStateRef.current = null;
+            });
+            audio.oncanplay = null;
+          };
+        } else {
+          setPlayingNarration(null);
+          activeNarrationStateRef.current = null;
+        }
+      });
     };
 
-    audio.currentTime = startTimeRelative;
-    setPlayingNarration(targetStr);
-
-    audio.play().catch(err => {
-      console.error("Failed to play scene narration:", err);
-      if (audio.src && !audio.src.includes("narracao_mestra_premium.mp3")) {
-        console.warn("Play failed for segment. Forcing fallback to master narration.");
-        const masterUrl = getMusicUrl("narracao_mestra_premium.mp3");
-        audio.pause();
+    if (useMasterTimeline) {
+      const masterUrl = getMusicUrl("narracao_mestra_premium.mp3");
+      if (!audio.src.includes("narracao_mestra_premium.mp3")) {
         audio.src = masterUrl;
         audio.load();
-
-        if (activeNarrationStateRef.current) {
-          activeNarrationStateRef.current.startTimeRelative = undefined;
-          activeNarrationStateRef.current.endTimeRelative = undefined;
-        }
-
         audio.oncanplay = () => {
-          audio.currentTime = startTimeAbsolute;
-          audio.play().catch(e => {
-            console.error("Fallback play trigger failed:", e);
-            setPlayingNarration(null);
-            activeNarrationStateRef.current = null;
-          });
+          beginPlayback();
           audio.oncanplay = null;
         };
-      } else {
-        setPlayingNarration(null);
-        activeNarrationStateRef.current = null;
+        return;
       }
-    });
+    }
+
+    beginPlayback();
   };
 
   const getAssetUrl = (fileName: string) => {
