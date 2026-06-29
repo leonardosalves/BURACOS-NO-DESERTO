@@ -305,10 +305,11 @@ const assetUrl = (file: string) => staticFile(file.replace(/\\/g, "/"));
 const SceneMedia: React.FC<{
   scene: TimelineScene;
   isFirst: boolean;
+  isLast: boolean;
   index: number;
   youtubeChannelInfo?: YoutubeChannelInfo | null;
   isShort?: boolean;
-}> = ({ scene, isFirst, index, youtubeChannelInfo, isShort = false }) => {
+}> = ({ scene, isFirst, isLast, index, youtubeChannelInfo, isShort = false }) => {
 
 
 
@@ -412,7 +413,18 @@ const SceneMedia: React.FC<{
 
 
 
-  // Fade out at the very end of the video (logo outro)
+  if (!isLogo && !isLast) {
+    const fadeOutStart = Math.max(0, durationFrames - transFrames);
+    if (frame >= fadeOutStart) {
+      const fadeOutOpacity = interpolate(frame, [fadeOutStart, durationFrames], [1, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
+      opacity = Math.min(opacity, fadeOutOpacity);
+    }
+  }
+
+    // Fade out at the very end of the video (logo outro)
 
 
 
@@ -775,7 +787,7 @@ const SceneMedia: React.FC<{
 
     opacity,
 
-
+    visibility: opacity < 0.02 ? "hidden" : "visible",
 
     transform: isLogo && youtubeChannelInfo ? `scale(${zoomScale * transitionScale}) translateY(-100px)` : `scale(${zoomScale * transitionScale})`,
 
@@ -1656,11 +1668,15 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
+            style={{ zIndex: index + 1 }}
+
+
+
           >
 
 
 
-            <SceneMedia scene={scene} isFirst={index === 0} index={index} youtubeChannelInfo={youtubeChannelInfo} isShort={isShort} />
+            <SceneMedia scene={scene} isFirst={index === 0} isLast={isLast} index={index} youtubeChannelInfo={youtubeChannelInfo} isShort={isShort} />
 
 
 

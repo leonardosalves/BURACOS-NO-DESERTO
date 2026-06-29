@@ -109,6 +109,7 @@ import {
   flattenWordTranscripts,
   buildBlockSceneTimings,
   blockHasExplicitSync,
+  dedupeConsecutiveTimelineAssets,
 } from "./timelineSceneSync.js";
 import {
   needsListItemsRepair,
@@ -4769,11 +4770,21 @@ function buildTimelineFromStoryboard(projectDir) {
       if (prevSlot?.narration_segment) {
         entry.narration_segment = prevSlot.narration_segment;
       }
+      const lastPath = blockAssets.length ? String(blockAssets[blockAssets.length - 1]?.asset || "").trim() : "";
+      if (asset && lastPath && asset === lastPath) {
+        warnings.push(`Bloco ${block}: asset repetido consecutivo ignorado (${asset}).`);
+        continue;
+      }
       blockAssets.push(entry);
     }
 
-    if (blockAssets.length > 0) {
-      timelineAssets[blockKey] = blockAssets;
+    const dedupedBlock = dedupeConsecutiveTimelineAssets(blockAssets);
+    if (dedupedBlock.length < blockAssets.length) {
+      warnings.push(`Bloco ${block}: ${blockAssets.length - dedupedBlock.length} repetição(ões) consecutiva(s) removida(s).`);
+    }
+
+    if (dedupedBlock.length > 0) {
+      timelineAssets[blockKey] = dedupedBlock;
     }
 
     const filled = blockAssets.filter((a) => a.asset).length;
