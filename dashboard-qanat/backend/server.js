@@ -3110,6 +3110,45 @@ async function ensureProjectSfxTracks(projDir) {
 
 }
 
+// Planeja overlays via API ou Gemini no Chrome (antes do render Remotion)
+app.post("/api/render/plan-overlays", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const useHyperframes = req.body?.hyperframes !== false;
+    const browserText = extractBrowserResponse(req.body);
+
+    let llmText = browserText;
+    if (!llmText) {
+      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes);
+      if (!prompt) {
+        return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
+      }
+      const responseText = await callGeminiLlm(req, res, projDir, {
+        title: "Planejar overlays do vídeo",
+        prompt,
+        temperature: 0.35,
+      });
+      if (responseText == null) return;
+      llmText = responseText;
+    }
+
+    const overlays = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
+      llmText,
+      skipBrowserCache: true,
+    });
+
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    storyboard.overlays = overlays;
+    storyboard.overlays_planned_at = new Date().toISOString();
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+
+    res.json({ success: true, overlayCount: Array.isArray(overlays) ? overlays.length : 0 });
+  } catch (err) {
+    console.error("[Plan Overlays]", err);
+    res.status(500).json({ error: err.message || "Falha ao planejar overlays." });
+  }
+});
+
 // API: Render videos streaming logs via Server-Sent Events (SSE)
 
 app.get("/api/render/:mode", async (req, res) => {
@@ -10086,8 +10125,47 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   return result;
 }
 
+/** Prompt compacto para planejar overlays via Gemini no Chrome (extensão). */
+function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true) {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  if (!blockPhrases.length) return null;
+
+  const niche = config.niche || "Geral";
+  const isListicle = config.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const isShort = config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
+  const scenes = (storyboard.visual_prompts || []).slice(0, 36).map((vp) => ({
+    scene_id: String(vp.scene || `${vp.block || 1}.1`),
+    block: vp.block,
+    narration: String(vp.narration_text || "").slice(0, 140),
+  }));
+
+  const maxOverlays = isListicle && isShort ? 2 : isShort ? 6 : 10;
+  const listicleRules = isListicle && isShort
+    ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
+    : "";
+
+  return [
+    `Você é diretor de overlays para vídeo YouTube (nicho: "${niche}").`,
+    listicleRules,
+    useHyperframes ? "Modo HyperFrames: use variant glass/accent, iconType temático, customStyle com gradiente." : "",
+    `Retorne APENAS JSON válido: {"planejamento":["3 observações curtas"],"overlays":[...]}`,
+    `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
+    `Tipos: lower-third, counter, kinetic-text, bar-chart, timeline, info-card.`,
+    `Textos em PT-BR, 5-12 palavras, dados NOVOS (não copie narração). Proibido código/terminal.`,
+    "",
+    "CENAS:",
+    JSON.stringify(scenes, null, 2),
+    "",
+    "BLOCOS:",
+    JSON.stringify(blockPhrases.slice(0, 14), null, 2),
+  ].filter(Boolean).join("\n");
+}
+
 // AI-driven overlay planning for Remotion PRO using Gemini API
-async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}) {
+async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}, options = {}) {
+  const { llmText: injectedLlmText = null, skipBrowserCache = false } = options;
   await ensureListItemsInProject(projectDir, {
     getApiKey,
     callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
@@ -10114,8 +10192,56 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     blockCount: blockPhrases.length,
   });
 
-  if (!apiKey || blockPhrases.length === 0) {
-    console.log("[Overlays] Fallback: No API Key or empty phrases. Using rule-based generation.");
+  if (blockPhrases.length === 0) {
+    console.log("[Overlays] Fallback: blocos vazios. Usando regras locais.");
+    return finalizeProjectOverlays(
+      projectDir,
+      generateOverlaysRuleBased(config, storyboard, starts, durations),
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  if (
+    !skipBrowserCache
+    && !injectedLlmText
+    && shouldOfferGeminiBrowser(projectDir)
+    && Array.isArray(storyboard.overlays)
+    && storyboard.overlays.length > 0
+  ) {
+    console.log("[Overlays] Reutilizando overlays planejados via Gemini no Chrome.");
+    return finalizeProjectOverlays(
+      projectDir,
+      storyboard.overlays,
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  if (!injectedLlmText && !apiKey && !shouldOfferGeminiBrowser(projectDir)) {
+    console.log("[Overlays] Fallback: sem chave API. Usando regras locais.");
+    return finalizeProjectOverlays(
+      projectDir,
+      generateOverlaysRuleBased(config, storyboard, starts, durations),
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  if (!injectedLlmText && shouldOfferGeminiBrowser(projectDir)) {
+    console.log("[Overlays] Modo Gemini Chrome sem planejamento prévio — regras locais.");
     return finalizeProjectOverlays(
       projectDir,
       generateOverlaysRuleBased(config, storyboard, starts, durations),
@@ -10399,13 +10525,16 @@ ${JSON.stringify(blockContexts, null, 2)}
 Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associe cada overlay ao "scene_id" da cena onde a informação é realmente ilustrada visualmente. Use APENAS scene_id no campo "start", nunca segundos absolutos.`;
 
   try {
-    const requestBody = {
-      contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
-    };
-    const rawResponse = await callGeminiWithRetry(apiKey, null, { bodyOverride: requestBody });
+    let rawResponse = injectedLlmText;
+    if (!rawResponse) {
+      const requestBody = {
+        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      };
+      rawResponse = await callGeminiWithRetry(apiKey, null, { bodyOverride: requestBody });
+    }
 
     let cleaned = rawResponse.trim();
     if (cleaned.startsWith("```")) {

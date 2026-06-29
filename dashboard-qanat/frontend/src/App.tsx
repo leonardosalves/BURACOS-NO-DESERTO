@@ -6141,19 +6141,54 @@ export default function App() {
       }
     }
 
+    const useGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+    const needsOverlayPlan = mode === 'remotion' || mode === 'remotion-pro';
+
     setRendering(true);
-
     setRenderProgress({ percent: 0, phase: 'Inicializando...' });
-
     if (!fromWizard) setActiveTab('terminal');
+    setLogs([]);
 
-    if (fromWizard) {
-      void generateYoutubeMetadata({ silent: true, keepExistingOnError: true }).then((ok) => {
-        if (ok) toast.success('Metadados (título, descrição, tags) gerados em paralelo ao render.');
-      });
+    if (needsOverlayPlan && useGeminiChrome) {
+      setRenderProgress({ percent: 0, phase: 'Gemini: planejando overlays…' });
+      setLogs(['[Dashboard] Consultando Gemini no Chrome para overlays do vídeo…']);
+      try {
+        const { ok, data } = await postAi('/api/render/plan-overlays', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hyperframes: useHyperframes !== false }),
+        });
+        if (!ok || data.needs_browser) {
+          setRendering(false);
+          setRenderProgress(null);
+          toast.error(data.error || 'Falha ao planejar overlays via Gemini no Chrome.');
+          return;
+        }
+        setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount ?? 0} overlays planejados.`]);
+      } catch (err: any) {
+        setRendering(false);
+        setRenderProgress(null);
+        toast.error(err?.message || 'Conexão falhou ao planejar overlays.');
+        return;
+      }
     }
 
-    setLogs([]);
+    if (fromWizard) {
+      if (useGeminiChrome) {
+        setRenderProgress({ percent: 0, phase: 'Gemini: metadados do vídeo…' });
+        setLogs((prev) => [...prev, '[Dashboard] Consultando Gemini no Chrome para metadados…']);
+        const metaOk = await generateYoutubeMetadata({ silent: true, keepExistingOnError: true });
+        if (metaOk) {
+          setLogs((prev) => [...prev, '[Dashboard] Metadados YouTube gerados.']);
+        }
+      } else {
+        void generateYoutubeMetadata({ silent: true, keepExistingOnError: true }).then((ok) => {
+          if (ok) toast.success('Metadados (título, descrição, tags) gerados em paralelo ao render.');
+        });
+      }
+    }
+
+    setRenderProgress({ percent: 0, phase: 'Inicializando render…' });
 
     let queryParams = [];
     if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
@@ -12699,7 +12734,7 @@ export default function App() {
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
 
-                        Roteiro, narração e sincronização prontos. Ao compilar, a IA gera títulos, descrição e tags em paralelo.
+                        Roteiro, narração e sincronização prontos. Com Gemini no Chrome, overlays e metadados são consultados antes do render.
 
                       </p>
 
