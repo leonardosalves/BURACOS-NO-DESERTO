@@ -14,6 +14,7 @@ import {
   parseYoutubeMetadataMarkdown,
   resolveYoutubeMetadataContext,
   ensureThumbnailVariants,
+  YOUTUBE_METADATA_PIPELINE_VERSION,
 } from "./youtubeMetadataOptimizer.js";
 import { generateYoutubeThumbnailImages } from "./youtubeThumbnailGenerator.js";
 import {
@@ -4210,25 +4211,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     const blockSceneEndIdx = scenes.length;
 
-    let nextBlockStart = null;
-
-    const currentBlockIdxInList = blockNumbers.indexOf(block);
-
-    if (currentBlockIdxInList !== -1 && currentBlockIdxInList < blockNumbers.length - 1) {
-
-      const nextBlock = blockNumbers[currentBlockIdxInList + 1];
-
-      const nextBlockIndex = Math.max(0, nextBlock - 1);
-
-      const nextBlockStartVal = Number(timings.starts?.[nextBlockIndex]);
-
-      if (Number.isFinite(nextBlockStartVal)) {
-
-        nextBlockStart = nextBlockStartVal;
-
-      }
-
-    }
+    const nextBlockStart = nextBlockStartForSync;
 
     if (!hasExplicitSync && nextBlockStart !== null && blockSceneEndIdx > blockSceneStartIdx) {
 
@@ -5984,10 +5967,52 @@ function buildProjectTranscript({ transcript, config, storyboard }) {
 
 }
 
+function loadProjectMetadataInputs(projDir) {
+  const configPath = path.join(projDir, "config_qanat.json");
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+  let config = {};
+  let storyboard = {};
+  let transcript = "";
+
+  if (fs.existsSync(configPath)) {
+    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (_) {}
+  }
+  if (fs.existsSync(storyboardPath)) {
+    try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (_) {}
+  }
+  if (fs.existsSync(transcriptPath)) {
+    try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (_) {}
+  }
+
+  transcript = buildProjectTranscript({ transcript, config, storyboard });
+  return { config, storyboard, transcript };
+}
+
+function reprocessYoutubeMetadataCache(cache = {}, projDir) {
+  if (!cache?.parsed) return cache;
+
+  const { config, storyboard, transcript } = loadProjectMetadataInputs(projDir);
+  const format = cache.format === "SHORT" ? "SHORT" : "LONG";
+  const facts = extractTitleFacts({ transcript, storyboard, config });
+  const parsed = applyTitleQualityToParsed(cache.parsed, { format, facts });
+
+  return {
+    ...cache,
+    parsed,
+    pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+    reprocessedAt: new Date().toISOString(),
+  };
+}
+
 async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboard, config = {}, apiKey }) {
   const facts = extractTitleFacts({ transcript, storyboard, config });
   let parsed = parseYoutubeMetadataMarkdown(text);
   parsed = applyTitleQualityToParsed(parsed, { format, facts });
+
+  if (facts.listicle?.isListicle) {
+    console.log(`[YouTube Metadata] Listicle Top ${facts.listicle.rankCount} — título #1: ${parsed.recommendedTitle || "?"}`);
+  }
 
   const lacksRelevance = titlesLackRelevance(parsed.titles || [], transcript, facts);
   const shouldRepair = titlesNeedRepair(parsed.titles || [], format, facts) || lacksRelevance;
@@ -6203,6 +6228,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
           path.join(projDir, "youtube_metadata_cache.json"),
           JSON.stringify({
             generatedAt: new Date().toISOString(),
+            pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
             format,
             niche,
             category,
@@ -6313,7 +6339,23 @@ app.get("/api/ai/youtube-metadata-cache", (req, res) => {
 
   try {
     const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
-    res.json({ cached: true, ...cache });
+    const needsReprocess = Number(cache.pipelineVersion) < YOUTUBE_METADATA_PIPELINE_VERSION
+      || !cache.reprocessedAt;
+    const reprocessed = needsReprocess ? reprocessYoutubeMetadataCache(cache, projDir) : cache;
+
+    if (needsReprocess && reprocessed?.parsed) {
+      try {
+        fs.writeFileSync(cachePath, JSON.stringify(reprocessed, null, 2), "utf8");
+      } catch (writeErr) {
+        console.warn("[YouTube Metadata] Falha ao atualizar cache reprocessado:", writeErr.message);
+      }
+    }
+
+    res.json({
+      cached: true,
+      ...reprocessed,
+      cacheReprocessed: needsReprocess,
+    });
   } catch (err) {
     res.status(500).json({ error: "Erro ao ler cache de metadados", details: err.message });
   }
@@ -9192,134 +9234,6 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
       warnings: mapped.warnings,
 
     });
-
-    // List available assets
-
-    const assetsDir = path.join(projDir, "ASSETS");
-
-    let assetFiles = [];
-
-    if (fs.existsSync(assetsDir)) {
-
-      const scan = (dir) => {
-
-        const items = fs.readdirSync(dir);
-
-        for (const item of items) {
-
-          const fullPath = path.join(dir, item);
-
-          if (fs.statSync(fullPath).isDirectory()) {
-
-            scan(fullPath);
-
-          } else {
-
-            const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
-
-            if (rel.endsWith(".mp4") || rel.endsWith(".mov") || rel.endsWith(".webm") || rel.endsWith(".png") || rel.endsWith(".jpg") || rel.endsWith(".jpeg")) {
-
-              assetFiles.push(rel);
-
-            }
-
-          }
-
-        }
-
-      };
-
-      scan(assetsDir);
-
-    }
-
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-
-    let transcript = "";
-
-    if (fs.existsSync(transcriptPath)) {
-
-      transcript = fs.readFileSync(transcriptPath, "utf8");
-
-    }
-
-    const prompt = `Você é o "AI Asset Timeline Mapper".
-
-Temos um conjunto de arquivos B-roll na pasta "ASSETS":
-
-${JSON.stringify(assetFiles, null, 2)}
-
-E temos o seguinte roteiro de documentário estruturado em blocos:
-
-${transcript}
-
-Mapeie estes arquivos de mídia para preencher os 12 blocos lógicos da linha do tempo. Cada bloco deve possuir entre 2 a 8 arquivos associados (misturando vídeos de forma flexível ou imagens).
-
-Responda com um objeto JSON puro, sem blocos de código com markdown \`\`\`json ou explicações extras. O objeto deve conter uma propriedade "timeline_assets" estruturada da seguinte forma:
-
-{
-
-  "timeline_assets": {
-
-    "1": [
-
-      {"asset": "videos/video_1.mp4", "type": "video", "fixed": 8.00},
-
-      {"asset": "images/img_1.jpeg", "type": "image"}
-
-    ],
-
-    "2": [
-
-      {"asset": "videos/video_3.mp4", "type": "video", "fixed": 8.00},
-
-      {"asset": "images/img_12.jpeg", "type": "image"}
-
-    ],
-
-    ...
-
-    "12": [
-
-      {"asset": "images/img_70.jpeg", "type": "image"}
-
-    ]
-
-  }
-
-}
-
-Regras importantes:
-
-- Utilize APENAS os nomes de arquivos reais da lista fornecida. Não invente arquivos que não existem.
-
-- O tipo ("type") deve ser "video", "image" ou "svg".
-
-- Se for "video", adicione uma propriedade "fixed" indicando quanto tempo o vídeo é exibido (geralmente 8.00 ou 10.00 segundos). Se for "image", não inclua "fixed" (ela será esticada ou encurtada de forma flexível pelo editor).
-
-- Mapeie de forma a contar a história visualmente do bloco de acordo com o texto da narração correspondente.`;
-
-    const responseText = await callGeminiWithRetry(apiKey, prompt);
-
-    const parsedData = await parseAiJsonResponse(responseText, apiKey, "Mapeamento de assets");
-
-    // Save back to config
-
-    const configPath = path.join(projDir, "config_qanat.json");
-
-    let config = {};
-
-    if (fs.existsSync(configPath)) {
-
-      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
-    }
-
-    config.timeline_assets = parsedData.timeline_assets;
-
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-
-    res.json({ success: true, timeline_assets: parsedData.timeline_assets });
 
   } catch (err) {
 

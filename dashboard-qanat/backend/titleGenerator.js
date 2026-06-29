@@ -713,6 +713,88 @@ export function polishTitles(titles = [], { format = "LONG", facts = {} } = {}) 
   return polished.slice(0, 5);
 }
 
+function isRankingListicleTitle(text = "", facts = {}) {
+  if (!facts.listicle?.isListicle) return false;
+  const t = sanitizeTitle(text).toLowerCase();
+  const rank = facts.listicle.rankCount || 3;
+  if (/\btop\s*\d+\b/i.test(t)) return true;
+  if (new RegExp(`\\b${rank}\\b`).test(t)) return true;
+
+  const topic = String(facts.listicle.topic || "").toLowerCase();
+  if (topic) {
+    const themeWords = topic.split(/\s+/).filter((w) => w.length > 4);
+    const themeHits = themeWords.filter((w) => t.includes(w)).length;
+    if (themeHits >= 2) return true;
+  }
+
+  const itemHits = (facts.listicle.itemTitles || []).filter((item) => {
+    const probe = String(item).toLowerCase().split(/\s+/).find((w) => w.length > 3)
+      || String(item).toLowerCase();
+    return probe.length > 2 && t.includes(probe);
+  }).length;
+
+  return itemHits >= 2;
+}
+
+function isSingleItemListicleTitle(text = "", facts = {}) {
+  if (!facts.listicle?.isListicle || isRankingListicleTitle(text, facts)) return false;
+  const t = sanitizeTitle(text).toLowerCase();
+  const itemHits = (facts.listicle.itemTitles || []).filter((item) => {
+    const probe = String(item).toLowerCase().split(/\s+/).find((w) => w.length > 3)
+      || String(item).toLowerCase();
+    return probe.length > 2 && t.includes(probe);
+  }).length;
+  return itemHits === 1;
+}
+
+export function enforceListicleTitleRanking(titles = [], facts = {}, format = "LONG") {
+  if (!facts.listicle?.isListicle) return titles;
+
+  const generated = polishTitles(generateTitlesFromFacts(facts, { format }), { format, facts });
+  const merged = [];
+  const seen = new Set();
+  let singleItemSlots = 0;
+
+  const pushTitle = (item, { allowSingleItem = false } = {}) => {
+    const text = sanitizeTitle(item?.text || item);
+    if (!text || seen.has(text) || !isCompleteTitle(text, format)) return;
+    const single = isSingleItemListicleTitle(text, facts);
+    if (single) {
+      if (!allowSingleItem || singleItemSlots >= 2) return;
+      singleItemSlots += 1;
+    }
+    merged.push({
+      text,
+      chars: text.length,
+      score: item?.score,
+      angle: item?.angle || null,
+    });
+    seen.add(text);
+  };
+
+  for (const item of generated.filter((t) => isRankingListicleTitle(t.text, facts))) {
+    if (merged.length >= 5) break;
+    pushTitle(item);
+  }
+
+  for (const item of titles) {
+    if (merged.length >= 5) break;
+    if (isRankingListicleTitle(item.text, facts)) pushTitle(item);
+  }
+
+  for (const item of titles) {
+    if (merged.length >= 5) break;
+    pushTitle(item, { allowSingleItem: true });
+  }
+
+  for (const item of generated) {
+    if (merged.length >= 5) break;
+    pushTitle(item, { allowSingleItem: true });
+  }
+
+  return merged.slice(0, 5);
+}
+
 export function applyTitleQualityToParsed(parsed = {}, context = {}) {
   const { format = "LONG", facts = {} } = context;
   const aiMarked = (parsed.titles || []).map((t) => ({ ...t, _fromAi: true, _source: "ai" }));
@@ -741,6 +823,10 @@ export function applyTitleQualityToParsed(parsed = {}, context = {}) {
 
   titles.sort((a, b) => b.score - a.score);
   titles = titles.slice(0, 5).map(({ _source, ...t }) => t);
+
+  if (facts.listicle?.isListicle) {
+    titles = enforceListicleTitleRanking(titles, facts, format);
+  }
 
   const recommended = titles[0]?.text || parsed.recommendedTitle || "";
 
