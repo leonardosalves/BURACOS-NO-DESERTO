@@ -1582,6 +1582,44 @@ app.post("/api/render/config", (req, res) => {
 
 });
 
+function getGlobalApiKeysStatus() {
+  const cfg = loadRenderConfig(__dirname);
+  const epidemic = (cfg.epidemic_sound_key || process.env.EPIDEMIC_SOUND_API_KEY || "").trim();
+  return {
+    has_epidemic_key: epidemic.length > 100,
+    has_pexels_key: !!(cfg.pexels_api_key || "").trim(),
+    has_pixabay_key: !!(cfg.pixabay_api_key || "").trim(),
+  };
+}
+
+app.get("/api/settings/global-api-keys", (req, res) => {
+  try {
+    res.json(getGlobalApiKeysStatus());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/settings/global-api-keys", (req, res) => {
+  try {
+    const { epidemic_sound_key, pexels_api_key, pixabay_api_key } = req.body || {};
+    const cfg = loadRenderConfig(__dirname);
+    if (typeof epidemic_sound_key === "string" && epidemic_sound_key.trim()) {
+      cfg.epidemic_sound_key = epidemic_sound_key.trim();
+    }
+    if (typeof pexels_api_key === "string" && pexels_api_key.trim()) {
+      cfg.pexels_api_key = pexels_api_key.trim();
+    }
+    if (typeof pixabay_api_key === "string" && pixabay_api_key.trim()) {
+      cfg.pixabay_api_key = pixabay_api_key.trim();
+    }
+    saveRenderConfig(__dirname, cfg);
+    res.json({ success: true, ...getGlobalApiKeysStatus() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API: List background music tracks
 
 app.get("/api/music", (req, res) => {
@@ -5309,6 +5347,14 @@ function getAiProvider(projectDir = WORKSPACE_DIR) {
 }
 
 function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
+
+  const globalCfg = loadRenderConfig(__dirname);
+
+  if (globalCfg?.epidemic_sound_key && globalCfg.epidemic_sound_key.trim().length > 100) {
+
+    return globalCfg.epidemic_sound_key.trim();
+
+  }
 
   const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
 
@@ -9516,22 +9562,6 @@ activeChild = child1;
 
     });
 
-// Serve frontend build static files in production
-
-const frontendDist = path.join(__dirname, "../frontend/dist");
-
-if (fs.existsSync(frontendDist)) {
-
-  app.use(express.static(frontendDist));
-
-  app.get("*", (req, res) => {
-
-    res.sendFile(path.join(frontendDist, "index.html"));
-
-  });
-
-}
-
 let workflowApi = null;
 workflowApi = registerWorkflowRoutes(app, {
   getProjectDir,
@@ -9551,6 +9581,22 @@ workflowApi = registerWorkflowRoutes(app, {
   runAutoSoundtrackLogic,
   readJsonFile,
 });
+
+// Serve frontend build static files in production (must be after API routes)
+
+const frontendDist = path.join(__dirname, "../frontend/dist");
+
+if (fs.existsSync(frontendDist)) {
+
+  app.use(express.static(frontendDist));
+
+  app.get("*", (req, res) => {
+
+    res.sendFile(path.join(frontendDist, "index.html"));
+
+  });
+
+}
 
 const PORT = 3005;
 
