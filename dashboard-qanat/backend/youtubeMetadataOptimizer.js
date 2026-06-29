@@ -19,6 +19,8 @@ import {
   sanitizeTitle,
 } from "./titleGenerator.js";
 
+export const YOUTUBE_METADATA_PIPELINE_VERSION = 2;
+
 const LONG_BLOCK_NAMES = [
   "Abertura",
   "Bloco 2",
