@@ -125,7 +125,7 @@ async function runPromptOnTab(tabId, prompt) {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.1.8" });
+    sendResponse({ ok: true, version: "1.1.9" });
     return;
   }
   if (message?.type !== "LUMIERA_GEMINI_QUERY") return;
