@@ -309,6 +309,9 @@ import {
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { WorkflowToolkit } from './WorkflowToolkit';
+import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
+import { SettingsApiKeys } from './SettingsApiKeys';
+import { IntegrationSettings } from './IntegrationSettings';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
   applySplitNarrationToBlockAssets,
@@ -1564,6 +1567,12 @@ export default function App() {
 
 
   const [epidemicKeyInput, setEpidemicKeyInput] = useState<string>('');
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('ia');
+  const [pexelsKeyInput, setPexelsKeyInput] = useState<string>('');
+  const [pixabayKeyInput, setPixabayKeyInput] = useState<string>('');
+  const [hasPexelsKey, setHasPexelsKey] = useState<boolean>(false);
+  const [hasPixabayKey, setHasPixabayKey] = useState<boolean>(false);
+  const [savingApiKeys, setSavingApiKeys] = useState<boolean>(false);
 
 
 
@@ -3730,6 +3739,8 @@ export default function App() {
     if (activeTab === 'settings') {
       fetchBrandCatalog();
       fetchLogoStatus();
+      fetchUploadStatus();
+      fetchWorkflowKeysStatus();
     }
   }, [activeTab, activeProject]);
 
@@ -12097,6 +12108,54 @@ export default function App() {
 
 
 
+
+  const fetchWorkflowKeysStatus = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/workflow/keys-status'));
+      if (res.ok) {
+        const data = await res.json();
+        setHasPexelsKey(!!data.pexels);
+        setHasPixabayKey(!!data.pixabay);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleSaveApiKeys = async () => {
+    setSavingApiKeys(true);
+    try {
+      if (epidemicKeyInput.trim()) {
+        const aiRes = await fetch(getProjectUrl('/api/ai/settings'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ epidemic_sound_key: epidemicKeyInput }),
+        });
+        if (!aiRes.ok) throw new Error('Falha ao salvar Epidemic');
+        setHasEpidemicKey(true);
+        setEpidemicKeyInput('');
+      }
+      if (pexelsKeyInput.trim() || pixabayKeyInput.trim()) {
+        const stockRes = await fetch(getProjectUrl('/api/workflow/save-keys'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pexels_api_key: pexelsKeyInput,
+            pixabay_api_key: pixabayKeyInput,
+            global: true,
+          }),
+        });
+        if (!stockRes.ok) throw new Error((await stockRes.json()).error || 'Falha ao salvar stock');
+        setPexelsKeyInput('');
+        setPixabayKeyInput('');
+      }
+      await fetchWorkflowKeysStatus();
+      toast.success('Chaves de API salvas.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar chaves');
+    } finally {
+      setSavingApiKeys(false);
+    }
+  };
+
     const handleSaveAiSettings = async () => {
 
 
@@ -12177,31 +12236,8 @@ export default function App() {
 
 
 
-          openrouter_key: openrouterKeyInput,
-
-
-
-
-
-
-
-          
-
-
-
-
-
-
-
-          epidemic_sound_key: epidemicKeyInput
-
-
-
-
-
-
-
-        })
+          openrouter_key: openrouterKeyInput
+})
 
 
 
@@ -13268,7 +13304,7 @@ export default function App() {
     }
 
     if (!uploadStatus.canva?.connected) {
-      toast('Conecte o Canva em Upload → Configuração de Integrações.');
+      toast('Conecte o Canva em Configurações → Integrações.');
       return;
     }
 
@@ -21186,7 +21222,6 @@ export default function App() {
                 <WorkflowToolkit
                   getProjectUrl={getProjectUrl}
                   toast={(msg) => toast(msg)}
-                  showStockKeys
                   onTimelineRefresh={fetchData}
                   onMetadataReady={fetchData}
                   onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
@@ -28977,288 +29012,21 @@ export default function App() {
                   </div>
 
                   {/* Auth Configuration */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Configuração de Integrações</span>
-                    
-                    {/* Canva Connect Auth card */}
-                    <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-zinc-300">Canva Connect</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.canva?.connected ? 'bg-cyan-500/10 text-cyan-400' : 'bg-zinc-800 text-zinc-500'}`}>
-                          {uploadStatus.canva?.connected ? 'Conectado' : 'Desconectado'}
-                        </span>
-                      </div>
-                      <p className="text-[9px] text-zinc-500 leading-relaxed">
-                        1) <a href="https://www.canva.com/developers/integrations" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">canva.com/developers/integrations</a> → Create integration (Private)<br />
-                        2) Menu esquerdo: <strong className="text-zinc-300">Authentication</strong> → <strong className="text-zinc-300">Authorized redirects</strong><br />
-                        3) Cole exatamente: <code className="text-cyan-300">http://127.0.0.1:3005/api/canva/callback</code> (Canva não aceita localhost)
-                      </p>
-                      {!uploadStatus.canva?.hasSecrets ? (
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            placeholder="Canva Client ID"
-                            value={canvaClientId}
-                            onChange={(e) => setCanvaClientId(e.target.value)}
-                            className="w-full bg-black border border-zinc-850 focus:border-cyan-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                          />
-                          <input
-                            type="password"
-                            placeholder="Canva Client Secret"
-                            value={canvaClientSecret}
-                            onChange={(e) => setCanvaClientSecret(e.target.value)}
-                            className="w-full bg-black border border-zinc-850 focus:border-cyan-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                          />
-                          <button
-                            onClick={async () => {
-                              const res = await fetch('/api/canva/save-credentials', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  client_id: canvaClientId.trim(),
-                                  client_secret: canvaClientSecret.trim(),
-                                }),
-                              });
-                              if (res.ok) {
-                                toast('Credenciais do Canva salvas!');
-                                fetchUploadStatus();
-                              }
-                            }}
-                            className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
-                          >
-                            Salvar Chaves Canva
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-[10px] text-zinc-400">Credenciais configuradas.</p>
-                          {!uploadStatus.canva?.connected && (
-                            <button
-                              onClick={async () => {
-                                const res = await fetch('/api/canva/auth-url');
-                                if (res.ok) {
-                                  const data = await res.json();
-                                  window.open(data.url, '_blank');
-                                  toast('Autorize o Canva na nova aba.');
-                                }
-                              }}
-                              className="w-full bg-cyan-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
-                            >
-                              Vincular Conta Canva
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* YouTube API Auth card */}
-                    <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
-                      <span className="font-bold block text-zinc-300">Autenticação do YouTube</span>
-                      <p className="text-[9px] text-zinc-500 leading-relaxed">
-                        Inclui upload + analytics (views por período) para teste A/B de títulos.<br />
-                        Redirect URI no Google Cloud: <code className="text-gold-400">http://127.0.0.1:3005/api/upload/youtube/callback</code>
-                      </p>
-                      {!uploadStatus.youtube?.has_secrets ? (
-                        <div className="space-y-2">
-                          <input
-                            type="text"
-                            placeholder="Client ID"
-                            value={ytClientId}
-                            onChange={(e) => setYtClientId(e.target.value)}
-                            className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                          />
-                          <input
-                            type="password"
-                            placeholder="Client Secret"
-                            value={ytClientSecret}
-                            onChange={(e) => setYtClientSecret(e.target.value)}
-                            className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                          />
-                          <button
-                            onClick={async () => {
-                              const res = await fetch('/api/upload/youtube/save-credentials', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ client_id: ytClientId.trim(), client_secret: ytClientSecret.trim() })
-                              });
-                              if (res.ok) {
-                                toast("Credenciais do YouTube salvas!");
-                                fetchUploadStatus();
-                              }
-                            }}
-                            className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
-                          >
-                            Salvar Chaves YouTube
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-[10px] text-zinc-400">
-                            {uploadStatus.youtube?.connected
-                              ? (uploadStatus.youtube?.titleTestReady
-                                ? 'Conectado com upload + títulos + analytics.'
-                                : 'Conectado, mas faltam permissões para teste A/B.')
-                              : 'Credenciais configuradas.'}
-                          </p>
-                          {!uploadStatus.youtube?.connected ? (
-                            <button
-                              onClick={async () => {
-                                const res = await fetch('/api/upload/youtube/auth-url');
-                                if (res.ok) {
-                                  const data = await res.json();
-                                  window.open(data.url, '_blank');
-                                  toast('Autorize todas as permissões solicitadas.');
-                                }
-                              }}
-                              className="w-full bg-gold-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
-                            >
-                              Vincular Conta Google
-                            </button>
-                          ) : !uploadStatus.youtube?.titleTestReady ? (
-                            <button
-                              onClick={handleRelinkYoutube}
-                              className="w-full bg-amber-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
-                            >
-                              Revincular (ativar teste A/B)
-                            </button>
-                          ) : (
-                            <button
-                              onClick={handleRelinkYoutube}
-                              className="w-full bg-zinc-900 hover:bg-zinc-850 text-zinc-300 font-bold py-1.5 rounded-lg text-[10px]"
-                            >
-                              Reconectar conta
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Instagram Graph API Auth card */}
-                    <div className="space-y-3 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
-                      <span className="font-bold block text-zinc-300">Autenticação do Instagram</span>
-                      <p className="text-[9px] text-zinc-500">OAuth Meta (recomendado) ou token manual abaixo.</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          placeholder="Meta App ID"
-                          value={igAppId}
-                          onChange={(e) => setIgAppId(e.target.value)}
-                          className="bg-black border border-zinc-850 rounded-lg px-2 py-1.5 text-[11px] text-white"
-                        />
-                        <input
-                          type="password"
-                          placeholder="Meta App Secret"
-                          value={igAppSecret}
-                          onChange={(e) => setIgAppSecret(e.target.value)}
-                          className="bg-black border border-zinc-850 rounded-lg px-2 py-1.5 text-[11px] text-white"
-                        />
-                      </div>
-                      <button
-                        onClick={async () => {
-                          await fetch('/api/upload/instagram/save-app', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ app_id: igAppId.trim(), app_secret: igAppSecret.trim() }),
-                          });
-                          const res = await fetch('/api/upload/instagram/oauth-url');
-                          if (res.ok) {
-                            const data = await res.json();
-                            window.open(data.url, '_blank');
-                            toast('Autorize o Instagram no Meta e volte ao painel.');
-                          } else toast('Configure App ID/Secret primeiro.');
-                        }}
-                        className="w-full bg-pink-500/10 border border-pink-500/30 text-pink-300 font-bold py-1.5 rounded-lg text-[10px]"
-                      >
-                        Conectar Instagram (OAuth)
-                      </button>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          placeholder="ID da Conta Business"
-                          value={igAccountId}
-                          onChange={(e) => setIgAccountId(e.target.value)}
-                          className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                        />
-                        <input
-                          type="password"
-                          placeholder="Token de Acesso Graph API"
-                          value={igAccessToken}
-                          onChange={(e) => setIgAccessToken(e.target.value)}
-                          className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                        />
-                        <button
-                          onClick={async () => {
-                            const res = await fetch('/api/upload/instagram/save-credentials', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ instagram_business_account_id: igAccountId.trim(), access_token: igAccessToken.trim() })
-                            });
-                            if (res.ok) {
-                              toast("Credenciais do Instagram salvas!");
-                              fetchUploadStatus();
-                            }
-                          }}
-                          className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
-                        >
-                          Salvar Chaves Instagram
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* TikTok Playwright Auth card */}
-                    <div className="space-y-2 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-zinc-300">TikTok Session</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
-                          {uploadStatus.tiktok?.connected ? 'Sessão Ativa' : 'Inativa'}
-                        </span>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const res = await fetch('/api/upload/launch-login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ platform: 'tiktok' })
-                          });
-                          if (res.ok) {
-                            toast("Navegador de Login aberto. Faça o login e feche a janela!");
-                          }
-                        }}
-                        className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
-                      >
-                        Iniciar Login no TikTok
-                      </button>
-                    </div>
-
-                    {/* Kwai Playwright Auth card */}
-                    <div className="space-y-2 p-3 bg-zinc-950 rounded-xl border border-zinc-900/60 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-zinc-300">Kwai Session</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
-                          {uploadStatus.kwai?.connected ? 'Sessão Ativa' : 'Inativa'}
-                        </span>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const res = await fetch('/api/upload/launch-login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ platform: 'kwai' })
-                          });
-                          if (res.ok) {
-                            toast("Navegador de Login aberto. Faça o login e feche a janela!");
-                          }
-                        }}
-                        className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
-                      >
-                        Iniciar Login no Kwai
-                      </button>
-                    </div>
-
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-3">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Integrações</span>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Chaves de API, OAuth e sessões ficam em Configurações → Integrações.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setSettingsSection('integracoes'); setActiveTab('settings'); }}
+                      className="w-full bg-gold-500/10 border border-gold-500/30 text-gold-400 font-bold py-2.5 rounded-xl text-xs hover:bg-gold-500/20 transition"
+                    >
+                      Abrir Configurações → Integrações
+                    </button>
                   </div>
 
                 </div>
-
               </div>
 
               {/* Progress and Live Terminal log view */}
@@ -32544,6 +32312,7 @@ export default function App() {
 
 
             <div className="space-y-6 animate-fade-in font-sans">
+              <SettingsSectionNav active={settingsSection} onChange={setSettingsSection} />
 
 
 
@@ -32551,6 +32320,9 @@ export default function App() {
 
 
 
+
+
+              {settingsSection === 'ia' && (
               <div className="glass-panel p-6 rounded-3xl space-y-5">
 
 
@@ -32599,7 +32371,7 @@ export default function App() {
 
 
 
-                    <p className="text-xs text-gray-400 mt-1">Escolha o provedor usado para metadados e agente. As chaves ficam salvas no config local do projeto.</p>
+                    <p className="text-xs text-gray-400 mt-1">Provedor e chaves de modelos de IA (Gemini, Grok, OpenRouter). Salvas no projeto ativo.</p>
 
 
 
@@ -33023,95 +32795,7 @@ export default function App() {
 
 
 
-                    <div className="space-y-2">
-
-
-
-
-
-
-
-                      <div className="flex items-center justify-between">
-
-
-
-
-
-
-
-                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave Epidemic Sound (MCP)</label>
-
-
-
-
-
-
-
-                        {hasEpidemicKey ? (
-
-
-
-
-
-
-
-                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Ativa</span>
-
-
-
-
-
-
-
-                        ) : (
-
-
-
-
-
-
-
-                          <span className="text-[9px] bg-red-950/80 border border-red-800 text-red-400 px-2 py-0.5 rounded-full font-bold">Não Configurada</span>
-
-
-
-
-
-
-
-                        )}
-
-
-
-
-
-
-
-                      </div>
-
-
-
-
-
-
-
-                      <input type="password" value={epidemicKeyInput} onChange={(e) => setEpidemicKeyInput(e.target.value)} placeholder="Cole o token JWT do Epidemic Sound. Deixe vazio para manter o atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
-
-
-
-
-
-
-
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">Necessária para buscar trilhas e efeitos sonoros diretamente pela API da Epidemic Sound.</p>
-
-
-
-
-
-
-
-                    </div>
+                    
 
 
 
@@ -33191,7 +32875,27 @@ export default function App() {
 
 
 
+              )}
+
               {/* SEÇÃO LOGOTIPO DO VÍDEO */}
+
+              {settingsSection === 'apis' && (
+                <SettingsApiKeys
+                  epidemicKeyInput={epidemicKeyInput}
+                  setEpidemicKeyInput={setEpidemicKeyInput}
+                  hasEpidemicKey={hasEpidemicKey}
+                  pexelsKeyInput={pexelsKeyInput}
+                  setPexelsKeyInput={setPexelsKeyInput}
+                  pixabayKeyInput={pixabayKeyInput}
+                  setPixabayKeyInput={setPixabayKeyInput}
+                  hasPexelsKey={hasPexelsKey}
+                  hasPixabayKey={hasPixabayKey}
+                  saving={savingApiKeys}
+                  onSave={handleSaveApiKeys}
+                />
+              )}
+
+
 
 
 
@@ -33203,6 +32907,7 @@ export default function App() {
 
 
 
+              {settingsSection === 'render' && (
               <div className="glass-panel p-6 rounded-3xl space-y-5">
 
 
@@ -33648,12 +33353,9 @@ export default function App() {
 
               </div>
 
+              )}
 
-
-
-
-
-
+              {settingsSection === 'marca' && (
                             <div className="glass-panel p-6 rounded-3xl space-y-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
                   <div>
@@ -33803,6 +33505,34 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              )}
+
+              {settingsSection === 'integracoes' && (
+                <IntegrationSettings
+                  uploadStatus={uploadStatus}
+                  toast={(msg) => toast(msg)}
+                  fetchUploadStatus={fetchUploadStatus}
+                  onRelinkYoutube={handleRelinkYoutube}
+                  canvaClientId={canvaClientId}
+                  setCanvaClientId={setCanvaClientId}
+                  canvaClientSecret={canvaClientSecret}
+                  setCanvaClientSecret={setCanvaClientSecret}
+                  ytClientId={ytClientId}
+                  setYtClientId={setYtClientId}
+                  ytClientSecret={ytClientSecret}
+                  setYtClientSecret={setYtClientSecret}
+                  igAppId={igAppId}
+                  setIgAppId={setIgAppId}
+                  igAppSecret={igAppSecret}
+                  setIgAppSecret={setIgAppSecret}
+                  igAccountId={igAccountId}
+                  setIgAccountId={setIgAccountId}
+                  igAccessToken={igAccessToken}
+                  setIgAccessToken={setIgAccessToken}
+                />
+              )}
+
 
             </div>
 
@@ -36449,7 +36179,6 @@ export default function App() {
                       getProjectUrl={getProjectUrl}
                       toast={(msg) => toast(msg)}
                       showPipeline={false}
-                      showStockKeys
                       onTimelineRefresh={fetchData}
                       onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
                     />
@@ -36931,7 +36660,13 @@ export default function App() {
                       toast={(msg) => toast(msg)}
                       showPipeline={false}
                       onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchYoutubeThumbnailImages(); fetchData(); }}
-                      onNavigateTab={(tab) => leaveGlobalViewForProject(tab as 'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload')}
+                      onNavigateTab={(tab) => {
+                        if (tab === 'ai' || tab === 'upload' || tab === 'status' || tab === 'timeline' || tab === 'music' || tab === 'terminal' || tab === 'editor' || tab === 'creator') {
+                          leaveGlobalViewForProject(tab);
+                        } else {
+                          setActiveTab(tab as typeof activeTab);
+                        }
+                      }}
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button onClick={() => leaveGlobalViewForProject('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>

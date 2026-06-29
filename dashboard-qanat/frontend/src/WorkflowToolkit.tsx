@@ -30,7 +30,6 @@ type Props = {
   onNavigateTab?: (tab: string) => void;
   compact?: boolean;
   showPipeline?: boolean;
-  showStockKeys?: boolean;
 };
 
 export function WorkflowToolkit({
@@ -42,15 +41,11 @@ export function WorkflowToolkit({
   onNavigateTab,
   compact = false,
   showPipeline = true,
-  showStockKeys = false,
 }: Props) {
   const [gaps, setGaps] = useState<SceneGapsReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [pipelineLog, setPipelineLog] = useState<string[]>([]);
-  const [pexelsKey, setPexelsKey] = useState('');
-  const [pixabayKey, setPixabayKey] = useState('');
-  const [keysStatus, setKeysStatus] = useState({ pexels: false, pixabay: false });
 
   const refreshGaps = useCallback(async () => {
     setLoading(true);
@@ -64,17 +59,9 @@ export function WorkflowToolkit({
     }
   }, [getProjectUrl]);
 
-  const refreshKeys = useCallback(async () => {
-    try {
-      const res = await fetch(getProjectUrl('/api/workflow/keys-status'));
-      if (res.ok) setKeysStatus(await res.json());
-    } catch { /* ignore */ }
-  }, [getProjectUrl]);
-
   useEffect(() => {
     refreshGaps();
-    if (showStockKeys) refreshKeys();
-  }, [refreshGaps, refreshKeys, showStockKeys]);
+  }, [refreshGaps]);
 
   const runAction = async (label: string, url: string, options?: RequestInit) => {
     setBusy(label);
@@ -112,24 +99,6 @@ export function WorkflowToolkit({
 
   const handlePublishPrep = () => runAction('Publicação', '/api/ai/publish-prep', { method: 'POST' })
     .then((d) => { if (d) onMetadataReady?.(d); });
-
-  const handleSaveKeys = async () => {
-    setBusy('Chaves');
-    try {
-      const res = await fetch(getProjectUrl('/api/workflow/save-keys'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pexels_api_key: pexelsKey, pixabay_api_key: pixabayKey, global: true }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      toast('Chaves de stock salvas.');
-      await refreshKeys();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao salvar chaves');
-    } finally {
-      setBusy(null);
-    }
-  };
 
   const runPipeline = (steps: string) => {
     setBusy('Pipeline');
@@ -263,35 +232,6 @@ export function WorkflowToolkit({
         </div>
       )}
 
-      {showStockKeys && (
-        <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-          <p className="text-[9px] text-zinc-500">
-            API Keys Stock {keysStatus.pexels || keysStatus.pixabay ? '(configuradas)' : '(opcional — Pexels/Pixabay)'}
-          </p>
-          <input
-            type="password"
-            placeholder="Pexels API Key"
-            value={pexelsKey}
-            onChange={(e) => setPexelsKey(e.target.value)}
-            className="w-full text-[10px] bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-zinc-300"
-          />
-          <input
-            type="password"
-            placeholder="Pixabay API Key"
-            value={pixabayKey}
-            onChange={(e) => setPixabayKey(e.target.value)}
-            className="w-full text-[10px] bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5 text-zinc-300"
-          />
-          <button
-            type="button"
-            disabled={!!busy}
-            onClick={handleSaveKeys}
-            className="text-[9px] font-bold text-gold-400 border border-gold-500/30 px-3 py-1.5 rounded-lg hover:bg-gold-500/10 disabled:opacity-50"
-          >
-            Salvar chaves globais
-          </button>
-        </div>
-      )}
     </div>
   );
 }
