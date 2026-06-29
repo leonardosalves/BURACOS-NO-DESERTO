@@ -219,12 +219,20 @@ export function registerWorkflowRoutes(app, deps) {
     };
   }
 
+  const sceneGapsCache = new Map();
   app.get("/api/workflow/scene-gaps", (req, res) => {
     try {
       const projDir = getProjectDir(req);
+      const cacheKey = projDir;
+      const cached = sceneGapsCache.get(cacheKey);
+      if (cached && Date.now() - cached.at < 10000) {
+        return res.json(cached.data);
+      }
       const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
       const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
-      res.json(analyzeSceneGaps(projDir, { config, storyboard }));
+      const data = analyzeSceneGaps(projDir, { config, storyboard });
+      sceneGapsCache.set(cacheKey, { at: Date.now(), data });
+      res.json(data);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

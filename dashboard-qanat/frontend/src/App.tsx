@@ -6,7 +6,7 @@ import toast, { Toaster } from 'react-hot-toast';
 
 
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 
 
@@ -2817,14 +2817,7 @@ export default function App() {
 
 
 
-  const getProjectUrl = (endpoint: string, projectOverride?: string) => {
-
-
-
-
-
-
-
+  const getProjectUrl = useCallback((endpoint: string, projectOverride?: string) => {
     const p = projectOverride || activeProject;
 
 
@@ -2842,7 +2835,7 @@ export default function App() {
 
 
     return `${endpoint}${separator}project=${encodeURIComponent(p)}`;
-  };
+  }, [activeProject]);
 
   const readApiError = async (res: Response, fallback: string) => {
     try {
@@ -4578,14 +4571,16 @@ export default function App() {
 
 
 
-  const fetchData = async () => {
-
-
-
-    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs(), fetchHeaderWeather(), fetchLogoStatus(), fetchGlobalRenderConfig(), fetchVideoQuality()]);
-
-
-
+  const fetchData = async (opts?: { includeVideoQuality?: boolean }) => {
+    const tasks = [
+      fetchInitialProjectData(),
+      fetchStatusAndOutputs(),
+      fetchHeaderWeather(),
+      fetchLogoStatus(),
+      fetchGlobalRenderConfig(),
+    ];
+    if (opts?.includeVideoQuality) tasks.push(fetchVideoQuality());
+    await Promise.all(tasks);
   };
 
 
@@ -4717,7 +4712,7 @@ export default function App() {
     setSyncingTimings(false);
     setDragActive(false);
     setUploadedScenes({});
-    fetchData();
+    fetchData({ includeVideoQuality: true });
   }, [activeProject]);
 
 
@@ -4806,7 +4801,11 @@ export default function App() {
 
 
 
-    const interval = setInterval(fetchStatusAndOutputs, 8000);
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchStatusAndOutputs();
+    };
+    const interval = setInterval(tick, 20000);
 
 
 
@@ -21220,8 +21219,9 @@ export default function App() {
                 <WorkflowToolkit
                   getProjectUrl={getProjectUrl}
                   toast={(msg) => toast(msg)}
-                  onTimelineRefresh={fetchData}
-                  onMetadataReady={fetchData}
+                  enabled={activeTab === 'status'}
+                  onTimelineRefresh={() => fetchData()}
+                  onMetadataReady={() => fetchData({ includeVideoQuality: true })}
                   onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
                 />
               )}
