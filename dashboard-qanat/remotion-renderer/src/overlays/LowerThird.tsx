@@ -7,6 +7,7 @@ import {
   spring,
 } from "remotion";
 import { SafeLottie } from "./SafeLottie";
+import { mergeCustomStyle } from "./overlayStyleUtils";
 
 import sparklesLottie from "./lottie_assets/sparkles.json";
 import flameLottie from "./lottie_assets/flame.json";
@@ -227,9 +228,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         };
         break;
     }
-    if (customStyle) {
-      base = { ...base, ...customStyle };
-    }
+    base = mergeCustomStyle(base, customStyle);
     if (customStyle?.borderRadius) {
       // If a custom border radius is applied, remove the asymmetric borderLeft to prevent browser rendering artifacts
       delete base.borderLeft;

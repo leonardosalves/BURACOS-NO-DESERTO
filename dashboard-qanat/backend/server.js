@@ -11,6 +11,7 @@ import {
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
+  normalizeMetadataMarkdown,
   parseYoutubeMetadataMarkdown,
   resolveYoutubeMetadataContext,
   ensureThumbnailVariants,
@@ -57,8 +58,16 @@ import {
   getGeminiBrowserMode,
   buildBrowserChatPrompt,
   buildBrowserTaskPrompt,
+  resolveBrowserPromptOpts,
   buildPromptFromBodyOverride,
   extractBrowserResponse,
+  createMetadataSessionId,
+  extractMetadataSessionFromPrompt,
+  isMetadataBrowserResponseReady,
+  looksLikeFallbackMetadata,
+  looksLikeLumieraPrompt,
+  looksLikeOverlayJsonResponse,
+  extractOverlayJsonPayload,
   offerGeminiBrowserPayload,
   GEMINI_BROWSER_INSTRUCTIONS,
   GEMINI_BROWSER_PENDING,
@@ -123,9 +132,14 @@ import {
   flattenWordTranscripts,
   buildBlockSceneTimings,
   blockHasExplicitSync,
+  blockHasLockedDurations,
+  blockUsesSequentialFixedLayout,
+  isAssetDurationLocked,
+  assetHasExplicitDuration,
   buildTimelineAssetMap,
   sanitizeFullTimelineAssets,
   realignTimelineAssetsToSpeech,
+  recalculateSequentialAudioStarts,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
 import {
@@ -3110,26 +3124,68 @@ async function ensureProjectSfxTracks(projDir) {
 
 }
 
-// Planeja overlays via API ou Gemini no Chrome (antes do render Remotion)
+// Planeja overlays via Gemini no Chrome (obrigatório quando gemini_browser_mode) ou API
+function createOverlayPlanSessionId() {
+  return `lum-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function overlayPlanSessionMatches(llmText, expectedSessionId) {
+  if (!expectedSessionId) return true;
+  const text = String(llmText || "");
+  if (text.includes(expectedSessionId)) return true;
+  // Gemini frequentemente omite plan_session — aceita JSON novo com overlays válidos.
+  if (/"overlays"\s*:\s*\[[\s\S]*?\{/.test(text) && text.length > 400) {
+    console.warn("[Plan Overlays] plan_session ausente na resposta — aceitando JSON com overlays.");
+    return true;
+  }
+  return false;
+}
+
 app.post("/api/render/plan-overlays", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const useHyperframes = req.body?.hyperframes === true;
-    const browserText = extractBrowserResponse(req.body);
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw
+      ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
+      : null;
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
 
     let llmText = browserText;
     if (!llmText) {
-      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes);
+      const planSessionId = createOverlayPlanSessionId();
+      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId);
       if (!prompt) {
         return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
       }
-      const responseText = await callGeminiLlm(req, res, projDir, {
-        title: useHyperframes ? "Planejar overlays HyperFrames AI" : "Planejar overlays do vídeo",
-        prompt,
-        temperature: 0.35,
+
+      if (forceBrowser) {
+        const title = useHyperframes ? "Planejar overlays HyperFrames AI" : "Planejar overlays do vídeo";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
+        console.log(`[Plan Overlays] Aguardando resposta do Gemini no Chrome (sessão ${planSessionId}).`);
+        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+      }
+
+      const apiKey = getApiKey(projDir);
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+        });
+      }
+      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+      if (!llmText) {
+        return res.status(500).json({ error: "Falha ao consultar Gemini API para overlays." });
+      }
+    }
+
+    if (expectedPlanSession && !overlayPlanSessionMatches(llmText, expectedPlanSession)) {
+      console.warn(`[Plan Overlays] Sessão inválida — esperado ${expectedPlanSession}, resposta rejeitada (provável JSON antigo do Chrome).`);
+      return res.status(422).json({
+        error: "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com e tente o render de novo.",
+        overlayCount: 0,
+        staleResponse: true,
       });
-      if (responseText == null) return;
-      llmText = responseText;
     }
 
     const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
@@ -3158,18 +3214,24 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       });
     }
 
+    const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     storyboard.overlays_ai = cleanedAi;
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
+    storyboard.overlays_plan_token = planToken;
     delete storyboard.overlays;
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+
+    console.log(`[Plan Overlays] Concluído: ${cleanedAi.length} overlays, token=${planToken}`);
 
     res.json({
       success: true,
       overlayCount: cleanedAi.length,
       plannedAt: storyboard.overlays_planned_at,
       hyperframes: useHyperframes,
+      planToken,
+      source: forceBrowser ? "gemini_chrome" : "gemini_api",
     });
   } catch (err) {
     console.error("[Plan Overlays]", err);
@@ -3322,14 +3384,20 @@ app.get("/api/render/:mode", async (req, res) => {
           : 0;
         const planAgeMs = plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
         const overlayCount = Array.isArray(storyboardGate.overlays_ai) ? storyboardGate.overlays_ai.length : 0;
-        if (overlayCount < 1 || planAgeMs > 5 * 60 * 1000) {
+        const reqToken = String(req.query.overlay_plan_token || "").trim();
+        const savedToken = String(storyboardGate.overlays_plan_token || "").trim();
+        const tokenOk = reqToken && savedToken && reqToken === savedToken;
+        if (overlayCount < 1 || planAgeMs > 5 * 60 * 1000 || !tokenOk) {
           sendLog("=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ===");
           sendLog("[Remotion] O render foi bloqueado. Aguarde o Gemini no Chrome terminar antes de compilar.");
+          if (!tokenOk) {
+            sendLog("[Remotion] Token de planejamento inválido — o render iniciou antes da resposta do Gemini.");
+          }
           res.end();
           cleanup();
           return;
         }
-        sendLog(`[Remotion] Overlays planejados validados (${overlayCount} itens, ${Math.round(planAgeMs / 1000)}s atrás).`);
+        sendLog(`[Remotion] Overlays planejados validados (${overlayCount} itens, token OK, ${Math.round(planAgeMs / 1000)}s atrás).`);
       }
 
       sendLog("[Remotion] Preparando linha do tempo, assets, narração e legendas...");
@@ -4226,6 +4294,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       flatTranscriptWords,
       visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
       blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+      preserveExplicitFixed: true,
     });
     config.timeline_assets = realigned;
     try {
@@ -4363,6 +4432,8 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
           duration: sceneDuration,
 
+          durationLocked: isAssetDurationLocked(item) || assetHasExplicitDuration(item),
+
           narrationText: prompt?.narration_text || "",
 
           editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
@@ -4412,18 +4483,25 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     const nextBlockStart = nextBlockStartForSync;
 
-    if (!hasExplicitSync && nextBlockStart !== null && blockSceneEndIdx > blockSceneStartIdx) {
+    if (
+      !blockUsesSequentialFixedLayout(mappedAssets)
+      && !hasExplicitSync
+      && nextBlockStart !== null
+      && blockSceneEndIdx > blockSceneStartIdx
+    ) {
 
       const lastSceneOfBlock = scenes[blockSceneEndIdx - 1];
 
-      const sceneEndTime = lastSceneOfBlock.start + lastSceneOfBlock.duration;
+      if (!lastSceneOfBlock.durationLocked) {
+        const sceneEndTime = lastSceneOfBlock.start + lastSceneOfBlock.duration;
 
-      if (nextBlockStart > sceneEndTime) {
+        if (nextBlockStart > sceneEndTime) {
 
-        const gap = nextBlockStart - sceneEndTime;
+          const gap = nextBlockStart - sceneEndTime;
 
-        lastSceneOfBlock.duration += gap;
+          lastSceneOfBlock.duration += gap;
 
+        }
       }
 
     }
@@ -4838,6 +4916,45 @@ function listProjectMediaAssets(projectDir) {
 
     .map(x => x.rel);
 
+}
+
+function syncStoryboardAssetsFromTimeline(projDir) {
+  const configPath = path.join(projDir, "config_qanat.json");
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(configPath) || !fs.existsSync(storyboardPath)) return false;
+
+  const config = readProjectJson(projDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  if (!Array.isArray(storyboard.visual_prompts)) return false;
+
+  const timeline = config.timeline_assets || {};
+  const blockCounters = {};
+  let updated = false;
+
+  for (const vp of storyboard.visual_prompts) {
+    const blockKey = String(vp.block || 1);
+    if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
+    const idx = blockCounters[blockKey]++;
+    const tlAsset = timeline[blockKey]?.[idx];
+    if (!tlAsset?.asset) continue;
+
+    const nextAsset = {
+      asset: tlAsset.asset,
+      type: tlAsset.type || "image",
+      ...(tlAsset.fixed !== undefined && tlAsset.fixed !== null ? { fixed: tlAsset.fixed } : {}),
+    };
+    const prevPath = vp.asset?.asset || vp.asset;
+    if (prevPath !== tlAsset.asset) {
+      vp.asset = nextAsset;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    console.log("[Timeline] Storyboard atualizado a partir da timeline_assets.");
+  }
+  return updated;
 }
 
 function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffset = null } = {}) {
@@ -5596,9 +5713,10 @@ async function callGeminiLlm(req, res, projDir, {
   if (browserText) return browserText;
 
   if (shouldOfferGeminiBrowser(projDir)) {
+    const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
     const promptText = bodyOverride
       ? buildPromptFromBodyOverride(bodyOverride)
-      : buildBrowserTaskPrompt(title, String(prompt ?? ""));
+      : buildBrowserTaskPrompt(title, String(prompt ?? ""), "", browserOpts);
     res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
     return null;
   }
@@ -6455,15 +6573,20 @@ function loadProjectMetadataInputs(projDir) {
 }
 
 function reprocessYoutubeMetadataCache(cache = {}, projDir) {
-  if (!cache?.parsed) return cache;
+  const normalizedText = normalizeMetadataMarkdown(cache?.text || "");
+  let parsed = parseYoutubeMetadataMarkdown(normalizedText);
+  if (!parsed?.titles?.length && cache?.parsed) {
+    parsed = { ...cache.parsed, ...parsed };
+  }
 
   const { config, storyboard, transcript } = loadProjectMetadataInputs(projDir);
   const format = cache.format === "SHORT" ? "SHORT" : "LONG";
   const facts = extractTitleFacts({ transcript, storyboard, config });
-  const parsed = applyTitleQualityToParsed(cache.parsed, { format, facts });
+  parsed = applyTitleQualityToParsed(parsed, { format, facts });
 
   return {
     ...cache,
+    text: normalizedText || cache.text,
     parsed,
     pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
     reprocessedAt: new Date().toISOString(),
@@ -6666,8 +6789,9 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
     });
 
     const respondWithMetadata = async (text, extra = {}) => {
+      const normalizedText = normalizeMetadataMarkdown(text);
       const apiKeyForTitles = apiKeys[0] || null;
-      const parsed = await enhanceYoutubeTitlesMetadata(text, {
+      const parsed = await enhanceYoutubeTitlesMetadata(normalizedText, {
         transcript,
         format,
         storyboard,
@@ -6675,7 +6799,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
         apiKey: extra.fallback ? null : apiKeyForTitles,
       });
       const payload = {
-        text,
+        text: normalizedText,
         format,
         niche,
         totalDuration,
@@ -6713,8 +6837,35 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
     };
 
     const errors = [];
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw ? normalizeMetadataMarkdown(browserTextRaw) : "";
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
 
-    if (aiProvider === "xai" && xaiKey) {
+    if (browserText && forceBrowser) {
+      if (looksLikeLumieraPrompt(browserText)) {
+        console.warn("[YouTube Metadata] browser_response é o prompt — não a resposta do Gemini.");
+        return res.status(422).json({
+          error: "Capturou o prompt em vez da resposta. Aguarde o Gemini terminar em gemini.google.com e tente de novo.",
+          staleResponse: true,
+        });
+      }
+      if (looksLikeOverlayJsonResponse(browserText)) {
+        console.warn("[YouTube Metadata] Resposta de overlays rejeitada no fluxo de metadados.");
+        return res.status(422).json({
+          error: "Resposta antiga de overlays detectada. Aguarde os metadados na aba gemini.google.com e tente de novo.",
+          staleResponse: true,
+        });
+      }
+      if (!isMetadataBrowserResponseReady(browserText)) {
+        console.warn("[YouTube Metadata] browser_response incompleto ou inválido.");
+        return res.status(422).json({
+          error: "Resposta do Gemini incompleta. Aguarde ## TÍTULOS na aba gemini.google.com e tente de novo.",
+          staleResponse: true,
+        });
+      }
+    }
+
+    if (aiProvider === "xai" && xaiKey && !forceBrowser) {
 
       const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
 
@@ -6722,21 +6873,57 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     }
 
-    try {
+    let responseText = browserText;
 
-      const responseText = await callGeminiLlm(req, res, projDir, {
-        title: "Metadados YouTube",
-        prompt,
-        temperature: 0.55,
+    if (!responseText && forceBrowser) {
+      const metadataSessionId = createMetadataSessionId();
+      const promptWithSession = `${prompt}\n\n[LUMIERA] Na primeira linha da resposta, inclua exatamente: LUMIERA_METADATA_SESSION:${metadataSessionId}`;
+      const promptText = buildBrowserTaskPrompt("Metadados YouTube", promptWithSession, "", {
+        taskType: "metadata",
+        responseFormat: "markdown",
       });
-      if (responseText == null) return;
+      console.log(`[YouTube Metadata] Aguardando Gemini no Chrome (sessão ${metadataSessionId}).`);
+      return res.json(offerGeminiBrowserPayload({
+        title: "Metadados YouTube",
+        prompt: promptText,
+        metadataSessionId,
+      }));
+    }
 
-      return await respondWithMetadata(responseText || "Erro ao gerar metadados.", { tried_keys: 1 });
+    if (!responseText) {
+      try {
 
-    } catch (geminiErr) {
+        responseText = await callGeminiLlm(req, res, projDir, {
+          title: "Metadados YouTube",
+          prompt,
+          temperature: 0.55,
+        });
+        if (responseText == null) return;
 
-      errors.push({ status: 503, message: geminiErr.message, quotaExceeded: true });
+      } catch (geminiErr) {
 
+        errors.push({ status: 503, message: geminiErr.message, quotaExceeded: true });
+
+      }
+    }
+
+    if (responseText) {
+      if (forceBrowser && browserText && looksLikeFallbackMetadata(responseText)) {
+        return res.status(422).json({
+          error: "Metadados genéricos detectados — Gemini no Chrome não concluiu. Tente de novo.",
+          staleResponse: true,
+        });
+      }
+      return await respondWithMetadata(responseText, {
+        tried_keys: browserText ? 0 : 1,
+        provider: browserText ? "gemini_browser" : undefined,
+      });
+    }
+
+    if (forceBrowser) {
+      return res.status(422).json({
+        error: "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
+      });
     }
 
     if (xaiKey) {
@@ -6808,7 +6995,8 @@ app.get("/api/ai/youtube-metadata-cache", (req, res) => {
   try {
     const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
     const needsReprocess = Number(cache.pipelineVersion) < YOUTUBE_METADATA_PIPELINE_VERSION
-      || !cache.reprocessedAt;
+      || !cache.reprocessedAt
+      || (!cache.parsed?.description && /DESCRI[ÇC][ÃA]O/i.test(cache.text || ""));
     const reprocessed = needsReprocess ? reprocessYoutubeMetadataCache(cache, projDir) : cache;
 
     if (needsReprocess && reprocessed?.parsed) {
@@ -9693,15 +9881,18 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
     for (const blockKey of Object.keys(mergedTimeline)) {
       mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset, idx) => {
         const prev = (existingTimeline[blockKey] || [])[idx];
-        if (!prev) return asset;
-        return {
-          ...asset,
-          ...(prev.audio_start !== undefined && prev.audio_start !== null
-            ? { audio_start: prev.audio_start }
-            : {}),
-          ...(prev.fixed !== undefined && prev.fixed !== null ? { fixed: prev.fixed } : {}),
-          ...(prev.narration_segment ? { narration_segment: prev.narration_segment } : {}),
-        };
+        const entry = { ...asset };
+        delete entry.audio_start;
+        delete entry.synced_to_speech;
+        if (!prev) return entry;
+        if (prev.fixed_locked && prev.fixed !== undefined && prev.fixed !== null) {
+          entry.fixed = prev.fixed;
+          entry.fixed_locked = true;
+        } else if (prev.fixed !== undefined && prev.fixed !== null) {
+          entry.fixed = prev.fixed;
+        }
+        if (prev.narration_segment) entry.narration_segment = prev.narration_segment;
+        return entry;
       });
     }
     const sanitized = sanitizeFullTimelineAssets(mergedTimeline, assetFiles);
@@ -9713,17 +9904,30 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
     const flatWords = flattenWordTranscripts(readProjectJson(projDir, "word_transcripts.json", []));
     const blockTimings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
     const storyboardForAlign = readProjectJson(projDir, "storyboard.json", {});
+    const alignContext = {
+      visualPrompts: Array.isArray(storyboardForAlign.visual_prompts) ? storyboardForAlign.visual_prompts : [],
+      blockPhrases: Array.isArray(autoConfig.block_phrases) ? autoConfig.block_phrases : [],
+    };
+
     if (flatWords.length > 0) {
       autoConfig.timeline_assets = realignTimelineAssetsToSpeech({
         timelineAssets: autoConfig.timeline_assets,
         blockTimings,
         flatTranscriptWords: flatWords,
-        visualPrompts: Array.isArray(storyboardForAlign.visual_prompts) ? storyboardForAlign.visual_prompts : [],
-        blockPhrases: Array.isArray(autoConfig.block_phrases) ? autoConfig.block_phrases : [],
+        ...alignContext,
+        preserveExplicitFixed: true,
       });
     }
 
+    autoConfig.timeline_assets = recalculateSequentialAudioStarts({
+      timelineAssets: autoConfig.timeline_assets,
+      blockTimings,
+      flatTranscriptWords: flatWords,
+      ...alignContext,
+    });
+
     fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
+    syncStoryboardAssetsFromTimeline(projDir);
 
     return res.json({
 
@@ -10046,39 +10250,63 @@ function findKeywordTimeInRange(wordTranscripts, keywords, rangeStart, rangeEnd)
   return null;
 }
 
-function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
-  const rawStart = overlay.start ?? overlay.scene ?? overlay.block;
-  const rawString = String(rawStart ?? "").trim();
+function isLikelySceneId(rawString) {
+  const m = String(rawString ?? "").trim().match(/^(\d+)\.(\d+)$/);
+  if (!m) return false;
+  const block = Number(m[1]);
+  const scene = Number(m[2]);
+  return block >= 1 && block <= 40 && scene >= 1 && scene <= 12;
+}
 
-  if (/^\d+\.\d+$/.test(rawString)) {
-    return sceneStarts[rawString] !== undefined ? rawString : null;
+function findSceneIdForAbsoluteTime(targetTime, sceneStarts, sceneDurations) {
+  if (!Number.isFinite(targetTime)) return null;
+  let bestSceneId = null;
+  let bestDistance = Infinity;
+
+  for (const [sceneId, sceneStart] of Object.entries(sceneStarts)) {
+    const sceneEnd = sceneStart + (Number(sceneDurations[sceneId]) || 4);
+    if (targetTime >= sceneStart && targetTime <= sceneEnd) {
+      return sceneId;
+    }
+    const distance = Math.abs(sceneStart - targetTime);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestSceneId = sceneId;
+    }
   }
 
-  const idBlockMatch = String(overlay.id || "").match(/(?:block|bloco)[_-]?(\d+)/i);
-  if (idBlockMatch) {
-    const blockNum = Number(idBlockMatch[1]);
-    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${blockNum}.`));
-    if (blockScene) return blockScene;
+  return bestSceneId;
+}
+
+function extractExplicitBlockFromOverlayId(overlayId) {
+  const match = String(overlayId || "").match(/(?:block|bloco)[_-]?(\d+)/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
+  const rawStart = overlay.start ?? overlay.scene ?? overlay.scene_ref ?? overlay.block;
+  const rawString = String(rawStart ?? "").trim();
+
+  if (overlay.scene_ref && sceneStarts[overlay.scene_ref] !== undefined) {
+    return overlay.scene_ref;
+  }
+
+  if (rawString && sceneStarts[rawString] !== undefined) {
+    return rawString;
+  }
+
+  if (isLikelySceneId(rawString)) {
+    return rawString;
   }
 
   if (Number.isFinite(Number(rawStart))) {
-    const targetTime = Number(rawStart);
-    let bestSceneId = null;
-    let bestDistance = Infinity;
+    return findSceneIdForAbsoluteTime(Number(rawStart), sceneStarts, sceneDurations);
+  }
 
-    for (const [sceneId, sceneStart] of Object.entries(sceneStarts)) {
-      const sceneEnd = sceneStart + (Number(sceneDurations[sceneId]) || 4);
-      if (targetTime >= sceneStart && targetTime <= sceneEnd) {
-        return sceneId;
-      }
-      const distance = Math.abs(sceneStart - targetTime);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestSceneId = sceneId;
-      }
-    }
-
-    if (bestSceneId) return bestSceneId;
+  const idBlockNum = extractExplicitBlockFromOverlayId(overlay.id);
+  if (idBlockNum > 0) {
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${idBlockNum}.`));
+    if (blockScene) return blockScene;
   }
 
   const blockFromOverlay = Number(overlay.block || overlay.props?.block || 0);
@@ -10164,10 +10392,35 @@ const GEMINI_OVERLAY_TYPES = new Set([
   "info-card",
 ]);
 
+function sanitizeCustomStyle(value) {
+  if (value == null) return undefined;
+  if (Array.isArray(value)) {
+    const merged = {};
+    for (const entry of value) {
+      Object.assign(merged, sanitizeCustomStyle(entry) || {});
+    }
+    return Object.keys(merged).length ? merged : undefined;
+  }
+  if (typeof value !== "object") return undefined;
+  const out = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (/^\d+$/.test(key)) continue;
+    if (raw == null || typeof raw === "object") continue;
+    if (typeof raw === "number" || typeof raw === "string") out[key] = raw;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function repairOverlayPropsForRemotion(overlay) {
   if (!overlay || !overlay.type) return null;
   if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
   const p = overlay.props;
+
+  if (p.customStyle != null) {
+    const safeStyle = sanitizeCustomStyle(p.customStyle);
+    if (safeStyle) p.customStyle = safeStyle;
+    else delete p.customStyle;
+  }
 
   if (overlay.type === "timeline") {
     let events = p.events;
@@ -10262,6 +10515,11 @@ function repairOverlayPropsForRemotion(overlay) {
       console.log(`[Overlays] Kinetic-text ${overlay.id} vazio — removido.`);
       return null;
     }
+    if (Array.isArray(p.style) || (p.style != null && typeof p.style !== "string")) {
+      p.style = "slam";
+    }
+  } else if (Array.isArray(p.style) || (p.style != null && typeof p.style === "object")) {
+    delete p.style;
   }
 
   return overlay;
@@ -10334,34 +10592,39 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
     const raw = overlay.start ?? overlay.scene;
     const rawStr = String(raw ?? "").trim();
 
-    if (Number.isFinite(Number(raw)) && !/^\d+\.\d+$/.test(rawStr)) {
+    if (Number.isFinite(Number(raw)) && !isLikelySceneId(rawStr)) {
       overlay.start = Number(raw);
       if (!Number.isFinite(overlay.duration) || overlay.duration <= 0) overlay.duration = 4;
       continue;
     }
 
-    if (/^\d+\.\d+$/.test(rawStr)) {
-      const asSeconds = Number(rawStr);
+    if (isLikelySceneId(rawStr)) {
       if (sceneStarts[rawStr] !== undefined) {
         const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
         overlay.start = Number(sceneStarts[rawStr]) + 0.5;
+        overlay.scene_ref = rawStr;
         overlay.duration = Math.min(
           Number(overlay.duration) || 4,
           Math.max(1, Number(durations[blockIdx]) || 4),
         );
         continue;
       }
-      if (Number.isFinite(asSeconds) && asSeconds >= 0 && asSeconds < 7200) {
-        overlay.start = asSeconds;
-        if (!Number.isFinite(overlay.duration) || overlay.duration <= 0) overlay.duration = 4;
+      const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
+      const blockStart = Number(starts[blockIdx]);
+      if (Number.isFinite(blockStart)) {
+        overlay.start = blockStart + 0.5;
+        overlay.scene_ref = rawStr;
+        overlay.duration = Math.min(
+          Number(overlay.duration) || 4,
+          Math.max(1, Number(durations[blockIdx]) || 4),
+        );
         continue;
       }
     }
 
-    const blockMatch = String(overlay.id || "").match(/(?:block|bloco|lt-block)[_-]?(\d+)/i)
-      || String(overlay.id || "").match(/(\d+)/);
-    const blockIdx = blockMatch
-      ? Math.max(0, Number(blockMatch[1]) - 1)
+    const explicitBlock = extractExplicitBlockFromOverlayId(overlay.id);
+    const blockIdx = explicitBlock > 0
+      ? Math.max(0, explicitBlock - 1)
       : Math.min(i, Math.max(0, starts.length - 1));
     const blockStart = Number(starts[blockIdx]);
     overlay.start = Number.isFinite(blockStart) ? blockStart + 0.5 : Math.max(0, i * 5);
@@ -10390,9 +10653,30 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
     const resolvedSceneId = resolveOverlaySceneId(overlay, sceneStarts, sceneDurations);
 
     if (!resolvedSceneId || sceneStarts[resolvedSceneId] === undefined) {
-      const blockMatch = String(overlay.id || "").match(/(?:block|bloco)[_-]?(\d+)/i) || String(overlay.id || "").match(/(\d+)/);
-      if (blockMatch) {
-        const blockNum = Number(blockMatch[1]);
+      const rawNum = Number(overlay.start);
+      if (Number.isFinite(rawNum) && rawNum >= 0 && !isLikelySceneId(rawSceneRef)) {
+        overlay.start = rawNum;
+        const sceneFromTime = findSceneIdForAbsoluteTime(rawNum, sceneStarts, sceneDurations);
+        if (sceneFromTime) overlay.scene_ref = sceneFromTime;
+        console.log(`[Overlays Post-Process] Overlay ${overlay.id} mantém tempo absoluto: start=${overlay.start}s`);
+        continue;
+      }
+
+      if (isLikelySceneId(rawSceneRef)) {
+        const blockNum = Number(rawSceneRef.split(".")[0]);
+        const blockIdx = Math.max(0, blockNum - 1);
+        const blockStart = Number(starts[blockIdx]);
+        if (Number.isFinite(blockStart)) {
+          overlay.start = blockStart + 0.5;
+          overlay.scene_ref = rawSceneRef;
+          overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, Number(durations[blockIdx]) || 4));
+          console.log(`[Overlays Post-Process] Fallback por scene_id ${rawSceneRef}: start=${overlay.start}s`);
+          continue;
+        }
+      }
+
+      const blockNum = extractExplicitBlockFromOverlayId(overlay.id);
+      if (blockNum > 0) {
         const blockIdx = Math.max(0, blockNum - 1);
         const blockStart = Number(starts[blockIdx]);
         if (Number.isFinite(blockStart)) {
@@ -10432,7 +10716,13 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
       start = Math.min(keywordTime + 0.15, sceneStartSec + sceneDur - 1);
     }
 
-    overlay.start = Math.max(sceneStartSec, start);
+    const plannedAbs = Number(overlay.start);
+    if (Number.isFinite(plannedAbs) && plannedAbs >= sceneStartSec && plannedAbs <= sceneStartSec + sceneDur && !isLikelySceneId(rawSceneRef)) {
+      overlay.start = plannedAbs;
+    } else {
+      overlay.start = Math.max(sceneStartSec, start);
+    }
+    overlay.scene_ref = resolvedSceneId;
     overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, sceneDur - 0.5));
 
     console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s`);
@@ -10491,7 +10781,7 @@ function readHyperframesSkillExcerpt(maxChars = 2800) {
 }
 
 /** Prompt compacto para planejar overlays via Gemini no Chrome (extensão). */
-function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true) {
+function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true, planSessionId = null) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
@@ -10545,7 +10835,10 @@ Exemplo timeline:
     useHyperframes
       ? "HyperFrames: variantes glass/bild/accent-underline/clean-bar, iconType temático, customStyle com gradiente e glow. Inspire-se nas refs do catálogo."
       : "",
-    `Retorne APENAS JSON válido: {"planejamento":["3 observações"],"overlays":[...]}`,
+    planSessionId
+      ? `SESSÃO OBRIGATÓRIA: inclua "plan_session":"${planSessionId}" na raiz do JSON (campo obrigatório para validar esta requisição).`
+      : "",
+    `Retorne APENAS JSON válido: {"plan_session":"...","planejamento":["3 observações"],"overlays":[...]}`,
     `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
     "Tipos obrigatórios a variar: counter, bar-chart, timeline, lower-third, kinetic-text.",
     "PROIBIDO: copiar frases dos blocos de narração; lower-third por bloco; texto >12 palavras; código/terminal.",
@@ -10969,15 +11262,14 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       rawResponse = await callGeminiWithRetry(apiKey, null, { bodyOverride: requestBody });
     }
 
-    let cleaned = rawResponse.trim();
+    let cleaned = extractOverlayJsonPayload(rawResponse) || String(rawResponse || "").trim();
     if (cleaned.startsWith("```")) {
       cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
     }
     if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
-      const objMatch = cleaned.match(/\{[\s\S]*"overlays"\s*:\s*\[[\s\S]*\]\s*\}/);
-      if (objMatch) cleaned = objMatch[0];
+      cleaned = extractOverlayJsonPayload(cleaned) || cleaned;
     }
-    
+
     let parsedOverlays = [];
     try {
       const resultObj = JSON.parse(cleaned);
@@ -11007,10 +11299,14 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         parsedOverlays = [];
       }
     } catch (parseErr) {
-      console.error("[Overlays] Erro ao parsear JSON principal, tentando regex de fallback:", parseErr);
-      const match = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
-      if (match) {
-        parsedOverlays = JSON.parse(match[0]);
+      console.error("[Overlays] Erro ao parsear JSON principal, tentando extração balanceada:", parseErr);
+      const recovered = extractOverlayJsonPayload(cleaned) || extractOverlayJsonPayload(rawResponse);
+      if (!recovered) throw parseErr;
+      const resultObj = JSON.parse(recovered);
+      if (Array.isArray(resultObj)) {
+        parsedOverlays = resultObj;
+      } else if (Array.isArray(resultObj?.overlays)) {
+        parsedOverlays = resultObj.overlays;
       } else {
         throw parseErr;
       }

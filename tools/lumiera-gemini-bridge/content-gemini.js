@@ -1,8 +1,14 @@
 (() => {
-  if (globalThis.__lumieraGeminiContentLoaded) return;
-  globalThis.__lumieraGeminiContentLoaded = true;
-
-  const VERSION = "1.1.9";
+  const VERSION = "1.3.6";
+  if (globalThis.__lumieraGeminiVersion === VERSION) return;
+  globalThis.__lumieraGeminiVersion = VERSION;
+  if (globalThis.__lumieraGeminiMessageHandler) {
+    try {
+      chrome.runtime.onMessage.removeListener(globalThis.__lumieraGeminiMessageHandler);
+    } catch {
+      // ignore
+    }
+  }
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function isVisible(el) {
@@ -140,39 +146,391 @@
     if (typeof el.click === "function") el.click();
   }
 
-  function isGenerating() {
-    const hasBusy = [...document.querySelectorAll(
-      '[aria-busy="true"], mat-progress-spinner, [class*="streaming"], [class*="thinking"], [class*="loading"]',
-    )].some(isVisible);
-    if (hasBusy) return true;
+  function isStopResponseButton(btn) {
+    if (!btn || !isVisible(btn)) return false;
+    const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+    const tooltip = (btn.getAttribute("mattooltip") || btn.getAttribute("matTooltip") || "").toLowerCase();
+    const combined = `${label} ${tooltip}`;
+    return /stop response|parar resposta|cancelar resposta|interromper|stop generating|parar geração/.test(combined);
+  }
 
-    const stopBtn = [...document.querySelectorAll("button")].find((b) => {
-      const label = (b.getAttribute("aria-label") || "").toLowerCase();
-      return /stop|parar|cancelar/.test(label) && isVisible(b);
-    });
-    return Boolean(stopBtn && hasBusy);
+  function isGenerating() {
+    if ([...document.querySelectorAll("button")].some(isStopResponseButton)) return true;
+    const spinners = [...document.querySelectorAll(
+      "model-response mat-progress-spinner, "
+      + "[data-message-author-role='model'] mat-progress-spinner, "
+      + "message-content mat-progress-spinner",
+    )].filter(isVisible);
+    return spinners.length > 0;
+  }
+
+  function extractPlanSessionFromPrompt(prompt) {
+    const text = String(prompt || "");
+    const quoted = text.match(/"plan_session"\s*:\s*"([^"]+)"/i);
+    if (quoted?.[1]) return quoted[1];
+    const inline = text.match(/plan_session["\s:]+([a-z0-9-]+)/i);
+    return inline?.[1] || null;
+  }
+
+  function extractMetadataSessionFromPrompt(prompt) {
+    const m = String(prompt || "").match(/LUMIERA_METADATA_SESSION:([a-z0-9-]+)/i);
+    return m?.[1] || null;
+  }
+
+  function extractTaskType(prompt) {
+    const m = String(prompt || "").match(/LUMIERA_TASK:(\w+)/i);
+    return m ? m[1].toLowerCase() : null;
+  }
+
+  /** Overlays exigem JSON com "overlays"; metadados/chat retornam markdown/texto livre. */
+  function isOverlayPlanningPrompt(prompt) {
+    const task = extractTaskType(prompt);
+    if (task === "overlay") return true;
+    if (task === "metadata" || task === "generic") return false;
+    const text = String(prompt || "");
+    return /"overlays"\s*:\s*\[/i.test(text)
+      || /planejar overlays/i.test(text)
+      || /SCHEMA OBRIGATÓRIO.*HyperFrames/i.test(text);
+  }
+
+  function isMetadataPrompt(prompt) {
+    const task = extractTaskType(prompt);
+    if (task === "metadata") return true;
+    const text = String(prompt || "");
+    return /Metadados YouTube/i.test(text)
+      || /especialista em títulos e SEO/i.test(text)
+      || /FORMATO DE SAÍDA OBRIGATÓRIO/i.test(text);
+  }
+
+  function looksLikeMetadataResponse(text) {
+    const t = String(text || "");
+    return /##\s*T[ÍI]TULOS/i.test(t)
+      || /##\s*DESCRI[ÇC][ÃA]O/i.test(t)
+      || /##\s*HASHTAGS/i.test(t)
+      || /##\s*TAGS/i.test(t)
+      || /VARIANTE\s+[ABC]/i.test(t)
+      || /Variante\s+[ABC]\s*[—–\-]/i.test(t)
+      || /THUMBNAILS?\s+A\/B/i.test(t)
+      || /COMENT[ÁA]RIO\s+PINADO/i.test(t)
+      || /T[íi]tulo\s+pareado/i.test(t)
+      || /Texto\s+na\s+capa/i.test(t)
+      || /Composi[çc][ãa]o\s*:/i.test(t)
+      || /Express[ãa]o\/elemento/i.test(t)
+      || (/T[ÍI]TULOS/i.test(t) && /DESCRI[ÇC][ÃA]O/i.test(t));
+  }
+
+  function looksLikeLumieraPrompt(text) {
+    const t = String(text || "");
+    return /LUMIERA_TASK:/i.test(t)
+      || /PRIORIDADE ABSOLUTA/i.test(t)
+      || /--- INÍCIO DO ROTEIRO ---/i.test(t)
+      || /FORMATO DE SAÍDA OBRIGATÓRIO/i.test(t)
+      || /=== Metadados YouTube ===/i.test(t)
+      || /especialista em títulos e SEO para YouTube em PT-BR/i.test(t);
+  }
+
+  function looksLikeMetadataTemplate(text) {
+    const t = String(text || "");
+    return /\(máx 5 palavras\)/i.test(t)
+      || /\(número e texto do título escolhido\)/i.test(t);
+  }
+
+  function isTemplateFieldValue(value = "") {
+    const v = String(value || "").trim();
+    if (!v || v === "..." || v === "…") return true;
+    return /^\([^)]*\)$/i.test(v)
+      || /máx 5 palavras/i.test(v)
+      || /número e texto do título escolhido/i.test(v);
+  }
+
+  function hasFilledYoutubeTitles(text) {
+    const t = String(text || "");
+    if (/\d+\.\s+[^(\n]{8,}\(\d+\s*chars?\)/i.test(t)) return true;
+    if (/##\s*T[ÍI]TULOS/i.test(t) && /\d+\.\s+.{15,}/m.test(t)) return true;
+    return false;
+  }
+
+  const METADATA_PLAIN_HEADERS = [
+    "TÍTULOS", "DESCRIÇÃO", "HASHTAGS PRINCIPAIS", "HASHTAGS", "TAGS",
+    "COMENTÁRIO PINADO", "CAPÍTULOS", "THUMBNAILS A/B", "THUMBNAILS AB", "THUMBNAILS",
+    "GANCHO DE RETENÇÃO", "GANCHO PARA THUMBNAIL", "CTA DE MEIO DE VÍDEO",
+  ];
+
+  function stripHeaderAccents(value = "") {
+    return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function normalizePlainMetadataHeaders(text = "") {
+    const headerKeys = new Set(
+      METADATA_PLAIN_HEADERS.map((h) => stripHeaderAccents(h).toUpperCase()),
+    );
+    return String(text)
+      .split("\n")
+      .map((line) => {
+        const trimmed = line.trim().replace(/:+$/, "");
+        if (!trimmed || /^##\s+/i.test(trimmed)) return line;
+        const key = stripHeaderAccents(trimmed).toUpperCase();
+        if (headerKeys.has(key)) return `## ${trimmed}`;
+        return line;
+      })
+      .join("\n");
+  }
+
+  function normalizeMetadataText(text = "") {
+    return normalizePlainMetadataHeaders(String(text).replace(/\r\n/g, "\n")).trim();
+  }
+
+  function extractMetaSection(text, headerPattern) {
+    const normalized = normalizeMetadataText(text);
+    const m = String(normalized).match(
+      new RegExp(`##\\s*${headerPattern}[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`, "i"),
+    );
+    return m?.[1]?.trim() || "";
+  }
+
+  function hasCompleteMetadataSections(text) {
+    const t = normalizeMetadataText(text);
+    const desc = extractMetaSection(t, "DESCRI[ÇC][ÃA]O");
+    const tags = extractMetaSection(t, "TAGS");
+    const hashtags = extractMetaSection(t, "HASHTAGS(?:\\s+PRINCIPAIS)?");
+    const pinned = extractMetaSection(t, "COMENT[ÁA]RIO\\s+PINADO");
+    if (!hasFilledYoutubeTitles(t) && !/##\s*T[ÍI]TULOS/i.test(t)) return false;
+    if (desc.length < 50) return false;
+    if (tags.length < 8 && hashtags.length < 3) return false;
+    if (pinned.length < 12 && hashtags.length < 3) return false;
+    return true;
+  }
+
+  function isMetadataReady(text) {
+    const t = String(text || "").trim();
+    if (t.length < 180) return false;
+    if (extractJsonPayload(t)) return false;
+    if (looksLikeLumieraPrompt(t)) return false;
+    return hasCompleteMetadataSections(t);
+  }
+
+  function isAcceptableMetadata(text, beforeTexts, metadataSession = null) {
+    const t = String(text || "").trim();
+    if (t.length < 120) return false;
+    if (looksLikeLumieraPrompt(t)) return false;
+    if (extractJsonPayload(t)) return false;
+    if (beforeTexts.includes(t)) return false;
+    return hasCompleteMetadataSections(t);
+  }
+
+  function getLatestGrownModelText(beforeTexts, beforeMessages) {
+    const current = snapshotModelMessages();
+    if (current.length) {
+      for (let i = current.length - 1; i >= 0; i -= 1) {
+        const cur = current[i];
+        const prev = beforeMessages[i];
+        const text = String(cur.text || "").trim();
+        if (!text) continue;
+        const isNew = i >= beforeMessages.length;
+        const grew = !prev || cur.len > prev.len + 12 || cur.head !== prev.head;
+        if ((isNew || grew) && !beforeTexts.includes(text)) return text;
+      }
+      const last = current[current.length - 1];
+      const prevLast = beforeMessages[beforeMessages.length - 1];
+      if (last?.text && (!prevLast || last.len > prevLast.len + 8)) return last.text;
+    }
+
+    const fresh = collectModelTexts()
+      .filter((t) => !beforeTexts.includes(t) && t.length > 100)
+      .sort((a, b) => b.length - a.length);
+    return fresh[0] || "";
+  }
+
+  async function waitForMetadataResponse(beforeTexts, beforeMessages, submitStartedAt, deadline, metadataSession = null) {
+    const MIN_WAIT_MS = 4000;
+    let stableText = "";
+    let stableSince = 0;
+    let notGeneratingSince = 0;
+
+    while (Date.now() < deadline) {
+      await sleep(400);
+
+      const generating = isGenerating();
+      if (!generating) {
+        notGeneratingSince = notGeneratingSince || Date.now();
+      } else {
+        notGeneratingSince = 0;
+      }
+
+      if (Date.now() - submitStartedAt < MIN_WAIT_MS) continue;
+
+      const raw = getLatestGrownModelText(beforeTexts, beforeMessages);
+      if (!isAcceptableMetadata(raw, beforeTexts, metadataSession)) continue;
+
+      if (stableText && raw.length > stableText.length + 20) {
+        stableText = raw;
+        stableSince = Date.now();
+        continue;
+      }
+
+      if (raw === stableText) {
+        const stableFor = Date.now() - stableSince;
+        if (stableFor >= 1200) return raw;
+        if (!generating && notGeneratingSince && Date.now() - notGeneratingSince >= 800 && stableFor >= 600) {
+          return raw;
+        }
+      } else {
+        stableText = raw;
+        stableSince = Date.now();
+      }
+    }
+
+    const lastChance = getLatestGrownModelText(beforeTexts, beforeMessages);
+    if (isAcceptableMetadata(lastChance, beforeTexts, metadataSession)) return lastChance;
+
+    throw new Error(
+      "Timeout aguardando metadados do Gemini (150s). "
+      + "A resposta apareceu em gemini.google.com? Recarregue a aba (F5) e tente de novo.",
+    );
+  }
+
+  async function waitForOverlayResponse(beforeTexts, beforeMessages, knownOverlayJson, planSession, submitStartedAt, deadline) {
+    const MIN_WAIT_MS = 5000;
+    const STABLE_MS = 1200;
+    let stableJson = "";
+    let stableSince = 0;
+
+    while (Date.now() < deadline) {
+      await sleep(500);
+      if (Date.now() - submitStartedAt < MIN_WAIT_MS) continue;
+
+      const json = findOverlayJsonResponse(beforeTexts, knownOverlayJson, planSession);
+      if (!json || json.length <= 40) continue;
+
+      if (json === stableJson) {
+        if (Date.now() - stableSince >= STABLE_MS) return json;
+      } else {
+        stableJson = json;
+        stableSince = Date.now();
+      }
+    }
+
+    const fallback = findOverlayJsonResponse(beforeTexts, knownOverlayJson, planSession);
+    if (fallback && fallback.length > 40) return fallback;
+
+    throw new Error(
+      "Timeout aguardando JSON de overlays do Gemini (130s). "
+      + "Confira se a resposta apareceu em gemini.google.com.",
+    );
+  }
+
+  function collectKnownOverlayJson(beforeTexts) {
+    const known = new Set();
+    for (const block of beforeTexts) {
+      const json = extractJsonPayload(block);
+      if (json) known.add(json);
+    }
+    return known;
+  }
+
+  function isStaleOverlayJson(json, knownJsonSet) {
+    if (!json) return true;
+    if (knownJsonSet.has(json)) return true;
+    for (const prev of knownJsonSet) {
+      if (prev.length > 60 && json.includes(prev.slice(0, 60))) return true;
+      if (json.length > 60 && prev.includes(json.slice(0, 60))) return true;
+    }
+    return false;
+  }
+
+  function pushUniqueText(blocks, seen, text) {
+    const t = String(text || "").trim();
+    if (t.length <= 15 || seen.has(t)) return;
+    seen.add(t);
+    blocks.push(t);
+  }
+
+  function isUserMessageNode(node) {
+    if (!node) return false;
+    return Boolean(
+      node.closest?.('[data-message-author-role="user"]')
+      || node.getAttribute?.("data-message-author-role") === "user",
+    );
   }
 
   function collectModelTexts() {
     const blocks = [];
+    const seen = new Set();
+
+    document.querySelectorAll('[data-message-author-role="model"]').forEach((node) => {
+      if (isUserMessageNode(node)) return;
+      pushUniqueText(blocks, seen, node.innerText || node.textContent);
+    });
+
+    document.querySelectorAll("model-response").forEach((node) => {
+      const root = node.closest("[data-message-id]") || node.parentElement || node;
+      pushUniqueText(blocks, seen, root.innerText || root.textContent);
+    });
+
+    document.querySelectorAll("message-content").forEach((node) => {
+      const root = node.closest('[data-message-author-role="model"]')
+        || node.closest("[data-message-id]")
+        || node;
+      if (isUserMessageNode(root)) return;
+      pushUniqueText(blocks, seen, root.innerText || root.textContent);
+    });
+
     const selectors = [
-      "message-content",
-      '[data-message-author-role="model"]',
+      '[data-test-id*="model-response" i]',
+      '[class*="model-response" i]',
+      '[class*="response-container" i]',
       ".markdown",
-      "model-response",
       ".model-response-text",
       "experimental-model-response",
       "div[data-message-id] model-response",
-      "pre",
-      "code",
     ];
     for (const sel of selectors) {
       document.querySelectorAll(sel).forEach((n) => {
-        const t = (n.innerText || n.textContent || "").trim();
-        if (t.length > 15) blocks.push(t);
+        if (isUserMessageNode(n)) return;
+        pushUniqueText(blocks, seen, n.innerText || n.textContent);
       });
     }
-    return [...new Set(blocks)];
+
+    return blocks;
+  }
+
+  function pickBestFreshCandidate(beforeTexts) {
+    const fresh = collectModelTexts().filter((t) => isFreshModelText(t, beforeTexts));
+    if (!fresh.length) return "";
+    return fresh.reduce((best, t) => (t.length > best.length ? t : best), "");
+  }
+
+  function isFreshModelText(text, beforeTexts) {
+    if (!text) return false;
+    return !beforeTexts.some((b) => b === text);
+  }
+
+  const OVERLAY_TYPE_RE = "(?:lower-third|counter|bar-chart|timeline|kinetic-text|info-card)";
+
+  function extractBalancedJsonSpan(src, startIdx, openChar, closeChar) {
+    if (src[startIdx] !== openChar) return null;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = startIdx; i < src.length; i += 1) {
+      const ch = src[i];
+      if (inString) {
+        if (escape) escape = false;
+        else if (ch === "\\") escape = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === openChar) depth += 1;
+      else if (ch === closeChar) {
+        depth -= 1;
+        if (depth === 0) return src.slice(startIdx, i + 1);
+      }
+    }
+    return null;
   }
 
   function extractJsonPayload(text) {
@@ -181,20 +539,142 @@
     if (cleaned.startsWith("```")) {
       cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
     }
-    if (!cleaned.includes('"overlays"')) return null;
-    const match = cleaned.match(/\{[\s\S]*"overlays"\s*:\s*\[[\s\S]*\]\s*[\s\S]*\}/);
-    if (match) return match[0];
-    if (cleaned.startsWith("{")) return cleaned;
+
+    const overlaysKey = cleaned.search(/"overlays"\s*:\s*\[/i);
+    if (overlaysKey >= 0) {
+      const braceStart = cleaned.lastIndexOf("{", overlaysKey);
+      if (braceStart >= 0) {
+        const obj = extractBalancedJsonSpan(cleaned, braceStart, "{", "}");
+        if (obj) {
+          try {
+            const parsed = JSON.parse(obj);
+            if (parsed && Array.isArray(parsed.overlays)) return obj;
+          } catch {
+            // tenta fallbacks
+          }
+        }
+      }
+    }
+
+    const typeIdx = cleaned.search(new RegExp(`"type"\\s*:\\s*"${OVERLAY_TYPE_RE}"`, "i"));
+    if (typeIdx >= 0) {
+      const arrStart = cleaned.lastIndexOf("[", typeIdx);
+      if (arrStart >= 0) {
+        const arr = extractBalancedJsonSpan(cleaned, arrStart, "[", "]");
+        if (arr) {
+          try {
+            const parsed = JSON.parse(arr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return `{"overlays":${arr}}`;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    if (cleaned.startsWith("{")) {
+      const obj = extractBalancedJsonSpan(cleaned, 0, "{", "}");
+      if (obj) return obj;
+    }
+
     return null;
   }
 
-  function findOverlayJsonResponse(beforeTexts) {
+  function readNodeText(node) {
+    if (!node) return "";
+    return String(node.innerText || node.textContent || "").trim();
+  }
+
+  function snapshotModelMessages() {
+    const entries = [];
+    const seenText = new Set();
+
+    const pushEntry = (node) => {
+      const text = readNodeText(node);
+      if (text.length < 8 || seenText.has(text)) return;
+      seenText.add(text);
+      entries.push({
+        node,
+        len: text.length,
+        head: text.slice(0, 160),
+        text,
+      });
+    };
+
+    document.querySelectorAll("[data-message-id]").forEach((node) => {
+      if (node.querySelector('[data-message-author-role="user"]')) return;
+      if (node.matches('[data-message-author-role="user"]')) return;
+      pushEntry(node);
+    });
+
+    document.querySelectorAll('[data-message-author-role="model"]').forEach(pushEntry);
+    document.querySelectorAll("model-response").forEach((node) => {
+      pushEntry(node.closest("[data-message-id]") || node.parentElement || node);
+    });
+    document.querySelectorAll("message-content").forEach((node) => {
+      const root = node.closest('[data-message-author-role="model"]')
+        || node.closest("[data-message-id]")
+        || node;
+      if (isUserMessageNode(root)) return;
+      pushEntry(root);
+    });
+
+    return entries;
+  }
+
+  function getLatestModelResponseText(beforeMessages, beforeTexts, opts = {}) {
+    const { expectMetadata = false, submitStartedAt = 0, prompt = "" } = opts;
+    const current = snapshotModelMessages();
+    if (!current.length) return pickBestFreshCandidate(beforeTexts);
+
+    const last = current[current.length - 1];
+
+    if (current.length > beforeMessages.length) {
+      return last.text;
+    }
+
+    if (beforeMessages.length > 0) {
+      const prev = beforeMessages[beforeMessages.length - 1];
+      if (last.len > prev.len + 20 || last.head !== prev.head) {
+        return last.text;
+      }
+    }
+
+    for (let i = current.length - 1; i >= 0; i -= 1) {
+      const cur = current[i];
+      const existed = beforeMessages.some((b) => b.head === cur.head && b.len === cur.len);
+      if (!existed && cur.text.length > 80) return cur.text;
+    }
+
+    for (let i = current.length - 1; i >= 0; i -= 1) {
+      const text = current[i].text;
+      if (text && isFreshModelText(text, beforeTexts)) return text;
+    }
+
+    if (expectMetadata && Date.now() - submitStartedAt > 3000) {
+      const metadataSession = extractMetadataSessionFromPrompt(String(opts.prompt || ""));
+      const metadataCandidate = pickMetadataCandidate(beforeTexts, beforeMessages, metadataSession);
+      if (metadataCandidate) return metadataCandidate;
+    }
+
+    return pickBestFreshCandidate(beforeTexts) || last.text;
+  }
+
+  function findOverlayJsonResponse(beforeTexts, knownJsonSet = new Set(), planSession = null) {
     const all = collectModelTexts();
-    const fresh = all.filter((t) => !beforeTexts.some((b) => b === t || (b.length > 40 && t.includes(b.slice(0, 40)))));
-    const candidates = [...fresh, ...all].reverse();
+    const fresh = all.filter((t) => isFreshModelText(t, beforeTexts));
+    const withSession = planSession
+      ? fresh.filter((t) => t.includes(planSession))
+      : [];
+    const candidates = [...withSession, ...fresh].reverse();
     for (const text of candidates) {
       const json = extractJsonPayload(text);
-      if (json && json.length > 40) return json;
+      if (!json || json.length <= 40) continue;
+      if (isStaleOverlayJson(json, knownJsonSet)) continue;
+      if (!/"overlays"\s*:\s*\[/.test(json)) continue;
+      return json;
     }
     return null;
   }
@@ -325,6 +805,13 @@
     }
 
     const before = collectModelTexts();
+    const beforeMessages = snapshotModelMessages();
+    const knownOverlayJson = collectKnownOverlayJson(before);
+    const planSession = extractPlanSessionFromPrompt(prompt);
+    const metadataSession = extractMetadataSessionFromPrompt(prompt);
+    const expectOverlayJson = isOverlayPlanningPrompt(prompt);
+    const expectMetadata = isMetadataPrompt(prompt);
+    const submitStartedAt = Date.now();
     await fillInput(input, prompt);
 
     const inputLen = getInputText(input).length;
@@ -347,54 +834,36 @@
       );
     }
 
-    const deadline = Date.now() + 120000;
+    const deadline = Date.now() + (expectMetadata ? 150000 : 130000);
+
+    if (expectMetadata) {
+      return waitForMetadataResponse(before, beforeMessages, submitStartedAt, deadline, metadataSession);
+    }
+    if (expectOverlayJson) {
+      return waitForOverlayResponse(before, beforeMessages, knownOverlayJson, planSession, submitStartedAt, deadline);
+    }
+
+    const responseOpts = { expectMetadata: false, submitStartedAt, prompt };
     let lastCandidate = "";
     let stableHits = 0;
-    let lastJson = "";
-    let jsonStableHits = 0;
-
     while (Date.now() < deadline) {
-      await sleep(400);
-
-      const jsonCandidate = findOverlayJsonResponse(before);
-      if (jsonCandidate) {
-        if (jsonCandidate === lastJson) {
-          jsonStableHits += 1;
-          if (jsonStableHits >= 1) return jsonCandidate;
-        } else {
-          lastJson = jsonCandidate;
-          jsonStableHits = 0;
-        }
-      }
-
-      if (isGenerating()) {
-        stableHits = 0;
-        continue;
-      }
-
-      const blocks = collectModelTexts();
-      const fresh = blocks.filter((b) => !before.includes(b));
-      const candidate = fresh[fresh.length - 1] || blocks[blocks.length - 1];
-      if (!candidate || candidate.length < 20) continue;
-
-      const jsonFromCandidate = extractJsonPayload(candidate);
-      if (jsonFromCandidate) return jsonFromCandidate;
-
+      await sleep(500);
+      if (Date.now() - submitStartedAt < 2000) continue;
+      const candidate = getLatestModelResponseText(beforeMessages, before, responseOpts);
+      if (!candidate || candidate.length < 40) continue;
       if (candidate === lastCandidate) {
         stableHits += 1;
-        if (stableHits >= 1) return candidate;
+        if (stableHits >= 2 && !isGenerating()) return candidate;
       } else {
         lastCandidate = candidate;
         stableHits = 0;
       }
     }
-
-    if (lastJson.length > 40) return lastJson;
-    if (lastCandidate.length > 20) return lastCandidate;
-    throw new Error("Timeout aguardando resposta do Gemini (120s). Verifique se a resposta apareceu na aba do Gemini.");
+    if (lastCandidate.length >= 40) return lastCandidate;
+    throw new Error("Timeout aguardando resposta do Gemini (130s).");
   }
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  globalThis.__lumieraGeminiMessageHandler = (message, _sender, sendResponse) => {
     if (message?.type === "LUMIERA_GEMINI_PING") {
       sendResponse({ ok: true, version: VERSION });
       return;
@@ -405,5 +874,6 @@
       .then((text) => sendResponse({ ok: true, text }))
       .catch((err) => sendResponse({ ok: false, error: err?.message || String(err) }));
     return true;
-  });
+  };
+  chrome.runtime.onMessage.addListener(globalThis.__lumieraGeminiMessageHandler);
 })();

@@ -6,6 +6,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { mergeCustomStyle } from "./overlayStyleUtils";
 
 // ─────────────────────────────────────────────────────────────────────
 // InfoBar — Animated comparison bar chart
@@ -213,9 +214,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
         };
         break;
     }
-    if (customStyle) {
-      base = { ...base, ...customStyle };
-    }
+    base = mergeCustomStyle(base, customStyle);
     return base;
   };
 

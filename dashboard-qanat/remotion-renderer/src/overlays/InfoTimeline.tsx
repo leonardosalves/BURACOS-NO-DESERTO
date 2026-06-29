@@ -6,6 +6,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { safeCustomStyle } from "./overlayStyleUtils";
 
 // ─────────────────────────────────────────────────────────────────────
 // InfoTimeline — Animated historical timeline
@@ -96,8 +97,9 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
   accentColor = "#D4AF37",
   orientation = "horizontal",
   theme = "classic",
-  customStyle,
+  customStyle: customStyleRaw,
 }) => {
+  const customStyle = safeCustomStyle(customStyleRaw) as InfoTimelineProps["customStyle"];
   const safeEvents = Array.isArray(events) ? events : [];
   if (safeEvents.length === 0) return null;
 

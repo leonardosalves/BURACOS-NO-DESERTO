@@ -19,7 +19,7 @@ import {
   sanitizeTitle,
 } from "./titleGenerator.js";
 
-export const YOUTUBE_METADATA_PIPELINE_VERSION = 3;
+export const YOUTUBE_METADATA_PIPELINE_VERSION = 4;
 
 const LONG_BLOCK_NAMES = [
   "Abertura",
@@ -689,6 +689,17 @@ export function ensureThumbnailVariants(parsed = {}, palette = []) {
   return merged.slice(0, 3);
 }
 
+function isThumbnailPlaceholder(value = "") {
+  const v = String(value || "").trim();
+  if (!v || v === "..." || v === "…") return true;
+  return /^\([^)]*\)$/i.test(v)
+    || /máx 5 palavras/i.test(v)
+    || /número e texto do título escolhido/i.test(v)
+    || /layout, posição do texto/i.test(v)
+    || /rosto, objeto ou cena de destaque/i.test(v)
+    || /3 hex da paleta/i.test(v);
+}
+
 function parseThumbnailVariants(content = "") {
   const variants = [];
   const normalized = String(content).trim();
@@ -714,29 +725,121 @@ function parseThumbnailVariants(content = "") {
       fields[key] = fieldMatch[2].trim();
     }
 
+    const pairedTitle = fields["titulo pareado"] || fields.titulo || "";
+    const overlayText = fields["texto na capa"] || fields.texto || "";
+    if (isThumbnailPlaceholder(pairedTitle) && isThumbnailPlaceholder(overlayText)) continue;
+
     variants.push({
       id,
       label,
-      pairedTitle: fields["titulo pareado"] || fields.titulo || "",
-      overlayText: fields["texto na capa"] || fields.texto || "",
-      composition: fields.composicao || "",
-      colors: (fields.cores || "").split(/[,;]/).map((c) => c.trim()).filter(Boolean),
-      focalElement: fields["expressao/elemento"] || fields.expressao || fields.elemento || fields.foco || "",
+      pairedTitle: isThumbnailPlaceholder(pairedTitle) ? "" : pairedTitle,
+      overlayText: isThumbnailPlaceholder(overlayText) ? "" : overlayText,
+      composition: isThumbnailPlaceholder(fields.composicao) ? "" : (fields.composicao || ""),
+      colors: (fields.cores || "").split(/[,;]/).map((c) => c.trim()).filter((c) => c && !isThumbnailPlaceholder(c)),
+      focalElement: isThumbnailPlaceholder(fields["expressao/elemento"]) ? "" : (fields["expressao/elemento"] || fields.expressao || fields.elemento || fields.foco || ""),
     });
   }
 
   return variants;
 }
 
+const METADATA_PLAIN_HEADERS = [
+  "TÍTULOS",
+  "DESCRIÇÃO",
+  "HASHTAGS PRINCIPAIS",
+  "HASHTAGS",
+  "TAGS",
+  "COMENTÁRIO PINADO",
+  "CAPÍTULOS",
+  "THUMBNAILS A/B",
+  "THUMBNAILS AB",
+  "THUMBNAILS",
+  "GANCHO DE RETENÇÃO",
+  "GANCHO PARA THUMBNAIL",
+  "CTA DE MEIO DE VÍDEO",
+];
+
+function stripHeaderAccents(value = "") {
+  return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizePlainMetadataHeaders(text = "") {
+  const headerKeys = new Set(
+    METADATA_PLAIN_HEADERS.map((h) => stripHeaderAccents(h).toUpperCase()),
+  );
+
+  return String(text)
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim().replace(/:+$/, "");
+      if (!trimmed || /^##\s+/i.test(trimmed)) return line;
+      const key = stripHeaderAccents(trimmed).toUpperCase();
+      if (headerKeys.has(key)) return `## ${trimmed}`;
+      return line;
+    })
+    .join("\n");
+}
+
+export function normalizeMetadataMarkdown(text = "") {
+  return normalizePlainMetadataHeaders(
+    String(text)
+      .replace(/\r\n/g, "\n")
+      .replace(/^\s*\*\*(##\s+[^*\n]+)\*\*\s*$/gm, "$1"),
+  ).trim();
+}
+
+function extractMetadataSectionBlock(text, headerPattern) {
+  const m = String(text).match(
+    new RegExp(`##\\s*${headerPattern}[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s+|$)`, "i"),
+  );
+  return m?.[1]?.trim() || "";
+}
+
+export function hasCompleteMetadataSections(text = "") {
+  const normalized = normalizeMetadataMarkdown(text);
+  if (!normalized || looksLikeLumieraPromptInline(normalized)) return false;
+
+  const hasTitles = /\d+\.\s+.{10,}/m.test(normalized) || /##\s*T[ÍI]TULOS/i.test(normalized);
+  const description = extractMetadataSectionBlock(normalized, "DESCRI[ÇC][ÃA]O");
+  const tags = extractMetadataSectionBlock(normalized, "TAGS");
+  const hashtags = extractMetadataSectionBlock(normalized, "HASHTAGS(?:\\s+PRINCIPAIS)?");
+  const pinned = extractMetadataSectionBlock(normalized, "COMENT[ÁA]RIO\\s+PINADO");
+
+  const hasDesc = description.length >= 50;
+  const hasTags = tags.length >= 8;
+  const hasHashtags = hashtags.length >= 3;
+  const hasPinned = pinned.length >= 12;
+
+  if (!hasTitles || !hasDesc) return false;
+  if (/##\s*HASHTAGS\s+PRINCIPAIS/i.test(normalized)) {
+    return (hasTags || hasHashtags) && (hasPinned || hasHashtags);
+  }
+  return hasTags && (hasPinned || hasHashtags);
+}
+
+function looksLikeLumieraPromptInline(text) {
+  return /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(String(text || ""));
+}
+
 export function parseYoutubeMetadataMarkdown(text = "") {
+  const normalized = normalizeMetadataMarkdown(text);
   const sections = {};
-  const parts = String(text).split(/^## /m).filter(Boolean);
+  const parts = normalized.split(/^##\s+/m).filter(Boolean);
 
   for (const part of parts) {
     const lines = part.split("\n");
     const key = lines[0]?.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const content = lines.slice(1).join("\n").trim();
     if (key) sections[key] = content;
+  }
+
+  if (!sections.DESCRICAO) sections.DESCRICAO = extractMetadataSectionBlock(normalized, "DESCRI[ÇC][ÃA]O");
+  if (!sections.TAGS) sections.TAGS = extractMetadataSectionBlock(normalized, "TAGS");
+  if (!sections["HASHTAGS PRINCIPAIS"]) {
+    sections["HASHTAGS PRINCIPAIS"] = extractMetadataSectionBlock(normalized, "HASHTAGS(?:\\s+PRINCIPAIS)?");
+  }
+  if (!sections["COMENTARIO PINADO"]) {
+    sections["COMENTARIO PINADO"] = extractMetadataSectionBlock(normalized, "COMENT[ÁA]RIO\\s+PINADO");
   }
 
   const titlesRaw = sections.TITULOS || "";

@@ -3,8 +3,12 @@ export type GeminiBrowserRequest = {
   prompt?: string;
   title?: string;
   instructions?: string[];
+  plan_session_id?: string;
+  metadata_session_id?: string;
   text?: string;
   error?: string;
+  staleResponse?: boolean;
+  fallback?: boolean;
 };
 
 export type OpenGeminiBridge = (opts: {
@@ -18,6 +22,22 @@ export type GeminiBrowserResolver = (opts: {
   title?: string;
   instructions?: string[];
 }) => Promise<string>;
+
+function parseRequestBody(init: RequestInit): Record<string, unknown> {
+  if (typeof init.body !== 'string' || !init.body.trim()) return {};
+  try {
+    const parsed = JSON.parse(init.body);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function jsonRequestHeaders(init: RequestInit): HeadersInit {
+  const headers = new Headers(init.headers);
+  headers.set('Content-Type', 'application/json');
+  return headers;
+}
 
 /**
  * Chama um endpoint de IA. Se o backend pedir modo navegador (needs_browser),
@@ -40,28 +60,39 @@ export async function fetchGeminiAi(
     return { ok: firstRes.ok, status: firstRes.status, data: { error: 'Resposta inválida' } };
   }
 
-  if (
-    firstRes.ok
-    && data.needs_browser
-    && opts.aiProvider === 'gemini'
-    && data.prompt
-  ) {
+  if (firstRes.ok && data.needs_browser && data.prompt) {
     if (!opts.geminiBrowserMode) {
-      console.warn('[Lumiera] Gemini pediu modo navegador — aguardando extensão mesmo com toggle UI desligado.');
+      console.warn('[Lumiera] Gemini pediu modo navegador — aguardando extensão.');
     }
-    const browserResponse = await opts.resolveBrowserResponse({
-      prompt: data.prompt,
-      title: data.title,
-      instructions: data.instructions,
-    });
+    const browserResponse = String(
+      await opts.resolveBrowserResponse({
+        prompt: data.prompt,
+        title: data.title,
+        instructions: data.instructions,
+      }) || '',
+    ).trim();
+
+    if (!browserResponse) {
+      return {
+        ok: false,
+        status: 400,
+        data: {
+          error: 'A extensão não capturou a resposta do Gemini. Verifique gemini.google.com e tente de novo.',
+        },
+      };
+    }
 
     const body = {
-      ...(typeof init.body === 'string' ? JSON.parse(init.body) : {}),
+      ...parseRequestBody(init),
       browser_response: browserResponse,
+      ...(data.plan_session_id ? { plan_session_id: data.plan_session_id } : {}),
+      ...(data.metadata_session_id ? { metadata_session_id: data.metadata_session_id } : {}),
     };
 
     const secondRes = await fetch(url, {
       ...init,
+      method: init.method || 'POST',
+      headers: jsonRequestHeaders(init),
       body: JSON.stringify(body),
     });
     const secondData: GeminiBrowserRequest = await secondRes.json().catch(() => ({}));
@@ -69,8 +100,13 @@ export async function fetchGeminiAi(
       return {
         ok: false,
         status: secondRes.status,
-        data: { error: 'Automação Gemini não completou a resposta. Tente novamente.' },
+        data: {
+          error: 'Gemini respondeu, mas o Lumiera não recebeu o texto no servidor. Recarregue a página (F5) e tente de novo.',
+        },
       };
+    }
+    if (!secondRes.ok && secondData.error) {
+      return { ok: false, status: secondRes.status, data: secondData };
     }
     return { ok: secondRes.ok, status: secondRes.status, data: secondData };
   }

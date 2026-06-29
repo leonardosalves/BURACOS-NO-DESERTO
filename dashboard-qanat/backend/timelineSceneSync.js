@@ -152,6 +152,25 @@ export function getAssetNarrationText(blockNum, assetIdx, { visualPrompts = [], 
   return "";
 }
 
+export function isAssetDurationLocked(asset) {
+  return asset?.fixed_locked === true;
+}
+
+export function assetHasExplicitDuration(asset) {
+  const fixed = Number(asset?.fixed);
+  return asset?.fixed !== undefined && asset?.fixed !== null && Number.isFinite(fixed) && fixed > 0;
+}
+
+export function blockHasLockedDurations(assets = []) {
+  return Array.isArray(assets) && assets.some(isAssetDurationLocked);
+}
+
+export function blockUsesSequentialFixedLayout(assets = []) {
+  if (!Array.isArray(assets) || assets.length === 0) return false;
+  if (blockHasLockedDurations(assets)) return true;
+  return assets.every(assetHasExplicitDuration);
+}
+
 /** Same formula as getAssetDuration() in App.tsx */
 export function computeAssetDuration(asset, allAssets, blockDuration) {
   if (asset?.fixed !== undefined && asset?.fixed !== null) {
@@ -424,8 +443,9 @@ export function normalizeBlockSceneTimings(timings, blockEnd = Infinity) {
   const out = [];
   for (let i = 0; i < sorted.length; i++) {
     const t = { ...sorted[i] };
+    const locked = isAssetDurationLocked(t.asset) || assetHasExplicitDuration(t.asset);
     const nextStart = i < sorted.length - 1 ? sorted[i + 1].start : blockEnd;
-    if (Number.isFinite(nextStart) && nextStart > t.start) {
+    if (!locked && Number.isFinite(nextStart) && nextStart > t.start) {
       t.duration = Math.max(0.5, Math.min(t.duration, nextStart - t.start));
     }
     out.push(t);
@@ -452,22 +472,28 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
   const timings = [];
 
   const blockStartBound = Number.isFinite(fallbackBlockStart) ? fallbackBlockStart : 0;
+  const useLockedSequentialLayout = blockUsesSequentialFixedLayout(cleanAssets);
 
   cleanAssets.forEach((asset, index) => {
     const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration));
     let start;
 
-    const rawAudioStart = Number(asset?.audio_start);
-    const audioStartInBlock = Number.isFinite(rawAudioStart)
-      && rawAudioStart >= blockStartBound - 0.35
-      && rawAudioStart < safeBlockEnd - 0.25;
-
-    if (audioStartInBlock) {
-      start = rawAudioStart;
+    if (useLockedSequentialLayout) {
+      start = index === 0 ? anchor : sequentialCursor;
       sequentialCursor = start + duration;
     } else {
-      start = sequentialCursor;
-      sequentialCursor += duration;
+      const rawAudioStart = Number(asset?.audio_start);
+      const audioStartInBlock = Number.isFinite(rawAudioStart)
+        && rawAudioStart >= blockStartBound - 0.35
+        && rawAudioStart < safeBlockEnd - 0.25;
+
+      if (audioStartInBlock && !isAssetDurationLocked(asset)) {
+        start = rawAudioStart;
+        sequentialCursor = start + duration;
+      } else {
+        start = sequentialCursor;
+        sequentialCursor += duration;
+      }
     }
 
     timings.push({ index, start, duration, asset });
@@ -501,6 +527,7 @@ export function fillSceneTimelineGaps(scenes, endTime) {
   const out = sorted.map((s) => ({ ...s }));
 
   for (let i = 0; i < out.length - 1; i++) {
+    if (out[i].durationLocked) continue;
     const sceneEnd = out[i].start + out[i].duration;
     const nextStart = out[i + 1].start;
     if (nextStart > sceneEnd + 0.05) {
@@ -510,9 +537,11 @@ export function fillSceneTimelineGaps(scenes, endTime) {
 
   if (Number.isFinite(targetEnd) && targetEnd > 0) {
     const last = out[out.length - 1];
-    const lastEnd = last.start + last.duration;
-    if (targetEnd > lastEnd + 0.05) {
-      last.duration += targetEnd - lastEnd;
+    if (!last.durationLocked) {
+      const lastEnd = last.start + last.duration;
+      if (targetEnd > lastEnd + 0.05) {
+        last.duration += targetEnd - lastEnd;
+      }
     }
   }
 
@@ -528,6 +557,7 @@ export function realignTimelineAssetsToSpeech({
   flatTranscriptWords = [],
   visualPrompts = [],
   blockPhrases = [],
+  preserveExplicitFixed = false,
 } = {}) {
   const out = { ...timelineAssets };
   const starts = blockTimings.starts || [];
@@ -565,6 +595,9 @@ export function realignTimelineAssetsToSpeech({
 
     let aligned = 0;
     for (let idx = 0; idx < assets.length; idx++) {
+      if (isAssetDurationLocked(assets[idx])) continue;
+      if (preserveExplicitFixed && assetHasExplicitDuration(assets[idx])) continue;
+
       const narrationText = getAssetNarrationText(blockNum, idx, context);
       const matched = findNarrationMatch(narrationText, flatTranscriptWords, bounds);
       if (!matched) continue;
@@ -580,12 +613,17 @@ export function realignTimelineAssetsToSpeech({
         }
       }
       assets[idx].audio_start = parseFloat(matched.start.toFixed(3));
+      assets[idx].synced_to_speech = true;
       aligned++;
     }
 
-    if (aligned === 0) {
+    if (aligned === 0 && !blockHasLockedDurations(assets)) {
       let cursor = blockStart;
       for (let idx = 0; idx < assets.length; idx++) {
+        if (isAssetDurationLocked(assets[idx])) {
+          cursor = Number(assets[idx].audio_start || cursor) + computeAssetDuration(assets[idx], assets, blockDuration);
+          continue;
+        }
         if (idx === assets.length - 1) {
           assets[idx].fixed = parseFloat(Math.max(0.5, blockEnd - cursor).toFixed(1));
         } else {
@@ -593,8 +631,67 @@ export function realignTimelineAssetsToSpeech({
           assets[idx].fixed = parseFloat(Math.max(0.5, dur).toFixed(1));
         }
         assets[idx].audio_start = parseFloat(cursor.toFixed(3));
+        delete assets[idx].synced_to_speech;
         cursor += Number(assets[idx].fixed);
       }
+    } else if (blockHasLockedDurations(assets)) {
+      let cursor = blockStart;
+      for (let idx = 0; idx < assets.length; idx++) {
+        const dur = computeAssetDuration(assets[idx], assets, blockDuration);
+        assets[idx].audio_start = parseFloat(cursor.toFixed(3));
+        delete assets[idx].synced_to_speech;
+        cursor += dur;
+      }
+    }
+
+    out[blockKey] = assets;
+  }
+
+  return out;
+}
+
+/** Recalcula audio_start em sequência (durações fixas) — usado após auto-map. */
+export function recalculateSequentialAudioStarts({
+  timelineAssets = {},
+  blockTimings = { starts: [], durations: [] },
+  flatTranscriptWords = [],
+  visualPrompts = [],
+  blockPhrases = [],
+} = {}) {
+  const out = { ...timelineAssets };
+  const starts = blockTimings.starts || [];
+  const durations = blockTimings.durations || [];
+
+  for (const blockKey of Object.keys(out)) {
+    const blockNum = Number(blockKey);
+    if (!Number.isFinite(blockNum) || blockNum < 1) continue;
+
+    const assets = (out[blockKey] || []).map((a) => ({ ...a }));
+    if (!assets.length) continue;
+
+    if (assets.some((a) => a.synced_to_speech)) continue;
+
+    const blockStart = Number(starts[blockNum - 1]);
+    const blockDuration = Number(durations[blockNum - 1]);
+    const blockEnd = Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+      ? blockStart + blockDuration
+      : Infinity;
+    const context = {
+      visualPrompts,
+      blockPhrases,
+      timelineAssets: out,
+      blockStart,
+      blockEnd,
+    };
+
+    const anchor = getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, context);
+    let cursor = anchor ?? (Number.isFinite(blockStart) ? blockStart : 0);
+
+    for (let idx = 0; idx < assets.length; idx++) {
+      const dur = computeAssetDuration(assets[idx], assets, blockDuration);
+      assets[idx].audio_start = parseFloat(cursor.toFixed(3));
+      delete assets[idx].synced_to_speech;
+      cursor += dur;
     }
 
     out[blockKey] = assets;
