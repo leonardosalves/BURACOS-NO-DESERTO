@@ -45,6 +45,13 @@ export const LISTICLE_SHORTS_PRESETS = [
     rankCount: 5,
     project: 'Top5_Viral_Short',
   },
+  {
+    label: 'Short Top 3 — origens bizarras do dia a dia',
+    niche: 'curiosidades e objetos do cotidiano',
+    topic: 'objetos que você usa todo dia e suas origens bizarras',
+    rankCount: 3,
+    project: 'Coisas_Voce_Usa_Todo',
+  },
 ] as const;
 
 function clampShortsRankCount(count: number) {

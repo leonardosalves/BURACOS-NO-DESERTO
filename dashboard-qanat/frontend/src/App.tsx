@@ -308,6 +308,7 @@ import {
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import { ListicleCreatorStep } from './ListicleCreatorStep';
+import { WorkflowToolkit } from './WorkflowToolkit';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
   applySplitNarrationToBlockAssets,
@@ -12632,6 +12633,25 @@ export default function App() {
 
 
 
+
+
+          if (
+            action.type === 'trigger_sync' ||
+            action.type === 'trigger_auto_map' ||
+            action.type === 'trigger_stock_fetch' ||
+            action.type === 'trigger_tts' ||
+            action.type === 'trigger_publish_prep' ||
+            action.type === 'trigger_apply_bgm' ||
+            action.type === 'run_pipeline_step'
+          ) {
+            fetchData();
+            if (action.type === 'trigger_tts') setUploadSuccess(true);
+            if (action.type === 'trigger_publish_prep') {
+              fetchYoutubeMetadataCache();
+              fetchYoutubeThumbnailImages();
+            }
+          }
+
         }
 
 
@@ -21160,6 +21180,17 @@ export default function App() {
                     <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
                   )}
                 </div>
+              )}
+
+              {config && (
+                <WorkflowToolkit
+                  getProjectUrl={getProjectUrl}
+                  toast={(msg) => toast(msg)}
+                  showStockKeys
+                  onTimelineRefresh={fetchData}
+                  onMetadataReady={fetchData}
+                  onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
+                />
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80">
@@ -35903,7 +35934,20 @@ export default function App() {
 
 
 
-                    <div className="flex justify-between items-center pt-4 font-sans">
+                    
+                    <div className="text-left max-w-xl mx-auto pt-2">
+                      <p className="text-[10px] text-zinc-500 text-center mb-2">ou gere a narração automaticamente com TTS</p>
+                      <WorkflowToolkit
+                        getProjectUrl={getProjectUrl}
+                        toast={(msg) => toast(msg)}
+                        compact
+                        showPipeline={false}
+                        onNarrationReady={() => { fetchStatusAndOutputs(); setUploadSuccess(true); }}
+                        onTimelineRefresh={fetchData}
+                      />
+                    </div>
+
+<div className="flex justify-between items-center pt-4 font-sans">
 
 
 
@@ -36401,6 +36445,14 @@ export default function App() {
 
                 {creatorStep === 4 && config && (
                   <div className="space-y-6 max-w-4xl mx-auto font-sans">
+                    <WorkflowToolkit
+                      getProjectUrl={getProjectUrl}
+                      toast={(msg) => toast(msg)}
+                      showPipeline={false}
+                      showStockKeys
+                      onTimelineRefresh={fetchData}
+                      onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
+                    />
                     {renderRichTimelineEditor()}
                     
                     {/* Navigation Buttons */}
@@ -36839,6 +36891,15 @@ export default function App() {
 
                     </div>
 
+                    <WorkflowToolkit
+                      getProjectUrl={getProjectUrl}
+                      toast={(msg) => toast(msg)}
+                      onTimelineRefresh={fetchData}
+                      onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchData(); }}
+                      onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
+                    />
+
+
 
 
 
@@ -36865,6 +36926,13 @@ export default function App() {
                 {creatorStep === 6 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
                     <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
+                    <WorkflowToolkit
+                      getProjectUrl={getProjectUrl}
+                      toast={(msg) => toast(msg)}
+                      showPipeline={false}
+                      onMetadataReady={() => { fetchYoutubeMetadataCache(); fetchYoutubeThumbnailImages(); fetchData(); }}
+                      onNavigateTab={(tab) => leaveGlobalViewForProject(tab as 'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload')}
+                    />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button onClick={() => leaveGlobalViewForProject('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
                       <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>
