@@ -12111,44 +12111,42 @@ export default function App() {
 
   const fetchWorkflowKeysStatus = async () => {
     try {
-      const res = await fetch(getProjectUrl('/api/workflow/keys-status'));
+      const res = await fetch('/api/settings/global-api-keys');
       if (res.ok) {
         const data = await res.json();
-        setHasPexelsKey(!!data.pexels);
-        setHasPixabayKey(!!data.pixabay);
+        setHasPexelsKey(!!data.has_pexels_key);
+        setHasPixabayKey(!!data.has_pixabay_key);
+        setHasEpidemicKey(!!data.has_epidemic_key);
       }
     } catch { /* ignore */ }
   };
 
   const handleSaveApiKeys = async () => {
+    const hasInput = epidemicKeyInput.trim() || pexelsKeyInput.trim() || pixabayKeyInput.trim();
+    if (!hasInput) {
+      toast.error('Digite pelo menos uma chave para salvar.');
+      return;
+    }
     setSavingApiKeys(true);
     try {
-      if (epidemicKeyInput.trim()) {
-        const aiRes = await fetch(getProjectUrl('/api/ai/settings'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ epidemic_sound_key: epidemicKeyInput }),
-        });
-        if (!aiRes.ok) throw new Error('Falha ao salvar Epidemic');
-        setHasEpidemicKey(true);
-        setEpidemicKeyInput('');
-      }
-      if (pexelsKeyInput.trim() || pixabayKeyInput.trim()) {
-        const stockRes = await fetch(getProjectUrl('/api/workflow/save-keys'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pexels_api_key: pexelsKeyInput,
-            pixabay_api_key: pixabayKeyInput,
-            global: true,
-          }),
-        });
-        if (!stockRes.ok) throw new Error((await stockRes.json()).error || 'Falha ao salvar stock');
-        setPexelsKeyInput('');
-        setPixabayKeyInput('');
-      }
-      await fetchWorkflowKeysStatus();
-      toast.success('Chaves de API salvas.');
+      const res = await fetch('/api/settings/global-api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          epidemic_sound_key: epidemicKeyInput.trim() || undefined,
+          pexels_api_key: pexelsKeyInput.trim() || undefined,
+          pixabay_api_key: pixabayKeyInput.trim() || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error(await readApiError(res, 'Falha ao salvar chaves de API'));
+      const data = await res.json();
+      setHasEpidemicKey(!!data.has_epidemic_key);
+      setHasPexelsKey(!!data.has_pexels_key);
+      setHasPixabayKey(!!data.has_pixabay_key);
+      setEpidemicKeyInput('');
+      setPexelsKeyInput('');
+      setPixabayKeyInput('');
+      toast.success('Chaves de API salvas globalmente.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao salvar chaves');
     } finally {
