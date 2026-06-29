@@ -52,6 +52,8 @@ import {
   startThumbnailExperiment,
 } from "./thumbnailExperiment.js";
 import { runFullPipeline } from "./pipelineOrchestrator.js";
+import { registerWorkflowRoutes } from "./workflowRoutes.js";
+import { analyzeSceneGaps, fetchStockForScenes, generateNarrationTts, runPublishPrep } from "./workflowTools.js";
 import {
   fetchNotebooklmResearch,
   fetchNotebooklmScriptContext,
@@ -1396,7 +1398,10 @@ app.get("/api/projects/video-quality", async (req, res) => {
       readProjectJson,
     });
     const report = runVideoQualityCheck(projDir, readProjectJson);
-    res.json(report);
+    const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+    const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+    const workflow = analyzeSceneGaps(projDir, { config, storyboard });
+    res.json({ ...report, workflow });
   } catch (err) {
     res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
   }
@@ -5701,6 +5706,20 @@ TIPOS DE ACAO:
 
 - "trigger_mix": Mixa trilha sonora.
 
+- "trigger_sync": Roda find_block_timings.py para sincronizar narração com blocos.
+
+- "trigger_auto_map": Redistribui assets do storyboard na timeline (auto-map).
+
+- "trigger_stock_fetch": Baixa B-roll do Pexels/Pixabay para cenas sem mídia.
+
+- "trigger_tts": Gera narração via Edge-TTS. Params opcionais: {"voice":"pt-BR-AntonioNeural","rate":"+0%"}.
+
+- "trigger_apply_bgm": Aplica trilha Epidemic Sound sugerida pela IA.
+
+- "trigger_publish_prep": Gera metadados YouTube, thumbnails e aplica ao upload.
+
+- "run_pipeline_step": Executa um passo do pipeline. Params: {"step":"sync"|"stock"|"automap"|"bgm"|"mix"|"metadata"|"thumbnails"}.
+
 - "navigate_tab": Navega aba. Params: {"tab":"status"|"timeline"|"music"|"terminal"|"ai"|"creator"}.
 
 - "show_message": Notificacao. Params: {"message":"texto","type":"success"|"warning"|"error"}.
@@ -5863,6 +5882,91 @@ app.post("/api/ai/execute-action", async (req, res) => {
 
           break;
 
+        }
+
+        case "trigger_sync": {
+          if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
+            results.push({ type: action.type, status: "error", message: "find_block_timings.py não encontrado" });
+            break;
+          }
+          await new Promise((resolve, reject) => {
+            const child = spawn(PYTHON_PATH, ["find_block_timings.py"], { cwd: projDir, shell: true });
+            child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Sync exit ${code}`))));
+          });
+          results.push({ type: action.type, status: "ok", message: "Sincronização concluída" });
+          break;
+        }
+
+        case "trigger_auto_map": {
+          const configPath = path.join(projDir, "config_qanat.json");
+          let cfg = readJsonFile(configPath) || {};
+          cfg.timeline_map_epoch = Number(cfg.timeline_map_epoch || 0) + 1;
+          const mapped = buildTimelineFromStoryboard(projDir, { remapping: true, rotateOffset: cfg.timeline_map_epoch });
+          cfg.timeline_assets = mapped.timelineAssets;
+          fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+          results.push({ type: action.type, status: "ok", asset_count: mapped.assetCount });
+          break;
+        }
+
+        case "trigger_stock_fetch": {
+          const stockResult = await fetchStockForScenes(projDir, { workspaceDir: WORKSPACE_DIR });
+          results.push({
+            type: action.type,
+            status: stockResult.success ? "ok" : "error",
+            fetched: stockResult.fetched?.length || 0,
+            message: stockResult.error || `${stockResult.fetched?.length || 0} arquivos baixados`,
+          });
+          break;
+        }
+
+        case "trigger_tts": {
+          const ttsResult = await generateNarrationTts(projDir, { voice: action.voice, rate: action.rate });
+          results.push({ type: action.type, status: "ok", file: ttsResult.file });
+          break;
+        }
+
+        case "trigger_publish_prep": {
+          if (!workflowApi?.generateYoutubeMetadataForProject) {
+            results.push({ type: action.type, status: "error", message: "Workflow API não inicializada" });
+            break;
+          }
+          const prep = await runPublishPrep(projDir, {
+            generateMetadata: workflowApi.generateYoutubeMetadataForProject,
+            generateThumbnails: async (dir, metadata) => generateYoutubeThumbnailImages({
+              projectDir: dir,
+              projectName: path.basename(dir),
+              thumbnails: metadata?.parsed?.thumbnails || [],
+              format: metadata?.format || "LONG",
+              palette: metadata?.palette || [],
+            }),
+          });
+          results.push({ type: action.type, status: "ok", prepared: true, thumbnails: prep.thumbnails?.length || 0 });
+          break;
+        }
+
+        case "trigger_apply_bgm": {
+          const token = getEpidemicSoundKey(projDir) || "";
+          const cfg = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+          const mode = cfg.aspect_ratio === "9:16" || cfg.video_format === "SHORTS" ? "SHORTS" : "LONGO";
+          const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+          results.push({ type: action.type, status: "ok", logs: logs.slice(-3) });
+          break;
+        }
+
+        case "run_pipeline_step": {
+          if (!workflowApi?.buildCreatorPipelineHandlers) {
+            results.push({ type: action.type, status: "error", message: "Workflow API não inicializada" });
+            break;
+          }
+          const handlers = workflowApi.buildCreatorPipelineHandlers();
+          const stepId = action.step || action.stepId;
+          if (!handlers[stepId]) {
+            results.push({ type: action.type, status: "error", message: `Step desconhecido: ${stepId}` });
+            break;
+          }
+          await handlers[stepId](projDir, () => {});
+          results.push({ type: action.type, status: "ok", step: stepId });
+          break;
         }
 
         case "show_message": {
@@ -6763,12 +6867,17 @@ app.get("/api/pipeline/run", async (req, res) => {
       steps,
       handlers: {
         metadata: async (dir, log) => {
-          const cachePath = path.join(dir, "youtube_metadata_cache.json");
-          if (!fs.existsSync(cachePath)) {
-            log("[Pipeline] Metadados não gerados — pule para Upload ou gere na aba Agente IA.");
+          if (!workflowApi?.generateYoutubeMetadataForProject) {
+            log("[Pipeline] Workflow API indisponível para metadados.");
             return;
           }
-          log("[Pipeline] Metadados em cache encontrados.");
+          try {
+            await workflowApi.generateYoutubeMetadataForProject(dir);
+            log("[Pipeline] Metadados YouTube gerados.");
+          } catch (err) {
+            log(`[Pipeline] Falha ao gerar metadados: ${err.message}`);
+            throw err;
+          }
         },
         thumbnails: async (dir, log) => {
           const cachePath = path.join(dir, "youtube_metadata_cache.json");
@@ -9422,6 +9531,26 @@ if (fs.existsSync(frontendDist)) {
   });
 
 }
+
+let workflowApi = null;
+workflowApi = registerWorkflowRoutes(app, {
+  getProjectDir,
+  WORKSPACE_DIR,
+  PYTHON_PATH,
+  getApiKeys,
+  getXaiApiKey,
+  getAiProvider,
+  getOpenRouterApiKey,
+  getEpidemicSoundKey,
+  buildProjectTranscript,
+  buildTimelineFromStoryboard,
+  enhanceYoutubeTitlesMetadata,
+  callGeminiWithRetry,
+  generateMetadataWithXai,
+  generateYoutubeThumbnailImages,
+  runAutoSoundtrackLogic,
+  readJsonFile,
+});
 
 const PORT = 3005;
 
