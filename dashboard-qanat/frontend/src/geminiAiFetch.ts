@@ -43,10 +43,12 @@ export async function fetchGeminiAi(
   if (
     firstRes.ok
     && data.needs_browser
-    && opts.geminiBrowserMode
     && opts.aiProvider === 'gemini'
     && data.prompt
   ) {
+    if (!opts.geminiBrowserMode) {
+      console.warn('[Lumiera] Gemini pediu modo navegador — aguardando extensão mesmo com toggle UI desligado.');
+    }
     const browserResponse = await opts.resolveBrowserResponse({
       prompt: data.prompt,
       title: data.title,
