@@ -6150,8 +6150,9 @@ export default function App() {
     setLogs([]);
 
     if (needsOverlayPlan && useGeminiChrome) {
-      setRenderProgress({ percent: 0, phase: 'Gemini: planejando overlays…' });
-      setLogs(['[Dashboard] Consultando Gemini no Chrome para overlays do vídeo…']);
+      const overlayPlanLabel = useHyperframes ? 'HyperFrames AI' : 'Remotion PRO';
+      setRenderProgress({ percent: 0, phase: `Gemini: planejando overlays ${overlayPlanLabel}…` });
+      setLogs([`[Dashboard] Consultando Gemini no Chrome para overlays (${overlayPlanLabel})…`]);
       let overlayWaitSec = 0;
       const overlayProgressTimer = window.setInterval(() => {
         overlayWaitSec += 5;
@@ -6162,7 +6163,7 @@ export default function App() {
         const { ok, data } = await postAi('/api/render/plan-overlays', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hyperframes: useHyperframes !== false }),
+          body: JSON.stringify({ hyperframes: useHyperframes === true }),
         });
         if (!ok || data.needs_browser) {
           setRendering(false);
@@ -6206,7 +6207,7 @@ export default function App() {
 
     let queryParams = [];
     if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
-    if (useHyperframes) queryParams.push("hyperframes=1");
+    queryParams.push(useHyperframes ? "hyperframes=1" : "hyperframes=0");
     if (isProres) queryParams.push("prores=1");
     if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
     if (resolution === '2k') queryParams.push('resolution=2k');

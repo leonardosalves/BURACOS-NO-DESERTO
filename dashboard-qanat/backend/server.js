@@ -3114,7 +3114,7 @@ async function ensureProjectSfxTracks(projDir) {
 app.post("/api/render/plan-overlays", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
-    const useHyperframes = req.body?.hyperframes !== false;
+    const useHyperframes = req.body?.hyperframes === true;
     const browserText = extractBrowserResponse(req.body);
 
     let llmText = browserText;
@@ -3124,7 +3124,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
         return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
       }
       const responseText = await callGeminiLlm(req, res, projDir, {
-        title: "Planejar overlays do vídeo",
+        title: useHyperframes ? "Planejar overlays HyperFrames AI" : "Planejar overlays do vídeo",
         prompt,
         temperature: 0.35,
       });
@@ -3160,6 +3160,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     storyboard.overlays_ai = cleanedAi;
+    storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     delete storyboard.overlays;
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
@@ -3312,9 +3313,12 @@ app.get("/api/render/:mode", async (req, res) => {
       sendLog("[Remotion] Preparando linha do tempo, assets, narração e legendas...");
 
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
-      const useHyperframes = req.query.hyperframes !== "0";
+      const useHyperframes = req.query.hyperframes === "1";
       const previewSecs = Math.min(60, Math.max(0, Number(req.query.preview) || 0));
       const resolution = resolveRenderResolution(req);
+      if (useHyperframes) {
+        sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
+      }
       const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
         previewDuration: previewSecs > 0 ? previewSecs : undefined,
         resolution,
@@ -10490,25 +10494,41 @@ function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true) {
     blockCount: blockPhrases.length,
   });
   const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
-  const hfGuide = useHyperframes ? readHyperframesSkillExcerpt() : "";
+  const hfGuide = useHyperframes ? readHyperframesSkillExcerpt(7500) : "";
+  const hfRefs = useHyperframes && Array.isArray(orchestrationPlan.hyperframesRefs)
+    ? orchestrationPlan.hyperframesRefs.map((r) => `- ${r}`).join("\n")
+    : "";
 
   const maxOverlays = orchestrationPlan.limits?.maxTotal || (isListicle && isShort ? 2 : isShort ? 6 : 10);
   const listicleRules = isListicle && isShort
     ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
     : "";
 
+  const hyperframesSchema = useHyperframes ? `
+SCHEMA OBRIGATÓRIO (HyperFrames → Remotion):
+Cada overlay DEVE ter: id, type, start (scene_id), duration, props.
+- timeline: props.events = array com MÍNIMO 2 itens {year, description}
+- bar-chart: props.items = array com MÍNIMO 2 itens {label, value, displayValue?, color?}
+- counter: props.value (número), props.label, props.suffix opcional
+- lower-third: props.title, props.subtitle, props.variant, props.iconType, props.position
+Exemplo timeline:
+{"id":"tl-1","type":"timeline","start":"2.1","duration":6,"props":{"title":"CRONOLOGIA","events":[{"year":"221 a.C.","description":"Unificação da China"},{"year":"206 a.C.","description":"Grande Muralha"}],"accentColor":"#D4AF37","orientation":"horizontal","iconType":"history"}}
+` : "";
+
   return [
     `Você é diretor de overlays cinematográficos para vídeo YouTube (nicho: "${niche}").`,
+    useHyperframes ? "MODO HYPERFRAMES AI ORQUESTRADO — siga o catálogo e o plano de orquestração abaixo." : "",
     "OBJETIVO: enriquecer o vídeo com dados visuais NOVOS — NUNCA repetir, resumir ou parafrasear a narração falada.",
     listicleRules,
     useHyperframes
-      ? "Modo HyperFrames ATIVO: variantes glass/bild/accent-underline, iconType temático (history, earth, flame, compass…), customStyle com gradiente e glow."
+      ? "HyperFrames: variantes glass/bild/accent-underline/clean-bar, iconType temático, customStyle com gradiente e glow. Inspire-se nas refs do catálogo."
       : "",
     `Retorne APENAS JSON válido: {"planejamento":["3 observações"],"overlays":[...]}`,
     `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
-    "Tipos obrigatórios a variar: counter (números/datas), bar-chart (comparações), timeline (sequências), lower-third (definições curtas), kinetic-text (virada narrativa).",
+    "Tipos obrigatórios a variar: counter, bar-chart, timeline, lower-third, kinetic-text.",
     "PROIBIDO: copiar frases dos blocos de narração; lower-third por bloco; texto >12 palavras; código/terminal.",
-    "Exemplos de bons overlays: counter value=278 com suffix='m' (altura), bar-chart comparando estruturas, timeline com anos, lower-third com definição técnica nova.",
+    hyperframesSchema,
+    hfRefs ? `CATÁLOGO HYPERFRAMES (refs para este nicho):\n${hfRefs}` : "",
     "",
     orchestrationPrompt,
     hfGuide ? `\nGUIA HYPERFRAMES (trecho):\n${hfGuide}` : "",
@@ -10586,8 +10606,13 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     ? filterNarrationEchoOverlays(plannedRaw, blockPhrases)
     : null;
 
+  const plannedHyperframes = storyboard.overlays_hyperframes === true;
+  if (useHyperframes !== plannedHyperframes && plannedSource?.length) {
+    console.log(`[Overlays] Modo HyperFrames (${useHyperframes}) difere do planejamento (${plannedHyperframes}) — reutilizando com reparo.`);
+  }
+
   if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
-    console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados (re-alinhando com timeline de render).`);
+    console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados${useHyperframes ? " [HyperFrames]" : ""} (re-alinhando com timeline de render).`);
     const realigned = normalizeGeminiOverlayPayload(
       realignPlannedOverlays(
         plannedSource,
