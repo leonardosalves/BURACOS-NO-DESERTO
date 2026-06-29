@@ -15332,6 +15332,7 @@ export default function App() {
 
 
         setTimelineAssets(data.timeline_assets);
+        setConfig((prev) => (prev ? { ...prev, timeline_assets: data.timeline_assets } : prev));
 
 
 
