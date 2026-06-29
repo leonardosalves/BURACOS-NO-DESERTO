@@ -6141,23 +6141,39 @@ export default function App() {
       }
     }
 
-    const useGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
     const needsOverlayPlan = mode === 'remotion' || mode === 'remotion-pro';
+    let effectiveGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+    let overlayPlanSucceeded = !needsOverlayPlan;
 
     setRendering(true);
     setRenderProgress({ percent: 0, phase: 'Inicializando...' });
     if (!fromWizard) setActiveTab('terminal');
     setLogs([]);
 
-    if (needsOverlayPlan && useGeminiChrome) {
+    if (needsOverlayPlan) {
+      try {
+        const settingsRes = await fetch(getProjectUrl('/api/ai/settings'));
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json();
+          effectiveGeminiChrome = settings.ai_provider === 'gemini' && !!settings.gemini_browser_mode;
+        }
+      } catch {
+        /* usa estado local */
+      }
+
       const overlayPlanLabel = useHyperframes ? 'HyperFrames AI' : 'Remotion PRO';
       setRenderProgress({ percent: 0, phase: `Gemini: planejando overlays ${overlayPlanLabel}…` });
-      setLogs([`[Dashboard] Consultando Gemini no Chrome para overlays (${overlayPlanLabel})…`]);
+      setLogs([
+        `[Dashboard] Planejamento obrigatório antes do render (${overlayPlanLabel}).`,
+        effectiveGeminiChrome
+          ? '[Dashboard] Aguardando resposta do Gemini no Chrome…'
+          : '[Dashboard] Consultando IA para overlays (API)…',
+      ]);
       let overlayWaitSec = 0;
       const overlayProgressTimer = window.setInterval(() => {
         overlayWaitSec += 5;
         setRenderProgress({ percent: 0, phase: `Gemini: planejando overlays (${overlayWaitSec}s)…` });
-        setLogs((prev) => [...prev, `[Dashboard] Gemini no Chrome: aguardando JSON de overlays (${overlayWaitSec}s)…`]);
+        setLogs((prev) => [...prev, `[Dashboard] Aguardando overlays (${overlayWaitSec}s) — render bloqueado até concluir.`]);
       }, 5000);
       try {
         const { ok, data } = await postAi('/api/render/plan-overlays', {
@@ -6168,7 +6184,12 @@ export default function App() {
         if (!ok || data.needs_browser) {
           setRendering(false);
           setRenderProgress(null);
-          toast.error(data.error || 'Falha ao planejar overlays via Gemini no Chrome.');
+          toast.error(
+            data.error
+            || (effectiveGeminiChrome
+              ? 'Gemini no Chrome não respondeu. Deixe gemini.google.com aberto e tente de novo.'
+              : 'Falha ao planejar overlays. Ative Gemini no Chrome ou configure a API.'),
+          );
           return;
         }
         if (!data.overlayCount || data.overlayCount < 1) {
@@ -6177,7 +6198,8 @@ export default function App() {
           toast.error(data.error || 'Gemini não gerou overlays válidos. Reabra o Chrome e tente o render novamente.');
           return;
         }
-        setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount} overlays enriquecidos planejados (sem repetir narração).`]);
+        overlayPlanSucceeded = true;
+        setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount} overlays enriquecidos planejados — iniciando render.`]);
       } catch (err: any) {
         setRendering(false);
         setRenderProgress(null);
@@ -6188,8 +6210,15 @@ export default function App() {
       }
     }
 
+    if (needsOverlayPlan && !overlayPlanSucceeded) {
+      setRendering(false);
+      setRenderProgress(null);
+      toast.error('Render cancelado: planejamento de overlays não concluído.');
+      return;
+    }
+
     if (fromWizard) {
-      if (useGeminiChrome) {
+      if (effectiveGeminiChrome) {
         setRenderProgress({ percent: 0, phase: 'Gemini: metadados do vídeo…' });
         setLogs((prev) => [...prev, '[Dashboard] Consultando Gemini no Chrome para metadados…']);
         const metaOk = await generateYoutubeMetadata({ silent: true, keepExistingOnError: true });
@@ -6208,6 +6237,7 @@ export default function App() {
     let queryParams = [];
     if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
     queryParams.push(useHyperframes ? "hyperframes=1" : "hyperframes=0");
+    if (needsOverlayPlan) queryParams.push('require_overlay_plan=1');
     if (isProres) queryParams.push("prores=1");
     if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
     if (resolution === '2k') queryParams.push('resolution=2k');

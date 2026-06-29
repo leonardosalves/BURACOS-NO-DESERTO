@@ -3165,7 +3165,12 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     delete storyboard.overlays;
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
 
-    res.json({ success: true, overlayCount: cleanedAi.length });
+    res.json({
+      success: true,
+      overlayCount: cleanedAi.length,
+      plannedAt: storyboard.overlays_planned_at,
+      hyperframes: useHyperframes,
+    });
   } catch (err) {
     console.error("[Plan Overlays]", err);
     res.status(500).json({ error: err.message || "Falha ao planejar overlays." });
@@ -3309,6 +3314,23 @@ app.get("/api/render/:mode", async (req, res) => {
     let child = null;
 
     try {
+
+      if (req.query.require_overlay_plan === "1") {
+        const storyboardGate = readProjectJson(projDir, "storyboard.json", {});
+        const plannedAt = storyboardGate.overlays_planned_at
+          ? new Date(storyboardGate.overlays_planned_at).getTime()
+          : 0;
+        const planAgeMs = plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
+        const overlayCount = Array.isArray(storyboardGate.overlays_ai) ? storyboardGate.overlays_ai.length : 0;
+        if (overlayCount < 1 || planAgeMs > 5 * 60 * 1000) {
+          sendLog("=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ===");
+          sendLog("[Remotion] O render foi bloqueado. Aguarde o Gemini no Chrome terminar antes de compilar.");
+          res.end();
+          cleanup();
+          return;
+        }
+        sendLog(`[Remotion] Overlays planejados validados (${overlayCount} itens, ${Math.round(planAgeMs / 1000)}s atrás).`);
+      }
 
       sendLog("[Remotion] Preparando linha do tempo, assets, narração e legendas...");
 
