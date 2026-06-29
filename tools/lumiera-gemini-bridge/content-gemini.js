@@ -2,7 +2,7 @@
   if (globalThis.__lumieraGeminiContentLoaded) return;
   globalThis.__lumieraGeminiContentLoaded = true;
 
-  const VERSION = "1.1.8";
+  const VERSION = "1.1.9";
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function isVisible(el) {
@@ -141,25 +141,62 @@
   }
 
   function isGenerating() {
-    if ([...document.querySelectorAll("button")].some((b) => {
+    const hasBusy = [...document.querySelectorAll(
+      '[aria-busy="true"], mat-progress-spinner, [class*="streaming"], [class*="thinking"], [class*="loading"]',
+    )].some(isVisible);
+    if (hasBusy) return true;
+
+    const stopBtn = [...document.querySelectorAll("button")].find((b) => {
       const label = (b.getAttribute("aria-label") || "").toLowerCase();
       return /stop|parar|cancelar/.test(label) && isVisible(b);
-    })) return true;
-
-    return [...document.querySelectorAll('[aria-busy="true"], mat-progress-spinner, [class*="streaming"]')]
-      .some(isVisible);
+    });
+    return Boolean(stopBtn && hasBusy);
   }
 
   function collectModelTexts() {
     const blocks = [];
-    for (const sel of ["message-content", '[data-message-author-role="model"]', ".markdown", "model-response"]) {
+    const selectors = [
+      "message-content",
+      '[data-message-author-role="model"]',
+      ".markdown",
+      "model-response",
+      ".model-response-text",
+      "experimental-model-response",
+      "div[data-message-id] model-response",
+      "pre",
+      "code",
+    ];
+    for (const sel of selectors) {
       document.querySelectorAll(sel).forEach((n) => {
-        const t = (n.innerText || "").trim();
+        const t = (n.innerText || n.textContent || "").trim();
         if (t.length > 15) blocks.push(t);
       });
-      if (blocks.length) break;
     }
     return [...new Set(blocks)];
+  }
+
+  function extractJsonPayload(text) {
+    let cleaned = String(text || "").trim();
+    if (!cleaned) return null;
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
+    }
+    if (!cleaned.includes('"overlays"')) return null;
+    const match = cleaned.match(/\{[\s\S]*"overlays"\s*:\s*\[[\s\S]*\]\s*[\s\S]*\}/);
+    if (match) return match[0];
+    if (cleaned.startsWith("{")) return cleaned;
+    return null;
+  }
+
+  function findOverlayJsonResponse(beforeTexts) {
+    const all = collectModelTexts();
+    const fresh = all.filter((t) => !beforeTexts.some((b) => b === t || (b.length > 40 && t.includes(b.slice(0, 40)))));
+    const candidates = [...fresh, ...all].reverse();
+    for (const text of candidates) {
+      const json = extractJsonPayload(text);
+      if (json && json.length > 40) return json;
+    }
+    return null;
   }
 
   async function pasteText(el, text) {
@@ -310,12 +347,25 @@
       );
     }
 
-    const deadline = Date.now() + 90000;
+    const deadline = Date.now() + 120000;
     let lastCandidate = "";
     let stableHits = 0;
+    let lastJson = "";
+    let jsonStableHits = 0;
 
     while (Date.now() < deadline) {
-      await sleep(450);
+      await sleep(400);
+
+      const jsonCandidate = findOverlayJsonResponse(before);
+      if (jsonCandidate) {
+        if (jsonCandidate === lastJson) {
+          jsonStableHits += 1;
+          if (jsonStableHits >= 1) return jsonCandidate;
+        } else {
+          lastJson = jsonCandidate;
+          jsonStableHits = 0;
+        }
+      }
 
       if (isGenerating()) {
         stableHits = 0;
@@ -327,6 +377,9 @@
       const candidate = fresh[fresh.length - 1] || blocks[blocks.length - 1];
       if (!candidate || candidate.length < 20) continue;
 
+      const jsonFromCandidate = extractJsonPayload(candidate);
+      if (jsonFromCandidate) return jsonFromCandidate;
+
       if (candidate === lastCandidate) {
         stableHits += 1;
         if (stableHits >= 1) return candidate;
@@ -336,8 +389,9 @@
       }
     }
 
+    if (lastJson.length > 40) return lastJson;
     if (lastCandidate.length > 20) return lastCandidate;
-    throw new Error("Timeout aguardando resposta do Gemini (90s).");
+    throw new Error("Timeout aguardando resposta do Gemini (120s). Verifique se a resposta apareceu na aba do Gemini.");
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

@@ -6152,6 +6152,12 @@ export default function App() {
     if (needsOverlayPlan && useGeminiChrome) {
       setRenderProgress({ percent: 0, phase: 'Gemini: planejando overlays…' });
       setLogs(['[Dashboard] Consultando Gemini no Chrome para overlays do vídeo…']);
+      let overlayWaitSec = 0;
+      const overlayProgressTimer = window.setInterval(() => {
+        overlayWaitSec += 5;
+        setRenderProgress({ percent: 0, phase: `Gemini: planejando overlays (${overlayWaitSec}s)…` });
+        setLogs((prev) => [...prev, `[Dashboard] Gemini no Chrome: aguardando JSON de overlays (${overlayWaitSec}s)…`]);
+      }, 5000);
       try {
         const { ok, data } = await postAi('/api/render/plan-overlays', {
           method: 'POST',
@@ -6176,6 +6182,8 @@ export default function App() {
         setRenderProgress(null);
         toast.error(err?.message || 'Conexão falhou ao planejar overlays.');
         return;
+      } finally {
+        window.clearInterval(overlayProgressTimer);
       }
     }
 
