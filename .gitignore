@@ -59,9 +59,11 @@ Thumbs.db
 # Remotion temp project builds
 dashboard-qanat/remotion-renderer/public/projects/
 
-# OAuth tokens and local tool dirs (never commit)
+# OAuth tokens, API keys and local tool dirs (never commit)
 .notebooklm-data/
 dashboard-qanat/backend/.notebooklm_tmp/
+dashboard-qanat/backend/notebooklm_cache.json
+dashboard-qanat/backend/render_config_global.json
 youtube_token.json
 canva_token.json
 canva_client_secrets.json
