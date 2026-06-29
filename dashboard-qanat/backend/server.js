@@ -3145,10 +3145,16 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       blockPhrases,
     );
 
+    const rawCount = Array.isArray(overlaysAi) ? overlaysAi.length : 0;
+    console.log(`[Plan Overlays] Gemini retornou ${rawCount} overlay(s); após validação: ${cleanedAi.length}.`);
+
     if (cleanedAi.length === 0) {
       return res.status(422).json({
-        error: "Gemini não gerou overlays válidos (sem repetir narração). Tente enviar o prompt novamente no Chrome.",
+        error: rawCount > 0
+          ? "Gemini respondeu, mas os overlays foram descartados (formato inválido ou texto igual à narração). Tente novamente no Chrome."
+          : "Gemini não retornou JSON de overlays. Confira a aba gemini.google.com e tente de novo.",
         overlayCount: 0,
+        rawCount,
       });
     }
 
@@ -10058,6 +10064,14 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
   return null;
 }
 
+function narrationWordOverlapRatio(overlayText = "", phrase = "") {
+  const oWords = String(overlayText).toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const pWords = String(phrase).toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  if (!oWords.length || !pWords.length) return 0;
+  const matches = oWords.filter((w) => pWords.includes(w)).length;
+  return matches / oWords.length;
+}
+
 function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
   const phrases = Array.isArray(blockPhrases) ? blockPhrases : [];
 
@@ -10069,11 +10083,16 @@ function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
       return false;
     }
 
+    if (overlay.type === "counter" && Number(overlay.props?.value) > 0) return true;
+    if (overlay.type === "bar-chart" && Array.isArray(overlay.props?.items) && overlay.props.items.length) return true;
+    if (overlay.type === "timeline" && Array.isArray(overlay.props?.events) && overlay.props.events.length) return true;
+
     const overlayText = [
       overlay.props?.title,
       overlay.props?.subtitle,
       overlay.props?.description,
       overlay.props?.text,
+      overlay.props?.label,
     ]
       .filter(Boolean)
       .join(" ")
@@ -10090,23 +10109,79 @@ function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
         .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
         .replace(/\s+/g, " ")
         .trim();
-      if (!phrase || phrase.length < 10) continue;
+      if (!phrase || phrase.length < 12) continue;
 
-      const phraseHead = phrase.split(" ").slice(0, 6).join(" ");
-      const overlayHead = overlayText.split(" ").slice(0, 6).join(" ");
+      const phraseHead5 = phrase.split(" ").slice(0, 5).join(" ");
+      const overlayHead5 = overlayText.split(" ").slice(0, 5).join(" ");
 
-      if (
-        phrase.includes(overlayHead)
-        || overlayText.includes(phraseHead)
-        || phraseHead === overlayHead
-      ) {
-        console.log(`[Overlays] Removido overlay que repete narração: ${id}`);
+      if (phraseHead5.length >= 12 && overlayHead5.length >= 12 && phraseHead5 === overlayHead5) {
+        console.log(`[Overlays] Removido overlay com início idêntico à narração: ${id}`);
+        return false;
+      }
+
+      if (overlayText.length >= 20 && narrationWordOverlapRatio(overlayText, phrase) >= 0.9) {
+        console.log(`[Overlays] Removido overlay com >90% palavras da narração: ${id}`);
         return false;
       }
     }
 
     return true;
   });
+}
+
+const GEMINI_OVERLAY_TYPES = new Set([
+  "lower-third",
+  "counter",
+  "bar-chart",
+  "timeline",
+  "kinetic-text",
+  "info-card",
+]);
+
+function normalizeGeminiOverlayPayload(overlays = []) {
+  if (!Array.isArray(overlays)) return [];
+
+  return overlays.map((raw, index) => {
+    const overlay = { ...(raw || {}) };
+    if (!overlay.id) overlay.id = `ai-overlay-${index + 1}`;
+    if (!overlay.type && overlay.overlay_type) overlay.type = overlay.overlay_type;
+    if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
+
+    const flatText = overlay.text || overlay.label || overlay.title || overlay.caption;
+    if (flatText) {
+      if (overlay.type === "kinetic-text" && !overlay.props.text) overlay.props.text = String(flatText);
+      else if (overlay.type === "counter") {
+        if (!overlay.props.label) overlay.props.label = String(flatText);
+      } else if (!overlay.props.title) {
+        overlay.props.title = String(flatText);
+      }
+    }
+
+    for (const key of ["position", "iconType", "variant", "accentColor", "theme", "customStyle", "value", "suffix", "items", "events"]) {
+      if (overlay[key] != null && overlay.props[key] == null) overlay.props[key] = overlay[key];
+    }
+
+    if (overlay.end != null && overlay.duration == null) {
+      const startNum = Number(overlay.start);
+      const endNum = Number(overlay.end);
+      if (Number.isFinite(startNum) && Number.isFinite(endNum) && endNum > startNum) {
+        overlay.duration = endNum - startNum;
+      }
+    }
+    if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+      overlay.duration = 4;
+    }
+
+    if (!GEMINI_OVERLAY_TYPES.has(overlay.type)) {
+      if (overlay.props?.events?.length) overlay.type = "timeline";
+      else if (overlay.props?.items?.length) overlay.type = "bar-chart";
+      else if (overlay.props?.value != null) overlay.type = "counter";
+      else if (overlay.props?.text) overlay.type = "kinetic-text";
+      else overlay.type = "lower-third";
+    }
+
+    return overlay;
+  }).filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type));
 }
 
 function stripSystemInjectedOverlays(overlays = []) {
@@ -10134,14 +10209,22 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
       continue;
     }
 
-    if (/^\d+\.\d+$/.test(rawStr) && sceneStarts[rawStr] !== undefined) {
-      const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
-      overlay.start = Number(sceneStarts[rawStr]) + 0.5;
-      overlay.duration = Math.min(
-        Number(overlay.duration) || 4,
-        Math.max(1, Number(durations[blockIdx]) || 4),
-      );
-      continue;
+    if (/^\d+\.\d+$/.test(rawStr)) {
+      const asSeconds = Number(rawStr);
+      if (sceneStarts[rawStr] !== undefined) {
+        const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
+        overlay.start = Number(sceneStarts[rawStr]) + 0.5;
+        overlay.duration = Math.min(
+          Number(overlay.duration) || 4,
+          Math.max(1, Number(durations[blockIdx]) || 4),
+        );
+        continue;
+      }
+      if (Number.isFinite(asSeconds) && asSeconds >= 0 && asSeconds < 7200) {
+        overlay.start = asSeconds;
+        if (!Number.isFinite(overlay.duration) || overlay.duration <= 0) overlay.duration = 4;
+        continue;
+      }
     }
 
     const blockMatch = String(overlay.id || "").match(/(?:block|bloco|lt-block)[_-]?(\d+)/i)
@@ -10752,9 +10835,22 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
           console.log("[Overlays Planning] Plano detalhado executado pela IA para este vídeo:");
           resultObj.planejamento.forEach(p => console.log(`  - ${p}`));
         }
+      } else if (resultObj?.data && Array.isArray(resultObj.data.overlays)) {
+        parsedOverlays = resultObj.data.overlays;
+      } else if (resultObj && typeof resultObj === "object") {
+        const arrayKey = Object.keys(resultObj).find((key) => {
+          const val = resultObj[key];
+          return Array.isArray(val) && val.length > 0 && val[0] && (val[0].type || val[0].text || val[0].props);
+        });
+        if (arrayKey) {
+          parsedOverlays = resultObj[arrayKey];
+          console.log(`[Overlays] JSON extraído do campo "${arrayKey}".`);
+        } else {
+          console.warn("[Overlays] Formato inesperado do Gemini — sem array de overlays.");
+          parsedOverlays = [];
+        }
       } else {
-        console.warn("[Overlays] Resposta do Gemini não possui formato esperado de planejamento. Tentando usar objeto bruto.");
-        parsedOverlays = resultObj;
+        parsedOverlays = [];
       }
     } catch (parseErr) {
       console.error("[Overlays] Erro ao parsear JSON principal, tentando regex de fallback:", parseErr);
@@ -10766,6 +10862,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
     }
     if (Array.isArray(parsedOverlays)) {
+      parsedOverlays = normalizeGeminiOverlayPayload(parsedOverlays);
       console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
 
       alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts);
