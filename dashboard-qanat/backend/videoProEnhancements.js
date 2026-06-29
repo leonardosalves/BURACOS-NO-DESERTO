@@ -550,6 +550,7 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
     ? sortedItems.slice(0, 3).map((it) => ({
       rank: Number(it.rank),
       title: String(it.title || it.name || "").trim() || `Item #${it.rank}`,
+      visualHook: String(it.visual_hook || it.hook || "").trim(),
     }))
     : Array.from({ length: Math.min(3, rankCount) }, (_, i) => {
       const r = rankOrder === "desc" ? i + 1 : rankCount - i;

@@ -4063,6 +4063,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const syncContext = {
     visualPrompts,
     blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+    timelineAssets,
   };
 
   const promptByBlock = new Map();
@@ -4700,63 +4701,90 @@ function buildTimelineFromStoryboard(projectDir) {
 
   }
 
+  const existingTimeline = config.timeline_assets || {};
   const timelineAssets = {};
-
   const warnings = [];
+  const usedFiles = new Set();
+  const assetFileSet = new Set(assetFiles);
 
-  let assetIndex = 0;
+  const resolveSlotAsset = (block, slot, promptObj, prevSlot) => {
+    if (prevSlot?.asset && assetFileSet.has(prevSlot.asset)) {
+      usedFiles.add(prevSlot.asset);
+      return prevSlot.asset;
+    }
+    const hinted = [
+      promptObj?.asset_file,
+      promptObj?.stock_file,
+      promptObj?.media_file,
+      promptObj?.broll_file,
+    ].map((v) => String(v || "").replace(/\\/g, "/").trim()).find((v) => v && assetFileSet.has(v));
+    if (hinted) {
+      usedFiles.add(hinted);
+      return hinted;
+    }
+    for (const file of assetFiles) {
+      if (!usedFiles.has(file)) {
+        usedFiles.add(file);
+        return file;
+      }
+    }
+    return "";
+  };
 
   for (const block of blocks) {
-
+    const blockKey = String(block);
     const expectedScenes = promptsByBlock.get(block) || [];
-
-    const expectedCount = Math.max(1, expectedScenes.length || 1);
-
+    const existingBlock = Array.isArray(existingTimeline[blockKey]) ? existingTimeline[blockKey] : [];
+    const expectedCount = Math.max(1, expectedScenes.length || existingBlock.length || 1);
     const blockDuration = Number(timings.durations?.[block - 1]);
-
     const effectiveBlockDuration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : expectedCount * 4;
-
     const slotDuration = Math.max(0.5, effectiveBlockDuration / expectedCount);
-
     const blockAssets = [];
 
     for (let slot = 0; slot < expectedCount; slot++) {
       const promptObj = expectedScenes[slot];
-      const hasAssetFile = assetIndex < assetFiles.length;
-      const asset = hasAssetFile ? assetFiles[assetIndex++] : "";
-      
+      const prevSlot = existingBlock[slot];
+      const asset = resolveSlotAsset(block, slot, promptObj, prevSlot);
+      const hasAssetFile = Boolean(asset);
+
       let resolvedType = "image";
       if (hasAssetFile) {
         resolvedType = getMediaTypeFromName(asset);
       } else if (promptObj && promptObj.type) {
         resolvedType = (promptObj.type.includes("video") || promptObj.type.includes("vídeo")) ? "video" : "image";
+      } else if (prevSlot?.type) {
+        resolvedType = prevSlot.type;
       }
 
-      blockAssets.push({
+      const entry = {
         asset,
         type: resolvedType,
-        fixed: Number(slotDuration.toFixed(1)),
-      });
+        fixed: prevSlot?.fixed !== undefined && prevSlot?.fixed !== null
+          ? Number(prevSlot.fixed)
+          : Number(slotDuration.toFixed(1)),
+      };
+      if (prevSlot?.audio_start !== undefined && prevSlot?.audio_start !== null) {
+        entry.audio_start = prevSlot.audio_start;
+      }
+      if (prevSlot?.narration_segment) {
+        entry.narration_segment = prevSlot.narration_segment;
+      }
+      blockAssets.push(entry);
     }
 
     if (blockAssets.length > 0) {
-
-      timelineAssets[String(block)] = blockAssets;
-
+      timelineAssets[blockKey] = blockAssets;
     }
 
-    if (blockAssets.length < expectedCount) {
-
-      warnings.push(`Bloco ${block}: esperava ${expectedCount} asset(s), mas só havia ${blockAssets.length} disponível(is).`);
-
+    const filled = blockAssets.filter((a) => a.asset).length;
+    if (filled < expectedCount) {
+      warnings.push(`Bloco ${block}: esperava ${expectedCount} asset(s), mas só havia ${filled} disponível(is).`);
     }
-
   }
 
-  if (assetIndex < assetFiles.length) {
-
-    warnings.push(`${assetFiles.length - assetIndex} asset(s) extra foram ignorados para preservar a quantidade original do roteiro.`);
-
+  const unusedCount = assetFiles.filter((f) => !usedFiles.has(f)).length;
+  if (unusedCount > 0) {
+    warnings.push(`${unusedCount} asset(s) extra não foram reatribuídos — ordem existente preservada.`);
   }
 
   return { timelineAssets, assetCount: assetFiles.length, warnings };
@@ -9214,16 +9242,21 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
     const existingTimeline = autoConfig.timeline_assets || {};
     const mergedTimeline = { ...mapped.timelineAssets };
     for (const blockKey of Object.keys(mergedTimeline)) {
-      const prevAssets = existingTimeline[blockKey] || [];
-      mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset, idx) => {
-        const prev = prevAssets[idx];
-        if (!prev?.asset || prev.asset !== asset.asset) return asset;
+      const prevByAsset = new Map(
+        (existingTimeline[blockKey] || [])
+          .filter((a) => a?.asset)
+          .map((a) => [a.asset, a]),
+      );
+      mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset) => {
+        const prev = prevByAsset.get(asset.asset);
+        if (!prev) return asset;
         return {
           ...asset,
           ...(prev.audio_start !== undefined && prev.audio_start !== null
             ? { audio_start: prev.audio_start }
             : {}),
           ...(prev.fixed !== undefined && prev.fixed !== null ? { fixed: prev.fixed } : {}),
+          ...(prev.narration_segment ? { narration_segment: prev.narration_segment } : {}),
         };
       });
     }
@@ -9235,7 +9268,7 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
 
       success: true,
 
-      timeline_assets: mapped.timelineAssets,
+      timeline_assets: mergedTimeline,
 
       asset_count: mapped.assetCount,
 

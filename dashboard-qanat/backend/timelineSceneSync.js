@@ -131,13 +131,25 @@ export function findNarrationMatch(
   return null;
 }
 
-export function getAssetNarrationText(blockNum, assetIdx, { visualPrompts = [], blockPhrases = [] } = {}) {
+export function getAssetNarrationText(blockNum, assetIdx, { visualPrompts = [], blockPhrases = [], timelineAssets = {} } = {}) {
+  const blockKey = String(blockNum);
+  const assets = timelineAssets[blockKey] || [];
+  const segment = String(assets[assetIdx]?.narration_segment || "").trim();
+  if (segment) return segment;
+
   const blockScenes = visualPrompts.filter((vp) => Number(vp?.block) === blockNum);
-  if (blockScenes.length > assetIdx && blockScenes[assetIdx]?.narration_text) {
-    return blockScenes[assetIdx].narration_text;
+  if (blockScenes.length > assetIdx) {
+    const sceneText = String(
+      blockScenes[assetIdx]?.narration_text || blockScenes[assetIdx]?.narration_excerpt || "",
+    ).trim();
+    if (sceneText) return sceneText;
   }
-  const bp = blockPhrases.find((x) => Number(x?.block) === blockNum);
-  return bp?.phrase || "";
+
+  if (assets.length <= 1) {
+    const bp = blockPhrases.find((x) => Number(x?.block) === blockNum);
+    return bp?.phrase || "";
+  }
+  return "";
 }
 
 /** Same formula as getAssetDuration() in App.tsx */

@@ -48,7 +48,7 @@ export function pickListicleLottieKey({
   videoSeed = "",
 } = {}) {
   if (isIntro) return "sparkles";
-  if (isClimax || Number(rank) === 1) return "crown";
+  if (isClimax) return "crown";
 
   const { rules = [], rankPool = [] } = loadRules();
   const titleBlob = String(title).trim();

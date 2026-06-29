@@ -1,4 +1,4 @@
-/** Narração por bloco/asset — evita vazamento entre blocos e repetição do texto inteiro em cada asset. */
+/** Narração por bloco/asset — sem vazamento entre blocos; split só quando o usuário pede. */
 
 export type BlockTimingStatus = {
   block_timings?: {
@@ -7,10 +7,17 @@ export type BlockTimingStatus = {
   };
 };
 
+export type TimelineAsset = {
+  asset?: string;
+  fixed?: number;
+  audio_start?: number;
+  narration_segment?: string;
+};
+
 export type NarrationSyncContext = {
   config?: {
     block_phrases?: { block: number; phrase: string }[];
-    timeline_assets?: Record<string, Array<{ fixed?: number; audio_start?: number }>>;
+    timeline_assets?: Record<string, TimelineAsset[]>;
   };
   storyboard?: { visual_prompts?: Array<{ block?: number; narration_text?: string; narration_excerpt?: string }> };
   status?: BlockTimingStatus;
@@ -63,6 +70,7 @@ export function getBlockNarrationText(ctx: NarrationSyncContext, blockNum: numbe
   return String(bp?.phrase || "").trim();
 }
 
+/** Divide o texto do bloco proporcionalmente à duração de cada asset (ação explícita do usuário). */
 export function splitNarrationAmongAssets(
   ctx: NarrationSyncContext,
   blockKey: string,
@@ -85,17 +93,39 @@ export function splitNarrationAmongAssets(
     wordStart += Math.max(1, Math.round((durations[i] / totalDur) * words.length));
   }
   const wordCount = Math.max(1, Math.round((durations[assetIdx] / totalDur) * words.length));
-  return words.slice(wordStart, wordStart + wordCount).join(" ");
+  const sliceEnd = assetIdx === assets.length - 1 ? words.length : wordStart + wordCount;
+  return words.slice(wordStart, sliceEnd).join(" ");
+}
+
+/** Aplica split em todos os assets do bloco — retorna cópia atualizada do array. */
+export function applySplitNarrationToBlockAssets(
+  ctx: NarrationSyncContext,
+  blockKey: string,
+): TimelineAsset[] {
+  const assets = [...(ctx.config?.timeline_assets?.[blockKey] || [])];
+  return assets.map((asset, idx) => ({
+    ...asset,
+    narration_segment: splitNarrationAmongAssets(ctx, blockKey, idx),
+  }));
 }
 
 export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: string, assetIdx: number): string {
+  const assets = ctx.config?.timeline_assets?.[blockKey] || [];
+  const asset = assets[assetIdx];
+  const segment = String(asset?.narration_segment || "").trim();
+  if (segment) return segment;
+
   const blockNum = parseInt(blockKey, 10);
   const scenes = (ctx.storyboard?.visual_prompts || []).filter((vp) => Number(vp.block) === blockNum);
   if (scenes.length > assetIdx) {
     const sceneText = String(scenes[assetIdx]?.narration_text || scenes[assetIdx]?.narration_excerpt || "").trim();
     if (sceneText) return sceneText;
   }
-  return splitNarrationAmongAssets(ctx, blockKey, assetIdx);
+
+  if (assets.length <= 1) {
+    return getBlockNarrationText(ctx, blockNum);
+  }
+  return "";
 }
 
 export function narrationCacheKey(blockNum: number, text: string) {

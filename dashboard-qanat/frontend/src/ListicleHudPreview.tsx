@@ -13,12 +13,15 @@ type HudStyle = 'full' | 'compact' | 'auto';
 export type HudPreviewItem = {
   rank: number;
   title: string;
+  visualHook?: string;
 };
 
 export type HudPreviewListItem = {
   rank?: number;
   title?: string;
   name?: string;
+  visual_hook?: string;
+  hook?: string;
 };
 
 type Props = {
@@ -58,12 +61,13 @@ export function buildHudPreviewItems(
     ? Array.from({ length: rankCount }, (_, i) => rankCount - i)
     : Array.from({ length: rankCount }, (_, i) => i + 1);
 
-  const byRank = new Map<number, string>();
+  const byRank = new Map<number, { title: string; visualHook: string }>();
   for (const entry of listItems) {
     const rank = Number(entry.rank);
     const title = shortenHudTitle(String(entry.title || entry.name || '').trim());
+    const visualHook = String(entry.visual_hook || entry.hook || '').trim();
     if (Number.isFinite(rank) && rank > 0 && title) {
-      byRank.set(rank, title);
+      byRank.set(rank, { title, visualHook });
     }
   }
 
@@ -74,15 +78,20 @@ export function buildHudPreviewItems(
       const rank = ranks[idx];
       if (!rank || byRank.has(rank)) return;
       const title = shortenHudTitle(String(entry.title || entry.name || '').trim());
-      if (title) byRank.set(rank, title);
+      const visualHook = String(entry.visual_hook || entry.hook || '').trim();
+      if (title) byRank.set(rank, { title, visualHook });
     });
   }
 
   const hasRealListItems = byRank.size > 0;
-  const items = ranks.map((rank) => ({
-    rank,
-    title: byRank.get(rank) || `Item #${rank}`,
-  }));
+  const items = ranks.map((rank) => {
+    const hit = byRank.get(rank);
+    return {
+      rank,
+      title: hit?.title || `Item #${rank}`,
+      visualHook: hit?.visualHook || '',
+    };
+  });
 
   return { items, hasRealListItems };
 }
@@ -156,9 +165,13 @@ export function ListicleHudPreview({
     isClimax,
     rank: active.rank,
     title: active.title,
+    visualHook: active.visualHook || '',
     videoSeed,
   });
-  const lottieData = lottieDataForKey(lottieKey, lottieVariantSeed([videoSeed, active.rank, active.title, lottieKey]));
+  const lottieData = lottieDataForKey(
+    lottieKey,
+    lottieVariantSeed([videoSeed, active.rank, active.title, active.visualHook || '', lottieKey]),
+  );
   const dotCount = Math.min(rankCount, 8);
   const useBar = rankCount > 8;
   const lottieSize = effectiveStyle === 'compact' ? 40 : 52;
