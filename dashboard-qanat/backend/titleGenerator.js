@@ -47,12 +47,55 @@ const INVALID_TITLE_NOUNS = new Set([
 const INCOMPLETE_ENDINGS = new Set([
   "o", "a", "os", "as", "um", "uma", "de", "da", "do", "das", "dos",
   "em", "no", "na", "nos", "nas", "e", "ou", "que", "com", "por", "para", "se",
-  "ao", "aos", "detalhe", "história", "historia", "segredo", "verdade", "coisa", "fato",
+  "ao", "aos", "detalhe", "história", "historia", "histórias", "historias",
+  "segredo", "verdade", "coisa", "fato", "objetos", "coisas", "origem", "origens",
   "mudaram", "mudou", "fez", "era", "eram", "tinha", "foram", "ficou", "parecia",
 ]);
 
+const TITLE_COMPACT_REWRITES = [
+  [/objetos diários com histórias de origem inusitadas/gi, "origens bizarras do dia a dia"],
+  [/com histórias de origem inusitadas/gi, "com origem bizarra"],
+  [/histórias de origem inusitadas/gi, "origens bizarras"],
+  [/objetos diários com histórias/gi, "objetos com origem bizarra"],
+  [/coisas do dia a dia com origem/gi, "coisas com origem bizarra"],
+];
+
+const SHORT_FEED_EMOJIS = ["🤯", "😳", "🔥", "😱", "💡"];
+
 function clip(text = "", max = 50) {
   return String(text || "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+export function titleHasHashtag(text = "") {
+  return /#[\wÀ-ÿ]+/i.test(String(text));
+}
+
+export function titleHasEmoji(text = "") {
+  return /\p{Extended_Pictographic}/u.test(String(text));
+}
+
+export function getTitleMaxChars(format = "LONG", text = "") {
+  const base = format === "SHORT" ? 40 : 50;
+  if (format !== "SHORT") return base;
+  if (titleHasHashtag(text) || titleHasEmoji(text)) return 55;
+  return base;
+}
+
+function compactListicleTheme(theme = "") {
+  const t = String(theme || "").trim();
+  if (/origem|inusitada|bizarra|absurda/i.test(t)) return "origens bizarras do dia a dia";
+  if (/di[aá]rio|cotidiano|objeto/i.test(t)) return "objetos do dia a dia";
+  return t.split(/\s+/).slice(0, 4).join(" ");
+}
+
+function pickShortHashtags(facts = {}) {
+  const tags = ["#Shorts", "#Curiosidades"];
+  const topic = String(facts.listicle?.topic || facts.coreTopic || "").toLowerCase();
+  if (/origem|bizarra|inusitada|absurda/i.test(topic)) tags.push("#OrigensBizarras");
+  if (/hist[oó]ria|fato/i.test(topic) || /hist[oó]ria|fato/i.test(facts.hook || "")) {
+    tags.push("#FatosCuriosos");
+  }
+  return [...new Set(tags)].slice(0, 4);
 }
 
 function isValidTitleNoun(word = "") {
@@ -76,8 +119,10 @@ function isCompleteTitle(text = "", format = "LONG") {
   const t = sanitizeTitle(text);
   if (!t || t.length < 10) return false;
 
-  const max = format === "SHORT" ? 40 : 50;
+  const max = getTitleMaxChars(format, t);
   if (t.length > max) return false;
+
+  if (/com histórias?$/i.test(t) || /com origem$/i.test(t) || /do dia$/i.test(t)) return false;
 
   const words = t.split(/\s+/);
   const lastWord = words[words.length - 1]?.replace(/[.:;!?—–-]+$/, "").toLowerCase();
@@ -321,7 +366,12 @@ FÓRMULAS QUE FUNCIONAM EM SHORTS (use 1 por título):
 - Contraste: "[Coisa comum] era na verdade [twist]"
 - Número + consequência: "[Número] [unidade] e ninguém explica"
 - Nome próprio + ação: "[Quem] fez [o quê] em [onde]"
-- Cliffhanger curto: 3-5 palavras que exigem contexto do vídeo`
+- Cliffhanger curto: 3-5 palavras que exigem contexto do vídeo
+- Variedade obrigatória nos 5 títulos:
+  • Pelo menos 2 títulos com 1-2 hashtags no final (#Shorts + tema, ex: #Curiosidades #OrigensBizarras)
+  • Pelo menos 2 títulos com 1 emoji contextual no meio ou fim (🤯 😳 🔥 😱 💡)
+  • Hashtags/emojis entram no limite estendido de 55 caracteres
+  • Frase SEMPRE completa — nunca corte no meio para caber hashtag/emoji`
     : `
 FÓRMULAS QUE FUNCIONAM EM VÍDEOS LONGOS (use 1 por título):
 - Lacuna: "O que aconteceu com [X] depois de [Y]?"
@@ -342,7 +392,7 @@ REGRAS OBRIGATÓRIAS:
 - 5 títulos com ângulos DIFERENTES — nunca cinco variações da mesma frase.
 - Título entrega metade da curiosidade; NÃO entregue o payoff completo (isso fica no vídeo).
 - Português brasileiro natural — como título de canal grande (Ciência Todo Dia, Nerdologia, Manual do Mundo), não como anúncio ou blog SEO.
-- Sem ponto final. Máximo 1 emoji (prefira zero).
+- Sem ponto final.${format === "SHORT" ? " Em Shorts: até 1 emoji por título e 1-2 hashtags quando couber." : " Máximo 1 emoji (prefira zero)."}
 - Comece com substantivo, nome ou número — evite "Como", "Por que" em todos os 5 títulos.
 ${shortExtra}
 
@@ -393,24 +443,52 @@ REGRA DE OURO: se um título pudesse servir para outro vídeo do mesmo nicho, el
 export function fitTitleToLimit(text, max, format = "LONG") {
   let t = sanitizeTitle(text);
   if (!t) return null;
-  if (t.length <= max) return isCompleteTitle(t, format) ? t : null;
+
+  const effectiveMax = Math.max(max, getTitleMaxChars(format, t));
+  if (t.length <= effectiveMax && isCompleteTitle(t, format)) return t;
+
+  for (const [pattern, replacement] of TITLE_COMPACT_REWRITES) {
+    const compact = sanitizeTitle(t.replace(pattern, replacement));
+    if (compact.length <= effectiveMax && isCompleteTitle(compact, format)) return compact;
+  }
+
+  if (t.length <= effectiveMax) return isCompleteTitle(t, format) ? t : null;
 
   const dashParts = t.split(/\s*[—–-]\s+/);
   if (dashParts.length > 1) {
     const head = dashParts[0].trim();
-    if (head.length >= 12 && head.length <= max && isCompleteTitle(head, format)) return head;
+    if (head.length >= 12 && head.length <= effectiveMax && isCompleteTitle(head, format)) return head;
   }
 
   const words = t.split(/\s+/);
   while (words.length > 4) {
     words.pop();
     const candidate = words.join(" ").replace(/\s*[\u2014\u2013,-]\s*$/, "").trim();
-    if (candidate.length <= max && candidate.length >= 12 && isCompleteTitle(candidate, format)) {
+    if (candidate.length <= effectiveMax && candidate.length >= 12 && isCompleteTitle(candidate, format)) {
       return candidate;
     }
   }
 
   return null;
+}
+
+function buildShortStyledTitleCandidates(facts = {}, { format = "LONG" } = {}) {
+  if (format !== "SHORT") return [];
+
+  const rank = facts.listicle?.rankCount || 3;
+  const tags = pickShortHashtags(facts);
+  const emojiA = SHORT_FEED_EMOJIS[0];
+  const emojiB = SHORT_FEED_EMOJIS[1];
+  const compact = compactListicleTheme(facts.listicle?.topic || facts.coreTopic || "");
+
+  return [
+    { text: `Top ${rank} origens bizarras ${emojiA} ${tags[0]}`, angle: "emoji" },
+    { text: `${rank} objetos do dia a dia ${emojiB} ${tags[1]}`, angle: "emoji" },
+    { text: `Top ${rank} ${compact} ${tags[0]}`, angle: "hashtag" },
+    { text: `Origens absurdas do dia a dia ${emojiA} ${tags[1]}`, angle: "emoji" },
+    { text: `Top ${rank} coisas com origem bizarra ${tags[0]}`, angle: "hashtag" },
+    tags[2] ? { text: `Top ${rank} origens bizarras ${tags[0]} ${tags[2]}`, angle: "hashtag" } : null,
+  ].filter(Boolean);
 }
 
 function buildListicleTitleCandidates(facts = {}, { format = "LONG" } = {}) {
@@ -425,16 +503,19 @@ function buildListicleTitleCandidates(facts = {}, { format = "LONG" } = {}) {
   const pair = itemA && itemB ? `${itemA} e ${itemB}` : itemA;
   const hasBizarre = /bizarra|absurda|estranha|inacredit/i.test(theme);
 
+  const compactTheme = compactListicleTheme(theme);
+
   const templates = [
-    { text: `Top ${rank} coisas com origem bizarra`, angle: "numero" },
     { text: `Top ${rank} origens bizarras do dia a dia`, angle: "numero" },
-    { text: `Top ${rank} ${theme}`, angle: "numero" },
+    { text: `Top ${rank} objetos com origem absurda`, angle: "numero" },
+    { text: `Top ${rank} coisas com origem bizarra`, angle: "numero" },
     { text: `${rank} objetos do dia a dia — origem absurda`, angle: "paradoxo" },
     { text: `${rank} coisas que você usa — origem bizarra`, angle: "paradoxo" },
-    { text: `${rank} ${hasBizarre ? theme : "origens bizarras do dia a dia"} — o #1 surpreende`, angle: "cliffhanger" },
+    { text: `${rank} ${compactTheme} — o #1 surpreende`, angle: "cliffhanger" },
     pair ? { text: `${pair} — origens que ninguém conta`, angle: "nome" } : null,
     pair ? { text: `${pair} e mais — origens bizarras`, angle: "nome" } : null,
     { text: `${rank} objetos comuns com história absurda`, angle: "paradoxo" },
+    ...buildShortStyledTitleCandidates(facts, { format }),
   ].filter(Boolean);
 
   return templates
@@ -588,12 +669,17 @@ export function scoreTitle(text = "", format = "LONG", facts = {}) {
   const t = sanitizeTitle(text);
   if (!t || t.length < 8) return -10;
 
-  const max = format === "SHORT" ? 40 : 50;
+  const max = getTitleMaxChars(format, t);
   let score = 0;
 
   if (t.length <= max) score += 15;
   else if (t.length <= max + 8) score += 5;
   else score -= 20;
+
+  if (format === "SHORT") {
+    if (titleHasHashtag(t)) score += 8;
+    if (titleHasEmoji(t)) score += 6;
+  }
 
   if (/\d/.test(t)) score += 12;
   if (/\?/.test(t)) score += 6;
@@ -633,7 +719,8 @@ export function scoreTitle(text = "", format = "LONG", facts = {}) {
 
   if (facts.listicle?.isListicle) {
     const rank = facts.listicle.rankCount || 3;
-    if (/\btop\s*\d+\b/i.test(t) || new RegExp(`\\b${rank}\\b`).test(t)) score += 18;
+    if (/\btop\s*\d+\b/i.test(t)) score += 22;
+    else if (new RegExp(`\\b${rank}\\b`).test(t)) score += 12;
     if (facts.listicle.topic) {
       const themeWords = facts.listicle.topic.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
       const themeHits = themeWords.filter((w) => t.toLowerCase().includes(w)).length;
@@ -736,14 +823,30 @@ function isRankingListicleTitle(text = "", facts = {}) {
   return itemHits >= 2;
 }
 
-function isSingleItemListicleTitle(text = "", facts = {}) {
-  if (!facts.listicle?.isListicle || isRankingListicleTitle(text, facts)) return false;
+function listicleItemHitsInText(text = "", facts = {}) {
   const t = sanitizeTitle(text).toLowerCase();
-  const itemHits = (facts.listicle.itemTitles || []).filter((item) => {
+  return (facts.listicle?.itemTitles || []).filter((item) => {
     const probe = String(item).toLowerCase().split(/\s+/).find((w) => w.length > 3)
       || String(item).toLowerCase();
     return probe.length > 2 && t.includes(probe);
   }).length;
+}
+
+function isSingleItemListicleTitle(text = "", facts = {}) {
+  if (!facts.listicle?.isListicle) return false;
+  const t = sanitizeTitle(text);
+  const itemHits = listicleItemHitsInText(t, facts);
+
+  const tail = t.split(/[:—–-]/).pop()?.trim().toLowerCase() || "";
+  if (tail && itemHits === 1) {
+    const tailHit = (facts.listicle.itemTitles || []).some((item) => {
+      const probe = String(item).toLowerCase();
+      return tail.includes(probe) || probe.split(/\s+/).some((w) => w.length > 4 && tail.includes(w));
+    });
+    if (tailHit) return true;
+  }
+
+  if (isRankingListicleTitle(text, facts)) return false;
   return itemHits === 1;
 }
 
@@ -792,7 +895,43 @@ export function enforceListicleTitleRanking(titles = [], facts = {}, format = "L
     pushTitle(item, { allowSingleItem: true });
   }
 
-  return merged.slice(0, 5);
+  return injectShortTitleStyles(merged.slice(0, 5), facts, format);
+}
+
+function injectShortTitleStyles(titles = [], facts = {}, format = "LONG") {
+  if (format !== "SHORT" || titles.length === 0) return titles;
+
+  const styledPool = polishTitles(
+    [...buildShortStyledTitleCandidates(facts, { format }), ...generateTitlesFromFacts(facts, { format })],
+    { format, facts },
+  );
+
+  const result = [...titles];
+  const upsertStyled = (predicate, candidate) => {
+    if (!candidate || result.some((item) => predicate(item.text))) return;
+    const replaceIdx = result.findIndex((item, idx) => idx >= 2 && !predicate(item.text));
+    if (replaceIdx >= 0) result[replaceIdx] = candidate;
+    else if (result.length < 5) result.push(candidate);
+  };
+
+  upsertStyled(
+    titleHasHashtag,
+    styledPool.find((item) => /#Shorts/i.test(item.text))
+      || styledPool.find((item) => titleHasHashtag(item.text)),
+  );
+  upsertStyled(titleHasEmoji, styledPool.find((item) => titleHasEmoji(item.text)));
+  upsertStyled(
+    (text) => titleHasHashtag(text) && titleHasEmoji(text),
+    styledPool.find((item) => titleHasHashtag(item.text) && titleHasEmoji(item.text)),
+  );
+
+  const seen = new Set();
+  return result.filter((item) => {
+    const key = item.text;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
 }
 
 export function applyTitleQualityToParsed(parsed = {}, context = {}) {
@@ -826,6 +965,8 @@ export function applyTitleQualityToParsed(parsed = {}, context = {}) {
 
   if (facts.listicle?.isListicle) {
     titles = enforceListicleTitleRanking(titles, facts, format);
+  } else if (format === "SHORT") {
+    titles = injectShortTitleStyles(titles, facts, format);
   }
 
   const recommended = titles[0]?.text || parsed.recommendedTitle || "";
