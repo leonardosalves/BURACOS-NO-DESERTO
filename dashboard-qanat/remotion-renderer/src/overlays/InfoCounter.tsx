@@ -6,6 +6,7 @@ import {
   useVideoConfig,
   spring,
 } from "remotion";
+import { mergeCustomStyle } from "./overlayStyleUtils";
 
 export interface InfoCounterProps {
   value: number;
@@ -228,9 +229,7 @@ export const InfoCounter: React.FC<InfoCounterProps> = ({
         };
         break;
     }
-    if (customStyle) {
-      base = { ...base, ...customStyle };
-    }
+    base = mergeCustomStyle(base, customStyle);
     return base;
   };
 

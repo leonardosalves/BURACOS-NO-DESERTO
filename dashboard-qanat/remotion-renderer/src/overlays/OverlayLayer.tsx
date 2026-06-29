@@ -10,6 +10,7 @@ import { InfoCard, InfoCardProps } from "./InfoCard";
 import { ListicleStinger, ListicleStingerProps } from "./ListicleStinger";
 import { ListicleRecap, ListicleRecapProps } from "./ListicleRecap";
 import { RankProgress, RankProgressProps } from "./RankProgress";
+import { safeCustomStyle } from "./overlayStyleUtils";
 
 // ─────────────────────────────────────────────────────────────────────
 // OverlayLayer — Manages rendering of all overlay elements
@@ -99,8 +100,18 @@ interface OverlayLayerProps {
   overlays: Overlay[];
 }
 
+function sanitizeOverlayProps<T extends Overlay["props"]>(raw: T): T {
+  const props = { ...(raw || {}) } as T & { customStyle?: unknown; style?: unknown };
+  if ("customStyle" in props) {
+    const safe = safeCustomStyle(props.customStyle);
+    if (safe) props.customStyle = safe as T extends { customStyle?: infer C } ? C : never;
+    else delete props.customStyle;
+  }
+  return props;
+}
+
 const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
-  const props = overlay.props || ({} as Overlay["props"]);
+  const props = sanitizeOverlayProps(overlay.props || ({} as Overlay["props"]));
   switch (overlay.type) {
     case "lower-third":
       return <LowerThird {...props} />;
@@ -116,8 +127,13 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
         return null;
       }
       return <InfoTimeline {...props} />;
-    case "kinetic-text":
-      return <KineticText {...overlay.props} />;
+    case "kinetic-text": {
+      const kt = props as KineticTextProps & { style?: unknown };
+      const text = String(kt.text || "").trim();
+      if (!text) return null;
+      const animStyle = typeof kt.style === "string" ? kt.style : "slam";
+      return <KineticText {...kt} text={text} style={animStyle as KineticTextProps["style"]} />;
+    }
     case "info-card":
       return <InfoCard {...overlay.props} />;
     case "listicle-stinger":

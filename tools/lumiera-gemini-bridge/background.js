@@ -97,6 +97,7 @@ async function ensureGeminiContentScript(tabId) {
 
 async function runPromptOnTab(tabId, prompt) {
   await ensureGeminiContentScript(tabId);
+  await injectGeminiScript(tabId);
 
   let previousTabId = null;
   try {
@@ -125,7 +126,7 @@ async function runPromptOnTab(tabId, prompt) {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.1.9" });
+    sendResponse({ ok: true, version: "1.3.6" });
     return;
   }
   if (message?.type !== "LUMIERA_GEMINI_QUERY") return;

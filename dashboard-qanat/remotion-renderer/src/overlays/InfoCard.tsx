@@ -6,6 +6,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { SafeLottie } from "./SafeLottie";
+import { mergeCustomStyle } from "./overlayStyleUtils";
 
 import sparklesLottie from "./lottie_assets/sparkles.json";
 import flameLottie from "./lottie_assets/flame.json";
@@ -584,12 +585,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
         break;
     }
 
-    if (customStyle) {
-      base = {
-        ...base,
-        ...customStyle,
-      };
-    }
+    base = mergeCustomStyle(base, customStyle);
     return base;
   };
 

@@ -37,7 +37,7 @@ export function GeminiBrowserProvider({ children }: { children: React.ReactNode 
                   {automation.title || 'Automação Gemini'}
                 </p>
                 <p className="text-[10px] text-zinc-400 leading-relaxed mt-0.5">
-                  Consultando gemini.google.com — rankings levam ~20–60s conforme o tamanho do prompt.
+                  {automation.hint || 'Consultando gemini.google.com…'}
                   {automation.attempt && automation.attempt > 1 ? ` Tentativa ${automation.attempt}…` : ''}
                 </p>
               </div>

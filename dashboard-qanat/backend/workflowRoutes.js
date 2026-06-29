@@ -216,6 +216,7 @@ export function registerWorkflowRoutes(app, deps) {
       flatTranscriptWords,
       visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
       blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+      preserveExplicitFixed: true,
     });
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     log("[Pipeline] Timeline realinhada aos tempos dos blocos (anti-tela-preta).");

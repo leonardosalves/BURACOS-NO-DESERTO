@@ -609,6 +609,7 @@ export default function App() {
     titles?: { text: string; chars: number; score?: number; angle?: string | null }[];
     description?: string;
     tags?: string;
+    hashtags?: string;
     chapters?: string;
     pinnedComment?: string;
     recommendedTitle?: string;
@@ -2935,7 +2936,11 @@ export default function App() {
 
     } else {
 
-      blockAssets[index] = { ...blockAssets[index], [field]: value };
+      blockAssets[index] = {
+        ...blockAssets[index],
+        [field]: value,
+        ...(field === 'fixed' ? { fixed_locked: true } : {}),
+      };
 
     }
 
@@ -2987,7 +2992,10 @@ export default function App() {
 
     blockAssets[targetIdx] = temp;
 
-    newTimelineAssets[blockKey] = blockAssets;
+    const speechSynced = blockAssets.some((a: any) => a.synced_to_speech);
+    newTimelineAssets[blockKey] = speechSynced
+      ? blockAssets
+      : recalculateBlockAudioStarts(blockKey, blockAssets);
 
     let nextStoryboard = storyboardData;
     if (storyboardData?.visual_prompts?.length) {
@@ -3624,13 +3632,13 @@ export default function App() {
     return updated;
   };
 
-  const enrichTimelineAudioStarts = (cfg: ConfigData): ConfigData => {
+  const enrichTimelineAudioStarts = (cfg: ConfigData, options?: { force?: boolean }): ConfigData => {
     const timelineAssets = { ...(cfg.timeline_assets || {}) };
     Object.keys(timelineAssets).forEach((blockKey) => {
       const assets = timelineAssets[blockKey];
       if (!assets?.length) return;
-      const hasAny = assets.some((a: any) => a.audio_start !== undefined && a.audio_start !== null);
-      if (!hasAny) {
+      const speechSynced = assets.some((a: any) => a.synced_to_speech);
+      if (options?.force || !speechSynced) {
         timelineAssets[blockKey] = recalculateBlockAudioStarts(blockKey, assets);
       }
     });
@@ -3690,6 +3698,8 @@ export default function App() {
 
     updatedAssets.forEach((asset, idx) => {
 
+      if (asset.fixed_locked) return;
+
       const narrationText = getAssetNarration(blockKey, idx);
 
       const matched = findNarrationTimestamps(narrationText, blockNum);
@@ -3716,7 +3726,10 @@ export default function App() {
 
         }
 
+        delete asset.fixed_locked;
+
         asset.audio_start = parseFloat(matched.start.toFixed(3));
+        asset.synced_to_speech = true;
 
         alignedCount++;
 
@@ -3829,6 +3842,8 @@ export default function App() {
 
       updatedAssets.forEach((asset, idx) => {
 
+        if (asset.fixed_locked) return;
+
         const narrationText = getAssetNarration(blockKey, idx);
 
         const matched = findNarrationTimestamps(narrationText, blockNum);
@@ -3855,7 +3870,10 @@ export default function App() {
 
           }
 
+          delete asset.fixed_locked;
+
           asset.audio_start = parseFloat(matched.start.toFixed(3));
+          asset.synced_to_speech = true;
 
           totalAligned++;
 
@@ -4613,9 +4631,51 @@ export default function App() {
     }
 
     try {
-      const { ok, data } = await postAi('/api/ai/optimize-youtube', { method: 'POST' });
+      const useGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+      const { ok, data } = await postAi('/api/ai/optimize-youtube', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ require_browser: useGeminiChrome }),
+      });
 
       if (ok && !data.needs_browser && data.text) {
+        const provider = (data as { provider?: string }).provider;
+        const parsedMeta = data.parsed as {
+          description?: string;
+          tags?: string;
+          hashtags?: string;
+          pinnedComment?: string;
+          titles?: { text: string }[];
+        } | null;
+        const hasCompleteSections = (parsedMeta?.description?.length ?? 0) >= 50
+          && ((parsedMeta?.tags?.length ?? 0) >= 8 || (parsedMeta?.hashtags?.length ?? 0) >= 3);
+        const hasRealMetadata = hasCompleteSections
+          || (!useGeminiChrome && (
+            /\d+\.\s+.{12,}/m.test(data.text)
+            || /Variante\s+[ABC]\s*[—–\-]/i.test(data.text)
+            || ((parsedMeta?.titles?.length ?? 0) >= 1 && !/máx 5 palavras/i.test(data.text))
+          ));
+        if (/LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(data.text)) {
+          const errMsg = 'Capturou o prompt em vez da resposta do Gemini. Tente de novo.';
+          if (!options?.keepExistingOnError) setYoutubeMetadata(`[Erro] ${errMsg}`);
+          if (!options?.silent) toast.error(errMsg);
+          return false;
+        }
+        if (useGeminiChrome && ((data as { fallback?: boolean }).fallback || !hasRealMetadata)) {
+          const errMsg = 'Gemini no Chrome não concluiu — resposta genérica ou incompleta ignorada. Tente de novo.';
+          if (!options?.keepExistingOnError) {
+            setYoutubeMetadata(`[Erro] ${errMsg}`);
+          }
+          if (!options?.silent) toast.error(errMsg);
+          return false;
+        }
+        if (useGeminiChrome && provider && provider !== 'gemini_browser') {
+          const errMsg = 'Metadados não vieram do Gemini no Chrome. Tente de novo.';
+          if (!options?.keepExistingOnError) setYoutubeMetadata(`[Erro] ${errMsg}`);
+          if (!options?.silent) toast.error(errMsg);
+          return false;
+        }
+
         setYoutubeMetadata(data.text);
         setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
         setYoutubeMetadataParsed(data.parsed || null);
@@ -4632,7 +4692,13 @@ export default function App() {
       }
 
       const details = data.details ? `\n\n${data.details}` : '';
-      const errMsg = data.error || 'Falha ao gerar metadados do YouTube.';
+      const stale = (data as { staleResponse?: boolean }).staleResponse;
+      const errMsg = data.error
+        || (stale
+          ? 'Gemini ainda está gerando metadados — aguarde na aba gemini.google.com e tente de novo.'
+          : useGeminiChrome
+            ? 'Gemini no Chrome não respondeu. Deixe gemini.google.com aberto e tente de novo.'
+            : 'Falha ao gerar metadados do YouTube.');
       if (!options?.keepExistingOnError) {
         setYoutubeMetadata(`[Erro] ${errMsg}${details}`);
       }
@@ -4896,7 +4962,8 @@ export default function App() {
       if (!res.ok) return;
       const data = await res.json();
       if (!data.cached) return;
-      if (data.text) setYoutubeMetadata(data.text);
+      if (data.text && /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(data.text)) return;
+      if (data.text) setYoutubeMetadata(normalizeYoutubeMetadataDisplay(data.text));
       setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
       setYoutubeMetadataParsed(data.parsed || null);
       setYoutubeMetadataStrategy({
@@ -5745,7 +5812,13 @@ export default function App() {
       if (res.ok) {
 
         setTimelineAssets(data.timeline_assets);
-        setConfig((prev) => (prev ? { ...prev, timeline_assets: data.timeline_assets } : prev));
+        setConfig((prev) => {
+          if (!prev) return prev;
+          return enrichTimelineAudioStarts(
+            { ...prev, timeline_assets: data.timeline_assets },
+            { force: true },
+          );
+        });
 
         if (data.warnings && data.warnings.length > 0) {
 
@@ -5841,6 +5914,30 @@ export default function App() {
 
     toast.success('Configuração recomendada pela IA aplicada com sucesso!');
 
+  };
+
+  const normalizeYoutubeMetadataDisplay = (text: string) => {
+    const plainHeaders = [
+      'TÍTULOS', 'DESCRIÇÃO', 'HASHTAGS PRINCIPAIS', 'HASHTAGS', 'TAGS',
+      'COMENTÁRIO PINADO', 'CAPÍTULOS', 'THUMBNAILS A/B', 'THUMBNAILS AB', 'THUMBNAILS',
+      'GANCHO DE RETENÇÃO', 'GANCHO PARA THUMBNAIL', 'CTA DE MEIO DE VÍDEO',
+    ];
+    const headerKeys = new Set(
+      plainHeaders.map((h) => h.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()),
+    );
+    return String(text)
+      .replace(/\r\n/g, '\n')
+      .replace(/^\s*\*\*(##\s+[^*\n]+)\*\*\s*$/gm, '$1')
+      .split('\n')
+      .map((line) => {
+        const trimmed = line.trim().replace(/:+$/, '');
+        if (!trimmed || /^##\s+/i.test(trimmed)) return line;
+        const key = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+        if (headerKeys.has(key)) return `## ${trimmed}`;
+        return line;
+      })
+      .join('\n')
+      .trim();
   };
 
   const copyToClipboard = (text: string, section: string) => {
@@ -6144,6 +6241,7 @@ export default function App() {
     const needsOverlayPlan = mode === 'remotion' || mode === 'remotion-pro';
     let effectiveGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
     let overlayPlanSucceeded = !needsOverlayPlan;
+    let overlayPlanToken = '';
 
     setRendering(true);
     setRenderProgress({ percent: 0, phase: 'Inicializando...' });
@@ -6179,16 +6277,22 @@ export default function App() {
         const { ok, data } = await postAi('/api/render/plan-overlays', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hyperframes: useHyperframes === true }),
+          body: JSON.stringify({
+            hyperframes: useHyperframes === true,
+            require_browser: effectiveGeminiChrome,
+          }),
         });
         if (!ok || data.needs_browser) {
           setRendering(false);
           setRenderProgress(null);
+          const stale = (data as { staleResponse?: boolean }).staleResponse;
           toast.error(
             data.error
-            || (effectiveGeminiChrome
-              ? 'Gemini no Chrome não respondeu. Deixe gemini.google.com aberto e tente de novo.'
-              : 'Falha ao planejar overlays. Ative Gemini no Chrome ou configure a API.'),
+            || (stale
+              ? 'Gemini ainda está gerando — resposta antiga ignorada. Aguarde na aba gemini.google.com e clique Render de novo.'
+              : effectiveGeminiChrome
+                ? 'Gemini no Chrome não respondeu. Deixe gemini.google.com aberto e tente de novo.'
+                : 'Falha ao planejar overlays. Ative Gemini no Chrome ou configure a API.'),
           );
           return;
         }
@@ -6198,8 +6302,18 @@ export default function App() {
           toast.error(data.error || 'Gemini não gerou overlays válidos. Reabra o Chrome e tente o render novamente.');
           return;
         }
+        overlayPlanToken = String((data as { planToken?: string }).planToken || '').trim();
+        if (!overlayPlanToken) {
+          setRendering(false);
+          setRenderProgress(null);
+          toast.error('Planejamento sem token de sessão — Gemini não concluiu. Tente novamente.');
+          return;
+        }
         overlayPlanSucceeded = true;
-        setLogs((prev) => [...prev, `[Dashboard] ${data.overlayCount} overlays enriquecidos planejados — iniciando render.`]);
+        setLogs((prev) => [
+          ...prev,
+          `[Dashboard] ${data.overlayCount} overlays via ${(data as { source?: string }).source || 'IA'} — token OK, iniciando render.`,
+        ]);
       } catch (err: any) {
         setRendering(false);
         setRenderProgress(null);
@@ -6223,7 +6337,9 @@ export default function App() {
         setLogs((prev) => [...prev, '[Dashboard] Consultando Gemini no Chrome para metadados…']);
         const metaOk = await generateYoutubeMetadata({ silent: true, keepExistingOnError: true });
         if (metaOk) {
-          setLogs((prev) => [...prev, '[Dashboard] Metadados YouTube gerados.']);
+          setLogs((prev) => [...prev, '[Dashboard] Metadados YouTube gerados via Gemini no Chrome.']);
+        } else {
+          setLogs((prev) => [...prev, '[Dashboard] Metadados não concluídos — render segue; gere metadados manualmente depois.']);
         }
       } else {
         void generateYoutubeMetadata({ silent: true, keepExistingOnError: true }).then((ok) => {
@@ -6237,7 +6353,10 @@ export default function App() {
     let queryParams = [];
     if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
     queryParams.push(useHyperframes ? "hyperframes=1" : "hyperframes=0");
-    if (needsOverlayPlan) queryParams.push('require_overlay_plan=1');
+    if (needsOverlayPlan) {
+      queryParams.push('require_overlay_plan=1');
+      if (overlayPlanToken) queryParams.push(`overlay_plan_token=${encodeURIComponent(overlayPlanToken)}`);
+    }
     if (isProres) queryParams.push("prores=1");
     if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
     if (resolution === '2k') queryParams.push('resolution=2k');
@@ -9287,7 +9406,7 @@ export default function App() {
 
                         {(() => {
 
-                          const sections = youtubeMetadata.split(/^## /m).filter(Boolean).filter((section) => {
+                          const sections = normalizeYoutubeMetadataDisplay(youtubeMetadata).split(/^## /m).filter(Boolean).filter((section) => {
                             const sectionTitle = section.split('\n')[0]?.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                             if (sectionTitle === 'THUMBNAILS A/B' && youtubeMetadataParsed?.thumbnails?.length) return false;
                             return true;
