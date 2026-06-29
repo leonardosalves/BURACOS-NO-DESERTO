@@ -7,6 +7,7 @@ import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
 export interface ListicleRecapLine {
   rank: number;
   title: string;
+  visualHook?: string;
 }
 
 export interface ListicleRecapProps {
@@ -99,9 +100,9 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
               extrapolateRight: "clamp",
             });
             const iconKey = resolveLottieKey({
-              isClimax: line.rank === 1,
               rank: line.rank,
               title: line.title,
+              visualHook: line.visualHook || "",
               videoSeed,
             });
 
@@ -119,7 +120,7 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
                 }}
               >
                 <TitleLottieIcon
-                  animationData={lottieDataForKey(iconKey, lottieVariantSeed([videoSeed, line.rank, line.title, iconKey]))}
+                  animationData={lottieDataForKey(iconKey, lottieVariantSeed([videoSeed, line.rank, line.title, line.visualHook || "", iconKey]))}
                   size={isVertical ? 36 : 30}
                 />
                 <span

@@ -310,6 +310,7 @@ import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform
 import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
+  applySplitNarrationToBlockAssets,
   findBoundedNarrationMatch,
   getAssetNarrationText as resolveAssetNarrationText,
   getBlockNarrationText as resolveBlockNarrationText,
@@ -7781,30 +7782,25 @@ export default function App() {
 
     newTimelineAssets[blockKey] = blockAssets;
 
-
-
-
-
-
+    let nextStoryboard = storyboardData;
+    if (storyboardData?.visual_prompts?.length) {
+      nextStoryboard = swapBlockVisualPromptsInStoryboard(
+        storyboardData,
+        parseInt(blockKey, 10),
+        index,
+        targetIdx,
+      );
+      setStoryboardData(nextStoryboard);
+      fetch(getProjectUrl('/api/storyboard'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextStoryboard),
+      }).catch(() => {});
+    }
 
     const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
-
-
-
-
-
-
-
     setConfig(updatedConfig);
-
-
-
-
-
-
-
     saveConfig(updatedConfig);
-    alignBlockAssetsToSpeech(blockKey, updatedConfig);
 
 
 
@@ -8944,798 +8940,46 @@ export default function App() {
 
 
   const narrationMatchesCache = useMemo(() => {
-
-
-
-
-
-
-
     const cache: Record<string, {
-
-
-
-
-
-
-
       start: number;
-
-
-
-
-
-
-
       end: number;
-
-
-
-
-
-
-
       duration: number;
-
-
-
-
-
-
-
       matchedWords: number;
-
-
-
-
-
-
-
       totalWords: number;
-
-
-
-
-
-
-
       bestFirstMatchIdx: number;
-
-
-
-
-
-
-
       bestLastMatchIdx: number;
-
-
-
-
-
-
-
     }> = {};
 
-
-
-
-
-
-
     if (!flatTranscriptWords || flatTranscriptWords.length === 0 || !config) {
-
-
-
-
-
-
-
       return cache;
-
-
-
-
-
-
-
     }
 
-
-
-
-
-
-
     const timelineAssets = config.timeline_assets || {};
-
-
-
-
-
-
-
-    const PORTUGUESE_STOP_WORDS = new Set([
-
-
-
-
-
-
-
-      'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas',
-
-
-
-
-
-
-
-      'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
-
-
-
-
-
-
-
-      'para', 'com', 'por', 'sob', 'sobre', 'sem',
-
-
-
-
-
-
-
-      'que', 'se', 'e', 'ou', 'mas', 'porem', 'todavia', 'contudo', 'entretanto',
-
-
-
-
-
-
-
-      'aqui', 'ali', 'la', 'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas',
-
-
-
-
-
-
-
-      'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'isso', 'aquilo',
-
-
-
-
-
-
-
-      'eu', 'tu', 'ele', 'ela', 'nos', 'vos', 'eles', 'elas', 'me', 'te', 'se', 'lhe',
-
-
-
-
-
-
-
-      'ao', 'aos', 'pelo', 'pela', 'pelos', 'pelas', 'num', 'numa', 'nuns', 'numas',
-
-
-
-
-
-
-
-      'como', 'mais', 'muito', 'seus', 'suas', 'seu', 'sua', 'dele', 'dela', 'deles', 'delas'
-
-
-
-
-
-
-
-    ]);
-
-
-
-
-
-
-
-    const matchWords = (w1: string, w2: string): boolean => {
-
-
-
-
-
-
-
-      if (w1 === w2) return true;
-
-
-
-
-
-
-
-      const s1 = w1.endsWith('s') ? w1.slice(0, -1) : w1;
-
-
-
-
-
-
-
-      const s2 = w2.endsWith('s') ? w2.slice(0, -1) : w2;
-
-
-
-
-
-
-
-      if (s1 === s2 && s1.length > 3) return true;
-
-
-
-
-
-
-
-      return false;
-
-
-
-
-
-
-
-    };
-
-
-
-
-
-
-
-    const uniqueTexts = new Set<string>();
-
-
-
-
-
-
-
-    Object.keys(timelineAssets).forEach(blockKey => {
-
-
-
-
-
-
-
+    Object.keys(timelineAssets).forEach((blockKey) => {
+      const blockNum = parseInt(blockKey, 10);
+      if (!Number.isFinite(blockNum)) return;
+      const bounds = resolveBlockTimeBounds(status, blockNum);
       const assets = timelineAssets[blockKey] || [];
-
-
-
-
-
-
-
-      assets.forEach((asset, idx) => {
-
-
-
-
-
-
-
+      assets.forEach((_, idx) => {
         const narrationText = getAssetNarration(blockKey, idx);
-
-
-
-
-
-
-
-        if (narrationText) {
-
-
-
-
-
-
-
-          uniqueTexts.add(narrationText);
-
-
-
-
-
-
-
-        }
-
-
-
-
-
-
-
+        if (!narrationText) return;
+        const key = narrationCacheKey(blockNum, narrationText);
+        if (cache[key]) return;
+        const hit = findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
+        if (hit) cache[key] = hit;
       });
-
-
-
-
-
-
-
-    });
-
-
-
-
-
-
-
-    uniqueTexts.forEach(narrationText => {
-
-
-
-
-
-
-
-      const targetWords = cleanText(narrationText);
-
-
-
-
-
-
-
-      if (targetWords.length === 0) return;
-
-
-
-
-
-
-
-      const targetWeights = targetWords.map(w => PORTUGUESE_STOP_WORDS.has(w) ? 1 : 10);
-
-
-
-
-
-
-
-      const maxPossibleScore = targetWeights.reduce((acc, val) => acc + val, 0);
-
-
-
-
-
-
-
-      const N = targetWords.length;
-
-
-
-
-
-
-
-      const W = N + 8;
-
-
-
-
-
-
-
-      let bestScore = 0;
-
-
-
-
-
-
-
-      let bestFirstMatchIdx = -1;
-
-
-
-
-
-
-
-      let bestLastMatchIdx = -1;
-
-
-
-
-
-
-
-      for (let i = 0; i <= flatTranscriptWords.length - Math.min(N, flatTranscriptWords.length); i++) {
-
-
-
-
-
-
-
-        let score = 0;
-
-
-
-
-
-
-
-        let firstMatchIdxInWindow = -1;
-
-
-
-
-
-
-
-        let lastMatchIdxInWindow = -1;
-
-
-
-
-
-
-
-        const matchedTargetIndices = new Set<number>();
-
-
-
-
-
-
-
-        const windowWords = flatTranscriptWords.slice(i, i + W);
-
-
-
-
-
-
-
-        windowWords.forEach((w, twIdx) => {
-
-
-
-
-
-
-
-          const cleanTw = w.clean;
-
-
-
-
-
-
-
-          for (let tIdx = 0; tIdx < targetWords.length; tIdx++) {
-
-
-
-
-
-
-
-            if (!matchedTargetIndices.has(tIdx) && matchWords(targetWords[tIdx], cleanTw)) {
-
-
-
-
-
-
-
-              score += targetWeights[tIdx];
-
-
-
-
-
-
-
-              matchedTargetIndices.add(tIdx);
-
-
-
-
-
-
-
-              if (firstMatchIdxInWindow === -1) {
-
-
-
-
-
-
-
-                firstMatchIdxInWindow = twIdx;
-
-
-
-
-
-
-
-              }
-
-
-
-
-
-
-
-              lastMatchIdxInWindow = twIdx;
-
-
-
-
-
-
-
-              break;
-
-
-
-
-
-
-
-            }
-
-
-
-
-
-
-
-          }
-
-
-
-
-
-
-
-        });
-
-
-
-
-
-
-
-        const currentFirstAbs = i + firstMatchIdxInWindow;
-
-
-
-
-
-
-
-        const currentLastAbs = i + lastMatchIdxInWindow;
-
-
-
-
-
-
-
-        const currentSpan = currentLastAbs - currentFirstAbs;
-
-
-
-
-
-
-
-        const bestSpan = bestLastMatchIdx - bestFirstMatchIdx;
-
-
-
-
-
-
-
-        if (score > bestScore || (score === bestScore && score > 0 && firstMatchIdxInWindow !== -1 && (bestFirstMatchIdx === -1 || currentSpan < bestSpan))) {
-
-
-
-
-
-
-
-          bestScore = score;
-
-
-
-
-
-
-
-          bestFirstMatchIdx = currentFirstAbs;
-
-
-
-
-
-
-
-          bestLastMatchIdx = currentLastAbs;
-
-
-
-
-
-
-
+      const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
+      if (blockText) {
+        const key = narrationCacheKey(blockNum, blockText);
+        if (!cache[key]) {
+          const hit = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+          if (hit) cache[key] = hit;
         }
-
-
-
-
-
-
-
       }
-
-
-
-
-
-
-
-      const threshold = Math.max(2, Math.min(11, Math.floor(maxPossibleScore * 0.5)));
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-
-      if (bestScore >= threshold && bestFirstMatchIdx !== -1 && bestLastMatchIdx !== -1) {
-
-
-
-
-
-
-
-        const start = flatTranscriptWords[bestFirstMatchIdx].start;
-
-
-
-
-
-
-
-        const end = flatTranscriptWords[bestLastMatchIdx].end;
-
-
-
-
-
-
-
-        cache[narrationText] = {
-
-
-
-
-
-
-
-          start: start,
-
-
-
-
-
-
-
-          end: end,
-
-
-
-
-
-
-
-          duration: end - start,
-
-
-
-
-
-
-
-          matchedWords: bestScore,
-
-
-
-
-
-
-
-          totalWords: maxPossibleScore,
-
-
-
-
-
-
-
-          bestFirstMatchIdx: bestFirstMatchIdx,
-
-
-
-
-
-
-
-          bestLastMatchIdx: bestLastMatchIdx
-
-
-
-
-
-
-
-        };
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
     });
-
-
-
-
-
-
 
     return cache;
-
-
-
-
-
-
-
-  }, [flatTranscriptWords, narrationTextsListString]);
+  }, [flatTranscriptWords, narrationTextsListString, config, status, storyboardData?.visual_prompts]);
 
 
 
@@ -9744,15 +8988,11 @@ export default function App() {
 
 
   const findNarrationTimestamps = (narrationText: string, blockNum?: number) => {
-    if (!narrationText) return null;
-    if (blockNum !== undefined) {
-      const cacheKey = narrationCacheKey(blockNum, narrationText);
-      if (narrationMatchesCache[cacheKey]) return narrationMatchesCache[cacheKey];
-      const bounds = resolveBlockTimeBounds(status, blockNum);
-      const hit = findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
-      if (hit) return hit;
-    }
-    return narrationMatchesCache[narrationText] || null;
+    if (!narrationText || blockNum === undefined) return null;
+    const cacheKey = narrationCacheKey(blockNum, narrationText);
+    if (narrationMatchesCache[cacheKey]) return narrationMatchesCache[cacheKey];
+    const bounds = resolveBlockTimeBounds(status, blockNum);
+    return findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
   };
 
 
@@ -11169,6 +10409,29 @@ export default function App() {
 
 
 
+
+  const splitBlockNarrationAmongAssets = (blockKey: string) => {
+    if (!config?.timeline_assets?.[blockKey]?.length) return;
+    const assets = config.timeline_assets[blockKey];
+    if (assets.length <= 1) {
+      toast.info('Bloco com 1 asset — narração já é única.');
+      return;
+    }
+    const ctx = buildNarrationSyncContext();
+    const full = resolveBlockNarrationText(ctx, parseInt(blockKey, 10));
+    if (!full.trim()) {
+      toast.error('Sem texto de narração neste bloco.');
+      return;
+    }
+    const nextAssets = applySplitNarrationToBlockAssets(ctx, blockKey);
+    const updatedConfig = {
+      ...config,
+      timeline_assets: { ...config.timeline_assets, [blockKey]: nextAssets },
+    };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
+    toast.success(`Narração dividida entre ${nextAssets.length} assets do bloco ${blockKey}.`);
+  };
 
   const alignAllBlocksToSpeech = () => {
 
@@ -18831,21 +18094,16 @@ export default function App() {
 
 
                                 {status?.has_narration && (
-
-
-
-
-
-
-
                                   <button
-
-
-
-
-
-
-
+                                    onClick={() => splitBlockNarrationAmongAssets(blockKey)}
+                                    className="bg-violet-950 border border-violet-900/50 hover:bg-violet-900 hover:border-violet-800 text-violet-300 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                                    title="Divide o texto do bloco proporcionalmente entre os assets (não altera arquivos nem ordem)"
+                                  >
+                                    <Layers className="w-3.5 h-3.5" /> Dividir narração
+                                  </button>
+                                )}
+                                {status?.has_narration && (
+                                  <button
                                     onClick={() => alignBlockAssetsToSpeech(blockKey)}
 
 
