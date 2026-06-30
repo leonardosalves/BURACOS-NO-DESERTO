@@ -1,88 +1,96 @@
-> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form|Viral Short Form]] · [[SKILLS]]
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/ugc-scriptwriter|UGC]] · [[skills/viral-hooks|Hooks]] · [[skills/viral-youtube-shorts|YouTube Shorts]] · [[SKILLS]]
 
 ---
 name: viral-short-form
 description: |
-  Framework viral para Shorts/TikTok/Reels — curadoria de histórias, 8 tipos de gancho, wow-facts e power-ups.
-  Adaptado do workflow n8n de Lucas Walter (1.8M+ views IG). Use ao gerar ideias, hooks e roteiros Short no Lumiera.
-  Triggers: viral, short form, gancho, hook angle, wow-facts, TikTok script, Reels, n8n script.
+  Framework viral para Shorts/TikTok/Reels — curadoria, 10 arquétipos de gancho, retenção e power-ups.
+  Lumiera: integrado em scriptQuality.js (VIRAL_SHORT_FORM_REINFORCEMENT). Referências Vyral em references/.
+  Triggers: viral, short form, gancho, hook, wow-facts, TikTok, Reels, listicle Short, retenção.
+license: MIT
+metadata:
+  lumiera: true
+  sources: [vyralcontent/content-skills, lucaswalter/n8n-ai-workflows]
 ---
 
 # Viral Short-Form (Lumiera)
 
-Base: [Reddit r/n8n — AI automation for viral scripts](https://www.reddit.com/r/n8n/comments/1loafvx/) + [GitHub workflow](https://github.com/lucaswalter/n8n-ai-workflows/blob/main/short_form_video_script_generator.json).
+Umbrella skill para roteiros curtos. Combina:
 
-Integrado em `scriptQuality.js` como `VIRAL_SHORT_FORM_REINFORCEMENT` e `buildViralIdeasAddendum()`.
+- **Vyral** `content-skills` (referências em `references/` — hooks, retention, formats)
+- **n8n Lucas Walter** (1.8M+ views) — já em `scriptQuality.js`
+- **Regras Lumiera** — gancho limpo 1.5s, UGC, fechamento declarativo, NotebookLM
 
-## Curadoria (escolha 1 por vídeo)
+## Princípios (Lumiera)
 
-| Categoria | Quando usar |
-|-----------|-------------|
+1. **Saves e conclusão > views** — otimize para “salvaria / assistiria de novo”.
+2. **6–10 ganchos** em arquétipos diferentes — nunca um só.
+3. **Específico > inteligente** — números, nomes, datas.
+4. **Gancho anuncia payoff real** — sem clickbait que o roteiro não entrega.
+5. **Fechamento declarativo** (skill `ugc-scriptwriter`) — sem “comenta aí”.
+
+## Curadoria (1 categoria por vídeo)
+
+| ID | Quando |
+|----|--------|
 | impactful | Consequência real na vida das pessoas |
 | practical | Dá para aplicar hoje |
 | provocative | Desafia crença comum — com fatos |
-| astonishing | Dado ou imagem que parece impossível |
+| astonishing | Dado que parece impossível |
 
-**Descartar:** ad-driven, puramente político, sem substância factual.
+Descartar: ad-driven, política vazia, sem substância factual.
 
-## 8 tipos de gancho (≤10 palavras)
+## Workflow Lumiera
 
-| ID | Tipo | Exemplo PT-BR |
-|----|------|---------------|
-| question | Pergunta | "Por que ninguém fala disso?" |
-| shock | Choque | "Isso quase derrubou a Boeing." |
-| problem_solution | Problema/Solução | "A janela quadrada matava passageiros." |
-| before_after | Antes/Depois | "Antes: quadrado. Depois: oval." |
-| breaking | Urgência | "Em 1985, a regra mudou de um dia pro outro." |
-| challenge | Desafio | "Adivinha qual avião ainda voa com janela quadrada." |
-| secret | Segredo leve | "A FAA escondeu o relatório por anos." |
-| personal | Impacto pessoal | "Você já sentou ao lado disso sem saber." |
+1. **Ideação** — Creator: `hook_candidates`, `viral_category`, `wow_facts_preview`
+2. **Pesquisa** — NotebookLM + web (fatos verificáveis)
+3. **Ganchos** — 6–10 rotulados por arquétipo → `references/hooks.md`
+4. **Roteiro** — hook → escalation → payoff → mic drop (30–50s, 80–130 palavras)
+5. **Visual** — gancho limpo 1.5s sem overlay informativo (`preRenderAdvice`)
+6. **Humanizar** — skill `ugc-scriptwriter` + `sanitizeLameEndingQuestions()`
 
-Regras: voz ativa, gatilho emocional, número quando couber. O gancho **anuncia** o payoff.
-
-## Estrutura 30–50s (Lumiera: 80–130 palavras)
+## Estrutura 30–50s
 
 ```
-1. Gancho (≤10 palavras)
-2. Uma frase de contexto
-3. 3–5 wow-facts (números, datas, analogias)
-4. Por que importa / risco hoje (1–2 frases)
-5. Fechamento declarativo (mic drop)
+1. Gancho (≤10 palavras, frame 1)
+2. Contexto (1 frase)
+3. 3–5 wow-facts
+4. Stakes / por que importa hoje
+5. Fechamento declarativo
 ```
 
 ## Power-ups (1–2 por roteiro)
 
-- **Authority bump** — cite fonte/órgão em 1 frase
-- **Hook spice** — número + consequência no gancho
-- **Then-vs-now** — contraste temporal
-- **Stat escalation** — cada fato sobe a aposta
-- **Real-world fallout** — "hoje isso significa que..."
-- **Zoom-out** — liga micro ao macro no final
-- **Rhythm check** — frases de 3–5 palavras alternadas com explicação
+Authority bump · Hook spice · Then-vs-now · Stat escalation · Real-world fallout · Zoom-out · Rhythm check
 
-## Processo de ideação (3 passos)
+## 8 tipos Lumiera (mapeamento n8n)
 
-1. Esboçar 3 ganchos candidatos (`hook_candidates`)
-2. Escolher o melhor (`hook_angle` + `hooks`)
-3. Planejar wow-facts verificáveis (`wow_facts_preview`)
+question · shock · problem_solution · before_after · breaking · challenge · secret · personal
 
-## Fechamento — regra Lumiera
+Ver também **10 arquétipos Vyral** em `references/hooks.md` (curiosity gap, withhold, contrarian, etc.).
 
-Combina com skill `ugc-scriptwriter`:
+## Referências locais (carregar sob demanda)
 
-| Permitido | Proibido |
-|-----------|----------|
-| Mic drop declarativo | "Você prefere…?" |
-| Pergunta com stakes reais no tema | "Comenta aí" / "O que achou?" |
-| Consequência moderna factual | Pergunta binária sem payoff |
+- `references/hooks.md` — arquétipos e anti-patterns
+- `references/retention.md` — 3 modos de falha, escalation, payoff
+- `references/formats.md` — listicle, demo, storytime
+- `references/platforms.md` — TikTok / Reels / Shorts
+- `assets/script-template.md` — esqueleto de roteiro
+- `assets/hook-checklist.md` — pass/fail rápido
 
-**Bom:** "Por isso toda janela de avião hoje é oval."
+## Código Lumiera
 
-**Ruim:** "Você prefere voar na janela redonda?"
+- `dashboard-qanat/backend/scriptQuality.js` — `VIRAL_SHORT_FORM_REINFORCEMENT`, `buildViralIdeasAddendum()`
+- `buildNarrationOnlyPrompt()` — fase narração Shorts
+- `videoProEnhancements.js` — gancho limpo, pattern interrupt
 
-## Workflow Lumiera
+## Skills irmãs
 
-1. Script Master → ideias com `viral_category`, `hook_angle`, `hooks`
-2. Pesquisa web + NotebookLM → fatos verificáveis
-3. Fase 1 narração → framework viral + UGC
-4. `sanitizeLameEndingQuestions()` remove finais fracos automaticamente
+- [[skills/viral-hooks|viral-hooks]] — só os primeiros 1–3s
+- [[skills/viral-youtube-shorts|viral-youtube-shorts]] — VVSA, funil Short→Longo
+- [[skills/ugc-scriptwriter|ugc-scriptwriter]] — voz falada PT-BR
+
+## Fontes externas
+
+- [vyralcontent/content-skills](https://github.com/vyralcontent/content-skills) (MIT)
+- [awesome-agent-skills](https://github.com/heilcheng/awesome-agent-skills) — índice em [[skills-registry-external]]
+- MCP Market: `viral-short-form-video-master` ≈ pacote Vyral short-form

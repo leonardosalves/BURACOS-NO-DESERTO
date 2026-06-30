@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/lumiera-ops|lumiera ops]] · [[SKILLS]]
+
 ---
 name: lumiera-ops
 description: |

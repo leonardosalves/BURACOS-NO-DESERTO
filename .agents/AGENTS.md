@@ -42,5 +42,10 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/hyperframes|HyperFrames]]
 - [[skills/remotion_docs|Remotion Docs]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
-- [[skills/viral-short-form|Viral Short Form]]
+- [[skills/viral-short-form|Viral Short Form]] (+ `references/` Vyral)
+- [[skills/viral-hooks|Viral Hooks]] — ganchos 1–3s
+- [[skills/viral-youtube-shorts|YouTube Shorts]] — VVSA, funil
+- [[skills/youtube-seo|YouTube SEO]] — metadados e upload
+- [[skills/youtube-thumbnail|YouTube Thumbnail]] — capas CTR / Canva
+- [[skills/skills-registry-external|Registro skills externas]] — awesome-agent-skills, skillsmp
 - [[skills/lumiera-ops|Lumiera Ops — commit + reiniciar servidores]]
