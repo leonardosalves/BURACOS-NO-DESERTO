@@ -7729,7 +7729,7 @@ export default function App() {
             )}
           </div>
 
-          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-relaxed border-t border-gray-850 font-sans text-balance-safe break-words">
+          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-relaxed border-t border-zinc-800 font-sans text-balance-safe break-words">
 
             Desenvolvido por Antigravity Studio. Versão 1.2.0 • Remotion e Hyperframe Engine.
 

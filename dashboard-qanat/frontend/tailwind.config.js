@@ -7,6 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        zinc: {
+          850: '#222226',
+        },
+        gray: {
+          850: '#222226',
+        },
         gold: {
           50: '#fffbea',
           100: '#fff3c6',
