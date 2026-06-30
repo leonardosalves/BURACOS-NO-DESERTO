@@ -476,6 +476,61 @@ export function formatNotebooklmPromptBlock(research, label = "PESQUISA NOTEBOOK
   return `\n${label} (${source}):\n${research.summary}\n\nINSTRUÇÃO: Use os fatos acima para enriquecer o roteiro com detalhes verificáveis, ganchos fortes e open loops. Não invente dados que contradigam a pesquisa.\n`;
 }
 
+export function buildNotebooklmNarrationEnrichPrompt({
+  niche,
+  format,
+  ideaTitle = "",
+  rawScript,
+  notebooklmBlock,
+  blockCount,
+  isListicle = false,
+  listicleRank = 20,
+}) {
+  const listicleNote = isListicle
+    ? `\nMODO LISTICLE TOP ${listicleRank}: mantenha intro + ${listicleRank} itens + outro = ${blockCount} blocos. Um item por bloco.`
+    : "";
+
+  return `Você é roteirista brasileiro especialista em narração documental viral para YouTube.
+
+Com base na pesquisa NotebookLM abaixo, REESCREVA a narração no estilo que o NotebookLM produz: frases curtas por bloco, fatos verificáveis, gancho forte e payoff declarativo — voz falada PT-BR, sem tom de IA.
+
+FORMATO: ${format}
+NICHO: ${niche}
+TÍTULO: ${ideaTitle || niche}
+BLOCOS OBRIGATÓRIOS: ${blockCount}
+${listicleNote}
+
+${notebooklmBlock}
+
+RASCUNHO ATUAL (melhore com fatos da pesquisa — pode reescrever trechos fracos):
+${JSON.stringify(rawScript, null, 2).slice(0, 10000)}
+
+TAREFAS OBRIGATÓRIAS:
+1. Escreva a narração BLOCO A BLOCO — cada bloco = 1-4 frases curtas que soam bem em voz alta.
+2. "technical_config.script" = narração em ${blockCount} parágrafos separados por quebra dupla de linha.
+3. "technical_config.block_phrases" = início EXATO de cada bloco (4-8 palavras, todos diferentes).
+4. "narrative_script" = junção dos blocos em texto corrido contínuo (espaço entre frases, sem quebras).
+5. Incorpore fatos surpreendentes da pesquisa com números, datas e nomes das fontes.
+6. Gancho forte no bloco 1; fechamento DECLARATIVO no último — sem "comenta aí" nem perguntas vazias.
+7. Elimine clichês robóticos ("neste vídeo", "prepare-se", "incrível" sem prova).
+
+Responda APENAS JSON válido:
+{
+  "strategy": {
+    "title_main": "...",
+    "hook": "Gancho de 3 segundos",
+    "target_audience": "...",
+    "tone": "..."
+  },
+  "narrative_script": "...",
+  "narrative_script_tagged": "...",
+  "technical_config": {
+    "script": "bloco 1\\n\\nbloco 2...",
+    "block_phrases": [{"block": 1, "phrase": "início exato do bloco"}]
+  }
+}`;
+}
+
 export function buildNotebooklmImproveApplyPrompt({
   niche,
   format,
