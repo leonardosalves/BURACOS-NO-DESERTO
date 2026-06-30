@@ -1,0 +1,15 @@
+{
+  "name": "shorts-script",
+  "description": "Roteiro Short — UGC, ads, captions, estrutura viral",
+  "tasks": ["script"],
+  "formats": ["SHORT"],
+  "skills": [
+    "viral-short-form",
+    "ugc-scriptwriter",
+    "ad-concept-generator",
+    "ai-ugc-ads",
+    "viral-captions-and-ctas",
+    "viral-hooks"
+  ],
+  "instruction": "Narração UGC autêntica PT-BR, CTA declarativo (sem engagement bait). Gancho 3 camadas no bloco 1."
+}

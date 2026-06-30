@@ -112,6 +112,12 @@ type CapturedPattern = {
   increment?: number;
 };
 
+type WorkshopStaged = {
+  staged?: boolean;
+  id?: string;
+  record?: { summary?: string; skill?: string };
+};
+
 type CapturePreview = {
   action: 'capture' | 'reflect';
   score: number | null;
@@ -119,6 +125,7 @@ type CapturePreview = {
   issues: QualityIssue[];
   patterns: CapturedPattern[];
   at: string;
+  workshop?: WorkshopStaged | null;
 };
 
 type ConsolidatePromoteItem = {
@@ -326,11 +333,18 @@ export function StudioAgents({
         issues: (data.report?.issues || []).slice(0, 15),
         patterns: data.patterns || [],
         at: data.run?.at || new Date().toISOString(),
+        workshop: data.workshop || null,
       });
 
       toast.success(
         `${label} concluído — ${data.patterns?.length ?? 0} padrão(ões) registrado(s)`,
       );
+      if (data.workshop?.staged) {
+        toast(
+          `Workshop: proposta para skill "${data.workshop.record?.skill || 'estúdio'}" — revise acima`,
+          { duration: 7000, icon: '🔧' },
+        );
+      }
       await fetchStatus();
       await fetchLearnings();
     } catch (err: unknown) {
@@ -386,9 +400,52 @@ export function StudioAgents({
     }
   };
 
-  const overlayBundleSlug =
-    skillsRegistry?.skillBundleByTask?.overlay ||
-    skillsRegistry?.bundles?.find((b) => b.tasks?.includes('overlay'))?.slug;
+  const bundleMap = config.skillBundleByTask || skillsRegistry?.skillBundleByTask || {};
+
+  const bundlesForTask = (task: string, format?: 'SHORT' | 'LONG') => {
+    const list = skillsRegistry?.bundles || [];
+    return list.filter((b) => {
+      const taskOk = !b.tasks?.length || b.tasks.includes(task);
+      const fmtOk = !format || !b.formats?.length || b.formats.includes(format);
+      return taskOk && fmtOk;
+    });
+  };
+
+  const saveBundleMapping = (key: string, slug: string) => {
+    saveConfig({
+      skillBundleByTask: {
+        ...(config.skillBundleByTask || skillsRegistry?.skillBundleByTask || {}),
+        [key]: slug,
+      },
+    });
+  };
+
+  const bundleSelectRow = (
+    label: string,
+    mapKey: string,
+    task: string,
+    format?: 'SHORT' | 'LONG',
+  ) => {
+    const options = bundlesForTask(task, format);
+    const value = bundleMap[mapKey] || '';
+    return (
+      <label key={mapKey} className="flex flex-col gap-1 text-xs text-zinc-300">
+        <span className="text-zinc-500">{label}</span>
+        <select
+          value={value}
+          disabled={!!busy || options.length === 0}
+          onChange={(e) => saveBundleMapping(mapKey, e.target.value)}
+          className="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-[11px] font-mono text-zinc-200"
+        >
+          {options.map((b) => (
+            <option key={b.slug} value={b.slug}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  };
 
   const runWorkshopAction = async (id: string, action: 'apply' | 'reject') => {
     setBusy(`workshop-${action}`);
@@ -521,10 +578,15 @@ export function StudioAgents({
               <span className="text-zinc-500">Bundles </span>
               <span className="font-bold tabular-nums">{skillsRegistry.bundlesCount}</span>
             </span>
-            {overlayBundleSlug ? (
+            {bundleMap.overlay ? (
               <span className="px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-200">
                 <Package className="w-3 h-3 inline mr-1 opacity-70" />
-                overlay → <span className="font-mono">{overlayBundleSlug}</span>
+                overlay → <span className="font-mono">{bundleMap.overlay}</span>
+              </span>
+            ) : null}
+            {(skillsRegistry.pendingProposals ?? 0) > 0 ? (
+              <span className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/35 text-amber-200 animate-pulse">
+                Workshop: {skillsRegistry.pendingProposals} pendente(s)
               </span>
             ) : null}
             {skillsRegistry.skillsInAgentMode ? (
@@ -715,6 +777,12 @@ export function StudioAgents({
               <span className="text-zinc-500">Issues </span>
               <span className="font-bold text-zinc-300 tabular-nums">{capturePreview.issues.length}</span>
             </div>
+            {capturePreview.workshop?.staged ? (
+              <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200">
+                <span className="text-amber-400/90">Workshop </span>
+                <span className="font-mono text-[10px]">{capturePreview.workshop.record?.skill}</span>
+              </div>
+            ) : null}
           </div>
 
           {capturePreview.patterns.length > 0 && (
@@ -821,6 +889,19 @@ export function StudioAgents({
             className="w-16 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-center"
           />
           <span>ocorrências</span>
+        </div>
+        <div className="border-t border-zinc-800 pt-4 space-y-3">
+          <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+            Bundles por tarefa (Hermes)
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {bundleSelectRow('Overlays', 'overlay', 'overlay')}
+            {bundleSelectRow('Ideias Short', 'ideas', 'ideas', 'SHORT')}
+            {bundleSelectRow('Ideias Longo', 'ideas:LONG', 'ideas', 'LONG')}
+            {bundleSelectRow('Roteiro Short', 'script', 'script', 'SHORT')}
+            {bundleSelectRow('Roteiro Longo', 'script:LONG', 'script', 'LONG')}
+            {bundleSelectRow('Metadados / upload', 'metadata', 'metadata')}
+          </div>
         </div>
       </div>
 
