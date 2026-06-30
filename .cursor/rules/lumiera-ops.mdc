@@ -1,0 +1,55 @@
+---
+description: Operações obrigatórias Lumiera — commit automático e reinício de servidores
+alwaysApply: true
+---
+
+# Lumiera — Ops obrigatórias (SEMPRE)
+
+O agente NUNCA encerra um turno com código alterado sem executar este checklist:
+
+## 1. Commit (obrigatório)
+
+Após **qualquer** alteração em arquivos do repositório (código, regras, skills, docs do projeto):
+
+1. `git add` nos arquivos alterados pelo agente (não incluir configs locais do usuário: `config_qanat.json`, `studio_agents_config.json`, a menos que o usuário peça).
+2. `git commit` com mensagem clara em português ou inglês.
+3. Informar o hash/mensagem do commit na resposta.
+
+**Proibido:** deixar diff pendente e pedir ao usuário para commitar.
+
+## 2. Reiniciar servidores (quando necessário)
+
+Reinicie **sem o usuário pedir** quando alterar:
+
+| Área | Arquivos típicos | Ação |
+|------|------------------|------|
+| Backend | `dashboard-qanat/backend/**` | Reiniciar `node server.js` na porta **3005** |
+| Frontend (rotas/proxy) | `vite.config.ts`, `App.tsx` (API) | Reiniciar Vite na porta **5176** se mudança exigir |
+| Apenas CSS/componentes React | `frontend/src/**` | Vite hot-reload — reinício opcional |
+
+### Comandos (Windows / PowerShell)
+
+Backend:
+```powershell
+Get-NetTCPConnection -LocalPort 3005 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+Set-Location "dashboard-qanat/backend"; node server.js
+```
+
+Ou: `.\scripts\restart-backend.ps1`
+
+Frontend (se necessário):
+```powershell
+Get-NetTCPConnection -LocalPort 5176 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+Set-Location "dashboard-qanat/frontend"; npm run dev
+```
+
+## 3. Ordem de execução ao finalizar tarefa
+
+1. Implementar / corrigir
+2. Reiniciar servidores afetados (em background)
+3. Commit
+4. Resumir para o usuário (o que mudou + commit + servidores reiniciados)
+
+## 4. Leitura obrigatória
+
+Antes de trabalhar no Lumiera, ler `.agents/AGENTS.md` (seção 2 e 6).
