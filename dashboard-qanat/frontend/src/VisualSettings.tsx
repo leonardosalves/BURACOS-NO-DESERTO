@@ -26,7 +26,6 @@ export type VisualConfig = {
 type Props = {
   config: VisualConfig;
   projectKey: string;
-  savedRevision?: number;
   isShortFormat: boolean;
   isListicle: boolean;
   saving?: boolean;
@@ -102,12 +101,12 @@ function ToggleCard({
   );
 }
 
-export function VisualSettings({ config, projectKey, savedRevision = 0, isShortFormat, isListicle, saving, onSave }: Props) {
+export function VisualSettings({ config, projectKey, isShortFormat, isListicle, saving, onSave }: Props) {
   const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
 
   useEffect(() => {
     setDraft(pickVisualConfig(config));
-  }, [projectKey, savedRevision]);
+  }, [projectKey]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));
