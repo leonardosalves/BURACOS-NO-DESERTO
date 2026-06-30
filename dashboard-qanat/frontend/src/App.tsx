@@ -516,9 +516,10 @@ export default function App() {
   const [savingAiSettings, setSavingAiSettings] = useState<boolean>(false);
 
   const [geminiBrowserMode, setGeminiBrowserMode] = useState<boolean>(false);
+  const [browserChatProvider, setBrowserChatProvider] = useState<'gemini' | 'grok'>('gemini');
 
   const { setAutomation } = useGeminiBrowserBridge();
-  const resolveBrowserResponse = useGeminiBrowserResolver(setAutomation);
+  const resolveBrowserResponse = useGeminiBrowserResolver(setAutomation, browserChatProvider);
   const [geminiExtensionReady, setGeminiExtensionReady] = useState<boolean | null>(null);
   const [geminiExtensionDiag, setGeminiExtensionDiag] = useState<string>('');
   const [geminiExtensionTesting, setGeminiExtensionTesting] = useState(false);
@@ -1173,8 +1174,8 @@ export default function App() {
   ) => fetchGeminiAi(
     getProjectUrl(path),
     init,
-    { geminiBrowserMode, aiProvider, resolveBrowserResponse },
-  ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
+    { geminiBrowserMode, aiProvider, browserChatProvider, resolveBrowserResponse },
+  ), [getProjectUrl, geminiBrowserMode, aiProvider, browserChatProvider, resolveBrowserResponse]);
 
   const readApiError = async (res: Response, fallback: string) => {
     try {
@@ -1794,6 +1795,7 @@ export default function App() {
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
         setGeminiBrowserMode(!!settingsData.gemini_browser_mode);
+        setBrowserChatProvider(settingsData.browser_chat_provider === 'grok' ? 'grok' : 'gemini');
 
         setHasApiKey(
           !!settingsData.gemini_browser_mode
@@ -4462,6 +4464,7 @@ export default function App() {
           openrouter_key: openrouterKeyInput,
 
           gemini_browser_mode: geminiBrowserMode,
+          browser_chat_provider: browserChatProvider,
 })
 
       });
@@ -4485,6 +4488,7 @@ export default function App() {
         setHasEpidemicKey(!!data.has_epidemic_key);
 
         setGeminiBrowserMode(!!data.gemini_browser_mode);
+        setBrowserChatProvider(data.browser_chat_provider === 'grok' ? 'grok' : 'gemini');
 
         setHasApiKey(
           !!data.gemini_browser_mode
@@ -4680,7 +4684,7 @@ export default function App() {
     }
 
     try {
-      const useGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+      const useGeminiChrome = geminiBrowserMode;
       const { ok, data } = await postAi('/api/ai/optimize-youtube', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5317,8 +5321,11 @@ export default function App() {
 
     try {
 
-      if (geminiBrowserMode && aiProvider === 'gemini') {
-        toast.loading('Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
+      if (geminiBrowserMode) {
+        toast.loading(
+          `Gerando ideias via ${browserChatProvider === 'grok' ? 'Grok' : 'Gemini'} no navegador…`,
+          { id: 'gemini-ideas' },
+        );
       }
 
       const body = JSON.stringify({
@@ -5401,8 +5408,11 @@ export default function App() {
     setNicheInput(listNiche.trim());
 
     try {
-      if (geminiBrowserMode && aiProvider === 'gemini') {
-        toast.loading('Sugerindo rankings via Gemini no navegador…', { id: 'gemini-listicle' });
+      if (geminiBrowserMode) {
+        toast.loading(
+          `Sugerindo rankings via ${browserChatProvider === 'grok' ? 'Grok' : 'Gemini'} no navegador…`,
+          { id: 'gemini-listicle' },
+        );
       }
 
       const body = JSON.stringify({ niche: listNiche.trim(), format: formatSelector, useNotebooklm });
@@ -6288,7 +6298,7 @@ export default function App() {
     }
 
     const needsOverlayPlan = mode === 'remotion' || mode === 'remotion-pro';
-    let effectiveGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+    let effectiveGeminiChrome = geminiBrowserMode;
     let overlayPlanSucceeded = !needsOverlayPlan;
     let overlayPlanToken = '';
 
@@ -6302,7 +6312,7 @@ export default function App() {
         const settingsRes = await fetch(getProjectUrl('/api/ai/settings'));
         if (settingsRes.ok) {
           const settings = await settingsRes.json();
-          effectiveGeminiChrome = settings.ai_provider === 'gemini' && !!settings.gemini_browser_mode;
+          effectiveGeminiChrome = !!settings.gemini_browser_mode;
         }
       } catch {
         /* usa estado local */
@@ -9164,7 +9174,13 @@ export default function App() {
                     <p className="text-[10px] text-gray-400 mt-0.5">
 
                       {hasApiKey
-                        ? `Conectado via ${aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'xai' ? 'Grok / xAI' : geminiBrowserMode ? 'Gemini no Chrome' : 'Gemini API'}.`
+                        ? `Conectado via ${geminiBrowserMode
+                          ? (browserChatProvider === 'grok' ? 'Grok no Chrome' : 'Gemini no Chrome')
+                          : aiProvider === 'openrouter'
+                            ? 'OpenRouter'
+                            : aiProvider === 'xai'
+                              ? 'Grok / xAI API'
+                              : 'Gemini API'}.`
                         : 'Configure um provedor para habilitar a IA.'}
 
                     </p>
@@ -11320,19 +11336,44 @@ export default function App() {
 
                 </div>
 
-                {aiProvider === 'gemini' && (
-                  <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
+                <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-white font-cinzel flex items-center gap-2">
                           <Chrome className="w-4 h-4 text-violet-400" />
-                          Gemini no Chrome (extensão)
+                          Chat externo no Chrome (extensão)
                         </p>
                         <p className="text-[10px] text-zinc-400 leading-relaxed max-w-xl">
-                          Ativa todas as chamadas de IA via Gemini no Chrome, de forma autônoma (sem copiar/colar).
-                          Requer a extensão Lumiera em tools/lumiera-gemini-bridge — ela controla gemini.google.com na sua sessão Google.
-                          Desligado, volta a usar a API do AI Studio normalmente.
+                          Ativa metadados, overlays e agent via chat no navegador — sem copiar/colar.
+                          Requer a extensão em tools/lumiera-gemini-bridge (Gemini ou Grok).
+                          Desligado, volta a usar API (Gemini / xAI / OpenRouter).
                         </p>
+                        {geminiBrowserMode && (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setBrowserChatProvider('gemini')}
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
+                                browserChatProvider === 'gemini'
+                                  ? 'border-violet-500/60 bg-violet-500/15 text-violet-200'
+                                  : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700'
+                              }`}
+                            >
+                              Gemini (gemini.google.com)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBrowserChatProvider('grok')}
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
+                                browserChatProvider === 'grok'
+                                  ? 'border-violet-500/60 bg-violet-500/15 text-violet-200'
+                                  : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700'
+                              }`}
+                            >
+                              Grok (grok.com)
+                            </button>
+                          </div>
+                        )}
                         {geminiBrowserMode && (
                           <div className="space-y-1.5">
                             <p className={`text-[9px] ${geminiExtensionReady ? 'text-emerald-300/90' : 'text-amber-300/90'}`}>
@@ -11374,7 +11415,6 @@ export default function App() {
                       </label>
                     </div>
                   </div>
-                )}
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 

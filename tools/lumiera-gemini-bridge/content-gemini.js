@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.3.6";
+  const VERSION = "1.4.0";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
