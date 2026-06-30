@@ -236,6 +236,12 @@ export function resolveBrowserPromptOpts(title = "", prompt = "") {
   if (/planejar overlays/i.test(t) || /"overlays"\s*:\s*\[/i.test(p)) {
     return { taskType: "overlay", responseFormat: "json" };
   }
+  if (
+    /gerar (?:narra|roteiro)|creator|script master|visual_prompts|fase 2/i.test(t)
+    || /visual_prompts|"strategy"\s*:/i.test(p)
+  ) {
+    return { taskType: "script", responseFormat: "json" };
+  }
   return { taskType: "generic", responseFormat: "text" };
 }
 

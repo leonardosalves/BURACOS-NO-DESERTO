@@ -112,6 +112,9 @@ import {
   applyScriptTextQuality,
   buildNarrationOnlyPrompt,
   buildFullScriptFromNarrationPrompt,
+  buildCreatorPhase2Prompt,
+  salvageScriptJson,
+  buildDeterministicVisualPromptsFromNarration,
   buildNarrationHumanizeRepairPrompt,
   mergeHumanizedNarration,
   mergeEnrichedNarration,
@@ -6029,6 +6032,11 @@ async function parseAiJsonResponse(responseText, apiKey, contextLabel = "respost
     return parseJsonLocally(responseText);
   } catch (firstError) {
     if (!apiKey) {
+      const salvaged = salvageScriptJson(responseText);
+      if (salvaged) {
+        console.warn(`[parseAiJson] ${contextLabel}: JSON recuperado via salvage (modo navegador).`);
+        return salvaged;
+      }
       throw new Error(
         `${contextLabel}: resposta do Gemini não veio em JSON válido. `
         + "Tente de novo ou desative o modo navegador e use a API.",
@@ -9596,6 +9604,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
     phase = "full",
     approvedNarration: approvedNarrationRaw,
     approvedNarrationTagged: approvedNarrationTaggedRaw,
+    existingStrategy: existingStrategyRaw,
   } = req.body;
   const scriptPhase = phase === "narration" ? "narration" : "full";
   const approvedNarration = String(approvedNarrationRaw || "").trim();
@@ -9761,6 +9770,23 @@ app.post("/api/ai/creator/script", async (req, res) => {
     console.warn("[WebResearch] Falha:", err.message);
   }
 
+  let phase1Strategy = {};
+  const storyboardEarlyPath = path.join(projDir, "storyboard.json");
+  if (fs.existsSync(storyboardEarlyPath)) {
+    try {
+      const partial = JSON.parse(fs.readFileSync(storyboardEarlyPath, "utf8"));
+      if (partial?.strategy && typeof partial.strategy === "object") {
+        phase1Strategy = partial.strategy;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const existingStrategy =
+    existingStrategyRaw && typeof existingStrategyRaw === "object" && Object.keys(existingStrategyRaw).length
+      ? existingStrategyRaw
+      : phase1Strategy;
+
   const promptContext = {
     niche,
     format,
@@ -9781,13 +9807,14 @@ app.post("/api/ai/creator/script", async (req, res) => {
     ),
     approvedNarration,
     approvedNarrationTagged,
+    existingStrategy,
   };
 
   let promptSystem;
   if (scriptPhase === "narration") {
     promptSystem = buildNarrationOnlyPrompt(promptContext);
   } else if (approvedNarration) {
-    promptSystem = buildFullScriptFromNarrationPrompt(promptContext);
+    promptSystem = buildCreatorPhase2Prompt(promptContext);
   } else {
   promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
 
@@ -10024,13 +10051,31 @@ REGRAS FINAIS:
     });
     if (responseText == null) return;
 
-    const rawData = await parseAiJsonResponse(
-      responseText,
-      extractBrowserResponse(req.body) ? null : apiKey,
-      "Roteiro e estrategia",
-    );
+    const isBrowserResponse = !!extractBrowserResponse(req.body);
+    let rawData;
+    try {
+      rawData = await parseAiJsonResponse(
+        responseText,
+        isBrowserResponse ? null : apiKey,
+        "Roteiro e estrategia",
+      );
+    } catch (parseErr) {
+      if (scriptPhase === "full" && approvedNarration) {
+        rawData = salvageScriptJson(responseText) || {};
+        console.warn("[Creator Script] JSON fase 2 inválido — salvage/fallback:", parseErr.message);
+        if (!Object.keys(rawData).length) {
+          throw parseErr;
+        }
+      } else {
+        throw parseErr;
+      }
+    }
 
     let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
+
+    if (scriptPhase === "full" && approvedNarration && existingStrategy && Object.keys(existingStrategy).length) {
+      parsedData.strategy = { ...existingStrategy, ...(parsedData.strategy || {}) };
+    }
 
     if (isListicle && !parsedData.listicle) {
       parsedData.listicle = {
@@ -10174,6 +10219,30 @@ REGRAS FINAIS:
           console.log(`[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`);
         } catch (vpRepairErr) {
           console.warn("[Creator Script] Falha ao reparar visual_prompts na fase 2:", vpRepairErr.message);
+        }
+      }
+
+      if (needsVisualPromptsRepair(parsedData)) {
+        const deterministic = buildDeterministicVisualPromptsFromNarration(approvedNarration, {
+          blockCount: listicleBlockCount,
+          format,
+          ideaTitle: idea.title,
+        });
+        if (deterministic.length) {
+          parsedData.visual_prompts = deterministic;
+          parsedData.narrative_script = approvedNarration;
+          if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
+          if (!parsedData.technical_config?.script) {
+            parsedData.technical_config = {
+              ...(parsedData.technical_config || {}),
+              script: approvedNarration,
+              block_phrases: parsedData.technical_config?.block_phrases || [],
+              impact_texts: parsedData.technical_config?.impact_texts || [],
+              highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
+              bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
+            };
+          }
+          console.log(`[Creator Script] visual_prompts fallback determinístico (${deterministic.length} cenas).`);
         }
       }
     } else {
@@ -10322,7 +10391,13 @@ REGRAS FINAIS:
 
     }
 
-    res.status(500).json({ error: "Erro ao gerar roteiro e estratégia", details: err.message });
+    res.status(500).json({
+      error: "Erro ao gerar roteiro e estratégia",
+      details: err.message,
+      hint: /json|JSON|válido/i.test(String(err.message || ""))
+        ? "A resposta do Gemini pode ter vindo truncada. Tente de novo ou desative o modo navegador."
+        : undefined,
+    });
 
   }
 

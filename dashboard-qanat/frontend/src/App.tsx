@@ -5706,6 +5706,13 @@ export default function App() {
     phase: 'narration' | 'full',
     options?: { approvedNarration?: string; approvedNarrationTagged?: string },
   ) => {
+    const fullExtras = phase === 'full'
+      ? {
+          approvedNarration: options?.approvedNarration,
+          approvedNarrationTagged: options?.approvedNarrationTagged,
+          existingStrategy: narrationStrategy || undefined,
+        }
+      : {};
     const isCustom = ideationTab === 'custom';
     const isListicle = ideationTab === 'listicle';
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -5732,10 +5739,7 @@ export default function App() {
         project: safeProjectName,
         useNotebooklm,
         phase,
-        ...(phase === 'full' ? {
-          approvedNarration: options?.approvedNarration,
-          approvedNarrationTagged: options?.approvedNarrationTagged,
-        } : {}),
+        ...fullExtras,
       };
     }
 
@@ -5760,10 +5764,7 @@ export default function App() {
       project: safeProjectName,
       useNotebooklm,
       phase,
-      ...(phase === 'full' ? {
-        approvedNarration: options?.approvedNarration,
-        approvedNarrationTagged: options?.approvedNarrationTagged,
-      } : {}),
+      ...fullExtras,
     };
   };
 
@@ -5870,11 +5871,13 @@ export default function App() {
           : '';
         toast.success(`Roteiro completo gerado${listicleMsg}.`);
       } else {
-        toast.error(data.error || data.details || 'Erro ao gerar roteiro completo.');
+        const detail = data.details ? `: ${data.details}` : '';
+        const hint = data.hint ? ` ${data.hint}` : '';
+        toast.error(`${data.error || 'Erro ao gerar roteiro completo'}${detail}${hint}`);
       }
     } catch (err: any) {
       console.error(err);
-      toast.error('Conexão falhou ao gerar roteiro.');
+      toast.error(err.message || 'Conexão falhou ao gerar roteiro.');
     } finally {
       setCreatorLoading(false);
       setCreatorLoadingMode('idle');

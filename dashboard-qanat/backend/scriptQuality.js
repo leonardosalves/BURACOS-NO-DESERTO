@@ -1081,6 +1081,160 @@ REGRAS FINAIS:
 - visual_prompts deve cobrir TODA a narração sem lacunas e sem campos vazios.`;
 }
 
+/** Fase 2 enxuta — só montagem técnica; narração já aprovada (menor resposta = menos truncamento no Gemini browser). */
+export function buildCreatorPhase2Prompt(ctx = {}) {
+  const {
+    niche,
+    format,
+    idea = {},
+    isListicle = false,
+    listicleRank = 20,
+    listicleTopic = "",
+    rankOrder = "desc",
+    listicleBlockCount = 22,
+    approvedNarration = "",
+    approvedNarrationTagged = "",
+    existingStrategy = {},
+    notebooklmContext = "",
+    webResearchContext = "",
+    epidemicMoodPrompt = "",
+  } = ctx;
+
+  const ideaHeader = buildIdeaContextHeader({
+    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+  });
+
+  const strategySeed = existingStrategy?.title_main || existingStrategy?.hook
+    ? `\nESTRATÉGIA DA FASE 1 (reutilize e complete se faltar campo):\n${JSON.stringify(existingStrategy, null, 2).slice(0, 2500)}`
+    : "";
+
+  const taggedBlock = approvedNarrationTagged?.trim()
+    ? `\nNARRAÇÃO COM TAGS:\n"""\n${approvedNarrationTagged.trim()}\n"""`
+    : "";
+
+  return `Você é o Lumiera Script Master — FASE 2: montar roteiro técnico.
+
+${ideaHeader}
+${notebooklmContext}${webResearchContext}${strategySeed}
+
+A narração abaixo foi APROVADA — copie EXATAMENTE em narrative_script (não reescreva).
+
+NARRAÇÃO APROVADA:
+"""
+${approvedNarration.trim()}
+"""
+${taggedBlock}
+
+${buildVisualPromptsRules({ format, isListicle, listicleRank })}
+${epidemicMoodPrompt}
+
+TAREFA: Gere APENAS a estrutura técnica ancorada na narração.
+- visual_prompts: cubra 100% da narração (${format === "SHORTS" ? "5-12" : "25-50"} cenas mínimo)
+- technical_config.script: ${listicleBlockCount} parágrafos (um por bloco)
+${isListicle ? `- listicle + list_items com EXATAMENTE ${listicleRank} itens` : ""}
+
+Responda APENAS JSON válido (sem markdown) com:
+1. "strategy" (title_main, title_variations[3], hook, target_audience, tone, pinned_comment, cta)
+2. "narrative_script" (idêntico à narração aprovada)
+3. "narrative_script_tagged"
+${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, listicleRank })}
+5. "bgm_recommendations" (um por bloco)
+6. "editing_map"
+7. "hyperframe_prompt"
+${buildChecklistSchemaBlock()}
+9. "technical_config"
+${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}`;
+}
+
+export function salvageScriptJson(responseText = "") {
+  const raw = String(responseText || "").trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(extractJsonCandidateForSalvage(raw));
+  } catch {
+    /* try partial */
+  }
+  const out = {};
+  const strategyMatch = raw.match(/"strategy"\s*:\s*(\{[\s\S]*?\})\s*,\s*"(?:narrative_script|visual_prompts)"/);
+  if (strategyMatch) {
+    try {
+      out.strategy = JSON.parse(strategyMatch[1]);
+    } catch {
+      /* ignore */
+    }
+  }
+  const vpMatch = raw.match(/"visual_prompts"\s*:\s*(\[[\s\S]*)/);
+  if (vpMatch) {
+    try {
+      let arrText = vpMatch[1];
+      const open = (arrText.match(/\[/g) || []).length;
+      const close = (arrText.match(/\]/g) || []).length;
+      for (let i = 0; i < open - close; i++) arrText += "]";
+      out.visual_prompts = JSON.parse(arrText);
+    } catch {
+      /* ignore */
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function extractJsonCandidateForSalvage(text) {
+  const candidate = String(text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const start = candidate.search(/[\[{]/);
+  if (start < 0) return candidate;
+  let slice = candidate.slice(start);
+  const openBraces = (slice.match(/\{/g) || []).length - (slice.match(/\}/g) || []).length;
+  const openBrackets = (slice.match(/\[/g) || []).length - (slice.match(/\]/g) || []).length;
+  for (let i = 0; i < openBrackets; i++) slice += "]";
+  for (let i = 0; i < openBraces; i++) slice += "}";
+  return slice;
+}
+
+export function buildDeterministicVisualPromptsFromNarration(
+  approvedNarration = "",
+  { blockCount = 12, format = "LONGO", ideaTitle = "" } = {},
+) {
+  const text = String(approvedNarration || "").trim();
+  if (!text) return [];
+  const sentences = text.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter((s) => s.length > 8);
+  if (!sentences.length) {
+    return [{
+      scene: "1.1",
+      block: 1,
+      narration_text: text.slice(0, 280),
+      type: "imagem IA 2k",
+      duration: "5 segundos",
+      prompt: `Photorealistic 2k cinematic documentary scene related to ${ideaTitle || "the topic"}. Dramatic lighting, sharp detail, no text.`,
+      editor_notes: "Ken Burns zoom in",
+      stock_query: ideaTitle || "documentary",
+    }];
+  }
+  const targetScenes = format === "SHORTS" ? Math.min(12, Math.max(5, sentences.length)) : Math.min(50, Math.max(20, sentences.length));
+  const perScene = Math.max(1, Math.ceil(sentences.length / targetScenes));
+  const vps = [];
+  let block = 1;
+  let sceneInBlock = 1;
+  for (let i = 0; i < sentences.length; i += perScene) {
+    const chunk = sentences.slice(i, i + perScene).join(" ");
+    vps.push({
+      scene: `${block}.${sceneInBlock}`,
+      block,
+      narration_text: chunk,
+      type: "imagem IA 2k",
+      duration: "4 segundos",
+      prompt: `Photorealistic 2k cinematic scene illustrating: ${chunk.slice(0, 160)}. Documentary style, dramatic lighting, no text.`,
+      editor_notes: "Ken Burns zoom in",
+      stock_query: ideaTitle || "documentary scene",
+    });
+    sceneInBlock += 1;
+    if (sceneInBlock > Math.max(2, Math.ceil(blockCount / 4))) {
+      block += 1;
+      sceneInBlock = 1;
+    }
+  }
+  return vps;
+}
+
 export function buildNarrationHumanizeRepairPrompt({
   format,
   ideaTitle,
