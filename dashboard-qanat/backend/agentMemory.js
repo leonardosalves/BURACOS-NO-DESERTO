@@ -56,6 +56,16 @@ export function loadStudioAgentsConfig(workspaceDir) {
     autoCaptureOnQualityCheck: false,
     applyLearningsInAgentMode: true,
     promoteThreshold: PROMOTE_THRESHOLD,
+    skillsInAgentMode: true,
+    skillsWriteApproval: true,
+    skillAllowlist: null,
+    skillBundleByTask: {
+      overlay: "studio-overlay-agent",
+      script: "shorts-viral",
+      ideas: "shorts-viral",
+      metadata: "publish-seo",
+      default: "studio-overlay-agent",
+    },
   };
   if (!fs.existsSync(configPath)) return { ...defaults };
   try {

@@ -300,6 +300,16 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'agents-skills': {
+    title: 'Skills Hermes / OpenClaw',
+    body: (
+      <>
+        Skills em <code>.agents/skills/</code> com carregamento progressivo. Bundles em{' '}
+        <code>.agents/skill-bundles/</code> agrupam skills por tarefa (overlay, roteiro, SEO). O planejamento com
+        memória injeta o bundle ativo + aprendizados promovidos. Propostas de edição ficam no workshop até você aprovar.
+      </>
+    ),
+  },
   'overlay-timing': {
     title: 'Timing overlays IA',
     body: (

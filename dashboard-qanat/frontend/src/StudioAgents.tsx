@@ -13,6 +13,8 @@ import {
   X,
   CheckCircle2,
   AlertTriangle,
+  Layers,
+  Package,
 } from 'lucide-react';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 
@@ -20,6 +22,47 @@ type AgentConfig = {
   autoCaptureOnQualityCheck: boolean;
   applyLearningsInAgentMode: boolean;
   promoteThreshold: number;
+  skillsInAgentMode?: boolean;
+  skillsWriteApproval?: boolean;
+  skillBundleByTask?: Record<string, string>;
+};
+
+type SkillIndexItem = {
+  name: string;
+  slug: string;
+  description: string;
+  category?: string;
+  tasks?: string[];
+  formats?: string[];
+};
+
+type SkillBundle = {
+  slug: string;
+  name: string;
+  description: string;
+  skills: string[];
+  tasks?: string[];
+  formats?: string[];
+};
+
+type SkillWorkshopProposal = {
+  id: string;
+  skill: string;
+  action: string;
+  summary?: string;
+  createdAt?: string;
+};
+
+type SkillsRegistryStatus = {
+  skillsCount: number;
+  bundlesCount: number;
+  pendingProposals: number;
+  skillsInAgentMode: boolean;
+  skillsWriteApproval: boolean;
+  skillBundleByTask?: Record<string, string>;
+  skills?: SkillIndexItem[];
+  bundles?: SkillBundle[];
+  pending?: SkillWorkshopProposal[];
 };
 
 type NicheMemory = {
@@ -124,6 +167,7 @@ export function StudioAgents({
   const [learnings, setLearnings] = useState<LearningItem[]>([]);
   const [recentLogs, setRecentLogs] = useState<{ date: string; content: string }[]>([]);
   const [obsidian, setObsidian] = useState<ObsidianStatus>({ installed: false });
+  const [skillsRegistry, setSkillsRegistry] = useState<SkillsRegistryStatus | null>(null);
   const [capturePreview, setCapturePreview] = useState<CapturePreview | null>(null);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
   const [consolidatePreview, setConsolidatePreview] = useState<ConsolidatePreview | null>(null);
@@ -139,6 +183,7 @@ export function StudioAgents({
       setTotals(data.totals || totals);
       setRecentLogs(data.recentLogs || []);
       setObsidian(data.obsidian || { installed: false });
+      setSkillsRegistry(data.skills || null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro ao carregar Studio Agents');
     } finally {
@@ -315,6 +360,25 @@ export function StudioAgents({
     }
   };
 
+  const overlayBundleSlug =
+    skillsRegistry?.skillBundleByTask?.overlay ||
+    skillsRegistry?.bundles?.find((b) => b.tasks?.includes('overlay'))?.slug;
+
+  const runWorkshopAction = async (id: string, action: 'apply' | 'reject') => {
+    setBusy(`workshop-${action}`);
+    try {
+      const res = await fetch(`/api/studio-agents/skill-workshop/${id}/${action}`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Falha no workshop');
+      toast.success(action === 'apply' ? 'Skill atualizada' : 'Proposta descartada');
+      await fetchStatus();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro no workshop');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const runPlanOverlays = async () => {
     setBusy('plan-overlays');
     try {
@@ -327,7 +391,7 @@ export function StudioAgents({
       if (!res.ok) throw new Error(data.error || data.details || 'Falha no planejamento');
       toast.success(
         `${data.overlayCount ?? 0} overlays planejados${
-          data.learningsApplied ? ' com memória do estúdio' : ''
+          data.learningsApplied ? ' com memória + skills do estúdio' : ''
         }`,
       );
       await fetchStatus();
@@ -394,6 +458,90 @@ export function StudioAgents({
           )}
         </div>
       </div>
+
+      {skillsRegistry && (
+        <div className="glass-panel p-6 rounded-2xl space-y-4">
+          <SectionHeader
+            title="Skills (Hermes / OpenClaw)"
+            helpId="agents-skills"
+            icon={<Layers className="w-4 h-4 text-sky-400 shrink-0" />}
+            subtitle="Bundles carregam skills sob demanda no prompt — progressive disclosure, sem dump de todo o vault."
+          />
+          <div className="flex flex-wrap gap-3 text-xs">
+            <span className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300">
+              <span className="text-zinc-500">Skills </span>
+              <span className="font-bold tabular-nums">{skillsRegistry.skillsCount}</span>
+            </span>
+            <span className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300">
+              <span className="text-zinc-500">Bundles </span>
+              <span className="font-bold tabular-nums">{skillsRegistry.bundlesCount}</span>
+            </span>
+            {overlayBundleSlug ? (
+              <span className="px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-200">
+                <Package className="w-3 h-3 inline mr-1 opacity-70" />
+                overlay → <span className="font-mono">{overlayBundleSlug}</span>
+              </span>
+            ) : null}
+            {skillsRegistry.skillsInAgentMode ? (
+              <span className="text-emerald-400/90">Injeção ativa</span>
+            ) : (
+              <span className="text-amber-400/90">Injeção desligada</span>
+            )}
+          </div>
+          {skillsRegistry.bundles && skillsRegistry.bundles.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {skillsRegistry.bundles.map((b) => (
+                <div
+                  key={b.slug}
+                  className="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950/80 text-[11px]"
+                >
+                  <p className="font-bold text-zinc-200">{b.name}</p>
+                  <p className="text-zinc-500 mt-0.5 line-clamp-2">{b.description}</p>
+                  <p className="text-zinc-600 font-mono mt-1 truncate">{b.skills.join(' · ')}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {skillsRegistry.pending && skillsRegistry.pending.length > 0 && (
+            <div className="space-y-2 border-t border-zinc-800 pt-4">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-amber-400">
+                Workshop — {skillsRegistry.pending.length} proposta(s)
+              </p>
+              <ul className="space-y-2">
+                {skillsRegistry.pending.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5"
+                  >
+                    <span className="text-xs text-amber-100/90">
+                      <span className="font-mono text-amber-400">{p.skill}</span>
+                      {p.summary ? ` — ${p.summary}` : ` (${p.action})`}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={!!busy}
+                        onClick={() => runWorkshopAction(p.id, 'apply')}
+                        className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                      >
+                        Aplicar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!!busy}
+                        onClick={() => runWorkshopAction(p.id, 'reject')}
+                        className="px-2 py-1 rounded-lg text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700"
+                      >
+                        Rejeitar
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="glass-panel p-5 rounded-2xl">
@@ -472,7 +620,8 @@ export function StudioAgents({
         </div>
         <p className="text-[10px] text-zinc-600 leading-relaxed">
           O botão &quot;Planejar overlays&quot; grava em <code className="text-zinc-500">overlays_ai</code> como o fluxo
-          normal, mas injeta aprendizados do estúdio. O render padrão continua igual se você não usar esta aba.
+          normal, mas injeta aprendizados do estúdio e o bundle de skills (Hermes/OpenClaw). O render padrão continua
+          igual se você não usar esta aba.
         </p>
       </div>
 

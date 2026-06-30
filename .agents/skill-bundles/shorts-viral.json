@@ -1,0 +1,14 @@
+{
+  "name": "shorts-viral",
+  "description": "Roteiro Short viral — hooks, UGC, captions, ideias",
+  "tasks": ["script", "ideas"],
+  "formats": ["SHORT"],
+  "skills": [
+    "viral-short-form",
+    "viral-hooks",
+    "viral-captions-and-ctas",
+    "ugc-scriptwriter",
+    "viral-short-form-ideas"
+  ],
+  "instruction": "Priorize gancho em 3 camadas, narração UGC autêntica, CTA declarativo (sem engagement bait). Varie hook_angle entre ideias."
+}

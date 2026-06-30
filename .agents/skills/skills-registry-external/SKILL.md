@@ -28,6 +28,20 @@ description: |
 | remotion_docs | remotion-dev/remotion | Timeline Remotion |
 | epidemic_sound | REST/MCP | Trilha BGM |
 | lumiera-ops | interno | commit + reiniciar servidores |
+| studio-agents-hermes | interno (padrões Hermes/OpenClaw) | Bundles, workshop, API skills |
+
+## Hermes Agent + OpenClaw — padrões adotados
+
+| Conceito upstream | Implementação Lumiera |
+|-------------------|----------------------|
+| Hermes `skills_list` / `skill_view` | `skillsRegistry.js` + API `/api/studio-agents/skills` |
+| Hermes skill bundles | `.agents/skill-bundles/*.json` |
+| Hermes `skill_manage` + write_approval | `.agents/pending/skills/` + workshop UI |
+| OpenClaw `<workspace>/.agents/skills` | `.agents/skills/` (já usado) |
+| OpenClaw agent allowlists | `skillAllowlist` em `studio_agents_config.json` |
+| OpenClaw gating `metadata.openclaw` | `metadata.lumiera` + `formats` / `tasks` |
+
+Fontes: [Hermes skills](https://hermes-agent.nousresearch.com/docs/user-guide/features/skills) · [OpenClaw skills](https://docs.openclaw.ai/tools/skills)
 
 ## MCP Market / SkillsMP — mapeamento
 

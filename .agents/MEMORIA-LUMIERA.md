@@ -20,6 +20,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/youtube-seo|YouTube SEO]]
 - [[skills/youtube-thumbnail|Thumbnail]]
 - [[skills/skills-registry-external|Skills externas]]
+- [[skills/studio-agents-hermes|Studio Agents Hermes]]
 
 ## Memória por nicho
 - [[memory/engenharia]]

@@ -83,3 +83,16 @@ export function getDashboard(workspaceDir) {
 export function getNicheLearnings(workspaceDir, niche, task = "overlay", format = null) {
   return getLearnings(workspaceDir, { niche, task, format, limit: 12 });
 }
+
+export {
+  buildStudioAgentsPromptAddendum,
+  buildSkillsPromptAddendum,
+  getSkillsRegistryStatus,
+  listSkills,
+  listSkillBundles,
+  viewSkill,
+  listSkillWorkshopProposals,
+  applyWorkshopProposalById,
+  rejectWorkshopProposal,
+  ensureDefaultSkillBundles,
+} from "./skillsRegistry.js";
