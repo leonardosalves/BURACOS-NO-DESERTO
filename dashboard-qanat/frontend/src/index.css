@@ -91,7 +91,7 @@
 
   .lumiera-sidebar {
     @apply bg-[#0a0a0c] flex flex-col shrink-0 min-h-0 overflow-hidden;
-    @apply w-full md:w-56 lg:w-60 border-gray-850 md:border-r max-md:border-b max-md:max-h-[40vh];
+    @apply w-full md:w-56 lg:w-60 border-zinc-800 md:border-r max-md:border-b max-md:max-h-[40vh];
   }
 
   .lumiera-main {
