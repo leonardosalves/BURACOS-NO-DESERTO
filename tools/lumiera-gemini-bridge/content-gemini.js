@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.1";
+  const VERSION = "1.4.2";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -451,7 +451,7 @@
     if (isAcceptableMetadata(lastChance, beforeTexts, metadataSession)) return lastChance;
 
     throw new Error(
-      "Timeout aguardando metadados do Gemini (150s). "
+      "Timeout aguardando metadados do Gemini (210s). "
       + "A resposta apareceu em gemini.google.com? Recarregue a aba (F5) e tente de novo.",
     );
   }
@@ -481,7 +481,7 @@
     if (fallback && fallback.length > 40) return fallback;
 
     throw new Error(
-      "Timeout aguardando JSON de overlays do Gemini (130s). "
+      "Timeout aguardando JSON de overlays do Gemini (180s). "
       + "Confira se a resposta apareceu em gemini.google.com.",
     );
   }
@@ -969,7 +969,7 @@
       );
     }
 
-    const deadline = Date.now() + (expectMetadata ? 150000 : 130000);
+    const deadline = Date.now() + (expectMetadata ? 210000 : 180000);
 
     if (expectMetadata) {
       return waitForMetadataResponse(before, beforeMessages, submitStartedAt, deadline, metadataSession);
@@ -995,7 +995,7 @@
       }
     }
     if (lastCandidate.length >= 40) return lastCandidate;
-    throw new Error("Timeout aguardando resposta do Gemini (130s).");
+    throw new Error("Timeout aguardando resposta do Gemini (180s).");
   }
 
   globalThis.__lumieraGeminiMessageHandler = (message, _sender, sendResponse) => {

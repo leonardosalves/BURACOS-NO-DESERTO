@@ -32,19 +32,21 @@ export function useGeminiBrowserResolver(
       || /LUMIERA_TASK:overlay/i.test(prompt)
       || /"overlays"\s*:\s*\[/i.test(prompt);
     const hint = isMetadata
-      ? `Metadados em texto/markdown (~30–90s). Não feche ${site}.`
+      ? `Metadados em texto/markdown (até ~3 min). Não feche ${site}.`
       : isOverlay
-        ? `Overlays em JSON (~30–90s). Não feche ${site}.`
-        : `Consultando ${site}…`;
+        ? `Overlays em JSON (até ~3 min). Não feche ${site}.`
+        : `Consultando ${site} (até ~3 min)…`;
     setAutomation?.({ active: true, title, hint, provider });
     try {
       return await queryBrowserWithRetry(opts.prompt, {
         provider,
-        attempts: 1,
-        onAttempt: () => setAutomation?.({
+        title,
+        attempts: 3,
+        onAttempt: (attempt) => setAutomation?.({
           active: true,
           title,
-          hint,
+          hint: attempt > 1 ? `${hint} Tentativa ${attempt}…` : hint,
+          attempt,
           provider,
         }),
       });

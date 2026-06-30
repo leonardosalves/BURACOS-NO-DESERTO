@@ -124,21 +124,25 @@ export async function isGeminiExtensionAvailable(force = false): Promise<boolean
   }
 }
 
-export function estimateBrowserQueryTimeoutMs(prompt: string): number {
+export function estimateBrowserQueryTimeoutMs(prompt: string, title = ''): number {
+  const text = `${String(prompt || '')}\n${String(title || '')}`;
   const len = String(prompt || '').length;
-  if (/LUMIERA_TASK:metadata/i.test(prompt)) return 150000;
-  if (len > 6000 || /"overlays"\s*:/i.test(prompt) || /LUMIERA_TASK:overlay/i.test(prompt)) return 130000;
-  if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(prompt)) return 150000;
-  if (len > 3000) return 110000;
-  return 95000;
+  // Margem acima do deadline da extensão (evita timeout no Lumiera antes do Gemini terminar).
+  if (/LUMIERA_TASK:metadata/i.test(text)) return 240000;
+  if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(text)) return 240000;
+  if (len > 6000 || /"overlays"\s*:/i.test(text) || /LUMIERA_TASK:overlay/i.test(text)) return 200000;
+  if (/overlay/i.test(title)) return 200000;
+  if (len > 3000) return 180000;
+  return 180000;
 }
 
 export async function queryBrowserViaExtension(
   prompt: string,
   provider: BrowserChatProvider = 'gemini',
+  title = '',
 ): Promise<string> {
   const normalized = normalizeProvider(provider);
-  const timeoutMs = estimateBrowserQueryTimeoutMs(prompt);
+  const timeoutMs = estimateBrowserQueryTimeoutMs(prompt, title);
   const resp = await postToBridge<BridgeMessage>(
     { type: 'LUMIERA_BROWSER_QUERY', prompt, provider: normalized },
     timeoutMs,
@@ -150,12 +154,13 @@ export async function queryBrowserWithRetry(
   prompt: string,
   opts: {
     provider?: BrowserChatProvider;
+    title?: string;
     attempts?: number;
     onAttempt?: (n: number) => void;
   } = {},
 ): Promise<string> {
   const provider = normalizeProvider(opts.provider);
-  const attempts = opts.attempts ?? 2;
+  const attempts = opts.attempts ?? 3;
   let lastErr: Error | null = null;
 
   for (let i = 0; i < attempts; i += 1) {
@@ -168,7 +173,7 @@ export async function queryBrowserWithRetry(
       if (!ok) throw new Error('Extensão não respondeu. Recarregue extensão + F5.');
     }
     try {
-      return await queryBrowserViaExtension(prompt, provider);
+      return await queryBrowserViaExtension(prompt, provider, opts.title || '');
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       extensionCached = false;
