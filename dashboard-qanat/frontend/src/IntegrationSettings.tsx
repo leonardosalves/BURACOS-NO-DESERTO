@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plug } from 'lucide-react';
 import { SettingHelpTip } from './SettingHelpTip';
+import { SectionHeader } from './SectionHeader';
 
 type UploadStatus = {
   youtube: any;
@@ -58,13 +59,16 @@ export function IntegrationSettings({
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-5">
       <div className="border-b border-zinc-900 pb-4">
-        <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-          <Plug className="w-4 h-4 text-gold-500" />
-          INTEGRAÇÕES DE PUBLICAÇÃO
-        </h3>
-        <p className="text-xs text-gray-400 mt-1">
-          OAuth e credenciais para publicar e exportar. Toque no <span className="text-gold-400/90">?</span> de cada plataforma.
-        </p>
+        <SectionHeader
+          title="INTEGRAÇÕES DE PUBLICAÇÃO"
+          helpId="settings-integracoes"
+          icon={<Plug className="w-4 h-4 text-gold-500" />}
+          subtitle={(
+            <>
+              OAuth e credenciais para publicar e exportar. Toque no <span className="text-gold-400/90">?</span> de cada plataforma.
+            </>
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

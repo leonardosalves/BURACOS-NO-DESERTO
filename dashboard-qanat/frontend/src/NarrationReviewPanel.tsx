@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw, Sparkles, Check, Mic } from 'lucide-react';
+import { SectionHeader } from './SectionHeader';
 
 type Props = {
   narrativeScript: string;
@@ -33,12 +34,11 @@ export function NarrationReviewPanel({
           <Mic className="w-4 h-4 text-gold-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">
-            Revise a narração antes do roteiro
-          </h4>
-          <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-            Edite o texto até soar natural. Só depois de aprovar a IA monta os blocos, prompts visuais e estratégia completa.
-          </p>
+          <SectionHeader
+            title="Revise a narração antes do roteiro"
+            helpId="narration-review"
+            subtitle="Edite o texto até soar natural. Só depois de aprovar a IA monta os blocos, prompts visuais e estratégia completa."
+          />
           {(strategyTitle || strategyHook) && (
             <div className="mt-2 text-[10px] text-zinc-500 space-y-0.5">
               {strategyTitle && <p><span className="text-zinc-600 uppercase font-bold">Título:</span> {strategyTitle}</p>}

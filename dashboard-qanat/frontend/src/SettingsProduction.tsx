@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Clapperboard, Save } from 'lucide-react';
 import { SettingLabel } from './SettingHelpTip';
+import { SectionHeader } from './SectionHeader';
 import {
   applyProductionPatch,
   pickProductionConfig,
@@ -70,12 +71,16 @@ export function SettingsProduction({
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-5">
       <div className="border-b border-zinc-900 pb-4">
-        <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-          <Clapperboard className="w-4 h-4 text-gold-500" /> PRODUÇÃO DO PROJETO
-        </h3>
-        <p className="text-xs text-gray-400 mt-1">
-          Mix de áudio, ritmo de overlays e orçamento da IA — salvo em <span className="text-zinc-300">config_qanat.json</span> por projeto.
-        </p>
+        <SectionHeader
+          title="PRODUÇÃO DO PROJETO"
+          helpId="settings-producao"
+          icon={<Clapperboard className="w-4 h-4 text-gold-500" />}
+          subtitle={(
+            <>
+              Mix de áudio, ritmo de overlays e orçamento da IA — salvo em <span className="text-zinc-300">config_qanat.json</span> por projeto.
+            </>
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

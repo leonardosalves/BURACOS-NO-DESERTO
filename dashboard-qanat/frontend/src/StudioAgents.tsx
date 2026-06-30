@@ -10,6 +10,7 @@ import {
   BookOpen,
   Zap,
 } from 'lucide-react';
+import { SectionHeader, SectionLabel } from './SectionHeader';
 
 type AgentConfig = {
   autoCaptureOnQualityCheck: boolean;
@@ -138,16 +139,13 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
   return (
     <div className="space-y-8 animate-fade-in max-w-5xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-cinzel text-2xl font-bold text-white tracking-wide flex items-center gap-2">
-            <Bot className="w-7 h-7 text-gold-500" />
-            Studio Agents
-          </h2>
-          <p className="text-sm text-zinc-400 mt-2 font-sans max-w-xl leading-relaxed">
-            Área separada do fluxo normal. Captura padrões de qualidade por projeto, consolida aprendizados
-            por nicho e aplica memória só quando você usa as ações desta aba.
-          </p>
-        </div>
+        <SectionHeader
+          title="Studio Agents"
+          helpId="agents-overview"
+          size="lg"
+          icon={<Bot className="w-7 h-7 text-gold-500 shrink-0" />}
+          subtitle="Área separada do fluxo normal. Captura padrões de qualidade por projeto, consolida aprendizados por nicho e aplica memória só quando você usa as ações desta aba."
+        />
         <button
           type="button"
           onClick={() => { fetchStatus(); fetchLearnings(); }}
@@ -162,7 +160,9 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
         <div className="glass-panel p-5 rounded-2xl">
           <div className="flex items-center gap-2 text-gold-500 mb-2">
             <Database className="w-4 h-4" />
-            <span className="text-[10px] uppercase tracking-widest font-bold">Nichos</span>
+            <SectionLabel helpId="agents-stats" className="text-[10px] uppercase tracking-widest font-bold text-gold-500">
+              Nichos
+            </SectionLabel>
           </div>
           <p className="text-3xl font-bold text-white tabular-nums">{totals.nicheFiles}</p>
         </div>
@@ -183,10 +183,11 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
       </div>
 
       <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <h3 className="font-cinzel text-sm font-bold text-white flex items-center gap-2">
-          <Zap className="w-4 h-4 text-gold-500" />
-          Ações — projeto ativo: {activeProject}
-        </h3>
+        <SectionHeader
+          title={`Ações — projeto ativo: ${activeProject}`}
+          helpId="agents-actions"
+          icon={<Zap className="w-4 h-4 text-gold-500" />}
+        />
         <p className="text-[11px] text-zinc-500">
           Nicho detectado: <span className="text-zinc-300">{projectNiche}</span>
         </p>
@@ -232,7 +233,7 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
       </div>
 
       <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <h3 className="font-cinzel text-sm font-bold text-white">Configuração</h3>
+        <SectionHeader title="Configuração" helpId="agents-config" />
         <label className="flex items-center gap-3 text-xs text-zinc-300 cursor-pointer">
           <input
             type="checkbox"
@@ -269,10 +270,11 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
       </div>
 
       <div className="glass-panel p-6 rounded-2xl space-y-3">
-        <h3 className="font-cinzel text-sm font-bold text-white flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-gold-500" />
-          Aprendizados para &quot;{projectNiche}&quot;
-        </h3>
+        <SectionHeader
+          title={`Aprendizados para "${projectNiche}"`}
+          helpId="agents-learnings"
+          icon={<BookOpen className="w-4 h-4 text-gold-500" />}
+        />
         {learnings.length === 0 ? (
           <p className="text-xs text-zinc-500">
             Nenhum aprendizado ainda. Capture qualidade de alguns renders e consolide a memória.
@@ -297,7 +299,7 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
 
       {niches.length > 0 && (
         <div className="glass-panel p-6 rounded-2xl space-y-3">
-          <h3 className="font-cinzel text-sm font-bold text-white">Memória por nicho</h3>
+          <SectionHeader title="Memória por nicho" helpId="agents-niche-memory" />
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
@@ -325,7 +327,7 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
 
       {recentLogs.length > 0 && (
         <div className="glass-panel p-6 rounded-2xl space-y-2">
-          <h3 className="font-cinzel text-sm font-bold text-white">Log recente</h3>
+          <SectionHeader title="Log recente" helpId="agents-log" />
           {recentLogs.slice(0, 2).map((log) => (
             <pre
               key={log.date}

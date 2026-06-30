@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { RefreshCw, Sparkles, Lightbulb } from 'lucide-react';
+import { SectionHeader } from './SectionHeader';
 import { ListicleRankingIdeas, type ListicleIdeasResponse, type ListicleRankingIdea } from './ListicleRankingIdeas';
 import { buildHudPreviewItems, ListicleHudPreview, type HudPreviewListItem } from './ListicleHudPreview';
 
@@ -130,10 +131,11 @@ export function ListicleCreatorStep({
   return (
     <div className="space-y-6 max-w-3xl mx-auto font-sans">
       <div>
-        <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Top N — Rankings por Nicho</h4>
-        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-          Escolha um nicho e a IA sugere rankings interessantes (subestimados, controversos, impacto diário…). Selecione um, gere a narração, revise e só então monte o roteiro completo.
-        </p>
+        <SectionHeader
+          title="Top N — Rankings por Nicho"
+          helpId="creator-listicle"
+          subtitle="Escolha um nicho e a IA sugere rankings interessantes (subestimados, controversos, impacto diário…). Selecione um, gere a narração, revise e só então monte o roteiro completo."
+        />
       </div>
 
       <div className="space-y-2">
