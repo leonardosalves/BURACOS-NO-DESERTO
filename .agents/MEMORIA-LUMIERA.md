@@ -10,14 +10,16 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]
 
 ## Skills
+- [[skills/ad-concept-generator|ad concept generator]]
+- [[skills/ai-ugc-ads|ai ugc ads]]
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/hyperframes|HyperFrames]]
 - [[skills/lumiera-ops|lumiera ops]]
+- [[skills/remotion-best-practices|remotion best practices]]
 - [[skills/remotion-render|remotion render]]
 - [[skills/remotion_docs|Remotion Docs]]
-- [[skills/remotion-render|remotion render]]
-- [[skills/video-marketing|video marketing]]
 - [[skills/skills-registry-external|skills registry external]]
+- [[skills/social-publisher|social publisher]]
 - [[skills/studio-agents-hermes|studio agents hermes]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
 - [[skills/video-marketing|video marketing]]
@@ -31,6 +33,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 
 ## Memória por nicho
 - [[memory/engenharia]]
+- [[memory/historia]]
 
 ## Logs recentes
 - [[agent_runs/2026-06-30]]
@@ -44,4 +47,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-06-30T22:48:37.372Z
+atualizado: 2026-06-30T23:05:36.419Z

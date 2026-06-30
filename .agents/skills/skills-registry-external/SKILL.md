@@ -31,6 +31,10 @@ description: |
 | studio-agents-hermes | interno (padrões Hermes/OpenClaw) | Bundles, workshop, API skills |
 | video-marketing | kostja94/marketing-skills (via VoltAgent) | Creator ideias/roteiro, estratégia short+long |
 | remotion-render | inference-sh/skills (adaptado Lumiera) | LumieraTimeline, render local PRO |
+| remotion-best-practices | remotion-dev/skills | Bundle `long-documentary`, rules/ oficiais |
+| social-publisher | claude-office-skills/skills | Bundle `publish-seo`, `upload_metadata` |
+| ai-ugc-ads | chadboyda/agent-gtm-skills | Bundle `shorts-viral`, ads UGC Shorts |
+| ad-concept-generator | motion-creative/skills | Bundle `shorts-viral`, conceito antes do roteiro |
 
 ## Hermes Agent + OpenClaw — padrões adotados
 
@@ -90,10 +94,12 @@ Catálogo curado: [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/
 |-----------------------|----------------|-------|
 | kostja94/marketing-skills@video-marketing | **Instalada** | Bundle `shorts-viral`; não duplica `youtube-seo` |
 | inference-sh/skills@remotion-render | **Adaptada** | Render local `remotion-renderer/`; belt opcional |
-| remotion-dev/skills@remotion-best-practices | Candidata | Complementa `remotion_docs` |
-| remotion-dev/skills@remotion | Candidata | Atualizar `remotion_docs` |
-| coreyhaines31/marketing-skills@* | Avaliar | Pode sobrepor kostja94 |
-| social-publisher, ai-ugc-ads | Baixa prioridade | Lumiera já tem upload + UGC |
+| remotion-dev/skills@remotion-best-practices | **Instalada** | Bundle `long-documentary` |
+| claude-office-skills/skills@social-publisher | **Instalada** | Bundle `publish-seo` |
+| chadboyda/agent-gtm-skills@ai-ugc-ads | **Instalada** | Bundle `shorts-viral` |
+| motion-creative/skills@ad-concept-generator | **Instalada** | Bundle `shorts-viral` |
+| remotion-dev/remotion@* (sub-skills) | Candidata | Atualizar `remotion_docs` pontualmente |
+| coreyhaines31/marketingskills@content-strategy | Avaliar | Complementa `video-marketing` sem duplicar |
 
 Relacionado: [heilcheng/awesome-agent-skills](https://github.com/heilcheng/awesome-agent-skills) — índice alternativo já referenciado abaixo.
 

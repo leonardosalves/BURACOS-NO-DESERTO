@@ -316,12 +316,44 @@ export function buildSkillsPromptAddendum(
   return lines.join("\n");
 }
 
+export function normalizeStudioFormat(format) {
+  const f = String(format || "").toUpperCase();
+  if (f === "SHORTS" || f === "SHORT") return "SHORT";
+  if (f === "LONGO" || f === "LONG") return "LONG";
+  return f || null;
+}
+
+function resolveMaxSkillsForTask(task) {
+  if (task === "ideas" || task === "script") return 6;
+  if (task === "metadata" || task === "upload") return 5;
+  return 4;
+}
+
 export function buildStudioAgentsPromptAddendum(workspaceDir, opts = {}) {
+  const task = opts.task || "overlay";
   const parts = [
-    buildLearningsPromptAddendum(workspaceDir, opts),
-    buildSkillsPromptAddendum(workspaceDir, opts),
+    buildLearningsPromptAddendum(workspaceDir, {
+      ...opts,
+      format: normalizeStudioFormat(opts.format) || opts.format,
+    }),
+    buildSkillsPromptAddendum(workspaceDir, {
+      ...opts,
+      format: normalizeStudioFormat(opts.format) || opts.format,
+      maxSkills: opts.maxSkills ?? resolveMaxSkillsForTask(task),
+    }),
   ];
   return parts.filter(Boolean).join("\n");
+}
+
+/** Anexa memória + skills bundle ao prompt do Creator / metadados / overlays. */
+export function injectStudioAgentsContext(prompt, workspaceDir, { niche = "Geral", task = "overlay", format = null } = {}) {
+  const addendum = buildStudioAgentsPromptAddendum(workspaceDir, {
+    niche,
+    task,
+    format: normalizeStudioFormat(format),
+  });
+  if (!addendum) return prompt;
+  return `${prompt}${addendum}`;
 }
 
 export function getSkillsRegistryStatus(workspaceDir) {

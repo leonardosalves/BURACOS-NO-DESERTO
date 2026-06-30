@@ -41,6 +41,10 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/hyperframes|HyperFrames]]
 - [[skills/remotion_docs|Remotion Docs]]
+- [[skills/remotion-best-practices|Remotion Best Practices]] — interpolate, legendas, rules/
+- [[skills/social-publisher|Social Publisher]] — upload multi-plataforma
+- [[skills/ai-ugc-ads|AI UGC Ads]] — brief criador, Spark Ads, teste 3x3x3
+- [[skills/ad-concept-generator|Ad Concept Generator]] — conceito paid a partir do gancho
 - [[skills/remotion-render|Remotion Render]] — LumieraTimeline, render local
 - [[skills/video-marketing|Video Marketing]] — estratégia short/long (kostja94)
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
