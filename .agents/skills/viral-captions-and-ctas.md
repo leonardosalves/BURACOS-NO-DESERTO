@@ -1,6 +1,8 @@
-# Viral Captions & CTAs
-
-Atalho Obsidian → [[skills/viral-captions-and-ctas/SKILL|SKILL completa]]
-
-- [[MEMORIA-LUMIERA]] · [[SKILLS]] · [[skills/youtube-seo|YouTube SEO]]
-- Legendas shorts-viral, hashtags, CTA sem bait, comentário fixo
+# viral captions and ctas
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-captions-and-ctas/SKILL]] · [[SKILLS]]
+Atalho Obsidian para [[skills/viral-captions-and-ctas/SKILL|viral captions and ctas (SKILL completa)]].
+- [[MEMORIA-LUMIERA]]
+- [[SKILLS]]
+- [[AGENTS]]
+- Documentação: [[skills/viral-captions-and-ctas/SKILL]]
+- Referências: [[skills/viral-captions-and-ctas/REFERENCES]]

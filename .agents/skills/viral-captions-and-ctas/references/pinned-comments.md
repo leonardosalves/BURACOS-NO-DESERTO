@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/SKILL]] · [[skills/viral-captions-and-ctas/REFERENCES]]
+
 # Pinned comments
 
 The pinned comment is a second surface most creators leave empty. It

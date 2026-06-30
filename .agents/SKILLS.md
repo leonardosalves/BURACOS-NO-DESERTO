@@ -1,42 +1,22 @@
 # Skills do Lumiera
-
+> 🔗 [[MEMORIA-LUMIERA]] · [[AGENTS]] · [[MEMORY]]
 Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.
-
-Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]] · Externas: [[skills/skills-registry-external|Registro externo]]
-
-## Produção de vídeo
-
-- [[skills/hyperframes|HyperFrames]] — doc: [[skills/hyperframes/SKILL]]
-- [[skills/remotion_docs|Remotion Docs]] — doc: [[skills/remotion_docs/SKILL]]
+Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
+## Catálogo
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
-
-## Roteiro e viral (Shorts)
-
-- [[skills/viral-short-form|Viral Short Form]] — doc: [[skills/viral-short-form/SKILL]] · refs Vyral em `references/`
-- [[skills/viral-short-form-ideas|Viral Short-Form Ideas]] — doc: [[skills/viral-short-form-ideas/SKILL]] · pilares, matriz, Creator
-- [[skills/viral-hooks|Viral Hooks]] — doc: [[skills/viral-hooks/SKILL]]
-- [[skills/viral-captions-and-ctas|Captions & CTAs]] — doc: [[skills/viral-captions-and-ctas/SKILL]] · legendas, hashtags, comentário fixo
-- [[skills/viral-youtube-shorts|YouTube Shorts]] — doc: [[skills/viral-youtube-shorts/SKILL]]
+- [[skills/hyperframes|HyperFrames]] — doc: [[skills/hyperframes/SKILL]]
+- [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
+- [[skills/remotion_docs|Remotion Docs]] — doc: [[skills/remotion_docs/SKILL]]
+- [[skills/skills-registry-external|skills registry external]] — doc: [[skills/skills-registry-external/SKILL]]
+- [[skills/studio-agents-hermes|studio agents hermes]] — doc: [[skills/studio-agents-hermes/SKILL]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]] — doc: [[skills/ugc-scriptwriter/SKILL]]
-
-## Publicação e SEO
-
-- [[skills/youtube-seo|YouTube SEO]] — doc: [[skills/youtube-seo/SKILL]]
-- [[skills/youtube-thumbnail|YouTube Thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
-
-## Ops e catálogo
-
-- [[skills/lumiera-ops|Lumiera Ops]] — commit + reiniciar servidores
-- [[skills/skills-registry-external|Skills externas]] — awesome-agent-skills, skillsmp, mcpmarket
-
+- [[skills/viral-captions-and-ctas|viral captions and ctas]] — doc: [[skills/viral-captions-and-ctas/SKILL]]
+- [[skills/viral-hooks|viral hooks]] — doc: [[skills/viral-hooks/SKILL]]
+- [[skills/viral-short-form|Viral Short Form]] — doc: [[skills/viral-short-form/SKILL]]
+- [[skills/viral-short-form-ideas|viral short form ideas]] — doc: [[skills/viral-short-form-ideas/SKILL]]
+- [[skills/viral-youtube-shorts|viral youtube shorts]] — doc: [[skills/viral-youtube-shorts/SKILL]]
+- [[skills/youtube-seo|youtube seo]] — doc: [[skills/youtube-seo/SKILL]]
+- [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
-
-Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima — todos ligados a este índice.
-
-## Instalar skill nova
-
-```powershell
-.\scripts\install-external-skill.ps1 vyralcontent/content-skills@viral-hooks
-```
-
-Depois adapte para Lumiera (ver [[skills/skills-registry-external/SKILL]]).
+Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
+atualizado: 2026-06-30T22:40:46.998Z

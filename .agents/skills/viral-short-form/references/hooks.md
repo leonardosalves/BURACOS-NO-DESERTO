@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/SKILL]] · [[skills/viral-short-form/REFERENCES]]
+
 # Hooks
 
 The hook is the first 1 to 3 seconds (and the first line of on-screen text). It

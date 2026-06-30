@@ -94,3 +94,7 @@ Ver também **10 arquétipos Vyral** em `references/hooks.md` (curiosity gap, wi
 - [vyralcontent/content-skills](https://github.com/vyralcontent/content-skills) (MIT)
 - [awesome-agent-skills](https://github.com/heilcheng/awesome-agent-skills) — índice em [[skills-registry-external]]
 - MCP Market: `viral-short-form-video-master` ≈ pacote Vyral short-form
+
+## Referências
+
+- [[skills/viral-short-form/REFERENCES|Índice de references/assets]]

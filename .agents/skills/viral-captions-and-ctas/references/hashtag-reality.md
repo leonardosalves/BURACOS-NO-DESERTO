@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/SKILL]] · [[skills/viral-captions-and-ctas/REFERENCES]]
+
 # Hashtag reality
 
 The honest version: hashtags are mostly categorisation, not a

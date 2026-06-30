@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/SKILL]] · [[skills/viral-captions-and-ctas/REFERENCES]]
+
 # Caption craft
 
 The caption is the layer the algorithm reads as text, and the layer the viewer

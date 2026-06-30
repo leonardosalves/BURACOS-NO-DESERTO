@@ -103,3 +103,7 @@ Sobrescreve CTAs genéricos desta skill quando houver conflito.
 - `../youtube-seo/SKILL.md` — títulos, descrição, tags
 - `../viral-hooks/SKILL.md` — gancho verbal ≠ caption
 - `../ugc-scriptwriter/SKILL.md` — tom da narração final
+
+## Referências
+
+- [[skills/viral-captions-and-ctas/REFERENCES|Índice de references/assets]]

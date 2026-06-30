@@ -296,7 +296,9 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Memória no Obsidian',
     body: (
       <>
-        Vault em <code>.agents/</code> com as mesmas notas do Studio Agents. Edite padrões, navegue com wikilinks e use o grafo para revisar aprendizados por nicho.
+        Vault em <code>.agents/</code> — memória do programa. O hub é <code>MEMORIA-LUMIERA.md</code>; toda nota deve
+        ligar a ele (references, nichos, logs). Use <strong>Reparar grafo</strong> se aparecerem nós soltos no
+        Obsidian; o Lumiera também repara ao carregar Studio Agents.
       </>
     ),
   },

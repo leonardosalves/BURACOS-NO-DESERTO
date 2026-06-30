@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/SKILL]] · [[skills/viral-short-form/REFERENCES]]
+
 # Platforms
 
 Treat everything here as **heuristics, not rules**. Platform mechanics and

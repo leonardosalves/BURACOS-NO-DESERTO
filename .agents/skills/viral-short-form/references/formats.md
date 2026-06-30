@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/SKILL]] · [[skills/viral-short-form/REFERENCES]]
+
 # Formats
 
 Pick the format that fits the message, not the one that's trendy. Each has a

@@ -1,26 +1,29 @@
 # Lumiera Memória
 
 Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — as notas são as mesmas em `.agents/`.
+**Grafo:** toda nota deve ligar a este hub — o Lumiera repara automaticamente ao abrir Studio Agents.
 
 ## Navegação rápida
 - [[MEMORY]] — regras globais do estúdio
 - [[AGENTS]] — documentação dos agentes
 - [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)
+- [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]
 
 ## Skills
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/hyperframes|HyperFrames]]
+- [[skills/lumiera-ops|lumiera ops]]
 - [[skills/remotion_docs|Remotion Docs]]
+- [[skills/skills-registry-external|skills registry external]]
+- [[skills/studio-agents-hermes|studio agents hermes]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
-- [[skills/viral-short-form|Viral Short Form]]
-- [[skills/viral-short-form-ideas|Viral Short-Form Ideas]]
-- [[skills/viral-hooks|Viral Hooks]]
-- [[skills/viral-captions-and-ctas|Captions & CTAs]]
-- [[skills/viral-youtube-shorts|YouTube Shorts]]
-- [[skills/youtube-seo|YouTube SEO]]
-- [[skills/youtube-thumbnail|Thumbnail]]
-- [[skills/skills-registry-external|Skills externas]]
-- [[skills/studio-agents-hermes|Studio Agents Hermes]]
+- [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/REFERENCES|refs]]
+- [[skills/viral-hooks|viral hooks]]
+- [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/REFERENCES|refs]]
+- [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/REFERENCES|refs]]
+- [[skills/viral-youtube-shorts|viral youtube shorts]]
+- [[skills/youtube-seo|youtube seo]]
+- [[skills/youtube-thumbnail|youtube thumbnail]]
 
 ## Memória por nicho
 - [[memory/engenharia]]
@@ -37,4 +40,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-06-30T22:07:23.184Z
+atualizado: 2026-06-30T22:40:46.997Z

@@ -1,5 +1,7 @@
-# YouTube Thumbnail
-
-Atalho Obsidian → [[skills/youtube-thumbnail/SKILL|SKILL completa]]
-
-- [[MEMORIA-LUMIERA]] · [[SKILLS]] · Canva, CTR, 1280×720
+# youtube thumbnail
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/youtube-thumbnail/SKILL]] · [[SKILLS]]
+Atalho Obsidian para [[skills/youtube-thumbnail/SKILL|youtube thumbnail (SKILL completa)]].
+- [[MEMORIA-LUMIERA]]
+- [[SKILLS]]
+- [[AGENTS]]
+- Documentação: [[skills/youtube-thumbnail/SKILL]]

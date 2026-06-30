@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form]] · [[skills/viral-short-form/SKILL]] · [[SKILLS]]
+
 <p align="center"><img src="../../assets/header.png" alt="Stop guessing what to post. Steal from the videos that blew up." width="100%"></p>
 
 # viral-short-form

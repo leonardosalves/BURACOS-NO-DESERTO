@@ -115,3 +115,7 @@ Ao usar esta skill **fora** do Creator (chat manual), alinhar saída aos mesmos 
 - `../viral-short-form/SKILL.md` — workflow n8n + wow-facts
 - `../viral-hooks/SKILL.md` — após escolher ideia, gerar 6–10 ganchos
 - `../viral-short-form/references/hooks.md` — 10 arquétipos detalhados
+
+## Referências
+
+- [[skills/viral-short-form-ideas/REFERENCES|Índice de references/assets]]

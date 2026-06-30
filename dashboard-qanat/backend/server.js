@@ -181,6 +181,8 @@ import {
   getObsidianVaultStatus,
   openInObsidian,
   ensureObsidianVault,
+  repairVaultGraphLinks,
+  auditVaultGraph,
 } from "./obsidianVault.js";
 import {
   flattenWordTranscripts,
@@ -1643,6 +1645,23 @@ app.post("/api/studio-agents/obsidian/open", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Erro ao abrir Obsidian", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/obsidian/graph", (req, res) => {
+  try {
+    res.json(auditVaultGraph(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao auditar grafo", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/obsidian/repair-graph", (req, res) => {
+  try {
+    const result = repairVaultGraphLinks(WORKSPACE_DIR);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao reparar grafo", details: err.message });
   }
 });
 

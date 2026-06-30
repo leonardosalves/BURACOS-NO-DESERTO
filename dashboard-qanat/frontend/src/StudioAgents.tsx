@@ -81,6 +81,14 @@ type LearningItem = {
   baseline?: boolean;
 };
 
+type VaultGraphStatus = {
+  total: number;
+  connected: number;
+  orphans: number;
+  orphanFiles?: string[];
+  repaired?: number;
+};
+
 type ObsidianStatus = {
   installed: boolean;
   vaultDir?: string;
@@ -89,6 +97,7 @@ type ObsidianStatus = {
   hubPath?: string;
   uri?: string;
   vaultUri?: string;
+  graph?: VaultGraphStatus;
 };
 
 type QualityIssue = {
@@ -245,6 +254,23 @@ export function StudioAgents({
 
   const buildVaultFileUri = (file: string) =>
     `obsidian://open?vault=.agents&file=${encodeURIComponent(file.replace(/\\/g, '/'))}`;
+
+  const repairObsidianGraph = async () => {
+    setBusy('graph-repair');
+    try {
+      const res = await fetch('/api/studio-agents/obsidian/repair-graph', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Falha ao reparar grafo');
+      toast.success(
+        `Grafo reparado — ${data.repaired ?? 0} nota(s) ligada(s) ao hub · ${data.orphans ?? 0} órfã(s)`,
+      );
+      await fetchStatus();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reparar grafo');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const openObsidian = async (file = 'MEMORIA-LUMIERA.md') => {
     setBusy('obsidian');
@@ -416,6 +442,15 @@ export function StudioAgents({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
+            disabled={!!busy}
+            onClick={repairObsidianGraph}
+            title="Liga notas órfãs ao hub MEMORIA-LUMIERA"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-bold hover:border-amber-400/50 transition disabled:opacity-40"
+          >
+            {busy === 'graph-repair' ? 'Reparando…' : 'Reparar grafo'}
+          </button>
+          <button
+            type="button"
             disabled={!!busy || !obsidian.installed}
             onClick={() => openObsidian()}
             title={obsidian.installed ? 'Abrir vault .agents no Obsidian' : 'Instale o Obsidian em obsidian.md'}
@@ -444,6 +479,16 @@ export function StudioAgents({
         />
         <div className="flex flex-col gap-2 text-[10px] text-zinc-500 font-mono min-w-0">
           <span className="break-all">{obsidian.vaultDir || '.agents/'}</span>
+          {obsidian.graph ? (
+            <span
+              className={
+                obsidian.graph.orphans === 0 ? 'text-emerald-400/90' : 'text-amber-400/90'
+              }
+            >
+              Grafo: {obsidian.graph.connected}/{obsidian.graph.total} ligadas ao hub
+              {obsidian.graph.orphans > 0 ? ` · ${obsidian.graph.orphans} órfã(s)` : ''}
+            </span>
+          ) : null}
           {obsidian.installed ? (
             <span className="text-emerald-400/90">Obsidian detectado</span>
           ) : (
