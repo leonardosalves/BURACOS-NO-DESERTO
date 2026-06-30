@@ -35,6 +35,7 @@ description: |
 | social-publisher | claude-office-skills/skills | Bundle `publish-seo`, `upload_metadata` |
 | ai-ugc-ads | chadboyda/agent-gtm-skills | Bundle `shorts-viral`, ads UGC Shorts |
 | ad-concept-generator | motion-creative/skills | Bundle `shorts-viral`, conceito antes do roteiro |
+| content-strategy | coreyhaines31/marketingskills | Pilares, funil Short↔Long, Creator ideias |
 
 ## Hermes Agent + OpenClaw — padrões adotados
 
@@ -99,7 +100,7 @@ Catálogo curado: [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/
 | chadboyda/agent-gtm-skills@ai-ugc-ads | **Instalada** | Bundle `shorts-viral` |
 | motion-creative/skills@ad-concept-generator | **Instalada** | Bundle `shorts-viral` |
 | remotion-dev/remotion@* (sub-skills) | Candidata | Atualizar `remotion_docs` pontualmente |
-| coreyhaines31/marketingskills@content-strategy | Avaliar | Complementa `video-marketing` sem duplicar |
+| coreyhaines31/marketingskills@content-strategy | **Instalada** | Bundles `shorts-viral`, `long-documentary` |
 
 Relacionado: [heilcheng/awesome-agent-skills](https://github.com/heilcheng/awesome-agent-skills) — índice alternativo já referenciado abaixo.
 

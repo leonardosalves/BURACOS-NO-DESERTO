@@ -324,7 +324,8 @@ export function normalizeStudioFormat(format) {
 }
 
 function resolveMaxSkillsForTask(task) {
-  if (task === "ideas" || task === "script") return 6;
+  if (task === "ideas") return 7;
+  if (task === "script") return 6;
   if (task === "metadata" || task === "upload") return 5;
   return 4;
 }

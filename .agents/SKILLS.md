@@ -5,6 +5,7 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 ## Catálogo
 - [[skills/ad-concept-generator|ad concept generator]] — doc: [[skills/ad-concept-generator/SKILL]]
 - [[skills/ai-ugc-ads|ai ugc ads]] — doc: [[skills/ai-ugc-ads/SKILL]]
+- [[skills/content-strategy|content strategy]] — doc: [[skills/content-strategy/SKILL]]
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
 - [[skills/hyperframes|HyperFrames]] — doc: [[skills/hyperframes/SKILL]]
 - [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
@@ -25,4 +26,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-06-30T23:05:36.420Z
+atualizado: 2026-06-30T23:08:01.040Z

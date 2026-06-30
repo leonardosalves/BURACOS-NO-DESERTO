@@ -12,6 +12,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 ## Skills
 - [[skills/ad-concept-generator|ad concept generator]]
 - [[skills/ai-ugc-ads|ai ugc ads]]
+- [[skills/content-strategy|content strategy]] · [[skills/content-strategy/REFERENCES|refs]]
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/hyperframes|HyperFrames]]
 - [[skills/lumiera-ops|lumiera ops]]
@@ -47,4 +48,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-06-30T23:05:36.419Z
+atualizado: 2026-06-30T23:08:01.039Z

@@ -4,13 +4,14 @@
   "tasks": ["script", "ideas"],
   "formats": ["SHORT"],
   "skills": [
+    "viral-short-form-ideas",
+    "content-strategy",
     "viral-short-form",
     "viral-hooks",
     "ugc-scriptwriter",
     "ad-concept-generator",
     "ai-ugc-ads",
     "viral-captions-and-ctas",
-    "viral-short-form-ideas",
     "video-marketing"
   ],
   "instruction": "Priorize gancho em 3 camadas, narração UGC autêntica, CTA declarativo (sem engagement bait). Varie hook_angle entre ideias."
