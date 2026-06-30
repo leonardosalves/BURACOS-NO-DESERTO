@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import rulesData from "./listicleLottieRules.json";
 import { LOTTIE_BY_FILE, LOTTIE_REGISTRY, type LottieRegistryKey } from "./lottieRegistry.generated";
 import { LOTTIE_POOLS } from "./lottiePools.generated";
@@ -165,3 +166,40 @@ export function hudThemeStyles(theme: ListicleHudTheme = "ancient", accent: stri
 
 export const READABLE_TEXT_SHADOW =
   "0 0 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.85), 0 2px 10px rgba(0,0,0,0.75)";
+
+/** Badge circular do ícone Lottie — fundo escuro + borda de acento (ícones claros não somem). */
+export function lottieIconBadgeStyle(
+  size: number,
+  accent: string = "#C5A880",
+  isClimax = false,
+): {
+  shell: CSSProperties;
+  lottie: CSSProperties;
+} {
+  const climaxAccent = "#D4AF37";
+  const ring = isClimax ? climaxAccent : accent;
+  return {
+    shell: {
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: isClimax
+        ? "radial-gradient(circle at 32% 28%, rgba(212,175,55,0.42) 0%, rgba(22,14,6,0.97) 48%, rgba(4,3,2,0.99) 100%)"
+        : `radial-gradient(circle at 32% 28%, ${ring}55 0%, rgba(16,12,10,0.96) 48%, rgba(5,4,3,0.99) 100%)`,
+      border: `2px solid ${ring}aa`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      boxShadow:
+        "0 4px 16px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -3px 10px rgba(0,0,0,0.5)",
+      overflow: "hidden",
+    },
+    lottie: {
+      width: Math.round(size * 0.72),
+      height: Math.round(size * 0.72),
+      filter:
+        "drop-shadow(0 0 1.5px rgba(0,0,0,0.95)) drop-shadow(0 2px 5px rgba(0,0,0,0.8)) brightness(1.08) contrast(1.12)",
+    },
+  };
+}

@@ -72,7 +72,12 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%" }}>
-          <TitleLottieIcon animationData={crownLottie} size={isVertical ? 44 : 36} />
+          <TitleLottieIcon
+            animationData={crownLottie}
+            size={isVertical ? 44 : 36}
+            accentColor={accentColor}
+            isClimax
+          />
           <span
             style={{
               fontFamily: `${fontTitle}, serif`,
@@ -122,6 +127,8 @@ export const ListicleRecap: React.FC<ListicleRecapProps> = ({
                 <TitleLottieIcon
                   animationData={lottieDataForKey(iconKey, lottieVariantSeed([videoSeed, line.rank, line.title, line.visualHook || "", iconKey]))}
                   size={isVertical ? 36 : 30}
+                  accentColor={accentColor}
+                  isClimax={line.rank === 1}
                 />
                 <span
                   style={{
