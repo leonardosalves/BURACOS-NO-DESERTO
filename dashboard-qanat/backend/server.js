@@ -4780,7 +4780,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     bgmTracks,
     sfxTracks,
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
-    musicVolume: globalConfig.musicVolume,
+    musicVolume: Number.isFinite(Number(config.project_music_volume))
+      ? Number(config.project_music_volume)
+      : globalConfig.musicVolume,
     debugOverlay: globalConfig.debugOverlay,
     overlays,
     youtubeChannelInfo,
@@ -4792,6 +4794,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     showProgressBar: format === "16:9" && config.progress_bar !== false,
     accentColor: config.accent_color || "#C5A880",
     shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
+    longZoomIntensity: config.long_zoom_intensity || "normal",
     shortsHookFlash: config.shorts_hook_flash !== false,
     shortsEdgeGlow: config.shorts_edge_glow === true,
     shortsCaptionBgmPulse: config.shorts_caption_bgm_pulse !== false,

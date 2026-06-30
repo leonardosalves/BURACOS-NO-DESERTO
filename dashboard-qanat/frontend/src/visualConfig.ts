@@ -19,6 +19,9 @@ export const VISUAL_CONFIG_KEYS = [
   'shorts_portal_transition',
   'shorts_portal_every',
   'accent_color',
+  'secondary_color',
+  'listicle_hud_theme',
+  'long_zoom_intensity',
 ] as const;
 
 export type VisualConfigKey = (typeof VISUAL_CONFIG_KEYS)[number];

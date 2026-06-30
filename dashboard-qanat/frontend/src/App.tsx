@@ -94,6 +94,12 @@ import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { VisualSettings } from './VisualSettings';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
+import { SettingsProduction } from './SettingsProduction';
+import {
+  applyProductionPatchToConfig,
+  pickProductionConfig,
+  productionDraftToApiPatch,
+} from './productionConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { warnLongListicleTitles } from './ListicleHudPreview';
@@ -163,6 +169,11 @@ interface ConfigData {
   social_proof_cards?: boolean;
   geo_map_overlays?: boolean;
   accent_color?: string;
+  secondary_color?: string;
+  listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
+  long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  overlay_intensity?: 'light' | 'normal' | 'rich';
+  project_music_volume?: number;
   content_mode?: string;
 
   use_single_bgm?: boolean;
@@ -873,6 +884,7 @@ export default function App() {
 
   const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
   const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
+  const [savingProductionConfig, setSavingProductionConfig] = useState<boolean>(false);
 
   const fetchGlobalRenderConfig = async () => {
 
@@ -11867,6 +11879,36 @@ export default function App() {
                 />
               )}
 
+              {settingsSection === 'producao' && (
+                <SettingsProduction
+                  config={config || {}}
+                  projectKey={activeProject}
+                  globalMusicVolume={globalMusicVolume}
+                  saving={savingProductionConfig}
+                  onSave={async (draft) => {
+                    setSavingProductionConfig(true);
+                    try {
+                      const previousProduction = pickProductionConfig(config || {});
+                      const patch = productionDraftToApiPatch(draft, previousProduction);
+                      if (Object.keys(patch).length === 0) {
+                        toast.success('Nenhuma alteração de produção para salvar.');
+                        return;
+                      }
+                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
+                      if (!saved) return;
+                      setConfig((prev) => applyProductionPatchToConfig(
+                        (prev || {}) as ConfigData,
+                        draft,
+                        previousProduction,
+                      ));
+                      toast.success('Configurações de produção salvas no projeto.');
+                    } finally {
+                      setSavingProductionConfig(false);
+                    }
+                  }}
+                />
+              )}
+
               {settingsSection === 'marca' && (
                             <div className="glass-panel p-6 rounded-3xl space-y-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
@@ -12015,7 +12057,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3 border-t border-zinc-900 pt-4">
-                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Adicionar Canal ao Catálogo</span>
+                    <SettingLabel helpTitle="Adicionar canal" help="Cadastre um novo canal YouTube no catálogo global. Depois selecione qual canal aparece no card de inscrição do encerramento — global ou personalizado por projeto." align="start" className="mb-0 [&_span]:text-gold-500 [&_span]:uppercase [&_span]:tracking-wider">Adicionar Canal ao Catálogo</SettingLabel>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input type="text" value={newChannelLabel} onChange={(e) => setNewChannelLabel(e.target.value)} placeholder="Rótulo do canal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
                       <input type="text" value={newChannelUrl} onChange={(e) => setNewChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
