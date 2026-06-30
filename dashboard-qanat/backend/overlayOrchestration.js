@@ -7,6 +7,7 @@ import {
   computeOverlayDisplayDuration,
   extractBlockIndex,
   getBlockTiming,
+  isHudOverlay,
 } from "./overlayTiming.js";
 
 const VARIETY_PROFILES = [
@@ -429,6 +430,11 @@ export function enforceOverlayOrchestration(overlays, plan, timingCtx = {}) {
     : plan.limits.minGapSeconds;
 
   for (const overlay of sorted) {
+    if (isHudOverlay(overlay) || overlay.id === "retention-hook" || overlay.id === "mid-video-cta") {
+      filtered.push(overlay);
+      continue;
+    }
+
     const inForbidden = plan.forbiddenZones.some(
       (z) => overlay.start >= z.start && overlay.start < z.end
     );
