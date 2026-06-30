@@ -252,12 +252,13 @@ export function registerWorkflowRoutes(app, deps) {
       automap: async (projDir, log) => {
         const configPath = path.join(projDir, "config_qanat.json");
         let config = readJsonFile(configPath) || {};
-        config.timeline_map_epoch = Number(config.timeline_map_epoch || 0) + 1;
+        const mapEpoch = Number(config.timeline_map_epoch || 0);
         const mapped = buildTimelineFromStoryboard(projDir, {
           remapping: true,
-          rotateOffset: config.timeline_map_epoch,
+          rotateOffset: mapEpoch,
         });
         config.timeline_assets = mapped.timelineAssets;
+        config.timeline_map_epoch = mapEpoch + 1;
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
         persistRealignedTimeline(projDir, log);
         log(`[Pipeline] Timeline mapeada (${mapped.assetCount} assets no pool).`);
