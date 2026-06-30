@@ -108,11 +108,12 @@ export async function isGeminiExtensionAvailable(force = false): Promise<boolean
 
 export function estimateGeminiQueryTimeoutMs(prompt: string): number {
   const len = String(prompt || '').length;
-  if (/LUMIERA_TASK:metadata/i.test(prompt)) return 150000;
-  if (len > 6000 || /"overlays"\s*:/i.test(prompt) || /LUMIERA_TASK:overlay/i.test(prompt)) return 130000;
-  if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(prompt)) return 150000;
-  if (len > 3000) return 110000;
-  return 95000;
+  if (/LUMIERA_TASK:metadata/i.test(prompt)) return 200000;
+  if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(prompt)) return 200000;
+  if (len > 6000 || /"overlays"\s*:/i.test(prompt) || /LUMIERA_TASK:overlay/i.test(prompt)) return 180000;
+  if (/Ideas Engine|"best_idea_index"|ranking_ideas/i.test(prompt)) return 150000;
+  if (len > 3000) return 130000;
+  return 120000;
 }
 
 export async function queryGeminiViaExtension(prompt: string): Promise<string> {

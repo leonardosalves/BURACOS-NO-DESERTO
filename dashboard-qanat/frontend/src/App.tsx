@@ -5480,16 +5480,26 @@ export default function App() {
         setCreatorProjectName(shortName);
 
       } else {
-
-        toast.error('Erro ao analisar o nicho: ' + (data.error || 'Erro desconhecido'));
-
+        const errMsg = data.error || 'Erro desconhecido';
+        toast.error(
+          errMsg.includes('extensão') || errMsg.includes('Extensão') || errMsg.includes('Gemini')
+            ? `${errMsg} Abra gemini.google.com, recarregue o dashboard (F5) e tente de novo.`
+            : `Erro ao analisar o nicho: ${errMsg}`,
+          { duration: 7000 },
+        );
       }
 
-    } catch (err) {
+    } catch (err: any) {
 
       console.error(err);
 
-      toast.error('Conexão falhou ao analisar o nicho.');
+      const msg = err?.message || 'Conexão falhou ao analisar o nicho.';
+      toast.error(
+        msg.includes('Extensão') || msg.includes('extensão') || msg.includes('Gemini')
+          ? `${msg} Verifique gemini.google.com e recarregue o dashboard (F5).`
+          : msg,
+        { duration: 7000 },
+      );
 
     } finally {
 

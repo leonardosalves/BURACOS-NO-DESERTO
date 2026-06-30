@@ -8662,7 +8662,8 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   const listicleTopic = String(listTopic || niche).trim();
 
   let notebooklmContext = "";
-  if (useNotebooklm !== false) {
+  const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
+  if (useNotebooklm !== false && !skipNotebooklm) {
     try {
       const research = await fetchNotebooklmResearch(niche, format, {
         backendDir: __dirname,
@@ -8780,7 +8781,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
 
     const parsedData = await parseAiJsonResponse(
       responseText,
-      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      getApiKey(projDir),
       "Ideias e diagnostico",
     );
 
