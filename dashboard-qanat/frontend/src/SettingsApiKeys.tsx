@@ -41,7 +41,7 @@ export function SettingsApiKeys({
   );
 
   return (
-    <div className="glass-panel p-6 rounded-3xl space-y-5">
+    <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
         <SectionHeader
           title="CHAVES DE API & MÍDIA"

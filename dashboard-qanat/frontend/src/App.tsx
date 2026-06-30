@@ -2562,7 +2562,7 @@ export default function App() {
           ) : (
             <Tv className={`w-3 h-3 shrink-0 ${isSelected ? 'text-gold-500' : 'text-zinc-600'}`} />
           )}
-          <span className="truncate font-sans" title={proj.title || proj.name}>
+          <span className="font-sans text-balance-safe line-clamp-safe-2 min-w-0 flex-1" title={proj.title || proj.name}>
             {proj.title || proj.name}
           </span>
         </button>
@@ -2596,10 +2596,10 @@ export default function App() {
       const isCollapsed = getNicheCollapsed(collapseKey, projList);
       return (
         <div key={collapseKey} className="space-y-1 border border-zinc-900/40 bg-zinc-950/10 rounded-xl p-1.5">
-          <button type="button" onClick={() => setCollapsedNiches((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))} className="w-full flex items-center justify-between text-left px-1.5 py-1 text-gray-500 hover:text-gray-300 transition text-[9px] font-bold uppercase tracking-widest cursor-pointer select-none">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <button type="button" onClick={() => setCollapsedNiches((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))} className="w-full flex items-center justify-between text-left px-1.5 py-1 text-gray-500 hover:text-gray-300 transition lumiera-section-label cursor-pointer">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
               <Folder className="w-3 h-3 text-gold-500/60 shrink-0" />
-              <span className="truncate">{nicheName} ({projList.length})</span>
+              <span className="line-clamp-safe-2 min-w-0">{nicheName} ({projList.length})</span>
             </div>
             {isCollapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
           </button>
@@ -7472,15 +7472,15 @@ export default function App() {
 
   return (
 
-    <div className="min-h-screen flex flex-col bg-[#070708] text-gray-200">
+    <div className="lumiera-shell">
 
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1c1c24', color: '#fff', border: '1px solid #2d2d3d' } }} />
 
       {/* Header */}
 
-      <header className="border-b border-gray-800 bg-[#0c0c0e] py-4 px-8 flex justify-between items-center shrink-0">
+      <header className="lumiera-header">
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
 
           <div className="w-10 h-10 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center">
 
@@ -7488,19 +7488,19 @@ export default function App() {
 
           </div>
 
-          <div>
+          <div className="min-w-0">
 
-            <h1 className="font-cinzel font-bold text-lg text-white tracking-wide">LUMIERA CINEMATIC STUDIO</h1>
+            <h1 className="font-cinzel font-bold text-base sm:text-lg text-white text-balance-safe">LUMIERA CINEMATIC STUDIO</h1>
 
-            <p className="text-xs text-gray-500 font-sans">Painel de Controle e Renderização Automatizada • {activeProject}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-sans text-balance-safe line-clamp-safe-2">Painel de Controle e Renderização Automatizada • {activeProject}</p>
 
           </div>
 
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="lumiera-btn-row shrink-0">
 
-          <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg text-xs">
+          <div className="lumiera-status-pill">
 
             <div className="flex items-center gap-2">
 
@@ -7577,11 +7577,11 @@ export default function App() {
 
       {/* Main Workspace */}
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="lumiera-workspace">
 
         {/* Sidebar Tabs */}
 
-        <aside className="w-56 border-r border-gray-850 bg-[#0a0a0c] flex flex-col shrink-0 select-none h-full overflow-hidden">
+        <aside className="lumiera-sidebar">
 
           <div className="shrink-0 p-4 space-y-3 border-b border-zinc-900/60">
 
@@ -7607,7 +7607,7 @@ export default function App() {
 
                 }}
 
-                className={`w-full py-3 px-4 rounded-xl text-xs font-bold font-sans tracking-wide transition flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:scale-[1.02] ${
+                className={`lumiera-sidebar-btn shadow-lg hover:scale-[1.01] ${
 
                   activeTab === 'creator'
 
@@ -7638,7 +7638,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('agents')}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold font-sans tracking-wide transition flex items-center justify-center gap-2 cursor-pointer ${
+                className={`lumiera-sidebar-btn ${
                   activeTab === 'agents'
                     ? 'bg-gold-500/15 border border-gold-500/35 text-gold-400'
                     : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-gold-400 hover:border-zinc-700'
@@ -7688,7 +7688,7 @@ export default function App() {
               <>
                 {recentProjects.length > 0 && (
                   <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-1 block">Recentes</span>
+                    <span className="lumiera-section-label px-1 block">Recentes</span>
                     {recentProjects
                       .map((name) => projects.find((p) => p.name === name))
                       .filter((proj): proj is ProjectListItem => Boolean(proj))
@@ -7698,7 +7698,7 @@ export default function App() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Longos (16:9)</span>
+                    <span className="lumiera-section-label">Longos (16:9)</span>
                     <button
                       type="button"
                       onClick={() => { setNewProjectFormat('LONGO'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
@@ -7713,7 +7713,7 @@ export default function App() {
 
                 <div className="space-y-2 pt-2 border-t border-zinc-900/60">
                   <div className="flex justify-between items-center px-1">
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Shorts (9:16)</span>
+                    <span className="lumiera-section-label">Shorts (9:16)</span>
                     <button
                       type="button"
                       onClick={() => { setNewProjectFormat('SHORTS'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
@@ -7729,7 +7729,7 @@ export default function App() {
             )}
           </div>
 
-          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-normal border-t border-gray-850 font-sans">
+          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-relaxed border-t border-gray-850 font-sans text-balance-safe break-words">
 
             Desenvolvido por Antigravity Studio. Versão 1.2.0 • Remotion e Hyperframe Engine.
 
@@ -7739,15 +7739,15 @@ export default function App() {
 
         {/* Tab Content Panel */}
 
-        <main className="flex-1 flex flex-col min-w-0 bg-[#09090b]">
+        <main className="lumiera-main">
           {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && (
-            <div className="shrink-0 border-b border-zinc-800/80 bg-[#0a0a0c]/95 backdrop-blur-sm px-6 py-3">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans">Projeto ativo</p>
-                  <p className="text-sm font-bold text-white truncate font-cinzel">{activeProject}</p>
+            <div className="lumiera-project-bar">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="lumiera-section-label">Projeto ativo</p>
+                  <p className="text-sm font-bold text-white font-cinzel text-balance-safe break-words">{activeProject}</p>
                 </div>
-                <nav className="flex gap-1 overflow-x-auto pb-0.5">
+                <nav className="lumiera-tab-nav">
                   {PROJECT_WORKSPACE_TABS.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -7757,14 +7757,14 @@ export default function App() {
                         key={tab.id}
                         type="button"
                         onClick={() => setActiveTab(tab.id)}
-                        className={`shrink-0 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition cursor-pointer max-w-full ${
+                        className={`lumiera-tab-btn ${
                           isActive
                             ? 'bg-gold-500/15 text-gold-400 border border-gold-500/30'
                             : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent'
                         }`}
                       >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span className="whitespace-nowrap">{tab.label}</span>
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="leading-snug">{tab.label}</span>
                         {help && (
                           <span
                             className="inline-flex"
@@ -7785,13 +7785,13 @@ export default function App() {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="lumiera-content text-balance-safe">
 
           {/* TAB: RENDER */}
 
           {activeTab === 'status' && (
 
-            <div className="space-y-8 animate-fade-in">
+            <div className="lumiera-panel-stack animate-fade-in">
 
               {videoQuality && (
                 <div className="glass-panel p-5 rounded-2xl font-sans">
@@ -7927,10 +7927,10 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+              <div className="lumiera-card-grid">
                 
                 {/* Compiler Card */}
-                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
+                <div className="glass-panel lumiera-render-card">
                   <div>
                     <SectionHeader
                       title="RENDERIZADOR PADRÃO"
@@ -7963,7 +7963,7 @@ export default function App() {
                 </div>
 
                 {/* Remotion Quick info */}
-                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
+                <div className="glass-panel lumiera-render-card">
                   <div>
                     <SectionHeader
                       title="REMOTION ENGINE"
@@ -7987,9 +7987,9 @@ export default function App() {
                 </div>
 
                 {/* Remotion PRO Card */}
-                <div className="glass-panel-glow border border-amber-500/30 p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
+                <div className="glass-panel-glow border border-amber-500/30 lumiera-render-card">
                   <div>
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap justify-between items-start gap-2">
                       <SectionHeader
                         title="REMOTION PRO"
                         helpId="render-remotion-pro"
@@ -8023,9 +8023,9 @@ export default function App() {
                 </div>
 
                 {/* Remotion PRO + HyperFrames AI Card */}
-                <div className="glass-panel-glow border border-emerald-500/30 p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
+                <div className="glass-panel-glow border border-emerald-500/30 lumiera-render-card">
                   <div>
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap justify-between items-start gap-2">
                       <SectionHeader
                         title="HYPERFRAMES AI"
                         helpId="render-hyperframes"
@@ -8190,7 +8190,7 @@ export default function App() {
           )}
 
           {activeTab === 'workflow' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="lumiera-panel-stack animate-fade-in">
               <div className="glass-panel p-5 rounded-2xl font-sans">
                 <SectionHeader
                   title="Workflow e Tarefas"
@@ -8240,7 +8240,7 @@ export default function App() {
                 </div>
               ) : (
 
-            <div className="space-y-8 animate-fade-in">
+            <div className="lumiera-panel-stack animate-fade-in">
 
               {/* Keywords panel */}
 
@@ -8453,7 +8453,7 @@ export default function App() {
 
               {/* Mixer Header */}
 
-              <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="glass-panel p-4 sm:p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 min-w-0">
 
                 <div>
 
@@ -9361,7 +9361,7 @@ export default function App() {
 
           {activeTab === 'terminal' && (
 
-            <div className="space-y-4 h-[calc(100vh-180px)] flex flex-col animate-fade-in font-sans">
+            <div className="lumiera-fill-view space-y-4 animate-fade-in">
 
               <div className="flex justify-between items-center border-b border-zinc-900 pb-2 shrink-0">
 
@@ -9422,7 +9422,7 @@ export default function App() {
 
           {activeTab === 'ai' && (
 
-            <div className="space-y-6 animate-fade-in flex flex-col h-[calc(100vh-120px)] overflow-hidden font-sans">
+            <div className="lumiera-fill-view space-y-6 animate-fade-in overflow-hidden">
 
               <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
 
@@ -9472,11 +9472,11 @@ export default function App() {
 
               {/* Two Column Layout: YouTube Metadata & AI Chat */}
 
-              <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
+              <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 min-w-0 overflow-hidden">
 
                 {/* Column 1: YouTube Metadata */}
 
-                <div className="flex-1 glass-panel p-6 rounded-3xl flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 glass-panel p-4 sm:p-6 rounded-3xl flex flex-col min-h-0 min-w-0 overflow-hidden">
 
                   <div className="flex justify-between items-start border-b border-zinc-900 pb-3 shrink-0">
 
@@ -9995,7 +9995,7 @@ export default function App() {
 
                 {/* Column 2: AI Chat Assistant */}
 
-                <div className="flex-1 glass-panel p-6 rounded-3xl flex flex-col min-h-0 overflow-hidden font-sans">
+                <div className="flex-1 glass-panel p-4 sm:p-6 rounded-3xl flex flex-col min-h-0 min-w-0 overflow-hidden font-sans">
 
                   <div className="border-b border-zinc-900 pb-3 shrink-0">
 
@@ -10229,7 +10229,7 @@ export default function App() {
                     {selectedPlatforms.youtube && (
                       <div className="space-y-4 text-xs font-sans">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Título no YouTube</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Título no YouTube</label>
                           <input
                             type="text"
                             maxLength={100}
@@ -10241,7 +10241,7 @@ export default function App() {
                           <span className="text-[9px] text-zinc-600 block text-right">{ytTitle.length}/100</span>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Descrição do YouTube</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Descrição do YouTube</label>
                           <textarea
                             rows={3}
                             value={ytDescription}
@@ -10251,7 +10251,7 @@ export default function App() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Privacidade</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Privacidade</label>
                           <select
                             value={ytPrivacy}
                             onChange={(e) => setYtPrivacy(e.target.value)}
@@ -10263,7 +10263,7 @@ export default function App() {
                           </select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Tags (vírgula)</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Tags (vírgula)</label>
                           <input
                             type="text"
                             value={ytTags}
@@ -10273,7 +10273,7 @@ export default function App() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Capítulos (marcadores)</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Capítulos (marcadores)</label>
                           <textarea
                             rows={2}
                             value={ytChapters}
@@ -10283,7 +10283,7 @@ export default function App() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Comentário fixo (pós-upload)</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Comentário fixo (pós-upload)</label>
                           <textarea
                             rows={2}
                             value={ytPinnedComment}
@@ -10293,7 +10293,7 @@ export default function App() {
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Agendar (ISO)</label>
+                            <label className="ui-micro-label text-gray-500 block text-balance-safe">Agendar (ISO)</label>
                             <input
                               type="datetime-local"
                               value={ytPublishAt ? ytPublishAt.slice(0, 16) : ''}
@@ -10302,7 +10302,7 @@ export default function App() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Categoria ID</label>
+                            <label className="ui-micro-label text-gray-500 block text-balance-safe">Categoria ID</label>
                             <input
                               type="text"
                               value={ytCategoryId}
@@ -10315,7 +10315,7 @@ export default function App() {
                         <div className="space-y-3 pt-2 border-t border-zinc-900/60">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <div>
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Thumbnail do YouTube (A/B/C)</label>
+                              <label className="ui-micro-label text-gray-500 block text-balance-safe">Thumbnail do YouTube (A/B/C)</label>
                               <p className="text-[9px] text-zinc-600 mt-0.5">Gera 3 capas com texto overlay a partir dos assets do projeto.</p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -10408,7 +10408,7 @@ export default function App() {
                     {selectedPlatforms.instagram && (
                       <div className="space-y-3 text-xs font-sans">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Legenda do Reels (Caption)</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do Reels (Caption)</label>
                           <textarea
                             rows={3}
                             value={igCaption}
@@ -10444,7 +10444,7 @@ export default function App() {
                     {selectedPlatforms.tiktok && (
                       <div className="space-y-3 text-xs font-sans">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Legenda do TikTok</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do TikTok</label>
                           <textarea
                             rows={3}
                             value={ttCaption}
@@ -10480,7 +10480,7 @@ export default function App() {
                     {selectedPlatforms.kwai && (
                       <div className="space-y-3 text-xs font-sans">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Legenda do Kwai</label>
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do Kwai</label>
                           <textarea
                             rows={3}
                             value={kwCaption}
@@ -10500,7 +10500,7 @@ export default function App() {
                   
                   {/* Salvar Metadados GLOBAIS */}
                   <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Ações Globais</span>
+                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Ações Globais</span>
                     <button
                       onClick={async () => {
                         try {
@@ -10630,7 +10630,7 @@ export default function App() {
 
                   {/* Auth Configuration */}
                   <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-3">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Integrações</span>
+                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Integrações</span>
                     <p className="text-xs text-zinc-400 leading-relaxed">
                       Chaves de API, OAuth e sessões ficam em Configurações → Integrações.
                     </p>
@@ -10650,7 +10650,7 @@ export default function App() {
               {(uploading || uploadLogs.length > 0) && (
                 <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Progresso do Envio</span>
+                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Progresso do Envio</span>
                     <span className="text-xs font-mono font-bold text-gold-500">{uploadProgress}%</span>
                   </div>
 
@@ -11535,7 +11535,7 @@ export default function App() {
 
           {activeTab === 'settings' && (
 
-            <div className="space-y-6 animate-fade-in font-sans">
+            <div className="lumiera-panel-stack animate-fade-in font-sans min-w-0">
               <SettingsSectionNav active={settingsSection} onChange={setSettingsSection} />
 
               {settingsSection === 'ia' && (
@@ -12289,7 +12289,7 @@ export default function App() {
 
           {activeTab === 'creator' && (
 
-            <div className="space-y-6 animate-fade-in flex flex-col h-[calc(100vh-120px)] overflow-hidden font-sans">
+            <div className="lumiera-fill-view space-y-6 animate-fade-in overflow-hidden">
 
               {/* Steps Progress Header */}
 
@@ -12756,7 +12756,7 @@ export default function App() {
                       </div>
                     ) : (
 
-                      <div className="space-y-8 animate-fade-in">
+                      <div className="lumiera-panel-stack animate-fade-in">
 
                         {/* Diagnostic info banner */}
                         {ideasData?.diagnostic && (
@@ -14567,7 +14567,7 @@ export default function App() {
 
             <div className="space-y-2">
 
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block px-1">Nome do Projeto</label>
+              <label className="ui-micro-label text-gray-500 block text-balance-safe px-1">Nome do Projeto</label>
 
               <input
 
@@ -14591,7 +14591,7 @@ export default function App() {
 
             <div className="space-y-2 pt-2">
 
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block px-1">Formato / Aspect Ratio</label>
+              <label className="ui-micro-label text-gray-500 block text-balance-safe px-1">Formato / Aspect Ratio</label>
 
               <div className="grid grid-cols-2 gap-2 font-sans text-xs">
 
@@ -14644,7 +14644,7 @@ export default function App() {
             </div>
 
             <div className="space-y-2 pt-2">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block px-1">Nicho do Projeto</label>
+              <label className="ui-micro-label text-gray-500 block text-balance-safe px-1">Nicho do Projeto</label>
               <input
                 type="text"
                 placeholder="Ex: História, Tecnologia, Geografia, Finanças"

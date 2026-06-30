@@ -57,7 +57,7 @@ export function IntegrationSettings({
   setIgAccessToken,
 }: Props) {
   return (
-    <div className="glass-panel p-6 rounded-3xl space-y-5">
+    <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
       <div className="border-b border-zinc-900 pb-4">
         <SectionHeader
           title="INTEGRAÇÕES DE PUBLICAÇÃO"

@@ -166,7 +166,7 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-5xl">
+    <div className="lumiera-panel-stack animate-fade-in max-w-5xl w-full mx-auto">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <SectionHeader
           title="Studio Agents"

@@ -503,7 +503,7 @@ export function WorkflowToolkit({
         type="button"
         disabled={!!busy}
         onClick={onClick}
-        className={`flex items-center justify-center gap-1.5 text-[10px] font-bold py-2 px-3 rounded-xl border transition disabled:opacity-50 ${colors[variant]}`}
+        className={`inline-flex flex-wrap items-center justify-center gap-1.5 text-[10px] font-bold py-2 px-3 rounded-xl border transition disabled:opacity-50 text-center leading-snug min-w-0 ${colors[variant]}`}
       >
         {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : icon}
         {label}
@@ -512,9 +512,9 @@ export function WorkflowToolkit({
   };
 
   return (
-    <div className={`space-y-3 ${compact ? '' : 'rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4'}`}>
+    <div className={`space-y-3 min-w-0 ${compact ? '' : 'rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4'}`}>
       {!compact && (
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-start sm:items-center justify-between gap-2 min-w-0">
           <SectionHeader
             title="Ferramentas de Workflow"
             helpId="workflow-toolkit"
