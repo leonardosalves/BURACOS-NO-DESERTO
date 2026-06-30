@@ -92,7 +92,7 @@ import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensi
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { VisualSettings } from './VisualSettings';
-import { applyVisualPatchToConfig, pickVisualConfig } from './visualConfig';
+import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { warnLongListicleTitles } from './ListicleHudPreview';
@@ -872,7 +872,6 @@ export default function App() {
 
   const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
   const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
-  const [visualConfigRevision, setVisualConfigRevision] = useState(0);
 
   const fetchGlobalRenderConfig = async () => {
 
@@ -2923,6 +2922,37 @@ export default function App() {
 
   // Save config
 
+  const saveConfigPatch = async (
+    patch: Record<string, unknown>,
+    opts?: { skipRefresh?: boolean },
+  ): Promise<ConfigData | null> => {
+    if (Object.keys(patch).length === 0) return null;
+    try {
+      const res = await fetch(getProjectUrl('/api/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        toast.error('Erro ao salvar configuração.');
+        return null;
+      }
+      const data = await res.json().catch(() => ({}));
+      const serverConfig = data?.config;
+      if (!opts?.skipRefresh) {
+        fetchData();
+      }
+      if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
+        return serverConfig as ConfigData;
+      }
+      return null;
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar configuração.');
+      return null;
+    }
+  };
+
   const saveConfig = async (
     updatedConfig: ConfigData,
     opts?: { skipRefresh?: boolean },
@@ -2951,8 +2981,9 @@ export default function App() {
 
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        const savedConfig = (data?.config && typeof data.config === 'object')
-          ? data.config as ConfigData
+        const serverConfig = data?.config;
+        const savedConfig = (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0)
+          ? serverConfig as ConfigData
           : configToSave;
 
         setConfig(savedConfig);
@@ -11790,7 +11821,6 @@ export default function App() {
                 <VisualSettings
                   config={config || {}}
                   projectKey={activeProject}
-                  savedRevision={visualConfigRevision}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
                   saving={savingVisualConfig}
@@ -11798,13 +11828,18 @@ export default function App() {
                     setSavingVisualConfig(true);
                     try {
                       const previousVisual = pickVisualConfig(config || {});
-                      const merged = applyVisualPatchToConfig(
-                        (config || {}) as ConfigData,
+                      const patch = visualDraftToApiPatch(draft, previousVisual);
+                      if (Object.keys(patch).length === 0) {
+                        toast.success('Nenhuma alteração visual para salvar.');
+                        return;
+                      }
+                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
+                      if (!saved) return;
+                      setConfig((prev) => applyVisualPatchToConfig(
+                        (prev || {}) as ConfigData,
                         draft,
                         previousVisual,
-                      );
-                      await saveConfig(merged, { skipRefresh: true });
-                      setVisualConfigRevision((n) => n + 1);
+                      ));
                       toast.success('Configurações visuais salvas no projeto.');
                     } finally {
                       setSavingVisualConfig(false);
