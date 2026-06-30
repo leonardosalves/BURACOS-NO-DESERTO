@@ -66,6 +66,10 @@ export function maybeStageWorkshopFromCapture(workspaceDir, {
   if (autoPending.length >= 5) return null;
 
   const primary = patterns[0];
+  const dedupeKey = `${niche}::${primary.category}::${Math.round(score)}`;
+  if (autoPending.some((p) => String(p.summary || "").includes(dedupeKey.split("::")[1]) && String(p.summary || "").includes(niche))) {
+    return null;
+  }
   const skill = resolveSkillSlugForPattern(primary.category);
   const marker = "## Ver também";
   const bulletLines = patterns.slice(0, 4).map((p) => `- \`${p.category}\` ${p.description}`).join("\n");
@@ -146,6 +150,9 @@ export {
   buildStudioAgentsPromptAddendum,
   injectStudioAgentsContext,
   buildSkillsPromptAddendum,
+  resolveBundleForTask,
+  resolveBundlePreview,
+  resolveMaxSkillsForTask,
   getSkillsRegistryStatus,
   listSkills,
   listSkillBundles,

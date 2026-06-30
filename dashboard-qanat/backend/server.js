@@ -169,6 +169,7 @@ import {
   applyWorkshopProposalById,
   rejectWorkshopProposal,
   ensureDefaultSkillBundles,
+  resolveBundlePreview,
   loadStudioAgentsConfig,
   previewConsolidation,
   reflectProject,
@@ -1596,10 +1597,12 @@ app.get("/api/projects/video-quality", async (req, res) => {
     });
     const report = runVideoQualityCheck(projDir, readProjectJson);
     const agentConfig = loadStudioAgentsConfig(WORKSPACE_DIR);
+    let workshop = null;
     if (agentConfig.autoCaptureOnQualityCheck) {
       try {
         if (!shouldSkipAutoCapture(WORKSPACE_DIR, projDir, report)) {
-          captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+          const captureResult = captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+          workshop = captureResult?.workshop || null;
         }
       } catch (captureErr) {
         console.warn("[Studio Agents] Captura automática falhou:", captureErr.message);
@@ -1609,7 +1612,7 @@ app.get("/api/projects/video-quality", async (req, res) => {
     const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
     const workflow = analyzeSceneGaps(projDir, { config, storyboard });
     const preRenderAdvice = buildPreRenderAdvice(report, workflow);
-    res.json({ ...report, workflow, preRenderAdvice });
+    res.json({ ...report, workflow, preRenderAdvice, workshop });
   } catch (err) {
     res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
   }
@@ -1689,6 +1692,16 @@ app.get("/api/studio-agents/skills/:slug", (req, res) => {
     res.json(viewSkill(WORKSPACE_DIR, req.params.slug, ref));
   } catch (err) {
     res.status(404).json({ error: "Skill não encontrada", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/resolve-bundle", (req, res) => {
+  try {
+    const task = String(req.query.task || "ideas");
+    const format = String(req.query.format || "SHORT");
+    res.json(resolveBundlePreview(WORKSPACE_DIR, { task, format }));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao resolver bundle", details: err.message });
   }
 });
 

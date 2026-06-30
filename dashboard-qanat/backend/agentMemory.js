@@ -50,6 +50,17 @@ export function ensureAgentDirs(workspaceDir) {
   return paths;
 }
 
+function migrateSkillBundleMap(map = {}) {
+  const m = { ...map };
+  if (m.ideas === "shorts-viral") m.ideas = "shorts-ideas";
+  if (m.script === "shorts-viral") m.script = "shorts-script";
+  if (!m["ideas:LONG"] && m.ideas === "long-ideas") m["ideas:LONG"] = "long-ideas";
+  if (!m["script:LONG"] && (m.script === "long-documentary" || m.overlay === "long-documentary")) {
+    m["script:LONG"] = "long-documentary";
+  }
+  return m;
+}
+
 export function loadStudioAgentsConfig(workspaceDir) {
   const { configPath } = getAgentPaths(workspaceDir);
   const defaults = {
@@ -61,15 +72,22 @@ export function loadStudioAgentsConfig(workspaceDir) {
     skillAllowlist: null,
     skillBundleByTask: {
       overlay: "studio-overlay-agent",
-      script: "shorts-viral",
-      ideas: "shorts-viral",
+      ideas: "shorts-ideas",
+      "ideas:LONG": "long-ideas",
+      script: "shorts-script",
+      "script:LONG": "long-documentary",
       metadata: "publish-seo",
       default: "studio-overlay-agent",
     },
   };
   if (!fs.existsSync(configPath)) return { ...defaults };
   try {
-    return { ...defaults, ...JSON.parse(fs.readFileSync(configPath, "utf8")) };
+    const loaded = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const skillBundleByTask = migrateSkillBundleMap({
+      ...defaults.skillBundleByTask,
+      ...(loaded.skillBundleByTask || {}),
+    });
+    return { ...defaults, ...loaded, skillBundleByTask };
   } catch {
     return { ...defaults };
   }

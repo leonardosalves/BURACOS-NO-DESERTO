@@ -31,12 +31,17 @@ function getPendingDir(workspaceDir) {
 }
 
 function parseFrontmatter(content = "") {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  const fmIndex = content.search(/---\r?\n/);
+  const match =
+    fmIndex >= 0
+      ? content.slice(fmIndex).match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/)
+      : null;
   if (!match) {
     return { meta: {}, body: content, rawFrontmatter: "" };
   }
+  const preamble = fmIndex > 0 ? content.slice(0, fmIndex) : "";
   const raw = match[1];
-  const body = match[2];
+  const body = `${preamble}${match[2]}`;
   const meta = {};
   for (const line of raw.split("\n")) {
     const m = line.match(/^([a-zA-Z0-9_.-]+):\s*(.*)$/);
@@ -59,29 +64,53 @@ function parseFrontmatter(content = "") {
   return { meta, body, rawFrontmatter: raw };
 }
 
-function parseNestedLumieraMeta(rawFrontmatter = "") {
+function parseMetadataBlock(block = "") {
   const out = {};
-  if (/^\s*lumiera:\s*true/m.test(rawFrontmatter)) out.lumiera = true;
-  const fmt = rawFrontmatter.match(/^\s*formats:\s*\[([^\]]+)\]/m);
+  if (!block) return out;
+  if (/lumiera:\s*true/.test(block)) out.lumiera = true;
+  const fmt = block.match(/formats:\s*\[([^\]]+)\]/);
   if (fmt) {
     out.formats = fmt[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
   }
-  const tasks = rawFrontmatter.match(/^\s*tasks:\s*\[([^\]]+)\]/m);
+  const tasks = block.match(/tasks:\s*\[([^\]]+)\]/);
   if (tasks) {
     out.tasks = tasks[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
   }
-  const cat = rawFrontmatter.match(/^\s*category:\s*(.+)$/m);
+  const cat = block.match(/category:\s*(.+)$/m);
   if (cat) out.category = cat[1].trim().replace(/^['"]|['"]$/g, "");
+  return out;
+}
+
+function parseNestedLumieraMeta(rawFrontmatter = "") {
+  const out = {};
+  if (/^\s*lumiera:\s*true/m.test(rawFrontmatter)) out.lumiera = true;
+
+  const metaBlock = rawFrontmatter.match(/^metadata:\s*\r?\n((?:[ \t]+[^\n]+\r?\n?)+)/m);
+  if (metaBlock) {
+    Object.assign(out, parseMetadataBlock(metaBlock[1]));
+  }
+
+  const fmt = rawFrontmatter.match(/^\s*formats:\s*\[([^\]]+)\]/m);
+  if (fmt && !out.formats) {
+    out.formats = fmt[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
+  }
+  const tasks = rawFrontmatter.match(/^\s*tasks:\s*\[([^\]]+)\]/m);
+  if (tasks && !out.tasks) {
+    out.tasks = tasks[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean);
+  }
+  const cat = rawFrontmatter.match(/^\s*category:\s*(.+)$/m);
+  if (cat && !out.category) out.category = cat[1].trim().replace(/^['"]|['"]$/g, "");
   return out;
 }
 
 function readLumieraMeta(meta = {}, rawFrontmatter = "") {
   const nested = parseNestedLumieraMeta(rawFrontmatter);
-  if (Object.keys(nested).length) return nested;
-  const lumiera = meta.metadata?.lumiera ?? meta.lumiera;
-  if (typeof lumiera === "object" && lumiera !== null) return lumiera;
-  if (meta.lumiera === true || meta.lumiera === "true") {
-    return { lumiera: true };
+  const fromMeta =
+    typeof meta.metadata === "object" && meta.metadata !== null ? meta.metadata : {};
+  const merged = { ...fromMeta, ...nested };
+  if (meta.lumiera === true || meta.lumiera === "true") merged.lumiera = true;
+  if (merged.lumiera || merged.formats?.length || merged.tasks?.length || merged.category) {
+    return merged;
   }
   return {};
 }
@@ -251,7 +280,9 @@ export function listSkillBundles(workspaceDir) {
 export function resolveBundleForTask(workspaceDir, { task = "overlay", format = "SHORT" } = {}) {
   const config = loadStudioAgentsConfig(workspaceDir);
   const map = config.skillBundleByTask || {};
-  const preferred = map[task] || map.default;
+  const fmt = normalizeFormatList([format])[0] || "SHORT";
+  const formatKey = `${task}:${fmt}`;
+  const preferred = map[formatKey] || map[task] || map.default;
   const bundles = listSkillBundles(workspaceDir);
   if (!bundles.length) return null;
 
@@ -323,24 +354,42 @@ export function normalizeStudioFormat(format) {
   return f || null;
 }
 
-function resolveMaxSkillsForTask(task) {
+export function resolveMaxSkillsForTask(task, format = "SHORT") {
+  const fmt = normalizeFormatList([format])[0] || "SHORT";
   if (task === "ideas") return 7;
-  if (task === "script") return 6;
+  if (task === "script") return fmt === "LONG" ? 7 : 6;
   if (task === "metadata" || task === "upload") return 5;
   return 4;
 }
 
+export function resolveBundlePreview(workspaceDir, { task = "ideas", format = "SHORT" } = {}) {
+  const fmt = normalizeStudioFormat(format) || normalizeFormatList([format])[0] || "SHORT";
+  const bundle = resolveBundleForTask(workspaceDir, { task, format: fmt });
+  const maxSkills = resolveMaxSkillsForTask(task, fmt);
+  const skillSlugs = bundle?.skills || [];
+  return {
+    task,
+    format: fmt,
+    bundleSlug: bundle?.slug || null,
+    bundleName: bundle?.name || null,
+    skillSlugs,
+    maxSkills,
+    injectedCount: Math.min(skillSlugs.length, maxSkills),
+  };
+}
+
 export function buildStudioAgentsPromptAddendum(workspaceDir, opts = {}) {
   const task = opts.task || "overlay";
+  const format = normalizeStudioFormat(opts.format) || opts.format || "SHORT";
   const parts = [
     buildLearningsPromptAddendum(workspaceDir, {
       ...opts,
-      format: normalizeStudioFormat(opts.format) || opts.format,
+      format,
     }),
     buildSkillsPromptAddendum(workspaceDir, {
       ...opts,
-      format: normalizeStudioFormat(opts.format) || opts.format,
-      maxSkills: opts.maxSkills ?? resolveMaxSkillsForTask(task),
+      format,
+      maxSkills: opts.maxSkills ?? resolveMaxSkillsForTask(task, format),
     }),
   ];
   return parts.filter(Boolean).join("\n");
@@ -479,21 +528,36 @@ export function ensureDefaultSkillBundles(workspaceDir) {
       },
     },
     {
-      file: "shorts-viral.json",
+      file: "shorts-ideas.json",
       data: {
-        name: "shorts-viral",
-        description: "Roteiro Short viral — hooks, UGC, captions, ideias",
-        tasks: ["script", "ideas"],
+        name: "shorts-ideas",
+        description: "Ideação Short — pilares, matriz, hooks, estratégia de canal",
+        tasks: ["ideas"],
         formats: ["SHORT"],
-        skills: [
-          "viral-short-form",
-          "viral-hooks",
-          "viral-captions-and-ctas",
-          "ugc-scriptwriter",
-          "viral-short-form-ideas",
-        ],
-        instruction:
-          "Priorize gancho em 3 camadas, narração UGC autêntica, CTA declarativo (sem engagement bait). Varie hook_angle entre ideias.",
+        skills: ["viral-short-form-ideas", "content-strategy", "viral-hooks", "video-marketing", "viral-youtube-shorts"],
+        instruction: "Varie hook_angle entre as 10 ideias. Pilares do nicho + searchable/shareable.",
+      },
+    },
+    {
+      file: "shorts-script.json",
+      data: {
+        name: "shorts-script",
+        description: "Roteiro Short — UGC, ads, captions, estrutura viral",
+        tasks: ["script"],
+        formats: ["SHORT"],
+        skills: ["viral-short-form", "ugc-scriptwriter", "ad-concept-generator", "ai-ugc-ads", "viral-captions-and-ctas"],
+        instruction: "Narração UGC autêntica PT-BR, CTA declarativo (sem engagement bait).",
+      },
+    },
+    {
+      file: "long-ideas.json",
+      data: {
+        name: "long-ideas",
+        description: "Ideação vídeo longo — pilares, SEO, clusters documentais",
+        tasks: ["ideas"],
+        formats: ["LONG"],
+        skills: ["content-strategy", "viral-short-form-ideas", "youtube-seo", "video-marketing", "viral-hooks"],
+        instruction: "Títulos pesquisáveis + promessa de retenção 10–20 min.",
       },
     },
     {

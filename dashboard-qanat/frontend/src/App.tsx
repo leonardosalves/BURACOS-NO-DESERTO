@@ -34,6 +34,8 @@ import {
 
   Layers,
 
+  Package,
+
   Sparkles,
 
   Search,
@@ -273,6 +275,11 @@ interface VideoQualityReport {
   preset?: string | null;
   epidemicMood?: string | null;
   preRenderAdvice?: PreRenderAdvice;
+  workshop?: {
+    staged?: boolean;
+    id?: string;
+    record?: { summary?: string; skill?: string };
+  } | null;
   overlay_timing?: {
     checked?: number;
     repaired?: number;
@@ -292,6 +299,16 @@ type PendingRenderJob = {
   isProres: boolean;
   previewSeconds: number;
   resolution: '1080p' | '2k';
+};
+
+type StudioBundlePreview = {
+  task: string;
+  format: string;
+  bundleSlug: string | null;
+  bundleName: string | null;
+  skillSlugs: string[];
+  maxSkills: number;
+  injectedCount: number;
 };
 
 const RENDER_MODE_LABELS: Record<PendingRenderJob['mode'], string> = {
@@ -844,6 +861,7 @@ export default function App() {
     message?: string;
     needsLogin?: boolean;
   } | null>(null);
+  const [creatorIdeasBundle, setCreatorIdeasBundle] = useState<StudioBundlePreview | null>(null);
   const [notebooklmImproving, setNotebooklmImproving] = useState<boolean>(false);
   const [notebooklmSuggestions, setNotebooklmSuggestions] = useState<string | null>(null);
 
@@ -2136,6 +2154,25 @@ export default function App() {
       fetchNotebooklmStatus();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'creator') return;
+    const fmt = formatSelector === 'SHORTS' ? 'SHORT' : 'LONG';
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/studio-agents/resolve-bundle?task=ideas&format=${fmt}`);
+        if (!res.ok || cancelled) return;
+        const data: StudioBundlePreview = await res.json();
+        if (!cancelled) setCreatorIdeasBundle(data);
+      } catch {
+        if (!cancelled) setCreatorIdeasBundle(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, formatSelector]);
 
   useEffect(() => {
     try {
@@ -6539,6 +6576,12 @@ export default function App() {
         if (res.ok) {
           const report: VideoQualityReport = await res.json();
           setVideoQuality(report);
+          if (report.workshop?.staged) {
+            toast(
+              `Workshop: proposta para skill "${report.workshop.record?.skill || 'estúdio'}" — revise em Studio Agents`,
+              { duration: 6000 },
+            );
+          }
           if (report.preRenderAdvice) {
             setPendingRender({
               mode,
@@ -12563,18 +12606,33 @@ export default function App() {
                           />
                           <span className="text-xs text-zinc-300 font-semibold">Usar NotebookLM na pesquisa de roteiro</span>
                         </label>
-                        {notebooklmStatus && (
-                          <span
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
-                              notebooklmStatus.authenticated
-                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
-                            }`}
-                            title={notebooklmStatus.message}
-                          >
-                            {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Execute nlm login'}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {creatorIdeasBundle?.bundleSlug ? (
+                            <span
+                              className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/25 inline-flex items-center gap-1.5"
+                              title={creatorIdeasBundle.skillSlugs.join(' · ')}
+                            >
+                              <Package className="w-3 h-3 opacity-70" />
+                              Bundle ideias:{' '}
+                              <span className="font-mono">{creatorIdeasBundle.bundleSlug}</span>
+                              <span className="text-sky-400/70">
+                                ({creatorIdeasBundle.injectedCount} skills)
+                              </span>
+                            </span>
+                          ) : null}
+                          {notebooklmStatus && (
+                            <span
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+                                notebooklmStatus.authenticated
+                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                              }`}
+                              title={notebooklmStatus.message}
+                            >
+                              {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Execute nlm login'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex gap-2 border-t border-zinc-900/60 pt-3">

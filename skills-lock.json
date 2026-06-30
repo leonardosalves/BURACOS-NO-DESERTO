@@ -13,6 +13,12 @@
       "skillPath": "skills/ai-ugc-ads/SKILL.md",
       "computedHash": "adfad7bb9a2bb0dbd17510ac6df506769858c0e64b360116b985dd3de9e4c623"
     },
+    "content-strategy": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/content-strategy/SKILL.md",
+      "computedHash": "1b337a892b4aaa0665a6af0d6ffcdc77fd728c3c34e25b6e3ff474105d4c0b69"
+    },
     "remotion-best-practices": {
       "source": "remotion-dev/skills",
       "sourceType": "github",
