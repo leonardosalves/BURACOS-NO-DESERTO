@@ -83,6 +83,10 @@ import {
   buildNotebooklmImproveApplyPrompt,
 } from "./notebooklmService.js";
 import {
+  fetchWebResearchForTopic,
+  formatWebResearchPromptBlock,
+} from "./webResearchService.js";
+import {
   buildInstagramAuthUrl,
   exchangeInstagramCode,
   getInstagramConnectionStatus,
@@ -8680,6 +8684,20 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 
   const nicheClean = String(niche).trim();
 
+  let webResearchContext = "";
+  try {
+    const webResearch = await fetchWebResearchForTopic({
+      topic: isListicle ? listicleTopic : nicheClean,
+      niche: nicheClean,
+      format,
+      apiKey: getApiKey(projDir),
+      getApiKeys: () => getApiKeys(projDir),
+    });
+    webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
+  } catch {
+    webResearchContext = "";
+  }
+
   const promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
 
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
@@ -8691,6 +8709,7 @@ ${buildNicheIsolationAddendum(nicheClean)}
 ${buildNicheVarietyInstruction(nicheClean)}
 
 ${notebooklmContext}
+${webResearchContext}
 
 ${SCRIPT_CREATIVE_REINFORCEMENT}
 
@@ -9160,8 +9179,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   }
 
+  const browserTextEarly = extractBrowserResponse(req.body);
+  const skipNotebooklmScript = browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
+
   let notebooklmContext = "";
-  if (useNotebooklm !== false) {
+  if (useNotebooklm !== false && !skipNotebooklmScript) {
     try {
       console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
       const research = await fetchNotebooklmScriptContext({
@@ -9185,6 +9207,26 @@ app.post("/api/ai/creator/script", async (req, res) => {
     }
   }
 
+  let webResearchContext = "";
+  let webResearchMeta = null;
+  const researchTopic = isListicle ? listicleTopic : (idea.title || niche);
+  try {
+    console.log("[WebResearch] Pesquisando fatos com fontes para roteiro...");
+    webResearchMeta = await fetchWebResearchForTopic({
+      topic: researchTopic,
+      niche,
+      format,
+      apiKey: getApiKey(llmDir),
+      getApiKeys: () => getApiKeys(llmDir),
+    });
+    webResearchContext = formatWebResearchPromptBlock(webResearchMeta, "PESQUISA WEB (FONTES REAIS)");
+    if (webResearchMeta.available) {
+      console.log(`[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`);
+    }
+  } catch (err) {
+    console.warn("[WebResearch] Falha:", err.message);
+  }
+
   const promptContext = {
     niche,
     format,
@@ -9195,6 +9237,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
     rankOrder: rankOrder || "desc",
     listicleBlockCount,
     notebooklmContext,
+    webResearchContext,
     cinematicNarrationRules: buildCinematicNarrationRules(),
     titleCraftRules: buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG"),
     epidemicMoodPrompt: buildEpidemicMoodPrompt(
@@ -9238,7 +9281,10 @@ Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\n
   }
 
   if (idea.isCustom) {
-    promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
+    promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante — estilo UGC falado (skill ugc-scriptwriter). Fechamento DECLARATIVO; proibido "Você prefere…?" ou perguntas vazias de comentário. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
+    if (webResearchContext) {
+      promptSystem += webResearchContext;
+    }
   }
 
   promptSystem += `${notebooklmContext}\n\nSUA MISSÃO PRINCIPAL:
@@ -9501,6 +9547,7 @@ REGRAS FINAIS:
         strategy: parsedData.strategy || {},
         narrative_script: parsedData.narrative_script || "",
         narrative_script_tagged: parsedData.narrative_script_tagged || "",
+        research_sources: webResearchMeta?.sources || [],
         _creator_phase: "narration_pending",
       };
       fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
@@ -9604,6 +9651,10 @@ REGRAS FINAIS:
           console.warn("[Creator Script] Falha ao reparar list_items:", repairListErr.message);
         }
       }
+    }
+
+    if (webResearchMeta?.sources?.length) {
+      parsedData.research_sources = webResearchMeta.sources;
     }
 
     // Save full storyboard JSON

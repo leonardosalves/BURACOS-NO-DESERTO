@@ -19,6 +19,17 @@ export const ROBOTIC_PHRASE_PATTERNS = [
   /a verdade é que/gi,
 ];
 
+/** Princípios UGC (Motion-Creative/ugc-scriptwriter) — narração falada autêntica. */
+export const UGC_SCRIPTWRITER_REINFORCEMENT = `
+MODO UGC / NARRAÇÃO FALADA (skill ugc-scriptwriter):
+- Escreva como alguém CONTANDO ao vivo — passa no teste "ler em voz alta sem tropeçar".
+- Especificidade > adjetivos: nomes, datas, números, cenas concretas (não "incrível" sem prova).
+- Arco: gancho → problema (1 frase) → virada → prova (dado) → fechamento DECLARATIVO.
+- PROIBIDO no final: "Você prefere…?", "Qual você…?", "Comenta aí", "Deixa nos comentários", "O que achou?".
+- BOM final: consequência moderna, ironia factual ou mic drop — ex.: "Por isso toda janela de avião hoje é oval."
+- Máximo 2–3 fatos fortes no Short; corte tudo que não avança a tese.
+`;
+
 export const SCRIPT_CREATIVE_REINFORCEMENT = `
 ARQUITETURA DA MENSAGEM (OBRIGATÓRIO — não pule):
 
@@ -46,6 +57,8 @@ ARQUITETURA DA MENSAGEM (OBRIGATÓRIO — não pule):
    - Leia a narração em voz alta. Onde tropeçar ou soar artificial, reescreva.
    - O espectador consegue resumir o vídeo em uma frase? Se não, o roteiro está confuso.
    - Cada block_phrase deve ser o início EXATO da narração daquele bloco (4-8 palavras, únicas entre si).
+
+${UGC_SCRIPTWRITER_REINFORCEMENT}
 `;
 
 export function buildFormatScriptRules(format = "LONGO") {
@@ -58,7 +71,7 @@ REGRAS ESPECÍFICAS — SHORTS (30–50 segundos, 5 blocos):
 - Bloco 2 (contexto): 1 frase — quem/o quê/onde. Sem história paralela.
 - Bloco 3 (desenvolvimento): o "como" ou "por quê" em linguagem simples, com 1 exemplo concreto.
 - Bloco 4 (virada): o detalhe que muda a perspectiva (o "plot twist" do Short).
-- Bloco 5 (payoff + CTA): responde o gancho do bloco 1 em 1-2 frases + pergunta para comentário.
+- Bloco 5 (payoff): responde o gancho do bloco 1 em 1-2 frases DECLARATIVAS — fecha o loop com fato ou consequência. Sem pergunta ao espectador.
 - Narração total: 80–130 palavras. Frases de até 12 palavras na maioria.
 - Ritmo: alterne frase curta impactante + frase explicativa. Nunca dois parágrafos densos seguidos.
 - O espectador deve entender a mensagem mesmo sem som (pela lógica do texto).
@@ -344,7 +357,7 @@ ESTRUTURA DOS BLOCOS:
     4. ${format === "SHORTS" ? "1 fato concreto que surpreende (o mais forte — não enfileire fatos)" : "2 fatos concretos que surpreendem"}
     5. Impacto no mundo moderno (1 frase curta)
     6. Ponte oral de 3-5 palavras para o próximo item (exceto no último item antes do outro)
-- Bloco ${blockCount} (OUTRO): ${format === "SHORTS" ? "1 frase de recap + pergunta para comentários" : "recap do top 3 + pergunta para comentários (\"qual você colocaria em 1º?\") + CTA leve"}
+- Bloco ${blockCount} (OUTRO): ${format === "SHORTS" ? "1 frase de recap declarativa + mic drop (consequência ou fato final)" : "recap do top 3 em 2 frases + fechamento declarativo — sem perguntas vazias"}
 ${format === "SHORTS" ? `
 NARRAÇÃO SHORTS — HUMANA, ENXUTA E CLARA (prioridade máxima):
 - TOTAL: ${totalWords} palavras. Se passar do teto, CORTE antes de entregar — menos é mais.
@@ -421,7 +434,10 @@ TAREFAS OBRIGATÓRIAS:
 4. Atualize "technical_config.block_phrases" — cada "phrase" deve ser o início EXATO do bloco (4-8 palavras, todas diferentes).
 5. Atualize "strategy.hook" se estiver genérico.
 6. Mantenha a TESE do vídeo; remova frases vazias, clichês de IA e trechos que não ajudam o espectador a entender.
-7. NÃO altere visual_prompts, bgm_mappings nem impact_texts.
+7. FINAL declarativo — sem "Você prefere…?" nem CTAs de comentário forçados.
+8. NÃO altere visual_prompts, bgm_mappings nem impact_texts.
+
+${UGC_SCRIPTWRITER_REINFORCEMENT}
 8. Em "narrative_script_tagged", use marcadores cinematográficos com moderação: [pausa], [ênfase], [rápido], [lento] — ver regras de narração cinematográfica.
 
 Responda APENAS JSON com as chaves:
@@ -434,6 +450,27 @@ Responda APENAS JSON com as chaves:
   },
   "strategy": { "hook": "..." }
 }`;
+}
+
+const LAME_ENDING_RE = /^(você|voce|qual você|qual voce|e você|e voce|o que você|o que voce|comenta|deixa nos coment|marque alguém|marque alguem|curtiu|gostou|concorda|qual te surpreendeu|qual origem)/i;
+
+export function sanitizeLameEndingQuestions(text = "") {
+  let out = String(text).trim();
+  if (!out) return out;
+
+  const sentences = out.split(/(?<=[.!?…])\s+/).filter(Boolean);
+  if (sentences.length < 2) return out;
+
+  const last = sentences[sentences.length - 1].trim();
+  if (!last.endsWith("?")) return out;
+
+  if (LAME_ENDING_RE.test(last) || /\bvocê prefere\b/i.test(last) || /\bqual você\b/i.test(last)) {
+    out = sentences.slice(0, -1).join(" ").trim();
+    if (!out.endsWith(".") && !out.endsWith("!") && !out.endsWith("…")) {
+      out += ".";
+    }
+  }
+  return out;
 }
 
 export function sanitizeRoboticPhrases(text = "") {
@@ -461,7 +498,7 @@ export function applyScriptTextQuality(parsedData = {}, format = "LONGO") {
 
   for (const key of fields) {
     if (typeof result[key] === "string") {
-      result[key] = sanitizeRoboticPhrases(result[key]);
+      result[key] = sanitizeLameEndingQuestions(sanitizeRoboticPhrases(result[key]));
     }
   }
 
@@ -688,6 +725,7 @@ export function buildNarrationOnlyPrompt({
   rankOrder = "desc",
   listicleBlockCount = 22,
   notebooklmContext = "",
+  webResearchContext = "",
   cinematicNarrationRules = "",
 }) {
   const ideaHeader = buildIdeaContextHeader({
@@ -697,7 +735,7 @@ export function buildNarrationOnlyPrompt({
   return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
 
 ${ideaHeader}
-${notebooklmContext}
+${notebooklmContext}${webResearchContext}
 
 FASE 1 — APENAS NARRAÇÃO (o usuário revisará e aprovará antes dos blocos visuais):
 
@@ -754,6 +792,7 @@ export function buildFullScriptFromNarrationPrompt({
   approvedNarration = "",
   approvedNarrationTagged = "",
   notebooklmContext = "",
+  webResearchContext = "",
   titleCraftRules = "",
   epidemicMoodPrompt = "",
 }) {
@@ -768,7 +807,7 @@ export function buildFullScriptFromNarrationPrompt({
   return `Você é o "Lumiera Script Master" (Roteirista, Diretor Criativo e Editor para YouTube).
 
 ${ideaHeader}
-${notebooklmContext}
+${notebooklmContext}${webResearchContext}
 
 FASE 2 — ROTEIRO COMPLETO (narração já aprovada pelo usuário):
 
@@ -868,6 +907,9 @@ TAREFAS:
 4. Frases curtas (maioria com até 12 palavras). Uma ideia por frase.
 5. Reescreva "narrative_script_tagged" com as MESMAS palavras + tags ([pause], (breath), [pausa], [ênfase], [rápido], [lento]).
 6. Mantenha a tese e a estrutura; remova clichês de IA ("neste vídeo", "prepare-se", "incrível" sem prova).
+7. FINAL: frase declarativa (mic drop) — remova perguntas vazias ("Você prefere…?", "Comenta aí").
+
+${UGC_SCRIPTWRITER_REINFORCEMENT}
 
 Responda APENAS JSON:
 {
