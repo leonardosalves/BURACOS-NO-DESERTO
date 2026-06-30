@@ -10,6 +10,8 @@ import { InfoCard, InfoCardProps } from "./InfoCard";
 import { ListicleStinger, ListicleStingerProps } from "./ListicleStinger";
 import { ListicleRecap, ListicleRecapProps } from "./ListicleRecap";
 import { RankProgress, RankProgressProps } from "./RankProgress";
+import { ChapterStinger, ChapterStingerProps } from "./ChapterStinger";
+import { SourceCard, SourceCardProps } from "./SourceCard";
 import { safeCustomStyle } from "./overlayStyleUtils";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -27,7 +29,9 @@ export type OverlayType =
   | "info-card"
   | "listicle-stinger"
   | "listicle-recap"
-  | "rank-progress";
+  | "rank-progress"
+  | "chapter-stinger"
+  | "source-card";
 
 export interface OverlayBase {
   /** Unique identifier */
@@ -85,6 +89,16 @@ export interface ListicleRecapOverlay extends OverlayBase {
   props: ListicleRecapProps;
 }
 
+export interface ChapterStingerOverlay extends OverlayBase {
+  type: "chapter-stinger";
+  props: ChapterStingerProps;
+}
+
+export interface SourceCardOverlay extends OverlayBase {
+  type: "source-card";
+  props: SourceCardProps;
+}
+
 export type Overlay =
   | LowerThirdOverlay
   | CounterOverlay
@@ -94,7 +108,9 @@ export type Overlay =
   | InfoCardOverlay
   | ListicleStingerOverlay
   | ListicleRecapOverlay
-  | RankProgressOverlay;
+  | RankProgressOverlay
+  | ChapterStingerOverlay
+  | SourceCardOverlay;
 
 interface OverlayLayerProps {
   overlays: Overlay[];
@@ -142,6 +158,16 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
       return <ListicleRecap {...overlay.props} />;
     case "rank-progress":
       return <RankProgress {...overlay.props} />;
+    case "chapter-stinger": {
+      const cs = props as ChapterStingerProps;
+      if (!String(cs.title || "").trim()) return null;
+      return <ChapterStinger {...cs} />;
+    }
+    case "source-card": {
+      const sc = props as SourceCardProps;
+      if (!String(sc.source || "").trim()) return null;
+      return <SourceCard {...sc} />;
+    }
     default:
       return null;
   }
@@ -149,6 +175,7 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
 
 const overlayRenderPriority = (overlay: Overlay) => {
   if (overlay.type === "rank-progress") return 100;
+  if (overlay.type === "chapter-stinger") return 95;
   if (overlay.type === "listicle-stinger") return 90;
   if (overlay.id?.startsWith("listicle-rank") || overlay.id === "listicle-intro-topn") return 80;
   return 0;

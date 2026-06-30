@@ -46,6 +46,7 @@ import { Audio, Video } from "@remotion/media";
 
 import { OverlayLayer, Overlay } from "./overlays/OverlayLayer";
 import { YoutubeSubOverlay, YoutubeChannelInfo } from "./overlays/YoutubeSubOverlay";
+import { ProgressBar } from "./overlays/ProgressBar";
 
 
 
@@ -226,6 +227,8 @@ export type LumieraTimelineProps = {
   vignette?: boolean;
   bgmDuckPoints?: number[];
   previewMode?: boolean;
+  showProgressBar?: boolean;
+  accentColor?: string;
 };
 
 
@@ -285,6 +288,10 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   grainOverlay: false,
 
   vignette: false,
+
+  showProgressBar: false,
+
+  accentColor: "#C5A880",
 
 };
 
@@ -1579,11 +1586,14 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   youtubeChannelInfo = null,
   transparent = false,
   format = "9:16",
+  totalDuration = 30,
   captionStyle = "shorts-viral",
   grainOverlay = false,
   vignette = false,
   bgmDuckPoints = [],
   previewMode = false,
+  showProgressBar = false,
+  accentColor = "#C5A880",
 }) => {
   const isShort = format === "9:16";
   const showVignette = isShort || vignette;
@@ -1854,7 +1864,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
       <CaptionLayer captions={captions} captionStyle={captionStyle} />
 
-
+      {!isShort && showProgressBar ? (
+        <ProgressBar totalDuration={totalDuration} accentColor={accentColor} />
+      ) : null}
 
       {/* Professional overlays: infographics, lower thirds, kinetic text */}
       <OverlayLayer overlays={overlays} />

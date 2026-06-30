@@ -7,6 +7,12 @@ import fs from "fs";
 import path from "path";
 import { buildOverlayOrchestrationPlan, detectNicheCategory } from "./overlayOrchestration.js";
 import { buildListicleVideoSeed, pickListicleLottieKey } from "./listicleLottieResolve.js";
+import {
+  stabilizeOverlayTimings,
+  isHudOverlay,
+} from "./overlayTiming.js";
+
+export { stabilizeOverlayTimings };
 
 export { buildListicleVideoSeed, pickListicleLottieKey };
 
@@ -453,7 +459,7 @@ export function buildListicleStingerOverlays(storyboard = {}, config = {}, start
       id: `listicle-stinger-${block}`,
       type: "listicle-stinger",
       start: Math.max(0, blockStart - 0.12),
-      duration: 0.42,
+      duration: 0.85,
       props: { accentColor: accent },
     });
   }
@@ -620,6 +626,73 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
   };
 }
 
+export function promoteSourceCardOverlays(overlays = [], config = {}, storyboard = {}) {
+  const preset = resolveDesignPreset(config, storyboard, config.niche);
+  return (overlays || []).map((overlay) => {
+    if (!overlay?.props) return overlay;
+    const source = String(overlay.props.source || overlay.props.citation || overlay.props.fonte || "").trim();
+    if (!source || overlay.type === "source-card" || isHudOverlay(overlay)) return overlay;
+
+    return {
+      ...overlay,
+      type: "source-card",
+      props: {
+        source: source.slice(0, 80),
+        detail: String(overlay.props.detail || overlay.props.year || "").trim().slice(0, 40),
+        accentColor: overlay.props.accentColor || preset?.accentColor || "#C5A880",
+        theme: overlay.props.theme || preset?.theme || "classic",
+        position: overlay.props.position === "bottom-right" ? "bottom-right" : "bottom-left",
+      },
+    };
+  });
+}
+
+export function buildChapterStingerOverlays(config = {}, storyboard = {}, starts = [], durations = []) {
+  const isShort = isShortFormVideo(config);
+  if (isShort) return [];
+
+  const startsList = Array.isArray(starts) ? starts : [];
+  const durationsList = Array.isArray(durations) ? durations : [];
+  if (startsList.length < 3) return [];
+
+  const preset = resolveDesignPreset(config, storyboard, config.niche);
+  const accent = preset?.accentColor || config.accent_color || "#C5A880";
+  const fontTitle = preset?.fontTitle || "Cinzel";
+
+  const blockCount = startsList.length;
+  const pivotBlocks = [
+    1,
+    Math.max(2, Math.floor(blockCount * 0.33)),
+    Math.max(3, Math.floor(blockCount * 0.66)),
+  ];
+  const uniqueBlocks = [...new Set(pivotBlocks)].filter((b) => b >= 1 && b <= blockCount);
+
+  const labels = ["Contexto", "Desenvolvimento", "Revelação"];
+  const overlays = [];
+
+  uniqueBlocks.forEach((block, idx) => {
+    const blockStart = Number(startsList[block - 1]);
+    if (!Number.isFinite(blockStart)) return;
+    const blockDur = Number(durationsList[block - 1]) || 6;
+    if (blockDur < 4) return;
+
+    overlays.push({
+      id: `chapter-stinger-${block}`,
+      type: "chapter-stinger",
+      start: blockStart + 0.15,
+      duration: Math.min(2.2, Math.max(1.6, blockDur * 0.12)),
+      props: {
+        title: labels[idx] || `Parte ${idx + 1}`,
+        subtitle: `Bloco ${block}`,
+        accentColor: accent,
+        fontTitle,
+      },
+    });
+  });
+
+  return overlays;
+}
+
 /** Remove kinetic "TOP N" / "#N —" no centro — ranking só via badge rank-progress no topo. */
 export function stripListicleCenterRankKinetics(overlays = [], config = {}, storyboard = {}) {
   if (!isListicleProject(config, storyboard)) return overlays || [];
@@ -745,11 +818,14 @@ export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboa
     .filter((o) => !isListicleHudOverlay(o) && o.type === "counter")
     .sort((a, b) => (Number(b.props?.value) || 0) - (Number(a.props?.value) || 0));
 
+  const maxCounters = counters.length > 0 && Number(counters[counters.length - 1]?.start) > 50 ? 3 : 2;
+  const minCounterGap = 7;
+
   const keptCounters = [];
   for (const counter of counters) {
-    if (keptCounters.length >= 2) break;
+    if (keptCounters.length >= maxCounters) break;
     const start = Number(counter.start) || 0;
-    const tooClose = keptCounters.some((k) => Math.abs((Number(k.start) || 0) - start) < 10);
+    const tooClose = keptCounters.some((k) => Math.abs((Number(k.start) || 0) - start) < minCounterGap);
     if (!tooClose) keptCounters.push(counter);
   }
 
@@ -809,7 +885,16 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
     blockCount: Array.isArray(starts) ? starts.length : 0,
   });
   merged = avoidListicleHudCollisions(merged, config, storyboard);
-  return pruneListicleOverlayDensity(merged, config, storyboard, plan);
+  merged = pruneListicleOverlayDensity(merged, config, storyboard, plan);
+  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard });
+  return merged;
+}
+
+export function injectProLayoutOverlays(overlays = [], config = {}, storyboard = {}, starts = [], durations = [], plan = {}) {
+  let merged = promoteSourceCardOverlays(overlays, config, storyboard);
+  merged = mergeOverlays(merged, buildChapterStingerOverlays(config, storyboard, starts, durations));
+  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard });
+  return merged;
 }
 
 function wordCount(text = "") {
@@ -1091,6 +1176,32 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
 
     if (overlay.type === "counter" && exists(files.tick) && !hasAt(t, files.tick)) {
       events.push({ time: t, file: files.tick, volume: 0.045 });
+    }
+
+    if (overlay.type === "bar-chart" && exists(files.tick) && !hasAt(t + 0.05, files.tick)) {
+      events.push({ time: t + 0.05, file: files.tick, volume: 0.04 });
+    }
+
+    if (overlay.type === "kinetic-text" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.05), files.whoosh)) {
+      events.push({ time: Math.max(0, t - 0.05), file: files.whoosh, volume: 0.048 });
+      if (exists(files.impact) && !hasAt(t + 0.12, files.impact)) {
+        events.push({ time: t + 0.12, file: files.impact, volume: 0.042 });
+      }
+    }
+
+    if (overlay.type === "lower-third" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.08), files.whoosh)) {
+      events.push({ time: Math.max(0, t - 0.08), file: files.whoosh, volume: 0.032 });
+    }
+
+    if (overlay.type === "chapter-stinger" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.1), files.whoosh)) {
+      events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: 0.04 });
+      if (exists(files.impact) && !hasAt(t + 0.15, files.impact)) {
+        events.push({ time: t + 0.15, file: files.impact, volume: 0.038 });
+      }
+    }
+
+    if (overlay.type === "source-card" && exists(files.tick) && !hasAt(t, files.tick)) {
+      events.push({ time: t, file: files.tick, volume: 0.03 });
     }
 
     if (overlay.type === "listicle-stinger" && exists(files.impact) && !hasAt(t, files.impact)) {
