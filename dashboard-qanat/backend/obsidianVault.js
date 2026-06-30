@@ -5,7 +5,7 @@
 
 import fs from "fs";
 import path from "path";
-import { execFile } from "child_process";
+import { spawn } from "child_process";
 import { ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
 
 const VAULT_NAME = "Lumiera Memória";
@@ -35,7 +35,7 @@ function writeJsonIfMissing(filePath, data) {
 }
 
 function buildHubNote(workspaceDir) {
-  const { globalMemory, memoryDir, runsDir } = getAgentPaths(workspaceDir);
+  const { memoryDir, runsDir } = getAgentPaths(workspaceDir);
   const nicheFiles = fs.existsSync(memoryDir)
     ? fs.readdirSync(memoryDir).filter((f) => f.endsWith(".md"))
     : [];
@@ -122,26 +122,94 @@ export function ensureObsidianVault(workspaceDir) {
   return {
     vaultDir,
     vaultName: VAULT_NAME,
+    vaultFolderName: path.basename(vaultDir),
     hubNote: HUB_NOTE,
     hubPath,
   };
 }
 
+function buildObsidianUris(filePath, vault, safeRel) {
+  const pathUri = `obsidian://open?path=${encodeURIComponent(filePath)}`;
+  const vaultUri = `obsidian://open?vault=${encodeURIComponent(vault.vaultFolderName)}&file=${encodeURIComponent(safeRel)}`;
+  const namedVaultUri = `obsidian://open?vault=${encodeURIComponent(vault.vaultName)}&file=${encodeURIComponent(safeRel)}`;
+  return { pathUri, vaultUri, namedVaultUri };
+}
+
+/** Dispara processo GUI sem esperar encerramento (evita timeout da API). */
+function spawnDetached(command, args) {
+  return new Promise((resolve, reject) => {
+    try {
+      const child = spawn(command, args, {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      child.unref();
+      child.on("error", reject);
+      setImmediate(() => resolve(true));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+async function launchObsidianOnWindows(exe, vaultDir, uris) {
+  const errors = [];
+
+  // 1) Protocol handler via start (não bloqueia)
+  try {
+    await spawnDetached("cmd.exe", ["/c", "start", "", uris.pathUri]);
+    return "windows-start-path-uri";
+  } catch (err) {
+    errors.push(`start path: ${err.message}`);
+  }
+
+  // 2) Abrir pasta do vault diretamente no Obsidian
+  try {
+    await spawnDetached(exe, [vaultDir]);
+    return "obsidian-exe-vault-dir";
+  } catch (err) {
+    errors.push(`exe vault: ${err.message}`);
+  }
+
+  // 3) URI por nome da pasta do vault
+  try {
+    await spawnDetached("cmd.exe", ["/c", "start", "", uris.vaultUri]);
+    return "windows-start-vault-uri";
+  } catch (err) {
+    errors.push(`start vault: ${err.message}`);
+  }
+
+  throw new Error(errors.join("; ") || "Falha ao iniciar Obsidian no Windows");
+}
+
+async function launchObsidianUnix(uri, vaultDir) {
+  if (process.platform === "darwin") {
+    await spawnDetached("open", [uri]);
+    return "mac-open-uri";
+  }
+  await spawnDetached("xdg-open", [uri]);
+  return "linux-xdg-open";
+}
+
 export function getObsidianVaultStatus(workspaceDir) {
   const vault = ensureObsidianVault(workspaceDir);
   const exe = resolveObsidianExecutable();
+  const uris = buildObsidianUris(vault.hubPath, vault, vault.hubNote);
   return {
     installed: Boolean(exe),
     executable: exe,
     vaultDir: vault.vaultDir,
     vaultName: vault.vaultName,
+    vaultFolderName: vault.vaultFolderName,
     hubNote: vault.hubNote,
     hubPath: vault.hubPath,
-    uri: `obsidian://open?path=${encodeURIComponent(vault.hubPath)}`,
+    uri: uris.pathUri,
+    vaultUri: uris.vaultUri,
   };
 }
 
-export function openInObsidian(workspaceDir, relativeFile = HUB_NOTE) {
+export async function openInObsidian(workspaceDir, relativeFile = HUB_NOTE) {
   const exe = resolveObsidianExecutable();
   if (!exe) {
     throw new Error(
@@ -152,22 +220,31 @@ export function openInObsidian(workspaceDir, relativeFile = HUB_NOTE) {
   const vault = ensureObsidianVault(workspaceDir);
   const safeRel = String(relativeFile || HUB_NOTE).replace(/\\/g, "/").replace(/^\/+/, "");
   const filePath = path.resolve(vault.vaultDir, safeRel);
-  if (!filePath.startsWith(path.resolve(vault.vaultDir))) {
+  const vaultResolved = path.resolve(vault.vaultDir);
+
+  if (!filePath.startsWith(vaultResolved)) {
     throw new Error("Arquivo fora do vault Obsidian.");
   }
   if (!fs.existsSync(filePath)) {
     throw new Error(`Nota não encontrada: ${safeRel}`);
   }
 
-  const uri = `obsidian://open?path=${encodeURIComponent(filePath)}`;
+  const uris = buildObsidianUris(filePath, vault, safeRel);
 
-  return new Promise((resolve, reject) => {
-    execFile(exe, [uri], { windowsHide: true }, (err) => {
-      if (err) {
-        reject(new Error(`Falha ao abrir Obsidian: ${err.message}`));
-        return;
-      }
-      resolve({ ok: true, uri, filePath, vaultDir: vault.vaultDir });
-    });
-  });
+  let method;
+  if (process.platform === "win32") {
+    method = await launchObsidianOnWindows(exe, vault.vaultDir, uris);
+  } else {
+    method = await launchObsidianUnix(uris.pathUri, vault.vaultDir);
+  }
+
+  return {
+    ok: true,
+    method,
+    uri: uris.pathUri,
+    vaultUri: uris.vaultUri,
+    filePath,
+    vaultDir: vault.vaultDir,
+    hubPath: vault.hubPath,
+  };
 }
