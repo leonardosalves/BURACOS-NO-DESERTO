@@ -116,6 +116,20 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
     }
   };
 
+  const triggerObsidianUri = (uri?: string) => {
+    if (!uri) return;
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = uri;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch {
+      window.open(uri, '_self');
+    }
+  };
+
   const openObsidian = async (file = 'MEMORIA-LUMIERA.md') => {
     setBusy('obsidian');
     try {
@@ -126,9 +140,22 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.details || 'Falha ao abrir Obsidian');
-      toast.success('Obsidian aberto com a memória do Lumiera');
+
+      // Reforço no navegador — protocolo obsidian:// às vezes só dispara pelo cliente
+      triggerObsidianUri(data.uri || data.vaultUri || obsidian.uri);
+
+      toast.success(
+        data.method === 'obsidian-exe-vault-dir'
+          ? 'Obsidian aberto na pasta .agents/'
+          : 'Obsidian aberto com a memória do Lumiera',
+      );
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao abrir Obsidian');
+      if (obsidian.uri) {
+        triggerObsidianUri(obsidian.uri);
+        toast.success('Tentando abrir Obsidian pelo navegador…');
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Erro ao abrir Obsidian');
+      }
     } finally {
       setBusy(null);
     }
