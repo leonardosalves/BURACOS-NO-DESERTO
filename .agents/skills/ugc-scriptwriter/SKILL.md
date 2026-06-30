@@ -61,3 +61,14 @@ Gancho (reconhecimento) → Problema (1 frase) → Virada (fato) → Prova (dado
 | Longo | 1500–3000 | 10–20 min |
 
 Quando em dúvida, corte.
+
+## Framework viral (n8n — skill `viral-short-form`)
+
+Para Shorts, combine este skill com o framework viral:
+
+- **Curadoria:** impactful | practical | provocative | astonishing
+- **8 ganchos:** question, shock, problem_solution, before_after, breaking, challenge, secret, personal
+- **Corpo:** 3–5 wow-facts com números antes do payoff
+- **Power-ups:** authority bump, then-vs-now, stat escalation (1–2 por roteiro)
+
+O post original sugere CTA com pergunta forward-looking; no Lumiera priorizamos **mic drop declarativo**. Pergunta final só se tiver stakes reais no tema — nunca binária vazia.
