@@ -1,6 +1,42 @@
 {
   "version": 1,
   "skills": {
+    "ad-concept-generator": {
+      "source": "motion-creative/skills",
+      "sourceType": "github",
+      "skillPath": "ad-concept-generator/SKILL.md",
+      "computedHash": "d13462ca51784b762592327575a8bc86f2c2ec17ab5dc469c8b87539f9840ed0"
+    },
+    "ai-ugc-ads": {
+      "source": "chadboyda/agent-gtm-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ai-ugc-ads/SKILL.md",
+      "computedHash": "adfad7bb9a2bb0dbd17510ac6df506769858c0e64b360116b985dd3de9e4c623"
+    },
+    "remotion-best-practices": {
+      "source": "remotion-dev/skills",
+      "sourceType": "github",
+      "skillPath": "skills/remotion/SKILL.md",
+      "computedHash": "664bd31140897056bd575ef57a15f22f517bd576c6b81df429c1f4ed6453e312"
+    },
+    "remotion-render": {
+      "source": "inference-sh/skills",
+      "sourceType": "github",
+      "skillPath": "tools/video/remotion-render/SKILL.md",
+      "computedHash": "9a00df8ceabf3033451cf0c4d41cdda5f38024822de07ea69884055611064ffe"
+    },
+    "social-publisher": {
+      "source": "claude-office-skills/skills",
+      "sourceType": "github",
+      "skillPath": "social-publisher/SKILL.md",
+      "computedHash": "88774809b9c0eb2a15070fc04cfcb36198fd89c6b11d6ca72e1af4ec0bec9914"
+    },
+    "video-marketing": {
+      "source": "kostja94/marketing-skills",
+      "sourceType": "github",
+      "skillPath": "skills/content/video/SKILL.md",
+      "computedHash": "fda313e49d8dc7c2b5c6f9cb9edb7b3364680899c254ba10ca37be0419187788"
+    },
     "viral-captions-and-ctas": {
       "source": "vyralcontent/content-skills",
       "sourceType": "github",

@@ -3,6 +3,6 @@
   "description": "Metadados e publicação — SEO, thumbnail, captions",
   "tasks": ["metadata", "upload"],
   "formats": ["SHORT", "LONG"],
-  "skills": ["youtube-seo", "youtube-thumbnail", "viral-captions-and-ctas"],
+  "skills": ["youtube-seo", "youtube-thumbnail", "viral-captions-and-ctas", "social-publisher"],
   "instruction": "Título pesquisável + thumbnail-first. Descrição: 2 primeiras linhas com keyword. Comentário fixo com stakes reais."
 }
