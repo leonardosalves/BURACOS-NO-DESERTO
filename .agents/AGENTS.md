@@ -50,4 +50,5 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/youtube-seo|YouTube SEO]] — metadados e upload
 - [[skills/youtube-thumbnail|YouTube Thumbnail]] — capas CTR / Canva
 - [[skills/skills-registry-external|Registro skills externas]] — awesome-agent-skills, skillsmp
+- [[skills/studio-agents-hermes|Studio Agents Hermes]] — bundles OpenClaw + disclosure Hermes
 - [[skills/lumiera-ops|Lumiera Ops — commit + reiniciar servidores]]

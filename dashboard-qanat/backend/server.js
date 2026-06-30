@@ -156,9 +156,18 @@ import {
 } from "./overlayTiming.js";
 import {
   buildLearningsPromptAddendum,
+  buildStudioAgentsPromptAddendum,
   captureQualityRun,
   getDashboard,
   getNicheLearnings,
+  getSkillsRegistryStatus,
+  listSkills,
+  listSkillBundles,
+  viewSkill,
+  listSkillWorkshopProposals,
+  applyWorkshopProposalById,
+  rejectWorkshopProposal,
+  ensureDefaultSkillBundles,
   loadStudioAgentsConfig,
   previewConsolidation,
   reflectProject,
@@ -1607,9 +1616,11 @@ app.get("/api/projects/video-quality", async (req, res) => {
 
 app.get("/api/studio-agents/status", (req, res) => {
   try {
+    ensureDefaultSkillBundles(WORKSPACE_DIR);
     res.json({
       ...getDashboard(WORKSPACE_DIR),
       obsidian: getObsidianVaultStatus(WORKSPACE_DIR),
+      skills: getSkillsRegistryStatus(WORKSPACE_DIR),
     });
   } catch (err) {
     res.status(500).json({ error: "Erro ao carregar Studio Agents", details: err.message });
@@ -1632,6 +1643,58 @@ app.post("/api/studio-agents/obsidian/open", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Erro ao abrir Obsidian", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/skills", (req, res) => {
+  try {
+    ensureDefaultSkillBundles(WORKSPACE_DIR);
+    const task = String(req.query.task || "");
+    const format = String(req.query.format || "").toUpperCase() || null;
+    res.json({
+      skills: listSkills(WORKSPACE_DIR, {
+        task: task || null,
+        format: format === "SHORTS" ? "SHORT" : format === "LONGO" ? "LONG" : format,
+      }),
+      bundles: listSkillBundles(WORKSPACE_DIR),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao listar skills", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/skills/:slug", (req, res) => {
+  try {
+    const ref = req.query.ref ? String(req.query.ref) : null;
+    res.json(viewSkill(WORKSPACE_DIR, req.params.slug, ref));
+  } catch (err) {
+    res.status(404).json({ error: "Skill não encontrada", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/skill-workshop", (req, res) => {
+  try {
+    res.json({ proposals: listSkillWorkshopProposals(WORKSPACE_DIR) });
+  } catch (err) {
+    res.status(500).json({ error: "Erro no workshop", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/skill-workshop/:id/apply", (req, res) => {
+  try {
+    const result = applyWorkshopProposalById(WORKSPACE_DIR, req.params.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: "Falha ao aplicar proposta", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/skill-workshop/:id/reject", (req, res) => {
+  try {
+    const result = rejectWorkshopProposal(WORKSPACE_DIR, req.params.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: "Falha ao rejeitar proposta", details: err.message });
   }
 });
 
@@ -1715,7 +1778,7 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const timings = readProjectJson(projDir, "block_timings.json", {});
     const projectFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
-    const learningsAddendum = buildLearningsPromptAddendum(WORKSPACE_DIR, {
+    const learningsAddendum = buildStudioAgentsPromptAddendum(WORKSPACE_DIR, {
       niche: config.niche || "Geral",
       task: "overlay",
       format: projectFormat,

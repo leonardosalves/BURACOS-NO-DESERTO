@@ -1,0 +1,8 @@
+{
+  "name": "studio-overlay-agent",
+  "description": "Planejamento de overlays — HyperFrames, retenção Shorts, ganchos limpos",
+  "tasks": ["overlay"],
+  "formats": ["SHORT", "LONG"],
+  "skills": ["hyperframes", "viral-youtube-shorts", "viral-hooks"],
+  "instruction": "Combine catálogo HyperFrames com regras VVSA Shorts. Gancho limpo até 1.5s — sem overlay informativo no bloco 1. Alterne tipos de overlay; dados novos, nunca eco da narração."
+}
