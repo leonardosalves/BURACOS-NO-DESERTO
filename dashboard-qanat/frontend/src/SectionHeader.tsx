@@ -55,25 +55,29 @@ export function SectionHeader({
   const showHelp = Boolean(resolved);
 
   return (
-    <div className={className}>
-      <div className={`flex flex-wrap items-center gap-2 ${trailing ? 'justify-between' : ''}`}>
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {icon}
+    <div className={`min-w-0 ${className}`}>
+      <div className={`flex flex-wrap items-start sm:items-center gap-x-2 gap-y-1 ${trailing ? 'justify-between' : ''}`}>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 flex-1">
+          {icon && <span className="shrink-0">{icon}</span>}
           <h3
-            className={`font-cinzel font-bold text-white tracking-wide flex items-center gap-2 min-w-0 ${sizeClasses[size]} ${titleClassName}`}
+            className={`font-cinzel font-bold text-white tracking-wide flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 ${sizeClasses[size]} ${titleClassName}`}
           >
-            <span className="truncate">{title}</span>
+            <span className="min-w-0 break-words [overflow-wrap:anywhere] leading-snug">{title}</span>
             {showHelp && resolved && (
-              <SettingHelpTip title={resolved.title} align={align}>
-                {resolved.body}
-              </SettingHelpTip>
+              <span className="shrink-0 inline-flex">
+                <SettingHelpTip title={resolved.title} align={align}>
+                  {resolved.body}
+                </SettingHelpTip>
+              </span>
             )}
           </h3>
         </div>
-        {trailing}
+        {trailing && <div className="shrink-0">{trailing}</div>}
       </div>
       {subtitle && (
-        <div className="text-xs text-gray-400 mt-1 leading-relaxed font-sans">{subtitle}</div>
+        <div className="text-xs text-gray-400 mt-1 leading-relaxed font-sans break-words [overflow-wrap:anywhere] max-w-full">
+          {subtitle}
+        </div>
       )}
     </div>
   );
@@ -97,12 +101,14 @@ export function SectionLabel({
 }) {
   const resolved = resolveHelp(helpId, help, helpTitle);
   return (
-    <span className={`inline-flex items-center gap-1.5 ${className}`}>
-      <span>{children}</span>
+    <span className={`inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 max-w-full ${className}`}>
+      <span className="break-words min-w-0">{children}</span>
       {resolved && (
-        <SettingHelpTip title={resolved.title} align={align}>
-          {resolved.body}
-        </SettingHelpTip>
+        <span className="shrink-0 inline-flex">
+          <SettingHelpTip title={resolved.title} align={align}>
+            {resolved.body}
+          </SettingHelpTip>
+        </span>
       )}
     </span>
   );

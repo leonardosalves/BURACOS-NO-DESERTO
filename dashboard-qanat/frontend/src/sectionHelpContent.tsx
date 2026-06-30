@@ -292,6 +292,14 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'agents-obsidian': {
+    title: 'Memória no Obsidian',
+    body: (
+      <>
+        Vault em <code>.agents/</code> com as mesmas notas do Studio Agents. Edite padrões, navegue com wikilinks e use o grafo para revisar aprendizados por nicho.
+      </>
+    ),
+  },
   'overlay-timing': {
     title: 'Timing overlays IA',
     body: (

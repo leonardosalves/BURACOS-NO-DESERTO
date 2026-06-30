@@ -7757,7 +7757,7 @@ export default function App() {
                         key={tab.id}
                         type="button"
                         onClick={() => setActiveTab(tab.id)}
-                        className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                        className={`shrink-0 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition cursor-pointer max-w-full ${
                           isActive
                             ? 'bg-gold-500/15 text-gold-400 border border-gold-500/30'
                             : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent'

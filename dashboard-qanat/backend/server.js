@@ -161,6 +161,11 @@ import {
   saveStudioAgentsConfig,
 } from "./studioAgents.js";
 import {
+  getObsidianVaultStatus,
+  openInObsidian,
+  ensureObsidianVault,
+} from "./obsidianVault.js";
+import {
   flattenWordTranscripts,
   buildBlockSceneTimings,
   blockHasExplicitSync,
@@ -1543,9 +1548,31 @@ app.get("/api/projects/video-quality", async (req, res) => {
 
 app.get("/api/studio-agents/status", (req, res) => {
   try {
-    res.json(getDashboard(WORKSPACE_DIR));
+    res.json({
+      ...getDashboard(WORKSPACE_DIR),
+      obsidian: getObsidianVaultStatus(WORKSPACE_DIR),
+    });
   } catch (err) {
     res.status(500).json({ error: "Erro ao carregar Studio Agents", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/obsidian/status", (req, res) => {
+  try {
+    res.json(getObsidianVaultStatus(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar vault Obsidian", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/obsidian/open", async (req, res) => {
+  try {
+    ensureObsidianVault(WORKSPACE_DIR);
+    const file = String(req.body?.file || "MEMORIA-LUMIERA.md");
+    const result = await openInObsidian(WORKSPACE_DIR, file);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao abrir Obsidian", details: err.message });
   }
 });
 

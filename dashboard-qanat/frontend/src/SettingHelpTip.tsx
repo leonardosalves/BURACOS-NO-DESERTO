@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HelpCircle } from 'lucide-react';
 
@@ -13,20 +13,70 @@ type HelpTipProps = {
 type TipCoords = {
   top: number;
   left: number;
-  placement: Align;
+  transform?: string;
+  placement: 'above' | 'below';
 };
 
-function computeCoords(button: HTMLButtonElement, align: Align): TipCoords {
+const VIEWPORT_MARGIN = 12;
+const GAP = 8;
+const PANEL_WIDTH_ESTIMATE = 288;
+
+function computeCoords(
+  button: HTMLButtonElement,
+  align: Align,
+  panelWidth: number,
+  panelHeight: number,
+): TipCoords {
   const rect = button.getBoundingClientRect();
-  const gap = 8;
-  let left = rect.left + rect.width / 2;
-  if (align === 'start') left = rect.left;
-  if (align === 'end') left = rect.right;
-  return {
-    top: rect.bottom + gap,
-    left,
-    placement: align,
-  };
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const w = Math.min(panelWidth, vw - VIEWPORT_MARGIN * 2);
+  const h = panelHeight;
+
+  const spaceBelow = vh - rect.bottom - VIEWPORT_MARGIN;
+  const spaceAbove = rect.top - VIEWPORT_MARGIN;
+  const placement: 'above' | 'below' =
+    spaceBelow >= Math.min(h, 160) || spaceBelow >= spaceAbove ? 'below' : 'above';
+
+  let top =
+    placement === 'below'
+      ? rect.bottom + GAP
+      : rect.top - h - GAP;
+
+  top = Math.max(VIEWPORT_MARGIN, Math.min(top, vh - h - VIEWPORT_MARGIN));
+
+  let left: number;
+  let transform: string | undefined;
+
+  if (align === 'end') {
+    left = rect.right;
+    transform = 'translateX(-100%)';
+    if (left > vw - VIEWPORT_MARGIN) {
+      left = vw - VIEWPORT_MARGIN;
+    }
+    if (left - w < VIEWPORT_MARGIN) {
+      left = VIEWPORT_MARGIN + w;
+      transform = 'translateX(-100%)';
+    }
+  } else if (align === 'start') {
+    left = rect.left;
+    if (left < VIEWPORT_MARGIN) left = VIEWPORT_MARGIN;
+    if (left + w > vw - VIEWPORT_MARGIN) {
+      left = vw - VIEWPORT_MARGIN - w;
+    }
+  } else {
+    left = rect.left + rect.width / 2;
+    transform = 'translateX(-50%)';
+    const half = w / 2;
+    if (left - half < VIEWPORT_MARGIN) {
+      left = VIEWPORT_MARGIN + half;
+    }
+    if (left + half > vw - VIEWPORT_MARGIN) {
+      left = vw - VIEWPORT_MARGIN - half;
+    }
+  }
+
+  return { top, left, transform, placement };
 }
 
 export function SettingHelpTip({ title, children, align = 'center' }: HelpTipProps) {
@@ -40,16 +90,23 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
   const open = pinned || hovered;
 
   const refreshCoords = useCallback(() => {
-    if (!buttonRef.current) return;
-    setCoords(computeCoords(buttonRef.current, align));
+    if (!buttonRef.current || !panelRef.current) return;
+    const panel = panelRef.current;
+    const w = panel.offsetWidth || PANEL_WIDTH_ESTIMATE;
+    const h = panel.offsetHeight || 120;
+    setCoords(computeCoords(buttonRef.current, align, w, h));
   }, [align]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) {
       setCoords(null);
       return;
     }
     refreshCoords();
+  }, [open, refreshCoords, title, children]);
+
+  useEffect(() => {
+    if (!open) return;
     const onScrollOrResize = () => refreshCoords();
     window.addEventListener('scroll', onScrollOrResize, true);
     window.addEventListener('resize', onScrollOrResize);
@@ -73,51 +130,65 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
     return () => document.removeEventListener('mousedown', onDoc);
   }, [pinned]);
 
+  const panelVisible = open;
   const panelStyle: React.CSSProperties = coords
     ? {
         position: 'fixed',
         top: coords.top,
         left: coords.left,
-        transform:
-          coords.placement === 'center'
-            ? 'translateX(-50%)'
-            : coords.placement === 'end'
-              ? 'translateX(-100%)'
-              : undefined,
+        transform: coords.transform,
         zIndex: 99999,
         backgroundColor: '#141418',
+        visibility: 'visible',
       }
-    : { display: 'none' };
+    : {
+        position: 'fixed',
+        top: -9999,
+        left: 0,
+        zIndex: 99999,
+        backgroundColor: '#141418',
+        visibility: 'hidden',
+        pointerEvents: 'none',
+      };
 
-  const panel = open && coords
+  const panel = panelVisible
     ? createPortal(
         <div
           ref={panelRef}
           id={id}
           role="tooltip"
           style={panelStyle}
-          className="w-60 max-w-[min(15rem,calc(100vw-1.5rem))] rounded-xl border border-zinc-600 px-3.5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.85)]"
+          className="w-[min(18rem,calc(100vw-1.5rem))] sm:w-[min(20rem,calc(100vw-2rem))] max-h-[min(50vh,16rem)] overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-600 px-3.5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.85)] overscroll-contain"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => {
             if (!pinned) setHovered(false);
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div
-            className="pointer-events-none absolute -top-[5px] w-2.5 h-2.5 rotate-45 border-l border-t border-zinc-600"
-            style={{
-              backgroundColor: '#141418',
-              left: coords.placement === 'start' ? 14 : coords.placement === 'end' ? undefined : '50%',
-              right: coords.placement === 'end' ? 14 : undefined,
-              transform: coords.placement === 'center' ? 'translateX(-50%) rotate(45deg)' : 'rotate(45deg)',
-            }}
-          />
+          {coords && (
+            <div
+              className={`pointer-events-none absolute w-2.5 h-2.5 rotate-45 border-zinc-600 ${
+                coords.placement === 'below'
+                  ? '-top-[5px] border-l border-t'
+                  : '-bottom-[5px] border-r border-b'
+              }`}
+              style={{
+                backgroundColor: '#141418',
+                left: align === 'start' ? 14 : align === 'end' ? undefined : '50%',
+                right: align === 'end' ? 14 : undefined,
+                transform:
+                  align === 'center'
+                    ? 'translateX(-50%) rotate(45deg)'
+                    : 'rotate(45deg)',
+              }}
+            />
+          )}
           {title && (
-            <p className="text-[9px] font-bold uppercase tracking-wider text-gold-300 mb-1.5">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-gold-300 mb-1.5 break-words">
               {title}
             </p>
           )}
-          <div className="text-[10px] text-zinc-100 leading-relaxed font-sans normal-case tracking-normal">
+          <div className="text-[10px] sm:text-[11px] text-zinc-100 leading-relaxed font-sans normal-case tracking-normal break-words [overflow-wrap:anywhere] [hyphens:auto]">
             {children}
           </div>
         </div>,
@@ -129,7 +200,7 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
     <>
       <div
         ref={rootRef}
-        className="relative inline-flex shrink-0"
+        className="relative inline-flex shrink-0 align-middle"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => {
           if (!pinned) setHovered(false);
@@ -146,7 +217,7 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
             e.stopPropagation();
             setPinned((v) => !v);
           }}
-          className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition ${
+          className={`w-[18px] h-[18px] min-w-[18px] rounded-full border flex items-center justify-center transition shrink-0 ${
             open
               ? 'border-gold-500 bg-gold-500/25 text-gold-300'
               : 'border-zinc-600 bg-zinc-900 text-zinc-500 hover:text-gold-400 hover:border-gold-500/50'
@@ -180,8 +251,8 @@ export function SettingLabel({
 }: LabelProps) {
   const Tag = as;
   return (
-    <div className={`flex items-center gap-1.5 min-w-0 ${className}`}>
-      <Tag className="text-[10px] text-gold-500 font-bold uppercase tracking-wider truncate">
+    <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 ${className}`}>
+      <Tag className="text-[10px] text-gold-500 font-bold uppercase tracking-wider break-words min-w-0">
         {children}
       </Tag>
       <SettingHelpTip title={helpTitle} align={align}>
