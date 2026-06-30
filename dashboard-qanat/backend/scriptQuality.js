@@ -974,10 +974,12 @@ REGRAS DESTA FASE:
 - Revise cada frase: elimine tom robótico, clichês de IA, tom de redação escolar e trechos desconexos.
 - Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
 - ${isListicle
-    ? `Estruture mentalmente em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro), mas entregue a narração em texto corrido. ${format === "SHORTS" && listicleRank <= 3 ? "Top 3 Short: máximo ~90 palavras, 1 fato forte por item." : ""}`
+    ? `Estruture em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). ${format === "SHORTS" && listicleRank <= 3 ? "Top 3 Short: máximo ~90 palavras, 1 fato forte por item." : ""}`
     : format === "SHORTS"
-      ? "30-50 segundos, ~80-130 palavras, uma ideia clara com virada e payoff."
-      : "10-20 minutos, 1500-3000 palavras, narrativa profunda e imersiva."}
+      ? "30-50 segundos, ~80-130 palavras, 5 blocos lógicos."
+      : `10-20 minutos, 1500-3000 palavras, ${format === "SHORTS" ? 5 : 12} blocos lógicos.`}
+- Escreva BLOCO A BLOCO primeiro (frases curtas, 1 ideia por bloco), depois una em narrative_script.
+- Se houver pesquisa NotebookLM acima, priorize fatos verificáveis dela — estilo documental brasileiro enxuto.
 
 Responda APENAS JSON válido (sem markdown):
 {
@@ -988,7 +990,11 @@ Responda APENAS JSON válido (sem markdown):
     "tone": "Tom do vídeo"
   },
   "narrative_script": "Narração COMPLETA em texto corrido, SEM marcadores de áudio.",
-  "narrative_script_tagged": "A MESMA narração com tags de performance ([pausa], [ênfase], (breath), etc.)"
+  "narrative_script_tagged": "A MESMA narração com tags de performance ([pausa], [ênfase], (breath), etc.)",
+  "technical_config": {
+    "script": "Narração dividida em parágrafos — um parágrafo por bloco, separados por quebra dupla de linha.",
+    "block_phrases": [{"block": 1, "phrase": "início exato do bloco (4-8 palavras)"}]
+  }
 }`;
 }
 
@@ -1135,4 +1141,64 @@ export function mergeHumanizedNarration(original = {}, repaired = {}, format = "
   if (repaired.narrative_script) merged.narrative_script = repaired.narrative_script;
   if (repaired.narrative_script_tagged) merged.narrative_script_tagged = repaired.narrative_script_tagged;
   return applyScriptTextQuality(merged, format);
+}
+
+export function mergeEnrichedNarration(original = {}, enriched = {}, format = "LONGO") {
+  const merged = mergeHumanizedNarration(original, enriched, format);
+  if (enriched.strategy && typeof enriched.strategy === "object") {
+    merged.strategy = { ...merged.strategy, ...enriched.strategy };
+  }
+  if (enriched.technical_config && typeof enriched.technical_config === "object") {
+    merged.technical_config = {
+      ...merged.technical_config,
+      ...enriched.technical_config,
+    };
+  }
+  return merged;
+}
+
+export function normalizeNarrationBlocks(parsedData = {}, expectedBlocks = 5) {
+  const result = { ...parsedData };
+  const tc = { ...(result.technical_config || {}) };
+
+  if (Array.isArray(tc.script)) {
+    tc.script = tc.script.map((p) => String(p).trim()).filter(Boolean).join("\n\n");
+  }
+
+  let paragraphs = typeof tc.script === "string"
+    ? tc.script.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
+    : [];
+
+  if (!paragraphs.length && result.narrative_script?.trim()) {
+    const sentences = result.narrative_script.trim().split(/(?<=[.!?…])\s+/);
+    if (expectedBlocks > 1 && sentences.length >= expectedBlocks) {
+      const perBlock = Math.ceil(sentences.length / expectedBlocks);
+      paragraphs = [];
+      for (let i = 0; i < expectedBlocks; i += 1) {
+        const chunk = sentences.slice(i * perBlock, (i + 1) * perBlock).join(" ").trim();
+        if (chunk) paragraphs.push(chunk);
+      }
+    }
+  }
+
+  if (paragraphs.length && !result.narrative_script?.trim()) {
+    result.narrative_script = paragraphs.join(" ");
+  }
+
+  if (paragraphs.length) {
+    tc.script = paragraphs.join("\n\n");
+    if (!Array.isArray(tc.block_phrases) || !tc.block_phrases.length) {
+      tc.block_phrases = paragraphs.map((p, i) => ({
+        block: i + 1,
+        phrase: p.split(/\s+/).slice(0, 6).join(" "),
+      }));
+    }
+  }
+
+  if (Array.isArray(tc.block_phrases) && tc.block_phrases.length > expectedBlocks) {
+    tc.block_phrases = tc.block_phrases.slice(0, expectedBlocks);
+  }
+
+  result.technical_config = tc;
+  return result;
 }

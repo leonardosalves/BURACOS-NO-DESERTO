@@ -81,6 +81,7 @@ import {
   formatNotebooklmPromptBlock,
   getNotebooklmStatus,
   buildNotebooklmImproveApplyPrompt,
+  buildNotebooklmNarrationEnrichPrompt,
 } from "./notebooklmService.js";
 import {
   fetchWebResearchForTopic,
@@ -113,6 +114,8 @@ import {
   buildFullScriptFromNarrationPrompt,
   buildNarrationHumanizeRepairPrompt,
   mergeHumanizedNarration,
+  mergeEnrichedNarration,
+  normalizeNarrationBlocks,
   needsVisualPromptsRepair,
   buildVisualPromptsFromNarrationPrompt,
   mergeVisualPromptsRepair,
@@ -9556,10 +9559,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
   const skipNotebooklmScript = browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
 
   let notebooklmContext = "";
+  let notebooklmResearch = null;
   if (useNotebooklm !== false && !skipNotebooklmScript) {
     try {
       console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
-      const research = await fetchNotebooklmScriptContext({
+      notebooklmResearch = await fetchNotebooklmScriptContext({
         backendDir: __dirname,
         niche,
         format,
@@ -9569,11 +9573,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
         listTopic: listicleTopic,
         rankOrder: rankOrder || "desc",
       });
-      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA NOTEBOOKLM PARA ROTEIRO");
-      if (research.available) {
+      notebooklmContext = formatNotebooklmPromptBlock(notebooklmResearch, "PESQUISA NOTEBOOKLM PARA ROTEIRO");
+      if (notebooklmResearch.available) {
         console.log("[NotebookLM] Contexto de roteiro obtido com sucesso.");
       } else {
-        console.warn("[NotebookLM] Usando fallback de pesquisa:", research.message || "sem login");
+        console.warn("[NotebookLM] Usando fallback de pesquisa:", notebooklmResearch.message || "sem login");
       }
     } catch (err) {
       console.warn("[NotebookLM] Falha ao enriquecer roteiro:", err.message);
@@ -9905,12 +9909,59 @@ REGRAS FINAIS:
         console.warn("[Creator Script] Humanização da narração falhou, usando rascunho:", repairErr.message);
       }
 
+      parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
+
+      let notebooklmEnriched = false;
+      let notebooklmEnrichSummary = "";
+      if (
+        useNotebooklm !== false
+        && notebooklmResearch?.available
+        && String(parsedData.narrative_script || "").trim().length >= 40
+      ) {
+        try {
+          console.log("[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)...");
+          const improveResearch = await fetchNotebooklmScriptImprovements({
+            backendDir: __dirname,
+            niche,
+            format,
+            narrativeScript: parsedData.narrative_script,
+          });
+          const enrichBlock = formatNotebooklmPromptBlock(improveResearch, "ENRIQUECIMENTO NOTEBOOKLM");
+          notebooklmEnrichSummary = improveResearch.summary || "";
+          const enrichPrompt = buildNotebooklmNarrationEnrichPrompt({
+            niche,
+            format,
+            ideaTitle: idea.title,
+            rawScript: extractScriptSliceForRepair(parsedData),
+            notebooklmBlock: enrichBlock || notebooklmContext,
+            blockCount: listicleBlockCount,
+            isListicle,
+            listicleRank,
+          });
+          const enrichText = await callGeminiWithRetry(apiKey, enrichPrompt, {
+            temperature: 0.55,
+            maxRetries: 2,
+            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+          });
+          const enriched = normalizeKeys(await parseAiJsonResponse(enrichText, apiKey, "Enriquecimento narracao NLM"));
+          parsedData = mergeEnrichedNarration(parsedData, enriched, format);
+          parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
+          notebooklmEnriched = true;
+          console.log("[Creator Script] Narração enriquecida com NotebookLM na fase 1.");
+        } catch (enrichErr) {
+          console.warn("[Creator Script] Enriquecimento NotebookLM na narração falhou:", enrichErr.message);
+        }
+      }
+
       const storyboardPath = path.join(projDir, "storyboard.json");
       const partialStoryboard = {
         strategy: parsedData.strategy || {},
         narrative_script: parsedData.narrative_script || "",
         narrative_script_tagged: parsedData.narrative_script_tagged || "",
+        technical_config: parsedData.technical_config || undefined,
         research_sources: webResearchMeta?.sources || [],
+        notebooklm_enriched: notebooklmEnriched,
+        notebooklm_enriched_at: notebooklmEnriched ? new Date().toISOString() : undefined,
         _creator_phase: "narration_pending",
       };
       fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
@@ -9921,6 +9972,9 @@ REGRAS FINAIS:
         strategy: partialStoryboard.strategy,
         narrative_script: partialStoryboard.narrative_script,
         narrative_script_tagged: partialStoryboard.narrative_script_tagged,
+        technical_config: partialStoryboard.technical_config,
+        notebooklm_enriched: notebooklmEnriched,
+        notebooklm_summary: notebooklmEnrichSummary ? notebooklmEnrichSummary.slice(0, 500) : undefined,
       });
     }
 

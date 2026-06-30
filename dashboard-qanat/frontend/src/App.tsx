@@ -827,6 +827,13 @@ export default function App() {
   const [narrationDraft, setNarrationDraft] = useState<string>(savedCreatorState.narrationDraft || '');
   const [narrationTaggedDraft, setNarrationTaggedDraft] = useState<string>(savedCreatorState.narrationTaggedDraft || '');
   const [narrationStrategy, setNarrationStrategy] = useState<any | null>(savedCreatorState.narrationStrategy || null);
+  const [narrationBlockPhrases, setNarrationBlockPhrases] = useState<{ block: number; phrase: string }[]>(
+    savedCreatorState.narrationBlockPhrases || [],
+  );
+  const [narrationBlockScript, setNarrationBlockScript] = useState<string>(savedCreatorState.narrationBlockScript || '');
+  const [narrationNotebooklmEnriched, setNarrationNotebooklmEnriched] = useState<boolean>(
+    savedCreatorState.narrationNotebooklmEnriched || false,
+  );
   const [narrationProjectName, setNarrationProjectName] = useState<string>(savedCreatorState.narrationProjectName || '');
   const [useNotebooklm, setUseNotebooklm] = useState<boolean>(true);
   const [notebooklmStatus, setNotebooklmStatus] = useState<{
@@ -2049,9 +2056,12 @@ export default function App() {
       narrationDraft,
       narrationTaggedDraft,
       narrationStrategy,
+      narrationBlockPhrases,
+      narrationBlockScript,
+      narrationNotebooklmEnriched,
       narrationProjectName,
     }));
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData, listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft, narrationTaggedDraft, narrationStrategy, narrationProjectName]);
+  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData, listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft, narrationTaggedDraft, narrationStrategy, narrationBlockPhrases, narrationBlockScript, narrationNotebooklmEnriched, narrationProjectName]);
 
   useEffect(() => {
     if (listicleIdeasData && listicleSearchNiche && listNiche.trim() !== listicleSearchNiche) {
@@ -5737,11 +5747,21 @@ export default function App() {
         setNarrationDraft(data.narrative_script || '');
         setNarrationTaggedDraft(data.narrative_script_tagged || '');
         setNarrationStrategy(data.strategy || null);
+        setNarrationBlockPhrases(data.technical_config?.block_phrases || []);
+        const scriptBlocks = data.technical_config?.script;
+        setNarrationBlockScript(
+          typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+        );
+        setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
         setNarrationProjectName(safeProjectName);
         setShowNarrationReview(true);
         await fetchProjects();
         setActiveProject(safeProjectName);
-        toast.success('Narração gerada — revise e edite antes de montar o roteiro.');
+        toast.success(
+          data.notebooklm_enriched
+            ? 'Narração gerada e enriquecida com NotebookLM — revise antes de montar o roteiro.'
+            : 'Narração gerada — revise e edite antes de montar o roteiro.',
+        );
       } else {
         toast.error(data.error || data.details || 'Erro ao gerar narração.');
       }
@@ -13154,6 +13174,9 @@ export default function App() {
                         narrativeScriptTagged={narrationTaggedDraft}
                         strategyHook={narrationStrategy?.hook}
                         strategyTitle={narrationStrategy?.title_main}
+                        blockPhrases={narrationBlockPhrases}
+                        blockScript={narrationBlockScript}
+                        notebooklmEnriched={narrationNotebooklmEnriched}
                         loading={creatorLoading}
                         loadingMode={creatorLoadingMode === 'idle' ? 'idle' : creatorLoadingMode}
                         onNarrativeChange={(value) => {

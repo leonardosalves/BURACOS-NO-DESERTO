@@ -416,7 +416,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Revisão de narração',
     body: (
       <>
-        Preview e ajuste do TTS por bloco antes de gerar block_timings e iniciar o render.
+        A narração é gerada e, com NotebookLM conectado (<code>nlm login</code>), enriquecida automaticamente com fatos das fontes — mesmo estilo do botão &quot;Enriquecer com NotebookLM&quot; no editor. Revise por bloco antes de aprovar o roteiro completo.
       </>
     ),
   },
