@@ -15,4 +15,4 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 ## Dica
 Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por tema.
 
-atualizado: 2026-06-30T21:13:54.979Z
+atualizado: 2026-06-30T21:34:52.698Z

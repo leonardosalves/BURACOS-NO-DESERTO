@@ -59,6 +59,11 @@ Thumbs.db
 # Remotion temp project builds
 dashboard-qanat/remotion-renderer/public/projects/
 
+# Obsidian UI state + logs locais dos agents (vault .agents/ continua versionado)
+.agents/.obsidian/workspace.json
+.agents/.obsidian/graph.json
+.agents/agent_runs/
+
 # OAuth tokens, API keys and local tool dirs (never commit)
 .notebooklm-data/
 dashboard-qanat/backend/.notebooklm_tmp/
