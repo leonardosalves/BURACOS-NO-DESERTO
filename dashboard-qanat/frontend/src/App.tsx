@@ -99,6 +99,11 @@ import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } fro
 import { SettingsProduction } from './SettingsProduction';
 import { StudioAgents } from './StudioAgents';
 import {
+  PreRenderAdviceModal,
+  PreRenderAdvicePanel,
+  type PreRenderAdvice,
+} from './PreRenderAdvice';
+import {
   applyProductionPatchToConfig,
   pickProductionConfig,
   productionDraftToApiPatch,
@@ -267,6 +272,7 @@ interface VideoQualityReport {
   plan?: { format: string; maxOverlays: number; profile: string };
   preset?: string | null;
   epidemicMood?: string | null;
+  preRenderAdvice?: PreRenderAdvice;
   overlay_timing?: {
     checked?: number;
     repaired?: number;
@@ -277,6 +283,23 @@ interface VideoQualityReport {
     entries?: OverlayTimingEntry[];
   };
 }
+
+type PendingRenderJob = {
+  mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro';
+  fromWizard: boolean;
+  withoutImpactTitles: boolean;
+  useHyperframes: boolean;
+  isProres: boolean;
+  previewSeconds: number;
+  resolution: '1080p' | '2k';
+};
+
+const RENDER_MODE_LABELS: Record<PendingRenderJob['mode'], string> = {
+  standard: 'Compilação Padrão',
+  highlighted: 'Render Destacado',
+  remotion: 'Remotion',
+  'remotion-pro': 'Remotion PRO',
+};
 
 type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
 
@@ -766,6 +789,9 @@ export default function App() {
   const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
 
   const [videoQuality, setVideoQuality] = useState<VideoQualityReport | null>(null);
+
+  const [preRenderModalOpen, setPreRenderModalOpen] = useState(false);
+  const [pendingRender, setPendingRender] = useState<PendingRenderJob | null>(null);
 
   const [chatOpen, setChatOpen] = useState<boolean>(false);
 
@@ -6432,6 +6458,23 @@ export default function App() {
 
   };
 
+  const confirmPendingRender = () => {
+    if (!pendingRender) return;
+    const job = pendingRender;
+    setPreRenderModalOpen(false);
+    setPendingRender(null);
+    void triggerRender(
+      job.mode,
+      job.fromWizard,
+      job.withoutImpactTitles,
+      job.useHyperframes,
+      job.isProres,
+      job.previewSeconds,
+      job.resolution,
+      true,
+    );
+  };
+
   // SSE video rendering
 
   const triggerRender = async (
@@ -6441,20 +6484,29 @@ export default function App() {
     useHyperframes = false,
     isProres = false,
     previewSeconds = 0,
-    resolution: '1080p' | '2k' = effectiveRenderResolution
+    resolution: '1080p' | '2k' = effectiveRenderResolution,
+    skipAdviceCheck = false,
   ) => {
     if (rendering) return;
 
-    if (mode === 'remotion' || mode === 'remotion-pro') {
+    if (!skipAdviceCheck) {
       try {
         const res = await fetch(getProjectUrl('/api/projects/video-quality'));
         if (res.ok) {
           const report: VideoQualityReport = await res.json();
           setVideoQuality(report);
-          const errors = report.issues?.filter((i) => i.severity === 'error') || [];
-          if (errors.length > 0) {
-            const msg = `Qualidade ${report.score}/100 — ${errors.length} erro(s):\n\n${errors.map((e) => `• ${e.message}`).join('\n')}\n\nRenderizar mesmo assim?`;
-            if (!window.confirm(msg)) return;
+          if (report.preRenderAdvice) {
+            setPendingRender({
+              mode,
+              fromWizard,
+              withoutImpactTitles,
+              useHyperframes,
+              isProres,
+              previewSeconds,
+              resolution,
+            });
+            setPreRenderModalOpen(true);
+            return;
           }
         }
       } catch {
@@ -7477,6 +7529,22 @@ export default function App() {
 
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1c1c24', color: '#fff', border: '1px solid #2d2d3d' } }} />
 
+      {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
+        <PreRenderAdviceModal
+          advice={videoQuality.preRenderAdvice}
+          renderLabel={RENDER_MODE_LABELS[pendingRender.mode]}
+          onConfirm={confirmPendingRender}
+          onCancel={() => {
+            setPreRenderModalOpen(false);
+            setPendingRender(null);
+          }}
+          onGoToTab={(tab) => {
+            setPreRenderModalOpen(false);
+            setActiveTab(tab);
+          }}
+        />
+      )}
+
       {/* Header */}
 
       <header className="lumiera-header">
@@ -7821,7 +7889,16 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-                  {videoQuality.issues.length > 0 ? (
+                  {videoQuality.preRenderAdvice ? (
+                    <div className="mt-3">
+                      <PreRenderAdvicePanel
+                        advice={videoQuality.preRenderAdvice}
+                        compact
+                        onRefresh={() => fetchVideoQuality()}
+                        onGoToTab={(tab) => setActiveTab(tab)}
+                      />
+                    </div>
+                  ) : videoQuality.issues.length > 0 ? (
                     <ul className="mt-3 space-y-1.5 max-h-28 overflow-y-auto">
                       {videoQuality.issues.slice(0, 6).map((issue, idx) => (
                         <li

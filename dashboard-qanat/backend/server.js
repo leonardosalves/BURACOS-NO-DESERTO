@@ -163,6 +163,7 @@ import {
   shouldSkipAutoCapture,
 } from "./studioAgents.js";
 import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./formatResolver.js";
+import { buildPreRenderAdvice } from "./preRenderAdvice.js";
 import {
   getObsidianVaultStatus,
   openInObsidian,
@@ -1542,7 +1543,8 @@ app.get("/api/projects/video-quality", async (req, res) => {
     const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
     const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
     const workflow = analyzeSceneGaps(projDir, { config, storyboard });
-    res.json({ ...report, workflow });
+    const preRenderAdvice = buildPreRenderAdvice(report, workflow);
+    res.json({ ...report, workflow, preRenderAdvice });
   } catch (err) {
     res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
   }
