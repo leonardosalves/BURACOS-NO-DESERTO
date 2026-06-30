@@ -24,6 +24,7 @@ import {
   resolveYoutubeMetadataContext,
   YOUTUBE_METADATA_PIPELINE_VERSION,
 } from "./youtubeMetadataOptimizer.js";
+import { injectStudioAgentsContext } from "./studioAgents.js";
 import {
   getComfyuiStatus,
   startComfyui,
@@ -80,7 +81,7 @@ export function registerWorkflowRoutes(app, deps) {
     const metadataCtx = resolveYoutubeMetadataContext({ config, timings, storyboard, projectName });
     const { format, niche, totalDuration, chaptersText, category, profile, rpmHint } = metadataCtx;
 
-    const prompt = buildYoutubeMetadataPrompt({
+    let prompt = buildYoutubeMetadataPrompt({
       transcript,
       chaptersText,
       storyboard,
@@ -91,6 +92,11 @@ export function registerWorkflowRoutes(app, deps) {
       category,
       profile,
       rpmHint,
+    });
+    prompt = injectStudioAgentsContext(prompt, WORKSPACE_DIR, {
+      niche,
+      task: "metadata",
+      format,
     });
 
     let text = "";

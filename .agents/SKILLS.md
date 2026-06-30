@@ -6,10 +6,14 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
 - [[skills/hyperframes|HyperFrames]] — doc: [[skills/hyperframes/SKILL]]
 - [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
+- [[skills/remotion-render|remotion render]] — doc: [[skills/remotion-render/SKILL]]
 - [[skills/remotion_docs|Remotion Docs]] — doc: [[skills/remotion_docs/SKILL]]
+- [[skills/remotion-render|remotion render]] — doc: [[skills/remotion-render/SKILL]]
+- [[skills/video-marketing|video marketing]] — doc: [[skills/video-marketing/SKILL]]
 - [[skills/skills-registry-external|skills registry external]] — doc: [[skills/skills-registry-external/SKILL]]
 - [[skills/studio-agents-hermes|studio agents hermes]] — doc: [[skills/studio-agents-hermes/SKILL]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]] — doc: [[skills/ugc-scriptwriter/SKILL]]
+- [[skills/video-marketing|video marketing]] — doc: [[skills/video-marketing/SKILL]]
 - [[skills/viral-captions-and-ctas|viral captions and ctas]] — doc: [[skills/viral-captions-and-ctas/SKILL]]
 - [[skills/viral-hooks|viral hooks]] — doc: [[skills/viral-hooks/SKILL]]
 - [[skills/viral-short-form|Viral Short Form]] — doc: [[skills/viral-short-form/SKILL]]
@@ -19,4 +23,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-06-30T22:40:46.998Z
+atualizado: 2026-06-30T22:48:37.374Z

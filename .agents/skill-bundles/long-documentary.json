@@ -3,6 +3,6 @@
   "description": "Vídeo longo documental — overlays, BGM, Remotion",
   "tasks": ["overlay", "script"],
   "formats": ["LONG"],
-  "skills": ["hyperframes", "remotion_docs", "epidemic_sound", "youtube-seo"],
+  "skills": ["hyperframes", "remotion_docs", "remotion-render", "epidemic_sound", "youtube-seo"],
   "instruction": "Gancho 5s, gap 18s entre overlays, chapter stingers. Infográficos > cards flutuantes no centro."
 }

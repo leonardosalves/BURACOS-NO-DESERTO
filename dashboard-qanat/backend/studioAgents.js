@@ -86,6 +86,7 @@ export function getNicheLearnings(workspaceDir, niche, task = "overlay", format 
 
 export {
   buildStudioAgentsPromptAddendum,
+  injectStudioAgentsContext,
   buildSkillsPromptAddendum,
   getSkillsRegistryStatus,
   listSkills,

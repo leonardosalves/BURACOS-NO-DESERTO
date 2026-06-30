@@ -13,10 +13,14 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/hyperframes|HyperFrames]]
 - [[skills/lumiera-ops|lumiera ops]]
+- [[skills/remotion-render|remotion render]]
 - [[skills/remotion_docs|Remotion Docs]]
+- [[skills/remotion-render|remotion render]]
+- [[skills/video-marketing|video marketing]]
 - [[skills/skills-registry-external|skills registry external]]
 - [[skills/studio-agents-hermes|studio agents hermes]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
+- [[skills/video-marketing|video marketing]]
 - [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/REFERENCES|refs]]
 - [[skills/viral-hooks|viral hooks]]
 - [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/REFERENCES|refs]]
@@ -40,4 +44,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-06-30T22:40:46.997Z
+atualizado: 2026-06-30T22:48:37.372Z

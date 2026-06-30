@@ -41,6 +41,8 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/epidemic_sound|Epidemic Sound]]
 - [[skills/hyperframes|HyperFrames]]
 - [[skills/remotion_docs|Remotion Docs]]
+- [[skills/remotion-render|Remotion Render]] — LumieraTimeline, render local
+- [[skills/video-marketing|Video Marketing]] — estratégia short/long (kostja94)
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
 - [[skills/viral-short-form|Viral Short Form]] (+ `references/` Vyral)
 - [[skills/viral-short-form-ideas|Viral Short-Form Ideas]] — pilares, matriz, Creator
