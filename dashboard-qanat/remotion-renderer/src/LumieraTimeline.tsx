@@ -233,6 +233,9 @@ export type LumieraTimelineProps = {
   shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
   shortsHookFlash?: boolean;
   shortsEdgeGlow?: boolean;
+  shortsCaptionBgmPulse?: boolean;
+  shortsPortalTransition?: boolean;
+  shortsPortalEvery?: number;
 };
 
 
@@ -303,6 +306,12 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   shortsEdgeGlow: false,
 
+  shortsCaptionBgmPulse: true,
+
+  shortsPortalTransition: true,
+
+  shortsPortalEvery: 4,
+
 };
 
 
@@ -327,7 +336,21 @@ const SceneMedia: React.FC<{
   youtubeChannelInfo?: YoutubeChannelInfo | null;
   isShort?: boolean;
   shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
-}> = ({ scene, isFirst, isLast, index, youtubeChannelInfo, isShort = false, shortsZoomIntensity = "normal" }) => {
+  shortsPortalTransition?: boolean;
+  shortsPortalEvery?: number;
+  accentColor?: string;
+}> = ({
+  scene,
+  isFirst,
+  isLast,
+  index,
+  youtubeChannelInfo,
+  isShort = false,
+  shortsZoomIntensity = "normal",
+  shortsPortalTransition = true,
+  shortsPortalEvery = 4,
+  accentColor = "#D4AF37",
+}) => {
 
 
 
@@ -510,15 +533,34 @@ const SceneMedia: React.FC<{
 
   let transitionScale = 1;
 
+  let portalFilterBoost = "";
 
 
 
 
 
+
+
+  const usePortalTransition = isShort
+    && shortsPortalTransition
+    && !isFirst
+    && !isLogo
+    && index % Math.max(3, shortsPortalEvery) === 0;
 
   if (!isFirst && !isLogo && frame < transFrames) {
 
-
+    if (usePortalTransition) {
+      const portalSize = interpolate(frame, [0, transFrames], [0, 145], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
+      clipPath = `circle(${portalSize}% at 50% 50%)`;
+      transitionScale = interpolate(frame, [0, transFrames], [0.82, 1.0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      });
+      portalFilterBoost = ` saturate(1.25) drop-shadow(0 0 18px ${accentColor}88)`;
+    } else {
 
     const transitionMod = isShort ? 6 : 3;
     const transitionType = index % transitionMod;
@@ -639,6 +681,8 @@ const SceneMedia: React.FC<{
 
     }
 
+    }
+
 
 
   }
@@ -740,6 +784,10 @@ const SceneMedia: React.FC<{
 
 
 
+
+  if (portalFilterBoost) {
+    filter = `${filter}${portalFilterBoost}`;
+  }
 
   // 5. Professional Depth-of-Field Blur Entry (Focus Effect)
 
@@ -1049,9 +1097,16 @@ interface WordChunk {
 
 
 
-const CaptionLayer: React.FC<{ captions: Caption[]; captionStyle?: "shorts-viral" | "documentary" }> = ({
+const CaptionLayer: React.FC<{
+  captions: Caption[];
+  captionStyle?: "shorts-viral" | "documentary";
+  captionBgmPulse?: boolean;
+  accentColor?: string;
+}> = ({
   captions,
   captionStyle = "documentary",
+  captionBgmPulse = false,
+  accentColor = "#D4AF37",
 }) => {
 
 
@@ -1325,6 +1380,12 @@ const CaptionLayer: React.FC<{ captions: Caption[]; captionStyle?: "shorts-viral
           const popScale = isViralShorts && active
             ? spring({ fps, frame: wordFrame, config: { damping: 14, stiffness: 220, mass: 0.5 } })
             : 1;
+          const bgmBeat = captionBgmPulse && isViralShorts && active
+            ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
+            : 1;
+          const pulseGlow = captionBgmPulse && isViralShorts && active
+            ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
+            : undefined;
           return (
             <span
               key={`${word.startMs}-${index}`}
@@ -1348,12 +1409,14 @@ const CaptionLayer: React.FC<{ captions: Caption[]; captionStyle?: "shorts-viral
                 padding: isViralShorts && active ? "6px 18px" : "0",
                 borderRadius: isViralShorts ? "12px" : 0,
                 textShadow: isViralShorts
-                  ? (active ? "0 2px 8px rgba(0,0,0,0.35)" : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
+                  ? (active
+                    ? (pulseGlow || "0 2px 8px rgba(0,0,0,0.35)")
+                    : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
                   : (active
                     ? "0 0 16px rgba(250,204,21,0.5), 0 2px 4px rgba(0,0,0,0.5)"
                     : "0 2px 4px rgba(0,0,0,0.5)"),
                 transform: active
-                  ? `scale(${isViralShorts ? 0.92 + popScale * 0.14 : 1.08})`
+                  ? `scale(${(isViralShorts ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
                   : "scale(1.0)",
                 transition: isViralShorts ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
                 opacity: active ? 1 : (isViralShorts ? 0.92 : 0.75),
@@ -1614,6 +1677,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   shortsZoomIntensity = "normal",
   shortsHookFlash = true,
   shortsEdgeGlow = false,
+  shortsCaptionBgmPulse = true,
+  shortsPortalTransition = true,
+  shortsPortalEvery = 4,
 }) => {
   const isShort = format === "9:16";
   const showVignette = vignette;
@@ -1706,7 +1772,18 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-            <SceneMedia scene={scene} isFirst={index === 0} isLast={isLast} index={index} youtubeChannelInfo={youtubeChannelInfo} isShort={isShort} shortsZoomIntensity={shortsZoomIntensity} />
+            <SceneMedia
+              scene={scene}
+              isFirst={index === 0}
+              isLast={isLast}
+              index={index}
+              youtubeChannelInfo={youtubeChannelInfo}
+              isShort={isShort}
+              shortsZoomIntensity={shortsZoomIntensity}
+              shortsPortalTransition={shortsPortalTransition}
+              shortsPortalEvery={shortsPortalEvery}
+              accentColor={accentColor}
+            />
 
 
 
@@ -1890,7 +1967,12 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         </AbsoluteFill>
       )}
 
-      <CaptionLayer captions={captions} captionStyle={captionStyle} />
+      <CaptionLayer
+        captions={captions}
+        captionStyle={captionStyle}
+        captionBgmPulse={isShort && shortsCaptionBgmPulse}
+        accentColor={accentColor}
+      />
 
       {!isShort && showProgressBar ? (
         <ProgressBar totalDuration={totalDuration} accentColor={accentColor} />

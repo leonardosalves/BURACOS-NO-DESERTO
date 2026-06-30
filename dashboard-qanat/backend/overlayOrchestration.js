@@ -40,7 +40,7 @@ const VARIETY_PROFILES = [
   {
     id: "geography-explorer",
     label: "Explorador Geográfico",
-    componentPriority: ["bar-chart", "timeline", "lower-third", "counter"],
+    componentPriority: ["geo-map", "bar-chart", "timeline", "lower-third", "counter"],
     lowerThirdVariants: ["glass", "clean-bar", "soft-pill", "accent-underline"],
     positions: ["top-right", "bottom-left", "top-left", "bottom-center"],
     lotties: ["earth", "compass", "nature", "history", "sparkles", "shield"],
@@ -49,7 +49,7 @@ const VARIETY_PROFILES = [
   {
     id: "social-proof",
     label: "Prova Social Viral",
-    componentPriority: ["lower-third", "counter", "kinetic-text", "bar-chart"],
+    componentPriority: ["social-post", "lower-third", "counter", "kinetic-text", "bar-chart"],
     lowerThirdVariants: ["glass", "bold-block", "accent-underline", "bild"],
     positions: ["bottom-center", "top-left", "bottom-right", "top-right"],
     lotties: ["sparkles", "heart", "money", "crown", "lightbulb", "warning"],
@@ -320,6 +320,8 @@ ${plan.format === "SHORT" ? `- SHORTS + LISTICLE: posição OBRIGATÓRIA "bottom
 4. **Dados visuais > texto:** se há número, porcentagem ou comparação na narração, use counter ou bar-chart.
 5. **Sem padrão fixo:** este vídeo usa o perfil "${plan.varietyLabel}" — o próximo vídeo terá perfil diferente.
 6. **Campo start:** sempre scene_id (ex: "2.1"), nunca segundos absolutos.
+7. **social-post:** card estilo Reddit/X — props: platform ("reddit"|"x"), username, text (máx 12 palavras), upvotes.
+8. **geo-map:** mapa com pin — props: location, region (opcional), position bottom-right.
 `.trim();
 }
 

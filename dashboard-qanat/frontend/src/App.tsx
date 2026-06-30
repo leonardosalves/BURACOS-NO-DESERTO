@@ -155,6 +155,11 @@ interface ConfigData {
   shorts_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
   shorts_hook_flash?: boolean;
   shorts_edge_glow?: boolean;
+  shorts_caption_bgm_pulse?: boolean;
+  shorts_portal_transition?: boolean;
+  shorts_portal_every?: number;
+  social_proof_cards?: boolean;
+  geo_map_overlays?: boolean;
   accent_color?: string;
   content_mode?: string;
 
