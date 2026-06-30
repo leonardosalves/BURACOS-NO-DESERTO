@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/SKILL]] · [[skills/viral-short-form-ideas/REFERENCES]]
+
 # Repurposing
 
 Repurposing is how prolific creators post 30+ pieces a week without

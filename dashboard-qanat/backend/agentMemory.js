@@ -129,6 +129,8 @@ function buildNicheMemoryContent(niche, { promoted = [], candidates = [], runs =
   return [
     `# ${slug}`,
     "",
+    "> 🔗 [[MEMORIA-LUMIERA]] · [[MEMORY]]",
+    "",
     "## Meta",
     `niche: ${niche}`,
     `updated: ${new Date().toISOString()}`,
@@ -297,7 +299,7 @@ export function appendDailyRunLog(workspaceDir, line) {
   ensureAgentDirs(workspaceDir);
   const day = new Date().toISOString().slice(0, 10);
   const file = path.join(getAgentPaths(workspaceDir).runsDir, `${day}.md`);
-  const header = fs.existsSync(file) ? "" : `# Agent runs ${day}\n\n`;
+  const header = fs.existsSync(file) ? "" : `# Agent runs ${day}\n\n> 🔗 [[MEMORIA-LUMIERA]]\n\n`;
   const existing = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
   const lineCount = existing.split("\n").filter((l) => l.trim().startsWith("- ")).length;
   if (lineCount >= MAX_DAILY_RUN_LINES) return;

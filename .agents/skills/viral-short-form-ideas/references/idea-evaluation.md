@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/SKILL]] · [[skills/viral-short-form-ideas/REFERENCES]]
+
 # Idea evaluation
 
 Generating ideas is the easy part. Most creators have more ideas than

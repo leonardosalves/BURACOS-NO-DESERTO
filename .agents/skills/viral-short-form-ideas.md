@@ -1,6 +1,8 @@
-# Viral Short-Form Ideas
-
-Atalho Obsidian → [[skills/viral-short-form-ideas/SKILL|SKILL completa]]
-
-- [[MEMORIA-LUMIERA]] · [[SKILLS]] · [[skills/viral-short-form|Viral Short Form]]
-- Pilares, matriz, mineração, ranking_ideas no Creator
+# viral short form ideas
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form-ideas/SKILL]] · [[SKILLS]]
+Atalho Obsidian para [[skills/viral-short-form-ideas/SKILL|viral short form ideas (SKILL completa)]].
+- [[MEMORIA-LUMIERA]]
+- [[SKILLS]]
+- [[AGENTS]]
+- Documentação: [[skills/viral-short-form-ideas/SKILL]]
+- Referências: [[skills/viral-short-form-ideas/REFERENCES]]

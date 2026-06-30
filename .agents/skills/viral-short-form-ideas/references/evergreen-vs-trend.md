@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/SKILL]] · [[skills/viral-short-form-ideas/REFERENCES]]
+
 # Evergreen vs trend
 
 Every account runs a mix of two kinds of content. Evergreen compounds

@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/SKILL]] · [[skills/viral-short-form-ideas/REFERENCES]]
+
 # Pillars
 
 Pillars are 3 to 5 recurring topic categories that define what an account

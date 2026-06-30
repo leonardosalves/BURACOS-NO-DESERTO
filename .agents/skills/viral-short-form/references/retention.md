@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/SKILL]] · [[skills/viral-short-form/REFERENCES]]
+
 # Retention & structure
 
 On short-form, **retention is distribution**: the algorithm keeps pushing what

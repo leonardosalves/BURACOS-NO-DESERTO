@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/SKILL]] · [[skills/viral-captions-and-ctas/REFERENCES]]
+
 # CTAs that work
 
 The CTAs worth writing are tied to the algorithmically heavy actions:

@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/SKILL]] · [[skills/viral-short-form-ideas/REFERENCES]]
+
 # Mining
 
 Mining is where ideas come from when the user has exhausted what's in

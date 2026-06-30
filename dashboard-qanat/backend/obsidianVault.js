@@ -11,6 +11,8 @@ import { ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
 const VAULT_NAME = "Lumiera Memória";
 const HUB_NOTE = "MEMORIA-LUMIERA.md";
 const HUB_STALE_MS = 60 * 60 * 1000;
+const HUB_LINK = "[[MEMORIA-LUMIERA]]";
+const HUB_LINK_RE = /\[\[MEMORIA-LUMIERA\]\]/;
 
 const DEFAULT_OBSIDIAN_PATHS = [
   process.env.OBSIDIAN_PATH,
@@ -66,9 +68,11 @@ function buildSkillsIndexNote(vaultDir) {
   return [
     "# Skills do Lumiera",
     "",
+    `> 🔗 ${HUB_LINK} · [[AGENTS]] · [[MEMORY]]`,
+    "",
     "Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.",
     "",
-    "Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]",
+    `Hub: ${HUB_LINK} · Agentes: [[AGENTS]] · Memória: [[MEMORY]]`,
     "",
     "## Catálogo",
     lines.length ? lines.join("\n") : "- _(nenhuma skill em skills/)_",
@@ -78,40 +82,215 @@ function buildSkillsIndexNote(vaultDir) {
     "",
     `atualizado: ${new Date().toISOString()}`,
     "",
+  ].filter(Boolean).join("\n");
+}
+
+function listMarkdownFiles(vaultDir, { ignoreObsidian = true } = {}) {
+  const files = [];
+  function walk(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (ignoreObsidian && entry.name === ".obsidian") continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".md")) files.push(full);
+    }
+  }
+  walk(vaultDir);
+  return files;
+}
+
+function relVaultPath(vaultDir, filePath) {
+  return path.relative(vaultDir, filePath).replace(/\\/g, "/");
+}
+
+function inferBacklinkLine(relPath) {
+  if (relPath === HUB_NOTE) return null;
+  if (relPath === "MEMORY.md") return `> 🔗 ${HUB_LINK} · [[SKILLS]] · [[AGENTS]]`;
+  if (relPath === "AGENTS.md") return `> 🔗 ${HUB_LINK} · [[SKILLS]] · [[MEMORY]]`;
+  if (relPath === "SKILLS.md") return `> 🔗 ${HUB_LINK} · [[AGENTS]] · [[MEMORY]]`;
+  if (relPath.startsWith("memory/")) {
+    const slug = relPath.replace("memory/", "").replace(".md", "");
+    return `> 🔗 ${HUB_LINK} · [[memory/${slug}]] · [[MEMORY]]`;
+  }
+  if (relPath.startsWith("agent_runs/")) {
+    const day = relPath.replace("agent_runs/", "").replace(".md", "");
+    return `> 🔗 ${HUB_LINK} · [[agent_runs/${day}]]`;
+  }
+  if (relPath.startsWith("skill-bundles/")) {
+    return `> 🔗 ${HUB_LINK} · [[skills/studio-agents-hermes]] · [[SKILLS]]`;
+  }
+  const skillRef = relPath.match(/^skills\/([^/]+)\/(references|assets)\/(.+)\.md$/);
+  if (skillRef) {
+    const [, slug, , refFile] = skillRef;
+    const label = skillLabel(slug);
+    return `> 🔗 ${HUB_LINK} · [[skills/${slug}|${label}]] · [[skills/${slug}/SKILL]] · [[skills/${slug}/REFERENCES]]`;
+  }
+  const skillReadme = relPath.match(/^skills\/([^/]+)\/README\.md$/);
+  if (skillReadme) {
+    const slug = skillReadme[1];
+    return `> 🔗 ${HUB_LINK} · [[skills/${slug}]] · [[skills/${slug}/SKILL]] · [[SKILLS]]`;
+  }
+  const skillRefIndex = relPath.match(/^skills\/([^/]+)\/REFERENCES\.md$/);
+  if (skillRefIndex) {
+    const slug = skillRefIndex[1];
+    return `> 🔗 ${HUB_LINK} · [[skills/${slug}]] · [[skills/${slug}/SKILL]] · [[SKILLS]]`;
+  }
+  const skillStub = relPath.match(/^skills\/([^/]+)\.md$/);
+  if (skillStub) {
+    const slug = skillStub[1];
+    return `> 🔗 ${HUB_LINK} · [[skills/${slug}/SKILL]] · [[SKILLS]] · [[AGENTS]]`;
+  }
+  return `> 🔗 ${HUB_LINK} · [[SKILLS]]`;
+}
+
+function prependBacklinkIfMissing(filePath, backlinkLine) {
+  if (!backlinkLine) return false;
+  let content = fs.readFileSync(filePath, "utf8");
+  if (HUB_LINK_RE.test(content)) return false;
+  fs.writeFileSync(filePath, `${backlinkLine}\n\n${content}`, "utf8");
+  return true;
+}
+
+function listSkillReferenceFiles(skillDir) {
+  const refs = [];
+  for (const sub of ["references", "assets"]) {
+    const dir = path.join(skillDir, sub);
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir)) {
+      if (file.endsWith(".md")) refs.push(`${sub}/${file.replace(/\.md$/, "")}`);
+    }
+  }
+  return refs.sort();
+}
+
+function buildSkillReferencesIndex(slug, refFiles) {
+  const label = skillLabel(slug);
+  const lines = refFiles.map((r) => `- [[${r}]]`);
+  return [
+    `# Referências — ${label}`,
+    "",
+    `> 🔗 ${HUB_LINK} · [[skills/${slug}]] · [[skills/${slug}/SKILL]] · [[SKILLS]]`,
+    "",
+    lines.length ? lines.join("\n") : "- _(sem referências em references/ ou assets/)_",
+    "",
   ].join("\n");
+}
+
+function ensureSkillReferencesIndex(vaultDir, slug) {
+  const skillDir = path.join(vaultDir, "skills", slug);
+  const refFiles = listSkillReferenceFiles(skillDir);
+  if (!refFiles.length) return false;
+  const indexPath = path.join(skillDir, "REFERENCES.md");
+  fs.writeFileSync(indexPath, buildSkillReferencesIndex(slug, refFiles), "utf8");
+  return true;
+}
+
+function ensureSkillBundlesNote(vaultDir) {
+  const bundlesDir = path.join(vaultDir, "skill-bundles");
+  const notePath = path.join(bundlesDir, "BUNDLES.md");
+  if (!fs.existsSync(bundlesDir)) return;
+  const jsonFiles = fs.existsSync(bundlesDir)
+    ? fs.readdirSync(bundlesDir).filter((f) => f.endsWith(".json"))
+    : [];
+  const lines = jsonFiles.map((f) => `- \`${f}\` — ver [[skills/studio-agents-hermes]]`);
+  const content = [
+    "# Skill bundles (Hermes / OpenClaw)",
+    "",
+    `> 🔗 ${HUB_LINK} · [[skills/studio-agents-hermes]] · [[SKILLS]]`,
+    "",
+    "Bundles JSON usados pelo Studio Agents para injetar skills no prompt.",
+    "",
+    lines.length ? lines.join("\n") : "- _(nenhum bundle)_",
+    "",
+  ].join("\n");
+  fs.writeFileSync(notePath, content, "utf8");
+}
+
+export function auditVaultGraph(workspaceDir) {
+  const vaultDir = getObsidianVaultDir(workspaceDir);
+  if (!fs.existsSync(vaultDir)) {
+    return { total: 0, connected: 0, orphans: 0, orphanFiles: [] };
+  }
+  const files = listMarkdownFiles(vaultDir);
+  const orphanFiles = [];
+  for (const file of files) {
+    const content = fs.readFileSync(file, "utf8");
+    if (!HUB_LINK_RE.test(content) && relVaultPath(vaultDir, file) !== HUB_NOTE) {
+      orphanFiles.push(relVaultPath(vaultDir, file));
+    }
+  }
+  return {
+    total: files.length,
+    connected: files.length - orphanFiles.length,
+    orphans: orphanFiles.length,
+    orphanFiles: orphanFiles.slice(0, 40),
+  };
+}
+
+export function repairVaultGraphLinks(workspaceDir) {
+  const vaultDir = getObsidianVaultDir(workspaceDir);
+  ensureAgentDirs(workspaceDir);
+  let repaired = 0;
+
+  ensureSkillGraphLinks(vaultDir);
+  ensureSkillBundlesNote(vaultDir);
+
+  const slugs = listSkillEntries(vaultDir);
+  for (const slug of slugs) {
+    if (ensureSkillReferencesIndex(vaultDir, slug)) repaired += 1;
+  }
+
+  for (const file of listMarkdownFiles(vaultDir)) {
+    const rel = relVaultPath(vaultDir, file);
+    const backlink = inferBacklinkLine(rel);
+    if (prependBacklinkIfMissing(file, backlink)) repaired += 1;
+  }
+
+  fs.writeFileSync(path.join(vaultDir, HUB_NOTE), buildHubNote(workspaceDir), "utf8");
+  fs.writeFileSync(path.join(vaultDir, "SKILLS.md"), buildSkillsIndexNote(vaultDir), "utf8");
+
+  const audit = auditVaultGraph(workspaceDir);
+  return { repaired, ...audit };
 }
 
 function ensureSkillGraphLinks(vaultDir) {
   const slugs = listSkillEntries(vaultDir);
   if (!slugs.length) return;
 
-  fs.writeFileSync(path.join(vaultDir, "SKILLS.md"), buildSkillsIndexNote(vaultDir), "utf8");
-
   for (const slug of slugs) {
     const label = skillLabel(slug);
     const stubPath = path.join(vaultDir, "skills", `${slug}.md`);
     const skillDoc = `skills/${slug}/SKILL`;
+    const hasRefs = listSkillReferenceFiles(path.join(vaultDir, "skills", slug)).length > 0;
     fs.writeFileSync(
       stubPath,
       [
         `# ${label}`,
         "",
+        `> 🔗 ${HUB_LINK} · [[${skillDoc}]] · [[SKILLS]]`,
+        "",
         `Atalho Obsidian para [[${skillDoc}|${label} (SKILL completa)]].`,
         "",
-        "- [[MEMORIA-LUMIERA]]",
+        `- ${HUB_LINK}`,
         "- [[SKILLS]]",
         "- [[AGENTS]]",
         `- Documentação: [[${skillDoc}]]`,
+        hasRefs ? `- Referências: [[skills/${slug}/REFERENCES]]` : "",
         "",
-      ].join("\n"),
+      ].filter(Boolean).join("\n"),
       "utf8",
     );
 
     const skillPath = path.join(vaultDir, "skills", slug, "SKILL.md");
     let content = fs.readFileSync(skillPath, "utf8");
-    const backlink = `[[MEMORIA-LUMIERA]] · [[skills/${slug}|${label}]] · [[SKILLS]]`;
-    if (!content.includes("[[MEMORIA-LUMIERA]]")) {
+    const backlink = `${HUB_LINK} · [[skills/${slug}|${label}]] · [[SKILLS]]`;
+    if (!content.includes(HUB_LINK)) {
       content = `> 🔗 ${backlink}\n\n${content}`;
+      fs.writeFileSync(skillPath, content, "utf8");
+    }
+    if (hasRefs && !content.includes("REFERENCES")) {
+      content = content.trimEnd() + `\n\n## Referências\n\n- [[skills/${slug}/REFERENCES|Índice de references/assets]]\n`;
       fs.writeFileSync(skillPath, content, "utf8");
     }
   }
@@ -119,21 +298,24 @@ function ensureSkillGraphLinks(vaultDir) {
   const agentsPath = path.join(vaultDir, "AGENTS.md");
   if (fs.existsSync(agentsPath)) {
     let agents = fs.readFileSync(agentsPath, "utf8");
+    if (!agents.includes(HUB_LINK)) {
+      agents = `> 🔗 ${HUB_LINK} · [[SKILLS]] · [[MEMORY]]\n\n${agents}`;
+    }
     if (!agents.includes("[[SKILLS]]")) {
       const skillLines = slugs
-        .map((slug) => `- [[skills/${slug}|${skillLabel(slug)}]]`)
+        .map((s) => `- [[skills/${s}|${skillLabel(s)}]]`)
         .join("\n");
       agents += [
         "",
         "## 5. Skills (Obsidian)",
         "",
-        "Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]",
+        `Catálogo: [[SKILLS]] · Hub: ${HUB_LINK}`,
         "",
         skillLines,
         "",
       ].join("\n");
-      fs.writeFileSync(agentsPath, agents, "utf8");
     }
+    fs.writeFileSync(agentsPath, agents, "utf8");
   }
 }
 
@@ -157,18 +339,28 @@ function buildHubNote(workspaceDir) {
     .join("\n");
 
   const skillLinks = skillSlugs
-    .map((slug) => `- [[skills/${slug}|${skillLabel(slug)}]]`)
+    .map((slug) => {
+      const hasRefs = listSkillReferenceFiles(path.join(vaultDir, "skills", slug)).length > 0;
+      const ref = hasRefs ? ` · [[skills/${slug}/REFERENCES|refs]]` : "";
+      return `- [[skills/${slug}|${skillLabel(slug)}]]${ref}`;
+    })
     .join("\n");
+
+  const bundlesNote = fs.existsSync(path.join(vaultDir, "skill-bundles", "BUNDLES.md"))
+    ? "- [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]"
+    : "";
 
   return [
     `# ${VAULT_NAME}`,
     "",
     "Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — as notas são as mesmas em `.agents/`.",
+    "**Grafo:** toda nota deve ligar a este hub — o Lumiera repara automaticamente ao abrir Studio Agents.",
     "",
     "## Navegação rápida",
     `- [[MEMORY]] — regras globais do estúdio`,
     `- [[AGENTS]] — documentação dos agentes`,
     `- [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)`,
+    bundlesNote,
     "",
     "## Skills",
     skillLinks || "- _(nenhuma skill — pasta skills/)_",
@@ -235,16 +427,8 @@ export function ensureObsidianVault(workspaceDir) {
     bookmarks: true,
   });
 
+  const graph = repairVaultGraphLinks(workspaceDir);
   const hubPath = path.join(vaultDir, HUB_NOTE);
-  const hubStale = !fs.existsSync(hubPath)
-    || Date.now() - fs.statSync(hubPath).mtimeMs > HUB_STALE_MS;
-  ensureSkillGraphLinks(vaultDir);
-
-  const hubContent = fs.existsSync(hubPath) ? fs.readFileSync(hubPath, "utf8") : "";
-  const needsHubRefresh = hubStale || !hubContent.includes("[[SKILLS]]");
-  if (needsHubRefresh) {
-    fs.writeFileSync(hubPath, buildHubNote(workspaceDir), "utf8");
-  }
 
   return {
     vaultDir,
@@ -252,6 +436,7 @@ export function ensureObsidianVault(workspaceDir) {
     vaultFolderName: path.basename(vaultDir),
     hubNote: HUB_NOTE,
     hubPath,
+    graph,
   };
 }
 
@@ -352,6 +537,7 @@ export function getObsidianVaultStatus(workspaceDir) {
     hubPath: vault.hubPath,
     uri: uris.pathUri,
     vaultUri: uris.vaultUri,
+    graph: vault.graph || auditVaultGraph(workspaceDir),
   };
 }
 

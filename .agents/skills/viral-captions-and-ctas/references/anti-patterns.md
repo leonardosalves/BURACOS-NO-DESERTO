@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/SKILL]] · [[skills/viral-captions-and-ctas/REFERENCES]]
+
 # Anti-patterns
 
 The copy moves that suppress reach, regardless of how good the video is.
