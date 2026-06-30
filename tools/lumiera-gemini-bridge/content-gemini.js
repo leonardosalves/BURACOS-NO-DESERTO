@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.0";
+  const VERSION = "1.4.1";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -29,6 +29,40 @@
     return String(el.value || "").trim();
   }
 
+  function queryDeepAll(root, selector) {
+    const results = [];
+    const seen = new Set();
+    const walk = (node) => {
+      if (!node || seen.has(node)) return;
+      seen.add(node);
+      if (node.querySelectorAll) {
+        node.querySelectorAll(selector).forEach((el) => results.push(el));
+      }
+      if (node.shadowRoot) walk(node.shadowRoot);
+      if (node.children) {
+        [...node.children].forEach((child) => walk(child));
+      }
+    };
+    walk(root);
+    return results;
+  }
+
+  function scoreInputCandidate(el) {
+    if (!el || !isVisible(el)) return -1;
+    let score = 0;
+    if (el.isContentEditable) score += 40;
+    if (el.classList?.contains("ql-editor")) score += 50;
+    if (el.closest?.("rich-textarea, input-area, chat-input")) score += 30;
+    const role = (el.getAttribute("role") || "").toLowerCase();
+    if (role === "textbox") score += 20;
+    const label = `${el.getAttribute("aria-label") || ""} ${el.getAttribute("data-placeholder") || ""}`.toLowerCase();
+    if (/prompt|mensagem|message|ask|digite|enter/.test(label)) score += 15;
+    if (el.tagName === "TEXTAREA") score += 25;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight * 0.45) score += 10;
+    return score;
+  }
+
   function findInput() {
     const selectors = [
       "rich-textarea div.ql-editor[contenteditable='true']",
@@ -37,15 +71,48 @@
       'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"][aria-label*="prompt" i]',
       'div[contenteditable="true"][aria-label*="mensagem" i]',
+      'div[contenteditable="true"][aria-label*="message" i]',
       'div[contenteditable="true"][data-placeholder]',
       "textarea",
       'div[contenteditable="true"]',
     ];
+
+    const candidates = [];
     for (const sel of selectors) {
-      const el = [...document.querySelectorAll(sel)].find(isVisible);
-      if (el) return el;
+      queryDeepAll(document, sel).forEach((el) => {
+        const score = scoreInputCandidate(el);
+        if (score >= 0) candidates.push({ el, score });
+      });
     }
-    return null;
+
+    document.querySelectorAll("rich-textarea, input-area").forEach((host) => {
+      if (host.shadowRoot) {
+        [...host.shadowRoot.querySelectorAll("div.ql-editor, [contenteditable='true'], textarea")]
+          .forEach((el) => {
+            const score = scoreInputCandidate(el);
+            if (score >= 0) candidates.push({ el, score });
+          });
+      }
+    });
+
+    candidates.sort((a, b) => b.score - a.score);
+    return candidates[0]?.el || null;
+  }
+
+  function focusInputChain(el) {
+    if (!el) return;
+    const chain = [];
+    let node = el;
+    for (let i = 0; i < 8 && node; i += 1) {
+      chain.push(node);
+      node = node.parentElement;
+    }
+    chain.reverse().forEach((n) => {
+      if (typeof n.focus === "function") n.focus();
+      if (typeof n.click === "function") n.click();
+    });
+    el.focus();
+    el.click();
   }
 
   function isSendCandidate(btn) {
@@ -679,10 +746,15 @@
     return null;
   }
 
+  function inputHasText(el, text, minLen = 3) {
+    const current = getInputText(el).length;
+    const expected = Math.min(String(text || "").length, 8);
+    return current >= Math.max(minLen, expected);
+  }
+
   async function pasteText(el, text) {
-    el.focus();
-    el.click();
-    await sleep(80);
+    focusInputChain(el);
+    await sleep(100);
 
     try {
       const dt = new DataTransfer();
@@ -692,7 +764,18 @@
         cancelable: true,
         clipboardData: dt,
       }));
-      if (pasted !== false && getInputText(el).length > 0) return true;
+      if (pasted !== false && inputHasText(el, text)) return true;
+    } catch {
+      // ignore
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      focusInputChain(el);
+      if (document.execCommand("paste")) {
+        await sleep(120);
+        if (inputHasText(el, text)) return true;
+      }
     } catch {
       // ignore
     }
@@ -700,10 +783,34 @@
     return false;
   }
 
+  async function insertTextInChunks(el, text) {
+    focusInputChain(el);
+    const chunkSize = 1800;
+    for (let i = 0; i < text.length; i += chunkSize) {
+      const chunk = text.slice(i, i + chunkSize);
+      try {
+        document.execCommand("insertText", false, chunk);
+      } catch {
+        el.dispatchEvent(new InputEvent("beforeinput", {
+          bubbles: true,
+          cancelable: true,
+          inputType: "insertText",
+          data: chunk,
+        }));
+        el.dispatchEvent(new InputEvent("input", {
+          bubbles: true,
+          inputType: "insertText",
+          data: chunk,
+        }));
+      }
+      await sleep(i === 0 ? 80 : 24);
+    }
+  }
+
   async function fillInput(el, text) {
-    el.focus();
-    el.click();
-    await sleep(120);
+    const value = String(text || "");
+    focusInputChain(el);
+    await sleep(180);
 
     if (el.isContentEditable) {
       try {
@@ -713,37 +820,58 @@
         // ignore
       }
 
-      const pasted = await pasteText(el, text);
-      if (!pasted) {
-        if (el.classList.contains("ql-editor")) {
-          el.innerHTML = `<p>${text.replace(/</g, "&lt;")}</p>`;
-        } else {
-          el.textContent = text;
-        }
-        el.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, inputType: "insertFromPaste", data: text }));
-        el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste", data: text }));
+      if (el.classList.contains("ql-editor")) {
+        el.innerHTML = `<p>${value.replace(/</g, "&lt;")}</p>`;
+      } else {
+        el.textContent = "";
       }
+      el.dispatchEvent(new InputEvent("beforeinput", {
+        bubbles: true,
+        cancelable: true,
+        inputType: "insertFromPaste",
+        data: value,
+      }));
+      el.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        inputType: "insertFromPaste",
+        data: value,
+      }));
 
-      try {
-        document.execCommand("insertText", false, text);
-      } catch {
-        // ignore
+      if (!inputHasText(el, value)) {
+        await pasteText(el, value);
+      }
+      if (!inputHasText(el, value)) {
+        await insertTextInChunks(el, value);
+      }
+      if (!inputHasText(el, value)) {
+        if (el.classList.contains("ql-editor")) {
+          el.innerHTML = `<p>${value.replace(/</g, "&lt;")}</p>`;
+        } else {
+          el.textContent = value;
+        }
+        el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: value }));
       }
     } else {
       const proto = Object.getPrototypeOf(el);
       const desc = Object.getOwnPropertyDescriptor(proto, "value");
-      if (desc?.set) desc.set.call(el, text);
-      else el.value = text;
+      if (desc?.set) desc.set.call(el, value);
+      else el.value = value;
       el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    await sleep(500);
+    await sleep(450);
+  }
 
-    if (getInputText(el).length < Math.min(text.length, 8)) {
-      await pasteText(el, text);
-      await sleep(400);
+  async function ensureInputFilled(el, text, attempts = 4) {
+    for (let i = 0; i < attempts; i += 1) {
+      await fillInput(el, text);
+      if (inputHasText(el, text)) return true;
+      await sleep(300 + i * 200);
+      const refreshed = findInput();
+      if (refreshed) el = refreshed;
     }
+    return inputHasText(el, text);
   }
 
   async function waitForSendButton(input, maxMs = 8000) {
@@ -812,19 +940,26 @@
     const expectOverlayJson = isOverlayPlanningPrompt(prompt);
     const expectMetadata = isMetadataPrompt(prompt);
     const submitStartedAt = Date.now();
-    await fillInput(input, prompt);
-
-    const inputLen = getInputText(input).length;
-    if (inputLen < 3) {
-      throw new Error(
-        "O Gemini não reconheceu o texto no campo. "
-        + "Deixe gemini.google.com visível, clique no campo uma vez e tente de novo.",
-      );
+    let activeInput = input;
+    const filled = await ensureInputFilled(activeInput, prompt);
+    if (!filled) {
+      activeInput = findInput() || activeInput;
+      focusInputChain(activeInput);
+      await sleep(400);
+      const retryFilled = await ensureInputFilled(activeInput, prompt, 2);
+      if (!retryFilled) {
+        throw new Error(
+          "O Gemini não reconheceu o texto no campo. "
+          + "Deixe gemini.google.com visível e logado; recarregue a aba (F5) e tente de novo.",
+        );
+      }
     }
 
-    const sent = await trySubmit(input);
+    const inputLen = getInputText(activeInput).length;
+
+    const sent = await trySubmit(activeInput);
     if (!sent) {
-      const btn = findSendButton(input);
+      const btn = findSendButton(activeInput);
       const btnState = btn
         ? `botão=${btn.getAttribute("aria-label") || "sem-label"}, habilitado=${isBtnEnabled(btn)}`
         : "botão não encontrado";
