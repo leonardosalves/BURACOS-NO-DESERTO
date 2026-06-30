@@ -203,6 +203,7 @@ import {
   recalculateSequentialAudioStarts,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
+import { loadStockUsageRegistry } from "./mediaUsageRegistry.js";
 import {
   needsListItemsRepair,
   repairListItemsWithAI,
@@ -5525,6 +5526,8 @@ function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffs
     timings,
     remapping,
     rotateOffset: offset,
+    stockRegistry: loadStockUsageRegistry(WORKSPACE_DIR),
+    currentProject: path.basename(projectDir),
   });
 
   return {
@@ -8535,8 +8538,13 @@ app.post("/api/upload-scene-asset", (req, res) => {
         }
 
         const assetIdx = parseInt(idx, 10);
-
-        config.timeline_assets[blockKey][assetIdx] = assetItem;
+        const prevSlot = config.timeline_assets[blockKey][assetIdx] || {};
+        config.timeline_assets[blockKey][assetIdx] = {
+          ...prevSlot,
+          ...assetItem,
+          user_locked: true,
+          manual_asset: true,
+        };
 
       } else {
 
@@ -10692,6 +10700,12 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
         delete entry.audio_start;
         delete entry.synced_to_speech;
         if (!prev) return entry;
+        if (prev.user_locked || prev.manual_asset) {
+          if (prev.asset) entry.asset = prev.asset;
+          entry.user_locked = true;
+          entry.manual_asset = true;
+          if (prev.type) entry.type = prev.type;
+        }
         if (prev.fixed_locked && prev.fixed !== undefined && prev.fixed !== null) {
           entry.fixed = prev.fixed;
           entry.fixed_locked = true;

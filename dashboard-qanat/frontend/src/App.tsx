@@ -2901,14 +2901,14 @@ export default function App() {
 
           const blockAssets = [...(nextTimelineAssets[blockKey] || [])];
 
+          const prevSlot = assetIdx !== undefined ? blockAssets[assetIdx] : undefined;
           const nextAsset = {
-
+            ...(prevSlot || {}),
             asset: data.asset,
-
             type,
-
-            ...(type === 'video' ? { fixed: 8.00 } : {})
-
+            user_locked: true,
+            manual_asset: true,
+            ...(type === 'video' ? { fixed: prevSlot?.fixed ?? 8.00 } : {}),
           };
 
           if (assetIdx !== undefined) {
@@ -3173,6 +3173,7 @@ export default function App() {
         ...blockAssets[index],
         [field]: value,
         ...(field === 'fixed' ? { fixed_locked: true } : {}),
+        ...(field === 'asset' ? { user_locked: true, manual_asset: true } : {}),
       };
 
     }
