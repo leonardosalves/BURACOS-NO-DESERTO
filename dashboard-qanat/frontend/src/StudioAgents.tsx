@@ -40,6 +40,8 @@ type ObsidianStatus = {
   vaultName?: string;
   hubNote?: string;
   hubPath?: string;
+  uri?: string;
+  vaultUri?: string;
 };
 
 type StudioAgentsProps = {
@@ -117,21 +119,25 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
   };
 
   const triggerObsidianUri = (uri?: string) => {
-    if (!uri) return;
+    if (!uri) return false;
     try {
       const anchor = document.createElement('a');
       anchor.href = uri;
+      anchor.rel = 'noopener';
       anchor.style.display = 'none';
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+      return true;
     } catch {
-      window.open(uri, '_self');
+      return false;
     }
   };
 
   const openObsidian = async (file = 'MEMORIA-LUMIERA.md') => {
     setBusy('obsidian');
+    // Dispara URI no mesmo gesto do clique (antes do await) — senão o navegador bloqueia o protocolo
+    const browserTriggered = triggerObsidianUri(obsidian.uri || obsidian.vaultUri);
     try {
       const res = await fetch('/api/studio-agents/obsidian/open', {
         method: 'POST',
@@ -141,17 +147,18 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.details || 'Falha ao abrir Obsidian');
 
-      // Reforço no navegador — protocolo obsidian:// às vezes só dispara pelo cliente
-      triggerObsidianUri(data.uri || data.vaultUri || obsidian.uri);
+      if (!browserTriggered) {
+        triggerObsidianUri(data.uri || data.vaultUri || obsidian.uri);
+      }
 
       toast.success(
-        data.method === 'obsidian-exe-vault-dir'
+        data.method === 'obsidian-exe-vault-dir' || data.method === 'obsidian-exe-path-uri'
           ? 'Obsidian aberto na pasta .agents/'
           : 'Obsidian aberto com a memória do Lumiera',
       );
     } catch (err: unknown) {
-      if (obsidian.uri) {
-        triggerObsidianUri(obsidian.uri);
+      if (!browserTriggered && (obsidian.uri || obsidian.vaultUri)) {
+        triggerObsidianUri(obsidian.uri || obsidian.vaultUri);
         toast.success('Tentando abrir Obsidian pelo navegador…');
       } else {
         toast.error(err instanceof Error ? err.message : 'Erro ao abrir Obsidian');
