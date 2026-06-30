@@ -10,6 +10,7 @@ import { ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
 
 const VAULT_NAME = "Lumiera Memória";
 const HUB_NOTE = "MEMORIA-LUMIERA.md";
+const HUB_STALE_MS = 60 * 60 * 1000;
 
 const DEFAULT_OBSIDIAN_PATHS = [
   process.env.OBSIDIAN_PATH,
@@ -66,8 +67,13 @@ function buildHubNote(workspaceDir) {
     "## Logs recentes",
     runLinks || "- _(sem execuções registradas)_",
     "",
+    "## Regras por formato",
+    "- Shorts: gancho 1.5s, pattern interrupt 8–12s, legendas ≤8 palavras",
+    "- Longos: gancho 5s, gap 18s, BGM por bloco, chapter stingers",
+    "",
     "## Dica",
     "Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por tema.",
+    "Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.",
     "",
     `atualizado: ${new Date().toISOString()}`,
     "",
@@ -117,7 +123,11 @@ export function ensureObsidianVault(workspaceDir) {
   });
 
   const hubPath = path.join(vaultDir, HUB_NOTE);
-  fs.writeFileSync(hubPath, buildHubNote(workspaceDir), "utf8");
+  const hubStale = !fs.existsSync(hubPath)
+    || Date.now() - fs.statSync(hubPath).mtimeMs > HUB_STALE_MS;
+  if (hubStale) {
+    fs.writeFileSync(hubPath, buildHubNote(workspaceDir), "utf8");
+  }
 
   return {
     vaultDir,

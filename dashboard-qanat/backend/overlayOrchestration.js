@@ -9,6 +9,9 @@ import {
   getBlockTiming,
   isHudOverlay,
 } from "./overlayTiming.js";
+import { detectVideoFormat } from "./formatResolver.js";
+
+export { detectVideoFormat };
 
 const VARIETY_PROFILES = [
   {
@@ -157,16 +160,6 @@ function scaleLongOverlayBudget(plan, multiplier, duration) {
     ));
   }
   return plan;
-}
-
-export function detectVideoFormat(config = {}, totalDuration = 0) {
-  const aspect = config.aspect_ratio || config.format || "";
-  const explicit = String(config.video_format || config.format_type || "").toUpperCase();
-  if (explicit === "SHORTS" || explicit === "SHORT") return "SHORT";
-  if (explicit === "LONGO" || explicit === "LONG") return "LONG";
-  if (aspect === "9:16" || totalDuration > 0 && totalDuration <= 75) return "SHORT";
-  if (totalDuration > 120) return "LONG";
-  return aspect === "16:9" ? "LONG" : "SHORT";
 }
 
 export function selectVarietyProfile(projectName, niche, { isListicle = false } = {}) {

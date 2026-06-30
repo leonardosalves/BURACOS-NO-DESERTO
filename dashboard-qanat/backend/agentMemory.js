@@ -5,6 +5,12 @@
 
 import fs from "fs";
 import path from "path";
+import {
+  formatScopedCategory,
+  getFormatSuccessRules,
+  patternMatchesFormat,
+  VIDEO_FORMAT,
+} from "./formatResolver.js";
 
 export const PROMOTE_THRESHOLD = 3;
 const MAX_PROMOTED = 30;
@@ -176,33 +182,105 @@ export function writeNicheMemory(workspaceDir, niche, { promoted, candidates, ru
   return file;
 }
 
-export function extractPatternsFromQuality(quality = {}) {
-  const patterns = [];
-  for (const issue of quality.issues || []) {
-    patterns.push({
-      category: issue.code || "quality",
-      description: issue.message,
-      severity: issue.severity,
-      increment: issue.severity === "error" ? 2 : 1,
-    });
+const GENERALIZED_ISSUE_RULES = {
+  hook_polluted: {
+    SHORT: "Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo",
+    LONG: "Evitar overlays informativos no gancho Long (<5s)",
+  },
+  gap_short: "Respeitar gap mínimo entre overlays consecutivos do orçamento do formato",
+  lt_repeat: "Alternar tipos entre overlays — evitar dois lower-thirds seguidos",
+  overlay_budget: "Respeitar orçamento máximo de overlays do formato",
+  pattern_interrupt: "Inserir pattern interrupt visual em cenas longas (>12s) em Shorts",
+  weak_hook_visual: "Primeira cena do Short deve ser o visual mais forte — evitar logo/placeholder",
+  listicle_no_rank: "Listicle exige HUD rank-progress persistente no topo",
+};
+
+function generalizeTimingEntry(entry, format = VIDEO_FORMAT.SHORT) {
+  const msg = String(entry.message || entry.status || "").toLowerCase();
+  const start = Number(entry.startSec);
+  if (msg.includes("gancho") || (Number.isFinite(start) && start < (format === VIDEO_FORMAT.SHORT ? 1.5 : 5))) {
+    return GENERALIZED_ISSUE_RULES.hook_polluted[format] || GENERALIZED_ISSUE_RULES.hook_polluted.SHORT;
   }
+  if (msg.includes("fora da cena") || msg.includes("scene")) {
+    return "Ancorar overlay ao scene_ref da narração — não usar segundos fora da cena ativa";
+  }
+  if (msg.includes("palavra-chave") || msg.includes("desvio")) {
+    return "Sincronizar overlay com palavra-chave da narração (desvio < 3s)";
+  }
+  return "Revisar timing do overlay em relação à narração e às cenas";
+}
+
+export function extractPatternsFromQuality(quality = {}, format = VIDEO_FORMAT.SHORT) {
+  const patterns = [];
+  const seen = new Set();
+
+  const addPattern = (category, description, increment = 1) => {
+    const scoped = formatScopedCategory(format, category);
+    const key = `${scoped}::${description.toLowerCase().trim()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    patterns.push({ category: scoped, description, increment });
+  };
+
+  for (const issue of quality.issues || []) {
+    const code = issue.code || "quality";
+    const generalized = GENERALIZED_ISSUE_RULES[code];
+    const description = typeof generalized === "object"
+      ? (generalized[format] || generalized.SHORT)
+      : (generalized || issue.message);
+    addPattern(
+      code,
+      description,
+      issue.severity === "error" ? 2 : 1,
+    );
+  }
+
   for (const entry of quality.overlay_timing?.entries || []) {
     if (entry.status === "ok") continue;
-    patterns.push({
-      category: "overlay_timing",
-      description: `Overlay "${entry.id}" @ ${entry.startSec?.toFixed?.(1) ?? "?"}s: ${entry.message || entry.status}`,
-      severity: entry.status,
-      increment: 1,
-    });
+    addPattern("overlay_timing", generalizeTimingEntry(entry, format), 1);
   }
+
   if (Number(quality.score) < 80) {
-    patterns.push({
-      category: "quality_score",
-      description: `Score de qualidade baixo (${quality.score}/100) — revisar overlays e roteiro`,
-      increment: 1,
-    });
+    addPattern(
+      "quality_score",
+      `Score de qualidade baixo (${quality.score}/100) — revisar overlays e roteiro`,
+      1,
+    );
   }
+
   return patterns;
+}
+
+const CAPTURE_DEBOUNCE_MS = 15 * 60 * 1000;
+
+export function shouldSkipAutoCapture(workspaceDir, projectDir, quality = {}) {
+  const cachePath = path.join(getAgentPaths(workspaceDir).runsDir, ".capture_cache.json");
+  const project = path.basename(projectDir);
+  const fingerprint = [
+    project,
+    quality.score ?? "na",
+    (quality.issues || []).length,
+    (quality.overlay_timing?.entries || []).filter((e) => e.status !== "ok").length,
+  ].join(":");
+
+  let cache = {};
+  if (fs.existsSync(cachePath)) {
+    try {
+      cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    } catch {
+      cache = {};
+    }
+  }
+
+  const prev = cache[project];
+  const now = Date.now();
+  if (prev?.fingerprint === fingerprint && now - (prev.at || 0) < CAPTURE_DEBOUNCE_MS) {
+    return true;
+  }
+
+  cache[project] = { fingerprint, at: now };
+  fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2), "utf8");
+  return false;
 }
 
 export function appendDailyRunLog(workspaceDir, line) {
@@ -210,6 +288,9 @@ export function appendDailyRunLog(workspaceDir, line) {
   const day = new Date().toISOString().slice(0, 10);
   const file = path.join(getAgentPaths(workspaceDir).runsDir, `${day}.md`);
   const header = fs.existsSync(file) ? "" : `# Agent runs ${day}\n\n`;
+  const existing = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const lineCount = existing.split("\n").filter((l) => l.trim().startsWith("- ")).length;
+  if (lineCount >= MAX_DAILY_RUN_LINES) return;
   fs.appendFileSync(file, `${header}${line}\n`, "utf8");
 }
 
@@ -243,7 +324,7 @@ export function recordProjectRun(workspaceDir, projectDir, payload = {}) {
 
   appendDailyRunLog(
     workspaceDir,
-    `- ${run.at} **${run.project}** (${run.niche}) score=${run.score ?? "—"} patterns=${run.patterns.length} source=${run.source}`,
+    `- ${run.at} **${run.project}** (${run.niche}${run.format ? `/${run.format}` : ""}) score=${run.score ?? "—"} patterns=${run.patterns.length} source=${run.source}`,
   );
 
   return run;
@@ -355,14 +436,28 @@ const TASK_CATEGORY_HINTS = {
   render: ["render", "quality", "timing"],
 };
 
-export function getLearnings(workspaceDir, { niche = "Geral", task = "overlay", limit = 8 } = {}) {
+export function getLearnings(
+  workspaceDir,
+  { niche = "Geral", task = "overlay", format = null, limit = 8 } = {},
+) {
   ensureAgentDirs(workspaceDir);
   const paths = getAgentPaths(workspaceDir);
   const items = [];
   const hints = TASK_CATEGORY_HINTS[task] || [];
+  const targetFormat = format || VIDEO_FORMAT.SHORT;
+
+  for (const rule of getFormatSuccessRules(targetFormat)) {
+    items.push({
+      text: `[${formatScopedCategory(targetFormat, rule.category)}] ${rule.description} (regra de sucesso ${targetFormat})`,
+      count: 99,
+      promoted: true,
+      baseline: true,
+    });
+  }
 
   const mem = readNicheMemory(workspaceDir, niche);
   for (const p of [...mem.promoted, ...mem.candidates.filter((c) => (c.count || 0) >= 2)]) {
+    if (!patternMatchesFormat(p.category, targetFormat)) continue;
     const hay = `${p.category} ${p.description}`.toLowerCase();
     const relevant = hints.length === 0 || hints.some((h) => hay.includes(h));
     if (!relevant) continue;
@@ -387,6 +482,7 @@ export function getLearnings(workspaceDir, { niche = "Geral", task = "overlay", 
   }
 
   items.sort((a, b) => {
+    if (a.baseline !== b.baseline) return a.baseline ? -1 : 1;
     if (a.promoted !== b.promoted) return a.promoted ? -1 : 1;
     return (b.count || 0) - (a.count || 0);
   });
@@ -394,16 +490,20 @@ export function getLearnings(workspaceDir, { niche = "Geral", task = "overlay", 
   return items.slice(0, limit);
 }
 
-export function buildLearningsPromptAddendum(workspaceDir, { niche = "Geral", task = "overlay" } = {}) {
+export function buildLearningsPromptAddendum(
+  workspaceDir,
+  { niche = "Geral", task = "overlay", format = null } = {},
+) {
   const config = loadStudioAgentsConfig(workspaceDir);
   if (!config.applyLearningsInAgentMode) return "";
 
-  const learnings = getLearnings(workspaceDir, { niche, task, limit: 10 });
+  const learnings = getLearnings(workspaceDir, { niche, task, format, limit: 12 });
   if (!learnings.length) return "";
 
+  const formatLabel = format || "SHORT";
   return [
     "",
-    "## APRENDIZADOS DO ESTÚDIO (Studio Agents — aplique neste planejamento)",
+    `## APRENDIZADOS DO ESTÚDIO — formato ${formatLabel} (Studio Agents)`,
     ...learnings.map((l) => `- ${l.text}`),
     "",
   ].join("\n");

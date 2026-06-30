@@ -35,6 +35,7 @@ type LearningItem = {
   count: number;
   promoted: boolean;
   global?: boolean;
+  baseline?: boolean;
 };
 
 type ObsidianStatus = {
@@ -91,10 +92,26 @@ type ConsolidatePreview = {
 type StudioAgentsProps = {
   activeProject: string;
   projectNiche?: string;
+  projectVideoFormat?: string;
+  projectAspectRatio?: string;
   getProjectUrl: (endpoint: string) => string;
 };
 
-export function StudioAgents({ activeProject, projectNiche = 'Geral', getProjectUrl }: StudioAgentsProps) {
+function resolveProjectFormat(videoFormat?: string, aspectRatio?: string): 'SHORT' | 'LONG' {
+  const vf = String(videoFormat || '').toUpperCase();
+  if (vf === 'SHORTS' || vf === 'SHORT') return 'SHORT';
+  if (vf === 'LONGO' || vf === 'LONG') return 'LONG';
+  return aspectRatio === '9:16' ? 'SHORT' : 'LONG';
+}
+
+export function StudioAgents({
+  activeProject,
+  projectNiche = 'Geral',
+  projectVideoFormat,
+  projectAspectRatio,
+  getProjectUrl,
+}: StudioAgentsProps) {
+  const projectFormat = resolveProjectFormat(projectVideoFormat, projectAspectRatio);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [config, setConfig] = useState<AgentConfig>({
@@ -132,14 +149,14 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
   const fetchLearnings = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/studio-agents/learnings?niche=${encodeURIComponent(projectNiche)}&task=overlay`,
+        `/api/studio-agents/learnings?niche=${encodeURIComponent(projectNiche)}&task=overlay&format=${projectFormat}`,
       );
       const data = await res.json();
       if (res.ok) setLearnings(data.learnings || []);
     } catch {
       /* non-blocking */
     }
-  }, [projectNiche]);
+  }, [projectNiche, projectFormat]);
 
   useEffect(() => {
     fetchStatus();
@@ -411,7 +428,12 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
           icon={<Zap className="w-4 h-4 text-gold-500" />}
         />
         <p className="text-[11px] text-zinc-500">
-          Nicho detectado: <span className="text-zinc-300">{projectNiche}</span>
+          Nicho: <span className="text-zinc-300">{projectNiche}</span>
+          {' · '}
+          Formato:{' '}
+          <span className={projectFormat === 'SHORT' ? 'text-amber-400' : 'text-sky-400'}>
+            {projectFormat === 'SHORT' ? 'Shorts 9:16' : 'Longo 16:9'}
+          </span>
         </p>
         <div className="flex flex-wrap gap-3">
           <button
@@ -592,9 +614,10 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
 
       <div className="glass-panel p-6 rounded-2xl space-y-3">
         <SectionHeader
-          title={`Aprendizados para "${projectNiche}"`}
+          title={`Aprendizados — ${projectNiche} (${projectFormat === 'SHORT' ? 'Shorts' : 'Longo'})`}
           helpId="agents-learnings"
           icon={<BookOpen className="w-4 h-4 text-gold-500" />}
+          subtitle="Regras de sucesso do formato + padrões promovidos do nicho. Edite em Obsidian ou consolide aqui."
         />
         {learnings.length === 0 ? (
           <p className="text-xs text-zinc-500">
@@ -606,11 +629,16 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
               <li
                 key={`${l.text}-${i}`}
                 className={`text-xs px-3 py-2 rounded-lg border ${
-                  l.promoted
-                    ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-100/90'
-                    : 'border-zinc-800 bg-zinc-950/50 text-zinc-400'
+                  l.baseline
+                    ? 'border-sky-500/25 bg-sky-500/5 text-sky-100/90'
+                    : l.promoted
+                      ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-100/90'
+                      : 'border-zinc-800 bg-zinc-950/50 text-zinc-400'
                 }`}
               >
+                {l.baseline ? (
+                  <span className="text-[9px] uppercase tracking-wider text-sky-400/80 mr-2">padrão</span>
+                ) : null}
                 {l.text}
               </li>
             ))}

@@ -272,7 +272,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Aprendizados',
     body: (
       <>
-        Regras globais e do nicho ativo usadas no planejamento com memória. Verde = promovido; cinza = em observação.
+        Regras filtradas pelo formato do projeto (Shorts ou Longo). Azul = padrão de sucesso do formato; verde = promovido do nicho; cinza = em observação. Edite em Obsidian (<code>MEMORY.md</code> ou <code>memory/</code>).
       </>
     ),
   },

@@ -153,6 +153,7 @@ interface ConfigData {
   block_phrases?: { block: number; phrase: string }[];
 
   aspect_ratio?: '16:9' | '9:16';
+  video_format?: 'SHORTS' | 'LONGO' | string;
   render_resolution?: '1080p' | '2k';
   design_preset?: string;
   caption_style?: string;
@@ -11528,6 +11529,8 @@ export default function App() {
               <StudioAgents
                 activeProject={activeProject}
                 projectNiche={config?.niche || 'Geral'}
+                projectVideoFormat={config?.video_format}
+                projectAspectRatio={config?.aspect_ratio}
                 getProjectUrl={getProjectUrl}
               />
             </TabErrorBoundary>
