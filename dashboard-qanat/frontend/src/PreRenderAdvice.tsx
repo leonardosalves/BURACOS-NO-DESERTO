@@ -5,9 +5,17 @@ import {
   ChevronDown,
   ChevronRight,
   Lightbulb,
+  RefreshCw,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+
+export type PreRenderAutoFix = {
+  id: string;
+  label: string;
+  hint?: string;
+};
 
 export type PreRenderSuggestion = {
   id: string;
@@ -17,6 +25,8 @@ export type PreRenderSuggestion = {
   steps: string[];
   tab?: string;
   code?: string;
+  autoFix?: PreRenderAutoFix;
+  manualOnly?: boolean;
 };
 
 export type PreRenderAdvice = {
@@ -60,41 +70,78 @@ export function SuggestionCard({
   item,
   defaultOpen = false,
   onGoToTab,
+  onAutoFix,
+  fixingFixId,
 }: {
   item: PreRenderSuggestion;
   defaultOpen?: boolean;
   onGoToTab?: (tab: TabId) => void;
+  onAutoFix?: (fixId: string) => void;
+  fixingFixId?: string | null;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen && !item.autoFix);
+  const isFixing = Boolean(item.autoFix && fixingFixId === item.autoFix.id);
 
   return (
     <div className={`rounded-xl border p-3 ${PRIORITY_STYLES[item.priority]}`}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-start gap-2 text-left"
-      >
+      <div className="flex items-start gap-2">
         <PriorityIcon priority={item.priority} />
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold leading-snug">{item.title}</p>
           <p className="text-[10px] opacity-80 mt-0.5 leading-relaxed">{item.summary}</p>
         </div>
-        {open ? (
-          <ChevronDown className="w-4 h-4 shrink-0 opacity-50" />
-        ) : (
-          <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
-        )}
-      </button>
-      {open && item.steps.length > 0 && (
-        <ol className="mt-3 ml-6 space-y-1.5 list-decimal text-[10px] leading-relaxed opacity-95">
-          {item.steps.map((step, i) => (
-            <li key={i} className="pl-1">
-              {step}
-            </li>
-          ))}
-        </ol>
+      </div>
+
+      {item.autoFix && onAutoFix && (
+        <div className="mt-3 ml-6 space-y-2">
+          <button
+            type="button"
+            disabled={Boolean(fixingFixId)}
+            onClick={() => onAutoFix(item.autoFix!.id)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold transition shadow-lg shadow-gold-500/10"
+          >
+            {isFixing ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>{item.autoFix.label}</span>
+          </button>
+          {item.autoFix.hint && (
+            <p className="text-[10px] opacity-75 leading-relaxed">{item.autoFix.hint}</p>
+          )}
+        </div>
       )}
-      {open && item.tab && onGoToTab && (
+
+      {item.manualOnly && !item.autoFix && (
+        <p className="mt-2 ml-6 text-[10px] font-bold uppercase tracking-wider text-amber-400/90">
+          Ação manual necessária
+        </p>
+      )}
+
+      {item.steps.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="mt-2 ml-6 flex items-center gap-1 text-[10px] opacity-60 hover:opacity-90 transition"
+          >
+            {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {item.autoFix ? 'Ver detalhes' : 'Ver passos'}
+          </button>
+          {open && (
+            <ol className="mt-2 ml-6 space-y-1.5 list-decimal text-[10px] leading-relaxed opacity-95">
+              {item.steps.map((step, i) => (
+                <li key={i} className="pl-1">
+                  {step}
+                </li>
+              ))}
+            </ol>
+          )}
+        </>
+      )}
+
+      {open && item.tab && onGoToTab && item.manualOnly && (
         <button
           type="button"
           onClick={() => onGoToTab(item.tab as TabId)}
@@ -112,11 +159,15 @@ export function PreRenderAdvicePanel({
   compact = false,
   onGoToTab,
   onRefresh,
+  onAutoFix,
+  fixingFixId,
 }: {
   advice: PreRenderAdvice;
   compact?: boolean;
   onGoToTab?: (tab: TabId) => void;
   onRefresh?: () => void;
+  onAutoFix?: (fixId: string) => void;
+  fixingFixId?: string | null;
 }) {
   const improvements = advice.suggestions.filter((s) => s.priority !== 'tip');
   const tips = advice.suggestions.filter((s) => s.priority === 'tip');
@@ -155,6 +206,8 @@ export function PreRenderAdvicePanel({
           item={item}
           defaultOpen={!compact && (item.priority === 'error' || idx < 2)}
           onGoToTab={onGoToTab}
+          onAutoFix={onAutoFix}
+          fixingFixId={fixingFixId}
         />
       ))}
 
@@ -165,7 +218,7 @@ export function PreRenderAdvicePanel({
       {!compact && tips.length > 0 && (
         <div className="pt-2 border-t border-zinc-800/80">
           {tips.map((item) => (
-            <SuggestionCard key={item.id} item={item} onGoToTab={onGoToTab} />
+            <SuggestionCard key={item.id} item={item} onGoToTab={onGoToTab} onAutoFix={onAutoFix} fixingFixId={fixingFixId} />
           ))}
         </div>
       )}
@@ -179,12 +232,16 @@ export function PreRenderAdviceModal({
   onConfirm,
   onCancel,
   onGoToTab,
+  onAutoFix,
+  fixingFixId,
 }: {
   advice: PreRenderAdvice;
   renderLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
   onGoToTab: (tab: TabId) => void;
+  onAutoFix?: (fixId: string) => void;
+  fixingFixId?: string | null;
 }) {
   const errors = advice.suggestions.filter((s) => s.priority === 'error');
 
@@ -221,10 +278,15 @@ export function PreRenderAdviceModal({
             </p>
           ) : (
             <p className="text-sm text-amber-200/90 mb-4 leading-relaxed">
-              Encontramos pontos que podem melhorar o vídeo. Siga o passo a passo de cada item antes de compilar — ou renderize mesmo assim se estiver ciente dos riscos.
+              Problemas com botão dourado o programa corrige sozinho. Itens marcados como ação manual precisam da sua intervenção.
             </p>
           )}
-          <PreRenderAdvicePanel advice={advice} onGoToTab={onGoToTab} />
+          <PreRenderAdvicePanel
+            advice={advice}
+            onGoToTab={onGoToTab}
+            onAutoFix={onAutoFix}
+            fixingFixId={fixingFixId}
+          />
         </div>
 
         <div className="flex flex-wrap gap-3 p-5 border-t border-zinc-800">

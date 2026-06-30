@@ -91,7 +91,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Qualidade Pré-Render',
     body: (
       <>
-        Score 0–100 antes do render. Cada problema traz <strong>passo a passo</strong> para corrigir (qual aba abrir e o que fazer). Ao clicar Render, um modal resume melhorias sugeridas antes de compilar.
+        Score 0–100 antes do render. Problemas com botão <strong>Corrigir automaticamente</strong> o Lumiera resolve sozinho (ex.: overlays no gancho). Só aparece passo a passo manual quando você precisa agir.
       </>
     ),
   },
