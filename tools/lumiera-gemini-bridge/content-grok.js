@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.1";
+  const VERSION = "1.4.2";
   if (globalThis.__lumieraGrokVersion === VERSION) return;
   globalThis.__lumieraGrokVersion = VERSION;
   if (globalThis.__lumieraGrokMessageHandler) {
@@ -208,7 +208,7 @@
       throw new Error("Não consegui enviar no Grok. Deixe grok.com aberto e tente de novo.");
     }
 
-    const deadline = Date.now() + 150000;
+    const deadline = Date.now() + 210000;
     let lastCandidate = "";
     let stableHits = 0;
 
@@ -227,7 +227,7 @@
     }
 
     if (lastCandidate.length >= 40) return lastCandidate;
-    throw new Error("Timeout aguardando resposta do Grok (150s).");
+    throw new Error("Timeout aguardando resposta do Grok (210s).");
   }
 
   globalThis.__lumieraGrokMessageHandler = (message, _sender, sendResponse) => {

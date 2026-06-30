@@ -1,4 +1,4 @@
-const EXT_VERSION = "1.4.1";
+const EXT_VERSION = "1.4.2";
 
 const PROVIDERS = {
   gemini: {
