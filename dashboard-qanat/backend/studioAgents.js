@@ -12,6 +12,7 @@ import {
   getStudioAgentStatus,
   ingestPatternsToNiche,
   loadStudioAgentsConfig,
+  previewConsolidationAllNiches,
   recordProjectRun,
   saveStudioAgentsConfig,
 } from "./agentMemory.js";
@@ -61,6 +62,12 @@ export function runConsolidation(workspaceDir) {
   const threshold = Number(config.promoteThreshold) || 3;
   const results = consolidateAllNiches(workspaceDir, threshold);
   return { threshold, results };
+}
+
+export function previewConsolidation(workspaceDir) {
+  const config = loadStudioAgentsConfig(workspaceDir);
+  const threshold = Number(config.promoteThreshold) || 3;
+  return previewConsolidationAllNiches(workspaceDir, threshold);
 }
 
 export function getDashboard(workspaceDir) {

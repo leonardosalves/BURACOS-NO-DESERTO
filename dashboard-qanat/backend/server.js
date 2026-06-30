@@ -156,6 +156,7 @@ import {
   getDashboard,
   getNicheLearnings,
   loadStudioAgentsConfig,
+  previewConsolidation,
   reflectProject,
   runConsolidation,
   saveStudioAgentsConfig,
@@ -1614,6 +1615,15 @@ app.post("/api/studio-agents/reflect", async (req, res) => {
     res.json({ ok: true, report, ...result });
   } catch (err) {
     res.status(500).json({ error: "Erro ao refletir projeto", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/consolidate/preview", (req, res) => {
+  try {
+    const preview = previewConsolidation(WORKSPACE_DIR);
+    res.json(preview);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao pré-visualizar consolidação", details: err.message });
   }
 });
 

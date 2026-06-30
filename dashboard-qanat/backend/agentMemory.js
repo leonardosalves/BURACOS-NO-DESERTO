@@ -306,6 +306,49 @@ export function consolidateAllNiches(workspaceDir, threshold = PROMOTE_THRESHOLD
   });
 }
 
+/** Pré-visualização read-only — candidatos que seriam promovidos na consolidação. */
+export function previewConsolidationNiche(workspaceDir, niche, threshold = PROMOTE_THRESHOLD) {
+  const mem = readNicheMemory(workspaceDir, niche);
+  const toPromote = mem.candidates.filter((c) => (c.count || 0) >= threshold);
+  const remaining = mem.candidates.filter((c) => (c.count || 0) < threshold);
+  return {
+    niche,
+    slug: slugifyNiche(niche),
+    threshold,
+    toPromote: toPromote.map((c) => ({
+      category: c.category,
+      description: c.description,
+      count: c.count || 1,
+    })),
+    remainingCount: remaining.length,
+    alreadyPromoted: mem.promoted.length,
+  };
+}
+
+export function previewConsolidationAllNiches(workspaceDir, threshold = PROMOTE_THRESHOLD) {
+  ensureAgentDirs(workspaceDir);
+  const { memoryDir } = getAgentPaths(workspaceDir);
+  const files = fs.existsSync(memoryDir)
+    ? fs.readdirSync(memoryDir).filter((f) => f.endsWith(".md"))
+    : [];
+
+  const niches = files.map((f) => {
+    const raw = fs.readFileSync(path.join(memoryDir, f), "utf8");
+    const nicheMatch = raw.match(/niche: (.+)/);
+    const niche = nicheMatch?.[1]?.trim() || f.replace(/\.md$/, "");
+    return previewConsolidationNiche(workspaceDir, niche, threshold);
+  });
+
+  const withPromotions = niches.filter((n) => n.toPromote.length > 0);
+  const totalToPromote = withPromotions.reduce((sum, n) => sum + n.toPromote.length, 0);
+
+  return {
+    threshold,
+    totalToPromote,
+    niches: withPromotions,
+  };
+}
+
 const TASK_CATEGORY_HINTS = {
   overlay: ["overlay", "orchestration", "lower-third", "bar-chart", "timeline", "kinetic"],
   script: ["script", "checklist", "roteiro", "hook", "retention"],
