@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plug } from 'lucide-react';
+import { SettingHelpTip } from './SettingHelpTip';
 
 type UploadStatus = {
   youtube: any;
@@ -62,15 +63,20 @@ export function IntegrationSettings({
           INTEGRAÇÕES DE PUBLICAÇÃO
         </h3>
         <p className="text-xs text-gray-400 mt-1">
-          OAuth e credenciais para Canva, YouTube, Instagram, TikTok e Kwai.
+          OAuth e credenciais para publicar e exportar. Toque no <span className="text-gold-400/90">?</span> de cada plataforma.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Canva */}
         <div className="space-y-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
-          <div className="flex justify-between items-center">
-            <span className="font-bold text-zinc-300">Canva Connect</span>
+          <div className="flex justify-between items-center gap-2">
+            <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+              Canva Connect
+              <SettingHelpTip title="Canva" align="start">
+                Conecta sua conta Canva para exportar thumbnails e artes do vídeo direto do Lumiera, sem baixar e reenviar manualmente.
+              </SettingHelpTip>
+            </span>
             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.canva?.connected ? 'bg-cyan-500/10 text-cyan-400' : 'bg-zinc-800 text-zinc-500'}`}>
               {uploadStatus.canva?.connected ? 'Conectado' : 'Desconectado'}
             </span>
@@ -140,7 +146,12 @@ export function IntegrationSettings({
 
         {/* YouTube */}
         <div className="space-y-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
-          <span className="font-bold block text-zinc-300">YouTube (upload + analytics)</span>
+          <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+            YouTube (upload + analytics)
+            <SettingHelpTip title="YouTube" align="start">
+              Upload direto, metadados, teste A/B de títulos e analytics. Exige OAuth Google com as permissões de canal e YouTube Data API.
+            </SettingHelpTip>
+          </span>
           <p className="text-[9px] text-zinc-500 leading-relaxed">
             Redirect: <code className="text-gold-400">http://127.0.0.1:3005/api/upload/youtube/callback</code>
           </p>
@@ -217,7 +228,12 @@ export function IntegrationSettings({
 
         {/* Instagram */}
         <div className="space-y-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
-          <span className="font-bold block text-zinc-300">Instagram</span>
+          <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+            Instagram
+            <SettingHelpTip title="Instagram" align="start">
+              Publicação via Meta Graph API. OAuth com App ID/Secret ou token manual da conta Business/Creator vinculada.
+            </SettingHelpTip>
+          </span>
           <p className="text-[9px] text-zinc-500">OAuth Meta ou token manual.</p>
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -295,8 +311,13 @@ export function IntegrationSettings({
         {/* TikTok + Kwai */}
         <div className="space-y-3">
           <div className="space-y-2 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-zinc-300">TikTok Session</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+                TikTok Session
+                <SettingHelpTip title="TikTok" align="start">
+                  Abre um navegador controlado para você fazer login no TikTok. A sessão fica salva para upload automático de Shorts.
+                </SettingHelpTip>
+              </span>
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
                 {uploadStatus.tiktok?.connected ? 'Ativa' : 'Inativa'}
               </span>
@@ -317,8 +338,13 @@ export function IntegrationSettings({
             </button>
           </div>
           <div className="space-y-2 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-zinc-300">Kwai Session</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+                Kwai Session
+                <SettingHelpTip title="Kwai" align="end">
+                  Mesmo fluxo do TikTok: login via navegador automatizado e sessão persistida para publicar no Kwai.
+                </SettingHelpTip>
+              </span>
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
                 {uploadStatus.kwai?.connected ? 'Ativa' : 'Inativa'}
               </span>
