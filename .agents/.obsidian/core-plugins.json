@@ -1,0 +1,16 @@
+{
+  "file-explorer": true,
+  "global-search": true,
+  "graph": true,
+  "outgoing-links": true,
+  "tag-pane": true,
+  "page-preview": true,
+  "starred": true,
+  "markdown-importer": false,
+  "daily-notes": false,
+  "templates": false,
+  "note-composer": true,
+  "command-palette": true,
+  "editor-status": true,
+  "bookmarks": true
+}
