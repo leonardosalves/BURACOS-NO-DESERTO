@@ -96,6 +96,7 @@ import {
   SCRIPT_CREATIVE_REINFORCEMENT,
   buildFormatScriptRules,
   buildIdeasQualityAddendum,
+  buildViralIdeasAddendum,
   buildListicleIdeasAddendum,
   buildListicleRankingIdeasPrompt,
   buildNicheIsolationAddendum,
@@ -8727,6 +8728,8 @@ Diversidade obrigatoria de ideias:
 
 ${buildIdeasQualityAddendum()}
 
+${buildViralIdeasAddendum(format)}
+
 ${isListicle ? buildListicleIdeasAddendum({ rankCount: listicleRank, listTopic: listicleTopic, rankOrder: rankOrder || "desc" }) : ""}
 
 Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos de código com markdown \`\`\`json ou textos antes/depois. O JSON deve possuir exatamente a seguinte estrutura:
@@ -8767,7 +8770,13 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
       "why_works": "Por que esse vídeo pode funcionar",
 
-      "best_format": "LONGO, SHORTS ou AMBOS"${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
+      "best_format": "LONGO, SHORTS ou AMBOS",
+
+      "viral_category": "impactful | practical | provocative | astonishing",
+
+      "hook_angle": "question | shock | problem_solution | before_after | breaking | challenge | secret | personal",
+
+      "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR"${format === "SHORTS" ? ',\n\n      "hook_candidates": ["gancho 1 ≤10 palavras", "gancho 2", "gancho 3"],\n\n      "wow_facts_preview": ["fato 1 com número", "fato 2", "fato 3"]' : ""}${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
 
     }
 

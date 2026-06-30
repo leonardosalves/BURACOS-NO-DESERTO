@@ -19,6 +19,61 @@ export const ROBOTIC_PHRASE_PATTERNS = [
   /a verdade é que/gi,
 ];
 
+/** Framework viral short-form (Lucas Walter / n8n — adaptado Lumiera). */
+export const VIRAL_HOOK_TYPES = [
+  { id: "question", label: "Pergunta", example: "Por que ninguém fala disso?" },
+  { id: "shock", label: "Choque/Surpresa", example: "Isso quase derrubou a Boeing." },
+  { id: "problem_solution", label: "Problema/Solução", example: "A janela quadrada matava passageiros." },
+  { id: "before_after", label: "Antes/Depois", example: "Antes: quadrado. Depois: oval." },
+  { id: "breaking", label: "Notícia/Urgência", example: "Em 1985, a regra mudou de um dia pro outro." },
+  { id: "challenge", label: "Desafio/Teste", example: "Adivinha qual avião ainda voa com janela quadrada." },
+  { id: "secret", label: "Segredo/Conspiração leve", example: "A FAA escondeu o relatório por anos." },
+  { id: "personal", label: "Impacto pessoal", example: "Você já sentou ao lado disso sem saber." },
+];
+
+export const VIRAL_STORY_CATEGORIES = [
+  "impactful",
+  "practical",
+  "provocative",
+  "astonishing",
+];
+
+export const VIRAL_SHORT_FORM_REINFORCEMENT = `
+FRAMEWORK VIRAL SHORT-FORM (n8n/Lucas Walter — adaptado Lumiera):
+
+CURADORIA DE HISTÓRIA (escolha 1 categoria antes de escrever):
+- impactful: consequência real na vida das pessoas
+- practical: dá para usar/aplicar hoje
+- provocative: desafia crença comum (com fatos, não opinião vazia)
+- astonishing: dado ou imagem que parece impossível
+FILTROS DUROS — descarte histórias: ad-driven, puramente políticas, sem substância factual.
+
+GANCHO (≤10 palavras, voz ativa, gatilho emocional, número quando couber):
+Tipos: pergunta | choque | problema/solução | antes/depois | urgência | desafio | segredo leve | impacto pessoal.
+O gancho ANUNCIA o payoff — não prometa o que o roteiro não entrega.
+
+ESTRUTURA 30–50s (80–130 palavras, ritmo oral):
+1. Gancho escolhido (bloco 1)
+2. Uma frase que contextualiza (bloco 2)
+3. 3–5 wow-facts com números, datas, analogias do dia a dia (blocos 3–4)
+4. 1–2 frases sobre por que importa / risco / consequência moderna (bloco 4)
+5. Fechamento DECLARATIVO (mic drop factual) — fecha o loop do gancho
+
+POWER-UPS (use 1–2 por roteiro, sem forçar):
+- authority bump: cite fonte, órgão ou especialista em 1 frase
+- hook spice: número + consequência imediata no gancho
+- then-vs-now: contraste temporal em 1 linha
+- stat escalation: cada fato sobe a aposta (menor → maior)
+- real-world fallout: "hoje isso significa que..."
+- zoom-out: última frase liga o micro ao macro
+- rhythm check: alterne frases de 3–5 palavras com 1 frase explicativa
+
+FINAL — REGRA LUMIERA (prioridade sobre CTA de comentário):
+- PREFERIDO: frase declarativa com consequência, ironia factual ou número final
+- PERMITIDO com moderação: pergunta forward-looking COM stakes reais ligadas ao tema (ex.: "Quantos aviões ainda voam com janelas quadradas?")
+- PROIBIDO: "Você prefere…?", "Qual você escolheria…?", "Comenta aí", "O que achou?", perguntas binárias sem payoff
+`;
+
 /** Princípios UGC (Motion-Creative/ugc-scriptwriter) — narração falada autêntica. */
 export const UGC_SCRIPTWRITER_REINFORCEMENT = `
 MODO UGC / NARRAÇÃO FALADA (skill ugc-scriptwriter):
@@ -67,14 +122,16 @@ export function buildFormatScriptRules(format = "LONGO") {
 REGRAS ESPECÍFICAS — SHORTS (30–50 segundos, 5 blocos):
 
 - UMA ideia, UMA virada, UM payoff. Nada de sub-temas paralelos.
-- Bloco 1 (gancho): pergunta ou afirmação chocante + promessa clara do que será explicado em 40 segundos.
+- Bloco 1 (gancho): ≤10 palavras, voz ativa — use um dos tipos de gancho viral (pergunta, choque, problema/solução, antes/depois, urgência, desafio, segredo leve, impacto pessoal).
 - Bloco 2 (contexto): 1 frase — quem/o quê/onde. Sem história paralela.
-- Bloco 3 (desenvolvimento): o "como" ou "por quê" em linguagem simples, com 1 exemplo concreto.
-- Bloco 4 (virada): o detalhe que muda a perspectiva (o "plot twist" do Short).
-- Bloco 5 (payoff): responde o gancho do bloco 1 em 1-2 frases DECLARATIVAS — fecha o loop com fato ou consequência. Sem pergunta ao espectador.
+- Bloco 3 (wow-facts): 2–3 fatos com números, datas ou analogias do dia a dia — cada fato sobe a aposta.
+- Bloco 4 (virada + stakes): o detalhe que muda a perspectiva + por que isso importa hoje (risco, consequência moderna).
+- Bloco 5 (payoff): responde o gancho do bloco 1 em 1-2 frases DECLARATIVAS — mic drop factual. Sem pergunta vazia ao espectador.
 - Narração total: 80–130 palavras. Frases de até 12 palavras na maioria.
-- Ritmo: alterne frase curta impactante + frase explicativa. Nunca dois parágrafos densos seguidos.
+- Ritmo: alterne frase curta (3–5 palavras) + frase explicativa. Nunca dois parágrafos densos seguidos.
 - O espectador deve entender a mensagem mesmo sem som (pela lógica do texto).
+
+${VIRAL_SHORT_FORM_REINFORCEMENT}
 `;
   }
 
@@ -95,6 +152,34 @@ export function buildIdeasQualityAddendum() {
   return `
 Para cada ideia, inclua em "why_it_works" como a mensagem central será compreensível para leigos.
 Evite ideias cujo título promete algo que 40 segundos (Shorts) ou 12 minutos (Longo) não conseguem entregar com clareza.
+`;
+}
+
+/** Curadoria viral + hook angles para geração de ideias (framework n8n adaptado). */
+export function buildViralIdeasAddendum(format = "LONGO") {
+  const hookList = VIRAL_HOOK_TYPES.map((h) => `  - ${h.id}: ${h.label} (ex.: "${h.example}")`).join("\n");
+  const isShorts = format === "SHORTS";
+
+  return `
+FRAMEWORK VIRAL DE IDEIAS (curadoria + ganchos — use em TODAS as 10 ideias):
+
+CATEGORIAS DE HISTÓRIA (campo "viral_category" — varie entre as 10 ideias):
+- impactful | practical | provocative | astonishing
+Descarte ideias: ad-driven, puramente políticas, sem substância factual.
+
+TIPOS DE GANCHO (campo "hook_angle" — use tipos DIFERENTES entre ideias):
+${hookList}
+
+${isShorts ? `PROCESSO MENTAL POR IDEIA SHORT (não entregue rascunho — só metadados):
+1. Esboce 3 ganchos candidatos (campo "hook_candidates": array de 3 strings ≤10 palavras)
+2. Escolha o melhor em "hook_angle" + "hooks" (gancho principal para o roteiro)
+3. Planeje 3–5 wow-facts verificáveis em "wow_facts_preview" (números/datas curtos)` : `Para LONGO: "hook_angle" indica o tipo de abertura; "hooks" = gancho de retenção dos primeiros 30s.`}
+
+REGRAS:
+- Cada ideia deve ter "viral_category" e "hook_angle" (id do tipo, ex.: "shock", "before_after")
+- "hooks" = gancho principal ≤10 palavras em PT-BR, voz ativa
+- Varie categorias e tipos de gancho — não repita o mesmo hook_angle em mais de 2 ideias
+- Filtros: sem clickbait falso, sem política partidária, sem tema sem fatos verificáveis
 `;
 }
 
@@ -586,6 +671,20 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
     header += `\nGancho de Retenção Inicial (Hook) sugerido: "${customHookVal}"`;
   }
 
+  if (idea.hook_angle) {
+    const hookType = VIRAL_HOOK_TYPES.find((h) => h.id === idea.hook_angle);
+    header += `\nTipo de gancho viral: ${hookType ? `${hookType.label} (${hookType.id})` : idea.hook_angle}`;
+  }
+  if (idea.viral_category) {
+    header += `\nCategoria viral: ${idea.viral_category}`;
+  }
+  if (Array.isArray(idea.wow_facts_preview) && idea.wow_facts_preview.length) {
+    header += `\nWow-facts planejados (use ou refine com pesquisa): ${idea.wow_facts_preview.join(" | ")}`;
+  }
+  if (Array.isArray(idea.hook_candidates) && idea.hook_candidates.length) {
+    header += `\nGanchos candidatos: ${idea.hook_candidates.join(" / ")}`;
+  }
+
   if (idea.blocks) {
     let blocksStr = "";
     if (Array.isArray(idea.blocks)) {
@@ -752,6 +851,8 @@ ${isListicle
       blockCount: listicleBlockCount,
     })
     : buildFormatScriptRules(format)}
+
+${format === "SHORTS" && !isListicle ? VIRAL_SHORT_FORM_REINFORCEMENT : ""}
 
 ${cinematicNarrationRules}
 
