@@ -92,6 +92,7 @@ import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensi
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { VisualSettings } from './VisualSettings';
+import { applyVisualPatchToConfig, pickVisualConfig } from './visualConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { warnLongListicleTitles } from './ListicleHudPreview';
@@ -871,6 +872,7 @@ export default function App() {
 
   const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
   const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
+  const [visualConfigRevision, setVisualConfigRevision] = useState(0);
 
   const fetchGlobalRenderConfig = async () => {
 
@@ -2921,7 +2923,10 @@ export default function App() {
 
   // Save config
 
-  const saveConfig = async (updatedConfig: ConfigData) => {
+  const saveConfig = async (
+    updatedConfig: ConfigData,
+    opts?: { skipRefresh?: boolean },
+  ) => {
     const { timeline: sanitizedTimeline, removed: dupesRemoved } = sanitizeTimelineAssets(updatedConfig.timeline_assets);
     const baseConfig = dupesRemoved > 0
       ? { ...updatedConfig, timeline_assets: sanitizedTimeline }
@@ -2945,10 +2950,16 @@ export default function App() {
       });
 
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const savedConfig = (data?.config && typeof data.config === 'object')
+          ? data.config as ConfigData
+          : configToSave;
 
-        setConfig(configToSave);
+        setConfig(savedConfig);
 
-        fetchData();
+        if (!opts?.skipRefresh) {
+          fetchData();
+        }
 
       } else {
 
@@ -11778,15 +11789,22 @@ export default function App() {
               {settingsSection === 'visual' && (
                 <VisualSettings
                   config={config || {}}
+                  projectKey={activeProject}
+                  savedRevision={visualConfigRevision}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
                   saving={savingVisualConfig}
-                  onChange={(patch) => setConfig((prev) => ({ ...(prev || {}), ...patch }))}
-                  onSave={async () => {
-                    if (!config) return;
+                  onSave={async (draft) => {
                     setSavingVisualConfig(true);
                     try {
-                      await saveConfig(config);
+                      const previousVisual = pickVisualConfig(config || {});
+                      const merged = applyVisualPatchToConfig(
+                        (config || {}) as ConfigData,
+                        draft,
+                        previousVisual,
+                      );
+                      await saveConfig(merged, { skipRefresh: true });
+                      setVisualConfigRevision((n) => n + 1);
                       toast.success('Configurações visuais salvas no projeto.');
                     } finally {
                       setSavingVisualConfig(false);

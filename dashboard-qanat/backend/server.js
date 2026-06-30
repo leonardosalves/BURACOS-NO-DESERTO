@@ -840,11 +840,22 @@ app.post("/api/config", (req, res) => {
 
     }
 
-    const mergedConfig = { ...existingConfig, ...req.body };
+    const mergedConfig = { ...existingConfig };
+    for (const [key, value] of Object.entries(req.body || {})) {
+      if (value === null) {
+        delete mergedConfig[key];
+      } else {
+        mergedConfig[key] = value;
+      }
+    }
 
     fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), "utf8");
 
-    res.json({ success: true, message: "config_qanat.json salvo com sucesso" });
+    res.json({
+      success: true,
+      message: "config_qanat.json salvo com sucesso",
+      config: mergedConfig,
+    });
 
   } catch (err) {
 
