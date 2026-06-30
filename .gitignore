@@ -63,6 +63,7 @@ dashboard-qanat/remotion-renderer/public/projects/
 .agents/.obsidian/workspace.json
 .agents/.obsidian/graph.json
 .agents/agent_runs/
+.agents/**/*.canvas
 
 # OAuth tokens, API keys and local tool dirs (never commit)
 .notebooklm-data/
