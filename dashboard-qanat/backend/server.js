@@ -160,7 +160,9 @@ import {
   reflectProject,
   runConsolidation,
   saveStudioAgentsConfig,
+  shouldSkipAutoCapture,
 } from "./studioAgents.js";
+import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./formatResolver.js";
 import {
   getObsidianVaultStatus,
   openInObsidian,
@@ -617,7 +619,8 @@ app.post("/api/projects/create", (req, res) => {
         const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
 
         cfg.aspect_ratio = isShort ? "9:16" : "16:9";
-
+        cfg.video_format = isShort ? "SHORTS" : "LONGO";
+        cfg.caption_style = isShort ? "shorts-viral" : "documentary";
         cfg.niche = niche || "Geral";
 
         if (cfg.gemini_api_key) delete cfg.gemini_api_key;
@@ -628,7 +631,12 @@ app.post("/api/projects/create", (req, res) => {
 
     } else {
 
-      const cfg = { aspect_ratio: isShort ? "9:16" : "16:9", niche: niche || "Geral" };
+      const cfg = {
+        aspect_ratio: isShort ? "9:16" : "16:9",
+        video_format: isShort ? "SHORTS" : "LONGO",
+        caption_style: isShort ? "shorts-viral" : "documentary",
+        niche: niche || "Geral",
+      };
 
       fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
 
@@ -638,15 +646,8 @@ app.post("/api/projects/create", (req, res) => {
 
     // Initialize timing files
 
-    fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
-
-      starts: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
-
-      durations: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-
-      total_duration: 120
-
-    }, null, 4), "utf8");
+    const blockTimings = getDefaultBlockTimings(isShort ? VIDEO_FORMAT.SHORT : VIDEO_FORMAT.LONG);
+    fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify(blockTimings, null, 4), "utf8");
 
     
 
@@ -1531,7 +1532,9 @@ app.get("/api/projects/video-quality", async (req, res) => {
     const agentConfig = loadStudioAgentsConfig(WORKSPACE_DIR);
     if (agentConfig.autoCaptureOnQualityCheck) {
       try {
-        captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+        if (!shouldSkipAutoCapture(WORKSPACE_DIR, projDir, report)) {
+          captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+        }
       } catch (captureErr) {
         console.warn("[Studio Agents] Captura automática falhou:", captureErr.message);
       }
@@ -1581,7 +1584,14 @@ app.get("/api/studio-agents/learnings", (req, res) => {
   try {
     const niche = String(req.query.niche || "Geral");
     const task = String(req.query.task || "overlay");
-    res.json({ niche, task, learnings: getNicheLearnings(WORKSPACE_DIR, niche, task) });
+    const format = String(req.query.format || "").toUpperCase() || null;
+    const resolvedFormat = format === "LONG" || format === "LONGO" ? "LONG" : format === "SHORT" || format === "SHORTS" ? "SHORT" : null;
+    res.json({
+      niche,
+      task,
+      format: resolvedFormat,
+      learnings: getNicheLearnings(WORKSPACE_DIR, niche, task, resolvedFormat),
+    });
   } catch (err) {
     res.status(500).json({ error: "Erro ao carregar aprendizados", details: err.message });
   }
@@ -1648,9 +1658,12 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", {});
+    const projectFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
     const learningsAddendum = buildLearningsPromptAddendum(WORKSPACE_DIR, {
       niche: config.niche || "Geral",
       task: "overlay",
+      format: projectFormat,
     });
 
     let llmText = browserText;

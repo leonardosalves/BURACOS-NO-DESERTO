@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import path from "path";
+import { detectVideoFormat } from "./formatResolver.js";
 import {
   buildLearningsPromptAddendum,
   consolidateAllNiches,
@@ -15,7 +16,10 @@ import {
   previewConsolidationAllNiches,
   recordProjectRun,
   saveStudioAgentsConfig,
+  shouldSkipAutoCapture,
 } from "./agentMemory.js";
+
+export { shouldSkipAutoCapture };
 
 export {
   buildLearningsPromptAddendum,
@@ -36,10 +40,12 @@ function readProjectJsonSafe(projectDir, name, fallback) {
 
 export function captureQualityRun(workspaceDir, projectDir, quality, source = "quality_check") {
   const config = readProjectJsonSafe(projectDir, "config_qanat.json", {});
-  const patterns = extractPatternsFromQuality(quality);
+  const timings = readProjectJsonSafe(projectDir, "block_timings.json", {});
+  const format = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const patterns = extractPatternsFromQuality(quality, format);
   const run = recordProjectRun(workspaceDir, projectDir, {
     niche: config.niche || "Geral",
-    format: config.video_format || config.aspect_ratio || null,
+    format,
     score: quality.score,
     patterns,
     issueCount: patterns.length,
@@ -74,6 +80,6 @@ export function getDashboard(workspaceDir) {
   return getStudioAgentStatus(workspaceDir);
 }
 
-export function getNicheLearnings(workspaceDir, niche, task = "overlay") {
-  return getLearnings(workspaceDir, { niche, task, limit: 12 });
+export function getNicheLearnings(workspaceDir, niche, task = "overlay", format = null) {
+  return getLearnings(workspaceDir, { niche, task, format, limit: 12 });
 }

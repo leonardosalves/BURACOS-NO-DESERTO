@@ -993,7 +993,7 @@ export function validateVideoQuality({
   for (const overlay of sorted) {
     if (overlay.start < hookEnd && overlay.type !== "kinetic-text" && overlay.type !== "listicle-stinger") {
       issues.push({
-        severity: "warning",
+        severity: isShort ? "error" : "warning",
         code: "hook_polluted",
         message: `Overlay "${overlay.id}" aparece em ${overlay.start.toFixed(1)}s — gancho deve ficar limpo até ${hookEnd}s`,
       });
@@ -1152,7 +1152,11 @@ export function validateVideoQuality({
 
   const errors = issues.filter((i) => i.severity === "error").length;
   const warnings = issues.filter((i) => i.severity === "warning").length;
-  const score = Math.max(0, 100 - errors * 25 - warnings * 8 - issues.filter((i) => i.severity === "info").length * 2);
+  let score = Math.max(0, 100 - errors * 25 - warnings * 8 - issues.filter((i) => i.severity === "info").length * 2);
+  const hookPolluted = issues.some((i) => i.code === "hook_polluted");
+  if (isShort && hookPolluted) {
+    score = Math.min(score, 72);
+  }
 
   return {
     ok: errors === 0,
