@@ -6369,9 +6369,10 @@ app.post("/api/ai/execute-action", async (req, res) => {
         case "trigger_auto_map": {
           const configPath = path.join(projDir, "config_qanat.json");
           let cfg = readJsonFile(configPath) || {};
-          cfg.timeline_map_epoch = Number(cfg.timeline_map_epoch || 0) + 1;
-          const mapped = buildTimelineFromStoryboard(projDir, { remapping: true, rotateOffset: cfg.timeline_map_epoch });
+          const mapEpoch = Number(cfg.timeline_map_epoch || 0);
+          const mapped = buildTimelineFromStoryboard(projDir, { remapping: true, rotateOffset: mapEpoch });
           cfg.timeline_assets = mapped.timelineAssets;
+          cfg.timeline_map_epoch = mapEpoch + 1;
           fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
           results.push({ type: action.type, status: "ok", asset_count: mapped.assetCount });
           break;
@@ -9869,10 +9870,14 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
       autoConfig = JSON.parse(fs.readFileSync(autoConfigPath, "utf8"));
     }
 
-    autoConfig.timeline_map_epoch = Number(autoConfig.timeline_map_epoch || 0) + 1;
+    const mapEpoch = Number(autoConfig.timeline_map_epoch || 0);
+    // Versões antigas incrementavam epoch antes do map: 1º auto-map rotacionava o pool em +1.
+    const rotateOffset = (
+      mapEpoch === 1 && !autoConfig.timeline_map_epoch_v2
+    ) ? 0 : mapEpoch;
     const mapped = buildTimelineFromStoryboard(projDir, {
       remapping: true,
-      rotateOffset: autoConfig.timeline_map_epoch,
+      rotateOffset,
     });
 
     const existingTimeline = autoConfig.timeline_assets || {};
@@ -9925,6 +9930,9 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
       flatTranscriptWords: flatWords,
       ...alignContext,
     });
+
+    autoConfig.timeline_map_epoch = mapEpoch + 1;
+    autoConfig.timeline_map_epoch_v2 = true;
 
     fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
     syncStoryboardAssetsFromTimeline(projDir);

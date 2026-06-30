@@ -238,7 +238,8 @@ export function dedupeConsecutiveTimelineAssets(assets) {
   return result;
 }
 
-function rotateAssetList(files, offset = 0) {
+/** Rotação do pool de arquivos. offset=0 preserva ordem cronológica no primeiro auto-map. */
+export function rotateAssetList(files, offset = 0) {
   if (!Array.isArray(files) || files.length === 0) return [];
   const o = Math.abs(Number(offset) || 0) % files.length;
   return [...files.slice(o), ...files.slice(0, o)];
