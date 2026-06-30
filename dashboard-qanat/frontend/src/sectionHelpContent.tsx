@@ -91,7 +91,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Qualidade Pré-Render',
     body: (
       <>
-        Score 0–100 antes do render: overlays, gancho, orçamento e timing da IA. Inclui lista de issues e verificação de start/duração por overlay (cena e bloco).
+        Score 0–100 antes do render. Cada problema traz <strong>passo a passo</strong> para corrigir (qual aba abrir e o que fazer). Ao clicar Render, um modal resume melhorias sugeridas antes de compilar.
       </>
     ),
   },
