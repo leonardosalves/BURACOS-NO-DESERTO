@@ -1,3 +1,5 @@
+import { isFilenameSourceUsedInOtherProject } from "./mediaUsageRegistry.js";
+
 /**
  * Shared timeline scene timing logic — mirrors the editor preview in App.tsx
  * (getDynamicAssetWords + getAssetDuration) so render matches manual adjustments.
@@ -245,9 +247,85 @@ export function rotateAssetList(files, offset = 0) {
   return [...files.slice(o), ...files.slice(0, o)];
 }
 
+function slugifyStockToken(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 48);
+}
+
+function sceneBindingTokens(promptObj = {}) {
+  const block = Number(promptObj.block || 1);
+  const scene = String(promptObj.scene || "").trim();
+  const tokens = [
+    `b${block}_s`,
+    `block${block}_scene`,
+    `scene_${scene.replace(/\./g, "_")}`,
+  ];
+  if (scene) tokens.push(`s${scene.replace(/\./g, "_")}`);
+  return tokens.map((t) => t.toLowerCase());
+}
+
+/** Casa arquivo de ASSETS ao stock_query / cena / asset já vinculado no storyboard. */
+export function scoreAssetForScene(filename, promptObj = {}) {
+  const base = String(filename || "").replace(/\\/g, "/").toLowerCase();
+  const baseName = base.split("/").pop() || base;
+  let score = 0;
+
+  const bound = String(promptObj?.asset?.asset || promptObj?.asset_file || "").replace(/\\/g, "/").trim();
+  if (bound && (base === bound.toLowerCase() || baseName === bound.toLowerCase())) {
+    return 100;
+  }
+
+  const queries = [
+    promptObj?.stock_query,
+    promptObj?.stockQuery,
+    promptObj?.visual_hook,
+    promptObj?.busca_termo,
+  ]
+    .map(slugifyStockToken)
+    .filter((q) => q.length >= 3 && !["cinematic", "documentary", "documentary_scene"].includes(q));
+
+  for (const q of queries) {
+    if (baseName.includes(q)) score = Math.max(score, 12 + Math.min(q.length, 20));
+  }
+
+  for (const token of sceneBindingTokens(promptObj)) {
+    if (token.length >= 4 && baseName.includes(token)) score = Math.max(score, 25);
+  }
+
+  return score;
+}
+
+function isGloballyBlockedAsset(filename, { stockRegistry = null, currentProject = "" } = {}) {
+  if (!stockRegistry) return false;
+  return isFilenameSourceUsedInOtherProject(filename, stockRegistry, currentProject);
+}
+
+function pickSemanticAsset(promptObj, assetFiles, blockUsed, globalOpts = null) {
+  if (!promptObj || !assetFiles?.length) return "";
+  let best = "";
+  let bestScore = 0;
+  for (const file of assetFiles) {
+    const path = String(file || "").trim();
+    if (!path || blockUsed.has(path)) continue;
+    if (isGloballyBlockedAsset(path, globalOpts)) continue;
+    const s = scoreAssetForScene(path, promptObj);
+    if (s > bestScore) {
+      bestScore = s;
+      best = path;
+    }
+  }
+  return bestScore >= 8 ? best : "";
+}
+
 function pickHintAsset(promptObj, assetFileSet, blockUsed) {
   if (!promptObj) return "";
   const hints = [
+    promptObj?.asset?.asset,
     promptObj.asset_file,
     promptObj.stock_file,
     promptObj.media_file,
@@ -261,22 +339,23 @@ function pickHintAsset(promptObj, assetFileSet, blockUsed) {
   return "";
 }
 
-const RECENT_GLOBAL_WINDOW = 5;
+const RECENT_GLOBAL_WINDOW = 8;
 
-function pickLeastUsedAsset(assetFiles, usageCount, blockUsed, lastPath = "", recentGlobal = []) {
+function pickLeastUsedAsset(assetFiles, usageCount, blockUsed, lastPath = "", recentGlobal = [], globalOpts = null) {
   const recentSet = new Set(recentGlobal);
+  const notBlocked = (f) => f && !isGloballyBlockedAsset(f, globalOpts);
   const candidates = assetFiles
-    .filter((f) => f && !blockUsed.has(f) && f !== lastPath && !recentSet.has(f))
+    .filter((f) => notBlocked(f) && !blockUsed.has(f) && f !== lastPath && !recentSet.has(f))
     .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
   if (candidates.length) return candidates[0];
 
   const relaxed = assetFiles
-    .filter((f) => f && !blockUsed.has(f) && f !== lastPath)
+    .filter((f) => notBlocked(f) && !blockUsed.has(f) && f !== lastPath)
     .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
   if (relaxed.length) return relaxed[0];
 
   const fallback = assetFiles
-    .filter((f) => f && f !== lastPath)
+    .filter((f) => f && f !== lastPath && !blockUsed.has(f))
     .sort((a, b) => (usageCount.get(a) || 0) - (usageCount.get(b) || 0));
   return fallback[0] || "";
 }
@@ -346,7 +425,10 @@ export function buildTimelineAssetMap({
   timings = { durations: [] },
   remapping = false,
   rotateOffset = 0,
-}) {
+  stockRegistry = null,
+  currentProject = "",
+} = {}) {
+  const globalOpts = { stockRegistry, currentProject };
   const timelineAssets = {};
   const warnings = [];
   const assetFileSet = new Set(assetFiles);
@@ -374,12 +456,19 @@ export function buildTimelineAssetMap({
 
       let assetPath = "";
 
-      if (!remapping && prevSlot?.asset && assetFileSet.has(prevSlot.asset) && !blockUsed.has(prevSlot.asset)) {
+      const slotLocked = prevSlot?.user_locked === true || prevSlot?.manual_asset === true;
+
+      if (slotLocked && prevSlot?.asset && assetFileSet.has(prevSlot.asset)) {
+        assetPath = prevSlot.asset;
+      } else if (!remapping && prevSlot?.asset && assetFileSet.has(prevSlot.asset) && !blockUsed.has(prevSlot.asset)) {
         assetPath = prevSlot.asset;
       } else {
         assetPath = pickHintAsset(promptObj, assetFileSet, blockUsed);
         if (!assetPath) {
-          assetPath = pickLeastUsedAsset(rotatedFiles, usageCount, blockUsed, lastPath, recentGlobal);
+          assetPath = pickSemanticAsset(promptObj, rotatedFiles, blockUsed, globalOpts);
+        }
+        if (!assetPath) {
+          assetPath = pickLeastUsedAsset(rotatedFiles, usageCount, blockUsed, lastPath, recentGlobal, globalOpts);
         }
       }
 
@@ -414,6 +503,14 @@ export function buildTimelineAssetMap({
       }
       if (prevSlot?.narration_segment) {
         entry.narration_segment = prevSlot.narration_segment;
+      }
+      if (slotLocked) {
+        entry.user_locked = true;
+        entry.manual_asset = true;
+      }
+      if (!entry.narration_segment && promptObj) {
+        const seg = String(promptObj.narration_text || promptObj.narration_excerpt || "").trim();
+        if (seg) entry.narration_segment = seg;
       }
       blockAssets.push(entry);
     }

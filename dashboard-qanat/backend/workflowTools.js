@@ -14,6 +14,10 @@ import {
   KOKORO_DEFAULT_VOICE,
   KOKORO_DEFAULT_SPEED,
 } from "./kokoroTts.js";
+import {
+  loadStockUsageRegistry,
+  registerStockUsage,
+} from "./mediaUsageRegistry.js";
 
 const NARRATION_FILENAME = "narracao_mestra_premium.mp3";
 
@@ -236,35 +240,68 @@ export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {})
   };
 }
 
-async function searchPexels(query, { apiKey, isVideo = false }) {
+async function searchPexels(query, { apiKey, isVideo = false, skipSourceIds = new Set() }) {
   if (!apiKey) return null;
   const base = isVideo
-    ? `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=3`
-    : `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=3`;
+    ? `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=12`
+    : `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=12`;
   const data = await httpsGetJson(base, { Authorization: apiKey });
   if (isVideo) {
-    const video = data.videos?.[0];
-    const file = video?.video_files?.find((f) => f.quality === "hd") || video?.video_files?.[0];
-    return file?.link ? { url: file.link, ext: ".mp4", source: "pexels" } : null;
+    for (const video of data.videos || []) {
+      const sourceId = `pexels:${video.id}`;
+      if (skipSourceIds.has(sourceId)) continue;
+      const file = video?.video_files?.find((f) => f.quality === "hd") || video?.video_files?.[0];
+      if (file?.link) {
+        return { url: file.link, ext: ".mp4", source: "pexels", sourceId };
+      }
+    }
+    return null;
   }
-  const photo = data.photos?.[0];
-  return photo?.src?.large2x || photo?.src?.large
-    ? { url: photo.src.large2x || photo.src.large, ext: ".jpeg", source: "pexels" }
-    : null;
+  for (const photo of data.photos || []) {
+    const sourceId = `pexels:${photo.id}`;
+    if (skipSourceIds.has(sourceId)) continue;
+    const url = photo?.src?.large2x || photo?.src?.large;
+    if (url) return { url, ext: ".jpeg", source: "pexels", sourceId };
+  }
+  return null;
 }
 
-async function searchPixabay(query, { apiKey, isVideo = false }) {
+async function searchPixabay(query, { apiKey, isVideo = false, skipSourceIds = new Set() }) {
   if (!apiKey) return null;
-  const type = isVideo ? "film" : "photo";
-  const url = `https://pixabay.com/api/${isVideo ? "videos/" : ""}?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(query)}&per_page=3&safesearch=true`;
+  const url = `https://pixabay.com/api/${isVideo ? "videos/" : ""}?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(query)}&per_page=12&safesearch=true`;
   const data = await httpsGetJson(url);
   if (isVideo) {
-    const hit = data.hits?.[0];
-    const videoUrl = hit?.videos?.medium?.url || hit?.videos?.small?.url;
-    return videoUrl ? { url: videoUrl, ext: ".mp4", source: "pixabay" } : null;
+    for (const hit of data.hits || []) {
+      const sourceId = `pixabay:${hit.id}`;
+      if (skipSourceIds.has(sourceId)) continue;
+      const videoUrl = hit?.videos?.medium?.url || hit?.videos?.small?.url;
+      if (videoUrl) return { url: videoUrl, ext: ".mp4", source: "pixabay", sourceId };
+    }
+    return null;
   }
-  const hit = data.hits?.[0];
-  return hit?.largeImageURL ? { url: hit.largeImageURL, ext: ".jpg", source: "pixabay" } : null;
+  for (const hit of data.hits || []) {
+    const sourceId = `pixabay:${hit.id}`;
+    if (skipSourceIds.has(sourceId)) continue;
+    if (hit?.largeImageURL) return { url: hit.largeImageURL, ext: ".jpg", source: "pixabay", sourceId };
+  }
+  return null;
+}
+
+function buildStockQuery(target = {}) {
+  const stock = String(target.stock_query || "").trim();
+  const narration = String(target.narration_text || "").trim();
+  const generic = new Set(["cinematic", "documentary", "documentary scene", "video", "image"]);
+  if (stock && !generic.has(stock.toLowerCase())) return stock.slice(0, 80);
+  if (narration.length >= 12) {
+    const words = narration
+      .replace(/[^\w\sà-úÀ-Ú]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 4)
+      .slice(0, 6)
+      .join(" ");
+    if (words.length >= 8) return words.slice(0, 80);
+  }
+  return stock || "cinematic documentary";
 }
 
 export async function fetchStockForScenes(projDir, {
@@ -298,17 +335,22 @@ export async function fetchStockForScenes(projDir, {
   fs.mkdirSync(assetsDir, { recursive: true });
   const fetched = [];
   const errors = [];
+  const registry = workspaceDir ? loadStockUsageRegistry(workspaceDir) : { bySourceId: {} };
+  const skipSourceIds = new Set(
+    Object.keys(registry.bySourceId || {}).filter((id) => (registry.bySourceId[id]?.count || 0) > 0),
+  );
+  const projectName = path.basename(projDir);
 
   for (const target of targets.slice(0, maxScenes)) {
-    const query = String(target.stock_query || target.narration_text || "cinematic").trim().slice(0, 80);
+    const query = buildStockQuery(target);
     if (!query) continue;
     onLog(`[Stock] Buscando: "${query}" (cena ${target.scene || target.index + 1})...`);
 
     let media = null;
     try {
-      media = await searchPexels(query, { apiKey: keys.pexels, isVideo: target.isVideo });
+      media = await searchPexels(query, { apiKey: keys.pexels, isVideo: target.isVideo, skipSourceIds });
       if (!media && keys.pixabay) {
-        media = await searchPixabay(query, { apiKey: keys.pixabay, isVideo: target.isVideo });
+        media = await searchPixabay(query, { apiKey: keys.pixabay, isVideo: target.isVideo, skipSourceIds });
       }
     } catch (err) {
       errors.push({ scene: target.scene, query, error: err.message });
@@ -322,12 +364,25 @@ export async function fetchStockForScenes(projDir, {
     }
 
     const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-    const filename = `${slugify(query)}_${stamp}${media.ext}`;
+    const block = Number(target.block || 1);
+    const sceneTag = String(target.scene || `${block}.${(target.index ?? 0) + 1}`).replace(/\./g, "_");
+    const sourceTag = media.sourceId ? media.sourceId.replace(":", "_") : media.source;
+    const filename = `b${block}_s${sceneTag}_${slugify(query)}_${sourceTag}_${stamp}${media.ext}`;
     const destPath = path.join(assetsDir, filename);
 
     try {
       await downloadFile(media.url, destPath);
-      fetched.push({ scene: target.scene, block: target.block, file: filename, source: media.source, query });
+      if (media.sourceId) skipSourceIds.add(media.sourceId);
+      if (workspaceDir) {
+        registerStockUsage(workspaceDir, {
+          sourceId: media.sourceId,
+          relPath: filename,
+          project: projectName,
+          scene: target.scene,
+          query,
+        });
+      }
+      fetched.push({ scene: target.scene, block: target.block, file: filename, source: media.source, query, sourceId: media.sourceId });
       onLog(`[Stock] ✓ ${filename} (${media.source})`);
 
       if (Array.isArray(storyboard.visual_prompts) && storyboard.visual_prompts[target.index]) {
@@ -336,6 +391,10 @@ export async function fetchStockForScenes(projDir, {
           type: target.isVideo ? "video" : "image",
           fixed: target.isVideo ? 8 : undefined,
         };
+        const narration = String(storyboard.visual_prompts[target.index].narration_text || "").trim();
+        if (narration) {
+          storyboard.visual_prompts[target.index].stock_query = query;
+        }
       }
     } catch (err) {
       errors.push({ scene: target.scene, query, error: err.message });
