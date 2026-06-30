@@ -12,6 +12,8 @@ import { ListicleRecap, ListicleRecapProps } from "./ListicleRecap";
 import { RankProgress, RankProgressProps } from "./RankProgress";
 import { ChapterStinger, ChapterStingerProps } from "./ChapterStinger";
 import { SourceCard, SourceCardProps } from "./SourceCard";
+import { SocialPostCard, SocialPostCardProps } from "./SocialPostCard";
+import { GeoMapOverlay, GeoMapOverlayProps } from "./GeoMapOverlay";
 import { safeCustomStyle } from "./overlayStyleUtils";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -31,7 +33,9 @@ export type OverlayType =
   | "listicle-recap"
   | "rank-progress"
   | "chapter-stinger"
-  | "source-card";
+  | "source-card"
+  | "social-post"
+  | "geo-map";
 
 export interface OverlayBase {
   /** Unique identifier */
@@ -99,6 +103,16 @@ export interface SourceCardOverlay extends OverlayBase {
   props: SourceCardProps;
 }
 
+export interface SocialPostOverlay extends OverlayBase {
+  type: "social-post";
+  props: SocialPostCardProps;
+}
+
+export interface GeoMapOverlayItem extends OverlayBase {
+  type: "geo-map";
+  props: GeoMapOverlayProps;
+}
+
 export type Overlay =
   | LowerThirdOverlay
   | CounterOverlay
@@ -110,7 +124,9 @@ export type Overlay =
   | ListicleRecapOverlay
   | RankProgressOverlay
   | ChapterStingerOverlay
-  | SourceCardOverlay;
+  | SourceCardOverlay
+  | SocialPostOverlay
+  | GeoMapOverlayItem;
 
 interface OverlayLayerProps {
   overlays: Overlay[];
@@ -167,6 +183,16 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
       const sc = props as SourceCardProps;
       if (!String(sc.source || "").trim()) return null;
       return <SourceCard {...sc} />;
+    }
+    case "social-post": {
+      const sp = props as SocialPostCardProps;
+      if (!String(sp.text || "").trim()) return null;
+      return <SocialPostCard {...sp} />;
+    }
+    case "geo-map": {
+      const gm = props as GeoMapOverlayProps;
+      if (!String(gm.location || "").trim()) return null;
+      return <GeoMapOverlay {...gm} />;
     }
     default:
       return null;

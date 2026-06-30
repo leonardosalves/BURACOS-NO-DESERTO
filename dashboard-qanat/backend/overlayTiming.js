@@ -12,6 +12,8 @@ export const OVERLAY_MIN_DURATION = {
   "info-card": 3.5,
   "source-card": 3,
   "chapter-stinger": 1.8,
+  "social-post": 3.5,
+  "geo-map": 4,
 };
 
 const HUD_OVERLAY_TYPES = new Set([

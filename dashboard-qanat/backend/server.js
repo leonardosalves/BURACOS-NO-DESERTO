@@ -129,6 +129,7 @@ import {
   getEpidemicMoodForNiche,
   stabilizeOverlayTimings,
   injectProLayoutOverlays,
+  filterOverlaysByVisualConfig,
 } from "./videoProEnhancements.js";
 import {
   computeOverlayDisplayDuration,
@@ -4782,6 +4783,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
     shortsHookFlash: config.shorts_hook_flash !== false,
     shortsEdgeGlow: config.shorts_edge_glow === true,
+    shortsCaptionBgmPulse: config.shorts_caption_bgm_pulse !== false,
+    shortsPortalTransition: config.shorts_portal_transition !== false,
+    shortsPortalEvery: Math.max(3, Math.min(5, Number(config.shorts_portal_every) || 4)),
     bgmDuckPoints,
   };
 
@@ -10420,6 +10424,8 @@ const GEMINI_OVERLAY_TYPES = new Set([
   "kinetic-text",
   "info-card",
   "source-card",
+  "social-post",
+  "geo-map",
 ]);
 
 function sanitizeCustomStyle(value) {
@@ -10783,7 +10789,8 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 }
 
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
-  let result = injectProLayoutOverlays(overlays, config, storyboard, starts, durations, orchestrationPlan);
+  let result = filterOverlaysByVisualConfig(overlays, config);
+  result = injectProLayoutOverlays(result, config, storyboard, starts, durations, orchestrationPlan);
   result = injectListicleRankOverlays(result, storyboard, config, starts, durations, projectDir);
   result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
   result = avoidListicleHudCollisions(result, config, storyboard);

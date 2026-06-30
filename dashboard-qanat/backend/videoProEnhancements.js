@@ -764,7 +764,7 @@ function relocateOverlayAwayFromListicleHud(overlay, { isShort = false } = {}) {
   const pool = isShort ? shortPool : longPool;
   const pick = pool[slot % pool.length];
 
-  if (next.type === "counter" || next.type === "timeline" || next.type === "bar-chart") {
+  if (next.type === "counter" || next.type === "timeline" || next.type === "bar-chart" || next.type === "geo-map" || next.type === "social-post") {
     next.props.position = pick;
   } else if (next.type === "info-card") {
     next.props.position = pick === "bottom-center" ? "bottom-right" : pick;
@@ -891,6 +891,15 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   merged = pruneListicleOverlayDensity(merged, config, storyboard, plan);
   merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard });
   return merged;
+}
+
+export function filterOverlaysByVisualConfig(overlays = [], config = {}) {
+  return (overlays || []).filter((overlay) => {
+    if (!overlay) return false;
+    if (overlay.type === "social-post" && config.social_proof_cards === false) return false;
+    if (overlay.type === "geo-map" && config.geo_map_overlays === false) return false;
+    return true;
+  });
 }
 
 export function injectProLayoutOverlays(overlays = [], config = {}, storyboard = {}, starts = [], durations = [], plan = {}) {
@@ -1214,6 +1223,14 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
 
     if (overlay.type === "source-card" && exists(files.tick) && !hasAt(t, files.tick)) {
       events.push({ time: t, file: files.tick, volume: 0.03 });
+    }
+
+    if (overlay.type === "social-post" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.06), files.whoosh)) {
+      events.push({ time: Math.max(0, t - 0.06), file: files.whoosh, volume: 0.036 });
+    }
+
+    if (overlay.type === "geo-map" && exists(files.tick) && !hasAt(t, files.tick)) {
+      events.push({ time: t, file: files.tick, volume: 0.035 });
     }
 
     if (overlay.type === "listicle-stinger" && exists(files.impact) && !hasAt(t, files.impact)) {
