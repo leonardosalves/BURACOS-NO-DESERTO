@@ -174,6 +174,10 @@ interface ConfigData {
   long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
   overlay_intensity?: 'light' | 'normal' | 'rich';
   project_music_volume?: number;
+  overlay_min_gap?: 'tight' | 'normal' | 'relaxed';
+  overlay_max_duration?: number;
+  bgm_duck_strength?: 'light' | 'normal' | 'strong';
+  overlay_sfx_volume?: number;
   content_mode?: string;
 
   use_single_bgm?: boolean;
@@ -11884,6 +11888,7 @@ export default function App() {
                   config={config || {}}
                   projectKey={activeProject}
                   globalMusicVolume={globalMusicVolume}
+                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   saving={savingProductionConfig}
                   onSave={async (draft) => {
                     setSavingProductionConfig(true);

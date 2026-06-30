@@ -232,6 +232,7 @@ export type LumieraTimelineProps = {
   accentColor?: string;
   shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
   longZoomIntensity?: "normal" | "aggressive" | "cinematic";
+  bgmDuckStrength?: "light" | "normal" | "strong";
   shortsHookFlash?: boolean;
   shortsEdgeGlow?: boolean;
   shortsCaptionBgmPulse?: boolean;
@@ -304,6 +305,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   shortsZoomIntensity: "normal",
 
   longZoomIntensity: "normal",
+
+  bgmDuckStrength: "normal",
 
   shortsHookFlash: true,
 
@@ -1449,13 +1452,28 @@ const CaptionLayer: React.FC<{
 
 
 
+const BGM_DUCK_PROFILES = {
+  light: { speaking: [0.032, 0.055], near: [0.045, 0.095], idle: 0.105 },
+  normal: { speaking: [0.024, 0.045], near: [0.035, 0.08], idle: 0.09 },
+  strong: { speaking: [0.014, 0.03], near: [0.022, 0.055], idle: 0.065 },
+} as const;
+
 const BgmAudio: React.FC<{
   track: BgmTrack;
   captions: Caption[];
   narrationDuration?: number;
   musicVolume?: number;
   bgmDuckPoints?: number[];
-}> = ({ track, captions, narrationDuration = 0, musicVolume = 0.15, bgmDuckPoints = [] }) => {
+  bgmDuckStrength?: "light" | "normal" | "strong";
+}> = ({
+  track,
+  captions,
+  narrationDuration = 0,
+  musicVolume = 0.15,
+  bgmDuckPoints = [],
+  bgmDuckStrength = "normal",
+}) => {
+  const duck = BGM_DUCK_PROFILES[bgmDuckStrength] || BGM_DUCK_PROFILES.normal;
   const { fps, durationInFrames } = useVideoConfig();
   const totalDurationMs = (durationInFrames / fps) * 1000;
   const startFrame = Math.round(track.start * fps);
@@ -1530,15 +1548,15 @@ const BgmAudio: React.FC<{
 
           if (isSpeaking) {
             const breath = (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
-            return Math.max(0.012, interpolate(breath, [0, 1], [0.024, 0.045]) * envelope - duckBoost);
+            return Math.max(0.012, interpolate(breath, [0, 1], duck.speaking) * envelope - duckBoost);
           }
 
           // Smooth transition over 600ms before/after narration starts/stops
           if (minDistance < 900) {
-            return Math.max(0.015, interpolate(minDistance, [0, 900], [0.035, 0.08]) * envelope - duckBoost);
+            return Math.max(0.015, interpolate(minDistance, [0, 900], duck.near) * envelope - duckBoost);
           }
 
-          return Math.max(0.02, 0.09 * envelope - duckBoost);
+          return Math.max(0.02, duck.idle * envelope - duckBoost);
         };
 
         return getBaseVolume() * volScale;
@@ -1685,6 +1703,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   accentColor = "#C5A880",
   shortsZoomIntensity = "normal",
   longZoomIntensity = "normal",
+  bgmDuckStrength = "normal",
   shortsHookFlash = true,
   shortsEdgeGlow = false,
   shortsCaptionBgmPulse = true,
@@ -1842,7 +1861,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-          <BgmAudio track={track} captions={captions} narrationDuration={narrationDuration} musicVolume={musicVolume} bgmDuckPoints={bgmDuckPoints} />
+          <BgmAudio track={track} captions={captions} narrationDuration={narrationDuration} musicVolume={musicVolume} bgmDuckPoints={bgmDuckPoints} bgmDuckStrength={bgmDuckStrength} />
 
 
 
