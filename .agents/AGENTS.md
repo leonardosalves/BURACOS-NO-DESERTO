@@ -3,9 +3,22 @@
 ## 1. Obligatory Pre-requisite Check
 - Before performing any work or analysis, the agent MUST read this file and follow its rules.
 
-## 2. Commit and Git Management Rules
-- **COMMITS ARE MANDATORY**: Whenever you make any changes to the codebase (files added, modified, or deleted), you MUST immediately run a Git add and Git commit command to stage and commit the changes.
+## 2. Commit, Restart & Git Management Rules (OBRIGATÓRIO — SEM EXCEÇÃO)
+
+### Commits
+- **COMMITS ARE MANDATORY**: Whenever you make any changes to the codebase (files added, modified, or deleted), you MUST immediately run `git add` and `git commit`.
 - Do NOT finish a turn or leave changes uncommitted.
+- Do NOT ask the user to commit — the agent commits autonomously.
+- **Não commitar por padrão** (config local do usuário): `config_qanat.json`, `dashboard-qanat/backend/studio_agents_config.json` — salvo pedido explícito.
+
+### Reinício de servidores (automático quando necessário)
+- **Backend** (`dashboard-qanat/backend/**` alterado): reiniciar `node server.js` na porta **3005** — sem esperar o usuário pedir.
+- **Frontend** (proxy `vite.config.ts` ou rotas API): reiniciar Vite na porta **5176** se a mudança exigir.
+- Script: `scripts/restart-backend.ps1` ou skill `.agents/skills/lumiera-ops/SKILL.md`.
+- Regra Cursor: `.cursor/rules/lumiera-ops.mdc` (`alwaysApply: true`).
+
+### Ordem ao finalizar tarefa
+1. Implementar → 2. Reiniciar servidores afetados → 3. Commit → 4. Informar usuário (commit + servidores).
 
 ## 3. Subtitles (Legends) and Overlays Rules
 - **NO OVERLAPS**: Ensure that information cards, charts, timelines, or any other overlays do NOT display on top of the subtitles. Subtitles must remain visible, uncluttered, and readable at all times.
@@ -30,3 +43,4 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/remotion_docs|Remotion Docs]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
 - [[skills/viral-short-form|Viral Short Form]]
+- [[skills/lumiera-ops|Lumiera Ops — commit + reiniciar servidores]]
