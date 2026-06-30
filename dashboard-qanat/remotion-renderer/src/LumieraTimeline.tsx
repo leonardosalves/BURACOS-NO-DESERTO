@@ -47,6 +47,7 @@ import { Audio, Video } from "@remotion/media";
 import { OverlayLayer, Overlay } from "./overlays/OverlayLayer";
 import { YoutubeSubOverlay, YoutubeChannelInfo } from "./overlays/YoutubeSubOverlay";
 import { ProgressBar } from "./overlays/ProgressBar";
+import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
 
 
 
@@ -229,6 +230,9 @@ export type LumieraTimelineProps = {
   previewMode?: boolean;
   showProgressBar?: boolean;
   accentColor?: string;
+  shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
+  shortsHookFlash?: boolean;
+  shortsEdgeGlow?: boolean;
 };
 
 
@@ -293,6 +297,12 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   accentColor: "#C5A880",
 
+  shortsZoomIntensity: "normal",
+
+  shortsHookFlash: true,
+
+  shortsEdgeGlow: false,
+
 };
 
 
@@ -316,7 +326,8 @@ const SceneMedia: React.FC<{
   index: number;
   youtubeChannelInfo?: YoutubeChannelInfo | null;
   isShort?: boolean;
-}> = ({ scene, isFirst, isLast, index, youtubeChannelInfo, isShort = false }) => {
+  shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
+}> = ({ scene, isFirst, isLast, index, youtubeChannelInfo, isShort = false, shortsZoomIntensity = "normal" }) => {
 
 
 
@@ -360,11 +371,17 @@ const SceneMedia: React.FC<{
 
 
 
-  const startScale = isLogo ? 1.0 : (isShort ? 1.06 : 1.04);
+  const zoomProfile = isShort
+    ? (shortsZoomIntensity === "aggressive"
+      ? { start: 1.1, end: 1.28 }
+      : shortsZoomIntensity === "cinematic"
+        ? { start: 1.04, end: 1.16 }
+        : { start: 1.06, end: 1.22 })
+    : { start: 1.04, end: 1.14 };
 
+  const startScale = isLogo ? 1.0 : zoomProfile.start;
 
-
-  const endScale = isLogo ? 1.15 : (isShort ? 1.22 : 1.14);
+  const endScale = isLogo ? 1.15 : zoomProfile.end;
 
 
 
@@ -1594,10 +1611,13 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   previewMode = false,
   showProgressBar = false,
   accentColor = "#C5A880",
+  shortsZoomIntensity = "normal",
+  shortsHookFlash = true,
+  shortsEdgeGlow = false,
 }) => {
   const isShort = format === "9:16";
-  const showVignette = isShort || vignette;
-  const showGrain = isShort || grainOverlay;
+  const showVignette = vignette;
+  const showGrain = grainOverlay;
 
 
 
@@ -1686,7 +1706,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-            <SceneMedia scene={scene} isFirst={index === 0} isLast={isLast} index={index} youtubeChannelInfo={youtubeChannelInfo} isShort={isShort} />
+            <SceneMedia scene={scene} isFirst={index === 0} isLast={isLast} index={index} youtubeChannelInfo={youtubeChannelInfo} isShort={isShort} shortsZoomIntensity={shortsZoomIntensity} />
 
 
 
@@ -1820,6 +1840,14 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
               : "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35) 100%)",
             mixBlendMode: "multiply",
           }}
+        />
+      )}
+
+      {isShort && (shortsHookFlash || shortsEdgeGlow) && (
+        <ShortsVisualFx
+          hookFlash={shortsHookFlash}
+          edgeGlow={shortsEdgeGlow}
+          accentColor={accentColor}
         />
       )}
 
