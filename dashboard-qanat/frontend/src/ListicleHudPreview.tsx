@@ -3,6 +3,7 @@ import lottie from 'lottie-web';
 import {
   hudThemeStyles,
   lottieDataForKey,
+  lottieIconBadgeStyle,
   lottieVariantSeed,
   resolveLottieKey,
   type ListicleHudTheme,
@@ -105,8 +106,19 @@ function filledProgress(rank: number, rankCount: number, rankOrder: 'desc' | 'as
   return rankOrder === 'desc' ? rankCount - rank + 1 : rank;
 }
 
-function HudPreviewLottie({ animationData, size }: { animationData: object; size: number }) {
+function HudPreviewLottie({
+  animationData,
+  size,
+  accentColor,
+  isClimax,
+}: {
+  animationData: object;
+  size: number;
+  accentColor: string;
+  isClimax: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
+  const badge = lottieIconBadgeStyle(size, accentColor, isClimax);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -123,16 +135,8 @@ function HudPreviewLottie({ animationData, size }: { animationData: object; size
   }, [animationData]);
 
   return (
-    <div
-      className="flex items-center justify-center rounded-full bg-white flex-shrink-0"
-      style={{
-        width: size,
-        height: size,
-        border: '2px solid rgba(0,0,0,0.12)',
-        boxShadow: '0 4px 14px rgba(0,0,0,0.45)',
-      }}
-    >
-      <div ref={ref} style={{ width: Math.round(size * 0.72), height: Math.round(size * 0.72) }} />
+    <div className="flex items-center justify-center flex-shrink-0" style={badge.shell}>
+      <div ref={ref} style={badge.lottie} />
     </div>
   );
 }
@@ -261,7 +265,12 @@ export function ListicleHudPreview({
                 className="flex items-center justify-center gap-2 pt-2"
                 style={{ borderTop: `1px solid ${theme.divider}` }}
               >
-                <HudPreviewLottie animationData={lottieData} size={lottieSize} />
+                <HudPreviewLottie
+                  animationData={lottieData}
+                  size={lottieSize}
+                  accentColor={accentColor}
+                  isClimax={isClimax}
+                />
                 <p
                   className="text-white text-xs font-bold leading-snug break-words text-center"
                   style={{

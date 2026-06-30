@@ -352,7 +352,12 @@ export const RankProgress: React.FC<RankProgressProps> = ({
                   borderTop: `1px solid ${theme.divider}`,
                 }}
               >
-                <TitleLottieIcon animationData={lottieData} size={lottieSize} />
+                <TitleLottieIcon
+                  animationData={lottieData}
+                  size={lottieSize}
+                  accentColor={activeAccent}
+                  isClimax={isClimax}
+                />
                 <span
                   style={{
                     fontFamily: "Inter, sans-serif",
