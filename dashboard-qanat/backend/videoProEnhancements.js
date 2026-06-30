@@ -892,7 +892,8 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   });
   merged = avoidListicleHudCollisions(merged, config, storyboard);
   merged = pruneListicleOverlayDensity(merged, config, storyboard, plan);
-  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard });
+  const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
+  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard, totalDuration });
   return merged;
 }
 
@@ -913,7 +914,8 @@ export function injectProLayoutOverlays(overlays = [], config = {}, storyboard =
   if (config.chapter_stingers !== false) {
     merged = mergeOverlays(merged, buildChapterStingerOverlays(config, storyboard, starts, durations));
   }
-  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard });
+  const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
+  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard, totalDuration });
   return merged;
 }
 

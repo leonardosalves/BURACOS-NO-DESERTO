@@ -237,7 +237,7 @@ export function buildOverlayOrchestrationPlan({
       maxKinetic: isListicle ? 0 : 2,
       maxTimeline: isListicle ? 0 : 2,
       minGapSeconds: isListicle ? 10 : 5,
-      maxDurationSeconds: isListicle ? 3 : 4.5,
+      maxDurationSeconds: isListicle ? 4 : 6,
     };
     plan.rhythm = {
       hookCleanSeconds: 1.5,
@@ -478,12 +478,14 @@ export function enforceOverlayOrchestration(overlays, plan, timingCtx = {}) {
     const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
     const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
     if (blockEnd > blockStart) {
+      const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
       overlay.duration = computeOverlayDisplayDuration(overlay, {
         overlayStart: overlay.start,
         blockStart,
         blockEnd,
         plan,
         isListicle: plan.isListicle,
+        totalDuration,
       });
     } else {
       overlay.duration = Math.min(Number(overlay.duration) || 4, plan.limits.maxDurationSeconds);

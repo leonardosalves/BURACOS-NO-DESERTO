@@ -34,6 +34,9 @@ export function extractBlockIndex(overlay = {}, sceneRef = "") {
   const fromBlock = Number(overlay.block || overlay.props?.block || 0);
   if (fromBlock > 0) return fromBlock - 1;
 
+  const fromBlockRef = Number(overlay.block_ref || 0);
+  if (fromBlockRef > 0) return fromBlockRef - 1;
+
   const ref = String(sceneRef || overlay.scene_ref || "").trim();
   const sceneMatch = ref.match(/^(\d+)\./);
   if (sceneMatch) return Math.max(0, Number(sceneMatch[1]) - 1);
@@ -42,6 +45,37 @@ export function extractBlockIndex(overlay = {}, sceneRef = "") {
   if (idMatch) return Math.max(0, Number(idMatch[1]) - 1);
 
   return -1;
+}
+
+/** Bloco narrativo onde o tempo absoluto cai (0-based). */
+export function getBlockIndexForTime(time, starts = [], durations = []) {
+  const t = Number(time);
+  if (!Number.isFinite(t) || !Array.isArray(starts) || starts.length === 0) return -1;
+
+  for (let i = 0; i < starts.length; i++) {
+    const blockStart = Number(starts[i]);
+    const blockEnd = blockStart + (Number(durations[i]) || 0);
+    if (!Number.isFinite(blockStart)) continue;
+    if (t >= blockStart - 0.05 && t < blockEnd + 0.05) return i;
+  }
+
+  let best = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < starts.length; i++) {
+    const blockStart = Number(starts[i]);
+    if (!Number.isFinite(blockStart)) continue;
+    const dist = Math.abs(t - blockStart);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/** Bloco narrativo planejado (scene_ref) — usado para ancorar o start. */
+export function resolveNarrativeBlockIndex(overlay = {}, sceneRef = "") {
+  return extractBlockIndex(overlay, sceneRef);
 }
 
 export function getBlockTiming(blockIdx, starts = [], durations = []) {
@@ -60,25 +94,42 @@ export function getBlockTiming(blockIdx, starts = [], durations = []) {
   };
 }
 
+const ANIMATION_PAD_SECONDS = 1.0;
+
 export function computeOverlayDisplayDuration(overlay, {
   overlayStart,
   blockStart,
   blockEnd,
   plan = {},
   isListicle = false,
+  totalDuration = 0,
 } = {}) {
   const type = overlay?.type || "lower-third";
   const minDur = OVERLAY_MIN_DURATION[type] || 3;
   const maxDur = Number(plan?.limits?.maxDurationSeconds) || 7;
+  const outroPad = Number(plan?.rhythm?.outroCleanSeconds) || 2;
   const listicleMin = isListicle ? Math.max(minDur, minDur * 1.1) : minDur;
+  const effectiveMin = listicleMin + ANIMATION_PAD_SECONDS;
 
-  const available = blockEnd - overlayStart - 0.3;
-  if (!Number.isFinite(available) || available <= 0.8) {
-    return Math.max(2, Math.min(maxDur, 2.5));
+  const start = Number(overlayStart);
+  if (!Number.isFinite(start)) return Math.min(maxDur, effectiveMin);
+
+  const videoEnd = Number(totalDuration) > start + 1
+    ? Number(totalDuration)
+    : (blockEnd > blockStart ? blockEnd : start + maxDur);
+  const roomToEnd = videoEnd - start - outroPad;
+
+  const blockRoom = blockEnd > blockStart && blockEnd > start
+    ? blockEnd - start + Math.max(0, (blockEnd - blockStart) * 0.2)
+    : 0;
+  const available = Math.max(roomToEnd, blockRoom);
+
+  if (!Number.isFinite(available) || available < 1.5) {
+    return Math.max(2, Math.min(maxDur, Math.max(2, available)));
   }
 
-  const ideal = Math.min(maxDur, Math.max(listicleMin, available * 0.82));
-  return Math.max(2, Math.min(ideal, available));
+  const ideal = Math.min(maxDur, Math.max(effectiveMin, available * 0.82));
+  return Math.max(Math.min(effectiveMin, roomToEnd), Math.min(ideal, roomToEnd));
 }
 
 export function stabilizeOverlayTimings(overlays = [], {
@@ -87,14 +138,23 @@ export function stabilizeOverlayTimings(overlays = [], {
   plan = {},
   config = {},
   storyboard = {},
+  totalDuration = 0,
 } = {}) {
   const isListicle = config?.content_mode === "LISTICLE"
     || storyboard?.listicle?.content_mode === "LISTICLE";
+  const duration = Math.max(
+    Number(totalDuration) || 0,
+    durations.reduce((a, b) => a + (Number(b) || 0), 0),
+  );
+  const hookEnd = Number(plan?.rhythm?.hookCleanSeconds) || 1.5;
+  const outroPad = Number(plan?.rhythm?.outroCleanSeconds) || 2;
 
   for (const overlay of overlays) {
     if (!overlay || isHudOverlay(overlay)) continue;
 
-    const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
+    const narrativeIdx = resolveNarrativeBlockIndex(overlay, overlay.scene_ref);
+    const timeIdx = getBlockIndexForTime(overlay.start, starts, durations);
+    const blockIdx = narrativeIdx >= 0 ? narrativeIdx : timeIdx;
     if (blockIdx < 0) continue;
 
     const { blockStart, blockDur, blockEnd } = getBlockTiming(blockIdx, starts, durations);
@@ -103,12 +163,15 @@ export function stabilizeOverlayTimings(overlays = [], {
     let start = Number(overlay.start);
     if (!Number.isFinite(start)) start = blockStart + 0.5;
 
-    const minStart = blockStart + 0.35;
-    const minReadable = OVERLAY_MIN_DURATION[overlay.type] || 3;
-    const maxStart = Math.max(minStart, blockEnd - minReadable - 0.35);
+    const minReadable = (OVERLAY_MIN_DURATION[overlay.type] || 3) + ANIMATION_PAD_SECONDS;
+    const minStart = Math.max(blockStart + 0.35, hookEnd + 0.35);
+    const maxStart = Math.max(
+      minStart,
+      Math.min(blockEnd - 0.35, duration - outroPad - minReadable - 0.25),
+    );
 
     if (start < minStart) start = minStart;
-    if (start > maxStart) start = Math.min(minStart + 0.6, maxStart);
+    if (start > maxStart && maxStart >= minStart) start = maxStart;
 
     overlay.start = start;
     overlay.duration = computeOverlayDisplayDuration(overlay, {
@@ -117,6 +180,7 @@ export function stabilizeOverlayTimings(overlays = [], {
       blockEnd,
       plan,
       isListicle,
+      totalDuration: duration,
     });
 
     overlay.block_ref = blockIdx + 1;
@@ -134,11 +198,21 @@ export function isInformativeOverlay(overlay = {}) {
   return true;
 }
 
-/** Espalha overlays informativos no vídeo — evita colisão de 2.5s que o enforcement de 5s elimina. */
-export function redistributeInformativeOverlayStarts(overlays = [], plan = {}, totalDuration = 0) {
+/**
+ * Garante gap mínimo entre overlays informativos sem descolar da cena/bloco planejado.
+ * Só usa percentuais de ritmo quando o overlay não tem scene_ref nem start numérico válido.
+ */
+export function redistributeInformativeOverlayStarts(overlays = [], plan = {}, totalDuration = 0, timingCtx = {}) {
   if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
 
-  const duration = Math.max(Number(totalDuration) || 0, 20);
+  const starts = timingCtx.starts || [];
+  const durations = timingCtx.durations || [];
+  const sceneStarts = timingCtx.sceneStarts || {};
+  const duration = Math.max(
+    Number(totalDuration) || 0,
+    durations.reduce((a, b) => a + (Number(b) || 0), 0),
+    20,
+  );
   const minGap = Number(plan?.limits?.minGapSeconds) || 5;
   const hookEnd = Number(plan?.rhythm?.hookCleanSeconds) || 1.5;
   const outroPad = Number(plan?.rhythm?.outroCleanSeconds) || 2;
@@ -157,6 +231,11 @@ export function redistributeInformativeOverlayStarts(overlays = [], plan = {}, t
   ].filter((p) => Number.isFinite(Number(p)) && Number(p) > 0);
 
   const sorted = [...informative].sort((a, b) => {
+    const startA = Number(a.start);
+    const startB = Number(b.start);
+    if (Number.isFinite(startA) && Number.isFinite(startB) && startA !== startB) {
+      return startA - startB;
+    }
     const blockA = extractBlockIndex(a, a.scene_ref);
     const blockB = extractBlockIndex(b, b.scene_ref);
     if (blockA !== blockB) return blockA - blockB;
@@ -164,18 +243,46 @@ export function redistributeInformativeOverlayStarts(overlays = [], plan = {}, t
   });
 
   let lastStart = hookEnd;
+  let shifted = 0;
+
   for (let i = 0; i < sorted.length; i++) {
     const overlay = sorted[i];
-    const percent = rhythmPercents[i] ?? defaultPercents[i] ?? (0.12 + i * 0.18);
-    let target = duration * Math.min(0.92, Math.max(hookEnd / duration + 0.02, percent));
-    target = Math.max(target, lastStart + minGap);
-    target = Math.min(target, outroStart - (Number(overlay.duration) || 3));
-    overlay.start = Math.max(hookEnd + 0.35, target);
+    const sceneRef = String(overlay.scene_ref || "").trim();
+    const blockIdx = extractBlockIndex(overlay, sceneRef);
+    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+
+    let target = Number(overlay.start);
+    const hasNumericStart = Number.isFinite(target) && target >= 0;
+
+    if (sceneRef && sceneStarts[sceneRef] != null) {
+      target = Number(sceneStarts[sceneRef]) + 0.5;
+    } else if (!hasNumericStart && blockEnd > blockStart) {
+      target = blockStart + 0.5;
+    } else if (!hasNumericStart) {
+      const percent = rhythmPercents[i] ?? defaultPercents[i] ?? (0.12 + i * 0.18);
+      target = duration * Math.min(0.92, Math.max(hookEnd / duration + 0.02, percent));
+    }
+
+    const overlayDur = Number(overlay.duration) || 4;
+    target = Math.max(target, hookEnd + 0.35);
+    if (target - lastStart < minGap) {
+      target = lastStart + minGap;
+      shifted++;
+    }
+    target = Math.min(target, outroStart - overlayDur);
+
+    if (blockEnd > blockStart && target < blockStart + 0.2) {
+      target = Math.max(blockStart + 0.35, hookEnd + 0.35);
+    }
+
+    overlay.start = target;
     lastStart = overlay.start;
   }
 
   console.log(
-    `[Overlays] ${sorted.length} overlays informativos redistribuídos (gap mín. ${minGap}s, ${duration.toFixed(1)}s total).`,
+    `[Overlays] ${sorted.length} overlays informativos — gap mín. ${minGap}s`
+    + `${shifted ? `, ${shifted} ajuste(s) de colisão` : " (cenas preservadas)"}`
+    + `, ${duration.toFixed(1)}s total.`,
   );
   return overlays;
 }
@@ -310,7 +417,11 @@ export function verifyAndRepairAiOverlayTiming(overlays = [], {
         status = "warning";
         message = `fora da cena ${sceneRef} (${sceneStart?.toFixed(1)}–${sceneEnd?.toFixed(1)}s), em ${start.toFixed(1)}s`;
         if (repair && sceneStart != null) {
-          start = Math.min(sceneStart + 0.5, sceneEnd - dur - 0.2);
+          const minReadable = (OVERLAY_MIN_DURATION[overlay.type] || 3) + ANIMATION_PAD_SECONDS;
+          start = Math.max(sceneStart + 0.35, sceneStart + 0.5);
+          if (start + minReadable > sceneEnd + 0.4) {
+            start = sceneStart + 0.35;
+          }
           overlay.start = start;
           repairedCount++;
           status = "repaired";
@@ -394,6 +505,7 @@ export function verifyAndRepairAiOverlayTiming(overlays = [], {
       blockEnd: blockEnd || rangeEnd,
       plan,
       isListicle: false,
+      totalDuration: duration,
     });
 
     entries.push({
