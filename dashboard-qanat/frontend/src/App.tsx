@@ -244,6 +244,18 @@ interface VideoQualityIssue {
   message: string;
 }
 
+interface OverlayTimingEntry {
+  id: string;
+  type?: string;
+  plannedScene?: string | null;
+  block?: number | null;
+  startSec?: number;
+  endSec?: number;
+  keywordMatchSec?: number | null;
+  status: 'ok' | 'warning' | 'repaired' | 'error';
+  message?: string;
+}
+
 interface VideoQualityReport {
   ok: boolean;
   score: number;
@@ -251,6 +263,13 @@ interface VideoQualityReport {
   plan?: { format: string; maxOverlays: number; profile: string };
   preset?: string | null;
   epidemicMood?: string | null;
+  overlay_timing?: {
+    checked?: number;
+    repaired?: number;
+    okCount?: number;
+    warnCount?: number;
+    entries?: OverlayTimingEntry[];
+  };
 }
 
 type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
@@ -7759,6 +7778,43 @@ export default function App() {
                     </ul>
                   ) : (
                     <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
+                  )}
+                  {videoQuality.overlay_timing?.entries && videoQuality.overlay_timing.entries.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-zinc-800/80">
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
+                        Timing overlays IA
+                        {videoQuality.overlay_timing.repaired ? (
+                          <span className="text-amber-400/90 font-normal normal-case ml-1">
+                            ({videoQuality.overlay_timing.repaired} reparo(s) no último render)
+                          </span>
+                        ) : null}
+                      </p>
+                      <ul className="space-y-1 max-h-32 overflow-y-auto">
+                        {videoQuality.overlay_timing.entries.map((entry) => (
+                          <li
+                            key={entry.id}
+                            className={`text-[10px] font-mono flex gap-2 ${
+                              entry.status === 'ok'
+                                ? 'text-emerald-400/90'
+                                : entry.status === 'repaired'
+                                  ? 'text-cyan-400/90'
+                                  : entry.status === 'error'
+                                    ? 'text-red-300'
+                                    : 'text-amber-300/90'
+                            }`}
+                          >
+                            <span className="shrink-0 w-3 text-center">
+                              {entry.status === 'ok' ? '✓' : entry.status === 'repaired' ? '↻' : '!'}
+                            </span>
+                            <span>
+                              {entry.id} @ {entry.startSec?.toFixed(1)}s
+                              {entry.plannedScene ? ` · cena ${entry.plannedScene}` : ''}
+                              {entry.message ? ` — ${entry.message}` : ''}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}

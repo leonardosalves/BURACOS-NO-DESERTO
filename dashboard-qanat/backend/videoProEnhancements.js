@@ -10,6 +10,8 @@ import { buildListicleVideoSeed, pickListicleLottieKey } from "./listicleLottieR
 import {
   stabilizeOverlayTimings,
   isHudOverlay,
+  verifyAndRepairAiOverlayTiming,
+  overlayTimingIssuesFromReport,
 } from "./overlayTiming.js";
 
 export { stabilizeOverlayTimings };
@@ -1337,7 +1339,33 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
   overlays = avoidListicleHudCollisions(overlays, config, storyboard);
   overlays = pruneListicleOverlayDensity(overlays, config, storyboard, orchestrationPlan);
 
-  return validateVideoQuality({
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const sceneStarts = {};
+  const sceneDurations = {};
+  if (Array.isArray(storyboard.visual_prompts)) {
+    for (const vp of storyboard.visual_prompts) {
+      const sceneId = String(vp.scene || `${vp.block || 1}.1`).trim();
+      const blockIdx = Math.max(0, Number(vp.block || 1) - 1);
+      const blockStart = Number(timings.starts?.[blockIdx]);
+      sceneStarts[sceneId] = Number.isFinite(blockStart) ? blockStart : 0;
+      sceneDurations[sceneId] = Number(vp.duration_seconds)
+        || Number(String(vp.duration || "").replace(/[^\d.]/g, ""))
+        || 5;
+    }
+  }
+
+  const { report: timingReport } = verifyAndRepairAiOverlayTiming(overlays, {
+    starts: timings.starts || [],
+    durations: timings.durations || [],
+    sceneStarts,
+    sceneDurations,
+    wordTranscripts,
+    totalDuration,
+    plan: orchestrationPlan,
+    repair: false,
+  });
+
+  const baseQuality = validateVideoQuality({
     overlays,
     config,
     storyboard,
@@ -1346,6 +1374,16 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     durations: timings.durations || [],
     orchestrationPlan,
   });
+
+  const timingIssues = overlayTimingIssuesFromReport(
+    storyboard.overlay_timing_report || timingReport,
+  );
+
+  return {
+    ...baseQuality,
+    issues: [...(baseQuality.issues || []), ...timingIssues],
+    overlay_timing: storyboard.overlay_timing_report || timingReport,
+  };
 }
 
 export function resolveThumbnailPalette(config = {}, storyboard = {}, niche = "") {
