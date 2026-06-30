@@ -3,6 +3,12 @@
  * Estratégia de retenção YouTube para vídeos LONGOS e CURTOS (Shorts/Reels)
  */
 
+import {
+  computeOverlayDisplayDuration,
+  extractBlockIndex,
+  getBlockTiming,
+} from "./overlayTiming.js";
+
 const VARIETY_PROFILES = [
   {
     id: "documentary-prestige",
@@ -219,14 +225,16 @@ export function buildOverlayOrchestrationPlan({
         "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
       ];
   } else {
-    const maxOverlays = Math.min(12, Math.max(4, Math.floor(duration / 50)));
+    const maxOverlays = isListicle
+      ? Math.min(14, Math.max(5, Math.floor(duration / 40)))
+      : Math.min(12, Math.max(4, Math.floor(duration / 50)));
     plan.limits = {
       maxTotal: maxOverlays,
       maxData: Math.ceil(maxOverlays * 0.35),
       maxLowerThird: Math.ceil(maxOverlays * 0.5),
       maxKinetic: 2,
-      minGapSeconds: 18,
-      maxDurationSeconds: 7,
+      minGapSeconds: isListicle ? 12 : 18,
+      maxDurationSeconds: isListicle ? 6.5 : 7,
     };
     plan.rhythm = {
       hookCleanSeconds: 5,
@@ -327,10 +335,12 @@ function overlayPriority(overlay) {
   return 0;
 }
 
-export function enforceOverlayOrchestration(overlays, plan) {
+export function enforceOverlayOrchestration(overlays, plan, timingCtx = {}) {
   if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
 
   const profile = VARIETY_PROFILES.find((p) => p.id === plan.varietyProfile) || VARIETY_PROFILES[0];
+  const starts = timingCtx.starts || [];
+  const durations = timingCtx.durations || [];
   const sorted = [...overlays]
     .filter((o) => o && typeof o.start === "number" && Number.isFinite(o.start))
     .sort((a, b) => a.start - b.start);
@@ -346,6 +356,9 @@ export function enforceOverlayOrchestration(overlays, plan) {
   let variantIdx = 0;
   let posIdx = 0;
   let lottieIdx = 0;
+  const minGap = plan.isListicle && plan.format !== "SHORT"
+    ? Math.min(plan.limits.minGapSeconds, 10)
+    : plan.limits.minGapSeconds;
 
   for (const overlay of sorted) {
     const inForbidden = plan.forbiddenZones.some(
@@ -356,8 +369,8 @@ export function enforceOverlayOrchestration(overlays, plan) {
       continue;
     }
 
-    if (overlay.start - lastStart < plan.limits.minGapSeconds) {
-      console.log(`[Orchestration] Removido overlay ${overlay.id} — gap insuficiente (${(overlay.start - lastStart).toFixed(1)}s < ${plan.limits.minGapSeconds}s)`);
+    if (overlay.start - lastStart < minGap) {
+      console.log(`[Orchestration] Removido overlay ${overlay.id} — gap insuficiente (${(overlay.start - lastStart).toFixed(1)}s < ${minGap}s)`);
       continue;
     }
 
@@ -388,7 +401,19 @@ export function enforceOverlayOrchestration(overlays, plan) {
     }
 
     if (!overlay.props) overlay.props = {};
-    overlay.duration = Math.min(Number(overlay.duration) || 4, plan.limits.maxDurationSeconds);
+    const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
+    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+    if (blockEnd > blockStart) {
+      overlay.duration = computeOverlayDisplayDuration(overlay, {
+        overlayStart: overlay.start,
+        blockStart,
+        blockEnd,
+        plan,
+        isListicle: plan.isListicle,
+      });
+    } else {
+      overlay.duration = Math.min(Number(overlay.duration) || 4, plan.limits.maxDurationSeconds);
+    }
 
     if (overlay.type === "lower-third") {
       overlay.props.variant = profile.lowerThirdVariants[variantIdx % profile.lowerThirdVariants.length];

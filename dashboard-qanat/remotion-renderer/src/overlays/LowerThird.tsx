@@ -51,9 +51,9 @@ export interface LowerThirdProps {
   title: string;
   subtitle?: string;
   accentColor?: string;
-  position?: "bottom-left" | "bottom-center" | "top-left";
+  position?: "bottom-left" | "bottom-center" | "bottom-right" | "top-left" | "top-right";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
-  variant?: "glass" | "bild" | "accent-underline" | "bold-block" | "clean-bar";
+  variant?: "glass" | "bild" | "accent-underline" | "bold-block" | "clean-bar" | "soft-pill";
   iconType?: string;
   customStyle?: {
     background?: string;
@@ -144,6 +144,8 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
+  const slideOffset = position.includes("right") ? -translateX : translateX;
+
   // Position styles
   const positionStyle: React.CSSProperties =
     position === "top-left"
@@ -152,11 +154,24 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           left: isVertical ? 48 : 64,
           bottom: "auto",
         }
+      : position === "top-right"
+      ? {
+          top: isVertical ? 180 : 80,
+          right: isVertical ? 48 : 64,
+          left: "auto",
+          bottom: "auto",
+        }
       : position === "bottom-center"
       ? {
           bottom: isVertical ? 640 : 210,
           left: "50%",
-          transform: `translateX(-50%) translateX(${translateX}px)`,
+          transform: `translateX(-50%) translateX(${slideOffset}px)`,
+        }
+      : position === "bottom-right"
+      ? {
+          bottom: isVertical ? 640 : 210,
+          right: isVertical ? 48 : 64,
+          left: "auto",
         }
       : {
           bottom: isVertical ? 640 : 210,
@@ -166,7 +181,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
   const transformStyle =
     position === "bottom-center"
       ? positionStyle.transform
-      : `translateX(${translateX}px)`;
+      : `translateX(${slideOffset}px)`;
 
   // Theme custom styling mapper
   const getThemeStyle = (): React.CSSProperties => {
@@ -498,7 +513,67 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
     );
   }
 
-  // 4. variant === "clean-bar"
+  // 4. variant === "soft-pill"
+  if (variant === "soft-pill") {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          ...positionStyle,
+          transform: transformStyle,
+          opacity,
+          pointerEvents: "none",
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{
+            background: `linear-gradient(135deg, rgba(12, 12, 16, 0.88) 0%, rgba(24, 24, 32, 0.82) 100%)`,
+            backdropFilter: "blur(14px)",
+            border: `1px solid ${accentColor}44`,
+            borderRadius: 999,
+            padding: isVertical ? "14px 28px" : "10px 22px",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px ${accentColor}22 inset`,
+          }}
+        >
+          {iconType && lottieMap[iconType] && (
+            <div style={{ width: isVertical ? 40 : 30, height: isVertical ? 40 : 30 }}>
+              <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span
+              style={{
+                color: "#FFFFFF",
+                fontSize: isVertical ? 28 : 20,
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {title}
+            </span>
+            {subtitle && (
+              <span
+                style={{
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: isVertical ? 18 : 13,
+                  fontFamily: "'Inter', sans-serif",
+                }}
+                dangerouslySetInnerHTML={{ __html: subtitle }}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. variant === "clean-bar"
   if (variant === "clean-bar") {
     return (
       <div

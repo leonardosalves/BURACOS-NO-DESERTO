@@ -127,7 +127,14 @@ import {
   truncatePropsForPreview,
   resolveThumbnailPalette,
   getEpidemicMoodForNiche,
+  stabilizeOverlayTimings,
+  injectProLayoutOverlays,
 } from "./videoProEnhancements.js";
+import {
+  computeOverlayDisplayDuration,
+  extractBlockIndex,
+  getBlockTiming,
+} from "./overlayTiming.js";
 import {
   flattenWordTranscripts,
   buildBlockSceneTimings,
@@ -4770,6 +4777,8 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     designPreset: config.design_preset || null,
     grainOverlay: Boolean(config.grain_overlay),
     vignette: Boolean(config.vignette),
+    showProgressBar: format === "16:9" && config.progress_bar !== false,
+    accentColor: config.accent_color || "#C5A880",
     bgmDuckPoints,
   };
 
@@ -10407,6 +10416,7 @@ const GEMINI_OVERLAY_TYPES = new Set([
   "timeline",
   "kinetic-text",
   "info-card",
+  "source-card",
 ]);
 
 function sanitizeCustomStyle(value) {
@@ -10603,7 +10613,23 @@ function stripSystemInjectedOverlays(overlays = []) {
   });
 }
 
-function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = []) {
+function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts, durations, config = {}, storyboard = {}) {
+  const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+  const isListicle = config?.content_mode === "LISTICLE"
+    || storyboard?.listicle?.content_mode === "LISTICLE";
+  if (blockEnd > blockStart) {
+    return computeOverlayDisplayDuration(overlay, {
+      overlayStart,
+      blockStart,
+      blockEnd,
+      plan: {},
+      isListicle,
+    });
+  }
+  return Math.max(2.5, Number(overlay.duration) || 4);
+}
+
+function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = [], config = {}, storyboard = {}) {
   for (let i = 0; i < parsedOverlays.length; i++) {
     const overlay = parsedOverlays[i];
     const raw = overlay.start ?? overlay.scene;
@@ -10611,7 +10637,8 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
 
     if (Number.isFinite(Number(raw)) && !isLikelySceneId(rawStr)) {
       overlay.start = Number(raw);
-      if (!Number.isFinite(overlay.duration) || overlay.duration <= 0) overlay.duration = 4;
+      const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
+      overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
       continue;
     }
 
@@ -10620,10 +10647,7 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
         const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
         overlay.start = Number(sceneStarts[rawStr]) + 0.5;
         overlay.scene_ref = rawStr;
-        overlay.duration = Math.min(
-          Number(overlay.duration) || 4,
-          Math.max(1, Number(durations[blockIdx]) || 4),
-        );
+        overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
         continue;
       }
       const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
@@ -10631,10 +10655,7 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
       if (Number.isFinite(blockStart)) {
         overlay.start = blockStart + 0.5;
         overlay.scene_ref = rawStr;
-        overlay.duration = Math.min(
-          Number(overlay.duration) || 4,
-          Math.max(1, Number(durations[blockIdx]) || 4),
-        );
+        overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
         continue;
       }
     }
@@ -10645,24 +10666,23 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
       : Math.min(i, Math.max(0, starts.length - 1));
     const blockStart = Number(starts[blockIdx]);
     overlay.start = Number.isFinite(blockStart) ? blockStart + 0.5 : Math.max(0, i * 5);
-    overlay.duration = Math.min(
-      Number(overlay.duration) || 4,
-      Math.max(1, Number(durations[blockIdx]) || 4),
-    );
+    overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
     console.log(`[Overlays] Fallback numérico para ${overlay.id}: start=${overlay.start}s`);
   }
 
   return parsedOverlays;
 }
 
-function realignPlannedOverlays(plannedRaw, actualScenes, storyboard, starts, durations, wordTranscripts = []) {
+function realignPlannedOverlays(plannedRaw, actualScenes, storyboard, starts, durations, wordTranscripts = [], config = {}) {
   const cloned = JSON.parse(JSON.stringify(plannedRaw));
-  alignOverlayTimings(cloned, actualScenes, storyboard, starts, durations, wordTranscripts);
+  alignOverlayTimings(cloned, actualScenes, storyboard, starts, durations, wordTranscripts, config);
   return cloned;
 }
 
-function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts = []) {
+function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts = [], config = {}) {
   const { sceneStarts, sceneDurations, sceneNarration } = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+  const isListicle = config?.content_mode === "LISTICLE"
+    || storyboard?.listicle?.content_mode === "LISTICLE";
 
   for (let i = 0; i < parsedOverlays.length; i++) {
     const overlay = parsedOverlays[i];
@@ -10686,7 +10706,7 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
         if (Number.isFinite(blockStart)) {
           overlay.start = blockStart + 0.5;
           overlay.scene_ref = rawSceneRef;
-          overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, Number(durations[blockIdx]) || 4));
+          overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
           console.log(`[Overlays Post-Process] Fallback por scene_id ${rawSceneRef}: start=${overlay.start}s`);
           continue;
         }
@@ -10698,7 +10718,7 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
         const blockStart = Number(starts[blockIdx]);
         if (Number.isFinite(blockStart)) {
           overlay.start = blockStart + 0.5;
-          overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, Number(durations[blockIdx]) || 4));
+          overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
           console.log(`[Overlays Post-Process] Fallback por bloco ${blockNum}: start=${overlay.start}s`);
         }
       }
@@ -10707,6 +10727,8 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 
     const sceneStartSec = sceneStarts[resolvedSceneId];
     const sceneDur = sceneDurations[resolvedSceneId] || 4;
+    const blockIdx = Math.max(0, Number(String(resolvedSceneId).split(".")[0]) - 1);
+    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
     const siblingCount = parsedOverlays.slice(0, i).filter((ov) => {
       const ovScene = String(ov.start ?? ov.scene ?? "").trim();
       return ovScene === rawSceneRef || ovScene === resolvedSceneId;
@@ -10730,30 +10752,46 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
     );
 
     if (keywordTime !== null) {
-      start = Math.min(keywordTime + 0.15, sceneStartSec + sceneDur - 1);
+      const blockLimit = blockEnd > blockStart ? blockEnd - 1.5 : sceneStartSec + sceneDur - 1;
+      start = Math.min(keywordTime + 0.15, blockLimit);
     }
 
     const plannedAbs = Number(overlay.start);
-    if (Number.isFinite(plannedAbs) && plannedAbs >= sceneStartSec && plannedAbs <= sceneStartSec + sceneDur && !isLikelySceneId(rawSceneRef)) {
+    const blockLimitEnd = blockEnd > blockStart ? blockEnd : sceneStartSec + sceneDur;
+    if (Number.isFinite(plannedAbs) && plannedAbs >= blockStart && plannedAbs <= blockLimitEnd && !isLikelySceneId(rawSceneRef)) {
       overlay.start = plannedAbs;
     } else {
-      overlay.start = Math.max(sceneStartSec, start);
+      overlay.start = Math.max(blockStart > 0 ? blockStart + 0.35 : sceneStartSec, start);
     }
     overlay.scene_ref = resolvedSceneId;
-    overlay.duration = Math.min(Number(overlay.duration) || 4, Math.max(1, sceneDur - 0.5));
+    overlay.duration = computeOverlayDisplayDuration(overlay, {
+      overlayStart: overlay.start,
+      blockStart: blockStart || sceneStartSec,
+      blockEnd: blockEnd || sceneStartSec + sceneDur,
+      plan: {},
+      isListicle,
+    });
 
-    console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s`);
+    console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s (bloco ${blockIdx + 1})`);
   }
 
-  ensureNumericOverlayStarts(parsedOverlays, sceneStarts, starts, durations);
+  ensureNumericOverlayStarts(parsedOverlays, sceneStarts, starts, durations, config, storyboard);
   return parsedOverlays;
 }
 
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
-  let result = injectListicleRankOverlays(overlays, storyboard, config, starts, durations, projectDir);
+  let result = injectProLayoutOverlays(overlays, config, storyboard, starts, durations, orchestrationPlan);
+  result = injectListicleRankOverlays(result, storyboard, config, starts, durations, projectDir);
   result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
   result = avoidListicleHudCollisions(result, config, storyboard);
   result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
+  result = stabilizeOverlayTimings(result, {
+    starts,
+    durations,
+    plan: orchestrationPlan,
+    config,
+    storyboard,
+  });
 
   const quality = validateVideoQuality({
     overlays: result,
@@ -10945,7 +10983,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
 
   if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
     console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados${useHyperframes ? " [HyperFrames]" : ""} (re-alinhando com timeline de render).`);
-    const realigned = normalizeGeminiOverlayPayload(
+    let realigned = normalizeGeminiOverlayPayload(
       realignPlannedOverlays(
         plannedSource,
         actualScenes,
@@ -10953,8 +10991,17 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
         starts,
         durations,
         wordTranscripts,
+        config,
       ),
     );
+    realigned = enforceOverlayOrchestration(realigned, orchestrationPlanEarly, { starts, durations });
+    realigned = stabilizeOverlayTimings(realigned, {
+      starts,
+      durations,
+      plan: orchestrationPlanEarly,
+      config,
+      storyboard,
+    });
     return finalizeProjectOverlays(
       projectDir,
       realigned,
@@ -11332,7 +11379,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       parsedOverlays = normalizeGeminiOverlayPayload(parsedOverlays);
       console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
 
-      alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts);
+      alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts, config);
 
       const isTech = niche.toLowerCase().includes("tecnologia") || niche.toLowerCase().includes("programacao") || niche.toLowerCase().includes("computador") || niche.toLowerCase().includes("ciber") || niche.toLowerCase().includes("software");
       const orchProfile = VARIETY_PROFILES.find((p) => p.id === orchestrationPlan.varietyProfile) || VARIETY_PROFILES[0];
@@ -11580,7 +11627,14 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
 
       parsedOverlays = filterNarrationEchoOverlays(parsedOverlays, blockPhrases);
-      parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan);
+      parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan, { starts, durations });
+      parsedOverlays = stabilizeOverlayTimings(parsedOverlays, {
+        starts,
+        durations,
+        plan: orchestrationPlan,
+        config,
+        storyboard,
+      });
 
       if (planningOnly) {
         return parsedOverlays;
