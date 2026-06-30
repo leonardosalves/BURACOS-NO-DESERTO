@@ -1176,6 +1176,37 @@ export default function App() {
     { geminiBrowserMode, aiProvider, resolveBrowserResponse },
   ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
 
+  const aiProviderBadge = useMemo(() => {
+    if (!hasApiKey) {
+      return {
+        short: 'Sem API',
+        detail: 'Configure um provedor em Configurações → IA.',
+      };
+    }
+    if (aiProvider === 'openrouter') {
+      return {
+        short: 'OpenRouter',
+        detail: 'Chamadas de IA via API OpenRouter.',
+      };
+    }
+    if (aiProvider === 'xai') {
+      return {
+        short: 'Grok API',
+        detail: 'Chat e IA via API xAI (Grok). Gemini no Chrome desligado para este provedor.',
+      };
+    }
+    if (geminiBrowserMode) {
+      return {
+        short: 'Gemini Chrome',
+        detail: 'IA via gemini.google.com (extensão Lumiera). Metadados, overlays e agent usam o navegador.',
+      };
+    }
+    return {
+      short: 'Gemini API',
+      detail: 'IA via Google AI Studio (chave API). Sem automação no Chrome.',
+    };
+  }, [hasApiKey, aiProvider, geminiBrowserMode]);
+
   const readApiError = async (res: Response, fallback: string) => {
     try {
       const data = await res.json();
@@ -9164,8 +9195,8 @@ export default function App() {
                     <p className="text-[10px] text-gray-400 mt-0.5">
 
                       {hasApiKey
-                        ? `Conectado via ${aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'xai' ? 'Grok / xAI' : geminiBrowserMode ? 'Gemini no Chrome' : 'Gemini API'}.`
-                        : 'Configure um provedor para habilitar a IA.'}
+                        ? `Conectado via ${aiProviderBadge.short}. ${aiProviderBadge.detail}`
+                        : aiProviderBadge.detail}
 
                     </p>
 
@@ -13967,11 +13998,14 @@ export default function App() {
 
                 <div className="flex items-center gap-1">
 
-                  <span className={`text-[9px] flex items-center gap-1 ${hasApiKey ? 'text-emerald-500' : 'text-amber-500'}`}>
+                  <span
+                    className={`text-[9px] flex items-center gap-1 ${hasApiKey ? 'text-emerald-500' : 'text-amber-500'}`}
+                    title={aiProviderBadge.detail}
+                  >
 
                     {hasApiKey ? <CheckCircle className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
 
-                    {hasApiKey ? (aiProvider === 'openrouter' ? 'OpenRouter' : aiProvider === 'xai' ? 'xAI' : 'Gemini') : 'API'}
+                    {aiProviderBadge.short}
 
                   </span>
 
