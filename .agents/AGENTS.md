@@ -43,7 +43,9 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/remotion_docs|Remotion Docs]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
 - [[skills/viral-short-form|Viral Short Form]] (+ `references/` Vyral)
+- [[skills/viral-short-form-ideas|Viral Short-Form Ideas]] — pilares, matriz, Creator
 - [[skills/viral-hooks|Viral Hooks]] — ganchos 1–3s
+- [[skills/viral-captions-and-ctas|Captions & CTAs]] — legendas, hashtags, comentário fixo
 - [[skills/viral-youtube-shorts|YouTube Shorts]] — VVSA, funil
 - [[skills/youtube-seo|YouTube SEO]] — metadados e upload
 - [[skills/youtube-thumbnail|YouTube Thumbnail]] — capas CTR / Canva

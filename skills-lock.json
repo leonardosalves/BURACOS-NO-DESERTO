@@ -1,11 +1,23 @@
 {
   "version": 1,
   "skills": {
+    "viral-captions-and-ctas": {
+      "source": "vyralcontent/content-skills",
+      "sourceType": "github",
+      "skillPath": "skills/viral-captions-and-ctas/SKILL.md",
+      "computedHash": "99062338e7c59fdbf34e80237ac7297bea8af4ea01597799c0597f9c38c0fa0c"
+    },
     "viral-short-form": {
       "source": "vyralcontent/content-skills",
       "sourceType": "github",
       "skillPath": "skills/viral-short-form/SKILL.md",
       "computedHash": "a77fbd899195d89e086591c2642572c4cc875fe108992bcf49de451c1facdb20"
+    },
+    "viral-short-form-ideas": {
+      "source": "vyralcontent/content-skills",
+      "sourceType": "github",
+      "skillPath": "skills/viral-short-form-ideas/SKILL.md",
+      "computedHash": "25df48bd160902a5cc8aafa4aa519ad27ed18f3121625e18ccae6d1c64910320"
     }
   }
 }

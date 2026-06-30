@@ -17,7 +17,9 @@ description: |
 | Skill local | Fonte upstream | Uso no programa |
 |-------------|----------------|-----------------|
 | viral-short-form | vyralcontent/content-skills + n8n Lucas Walter | Creator, scriptQuality.js |
+| viral-short-form-ideas | vyralcontent/content-skills | Ideação Creator, ranking_ideas |
 | viral-hooks | vyralcontent/content-skills | Ganchos Creator / bloco 1 |
+| viral-captions-and-ctas | vyralcontent/content-skills | Legendas shorts-viral, CTAs, metadados |
 | viral-youtube-shorts | vyralcontent/content-skills | Projetos SHORTS, metadados |
 | youtube-thumbnail | charlie947/social-media-skills | Canva, variantes de capa |
 | youtube-seo | kostja94/marketing-skills + youtubeMetadataOptimizer | IA·Metadados, upload |
@@ -39,8 +41,6 @@ description: |
 
 | Repo@skill | Motivo | Prioridade |
 |------------|--------|------------|
-| vyralcontent/content-skills@viral-captions-and-ctas | Legendas Shorts, CTAs | Alta |
-| vyralcontent/content-skills@viral-short-form-ideas | Ideação Creator | Alta |
 | remotion-dev/remotion@remotion | Atualizar remotion_docs | Média |
 | motion-creative/skills@ad-concept-generator | Conceitos UGC ads | Baixa |
 | openai/sora | Vídeo IA externo | Baixa (Lumiera usa Remotion/HF) |
