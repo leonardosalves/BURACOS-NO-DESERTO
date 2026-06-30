@@ -783,6 +783,24 @@ export function StudioAgents({
         <label className="flex items-center gap-3 text-xs text-zinc-300 cursor-pointer">
           <input
             type="checkbox"
+            checked={config.skillsInAgentMode !== false}
+            onChange={(e) => saveConfig({ skillsInAgentMode: e.target.checked })}
+            className="rounded border-zinc-700"
+          />
+          Injetar skills bundle nos prompts (Hermes)
+        </label>
+        <label className="flex items-center gap-3 text-xs text-zinc-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={config.skillsWriteApproval !== false}
+            onChange={(e) => saveConfig({ skillsWriteApproval: e.target.checked })}
+            className="rounded border-zinc-700"
+          />
+          Workshop com aprovação antes de gravar skills
+        </label>
+        <label className="flex items-center gap-3 text-xs text-zinc-300 cursor-pointer">
+          <input
+            type="checkbox"
             checked={config.autoCaptureOnQualityCheck}
             onChange={(e) => saveConfig({ autoCaptureOnQualityCheck: e.target.checked })}
             className="rounded border-zinc-700"

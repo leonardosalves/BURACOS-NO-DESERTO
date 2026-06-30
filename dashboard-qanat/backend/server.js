@@ -157,6 +157,7 @@ import {
 import {
   buildLearningsPromptAddendum,
   buildStudioAgentsPromptAddendum,
+  injectStudioAgentsContext,
   captureQualityRun,
   getDashboard,
   getNicheLearnings,
@@ -7338,7 +7339,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     const { format, niche, totalDuration, chaptersText, category, profile, rpmHint } = metadataCtx;
 
-    const prompt = buildYoutubeMetadataPrompt({
+    let prompt = buildYoutubeMetadataPrompt({
       transcript,
       chaptersText,
       storyboard,
@@ -7349,6 +7350,11 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       category,
       profile,
       rpmHint,
+    });
+    prompt = injectStudioAgentsContext(prompt, WORKSPACE_DIR, {
+      niche,
+      task: "metadata",
+      format,
     });
 
     const respondWithMetadata = async (text, extra = {}) => {
@@ -9214,7 +9220,7 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
     webResearchContext = "";
   }
 
-  const promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
+  let promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
 
 O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
 
@@ -9302,6 +9308,12 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
   "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"${isListicle ? ',\n\n  "listicle_meta": {\n    "rank_count": ' + listicleRank + ',\n    "rank_order": "' + (rankOrder || "desc") + '",\n    "topic": "' + listicleTopic.replace(/"/g, '\\"') + '"\n  }' : ""}
 
 }`;
+
+  promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
+    niche: nicheClean,
+    task: "ideas",
+    format: format === "SHORTS" ? "SHORT" : "LONG",
+  });
 
   try {
 
@@ -9980,6 +9992,12 @@ REGRAS FINAIS:
 
 - Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
   }
+
+  promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
+    niche,
+    task: "script",
+    format: isShort ? "SHORT" : "LONG",
+  });
 
   let responseText = "";
   const apiKey = getApiKey(projDir) || getApiKey(settingsDir);
@@ -12061,10 +12079,14 @@ Estrutura JSON Exigida:
 `;
 
   if (agentMode) {
-    const learningsAddendum = buildLearningsPromptAddendum(WORKSPACE_DIR, { niche, task: "overlay" });
-    if (learningsAddendum) {
-      systemPrompt += learningsAddendum;
-      console.log("[Studio Agents] Aprendizados do estúdio injetados no prompt de overlays.");
+    const studioAddendum = buildStudioAgentsPromptAddendum(WORKSPACE_DIR, {
+      niche,
+      task: "overlay",
+      format: detectVideoFormat(config, totalDuration),
+    });
+    if (studioAddendum) {
+      systemPrompt += studioAddendum;
+      console.log("[Studio Agents] Memória + skills bundle injetados no prompt de overlays.");
     }
   }
 

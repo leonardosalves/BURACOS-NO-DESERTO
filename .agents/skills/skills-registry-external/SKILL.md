@@ -29,6 +29,8 @@ description: |
 | epidemic_sound | REST/MCP | Trilha BGM |
 | lumiera-ops | interno | commit + reiniciar servidores |
 | studio-agents-hermes | interno (padrões Hermes/OpenClaw) | Bundles, workshop, API skills |
+| video-marketing | kostja94/marketing-skills (via VoltAgent) | Creator ideias/roteiro, estratégia short+long |
+| remotion-render | inference-sh/skills (adaptado Lumiera) | LumieraTimeline, render local PRO |
 
 ## Hermes Agent + OpenClaw — padrões adotados
 
@@ -80,8 +82,24 @@ Após instalar:
 4. Atualizar [[SKILLS]] e [[AGENTS]]
 5. Commit
 
+## VoltAgent / awesome-agent-skills (1000+ skills)
+
+Catálogo curado: [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills). Instalação via `npx skills add owner/repo@skill` (skills.sh).
+
+| VoltAgent / skills.sh | Status Lumiera | Notas |
+|-----------------------|----------------|-------|
+| kostja94/marketing-skills@video-marketing | **Instalada** | Bundle `shorts-viral`; não duplica `youtube-seo` |
+| inference-sh/skills@remotion-render | **Adaptada** | Render local `remotion-renderer/`; belt opcional |
+| remotion-dev/skills@remotion-best-practices | Candidata | Complementa `remotion_docs` |
+| remotion-dev/skills@remotion | Candidata | Atualizar `remotion_docs` |
+| coreyhaines31/marketing-skills@* | Avaliar | Pode sobrepor kostja94 |
+| social-publisher, ai-ugc-ads | Baixa prioridade | Lumiera já tem upload + UGC |
+
+Relacionado: [heilcheng/awesome-agent-skills](https://github.com/heilcheng/awesome-agent-skills) — índice alternativo já referenciado abaixo.
+
 ## Diretórios de descoberta
 
+- [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)
 - [awesome-agent-skills](https://github.com/heilcheng/awesome-agent-skills)
 - [agent-skill.co](https://agent-skill.co)
 - [skillsmp.com](https://skillsmp.com)
