@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/viral-short-form|Viral Short Form]] · [[SKILLS]]
+
 ---
 name: viral-short-form
 description: |

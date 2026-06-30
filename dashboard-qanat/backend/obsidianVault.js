@@ -35,7 +35,110 @@ function writeJsonIfMissing(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
 }
 
+const SKILL_LABELS = {
+  hyperframes: "HyperFrames",
+  "viral-short-form": "Viral Short Form",
+  "ugc-scriptwriter": "UGC Scriptwriter",
+  epidemic_sound: "Epidemic Sound",
+  remotion_docs: "Remotion Docs",
+};
+
+function listSkillEntries(vaultDir) {
+  const skillsRoot = path.join(vaultDir, "skills");
+  if (!fs.existsSync(skillsRoot)) return [];
+  return fs.readdirSync(skillsRoot, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .filter((slug) => fs.existsSync(path.join(skillsRoot, slug, "SKILL.md")))
+    .sort();
+}
+
+function skillLabel(slug) {
+  return SKILL_LABELS[slug] || slug.replace(/-/g, " ");
+}
+
+function buildSkillsIndexNote(vaultDir) {
+  const slugs = listSkillEntries(vaultDir);
+  const lines = slugs.map((slug) => {
+    const label = skillLabel(slug);
+    return `- [[skills/${slug}|${label}]] — doc: [[skills/${slug}/SKILL]]`;
+  });
+  return [
+    "# Skills do Lumiera",
+    "",
+    "Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.",
+    "",
+    "Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]",
+    "",
+    "## Catálogo",
+    lines.length ? lines.join("\n") : "- _(nenhuma skill em skills/)_",
+    "",
+    "## Por que vários arquivos SKILL?",
+    "Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.",
+    "",
+    `atualizado: ${new Date().toISOString()}`,
+    "",
+  ].join("\n");
+}
+
+function ensureSkillGraphLinks(vaultDir) {
+  const slugs = listSkillEntries(vaultDir);
+  if (!slugs.length) return;
+
+  fs.writeFileSync(path.join(vaultDir, "SKILLS.md"), buildSkillsIndexNote(vaultDir), "utf8");
+
+  for (const slug of slugs) {
+    const label = skillLabel(slug);
+    const stubPath = path.join(vaultDir, "skills", `${slug}.md`);
+    const skillDoc = `skills/${slug}/SKILL`;
+    fs.writeFileSync(
+      stubPath,
+      [
+        `# ${label}`,
+        "",
+        `Atalho Obsidian para [[${skillDoc}|${label} (SKILL completa)]].`,
+        "",
+        "- [[MEMORIA-LUMIERA]]",
+        "- [[SKILLS]]",
+        "- [[AGENTS]]",
+        `- Documentação: [[${skillDoc}]]`,
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const skillPath = path.join(vaultDir, "skills", slug, "SKILL.md");
+    let content = fs.readFileSync(skillPath, "utf8");
+    const backlink = `[[MEMORIA-LUMIERA]] · [[skills/${slug}|${label}]] · [[SKILLS]]`;
+    if (!content.includes("[[MEMORIA-LUMIERA]]")) {
+      content = `> 🔗 ${backlink}\n\n${content}`;
+      fs.writeFileSync(skillPath, content, "utf8");
+    }
+  }
+
+  const agentsPath = path.join(vaultDir, "AGENTS.md");
+  if (fs.existsSync(agentsPath)) {
+    let agents = fs.readFileSync(agentsPath, "utf8");
+    if (!agents.includes("[[SKILLS]]")) {
+      const skillLines = slugs
+        .map((slug) => `- [[skills/${slug}|${skillLabel(slug)}]]`)
+        .join("\n");
+      agents += [
+        "",
+        "## 5. Skills (Obsidian)",
+        "",
+        "Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]",
+        "",
+        skillLines,
+        "",
+      ].join("\n");
+      fs.writeFileSync(agentsPath, agents, "utf8");
+    }
+  }
+}
+
 function buildHubNote(workspaceDir) {
+  const vaultDir = getObsidianVaultDir(workspaceDir);
   const { memoryDir, runsDir } = getAgentPaths(workspaceDir);
   const nicheFiles = fs.existsSync(memoryDir)
     ? fs.readdirSync(memoryDir).filter((f) => f.endsWith(".md"))
@@ -43,6 +146,7 @@ function buildHubNote(workspaceDir) {
   const runFiles = fs.existsSync(runsDir)
     ? fs.readdirSync(runsDir).filter((f) => f.endsWith(".md")).sort().reverse().slice(0, 7)
     : [];
+  const skillSlugs = listSkillEntries(vaultDir);
 
   const nicheLinks = nicheFiles
     .map((f) => `- [[memory/${f.replace(".md", "")}]]`)
@@ -50,6 +154,10 @@ function buildHubNote(workspaceDir) {
 
   const runLinks = runFiles
     .map((f) => `- [[agent_runs/${f.replace(".md", "")}]]`)
+    .join("\n");
+
+  const skillLinks = skillSlugs
+    .map((slug) => `- [[skills/${slug}|${skillLabel(slug)}]]`)
     .join("\n");
 
   return [
@@ -60,6 +168,10 @@ function buildHubNote(workspaceDir) {
     "## Navegação rápida",
     `- [[MEMORY]] — regras globais do estúdio`,
     `- [[AGENTS]] — documentação dos agentes`,
+    `- [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)`,
+    "",
+    "## Skills",
+    skillLinks || "- _(nenhuma skill — pasta skills/)_",
     "",
     "## Memória por nicho",
     nicheLinks || "- _(nenhum nicho ainda — use Capturar qualidade na aba Studio Agents)_",
@@ -74,6 +186,7 @@ function buildHubNote(workspaceDir) {
     "## Dica",
     "Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por tema.",
     "Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.",
+    "No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só \"SKILL\".",
     "",
     `atualizado: ${new Date().toISOString()}`,
     "",
@@ -125,7 +238,11 @@ export function ensureObsidianVault(workspaceDir) {
   const hubPath = path.join(vaultDir, HUB_NOTE);
   const hubStale = !fs.existsSync(hubPath)
     || Date.now() - fs.statSync(hubPath).mtimeMs > HUB_STALE_MS;
-  if (hubStale) {
+  ensureSkillGraphLinks(vaultDir);
+
+  const hubContent = fs.existsSync(hubPath) ? fs.readFileSync(hubPath, "utf8") : "";
+  const needsHubRefresh = hubStale || !hubContent.includes("[[SKILLS]]");
+  if (needsHubRefresh) {
     fs.writeFileSync(hubPath, buildHubNote(workspaceDir), "utf8");
   }
 

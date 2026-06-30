@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/remotion_docs|Remotion Docs]] · [[SKILLS]]
+
 ---
 name: Remotion Docs
 description: Documentation and guides for building videos with Remotion, including transitions, effects, and video manipulation.

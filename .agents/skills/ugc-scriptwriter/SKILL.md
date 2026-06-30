@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/ugc-scriptwriter|UGC Scriptwriter]] · [[SKILLS]]
+
 ---
 name: ugc-scriptwriter
 description: |

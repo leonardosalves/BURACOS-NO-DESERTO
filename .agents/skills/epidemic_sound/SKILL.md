@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/epidemic_sound|Epidemic Sound]] · [[SKILLS]]
+
 ---
 name: Epidemic Sound API
 description: Basic documentation and guides for searching and downloading music/sound effects from Epidemic Sound MCP/REST API.

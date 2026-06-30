@@ -20,3 +20,13 @@
 - **ELIMINATE THEMATIC FLOATING CARDS**: Convert all text-heavy or thematic `info-card` overlays into elegant `lower-third` overlays (mapping descriptions to subtitles and adjusting positions) to keep the center of the video clean and cinematic.
 - **INFOGRAPHIC PRIORITY**: Always show dynamic infographics (like `counter`, `bar-chart`, `timeline`) on screen instead of text overlays when displaying percentages, statistics, or steps.
 - **CATALOG EXCLUSIVITY**: Use exclusively the Remotion-transformed resources listed in `SKILL.md` (e.g., Soft Pill, Accent Underline, Shimmer, Shaders, macOS bash, etc.) to compose and edit each video.
+
+## 5. Skills (Obsidian)
+
+Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
+
+- [[skills/epidemic_sound|Epidemic Sound]]
+- [[skills/hyperframes|HyperFrames]]
+- [[skills/remotion_docs|Remotion Docs]]
+- [[skills/ugc-scriptwriter|UGC Scriptwriter]]
+- [[skills/viral-short-form|Viral Short Form]]
