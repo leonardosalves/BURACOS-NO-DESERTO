@@ -144,6 +144,8 @@ import {
   computeOverlayDisplayDuration,
   extractBlockIndex,
   getBlockTiming,
+  isInformativeOverlay,
+  redistributeInformativeOverlayStarts,
 } from "./overlayTiming.js";
 import {
   flattenWordTranscripts,
@@ -3450,7 +3452,9 @@ app.get("/api/render/:mode", async (req, res) => {
 
       sendLog(`[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`);
 
-      sendLog(`[Remotion] ${renderPlan.overlayCount ?? 0} overlays informativos na timeline.`);
+      const infoCount = renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
+      const totalOv = renderPlan.overlayCount ?? 0;
+      sendLog(`[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`);
 
       sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
 
@@ -4841,6 +4845,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     captionCount: finalCaptions.length,
     sfxCount: sfxTracks.length,
     overlayCount: Array.isArray(overlays) ? overlays.length : 0,
+    informativeOverlayCount: Array.isArray(overlays)
+      ? overlays.filter(isInformativeOverlay).length
+      : 0,
   };
 
 }
@@ -10892,7 +10899,8 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
       return ovScene === rawSceneRef || ovScene === resolvedSceneId;
     }).length;
 
-    let start = sceneStartSec + 0.5 + (siblingCount * 2.5);
+    const minSiblingGap = isListicle ? 8 : 5;
+    let start = sceneStartSec + 0.5 + (siblingCount * minSiblingGap);
 
     const keywords = extractOverlayKeywords(overlay);
     const narrationKeywords = String(sceneNarration[resolvedSceneId] || "")
@@ -10944,6 +10952,21 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
   result = avoidListicleHudCollisions(result, config, storyboard);
   result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
+  result = stabilizeOverlayTimings(result, {
+    starts,
+    durations,
+    plan: orchestrationPlan,
+    config,
+    storyboard,
+  });
+
+  const informativeOnly = result.filter(isInformativeOverlay);
+  const systemOnly = result.filter((o) => !isInformativeOverlay(o));
+  const enforcedInformative = enforceOverlayOrchestration(informativeOnly, orchestrationPlan, {
+    starts,
+    durations,
+  });
+  result = [...enforcedInformative, ...systemOnly];
   result = stabilizeOverlayTimings(result, {
     starts,
     durations,
@@ -11152,6 +11175,11 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
         wordTranscripts,
         config,
       ),
+    );
+    realigned = redistributeInformativeOverlayStarts(
+      realigned,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
     );
     realigned = enforceOverlayOrchestration(realigned, orchestrationPlanEarly, { starts, durations });
     realigned = stabilizeOverlayTimings(realigned, {
@@ -11786,6 +11814,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
 
       parsedOverlays = filterNarrationEchoOverlays(parsedOverlays, blockPhrases);
+      parsedOverlays = redistributeInformativeOverlayStarts(parsedOverlays, orchestrationPlan, totalDuration);
       parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan, { starts, durations });
       parsedOverlays = stabilizeOverlayTimings(parsedOverlays, {
         starts,

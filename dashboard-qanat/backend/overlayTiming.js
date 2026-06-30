@@ -124,3 +124,58 @@ export function stabilizeOverlayTimings(overlays = [], {
 
   return overlays;
 }
+
+const SYSTEM_OVERLAY_IDS = new Set(["retention-hook", "mid-video-cta"]);
+
+export function isInformativeOverlay(overlay = {}) {
+  if (!overlay) return false;
+  if (isHudOverlay(overlay)) return false;
+  if (SYSTEM_OVERLAY_IDS.has(String(overlay.id || ""))) return false;
+  return true;
+}
+
+/** Espalha overlays informativos no vídeo — evita colisão de 2.5s que o enforcement de 5s elimina. */
+export function redistributeInformativeOverlayStarts(overlays = [], plan = {}, totalDuration = 0) {
+  if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
+
+  const duration = Math.max(Number(totalDuration) || 0, 20);
+  const minGap = Number(plan?.limits?.minGapSeconds) || 5;
+  const hookEnd = Number(plan?.rhythm?.hookCleanSeconds) || 1.5;
+  const outroPad = Number(plan?.rhythm?.outroCleanSeconds) || 2;
+  const outroStart = Math.max(hookEnd + minGap, duration - outroPad);
+
+  const informative = overlays.filter(isInformativeOverlay);
+  if (informative.length <= 1) return overlays;
+
+  const rhythm = plan?.rhythm || {};
+  const defaultPercents = [0.12, 0.35, 0.58, 0.75, 0.88];
+  const rhythmPercents = [
+    rhythm.firstOverlayPercent,
+    rhythm.secondOverlayPercent,
+    rhythm.thirdOverlayPercent,
+    rhythm.fourthOverlayPercent,
+  ].filter((p) => Number.isFinite(Number(p)) && Number(p) > 0);
+
+  const sorted = [...informative].sort((a, b) => {
+    const blockA = extractBlockIndex(a, a.scene_ref);
+    const blockB = extractBlockIndex(b, b.scene_ref);
+    if (blockA !== blockB) return blockA - blockB;
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
+
+  let lastStart = hookEnd;
+  for (let i = 0; i < sorted.length; i++) {
+    const overlay = sorted[i];
+    const percent = rhythmPercents[i] ?? defaultPercents[i] ?? (0.12 + i * 0.18);
+    let target = duration * Math.min(0.92, Math.max(hookEnd / duration + 0.02, percent));
+    target = Math.max(target, lastStart + minGap);
+    target = Math.min(target, outroStart - (Number(overlay.duration) || 3));
+    overlay.start = Math.max(hookEnd + 0.35, target);
+    lastStart = overlay.start;
+  }
+
+  console.log(
+    `[Overlays] ${sorted.length} overlays informativos redistribuídos (gap mín. ${minGap}s, ${duration.toFixed(1)}s total).`,
+  );
+  return overlays;
+}
