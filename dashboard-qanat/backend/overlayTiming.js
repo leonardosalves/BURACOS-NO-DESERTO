@@ -427,6 +427,7 @@ export function verifyAndRepairAiOverlayTiming(overlays = [], {
     warnCount,
     errCount,
     entries,
+    source: informative.length > 0 ? "verified" : "empty",
     verifiedAt: new Date().toISOString(),
   };
 
@@ -437,6 +438,69 @@ export function verifyAndRepairAiOverlayTiming(overlays = [], {
   }
 
   return { overlays, report };
+}
+
+/** Converte scene_id (ex. "2.1") em segundos usando block_timings. */
+export function assignPlannedOverlayNumericStarts(overlays = [], starts = [], durations = [], storyboard = {}) {
+  const cloned = (overlays || []).map((raw, index) => {
+    const overlay = { ...raw, props: { ...(raw?.props || {}) } };
+    if (!overlay.id) overlay.id = `planned-overlay-${index + 1}`;
+    return overlay;
+  });
+
+  for (let i = 0; i < cloned.length; i++) {
+    const overlay = cloned[i];
+    const rawStart = String(overlay.start ?? overlay.scene ?? "").trim();
+
+    if (Number.isFinite(Number(overlay.start)) && !isLikelySceneId(rawStart)) {
+      if (!overlay.scene_ref && isLikelySceneId(rawStart)) overlay.scene_ref = rawStart;
+      continue;
+    }
+
+    const sceneRef = isLikelySceneId(rawStart)
+      ? rawStart
+      : isLikelySceneId(overlay.scene_ref)
+        ? String(overlay.scene_ref).trim()
+        : isLikelySceneId(overlay.scene)
+          ? String(overlay.scene).trim()
+          : null;
+
+    if (sceneRef) overlay.scene_ref = sceneRef;
+
+    const blockIdx = extractBlockIndex(overlay, sceneRef);
+    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+
+    if (blockEnd > blockStart) {
+      overlay.start = blockStart + 0.5 + (i * 0.02);
+    } else if (Number.isFinite(blockStart)) {
+      overlay.start = blockStart + 0.5;
+    } else {
+      const total = durations.reduce((a, b) => a + (Number(b) || 0), 0) || 48;
+      overlay.start = Math.min(total * (0.12 + i * 0.18), total - 4);
+    }
+
+    if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+      overlay.duration = 4;
+    }
+  }
+
+  return cloned;
+}
+
+/** Usa overlays renderizados ou overlays_ai planejados (pré-render). */
+export function resolveOverlaysForTimingCheck(storyboard = {}, timings = {}) {
+  const starts = timings.starts || [];
+  const durations = timings.durations || [];
+
+  if (Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0) {
+    return JSON.parse(JSON.stringify(storyboard.overlays));
+  }
+
+  if (Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0) {
+    return assignPlannedOverlayNumericStarts(storyboard.overlays_ai, starts, durations, storyboard);
+  }
+
+  return [];
 }
 
 /** Converte relatório de timing em issues para quality_report. */
