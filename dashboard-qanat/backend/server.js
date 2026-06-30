@@ -146,6 +146,8 @@ import {
   getBlockTiming,
   isInformativeOverlay,
   redistributeInformativeOverlayStarts,
+  verifyAndRepairAiOverlayTiming,
+  overlayTimingIssuesFromReport,
 } from "./overlayTiming.js";
 import {
   flattenWordTranscripts,
@@ -1443,6 +1445,61 @@ app.get("/api/projects/storyboard", (req, res) => {
 
   }
 
+});
+
+// API: Verificar timing dos overlays da IA (cena, bloco, palavra-chave na narração)
+app.get("/api/projects/overlay-timing-verify", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+
+    const totalDuration = Number(timings.total_duration)
+      || (timings.starts?.length && timings.durations?.length
+        ? Number(timings.starts[timings.starts.length - 1]) + Number(timings.durations[timings.durations.length - 1])
+        : 60);
+
+    const orchestrationPlan = buildOverlayOrchestrationPlan({
+      config,
+      niche: config.niche || "Geral",
+      totalDuration,
+      projectName: path.basename(projDir),
+      blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
+    });
+
+    let overlays = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length
+      ? storyboard.overlays_ai
+      : (storyboard.overlays || []);
+
+    const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
+    const { overlays: checked, report } = verifyAndRepairAiOverlayTiming(overlays, {
+      starts: timings.starts || [],
+      durations: timings.durations || [],
+      sceneStarts: sceneMaps.sceneStarts,
+      sceneDurations: sceneMaps.sceneDurations,
+      wordTranscripts,
+      totalDuration,
+      plan: orchestrationPlan,
+      repair: req.query.repair === "1",
+    });
+
+    if (req.query.repair === "1") {
+      storyboard.overlays = checked;
+      storyboard.overlay_timing_report = report;
+      fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    }
+
+    res.json({
+      ok: report.ok,
+      repairApplied: req.query.repair === "1",
+      report,
+      issues: overlayTimingIssuesFromReport(report),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao verificar timing dos overlays", details: err.message });
+  }
 });
 
 // API: Pre-render video quality check (overlays, listicle ranks, hook pollution)
@@ -3455,6 +3512,17 @@ app.get("/api/render/:mode", async (req, res) => {
       const infoCount = renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
       const totalOv = renderPlan.overlayCount ?? 0;
       sendLog(`[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`);
+      const timingReport = renderPlan.overlayTimingReport;
+      if (timingReport?.entries?.length) {
+        for (const entry of timingReport.entries) {
+          const icon = entry.status === "ok" ? "✓" : entry.status === "repaired" ? "↻" : "!";
+          sendLog(
+            `[Overlays Timing] ${icon} ${entry.id} @ ${entry.startSec?.toFixed(1)}s`
+            + `${entry.plannedScene ? ` (cena ${entry.plannedScene})` : ""}`
+            + ` — ${entry.message || entry.status}`,
+          );
+        }
+      }
 
       sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
 
@@ -4848,6 +4916,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     informativeOverlayCount: Array.isArray(overlays)
       ? overlays.filter(isInformativeOverlay).length
       : 0,
+    overlayTimingReport: freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
   };
 
 }
@@ -10942,7 +11011,29 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
   }
 
   ensureNumericOverlayStarts(parsedOverlays, sceneStarts, starts, durations, config, storyboard);
-  return parsedOverlays;
+
+  const totalDur = durations.reduce((a, b) => a + (Number(b) || 0), 0)
+    || (starts.length && durations.length
+      ? Number(starts[starts.length - 1]) + Number(durations[durations.length - 1])
+      : 0);
+  const plan = buildOverlayOrchestrationPlan({
+    config,
+    niche: config?.niche || "Geral",
+    totalDuration: totalDur,
+    projectName: "align",
+    blockCount: starts.length,
+  });
+  const verified = verifyAndRepairAiOverlayTiming(parsedOverlays, {
+    starts,
+    durations,
+    sceneStarts,
+    sceneDurations,
+    wordTranscripts,
+    totalDuration: totalDur,
+    plan,
+    repair: true,
+  });
+  return verified.overlays;
 }
 
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
@@ -10975,6 +11066,21 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     storyboard,
   });
 
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const sceneMaps = buildSceneTimingMaps(null, storyboard, starts, durations);
+  const timingVerified = verifyAndRepairAiOverlayTiming(result, {
+    starts,
+    durations,
+    sceneStarts: sceneMaps.sceneStarts,
+    sceneDurations: sceneMaps.sceneDurations,
+    wordTranscripts,
+    totalDuration,
+    plan: orchestrationPlan,
+    repair: true,
+  });
+  result = timingVerified.overlays;
+  storyboard.overlay_timing_report = timingVerified.report;
+
   const quality = validateVideoQuality({
     overlays: result,
     config,
@@ -10985,7 +11091,12 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     orchestrationPlan,
   });
 
-  storyboard.quality_report = quality;
+  const timingIssues = overlayTimingIssuesFromReport(timingVerified.report);
+  storyboard.quality_report = {
+    ...quality,
+    issues: [...(quality.issues || []), ...timingIssues],
+    overlay_timing: timingVerified.report,
+  };
   try {
     fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
   } catch (e) {
