@@ -263,13 +263,13 @@ function buildObsidianUris(filePath, vault, safeRel) {
 }
 
 /** Dispara processo GUI sem esperar encerramento (evita timeout da API). */
-function spawnDetached(command, args) {
+function spawnGuiDetached(command, args, { windowsHide = false } = {}) {
   return new Promise((resolve, reject) => {
     try {
       const child = spawn(command, args, {
         detached: true,
         stdio: "ignore",
-        windowsHide: true,
+        windowsHide,
       });
       child.unref();
       child.on("error", reject);
@@ -283,36 +283,47 @@ function spawnDetached(command, args) {
 async function launchObsidianOnWindows(exe, vaultDir, uris) {
   const errors = [];
 
-  // 1) Abrir pasta do vault no exe — mais confiável que cmd start + URI
+  // windowsHide:true esconde a janela do Obsidian no Windows (processo sem MainWindowHandle).
+  // Preferir `cmd start` com windowsHide:false para abrir a UI visível.
+
+  // 1) start + exe + pasta do vault
   try {
-    await spawnDetached(exe, [vaultDir]);
+    await spawnGuiDetached("cmd.exe", ["/c", "start", "", exe, vaultDir]);
+    return "windows-start-exe-vault";
+  } catch (err) {
+    errors.push(`start exe vault: ${err.message}`);
+  }
+
+  // 2) URI absoluto (path) via protocol handler
+  try {
+    await spawnGuiDetached("cmd.exe", ["/c", "start", "", uris.pathUri]);
+    return "windows-start-path-uri";
+  } catch (err) {
+    errors.push(`start path uri: ${err.message}`);
+  }
+
+  // 3) URI por pasta do vault (.agents)
+  try {
+    await spawnGuiDetached("cmd.exe", ["/c", "start", "", uris.vaultUri]);
+    return "windows-start-vault-uri";
+  } catch (err) {
+    errors.push(`start vault uri: ${err.message}`);
+  }
+
+  // 4) URI pelo nome exibido do vault
+  try {
+    await spawnGuiDetached("cmd.exe", ["/c", "start", "", uris.namedVaultUri]);
+    return "windows-start-named-vault-uri";
+  } catch (err) {
+    errors.push(`start named vault: ${err.message}`);
+  }
+
+  // 5) Fallback direto no exe (sem esconder janela)
+  try {
+    await spawnGuiDetached(exe, [vaultDir]);
     return "obsidian-exe-vault-dir";
   } catch (err) {
     errors.push(`exe vault: ${err.message}`);
-  }
-
-  // 2) URI direto no exe (mesmo handler do registro obsidian://)
-  try {
-    await spawnDetached(exe, [uris.pathUri]);
-    return "obsidian-exe-path-uri";
-  } catch (err) {
-    errors.push(`exe uri: ${err.message}`);
-  }
-
-  // 3) Protocol handler via start
-  try {
-    await spawnDetached("cmd.exe", ["/c", "start", "", uris.pathUri]);
-    return "windows-start-path-uri";
-  } catch (err) {
-    errors.push(`start path: ${err.message}`);
-  }
-
-  // 4) URI por nome da pasta do vault
-  try {
-    await spawnDetached("cmd.exe", ["/c", "start", "", uris.vaultUri]);
-    return "windows-start-vault-uri";
-  } catch (err) {
-    errors.push(`start vault: ${err.message}`);
   }
 
   throw new Error(errors.join("; ") || "Falha ao iniciar Obsidian no Windows");
@@ -320,10 +331,10 @@ async function launchObsidianOnWindows(exe, vaultDir, uris) {
 
 async function launchObsidianUnix(uri, vaultDir) {
   if (process.platform === "darwin") {
-    await spawnDetached("open", [uri]);
+    await spawnGuiDetached("open", [uri]);
     return "mac-open-uri";
   }
-  await spawnDetached("xdg-open", [uri]);
+  await spawnGuiDetached("xdg-open", [uri]);
   return "linux-xdg-open";
 }
 

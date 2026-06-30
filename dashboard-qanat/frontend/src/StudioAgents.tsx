@@ -220,7 +220,7 @@ export function StudioAgents({
       }
 
       toast.success(
-        data.method === 'obsidian-exe-vault-dir' || data.method === 'obsidian-exe-path-uri'
+        data.method?.startsWith('windows-start') || data.method === 'obsidian-exe-vault-dir'
           ? 'Obsidian aberto na pasta .agents/'
           : 'Obsidian aberto com a memória do Lumiera',
       );
