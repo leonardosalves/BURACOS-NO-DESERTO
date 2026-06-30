@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.3.6";
+  const VERSION = "1.4.0";
 
   function announceReady() {
     try {
@@ -56,12 +56,16 @@
     }
   }
 
+  function normalizeProvider(value) {
+    return value === "grok" ? "grok" : "gemini";
+  }
+
   function handleAppMessage(event) {
     if (event.source !== window) return;
     const data = event.data;
     if (!data || data.source !== "lumiera-app") return;
 
-    if (data.type === "LUMIERA_GEMINI_PING") {
+    if (data.type === "LUMIERA_GEMINI_PING" || data.type === "LUMIERA_BROWSER_PING") {
       postBridgeMessage({
         type: "LUMIERA_GEMINI_PONG",
         requestId: data.requestId,
@@ -71,9 +75,15 @@
       return;
     }
 
-    if (data.type === "LUMIERA_GEMINI_QUERY") {
+    if (data.type === "LUMIERA_GEMINI_QUERY" || data.type === "LUMIERA_BROWSER_QUERY") {
+      const provider = normalizeProvider(data.provider || data.browser_provider || "gemini");
       safeSendMessage(
-        { type: "LUMIERA_GEMINI_QUERY", prompt: data.prompt },
+        {
+          type: "LUMIERA_BROWSER_QUERY",
+          provider,
+          browser_provider: provider,
+          prompt: data.prompt,
+        },
         (resp, err) => {
           const errMsg = err?.message || resp?.error || "";
           postBridgeMessage({
@@ -81,6 +91,7 @@
             requestId: data.requestId,
             ok: !errMsg && !!resp?.ok,
             text: resp?.text,
+            provider: resp?.provider || provider,
             error: errMsg || undefined,
           });
         },

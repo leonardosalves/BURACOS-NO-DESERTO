@@ -1,8 +1,32 @@
-const GEMINI_MATCH = "https://gemini.google.com/*";
-let cachedGeminiTabId = null;
+const EXT_VERSION = "1.4.0";
+
+const PROVIDERS = {
+  gemini: {
+    match: "https://gemini.google.com/*",
+    url: "https://gemini.google.com/app",
+    script: "content-gemini.js",
+    pingType: "LUMIERA_GEMINI_PING",
+    hostPrefix: "https://gemini.google.com",
+    label: "Gemini",
+  },
+  grok: {
+    match: "https://grok.com/*",
+    url: "https://grok.com",
+    script: "content-grok.js",
+    pingType: "LUMIERA_GROK_PING",
+    hostPrefix: "https://grok.com",
+    label: "Grok",
+  },
+};
+
+const tabCache = { gemini: null, grok: null };
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function normalizeProvider(value) {
+  return value === "grok" ? "grok" : "gemini";
 }
 
 function waitForTabComplete(tabId, timeoutMs = 20000) {
@@ -30,46 +54,51 @@ function waitForTabComplete(tabId, timeoutMs = 20000) {
   });
 }
 
-async function findGeminiTab() {
-  if (cachedGeminiTabId) {
+async function findProviderTab(providerKey) {
+  const provider = PROVIDERS[providerKey];
+  const cachedId = tabCache[providerKey];
+  if (cachedId) {
     try {
-      const tab = await chrome.tabs.get(cachedGeminiTabId);
-      if (tab?.id && tab.url?.startsWith("https://gemini.google.com")) return tab.id;
+      const tab = await chrome.tabs.get(cachedId);
+      if (tab?.id && tab.url?.startsWith(provider.hostPrefix)) return tab.id;
     } catch {
-      cachedGeminiTabId = null;
+      tabCache[providerKey] = null;
     }
   }
-  const tabs = await chrome.tabs.query({ url: [GEMINI_MATCH] });
+  const tabs = await chrome.tabs.query({ url: [provider.match] });
   const found = tabs.find((t) => t.id != null);
-  if (found?.id) cachedGeminiTabId = found.id;
+  if (found?.id) tabCache[providerKey] = found.id;
   return found?.id || null;
 }
 
-async function ensureGeminiTab() {
-  const existing = await findGeminiTab();
+async function ensureProviderTab(providerKey) {
+  const provider = PROVIDERS[providerKey];
+  const existing = await findProviderTab(providerKey);
   if (existing) return existing;
 
-  const created = await chrome.tabs.create({ url: "https://gemini.google.com/app", active: false });
-  cachedGeminiTabId = created.id;
+  const created = await chrome.tabs.create({ url: provider.url, active: false });
+  tabCache[providerKey] = created.id;
   await waitForTabComplete(created.id);
   await sleep(800);
   return created.id;
 }
 
-async function pingGeminiTab(tabId) {
+async function pingProviderTab(providerKey, tabId) {
+  const provider = PROVIDERS[providerKey];
   try {
-    const resp = await chrome.tabs.sendMessage(tabId, { type: "LUMIERA_GEMINI_PING" });
+    const resp = await chrome.tabs.sendMessage(tabId, { type: provider.pingType });
     return !!resp?.ok;
   } catch {
     return false;
   }
 }
 
-async function injectGeminiScript(tabId) {
+async function injectProviderScript(providerKey, tabId) {
+  const provider = PROVIDERS[providerKey];
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["content-gemini.js"],
+      files: [provider.script],
     });
   } catch {
     // manifest pode já ter injetado
@@ -77,27 +106,28 @@ async function injectGeminiScript(tabId) {
   await sleep(400);
 }
 
-async function ensureGeminiContentScript(tabId) {
-  if (await pingGeminiTab(tabId)) return;
+async function ensureProviderContentScript(providerKey, tabId) {
+  const provider = PROVIDERS[providerKey];
+  if (await pingProviderTab(providerKey, tabId)) return;
 
-  await injectGeminiScript(tabId);
-  if (await pingGeminiTab(tabId)) return;
+  await injectProviderScript(providerKey, tabId);
+  if (await pingProviderTab(providerKey, tabId)) return;
 
   await chrome.tabs.reload(tabId);
   await waitForTabComplete(tabId);
   await sleep(600);
-  await injectGeminiScript(tabId);
+  await injectProviderScript(providerKey, tabId);
 
-  if (!(await pingGeminiTab(tabId))) {
+  if (!(await pingProviderTab(providerKey, tabId))) {
     throw new Error(
-      "Gemini não conectou. Abra https://gemini.google.com/app no Chrome, faça login e tente de novo.",
+      `${provider.label} não conectou. Abra ${provider.url} no Chrome, faça login e tente de novo.`,
     );
   }
 }
 
-async function runPromptOnTab(tabId, prompt) {
-  await ensureGeminiContentScript(tabId);
-  await injectGeminiScript(tabId);
+async function runPromptOnTab(providerKey, tabId, prompt) {
+  await ensureProviderContentScript(providerKey, tabId);
+  await injectProviderScript(providerKey, tabId);
 
   let previousTabId = null;
   try {
@@ -112,7 +142,7 @@ async function runPromptOnTab(tabId, prompt) {
   try {
     const resp = await chrome.tabs.sendMessage(tabId, { type: "LUMIERA_RUN_PROMPT", prompt });
     if (resp?.ok) return String(resp.text || "").trim();
-    throw new Error(resp?.error || "Automação Gemini falhou.");
+    throw new Error(resp?.error || `Automação ${PROVIDERS[providerKey].label} falhou.`);
   } finally {
     if (previousTabId) {
       try {
@@ -124,25 +154,38 @@ async function runPromptOnTab(tabId, prompt) {
   }
 }
 
+async function runBrowserQuery(providerKey, prompt) {
+  const key = normalizeProvider(providerKey);
+  try {
+    const tabId = await ensureProviderTab(key);
+    return await runPromptOnTab(key, tabId, prompt);
+  } catch (err) {
+    tabCache[key] = null;
+    throw err;
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.3.6" });
+    sendResponse({ ok: true, version: EXT_VERSION, providers: ["gemini", "grok"] });
     return;
   }
-  if (message?.type !== "LUMIERA_GEMINI_QUERY") return;
+
+  const provider = normalizeProvider(message?.provider || message?.browser_provider || "gemini");
+  const isQuery = message?.type === "LUMIERA_GEMINI_QUERY" || message?.type === "LUMIERA_BROWSER_QUERY";
+
+  if (!isQuery) return;
 
   (async () => {
     try {
-      const tabId = await ensureGeminiTab();
-      const text = await runPromptOnTab(tabId, message.prompt);
-      sendResponse({ ok: true, text });
+      const text = await runBrowserQuery(provider, message.prompt);
+      sendResponse({ ok: true, text, provider });
     } catch (err) {
-      cachedGeminiTabId = null;
       const msg = String(err?.message || err);
       if (/receiving end does not exist|could not establish connection/i.test(msg)) {
         sendResponse({
           ok: false,
-          error: "Aba do Gemini sem conexão. Abra gemini.google.com, faça login e tente de novo.",
+          error: `Aba do ${PROVIDERS[provider].label} sem conexão. Abra o chat no Chrome e tente de novo.`,
         });
         return;
       }

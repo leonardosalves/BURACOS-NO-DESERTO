@@ -1,5 +1,8 @@
+export type BrowserChatProvider = 'gemini' | 'grok';
+
 export type GeminiBrowserRequest = {
   needs_browser?: boolean;
+  browser_provider?: BrowserChatProvider;
   prompt?: string;
   title?: string;
   instructions?: string[];
@@ -15,12 +18,14 @@ export type OpenGeminiBridge = (opts: {
   prompt: string;
   title?: string;
   instructions?: string[];
+  provider?: BrowserChatProvider;
 }) => Promise<string>;
 
 export type GeminiBrowserResolver = (opts: {
   prompt: string;
   title?: string;
   instructions?: string[];
+  provider?: BrowserChatProvider;
 }) => Promise<string>;
 
 function parseRequestBody(init: RequestInit): Record<string, unknown> {
@@ -49,6 +54,7 @@ export async function fetchGeminiAi(
   opts: {
     geminiBrowserMode: boolean;
     aiProvider: string;
+    browserChatProvider?: BrowserChatProvider;
     resolveBrowserResponse: GeminiBrowserResolver;
   },
 ): Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest }> {
@@ -64,11 +70,17 @@ export async function fetchGeminiAi(
     if (!opts.geminiBrowserMode) {
       console.warn('[Lumiera] Gemini pediu modo navegador — aguardando extensão.');
     }
+    const browserProvider: BrowserChatProvider = data.browser_provider === 'grok'
+      ? 'grok'
+      : (opts.browserChatProvider === 'grok' ? 'grok' : 'gemini');
+    const browserSite = browserProvider === 'grok' ? 'grok.com' : 'gemini.google.com';
+
     const browserResponse = String(
       await opts.resolveBrowserResponse({
         prompt: data.prompt,
         title: data.title,
         instructions: data.instructions,
+        provider: browserProvider,
       }) || '',
     ).trim();
 
@@ -77,7 +89,7 @@ export async function fetchGeminiAi(
         ok: false,
         status: 400,
         data: {
-          error: 'A extensão não capturou a resposta do Gemini. Verifique gemini.google.com e tente de novo.',
+          error: `A extensão não capturou a resposta do ${browserProvider === 'grok' ? 'Grok' : 'Gemini'}. Verifique ${browserSite} e tente de novo.`,
         },
       };
     }

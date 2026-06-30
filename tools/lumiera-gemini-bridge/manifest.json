@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Lumiera Gemini Bridge",
-  "version": "1.3.6",
-  "description": "Automatiza o Gemini no Chrome para o dashboard Lumiera — sem copiar/colar.",
+  "name": "Lumiera AI Bridge",
+  "version": "1.4.0",
+  "description": "Automatiza Gemini e Grok no Chrome para o dashboard Lumiera — sem copiar/colar.",
   "permissions": ["tabs", "scripting", "storage"],
   "host_permissions": [
     "https://gemini.google.com/*",
+    "https://grok.com/*",
     "http://127.0.0.1/*",
     "http://localhost/*"
   ],
@@ -26,6 +27,11 @@
     {
       "matches": ["https://gemini.google.com/*"],
       "js": ["content-gemini.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://grok.com/*"],
+      "js": ["content-grok.js"],
       "run_at": "document_idle"
     }
   ],

@@ -69,6 +69,7 @@ import {
   looksLikeOverlayJsonResponse,
   extractOverlayJsonPayload,
   offerGeminiBrowserPayload,
+  getBrowserChatProvider,
   GEMINI_BROWSER_INSTRUCTIONS,
   GEMINI_BROWSER_PENDING,
 } from "./geminiBrowser.js";
@@ -3164,7 +3165,12 @@ app.post("/api/render/plan-overlays", async (req, res) => {
         const title = useHyperframes ? "Planejar overlays HyperFrames AI" : "Planejar overlays do vídeo";
         const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
         console.log(`[Plan Overlays] Aguardando resposta do Gemini no Chrome (sessão ${planSessionId}).`);
-        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+        return res.json(offerGeminiBrowserPayload({
+          title,
+          prompt: promptText,
+          planSessionId,
+          browserProvider: getExternalBrowserChatProvider(projDir),
+        }));
       }
 
       const apiKey = getApiKey(projDir);
@@ -5696,7 +5702,20 @@ function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
 }
 
 function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
-  return getAiProvider(projectDir) === "gemini" && isGeminiBrowserModeEnabled(projectDir);
+  return isGeminiBrowserModeEnabled(projectDir);
+}
+
+function getExternalBrowserChatProvider(projectDir = WORKSPACE_DIR) {
+  const readProvider = (configPath) => {
+    const config = readJsonFile(configPath);
+    return getBrowserChatProvider(config);
+  };
+  const fromProject = readProvider(path.join(projectDir, "config_qanat.json"));
+  if (fromProject) return fromProject;
+  if (projectDir !== WORKSPACE_DIR) {
+    return readProvider(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+  return "gemini";
 }
 
 /**
@@ -5717,7 +5736,11 @@ async function callGeminiLlm(req, res, projDir, {
     const promptText = bodyOverride
       ? buildPromptFromBodyOverride(bodyOverride)
       : buildBrowserTaskPrompt(title, String(prompt ?? ""), "", browserOpts);
-    res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+    res.json(offerGeminiBrowserPayload({
+      title,
+      prompt: promptText,
+      browserProvider: getExternalBrowserChatProvider(projDir),
+    }));
     return null;
   }
 
@@ -5975,6 +5998,8 @@ app.get("/api/ai/settings", (req, res) => {
 
     gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
 
+    browser_chat_provider: getExternalBrowserChatProvider(projDir),
+
   });
 
 });
@@ -5985,7 +6010,17 @@ app.post("/api/ai/settings", (req, res) => {
 
   const configPath = path.join(projDir, "config_qanat.json");
 
-  const { provider, gemini_model, gemini_key, gemini_keys, xai_key, openrouter_key, epidemic_sound_key, gemini_browser_mode } = req.body || {};
+  const {
+    provider,
+    gemini_model,
+    gemini_key,
+    gemini_keys,
+    xai_key,
+    openrouter_key,
+    epidemic_sound_key,
+    gemini_browser_mode,
+    browser_chat_provider,
+  } = req.body || {};
 
   try {
 
@@ -6043,6 +6078,10 @@ app.post("/api/ai/settings", (req, res) => {
       config.gemini_browser_mode = gemini_browser_mode;
     }
 
+    if (browser_chat_provider === "grok" || browser_chat_provider === "gemini") {
+      config.browser_chat_provider = browser_chat_provider;
+    }
+
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
     res.json({
@@ -6064,6 +6103,8 @@ app.post("/api/ai/settings", (req, res) => {
       has_epidemic_key: true,
 
       gemini_browser_mode: getGeminiBrowserMode(config),
+
+      browser_chat_provider: getBrowserChatProvider(config),
 
     });
 
@@ -6888,6 +6929,7 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
         title: "Metadados YouTube",
         prompt: promptText,
         metadataSessionId,
+        browserProvider: getExternalBrowserChatProvider(projDir),
       }));
     }
 
