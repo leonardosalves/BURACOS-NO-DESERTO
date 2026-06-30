@@ -156,15 +156,7 @@ function spawnDetached(command, args) {
 async function launchObsidianOnWindows(exe, vaultDir, uris) {
   const errors = [];
 
-  // 1) Protocol handler via start (não bloqueia)
-  try {
-    await spawnDetached("cmd.exe", ["/c", "start", "", uris.pathUri]);
-    return "windows-start-path-uri";
-  } catch (err) {
-    errors.push(`start path: ${err.message}`);
-  }
-
-  // 2) Abrir pasta do vault diretamente no Obsidian
+  // 1) Abrir pasta do vault no exe — mais confiável que cmd start + URI
   try {
     await spawnDetached(exe, [vaultDir]);
     return "obsidian-exe-vault-dir";
@@ -172,7 +164,23 @@ async function launchObsidianOnWindows(exe, vaultDir, uris) {
     errors.push(`exe vault: ${err.message}`);
   }
 
-  // 3) URI por nome da pasta do vault
+  // 2) URI direto no exe (mesmo handler do registro obsidian://)
+  try {
+    await spawnDetached(exe, [uris.pathUri]);
+    return "obsidian-exe-path-uri";
+  } catch (err) {
+    errors.push(`exe uri: ${err.message}`);
+  }
+
+  // 3) Protocol handler via start
+  try {
+    await spawnDetached("cmd.exe", ["/c", "start", "", uris.pathUri]);
+    return "windows-start-path-uri";
+  } catch (err) {
+    errors.push(`start path: ${err.message}`);
+  }
+
+  // 4) URI por nome da pasta do vault
   try {
     await spawnDetached("cmd.exe", ["/c", "start", "", uris.vaultUri]);
     return "windows-start-vault-uri";
