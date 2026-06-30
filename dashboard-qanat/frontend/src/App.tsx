@@ -792,6 +792,7 @@ export default function App() {
 
   const [preRenderModalOpen, setPreRenderModalOpen] = useState(false);
   const [pendingRender, setPendingRender] = useState<PendingRenderJob | null>(null);
+  const [preRenderFixingId, setPreRenderFixingId] = useState<string | null>(null);
 
   const [chatOpen, setChatOpen] = useState<boolean>(false);
 
@@ -1825,6 +1826,29 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching video quality:', err);
+    }
+  };
+
+  const handlePreRenderAutoFix = async (fixId: string) => {
+    setPreRenderFixingId(fixId);
+    try {
+      const res = await fetch(getProjectUrl('/api/projects/pre-render/auto-fix'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fixId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.preRenderAdvice) {
+        setVideoQuality((prev) => (prev ? { ...prev, ...data, preRenderAdvice: data.preRenderAdvice } : data));
+        toast.success(data.message || 'Correção aplicada.');
+        fetchData();
+      } else {
+        toast.error(data.error || 'Não foi possível corrigir automaticamente.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha na correção automática.');
+    } finally {
+      setPreRenderFixingId(null);
     }
   };
 
@@ -7562,6 +7586,8 @@ export default function App() {
             setPreRenderModalOpen(false);
             setActiveTab(tab);
           }}
+          onAutoFix={handlePreRenderAutoFix}
+          fixingFixId={preRenderFixingId}
         />
       )}
 
@@ -7916,6 +7942,8 @@ export default function App() {
                         compact
                         onRefresh={() => fetchVideoQuality()}
                         onGoToTab={(tab) => setActiveTab(tab)}
+                        onAutoFix={handlePreRenderAutoFix}
+                        fixingFixId={preRenderFixingId}
                       />
                     </div>
                   ) : videoQuality.issues.length > 0 ? (

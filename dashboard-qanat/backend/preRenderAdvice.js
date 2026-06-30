@@ -3,18 +3,22 @@
  * para passos concretos no dashboard Lumiera.
  */
 
+const AUTO_FIX_HOOK = {
+  id: "shift_hook_overlays",
+  label: "Corrigir automaticamente",
+  hint: "O programa move os overlays para depois do gancho (1.5s Short / 5s Long).",
+};
+
 const ISSUE_PLAYBOOKS = {
   hook_polluted: {
     title: "Gancho poluído por overlays",
     summary: "Overlays informativos aparecem antes do fim do gancho — prejudica retenção em Shorts.",
     steps: [
-      "Abra a aba Workflow e confira se os overlays foram planejados (Remotion PRO faz isso no render).",
-      "Se já planejou: vá em Studio Agents → Capturar qualidade → veja quais overlays estão no gancho.",
-      "Use Studio Agents → Planejar overlays (com memória) para regenerar respeitando gancho limpo.",
-      "Ou edite manualmente em Editor / storyboard: mova overlays para depois de 1.5s (Short) ou 5s (Long).",
-      "Clique Atualizar em Qualidade Pré-Render e confirme score ≥ 80 antes de renderizar.",
+      "Clique em Corrigir automaticamente — o Lumiera afasta os overlays do gancho.",
+      "Depois clique Atualizar análise para confirmar que o aviso sumiu.",
     ],
-    tab: "agents",
+    autoFix: AUTO_FIX_HOOK,
+    tab: "status",
     priority: "error",
   },
   gap_short: {
@@ -57,13 +61,12 @@ const ISSUE_PLAYBOOKS = {
     title: "Gancho visual fraco",
     summary: "Primeira cena parece logo ou placeholder — hook não prende.",
     steps: [
-      "Abra Workflow → Buscar B-roll e troque o asset da cena 1.",
-      "Use o visual mais forte do projeto (rosto, ação, dado chocante).",
-      "Confira o prompt visual da cena 1 em Roteiro e Tags.",
-      "Renderize Preview 30s (PRO) para validar antes do vídeo completo.",
+      "Workflow → Buscar B-roll e troque a imagem da cena 1.",
+      "Use o visual mais forte (rosto, ação, dado chocante).",
     ],
     tab: "workflow",
     priority: "warning",
+    manualOnly: true,
   },
   text_too_long: {
     title: "Texto de overlay muito longo",
@@ -102,12 +105,12 @@ const ISSUE_PLAYBOOKS = {
     title: "Listicle sem itens no storyboard",
     summary: "list_items vazio — ranking fica genérico.",
     steps: [
-      "Abra Creator ou Roteiro e Tags e preencha os itens do ranking.",
-      "Execute o passo de listicle no Creator (Top 3/5 em Shorts).",
-      "Replaneje overlays após salvar list_items.",
+      "Creator ou Roteiro e Tags → preencha os itens do ranking.",
+      "Depois replaneje overlays.",
     ],
     tab: "timeline",
     priority: "warning",
+    manualOnly: true,
   },
   no_bgm: {
     title: "Sem trilha BGM",
@@ -244,9 +247,10 @@ function timingOverlaySuggestions(entries = [], format = "SHORT") {
       id: "timing_hook",
       priority: "error",
       title: `${inHook.length} overlay(s) no gancho`,
-      summary: `Overlays em ${inHook.map((e) => `${e.id}@${e.startSec?.toFixed?.(1)}s`).join(", ")} — mover após ${hookEnd}s.`,
+      summary: `${inHook.map((e) => e.id).join(", ")} aparecem antes de ${hookEnd}s — o gancho deve ficar limpo.`,
       steps: ISSUE_PLAYBOOKS.hook_polluted.steps,
-      tab: "agents",
+      autoFix: AUTO_FIX_HOOK,
+      tab: "status",
     });
   }
   if (offScene.length) {
@@ -254,14 +258,13 @@ function timingOverlaySuggestions(entries = [], format = "SHORT") {
       id: "timing_scene",
       priority: "warning",
       title: `${offScene.length} overlay(s) fora da cena narrativa`,
-      summary: "Start do overlay não coincide com a cena ativa da narração.",
+      summary: "Overlays desalinhados com a cena da narração.",
       steps: [
-        "Replaneje overlays — a IA deve usar scene_ref do storyboard.",
-        "Studio Agents → Planejar overlays (com memória) injeta regra de ancoragem.",
-        "Ou ajuste start manualmente alinhando ao bloco/cena em block_timings.",
-        "Atualize Qualidade Pré-Render.",
+        "Clique em Corrigir automaticamente — o programa reancora aos blocos/cenas.",
+        "Se persistir: Studio Agents → Planejar overlays (com memória).",
       ],
-      tab: "agents",
+      autoFix: { id: "repair_overlay_timing", label: "Corrigir automaticamente", hint: "Reancora overlays às cenas e ao gancho." },
+      tab: "status",
     });
   }
   const other = bad.filter((e) => !inHook.includes(e) && !offScene.includes(e));
@@ -272,11 +275,11 @@ function timingOverlaySuggestions(entries = [], format = "SHORT") {
       title: `${other.length} problema(s) de timing de overlay`,
       summary: other.map((e) => `${e.id}: ${e.message || e.status}`).slice(0, 3).join(" · "),
       steps: [
-        "Veja a lista completa em Timing overlays IA (aba Render).",
-        "Replaneje overlays ou use repair automático no fluxo PRO.",
-        "Capturar qualidade em Studio Agents registra padrão para o próximo planejamento.",
+        "Clique em Corrigir automaticamente para ajustar posição e duração.",
+        "Veja detalhes em Timing overlays IA (aba Render).",
       ],
-      tab: "workflow",
+      autoFix: { id: "repair_overlay_timing", label: "Corrigir automaticamente", hint: "Ajusta timing dos overlays planejados." },
+      tab: "status",
     });
   }
   return items;
@@ -309,6 +312,8 @@ export function buildPreRenderAdvice(qualityReport = {}, workflow = {}) {
         steps: book.steps,
         tab: book.tab,
         code: issue.code,
+        autoFix: book.autoFix,
+        manualOnly: book.manualOnly,
       });
     } else {
       suggestions.push({

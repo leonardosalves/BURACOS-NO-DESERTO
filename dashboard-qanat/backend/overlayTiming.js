@@ -615,6 +615,56 @@ export function resolveOverlaysForTimingCheck(storyboard = {}, timings = {}) {
   return [];
 }
 
+/**
+ * Aplica reparos automáticos de timing (gancho, cena, bloco) e persiste no storyboard.
+ * Retorna overlays reparados e relatório.
+ */
+export function applyOverlayTimingRepair({
+  storyboard = {},
+  timings = {},
+  wordTranscripts = [],
+  plan = null,
+  sceneStarts = {},
+  sceneDurations = {},
+} = {}) {
+  const starts = timings.starts || [];
+  const durations = timings.durations || [];
+  const totalDuration = Number(timings.total_duration)
+    || (starts.length && durations.length
+      ? Number(starts[starts.length - 1]) + Number(durations[durations.length - 1])
+      : 60);
+
+  const overlays = resolveOverlaysForTimingCheck(storyboard, timings);
+  const usePlanned = !(Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0)
+    && Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0;
+
+  const { overlays: repaired, report } = verifyAndRepairAiOverlayTiming(overlays, {
+    starts,
+    durations,
+    sceneStarts,
+    sceneDurations,
+    wordTranscripts,
+    totalDuration,
+    plan,
+    repair: true,
+  });
+
+  const nextStoryboard = { ...storyboard };
+  if (usePlanned) {
+    nextStoryboard.overlays_ai = repaired;
+  } else {
+    nextStoryboard.overlays = repaired;
+  }
+  nextStoryboard.overlay_timing_report = { ...report, source: usePlanned ? "planned" : "rendered" };
+
+  return {
+    storyboard: nextStoryboard,
+    report,
+    repairedCount: report.repaired || 0,
+    usePlanned,
+  };
+}
+
 /** Converte relatório de timing em issues para quality_report. */
 export function overlayTimingIssuesFromReport(report = {}) {
   const issues = [];

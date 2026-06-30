@@ -152,6 +152,7 @@ import {
   verifyAndRepairAiOverlayTiming,
   overlayTimingIssuesFromReport,
   resolveOverlaysForTimingCheck,
+  applyOverlayTimingRepair,
 } from "./overlayTiming.js";
 import {
   buildLearningsPromptAddendum,
@@ -1469,56 +1470,105 @@ app.get("/api/projects/storyboard", (req, res) => {
 
 });
 
+function repairProjectOverlayTiming(projDir, { persist = true } = {}) {
+  const config = readProjectJson(projDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+  const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+
+  const totalDuration = Number(timings.total_duration)
+    || (timings.starts?.length && timings.durations?.length
+      ? Number(timings.starts[timings.starts.length - 1]) + Number(timings.durations[timings.durations.length - 1])
+      : 60);
+
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche: config.niche || "Geral",
+    totalDuration,
+    projectName: path.basename(projDir),
+    blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
+  });
+
+  const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
+  const { storyboard: nextStoryboard, report, repairedCount } = applyOverlayTimingRepair({
+    storyboard,
+    timings,
+    wordTranscripts,
+    plan: orchestrationPlan,
+    sceneStarts: sceneMaps.sceneStarts,
+    sceneDurations: sceneMaps.sceneDurations,
+  });
+
+  if (persist) {
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(nextStoryboard, null, 2), "utf8");
+  }
+
+  return { storyboard: nextStoryboard, report, repairedCount };
+}
+
 // API: Verificar timing dos overlays da IA (cena, bloco, palavra-chave na narração)
 app.get("/api/projects/overlay-timing-verify", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
-    const config = readProjectJson(projDir, "config_qanat.json", {});
-    const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
-    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
-
-    const totalDuration = Number(timings.total_duration)
-      || (timings.starts?.length && timings.durations?.length
-        ? Number(timings.starts[timings.starts.length - 1]) + Number(timings.durations[timings.durations.length - 1])
-        : 60);
-
-    const orchestrationPlan = buildOverlayOrchestrationPlan({
-      config,
-      niche: config.niche || "Geral",
-      totalDuration,
-      projectName: path.basename(projDir),
-      blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
-    });
-
-    let overlays = resolveOverlaysForTimingCheck(storyboard, timings);
-
-    const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
-    const { overlays: checked, report } = verifyAndRepairAiOverlayTiming(overlays, {
-      starts: timings.starts || [],
-      durations: timings.durations || [],
-      sceneStarts: sceneMaps.sceneStarts,
-      sceneDurations: sceneMaps.sceneDurations,
-      wordTranscripts,
-      totalDuration,
-      plan: orchestrationPlan,
-      repair: req.query.repair === "1",
-    });
-
-    if (req.query.repair === "1") {
-      storyboard.overlays = checked;
-      storyboard.overlay_timing_report = report;
-      fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
-    }
+    const repair = req.query.repair === "1";
+    const { report, repairedCount } = repairProjectOverlayTiming(projDir, { persist: repair });
 
     res.json({
       ok: report.ok,
-      repairApplied: req.query.repair === "1",
+      repairApplied: repair,
+      repairedCount,
       report,
       issues: overlayTimingIssuesFromReport(report),
     });
   } catch (err) {
     res.status(500).json({ error: "Erro ao verificar timing dos overlays", details: err.message });
+  }
+});
+
+// API: Correção automática de problemas pré-render (gancho, timing de overlays)
+app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const fixId = String(req.body?.fixId || "repair_overlay_timing").trim();
+    const autoFixIds = new Set(["shift_hook_overlays", "repair_overlay_timing"]);
+
+    if (!autoFixIds.has(fixId)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Esta correção precisa ser feita manualmente.",
+        fixId,
+        manualOnly: true,
+      });
+    }
+
+    const { repairedCount, report } = repairProjectOverlayTiming(projDir, { persist: true });
+
+    await ensureListItemsInProject(projDir, {
+      getApiKey,
+      callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+      parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projDir), label),
+      readProjectJson,
+    });
+    const qualityReport = runVideoQualityCheck(projDir, readProjectJson);
+    const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+    const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+    const workflow = analyzeSceneGaps(projDir, { config, storyboard });
+    const preRenderAdvice = buildPreRenderAdvice(qualityReport, workflow);
+
+    res.json({
+      ok: true,
+      fixId,
+      repairedCount,
+      timingReport: report,
+      ...qualityReport,
+      workflow,
+      preRenderAdvice,
+      message: repairedCount > 0
+        ? `${repairedCount} overlay(s) ajustado(s) automaticamente.`
+        : "Nenhum overlay precisou ser movido — atualize a análise.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro na correção automática", details: err.message });
   }
 });
 
