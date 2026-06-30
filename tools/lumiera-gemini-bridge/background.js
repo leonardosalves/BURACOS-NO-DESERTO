@@ -1,4 +1,4 @@
-const EXT_VERSION = "1.4.0";
+const EXT_VERSION = "1.4.1";
 
 const PROVIDERS = {
   gemini: {
@@ -134,7 +134,7 @@ async function runPromptOnTab(providerKey, tabId, prompt) {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     previousTabId = activeTab?.id && activeTab.id !== tabId ? activeTab.id : null;
     await chrome.tabs.update(tabId, { active: true });
-    await sleep(300);
+    await sleep(600);
   } catch {
     // segue mesmo se não conseguir focar a aba
   }
