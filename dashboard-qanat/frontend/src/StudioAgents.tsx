@@ -10,6 +10,9 @@ import {
   BookOpen,
   Zap,
   ExternalLink,
+  X,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 
@@ -44,6 +47,47 @@ type ObsidianStatus = {
   vaultUri?: string;
 };
 
+type QualityIssue = {
+  code?: string;
+  message: string;
+  severity?: string;
+};
+
+type CapturedPattern = {
+  category: string;
+  description: string;
+  increment?: number;
+};
+
+type CapturePreview = {
+  action: 'capture' | 'reflect';
+  score: number | null;
+  niche: string;
+  issues: QualityIssue[];
+  patterns: CapturedPattern[];
+  at: string;
+};
+
+type ConsolidatePromoteItem = {
+  category: string;
+  description: string;
+  count: number;
+};
+
+type ConsolidateNichePreview = {
+  niche: string;
+  slug: string;
+  toPromote: ConsolidatePromoteItem[];
+  remainingCount: number;
+  alreadyPromoted: number;
+};
+
+type ConsolidatePreview = {
+  threshold: number;
+  totalToPromote: number;
+  niches: ConsolidateNichePreview[];
+};
+
 type StudioAgentsProps = {
   activeProject: string;
   projectNiche?: string;
@@ -63,6 +107,9 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
   const [learnings, setLearnings] = useState<LearningItem[]>([]);
   const [recentLogs, setRecentLogs] = useState<{ date: string; content: string }[]>([]);
   const [obsidian, setObsidian] = useState<ObsidianStatus>({ installed: false });
+  const [capturePreview, setCapturePreview] = useState<CapturePreview | null>(null);
+  const [showConsolidateModal, setShowConsolidateModal] = useState(false);
+  const [consolidatePreview, setConsolidatePreview] = useState<ConsolidatePreview | null>(null);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -134,10 +181,14 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
     }
   };
 
+  const buildVaultFileUri = (file: string) =>
+    `obsidian://open?vault=.agents&file=${encodeURIComponent(file.replace(/\\/g, '/'))}`;
+
   const openObsidian = async (file = 'MEMORIA-LUMIERA.md') => {
     setBusy('obsidian');
+    const fileUri = file === 'MEMORIA-LUMIERA.md' ? obsidian.uri : buildVaultFileUri(file);
     // Dispara URI no mesmo gesto do clique (antes do await) — senão o navegador bloqueia o protocolo
-    const browserTriggered = triggerObsidianUri(obsidian.uri || obsidian.vaultUri);
+    const browserTriggered = triggerObsidianUri(fileUri || obsidian.vaultUri);
     try {
       const res = await fetch('/api/studio-agents/obsidian/open', {
         method: 'POST',
@@ -168,32 +219,104 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
     }
   };
 
-  const runAction = async (
-    action: 'capture' | 'reflect' | 'consolidate' | 'plan-overlays',
-    label: string,
-  ) => {
+  const runCaptureOrReflect = async (action: 'capture' | 'reflect') => {
+    const label = action === 'capture' ? 'Captura' : 'Reflexão';
     setBusy(action);
     try {
-      const url =
-        action === 'consolidate'
-          ? '/api/studio-agents/consolidate'
-          : getProjectUrl(`/api/studio-agents/${action}`);
-      const res = await fetch(url, {
+      const res = await fetch(getProjectUrl(`/api/studio-agents/${action}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: action === 'plan-overlays' ? JSON.stringify({ hyperframes: true }) : '{}',
+        body: '{}',
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Falha em ${label}`);
+      if (!res.ok) throw new Error(data.error || data.details || `Falha em ${label}`);
+
+      setCapturePreview({
+        action,
+        score: data.report?.score ?? data.run?.score ?? null,
+        niche: data.run?.niche || projectNiche,
+        issues: (data.report?.issues || []).slice(0, 15),
+        patterns: data.patterns || [],
+        at: data.run?.at || new Date().toISOString(),
+      });
+
       toast.success(
-        action === 'plan-overlays'
-          ? `${data.overlayCount ?? 0} overlays planejados com memória do estúdio`
-          : `${label} concluído`,
+        `${label} concluído — ${data.patterns?.length ?? 0} padrão(ões) registrado(s)`,
       );
       await fetchStatus();
       await fetchLearnings();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : `Erro: ${label}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const openConsolidateModal = async () => {
+    setBusy('consolidate-preview');
+    try {
+      const res = await fetch('/api/studio-agents/consolidate/preview');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Falha ao carregar prévia');
+      setConsolidatePreview(data);
+      setShowConsolidateModal(true);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao pré-visualizar consolidação');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const confirmConsolidate = async () => {
+    setBusy('consolidate');
+    try {
+      const res = await fetch('/api/studio-agents/consolidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Falha na consolidação');
+
+      const promoted = (data.results || []).reduce(
+        (sum: number, r: { newlyPromoted?: number }) => sum + (r.newlyPromoted || 0),
+        0,
+      );
+      toast.success(
+        promoted > 0
+          ? `Consolidação concluída — ${promoted} padrão(ões) promovido(s)`
+          : 'Consolidação concluída — nenhuma promoção nova',
+      );
+      setShowConsolidateModal(false);
+      setConsolidatePreview(null);
+      await fetchStatus();
+      await fetchLearnings();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro na consolidação');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runPlanOverlays = async () => {
+    setBusy('plan-overlays');
+    try {
+      const res = await fetch(getProjectUrl('/api/studio-agents/plan-overlays'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hyperframes: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.details || 'Falha no planejamento');
+      toast.success(
+        `${data.overlayCount ?? 0} overlays planejados${
+          data.learningsApplied ? ' com memória do estúdio' : ''
+        }`,
+      );
+      await fetchStatus();
+      await fetchLearnings();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro no planejamento');
     } finally {
       setBusy(null);
     }
@@ -294,7 +417,7 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
           <button
             type="button"
             disabled={!!busy}
-            onClick={() => runAction('capture', 'Captura')}
+            onClick={() => runCaptureOrReflect('capture')}
             className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 hover:border-gold-500/40 hover:text-gold-400 transition disabled:opacity-50"
           >
             {busy === 'capture' ? 'Capturando…' : 'Capturar qualidade'}
@@ -302,7 +425,7 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
           <button
             type="button"
             disabled={!!busy}
-            onClick={() => runAction('reflect', 'Reflexão')}
+            onClick={() => runCaptureOrReflect('reflect')}
             className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 hover:border-gold-500/40 hover:text-gold-400 transition disabled:opacity-50"
           >
             {busy === 'reflect' ? 'Refletindo…' : 'Refletir e aprender'}
@@ -310,15 +433,15 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
           <button
             type="button"
             disabled={!!busy}
-            onClick={() => runAction('consolidate', 'Consolidação')}
+            onClick={openConsolidateModal}
             className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-bold text-zinc-200 hover:border-emerald-500/40 hover:text-emerald-400 transition disabled:opacity-50"
           >
-            {busy === 'consolidate' ? 'Consolidando…' : 'Consolidar memória'}
+            {busy === 'consolidate-preview' ? 'Carregando…' : 'Consolidar memória'}
           </button>
           <button
             type="button"
             disabled={!!busy}
-            onClick={() => runAction('plan-overlays', 'Planejamento')}
+            onClick={runPlanOverlays}
             className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-500/20 to-amber-500/10 border border-gold-500/40 text-xs font-bold text-gold-400 hover:from-gold-500/30 transition disabled:opacity-50 flex items-center gap-2"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -330,6 +453,105 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
           normal, mas injeta aprendizados do estúdio. O render padrão continua igual se você não usar esta aba.
         </p>
       </div>
+
+      {capturePreview && (
+        <div className="glass-panel p-6 rounded-2xl space-y-4 border border-gold-500/20">
+          <div className="flex items-start justify-between gap-3">
+            <SectionHeader
+              title={
+                capturePreview.action === 'capture'
+                  ? 'Resultado da captura'
+                  : 'Resultado da reflexão'
+              }
+              icon={<CheckCircle2 className="w-4 h-4 text-gold-500" />}
+              subtitle={`Nicho ${capturePreview.niche} · ${new Date(capturePreview.at).toLocaleString('pt-BR')}`}
+            />
+            <button
+              type="button"
+              onClick={() => setCapturePreview(null)}
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition"
+              aria-label="Fechar preview"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-4 text-xs">
+            <div className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span className="text-zinc-500">Score </span>
+              <span
+                className={`font-bold tabular-nums ${
+                  (capturePreview.score ?? 0) >= 80
+                    ? 'text-emerald-400'
+                    : (capturePreview.score ?? 0) >= 60
+                      ? 'text-amber-400'
+                      : 'text-red-400'
+                }`}
+              >
+                {capturePreview.score ?? '—'}/100
+              </span>
+            </div>
+            <div className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span className="text-zinc-500">Padrões registrados </span>
+              <span className="font-bold text-gold-400 tabular-nums">{capturePreview.patterns.length}</span>
+            </div>
+            <div className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span className="text-zinc-500">Issues </span>
+              <span className="font-bold text-zinc-300 tabular-nums">{capturePreview.issues.length}</span>
+            </div>
+          </div>
+
+          {capturePreview.patterns.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                Padrões adicionados à memória
+              </p>
+              <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+                {capturePreview.patterns.map((p, i) => (
+                  <li
+                    key={`${p.category}-${i}`}
+                    className="text-xs px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-100/90"
+                  >
+                    <span className="text-amber-400/80 font-mono text-[10px]">[{p.category}]</span>{' '}
+                    {p.description}
+                    {p.increment && p.increment > 1 ? (
+                      <span className="text-zinc-500 ml-1">(+{p.increment})</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {capturePreview.issues.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                Issues de qualidade
+              </p>
+              <ul className="space-y-1.5 max-h-36 overflow-y-auto">
+                {capturePreview.issues.map((issue, i) => (
+                  <li
+                    key={`${issue.code || 'issue'}-${i}`}
+                    className="text-xs px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950/50 text-zinc-400 flex gap-2"
+                  >
+                    <AlertTriangle
+                      className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${
+                        issue.severity === 'error' ? 'text-red-400' : 'text-amber-400'
+                      }`}
+                    />
+                    <span>
+                      {issue.code ? (
+                        <span className="text-zinc-500 font-mono text-[10px]">{issue.code}: </span>
+                      ) : null}
+                      {issue.message}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="glass-panel p-6 rounded-2xl space-y-4">
         <SectionHeader title="Configuração" helpId="agents-config" />
@@ -398,7 +620,11 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
 
       {niches.length > 0 && (
         <div className="glass-panel p-6 rounded-2xl space-y-3">
-          <SectionHeader title="Memória por nicho" helpId="agents-niche-memory" />
+          <SectionHeader
+            title="Memória por nicho"
+            helpId="agents-niche-memory"
+            subtitle="Clique em uma linha para abrir a nota do nicho no Obsidian."
+          />
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
@@ -406,18 +632,45 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
                   <th className="py-2 pr-4">Nicho</th>
                   <th className="py-2 pr-4">Runs</th>
                   <th className="py-2 pr-4">Promovidos</th>
-                  <th className="py-2">Candidatos</th>
+                  <th className="py-2 pr-4">Candidatos</th>
+                  <th className="py-2 w-8" />
                 </tr>
               </thead>
               <tbody>
-                {niches.map((n) => (
-                  <tr key={n.slug} className="border-b border-zinc-900 text-zinc-300">
-                    <td className="py-2 pr-4">{n.niche}</td>
-                    <td className="py-2 pr-4 tabular-nums">{n.runs}</td>
-                    <td className="py-2 pr-4 tabular-nums text-emerald-400">{n.promoted}</td>
-                    <td className="py-2 tabular-nums text-amber-400">{n.candidates}</td>
-                  </tr>
-                ))}
+                {niches.map((n) => {
+                  const isActiveNiche =
+                    n.niche.toLowerCase() === projectNiche.toLowerCase() ||
+                    n.slug === projectNiche.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                  return (
+                    <tr
+                      key={n.slug}
+                      className={`border-b border-zinc-900 transition ${
+                        isActiveNiche ? 'bg-gold-500/5' : ''
+                      } ${obsidian.installed ? 'cursor-pointer hover:bg-violet-500/5' : ''}`}
+                      onClick={() => {
+                        if (obsidian.installed) openObsidian(`memory/${n.slug}.md`);
+                      }}
+                      title={
+                        obsidian.installed
+                          ? `Abrir memory/${n.slug}.md no Obsidian`
+                          : 'Instale o Obsidian para abrir notas'
+                      }
+                    >
+                      <td className={`py-2 pr-4 ${isActiveNiche ? 'text-gold-400 font-semibold' : 'text-zinc-300'}`}>
+                        {n.niche}
+                        {isActiveNiche ? (
+                          <span className="ml-2 text-[9px] text-gold-500/70 uppercase">ativo</span>
+                        ) : null}
+                      </td>
+                      <td className="py-2 pr-4 tabular-nums">{n.runs}</td>
+                      <td className="py-2 pr-4 tabular-nums text-emerald-400">{n.promoted}</td>
+                      <td className="py-2 pr-4 tabular-nums text-amber-400">{n.candidates}</td>
+                      <td className="py-2 text-violet-400/60">
+                        {obsidian.installed ? <BookOpen className="w-3.5 h-3.5" /> : null}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -435,6 +688,101 @@ export function StudioAgents({ activeProject, projectNiche = 'Geral', getProject
               {log.content.slice(0, 1200)}
             </pre>
           ))}
+        </div>
+      )}
+
+      {showConsolidateModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="glass-panel rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col border border-emerald-500/20 shadow-2xl">
+            <div className="flex items-start justify-between gap-3 p-5 border-b border-zinc-800">
+              <SectionHeader
+                title="Confirmar consolidação"
+                icon={<TrendingUp className="w-4 h-4 text-emerald-400" />}
+                subtitle={
+                  consolidatePreview
+                    ? `Limiar: ${consolidatePreview.threshold} ocorrências`
+                    : undefined
+                }
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConsolidateModal(false);
+                  setConsolidatePreview(null);
+                }}
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition shrink-0"
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {!consolidatePreview || consolidatePreview.totalToPromote === 0 ? (
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Nenhum candidato pronto para promover. Continue capturando qualidade até os
+                  padrões atingirem <strong className="text-zinc-300">{config.promoteThreshold}</strong>{' '}
+                  ocorrências.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-emerald-400/90 font-semibold">
+                    {consolidatePreview.totalToPromote} padrão(ões) será(ão) promovido(s) em{' '}
+                    {consolidatePreview.niches.length} nicho(s):
+                  </p>
+                  {consolidatePreview.niches.map((niche) => (
+                    <div key={niche.slug} className="space-y-2">
+                      <p className="text-xs font-bold text-zinc-300">
+                        {niche.niche}
+                        <span className="text-zinc-500 font-normal ml-2">
+                          ({niche.toPromote.length} promovidos · {niche.remainingCount} ficam em observação)
+                        </span>
+                      </p>
+                      <ul className="space-y-1.5">
+                        {niche.toPromote.map((item, i) => (
+                          <li
+                            key={`${item.category}-${i}`}
+                            className="text-xs px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/5 text-emerald-100/90"
+                          >
+                            <span className="text-emerald-400/70 font-mono text-[10px]">
+                              [{item.category}]
+                            </span>{' '}
+                            {item.description}
+                            <span className="text-zinc-500 ml-1">(count: {item.count})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-3 p-5 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConsolidateModal(false);
+                  setConsolidatePreview(null);
+                }}
+                className="px-4 py-2.5 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-400 hover:text-zinc-200 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !!busy ||
+                  !consolidatePreview ||
+                  consolidatePreview.totalToPromote === 0
+                }
+                onClick={confirmConsolidate}
+                className="px-4 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-xs font-bold text-emerald-400 hover:bg-emerald-500/25 transition disabled:opacity-40"
+              >
+                {busy === 'consolidate' ? 'Consolidando…' : 'Confirmar promoção'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -253,9 +253,9 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Ações',
     body: (
       <>
-        <strong>Capturar qualidade</strong> — registra score e issues do projeto.<br />
-        <strong>Refletir e aprender</strong> — extrai padrões para o nicho.<br />
-        <strong>Consolidar memória</strong> — promove regras repetidas.<br />
+        <strong>Capturar qualidade</strong> — registra score e issues; mostra preview dos padrões salvos.<br />
+        <strong>Refletir e aprender</strong> — igual à captura, com fonte &quot;reflect&quot; no log.<br />
+        <strong>Consolidar memória</strong> — abre modal com candidatos que serão promovidos antes de confirmar.<br />
         <strong>Planejar overlays</strong> — gera overlays_ai com aprendizados injetados.
       </>
     ),
@@ -280,7 +280,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Memória por nicho',
     body: (
       <>
-        Tabela de arquivos em .agents/memory/: runs, padrões promovidos e candidatos por tema (Geografia, Engenharia, etc.).
+        Tabela de arquivos em .agents/memory/: runs, padrões promovidos e candidatos por tema. Clique na linha para abrir a nota no Obsidian; o nicho do projeto ativo aparece destacado.
       </>
     ),
   },
