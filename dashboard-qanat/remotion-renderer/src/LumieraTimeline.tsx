@@ -231,6 +231,7 @@ export type LumieraTimelineProps = {
   showProgressBar?: boolean;
   accentColor?: string;
   shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
+  longZoomIntensity?: "normal" | "aggressive" | "cinematic";
   shortsHookFlash?: boolean;
   shortsEdgeGlow?: boolean;
   shortsCaptionBgmPulse?: boolean;
@@ -302,6 +303,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   shortsZoomIntensity: "normal",
 
+  longZoomIntensity: "normal",
+
   shortsHookFlash: true,
 
   shortsEdgeGlow: false,
@@ -336,6 +339,7 @@ const SceneMedia: React.FC<{
   youtubeChannelInfo?: YoutubeChannelInfo | null;
   isShort?: boolean;
   shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
+  longZoomIntensity?: "normal" | "aggressive" | "cinematic";
   shortsPortalTransition?: boolean;
   shortsPortalEvery?: number;
   accentColor?: string;
@@ -347,6 +351,7 @@ const SceneMedia: React.FC<{
   youtubeChannelInfo,
   isShort = false,
   shortsZoomIntensity = "normal",
+  longZoomIntensity = "normal",
   shortsPortalTransition = true,
   shortsPortalEvery = 4,
   accentColor = "#D4AF37",
@@ -400,7 +405,11 @@ const SceneMedia: React.FC<{
       : shortsZoomIntensity === "cinematic"
         ? { start: 1.04, end: 1.16 }
         : { start: 1.06, end: 1.22 })
-    : { start: 1.04, end: 1.14 };
+    : (longZoomIntensity === "aggressive"
+      ? { start: 1.06, end: 1.18 }
+      : longZoomIntensity === "cinematic"
+        ? { start: 1.03, end: 1.12 }
+        : { start: 1.04, end: 1.14 });
 
   const startScale = isLogo ? 1.0 : zoomProfile.start;
 
@@ -1675,6 +1684,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   showProgressBar = false,
   accentColor = "#C5A880",
   shortsZoomIntensity = "normal",
+  longZoomIntensity = "normal",
   shortsHookFlash = true,
   shortsEdgeGlow = false,
   shortsCaptionBgmPulse = true,
@@ -1780,6 +1790,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
               youtubeChannelInfo={youtubeChannelInfo}
               isShort={isShort}
               shortsZoomIntensity={shortsZoomIntensity}
+              longZoomIntensity={longZoomIntensity}
               shortsPortalTransition={shortsPortalTransition}
               shortsPortalEvery={shortsPortalEvery}
               accentColor={accentColor}

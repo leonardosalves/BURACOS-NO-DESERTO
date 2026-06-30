@@ -22,6 +22,9 @@ export type VisualConfig = {
   shorts_portal_transition?: boolean;
   shorts_portal_every?: number;
   accent_color?: string;
+  secondary_color?: string;
+  listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
+  long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
 };
 
 type Props = {
@@ -52,6 +55,22 @@ const ZOOM_OPTIONS: { id: 'normal' | 'aggressive' | 'cinematic'; label: string; 
   { id: 'normal', label: 'Normal', hint: 'Ken Burns 6% → 22%.' },
   { id: 'aggressive', label: 'Agressivo', hint: '10% → 28% — máxima retenção.' },
   { id: 'cinematic', label: 'Cine', hint: '4% → 16% — tom premium.' },
+];
+
+const LONG_ZOOM_OPTIONS: { id: 'normal' | 'aggressive' | 'cinematic'; label: string; hint: string }[] = [
+  { id: 'normal', label: 'Normal', hint: 'Ken Burns 4% → 14% — documentário clássico.' },
+  { id: 'aggressive', label: 'Agressivo', hint: '6% → 18% — mais movimento em 16:9.' },
+  { id: 'cinematic', label: 'Cine', hint: '3% → 12% — zoom sutil e premium.' },
+];
+
+const HUD_THEME_OPTIONS: { id: string; label: string; hint: string }[] = [
+  { id: 'auto', label: 'Automático (preset)', hint: 'Herda do preset visual ou nicho.' },
+  { id: 'ancient', label: 'Antigo', hint: 'Pergaminho, sépia, ícones históricos.' },
+  { id: 'mysterious', label: 'Mistério', hint: 'Roxo escuro, atmosfera enigmática.' },
+  { id: 'nature', label: 'Natureza', hint: 'Verde-água, exploração geográfica.' },
+  { id: 'classic', label: 'Clássico', hint: 'Dourado neutro, finanças e geral.' },
+  { id: 'tech', label: 'Tech', hint: 'Ciano e roxo, tom futurista.' },
+  { id: 'industrial', label: 'Industrial', hint: 'Laranja e aço, impacto militar/engenharia.' },
 ];
 
 const PORTAL_EVERY_OPTIONS = [
@@ -156,7 +175,9 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
   const preset = draft.design_preset || 'auto';
   const caption = draft.caption_style || 'auto';
   const zoom = draft.shorts_zoom_intensity || 'normal';
+  const longZoom = draft.long_zoom_intensity || 'normal';
   const portalEvery = draft.shorts_portal_every || 4;
+  const hudTheme = draft.listicle_hud_theme || 'auto';
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-5">
@@ -279,29 +300,111 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           })}
 
           {isListicle && (
-            <div className="space-y-2 pt-2 border-t border-zinc-900">
-              <SettingLabel
-                helpTitle="HUD listicle"
-                help="Badge #N fixa no topo durante cada item do ranking. Completo mostra título + ícone; Compacto usa barra de progresso em listas com mais de 8 itens."
-                align="start"
-              >
-                HUD listicle
-              </SettingLabel>
-              <select
-                value={draft.listicle_hud_style || 'auto'}
-                onChange={(e) => patchDraft({
-                  listicle_hud_style: e.target.value as 'auto' | 'full' | 'compact',
-                })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
-              >
-                <option value="auto">Automático (compacto se &gt;8 itens)</option>
-                <option value="full">Completo</option>
-                <option value="compact">Compacto</option>
-              </select>
+            <div className="space-y-4 pt-2 border-t border-zinc-900">
+              <div className="space-y-2">
+                <SettingLabel
+                  helpTitle="HUD listicle"
+                  help="Badge #N fixa no topo durante cada item do ranking. Completo mostra título + ícone; Compacto usa barra de progresso em listas com mais de 8 itens."
+                  align="start"
+                >
+                  HUD listicle (layout)
+                </SettingLabel>
+                <select
+                  value={draft.listicle_hud_style || 'auto'}
+                  onChange={(e) => patchDraft({
+                    listicle_hud_style: e.target.value as 'auto' | 'full' | 'compact',
+                  })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
+                >
+                  <option value="auto">Automático (compacto se &gt;8 itens)</option>
+                  <option value="full">Completo</option>
+                  <option value="compact">Compacto</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <SettingLabel
+                  helpTitle="Tema visual do HUD"
+                  help="Paleta e estilo do badge #N, ícones Lottie e barra de progresso. Automático segue o preset do nicho; os temas fixos forçam uma identidade visual específica."
+                  align="start"
+                >
+                  Tema visual do HUD
+                </SettingLabel>
+                <select
+                  value={hudTheme}
+                  onChange={(e) => patchDraft({
+                    listicle_hud_theme: e.target.value === 'auto'
+                      ? undefined
+                      : e.target.value as VisualConfig['listicle_hud_theme'],
+                  })}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
+                >
+                  {HUD_THEME_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-zinc-500">{HUD_THEME_OPTIONS.find((o) => o.id === hudTheme)?.hint}</p>
+              </div>
+
+              <div className="space-y-2">
+                <SettingLabel
+                  helpTitle="Cor de clímax (#1)"
+                  help="Cor usada no item #1 do ranking (clímax). Destaca o momento mais importante com tom diferente da cor de acento principal."
+                  align="start"
+                >
+                  Cor de clímax (#1)
+                </SettingLabel>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={draft.secondary_color || '#D4AF37'}
+                    onChange={(e) => patchDraft({ secondary_color: e.target.value })}
+                    className="w-10 h-10 rounded-lg border border-zinc-700 cursor-pointer shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={draft.secondary_color || ''}
+                    placeholder="Automático (preset)"
+                    onChange={(e) => patchDraft({ secondary_color: e.target.value.trim() || undefined })}
+                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {!isShortFormat && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5 space-y-4">
+          <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wider">Zoom Ken Burns (16:9)</p>
+          <SettingLabel
+            helpTitle="Zoom em vídeos longos"
+            help="Intensidade do zoom lento em imagens e vídeos no formato 16:9. Mais sutil que Shorts para manter tom documentário."
+            align="start"
+            className="[&_span]:text-zinc-400"
+          >
+            Intensidade do zoom
+          </SettingLabel>
+          <div className="flex flex-wrap gap-2">
+            {LONG_ZOOM_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => patchDraft({ long_zoom_intensity: o.id })}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
+                  longZoom === o.id
+                    ? 'border-amber-400/60 bg-amber-500/20 text-amber-200'
+                    : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[9px] text-zinc-500">{LONG_ZOOM_OPTIONS.find((o) => o.id === longZoom)?.hint}</p>
+        </div>
+      )}
 
       {isShortFormat && (
         <div className="rounded-2xl border border-violet-500/30 bg-violet-500/5 p-5 space-y-5">

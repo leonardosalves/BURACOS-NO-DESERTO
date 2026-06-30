@@ -94,6 +94,39 @@ export function detectNicheCategory(niche = "") {
   return "default";
 }
 
+function overlayIntensityMultiplier(config = {}) {
+  const v = config.overlay_intensity;
+  if (v === "light") return 0.65;
+  if (v === "rich") return 1.35;
+  return 1;
+}
+
+function scaleLongOverlayBudget(plan, multiplier, duration) {
+  if (multiplier === 1 || !plan?.limits?.maxTotal) return plan;
+  const scale = (n) => Math.max(1, Math.round(n * multiplier));
+  plan.limits = {
+    ...plan.limits,
+    maxTotal: scale(plan.limits.maxTotal),
+    maxData: scale(plan.limits.maxData),
+    maxLowerThird: scale(plan.limits.maxLowerThird),
+    maxKinetic: scale(plan.limits.maxKinetic),
+  };
+  if (Array.isArray(plan.acts)) {
+    plan.acts = plan.acts.map((a) => ({
+      ...a,
+      overlays: Math.max(0, Math.round((a.overlays || 0) * multiplier)),
+    }));
+  }
+  if (Array.isArray(plan.retentionGoals)) {
+    plan.retentionGoals = plan.retentionGoals.map((g) => (
+      typeof g === "string" && g.startsWith("Máximo")
+        ? `Máximo ${plan.limits.maxTotal} overlays em ${Math.round(duration / 60)} minutos`
+        : g
+    ));
+  }
+  return plan;
+}
+
 export function detectVideoFormat(config = {}, totalDuration = 0) {
   const aspect = config.aspect_ratio || config.format || "";
   const explicit = String(config.video_format || config.format_type || "").toUpperCase();
@@ -261,6 +294,7 @@ export function buildOverlayOrchestrationPlan({
       "Processos/sequências → timeline horizontal",
       "Definições/nomes → lower-third (nunca info-card no centro)",
     ];
+    scaleLongOverlayBudget(plan, overlayIntensityMultiplier(config), duration);
   }
 
   return plan;
