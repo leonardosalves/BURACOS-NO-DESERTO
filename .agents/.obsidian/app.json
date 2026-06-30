@@ -1,8 +1,8 @@
 {
+  "readableLineLength": true,
   "legacyEditor": false,
   "livePreview": true,
   "defaultViewMode": "source",
-  "readableLineLength": true,
   "showLineNumber": true,
   "foldHeading": true,
   "foldIndent": true,
