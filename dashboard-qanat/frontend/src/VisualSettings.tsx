@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Palette, Save, Sparkles } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
+import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 
 export type VisualConfig = {
   design_preset?: string;
@@ -59,6 +60,41 @@ const PORTAL_EVERY_OPTIONS = [
   { value: 5, label: 'A cada 5 cenas' },
 ];
 
+const LAYER_HELP: Record<string, { title: string; body: string }> = {
+  grain_overlay: {
+    title: 'Grain (filme)',
+    body: 'Camada de granulação sobre as cenas, como filme analógico. Dá textura e tom documentário. Em Shorts costuma ficar ligado por padrão.',
+  },
+  vignette: {
+    title: 'Vinheta escura',
+    body: 'Escurece suavemente as bordas do quadro e direciona o olhar para o centro. Reforça clima cinematográfico sem poluir a imagem.',
+  },
+  progress_bar: {
+    title: 'Barra de progresso',
+    body: 'Barra fina no topo do vídeo mostrando quanto falta para terminar. Recomendado em vídeos longos para retenção.',
+  },
+  chapter_stingers: {
+    title: 'Chapter stingers',
+    body: 'Pulso visual curto (flash + linha) ao entrar em capítulos ou blocos grandes. Marca mudanças de assunto no vídeo.',
+  },
+  source_cards: {
+    title: 'Cards de fonte',
+    body: 'Exibe cards com referências, documentos ou fontes quando o roteiro cita algo verificável. Aumenta credibilidade.',
+  },
+  social_proof_cards: {
+    title: 'Cards Reddit / X',
+    body: 'Overlays estilo post de rede social (Reddit, X) com comentários ou reações. Bom para gancho e prova social.',
+  },
+  geo_map_overlays: {
+    title: 'Mapas geográficos',
+    body: 'Mapas animados destacando países, rotas ou regiões citadas na narração. Ideal para história e geografia.',
+  },
+  overlay_sfx_sync: {
+    title: 'SFX nos overlays',
+    body: 'Sons curtos (whoosh, tick, impacto) quando um overlay entra ou sai. Deixa a edição mais dinâmica e sincronizada.',
+  },
+};
+
 function triBool(value: boolean | undefined, defaultOn: boolean) {
   if (value === undefined) return defaultOn ? 'default-on' : 'default-off';
   return value ? 'on' : 'off';
@@ -72,12 +108,14 @@ function parseTriBool(raw: string, defaultValue: boolean): boolean | undefined {
 function ToggleCard({
   label,
   description,
+  help,
   checked,
   defaultChecked = true,
   onChange,
 }: {
   label: string;
   description: string;
+  help: string;
   checked: boolean;
   defaultChecked?: boolean;
   onChange: (v: boolean) => void;
@@ -90,8 +128,11 @@ function ToggleCard({
         onChange={(e) => onChange(e.target.checked)}
         className="accent-violet-500 w-4 h-4 mt-0.5 shrink-0"
       />
-      <div className="min-w-0">
-        <span className="text-xs text-zinc-200 font-semibold block">{label}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-zinc-200 font-semibold">{label}</span>
+          <SettingHelpTip title={label} align="start">{help}</SettingHelpTip>
+        </div>
         <span className="text-[9px] text-zinc-500 leading-relaxed block mt-0.5">{description}</span>
         {!checked && defaultChecked && (
           <span className="text-[8px] text-amber-500/80 mt-1 block">Desligado (padrão: ligado)</span>
@@ -125,7 +166,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             <Palette className="w-4 h-4 text-gold-500" /> LAYOUT & EFEITOS VISUAIS
           </h3>
           <p className="text-xs text-gray-400 mt-1">
-            Ajustes por projeto. <span className="text-zinc-300">Padrão</span> = automático pelo nicho.
+            Ajustes por projeto. Passe o mouse ou toque no <span className="text-gold-400/90">?</span> ao lado de cada item para entender o efeito.
           </p>
         </div>
       </div>
@@ -133,7 +174,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Preset visual</label>
+            <SettingLabel
+              helpTitle="Preset visual"
+              help="Define paleta, tipografia e atmosfera do vídeo (grain, vinheta, fontes). Automático escolhe conforme o nicho: história, mistério, geografia, dados ou finanças."
+              align="start"
+            >
+              Preset visual
+            </SettingLabel>
             <select
               value={preset}
               onChange={(e) => patchDraft({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
@@ -147,7 +194,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Estilo de legenda</label>
+            <SettingLabel
+              helpTitle="Estilo de legenda"
+              help="Controla como o texto da narração aparece na tela. Shorts Viral destaca 1 palavra por vez; Documentário usa blocos de 2 palavras, mais calmo para vídeos longos."
+              align="start"
+            >
+              Estilo de legenda
+            </SettingLabel>
             <select
               value={caption}
               onChange={(e) => patchDraft({ caption_style: e.target.value === 'auto' ? undefined : e.target.value })}
@@ -161,7 +214,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Cor de acento</label>
+            <SettingLabel
+              helpTitle="Cor de acento"
+              help="Cor principal de overlays, bordas do HUD, lower-thirds, portal e destaques das legendas. Deixe vazio para usar a cor do preset automático."
+              align="start"
+            >
+              Cor de acento
+            </SettingLabel>
             <div className="flex gap-2 items-center">
               <input
                 type="color"
@@ -181,7 +240,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
         </div>
 
         <div className="space-y-3">
-          <p className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Camadas & overlays</p>
+          <SettingLabel
+            helpTitle="Camadas & overlays"
+            help="Liga ou desliga tipos de elementos visuais que a IA pode inserir no vídeo. Padrão = o sistema decide conforme formato e nicho; Ligado/Desligado força sua escolha."
+            align="start"
+          >
+            Camadas & overlays
+          </SettingLabel>
 
           {[
             { key: 'grain_overlay' as const, label: 'Grain (filme)', defaultOn: isShortFormat },
@@ -192,24 +257,36 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             { key: 'social_proof_cards' as const, label: 'Cards Reddit / X', defaultOn: true },
             { key: 'geo_map_overlays' as const, label: 'Mapas geográficos', defaultOn: true },
             { key: 'overlay_sfx_sync' as const, label: 'SFX nos overlays', defaultOn: true },
-          ].filter((item) => !item.longOnly || !isShortFormat).map((item) => (
-            <div key={item.key} className="flex items-center justify-between gap-3 py-0.5">
-              <span className="text-xs text-zinc-300">{item.label}</span>
-              <select
-                value={triBool(draft[item.key], item.defaultOn)}
-                onChange={(e) => patchDraft({ [item.key]: parseTriBool(e.target.value, item.defaultOn) })}
-                className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-[10px] text-white"
-              >
-                <option value="default">Padrão</option>
-                <option value="on">Ligado</option>
-                <option value="off">Desligado</option>
-              </select>
-            </div>
-          ))}
+          ].filter((item) => !item.longOnly || !isShortFormat).map((item) => {
+            const help = LAYER_HELP[item.key];
+            return (
+              <div key={item.key} className="flex items-center justify-between gap-3 py-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs text-zinc-300 truncate">{item.label}</span>
+                  <SettingHelpTip title={help.title} align="start">{help.body}</SettingHelpTip>
+                </div>
+                <select
+                  value={triBool(draft[item.key], item.defaultOn)}
+                  onChange={(e) => patchDraft({ [item.key]: parseTriBool(e.target.value, item.defaultOn) })}
+                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-[10px] text-white shrink-0"
+                >
+                  <option value="default">Padrão</option>
+                  <option value="on">Ligado</option>
+                  <option value="off">Desligado</option>
+                </select>
+              </div>
+            );
+          })}
 
           {isListicle && (
             <div className="space-y-2 pt-2 border-t border-zinc-900">
-              <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">HUD listicle</label>
+              <SettingLabel
+                helpTitle="HUD listicle"
+                help="Badge #N fixa no topo durante cada item do ranking. Completo mostra título + ícone; Compacto usa barra de progresso em listas com mais de 8 itens."
+                align="start"
+              >
+                HUD listicle
+              </SettingLabel>
               <select
                 value={draft.listicle_hud_style || 'auto'}
                 onChange={(e) => patchDraft({
@@ -233,7 +310,14 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           </p>
 
           <div className="space-y-2">
-            <label className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Intensidade do zoom Ken Burns</label>
+            <SettingLabel
+              helpTitle="Zoom Ken Burns"
+              help="Intensidade do zoom lento em cada imagem. Normal equilibra movimento e qualidade; Agressivo maximiza retenção; Cine é mais sutil e premium."
+              align="start"
+              className="[&_span]:text-zinc-400"
+            >
+              Intensidade do zoom Ken Burns
+            </SettingLabel>
             <div className="flex flex-wrap gap-2">
               {ZOOM_OPTIONS.map((o) => (
                 <button
@@ -257,12 +341,14 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             <ToggleCard
               label="Flash no gancho (0–0,3s)"
               description="Flash branco sutil no início — prende atenção imediata."
+              help="Burst de luz branca nos primeiros 0,3 segundos do vídeo. Técnica clássica de Shorts para parar o scroll e segurar o viewer."
               checked={draft.shorts_hook_flash !== false}
               onChange={(v) => patchDraft({ shorts_hook_flash: v })}
             />
             <ToggleCard
               label="Glow inferior (safe zone)"
               description="Brilho na base da tela — legendas fora dos botões do YouTube."
+              help="Brilho suave na faixa inferior onde ficam as legendas, longe dos botões de like/comentário do YouTube. Desligado por padrão."
               checked={draft.shorts_edge_glow === true}
               defaultChecked={false}
               onChange={(v) => patchDraft({ shorts_edge_glow: v })}
@@ -270,12 +356,14 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             <ToggleCard
               label="Pulso legenda + BGM"
               description="Palavra ativa pulsa no ritmo da trilha (~120 BPM)."
+              help="A palavra destacada da legenda pulsa no ritmo da trilha (~120 BPM), sincronizando texto e música para sensação mais dinâmica."
               checked={draft.shorts_caption_bgm_pulse !== false}
               onChange={(v) => patchDraft({ shorts_caption_bgm_pulse: v })}
             />
             <ToggleCard
               label="Transição portal"
               description="Wipe circular com anel de acento entre cenas."
+              help="Transição em wipe circular com anel na cor de acento entre uma cena e outra. Quebra monotonia sem cortes secos."
               checked={draft.shorts_portal_transition !== false}
               onChange={(v) => patchDraft({ shorts_portal_transition: v })}
             />
@@ -283,7 +371,14 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
 
           {draft.shorts_portal_transition !== false && (
             <div className="space-y-2">
-              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Frequência portal</label>
+              <SettingLabel
+                helpTitle="Frequência portal"
+                help="Define a cada quantas trocas de cena a transição portal aparece. Valores menores = mais frequente e mais energético."
+                align="start"
+                className="[&_span]:text-zinc-500"
+              >
+                Frequência portal
+              </SettingLabel>
               <div className="flex flex-wrap gap-2">
                 {PORTAL_EVERY_OPTIONS.map((o) => (
                   <button

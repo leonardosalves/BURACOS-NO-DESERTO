@@ -1,5 +1,6 @@
 import React from 'react';
 import { KeyRound, RefreshCw, Save } from 'lucide-react';
+import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 
 type Props = {
   epidemicKeyInput: string;
@@ -47,7 +48,7 @@ export function SettingsApiKeys({
             CHAVES DE API & MÍDIA
           </h3>
           <p className="text-xs text-gray-400 mt-1">
-            Trilhas, efeitos sonoros e download automático de B-roll. Salvas globalmente no programa.
+            Trilhas, efeitos sonoros e download automático de B-roll. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] text-zinc-400">
@@ -65,8 +66,14 @@ export function SettingsApiKeys({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Epidemic Sound (MCP)</label>
+          <div className="flex items-center justify-between gap-2">
+            <SettingLabel
+              helpTitle="Epidemic Sound"
+              help="Token JWT da Epidemic Sound. Permite buscar trilhas, efeitos sonoros e usar o autopilot de BGM no workflow de produção."
+              align="start"
+            >
+              Epidemic Sound (MCP)
+            </SettingLabel>
             {badge(hasEpidemicKey, 'Configurada', 'Não configurada')}
           </div>
           <input
@@ -83,8 +90,14 @@ export function SettingsApiKeys({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Pexels API Key</label>
+            <div className="flex items-center justify-between gap-2">
+              <SettingLabel
+                helpTitle="Pexels"
+                help="Chave gratuita em pexels.com/api. Habilita busca automática de vídeos e fotos stock no Creator quando o roteiro pede B-roll."
+                align="start"
+              >
+                Pexels API Key
+              </SettingLabel>
               {badge(hasPexelsKey, 'Configurada', 'Opcional')}
             </div>
             <input
@@ -96,8 +109,14 @@ export function SettingsApiKeys({
             />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Pixabay API Key</label>
+            <div className="flex items-center justify-between gap-2">
+              <SettingLabel
+                helpTitle="Pixabay"
+                help="Chave em pixabay.com/api/docs. Segunda fonte de stock — basta uma das duas (Pexels ou Pixabay) para o buscador automático funcionar."
+                align="start"
+              >
+                Pixabay API Key
+              </SettingLabel>
               {badge(hasPixabayKey, 'Configurada', 'Opcional')}
             </div>
             <input

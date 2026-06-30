@@ -92,6 +92,7 @@ import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensi
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { VisualSettings } from './VisualSettings';
+import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
@@ -11354,7 +11355,7 @@ export default function App() {
 
                     </h3>
 
-                    <p className="text-xs text-gray-400 mt-1">Provedor e chaves de modelos de IA (Gemini, Grok, OpenRouter). Salvas no projeto ativo.</p>
+                    <p className="text-xs text-gray-400 mt-1">Provedor e chaves de IA. Use o <span className="text-gold-400/90">?</span> ao lado de cada opção para entender o efeito.</p>
 
                   </div>
 
@@ -11374,7 +11375,10 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel">Gemini</span>
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        Gemini
+                        <SettingHelpTip title="Gemini" align="start">Google AI Studio (gratuito). Roteiro, overlays, metadados e ideias. Suporta rotação de várias chaves.</SettingHelpTip>
+                      </span>
 
                       {aiProvider === 'gemini' && <CheckCircle className="w-4 h-4 text-gold-500" />}
 
@@ -11388,7 +11392,10 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel">Grok / xAI</span>
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        Grok / xAI
+                        <SettingHelpTip title="Grok / xAI" align="start">API da xAI como provedor principal. Útil quando preferir Grok ou como fallback após esgotar chaves Gemini.</SettingHelpTip>
+                      </span>
 
                       {aiProvider === 'xai' && <CheckCircle className="w-4 h-4 text-gold-500" />}
 
@@ -11402,7 +11409,10 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel">OpenRouter</span>
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        OpenRouter
+                        <SettingHelpTip title="OpenRouter" align="start">Agregador com modelos free (Gemini, Llama, Qwen). Alternativa quando quiser variar modelos sem múltiplas contas.</SettingHelpTip>
+                      </span>
 
                       {aiProvider === 'openrouter' && <CheckCircle className="w-4 h-4 text-gold-500" />}
 
@@ -11421,6 +11431,9 @@ export default function App() {
                         <p className="text-xs font-bold text-white font-cinzel flex items-center gap-2">
                           <Chrome className="w-4 h-4 text-violet-400" />
                           Gemini no Chrome (extensão)
+                          <SettingHelpTip title="Extensão Chrome" align="start">
+                            Envia prompts pelo gemini.google.com na sua sessão Google, sem API key. Requer a extensão Lumiera Gemini Bridge instalada no Chrome.
+                          </SettingHelpTip>
                         </p>
                         <p className="text-[10px] text-zinc-400 leading-relaxed max-w-xl">
                           Ativa todas as chamadas de IA via Gemini no Chrome, de forma autônoma (sem copiar/colar).
@@ -11476,7 +11489,7 @@ export default function App() {
 
                     <div className="space-y-2">
 
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Modelo Gemini</label>
+                      <SettingLabel helpTitle="Modelo Gemini" help="Versão do modelo usada nas chamadas de IA. Flash é rápido e econômico; Pro tem mais raciocínio. Afeta roteiro, overlays e metadados." align="start">Modelo Gemini</SettingLabel>
 
                       <select
                         value={geminiModel}
@@ -11497,7 +11510,7 @@ export default function App() {
 
                     <div className="space-y-2">
 
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chaves Gemini</label>
+                      <SettingLabel helpTitle="Chaves Gemini" help="Uma chave por linha. O sistema rotaciona automaticamente quando uma atinge limite de quota. Deixe vazio para manter as chaves já salvas." align="start">Chaves Gemini</SettingLabel>
 
                       <textarea value={geminiKeysInput} onChange={(e) => setGeminiKeysInput(e.target.value)} placeholder="Cole uma ou várias chaves Gemini, uma por linha. Deixe vazio para manter as atuais." className="w-full h-32 bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white resize-none" />
 
@@ -11511,7 +11524,7 @@ export default function App() {
 
                       <div className="flex items-center justify-between">
 
-                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave OpenRouter</label>
+                        <SettingLabel helpTitle="Chave OpenRouter" help="Opcional. Chave personalizada do openrouter.ai. Se vazia, usa a chave padrão do sistema para modelos free." align="start">Chave OpenRouter</SettingLabel>
 
                         {hasOpenRouterKey ? (
 
@@ -11533,7 +11546,7 @@ export default function App() {
 
                     <div className="space-y-2">
 
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Chave xAI / Grok</label>
+                      <SettingLabel helpTitle="Chave xAI / Grok" help="Chave da API xAI. Usada como provedor principal se Grok estiver selecionado, ou como fallback quando todas as chaves Gemini falharem." align="start">Chave xAI / Grok</SettingLabel>
 
                       <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
 
@@ -11594,7 +11607,7 @@ export default function App() {
 
                     </h3>
 
-                    <p className="text-xs text-gray-400 mt-1">Configure parâmetros globais de compilação de vídeo e mixagem de trilha sonora.</p>
+                    <p className="text-xs text-gray-400 mt-1">Parâmetros de render e áudio. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.</p>
 
                   </div>
 
@@ -11610,7 +11623,7 @@ export default function App() {
 
                       <div className="flex justify-between items-center">
 
-                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Volume da Trilha Sonora (BGM)</label>
+                        <SettingLabel helpTitle="Volume BGM" help="Volume da música de fundo no mix final. 15% é o padrão recomendado para a trilha não competir com a narração." align="start">Volume da Trilha Sonora (BGM)</SettingLabel>
 
                         <span className="text-xs text-white font-mono font-bold">{(globalMusicVolume * 100).toFixed(0)}%</span>
 
@@ -11642,7 +11655,7 @@ export default function App() {
 
                     <div className="space-y-2">
 
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Espaçamento entre Blocos (Gap)</label>
+                      <SettingLabel helpTitle="Gap entre blocos" help="Segundos extras no fim de cada bloco de cenas antes do próximo. Dá respiro à narração e evita cortes abruptos entre capítulos." align="start">Espaçamento entre Blocos (Gap)</SettingLabel>
 
                       <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-2">
 
@@ -11678,7 +11691,7 @@ export default function App() {
 
                     <div className="space-y-2">
 
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Taxa de Quadros (FPS)</label>
+                      <SettingLabel helpTitle="FPS" help="Quadros por segundo na renderização Remotion. 30 FPS é padrão web; 24 FPS é mais cinematográfico; 60 FPS é mais fluido porém mais pesado." align="start">Taxa de Quadros (FPS)</SettingLabel>
 
                       <select 
 
@@ -11703,7 +11716,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Resolução de Saída</label>
+                      <SettingLabel helpTitle="Resolução" help="1080p para entrega rápida; 2K para mais nitidez. Global vale para todos os projetos; Personalizado sobrescreve só o projeto aberto." align="start">Resolução de Saída</SettingLabel>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setResolutionConfigScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
                         <button type="button" onClick={() => setResolutionConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
@@ -11765,7 +11778,10 @@ export default function App() {
 
                         />
 
-                        <label htmlFor="use-remotion-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none">Remotion por Padrão</label>
+                        <label htmlFor="use-remotion-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none flex items-center gap-1.5">
+                          Remotion por Padrão
+                          <SettingHelpTip title="Remotion" align="start">Usa o motor Remotion (React) para compilar vídeos com overlays, legendas e efeitos. Desligado pode usar pipeline legado se disponível.</SettingHelpTip>
+                        </label>
 
                       </div>
 
@@ -11785,7 +11801,10 @@ export default function App() {
 
                         />
 
-                        <label htmlFor="debug-overlay-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none">Debug Overlay</label>
+                        <label htmlFor="debug-overlay-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none flex items-center gap-1.5">
+                          Debug Overlay
+                          <SettingHelpTip title="Debug" align="end">Mostra informações técnicas dos overlays na prévia/render para diagnosticar timing e posicionamento. Desligue na entrega final.</SettingHelpTip>
+                        </label>
 
                       </div>
 
@@ -11856,14 +11875,22 @@ export default function App() {
                       <Image className="w-4 h-4 text-gold-500" /> LOGOTIPO DO FINAL DO VÍDEO
                     </h3>
                     <p className="text-xs text-gray-400 mt-1">
-                      Adicione vários logotipos ao catálogo e escolha qual exibir no encerramento. Alterne entre escopo global ou por projeto.
+                      Logos e canal do encerramento. Use o <span className="text-gold-400/90">?</span> em cada seção para entender o escopo global vs. projeto.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setLogoCatalogScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
-                  <button type="button" onClick={() => setLogoCatalogScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Escopo do logo</span>
+                    <SettingHelpTip title="Escopo" align="start">
+                      Global aplica o logo escolhido em todos os projetos. Personalizado permite um logo diferente só neste projeto.
+                    </SettingHelpTip>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setLogoCatalogScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                    <button type="button" onClick={() => setLogoCatalogScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                  </div>
                 </div>
 
                 <div className="bg-zinc-950 border border-zinc-850 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
@@ -11886,7 +11913,7 @@ export default function App() {
                 </div>
 
                 <div className="space-y-3">
-                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Catálogo de Logos</span>
+                  <SettingLabel helpTitle="Catálogo de logos" help="Biblioteca de PNGs (fundo transparente) exibidos no final do vídeo. Escolha qual está ativo e renomeie para organizar marcas diferentes." align="start" className="mb-0">Catálogo de Logos</SettingLabel>
                   {brandLogos.length === 0 ? (
                     <p className="text-xs text-zinc-500">Nenhum logo cadastrado. Envie o primeiro abaixo.</p>
                   ) : (
@@ -11923,7 +11950,7 @@ export default function App() {
                 </div>
 
                 <div className="space-y-3 border-t border-zinc-900 pt-5">
-                  <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Adicionar Logo ao Catálogo</span>
+                  <SettingLabel helpTitle="Novo logo" help="Envie um PNG com fundo transparente. O nome ajuda a identificar a marca no catálogo — ex.: canal principal, parceiro, versão branca." align="start" className="mb-0">Adicionar Logo ao Catálogo</SettingLabel>
                   <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} placeholder="Nome do logo" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
                   <label className="border-2 border-dashed border-zinc-800 hover:border-gold-500/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[96px] bg-zinc-950/20 hover:bg-zinc-950/40">
                     <Upload className="w-6 h-6 text-zinc-500 mb-2" />
@@ -11937,6 +11964,9 @@ export default function App() {
                   <div>
                     <h4 className="font-cinzel text-xs font-bold text-white tracking-wide flex items-center gap-2">
                       <Video className="w-4 h-4 text-red-500" /> CANAL DO YOUTUBE (BOTÃO INSCREVER-SE)
+                      <SettingHelpTip title="Botão Inscrever-se" align="start">
+                        Card de encerramento com link do canal, nome e contagem de inscritos. Aparece no outro do vídeo junto com o logo.
+                      </SettingHelpTip>
                     </h4>
                     <p className="text-xs text-gray-400 mt-1">
                       Cadastre vários canais e selecione qual usar no encerramento. Escopo global ou por projeto.
@@ -11949,7 +11979,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3">
-                    <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Catálogo de Canais</span>
+                    <SettingLabel helpTitle="Catálogo de canais" help="Cadastre vários canais YouTube e escolha qual usar no encerramento. Útil se você gerencia mais de uma marca no mesmo Lumiera." align="start" className="mb-0">Catálogo de Canais</SettingLabel>
                     {youtubeChannels.length === 0 ? (
                       <p className="text-xs text-zinc-500">Nenhum canal cadastrado. Adicione o primeiro abaixo.</p>
                     ) : (
