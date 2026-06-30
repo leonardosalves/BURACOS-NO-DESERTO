@@ -1,13 +1,23 @@
 export type OverlayIntensity = 'light' | 'normal' | 'rich';
+export type OverlayMinGap = 'tight' | 'normal' | 'relaxed';
+export type BgmDuckStrength = 'light' | 'normal' | 'strong';
 
 export type ProductionConfig = {
   overlay_intensity?: OverlayIntensity;
   project_music_volume?: number;
+  overlay_min_gap?: OverlayMinGap;
+  overlay_max_duration?: number;
+  bgm_duck_strength?: BgmDuckStrength;
+  overlay_sfx_volume?: number;
 };
 
 export const PRODUCTION_CONFIG_KEYS = [
   'overlay_intensity',
   'project_music_volume',
+  'overlay_min_gap',
+  'overlay_max_duration',
+  'bgm_duck_strength',
+  'overlay_sfx_volume',
 ] as const;
 
 export function pickProductionConfig(config: ProductionConfig = {}): ProductionConfig {

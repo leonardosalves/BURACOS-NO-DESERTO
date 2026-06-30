@@ -4795,6 +4795,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     accentColor: config.accent_color || "#C5A880",
     shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
     longZoomIntensity: config.long_zoom_intensity || "normal",
+    bgmDuckStrength: ["light", "strong"].includes(config.bgm_duck_strength)
+      ? config.bgm_duck_strength
+      : "normal",
     shortsHookFlash: config.shorts_hook_flash !== false,
     shortsEdgeGlow: config.shorts_edge_glow === true,
     shortsCaptionBgmPulse: config.shorts_caption_bgm_pulse !== false,

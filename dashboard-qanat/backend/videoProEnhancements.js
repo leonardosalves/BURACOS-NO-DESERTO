@@ -1181,6 +1181,11 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
 
   const hasAt = (time, file) => events.some((e) => Math.abs(Number(e.time) - time) < 0.35 && e.file === file);
 
+  const sfxMul = Number.isFinite(Number(config.overlay_sfx_volume))
+    ? Math.max(0.25, Math.min(1.5, Number(config.overlay_sfx_volume)))
+    : 1;
+  const sfxVol = (v) => Math.round(v * sfxMul * 1000) / 1000;
+
   const files = {
     tick: "sfx_tick.mp3",
     whoosh: "sfx_whoosh.mp3",
@@ -1196,53 +1201,53 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
     if (!Number.isFinite(t)) continue;
 
     if (overlay.type === "counter" && exists(files.tick) && !hasAt(t, files.tick)) {
-      events.push({ time: t, file: files.tick, volume: 0.045 });
+      events.push({ time: t, file: files.tick, volume: sfxVol(0.045) });
     }
 
     if (overlay.type === "bar-chart" && exists(files.tick) && !hasAt(t + 0.05, files.tick)) {
-      events.push({ time: t + 0.05, file: files.tick, volume: 0.04 });
+      events.push({ time: t + 0.05, file: files.tick, volume: sfxVol(0.04) });
     }
 
     if (overlay.type === "kinetic-text" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.05), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.05), file: files.whoosh, volume: 0.048 });
+      events.push({ time: Math.max(0, t - 0.05), file: files.whoosh, volume: sfxVol(0.048) });
       if (exists(files.impact) && !hasAt(t + 0.12, files.impact)) {
-        events.push({ time: t + 0.12, file: files.impact, volume: 0.042 });
+        events.push({ time: t + 0.12, file: files.impact, volume: sfxVol(0.042) });
       }
     }
 
     if (overlay.type === "lower-third" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.08), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.08), file: files.whoosh, volume: 0.032 });
+      events.push({ time: Math.max(0, t - 0.08), file: files.whoosh, volume: sfxVol(0.032) });
     }
 
     if (overlay.type === "chapter-stinger" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.1), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: 0.04 });
+      events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: sfxVol(0.04) });
       if (exists(files.impact) && !hasAt(t + 0.15, files.impact)) {
-        events.push({ time: t + 0.15, file: files.impact, volume: 0.038 });
+        events.push({ time: t + 0.15, file: files.impact, volume: sfxVol(0.038) });
       }
     }
 
     if (overlay.type === "source-card" && exists(files.tick) && !hasAt(t, files.tick)) {
-      events.push({ time: t, file: files.tick, volume: 0.03 });
+      events.push({ time: t, file: files.tick, volume: sfxVol(0.03) });
     }
 
     if (overlay.type === "social-post" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.06), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.06), file: files.whoosh, volume: 0.036 });
+      events.push({ time: Math.max(0, t - 0.06), file: files.whoosh, volume: sfxVol(0.036) });
     }
 
     if (overlay.type === "geo-map" && exists(files.tick) && !hasAt(t, files.tick)) {
-      events.push({ time: t, file: files.tick, volume: 0.035 });
+      events.push({ time: t, file: files.tick, volume: sfxVol(0.035) });
     }
 
     if (overlay.type === "listicle-stinger" && exists(files.impact) && !hasAt(t, files.impact)) {
-      events.push({ time: t, file: files.impact, volume: 0.055 });
+      events.push({ time: t, file: files.impact, volume: sfxVol(0.055) });
       if (exists(files.whoosh) && !hasAt(Math.max(0, t - 0.1), files.whoosh)) {
-        events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: 0.04 });
+        events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: sfxVol(0.04) });
       }
     }
 
     if ((overlay.id?.startsWith("listicle-rank") || overlay.id === "listicle-intro-topn")
       && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.25), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.25), file: files.whoosh, volume: 0.04 });
+      events.push({ time: Math.max(0, t - 0.25), file: files.whoosh, volume: sfxVol(0.04) });
     }
 
     if (overlay.id === "listicle-progress-hud" && Array.isArray(overlay.props?.segments)) {
@@ -1251,22 +1256,22 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
         const tickAt = Number(overlay.start) + Number(seg.at || 0);
         if (!Number.isFinite(tickAt)) continue;
         if (exists(files.whoosh) && !hasAt(Math.max(0, tickAt - 0.08), files.whoosh)) {
-          events.push({ time: Math.max(0, tickAt - 0.08), file: files.whoosh, volume: 0.038 });
+          events.push({ time: Math.max(0, tickAt - 0.08), file: files.whoosh, volume: sfxVol(0.038) });
         }
         if (exists(files.tick) && !hasAt(tickAt, files.tick)) {
-          events.push({ time: tickAt, file: files.tick, volume: seg.rank === 1 ? 0.06 : 0.05 });
+          events.push({ time: tickAt, file: files.tick, volume: sfxVol(seg.rank === 1 ? 0.06 : 0.05) });
         }
         if (seg.rank === 1 && exists(files.impact) && !hasAt(tickAt + 0.08, files.impact)) {
-          events.push({ time: tickAt + 0.08, file: files.impact, volume: 0.055 });
+          events.push({ time: tickAt + 0.08, file: files.impact, volume: sfxVol(0.055) });
         }
         if (seg.rank === 1 && exists(files.riser) && !hasAt(Math.max(0, tickAt - 0.35), files.riser)) {
-          events.push({ time: Math.max(0, tickAt - 0.35), file: files.riser, volume: 0.035 });
+          events.push({ time: Math.max(0, tickAt - 0.35), file: files.riser, volume: sfxVol(0.035) });
         }
       }
     }
 
     if (overlay.type === "listicle-recap" && exists(files.impact) && !hasAt(t, files.impact)) {
-      events.push({ time: t, file: files.impact, volume: 0.04 });
+      events.push({ time: t, file: files.impact, volume: sfxVol(0.04) });
     }
   }
 
@@ -1276,7 +1281,7 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
       const blockEnd = Number(startsList[i]) + (Number(startsList[i + 1]) - Number(startsList[i]));
       const gapStart = blockEnd - 0.3;
       if (!hasAt(gapStart, files.room)) {
-        events.push({ time: Math.max(0, gapStart), file: files.room, volume: 0.025 });
+        events.push({ time: Math.max(0, gapStart), file: files.room, volume: sfxVol(0.025) });
       }
     }
   }

@@ -101,6 +101,37 @@ function overlayIntensityMultiplier(config = {}) {
   return 1;
 }
 
+function resolveOverlayMinGapSeconds(config = {}, isShort = false, isListicle = false) {
+  const v = config.overlay_min_gap;
+  if (!v || v === "normal") return null;
+  if (isShort) {
+    if (v === "tight") return isListicle ? 8 : 4;
+    if (v === "relaxed") return isListicle ? 14 : 8;
+    return null;
+  }
+  if (v === "tight") return isListicle ? 9 : 12;
+  if (v === "relaxed") return isListicle ? 16 : 26;
+  return null;
+}
+
+function resolveOverlayMaxDuration(config = {}) {
+  const raw = Number(config.overlay_max_duration);
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  return Math.max(2.5, Math.min(10, raw));
+}
+
+function applyProductionOverlayLimits(plan, config = {}) {
+  const minGap = resolveOverlayMinGapSeconds(config, plan.format === "SHORT", plan.isListicle);
+  if (minGap !== null && plan.limits) {
+    plan.limits.minGapSeconds = minGap;
+  }
+  const maxDur = resolveOverlayMaxDuration(config);
+  if (maxDur !== null && plan.limits) {
+    plan.limits.maxDurationSeconds = maxDur;
+  }
+  return plan;
+}
+
 function scaleLongOverlayBudget(plan, multiplier, duration) {
   if (multiplier === 1 || !plan?.limits?.maxTotal) return plan;
   const scale = (n) => Math.max(1, Math.round(n * multiplier));
@@ -297,6 +328,7 @@ export function buildOverlayOrchestrationPlan({
     scaleLongOverlayBudget(plan, overlayIntensityMultiplier(config), duration);
   }
 
+  applyProductionOverlayLimits(plan, config);
   return plan;
 }
 
