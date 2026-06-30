@@ -13,6 +13,11 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/remotion_docs|Remotion Docs]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
 - [[skills/viral-short-form|Viral Short Form]]
+- [[skills/viral-hooks|Viral Hooks]]
+- [[skills/viral-youtube-shorts|YouTube Shorts]]
+- [[skills/youtube-seo|YouTube SEO]]
+- [[skills/youtube-thumbnail|Thumbnail]]
+- [[skills/skills-registry-external|Skills externas]]
 
 ## Memória por nicho
 - [[memory/engenharia]]
