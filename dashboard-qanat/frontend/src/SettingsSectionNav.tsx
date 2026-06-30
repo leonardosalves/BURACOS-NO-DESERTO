@@ -22,14 +22,14 @@ type Props = {
 
 export function SettingsSectionNav({ active, onChange }: Props) {
   return (
-    <div className="glass-panel p-3 rounded-2xl">
-      <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-2 px-1 flex items-center gap-1.5">
+    <div className="glass-panel p-3 rounded-2xl min-w-0">
+      <p className="lumiera-section-label mb-2 px-1 flex flex-wrap items-center gap-1.5">
         Seções de configuração
         <SettingHelpTip title="Configurações" align="start">
           Navegue entre IA, APIs, render global, visual do projeto, produção, marca e integrações de publicação.
         </SettingHelpTip>
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 min-w-0">
         {SECTIONS.map((s) => {
           const help = SECTION_HELP[s.helpId];
           return (
@@ -37,7 +37,7 @@ export function SettingsSectionNav({ active, onChange }: Props) {
               key={s.id}
               type="button"
               onClick={() => onChange(s.id)}
-              className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-2 rounded-xl border transition ${
+              className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-3 py-2 rounded-xl border transition min-w-0 max-w-full text-center leading-snug ${
                 active === s.id
                   ? 'border-gold-500/50 bg-gold-500/10 text-gold-400'
                   : 'border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'

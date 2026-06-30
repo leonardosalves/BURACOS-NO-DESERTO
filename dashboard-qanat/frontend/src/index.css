@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply antialiased font-sans text-gray-200 bg-[#070708];
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-width: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  /* Cinzel em tamanho pequeno quebra letras — títulos display com espaçamento moderado */
+  .font-cinzel {
+    letter-spacing: 0.02em;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  button, input, textarea, select {
+    font-family: inherit;
+  }
+}
+
 /* Custom scrollbars for a premium dark mode feel */
 ::-webkit-scrollbar {
   width: 8px;
@@ -21,18 +56,127 @@
   background: #3f3f46;
 }
 
-/* Glassmorphism custom panel styles */
-.glass-panel {
-  background: rgba(20, 20, 25, 0.45);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+@layer components {
+  /* Glassmorphism — min-width evita painéis “esmagados” em flex/grid */
+  .glass-panel {
+    background: rgba(20, 20, 25, 0.45);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .glass-panel-glow {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 197, 0, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(255, 197, 0, 0.02);
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .lumiera-shell {
+    @apply min-h-screen flex flex-col min-w-0 bg-[#070708] text-gray-200;
+  }
+
+  .lumiera-header {
+    @apply border-b border-gray-800 bg-[#0c0c0e] py-3 px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-3 shrink-0 min-w-0;
+  }
+
+  .lumiera-workspace {
+    @apply flex-1 flex flex-col md:flex-row min-h-0 min-w-0 overflow-hidden;
+  }
+
+  .lumiera-sidebar {
+    @apply bg-[#0a0a0c] flex flex-col shrink-0 min-h-0 overflow-hidden;
+    @apply w-full md:w-56 lg:w-60 border-gray-850 md:border-r max-md:border-b max-md:max-h-[40vh];
+  }
+
+  .lumiera-main {
+    @apply flex-1 flex flex-col min-w-0 min-h-0 bg-[#09090b];
+  }
+
+  .lumiera-content {
+    @apply flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 min-w-0;
+  }
+
+  .lumiera-project-bar {
+    @apply shrink-0 border-b border-zinc-800/80 bg-[#0a0a0c]/95 backdrop-blur-sm px-4 sm:px-6 py-3 min-w-0;
+  }
+
+  .lumiera-section-label {
+    @apply text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-wide font-sans break-words leading-snug;
+  }
+
+  .lumiera-tab-nav {
+    @apply flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 min-w-0;
+    scrollbar-width: thin;
+  }
+
+  .lumiera-tab-btn {
+    @apply shrink-0 inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 px-2.5 sm:px-3 py-2 rounded-lg text-[10px] sm:text-[11px] font-semibold transition cursor-pointer max-w-full text-center leading-snug;
+  }
+
+  .lumiera-card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 min-w-0 w-full;
+  }
+
+  .lumiera-render-card {
+    @apply p-5 sm:p-6 rounded-2xl flex flex-col justify-between gap-4 font-sans min-w-0;
+    min-height: 15rem;
+  }
+
+  .lumiera-sidebar-btn {
+    @apply w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-xs font-bold font-sans transition flex flex-wrap items-center justify-center gap-x-2 gap-y-1 cursor-pointer min-w-0 text-center leading-snug;
+  }
+
+  .lumiera-status-pill {
+    @apply flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-3 bg-zinc-900 border border-zinc-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs min-w-0 max-w-full;
+  }
+
+  .lumiera-btn-row {
+    @apply flex flex-wrap items-center gap-2 min-w-0;
+  }
+
+  .lumiera-panel-stack {
+    @apply space-y-6 sm:space-y-8 min-w-0 w-full;
+  }
+
+  .lumiera-fill-view {
+    @apply flex flex-col min-h-0 flex-1 overflow-hidden font-sans;
+    max-height: calc(100vh - 8rem);
+  }
+
+  @media (max-width: 767px) {
+    .lumiera-fill-view {
+      max-height: none;
+    }
+  }
 }
 
-.glass-panel-glow {
-  background: rgba(20, 20, 25, 0.6);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 197, 0, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(255, 197, 0, 0.02);
+@layer utilities {
+  .text-balance-safe {
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+  }
+
+  .line-clamp-safe-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Labels pequenos: Inter em vez de Cinzel evita letras estouradas */
+  .ui-micro-label {
+    @apply font-sans tracking-wide uppercase text-[10px] font-bold;
+    letter-spacing: 0.05em;
+  }
 }
 
 /* Render progress widget slide-in animation */
