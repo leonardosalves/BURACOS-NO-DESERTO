@@ -4737,7 +4737,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   });
 
   ensureProjectSfxPack(projectDir);
-  augmentSfxTimelineForOverlays(projectDir, overlays, timings.starts || []);
+  augmentSfxTimelineForOverlays(projectDir, overlays, timings.starts || [], config);
   const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
   const bgmDuckPoints = buildBgmDuckPoints(overlays, wordTranscripts);
 
@@ -4773,12 +4773,15 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     overlays,
     youtubeChannelInfo,
     transparent: isProres,
-    captionStyle: config.caption_style || (format === "9:16" ? "shorts-viral" : "documentary"),
+    captionStyle: config.caption_style === "documentary" ? "documentary" : (config.caption_style === "shorts-viral" ? "shorts-viral" : (format === "9:16" ? "shorts-viral" : "documentary")),
     designPreset: config.design_preset || null,
-    grainOverlay: Boolean(config.grain_overlay),
-    vignette: Boolean(config.vignette),
+    grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
+    vignette: config.vignette !== false,
     showProgressBar: format === "16:9" && config.progress_bar !== false,
     accentColor: config.accent_color || "#C5A880",
+    shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
+    shortsHookFlash: config.shorts_hook_flash !== false,
+    shortsEdgeGlow: config.shorts_edge_glow === true,
     bgmDuckPoints,
   };
 

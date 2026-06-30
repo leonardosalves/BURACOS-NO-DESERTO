@@ -213,7 +213,7 @@ export function isDocumentaryHistoryNiche(niche = "", config = {}, storyboard = 
 
 export function resolveDesignPreset(config = {}, storyboard = {}, niche = "") {
   const explicit = config.design_preset || storyboard.design_preset;
-  if (explicit && DESIGN_PRESETS[explicit]) {
+  if (explicit && explicit !== "auto" && DESIGN_PRESETS[explicit]) {
     return DESIGN_PRESETS[explicit];
   }
 
@@ -237,22 +237,25 @@ export function applyDocumentaryHistoryPreset(config = {}, storyboard = {}, nich
   }
 
   const isShort = config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
-  const nextConfig = {
-    ...config,
-    design_preset: preset.id,
-    caption_style: isShort ? preset.captionStyle.short : preset.captionStyle.long,
-    overlay_theme: preset.theme,
-    accent_color: preset.accentColor,
-    secondary_color: preset.secondaryColor,
-    grain_overlay: preset.grain,
-    vignette: preset.vignette,
-    font_title: preset.fontTitle,
-    font_body: preset.fontBody,
-  };
+  const nextConfig = { ...config };
+
+  if (!nextConfig.design_preset || nextConfig.design_preset === "auto") {
+    nextConfig.design_preset = preset.id;
+  }
+  if (!nextConfig.caption_style || nextConfig.caption_style === "auto") {
+    nextConfig.caption_style = isShort ? preset.captionStyle.short : preset.captionStyle.long;
+  }
+  if (!nextConfig.overlay_theme) nextConfig.overlay_theme = preset.theme;
+  if (!nextConfig.accent_color) nextConfig.accent_color = preset.accentColor;
+  if (!nextConfig.secondary_color) nextConfig.secondary_color = preset.secondaryColor;
+  if (nextConfig.grain_overlay === undefined) nextConfig.grain_overlay = preset.grain;
+  if (nextConfig.vignette === undefined) nextConfig.vignette = preset.vignette;
+  if (!nextConfig.font_title) nextConfig.font_title = preset.fontTitle;
+  if (!nextConfig.font_body) nextConfig.font_body = preset.fontBody;
 
   const nextStoryboard = {
     ...storyboard,
-    design_preset: preset.id,
+    design_preset: nextConfig.design_preset,
   };
 
   return { config: nextConfig, storyboard: nextStoryboard, applied: true, preset };
@@ -891,8 +894,13 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
 }
 
 export function injectProLayoutOverlays(overlays = [], config = {}, storyboard = {}, starts = [], durations = [], plan = {}) {
-  let merged = promoteSourceCardOverlays(overlays, config, storyboard);
-  merged = mergeOverlays(merged, buildChapterStingerOverlays(config, storyboard, starts, durations));
+  let merged = overlays || [];
+  if (config.source_cards !== false) {
+    merged = promoteSourceCardOverlays(merged, config, storyboard);
+  }
+  if (config.chapter_stingers !== false) {
+    merged = mergeOverlays(merged, buildChapterStingerOverlays(config, storyboard, starts, durations));
+  }
   merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard });
   return merged;
 }
@@ -1146,7 +1154,7 @@ export function validateVideoQuality({
   };
 }
 
-export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts = []) {
+export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts = [], config = {}) {
   ensureProjectSfxPack(projectDir);
 
   const timelinePath = path.join(projectDir, "sfx_timeline.json");
@@ -1158,6 +1166,10 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
   }
 
   const events = Array.isArray(timeline.sfx_events) ? [...timeline.sfx_events] : [];
+  if (config.overlay_sfx_sync === false) {
+    return timeline;
+  }
+
   const hasAt = (time, file) => events.some((e) => Math.abs(Number(e.time) - time) < 0.35 && e.file === file);
 
   const files = {

@@ -91,6 +91,7 @@ import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
 import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
+import { VisualSettings } from './VisualSettings';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { warnLongListicleTitles } from './ListicleHudPreview';
@@ -142,6 +143,20 @@ interface ConfigData {
 
   aspect_ratio?: '16:9' | '9:16';
   render_resolution?: '1080p' | '2k';
+  design_preset?: string;
+  caption_style?: string;
+  grain_overlay?: boolean;
+  vignette?: boolean;
+  progress_bar?: boolean;
+  chapter_stingers?: boolean;
+  source_cards?: boolean;
+  overlay_sfx_sync?: boolean;
+  listicle_hud_style?: 'auto' | 'full' | 'compact';
+  shorts_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  shorts_hook_flash?: boolean;
+  shorts_edge_glow?: boolean;
+  accent_color?: string;
+  content_mode?: string;
 
   use_single_bgm?: boolean;
 
@@ -850,6 +865,7 @@ export default function App() {
   const [savingChannelConfig, setSavingChannelConfig] = useState<boolean>(false);
 
   const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
+  const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
 
   const fetchGlobalRenderConfig = async () => {
 
@@ -11752,6 +11768,26 @@ export default function App() {
 
               </div>
 
+              )}
+
+              {settingsSection === 'visual' && (
+                <VisualSettings
+                  config={config || {}}
+                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
+                  isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
+                  saving={savingVisualConfig}
+                  onChange={(patch) => setConfig((prev) => ({ ...(prev || {}), ...patch }))}
+                  onSave={async () => {
+                    if (!config) return;
+                    setSavingVisualConfig(true);
+                    try {
+                      await saveConfig(config);
+                      toast.success('Configurações visuais salvas no projeto.');
+                    } finally {
+                      setSavingVisualConfig(false);
+                    }
+                  }}
+                />
               )}
 
               {settingsSection === 'marca' && (

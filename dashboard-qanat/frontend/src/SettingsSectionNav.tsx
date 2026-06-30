@@ -1,12 +1,13 @@
 import React from 'react';
-import { Brain, KeyRound, Sliders, Image, Plug } from 'lucide-react';
+import { Brain, KeyRound, Sliders, Image, Plug, Palette } from 'lucide-react';
 
-export type SettingsSection = 'ia' | 'apis' | 'render' | 'marca' | 'integracoes';
+export type SettingsSection = 'ia' | 'apis' | 'render' | 'visual' | 'marca' | 'integracoes';
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'ia', label: 'IA', icon: <Brain className="w-3.5 h-3.5" /> },
   { id: 'apis', label: 'APIs & Mídia', icon: <KeyRound className="w-3.5 h-3.5" /> },
   { id: 'render', label: 'Render', icon: <Sliders className="w-3.5 h-3.5" /> },
+  { id: 'visual', label: 'Visual', icon: <Palette className="w-3.5 h-3.5" /> },
   { id: 'marca', label: 'Marca', icon: <Image className="w-3.5 h-3.5" /> },
   { id: 'integracoes', label: 'Integrações', icon: <Plug className="w-3.5 h-3.5" /> },
 ];
