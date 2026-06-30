@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Palette, Save, Sparkles } from 'lucide-react';
+import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 
 export type VisualConfig = {
   design_preset?: string;
@@ -24,11 +25,12 @@ export type VisualConfig = {
 
 type Props = {
   config: VisualConfig;
+  projectKey: string;
+  savedRevision?: number;
   isShortFormat: boolean;
   isListicle: boolean;
   saving?: boolean;
-  onChange: (patch: Partial<VisualConfig>) => void;
-  onSave: () => void;
+  onSave: (draft: VisualConfig) => void | Promise<void>;
 };
 
 const PRESET_OPTIONS = [
@@ -100,11 +102,21 @@ function ToggleCard({
   );
 }
 
-export function VisualSettings({ config, isShortFormat, isListicle, saving, onChange, onSave }: Props) {
-  const preset = config.design_preset || 'auto';
-  const caption = config.caption_style || 'auto';
-  const zoom = config.shorts_zoom_intensity || 'normal';
-  const portalEvery = config.shorts_portal_every || 4;
+export function VisualSettings({ config, projectKey, savedRevision = 0, isShortFormat, isListicle, saving, onSave }: Props) {
+  const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
+
+  useEffect(() => {
+    setDraft(pickVisualConfig(config));
+  }, [projectKey, savedRevision]);
+
+  const patchDraft = (patch: Partial<VisualConfig>) => {
+    setDraft((prev) => applyVisualPatch(prev, patch));
+  };
+
+  const preset = draft.design_preset || 'auto';
+  const caption = draft.caption_style || 'auto';
+  const zoom = draft.shorts_zoom_intensity || 'normal';
+  const portalEvery = draft.shorts_portal_every || 4;
 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-5">
@@ -125,7 +137,7 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
             <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Preset visual</label>
             <select
               value={preset}
-              onChange={(e) => onChange({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
+              onChange={(e) => patchDraft({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white appearance-none"
             >
               {PRESET_OPTIONS.map((o) => (
@@ -139,7 +151,7 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
             <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">Estilo de legenda</label>
             <select
               value={caption}
-              onChange={(e) => onChange({ caption_style: e.target.value === 'auto' ? undefined : e.target.value })}
+              onChange={(e) => patchDraft({ caption_style: e.target.value === 'auto' ? undefined : e.target.value })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white appearance-none"
             >
               {CAPTION_OPTIONS.map((o) => (
@@ -154,15 +166,15 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
             <div className="flex gap-2 items-center">
               <input
                 type="color"
-                value={config.accent_color || '#C5A880'}
-                onChange={(e) => onChange({ accent_color: e.target.value })}
+                value={draft.accent_color || '#C5A880'}
+                onChange={(e) => patchDraft({ accent_color: e.target.value })}
                 className="w-10 h-10 rounded-lg border border-zinc-700 cursor-pointer shrink-0"
               />
               <input
                 type="text"
-                value={config.accent_color || ''}
+                value={draft.accent_color || ''}
                 placeholder="#C5A880 (automático)"
-                onChange={(e) => onChange({ accent_color: e.target.value || undefined })}
+                onChange={(e) => patchDraft({ accent_color: e.target.value.trim() || undefined })}
                 className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono"
               />
             </div>
@@ -185,8 +197,8 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
             <div key={item.key} className="flex items-center justify-between gap-3 py-0.5">
               <span className="text-xs text-zinc-300">{item.label}</span>
               <select
-                value={triBool(config[item.key], item.defaultOn)}
-                onChange={(e) => onChange({ [item.key]: parseTriBool(e.target.value, item.defaultOn) })}
+                value={triBool(draft[item.key], item.defaultOn)}
+                onChange={(e) => patchDraft({ [item.key]: parseTriBool(e.target.value, item.defaultOn) })}
                 className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-[10px] text-white"
               >
                 <option value="default">Padrão</option>
@@ -200,8 +212,8 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
             <div className="space-y-2 pt-2 border-t border-zinc-900">
               <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider">HUD listicle</label>
               <select
-                value={config.listicle_hud_style || 'auto'}
-                onChange={(e) => onChange({
+                value={draft.listicle_hud_style || 'auto'}
+                onChange={(e) => patchDraft({
                   listicle_hud_style: e.target.value as 'auto' | 'full' | 'compact',
                 })}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
@@ -228,7 +240,7 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => onChange({ shorts_zoom_intensity: o.id })}
+                  onClick={() => patchDraft({ shorts_zoom_intensity: o.id })}
                   className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
                     zoom === o.id
                       ? 'border-violet-400 bg-violet-500/25 text-violet-200'
@@ -246,31 +258,31 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
             <ToggleCard
               label="Flash no gancho (0–0,3s)"
               description="Flash branco sutil no início — prende atenção imediata."
-              checked={config.shorts_hook_flash !== false}
-              onChange={(v) => onChange({ shorts_hook_flash: v })}
+              checked={draft.shorts_hook_flash !== false}
+              onChange={(v) => patchDraft({ shorts_hook_flash: v })}
             />
             <ToggleCard
               label="Glow inferior (safe zone)"
               description="Brilho na base da tela — legendas fora dos botões do YouTube."
-              checked={config.shorts_edge_glow === true}
+              checked={draft.shorts_edge_glow === true}
               defaultChecked={false}
-              onChange={(v) => onChange({ shorts_edge_glow: v })}
+              onChange={(v) => patchDraft({ shorts_edge_glow: v })}
             />
             <ToggleCard
               label="Pulso legenda + BGM"
               description="Palavra ativa pulsa no ritmo da trilha (~120 BPM)."
-              checked={config.shorts_caption_bgm_pulse !== false}
-              onChange={(v) => onChange({ shorts_caption_bgm_pulse: v })}
+              checked={draft.shorts_caption_bgm_pulse !== false}
+              onChange={(v) => patchDraft({ shorts_caption_bgm_pulse: v })}
             />
             <ToggleCard
               label="Transição portal"
               description="Wipe circular com anel de acento entre cenas."
-              checked={config.shorts_portal_transition !== false}
-              onChange={(v) => onChange({ shorts_portal_transition: v })}
+              checked={draft.shorts_portal_transition !== false}
+              onChange={(v) => patchDraft({ shorts_portal_transition: v })}
             />
           </div>
 
-          {config.shorts_portal_transition !== false && (
+          {draft.shorts_portal_transition !== false && (
             <div className="space-y-2">
               <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Frequência portal</label>
               <div className="flex flex-wrap gap-2">
@@ -278,7 +290,7 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
                   <button
                     key={o.value}
                     type="button"
-                    onClick={() => onChange({ shorts_portal_every: o.value })}
+                    onClick={() => patchDraft({ shorts_portal_every: o.value })}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition ${
                       portalEvery === o.value
                         ? 'border-violet-400/60 bg-violet-500/15 text-violet-200'
@@ -301,7 +313,7 @@ export function VisualSettings({ config, isShortFormat, isListicle, saving, onCh
       <div className="flex justify-end border-t border-zinc-900 pt-4">
         <button
           type="button"
-          onClick={onSave}
+          onClick={() => onSave(draft)}
           disabled={saving}
           className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2"
         >
