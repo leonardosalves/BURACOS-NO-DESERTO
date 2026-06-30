@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/hyperframes|HyperFrames]] · [[SKILLS]]
+
 ---
 name: hyperframes_templates
 description: Catálogo completo de 134 recursos HyperFrames (HeyGen) convertidos para o ecossistema Remotion PRO do Lumiera, aplicando orquestração de vídeo design viral, otimização de retenção para SEO do YouTube e estratégias de design baseadas no RPM do nicho.
