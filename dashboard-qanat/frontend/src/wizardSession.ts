@@ -1,0 +1,174 @@
+export const WIZARD_SESSION_KEY = 'qanat_wizard_session';
+export const LEGACY_CREATOR_STATE_KEY = 'qanat_creator_state';
+export const WIZARD_SESSION_VERSION = 1;
+
+export type WizardSession = {
+  version: number;
+  savedAt: string;
+  wasInWizard: boolean;
+  activeTab: string;
+  activeProject: string;
+  creatorStep: number;
+  nicheInput: string;
+  formatSelector: 'LONGO' | 'SHORTS';
+  ideasData: unknown;
+  selectedIdeaIndex: number;
+  generatedScriptData: unknown;
+  creatorProjectName: string;
+  creatorScript: string;
+  ideationTab: 'ai' | 'custom' | 'listicle';
+  customTitle: string;
+  customHooks: string;
+  customOutline: string;
+  customBlocks: { block: number; content: string }[];
+  customIdeaTitle: string;
+  customIdeaPromise: string;
+  customIdeaHook: string;
+  customIdeaEmotion: string;
+  customIdeaBlocks: string;
+  listNiche: string;
+  listTopic: string;
+  rankCount: number;
+  rankOrder: 'desc' | 'asc';
+  listicleHudStyle: 'full' | 'compact' | 'auto';
+  listicleIdeasData: unknown;
+  listicleSearchNiche: string;
+  ideasSearchNiche: string;
+  selectedListicleIdeaIndex: number;
+  showNarrationReview: boolean;
+  narrationDraft: string;
+  narrationTaggedDraft: string;
+  narrationStrategy: unknown;
+  narrationBlockPhrases: { block: number; phrase: string }[];
+  narrationBlockScript: string;
+  narrationNotebooklmEnriched: boolean;
+  narrationProjectName: string;
+  useNotebooklm: boolean;
+  uploadedScenes: Record<string, boolean>;
+  expandedBlocks: Record<number, boolean>;
+};
+
+export type WizardSessionPatch = Partial<Omit<WizardSession, 'version' | 'savedAt'>>;
+
+const EMPTY_BLOCKS = [{ block: 1, content: '' }];
+
+function parseJson<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function loadWizardSession(): WizardSessionPatch | null {
+  const modern = parseJson<WizardSessionPatch>(localStorage.getItem(WIZARD_SESSION_KEY));
+  const legacy = parseJson<WizardSessionPatch>(localStorage.getItem(LEGACY_CREATOR_STATE_KEY));
+  const merged = { ...(legacy || {}), ...(modern || {}) };
+  if (!Object.keys(merged).length) return null;
+  return merged;
+}
+
+export function shouldRestoreWizardTab(session: WizardSessionPatch | null): boolean {
+  if (!session) return false;
+  if (session.wasInWizard === true) return true;
+  if (session.activeTab === 'creator') return true;
+  const step = Number(session.creatorStep || 1);
+  if (step > 1) return true;
+  if (session.showNarrationReview) return true;
+  if (session.generatedScriptData) return true;
+  if (String(session.creatorProjectName || '').trim()) return true;
+  return false;
+}
+
+export function resolveWizardActiveProject(session: WizardSessionPatch | null): string {
+  if (!session) return '';
+  return String(
+    session.narrationProjectName
+    || session.creatorProjectName
+    || session.activeProject
+    || '',
+  ).trim();
+}
+
+export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
+  const prev = loadWizardSession() || {};
+  const payload: WizardSession = {
+    version: WIZARD_SESSION_VERSION,
+    savedAt: new Date().toISOString(),
+    wasInWizard: patch.wasInWizard ?? prev.wasInWizard ?? false,
+    activeTab: patch.activeTab ?? prev.activeTab ?? 'status',
+    activeProject: patch.activeProject ?? prev.activeProject ?? '',
+    creatorStep: patch.creatorStep ?? prev.creatorStep ?? 1,
+    nicheInput: patch.nicheInput ?? prev.nicheInput ?? '',
+    formatSelector: patch.formatSelector ?? prev.formatSelector ?? 'LONGO',
+    ideasData: patch.ideasData !== undefined ? patch.ideasData : prev.ideasData ?? null,
+    selectedIdeaIndex: patch.selectedIdeaIndex ?? prev.selectedIdeaIndex ?? -1,
+    generatedScriptData: patch.generatedScriptData !== undefined ? patch.generatedScriptData : prev.generatedScriptData ?? null,
+    creatorProjectName: patch.creatorProjectName ?? prev.creatorProjectName ?? '',
+    creatorScript: patch.creatorScript ?? prev.creatorScript ?? '',
+    ideationTab: patch.ideationTab ?? prev.ideationTab ?? 'ai',
+    customTitle: patch.customTitle ?? prev.customTitle ?? '',
+    customHooks: patch.customHooks ?? prev.customHooks ?? '',
+    customOutline: patch.customOutline ?? prev.customOutline ?? '',
+    customBlocks: patch.customBlocks ?? prev.customBlocks ?? EMPTY_BLOCKS,
+    customIdeaTitle: patch.customIdeaTitle ?? prev.customIdeaTitle ?? '',
+    customIdeaPromise: patch.customIdeaPromise ?? prev.customIdeaPromise ?? '',
+    customIdeaHook: patch.customIdeaHook ?? prev.customIdeaHook ?? '',
+    customIdeaEmotion: patch.customIdeaEmotion ?? prev.customIdeaEmotion ?? '',
+    customIdeaBlocks: patch.customIdeaBlocks ?? prev.customIdeaBlocks ?? '',
+    listNiche: patch.listNiche ?? prev.listNiche ?? '',
+    listTopic: patch.listTopic ?? prev.listTopic ?? '',
+    rankCount: patch.rankCount ?? prev.rankCount ?? 20,
+    rankOrder: patch.rankOrder ?? prev.rankOrder ?? 'desc',
+    listicleHudStyle: patch.listicleHudStyle ?? prev.listicleHudStyle ?? 'auto',
+    listicleIdeasData: patch.listicleIdeasData !== undefined ? patch.listicleIdeasData : prev.listicleIdeasData ?? null,
+    listicleSearchNiche: patch.listicleSearchNiche ?? prev.listicleSearchNiche ?? '',
+    ideasSearchNiche: patch.ideasSearchNiche ?? prev.ideasSearchNiche ?? '',
+    selectedListicleIdeaIndex: patch.selectedListicleIdeaIndex ?? prev.selectedListicleIdeaIndex ?? -1,
+    showNarrationReview: patch.showNarrationReview ?? prev.showNarrationReview ?? false,
+    narrationDraft: patch.narrationDraft ?? prev.narrationDraft ?? '',
+    narrationTaggedDraft: patch.narrationTaggedDraft ?? prev.narrationTaggedDraft ?? '',
+    narrationStrategy: patch.narrationStrategy !== undefined ? patch.narrationStrategy : prev.narrationStrategy ?? null,
+    narrationBlockPhrases: patch.narrationBlockPhrases ?? prev.narrationBlockPhrases ?? [],
+    narrationBlockScript: patch.narrationBlockScript ?? prev.narrationBlockScript ?? '',
+    narrationNotebooklmEnriched: patch.narrationNotebooklmEnriched ?? prev.narrationNotebooklmEnriched ?? false,
+    narrationProjectName: patch.narrationProjectName ?? prev.narrationProjectName ?? '',
+    useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? true,
+    uploadedScenes: patch.uploadedScenes ?? prev.uploadedScenes ?? {},
+    expandedBlocks: patch.expandedBlocks ?? prev.expandedBlocks ?? { 1: true },
+  };
+  const serialized = JSON.stringify(payload);
+  localStorage.setItem(WIZARD_SESSION_KEY, serialized);
+  localStorage.setItem(LEGACY_CREATOR_STATE_KEY, serialized);
+  return payload;
+}
+
+export function clearWizardSession(): void {
+  localStorage.removeItem(WIZARD_SESSION_KEY);
+  localStorage.removeItem(LEGACY_CREATOR_STATE_KEY);
+}
+
+export function isServerSessionNewer(
+  localSession: WizardSessionPatch | null,
+  serverSavedAt?: string | null,
+): boolean {
+  if (!serverSavedAt) return false;
+  const localAt = localSession?.savedAt ? Date.parse(localSession.savedAt) : 0;
+  const serverAt = Date.parse(serverSavedAt);
+  return Number.isFinite(serverAt) && serverAt > localAt + 500;
+}
+
+export function formatWizardSavedAt(savedAt?: string): string {
+  if (!savedAt) return '';
+  try {
+    return new Date(savedAt).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}

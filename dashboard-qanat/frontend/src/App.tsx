@@ -101,6 +101,16 @@ import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } fro
 import { SettingsProduction } from './SettingsProduction';
 import { StudioAgents } from './StudioAgents';
 import {
+  loadWizardSession,
+  saveWizardSession,
+  clearWizardSession,
+  shouldRestoreWizardTab,
+  resolveWizardActiveProject,
+  isServerSessionNewer,
+  formatWizardSavedAt,
+  type WizardSessionPatch,
+} from './wizardSession';
+import {
   PreRenderAdviceModal,
   PreRenderAdvicePanel,
   type PreRenderAdvice,
@@ -511,9 +521,18 @@ const JsonTreeView: React.FC<{ value: any }> = ({ value }) => {
 
 };
 
+const initialWizardSession = loadWizardSession();
+
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents'>('status');
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents';
+
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
+    const saved = initialWizardSession?.activeTab;
+    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents'];
+    return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
+  });
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -581,7 +600,11 @@ export default function App() {
 
   const [videoFileDurations, setVideoFileDurations] = useState<Record<string, number>>({});
 
-  const [activeProject, setActiveProject] = useState<string>(localStorage.getItem('qanat_active_project') || 'Buracos no Deserto');
+  const [activeProject, setActiveProject] = useState<string>(
+    resolveWizardActiveProject(initialWizardSession)
+    || localStorage.getItem('qanat_active_project')
+    || 'Buracos no Deserto',
+  );
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
@@ -819,25 +842,13 @@ export default function App() {
 
   // Creator states
 
-    const savedCreatorState = (() => {
-
-    try {
-
-      const saved = localStorage.getItem('qanat_creator_state');
-
-      if (saved) return JSON.parse(saved);
-
-    } catch(e) {}
-
-    return {};
-
-  })();
+  const savedCreatorState = initialWizardSession || {};
 
   const [creatorStep, setCreatorStep] = useState<number>(savedCreatorState.creatorStep || 1);
 
   const [creatorPrompt, setCreatorPrompt] = useState<string>('');
 
-  const [creatorScript, setCreatorScript] = useState<string>('');
+  const [creatorScript, setCreatorScript] = useState<string>(savedCreatorState.creatorScript || '');
 
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
   const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full'>('idle');
@@ -853,7 +864,7 @@ export default function App() {
     savedCreatorState.narrationNotebooklmEnriched || false,
   );
   const [narrationProjectName, setNarrationProjectName] = useState<string>(savedCreatorState.narrationProjectName || '');
-  const [useNotebooklm, setUseNotebooklm] = useState<boolean>(true);
+  const [useNotebooklm, setUseNotebooklm] = useState<boolean>(savedCreatorState.useNotebooklm !== false);
   const [notebooklmStatus, setNotebooklmStatus] = useState<{
     available: boolean;
     authenticated: boolean;
@@ -902,11 +913,11 @@ export default function App() {
 
   const [selectedIdeaIndex, setSelectedIdeaIndex] = useState<number>(savedCreatorState.selectedIdeaIndex !== undefined ? savedCreatorState.selectedIdeaIndex : -1);
 
-  const [customIdeaTitle, setCustomIdeaTitle] = useState("");
-  const [customIdeaPromise, setCustomIdeaPromise] = useState("");
-  const [customIdeaHook, setCustomIdeaHook] = useState("");
-  const [customIdeaEmotion, setCustomIdeaEmotion] = useState("");
-  const [customIdeaBlocks, setCustomIdeaBlocks] = useState("");
+  const [customIdeaTitle, setCustomIdeaTitle] = useState(savedCreatorState.customIdeaTitle || '');
+  const [customIdeaPromise, setCustomIdeaPromise] = useState(savedCreatorState.customIdeaPromise || '');
+  const [customIdeaHook, setCustomIdeaHook] = useState(savedCreatorState.customIdeaHook || '');
+  const [customIdeaEmotion, setCustomIdeaEmotion] = useState(savedCreatorState.customIdeaEmotion || '');
+  const [customIdeaBlocks, setCustomIdeaBlocks] = useState(savedCreatorState.customIdeaBlocks || '');
 
   const [ideationTab, setIdeationTab] = useState<'ai' | 'custom' | 'listicle'>(savedCreatorState.ideationTab || 'ai');
   const [listNiche, setListNiche] = useState<string>(savedCreatorState.listNiche || '');
@@ -937,7 +948,12 @@ export default function App() {
 
   // Accordion blocks and autosave states for Wizard Step 5
 
-  const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>({ 1: true });
+  const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>(
+    savedCreatorState.expandedBlocks || { 1: true },
+  );
+  const [wizardSavedAtLabel, setWizardSavedAtLabel] = useState(
+    formatWizardSavedAt(savedCreatorState.savedAt),
+  );
 
   const saveStoryboardTimeoutRef = useRef<any | null>(null);
 
@@ -1237,7 +1253,11 @@ export default function App() {
 
   const [selectedProject, setSelectedProject] = useState<string>(activeProject);
 
-  const [uploadedScenes, setUploadedScenes] = useState<Record<string, boolean>>({});
+  const [uploadedScenes, setUploadedScenes] = useState<Record<string, boolean>>(
+    savedCreatorState.uploadedScenes || {},
+  );
+  const wizardServerSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wizardRestoredRef = useRef(false);
 
   const [storyboardData, setStoryboardData] = useState<any | null>(null);
 
@@ -2071,39 +2091,158 @@ export default function App() {
     await Promise.all(tasks);
   };
 
-    useEffect(() => {
-    localStorage.setItem('qanat_creator_state', JSON.stringify({ 
-      creatorStep, 
-      nicheInput, 
-      formatSelector, 
-      ideasData, 
-      selectedIdeaIndex, 
-      generatedScriptData,
-      creatorProjectName,
-      ideationTab,
-      customTitle,
-      customHooks,
-      customOutline,
-      customBlocks,
-      listNiche,
-      listTopic,
-      rankCount,
-      rankOrder,
-      listicleHudStyle,
-      listicleIdeasData,
-      listicleSearchNiche,
-      ideasSearchNiche,
-      selectedListicleIdeaIndex,
-      showNarrationReview,
-      narrationDraft,
-      narrationTaggedDraft,
-      narrationStrategy,
-      narrationBlockPhrases,
-      narrationBlockScript,
-      narrationNotebooklmEnriched,
-      narrationProjectName,
-    }));
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData, creatorProjectName, ideationTab, customTitle, customHooks, customOutline, customBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData, listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft, narrationTaggedDraft, narrationStrategy, narrationBlockPhrases, narrationBlockScript, narrationNotebooklmEnriched, narrationProjectName]);
+  const buildWizardSessionPatch = useCallback((): WizardSessionPatch => ({
+    wasInWizard: activeTab === 'creator' || creatorStep > 1 || showNarrationReview || !!generatedScriptData,
+    activeTab,
+    activeProject,
+    creatorStep,
+    nicheInput,
+    formatSelector,
+    ideasData,
+    selectedIdeaIndex,
+    generatedScriptData,
+    creatorProjectName,
+    creatorScript,
+    ideationTab,
+    customTitle,
+    customHooks,
+    customOutline,
+    customBlocks,
+    customIdeaTitle,
+    customIdeaPromise,
+    customIdeaHook,
+    customIdeaEmotion,
+    customIdeaBlocks,
+    listNiche,
+    listTopic,
+    rankCount,
+    rankOrder,
+    listicleHudStyle,
+    listicleIdeasData,
+    listicleSearchNiche,
+    ideasSearchNiche,
+    selectedListicleIdeaIndex,
+    showNarrationReview,
+    narrationDraft,
+    narrationTaggedDraft,
+    narrationStrategy,
+    narrationBlockPhrases,
+    narrationBlockScript,
+    narrationNotebooklmEnriched,
+    narrationProjectName,
+    useNotebooklm,
+    uploadedScenes,
+    expandedBlocks,
+  }), [
+    activeTab, activeProject, creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex,
+    generatedScriptData, creatorProjectName, creatorScript, ideationTab, customTitle, customHooks,
+    customOutline, customBlocks, customIdeaTitle, customIdeaPromise, customIdeaHook, customIdeaEmotion,
+    customIdeaBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData,
+    listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft,
+    narrationTaggedDraft, narrationStrategy, narrationBlockPhrases, narrationBlockScript,
+    narrationNotebooklmEnriched, narrationProjectName, useNotebooklm, uploadedScenes, expandedBlocks,
+  ]);
+
+  const applyWizardSessionPatch = useCallback((patch: WizardSessionPatch) => {
+    if (patch.creatorStep !== undefined) setCreatorStep(patch.creatorStep);
+    if (patch.nicheInput !== undefined) setNicheInput(patch.nicheInput);
+    if (patch.formatSelector) setFormatSelector(patch.formatSelector);
+    if (patch.ideasData !== undefined) setIdeasData(patch.ideasData as typeof ideasData);
+    if (patch.selectedIdeaIndex !== undefined) setSelectedIdeaIndex(patch.selectedIdeaIndex);
+    if (patch.generatedScriptData !== undefined) setGeneratedScriptData(patch.generatedScriptData);
+    if (patch.creatorProjectName !== undefined) setCreatorProjectName(patch.creatorProjectName);
+    if (patch.creatorScript !== undefined) setCreatorScript(patch.creatorScript);
+    if (patch.ideationTab) setIdeationTab(patch.ideationTab);
+    if (patch.customTitle !== undefined) setCustomTitle(patch.customTitle);
+    if (patch.customHooks !== undefined) setCustomHooks(patch.customHooks);
+    if (patch.customOutline !== undefined) setCustomOutline(patch.customOutline);
+    if (patch.customBlocks) setCustomBlocks(patch.customBlocks);
+    if (patch.customIdeaTitle !== undefined) setCustomIdeaTitle(patch.customIdeaTitle);
+    if (patch.customIdeaPromise !== undefined) setCustomIdeaPromise(patch.customIdeaPromise);
+    if (patch.customIdeaHook !== undefined) setCustomIdeaHook(patch.customIdeaHook);
+    if (patch.customIdeaEmotion !== undefined) setCustomIdeaEmotion(patch.customIdeaEmotion);
+    if (patch.customIdeaBlocks !== undefined) setCustomIdeaBlocks(patch.customIdeaBlocks);
+    if (patch.listNiche !== undefined) setListNiche(patch.listNiche);
+    if (patch.listTopic !== undefined) setListTopic(patch.listTopic);
+    if (patch.rankCount !== undefined) setRankCount(patch.rankCount);
+    if (patch.rankOrder) setRankOrder(patch.rankOrder);
+    if (patch.listicleHudStyle) setListicleHudStyle(patch.listicleHudStyle);
+    if (patch.listicleIdeasData !== undefined) setListicleIdeasData(patch.listicleIdeasData as typeof listicleIdeasData);
+    if (patch.listicleSearchNiche !== undefined) setListicleSearchNiche(patch.listicleSearchNiche);
+    if (patch.ideasSearchNiche !== undefined) setIdeasSearchNiche(patch.ideasSearchNiche);
+    if (patch.selectedListicleIdeaIndex !== undefined) setSelectedListicleIdeaIndex(patch.selectedListicleIdeaIndex);
+    if (patch.showNarrationReview !== undefined) setShowNarrationReview(patch.showNarrationReview);
+    if (patch.narrationDraft !== undefined) setNarrationDraft(patch.narrationDraft);
+    if (patch.narrationTaggedDraft !== undefined) setNarrationTaggedDraft(patch.narrationTaggedDraft);
+    if (patch.narrationStrategy !== undefined) setNarrationStrategy(patch.narrationStrategy);
+    if (patch.narrationBlockPhrases) setNarrationBlockPhrases(patch.narrationBlockPhrases);
+    if (patch.narrationBlockScript !== undefined) setNarrationBlockScript(patch.narrationBlockScript);
+    if (patch.narrationNotebooklmEnriched !== undefined) setNarrationNotebooklmEnriched(patch.narrationNotebooklmEnriched);
+    if (patch.narrationProjectName !== undefined) setNarrationProjectName(patch.narrationProjectName);
+    if (patch.useNotebooklm !== undefined) setUseNotebooklm(patch.useNotebooklm);
+    if (patch.uploadedScenes) setUploadedScenes(patch.uploadedScenes);
+    if (patch.expandedBlocks) setExpandedBlocks(patch.expandedBlocks);
+    if (patch.activeProject) setActiveProject(patch.activeProject);
+    if (patch.activeTab === 'creator' || shouldRestoreWizardTab(patch)) {
+      setActiveTab('creator');
+    }
+    if (patch.savedAt) setWizardSavedAtLabel(formatWizardSavedAt(patch.savedAt));
+  }, []);
+
+  useEffect(() => {
+    const saved = saveWizardSession(buildWizardSessionPatch());
+    setWizardSavedAtLabel(formatWizardSavedAt(saved.savedAt));
+
+    const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+    if (!project || activeTab !== 'creator') return;
+
+    if (wizardServerSaveTimer.current) clearTimeout(wizardServerSaveTimer.current);
+    wizardServerSaveTimer.current = setTimeout(() => {
+      const separator = '/api/projects/wizard-session'.includes('?') ? '&' : '?';
+      fetch(`/api/projects/wizard-session${separator}project=${encodeURIComponent(project)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(saved),
+      }).catch(() => {});
+    }, 1500);
+
+    return () => {
+      if (wizardServerSaveTimer.current) clearTimeout(wizardServerSaveTimer.current);
+    };
+  }, [buildWizardSessionPatch, activeTab, creatorProjectName, narrationProjectName, activeProject]);
+
+  useEffect(() => {
+    if (wizardRestoredRef.current) return;
+    wizardRestoredRef.current = true;
+    const local = loadWizardSession();
+    const project = resolveWizardActiveProject(local);
+    if (!project) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.session) return;
+        if (!isServerSessionNewer(local, data.session.savedAt)) return;
+        applyWizardSessionPatch(data.session);
+        toast.success(
+          `Wizard restaurado — passo ${data.session.creatorStep || 1}${
+            data.session.creatorProjectName ? ` · ${data.session.creatorProjectName}` : ''
+          }`,
+        );
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [applyWizardSessionPatch]);
+
+  useEffect(() => {
+    if (!shouldRestoreWizardTab(initialWizardSession)) return;
+    const step = Number(initialWizardSession?.creatorStep || 1);
+    if (step <= 1 && !initialWizardSession?.showNarrationReview) return;
+    toast.success(`Wizard restaurado — passo ${step} de 7`, { duration: 4500 });
+  }, []);
 
   useEffect(() => {
     if (listicleIdeasData && listicleSearchNiche && listNiche.trim() !== listicleSearchNiche) {
@@ -7754,19 +7893,11 @@ export default function App() {
               <button 
 
                 onClick={() => {
-
                   setActiveTab('creator');
-
-                  setCreatorStep(1);
-
-                  setIdeasData(null);
-
-                  setSelectedIdeaIndex(-1);
-
-                  setGeneratedScriptData(null);
-
-                  setCreatorProjectName('');
-
+                  const session = loadWizardSession();
+                  if (session?.creatorStep && session.creatorStep > 1) {
+                    setCreatorStep(session.creatorStep);
+                  }
                 }}
 
                 className={`lumiera-sidebar-btn shadow-lg hover:scale-[1.01] ${
@@ -12477,11 +12608,49 @@ export default function App() {
                   className="mb-4"
                 />
 
+                <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px]">
+                  {wizardSavedAtLabel ? (
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+                      Sessão salva {wizardSavedAtLabel} · passo {creatorStep}/7
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+                      if (!project) {
+                        toast.error('Defina o nome do projeto antes de restaurar.');
+                        return;
+                      }
+                      try {
+                        const res = await fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`);
+                        const data = await res.json();
+                        if (!res.ok || !data.session) {
+                          toast.error('Nenhuma sessão salva no servidor para este projeto.');
+                          return;
+                        }
+                        applyWizardSessionPatch(data.session);
+                        saveWizardSession(data.session);
+                        toast.success(`Wizard restaurado do servidor — passo ${data.session.creatorStep || 1}`);
+                      } catch {
+                        toast.error('Falha ao restaurar sessão do servidor.');
+                      }
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 font-bold hover:bg-sky-500/20 transition"
+                  >
+                    Restaurar sessão
+                  </button>
+                </div>
+
                 <button 
 
-                  onClick={() => {
+                  onClick={async () => {
 
-                    localStorage.removeItem('qanat_creator_state');
+                    clearWizardSession();
+                    const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+                    if (project) {
+                      fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`, { method: 'DELETE' }).catch(() => {});
+                    }
                     setCreatorStep(1);
                     setNicheInput('');
                     setIdeasData(null);
