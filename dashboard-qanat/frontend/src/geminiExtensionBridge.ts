@@ -1,26 +1,12 @@
-export type BrowserChatProvider = 'gemini' | 'grok';
-
 const BRIDGE_SOURCE = 'lumiera-gemini-bridge';
 const APP_SOURCE = 'lumiera-app';
 
-function normalizeProvider(value?: string): BrowserChatProvider {
-  return value === 'grok' ? 'grok' : 'gemini';
-}
-
-function providerLabel(provider: BrowserChatProvider) {
-  return provider === 'grok' ? 'Grok' : 'Gemini';
-}
-
-function providerSite(provider: BrowserChatProvider) {
-  return provider === 'grok' ? 'grok.com' : 'gemini.google.com';
-}
-
-function formatExtensionError(message: string, provider: BrowserChatProvider) {
+function formatExtensionError(message: string) {
   if (/extension context invalidated|context invalidated/i.test(message)) {
     return 'Extensão foi recarregada. Recarregue esta página (F5) e tente de novo.';
   }
   if (/receiving end does not exist|could not establish connection|sem conexão/i.test(message)) {
-    return `Aba do ${providerLabel(provider)} desconectada. Abra https://${providerSite(provider)} , faça login e tente de novo.`;
+    return 'Aba do Gemini desconectada. Abra https://gemini.google.com/app, faça login e tente de novo.';
   }
   return message;
 }
@@ -33,7 +19,6 @@ type BridgeMessage = {
   text?: string;
   error?: string;
   version?: string;
-  provider?: BrowserChatProvider;
 };
 
 function sleep(ms: number) {
@@ -55,15 +40,14 @@ export async function waitForBridgeScript(maxMs = 2000): Promise<boolean> {
 }
 
 function postToBridge<T extends BridgeMessage>(
-  payload: Omit<T, 'source'> & { provider?: BrowserChatProvider },
+  payload: Omit<T, 'source'>,
   timeoutMs = 95000,
 ) {
-  const provider = normalizeProvider(payload.provider);
   return new Promise<T>((resolve, reject) => {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const timeout = window.setTimeout(() => {
       window.removeEventListener('message', onMessage);
-      reject(new Error(`${providerLabel(provider)} demorou demais (timeout). Tente de novo.`));
+      reject(new Error('Gemini demorou demais (timeout). Tente de novo.'));
     }, timeoutMs);
 
     const onMessage = (event: MessageEvent) => {
@@ -74,22 +58,20 @@ function postToBridge<T extends BridgeMessage>(
 
       if (data.type === 'LUMIERA_GEMINI_PONG') {
         if (data.ok) resolve(data as T);
-        else reject(new Error(formatExtensionError(data.error || 'Extensão indisponível.', provider)));
+        else reject(new Error(formatExtensionError(data.error || 'Extensão indisponível.')));
         return;
       }
       if (data.type === 'LUMIERA_GEMINI_RESULT') {
         if (data.ok && data.text) resolve(data as T);
-        else reject(new Error(formatExtensionError(data.error || `Automação ${providerLabel(provider)} falhou.`, provider)));
+        else reject(new Error(formatExtensionError(data.error || 'Automação Gemini falhou.')));
       }
     };
 
     window.addEventListener('message', onMessage);
     window.postMessage({
       source: APP_SOURCE,
-      type: 'LUMIERA_BROWSER_QUERY',
+      type: payload.type,
       requestId,
-      provider,
-      browser_provider: provider,
       prompt: (payload as { prompt?: string }).prompt,
     }, '*');
   });
@@ -103,7 +85,7 @@ export async function diagnoseGeminiExtension() {
     return { scriptPresent: false, pingOk: false, error: 'Extensão não injetou. Recarregue extensão + F5.' };
   }
   try {
-    const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_BROWSER_PING' }, 3000);
+    const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 3000);
     extensionCached = true;
     return { scriptPresent: true, pingOk: true, version: resp.version };
   } catch (err) {
@@ -115,7 +97,7 @@ export async function isGeminiExtensionAvailable(force = false): Promise<boolean
   if (!force && extensionCached) return true;
   if (!await waitForBridgeScript(2000)) return false;
   try {
-    await postToBridge<BridgeMessage>({ type: 'LUMIERA_BROWSER_PING' }, 3000);
+    await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 3000);
     extensionCached = true;
     return true;
   } catch {
@@ -124,43 +106,26 @@ export async function isGeminiExtensionAvailable(force = false): Promise<boolean
   }
 }
 
-export function estimateBrowserQueryTimeoutMs(prompt: string, title = ''): number {
-  const text = `${String(prompt || '')}\n${String(title || '')}`;
+export function estimateGeminiQueryTimeoutMs(prompt: string): number {
   const len = String(prompt || '').length;
-  // Margem acima do deadline da extensão (evita timeout no Lumiera antes do Gemini terminar).
-  if (/LUMIERA_TASK:metadata/i.test(text)) return 240000;
-  if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(text)) return 240000;
-  if (len > 6000 || /"overlays"\s*:/i.test(text) || /LUMIERA_TASK:overlay/i.test(text)) return 200000;
-  if (/overlay/i.test(title)) return 200000;
-  if (len > 3000) return 180000;
-  return 180000;
+  if (/LUMIERA_TASK:metadata/i.test(prompt)) return 150000;
+  if (len > 6000 || /"overlays"\s*:/i.test(prompt) || /LUMIERA_TASK:overlay/i.test(prompt)) return 130000;
+  if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(prompt)) return 150000;
+  if (len > 3000) return 110000;
+  return 95000;
 }
 
-export async function queryBrowserViaExtension(
-  prompt: string,
-  provider: BrowserChatProvider = 'gemini',
-  title = '',
-): Promise<string> {
-  const normalized = normalizeProvider(provider);
-  const timeoutMs = estimateBrowserQueryTimeoutMs(prompt, title);
-  const resp = await postToBridge<BridgeMessage>(
-    { type: 'LUMIERA_BROWSER_QUERY', prompt, provider: normalized },
-    timeoutMs,
-  );
+export async function queryGeminiViaExtension(prompt: string): Promise<string> {
+  const timeoutMs = estimateGeminiQueryTimeoutMs(prompt);
+  const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_QUERY', prompt }, timeoutMs);
   return String(resp.text || '').trim();
 }
 
-export async function queryBrowserWithRetry(
+export async function queryGeminiWithRetry(
   prompt: string,
-  opts: {
-    provider?: BrowserChatProvider;
-    title?: string;
-    attempts?: number;
-    onAttempt?: (n: number) => void;
-  } = {},
+  opts: { attempts?: number; onAttempt?: (n: number) => void } = {},
 ): Promise<string> {
-  const provider = normalizeProvider(opts.provider);
-  const attempts = opts.attempts ?? 3;
+  const attempts = opts.attempts ?? 2;
   let lastErr: Error | null = null;
 
   for (let i = 0; i < attempts; i += 1) {
@@ -173,22 +138,14 @@ export async function queryBrowserWithRetry(
       if (!ok) throw new Error('Extensão não respondeu. Recarregue extensão + F5.');
     }
     try {
-      return await queryBrowserViaExtension(prompt, provider, opts.title || '');
+      return await queryGeminiViaExtension(prompt);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       extensionCached = false;
       if (i < attempts - 1) await sleep(800);
     }
   }
-  throw lastErr || new Error(`Automação ${providerLabel(provider)} falhou.`);
-}
-
-/** @deprecated use queryBrowserWithRetry */
-export async function queryGeminiWithRetry(
-  prompt: string,
-  opts: { attempts?: number; onAttempt?: (n: number) => void } = {},
-): Promise<string> {
-  return queryBrowserWithRetry(prompt, { ...opts, provider: 'gemini' });
+  throw lastErr || new Error('Automação Gemini falhou.');
 }
 
 export function resetGeminiExtensionCache() {

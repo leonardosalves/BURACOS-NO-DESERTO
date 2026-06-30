@@ -36,21 +36,6 @@ export const GEMINI_BROWSER_INSTRUCTIONS = [
   "Instale em tools/lumiera-gemini-bridge se ainda não tiver carregado a extensão.",
 ];
 
-export const GROK_BROWSER_INSTRUCTIONS = [
-  "A extensão Lumiera Gemini Bridge consulta grok.com automaticamente.",
-  "Mantenha-se logado na sua conta X/xAI no Chrome.",
-  "Instale em tools/lumiera-gemini-bridge se ainda não tiver carregado a extensão.",
-];
-
-export function getBrowserChatProvider(config) {
-  const raw = String(config?.browser_chat_provider || "gemini").toLowerCase();
-  return raw === "grok" ? "grok" : "gemini";
-}
-
-export function getBrowserChatInstructions(provider = "gemini") {
-  return provider === "grok" ? GROK_BROWSER_INSTRUCTIONS : GEMINI_BROWSER_INSTRUCTIONS;
-}
-
 export function extractBrowserResponse(body) {
   const text = body?.browser_response;
   if (text == null) return null;
@@ -273,20 +258,12 @@ export function buildBrowserTaskPrompt(title, systemText, userText = "", opts = 
   return parts.join("\n");
 }
 
-export function offerGeminiBrowserPayload({
-  title,
-  prompt,
-  planSessionId = null,
-  metadataSessionId = null,
-  browserProvider = "gemini",
-} = {}) {
-  const provider = browserProvider === "grok" ? "grok" : "gemini";
+export function offerGeminiBrowserPayload({ title, prompt, planSessionId = null, metadataSessionId = null }) {
   return {
     needs_browser: true,
-    browser_provider: provider,
-    title: title || (provider === "grok" ? "Grok no Chrome" : "Gemini no Chrome"),
+    title: title || "Gemini no Chrome",
     prompt,
-    instructions: getBrowserChatInstructions(provider),
+    instructions: GEMINI_BROWSER_INSTRUCTIONS,
     plan_session_id: planSessionId || undefined,
     metadata_session_id: metadataSessionId || undefined,
   };

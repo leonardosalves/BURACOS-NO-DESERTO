@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { queryBrowserWithRetry, type BrowserChatProvider } from './geminiExtensionBridge';
+import { queryGeminiWithRetry } from './geminiExtensionBridge';
 import type { GeminiBrowserResolver } from './geminiAiFetch';
 
 export type GeminiAutomationState = {
@@ -7,23 +7,13 @@ export type GeminiAutomationState = {
   title?: string;
   attempt?: number;
   hint?: string;
-  provider?: BrowserChatProvider;
 };
-
-function providerSite(provider: BrowserChatProvider) {
-  return provider === 'grok' ? 'grok.com' : 'gemini.google.com';
-}
 
 export function useGeminiBrowserResolver(
   setAutomation?: (state: GeminiAutomationState) => void,
-  defaultProvider: BrowserChatProvider = 'gemini',
 ): GeminiBrowserResolver {
   return useCallback(async (opts) => {
-    const provider: BrowserChatProvider = opts.provider === 'grok' ? 'grok' : (
-      opts.provider === 'gemini' ? 'gemini' : defaultProvider
-    );
-    const site = providerSite(provider);
-    const title = opts.title || (provider === 'grok' ? 'Consultando Grok…' : 'Consultando Gemini…');
+    const title = opts.title || 'Consultando Gemini…';
     const prompt = String(opts.prompt || '');
     const isMetadata = /metadados/i.test(title)
       || /LUMIERA_TASK:metadata/i.test(prompt)
@@ -32,26 +22,22 @@ export function useGeminiBrowserResolver(
       || /LUMIERA_TASK:overlay/i.test(prompt)
       || /"overlays"\s*:\s*\[/i.test(prompt);
     const hint = isMetadata
-      ? `Metadados em texto/markdown (até ~3 min). Não feche ${site}.`
+      ? 'Metadados em texto/markdown (~30–90s). Não feche gemini.google.com.'
       : isOverlay
-        ? `Overlays em JSON (até ~3 min). Não feche ${site}.`
-        : `Consultando ${site} (até ~3 min)…`;
-    setAutomation?.({ active: true, title, hint, provider });
+        ? 'Overlays em JSON (~30–90s). Não feche gemini.google.com.'
+        : 'Consultando gemini.google.com…';
+    setAutomation?.({ active: true, title, hint });
     try {
-      return await queryBrowserWithRetry(opts.prompt, {
-        provider,
-        title,
-        attempts: 3,
-        onAttempt: (attempt) => setAutomation?.({
+      return await queryGeminiWithRetry(opts.prompt, {
+        attempts: 1,
+        onAttempt: () => setAutomation?.({
           active: true,
           title,
-          hint: attempt > 1 ? `${hint} Tentativa ${attempt}…` : hint,
-          attempt,
-          provider,
+          hint,
         }),
       });
     } finally {
       setAutomation?.({ active: false });
     }
-  }, [setAutomation, defaultProvider]);
+  }, [setAutomation]);
 }
