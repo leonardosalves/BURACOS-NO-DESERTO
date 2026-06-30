@@ -3,6 +3,7 @@ import {
   Download, Mic, Wand2, Play, Music, Upload, AlertTriangle,
   CheckCircle2, Loader2, Sparkles, Image, Video, ExternalLink,
 } from 'lucide-react';
+import { SectionHeader } from './SectionHeader';
 
 type SceneGapAction = {
   id: string;
@@ -514,10 +515,12 @@ export function WorkflowToolkit({
     <div className={`space-y-3 ${compact ? '' : 'rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4'}`}>
       {!compact && (
         <div className="flex items-center justify-between gap-2">
-          <h4 className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-            Ferramentas de Workflow
-          </h4>
+          <SectionHeader
+            title="Ferramentas de Workflow"
+            helpId="workflow-toolkit"
+            icon={<Sparkles className="w-3.5 h-3.5 text-gold-400" />}
+            titleClassName="text-xs"
+          />
           <button type="button" onClick={() => refreshGaps(true)} className="text-[9px] text-zinc-500 hover:text-zinc-300">
             {loading ? 'Atualizando...' : 'Atualizar'}
           </button>

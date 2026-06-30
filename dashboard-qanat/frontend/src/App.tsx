@@ -93,6 +93,8 @@ import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { VisualSettings } from './VisualSettings';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
+import { SectionHeader, SectionLabel } from './SectionHeader';
+import { SECTION_HELP } from './sectionHelpContent';
 import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
 import { SettingsProduction } from './SettingsProduction';
 import { StudioAgents } from './StudioAgents';
@@ -280,14 +282,14 @@ type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'
 const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
 
 const PROJECT_WORKSPACE_TABS = [
-  { id: 'status' as const, label: 'Render', icon: Tv },
-  { id: 'workflow' as const, label: 'Workflow e Tarefas', icon: Wand2 },
-  { id: 'timeline' as const, label: 'Roteiro e Tags', icon: Layers },
-  { id: 'music' as const, label: 'Trilha BGM', icon: Music },
-  { id: 'ai' as const, label: 'IA · Metadados', icon: Sparkles },
-  { id: 'upload' as const, label: 'Upload', icon: Share2 },
-  { id: 'editor' as const, label: 'Editor', icon: Settings },
-  { id: 'terminal' as const, label: 'Terminal', icon: Terminal },
+  { id: 'status' as const, label: 'Render', icon: Tv, helpId: 'tab-status' },
+  { id: 'workflow' as const, label: 'Workflow e Tarefas', icon: Wand2, helpId: 'tab-workflow' },
+  { id: 'timeline' as const, label: 'Roteiro e Tags', icon: Layers, helpId: 'tab-timeline' },
+  { id: 'music' as const, label: 'Trilha BGM', icon: Music, helpId: 'tab-music' },
+  { id: 'ai' as const, label: 'IA · Metadados', icon: Sparkles, helpId: 'tab-ai' },
+  { id: 'upload' as const, label: 'Upload', icon: Share2, helpId: 'tab-upload' },
+  { id: 'editor' as const, label: 'Editor', icon: Settings, helpId: 'tab-editor' },
+  { id: 'terminal' as const, label: 'Terminal', icon: Terminal, helpId: 'tab-terminal' },
 ];
 
 const parseDurationSeconds = (duration: unknown) => {
@@ -6687,9 +6689,13 @@ export default function App() {
 
                     <div>
 
-                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">Arquivos de Mídia por Bloco</h4>
-
-                      <p className="text-[10px] text-gray-400 mt-0.5">Adicione, ordene, exclua e configure mídias que constituem o vídeo em cada bloco.</p>
+                      <SectionHeader
+                        title="Arquivos de Mídia por Bloco"
+                        helpId="timeline-media-blocks"
+                        size="sm"
+                        titleClassName="tracking-wider uppercase text-xs"
+                        subtitle="Adicione, ordene, exclua e configure mídias que constituem o vídeo em cada bloco."
+                      />
 
                     </div>
 
@@ -7524,27 +7530,32 @@ export default function App() {
 
           </div>
 
-          <button 
+          <div className="flex items-center gap-1">
+            <button 
 
-            onClick={() => setActiveTab('settings')}
+              onClick={() => setActiveTab('settings')}
 
-            className={`p-2 border rounded-lg transition duration-150 cursor-pointer ${
+              className={`p-2 border rounded-lg transition duration-150 cursor-pointer ${
 
-              activeTab === 'settings'
+                activeTab === 'settings'
 
-                ? 'bg-gold-500/10 border-gold-500/30 text-gold-500'
+                  ? 'bg-gold-500/10 border-gold-500/30 text-gold-500'
 
-                : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:text-white'
+                  : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:text-white'
 
-            }`}
+              }`}
 
-            title="Configurações"
+              title="Configurações"
 
-          >
+            >
 
-            <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4" />
 
-          </button>
+            </button>
+            <SettingHelpTip title={SECTION_HELP['settings-config'].title} align="end">
+              {SECTION_HELP['settings-config'].body}
+            </SettingHelpTip>
+          </div>
 
           <button 
 
@@ -7611,6 +7622,16 @@ export default function App() {
                 <Sparkles className="w-4 h-4 animate-pulse" />
 
                 <span>Novo Projeto com IA</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-creator'].title} align="start">
+                    {SECTION_HELP['tab-creator'].body}
+                  </SettingHelpTip>
+                </span>
 
               </button>
 
@@ -7625,6 +7646,16 @@ export default function App() {
               >
                 <Bot className="w-4 h-4" />
                 <span>Studio Agents</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-agents'].title} align="start">
+                    {SECTION_HELP['tab-agents'].body}
+                  </SettingHelpTip>
+                </span>
               </button>
 
             </div>
@@ -7720,6 +7751,7 @@ export default function App() {
                   {PROJECT_WORKSPACE_TABS.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
+                    const help = tab.helpId ? SECTION_HELP[tab.helpId] : null;
                     return (
                       <button
                         key={tab.id}
@@ -7733,6 +7765,18 @@ export default function App() {
                       >
                         <Icon className="w-3.5 h-3.5" />
                         <span className="whitespace-nowrap">{tab.label}</span>
+                        {help && (
+                          <span
+                            className="inline-flex"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            role="presentation"
+                          >
+                            <SettingHelpTip title={help.title} align="start">
+                              {help.body}
+                            </SettingHelpTip>
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -7752,10 +7796,11 @@ export default function App() {
               {videoQuality && (
                 <div className="glass-panel p-5 rounded-2xl font-sans">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                      <CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />
-                      Qualidade Pré-Render
-                    </h3>
+                    <SectionHeader
+                      title="Qualidade Pré-Render"
+                      helpId="quality-pre-render"
+                      icon={<CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />}
+                    />
                     <div className="flex items-center gap-3">
                       {videoQuality.preset && (
                         <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Preset: {videoQuality.preset}</span>
@@ -7797,8 +7842,10 @@ export default function App() {
                   )}
                   {videoQuality.overlay_timing && (
                     <div className="mt-4 pt-3 border-t border-zinc-800/80">
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
-                        Timing overlays IA
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <SectionLabel helpId="overlay-timing" className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                          Timing overlays IA
+                        </SectionLabel>
                         {videoQuality.overlay_timing.source === 'planned' && (
                           <span className="text-zinc-500 font-normal normal-case ml-1">(pré-render)</span>
                         )}
@@ -7885,9 +7932,11 @@ export default function App() {
                 {/* Compiler Card */}
                 <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
                   <div>
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                      <Tv className="w-4 h-4 text-gold-500" /> RENDERIZADOR PADRÃO
-                    </h3>
+                    <SectionHeader
+                      title="RENDERIZADOR PADRÃO"
+                      helpId="render-standard"
+                      icon={<Tv className="w-4 h-4 text-gold-500" />}
+                    />
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
                       Gera o documentário cinematográfico padrão com as legendas animadas em Gold/Water Blue e efeitos de zoom Ken Burns anti-jitter.
                     </p>
@@ -7916,9 +7965,11 @@ export default function App() {
                 {/* Remotion Quick info */}
                 <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
                   <div>
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                      <ExternalLink className="w-4 h-4 text-water-300" /> REMOTION ENGINE
-                    </h3>
+                    <SectionHeader
+                      title="REMOTION ENGINE"
+                      helpId="render-remotion"
+                      icon={<ExternalLink className="w-4 h-4 text-water-300" />}
+                    />
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
                       Monta o vídeo pela linha do tempo mapeada, narração sincronizada e legendas geradas a partir da transcrição.
                     </p>
@@ -7939,9 +7990,11 @@ export default function App() {
                 <div className="glass-panel-glow border border-amber-500/30 p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
                   <div>
                     <div className="flex justify-between items-start">
-                      <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-500" /> REMOTION PRO
-                      </h3>
+                      <SectionHeader
+                        title="REMOTION PRO"
+                        helpId="render-remotion-pro"
+                        icon={<Sparkles className="w-4 h-4 text-amber-500" />}
+                      />
                       <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
@@ -7973,9 +8026,11 @@ export default function App() {
                 <div className="glass-panel-glow border border-emerald-500/30 p-6 rounded-2xl flex flex-col justify-between h-72 font-sans">
                   <div>
                     <div className="flex justify-between items-start">
-                      <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-emerald-400" /> HYPERFRAMES AI
-                      </h3>
+                      <SectionHeader
+                        title="HYPERFRAMES AI"
+                        helpId="render-hyperframes"
+                        icon={<Sparkles className="w-4 h-4 text-emerald-400" />}
+                      />
                       <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Orquestrado</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-1 leading-normal">
@@ -8010,7 +8065,7 @@ export default function App() {
 
               <div className="glass-panel p-6 rounded-3xl space-y-4">
 
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide">VÍDEOS RENDERIZADOS NA SAÍDA (OUTPUT)</h3>
+                <SectionHeader title="VÍDEOS RENDERIZADOS NA SAÍDA (OUTPUT)" helpId="render-output" />
 
                 {outputs.length === 0 ? (
 
@@ -8137,14 +8192,12 @@ export default function App() {
           {activeTab === 'workflow' && (
             <div className="space-y-6 animate-fade-in">
               <div className="glass-panel p-5 rounded-2xl font-sans">
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                  <Wand2 className="w-4 h-4 text-gold-400" />
-                  Workflow e Tarefas
-                </h3>
-                <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed max-w-2xl">
-                  Narração TTS, ComfyUI + LTX, B-roll, auto-map, trilha, metadados e pipelines automáticos.
-                  Prepare o projeto aqui; a aba Render fica só para compilar o vídeo final.
-                </p>
+                <SectionHeader
+                  title="Workflow e Tarefas"
+                  helpId="workflow-toolkit"
+                  icon={<Wand2 className="w-4 h-4 text-gold-400" />}
+                  subtitle="Narração TTS, ComfyUI + LTX, B-roll, auto-map, trilha, metadados e pipelines automáticos. Prepare o projeto aqui; a aba Render fica só para compilar o vídeo final."
+                />
               </div>
 
               {config ? (
@@ -8195,9 +8248,11 @@ export default function App() {
 
                 <div>
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide">PALAVRAS-CHAVE EM DESTAQUE (HIGHLIGHT)</h3>
-
-                  <p className="text-xs text-gray-400 mt-1 font-sans">Palavras nesta lista serão destacadas na cor Ouro/Amarelo no vídeo final.</p>
+                  <SectionHeader
+                    title="PALAVRAS-CHAVE EM DESTAQUE (HIGHLIGHT)"
+                    helpId="timeline-highlights"
+                    subtitle="Palavras nesta lista serão destacadas na cor Ouro/Amarelo no vídeo final."
+                  />
 
                 </div>
 
@@ -8265,7 +8320,7 @@ export default function App() {
 
               <div className="glass-panel p-6 rounded-3xl space-y-4">
 
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide">TEXTOS DE IMPACTO DA LINHA DO TEMPO (12 BLOCOS)</h3>
+                <SectionHeader title="TEXTOS DE IMPACTO DA LINHA DO TEMPO (12 BLOCOS)" helpId="timeline-impact" />
 
                 <div className="divide-y divide-zinc-900 border border-zinc-900 rounded-2xl overflow-hidden bg-zinc-950/20 font-sans">
 
@@ -8402,17 +8457,12 @@ export default function App() {
 
                 <div>
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                    <Volume2 className="w-5 h-5 text-gold-500" /> ESTÚDIO DE MIXAGEM DA TRILHA DE FUNDO
-
-                  </h3>
-
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl">
-
-                    Selecione qual das músicas baixadas deve tocar de fundo em cada bloco. As transições com crossfade de 2.0s serão geradas dinamicamente.
-
-                  </p>
+                  <SectionHeader
+                    title="ESTÚDIO DE MIXAGEM DA TRILHA DE FUNDO"
+                    helpId="music-mixer"
+                    icon={<Volume2 className="w-5 h-5 text-gold-500" />}
+                    subtitle="Selecione qual das músicas baixadas deve tocar de fundo em cada bloco. As transições com crossfade de 2.0s serão geradas dinamicamente."
+                  />
 
                 </div>
 
@@ -8444,11 +8494,7 @@ export default function App() {
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-3 gap-2">
 
-                    <h4 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase">
-
-                      Configuração de Trilha
-
-                    </h4>
+                    <SectionHeader title="Configuração de Trilha" helpId="music-mapping" size="sm" titleClassName="tracking-widest uppercase text-xs" />
 
                     <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 gap-1">
 
@@ -8806,7 +8852,7 @@ export default function App() {
 
                   <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
 
-                    <h4 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase">Músicas Disponíveis</h4>
+                    <SectionHeader title="Músicas Disponíveis" helpId="music-available" size="sm" titleClassName="tracking-widest uppercase text-xs" />
 
                     <div className="flex items-center gap-3">
 
@@ -8998,13 +9044,12 @@ export default function App() {
 
                   <div>
 
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                      <Music className="w-5 h-5 text-gold-500" /> API EPIDEMIC SOUND (MCP SSE)
-
-                    </h3>
-
-                    <p className="text-xs text-gray-400 mt-1">Busque faixas e efeitos sonoros livres de copyright diretamente do catálogo da Epidemic Sound ou gere uma trilha sonora inteligente automática baseada no seu roteiro.</p>
+                    <SectionHeader
+                      title="API EPIDEMIC SOUND (MCP SSE)"
+                      helpId="epidemic-sound"
+                      icon={<Music className="w-5 h-5 text-gold-500" />}
+                      subtitle="Busque faixas e efeitos sonoros livres de copyright diretamente do catálogo da Epidemic Sound ou gere uma trilha sonora inteligente automática baseada no seu roteiro."
+                    />
 
                   </div>
 
@@ -9322,13 +9367,12 @@ export default function App() {
 
                 <div>
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                    <Terminal className="w-5 h-5 text-gold-500" /> CONSOLE DE COMPILAÇÃO E LOGS
-
-                  </h3>
-
-                  <p className="text-xs text-gray-400 mt-1">Logs em tempo real de execução do compilador Python/FFmpeg.</p>
+                  <SectionHeader
+                    title="CONSOLE DE COMPILAÇÃO E LOGS"
+                    helpId="tab-terminal"
+                    icon={<Terminal className="w-5 h-5 text-gold-500" />}
+                    subtitle="Logs em tempo real de execução do compilador Python/FFmpeg."
+                  />
 
                 </div>
 
@@ -9392,7 +9436,7 @@ export default function App() {
 
                   <div>
 
-                    <h4 className="text-xs font-bold text-white tracking-wide font-cinzel">PROVEDOR DE IA</h4>
+                    <SectionHeader title="PROVEDOR DE IA" helpId="ai-provider-panel" size="sm" titleClassName="text-xs tracking-wide" />
 
                     <p className="text-[10px] text-gray-400 mt-0.5">
 
@@ -9438,15 +9482,14 @@ export default function App() {
 
                     <div>
 
-                      <h3 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
-
-                        <Video className="w-4 h-4 text-gold-500" /> Otimizador de Metadados do YouTube
-
-                      </h3>
-
-                      <p className="text-[10px] text-gray-400 mt-1">
-                        Passo 1: <strong className="text-zinc-300">Gerar Metadados</strong> → Passo 2: <strong className="text-zinc-300">Gerar Thumbnails</strong> (botão verde). Títulos, descrição, tags e 3 capas A/B para upload no YouTube.
-                      </p>
+                      <SectionHeader
+                        title="Otimizador de Metadados do YouTube"
+                        helpId="ai-metadata"
+                        icon={<Video className="w-4 h-4 text-gold-500" />}
+                        size="sm"
+                        titleClassName="tracking-widest uppercase text-xs"
+                        subtitle={<>Passo 1: <strong className="text-zinc-300">Gerar Metadados</strong> → Passo 2: <strong className="text-zinc-300">Gerar Thumbnails</strong> (botão verde). Títulos, descrição, tags e 3 capas A/B para upload no YouTube.</>}
+                      />
                       {(youtubeMetadataFormat || youtubeMetadataStrategy?.profileLabel) && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {youtubeMetadataFormat && (
@@ -9557,7 +9600,7 @@ export default function App() {
                           <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div>
-                                <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">Thumbnails A/B</h3>
+                                <SectionHeader title="Thumbnails A/B" helpId="thumbnails-ab" size="sm" titleClassName="text-gold-500 tracking-wide uppercase text-xs" />
                                 <span className="text-[9px] text-zinc-500">
                                   {uploadStatus.canva?.connected ? 'Canva automático ou local sharp' : 'Conecte o Canva para gerar capas sem abrir o navegador'}
                                 </span>
@@ -9956,13 +9999,14 @@ export default function App() {
 
                   <div className="border-b border-zinc-900 pb-3 shrink-0">
 
-                    <h3 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
-
-                      <Sparkles className="w-4 h-4 text-gold-500" /> Chat de Engenharia e Criação IA
-
-                    </h3>
-
-                    <p className="text-[10px] text-gray-400 mt-1">Peça alterações de BGM, sugestões de palavras-chave ou reescrita de textos de impacto.</p>
+                    <SectionHeader
+                      title="Chat de Engenharia e Criação IA"
+                      helpId="ai-chat"
+                      icon={<Sparkles className="w-4 h-4 text-gold-500" />}
+                      size="sm"
+                      titleClassName="tracking-widest uppercase text-xs"
+                      subtitle="Peça alterações de BGM, sugestões de palavras-chave ou reescrita de textos de impacto."
+                    />
 
                   </div>
 
@@ -10147,8 +10191,12 @@ export default function App() {
             <div className="space-y-6 animate-fade-in font-sans">
               <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
                 <div>
-                  <h2 className="text-sm font-cinzel font-bold text-white tracking-wide">Upload & Distribuição Multi-Plataforma</h2>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Prepare os metadados e publique seus vídeos nas redes sociais de forma automatizada.</p>
+                  <SectionHeader
+                    title="Upload & Distribuição Multi-Plataforma"
+                    helpId="upload-platforms"
+                    size="md"
+                    subtitle="Prepare os metadados e publique seus vídeos nas redes sociais de forma automatizada."
+                  />
                 </div>
               </div>
 
@@ -10632,17 +10680,13 @@ export default function App() {
 
               <div className="glass-panel p-6 rounded-3xl">
 
-                <h3 className="font-cinzel text-lg font-bold text-white flex items-center gap-2">
-
-                  <Settings className="w-6 h-6 text-gold-500" /> EDITOR DE PROJETOS
-
-                </h3>
-
-                <p className="text-sm text-gray-400 mt-2">
-
-                  Selecione um projeto existente para substituir imagens, vídeos ou trilhas sonoras por bloco.
-
-                </p>
+                <SectionHeader
+                  title="EDITOR DE PROJETOS"
+                  helpId="editor-project"
+                  icon={<Settings className="w-6 h-6 text-gold-500" />}
+                  size="lg"
+                  subtitle="Selecione um projeto existente para substituir imagens, vídeos ou trilhas sonoras por bloco."
+                />
 
                 <div className="mt-6 flex gap-4">
 
@@ -10782,9 +10826,13 @@ export default function App() {
 
                     <div>
 
-                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">Visualizador e Editor de Roteiro</h4>
-
-                      <p className="text-[10px] text-gray-400 mt-0.5">Altere falas de narração, prompts visuais, reordene cenas ou adicione novas.</p>
+                      <SectionHeader
+                        title="Visualizador e Editor de Roteiro"
+                        helpId="editor-script"
+                        size="sm"
+                        titleClassName="tracking-wider uppercase text-xs"
+                        subtitle="Altere falas de narração, prompts visuais, reordene cenas ou adicione novas."
+                      />
                       {notebooklmSuggestions && (
                         <p className="text-[9px] text-indigo-300/80 mt-1 max-w-md line-clamp-2" title={notebooklmSuggestions}>
                           Última pesquisa NotebookLM aplicada ao roteiro.
@@ -11441,7 +11489,7 @@ export default function App() {
 
                     <div>
 
-                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">JSON do Roteiro e Storyboard</h4>
+                      <SectionHeader title="JSON do Roteiro e Storyboard" helpId="editor-json" size="sm" titleClassName="tracking-wider uppercase text-xs" />
 
                       <p className="text-[10px] text-gray-400 mt-0.5">Explore a estrutura de dados completa do storyboard.json de forma colapsável.</p>
 
@@ -11497,13 +11545,12 @@ export default function App() {
 
                   <div>
 
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                      <Settings className="w-4 h-4 text-gold-500" /> CONFIGURAÇÕES DE IA
-
-                    </h3>
-
-                    <p className="text-xs text-gray-400 mt-1">Provedor e chaves de IA. Use o <span className="text-gold-400/90">?</span> ao lado de cada opção para entender o efeito.</p>
+                    <SectionHeader
+                      title="CONFIGURAÇÕES DE IA"
+                      helpId="settings-ia"
+                      icon={<Settings className="w-4 h-4 text-gold-500" />}
+                      subtitle={<>Provedor e chaves de IA. Use o <span className="text-gold-400/90">?</span> ao lado de cada opção para entender o efeito.</>}
+                    />
 
                   </div>
 
@@ -11749,13 +11796,12 @@ export default function App() {
 
                   <div>
 
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                      <Settings className="w-4 h-4 text-gold-500" /> CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO
-
-                    </h3>
-
-                    <p className="text-xs text-gray-400 mt-1">Parâmetros de render e áudio. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.</p>
+                    <SectionHeader
+                      title="CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO"
+                      helpId="settings-render"
+                      icon={<Settings className="w-4 h-4 text-gold-500" />}
+                      subtitle={<>Parâmetros de render e áudio. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.</>}
+                    />
 
                   </div>
 
@@ -12050,12 +12096,12 @@ export default function App() {
                             <div className="glass-panel p-6 rounded-3xl space-y-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
                   <div>
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                      <Image className="w-4 h-4 text-gold-500" /> LOGOTIPO DO FINAL DO VÍDEO
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Logos e canal do encerramento. Use o <span className="text-gold-400/90">?</span> em cada seção para entender o escopo global vs. projeto.
-                    </p>
+                    <SectionHeader
+                      title="LOGOTIPO DO FINAL DO VÍDEO"
+                      helpId="settings-marca"
+                      icon={<Image className="w-4 h-4 text-gold-500" />}
+                      subtitle={<>Logos e canal do encerramento. Use o <span className="text-gold-400/90">?</span> em cada seção para entender o escopo global vs. projeto.</>}
+                    />
                   </div>
                 </div>
 
@@ -12249,11 +12295,12 @@ export default function App() {
 
               <div className="glass-panel p-5 rounded-2xl shrink-0">
 
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2 mb-4">
-
-                  <Sparkles className="w-5 h-5 text-gold-500 animate-pulse" /> CRIADOR DE VÍDEOS AUTOMATIZADO COM IA
-
-                </h3>
+                <SectionHeader
+                  title="CRIADOR DE VÍDEOS AUTOMATIZADO COM IA"
+                  helpId="creator-wizard"
+                  icon={<Sparkles className="w-5 h-5 text-gold-500 animate-pulse" />}
+                  className="mb-4"
+                />
 
                 <button 
 
@@ -12371,10 +12418,11 @@ export default function App() {
                     {/* Step 1 Header & Tabs Selector */}
                     <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
                       <div>
-                        <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 1: Pesquisa e Ideias (Script Master)</h4>
-                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                          Defina o assunto e a estrutura do seu vídeo. Primeiro a IA gera a narração para você revisar e editar; depois de aprovar, ela monta blocos, prompts visuais e estratégia completa.
-                        </p>
+                        <SectionHeader
+                          title="Passo 1: Pesquisa e Ideias (Script Master)"
+                          helpId="creator-step-ideas"
+                          subtitle="Defina o assunto e a estrutura do seu vídeo. Primeiro a IA gera a narração para você revisar e editar; depois de aprovar, ela monta blocos, prompts visuais e estratégia completa."
+                        />
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
@@ -12607,13 +12655,11 @@ export default function App() {
 
                         <div>
 
-                          <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 1: Pesquisa e Ideias (Script Master)</h4>
-
-                          <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-
-                            Insira seu nicho de atuação e o formato desejado. O gerador irá analisar as dores, medos e ganchos de retenção antes de propor 10 ideias de alto impacto.
-
-                          </p>
+                          <SectionHeader
+                            title="Passo 1: Pesquisa e Ideias (Script Master)"
+                            helpId="creator-step-ideas"
+                            subtitle="Insira seu nicho de atuação e o formato desejado. O gerador irá analisar as dores, medos e ganchos de retenção antes de propor 10 ideias de alto impacto."
+                          />
 
                         </div>
 
@@ -12738,7 +12784,7 @@ export default function App() {
                         <div className="space-y-4">
 
                           <div className="flex justify-between items-center px-1">
-                            <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Selecione uma das 10 Ideias</h4>
+                            <SectionHeader title="Selecione uma das 10 Ideias" helpId="creator-step-select-idea" />
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => {
@@ -13051,7 +13097,7 @@ export default function App() {
 
                     <div>
 
-                      <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 2: Upload do Áudio de Narração</h4>
+                      <SectionHeader title="Passo 2: Upload do Áudio de Narração" helpId="creator-step-narration" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
 
@@ -13165,7 +13211,7 @@ export default function App() {
 
                     <div>
 
-                      <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 3: Sincronização por Transcrição Inteligente</h4>
+                      <SectionHeader title="Passo 3: Sincronização por Transcrição Inteligente" helpId="creator-step-sync" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
 
@@ -13277,7 +13323,7 @@ export default function App() {
 
                       <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
 
-                      <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Tudo Pronto! O Vídeo está configurado para Render</h4>
+                      <SectionHeader title="Tudo Pronto! O Vídeo está configurado para Render" helpId="creator-step-ready" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
 
@@ -13459,7 +13505,7 @@ export default function App() {
                 {creatorStep === 6 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
                     <div>
-                      <h4 className="text-white font-bold text-sm font-cinzel">Passo 6: Metadados e Thumbnails</h4>
+                      <SectionHeader title="Passo 6: Metadados e Thumbnails" helpId="creator-step-metadata" />
                       <p className="text-[10px] text-zinc-500 mt-1">
                         Gerados automaticamente ao renderizar no passo 5 — ou regenere com IA abaixo.
                       </p>
@@ -13525,7 +13571,7 @@ export default function App() {
 
                 {creatorStep === 7 && (
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
-                    <h4 className="text-white font-bold text-sm font-cinzel">Passo 7: Publicar</h4>
+                    <SectionHeader title="Passo 7: Publicar" helpId="creator-step-publish" />
                     <button onClick={() => leaveGlobalViewForProject('upload')} className="w-full bg-gold-500 text-zinc-950 font-bold py-3 rounded-xl text-xs">Abrir Upload</button>
                     <button onClick={() => setCreatorStep(6)} className="text-xs text-zinc-500">← Metadados</button>
                   </div>
@@ -13558,11 +13604,11 @@ export default function App() {
                     );
                   })()}
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide border-b border-zinc-900 pb-2">
-
-                    ESTRATÉGIA DO ROTEIRO (SCRIPT MASTER OUTPUT)
-
-                  </h3>
+                  <SectionHeader
+                    title="ESTRATÉGIA DO ROTEIRO (SCRIPT MASTER OUTPUT)"
+                    helpId="creator-script-strategy"
+                    className="border-b border-zinc-900 pb-2"
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
 
@@ -13678,9 +13724,12 @@ export default function App() {
 
                         <div>
 
-                          <h4 className="text-sm text-white font-bold tracking-wide font-cinzel">ROTEIRO COMPLETO POR BLOCOS</h4>
-
-                          <p className="text-[10px] text-zinc-400 mt-1 font-sans">Cada cena possui narração, duração e prompt visual editáveis. O roteiro é salvo automaticamente.</p>
+                          <SectionHeader
+                            title="ROTEIRO COMPLETO POR BLOCOS"
+                            helpId="creator-blocks"
+                            size="sm"
+                            subtitle="Cada cena possui narração, duração e prompt visual editáveis. O roteiro é salvo automaticamente."
+                          />
 
                         </div>
 
@@ -14313,7 +14362,7 @@ export default function App() {
 
               <div>
 
-                <h4 className="text-xs font-bold text-white font-cinzel tracking-wide">LUMIERA AGENT</h4>
+                <SectionHeader title="LUMIERA AGENT" helpId="lumiera-agent" size="sm" titleClassName="text-xs tracking-wide" />
 
                 <p className="text-[9px] text-zinc-500">Autonomia total sobre o projeto</p>
 

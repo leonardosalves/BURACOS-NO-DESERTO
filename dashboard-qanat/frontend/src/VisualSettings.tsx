@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Palette, Save, Sparkles } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
+import { SectionHeader } from './SectionHeader';
 
 export type VisualConfig = {
   design_preset?: string;
@@ -182,14 +183,16 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-5">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-        <div>
-          <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-            <Palette className="w-4 h-4 text-gold-500" /> LAYOUT & EFEITOS VISUAIS
-          </h3>
-          <p className="text-xs text-gray-400 mt-1">
-            Ajustes por projeto. Passe o mouse ou toque no <span className="text-gold-400/90">?</span> ao lado de cada item para entender o efeito.
-          </p>
-        </div>
+        <SectionHeader
+          title="LAYOUT & EFEITOS VISUAIS"
+          helpId="settings-visual"
+          icon={<Palette className="w-4 h-4 text-gold-500" />}
+          subtitle={(
+            <>
+              Ajustes por projeto. Passe o mouse ou toque no <span className="text-gold-400/90">?</span> ao lado de cada item para entender o efeito.
+            </>
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

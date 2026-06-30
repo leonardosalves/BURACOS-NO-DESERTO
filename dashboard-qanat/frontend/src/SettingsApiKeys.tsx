@@ -1,6 +1,7 @@
 import React from 'react';
 import { KeyRound, RefreshCw, Save } from 'lucide-react';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
+import { SectionHeader } from './SectionHeader';
 
 type Props = {
   epidemicKeyInput: string;
@@ -42,15 +43,16 @@ export function SettingsApiKeys({
   return (
     <div className="glass-panel p-6 rounded-3xl space-y-5">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
-        <div>
-          <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-gold-500" />
-            CHAVES DE API & MÍDIA
-          </h3>
-          <p className="text-xs text-gray-400 mt-1">
-            Trilhas, efeitos sonoros e download automático de B-roll. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.
-          </p>
-        </div>
+        <SectionHeader
+          title="CHAVES DE API & MÍDIA"
+          helpId="settings-apis"
+          icon={<KeyRound className="w-4 h-4 text-gold-500" />}
+          subtitle={(
+            <>
+              Trilhas, efeitos sonoros e download automático de B-roll. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.
+            </>
+          )}
+        />
         <div className="flex flex-wrap gap-2 text-[10px] text-zinc-400">
           <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">
             Epidemic: {hasEpidemicKey ? 'ok' : 'vazio'}
