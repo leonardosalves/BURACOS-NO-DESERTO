@@ -12,6 +12,7 @@ import {
   isHudOverlay,
   verifyAndRepairAiOverlayTiming,
   overlayTimingIssuesFromReport,
+  resolveOverlaysForTimingCheck,
 } from "./overlayTiming.js";
 
 export { stabilizeOverlayTimings };
@@ -1335,7 +1336,10 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
   });
 
-  let overlays = storyboard.overlays || [];
+  const hasRenderedOverlays = Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0;
+  const hasPlannedOverlays = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0;
+
+  let overlays = resolveOverlaysForTimingCheck(storyboard, timings);
   overlays = avoidListicleHudCollisions(overlays, config, storyboard);
   overlays = pruneListicleOverlayDensity(overlays, config, storyboard, orchestrationPlan);
 
@@ -1375,14 +1379,20 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     orchestrationPlan,
   });
 
-  const timingIssues = overlayTimingIssuesFromReport(
-    storyboard.overlay_timing_report || timingReport,
-  );
+  const timingIssues = overlayTimingIssuesFromReport(timingReport);
+
+  const overlayTiming = {
+    ...(hasRenderedOverlays && storyboard.overlay_timing_report
+      ? storyboard.overlay_timing_report
+      : timingReport),
+    source: hasRenderedOverlays ? "rendered" : hasPlannedOverlays ? "planned" : "none",
+    plannedCount: hasPlannedOverlays ? storyboard.overlays_ai.length : 0,
+  };
 
   return {
     ...baseQuality,
     issues: [...(baseQuality.issues || []), ...timingIssues],
-    overlay_timing: storyboard.overlay_timing_report || timingReport,
+    overlay_timing: overlayTiming,
   };
 }
 

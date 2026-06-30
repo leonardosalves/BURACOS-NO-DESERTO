@@ -268,6 +268,8 @@ interface VideoQualityReport {
     repaired?: number;
     okCount?: number;
     warnCount?: number;
+    plannedCount?: number;
+    source?: 'rendered' | 'planned' | 'none' | 'verified';
     entries?: OverlayTimingEntry[];
   };
 }
@@ -7779,41 +7781,52 @@ export default function App() {
                   ) : (
                     <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
                   )}
-                  {videoQuality.overlay_timing?.entries && videoQuality.overlay_timing.entries.length > 0 && (
+                  {videoQuality.overlay_timing && (
                     <div className="mt-4 pt-3 border-t border-zinc-800/80">
                       <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
                         Timing overlays IA
+                        {videoQuality.overlay_timing.source === 'planned' && (
+                          <span className="text-zinc-500 font-normal normal-case ml-1">(pré-render)</span>
+                        )}
                         {videoQuality.overlay_timing.repaired ? (
                           <span className="text-amber-400/90 font-normal normal-case ml-1">
-                            ({videoQuality.overlay_timing.repaired} reparo(s) no último render)
+                            · {videoQuality.overlay_timing.repaired} reparo(s)
                           </span>
                         ) : null}
                       </p>
-                      <ul className="space-y-1 max-h-32 overflow-y-auto">
-                        {videoQuality.overlay_timing.entries.map((entry) => (
-                          <li
-                            key={entry.id}
-                            className={`text-[10px] font-mono flex gap-2 ${
-                              entry.status === 'ok'
-                                ? 'text-emerald-400/90'
-                                : entry.status === 'repaired'
-                                  ? 'text-cyan-400/90'
-                                  : entry.status === 'error'
-                                    ? 'text-red-300'
-                                    : 'text-amber-300/90'
-                            }`}
-                          >
-                            <span className="shrink-0 w-3 text-center">
-                              {entry.status === 'ok' ? '✓' : entry.status === 'repaired' ? '↻' : '!'}
-                            </span>
-                            <span>
-                              {entry.id} @ {entry.startSec?.toFixed(1)}s
-                              {entry.plannedScene ? ` · cena ${entry.plannedScene}` : ''}
-                              {entry.message ? ` — ${entry.message}` : ''}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      {(videoQuality.overlay_timing.entries || []).length > 0 ? (
+                        <ul className="space-y-1 max-h-32 overflow-y-auto">
+                          {videoQuality.overlay_timing.entries!.map((entry) => (
+                            <li
+                              key={entry.id}
+                              className={`text-[10px] font-mono flex gap-2 ${
+                                entry.status === 'ok'
+                                  ? 'text-emerald-400/90'
+                                  : entry.status === 'repaired'
+                                    ? 'text-cyan-400/90'
+                                    : entry.status === 'error'
+                                      ? 'text-red-300'
+                                      : 'text-amber-300/90'
+                              }`}
+                            >
+                              <span className="shrink-0 w-3 text-center">
+                                {entry.status === 'ok' ? '✓' : entry.status === 'repaired' ? '↻' : '!'}
+                              </span>
+                              <span>
+                                {entry.id} @ {entry.startSec?.toFixed(1)}s
+                                {entry.plannedScene ? ` · cena ${entry.plannedScene}` : ''}
+                                {entry.message ? ` — ${entry.message}` : ''}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[10px] text-zinc-500">
+                          {videoQuality.overlay_timing.plannedCount
+                            ? `${videoQuality.overlay_timing.plannedCount} overlay(s) planejado(s), mas ainda sem timing verificável — gere block_timings (narração) e clique Atualizar de novo.`
+                            : 'Nenhum overlay da IA ainda. O planejamento ocorre automaticamente antes do render Remotion PRO.'}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

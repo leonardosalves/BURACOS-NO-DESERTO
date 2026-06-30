@@ -148,6 +148,7 @@ import {
   redistributeInformativeOverlayStarts,
   verifyAndRepairAiOverlayTiming,
   overlayTimingIssuesFromReport,
+  resolveOverlaysForTimingCheck,
 } from "./overlayTiming.js";
 import {
   flattenWordTranscripts,
@@ -1469,9 +1470,7 @@ app.get("/api/projects/overlay-timing-verify", async (req, res) => {
       blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
     });
 
-    let overlays = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length
-      ? storyboard.overlays_ai
-      : (storyboard.overlays || []);
+    let overlays = resolveOverlaysForTimingCheck(storyboard, timings);
 
     const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
     const { overlays: checked, report } = verifyAndRepairAiOverlayTiming(overlays, {
@@ -3309,6 +3308,36 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
     delete storyboard.overlays;
+
+    const timingsForPlan = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const configForPlan = readProjectJson(projDir, "config_qanat.json", {});
+    const wordTranscriptsPlan = readProjectJson(projDir, "word_transcripts.json", []);
+    const totalDurPlan = Number(timingsForPlan.total_duration)
+      || (timingsForPlan.starts?.length && timingsForPlan.durations?.length
+        ? Number(timingsForPlan.starts[timingsForPlan.starts.length - 1])
+          + Number(timingsForPlan.durations[timingsForPlan.durations.length - 1])
+        : 48);
+    const planForTiming = buildOverlayOrchestrationPlan({
+      config: configForPlan,
+      niche: configForPlan.niche || "Geral",
+      totalDuration: totalDurPlan,
+      projectName: path.basename(projDir),
+      blockCount: Array.isArray(timingsForPlan.starts) ? timingsForPlan.starts.length : 0,
+    });
+    const sceneMapsPlan = buildSceneTimingMaps(null, storyboard, timingsForPlan.starts || [], timingsForPlan.durations || []);
+    const preparedForTiming = resolveOverlaysForTimingCheck(storyboard, timingsForPlan);
+    const { report: planTimingReport } = verifyAndRepairAiOverlayTiming(preparedForTiming, {
+      starts: timingsForPlan.starts || [],
+      durations: timingsForPlan.durations || [],
+      sceneStarts: sceneMapsPlan.sceneStarts,
+      sceneDurations: sceneMapsPlan.sceneDurations,
+      wordTranscripts: wordTranscriptsPlan,
+      totalDuration: totalDurPlan,
+      plan: planForTiming,
+      repair: false,
+    });
+    storyboard.overlay_timing_report = { ...planTimingReport, source: "planned" };
+
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
 
     console.log(`[Plan Overlays] Concluído: ${cleanedAi.length} overlays, token=${planToken}`);
