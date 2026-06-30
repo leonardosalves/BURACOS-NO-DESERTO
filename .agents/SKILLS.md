@@ -13,7 +13,9 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]] · Exter
 ## Roteiro e viral (Shorts)
 
 - [[skills/viral-short-form|Viral Short Form]] — doc: [[skills/viral-short-form/SKILL]] · refs Vyral em `references/`
+- [[skills/viral-short-form-ideas|Viral Short-Form Ideas]] — doc: [[skills/viral-short-form-ideas/SKILL]] · pilares, matriz, Creator
 - [[skills/viral-hooks|Viral Hooks]] — doc: [[skills/viral-hooks/SKILL]]
+- [[skills/viral-captions-and-ctas|Captions & CTAs]] — doc: [[skills/viral-captions-and-ctas/SKILL]] · legendas, hashtags, comentário fixo
 - [[skills/viral-youtube-shorts|YouTube Shorts]] — doc: [[skills/viral-youtube-shorts/SKILL]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]] — doc: [[skills/ugc-scriptwriter/SKILL]]
 
