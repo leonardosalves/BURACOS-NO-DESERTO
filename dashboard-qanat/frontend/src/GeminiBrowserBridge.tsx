@@ -34,10 +34,10 @@ export function GeminiBrowserProvider({ children }: { children: React.ReactNode 
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-violet-100 truncate">
-                  {automation.title || (automation.provider === 'grok' ? 'Automação Grok' : 'Automação Gemini')}
+                  {automation.title || 'Automação Gemini'}
                 </p>
                 <p className="text-[10px] text-zinc-400 leading-relaxed mt-0.5">
-                  {automation.hint || (automation.provider === 'grok' ? 'Consultando grok.com…' : 'Consultando gemini.google.com…')}
+                  {automation.hint || 'Consultando gemini.google.com…'}
                   {automation.attempt && automation.attempt > 1 ? ` Tentativa ${automation.attempt}…` : ''}
                 </p>
               </div>
