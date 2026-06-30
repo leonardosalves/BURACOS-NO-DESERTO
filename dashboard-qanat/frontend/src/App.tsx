@@ -95,6 +95,7 @@ import { VisualSettings } from './VisualSettings';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
 import { SettingsProduction } from './SettingsProduction';
+import { StudioAgents } from './StudioAgents';
 import {
   applyProductionPatchToConfig,
   pickProductionConfig,
@@ -469,7 +470,7 @@ const JsonTreeView: React.FC<{ value: any }> = ({ value }) => {
 
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents'>('status');
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
@@ -2530,7 +2531,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator') {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents') {
       setActiveTab(tab);
     }
   };
@@ -7613,6 +7614,19 @@ export default function App() {
 
               </button>
 
+              <button
+                type="button"
+                onClick={() => setActiveTab('agents')}
+                className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold font-sans tracking-wide transition flex items-center justify-center gap-2 cursor-pointer ${
+                  activeTab === 'agents'
+                    ? 'bg-gold-500/15 border border-gold-500/35 text-gold-400'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-gold-400 hover:border-zinc-700'
+                }`}
+              >
+                <Bot className="w-4 h-4" />
+                <span>Studio Agents</span>
+              </button>
+
             </div>
 
           </div>
@@ -7695,7 +7709,7 @@ export default function App() {
         {/* Tab Content Panel */}
 
         <main className="flex-1 flex flex-col min-w-0 bg-[#09090b]">
-          {activeTab !== 'creator' && activeTab !== 'settings' && (
+          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && (
             <div className="shrink-0 border-b border-zinc-800/80 bg-[#0a0a0c]/95 backdrop-blur-sm px-6 py-3">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -11459,6 +11473,16 @@ export default function App() {
 
             </div>
 
+          )}
+
+          {activeTab === 'agents' && (
+            <TabErrorBoundary tabName="Studio Agents">
+              <StudioAgents
+                activeProject={activeProject}
+                projectNiche={config?.niche || 'Geral'}
+                getProjectUrl={getProjectUrl}
+              />
+            </TabErrorBoundary>
           )}
 
           {activeTab === 'settings' && (

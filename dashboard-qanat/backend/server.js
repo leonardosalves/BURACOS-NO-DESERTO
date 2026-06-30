@@ -151,6 +151,16 @@ import {
   resolveOverlaysForTimingCheck,
 } from "./overlayTiming.js";
 import {
+  buildLearningsPromptAddendum,
+  captureQualityRun,
+  getDashboard,
+  getNicheLearnings,
+  loadStudioAgentsConfig,
+  reflectProject,
+  runConsolidation,
+  saveStudioAgentsConfig,
+} from "./studioAgents.js";
+import {
   flattenWordTranscripts,
   buildBlockSceneTimings,
   blockHasExplicitSync,
@@ -1512,12 +1522,181 @@ app.get("/api/projects/video-quality", async (req, res) => {
       readProjectJson,
     });
     const report = runVideoQualityCheck(projDir, readProjectJson);
+    const agentConfig = loadStudioAgentsConfig(WORKSPACE_DIR);
+    if (agentConfig.autoCaptureOnQualityCheck) {
+      try {
+        captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+      } catch (captureErr) {
+        console.warn("[Studio Agents] Captura automática falhou:", captureErr.message);
+      }
+    }
     const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
     const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
     const workflow = analyzeSceneGaps(projDir, { config, storyboard });
     res.json({ ...report, workflow });
   } catch (err) {
     res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
+  }
+});
+
+// ─── Studio Agents (área separada — não altera o fluxo normal de geração) ───
+
+app.get("/api/studio-agents/status", (req, res) => {
+  try {
+    res.json(getDashboard(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar Studio Agents", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/learnings", (req, res) => {
+  try {
+    const niche = String(req.query.niche || "Geral");
+    const task = String(req.query.task || "overlay");
+    res.json({ niche, task, learnings: getNicheLearnings(WORKSPACE_DIR, niche, task) });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar aprendizados", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/config", (req, res) => {
+  try {
+    const config = saveStudioAgentsConfig(WORKSPACE_DIR, req.body || {});
+    res.json({ ok: true, config });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar configuração", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/capture", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const report = runVideoQualityCheck(projDir, readProjectJson);
+    const result = captureQualityRun(WORKSPACE_DIR, projDir, report, "capture");
+    res.json({ ok: true, report, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao capturar execução", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/reflect", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const report = runVideoQualityCheck(projDir, readProjectJson);
+    const result = reflectProject(WORKSPACE_DIR, projDir, report);
+    res.json({ ok: true, report, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao refletir projeto", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/consolidate", (req, res) => {
+  try {
+    const result = runConsolidation(WORKSPACE_DIR);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao consolidar memória", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/plan-overlays", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const useHyperframes = req.body?.hyperframes === true;
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw
+      ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
+      : null;
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const learningsAddendum = buildLearningsPromptAddendum(WORKSPACE_DIR, {
+      niche: config.niche || "Geral",
+      task: "overlay",
+    });
+
+    let llmText = browserText;
+    if (!llmText) {
+      const planSessionId = createOverlayPlanSessionId();
+      const prompt = buildCompactOverlayPlanningPrompt(
+        projDir,
+        useHyperframes,
+        planSessionId,
+        learningsAddendum,
+      );
+      if (!prompt) {
+        return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
+      }
+
+      if (forceBrowser) {
+        const title = "Studio Agents · Planejar overlays (com memória)";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
+        console.log(`[Studio Agents] Planejamento com memória — sessão ${planSessionId}.`);
+        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+      }
+
+      const apiKey = getApiKey(projDir);
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+        });
+      }
+      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+      if (!llmText) {
+        return res.status(500).json({ error: "Falha ao consultar Gemini API para overlays (Studio Agents)." });
+      }
+    }
+
+    if (expectedPlanSession && !overlayPlanSessionMatches(llmText, expectedPlanSession)) {
+      return res.status(422).json({
+        error: "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com.",
+        overlayCount: 0,
+        staleResponse: true,
+      });
+    }
+
+    const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
+      llmText,
+      skipBrowserCache: true,
+      planningOnly: true,
+      agentMode: true,
+    });
+
+    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const cleanedAi = filterNarrationEchoOverlays(
+      Array.isArray(overlaysAi) ? overlaysAi : [],
+      blockPhrases,
+    );
+
+    if (cleanedAi.length === 0) {
+      return res.status(422).json({
+        error: "Studio Agents: overlays descartados após validação.",
+        overlayCount: 0,
+      });
+    }
+
+    const planToken = `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    storyboard.overlays_ai = cleanedAi;
+    storyboard.overlays_hyperframes = useHyperframes;
+    storyboard.overlays_planned_at = new Date().toISOString();
+    storyboard.overlays_plan_token = planToken;
+    storyboard.overlays_planned_by = "studio-agents";
+    delete storyboard.overlays;
+
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    console.log(`[Studio Agents] ${cleanedAi.length} overlays planejados com memória do estúdio.`);
+
+    res.json({
+      ok: true,
+      overlayCount: cleanedAi.length,
+      planToken,
+      plannedBy: "studio-agents",
+      learningsApplied: Boolean(learningsAddendum),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Falha no planejamento Studio Agents." });
   }
 });
 
@@ -10880,6 +11059,7 @@ function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts,
   const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
   const isListicle = config?.content_mode === "LISTICLE"
     || storyboard?.listicle?.content_mode === "LISTICLE";
+  const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
   if (blockEnd > blockStart) {
     return computeOverlayDisplayDuration(overlay, {
       overlayStart,
@@ -10887,9 +11067,10 @@ function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts,
       blockEnd,
       plan: {},
       isListicle,
+      totalDuration,
     });
   }
-  return Math.max(2.5, Number(overlay.duration) || 4);
+  return Math.max(3.5, Number(overlay.duration) || 4);
 }
 
 function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = [], config = {}, storyboard = {}) {
@@ -11078,6 +11259,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     plan: orchestrationPlan,
     config,
     storyboard,
+    totalDuration,
   });
 
   const informativeOnly = result.filter(isInformativeOverlay);
@@ -11093,6 +11275,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     plan: orchestrationPlan,
     config,
     storyboard,
+    totalDuration,
   });
 
   const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
@@ -11158,7 +11341,7 @@ function readHyperframesSkillExcerpt(maxChars = 2800) {
 }
 
 /** Prompt compacto para planejar overlays via Gemini no Chrome (extensão). */
-function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true, planSessionId = null) {
+function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true, planSessionId = null, agentLearningsAddendum = "") {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
@@ -11234,6 +11417,7 @@ Exemplo timeline:
       null,
       2,
     ),
+    agentLearningsAddendum || "",
   ].filter(Boolean).join("\n");
 }
 
@@ -11243,6 +11427,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     llmText: injectedLlmText = null,
     skipBrowserCache = false,
     planningOnly = false,
+    agentMode = false,
   } = options;
   await ensureListItemsInProject(projectDir, {
     getApiKey,
@@ -11316,10 +11501,13 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
         config,
       ),
     );
+    const plannedSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+    const plannedTotalDur = Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
     realigned = redistributeInformativeOverlayStarts(
       realigned,
       orchestrationPlanEarly,
-      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+      plannedTotalDur,
+      { starts, durations, sceneStarts: plannedSceneMaps.sceneStarts },
     );
     realigned = enforceOverlayOrchestration(realigned, orchestrationPlanEarly, { starts, durations });
     realigned = stabilizeOverlayTimings(realigned, {
@@ -11328,6 +11516,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
       plan: orchestrationPlanEarly,
       config,
       storyboard,
+      totalDuration: plannedTotalDur,
     });
     return finalizeProjectOverlays(
       projectDir,
@@ -11632,6 +11821,14 @@ Estrutura JSON Exigida:
   ]
 }
 `;
+
+  if (agentMode) {
+    const learningsAddendum = buildLearningsPromptAddendum(WORKSPACE_DIR, { niche, task: "overlay" });
+    if (learningsAddendum) {
+      systemPrompt += learningsAddendum;
+      console.log("[Studio Agents] Aprendizados do estúdio injetados no prompt de overlays.");
+    }
+  }
 
   const userPrompt = `Aqui está a lista de CENAS do vídeo com tempos reais, narração e IDs de cena:
 ${JSON.stringify(scenesContext, null, 2)}
@@ -11954,7 +12151,13 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
 
       parsedOverlays = filterNarrationEchoOverlays(parsedOverlays, blockPhrases);
-      parsedOverlays = redistributeInformativeOverlayStarts(parsedOverlays, orchestrationPlan, totalDuration);
+      const genSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+      parsedOverlays = redistributeInformativeOverlayStarts(
+        parsedOverlays,
+        orchestrationPlan,
+        totalDuration,
+        { starts, durations, sceneStarts: genSceneMaps.sceneStarts },
+      );
       parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan, { starts, durations });
       parsedOverlays = stabilizeOverlayTimings(parsedOverlays, {
         starts,
@@ -11962,6 +12165,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         plan: orchestrationPlan,
         config,
         storyboard,
+        totalDuration,
       });
 
       if (planningOnly) {
