@@ -5760,6 +5760,35 @@ export default function App() {
       || !String(vp?.prompt || '').trim());
   }, [generatedScriptData?.visual_prompts]);
 
+  const handleEvaluateScriptChecklist = async () => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/evaluate-checklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      if (ok && !data.needs_browser) {
+        setGeneratedScriptData(data);
+        await saveCreatorStoryboard(data);
+        toast.success('Checklist de qualidade atualizado.');
+      } else {
+        toast.error(data.error || data.details || 'Erro ao avaliar checklist.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao avaliar checklist.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
   const handleRepairCreatorVisualPrompts = async () => {
     const projectName = narrationProjectName || creatorProjectName || activeProject;
     if (!projectName?.trim()) {
@@ -13480,7 +13509,17 @@ export default function App() {
 
                       <div>
 
-                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Checklist de Qualidade</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Checklist de Qualidade</span>
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={handleEvaluateScriptChecklist}
+                            className="text-[9px] font-bold uppercase tracking-wider text-gold-400 border border-gold-500/30 hover:bg-gold-500/10 disabled:opacity-50 px-2 py-1 rounded-lg cursor-pointer"
+                          >
+                            {creatorLoading && creatorLoadingMode === 'full' ? 'Avaliando...' : 'Avaliar'}
+                          </button>
+                        </div>
 
                         <div className="grid grid-cols-3 gap-2 mt-1.5 text-center font-mono">
 
@@ -13516,9 +13555,23 @@ export default function App() {
 
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Recomendações IA</span>
 
-                        <p className="mt-1 leading-relaxed text-gray-400">{generatedScriptData.checklist?.feedback || ''}</p>
+                        <p className="mt-1 leading-relaxed text-gray-400">
+                          {generatedScriptData.checklist?.feedback
+                            || (generatedScriptData.checklist?.click_potential ? '' : 'Clique em Avaliar para gerar notas e recomendações.')}
+                        </p>
 
                       </div>
+
+                      {Array.isArray(generatedScriptData.checklist?.corrections) && generatedScriptData.checklist.corrections.length > 0 && (
+                        <div>
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Correções</span>
+                          <ul className="mt-1 space-y-1 list-disc pl-4 text-gray-400">
+                            {generatedScriptData.checklist.corrections.map((item: string, i: number) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                     </div>
 

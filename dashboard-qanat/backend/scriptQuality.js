@@ -148,6 +148,117 @@ REGRAS ESPECÍFICAS — VÍDEO LONGO (10–20 min, 12 blocos):
 `;
 }
 
+export function parseChecklistScore(value, fallback = 0) {
+  if (value == null || value === "") return fallback;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.min(10, Math.max(0, Math.round(value)));
+  }
+  const str = String(value).trim();
+  const fraction = str.match(/^(\d{1,2})\s*\/\s*10$/);
+  if (fraction) return Math.min(10, Math.max(0, parseInt(fraction[1], 10)));
+  const num = parseInt(str.replace(/[^\d]/g, ""), 10);
+  return Number.isFinite(num) ? Math.min(10, Math.max(0, num)) : fallback;
+}
+
+export function normalizeScriptChecklist(raw) {
+  const empty = {
+    click_potential: 0,
+    retention_potential: 0,
+    comments_potential: 0,
+    feedback: "",
+    corrections: [],
+  };
+  if (!raw || typeof raw !== "object") return { ...empty };
+
+  const feedback = String(
+    raw.feedback
+    || raw.sugestoes
+    || raw.recommendations
+    || raw.recomendacoes
+    || raw.recomendacoes_ia
+    || raw.avaliacao
+    || "",
+  ).trim();
+
+  let corrections = raw.corrections || raw.correcoes || raw.fixes || raw.ajustes || [];
+  if (typeof corrections === "string") {
+    corrections = corrections.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  }
+  if (!Array.isArray(corrections)) corrections = [];
+
+  return {
+    click_potential: parseChecklistScore(
+      raw.click_potential ?? raw.clickPotential ?? raw.potencial_clique ?? raw.clique ?? raw.clicks,
+    ),
+    retention_potential: parseChecklistScore(
+      raw.retention_potential ?? raw.retentionPotential ?? raw.potencial_retencao ?? raw.retencao ?? raw.retention,
+    ),
+    comments_potential: parseChecklistScore(
+      raw.comments_potential ?? raw.commentsPotential ?? raw.potencial_comentarios ?? raw.comentarios ?? raw.comments,
+    ),
+    feedback,
+    corrections: corrections.map((c) => String(c).trim()).filter(Boolean),
+  };
+}
+
+export function isChecklistEmpty(checklist = {}) {
+  const c = normalizeScriptChecklist(checklist);
+  const scores = c.click_potential + c.retention_potential + c.comments_potential;
+  return scores === 0 && !c.feedback.trim() && c.corrections.length === 0;
+}
+
+export function buildChecklistSchemaBlock() {
+  return `
+8. "checklist" (OBRIGATÓRIO — avalie o roteiro gerado, não deixe zerado):
+{
+  "click_potential": 0-10,
+  "retention_potential": 0-10,
+  "comments_potential": 0-10,
+  "feedback": "2-4 frases com recomendações IA: o que está forte, o que melhorar no título/gancho/ritmo",
+  "corrections": ["ajuste 1 acionável", "ajuste 2 acionável"]
+}
+Critérios:
+- click_potential: título + gancho geram curiosidade real (não clickbait vazio)
+- retention_potential: open loops, wow-facts, ritmo oral, payoff no final
+- comments_potential: polêmia saudável, pergunta com stakes ou dado que convida debate
+- corrections: máximo 4 itens curtos e específicos ao roteiro (ex.: "Gancho promete X mas bloco 3 não entrega")`;
+}
+
+export function buildScriptChecklistEvaluationPrompt({
+  narrative_script = "",
+  strategy = {},
+  format = "SHORTS",
+  ideaTitle = "",
+  niche = "",
+} = {}) {
+  const title = strategy.title_main || ideaTitle || "";
+  const hook = strategy.hook || "";
+  return `Você é avaliador de qualidade para vídeos YouTube (Script Master Lumiera).
+
+Avalie o roteiro abaixo e preencha o checklist de qualidade com notas REAIS de 1 a 10 (nunca deixe tudo 0).
+
+FORMATO: ${format}
+NICHO: ${niche || "geral"}
+TÍTULO: ${title}
+GANCHO: ${hook}
+
+NARRAÇÃO:
+"""
+${String(narrative_script).trim().slice(0, 6000)}
+"""
+
+Responda APENAS JSON válido:
+{
+  "checklist": {
+    "click_potential": 0-10,
+    "retention_potential": 0-10,
+    "comments_potential": 0-10,
+    "feedback": "recomendações IA em PT-BR",
+    "corrections": ["correção 1", "correção 2"]
+  }
+}`;
+}
+
 export function buildIdeasQualityAddendum() {
   return `
 Para cada ideia, inclua em "why_it_works" como a mensagem central será compreensível para leigos.
@@ -955,7 +1066,7 @@ ${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, lis
 5. "bgm_recommendations"
 6. "editing_map"
 7. "hyperframe_prompt"
-8. "checklist"
+${buildChecklistSchemaBlock()}
 9. "technical_config" (script, block_phrases, impact_texts, highlight_keywords, bgm_mappings)
 ${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}
 

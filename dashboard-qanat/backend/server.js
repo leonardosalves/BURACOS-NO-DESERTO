@@ -116,6 +116,10 @@ import {
   needsVisualPromptsRepair,
   buildVisualPromptsFromNarrationPrompt,
   mergeVisualPromptsRepair,
+  normalizeScriptChecklist,
+  isChecklistEmpty,
+  buildScriptChecklistEvaluationPrompt,
+  buildChecklistSchemaBlock,
 } from "./scriptQuality.js";
 import {
   applyDocumentaryHistoryPreset,
@@ -1428,6 +1432,7 @@ app.get("/api/projects/storyboard", (req, res) => {
 
     }
 
+    data.checklist = normalizeScriptChecklist(data.checklist);
     res.json(data);
 
   } catch (err) {
@@ -6680,6 +6685,45 @@ async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboa
   return parsed;
 }
 
+async function ensureScriptChecklist(parsedData, { format, niche, ideaTitle, apiKey }) {
+  if (!isChecklistEmpty(parsedData?.checklist)) {
+    parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
+    return parsedData;
+  }
+  if (!apiKey) {
+    parsedData.checklist = normalizeScriptChecklist(parsedData?.checklist);
+    return parsedData;
+  }
+  const narration = parsedData?.narrative_script || "";
+  if (!narration.trim()) return parsedData;
+
+  try {
+    const evalPrompt = buildScriptChecklistEvaluationPrompt({
+      narrative_script: narration,
+      strategy: parsedData.strategy || {},
+      format,
+      ideaTitle,
+      niche,
+    });
+    const evalText = await callGeminiWithRetry(apiKey, evalPrompt, {
+      temperature: 0.35,
+      maxRetries: 2,
+      models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+    });
+    const evaluated = normalizeKeys(await parseAiJsonResponse(evalText, apiKey, "Checklist qualidade"));
+    if (!isChecklistEmpty(evaluated?.checklist)) {
+      parsedData.checklist = normalizeScriptChecklist(evaluated.checklist);
+      console.log("[Creator Script] Checklist de qualidade avaliado pela IA.");
+    } else {
+      parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
+    }
+  } catch (err) {
+    console.warn("[Creator Script] Falha ao avaliar checklist:", err.message);
+    parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
+  }
+  return parsedData;
+}
+
 async function enhanceCreatorStrategyTitles(parsedData, { transcript, format, apiKey, ideaTitle }) {
   const fmt = format === "SHORTS" ? "SHORT" : "LONG";
   const facts = extractTitleFacts({
@@ -9010,25 +9054,9 @@ function normalizeKeys(data) {
   const checkKey = Object.keys(data).find(k => k.toLowerCase() === "checklist" || k.toLowerCase() === "lista_qualidade");
 
   if (checkKey && typeof data[checkKey] === "object") {
-
-    const c = data[checkKey];
-
-    normalized.checklist = {
-
-      click_potential: c.click_potential || c.potencial_clique || c.clique || 0,
-
-      retention_potential: c.retention_potential || c.potencial_retencao || c.retencao || 0,
-
-      comments_potential: c.comments_potential || c.potencial_comentarios || c.comentarios || 0,
-
-      feedback: c.feedback || c.sugestoes || ""
-
-    };
-
+    normalized.checklist = normalizeScriptChecklist(data[checkKey]);
   } else {
-
-    normalized.checklist = { click_potential: 0, retention_potential: 0, comments_potential: 0, feedback: "" };
-
+    normalized.checklist = normalizeScriptChecklist(null);
   }
 
   // Technical config
@@ -9436,17 +9464,7 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
 7. "hyperframe_prompt": "Prompt final para o agente HyperFrame em português."
 
-8. "checklist": {
-
-   "click_potential": 0-10,
-
-   "retention_potential": 0-10,
-
-   "comments_potential": 0-10,
-
-   "feedback": "Avaliação rápida"
-
-}
+${buildChecklistSchemaBlock()}
 
 9. "technical_config": {
 
@@ -9632,6 +9650,13 @@ REGRAS FINAIS:
       format,
       apiKey,
       ideaTitle: idea.title,
+    });
+
+    parsedData = await ensureScriptChecklist(parsedData, {
+      format,
+      niche,
+      ideaTitle: idea.title,
+      apiKey,
     });
 
     if (isListicle) {
@@ -9824,6 +9849,52 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
   } catch (err) {
     console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
     res.status(500).json({ error: "Erro ao reparar cenas do roteiro", details: err.message });
+  }
+});
+
+app.post("/api/ai/creator/evaluate-checklist", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  try {
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const approvedNarration = String(storyboard.narrative_script || "").trim();
+    if (!approvedNarration) {
+      return res.status(400).json({ error: "Não há narração no storyboard para avaliar." });
+    }
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const apiKey = getApiKey(projDir);
+    const evalPrompt = buildScriptChecklistEvaluationPrompt({
+      narrative_script: approvedNarration,
+      strategy: storyboard.strategy || {},
+      format: config.video_format || "SHORTS",
+      ideaTitle: storyboard.strategy?.title_main || "",
+      niche: config.niche || "",
+    });
+
+    const evalText = await callGeminiLlm(req, res, projDir, {
+      title: "Avaliar checklist de qualidade",
+      prompt: evalPrompt,
+      temperature: 0.35,
+    });
+    if (evalText == null) return;
+
+    const evaluated = normalizeKeys(await parseAiJsonResponse(
+      evalText,
+      extractBrowserResponse(req.body) ? null : apiKey,
+      "Checklist qualidade",
+    ));
+    storyboard.checklist = normalizeScriptChecklist(evaluated?.checklist);
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    res.json(storyboard);
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/evaluate-checklist:", err);
+    res.status(500).json({ error: "Erro ao avaliar checklist de qualidade", details: err.message });
   }
 });
 
