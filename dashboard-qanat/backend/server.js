@@ -1905,6 +1905,51 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
   }
 });
 
+// API: Wizard session — persistência do passo a passo do Creator (sobrevive a F5)
+app.get("/api/projects/wizard-session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const sessionPath = path.join(projDir, "wizard_session.json");
+    if (!fs.existsSync(sessionPath)) {
+      return res.json({ session: null });
+    }
+    const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+    res.json({ session, project: path.basename(projDir) });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar sessão do wizard", details: err.message });
+  }
+});
+
+app.put("/api/projects/wizard-session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const session = req.body;
+    if (!session || typeof session !== "object") {
+      return res.status(400).json({ error: "Corpo da sessão inválido." });
+    }
+    const payload = {
+      ...session,
+      version: session.version || 1,
+      savedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(path.join(projDir, "wizard_session.json"), JSON.stringify(payload, null, 2), "utf8");
+    res.json({ ok: true, savedAt: payload.savedAt });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar sessão do wizard", details: err.message });
+  }
+});
+
+app.delete("/api/projects/wizard-session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const sessionPath = path.join(projDir, "wizard_session.json");
+    if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao limpar sessão do wizard", details: err.message });
+  }
+});
+
 // API: Save storyboard data
 
 app.post("/api/projects/storyboard", (req, res) => {
