@@ -77,6 +77,54 @@ function formatCount(value) {
   return Number.isFinite(num) ? num : 0;
 }
 
+function mapAnalyticsRow(row) {
+  return {
+    views: formatCount(row.views),
+    estimatedMinutesWatched: formatCount(row.estimatedMinutesWatched),
+    likes: formatCount(row.likes),
+    comments: formatCount(row.comments),
+    shares: formatCount(row.shares),
+    subscribersGained: formatCount(row.subscribersGained),
+  };
+}
+
+async function fetchSingleVideoMetrics(accessToken, videoId, startDate, endDate) {
+  const analyticsParams = new URLSearchParams({
+    ids: "channel==MINE",
+    startDate,
+    endDate,
+    metrics: VIDEO_METRICS,
+    dimensions: "video",
+    filters: `video==${videoId}`,
+  });
+
+  const analyticsData = await queryYoutubeAnalytics(accessToken, analyticsParams);
+  const row = parseAnalyticsRows(analyticsData)[0];
+  return row ? mapAnalyticsRow(row) : null;
+}
+
+async function fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDate) {
+  const metricsByVideoId = new Map();
+  if (!videoIds.length) return metricsByVideoId;
+
+  const results = await Promise.all(
+    videoIds.map(async (videoId) => {
+      try {
+        const metrics = await fetchSingleVideoMetrics(accessToken, videoId, startDate, endDate);
+        return { videoId, metrics };
+      } catch {
+        return { videoId, metrics: null };
+      }
+    }),
+  );
+
+  results.forEach(({ videoId, metrics }) => {
+    if (metrics) metricsByVideoId.set(videoId, metrics);
+  });
+
+  return metricsByVideoId;
+}
+
 export async function fetchChannelOverview(workspaceDir) {
   const scopeStatus = await getYoutubeTokenScopes(workspaceDir);
 
@@ -165,29 +213,12 @@ export async function fetchChannelVideosWithAnalytics(workspaceDir, { days = 28,
     });
   });
 
-  const analyticsParams = new URLSearchParams({
-    ids: "channel==MINE",
+  const videoIds = [...videoMetaById.keys()];
+  const metricsByVideoId = await fetchVideoMetricsBatched(
+    accessToken,
+    videoIds,
     startDate,
     endDate,
-    metrics: VIDEO_METRICS,
-    dimensions: "video",
-    sort: "-views",
-  });
-
-  const analyticsData = await queryYoutubeAnalytics(accessToken, analyticsParams);
-  const analyticsRows = parseAnalyticsRows(analyticsData);
-  const metricsByVideoId = new Map(
-    analyticsRows.map((row) => [
-      String(row.video),
-      {
-        views: formatCount(row.views),
-        estimatedMinutesWatched: formatCount(row.estimatedMinutesWatched),
-        likes: formatCount(row.likes),
-        comments: formatCount(row.comments),
-        shares: formatCount(row.shares),
-        subscribersGained: formatCount(row.subscribersGained),
-      },
-    ]),
   );
 
   const emptyMetrics = {
