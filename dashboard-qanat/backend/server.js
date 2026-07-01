@@ -13180,6 +13180,13 @@ registerTimesfmRoutes(app, {
   WORKSPACE_DIR,
   PROJECTS_ROOT,
   PYTHON_PATH,
+  getApiKey,
+  getApiKeys,
+  getAiProvider,
+  getGeminiModel,
+  callGeminiWithRetry,
+  callNvidiaWithRetry,
+  NVIDIA_MODELS,
 });
 
 registerAgentReachRoutes(app, {

@@ -11,6 +11,7 @@ import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import { fetchChannelVideosWithAnalytics } from "./youtubeChannelAnalytics.js";
 import { fetchVideoVelocityTimeline } from "./youtubeStudioAdvanced.js";
 import { enqueueEditorialIdeas } from "./youtubeEditorialQueue.js";
+import { discoverPioneerNiches } from "./pioneerNicheDiscovery.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FORECAST_SCRIPT = path.join(__dirname, "timesfm_forecast.py");
@@ -265,6 +266,8 @@ export async function runTrendForecast(workspaceDir, {
   format = "all",
   enqueueIdeas = false,
   niche = "",
+  discoverPioneers = false,
+  pioneerLlmFn = null,
 } = {}) {
   const cfg = readJsonSafe(path.join(workspaceDir, "config_qanat.json"));
   const resolvedNiche = String(niche || cfg.niche || "").trim();
@@ -397,12 +400,29 @@ export async function runTrendForecast(workspaceDir, {
   ];
 
   let editorialQueue = null;
-  if (enqueueIdeas && derivedIdeas.length) {
-    const enqueued = enqueueEditorialIdeas(workspaceDir, derivedIdeas, {
-      source: "timesfm-forecast",
+  let allIdeas = [...derivedIdeas];
+
+  let pioneerDiscovery = null;
+  if (discoverPioneers) {
+    pioneerDiscovery = await discoverPioneerNiches(workspaceDir, {
+      niche: resolvedNiche,
+      format: fmtFilter === "LONG" || fmtFilter === "LONGO" ? "LONGO" : "SHORTS",
+      risingNiches,
+      maxCandidates: 10,
+      useAi: Boolean(pioneerLlmFn),
+      llmFn: pioneerLlmFn,
+    });
+    if (pioneerDiscovery?.ok && pioneerDiscovery.pioneerIdeas?.length) {
+      allIdeas = [...pioneerDiscovery.pioneerIdeas, ...allIdeas];
+    }
+  }
+
+  if (enqueueIdeas && allIdeas.length) {
+    const enqueued = enqueueEditorialIdeas(workspaceDir, allIdeas, {
+      source: discoverPioneers ? "timesfm-pioneer-forecast" : "timesfm-forecast",
       format: fmtFilter === "LONG" || fmtFilter === "LONGO" ? "LONG" : "SHORT",
     });
-    editorialQueue = { enqueued: derivedIdeas.length, total: enqueued.items.length };
+    editorialQueue = { enqueued: allIdeas.length, total: enqueued.items.length };
   }
 
   return {
@@ -417,6 +437,7 @@ export async function runTrendForecast(workspaceDir, {
     shortTrends: shortVideos.slice(0, 8),
     longTrends: longVideos.slice(0, 8),
     derivedIdeas,
+    pioneerDiscovery,
     editorialQueue,
     seeds,
     fetchedAt: new Date().toISOString(),
