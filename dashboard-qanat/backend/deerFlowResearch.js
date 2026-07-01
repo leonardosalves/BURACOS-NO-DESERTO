@@ -5,9 +5,9 @@
 
 import fs from "fs";
 import path from "path";
-import { execFile } from "child_process";
-import { promisify } from "util";
+
 import { fetchWebResearchForTopic } from "./webResearchService.js";
+import { exaWebSearch } from "./agentReachService.js";
 import { runCompetitorResearch } from "./competitorResearch.js";
 import { fetchNotebooklmResearch } from "./notebooklmService.js";
 import { enqueueEditorialIdeas } from "./youtubeEditorialQueue.js";
@@ -15,7 +15,6 @@ import { appendDailyRunLog, ensureAgentDirs, getAgentPaths } from "./agentMemory
 import { repairVaultGraphLinks } from "./obsidianVault.js";
 import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
 
-const execFileAsync = promisify(execFile);
 const MEMORY_FILE = "deep-research-reports.md";
 const MAX_REPORT_CHARS = 24000;
 
@@ -43,35 +42,6 @@ export function planDeepResearch(topic = "", { niche = "Geral", format = "SHORTS
   };
 }
 
-async function fetchExaSearch(query, workspaceDir) {
-  const configPath = path.join(workspaceDir, "config", "mcporter.json");
-  if (!fs.existsSync(configPath)) {
-    return { available: false, summary: "", source: "exa", message: "config/mcporter.json ausente" };
-  }
-  try {
-    const { stdout } = await execFileAsync(
-      process.platform === "win32" ? "mcporter.cmd" : "mcporter",
-      [
-        "call", "exa.web_search_exa",
-        `query=${String(query).slice(0, 500)}`,
-        "numResults=6",
-        "--config", configPath,
-      ],
-      { timeout: 90000, maxBuffer: 2 * 1024 * 1024 },
-    );
-    const text = String(stdout || "").trim();
-    if (!text) return { available: false, summary: "", source: "exa" };
-    return {
-      available: true,
-      summary: text.slice(0, 10000),
-      source: "exa",
-      query,
-    };
-  } catch (err) {
-    return { available: false, summary: "", source: "exa", message: err.message };
-  }
-}
-
 async function runWebLeg(workspaceDir, { topic, niche, format, getApiKeys, apiKey }) {
   const fmt = format === "LONGO" ? "LONG" : "SHORT";
   return {
@@ -82,6 +52,7 @@ async function runWebLeg(workspaceDir, { topic, niche, format, getApiKeys, apiKe
       format: fmt,
       apiKey,
       getApiKeys: () => getApiKeys(workspaceDir),
+      workspaceDir,
     })),
   };
 }
@@ -244,7 +215,9 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
   }
 
   if (legs.includes("exa")) {
-    tasks.push(fetchExaSearch(`${topic} — ${niche} YouTube`, workspaceDir).then((r) => ({ leg: "exa", ...r })));
+    tasks.push(
+      exaWebSearch(`${topic} — ${niche} YouTube`, workspaceDir, { numResults: 6 }).then((r) => ({ leg: "exa", ...r })),
+    );
   }
 
   if (legs.includes("competitors") && opts.llmFn !== undefined) {

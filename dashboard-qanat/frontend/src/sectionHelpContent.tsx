@@ -101,6 +101,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-agent-reach': {
+    title: 'Pesquisa Web (Agent Reach)',
+    body: (
+      <>
+        Busca na internet sem terminal: <strong>Exa</strong> (web semântica), <strong>Jina</strong> (ler URL),
+        GitHub, Bilibili e RSS. Integrado automaticamente em ideias, roteiros e pesquisa profunda (DeerFlow).
+      </>
+    ),
+  },
   'tab-trend-forecast': {
     title: 'Radar de Tendências (TimesFM)',
     body: (
