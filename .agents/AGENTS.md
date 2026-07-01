@@ -76,3 +76,6 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/lumiera-ops|Lumiera Ops — commit + reiniciar servidores]]
 - [[skills/speckit-lumiera|Spec Kit Lumiera]] — SDD: specify, plan, tasks, implement
 - [[skills/speckit-specify|speckit specify]] · [[skills/speckit-plan|plan]] · [[skills/speckit-tasks|tasks]] · [[skills/speckit-implement|implement]] · [[skills/speckit-clarify|clarify]]
+- [[skills/openmontage-reference-video|OpenMontage Reference]] — URL → brief + conceitos ([[memory/openmontage-lumiera]])
+- [[skills/openmontage-preflight|OpenMontage Preflight]] — capability envelope
+- [[skills/openmontage-reviewer|OpenMontage Reviewer]] — quality gates por estágio

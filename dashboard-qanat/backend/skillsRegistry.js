@@ -708,6 +708,30 @@ export function ensureDefaultSkillBundles(workspaceDir) {
           "Gancho 5s, gap 18s entre overlays, chapter stingers. Infográficos > cards flutuantes no centro.",
       },
     },
+    {
+      file: "openmontage-prod.json",
+      data: {
+        name: "openmontage-prod",
+        description: "Produção inspirada em referência — OpenMontage adaptado Lumiera",
+        tasks: ["ideas", "script", "metadata"],
+        formats: ["SHORT", "LONG"],
+        skills: [
+          "openmontage-reference-video",
+          "openmontage-preflight",
+          "openmontage-reviewer",
+          "viral-hooks",
+          "viral-short-form",
+          "ugc-scriptwriter",
+          "content-strategy",
+          "hyperframes",
+          "remotion-best-practices",
+          "youtube-seo",
+          "youtube-thumbnail",
+        ],
+        instruction:
+          "Preflight capability-menu → analisar referência com twist obrigatório → reviewer em cada estágio. Nunca cópia carbono.",
+      },
+    },
   ];
 
   for (const { file, data } of defaults) {
