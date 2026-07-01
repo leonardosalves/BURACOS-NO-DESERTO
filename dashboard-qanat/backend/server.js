@@ -1883,7 +1883,7 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
 
     const planToken = `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays_ai = cleanedAi;
+    storyboard.overlays_ai = JSON.parse(JSON.stringify(cleanedAi));
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
@@ -3732,7 +3732,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
     const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays_ai = cleanedAi;
+    storyboard.overlays_ai = JSON.parse(JSON.stringify(cleanedAi));
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
@@ -11440,11 +11440,26 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
     return overlay.scene_ref;
   }
 
+  // If scene_ref exists but doesn't match exactly, find any scene in the same block
+  if (overlay.scene_ref && isLikelySceneId(overlay.scene_ref)) {
+    const refBlock = String(overlay.scene_ref).split(".")[0];
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${refBlock}.`));
+    if (blockScene) return blockScene;
+  }
+
   if (rawString && sceneStarts[rawString] !== undefined) {
     return rawString;
   }
 
   if (isLikelySceneId(rawString)) {
+    // Check if this scene ID actually exists in sceneStarts
+    if (sceneStarts[rawString] !== undefined) {
+      return rawString;
+    }
+    // Find any scene in the same block
+    const block = rawString.split(".")[0];
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${block}.`));
+    if (blockScene) return blockScene;
     return rawString;
   }
 
