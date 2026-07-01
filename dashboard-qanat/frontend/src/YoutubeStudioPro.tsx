@@ -71,6 +71,14 @@ type ProDashboard = {
     bestHour?: { hour: number; label: string; views: number };
     bestTimeWindow?: string;
     recommendedPublishTime?: string;
+    suggestedPublishSlot?: {
+      iso: string;
+      local: string;
+      label?: string;
+      weekday?: string;
+      hour?: number;
+      timeZone?: string;
+    } | null;
     timeZone?: string;
     daily?: Array<{ day: string; views: number }>;
     note?: string;
@@ -210,7 +218,8 @@ type Props = {
   selectedVideoId?: string | null;
   periodDays?: number;
   toast: (msg: string) => void;
-  onApplyIdea?: (title: string, hookPt?: string) => void;
+  onApplyIdea?: (title: string, hookPt?: string, options?: { format?: 'LONGO' | 'SHORTS' }) => void;
+  onSchedulePublish?: (slot: { iso: string; local: string; label?: string }) => void;
   onRefreshComments?: () => void;
 };
 
@@ -229,6 +238,7 @@ export function YoutubeStudioPro({
   periodDays = 28,
   toast,
   onApplyIdea,
+  onSchedulePublish,
   onRefreshComments,
 }: Props) {
   const [dashboard, setDashboard] = useState<ProDashboard | null>(null);
@@ -557,6 +567,21 @@ export function YoutubeStudioPro({
                         )}
                         {dashboard.heatmap.note && (
                           <p className="text-[7px] text-zinc-600 mt-1">{dashboard.heatmap.note}</p>
+                        )}
+                        {dashboard.heatmap.suggestedPublishSlot && onSchedulePublish && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <p className="text-[8px] text-zinc-500">
+                              Próximo slot: <span className="text-zinc-300">{dashboard.heatmap.suggestedPublishSlot.local}</span>
+                            </p>
+                            <button
+                              type="button"
+                              title="Define data/hora na aba Upload e abre o projeto"
+                              onClick={() => onSchedulePublish(dashboard.heatmap!.suggestedPublishSlot!)}
+                              className="text-[8px] px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:text-orange-200"
+                            >
+                              Agendar no Upload →
+                            </button>
+                          </div>
                         )}
                       </>
                     ) : (
