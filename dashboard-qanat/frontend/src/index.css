@@ -785,6 +785,56 @@
     @apply px-2.5 py-1.5 text-[11px] rounded-lg;
   }
 
+  .dash-textarea {
+    @apply w-full rounded-xl px-4 py-3 text-xs text-white outline-none transition resize-none;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-textarea:focus {
+    border-color: rgba(130, 128, 253, 0.5);
+    box-shadow: 0 0 0 2px rgba(130, 128, 253, 0.12);
+  }
+
+  .dash-kpi-pill {
+    @apply px-2.5 py-1 rounded-lg text-[10px];
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+    color: var(--dash-muted);
+  }
+
+  .dash-provider-card {
+    @apply text-left border rounded-xl p-4 transition cursor-pointer;
+    background: var(--dash-bg);
+    border-color: var(--dash-border);
+  }
+
+  .dash-provider-card:hover {
+    border-color: var(--dash-border);
+    background: var(--dash-card-hover);
+  }
+
+  .dash-provider-card-active {
+    background: rgba(130, 128, 253, 0.1) !important;
+    border-color: rgba(130, 128, 253, 0.45) !important;
+  }
+
+  .dash-toggle-card {
+    @apply flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition;
+    background: var(--dash-bg);
+    border-color: var(--dash-border);
+  }
+
+  .dash-toggle-card:hover {
+    border-color: rgba(130, 128, 253, 0.35);
+  }
+
+  .dash-effect-panel {
+    @apply rounded-xl border p-5 space-y-4;
+    background: rgba(130, 128, 253, 0.04);
+    border-color: rgba(130, 128, 253, 0.2);
+  }
+
   .dash-logo-preview {
     @apply rounded-xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden;
     background: var(--dash-bg);
