@@ -78,7 +78,7 @@ export function SectionHeader({
         {trailing && <div className="shrink-0">{trailing}</div>}
       </div>
       {subtitle && (
-        <div className="text-xs text-gray-400 mt-1 leading-relaxed font-sans break-words [overflow-wrap:anywhere] max-w-full">
+        <div className="text-xs text-dash-muted mt-1 leading-relaxed font-sans break-words [overflow-wrap:anywhere] max-w-full">
           {subtitle}
         </div>
       )}
