@@ -1,5 +1,5 @@
 # Sobe Voicebox para o Lumiera (API local)
-# Prioridade: app MSI instalado → Docker CPU (17600)
+# Prioridade: app MSI instalado, depois Docker CPU (17600)
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $VendorDir = Join-Path $RepoRoot ".vendor\voicebox"
@@ -42,7 +42,7 @@ function Start-DockerDesktopIfNeeded {
     $desktop = "${env:ProgramFiles}\Docker\Docker\Docker Desktop.exe"
     if (-not (Test-Path $desktop)) { return $false }
     if (Get-Process "Docker Desktop" -ErrorAction SilentlyContinue) { return $true }
-    Write-Host "Iniciando Docker Desktop (aguarde ~30–60s) ..." -ForegroundColor Yellow
+    Write-Host "Iniciando Docker Desktop (aguarde 30-60s) ..." -ForegroundColor Yellow
     Start-Process $desktop | Out-Null
     $deadline = (Get-Date).AddSeconds(120)
     while ((Get-Date) -lt $deadline) {
@@ -65,7 +65,7 @@ if ($active) {
         $n = @($profiles).Count
         Write-Host "Perfis de voz: $n" -ForegroundColor Green
         if ($n -eq 0) {
-            Write-Host "Abra o Voicebox → Voices → crie um perfil antes de gerar no Lumiera." -ForegroundColor Yellow
+            Write-Host "Abra o Voicebox > Voices > crie um perfil antes de gerar no Lumiera." -ForegroundColor Yellow
         }
     } catch {
         Write-Host "Nao foi possivel listar perfis." -ForegroundColor Yellow
@@ -75,7 +75,7 @@ if ($active) {
 
 # --- App MSI (recomendado no Windows) ---
 if (Test-Path $VoiceboxExe) {
-    Write-Host "App Voicebox instalado — iniciando (porta 17493) ..." -ForegroundColor Cyan
+    Write-Host "App Voicebox instalado - iniciando (porta 17493) ..." -ForegroundColor Cyan
     if (-not (Get-Process voicebox -ErrorAction SilentlyContinue)) {
         Start-Process $VoiceboxExe | Out-Null
     }
