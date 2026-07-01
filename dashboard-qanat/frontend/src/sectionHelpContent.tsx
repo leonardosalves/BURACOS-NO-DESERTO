@@ -101,6 +101,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-projects': {
+    title: 'Biblioteca de Projetos',
+    body: (
+      <>
+        Todos os projetos do workspace organizados por <strong>Longos (16:9)</strong> e <strong>Shorts (9:16)</strong>,
+        agrupados por nicho. Busca global, recentes e criação rápida por formato/nicho.
+      </>
+    ),
+  },
   'tab-agent-reach': {
     title: 'Pesquisa Web (Agent Reach)',
     body: (

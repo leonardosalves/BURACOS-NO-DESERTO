@@ -134,6 +134,7 @@ import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPa
 import { ComfyMcpPage } from './ComfyMcpPage';
 import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
+import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -371,7 +372,7 @@ const RENDER_MODE_LABELS: Record<PendingRenderJob['mode'], string> = {
   'remotion-pro': 'Remotion PRO',
 };
 
-type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
+
 
 const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
 
@@ -569,12 +570,12 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach';
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach' | 'projects';
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
     const saved = initialWizardSession?.activeTab;
-    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp', 'trend-forecast', 'agent-reach'];
+    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp', 'trend-forecast', 'agent-reach', 'projects'];
     return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
   });
 
@@ -601,8 +602,7 @@ export default function App() {
 
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [newProjectNiche, setNewProjectNiche] = useState<string>('Geral');
-  const [collapsedNiches, setCollapsedNiches] = useState<Record<string, boolean>>({});
-  const [projectSearchQuery, setProjectSearchQuery] = useState<string>('');
+
   const [recentProjects, setRecentProjects] = useState<string[]>([]);
   const [uploadStatus, setUploadStatus] = useState<{ youtube: any; canva?: any; instagram: any; tiktok: any; kwai: any }>({
     youtube: { connected: false, has_secrets: false, client_id: null },
@@ -864,7 +864,7 @@ export default function App() {
 
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
-  const [deletingProjectName, setDeletingProjectName] = useState<string | null>(null);
+
 
   const [pendingOutputDelete, setPendingOutputDelete] = useState<OutputVideo | null>(null);
 
@@ -2899,7 +2899,7 @@ export default function App() {
 
         try { toast.success(data.message); } catch (e) {}
 
-        setDeletingProjectName(null);
+
 
         const deleted = name.trim();
         const touchesWizard = deleted === creatorProjectName.trim()
@@ -2931,23 +2931,10 @@ export default function App() {
 
   };
 
-  const matchesProjectSearch = (proj: ProjectListItem, query: string) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return [proj.name, proj.title, proj.niche, proj.format].some(
-      (field) => String(field || '').toLowerCase().includes(q),
-    );
-  };
-
-  const getNicheCollapsed = (collapseKey: string, projList: ProjectListItem[]) => {
-    if (collapsedNiches[collapseKey] !== undefined) return collapsedNiches[collapseKey];
-    return !projList.some((p) => p.name === activeProject);
-  };
-
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach') {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach' || activeTab === 'projects') {
       setActiveTab(tab);
     }
   };
@@ -2955,72 +2942,6 @@ export default function App() {
   const handleSelectProject = (name: string) => {
     setActiveProject(name);
     leaveGlobalViewForProject('status');
-  };
-
-  const renderSidebarProjectItem = (proj: ProjectListItem) => {
-    const isSelected = activeProject === proj.name;
-    const isShort = proj.format === 'SHORTS';
-    return (
-      <div key={proj.name} className="flex items-center gap-1 group animate-fade-in">
-        <button
-          type="button"
-          onClick={() => handleSelectProject(proj.name)}
-          className={`flex-1 text-left px-2.5 py-2 rounded-lg text-[11px] font-semibold transition flex items-center gap-2 cursor-pointer min-w-0 ${
-            isSelected
-              ? 'bg-gold-500/10 border border-gold-500/25 text-gold-300'
-              : 'text-gray-400 border border-transparent hover:bg-zinc-900/40 hover:text-gray-200'
-          }`}
-        >
-          {isShort ? (
-            <Smartphone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-amber-500' : 'text-zinc-600'}`} />
-          ) : (
-            <Tv className={`w-3 h-3 shrink-0 ${isSelected ? 'text-gold-500' : 'text-zinc-600'}`} />
-          )}
-          <span className="font-sans text-balance-safe line-clamp-safe-2 min-w-0 flex-1" title={proj.title || proj.name}>
-            {proj.title || proj.name}
-          </span>
-        </button>
-        {deletingProjectName === proj.name ? (
-          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 animate-fade-in shrink-0">
-            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteProject(proj.name); }} className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-1.5 py-0.5 rounded transition cursor-pointer">Sim</button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProjectName(null); }} className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded transition cursor-pointer ml-0.5">Não</button>
-          </div>
-        ) : (
-          <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProjectName(proj.name); }} className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0 opacity-0 group-hover:opacity-100" title="Excluir Projeto">
-            <Trash2 className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  const renderProjectNicheGroups = (formatFilter: 'LONGO' | 'SHORTS') => {
-    const filtered = projects.filter((p) => (formatFilter === 'SHORTS' ? p.format === 'SHORTS' : p.format !== 'SHORTS'));
-    if (filtered.length === 0) {
-      return <p className="text-[10px] text-zinc-650 italic px-2 py-1 font-sans">{formatFilter === 'SHORTS' ? 'Nenhum projeto short' : 'Nenhum projeto longo'}</p>;
-    }
-    const grouped = filtered.reduce<Record<string, ProjectListItem[]>>((acc, proj) => {
-      const nicheName = proj.niche || 'Geral';
-      if (!acc[nicheName]) acc[nicheName] = [];
-      acc[nicheName].push(proj);
-      return acc;
-    }, {});
-    return Object.entries(grouped).map(([nicheName, projList]) => {
-      const collapseKey = `${formatFilter === 'SHORTS' ? 'short' : 'long'}-${nicheName}`;
-      const isCollapsed = getNicheCollapsed(collapseKey, projList);
-      return (
-        <div key={collapseKey} className="space-y-1 border border-zinc-900/40 bg-zinc-950/10 rounded-xl p-1.5">
-          <button type="button" onClick={() => setCollapsedNiches((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))} className="w-full flex items-center justify-between text-left px-1.5 py-1 text-gray-500 hover:text-gray-300 transition lumiera-section-label cursor-pointer">
-            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-              <Folder className="w-3 h-3 text-gold-500/60 shrink-0" />
-              <span className="line-clamp-safe-2 min-w-0">{nicheName} ({projList.length})</span>
-            </div>
-            {isCollapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
-          </button>
-          {!isCollapsed && <div className="space-y-0.5 pt-0.5">{projList.map((proj) => renderSidebarProjectItem(proj))}</div>}
-        </div>
-      );
-    });
   };
 
   const handleDeleteOutputVideo = async () => {
@@ -8618,6 +8539,32 @@ export default function App() {
 
               <button
                 type="button"
+                onClick={() => setActiveTab('projects')}
+                className={`lumiera-sidebar-btn ${
+                  activeTab === 'projects'
+                    ? 'bg-gold-500/10 border border-gold-500/30 text-gold-300'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-gold-300 hover:border-zinc-700'
+                }`}
+              >
+                <Folder className="w-4 h-4" />
+                <span>Projetos</span>
+                {projects.length > 0 && (
+                  <span className="ml-auto text-[9px] text-zinc-500 tabular-nums">{projects.length}</span>
+                )}
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-projects'].title} align="start">
+                    {SECTION_HELP['tab-projects'].body}
+                  </SettingHelpTip>
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveTab('agents')}
                 className={`lumiera-sidebar-btn ${
                   activeTab === 'agents'
@@ -8743,72 +8690,20 @@ export default function App() {
 
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 font-sans min-h-0">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600 pointer-events-none" />
-              <input
-                type="search"
-                value={projectSearchQuery}
-                onChange={(e) => setProjectSearchQuery(e.target.value)}
-                placeholder="Buscar projeto..."
-                className="w-full pl-8 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40 font-sans"
-              />
+          {activeProject && (
+            <div className="shrink-0 px-4 py-2 border-t border-zinc-900/60">
+              <button
+                type="button"
+                onClick={() => setActiveTab('projects')}
+                className="w-full text-left rounded-xl px-3 py-2 bg-zinc-950/60 border border-zinc-800/80 hover:border-gold-500/30 transition"
+              >
+                <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Projeto ativo</p>
+                <p className="text-[11px] font-semibold text-gold-300 truncate" title={activeProject}>
+                  {activeProject}
+                </p>
+              </button>
             </div>
-
-            {projectSearchQuery.trim() ? (
-              <div className="space-y-0.5">
-                {projects.filter((p) => matchesProjectSearch(p, projectSearchQuery)).length === 0 ? (
-                  <p className="text-[10px] text-zinc-600 italic px-1">Nenhum projeto encontrado</p>
-                ) : (
-                  projects
-                    .filter((p) => matchesProjectSearch(p, projectSearchQuery))
-                    .map((proj) => renderSidebarProjectItem(proj))
-                )}
-              </div>
-            ) : (
-              <>
-                {recentProjects.length > 0 && (
-                  <div className="space-y-1">
-                    <span className="lumiera-section-label px-1 block">Recentes</span>
-                    {recentProjects
-                      .map((name) => projects.find((p) => p.name === name))
-                      .filter((proj): proj is ProjectListItem => Boolean(proj))
-                      .map((proj) => renderSidebarProjectItem(proj))}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center px-1">
-                    <span className="lumiera-section-label">Longos (16:9)</span>
-                    <button
-                      type="button"
-                      onClick={() => { setNewProjectFormat('LONGO'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
-                      className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-                      title="Criar Novo Projeto Longo"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="space-y-1">{renderProjectNicheGroups('LONGO')}</div>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-zinc-900/60">
-                  <div className="flex justify-between items-center px-1">
-                    <span className="lumiera-section-label">Shorts (9:16)</span>
-                    <button
-                      type="button"
-                      onClick={() => { setNewProjectFormat('SHORTS'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
-                      className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-                      title="Criar Novo Projeto Curto"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="space-y-1">{renderProjectNicheGroups('SHORTS')}</div>
-                </div>
-              </>
-            )}
-          </div>
+          )}
 
           <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-relaxed border-t border-zinc-800 font-sans text-balance-safe break-words">
 
@@ -8821,7 +8716,7 @@ export default function App() {
         {/* Tab Content Panel */}
 
         <main className="lumiera-main">
-          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && activeTab !== 'comfy-mcp' && activeTab !== 'trend-forecast' && activeTab !== 'agent-reach' && (
+          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && activeTab !== 'comfy-mcp' && activeTab !== 'trend-forecast' && activeTab !== 'agent-reach' && activeTab !== 'projects' && (
             <div className="lumiera-project-bar">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
                 <div className="min-w-0 flex-1">
@@ -12640,6 +12535,23 @@ export default function App() {
           {activeTab === 'comfy-mcp' && (
             <TabErrorBoundary tabName="Comfy MCP">
               <ComfyMcpPage />
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'projects' && (
+            <TabErrorBoundary tabName="Projetos">
+              <ProjectsLibraryPanel
+                projects={projects}
+                activeProject={activeProject}
+                recentProjects={recentProjects}
+                onSelectProject={handleSelectProject}
+                onRequestCreate={(format, niche) => {
+                  setNewProjectFormat(format);
+                  setNewProjectNiche(niche || 'Geral');
+                  setShowCreateModal(true);
+                }}
+                onDeleteProject={(name) => void handleDeleteProject(name)}
+              />
             </TabErrorBoundary>
           )}
 
