@@ -11050,6 +11050,16 @@ const PORT = 3005;
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
+  try {
+    const nlm = getNotebooklmStatus(__dirname);
+    if (nlm.authenticated) {
+      console.log(`[NotebookLM] ${nlm.message} (${nlm.dataDir || ".notebooklm-data"})`);
+    } else {
+      console.warn(`[NotebookLM] ${nlm.message}`);
+    }
+  } catch (e) {
+    console.warn("[NotebookLM] status check failed:", e.message);
+  }
   startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
 });
 
