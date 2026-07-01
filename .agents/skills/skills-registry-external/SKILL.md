@@ -36,6 +36,26 @@ description: |
 | ai-ugc-ads | chadboyda/agent-gtm-skills | Bundle `shorts-viral`, ads UGC Shorts |
 | ad-concept-generator | motion-creative/skills | Bundle `shorts-viral`, conceito antes do roteiro |
 | content-strategy | coreyhaines31/marketingskills | Pilares, funil Short↔Long, Creator ideias |
+| deer-flow-research | bytedance/deer-flow (adaptado) | Pesquisa profunda VideoAgent |
+| agent-reach | Panniantong/Agent-Reach | Busca web Exa + 15 plataformas |
+
+## Matt Pocock engineering ([mattpocock/skills](https://github.com/mattpocock/skills))
+
+Instalação: `npx skills add mattpocock/skills --yes` ou `.\scripts\setup-mattpocock-skills.ps1`
+
+| Skill local | Uso Lumiera | Bundle |
+|-------------|-------------|--------|
+| grill-with-docs | Antes de feature ambígua (complementa speckit-clarify) | dev-sdd |
+| tdd | Backend `dashboard-qanat/backend/` test-first | dev-sdd |
+| diagnosing-bugs | Debug Creator, Clip Factory, render | dev-sdd |
+| code-review | Review diff vs spec/standards | dev-sdd |
+| writing-great-skills | Autoria `.agents/skills/` | dev-sdd |
+| to-prd / to-issues / triage | Issues em `.scratch/` | — |
+| setup-matt-pocock-skills | Config `docs/agents/` (rodar uma vez) | — |
+
+**Não duplicar:** `speckit-lumiera` cobre specify/plan/tasks/implement — preferir speckit para features Lumiera.
+
+Demais 30 skills (writing-beats, obsidian-vault, wizard, etc.) instaladas mas sem bundle — usar sob demanda.
 
 ## Hermes Agent + OpenClaw — padrões adotados
 
