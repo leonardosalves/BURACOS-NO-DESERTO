@@ -20,6 +20,11 @@ import {
   FISH_SPEECH_DEFAULT_VOICE,
 } from "./fishSpeechTts.js";
 import {
+  loadChatterboxConfig,
+  synthesizeChatterboxNarration,
+  CHATTERBOX_DEFAULT_VOICE,
+} from "./chatterboxTts.js";
+import {
   loadStockUsageRegistry,
   registerStockUsage,
 } from "./mediaUsageRegistry.js";
@@ -492,6 +497,38 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
+  if (engine === "chatterbox" || engine === "chatterbox-tts") {
+    const cbConfig = loadChatterboxConfig({ workspaceDir, projectDir: projDir });
+    const cbCfg = cbConfig.chatterbox || {};
+    const voicePreset = voice || cbCfg.default_voice || cbCfg.defaultVoice || CHATTERBOX_DEFAULT_VOICE;
+    const useTurboTags = String(voicePreset).includes("turbo");
+    const tagPlatform = useTurboTags ? "turbo" : "chatterbox";
+    const useTagged = cbCfg.use_tagged_script !== false && cbCfg.useTaggedScript !== false;
+    const textForTts = useTagged && String(tagged).trim().length > 40
+      ? convertCinematicMarkersForTts(tagged, tagPlatform)
+      : plain;
+
+    const result = await synthesizeChatterboxNarration(textForTts, {
+      voice: voicePreset,
+      outputPath: dest,
+      workDir: projDir,
+      config: cbConfig,
+      onLog,
+    });
+    invalidateNarrationTimings();
+
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: result.chars,
+      voice: result.voice,
+      engine: "chatterbox",
+      model: result.model,
+      durationSeconds: result.durationSeconds,
+      message: `Narração Chatterbox gerada (${result.voice}, ${result.durationSeconds?.toFixed(1) || "?"}s, ${result.chunks || 1} bloco(s)). Rode sync Whisper para timings.`,
+    };
+  }
+
   if (engine === "fish" || engine === "fish-speech" || engine === "fish_speech") {
     const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
     const fishCfg = fishConfig.fish_speech || {};
@@ -522,7 +559,7 @@ export async function generateNarrationTts(projDir, {
   }
 
   const textForTts = convertCinematicMarkersForTts(tagged, engine);
-  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, edge ou fish. Texto: ${textForTts.slice(0, 80)}...`);
+  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`);
 }
 
 export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {

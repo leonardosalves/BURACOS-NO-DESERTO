@@ -7577,7 +7577,7 @@ TIPOS DE ACAO:
 
 - "trigger_stock_fetch": Baixa B-roll do Pexels/Pixabay para cenas sem mídia.
 
-- "trigger_tts": Gera narração TTS. Params: {"engine":"kokoro","voice":"pm_alex","speed":0.82}, {"engine":"fish","voice":"__default__"} (Fish Speech S2 local) ou {"engine":"edge","voice":"pt-BR-AntonioNeural","rate":"+0%"}.
+- "trigger_tts": Gera narração TTS. Params: {"engine":"kokoro","voice":"pm_alex","speed":0.82}, {"engine":"chatterbox","voice":"multilingual_pt"}, {"engine":"fish","voice":"__default__"} ou {"engine":"edge","voice":"pt-BR-AntonioNeural","rate":"+0%"}.
 
 - "trigger_apply_bgm": Aplica trilha Epidemic Sound sugerida pela IA.
 
