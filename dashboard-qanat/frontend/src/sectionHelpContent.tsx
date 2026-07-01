@@ -218,6 +218,14 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tts-voice-studio': {
+    title: 'Estúdio de voz TTS',
+    body: (
+      <>
+        Gere <code>narracao_mestra_premium.mp3</code> com Fish Audio (cloud, tags <code>[ênfase]</code> <code>[pausa]</code>, temperatura, velocidade) ou Voicebox (clone local). Após gerar, rode <strong>Sincronizar timings (Whisper)</strong> acima para alinhar blocos e legendas.
+      </>
+    ),
+  },
   'timeline-highlights': {
     title: 'Palavras-chave em destaque',
     body: (

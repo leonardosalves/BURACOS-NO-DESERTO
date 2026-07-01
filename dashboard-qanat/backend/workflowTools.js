@@ -440,14 +440,20 @@ export async function generateNarrationTts(projDir, {
   platform = "kokoro",
   workspaceDir = null,
   onLog = () => {},
+  ttsOptions = {},
 } = {}) {
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
-  const tagged = storyboard.narrative_script_tagged || storyboard.narrative_script || "";
-  const plain = storyboard.narrative_script || String(tagged).replace(/\[[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
+  const taggedFromBoard = storyboard.narrative_script_tagged || storyboard.narrative_script || "";
+  const plainFromBoard = storyboard.narrative_script
+    || String(taggedFromBoard).replace(/\[[^\]]+\]/g, " ").replace(/\s+/g, " ").trim();
+  const tagged = String(ttsOptions.customTaggedText || "").trim() || taggedFromBoard;
+  const plain = String(ttsOptions.customPlainText || "").trim() || plainFromBoard;
 
   if (!plain || plain.length < 40) {
     throw new Error("Roteiro de narração ausente ou muito curto no storyboard.");
   }
+
+  const useTaggedOverride = ttsOptions.useTaggedScript;
 
   const engine = String(platform || "kokoro").toLowerCase();
   const dest = path.join(projDir, NARRATION_FILENAME);
@@ -546,8 +552,16 @@ export async function generateNarrationTts(projDir, {
   if (engine === "voicebox") {
     const vbConfig = loadVoiceboxConfig({ workspaceDir, projectDir: projDir });
     const vbCfg = vbConfig.voicebox || {};
-    const useTagged = vbCfg.use_tagged_script !== false && vbCfg.useTaggedScript !== false;
-    const tagPlatform = String(vbCfg.engine || "chatterbox").includes("turbo") ? "turbo" : "chatterbox";
+    const vbOpt = ttsOptions.voicebox || {};
+    if (vbOpt.engine) vbConfig.voicebox = { ...vbCfg, engine: vbOpt.engine };
+    if (vbOpt.language) vbConfig.voicebox = { ...vbConfig.voicebox, language: vbOpt.language };
+    if (vbOpt.maxChunkChars) {
+      vbConfig.voicebox = { ...vbConfig.voicebox, max_chunk_chars: vbOpt.maxChunkChars };
+    }
+    const useTagged = useTaggedOverride !== undefined
+      ? Boolean(useTaggedOverride)
+      : (vbCfg.use_tagged_script !== false && vbCfg.useTaggedScript !== false);
+    const tagPlatform = String(vbConfig.voicebox.engine || "chatterbox").includes("turbo") ? "turbo" : "chatterbox";
     const textForTts = useTagged && String(tagged).trim().length > 40
       ? convertCinematicMarkersForTts(tagged, tagPlatform)
       : plain;
@@ -576,7 +590,24 @@ export async function generateNarrationTts(projDir, {
   if (engine === "fish" || engine === "fish-speech" || engine === "fish_speech") {
     const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
     const fishCfg = fishConfig.fish_speech || {};
-    const useTagged = fishCfg.use_tagged_script !== false && fishCfg.useTaggedScript !== false;
+    const fishOpt = ttsOptions.fish || {};
+    fishConfig.fish_speech = {
+      ...fishCfg,
+      ...(fishOpt.temperature != null ? { temperature: Number(fishOpt.temperature) } : {}),
+      ...(fishOpt.topP != null ? { top_p: Number(fishOpt.topP) } : {}),
+      ...(fishOpt.top_p != null ? { top_p: Number(fishOpt.top_p) } : {}),
+      ...(fishOpt.repetitionPenalty != null ? { repetition_penalty: Number(fishOpt.repetitionPenalty) } : {}),
+      ...(fishOpt.repetition_penalty != null ? { repetition_penalty: Number(fishOpt.repetition_penalty) } : {}),
+      ...(fishOpt.chunkLength != null ? { chunk_length: Number(fishOpt.chunkLength) } : {}),
+      ...(fishOpt.chunk_length != null ? { chunk_length: Number(fishOpt.chunk_length) } : {}),
+      ...(fishOpt.prosodySpeed != null ? { prosody_speed: Number(fishOpt.prosodySpeed) } : {}),
+      ...(fishOpt.prosody_speed != null ? { prosody_speed: Number(fishOpt.prosody_speed) } : {}),
+      ...(fishOpt.cloudModel ? { cloud_model: String(fishOpt.cloudModel) } : {}),
+      ...(fishOpt.cloud_model ? { cloud_model: String(fishOpt.cloud_model) } : {}),
+    };
+    const useTagged = useTaggedOverride !== undefined
+      ? Boolean(useTaggedOverride)
+      : (fishCfg.use_tagged_script !== false && fishCfg.useTaggedScript !== false);
     const textForTts = useTagged && String(tagged).trim().length > 40
       ? convertCinematicMarkersForTts(tagged, "fish")
       : plain;

@@ -500,6 +500,7 @@ export function registerWorkflowRoutes(app, deps) {
             available: fishProbe.ok,
             mode: fishProbe.mode || "local",
             serverUrl: fishProbe.baseUrl,
+            cloudModel: fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free",
             hint: fishProbe.ok
               ? (fishProbe.mode === "cloud"
                 ? `Fish Audio API (cloud) · ${fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free"} · ${fishProbe.modelCount || fishProbe.references?.length || 0} voz(es) — tags [pausa], [ênfase]`
@@ -528,7 +529,7 @@ export function registerWorkflowRoutes(app, deps) {
   app.post("/api/tts/generate-narration", async (req, res) => {
     try {
       const projDir = getProjectDir(req);
-      const { voice, rate, pitch, speed, engine } = req.body || {};
+      const { voice, rate, pitch, speed, engine, ttsOptions } = req.body || {};
       const result = await generateNarrationTts(projDir, {
         voice,
         rate: rate || "+0%",
@@ -536,6 +537,7 @@ export function registerWorkflowRoutes(app, deps) {
         speed,
         platform: engine || "kokoro",
         workspaceDir: WORKSPACE_DIR,
+        ttsOptions: ttsOptions && typeof ttsOptions === "object" ? ttsOptions : {},
       });
       res.json(result);
     } catch (err) {
