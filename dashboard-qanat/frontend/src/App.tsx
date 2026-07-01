@@ -12304,6 +12304,9 @@ export default function App() {
                 onRelinkYoutube={handleRelinkYoutube}
                 nicheKeyword={config?.niche || ''}
                 alerts={youtubeChannelAlerts}
+                geminiBrowserMode={geminiBrowserMode}
+                aiProvider={aiProvider}
+                resolveBrowserResponse={resolveBrowserResponse}
                 onSelectProject={handleSelectProject}
                 onAlertsSync={setYoutubeChannelAlerts}
                 onApplyCreatorIdea={(title) => {

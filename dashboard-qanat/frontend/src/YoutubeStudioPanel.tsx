@@ -19,6 +19,7 @@ import { YoutubeStudioPro } from './YoutubeStudioPro';
 import { YoutubeStudioSettings } from './YoutubeStudioSettings';
 import { YoutubeStudioTitleAb } from './YoutubeStudioTitleAb';
 import { PostPublishChecklist } from './PostPublishChecklist';
+import { fetchGeminiAi, type GeminiBrowserResolver } from './geminiAiFetch';
 
 type ChannelOverview = {
   connected: boolean;
@@ -205,6 +206,9 @@ type Props = {
   onSelectProject?: (projectName: string) => void;
   onAlertsSync?: (alerts: YoutubeChannelAlerts) => void;
   onApplyCreatorIdea?: (title: string) => void;
+  geminiBrowserMode?: boolean;
+  aiProvider?: string;
+  resolveBrowserResponse?: GeminiBrowserResolver;
 };
 
 function RetentionSparkline({ points }: { points: Array<{ ratio: number; watchRatio: number }> }) {
@@ -276,6 +280,9 @@ export function YoutubeStudioPanel({
   onSelectProject,
   onAlertsSync,
   onApplyCreatorIdea,
+  geminiBrowserMode = false,
+  aiProvider = 'gemini',
+  resolveBrowserResponse,
 }: Props) {
   const [overview, setOverview] = useState<ChannelOverview | null>(null);
   const [videosReport, setVideosReport] = useState<VideosReport | null>(null);
@@ -494,30 +501,45 @@ export function YoutubeStudioPanel({
     }
   }, [loadChannelSummary, toast]);
 
+  const studioAiFetch = useCallback(async (url: string, body: Record<string, unknown>) => {
+    const init: RequestInit = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    };
+    if (resolveBrowserResponse) {
+      return fetchGeminiAi(url, init, {
+        geminiBrowserMode,
+        aiProvider,
+        resolveBrowserResponse,
+      });
+    }
+    const res = await fetch(url, init);
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  }, [aiProvider, geminiBrowserMode, resolveBrowserResponse]);
+
   const suggestCommentReply = useCallback(async (comment: CommentRow) => {
     setSuggestingId(comment.commentId);
     try {
       const lumieraRef = alerts?.lumieraVideoById?.[comment.videoId];
-      const res = await fetch('/api/youtube/channel/comments/suggest-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          commentText: comment.text,
-          videoTitle: comment.videoTitle,
-          niche: lumieraRef?.niche || nicheKeyword,
-          authorName: comment.authorDisplayName,
-        }),
+      const { ok, data } = await studioAiFetch('/api/youtube/channel/comments/suggest-reply', {
+        commentText: comment.text,
+        videoTitle: comment.videoTitle,
+        niche: lumieraRef?.niche || nicheKeyword,
+        authorName: comment.authorDisplayName,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Falha na sugestão IA');
-      setReplyDrafts((prev) => ({ ...prev, [comment.commentId]: data.suggestion || '' }));
+      if (!ok) throw new Error(data.error || 'Falha na sugestão IA');
+      const suggestion = String(data.suggestion || data.text || '').trim();
+      if (!suggestion) throw new Error('IA retornou resposta vazia.');
+      setReplyDrafts((prev) => ({ ...prev, [comment.commentId]: suggestion }));
       toast('Sugestão de resposta gerada.');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro na sugestão IA');
     } finally {
       setSuggestingId(null);
     }
-  }, [alerts?.lumieraVideoById, nicheKeyword, toast]);
+  }, [alerts?.lumieraVideoById, nicheKeyword, studioAiFetch, toast]);
 
   const loadWeeklyReport = useCallback(async () => {
     setWeeklyLoading(true);
@@ -577,19 +599,21 @@ export function YoutubeStudioPanel({
 
   const translateComment = useCallback(async (comment: CommentRow) => {
     try {
-      const res = await fetch('/api/youtube/channel/comments/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: comment.text, targetLang: 'pt' }),
+      const { ok, data } = await studioAiFetch('/api/youtube/channel/comments/translate', {
+        text: comment.text,
+        targetLang: 'pt',
       });
-      const data = await res.json();
-      if (res.ok) {
-        setTranslations((prev) => ({ ...prev, [comment.commentId]: data.translation }));
+      if (!ok) throw new Error(data.error || 'Falha na tradução');
+      const translation = String(data.translation || data.text || '').trim();
+      if (translation) {
+        setTranslations((prev) => ({ ...prev, [comment.commentId]: translation }));
+      } else {
+        toast('Tradução vazia.');
       }
-    } catch {
-      toast('Erro na tradução.');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro na tradução.');
     }
-  }, [toast]);
+  }, [studioAiFetch, toast]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
