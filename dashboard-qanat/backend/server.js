@@ -9,6 +9,10 @@ import {
   VARIETY_PROFILES,
 } from "./overlayOrchestration.js";
 import {
+  buildOverlayResearchPromptBlock,
+  resolveOverlayResearchForPlanning,
+} from "./overlayResearchService.js";
+import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
   normalizeMetadataMarkdown,
@@ -2309,11 +2313,13 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     let llmText = browserText;
     if (!llmText) {
       const planSessionId = createOverlayPlanSessionId();
+      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR);
+      const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
       const prompt = buildCompactOverlayPlanningPrompt(
         projDir,
         useHyperframes,
         planSessionId,
-        learningsAddendum,
+        `${learningsAddendum || ""}${researchAddendum}`,
       );
       if (!prompt) {
         return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
@@ -4183,6 +4189,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
           planToken,
           source: "cached",
           skippedAi: true,
+          overlayResearch: existingSb.overlays_research || null,
         });
       }
     }
@@ -4197,7 +4204,9 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     let llmText = browserText;
     if (!llmText) {
       const planSessionId = createOverlayPlanSessionId();
-      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId);
+      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR);
+      const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
+      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId, researchAddendum);
       if (!prompt) {
         return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
       }
@@ -4262,6 +4271,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
+    const overlayResearchMeta = storyboard.overlays_research || null;
 
     const timingsForPlan = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
     const configForPlan = readProjectJson(projDir, "config_qanat.json", {});
@@ -4330,6 +4340,15 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       hyperframes: useHyperframes,
       planToken,
       source: forceBrowser ? "gemini_chrome" : "gemini_api",
+      overlayResearch: overlayResearchMeta
+        ? {
+            sufficient: overlayResearchMeta.sufficient,
+            facts: overlayResearchMeta.facts?.length || 0,
+            sources: overlayResearchMeta.sources?.length || 0,
+            topic: overlayResearchMeta.topic,
+            via: overlayResearchMeta.via,
+          }
+        : null,
     });
   } catch (err) {
     console.error("[Plan Overlays]", err);
@@ -11476,6 +11495,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
     approvedNarration: approvedNarrationRaw,
     approvedNarrationTagged: approvedNarrationTaggedRaw,
     existingStrategy: existingStrategyRaw,
+    agentReachResearch: agentReachResearchRaw,
   } = req.body;
   const scriptPhase = phase === "narration" ? "narration" : "full";
   const approvedNarration = String(approvedNarrationRaw || "").trim();
@@ -11624,22 +11644,41 @@ app.post("/api/ai/creator/script", async (req, res) => {
   let webResearchContext = "";
   let webResearchMeta = null;
   const researchTopic = isListicle ? listicleTopic : (idea.title || niche);
-  try {
-    console.log("[WebResearch] Pesquisando fatos com fontes para roteiro...");
-    webResearchMeta = await fetchWebResearchForTopic({
-      topic: researchTopic,
-      niche,
-      format,
-      apiKey: getApiKey(llmDir),
-      getApiKeys: () => getApiKeys(llmDir),
-      workspaceDir: WORKSPACE_DIR,
-    });
-    webResearchContext = formatWebResearchPromptBlock(webResearchMeta, "PESQUISA WEB (FONTES REAIS)");
-    if (webResearchMeta.available) {
-      console.log(`[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`);
+  const prefetchedReach = agentReachResearchRaw && typeof agentReachResearchRaw === "object"
+    ? agentReachResearchRaw
+    : null;
+  if (prefetchedReach?.summary || prefetchedReach?.facts?.length) {
+    webResearchMeta = {
+      available: true,
+      summary: String(prefetchedReach.summary || "").slice(0, 12000),
+      facts: Array.isArray(prefetchedReach.facts) ? prefetchedReach.facts.map(String).filter(Boolean) : [],
+      sources: Array.isArray(prefetchedReach.sources) ? prefetchedReach.sources : [],
+      via: prefetchedReach.via || "agent-reach-panel",
+      fallback: false,
+    };
+    webResearchContext = formatWebResearchPromptBlock(
+      webResearchMeta,
+      "PESQUISA WEB (AGENT REACH — SUA BUSCA)",
+    );
+    console.log(`[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`);
+  } else {
+    try {
+      console.log("[WebResearch] Pesquisando fatos com fontes para roteiro...");
+      webResearchMeta = await fetchWebResearchForTopic({
+        topic: researchTopic,
+        niche,
+        format,
+        apiKey: getApiKey(llmDir),
+        getApiKeys: () => getApiKeys(llmDir),
+        workspaceDir: WORKSPACE_DIR,
+      });
+      webResearchContext = formatWebResearchPromptBlock(webResearchMeta, "PESQUISA WEB (FONTES REAIS)");
+      if (webResearchMeta.available) {
+        console.log(`[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`);
+      }
+    } catch (err) {
+      console.warn("[WebResearch] Falha:", err.message);
     }
-  } catch (err) {
-    console.warn("[WebResearch] Falha:", err.message);
   }
 
   let phase1Strategy = {};
@@ -14345,6 +14384,12 @@ Estrutura JSON Exigida:
       systemPrompt += studioAddendum;
       console.log("[Studio Agents] Memória + skills bundle injetados no prompt de overlays.");
     }
+  }
+
+  const overlayResearch = await resolveOverlayResearchForPlanning(projectDir, WORKSPACE_DIR);
+  const overlayResearchBlock = buildOverlayResearchPromptBlock(overlayResearch);
+  if (overlayResearchBlock) {
+    systemPrompt += overlayResearchBlock;
   }
 
   const userPrompt = `Aqui está a lista de CENAS do vídeo com tempos reais, narração e IDs de cena:
