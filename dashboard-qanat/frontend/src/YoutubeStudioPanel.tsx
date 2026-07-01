@@ -781,10 +781,18 @@ export function YoutubeStudioPanel({
                 className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${
                   alert.type === 'views_drop'
                     ? 'border-red-500/35 bg-red-500/10'
-                    : 'border-gold-500/25 bg-gold-500/5'
+                    : alert.type === 'dead_videos'
+                      ? 'border-violet-500/35 bg-violet-500/10'
+                      : 'border-gold-500/25 bg-gold-500/5'
                 }`}
               >
-                <p className={`text-[11px] ${alert.type === 'views_drop' ? 'text-red-200/95' : 'text-gold-200/90'}`}>
+                <p className={`text-[11px] ${
+                  alert.type === 'views_drop'
+                    ? 'text-red-200/95'
+                    : alert.type === 'dead_videos'
+                      ? 'text-violet-200/95'
+                      : 'text-gold-200/90'
+                }`}>
                   {alert.label}
                 </p>
                 {alert.type === 'unanswered_comments' && (
@@ -799,6 +807,21 @@ export function YoutubeStudioPanel({
                     Ver comentários
                   </button>
                 )}
+                {alert.type === 'dead_videos' && alert.videos?.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {alert.videos.slice(0, 3).map((video) => (
+                      <button
+                        key={video.videoId}
+                        type="button"
+                        onClick={() => onSelectProject?.(video.projectName)}
+                        className="text-[9px] font-bold px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-300 hover:text-violet-200"
+                        title="0 views em 48h — revisar gancho/thumb"
+                      >
+                        {video.projectName} · 0 views/48h
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 {alert.type === 'hot_videos' && alert.videos?.length ? (
                   <div className="flex flex-wrap gap-1.5">
                     {alert.videos.slice(0, 3).map((video) => (

@@ -1,8 +1,25 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Download, Lightbulb, MessageSquare, Send, Webhook, BarChart3, Target, Radio,
-  Search, RefreshCw, ExternalLink,
+  Search, RefreshCw, ExternalLink, Trophy, Layers,
 } from 'lucide-react';
+
+type EditorialItem = {
+  id: string;
+  title: string;
+  hookPt?: string;
+  source?: string;
+  mechanic?: string;
+  status: 'inbox' | 'script' | 'render' | 'published';
+  format?: 'SHORTS' | 'LONGO';
+};
+
+const STATUS_LABELS: Record<EditorialItem['status'], string> = {
+  inbox: 'Inbox',
+  script: 'Roteiro',
+  render: 'Render',
+  published: 'Publicado',
+};
 
 type Props = {
   viewsThreshold: number;
@@ -21,6 +38,12 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
   const [pinText, setPinText] = useState('');
   const [competitorLoading, setCompetitorLoading] = useState(false);
   const [creatorFormat, setCreatorFormat] = useState<'SHORTS' | 'LONGO'>('SHORTS');
+  const [editorialQueue, setEditorialQueue] = useState<EditorialItem[]>([]);
+  const [topWinnersLoading, setTopWinnersLoading] = useState(false);
+  const [topWinnersResult, setTopWinnersResult] = useState<{
+    winners?: Array<{ title: string; views: number }>;
+    ideas?: Array<{ title: string; hookPt?: string }>;
+  } | null>(null);
   const [competitorResult, setCompetitorResult] = useState<{
     competitors?: Array<{ title: string; outlierCount: number }>;
     outliers?: Array<{ title: string; channelTitle: string; outlierRatio: number }>;
@@ -30,13 +53,59 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
     aiAnalysisWarning?: string;
   } | null>(null);
 
+  const loadEditorialQueue = useCallback(async () => {
+    try {
+      const res = await fetch('/api/youtube/channel/editorial-queue');
+      if (res.ok) {
+        const data = await res.json();
+        setEditorialQueue((data.items || []) as EditorialItem[]);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     fetch('/api/youtube/channel/settings').then((r) => r.json()).then((d) => {
       if (d.webhooks) setWebhooks(d.webhooks);
     }).catch(() => {});
     fetch('/api/youtube/channel/response-stats').then((r) => r.json()).then(setResponseStats).catch(() => {});
     fetch('/api/youtube/channel/list').then((r) => r.json()).then((d) => setChannels(d.channels || [])).catch(() => {});
-  }, []);
+    void loadEditorialQueue();
+  }, [loadEditorialQueue]);
+
+  const updateQueueStatus = async (id: string, status: EditorialItem['status']) => {
+    const res = await fetch(`/api/youtube/channel/editorial-queue/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (res.ok) {
+      await loadEditorialQueue();
+      toast(`Status → ${STATUS_LABELS[status]}`);
+    } else {
+      toast('Falha ao atualizar fila.');
+    }
+  };
+
+  const runTopWinners = async () => {
+    setTopWinnersLoading(true);
+    setTopWinnersResult(null);
+    try {
+      const res = await fetch('/api/youtube/channel/top-winners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niche: nicheKeyword || undefined, days: 7, limit: 3, useAi: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha');
+      setTopWinnersResult(data);
+      await loadEditorialQueue();
+      toast(`Top ${data.winners?.length || 0} analisados — ${data.ideas?.length || 0} variações na fila`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao replicar top 3');
+    } finally {
+      setTopWinnersLoading(false);
+    }
+  };
 
   const saveWebhooks = async () => {
     const res = await fetch('/api/youtube/channel/settings', {
@@ -106,9 +175,11 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
       const data = await res.json();
       if (!res.ok) throw new Error(data.details || data.error || 'Falha na pesquisa');
       setCompetitorResult(data);
+      await loadEditorialQueue();
       const n = (data.outliers || []).length;
       const ideas = (data.analysis?.derivedIdeas || []).length;
-      const base = `Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias + fichas → Obsidian`;
+      const q = data.editorialQueue?.enqueued || ideas;
+      const base = `Pesquisa: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias + fichas → Obsidian · fila +${q}`;
       toast(data.aiAnalysisFailed ? `${base} (${data.aiAnalysisWarning || 'análise básica'})` : base);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro na pesquisa de concorrentes');
@@ -186,6 +257,70 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
           {channels.length} canal(is) — troque o ativo na seção Studio Pro acima.
         </p>
       )}
+
+      <div className="border-t border-zinc-900 pt-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[9px] text-zinc-500 flex items-center gap-1">
+            <Trophy className="w-3 h-3 text-emerald-400" />
+            Replicar top 3 (7 dias)
+          </p>
+          <button
+            type="button"
+            disabled={topWinnersLoading}
+            onClick={runTopWinners}
+            className="text-[9px] px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 inline-flex items-center gap-1"
+          >
+            {topWinnersLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trophy className="w-3 h-3" />}
+            {topWinnersLoading ? 'Analisando...' : 'Gerar variações'}
+          </button>
+        </div>
+        {topWinnersResult?.winners && topWinnersResult.winners.length > 0 && (
+          <ul className="space-y-1">
+            {topWinnersResult.winners.map((w, i) => (
+              <li key={i} className="text-[8px] text-zinc-600 truncate">
+                {i + 1}. {w.title} — {w.views.toLocaleString('pt-BR')} views
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="border-t border-zinc-900 pt-3 space-y-2">
+        <p className="text-[9px] text-zinc-500 flex items-center gap-1">
+          <Layers className="w-3 h-3 text-cyan-400" />
+          Fila editorial ({editorialQueue.filter((i) => i.status !== 'published').length} ativos)
+        </p>
+        {editorialQueue.length === 0 ? (
+          <p className="text-[8px] text-zinc-600">Vazia — use concorrentes ou Replicar top 3.</p>
+        ) : (
+          <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            {editorialQueue.slice(0, 12).map((item) => (
+              <li key={item.id} className="flex items-center gap-2 text-[9px] text-zinc-400">
+                <select
+                  value={item.status}
+                  onChange={(e) => updateQueueStatus(item.id, e.target.value as EditorialItem['status'])}
+                  className="text-[8px] bg-zinc-950 border border-zinc-800 rounded px-1 py-0.5 text-zinc-300 shrink-0"
+                >
+                  {(Object.keys(STATUS_LABELS) as EditorialItem['status'][]).map((s) => (
+                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                  ))}
+                </select>
+                <span className="truncate flex-1" title={item.title}>{item.title}</span>
+                {onApplyIdea && item.status !== 'published' && (
+                  <button
+                    type="button"
+                    title="Creator ▶"
+                    onClick={() => onApplyIdea(item.title, item.hookPt, { format: item.format || creatorFormat })}
+                    className="text-gold-400 shrink-0"
+                  >
+                    ▶
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="border-t border-zinc-900 pt-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">

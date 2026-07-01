@@ -914,8 +914,26 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
     Promise.all(
       lumieraVideos.slice(0, Math.min(Math.max(maxProjects, 1), 20)).map(async (entry) => {
         try {
-          const velocity = await fetchVideoVelocity(workspaceDir, entry.videoId);
-          return { ...entry, views48h: velocity.views48h, available: true };
+          const [velocity, videoData] = await Promise.all([
+            fetchVideoVelocity(workspaceDir, entry.videoId),
+            youtubeDataGet(accessToken, "videos", { part: "snippet,statistics", id: entry.videoId }),
+          ]);
+          const snippet = videoData?.items?.[0]?.snippet || {};
+          const stats = videoData?.items?.[0]?.statistics || {};
+          const publishedAt = snippet.publishedAt || "";
+          const ageHours = publishedAt
+            ? (Date.now() - new Date(publishedAt).getTime()) / (3600 * 1000)
+            : 0;
+          const totalViews = Number(stats.viewCount || 0);
+          return {
+            ...entry,
+            title: entry.title || snippet.title || "",
+            views48h: velocity.views48h,
+            publishedAt,
+            ageHours,
+            totalViews,
+            available: true,
+          };
         } catch (err) {
           return { ...entry, views48h: 0, available: false, error: err.message };
         }
@@ -925,6 +943,13 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
 
   const hotVideos = velocityResults.filter(
     (item) => item.available && item.views48h >= views48hThreshold,
+  );
+
+  const deadVideos = velocityResults.filter(
+    (item) => item.available
+      && item.ageHours >= 48
+      && item.views48h === 0
+      && item.totalViews < 20,
   );
 
   const alerts = [];
@@ -965,11 +990,30 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
       })),
     });
   }
+  if (deadVideos.length > 0) {
+    alerts.push({
+      type: "dead_videos",
+      count: deadVideos.length,
+      label: `${deadVideos.length} vídeo(s) Lumiera com 0 views em 48h (publicados há ≥2 dias)`,
+      videos: deadVideos.map((item) => ({
+        projectName: item.projectName,
+        videoId: item.videoId,
+        views48h: item.views48h,
+        totalViews: item.totalViews,
+        title: item.title,
+        format: item.format,
+      })),
+    });
+  }
 
   const report = {
     connected: true,
     scopesReady: true,
-    badgeCount: unansweredComments + hotVideos.length + alerts.filter((a) => a.type === "views_drop").length,
+    badgeCount: unansweredComments
+      + hotVideos.length
+      + deadVideos.length
+      + alerts.filter((a) => a.type === "views_drop").length,
+    deadVideos,
     unansweredComments,
     hotVideos,
     lumieraVideos,

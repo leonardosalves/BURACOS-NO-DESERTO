@@ -8830,9 +8830,81 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
       llmFn,
       repairJsonFn,
     });
+    try {
+      const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+      const enqueued = enqueueEditorialIdeas(
+        WORKSPACE_DIR,
+        report.analysis?.derivedIdeas || [],
+        { source: "competitor-research", format },
+      );
+      report.editorialQueue = { enqueued: (report.analysis?.derivedIdeas || []).length, total: enqueued.items.length };
+    } catch (err) {
+      console.warn("[CompetitorResearch] Fila editorial:", err.message);
+    }
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro na pesquisa de concorrentes");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/editorial-queue", async (_req, res) => {
+  try {
+    const { loadEditorialQueue } = await import("./youtubeEditorialQueue.js");
+    res.json(loadEditorialQueue(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/api/youtube/channel/editorial-queue/:id", async (req, res) => {
+  try {
+    const { updateEditorialItemStatus } = await import("./youtubeEditorialQueue.js");
+    const status = String(req.body?.status || "").trim();
+    const result = updateEditorialItemStatus(WORKSPACE_DIR, req.params.id, status);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/youtube/channel/editorial-queue/:id", async (req, res) => {
+  try {
+    const { removeEditorialItem } = await import("./youtubeEditorialQueue.js");
+    const result = removeEditorialItem(WORKSPACE_DIR, req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/top-winners", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.body?.days) || 7, 3), 28);
+  const limit = Math.min(Math.max(Number(req.body?.limit) || 3, 1), 5);
+  const niche = String(req.body?.niche || "").trim();
+  const useAi = req.body?.useAi !== false;
+
+  try {
+    const { generateTopWinnerIdeas } = await import("./youtubeEditorialQueue.js");
+    const config = readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
+    const llmFn = useAi
+      ? async (prompt) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+        maxRetries: 1,
+        temperature: 0.4,
+        projectDir: WORKSPACE_DIR,
+      })
+      : null;
+
+    const result = await generateTopWinnerIdeas(WORKSPACE_DIR, PROJECTS_ROOT, {
+      days,
+      limit,
+      niche: niche || config.niche || "",
+      llmFn,
+    });
+    if (!result.ok) return res.status(404).json(result);
+    res.json(result);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao gerar ideias dos top vídeos");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
