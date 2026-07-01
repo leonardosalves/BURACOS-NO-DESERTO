@@ -123,8 +123,9 @@ export function getNotebooklmStatus(backendDir) {
       authenticated: false,
       notebookCount: 0,
       message: auth
-        ? "Execute `nlm login` no terminal para ativar o NotebookLM"
+        ? "Sessão NotebookLM expirada ou pasta errada. Rode .\\nlm-login.ps1 na raiz do Lumiera (não precisa repetir a cada restart se a sessão estiver válida)."
         : `NotebookLM indisponível: ${err.message}`,
+      dataDir: resolveNotebooklmDataDir(backendDir),
       needsLogin: auth,
     };
   }
