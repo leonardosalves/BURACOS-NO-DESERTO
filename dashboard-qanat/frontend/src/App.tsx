@@ -1343,16 +1343,23 @@ export default function App() {
         detail: 'Chamadas de IA via API OpenRouter.',
       };
     }
+    if (geminiBrowserMode) {
+      const via = aiProvider !== 'gemini' ? ` (prioridade sobre ${aiProvider})` : '';
+      return {
+        short: 'Gemini Chrome',
+        detail: `IA via gemini.google.com (extensão Lumiera)${via}. Metadados, overlays, roteiro e agent usam o navegador.`,
+      };
+    }
+    if (aiProvider === 'nvidia') {
+      return {
+        short: 'NVIDIA API',
+        detail: 'Chamadas de IA via NVIDIA API (Qwen, Kimi, etc.). Ative Gemini no Chrome para usar o navegador.',
+      };
+    }
     if (aiProvider === 'xai') {
       return {
         short: 'Grok API',
-        detail: 'Chat e IA via API xAI (Grok). Gemini no Chrome desligado para este provedor.',
-      };
-    }
-    if (geminiBrowserMode) {
-      return {
-        short: 'Gemini Chrome',
-        detail: 'IA via gemini.google.com (extensão Lumiera). Metadados, overlays e agent usam o navegador.',
+        detail: 'Chat e IA via API xAI (Grok). Ative Gemini no Chrome para usar o navegador.',
       };
     }
     return {
@@ -5253,7 +5260,7 @@ export default function App() {
     }
 
     try {
-      const useGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+      const useGeminiChrome = geminiBrowserMode;
       const { ok, data } = await postAi('/api/ai/optimize-youtube', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5961,7 +5968,7 @@ export default function App() {
 
     try {
 
-      if (geminiBrowserMode && aiProvider === 'gemini') {
+      if (geminiBrowserMode) {
         toast.loading('Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
       }
 
@@ -6055,7 +6062,7 @@ export default function App() {
     setNicheInput(listNiche.trim());
 
     try {
-      if (geminiBrowserMode && aiProvider === 'gemini') {
+      if (geminiBrowserMode) {
         toast.loading('Sugerindo rankings via Gemini no navegador…', { id: 'gemini-listicle' });
       }
 
@@ -7161,7 +7168,7 @@ export default function App() {
     }
 
     const needsOverlayPlan = mode === 'remotion' || mode === 'remotion-pro';
-    let effectiveGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+    let effectiveGeminiChrome = geminiBrowserMode;
     let overlayPlanSucceeded = !needsOverlayPlan;
     let overlayPlanToken = '';
 
@@ -7175,7 +7182,7 @@ export default function App() {
         const settingsRes = await fetch(getProjectUrl('/api/ai/settings'));
         if (settingsRes.ok) {
           const settings = await settingsRes.json();
-          effectiveGeminiChrome = settings.ai_provider === 'gemini' && !!settings.gemini_browser_mode;
+          effectiveGeminiChrome = !!settings.gemini_browser_mode;
         }
       } catch {
         /* usa estado local */
@@ -12582,7 +12589,7 @@ export default function App() {
                         <p className="text-[10px] text-zinc-400 leading-relaxed max-w-xl">
                           Ativa todas as chamadas de IA via Gemini no Chrome, de forma autônoma (sem copiar/colar).
                           Requer a extensão Lumiera em tools/lumiera-gemini-bridge — ela controla gemini.google.com na sua sessão Google.
-                          Desligado, volta a usar a API do AI Studio normalmente.
+                          Quando ativo, tem prioridade sobre NVIDIA/xAI/OpenRouter. Desligado, usa o provedor selecionado acima.
                         </p>
                         {geminiBrowserMode && (
                           <div className="space-y-1.5">
