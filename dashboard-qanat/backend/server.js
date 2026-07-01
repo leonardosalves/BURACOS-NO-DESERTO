@@ -126,6 +126,7 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
+import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
 import { runDeepResearch } from "./deerFlowResearch.js";
 import {
@@ -2150,6 +2151,34 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       callNvidiaWithRetry,
       NVIDIA_MODELS,
     }, { useAi: req.body?.useAi !== false });
+
+    await runStep("agent_reach", async () => {
+      const { fetchAgentReachResearchForTopic } = await import("./agentReachService.js");
+      const topic = requirementText || plan.requirement || suggestedTitle;
+      const research = await fetchAgentReachResearchForTopic({
+        topic,
+        niche: niche || plan.niche || "Geral",
+        workspaceDir: WORKSPACE_DIR,
+        numResults: 8,
+      });
+      if (!research.available) throw new Error(research.message || "Agent Reach indisponível");
+      let editorialQueue = null;
+      if (wanted.includes("editorial_queue")) {
+        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const enqueued = enqueueEditorialIdeas(
+          WORKSPACE_DIR,
+          [{ title: `Pesquisa: ${String(topic).slice(0, 72)}`, hookPt: research.summary.slice(0, 280) }],
+          { source: "agent-reach", format: fmtShort ? "SHORTS" : "LONGO" },
+        );
+        editorialQueue = { enqueued: 1, total: enqueued.items.length };
+      }
+      return {
+        sources: research.sources?.length || 0,
+        facts: research.facts?.length || 0,
+        via: research.via,
+        editorialQueue,
+      };
+    });
 
     await runStep("deep_research", async () => {
       const topic = requirementText || plan.requirement || suggestedTitle;
@@ -11076,6 +11105,7 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
       format,
       apiKey: getApiKey(projDir),
       getApiKeys: () => getApiKeys(projDir),
+      workspaceDir: WORKSPACE_DIR,
     });
     webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
   } catch {
@@ -11602,6 +11632,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
       format,
       apiKey: getApiKey(llmDir),
       getApiKeys: () => getApiKeys(llmDir),
+      workspaceDir: WORKSPACE_DIR,
     });
     webResearchContext = formatWebResearchPromptBlock(webResearchMeta, "PESQUISA WEB (FONTES REAIS)");
     if (webResearchMeta.available) {
@@ -12916,6 +12947,10 @@ registerTimesfmRoutes(app, {
   WORKSPACE_DIR,
   PROJECTS_ROOT,
   PYTHON_PATH,
+});
+
+registerAgentReachRoutes(app, {
+  WORKSPACE_DIR,
 });
 
 // Serve frontend build static files in production (must be after API routes)

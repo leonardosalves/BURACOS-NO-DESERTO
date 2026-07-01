@@ -1,6 +1,8 @@
 /**
- * Pesquisa web com Gemini + Google Search grounding para enriquecer roteiros com fontes reais.
+ * Pesquisa web com Agent Reach (Exa) + Gemini Google Search grounding.
  */
+
+import { fetchAgentReachResearchForTopic, mergeWebResearch } from "./agentReachService.js";
 
 function extractGroundingSources(candidate = {}) {
   const meta = candidate?.groundingMetadata || candidate?.grounding_metadata || {};
@@ -52,20 +54,39 @@ export async function fetchWebResearchForTopic({
   format = "SHORTS",
   apiKey = null,
   getApiKeys = () => [],
+  workspaceDir = null,
 } = {}) {
   const query = String(topic || niche).trim();
   if (!query) {
     return { available: false, summary: "", sources: [], facts: [], message: "Tema vazio" };
   }
 
+  let agentReach = { available: false, summary: "", sources: [], facts: [] };
+  if (workspaceDir) {
+    try {
+      agentReach = await fetchAgentReachResearchForTopic({
+        topic: query,
+        niche,
+        workspaceDir,
+        numResults: 6,
+      });
+      if (agentReach.available) {
+        console.log(`[WebResearch] Agent Reach: ${agentReach.sources?.length || 0} fontes.`);
+      }
+    } catch (err) {
+      console.warn("[WebResearch] Agent Reach falhou:", err.message);
+    }
+  }
+
   const keys = [...new Set([apiKey, ...getApiKeys()].filter(Boolean))];
   if (!keys.length) {
+    if (agentReach.available) return agentReach;
     return {
       available: false,
       summary: "",
       sources: [],
       facts: [],
-      message: "Sem chave API para pesquisa web",
+      message: "Sem chave API e Agent Reach indisponível",
       fallback: true,
     };
   }
@@ -136,7 +157,7 @@ Regras:
           continue;
         }
 
-        return {
+        const gemini = {
           available: true,
           summary: summary.slice(0, 8000),
           facts,
@@ -144,14 +165,18 @@ Regras:
           sources,
           model,
           fallback: false,
+          via: "gemini-grounding",
         };
+        return mergeWebResearch(agentReach, gemini);
       } catch (err) {
         lastErr = err;
       }
     }
   }
 
-  console.warn("[WebResearch] Falhou:", lastErr?.message || "desconhecido");
+  console.warn("[WebResearch] Gemini falhou:", lastErr?.message || "desconhecido");
+  if (agentReach.available) return agentReach;
+
   return {
     available: false,
     summary: "",
