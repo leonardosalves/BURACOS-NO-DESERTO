@@ -7,11 +7,11 @@ export const DASH_CHART = {
   success: '#67cf94',
   warning: '#ffb959',
   danger: '#fc7383',
-  grid: '#2b3c57',
-  muted: '#c4c4c4',
-  card: '#182335',
-  tooltipBg: '#182335',
-  tooltipBorder: '#2b3c57',
+  grid: '#1a2230',
+  muted: '#8b95a8',
+  card: '#0c1018',
+  tooltipBg: '#0c1018',
+  tooltipBorder: '#1a2230',
 } as const;
 
 export function dashChartFont(): Pick<ApexOptions, 'chart'> {

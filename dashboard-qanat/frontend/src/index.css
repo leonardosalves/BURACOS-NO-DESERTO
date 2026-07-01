@@ -4,18 +4,19 @@
 
 @layer base {
   :root {
-    --dash-bg: #060818;
-    --dash-card: #182335;
-    --dash-card-hover: #1b2e4b;
-    --dash-border: #2b3c57;
+    --dash-bg: #02030a;
+    --dash-card: #0c1018;
+    --dash-card-hover: #121a26;
+    --dash-border: #1a2230;
+    --dash-border-soft: #141a24;
     --dash-primary: #8280fd;
     --dash-primary-dark: #6045e2;
-    --dash-primary-light: #e9e7ff;
-    --dash-success: #67cf94;
-    --dash-info: #09d1de;
-    --dash-warning: #ffb959;
-    --dash-danger: #fc7383;
-    --dash-muted: #c4c4c4;
+    --dash-primary-light: #d8d6fe;
+    --dash-success: #5bc486;
+    --dash-info: #08b8c4;
+    --dash-warning: #e8a84a;
+    --dash-danger: #e86578;
+    --dash-muted: #8b95a8;
     --dash-sidebar-width: 260px;
     --dash-sidebar-collapsed: 72px;
     --dash-header-height: 70px;
@@ -70,7 +71,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4f6e;
+  background: #252f3d;
 }
 
 @layer components {
@@ -241,7 +242,7 @@
   .dash-search-dropdown {
     @apply absolute left-0 right-0 top-full mt-2 rounded-lg overflow-hidden z-50;
     background: var(--dash-card);
-    border: 1px solid var(--dash-border-soft, #232736);
+    border: 1px solid var(--dash-border-soft);
     box-shadow: 0 0.75rem 1.5rem rgba(255, 255, 255, 0.03);
   }
 
@@ -430,13 +431,13 @@
   .dash-card {
     @apply p-5 rounded-lg min-w-0;
     background: var(--dash-card);
-    box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
-    border: 1px solid transparent;
+    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--dash-border-soft);
   }
 
   .dash-card-highlight {
-    background: linear-gradient(135deg, #182335 0%, #1f2d4a 55%, #1b2540 100%);
-    border-color: rgba(130, 128, 253, 0.2);
+    background: linear-gradient(135deg, #0c1018 0%, #121a28 55%, #0e1520 100%);
+    border-color: rgba(130, 128, 253, 0.18);
   }
 
   .dash-card-header {
@@ -800,7 +801,7 @@
 
   .lumiera-project-bar {
     @apply shrink-0 px-4 sm:px-6 py-3 min-w-0 border-b;
-    background: linear-gradient(180deg, var(--dash-card) 0%, rgba(24, 35, 53, 0.92) 100%);
+    background: linear-gradient(180deg, var(--dash-card) 0%, rgba(12, 16, 24, 0.96) 100%);
     border-color: var(--dash-border);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   }
@@ -833,8 +834,8 @@
 
   .glass-panel {
     background: var(--dash-card);
-    border: 0;
-    box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--dash-border-soft);
+    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
     border-radius: 7px;
     min-width: 0;
     overflow-wrap: break-word;
@@ -843,8 +844,8 @@
 
   .glass-panel-glow {
     background: var(--dash-card);
-    border: 1px solid rgba(130, 128, 253, 0.2);
-    box-shadow: 0 1px 15px rgba(130, 128, 253, 0.08);
+    border: 1px solid rgba(130, 128, 253, 0.16);
+    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(130, 128, 253, 0.06);
     border-radius: 7px;
     min-width: 0;
   }
