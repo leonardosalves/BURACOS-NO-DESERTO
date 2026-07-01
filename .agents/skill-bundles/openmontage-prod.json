@@ -1,0 +1,20 @@
+{
+  "name": "openmontage-prod",
+  "description": "Produção inspirada em referência — OpenMontage adaptado Lumiera",
+  "tasks": ["ideas", "script", "metadata"],
+  "formats": ["SHORT", "LONG"],
+  "skills": [
+    "openmontage-reference-video",
+    "openmontage-preflight",
+    "openmontage-reviewer",
+    "viral-hooks",
+    "viral-short-form",
+    "ugc-scriptwriter",
+    "content-strategy",
+    "hyperframes",
+    "remotion-best-practices",
+    "youtube-seo",
+    "youtube-thumbnail"
+  ],
+  "instruction": "Preflight capability-menu → analisar referência com twist obrigatório → reviewer em cada estágio. Remotion e HyperFrames: apresentar ambos se disponíveis. Nunca cópia carbono do vídeo referência."
+}

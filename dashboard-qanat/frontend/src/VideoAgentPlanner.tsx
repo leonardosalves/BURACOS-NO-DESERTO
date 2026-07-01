@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import { OpenMontageReferencePanel } from './OpenMontageReferencePanel';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
 
 type LumieraAction = {
@@ -95,6 +96,7 @@ const EXAMPLE_PROMPTS = [
   'Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas',
   'Vídeo longo documental com NotebookLM sobre clepsidras históricas',
   'Diagnóstico pós-upload: retenção caiu e views -30% esta semana',
+  'Inspirado em vídeo de referência — use o painel OpenMontage acima',
 ];
 
 const STEP_LABELS: Record<string, string> = {
@@ -321,6 +323,27 @@ export function VideoAgentPlanner({
   };
 
   return (
+    <div className="space-y-4">
+    <OpenMontageReferencePanel
+      projectNiche={projectNiche}
+      projectFormat={projectFormat}
+      getProjectUrl={getProjectUrl}
+      postAi={postAi}
+      onApplyRequirement={(text) => setRequirement(text)}
+      onApplyCreator={
+        onExecuteCreator
+          ? (title, hook) => {
+              setRequirement(
+                `${title}${hook ? ` — gancho: ${hook}` : ''}`,
+              );
+              void onExecuteCreator(title, hook, {
+                format: projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO',
+              });
+            }
+          : undefined
+      }
+    />
+
     <div className="glass-panel p-6 rounded-2xl space-y-4 border border-violet-500/15">
       <SectionHeader
         title="VideoAgent — Automação"
@@ -569,6 +592,7 @@ export function VideoAgentPlanner({
           ) : null}
         </div>
       )}
+    </div>
     </div>
   );
 }

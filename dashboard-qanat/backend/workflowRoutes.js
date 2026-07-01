@@ -55,6 +55,9 @@ import {
   buildCursorMcpConfig,
   loadComfyCloudConfig,
 } from "./comfyCloudMcp.js";
+import { buildCapabilityMenu } from "./openmontageCapability.js";
+import { analyzeReferenceVideo } from "./openmontageReference.js";
+import { extractBrowserResponse } from "./geminiBrowser.js";
 
 export function registerWorkflowRoutes(app, deps) {
   const {
@@ -631,6 +634,88 @@ export function registerWorkflowRoutes(app, deps) {
       pexels: !!keys.pexels,
       pixabay: !!keys.pixabay,
     });
+  });
+
+  app.get("/api/workflow/capability-menu", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const menu = await buildCapabilityMenu({
+        workspaceDir: WORKSPACE_DIR,
+        projDir,
+        getApiKeys,
+        getAiProvider,
+        getXaiApiKey,
+        getOpenRouterApiKey,
+        getNvidiaApiKey,
+        getEpidemicSoundKey,
+      });
+      res.json({ ok: true, ...menu });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/workflow/analyze-reference", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const {
+        url = "",
+        format: formatRaw = "SHORTS",
+        niche = "",
+        topic = "",
+        useAi = true,
+      } = req.body || {};
+
+      const format = String(formatRaw || "SHORTS").toUpperCase() === "LONGO" ||
+        String(formatRaw || "").toUpperCase() === "LONG"
+        ? "LONGO"
+        : "SHORTS";
+
+      const browserText = extractBrowserResponse(req.body);
+      let llmFn = null;
+
+      if (browserText) {
+        llmFn = async () => browserText;
+      } else if (useAi && callGeminiLlm) {
+        let browserPending = false;
+        llmFn = async (prompt) => {
+          const text = await callGeminiLlm(req, res, projDir, {
+            title: "OpenMontage · Análise de referência",
+            prompt,
+            temperature: 0.45,
+          });
+          if (text == null) {
+            browserPending = true;
+            return "";
+          }
+          return text;
+        };
+      }
+
+      const result = await analyzeReferenceVideo({
+        url,
+        format,
+        niche,
+        topic,
+        llmFn,
+      });
+
+      if (llmFn && !res.headersSent && result.ok) {
+        /* browser pending handled inside callGeminiLlm */
+      }
+
+      if (!result.ok) {
+        return res.status(400).json({ error: result.error || "Falha na análise" });
+      }
+
+      if (!res.headersSent) {
+        res.json(result);
+      }
+    } catch (err) {
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
+    }
   });
 
   app.get("/api/comfyui/status", async (req, res) => {

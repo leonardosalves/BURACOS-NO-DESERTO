@@ -30,6 +30,9 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/viral-youtube-shorts|viral youtube shorts]] — doc: [[skills/viral-youtube-shorts/SKILL]]
 - [[skills/youtube-seo|youtube seo]] — doc: [[skills/youtube-seo/SKILL]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
+- [[skills/openmontage-reference-video|openmontage reference video]] — doc: [[skills/openmontage-reference-video/SKILL]] (OpenMontage adaptado)
+- [[skills/openmontage-preflight|openmontage preflight]] — doc: [[skills/openmontage-preflight/SKILL]]
+- [[skills/openmontage-reviewer|openmontage reviewer]] — doc: [[skills/openmontage-reviewer/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
 atualizado: 2026-07-01T07:46:46.800Z
