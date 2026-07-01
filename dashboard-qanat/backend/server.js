@@ -218,6 +218,7 @@ import {
   isChecklistEmpty,
   buildScriptChecklistEvaluationPrompt,
   buildChecklistSchemaBlock,
+  VISUAL_PROMPT_SPECIFICITY_RULES,
 } from "./scriptQuality.js";
 import {
   applyDocumentaryHistoryPreset,
@@ -12024,6 +12025,7 @@ ${format === "SHORTS"
 - Nunca coloque texto dentro dos prompts visuais.
 
 - Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
+${VISUAL_PROMPT_SPECIFICITY_RULES}
 ${isListicle ? `
 - LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").
 - LISTICLE: gere "list_items" e "listicle" conforme especificado nas regras de listicle acima.` : ""}
@@ -12068,11 +12070,11 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
      "duration": "3 a 5 segundos",
 
-     "prompt": "Prompt cinematográfico completo em inglês. Para imagem: photorealistic 2k resolution, cinematic lighting, sharp detail, no text. Para vídeo: cinematic motion, max 10 seconds, no text.",
+     "prompt": "Prompt em inglês com sujeito ESPECÍFICO do narration_text (espécie, objeto, lugar, pessoa) + ação exata da cena. Imagem: photorealistic 2k, sharp detail. Vídeo: cinematic motion, max 10s. Nunca genérico (ex.: northern gannet plunge-diving, não 'a bird').",
 
      "editor_notes": "Como usar na edição: Ken Burns zoom in, dissolve, corte seco, etc. + justificativa imagem vs vídeo.",
 
-     "stock_query": "termo curto em inglês para busca em Pexels/Pixabay/Canva"
+     "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
 
    }
 
