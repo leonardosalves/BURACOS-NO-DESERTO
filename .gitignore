@@ -37,6 +37,9 @@ OUTPUT/
 # Vendor clones (referência local, não versionar)
 .vendor/
 
+# Venv Python dedicado (Chatterbox TTS)
+dashboard-qanat/backend/.venv-chatterbox/
+
 # Temp files & tool directories
 .gemini/
 .tempmediaStorage/

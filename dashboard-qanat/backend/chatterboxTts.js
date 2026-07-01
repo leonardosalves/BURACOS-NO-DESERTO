@@ -60,7 +60,15 @@ export function resolveChatterboxConfig(config = {}) {
   };
 }
 
+const CHATTERBOX_VENV_PYTHON = path.join(__dirname, ".venv-chatterbox", "Scripts", "python.exe");
+
 function resolvePythonExecutable() {
+  if (process.env.CHATTERBOX_PYTHON_PATH && fs.existsSync(process.env.CHATTERBOX_PYTHON_PATH)) {
+    return process.env.CHATTERBOX_PYTHON_PATH;
+  }
+  if (fs.existsSync(CHATTERBOX_VENV_PYTHON)) {
+    return CHATTERBOX_VENV_PYTHON;
+  }
   if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
     return process.env.PYTHON_PATH;
   }
