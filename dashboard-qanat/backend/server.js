@@ -89,6 +89,7 @@ import {
   translateCommentText,
   videosToCsv,
 } from "./youtubeStudioAdvanced.js";
+import { runCompetitorResearch } from "./competitorResearch.js";
 import {
   addChannelNote,
   appendReplyHistory,
@@ -8705,6 +8706,45 @@ app.get("/api/youtube/channel/comments/ideas", async (req, res) => {
     ));
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/competitor-research", async (req, res) => {
+  const niche = String(req.body?.niche || "").trim();
+  const format = String(req.body?.format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
+  const maxCompetitors = Math.min(Math.max(Number(req.body?.maxCompetitors) || 5, 1), 10);
+  const seedChannels = Array.isArray(req.body?.seedChannels) ? req.body.seedChannels : [];
+  const useAi = req.body?.useAi !== false;
+
+  try {
+    const llmFn = useAi
+      ? async (prompt) => {
+          const provider = getAiProvider(WORKSPACE_DIR);
+          const models = provider === "nvidia"
+            ? NVIDIA_MODELS.slice(0, 1)
+            : [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash"];
+          const text = await callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+            maxRetries: 2,
+            models,
+            temperature: 0.5,
+            projectDir: WORKSPACE_DIR,
+          });
+          if (text) return text;
+          throw new Error("IA indisponível para análise de concorrentes.");
+        }
+      : null;
+
+    const report = await runCompetitorResearch(WORKSPACE_DIR, {
+      niche,
+      format,
+      maxCompetitors,
+      seedChannels,
+      llmFn,
+    });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro na pesquisa de concorrentes");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
