@@ -1883,6 +1883,8 @@ export default function App() {
       if (hot > 0) parts.push(`${hot} vídeo(s) em alta`);
       const viewsDrop = youtubeChannelAlerts?.alerts?.find((a) => a.type === 'views_drop');
       if (viewsDrop?.label) parts.push(viewsDrop.label);
+      const deadVideos = youtubeChannelAlerts?.alerts?.find((a) => a.type === 'dead_videos');
+      if (deadVideos?.label) parts.push(deadVideos.label);
       new Notification('Canal YouTube — Lumiera', {
         body: parts.join(' · ') || `${badge} alerta(s)`,
         tag: 'lumiera-youtube-alerts',
