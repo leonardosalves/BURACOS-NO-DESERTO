@@ -24,27 +24,7 @@ import {
 import { SettingHelpTip } from './SettingHelpTip';
 import { SECTION_HELP } from './sectionHelpContent';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
-
-type AppTab =
-  | 'home'
-  | 'status'
-  | 'workflow'
-  | 'timeline'
-  | 'music'
-  | 'terminal'
-  | 'ai'
-  | 'creator'
-  | 'editor'
-  | 'settings'
-  | 'upload'
-  | 'agents'
-  | 'youtube-studio'
-  | 'comfy-mcp'
-  | 'trend-forecast'
-  | 'agent-reach'
-  | 'projects'
-  | 'dash-ui'
-  | 'dash-extensions';
+import type { AppTab } from './appTabs';
 
 type GlobalNavItem = {
   id: AppTab;
