@@ -361,16 +361,29 @@ export function TtsVoiceStudioPanel({
             </select>
           </label>
 
-          {vbVoice === '__configure__' && (
-            <a
-              href="https://voicebox.sh/download/windows"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[10px] text-emerald-300 inline-flex items-center gap-1 hover:underline"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Instalar Voicebox → Voices → criar perfil (clone ou Kokoro PT)
-            </a>
+          {!voiceboxEngine?.available && (
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-2.5 space-y-1.5 text-[9px] text-amber-200/90">
+              <p className="font-bold">Voicebox offline</p>
+              <p className="text-amber-200/70 leading-relaxed">
+                No PowerShell, na pasta do Lumiera: <code className="text-amber-100">.\scripts\start-voicebox.ps1</code>
+                {' '}— usa o app instalado (porta 17493) ou Docker (17600). Docker Desktop precisa estar aberto para Docker.
+              </p>
+              <a
+                href="https://voicebox.sh/download/windows"
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-300 inline-flex items-center gap-1 hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Instalar Voicebox MSI (recomendado no Windows)
+              </a>
+            </div>
+          )}
+
+          {vbVoice === '__configure__' && voiceboxEngine?.available && (
+            <p className="text-[10px] text-amber-300/90">
+              Crie um perfil no app Voicebox (aba Voices) e clique em Atualizar vozes.
+            </p>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">

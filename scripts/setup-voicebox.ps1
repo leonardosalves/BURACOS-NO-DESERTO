@@ -26,7 +26,8 @@ Write-Host ""
 Write-Host "Verificando API Voicebox ..." -ForegroundColor Cyan
 $hits = @(
     (Test-VoiceboxHealth "http://127.0.0.1:17493"),
-    (Test-VoiceboxHealth "http://127.0.0.1:17600")
+    (Test-VoiceboxHealth "http://127.0.0.1:17600"),
+    (Test-VoiceboxHealth "http://127.0.0.1:8000")
 ) | Where-Object { $_.ok }
 
 if ($hits.Count -gt 0) {
