@@ -1,0 +1,168 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Download, Lightbulb, MessageSquare, Send, Webhook, BarChart3, Target, Radio,
+} from 'lucide-react';
+
+type Props = {
+  viewsThreshold: number;
+  nicheKeyword?: string;
+  toast: (msg: string) => void;
+  onApplyIdea?: (title: string) => void;
+};
+
+export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, onApplyIdea }: Props) {
+  const [webhooks, setWebhooks] = useState({ telegram: '', discord: '' });
+  const [responseStats, setResponseStats] = useState<{ averageHours: number | null; sampleSize: number } | null>(null);
+  const [ideas, setIdeas] = useState<Array<{ title: string; angle?: string; mentions?: number }>>([]);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [channels, setChannels] = useState<Array<{ id: string; title: string; selected?: boolean }>>([]);
+  const [pinVideoId, setPinVideoId] = useState('');
+  const [pinText, setPinText] = useState('');
+
+  useEffect(() => {
+    fetch('/api/youtube/channel/settings').then((r) => r.json()).then((d) => {
+      if (d.webhooks) setWebhooks(d.webhooks);
+    }).catch(() => {});
+    fetch('/api/youtube/channel/response-stats').then((r) => r.json()).then(setResponseStats).catch(() => {});
+    fetch('/api/youtube/channel/list').then((r) => r.json()).then((d) => setChannels(d.channels || [])).catch(() => {});
+  }, []);
+
+  const saveWebhooks = async () => {
+    const res = await fetch('/api/youtube/channel/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhooks }),
+    });
+    if (res.ok) toast('Webhooks salvos.');
+  };
+
+  const testWebhook = async () => {
+    const res = await fetch('/api/youtube/channel/webhooks/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhooks, message: 'Teste Lumiera — alertas YouTube' }),
+    });
+    const data = await res.json();
+    toast(data.results?.some((r: { ok: boolean }) => r.ok) ? 'Webhook enviado.' : 'Falha no webhook.');
+  };
+
+  const loadIdeas = useCallback(async (useAi = false) => {
+    setIdeasLoading(true);
+    try {
+      const params = new URLSearchParams({ niche: nicheKeyword });
+      if (useAi) params.set('ai', '1');
+      const res = await fetch(`/api/youtube/channel/comments/ideas?${params}`);
+      const data = await res.json();
+      const merged = [...(data.ideas || []), ...(data.aiIdeas || [])];
+      setIdeas(merged);
+      toast(`${merged.length} ideia(s) a partir dos comentários.`);
+    } catch {
+      toast('Erro ao gerar ideias.');
+    } finally {
+      setIdeasLoading(false);
+    }
+  }, [nicheKeyword, toast]);
+
+  const exportCsv = (type: 'comments' | 'videos') => {
+    window.open(`/api/youtube/channel/export.csv?type=${type}&viewsThreshold=${viewsThreshold}`, '_blank');
+  };
+
+  const pinComment = async () => {
+    if (!pinVideoId || !pinText.trim()) return toast('Informe videoId e texto.');
+    const res = await fetch('/api/youtube/channel/comments/pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId: pinVideoId, text: pinText }),
+    });
+    if (res.ok) toast('Comentário fixado no vídeo.');
+    else toast('Falha ao fixar comentário.');
+  };
+
+  return (
+    <div className="glass-panel p-5 rounded-2xl space-y-4">
+      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+        <BarChart3 className="w-4 h-4 text-cyan-400" />
+        Ferramentas avançadas
+      </h3>
+
+      {responseStats && (
+        <p className="text-[10px] text-zinc-500">
+          Tempo médio de resposta: {responseStats.averageHours != null ? `${responseStats.averageHours}h` : '—'}
+          {responseStats.sampleSize ? ` (${responseStats.sampleSize} amostras)` : ''}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => exportCsv('comments')} className="text-[9px] px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white inline-flex items-center gap-1">
+          <Download className="w-3 h-3" /> CSV comentários
+        </button>
+        <button type="button" onClick={() => exportCsv('videos')} className="text-[9px] px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white inline-flex items-center gap-1">
+          <Download className="w-3 h-3" /> CSV vídeos
+        </button>
+        <button type="button" disabled={ideasLoading} onClick={() => loadIdeas(false)} className="text-[9px] px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-300 inline-flex items-center gap-1">
+          <Lightbulb className="w-3 h-3" /> Ideias (comentários)
+        </button>
+        <button type="button" disabled={ideasLoading} onClick={() => loadIdeas(true)} className="text-[9px] px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-300">
+          Ideias IA
+        </button>
+      </div>
+
+      {ideas.length > 0 && (
+        <ul className="space-y-1">
+          {ideas.slice(0, 6).map((idea, i) => (
+            <li key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
+              <span className="truncate">{idea.title}</span>
+              {onApplyIdea && (
+                <button type="button" onClick={() => onApplyIdea(idea.title)} className="text-gold-400 shrink-0">Creator →</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <input
+          value={webhooks.telegram}
+          onChange={(e) => setWebhooks((w) => ({ ...w, telegram: e.target.value }))}
+          placeholder="Webhook Telegram (URL completa)"
+          className="px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white"
+        />
+        <input
+          value={webhooks.discord}
+          onChange={(e) => setWebhooks((w) => ({ ...w, discord: e.target.value }))}
+          placeholder="Webhook Discord"
+          className="px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white"
+        />
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={saveWebhooks} className="text-[9px] px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-zinc-400">Salvar webhooks</button>
+        <button type="button" onClick={testWebhook} className="text-[9px] px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 inline-flex items-center gap-1">
+          <Webhook className="w-3 h-3" /> Testar
+        </button>
+      </div>
+
+      {channels.length > 1 && (
+        <p className="text-[9px] text-zinc-600 flex items-center gap-1">
+          <Radio className="w-3 h-3" />
+          {channels.length} canal(is) na conta — seleção multi-canal em breve ({channels.map((c) => c.title).join(', ')})
+        </p>
+      )}
+
+      <div className="border-t border-zinc-900 pt-3 space-y-2">
+        <p className="text-[9px] text-zinc-500 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Fixar comentário no vídeo</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input value={pinVideoId} onChange={(e) => setPinVideoId(e.target.value)} placeholder="videoId" className="flex-1 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white" />
+          <input value={pinText} onChange={(e) => setPinText(e.target.value)} placeholder="Texto do comentário fixo" className="flex-[2] px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white" />
+          <button type="button" onClick={pinComment} className="text-[9px] px-3 py-1.5 rounded bg-gold-500/15 border border-gold-500/30 text-gold-300 inline-flex items-center gap-1">
+            <Send className="w-3 h-3" /> Fixar
+          </button>
+        </div>
+      </div>
+
+      <p className="text-[9px] text-zinc-600 flex items-center gap-1">
+        <Target className="w-3 h-3" />
+        Metas 48h por projeto: edite em youtube_studio_settings.json → projectGoals
+      </p>
+    </div>
+  );
+}

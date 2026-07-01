@@ -279,12 +279,17 @@ async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28
   });
 
   const videoIds = [...videoMetaById.keys()];
-  const metricsByVideoId = await fetchVideoMetricsBatched(
-    accessToken,
-    videoIds,
-    startDate,
-    endDate,
-  );
+  const [metricsByVideoId, formatByVideoId] = await Promise.all([
+    fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDate),
+    (async () => {
+      try {
+        const { tagVideosShortsLong } = await import("./youtubeStudioAdvanced.js");
+        return tagVideosShortsLong(accessToken, videoIds);
+      } catch {
+        return new Map();
+      }
+    })(),
+  ]);
 
   const emptyMetrics = {
     views: 0,
@@ -298,6 +303,7 @@ async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28
   const videos = [...videoMetaById.values()]
     .map((meta) => ({
       ...meta,
+      videoFormat: formatByVideoId.get(meta.videoId) || "LONG",
       metrics: metricsByVideoId.get(meta.videoId) || emptyMetrics,
     }))
     .sort((a, b) => (b.metrics.views || 0) - (a.metrics.views || 0));
@@ -441,6 +447,9 @@ export async function fetchChannelComments(workspaceDir, {
   filter = "all",
   keyword = "",
   pageToken = "",
+  projectsRoot = null,
+  views48hThreshold = 100,
+  enrich = true,
 } = {}) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
@@ -499,7 +508,32 @@ export async function fetchChannelComments(workspaceDir, {
     });
   }
 
-  const filtered = applyCommentFilters(mapped, { filter, keyword, handledIds }).slice(0, maxResults);
+  let filtered = applyCommentFilters(mapped, { filter, keyword, handledIds }).slice(0, maxResults);
+
+  if (enrich) {
+    const { enrichComments, getExtendedStudioSettings } = await import("./youtubeStudioAdvanced.js");
+    const settings = getExtendedStudioSettings(workspaceDir);
+    const lumieraVideos = projectsRoot ? collectLumieraPublishedVideos(projectsRoot) : [];
+    const lumieraVideoIds = new Set(lumieraVideos.map((item) => item.videoId));
+    const hotVideoIds = new Set();
+    const views48hByVideoId = {};
+    if (projectsRoot) {
+      await Promise.all(lumieraVideos.slice(0, 8).map(async (entry) => {
+        try {
+          const { fetchVideoVelocity } = await import("./youtubeTitleAnalytics.js");
+          const velocity = await fetchVideoVelocity(workspaceDir, entry.videoId);
+          views48hByVideoId[entry.videoId] = velocity.views48h || 0;
+          if ((velocity.views48h || 0) >= views48hThreshold) hotVideoIds.add(entry.videoId);
+        } catch { /* ignore */ }
+      }));
+    }
+    filtered = enrichComments(filtered, {
+      settings,
+      hotVideoIds,
+      lumieraVideoIds,
+      views48hByVideoId,
+    });
+  }
 
   return {
     channelId,
@@ -557,6 +591,10 @@ export async function replyToChannelComment(workspaceDir, { parentId, text } = {
 }
 
 async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28 } = {}) {
+  const {
+    fetchVideoVelocityTimeline,
+    fetchVideoCtrAndRevenue,
+  } = await import("./youtubeStudioAdvanced.js");
   const normalizedVideoId = String(videoId || "").trim();
   if (!normalizedVideoId) {
     throw new Error("videoId é obrigatório.");
@@ -565,7 +603,7 @@ async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28
   await assertTitleTestScopes(workspaceDir);
   const { startDate, endDate } = periodDates(days);
 
-  const [analytics, retention, velocity] = await Promise.all([
+  const [analytics, retention, velocity, velocityTimeline, ctrRevenue] = await Promise.all([
     fetchVideoAnalytics(workspaceDir, normalizedVideoId, { startDate, endDate }),
     fetchRetentionCurve(workspaceDir, normalizedVideoId, { startDate, endDate }).catch((err) => ({
       videoId: normalizedVideoId,
@@ -577,6 +615,8 @@ async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28
       views48h: 0,
       error: err.message,
     })),
+    fetchVideoVelocityTimeline(workspaceDir, normalizedVideoId, { days: Math.min(days, 7) }).catch(() => null),
+    fetchVideoCtrAndRevenue(workspaceDir, normalizedVideoId, { days }).catch(() => null),
   ]);
 
   return {
@@ -587,6 +627,8 @@ async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28
     analytics,
     retention,
     velocity,
+    velocityTimeline,
+    ctrRevenue,
     fetchedAt: new Date().toISOString(),
   };
 }
@@ -611,6 +653,8 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const { startDate, endDate } = periodDates(days);
   const lumieraVideos = collectLumieraPublishedVideos(projectsRoot);
+  const { getExtendedStudioSettings, loadLumieraExperiments } = await import("./youtubeStudioAdvanced.js");
+  const studioSettings = getExtendedStudioSettings(workspaceDir);
 
   const enriched = await Promise.all(
     lumieraVideos.map(async (entry) => {
@@ -636,10 +680,15 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
         metrics = null;
       }
 
+      const goalViews48h = studioSettings.projectGoals?.[entry.projectName]?.views48h
+        ?? studioSettings.defaultProjectGoalViews48h
+        ?? 100;
       return {
         ...entry,
         thumbnailUrl,
         views48h,
+        goalViews48h,
+        goalMet: views48h >= goalViews48h,
         metrics: metrics || {
           views: 0,
           estimatedMinutesWatched: 0,
@@ -654,11 +703,13 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
     }),
   );
 
+  const withExperiments = await loadLumieraExperiments(projectsRoot, enriched);
+
   return {
     periodDays: days,
     startDate,
     endDate,
-    videos: enriched.sort((a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0)),
+    videos: withExperiments.sort((a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0)),
     fetchedAt: new Date().toISOString(),
   };
 }
@@ -857,7 +908,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
     });
   }
 
-  return {
+  const report = {
     connected: true,
     scopesReady: true,
     badgeCount: unansweredComments + hotVideos.length,
@@ -871,6 +922,19 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
     pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
     fetchedAt: new Date().toISOString(),
   };
+
+  try {
+    const { getExtendedStudioSettings, saveExtendedStudioSettings, sendWebhookNotification } = await import("./youtubeStudioAdvanced.js");
+    const settings = getExtendedStudioSettings(workspaceDir);
+    const prevBadge = Number(settings.lastAlertBadge || 0);
+    if (report.badgeCount > prevBadge && (settings.webhooks?.telegram || settings.webhooks?.discord)) {
+      const lines = report.alerts.map((a) => a.label).join(" · ");
+      await sendWebhookNotification(settings.webhooks, `YouTube Lumiera: ${lines || `${report.badgeCount} alertas`}`);
+    }
+    saveExtendedStudioSettings(workspaceDir, { lastAlertBadge: report.badgeCount });
+  } catch { /* ignore webhook errors */ }
+
+  return report;
 }
 
 export async function fetchChannelAlerts(
