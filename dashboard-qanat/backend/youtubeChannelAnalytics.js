@@ -307,6 +307,25 @@ export async function fetchChannelComments(workspaceDir, {
   });
 
   const mapped = (threadsData?.items || []).map((thread) => mapCommentThread(thread, channelId));
+
+  const missingTitleIds = [
+    ...new Set(mapped.filter((item) => item.videoId && !item.videoTitle).map((item) => item.videoId)),
+  ];
+  if (missingTitleIds.length > 0) {
+    const videosData = await youtubeDataGet(accessToken, "videos", {
+      part: "snippet",
+      id: missingTitleIds.join(","),
+    });
+    const titleById = new Map(
+      (videosData?.items || []).map((video) => [video.id, video?.snippet?.title || ""]),
+    );
+    mapped.forEach((item) => {
+      if (!item.videoTitle && item.videoId) {
+        item.videoTitle = titleById.get(item.videoId) || "";
+      }
+    });
+  }
+
   const filtered = applyCommentFilters(mapped, { filter, keyword }).slice(0, maxResults);
 
   return {
