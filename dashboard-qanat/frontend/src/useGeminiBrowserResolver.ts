@@ -24,17 +24,22 @@ export function useGeminiBrowserResolver(
     const isIdeas = /ideias/i.test(title)
       || /Ideas Engine/i.test(prompt)
       || /"best_idea_index"/i.test(prompt);
+    const isNarration = /narra[cç][aã]o/i.test(title)
+      || /Gerar narração/i.test(title)
+      || /"narrative_script"/i.test(prompt);
     const hint = isMetadata
       ? 'Metadados em texto/markdown (~1–3 min). Não feche gemini.google.com.'
       : isOverlay
         ? 'Overlays em JSON (~1–3 min). Não feche gemini.google.com.'
         : isIdeas
           ? '10 ideias em JSON (~1–2 min). Não feche gemini.google.com.'
-          : 'Consultando gemini.google.com (até ~2 min)…';
+          : isNarration
+            ? 'Narração em JSON (~2–4 min). Mantenha gemini.google.com aberto e aguarde.'
+            : 'Consultando gemini.google.com (até ~2 min)…';
     setAutomation?.({ active: true, title, hint });
     try {
       return await queryGeminiWithRetry(opts.prompt, {
-        attempts: isMetadata ? 2 : 3,
+        attempts: isMetadata ? 2 : isNarration ? 2 : 3,
         onAttempt: (attempt) => setAutomation?.({
           active: true,
           title,
