@@ -212,15 +212,26 @@ export function YoutubeStudioPanel({
       const overviewData = await overviewRes.json().catch(() => ({}));
       const videosData = await videosRes.json().catch(() => ({}));
 
-      if (!overviewRes.ok && overviewRes.status !== 403) {
+      if (overviewRes.ok || overviewRes.status === 403) {
+        setOverview(overviewData as ChannelOverview);
+      } else {
         throw new Error(overviewData.details || overviewData.error || 'Falha ao carregar canal');
       }
-      if (!videosRes.ok && videosRes.status !== 403) {
-        throw new Error(videosData.details || videosData.error || 'Falha ao carregar vídeos');
-      }
 
-      setOverview(overviewData as ChannelOverview);
-      setVideosReport(videosData as VideosReport);
+      if (videosRes.ok || videosRes.status === 403) {
+        setVideosReport(videosData as VideosReport);
+      } else {
+        setVideosReport({
+          periodDays,
+          startDate: '',
+          endDate: '',
+          videos: [],
+          error: videosData.error || 'Falha ao carregar vídeos',
+          details: videosData.details,
+          needsReauth: videosData.needsReauth,
+        });
+        toast(videosData.details || videosData.error || 'Tabela de vídeos indisponível no momento.');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar dados do YouTube';
       toast(message);
