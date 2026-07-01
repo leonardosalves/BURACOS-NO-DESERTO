@@ -4162,6 +4162,78 @@ export default function App() {
     toast.success(`Narração dividida entre ${nextAssets.length} assets do bloco ${blockKey}.`);
   };
 
+  const distributeAllBlockNarrations = () => {
+    if (!config?.timeline_assets) return;
+    const ctx = buildNarrationSyncContext();
+    const newTimelineAssets = { ...config.timeline_assets };
+    let blockCount = 0;
+    Object.keys(newTimelineAssets).forEach((blockKey) => {
+      const assets = newTimelineAssets[blockKey];
+      if (!assets?.length || assets.length <= 1) return;
+      const full = resolveBlockNarrationText(ctx, parseInt(blockKey, 10));
+      if (!full.trim()) return;
+      newTimelineAssets[blockKey] = applySplitNarrationToBlockAssets(ctx, blockKey);
+      blockCount += 1;
+    });
+    if (blockCount === 0) {
+      toast.error('Nenhum bloco com múltiplos assets e texto de narração para dividir.');
+      return;
+    }
+    const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
+    toast.success(`Narração dividida em ${blockCount} bloco(s).`);
+  };
+
+  const handleRepairProjectVisualPrompts = async () => {
+    if (!activeProject?.trim()) {
+      toast.error('Selecione um projeto.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/repair-visual-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: activeProject.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      if (ok && !data.needs_browser) {
+        setStoryboardData(data);
+        await saveCreatorStoryboard(data);
+        if (data.technical_config?.block_phrases && config) {
+          const patched = {
+            ...config,
+            block_phrases: data.technical_config.block_phrases,
+            impact_texts: data.technical_config.impact_texts || config.impact_texts,
+            highlight_keywords: data.technical_config.highlight_keywords || config.highlight_keywords,
+          };
+          setConfig(patched);
+          await saveConfig(patched);
+        }
+        fetchData();
+        toast.success(`Cenas reparadas — ${data.visual_prompts?.length || 0} com narração e prompt.`);
+      } else {
+        toast.error(data.error || data.details || 'Erro ao reparar cenas.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao reparar cenas.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
+  const timelineNeedsWhisperSync = Boolean(
+    status?.has_narration && (!wordTranscripts?.length || !status?.block_timings?.starts?.length),
+  );
+
+  const timelineScenesNeedRepair = useMemo(() => {
+    const vps = storyboardData?.visual_prompts || [];
+    if (!vps.length) return Boolean(storyboardData?.narrative_script?.trim());
+    return vps.some((vp: any) => !String(vp?.narration_text || vp?.narration_excerpt || '').trim());
+  }, [storyboardData?.visual_prompts, storyboardData?.narrative_script]);
+
   const alignAllBlocksToSpeech = () => {
 
     if (!config || !config.timeline_assets) return;
@@ -6967,6 +7039,57 @@ export default function App() {
     return (
       <div className="space-y-6">
 
+                  {(timelineNeedsWhisperSync || timelineScenesNeedRepair) && (
+                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3 font-sans">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1.5 text-[11px] text-amber-100/90 leading-relaxed">
+                          <p className="font-bold text-amber-200">Narração TTS ≠ texto em todos os blocos automaticamente</p>
+                          <p>
+                            O TTS só grava o MP3. Para ver <strong className="font-semibold text-amber-100">Narração Dinâmica</strong> (timestamps verdes e play por cena), rode a sincronização Whisper.
+                            O texto por asset vem do <code className="text-amber-200/90">storyboard.json</code> — se o wizard foi interrompido (F5), algumas cenas podem estar vazias.
+                          </p>
+                          {timelineNeedsWhisperSync && (
+                            <p className="text-amber-300/80">
+                              Áudio detectado, mas faltam transcrição/timings — use <strong>Workflow → Sincronizar timings</strong> ou o botão abaixo.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {timelineNeedsWhisperSync && (
+                          <button
+                            type="button"
+                            onClick={() => handleSyncTimings()}
+                            disabled={syncingTimings}
+                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gold-500/40 bg-gold-500/15 hover:bg-gold-500/25 text-gold-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {syncingTimings ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                            Sincronizar Whisper agora
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={distributeAllBlockNarrations}
+                          className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-200 transition flex items-center gap-1.5"
+                        >
+                          <Layers className="w-3 h-3" /> Distribuir narração em todos os blocos
+                        </button>
+                        {timelineScenesNeedRepair && (
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={handleRepairProjectVisualPrompts}
+                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {creatorLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />}
+                            Reparar cenas do roteiro (IA)
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action buttons row at the top */}
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
@@ -7035,15 +7158,25 @@ export default function App() {
 
                       </button>
 
+                      <button
+                        onClick={distributeAllBlockNarrations}
+                        className="bg-violet-950 border border-violet-900/50 hover:bg-violet-900 text-violet-300 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                        title="Divide o texto de cada bloco entre os assets proporcionalmente"
+                      >
+                        <Layers className="w-3.5 h-3.5" /> Distribuir Narração
+                      </button>
+
                       {status?.has_narration && (
 
                         <button
 
                           onClick={() => alignAllBlocksToSpeech()}
 
-                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                          disabled={!wordTranscripts?.length}
 
-                          title="Sincronizar TODOS os blocos automaticamente com o tempo da voz da narração"
+                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 disabled:opacity-40 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+
+                          title={wordTranscripts?.length ? 'Sincronizar TODOS os blocos com o tempo da voz' : 'Rode Sincronizar Whisper antes (Workflow)'}
 
                         >
 
