@@ -1,0 +1,322 @@
+/**
+ * Pesquisa profunda estilo DeerFlow — planner → pesquisadores paralelos → relatório.
+ * Adaptado ao stack Lumiera (sem LangGraph): web, Exa, concorrentes, NotebookLM.
+ */
+
+import fs from "fs";
+import path from "path";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import { fetchWebResearchForTopic } from "./webResearchService.js";
+import { runCompetitorResearch } from "./competitorResearch.js";
+import { fetchNotebooklmResearch } from "./notebooklmService.js";
+import { enqueueEditorialIdeas } from "./youtubeEditorialQueue.js";
+import { appendDailyRunLog, ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
+import { repairVaultGraphLinks } from "./obsidianVault.js";
+import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
+
+const execFileAsync = promisify(execFile);
+const MEMORY_FILE = "deep-research-reports.md";
+const MAX_REPORT_CHARS = 24000;
+
+export function planDeepResearch(topic = "", { niche = "Geral", format = "SHORTS" } = {}) {
+  const t = String(topic || niche).trim();
+  const fmt = String(format).toUpperCase() === "LONG" || format === "LONGO" ? "LONGO" : "SHORTS";
+  const subQuestions = [
+    `Contexto essencial: o que o público de ${niche} precisa entender sobre "${t}"?`,
+    `Fatos surpreendentes, números e datas verificáveis sobre "${t}"`,
+    `Mecânicas virais: o que canais de ${niche} fazem bem (e mal) ao cobrir "${t}"?`,
+    fmt === "SHORTS"
+      ? `Ângulos para YouTube Shorts (gancho 3s, listicle, revelação) sobre "${t}"`
+      : `Estrutura documental longa (atos, open loops, capítulos) sobre "${t}"`,
+    `Lacunas e mitos comuns que vídeos superficiais ignoram sobre "${t}"`,
+  ];
+
+  return {
+    topic: t,
+    niche: String(niche || "Geral").trim(),
+    format: fmt,
+    subQuestions,
+    legs: ["web", "exa", "competitors", "notebooklm"],
+    version: 1,
+    source: "deer-flow-lumiera",
+  };
+}
+
+async function fetchExaSearch(query, workspaceDir) {
+  const configPath = path.join(workspaceDir, "config", "mcporter.json");
+  if (!fs.existsSync(configPath)) {
+    return { available: false, summary: "", source: "exa", message: "config/mcporter.json ausente" };
+  }
+  try {
+    const { stdout } = await execFileAsync(
+      process.platform === "win32" ? "mcporter.cmd" : "mcporter",
+      [
+        "call", "exa.web_search_exa",
+        `query=${String(query).slice(0, 500)}`,
+        "numResults=6",
+        "--config", configPath,
+      ],
+      { timeout: 90000, maxBuffer: 2 * 1024 * 1024 },
+    );
+    const text = String(stdout || "").trim();
+    if (!text) return { available: false, summary: "", source: "exa" };
+    return {
+      available: true,
+      summary: text.slice(0, 10000),
+      source: "exa",
+      query,
+    };
+  } catch (err) {
+    return { available: false, summary: "", source: "exa", message: err.message };
+  }
+}
+
+async function runWebLeg(workspaceDir, { topic, niche, format, getApiKeys, apiKey }) {
+  const fmt = format === "LONGO" ? "LONG" : "SHORT";
+  return {
+    leg: "web",
+    ...(await fetchWebResearchForTopic({
+      topic,
+      niche,
+      format: fmt,
+      apiKey,
+      getApiKeys: () => getApiKeys(workspaceDir),
+    })),
+  };
+}
+
+async function runNotebooklmLeg(workspaceDir, backendDir, { topic, niche, format, deep = false }) {
+  const fmtApi = format === "LONGO" ? "LONG" : "SHORT";
+  const result = await fetchNotebooklmResearch(niche || topic, fmtApi, {
+    backendDir,
+    purpose: "ideas",
+    idea: { title: topic, promise: topic },
+    runResearch: true,
+    researchMode: deep ? "deep" : "fast",
+  });
+  return { leg: "notebooklm", ...result };
+}
+
+function buildExecutiveSummary(artifacts = {}) {
+  const parts = [];
+  if (artifacts.web?.summary) parts.push(artifacts.web.summary.slice(0, 1200));
+  if (artifacts.exa?.summary) parts.push(artifacts.exa.summary.slice(0, 800));
+  if (artifacts.notebooklm?.summary) parts.push(artifacts.notebooklm.summary.slice(0, 800));
+  const merged = parts.join("\n\n").trim();
+  return merged.slice(0, 2500) || "Pesquisa concluída — veja seções detalhadas abaixo.";
+}
+
+export function buildDeepResearchReport(plan, artifacts = {}) {
+  const facts = [
+    ...(artifacts.web?.facts || []),
+  ].slice(0, 12);
+
+  const sources = [
+    ...(artifacts.web?.sources || []).map((s) => ({ ...s, via: "web-grounding" })),
+  ];
+
+  const competitor = artifacts.competitors?.analysis || {};
+  const derivedIdeas = competitor.derivedIdeas || [];
+  const outliers = competitor.outliers || [];
+
+  const lines = [
+    `# Relatório de pesquisa — ${plan.topic}`,
+    "",
+    `> Nicho: ${plan.niche} · Formato: ${plan.format} · ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
+    "",
+    "## Resumo executivo",
+    buildExecutiveSummary(artifacts),
+    "",
+    "## Sub-perguntas investigadas",
+    ...plan.subQuestions.map((q, i) => `${i + 1}. ${q}`),
+    "",
+  ];
+
+  if (facts.length) {
+    lines.push("## Fatos verificáveis", ...facts.map((f) => `- ${f}`), "");
+  }
+
+  if (artifacts.exa?.available && artifacts.exa.summary) {
+    lines.push("## Busca semântica (Exa)", compressTranscriptForPrompt(artifacts.exa.summary, { format: plan.format, maxChars: 6000 }), "");
+  }
+
+  if (artifacts.web?.available && artifacts.web.summary) {
+    lines.push("## Pesquisa web (Gemini grounding)", compressTranscriptForPrompt(artifacts.web.summary, { format: plan.format, maxChars: 5000 }), "");
+  }
+
+  if (artifacts.notebooklm?.available && artifacts.notebooklm.summary) {
+    lines.push("## NotebookLM", compressTranscriptForPrompt(artifacts.notebooklm.summary, { format: plan.format, maxChars: 6000 }), "");
+  }
+
+  if (outliers.length) {
+    lines.push("## Outliers YouTube (concorrentes)", ...outliers.slice(0, 6).map((o) =>
+      `- **${o.title || "Vídeo"}** — ${(o.views || 0).toLocaleString("pt-BR")} views · ${o.channelTitle || ""}`,
+    ), "");
+  }
+
+  if (derivedIdeas.length) {
+    lines.push("## Ideias derivadas (Lumiera)", ...derivedIdeas.slice(0, 8).map((idea, i) =>
+      `${i + 1}. **${idea.title}** — _${idea.hookPt || idea.angle || ""}_ (${idea.mechanic || "mecânica"})`,
+    ), "");
+  }
+
+  if (sources.length) {
+    lines.push("## Fontes", ...sources.slice(0, 10).map((s, i) => `${i + 1}. [${s.title}](${s.url})`), "");
+  }
+
+  lines.push(
+    "## Próximos passos",
+    "- Revisar ideias na fila editorial (YouTube Studio)",
+    "- Abrir Creator com gancho validado",
+    "- Opcional: enriquecer roteiro com NotebookLM (modo script)",
+    "",
+  );
+
+  let markdown = lines.join("\n");
+  if (markdown.length > MAX_REPORT_CHARS) {
+    markdown = `${markdown.slice(0, MAX_REPORT_CHARS - 80)}\n\n[… relatório truncado — ver API artifacts …]\n`;
+  }
+  return {
+    markdown,
+    derivedIdeas,
+    outlierCount: outliers.length,
+    factCount: facts.length,
+  };
+}
+
+export function appendDeepResearchReport(workspaceDir, plan, report) {
+  ensureAgentDirs(workspaceDir);
+  const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, MEMORY_FILE);
+  const marker = "## Relatórios gerados";
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const block = [
+    `### ${stamp} — ${plan.topic.slice(0, 80)}${plan.topic.length > 80 ? "…" : ""}`,
+    report.markdown,
+    "",
+  ].join("\n");
+
+  let content = fs.existsSync(memoryPath)
+    ? fs.readFileSync(memoryPath, "utf8")
+    : `# Deep Research (DeerFlow → Lumiera)\n\n> 🔗 [[MEMORIA-LUMIERA]]\n\n`;
+
+  if (!content.includes(marker)) {
+    content = `${content.trimEnd()}\n\n${marker}\n\n${block}`;
+  } else {
+    const parts = content.split(marker);
+    const head = parts[0] + marker;
+    const tail = parts.slice(1).join(marker);
+    const blocks = tail.split(/\n(?=### \d{4}-\d{2}-\d{2})/).map((b) => b.trim()).filter(Boolean);
+    const kept = [block.trim(), ...blocks].slice(0, 8);
+    content = `${head}\n\n${kept.join("\n\n")}\n`;
+  }
+
+  fs.writeFileSync(memoryPath, content, "utf8");
+  repairVaultGraphLinks(workspaceDir);
+  appendDailyRunLog(
+    workspaceDir,
+    `- ${new Date().toISOString()} **deep-research** topic=${plan.topic.slice(0, 60)} ideas=${report.derivedIdeas?.length || 0}`,
+  );
+  return { memoryPath, memoryFile: MEMORY_FILE };
+}
+
+export async function runDeepResearch(workspaceDir, opts = {}) {
+  const topic = String(opts.topic || opts.requirement || "").trim();
+  if (!topic) {
+    return { ok: false, error: "Informe o tema da pesquisa (topic)." };
+  }
+
+  const niche = String(opts.niche || "Geral").trim();
+  const format = opts.format === "LONG" || opts.format === "LONGO" ? "LONGO" : "SHORTS";
+  const plan = planDeepResearch(topic, { niche, format });
+
+  const legs = Array.isArray(opts.legs) ? opts.legs : plan.legs;
+  const tasks = [];
+
+  if (legs.includes("web") && opts.getApiKeys) {
+    tasks.push(runWebLeg(workspaceDir, {
+      topic,
+      niche,
+      format,
+      getApiKeys: opts.getApiKeys,
+      apiKey: opts.apiKey,
+    }));
+  }
+
+  if (legs.includes("exa")) {
+    tasks.push(fetchExaSearch(`${topic} — ${niche} YouTube`, workspaceDir).then((r) => ({ leg: "exa", ...r })));
+  }
+
+  if (legs.includes("competitors") && opts.llmFn !== undefined) {
+    tasks.push(
+      runCompetitorResearch(workspaceDir, {
+        niche,
+        format: format === "LONGO" ? "LONG" : "SHORT",
+        maxCompetitors: opts.maxCompetitors ?? 5,
+        llmFn: opts.llmFn,
+        repairJsonFn: opts.repairJsonFn,
+      }).then((r) => ({ leg: "competitors", ...r })),
+    );
+  }
+
+  if (legs.includes("notebooklm") && opts.backendDir) {
+    tasks.push(runNotebooklmLeg(workspaceDir, opts.backendDir, {
+      topic,
+      niche,
+      format,
+      deep: opts.notebooklmDeep === true,
+    }));
+  }
+
+  const settled = await Promise.allSettled(tasks);
+  const artifacts = {};
+  const legErrors = [];
+
+  for (const item of settled) {
+    if (item.status === "rejected") {
+      legErrors.push({ error: item.reason?.message || String(item.reason) });
+      continue;
+    }
+    const val = item.value || {};
+    const key = val.leg || "unknown";
+    if (key === "competitors") {
+      artifacts.competitors = val;
+    } else {
+      artifacts[key] = val;
+    }
+  }
+
+  const report = buildDeepResearchReport(plan, artifacts);
+  const obsidian = appendDeepResearchReport(workspaceDir, plan, report);
+
+  let editorialQueue = null;
+  if (opts.enqueueIdeas !== false && report.derivedIdeas?.length) {
+    const enqueued = enqueueEditorialIdeas(
+      workspaceDir,
+      report.derivedIdeas,
+      { source: "deep-research", format },
+    );
+    editorialQueue = { enqueued: report.derivedIdeas.length, total: enqueued.items.length };
+  }
+
+  return {
+    ok: true,
+    plan,
+    artifacts: {
+      web: artifacts.web || null,
+      exa: artifacts.exa || null,
+      notebooklm: artifacts.notebooklm || null,
+      competitors: artifacts.competitors
+        ? {
+            outlierCount: artifacts.competitors.analysis?.outliers?.length || 0,
+            derivedIdeas: report.derivedIdeas,
+            memoryFile: artifacts.competitors.memoryFile,
+          }
+        : null,
+    },
+    report,
+    obsidian,
+    editorialQueue,
+    legErrors,
+  };
+}

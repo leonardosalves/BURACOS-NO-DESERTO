@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { OpenMontageReferencePanel } from './OpenMontageReferencePanel';
+import { DeepResearchPanel } from './DeepResearchPanel';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
 
 type LumieraAction = {
@@ -93,6 +94,7 @@ const TAB_LABELS: Record<string, string> = {
 
 const EXAMPLE_PROMPTS = [
   'Short viral sobre engenharia antiga — gancho forte e 5 fatos surpreendentes',
+  'Pesquisa profunda: tendências Shorts de engenharia antiga + relatório',
   'Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas',
   'Vídeo longo documental com NotebookLM sobre clepsidras históricas',
   'Diagnóstico pós-upload: retenção caiu e views -30% esta semana',
@@ -101,6 +103,7 @@ const EXAMPLE_PROMPTS = [
 
 const STEP_LABELS: Record<string, string> = {
   creator_pipeline: 'Creator — projeto + narração',
+  deep_research: 'Pesquisa profunda',
   competitor_research: 'Pesquisa concorrentes',
   editorial_queue: 'Fila editorial',
   top_winners: 'Replicar top 3',
@@ -342,6 +345,14 @@ export function VideoAgentPlanner({
             }
           : undefined
       }
+    />
+
+    <DeepResearchPanel
+      niche={projectNiche}
+      format={apiFormat}
+      getProjectUrl={getProjectUrl}
+      onOpenObsidian={onOpenObsidian}
+      obsidianInstalled={obsidianInstalled}
     />
 
     <div className="glass-panel p-6 rounded-2xl space-y-4 border border-violet-500/15">

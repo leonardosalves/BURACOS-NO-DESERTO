@@ -34,6 +34,11 @@ export const LUMIERA_CODE_MAP = {
       routes: ["POST script (phase: narration|full)", "POST ideas"],
     },
     {
+      prefix: "/api/research",
+      files: ["researchRoutes.js", "deerFlowResearch.js"],
+      routes: ["POST deep", "POST deep/plan"],
+    },
+    {
       prefix: "/api/workflow",
       files: ["workflowRoutes.js"],
       routes: ["POST clip-factory", "POST analyze-reference", "GET capability-menu"],
