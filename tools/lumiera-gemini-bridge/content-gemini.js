@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.5.0";
+  const VERSION = "1.5.1";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -341,7 +341,8 @@
   function isUsableNarrationPayload(parsed) {
     if (!parsed || typeof parsed !== "object") return false;
     const script = String(parsed.narrative_script || "").trim();
-    return script.length >= 80;
+    const tech = String(parsed.technical_config?.script || "").trim();
+    return script.length >= 120 || tech.length >= 120;
   }
 
   function looksLikeNarrationCandidate(text) {
