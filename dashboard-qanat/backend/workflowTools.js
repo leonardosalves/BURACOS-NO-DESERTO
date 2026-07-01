@@ -25,6 +25,10 @@ import {
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
 import {
+  loadVoiceboxConfig,
+  synthesizeVoiceboxNarration,
+} from "./voiceboxTts.js";
+import {
   loadStockUsageRegistry,
   registerStockUsage,
 } from "./mediaUsageRegistry.js";
@@ -539,6 +543,36 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
+  if (engine === "voicebox") {
+    const vbConfig = loadVoiceboxConfig({ workspaceDir, projectDir: projDir });
+    const vbCfg = vbConfig.voicebox || {};
+    const useTagged = vbCfg.use_tagged_script !== false && vbCfg.useTaggedScript !== false;
+    const tagPlatform = String(vbCfg.engine || "chatterbox").includes("turbo") ? "turbo" : "chatterbox";
+    const textForTts = useTagged && String(tagged).trim().length > 40
+      ? convertCinematicMarkersForTts(tagged, tagPlatform)
+      : plain;
+    const vbVoice = voice || vbCfg.default_profile_id || vbCfg.defaultProfileId || "";
+
+    const result = await synthesizeVoiceboxNarration(textForTts, {
+      voice: vbVoice,
+      outputPath: dest,
+      config: vbConfig,
+      onLog,
+    });
+    invalidateNarrationTimings();
+
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: result.chars,
+      voice: result.profileName,
+      engine: "voicebox",
+      profileId: result.profileId,
+      durationSeconds: result.durationSeconds,
+      message: `Narração Voicebox gerada (${result.profileName}, engine ${result.engine}). Clone local — rode sync Whisper para timings.`,
+    };
+  }
+
   if (engine === "fish" || engine === "fish-speech" || engine === "fish_speech") {
     const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
     const fishCfg = fishConfig.fish_speech || {};
@@ -569,7 +603,7 @@ export async function generateNarrationTts(projDir, {
   }
 
   const textForTts = convertCinematicMarkersForTts(tagged, engine);
-  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`);
+  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, voicebox, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`);
 }
 
 export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {
