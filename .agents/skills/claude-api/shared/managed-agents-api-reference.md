@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Managed Agents — Endpoint Reference
 
 All endpoints require `x-api-key` and `anthropic-version: 2023-06-01` headers. Managed Agents endpoints additionally require the `anthropic-beta` header.

@@ -593,3 +593,7 @@ Live documentation URLs are in `shared/live-sources.md`.
 - **Vertex model IDs have no prefix.** Unlike Bedrock's `anthropic.`-prefixed IDs, Vertex takes the bare first-party ID for current-generation models (e.g. `"claude-opus-4-8"`); dated-snapshot models use an `@` separator (e.g. `claude-haiku-4-5@20251001`).
 - **`stop_details` is `null` unless `stop_reason == "refusal"`.** For `max_tokens`, `end_turn`, etc., `stop_details` is `null` — guard before reading `.category`.
 - **WIF auth: unset `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, and `ANTHROPIC_PROFILE`.** `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` (even set to `""`) outrank Workload Identity Federation in the SDK's precedence chain and silently win; a set `ANTHROPIC_PROFILE` also wins (a missing named profile is an error, not a fall-through). `unset` them, don't blank them.
+
+## Referências
+
+- [[skills/claude-api/REFERENCES|Índice de references/assets]]

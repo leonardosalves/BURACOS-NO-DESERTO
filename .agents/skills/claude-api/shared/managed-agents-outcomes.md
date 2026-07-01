@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Managed Agents — Outcomes
 
 An **outcome** elevates a session from *conversation* to *work*: you state what "done" looks like, and the harness runs an iterate → grade → revise loop until the artifact meets the rubric, hits `max_iterations`, or is interrupted. A separate **grader** (independent context window) scores each iteration against your rubric and feeds per-criterion gaps back to the agent.

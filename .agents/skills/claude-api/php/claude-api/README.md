@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Claude API — PHP
 
 > **Note:** The PHP SDK is the official Anthropic SDK for PHP. A beta tool runner is available via `$client->beta->messages->toolRunner()`. Structured output helpers are supported via `StructuredOutputModel` classes. Agent SDK is not available. Bedrock, Vertex AI, and Foundry clients are supported.

@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/writing-great-skills/SKILL|writing great skills (S
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/writing-great-skills/SKILL]]
+- Referências: [[skills/writing-great-skills/REFERENCES]]

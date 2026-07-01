@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/prototype/SKILL|prototype (SKILL completa)]].
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/prototype/SKILL]]
+- Referências: [[skills/prototype/REFERENCES]]

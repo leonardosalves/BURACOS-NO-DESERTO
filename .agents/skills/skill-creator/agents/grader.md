@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/skill-creator|skill creator]] · [[skills/skill-creator/SKILL]] · [[skills/skill-creator/REFERENCES]]
+
 # Grader Agent
 
 Evaluate expectations against an execution transcript and outputs.

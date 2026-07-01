@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/tdd/SKILL|tdd (SKILL completa)]].
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/tdd/SKILL]]
+- Referências: [[skills/tdd/REFERENCES]]

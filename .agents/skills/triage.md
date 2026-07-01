@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/triage/SKILL|triage (SKILL completa)]].
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/triage/SKILL]]
+- Referências: [[skills/triage/REFERENCES]]

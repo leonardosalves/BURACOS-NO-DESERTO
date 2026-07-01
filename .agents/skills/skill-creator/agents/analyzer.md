@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/skill-creator|skill creator]] · [[skills/skill-creator/SKILL]] · [[skills/skill-creator/REFERENCES]]
+
 # Post-hoc Analyzer Agent
 
 Analyze blind comparison results to understand WHY the winner won and generate improvement suggestions.

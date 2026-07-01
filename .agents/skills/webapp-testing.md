@@ -3,5 +3,5 @@
 Atalho Obsidian para [[skills/webapp-testing/SKILL|webapp testing (SKILL completa)]].
 - [[MEMORIA-LUMIERA]]
 - [[SKILLS]]
-- [[skills/qa]]
+- [[AGENTS]]
 - Documentação: [[skills/webapp-testing/SKILL]]

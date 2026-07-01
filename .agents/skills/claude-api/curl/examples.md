@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Claude API — cURL / Raw HTTP
 
 Use these examples when the user needs raw HTTP requests or is working in a language without an official SDK.

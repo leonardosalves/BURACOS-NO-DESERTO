@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Model Migration Guide
 
 > **If you arrived via `/claude-api migrate`:** this is the right file. Execute the steps below in order — do not summarize them back to the user. Start with Step 0 (confirm scope) before touching any file.

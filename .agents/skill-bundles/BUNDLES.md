@@ -5,7 +5,7 @@
 Bundles JSON usados pelo Studio Agents para injetar skills no prompt.
 
 - `dev-sdd.json` — ver [[skills/studio-agents-hermes]]
-- `dev-ui.json` — frontend-design + webapp-testing (dashmin)
+- `dev-ui.json` — ver [[skills/studio-agents-hermes]]
 - `long-documentary.json` — ver [[skills/studio-agents-hermes]]
 - `long-ideas.json` — ver [[skills/studio-agents-hermes]]
 - `openmontage-prod.json` — ver [[skills/studio-agents-hermes]]

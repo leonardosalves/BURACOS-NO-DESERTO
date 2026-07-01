@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/skill-creator|skill creator]] · [[skills/skill-creator/SKILL]] · [[skills/skill-creator/REFERENCES]]
+
 # Blind Comparator Agent
 
 Compare two outputs WITHOUT knowing which skill produced them.

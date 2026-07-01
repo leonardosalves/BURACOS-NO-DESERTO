@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/setup-matt-pocock-skills/SKILL|setup matt pocock s
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/setup-matt-pocock-skills/SKILL]]
+- Referências: [[skills/setup-matt-pocock-skills/REFERENCES]]

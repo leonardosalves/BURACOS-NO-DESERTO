@@ -52,3 +52,7 @@ Ask: "What's the public interface, and which seams should we test?"
 - **Smoke API:** `curl http://127.0.0.1:3005/api/...` (backend :3005)
 - **Spec:** `specs/<feature>/spec.md` define comportamento esperado
 - **Ops:** commit + `.\scripts\restart-backend.ps1` após mudanças no backend (`lumiera-ops`)
+
+## Referências
+
+- [[skills/tdd/REFERENCES|Índice de references/assets]]

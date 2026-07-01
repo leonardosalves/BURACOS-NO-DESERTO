@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Managed Agents — Common Client Patterns
 
 Patterns you'll write on the client side when driving a Managed Agent session, grounded in working SDK examples.
