@@ -138,7 +138,6 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
         left: coords.left,
         transform: coords.transform,
         zIndex: 99999,
-        backgroundColor: '#141418',
         visibility: 'visible',
       }
     : {
@@ -146,7 +145,6 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
         top: -9999,
         left: 0,
         zIndex: 99999,
-        backgroundColor: '#141418',
         visibility: 'hidden',
         pointerEvents: 'none',
       };
@@ -158,7 +156,7 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
           id={id}
           role="tooltip"
           style={panelStyle}
-          className="w-[min(18rem,calc(100vw-1.5rem))] sm:w-[min(20rem,calc(100vw-2rem))] max-h-[min(50vh,16rem)] overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-600 px-3.5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.85)] overscroll-contain"
+          className="dash-help-tip-panel w-[min(18rem,calc(100vw-1.5rem))] sm:w-[min(20rem,calc(100vw-2rem))] max-h-[min(50vh,16rem)] overflow-y-auto overflow-x-hidden overscroll-contain"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => {
             if (!pinned) setHovered(false);
@@ -167,13 +165,12 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
         >
           {coords && (
             <div
-              className={`pointer-events-none absolute w-2.5 h-2.5 rotate-45 border-zinc-600 ${
+              className={`dash-help-tip-arrow pointer-events-none absolute w-2.5 h-2.5 rotate-45 ${
                 coords.placement === 'below'
                   ? '-top-[5px] border-l border-t'
                   : '-bottom-[5px] border-r border-b'
               }`}
               style={{
-                backgroundColor: '#141418',
                 left: align === 'start' ? 14 : align === 'end' ? undefined : '50%',
                 right: align === 'end' ? 14 : undefined,
                 transform:
@@ -184,11 +181,11 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
             />
           )}
           {title && (
-            <p className="text-[9px] font-bold uppercase tracking-wider text-gold-300 mb-1.5 break-words">
+            <p className="dash-help-tip-title break-words">
               {title}
             </p>
           )}
-          <div className="text-[10px] sm:text-[11px] text-zinc-100 leading-relaxed font-sans normal-case tracking-normal break-words [overflow-wrap:anywhere] [hyphens:auto]">
+          <div className="dash-help-tip-body break-words [overflow-wrap:anywhere] [hyphens:auto]">
             {children}
           </div>
         </div>,
@@ -217,12 +214,7 @@ export function SettingHelpTip({ title, children, align = 'center' }: HelpTipPro
             e.stopPropagation();
             setPinned((v) => !v);
           }}
-          className={`w-[18px] h-[18px] min-w-[18px] rounded-full border flex items-center justify-center transition shrink-0 ${
-            open
-              ? 'border-gold-500 bg-gold-500/25 text-gold-300'
-              : 'border-zinc-600 bg-zinc-900 text-zinc-500 hover:text-gold-400 hover:border-gold-500/50'
-          }`}
-          style={{ backgroundColor: open ? undefined : '#18181b' }}
+          className={`dash-help-tip-trigger ${open ? 'dash-help-tip-trigger-open' : ''}`}
         >
           <HelpCircle className="w-3 h-3" strokeWidth={2.25} />
         </button>
@@ -252,7 +244,7 @@ export function SettingLabel({
   const Tag = as;
   return (
     <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 ${className}`}>
-      <Tag className="text-[10px] text-gold-500 font-bold uppercase tracking-wider break-words min-w-0">
+      <Tag className="dash-typo-label break-words min-w-0">
         {children}
       </Tag>
       <SettingHelpTip title={helpTitle} align={align}>

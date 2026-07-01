@@ -1723,6 +1723,48 @@
   .dash-typo-section {
     @apply font-sans text-xs font-bold uppercase tracking-wide text-dash-primary;
   }
+
+  /* Help tooltips (SettingHelpTip) */
+  .dash-help-tip-trigger {
+    @apply w-[18px] h-[18px] min-w-[18px] rounded-full border flex items-center justify-center transition shrink-0 cursor-pointer;
+    background: var(--dash-card-hover);
+    border-color: var(--dash-border);
+    color: var(--dash-muted);
+  }
+
+  .dash-help-tip-trigger:hover {
+    color: var(--dash-primary);
+    border-color: rgba(130, 128, 253, 0.45);
+    background: rgba(130, 128, 253, 0.1);
+  }
+
+  .dash-help-tip-trigger-open {
+    color: var(--dash-primary) !important;
+    border-color: rgba(130, 128, 253, 0.55) !important;
+    background: rgba(130, 128, 253, 0.18) !important;
+  }
+
+  .dash-help-tip-panel {
+    @apply rounded-lg px-3.5 py-3;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(130, 128, 253, 0.08);
+  }
+
+  .dash-help-tip-arrow {
+    background: var(--dash-card);
+    border-color: var(--dash-border);
+  }
+
+  .dash-help-tip-title {
+    @apply text-[9px] font-bold uppercase tracking-wider mb-1.5 font-sans;
+    color: var(--dash-primary);
+  }
+
+  .dash-help-tip-body {
+    @apply text-[10px] sm:text-[11px] leading-relaxed font-sans normal-case tracking-normal;
+    color: #d4d8e3;
+  }
 }
 
 @keyframes slideInRight {
