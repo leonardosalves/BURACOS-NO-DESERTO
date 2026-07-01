@@ -12,8 +12,8 @@ import sys
 from pathlib import Path
 
 VOICE_PRESETS = {
-    "multilingual_pt": {"model": "multilingual", "language_id": "pt", "t3_model": "v3"},
-    "multilingual_en": {"model": "multilingual", "language_id": "en", "t3_model": "v3"},
+    "multilingual_pt": {"model": "multilingual", "language_id": "pt"},
+    "multilingual_en": {"model": "multilingual", "language_id": "en"},
     "turbo_en": {"model": "turbo"},
     "english_default": {"model": "english"},
 }
@@ -89,7 +89,8 @@ def load_model(preset: dict, device: str):
     if kind == "multilingual":
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
-        return ChatterboxMultilingualTTS.from_pretrained(device, t3_model=preset.get("t3_model", "v3"))
+        # chatterbox-tts 0.1.x: from_pretrained(device) only — sem t3_model
+        return ChatterboxMultilingualTTS.from_pretrained(device)
     if kind == "turbo":
         from chatterbox.tts_turbo import ChatterboxTurboTTS
 
