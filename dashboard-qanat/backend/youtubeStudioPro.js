@@ -289,6 +289,126 @@ async function queryYoutubeAnalytics(accessToken, params) {
   return data;
 }
 
+const PUBLISH_TIMEZONE = "America/Sao_Paulo";
+
+async function youtubeDataGet(accessToken, path, params = {}) {
+  const url = new URL(`https://www.googleapis.com/youtube/v3/${path}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `Falha YouTube Data (${path}).`);
+  }
+  return data;
+}
+
+function hourInTimezone(isoDate, timeZone = PUBLISH_TIMEZONE) {
+  if (!isoDate) return null;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(new Date(isoDate));
+  const hourPart = parts.find((p) => p.type === "hour");
+  return hourPart ? Number(hourPart.value) : null;
+}
+
+function formatHourLabel(hour) {
+  return `${String(hour).padStart(2, "0")}h`;
+}
+
+function buildBestTimeWindow(byHour, peakHour) {
+  const peak = byHour.find((h) => h.hour === peakHour);
+  if (!peak?.views) return null;
+
+  const threshold = peak.views * 0.6;
+  const included = new Set([peakHour]);
+  const prev = (peakHour + 23) % 24;
+  const next = (peakHour + 1) % 24;
+
+  if ((byHour.find((h) => h.hour === prev)?.views || 0) >= threshold) included.add(prev);
+  if ((byHour.find((h) => h.hour === next)?.views || 0) >= threshold) included.add(next);
+
+  const hours = [...included].sort((a, b) => a - b);
+  if (hours.length === 1) return formatHourLabel(hours[0]);
+  if (hours.length === 2 && hours[1] - hours[0] === 1) {
+    return `${formatHourLabel(hours[0])}–${formatHourLabel(hours[1])}`;
+  }
+  return formatHourLabel(peakHour);
+}
+
+async function fetchPublishHourHeatmap(accessToken, { videoLimit = 40 } = {}) {
+  const channelData = await youtubeDataGet(accessToken, "channels", {
+    part: "contentDetails",
+    mine: "true",
+  });
+  const uploadsId = channelData?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploadsId) {
+    return { byHour: [], bestHour: null, bestTimeWindow: null, videosAnalyzed: 0 };
+  }
+
+  const playlist = await youtubeDataGet(accessToken, "playlistItems", {
+    part: "contentDetails",
+    playlistId: uploadsId,
+    maxResults: Math.min(Math.max(videoLimit, 10), 50),
+  });
+  const videoIds = (playlist?.items || [])
+    .map((item) => item?.contentDetails?.videoId)
+    .filter(Boolean);
+  if (!videoIds.length) {
+    return { byHour: [], bestHour: null, bestTimeWindow: null, videosAnalyzed: 0 };
+  }
+
+  const videosData = await youtubeDataGet(accessToken, "videos", {
+    part: "snippet,statistics",
+    id: videoIds.join(","),
+  });
+
+  const byHour = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: formatHourLabel(hour),
+    views: 0,
+    videoCount: 0,
+  }));
+
+  for (const video of videosData?.items || []) {
+    const publishedAt = video?.snippet?.publishedAt;
+    const views = Number(video?.statistics?.viewCount || 0);
+    const hour = hourInTimezone(publishedAt);
+    if (hour === null || hour < 0 || hour > 23) continue;
+    byHour[hour].views += views;
+    byHour[hour].videoCount += 1;
+  }
+
+  const maxHourViews = Math.max(...byHour.map((h) => h.views), 1);
+  const enriched = byHour.map((h) => ({
+    ...h,
+    avgViews: h.videoCount ? Math.round(h.views / h.videoCount) : 0,
+    intensity: Math.round((h.views / maxHourViews) * 100),
+  }));
+
+  const bestHourEntry = enriched.reduce(
+    (best, cur) => (cur.views > best.views ? cur : best),
+    enriched[0],
+  );
+  const bestTimeWindow = bestHourEntry?.views
+    ? buildBestTimeWindow(enriched, bestHourEntry.hour)
+    : null;
+
+  return {
+    byHour: enriched,
+    bestHour: bestHourEntry?.views ? bestHourEntry : null,
+    bestTimeWindow,
+    videosAnalyzed: videoIds.length,
+  };
+}
+
 export async function fetchAudienceHeatmap(workspaceDir, { days = 28 } = {}) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
@@ -319,22 +439,45 @@ export async function fetchAudienceHeatmap(workspaceDir, { days = 28 } = {}) {
     }
 
     const maxViews = Math.max(...byWeekday.map((d) => d.views), 1);
+    const weekdayRows = byWeekday.map((d) => ({
+      ...d,
+      avgViews: d.days ? Math.round(d.views / d.days) : 0,
+      intensity: Math.round((d.views / maxViews) * 100),
+    }));
+    const bestWeekday = weekdayRows.reduce(
+      (best, cur) => (cur.views > best.views ? cur : best),
+      weekdayRows[0],
+    );
+
+    let publishHours = { byHour: [], bestHour: null, bestTimeWindow: null, videosAnalyzed: 0 };
+    try {
+      publishHours = await fetchPublishHourHeatmap(accessToken);
+    } catch (err) {
+      console.warn("[Heatmap] Horário de publicação:", err.message);
+    }
+
+    const recommendedPublishTime = publishHours.bestTimeWindow
+      ? `${bestWeekday.label}, ${publishHours.bestTimeWindow} (Brasília)`
+      : bestWeekday.label;
+
     return {
       available: true,
       periodDays: days,
       startDate,
       endDate,
       daily: daily.slice(-14),
-      byWeekday: byWeekday.map((d) => ({
-        ...d,
-        avgViews: d.days ? Math.round(d.views / d.days) : 0,
-        intensity: Math.round((d.views / maxViews) * 100),
-      })),
-      bestWeekday: byWeekday.reduce((best, cur) => (cur.views > best.views ? cur : best), byWeekday[0]),
-      note: "Heatmap por dia da semana (views agregadas). Publique perto dos dias mais fortes.",
+      byWeekday: weekdayRows,
+      bestWeekday,
+      byHour: publishHours.byHour,
+      bestHour: publishHours.bestHour,
+      bestTimeWindow: publishHours.bestTimeWindow,
+      recommendedPublishTime,
+      timeZone: PUBLISH_TIMEZONE,
+      videosAnalyzed: publishHours.videosAnalyzed,
+      note: "Dia: views da audiência. Horário: publicações do canal com mais views (proxy do melhor horário).",
     };
   } catch (err) {
-    return { available: false, error: err.message, byWeekday: [], daily: [] };
+    return { available: false, error: err.message, byWeekday: [], daily: [], byHour: [] };
   }
 }
 

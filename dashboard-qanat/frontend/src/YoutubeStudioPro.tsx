@@ -67,6 +67,11 @@ type ProDashboard = {
     error?: string;
     byWeekday?: Array<{ label: string; intensity: number; avgViews: number }>;
     bestWeekday?: { label: string; views: number };
+    byHour?: Array<{ hour: number; label: string; intensity: number; views: number; videoCount?: number }>;
+    bestHour?: { hour: number; label: string; views: number };
+    bestTimeWindow?: string;
+    recommendedPublishTime?: string;
+    timeZone?: string;
     daily?: Array<{ day: string; views: number }>;
     note?: string;
   };
@@ -85,6 +90,45 @@ function formatCompact(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 10_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString('pt-BR');
+}
+
+function HeatmapHourStrip({
+  byHour,
+  bestHour,
+}: {
+  byHour: Array<{ hour: number; label: string; intensity: number; views: number }>;
+  bestHour?: { hour: number; label: string };
+}) {
+  return (
+    <div className="mt-2">
+      <p className="text-[8px] text-zinc-600 mb-1">Horário de publicação (views acumuladas)</p>
+      <div className="flex gap-px h-10 items-end">
+        {byHour.map((slot) => {
+          const isBest = bestHour?.hour === slot.hour;
+          const barHeight = Math.max(3, Math.round((slot.intensity / 100) * 32));
+          return (
+            <div
+              key={slot.hour}
+              className="flex-1 flex flex-col items-center justify-end h-full"
+              title={`${slot.label}: ${slot.views.toLocaleString('pt-BR')} views`}
+            >
+              <div
+                className={`w-full rounded-t min-h-[3px] ${isBest ? 'bg-amber-400' : 'bg-amber-500/50'}`}
+                style={{ height: `${barHeight}px` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[7px] text-zinc-600 mt-0.5 px-0.5">
+        <span>00h</span>
+        <span>06h</span>
+        <span>12h</span>
+        <span>18h</span>
+        <span>23h</span>
+      </div>
+    </div>
+  );
 }
 
 function HeatmapDailyStrip({ daily }: { daily: Array<{ day: string; views: number }> }) {
@@ -462,7 +506,7 @@ export function YoutubeStudioPro({
 
                 {dashboard?.heatmap && (
                   <ProSectionCard
-                    title="Heatmap (dia da semana)"
+                    title="Heatmap — quando publicar"
                     icon={<Flame className="w-3.5 h-3.5 text-orange-400" />}
                   >
                     {dashboard.heatmap.available && (dashboard.heatmap.byWeekday?.length ?? 0) > 0 ? (
@@ -488,13 +532,31 @@ export function YoutubeStudioPro({
                             );
                           })}
                         </div>
-                        {dashboard.heatmap.bestWeekday && (
+                        {(dashboard.heatmap.recommendedPublishTime || dashboard.heatmap.bestWeekday) && (
                           <p className="text-[8px] text-orange-400/90 mt-1">
-                            Melhor: <span className="font-semibold">{dashboard.heatmap.bestWeekday.label}</span>
+                            Melhor para publicar:{' '}
+                            <span className="font-semibold">
+                              {dashboard.heatmap.recommendedPublishTime || dashboard.heatmap.bestWeekday!.label}
+                            </span>
+                          </p>
+                        )}
+                        {(dashboard.heatmap.byHour?.length ?? 0) > 0 && (
+                          <HeatmapHourStrip
+                            byHour={dashboard.heatmap.byHour!}
+                            bestHour={dashboard.heatmap.bestHour}
+                          />
+                        )}
+                        {dashboard.heatmap.bestTimeWindow && (
+                          <p className="text-[8px] text-amber-400/80 mt-1">
+                            Pico de horário: <span className="font-semibold">{dashboard.heatmap.bestTimeWindow}</span>
+                            {dashboard.heatmap.timeZone === 'America/Sao_Paulo' ? ' (Brasília)' : ''}
                           </p>
                         )}
                         {(dashboard.heatmap.daily?.length ?? 0) > 0 && (
                           <HeatmapDailyStrip daily={dashboard.heatmap.daily!} />
+                        )}
+                        {dashboard.heatmap.note && (
+                          <p className="text-[7px] text-zinc-600 mt-1">{dashboard.heatmap.note}</p>
                         )}
                       </>
                     ) : (
