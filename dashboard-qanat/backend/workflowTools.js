@@ -15,6 +15,11 @@ import {
   KOKORO_DEFAULT_SPEED,
 } from "./kokoroTts.js";
 import {
+  loadFishSpeechConfig,
+  synthesizeFishSpeech,
+  FISH_SPEECH_DEFAULT_VOICE,
+} from "./fishSpeechTts.js";
+import {
   loadStockUsageRegistry,
   registerStockUsage,
 } from "./mediaUsageRegistry.js";
@@ -414,6 +419,7 @@ export async function generateNarrationTts(projDir, {
   pitch = "+0Hz",
   speed = KOKORO_DEFAULT_SPEED,
   platform = "kokoro",
+  workspaceDir = null,
   onLog = () => {},
 } = {}) {
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
@@ -486,8 +492,37 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
+  if (engine === "fish" || engine === "fish-speech" || engine === "fish_speech") {
+    const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
+    const fishCfg = fishConfig.fish_speech || {};
+    const useTagged = fishCfg.use_tagged_script !== false && fishCfg.useTaggedScript !== false;
+    const textForTts = useTagged && String(tagged).trim().length > 40
+      ? convertCinematicMarkersForTts(tagged, "fish")
+      : plain;
+    const fishVoice = voice || fishCfg.default_reference_id || fishCfg.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE;
+
+    const result = await synthesizeFishSpeech(textForTts, {
+      outputPath: dest,
+      referenceId: fishVoice,
+      config: fishConfig,
+      onLog,
+    });
+    invalidateNarrationTimings();
+
+    const refLabel = result.referenceId || "padrão S2";
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: textForTts.length,
+      voice: fishVoice,
+      engine: "fish",
+      format: result.format,
+      message: `Narração Fish Speech gerada (ref: ${refLabel}). Tags inline ativas se narrative_script_tagged existir. Rode sync Whisper para timings.`,
+    };
+  }
+
   const textForTts = convertCinematicMarkersForTts(tagged, engine);
-  throw new Error(`Engine TTS "${engine}" não suportado. Use engine=kokoro ou engine=edge. Texto preparado: ${textForTts.slice(0, 80)}...`);
+  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, edge ou fish. Texto: ${textForTts.slice(0, 80)}...`);
 }
 
 export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {
