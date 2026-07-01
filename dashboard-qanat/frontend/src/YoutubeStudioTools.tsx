@@ -144,7 +144,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
       {channels.length > 1 && (
         <p className="text-[9px] text-zinc-600 flex items-center gap-1">
           <Radio className="w-3 h-3" />
-          {channels.length} canal(is) na conta — seleção multi-canal em breve ({channels.map((c) => c.title).join(', ')})
+          {channels.length} canal(is) — troque o ativo na seção Studio Pro acima.
         </p>
       )}
 

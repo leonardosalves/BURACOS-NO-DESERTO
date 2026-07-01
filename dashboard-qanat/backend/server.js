@@ -89,6 +89,22 @@ import {
   videosToCsv,
 } from "./youtubeStudioAdvanced.js";
 import {
+  addChannelNote,
+  appendReplyHistory,
+  buildApprovalQueueFromComments,
+  deleteChannelNote,
+  fetchAudienceHeatmap,
+  fetchProDashboard,
+  fetchRetentionCliffReport,
+  getPreUploadChecklistState,
+  getProSettings,
+  mineSeoKeywords,
+  saveProSettings,
+  sendQueueItem,
+  togglePreUploadItem,
+  updateQueueItem,
+} from "./youtubeStudioPro.js";
+import {
   applyThumbnailVariant,
   getThumbnailExperimentReport,
   loadThumbnailExperiment,
@@ -6014,6 +6030,69 @@ async function callOpenRouterWithRetry(promptOrBody, { maxRetries = 2, bodyOverr
 
 }
 
+const NVIDIA_MODELS = [
+  "minimaxai/minimax-m3",
+  "qwen/qwen3.5-397b-a17b",
+  "moonshotai/kimi-k2.6",
+  "zhipuai/glm-5.1",
+  "deepseek/deepseek-v4-flash"
+];
+
+async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
+  const apiKey = getNvidiaApiKey(projectDir);
+  if (!apiKey) {
+    throw new Error("Chave de API da NVIDIA não configurada.");
+  }
+  
+  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+  let lastError = null;
+  
+  for (const model of NVIDIA_MODELS) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[NVIDIA API] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`);
+        const response = await fetch("http://integrate.api.nvidia.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: messages,
+            ...(temperature !== null ? { temperature } : {})
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          let responseText = result.choices?.[0]?.message?.content || "";
+          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+          console.log(`[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt}`);
+          return responseText;
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || response.statusText;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(`[NVIDIA API] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
+        
+        if (response.status === 503 || response.status === 429) {
+          const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        break; // Don't retry if it's a 400/401/403/etc. error
+      } catch (err) {
+        lastError = err;
+        console.warn(`[NVIDIA API] Erro na tentativa ${attempt} para ${model}: ${err.message}`);
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  throw lastError || new Error("Falha ao chamar NVIDIA API após múltiplas tentativas.");
+}
+
 const XAI_MODELS = ["grok-2-1212", "grok-2-latest", "grok-beta", "grok-2", "grok-4.3"];
 
 async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
@@ -6123,6 +6202,9 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
   const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
   const modelChain = getGeminiModelChain(projDir, models);
   const provider = getAiProvider(projDir);
+  if (provider === "nvidia") {
+    return await callNvidiaWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
+  }
   if (provider === "openrouter") {
     return await callOpenRouterWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
   }
@@ -6494,6 +6576,23 @@ function getXaiApiKey(projectDir = WORKSPACE_DIR) {
 
   return null;
 
+}
+
+function getNvidiaApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.NVIDIA_API_KEY) return process.env.NVIDIA_API_KEY;
+
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.nvidia_api_key || null;
+  };
+
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+
+  if (projectDir !== WORKSPACE_DIR) {
+    return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+  return null;
 }
 
 function getAiProvider(projectDir = WORKSPACE_DIR) {
@@ -8193,6 +8292,8 @@ app.put("/api/youtube/channel/settings", (req, res) => {
       patch.defaultProjectGoalViews48h = Number(req.body.defaultProjectGoalViews48h) || 100;
     }
     if (req.body?.selectedChannelId !== undefined) patch.selectedChannelId = String(req.body.selectedChannelId || "").trim();
+    if (req.body?.slaHours !== undefined) patch.slaHours = Math.min(Math.max(Number(req.body.slaHours) || 24, 1), 168);
+    if (req.body?.autoQueueEnabled !== undefined) patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
     if (Object.keys(patch).length) saveExtendedStudioSettings(WORKSPACE_DIR, patch);
     res.json(getExtendedStudioSettings(WORKSPACE_DIR));
   } catch (err) {
@@ -8291,6 +8392,14 @@ app.post("/api/youtube/channel/comments/reply", async (req, res) => {
   const text = String(req.body?.text || "").trim();
   try {
     const result = await replyToChannelComment(WORKSPACE_DIR, { parentId, text });
+    appendReplyHistory(WORKSPACE_DIR, {
+      commentId: parentId,
+      threadId: String(req.body?.threadId || "").trim(),
+      videoId: String(req.body?.videoId || "").trim(),
+      videoTitle: String(req.body?.videoTitle || "").trim(),
+      text,
+      source: String(req.body?.source || "manual"),
+    });
     res.json(result);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao responder comentário");
@@ -8479,6 +8588,159 @@ app.post("/api/youtube/channel/post-publish-checklist", async (req, res) => {
     res.json(savePostPublishChecklistItem(entry?.projectPath, itemId, req.body?.done !== false));
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/pro/dashboard", async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 40, 5), 50);
+  try {
+    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
+      limit,
+      filter: "unanswered",
+      projectsRoot: PROJECTS_ROOT,
+      views48hThreshold: Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000),
+    });
+    buildApprovalQueueFromComments(WORKSPACE_DIR, commentsReport.comments || []);
+    res.json(await fetchProDashboard(WORKSPACE_DIR, commentsReport.comments || []));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao carregar dashboard Pro");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/pro/approval-queue/build", async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.body?.limit) || 40, 5), 50);
+  try {
+    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
+      limit,
+      filter: "unanswered",
+      projectsRoot: PROJECTS_ROOT,
+    });
+    res.json(buildApprovalQueueFromComments(WORKSPACE_DIR, commentsReport.comments || []));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao montar fila de aprovação");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/pro/approval-queue/:itemId/approve", (req, res) => {
+  try {
+    res.json({ success: true, item: updateQueueItem(WORKSPACE_DIR, req.params.itemId, { status: "approved" }) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/pro/approval-queue/:itemId/reject", (req, res) => {
+  try {
+    res.json({ success: true, item: updateQueueItem(WORKSPACE_DIR, req.params.itemId, { status: "rejected" }) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/pro/approval-queue/:itemId/send", async (req, res) => {
+  try {
+    res.json(await sendQueueItem(WORKSPACE_DIR, req.params.itemId, {
+      text: String(req.body?.text || "").trim(),
+    }));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao enviar resposta da fila");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/pro/reply-history", (req, res) => {
+  try {
+    const settings = getProSettings(WORKSPACE_DIR);
+    const limit = Math.min(Math.max(Number(req.query?.limit) || 30, 1), 100);
+    res.json({ history: (settings.replyHistory || []).slice(0, limit) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/pro/seo-mining", async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 40, 5), 50);
+  try {
+    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, { limit, filter: "all" });
+    res.json({ opportunities: mineSeoKeywords(commentsReport.comments || [], { limit: 16 }) });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro na mineração SEO");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/video/:videoId/retention-cliff", async (req, res) => {
+  const videoId = String(req.params?.videoId || "").trim();
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  if (!videoId) return res.status(400).json({ error: "videoId obrigatório." });
+  try {
+    res.json(await fetchRetentionCliffReport(WORKSPACE_DIR, videoId, { days }));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao analisar penhasco de retenção");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/pro/heatmap", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 7), 90);
+  try {
+    res.json(await fetchAudienceHeatmap(WORKSPACE_DIR, { days }));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao carregar heatmap");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/pro/pre-upload-checklist", (req, res) => {
+  try {
+    res.json(getPreUploadChecklistState(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/pro/pre-upload-checklist", (req, res) => {
+  try {
+    res.json(togglePreUploadItem(WORKSPACE_DIR, String(req.body?.itemId || "").trim(), req.body?.done !== false));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/pro/notes", (req, res) => {
+  try {
+    res.json({ notes: getProSettings(WORKSPACE_DIR).channelNotes || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/pro/notes", (req, res) => {
+  try {
+    res.json(addChannelNote(WORKSPACE_DIR, req.body?.text));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/youtube/channel/pro/notes/:noteId", (req, res) => {
+  try {
+    res.json(deleteChannelNote(WORKSPACE_DIR, req.params.noteId));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put("/api/youtube/channel/pro/sla", (req, res) => {
+  try {
+    const patch = { slaHours: Math.min(Math.max(Number(req.body?.slaHours) || 24, 1), 168) };
+    if (req.body?.autoQueueEnabled !== undefined) patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
+    saveProSettings(WORKSPACE_DIR, patch);
+    res.json(getProSettings(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
