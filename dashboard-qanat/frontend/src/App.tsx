@@ -84,6 +84,8 @@ import {
 
   Youtube,
 
+  Cloud,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -125,6 +127,7 @@ import {
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
+import { ComfyMcpPage } from './ComfyMcpPage';
 import { YoutubeStudioHomeCard } from './YoutubeStudioHomeCard';
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
 import { PostPublishChecklist } from './PostPublishChecklist';
@@ -538,12 +541,12 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio';
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp';
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
     const saved = initialWizardSession?.activeTab;
-    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio'];
+    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp'];
     return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
   });
 
@@ -2904,7 +2907,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio') {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp') {
       setActiveTab(tab);
     }
   };
@@ -8487,6 +8490,29 @@ export default function App() {
                 </span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setActiveTab('comfy-mcp')}
+                className={`lumiera-sidebar-btn ${
+                  activeTab === 'comfy-mcp'
+                    ? 'bg-sky-500/10 border border-sky-500/30 text-sky-300'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-sky-300 hover:border-zinc-700'
+                }`}
+              >
+                <Cloud className="w-4 h-4" />
+                <span>Comfy MCP</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-comfy-mcp'].title} align="start">
+                    {SECTION_HELP['tab-comfy-mcp'].body}
+                  </SettingHelpTip>
+                </span>
+              </button>
+
             </div>
 
           </div>
@@ -8569,7 +8595,7 @@ export default function App() {
         {/* Tab Content Panel */}
 
         <main className="lumiera-main">
-          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && (
+          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && activeTab !== 'comfy-mcp' && (
             <div className="lumiera-project-bar">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
                 <div className="min-w-0 flex-1">
@@ -12462,6 +12488,12 @@ export default function App() {
                   handleApplyYoutubeStudioIdea(title, hook, { format: options?.format })
                 }
               />
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'comfy-mcp' && (
+            <TabErrorBoundary tabName="Comfy MCP">
+              <ComfyMcpPage />
             </TabErrorBoundary>
           )}
 
