@@ -38,6 +38,13 @@ description: |
 | content-strategy | coreyhaines31/marketingskills | Pilares, funil Short↔Long, Creator ideias |
 | deer-flow-research | bytedance/deer-flow (adaptado) | Pesquisa profunda VideoAgent |
 | agent-reach | Panniantong/Agent-Reach | Busca web Exa + 15 plataformas |
+| mcp-builder | anthropics/skills | Novos MCPs (Comfy, APIs) |
+| webapp-testing | anthropics/skills | QA Playwright dashboard :5176 |
+| frontend-design | anthropics/skills | Redesign dashmin-ui |
+| skill-creator | anthropics/skills | Autoria + evals `.agents/skills/` |
+| doc-coauthoring | anthropics/skills | Specs, roteiros longos, PRDs |
+| pdf | anthropics/skills | Relatórios PDF, OCR |
+| claude-api | anthropics/skills | Referência Claude/Anthropic SDK |
 
 ## Matt Pocock engineering ([mattpocock/skills](https://github.com/mattpocock/skills))
 
@@ -78,14 +85,41 @@ Fontes: [Hermes skills](https://hermes-agent.nousresearch.com/docs/user-guide/fe
 | skills.sh | vyralcontent/content-skills@* | Mesma família Vyral (MIT) |
 | skills.sh | josiahsiegel/claude-plugin-marketplace@viral-video-short-form | Variante plugin Claude |
 
+## Anthropic Skills ([anthropics/skills](https://github.com/anthropics/skills))
+
+Instalação: `npx skills add anthropics/skills@<nome> --yes --copy`
+
+| Skill | Bundle | Status |
+|-------|--------|--------|
+| mcp-builder | dev-sdd | **Instalada** |
+| webapp-testing | dev-ui | **Instalada** |
+| frontend-design | dev-ui | **Instalada** |
+| skill-creator | dev-sdd | **Instalada** |
+| doc-coauthoring | dev-sdd | **Instalada** |
+| pdf | — | **Instalada** |
+| claude-api | — | **Instalada** (só se integrar Claude) |
+| docx / pptx / xlsx | — | Grok bundled (não duplicar) |
+| algorithmic-art, canvas-design, slack-gif-creator | — | Ignoradas (fora do core vídeo) |
+
+Ver [[memory/agent-frameworks-reference]] para mapeamento com OpenAI Agents, Google ADK e Cookbook.
+
+## Frameworks multi-agente (referência, não port Python)
+
+| Repo | Padrões úteis ao Lumiera |
+|------|--------------------------|
+| [openai/openai-agents-python](https://github.com/openai/openai-agents-python) | Handoffs, tools como contrato, guardrails, tracing |
+| [google/adk-python](https://github.com/google/adk-python) | Composição de agentes, tool registry, sessão/state |
+| [openai/openai-cookbook](https://github.com/openai/openai-cookbook) | RAG, evals, agent loops, structured outputs |
+
+Lumiera já implementa equivalentes em Node: [[skills/studio-agents-hermes]], `deerFlowResearch.js`, `videoAgentPlanner.js`.
+
 ## Candidatas futuras (avaliar antes de instalar)
 
 | Repo@skill | Motivo | Prioridade |
 |------------|--------|------------|
 | remotion-dev/remotion@remotion | Atualizar remotion_docs | Média |
-| motion-creative/skills@ad-concept-generator | Conceitos UGC ads | Baixa |
 | openai/sora | Vídeo IA externo | Baixa (Lumiera usa Remotion/HF) |
-| anthropics/skill-creator | Autoria de novas skills | Referência |
+| anthropics/skills@theme-factory | Temas de artefatos | Baixa |
 
 ## Como instalar skill externa
 

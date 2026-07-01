@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/writing-great-skills|writing great skills]] · [[SKILLS]]
+
 ---
 name: writing-great-skills
 description: |

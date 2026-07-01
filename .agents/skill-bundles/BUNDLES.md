@@ -4,7 +4,8 @@
 
 Bundles JSON usados pelo Studio Agents para injetar skills no prompt.
 
-- `dev-sdd.json` — SDD (speckit) + mattpocock (grill, tdd, diagnosing-bugs, code-review)
+- `dev-sdd.json` — ver [[skills/studio-agents-hermes]]
+- `dev-ui.json` — frontend-design + webapp-testing (dashmin)
 - `long-documentary.json` — ver [[skills/studio-agents-hermes]]
 - `long-ideas.json` — ver [[skills/studio-agents-hermes]]
 - `openmontage-prod.json` — ver [[skills/studio-agents-hermes]]

@@ -1,0 +1,15 @@
+{
+  "name": "dev-ui",
+  "description": "Dashboard Lumiera — design distinto + QA Playwright",
+  "tasks": ["ops"],
+  "formats": ["SHORT", "LONG"],
+  "skills": [
+    "frontend-design",
+    "webapp-testing",
+    "design-an-interface",
+    "diagnosing-bugs",
+    "prototype",
+    "lumiera-ops"
+  ],
+  "instruction": "Redesign UI: frontend-design (estética) + design-an-interface (shape/API). QA: webapp-testing em localhost:5176 com backend :3005. Bugs UI: diagnosing-bugs. Throwaway: prototype. Commit e restart se tocar backend (lumiera-ops)."
+}

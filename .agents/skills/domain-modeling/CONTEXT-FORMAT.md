@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[SKILLS]]
+
 # CONTEXT.md Format
 
 ## Structure

@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[SKILLS]]
+
 # Good and Bad Tests
 
 ## Good Tests

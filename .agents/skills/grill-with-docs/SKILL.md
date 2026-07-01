@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/grill-with-docs|grill with docs]] · [[SKILLS]]
+
 ---
 name: grill-with-docs
 description: |

@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/speckit-plan|speckit plan]] · [[SKILLS]]
+
 ---
 name: speckit-plan
 description: |

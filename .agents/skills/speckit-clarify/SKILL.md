@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/speckit-clarify|speckit clarify]] · [[SKILLS]]
+
 ---
 name: speckit-clarify
 description: |

@@ -15,7 +15,10 @@
     "diagnosing-bugs",
     "code-review",
     "writing-great-skills",
+    "skill-creator",
+    "mcp-builder",
+    "doc-coauthoring",
     "lumiera-ops"
   ],
-  "instruction": "Features complexas: grill-with-docs ou speckit-clarify → specify → plan → tasks → implement. Bugs: diagnosing-bugs. Código novo: tdd nos seams do backend. Antes de merge: code-review. Autoria de skills: writing-great-skills. Commit e restart (lumiera-ops). Issue tracker: docs/agents/issue-tracker.md."
+  "instruction": "Features complexas: grill-with-docs ou speckit-clarify → specify → plan → tasks → implement. Bugs: diagnosing-bugs. Código novo: tdd nos seams do backend. Antes de merge: code-review. Autoria de skills: writing-great-skills + skill-creator. Novos MCPs: mcp-builder. Specs/PRDs: doc-coauthoring. Commit e restart (lumiera-ops). Issue tracker: docs/agents/issue-tracker.md."
 }

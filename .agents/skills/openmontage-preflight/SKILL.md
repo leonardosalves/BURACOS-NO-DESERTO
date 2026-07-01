@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/openmontage-preflight|openmontage preflight]] · [[SKILLS]]
+
 ---
 name: openmontage-preflight
 description: |

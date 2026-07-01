@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/writing-beats|writing beats]] · [[SKILLS]]
+
 ---
 name: writing-beats
 description: Writing, exploit — assemble raw material into a journey of beats, grounding each term before a beat leans on it.

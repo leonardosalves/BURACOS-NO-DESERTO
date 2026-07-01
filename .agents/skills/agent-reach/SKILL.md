@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/agent-reach|agent reach]] · [[SKILLS]]
+
 ---
 name: agent-reach
 description: >
@@ -129,3 +131,7 @@ If a channel needs setup, fetch the install guide:
 https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
 The user only provides cookies / one extension click; the agent does the rest.
+
+## Referências
+
+- [[skills/agent-reach/REFERENCES|Índice de references/assets]]

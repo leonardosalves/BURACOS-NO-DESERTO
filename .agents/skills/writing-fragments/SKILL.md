@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/writing-fragments|writing fragments]] · [[SKILLS]]
+
 ---
 name: writing-fragments
 description: Writing, explore — mine raw fragments, no structure yet.
