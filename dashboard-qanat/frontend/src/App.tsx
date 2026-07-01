@@ -1866,22 +1866,34 @@ export default function App() {
     setGeneratingOverlays(true);
     const toastId = toast.loading('IA planejando overlays para o vídeo...');
     try {
-      const res = await fetch(getProjectUrl('/api/projects/overlays/plan-ai'), {
+      const effectiveGeminiChrome = config?.use_gemini_chrome === true;
+      const useHyperframes = config?.use_hyperframes !== false;
+
+      const { ok, data } = await postAi('/api/render/plan-overlays', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hyperframes: config?.use_hyperframes !== false })
+        body: JSON.stringify({
+          hyperframes: useHyperframes,
+          require_browser: effectiveGeminiChrome,
+        }),
       });
-      if (res.ok) {
-        toast.success('Overlays planejados e gerados com sucesso pela IA!', { id: toastId });
-        await fetchStoryboard(activeProject);
-        await fetchVideoQuality(activeProject);
-      } else {
-        const errData = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
-        toast.error(errData.error || 'Falha ao planejar overlays via AI.', { id: toastId });
+
+      if (!ok || (data as any)?.needs_browser) {
+        toast.error('Geração cancelada ou pendente de resposta do Gemini no Chrome.', { id: toastId });
+        return;
       }
+
+      if (!(data as any).overlayCount || (data as any).overlayCount < 1) {
+        toast.error((data as any).error || 'Gemini não gerou overlays válidos.', { id: toastId });
+        return;
+      }
+
+      toast.success(`Overlays planejados com sucesso: ${(data as any).overlayCount} overlays gerados!`, { id: toastId });
+      await fetchStoryboard(activeProject);
+      await fetchVideoQuality(activeProject);
     } catch (err) {
       console.error('Error generating overlays:', err);
-      toast.error('Erro de conexão ao planejar overlays.', { id: toastId });
+      toast.error('Erro ao planejar overlays via AI.', { id: toastId });
     } finally {
       setGeneratingOverlays(false);
     }
