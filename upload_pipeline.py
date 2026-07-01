@@ -4,7 +4,13 @@ import subprocess
 import json
 import glob
 
-from lumiera_workspace import resolve_workspace, resolve_script, resolve_project_dir, resolve_output_video
+from lumiera_workspace import (
+    resolve_workspace,
+    resolve_script,
+    resolve_project_dir,
+    resolve_output_video,
+    ensure_upload_metadata_in_config,
+)
 
 def get_video_override():
     if len(sys.argv) > 3 and str(sys.argv[3]).strip():
@@ -91,7 +97,10 @@ def main():
         sys.exit(1)
         
     print(f"[INFO] Vídeo de Entrada: {os.path.basename(video_path)}")
-    
+
+    print("[INFO] Sincronizando metadados de upload no config_qanat.json...")
+    ensure_upload_metadata_in_config(project_dir)
+
     # Parse selected platforms if passed as 2nd argument
     selected_platforms = []
     if len(sys.argv) > 2:

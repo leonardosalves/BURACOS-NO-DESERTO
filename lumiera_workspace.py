@@ -196,3 +196,117 @@ def resolve_youtube_upload_fields(project_dir, proj_config=None):
         "thumbnail": upload_meta.get("thumbnail") or upload_meta.get("thumbnail_path"),
         "format": fmt,
     }
+
+
+def _load_project_config(project_dir):
+    import json as _json
+
+    config_path = os.path.join(project_dir, "config_qanat.json")
+    if not os.path.isfile(config_path):
+        return {}, config_path
+    try:
+        with open(config_path, "r", encoding="utf-8", errors="ignore") as fh:
+            return _json.load(fh) or {}, config_path
+    except Exception:
+        return {}, config_path
+
+
+def _save_project_config(config_path, proj_config):
+    import json as _json
+
+    try:
+        with open(config_path, "w", encoding="utf-8") as fh:
+            _json.dump(proj_config, fh, indent=2, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
+
+
+def resolve_platform_caption(project_dir, platform, proj_config=None):
+    """Caption for instagram/tiktok/kwai — upload_metadata, YouTube fields, storyboard."""
+    platform = (platform or "").strip().lower()
+    if platform not in ("instagram", "tiktok", "kwai"):
+        return os.path.basename(project_dir)
+
+    if proj_config is None:
+        proj_config, _ = _load_project_config(project_dir)
+
+    upload_meta = (proj_config.get("upload_metadata") or {}).get(platform) or {}
+    caption = _clean_upload_text(upload_meta.get("title"))
+    if caption:
+        return caption
+
+    yt_fields = resolve_youtube_upload_fields(project_dir, proj_config)
+    caption = _clean_upload_text(yt_fields.get("title"))
+    if caption:
+        return caption
+
+    import json as _json
+
+    storyboard_path = os.path.join(project_dir, "storyboard.json")
+    if os.path.isfile(storyboard_path):
+        try:
+            with open(storyboard_path, "r", encoding="utf-8", errors="ignore") as fh:
+                storyboard = _json.load(fh) or {}
+            if isinstance(storyboard.get("strategy"), dict):
+                caption = _clean_upload_text(storyboard["strategy"].get("title_main"))
+                if caption:
+                    return caption
+        except Exception:
+            pass
+
+    return os.path.basename(project_dir)
+
+
+def ensure_upload_metadata_in_config(project_dir):
+    """Backfill upload_metadata from IA cache/storyboard before multi-upload pipeline."""
+    proj_config, config_path = _load_project_config(project_dir)
+    if not config_path:
+        return proj_config
+
+    fields = resolve_youtube_upload_fields(project_dir, proj_config)
+    if "upload_metadata" not in proj_config or not isinstance(proj_config["upload_metadata"], dict):
+        proj_config["upload_metadata"] = {}
+
+    yt_meta = proj_config["upload_metadata"].get("youtube")
+    if not isinstance(yt_meta, dict):
+        yt_meta = {}
+        proj_config["upload_metadata"]["youtube"] = yt_meta
+
+    updated = False
+    yt_backfill = {
+        "title": fields["title"],
+        "description": fields["description"],
+        "tags": fields["tags_raw"],
+        "chapters": fields["chapters"],
+        "pinned_comment": fields["pinned_comment"],
+        "category_id": fields["category_id"],
+    }
+    for key, value in yt_backfill.items():
+        if not value:
+            continue
+        current = yt_meta.get(key)
+        if key == "tags":
+            if not _clean_upload_text(current):
+                yt_meta[key] = value
+                updated = True
+        elif not _clean_upload_text(current):
+            yt_meta[key] = value
+            updated = True
+
+    social_caption = _clean_upload_text(fields.get("title")) or os.path.basename(project_dir)
+    for platform in ("instagram", "tiktok", "kwai"):
+        plat_meta = proj_config["upload_metadata"].get(platform)
+        if not isinstance(plat_meta, dict):
+            plat_meta = {}
+            proj_config["upload_metadata"][platform] = plat_meta
+        if not _clean_upload_text(plat_meta.get("title")):
+            plat_meta["title"] = resolve_platform_caption(project_dir, platform, proj_config)
+            if not _clean_upload_text(plat_meta["title"]):
+                plat_meta["title"] = social_caption
+            updated = True
+
+    if updated:
+        _save_project_config(config_path, proj_config)
+
+    return proj_config

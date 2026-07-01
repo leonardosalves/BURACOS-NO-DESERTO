@@ -2,7 +2,7 @@ import os
 import sys
 import json
 
-from lumiera_workspace import resolve_workspace, resolve_project_dir, resolve_output_video
+from lumiera_workspace import resolve_workspace, resolve_project_dir, resolve_output_video, resolve_platform_caption
 import time
 from playwright.sync_api import sync_playwright
 
@@ -47,15 +47,8 @@ def main():
     proj_config_path = os.path.join(project_dir, "config_qanat.json")
     proj_config = load_json(proj_config_path) or {}
     
-    caption = os.path.basename(project_dir)
-    storyboard_path = os.path.join(project_dir, "storyboard.json")
-    storyboard = load_json(storyboard_path)
-    if storyboard and storyboard.get("strategy"):
-        caption = storyboard["strategy"].get("title_main", caption)
-        
-    upload_meta = proj_config.get("upload_metadata", {}).get("kwai", {})
-    caption = upload_meta.get("title", caption)
-    
+    caption = resolve_platform_caption(project_dir, "kwai", proj_config)
+
     print(f"[INFO] Legenda: {caption}")
     
     # We update status to 'uploading'

@@ -139,6 +139,8 @@ import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
 import { AppShell } from './AppShell';
+import type { AppTab } from './appTabs';
+import { isGlobalViewTab, RESTORABLE_APP_TABS } from './appTabs';
 
 
 import { DashminPageLayout } from './DashminPageLayout';
@@ -608,13 +610,10 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'home' | 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach' | 'projects' | 'dash-ui' | 'dash-extensions';
-
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
     const saved = initialWizardSession?.activeTab;
-    const allowed: AppTab[] = ['home', 'status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp', 'trend-forecast', 'agent-reach', 'projects'];
-    return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'home';
+    return saved && RESTORABLE_APP_TABS.includes(saved as AppTab) ? (saved as AppTab) : 'home';
   });
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
@@ -2987,7 +2986,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'home' || activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach' || activeTab === 'projects' || activeTab === 'dash-ui' || activeTab === 'dash-extensions') {
+    if (isGlobalViewTab(activeTab)) {
       setActiveTab(tab);
     }
   };
@@ -5489,7 +5488,52 @@ export default function App() {
     await loadYoutubeMetadataFromCache();
   };
 
-  const applyMetadataToUpload = async (opts?: { silent?: boolean }) => {
+  type UploadMetadataPayload = {
+    youtube: Record<string, unknown>;
+    instagram: { title: string };
+    tiktok: { title: string };
+    kwai: { title: string };
+  };
+
+  const buildUploadMetadataPayload = (overrides?: Partial<UploadMetadataPayload>): UploadMetadataPayload => {
+    const prev = config?.upload_metadata || {};
+    const prevYt = (prev.youtube && typeof prev.youtube === 'object') ? prev.youtube : {};
+    const prevIg = (prev.instagram && typeof prev.instagram === 'object') ? prev.instagram : {};
+    const prevTt = (prev.tiktok && typeof prev.tiktok === 'object') ? prev.tiktok : {};
+    const prevKw = (prev.kwai && typeof prev.kwai === 'object') ? prev.kwai : {};
+    const ytOverride = overrides?.youtube || {};
+
+    return {
+      youtube: {
+        ...prevYt,
+        ...ytOverride,
+        title: String(ytOverride.title ?? ytTitle).trim(),
+        description: String(ytOverride.description ?? ytDescription).trim(),
+        privacy: (ytOverride.privacy as string | undefined) ?? ytPrivacy,
+        tags: String(ytOverride.tags ?? ytTags).trim(),
+        chapters: String(ytOverride.chapters ?? ytChapters).trim(),
+        pinned_comment: String(ytOverride.pinned_comment ?? ytPinnedComment).trim(),
+        category_id: String(ytOverride.category_id ?? ytCategoryId).trim() || '27',
+        publish_at: (ytOverride.publish_at as string | undefined) ?? (ytPublishAt.trim() || undefined),
+        thumbnail: (ytOverride.thumbnail as string | undefined) ?? (ytThumbnailPath || undefined),
+        thumbnail_variant: (ytOverride.thumbnail_variant as string | undefined) ?? (ytThumbnailVariant || undefined),
+      },
+      instagram: {
+        ...prevIg,
+        title: String(overrides?.instagram?.title ?? igCaption).trim(),
+      },
+      tiktok: {
+        ...prevTt,
+        title: String(overrides?.tiktok?.title ?? ttCaption).trim(),
+      },
+      kwai: {
+        ...prevKw,
+        title: String(overrides?.kwai?.title ?? kwCaption).trim(),
+      },
+    };
+  };
+
+  const applyMetadataToUpload = async (opts?: { silent?: boolean }): Promise<{ ok: true; payload: UploadMetadataPayload } | { ok: false }> => {
     let parsed = youtubeMetadataParsed;
     let format = youtubeMetadataFormat;
 
@@ -5512,7 +5556,7 @@ export default function App() {
         toast.error('Gere os metadados na aba IA · Metadados primeiro.');
         setActiveTab('ai');
       }
-      return false;
+      return { ok: false };
     }
 
     try {
@@ -5523,62 +5567,90 @@ export default function App() {
       });
       const adapted = adaptRes.ok ? (await adaptRes.json()).adapted : null;
       const yt = adapted?.youtube || {};
-      const title = yt.title || parsed.recommendedTitle || parsed.titles?.[0]?.text || '';
-      setYtTitle(title.slice(0, 100));
-      setYtDescription(yt.description || parsed.description || '');
-      setYtTags(Array.isArray(yt.tags) ? yt.tags.join(', ') : (parsed.tags || ''));
-      setYtChapters(yt.chapters || parsed.chapters || '');
-      setYtPinnedComment(yt.pinned_comment || parsed.pinnedComment || '');
-      setYtCategoryId(yt.category_id || (format === 'SHORT' ? '22' : '27'));
-      if (adapted?.instagram?.title) setIgCaption(adapted.instagram.title);
-      if (adapted?.tiktok?.title) setTtCaption(adapted.tiktok.title);
-      if (adapted?.kwai?.title) setKwCaption(adapted.kwai.title);
+      const title = (yt.title || parsed.recommendedTitle || parsed.titles?.[0]?.text || '').slice(0, 100);
+      const description = yt.description || parsed.description || '';
+      const tags = Array.isArray(yt.tags) ? yt.tags.join(', ') : (parsed.tags || '');
+      const chapters = yt.chapters || parsed.chapters || '';
+      const pinnedComment = yt.pinned_comment || parsed.pinnedComment || '';
+      const categoryId = yt.category_id || (format === 'SHORT' ? '22' : '27');
+      const igTitle = adapted?.instagram?.title || '';
+      const ttTitle = adapted?.tiktok?.title || '';
+      const kwTitle = adapted?.kwai?.title || '';
 
       const thumb = youtubeThumbnailsGenerated.find((t) => t.id === 'A') || youtubeThumbnailsGenerated[0];
-      if (thumb?.fileName) {
-        setYtThumbnailPath(`ASSETS/${thumb.fileName}`);
-        setYtThumbnailVariant(thumb.id);
-      }
+      const thumbnailPath = thumb?.fileName ? `ASSETS/${thumb.fileName}` : ytThumbnailPath;
+      const thumbnailVariant = thumb?.id || ytThumbnailVariant;
+
+      setYtTitle(title);
+      setYtDescription(description);
+      setYtTags(tags);
+      setYtChapters(chapters);
+      setYtPinnedComment(pinnedComment);
+      setYtCategoryId(categoryId);
+      if (igTitle) setIgCaption(igTitle);
+      if (ttTitle) setTtCaption(ttTitle);
+      if (kwTitle) setKwCaption(kwTitle);
+      if (thumbnailPath) setYtThumbnailPath(thumbnailPath);
+      if (thumbnailVariant) setYtThumbnailVariant(thumbnailVariant);
+
+      const payload = buildUploadMetadataPayload({
+        youtube: {
+          title,
+          description,
+          tags,
+          chapters,
+          pinned_comment: pinnedComment,
+          category_id: categoryId,
+          thumbnail: thumbnailPath || undefined,
+          thumbnail_variant: thumbnailVariant || undefined,
+        },
+        instagram: igTitle ? { title: igTitle } : undefined,
+        tiktok: ttTitle ? { title: ttTitle } : undefined,
+        kwai: kwTitle ? { title: kwTitle } : undefined,
+      });
 
       if (!opts?.silent) {
         toast.success('Campos preenchidos com os metadados da aba IA · Metadados.');
       }
-      return true;
+      return { ok: true, payload };
     } catch {
       if (!opts?.silent) toast.error('Erro ao aplicar metadados ao upload.');
-      return false;
+      return { ok: false };
     }
   };
 
-  const buildUploadMetadataPayload = () => ({
-    youtube: {
-      title: ytTitle.trim(),
-      description: ytDescription.trim(),
-      privacy: ytPrivacy,
-      tags: ytTags.trim(),
-      chapters: ytChapters.trim(),
-      pinned_comment: ytPinnedComment.trim(),
-      category_id: ytCategoryId.trim() || '27',
-      publish_at: ytPublishAt.trim() || undefined,
-      thumbnail: ytThumbnailPath || undefined,
-      thumbnail_variant: ytThumbnailVariant || undefined,
-    },
-    instagram: { title: igCaption.trim() },
-    tiktok: { title: ttCaption.trim() },
-    kwai: { title: kwCaption.trim() },
-  });
-
-  const saveUploadMetadataToProject = async () => {
+  const saveUploadMetadataToProject = async (payload?: UploadMetadataPayload) => {
     try {
       const res = await fetch(getProjectUrl('/api/config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ upload_metadata: buildUploadMetadataPayload() }),
+        body: JSON.stringify({ upload_metadata: payload ?? buildUploadMetadataPayload() }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.config) setConfig(data.config);
+      }
       return res.ok;
     } catch {
       return false;
     }
+  };
+
+  const prepareUploadForPublish = async (): Promise<{ ok: true; payload: UploadMetadataPayload } | { ok: false }> => {
+    let payload = buildUploadMetadataPayload();
+    if (!payload.youtube.title) {
+      const applied = await applyMetadataToUpload({ silent: true });
+      if (!applied.ok) {
+        toast.error('Defina um título (use Preencher com metadados IA) antes de publicar.');
+        return { ok: false };
+      }
+      payload = applied.payload;
+    }
+    if (!payload.youtube.title) {
+      toast.error('Defina um título (use Preencher com metadados IA) antes de publicar.');
+      return { ok: false };
+    }
+    return { ok: true, payload };
   };
 
   const handleFixYoutubeMetadata = async () => {
@@ -5587,14 +5659,12 @@ export default function App() {
       toast.error('Nenhum vídeo publicado vinculado a este projeto.');
       return;
     }
-    if (!ytTitle.trim()) {
-      await applyMetadataToUpload({ silent: true });
-    }
-    if (!ytTitle.trim()) {
+    const prepared = await prepareUploadForPublish();
+    if (!prepared.ok) {
       toast.error('Preencha o título antes de corrigir no YouTube.');
       return;
     }
-    const saved = await saveUploadMetadataToProject();
+    const saved = await saveUploadMetadataToProject(prepared.payload);
     if (!saved) {
       toast.error('Erro ao salvar metadados no projeto.');
       return;
@@ -8561,17 +8631,7 @@ export default function App() {
   };
 
   const projectWorkspaceBar =
-    activeTab !== 'home' &&
-    activeTab !== 'creator' &&
-    activeTab !== 'settings' &&
-    activeTab !== 'agents' &&
-    activeTab !== 'youtube-studio' &&
-    activeTab !== 'comfy-mcp' &&
-    activeTab !== 'trend-forecast' &&
-    activeTab !== 'agent-reach' &&
-    activeTab !== 'projects' &&
-    activeTab !== 'dash-ui' &&
-    activeTab !== 'dash-extensions' ? (
+    !isGlobalViewTab(activeTab) ? (
       <div className="lumiera-project-bar">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
           <div className="min-w-0 flex-1">
@@ -11263,14 +11323,9 @@ export default function App() {
                     )}
                     <button
                       onClick={async () => {
-                        if (!ytTitle.trim()) {
-                          await applyMetadataToUpload({ silent: true });
-                        }
-                        if (!ytTitle.trim()) {
-                          toast.error('Defina um título (use Preencher com metadados IA) antes de publicar.');
-                          return;
-                        }
-                        const saved = await saveUploadMetadataToProject();
+                        const prepared = await prepareUploadForPublish();
+                        if (!prepared.ok) return;
+                        const saved = await saveUploadMetadataToProject(prepared.payload);
                         if (!saved) {
                           toast.error('Erro ao salvar metadados antes do upload.');
                           return;
