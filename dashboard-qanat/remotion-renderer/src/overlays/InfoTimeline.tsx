@@ -291,14 +291,17 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
     return fontStyle;
   };
 
-  const legibilityShadow = "0 1px 2px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 0 24px rgba(0,0,0,0.45)";
-  const panelStyle = getThemeStyle();
+  const legibilityShadow = "0 1px 3px rgba(0,0,0,0.9), 0 2px 12px rgba(0,0,0,0.65)";
+  const titleStyle = getThemeStyle();
 
   return (
     <AbsoluteFill
       style={{
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: isHorizontal ? "center" : "flex-start",
+        alignItems: isHorizontal ? "center" : "flex-end",
+        paddingTop: isHorizontal ? 0 : (isVertical ? 52 : 40),
+        paddingRight: isHorizontal ? 0 : (isVertical ? 40 : 56),
+        paddingLeft: isHorizontal ? 0 : 40,
         pointerEvents: "none",
         opacity,
       }}
@@ -306,28 +309,25 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
       <div
         style={{
           transform: `scale(${scaleSpring})`,
-          filter: "drop-shadow(0 10px 36px rgba(0,0,0,0.85))",
+          filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.75))",
           display: "flex",
           flexDirection: "column",
-          alignItems: "stretch",
-          gap: isVertical ? 20 : 16,
-          maxWidth: isVertical ? "88%" : isHorizontal ? "92%" : "78%",
-          ...panelStyle,
+          alignItems: isHorizontal ? "center" : "flex-end",
+          gap: isHorizontal ? 20 : 14,
+          maxWidth: isHorizontal ? "92%" : isVertical ? 340 : 380,
         }}
       >
-        {/* Title */}
+        {/* Title — pill compacto (como antes) */}
         <div
           style={{
             position: "relative",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
             gap: 14,
-            paddingBottom: isVertical ? 4 : 2,
-            borderBottom: `1px solid ${accentColor}33`,
+            alignSelf: isHorizontal ? "center" : "flex-end",
+            ...titleStyle,
           }}
         >
-          {/* Theme Corner Decorators */}
           {theme === "tech" && <TechCorners color={accentColor} />}
           {theme === "ancient" && <AncientCorners color={accentColor} />}
           {theme === "industrial" && <IndustrialRivets />}
@@ -339,11 +339,12 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
               height: isVertical ? 24 : 18,
               backgroundColor: accentColor,
               borderRadius: 2,
+              flexShrink: 0,
             }}
           />
           <span
             style={{
-              color: "#FFFFFF",
+              color: "#F8FAFC",
               textTransform: "uppercase",
               textShadow: legibilityShadow,
               ...getThemeFont("title"),
@@ -353,17 +354,22 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
           </span>
         </div>
 
-        {/* Timeline Container */}
+        {/* Timeline — coluna vertical à direita ou linha horizontal */}
         <div
           style={{
             display: "flex",
             flexDirection: isHorizontal ? "row" : "column",
-            alignItems: isHorizontal ? "center" : "stretch",
-            gap: isHorizontal ? 0 : 10,
+            alignItems: isHorizontal ? "center" : "flex-end",
+            gap: 0,
             position: "relative",
-            padding: isVertical ? "8px 4px 4px" : "4px 8px 8px",
-            background: "rgba(0,0,0,0.28)",
-            borderRadius: isVertical ? 12 : 8,
+            padding: isHorizontal ? "12px 16px" : "14px 18px",
+            background: isHorizontal
+              ? "linear-gradient(145deg, rgba(6,6,10,0.82) 0%, rgba(14,14,22,0.78) 100%)"
+              : "linear-gradient(135deg, rgba(6,6,10,0.88) 0%, rgba(12,12,18,0.84) 100%)",
+            backdropFilter: "blur(10px)",
+            borderRadius: isHorizontal ? 12 : 14,
+            border: `1px solid ${accentColor}44`,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
           }}
         >
           {safeEvents.map((event, index) => {
@@ -371,7 +377,6 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
             const isRevealed = lineProgress >= progress;
             const dotDelay = 8 + index * 8;
 
-            // Dot scale animation
             const dotScale = spring({
               fps,
               frame: Math.max(0, frame - dotDelay),
@@ -379,7 +384,6 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
               durationInFrames: 12,
             });
 
-            // Text fade in
             const textOpacity = interpolate(
               frame,
               [dotDelay + 4, dotDelay + 14],
@@ -391,42 +395,34 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
 
             return (
               <React.Fragment key={index}>
-                {/* Connector line (not before first) */}
                 {index > 0 && (
                   <div
                     style={{
-                      [isHorizontal ? "width" : "height"]: isVertical ? 80 : 60,
+                      [isHorizontal ? "width" : "height"]: isHorizontal ? 60 : (isVertical ? 28 : 36),
                       [isHorizontal ? "height" : "width"]: 2,
-                      background: `linear-gradient(${isHorizontal ? "to right" : "to bottom"}, ${accentColor}60, ${accentColor}30)`,
-                      opacity: isRevealed ? 1 : 0.15,
-                      transition: "opacity 0.2s",
+                      background: `linear-gradient(${isHorizontal ? "to right" : "to bottom"}, ${accentColor}70, ${accentColor}25)`,
+                      opacity: isRevealed ? 1 : 0.2,
+                      alignSelf: isHorizontal ? "auto" : "flex-end",
+                      marginRight: isHorizontal ? 0 : 18,
                     }}
                   />
                 )}
 
-                {/* Event dot + labels */}
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: isHorizontal ? "column" : "row",
-                    alignItems: isHorizontal ? "center" : "flex-start",
-                    gap: isHorizontal ? 6 : 12,
-                    minWidth: isVertical ? undefined : 90,
+                    flexDirection: "column",
+                    alignItems: isHorizontal ? "center" : "flex-end",
+                    gap: isVertical ? 6 : 5,
+                    minWidth: isHorizontal ? 90 : undefined,
                     width: isHorizontal ? undefined : "100%",
                     opacity: textOpacity,
-                    padding: isHorizontal ? 0 : "8px 12px",
-                    background: isHorizontal ? "transparent" : "rgba(0,0,0,0.22)",
-                    borderRadius: 8,
-                    borderLeft: isHorizontal ? "none" : `3px solid ${isHighlight ? accentColor : `${accentColor}55`}`,
+                    textAlign: isHorizontal ? "center" : "right",
                   }}
                 >
-                  {/* Year label */}
                   <span
                     style={{
                       color: isHighlight ? accentColor : "#F8FAFC",
-                      textAlign: isHorizontal ? "center" : "left",
-                      flexShrink: 0,
-                      minWidth: isHorizontal ? undefined : 72,
                       textShadow: legibilityShadow,
                       ...getThemeFont("year"),
                     }}
@@ -434,32 +430,29 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
                     {event.year}
                   </span>
 
-                  {isHorizontal && (
                   <div
                     style={{
-                      width: isHighlight ? (isVertical ? 18 : 14) : (isVertical ? 12 : 10),
-                      height: isHighlight ? (isVertical ? 18 : 14) : (isVertical ? 12 : 10),
+                      width: isHighlight ? (isVertical ? 12 : 10) : (isVertical ? 10 : 8),
+                      height: isHighlight ? (isVertical ? 12 : 10) : (isVertical ? 10 : 8),
                       borderRadius: "50%",
-                      backgroundColor: isHighlight ? accentColor : "rgba(248,250,252,0.55)",
+                      backgroundColor: isHighlight ? accentColor : "rgba(248,250,252,0.5)",
                       transform: `scale(${dotScale})`,
                       boxShadow: isHighlight
-                        ? `0 0 16px ${accentColor}60, 0 0 4px ${accentColor}`
+                        ? `0 0 12px ${accentColor}80`
                         : "none",
                       border: isHighlight
                         ? `2px solid ${accentColor}`
-                        : "1px solid rgba(248,250,252,0.35)",
+                        : "1px solid rgba(248,250,252,0.3)",
+                      alignSelf: isHorizontal ? "center" : "flex-end",
+                      marginRight: isHorizontal ? 0 : 14,
                     }}
                   />
-                  )}
 
-                  {/* Description */}
                   <span
                     style={{
-                      color: "#FFFFFF",
-                      textAlign: isHorizontal ? "center" : "left",
-                      maxWidth: isHorizontal ? 100 : undefined,
-                      flex: isHorizontal ? undefined : 1,
-                      lineHeight: 1.35,
+                      color: "rgba(248,250,252,0.92)",
+                      maxWidth: isHorizontal ? 110 : 300,
+                      lineHeight: 1.4,
                       textShadow: legibilityShadow,
                       ...getThemeFont("desc"),
                     }}
