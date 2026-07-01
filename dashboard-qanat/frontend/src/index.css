@@ -670,6 +670,142 @@
     box-shadow: 0 4px 14px rgba(130, 128, 253, 0.22);
   }
 
+  /* ── Settings form controls ── */
+  .dash-scope-tab {
+    @apply flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition cursor-pointer;
+    background: var(--dash-card-hover);
+    color: var(--dash-muted);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-scope-tab:hover {
+    color: #fff;
+    border-color: var(--dash-border);
+  }
+
+  .dash-scope-tab-active {
+    background: rgba(130, 128, 253, 0.14) !important;
+    color: var(--dash-primary-light) !important;
+    border-color: rgba(130, 128, 253, 0.4) !important;
+  }
+
+  .dash-option-btn {
+    @apply px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer;
+    background: var(--dash-bg);
+    color: var(--dash-muted);
+    border-color: var(--dash-border);
+  }
+
+  .dash-option-btn:hover {
+    color: #fff;
+    border-color: var(--dash-border);
+  }
+
+  .dash-option-btn-active {
+    background: rgba(130, 128, 253, 0.14) !important;
+    color: var(--dash-primary-light) !important;
+    border-color: rgba(130, 128, 253, 0.45) !important;
+  }
+
+  .dash-reset-btn {
+    @apply w-full py-2 rounded-xl text-[10px] font-bold border transition cursor-pointer;
+    background: transparent;
+    color: var(--dash-muted);
+    border-color: var(--dash-border);
+  }
+
+  .dash-reset-btn:hover {
+    color: #fff;
+    border-color: var(--dash-border);
+  }
+
+  .dash-reset-btn-active {
+    background: rgba(130, 128, 253, 0.1) !important;
+    color: var(--dash-primary-light) !important;
+    border-color: rgba(130, 128, 253, 0.35) !important;
+  }
+
+  .dash-input,
+  .dash-select {
+    @apply w-full rounded-xl px-4 py-3 text-xs text-white outline-none transition;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-input:focus,
+  .dash-select:focus {
+    border-color: rgba(130, 128, 253, 0.5);
+    box-shadow: 0 0 0 2px rgba(130, 128, 253, 0.12);
+  }
+
+  .dash-select {
+    @apply cursor-pointer;
+  }
+
+  .dash-input-group {
+    @apply flex items-center gap-2 rounded-xl px-4 py-2 min-w-0;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-input-group .dash-input {
+    @apply border-0 p-0 shadow-none flex-1 min-w-0 bg-transparent;
+  }
+
+  .dash-input-group .dash-input:focus {
+    box-shadow: none;
+  }
+
+  .dash-input-suffix {
+    @apply text-xs font-mono shrink-0;
+    color: var(--dash-muted);
+  }
+
+  .dash-range {
+    @apply w-full h-1.5 rounded-lg appearance-none cursor-pointer;
+    background: var(--dash-border);
+    accent-color: var(--dash-primary);
+  }
+
+  .dash-checkbox {
+    @apply rounded cursor-pointer w-4 h-4;
+    background: var(--dash-bg);
+    border-color: var(--dash-border);
+    accent-color: var(--dash-primary);
+    color: var(--dash-primary);
+  }
+
+  .dash-settings-card {
+    @apply space-y-3 p-4 rounded-xl text-xs min-w-0;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border-soft);
+  }
+
+  .dash-settings-card .dash-input {
+    @apply px-2.5 py-1.5 text-[11px] rounded-lg;
+  }
+
+  .dash-logo-preview {
+    @apply rounded-xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-logo-card {
+    @apply relative rounded-xl border p-3 transition;
+    background: rgba(2, 3, 10, 0.5);
+    border-color: var(--dash-border);
+  }
+
+  .dash-logo-card:hover {
+    border-color: var(--dash-border);
+  }
+
+  .dash-logo-card-active {
+    border-color: rgba(130, 128, 253, 0.5) !important;
+    box-shadow: 0 0 0 1px rgba(130, 128, 253, 0.25);
+  }
+
   .dash-shell .text-gold-500,
   .dash-shell .text-gold-400,
   .dash-shell .text-amber-500,
@@ -680,8 +816,36 @@
   .dash-shell .border-gold-500,
   .dash-shell .border-gold-500\/30,
   .dash-shell .border-gold-500\/40,
-  .dash-shell .focus\:border-gold-500:focus {
+  .dash-shell .border-gold-500\/60,
+  .dash-shell .focus\:border-gold-500:focus,
+  .dash-shell .focus\:border-gold-500\/50:focus {
     border-color: rgba(130, 128, 253, 0.45) !important;
+  }
+
+  .dash-shell .bg-gold-500\/20,
+  .dash-shell .bg-gold-500\/15,
+  .dash-shell .bg-gold-500\/10,
+  .dash-shell .hover\:bg-gold-500\/30:hover,
+  .dash-shell .hover\:bg-gold-500\/25:hover {
+    background-color: rgba(130, 128, 253, 0.14) !important;
+  }
+
+  .dash-shell .text-gold-300,
+  .dash-shell .text-gold-200 {
+    color: var(--dash-primary-light) !important;
+  }
+
+  .dash-shell .ring-gold-500\/30 {
+    --tw-ring-color: rgba(130, 128, 253, 0.3) !important;
+  }
+
+  .dash-shell .accent-gold-500,
+  .dash-shell input[type="range"].accent-gold-500 {
+    accent-color: var(--dash-primary) !important;
+  }
+
+  .dash-shell input[type="checkbox"].text-gold-500 {
+    accent-color: var(--dash-primary) !important;
   }
 
   /* ── AI Chat (Dashmin) ── */

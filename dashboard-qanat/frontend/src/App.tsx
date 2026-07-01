@@ -12575,15 +12575,15 @@ export default function App() {
               {settingsSection === 'render' && (
               <div className="glass-panel p-6 rounded-3xl space-y-5">
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--dash-border)] pb-4">
 
                   <div>
 
                     <SectionHeader
                       title="CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO"
                       helpId="settings-render"
-                      icon={<Settings className="w-4 h-4 text-gold-500" />}
-                      subtitle={<>Parâmetros de render e áudio. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.</>}
+                      icon={<Settings className="w-4 h-4 text-[var(--dash-primary)]" />}
+                      subtitle={<>Parâmetros de render e áudio. Use o <span className="text-[var(--dash-primary)]">?</span> em cada campo para detalhes.</>}
                     />
 
                   </div>
@@ -12620,11 +12620,11 @@ export default function App() {
 
                         onChange={(e) => setGlobalMusicVolume(parseFloat(e.target.value))} 
 
-                        className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-gold-500" 
+                        className="dash-range" 
 
                       />
 
-                      <p className="text-[9px] text-zinc-500">Volume atenuado padrão (15% recomendado) para evitar que a música encubra a narração.</p>
+                      <p className="text-[9px] text-[var(--dash-muted)]">Volume atenuado padrão (15% recomendado) para evitar que a música encubra a narração.</p>
 
                     </div>
 
@@ -12634,7 +12634,7 @@ export default function App() {
 
                       <SettingLabel helpTitle="Gap entre blocos" help="Segundos extras no fim de cada bloco de cenas antes do próximo. Dá respiro à narração e evita cortes abruptos entre capítulos." align="start">Espaçamento entre Blocos (Gap)</SettingLabel>
 
-                      <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-2">
+                      <div className="dash-input-group">
 
                         <input 
 
@@ -12648,11 +12648,11 @@ export default function App() {
 
                           onChange={(e) => setGlobalBlockGap(parseFloat(e.target.value) || 0)} 
 
-                          className="bg-transparent text-white text-xs font-mono w-full focus:outline-none" 
+                          className="dash-input text-xs font-mono" 
 
                         />
 
-                        <span className="text-xs text-zinc-500 font-mono ml-2">segundos</span>
+                        <span className="dash-input-suffix">segundos</span>
 
                       </div>
 
@@ -12676,7 +12676,7 @@ export default function App() {
 
                         onChange={(e) => setGlobalFps(parseInt(e.target.value) || 30)} 
 
-                        className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                        className="dash-select"
 
                       >
 
@@ -12695,37 +12695,37 @@ export default function App() {
                     <div className="space-y-3">
                       <SettingLabel helpTitle="Resolução" help="1080p para entrega rápida; 2K para mais nitidez. Global vale para todos os projetos; Personalizado sobrescreve só o projeto aberto." align="start">Resolução de Saída</SettingLabel>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setResolutionConfigScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
-                        <button type="button" onClick={() => setResolutionConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                        <button type="button" onClick={() => setResolutionConfigScope('global')} className={`dash-scope-tab ${resolutionConfigScope === 'global' ? 'dash-scope-tab-active' : ''}`}>Padrão Global</button>
+                        <button type="button" onClick={() => setResolutionConfigScope('project')} className={`dash-scope-tab ${resolutionConfigScope === 'project' ? 'dash-scope-tab-active' : ''}`}>Personalizado do Projeto</button>
                       </div>
                       {resolutionConfigScope === 'global' ? (
                         <>
                           <select
                             value={globalRenderResolution}
                             onChange={(e) => setGlobalRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                            className="dash-select"
                           >
                             <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
                             <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
                           </select>
-                          <p className="text-[9px] text-zinc-500">Salve com o botão abaixo. Vale para todos os projetos sem override.</p>
+                          <p className="text-[9px] text-[var(--dash-muted)]">Salve com o botão abaixo. Vale para todos os projetos sem override.</p>
                         </>
                       ) : (
                         <>
                           <select
                             value={projectRenderResolution}
                             onChange={(e) => setProjectRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                            className="dash-select"
                           >
                             <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
                             <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
                           </select>
                           <div className="flex gap-2">
-                            <button type="button" onClick={handleSaveProjectRenderResolution} disabled={savingProjectResolution} className="flex-1 py-2 rounded-xl bg-gold-500/20 hover:bg-gold-500/30 border border-gold-500/30 text-gold-300 text-[10px] font-bold uppercase tracking-wider transition disabled:opacity-50">
+                            <button type="button" onClick={handleSaveProjectRenderResolution} disabled={savingProjectResolution} className="dash-scope-tab dash-scope-tab-active flex-1 disabled:opacity-50">
                               {savingProjectResolution ? 'Salvando...' : 'Salvar do Projeto'}
                             </button>
                             {config?.render_resolution && (
-                              <button type="button" onClick={handleClearProjectRenderResolution} disabled={savingProjectResolution} className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-bold uppercase tracking-wider hover:border-zinc-700 transition disabled:opacity-50">
+                              <button type="button" onClick={handleClearProjectRenderResolution} disabled={savingProjectResolution} className="dash-scope-tab px-3 disabled:opacity-50">
                                 Usar Global
                               </button>
                             )}
@@ -12751,7 +12751,7 @@ export default function App() {
 
                           onChange={(e) => setGlobalUseRemotion(e.target.checked)}
 
-                          className="rounded bg-zinc-950 border-zinc-800 text-gold-500 focus:ring-gold-500 cursor-pointer w-4 h-4"
+                          className="dash-checkbox"
 
                         />
 
@@ -12774,7 +12774,7 @@ export default function App() {
 
                           onChange={(e) => setGlobalDebugOverlay(e.target.checked)}
 
-                          className="rounded bg-zinc-950 border-zinc-800 text-gold-500 focus:ring-gold-500 cursor-pointer w-4 h-4"
+                          className="dash-checkbox"
 
                         />
 
@@ -12791,7 +12791,7 @@ export default function App() {
 
                 </div>
 
-                <div className="flex justify-end border-t border-zinc-900 pt-4">
+                <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
 
                   <button 
 
@@ -12799,7 +12799,7 @@ export default function App() {
 
                     disabled={savingGlobalConfig}
 
-                    className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-2"
+                    className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
 
                   >
 
@@ -12877,13 +12877,13 @@ export default function App() {
 
               {settingsSection === 'marca' && (
                             <div className="glass-panel p-6 rounded-3xl space-y-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--dash-border)] pb-4">
                   <div>
                     <SectionHeader
                       title="LOGOTIPO DO FINAL DO VÍDEO"
                       helpId="settings-marca"
-                      icon={<Image className="w-4 h-4 text-gold-500" />}
-                      subtitle={<>Logos e canal do encerramento. Use o <span className="text-gold-400/90">?</span> em cada seção para entender o escopo global vs. projeto.</>}
+                      icon={<Image className="w-4 h-4 text-[var(--dash-primary)]" />}
+                      subtitle={<>Logos e canal do encerramento. Use o <span className="text-[var(--dash-primary)]">?</span> em cada seção para entender o escopo global vs. projeto.</>}
                     />
                   </div>
                 </div>
@@ -12896,12 +12896,12 @@ export default function App() {
                     </SettingHelpTip>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setLogoCatalogScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
-                    <button type="button" onClick={() => setLogoCatalogScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                    <button type="button" onClick={() => setLogoCatalogScope('global')} className={`dash-scope-tab ${logoCatalogScope === 'global' ? 'dash-scope-tab-active' : ''}`}>Padrão Global</button>
+                    <button type="button" onClick={() => setLogoCatalogScope('project')} className={`dash-scope-tab ${logoCatalogScope === 'project' ? 'dash-scope-tab-active' : ''}`}>Personalizado do Projeto</button>
                   </div>
                 </div>
 
-                <div className="bg-zinc-950 border border-zinc-850 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                <div className="dash-logo-preview">
                   {(() => {
                     const activeId = logoCatalogScope === 'project' ? (projectSelectedLogoId || selectedLogoId) : selectedLogoId;
                     const activeLogo = brandLogos.find((l) => l.id === activeId) || brandLogos[0];
@@ -12912,7 +12912,7 @@ export default function App() {
                       <div className="text-zinc-600 text-xs font-mono">Nenhum logo no catálogo</div>
                     );
                   })()}
-                  <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-[9px] text-zinc-500 bg-zinc-950/80 px-2.5 py-1 rounded-lg">
+                  <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-[9px] text-[var(--dash-muted)] bg-[var(--dash-card)]/90 px-2.5 py-1 rounded-lg">
                     <span>Escopo: {logoCatalogScope === 'project' ? 'Personalizado do Projeto' : 'Padrão Global'}</span>
                     {logoCatalogScope === 'project' && (projectSelectedLogoId || logoStatus?.hasProjectLogo) && (
                       <button type="button" onClick={handleResetLogo} className="text-red-400 hover:text-red-300 font-semibold cursor-pointer transition">Usar logo global</button>
@@ -12930,8 +12930,8 @@ export default function App() {
                         const activeId = logoCatalogScope === 'project' ? (projectSelectedLogoId || selectedLogoId) : selectedLogoId;
                         const isActive = logo.id === activeId;
                         return (
-                          <div key={logo.id} className={`relative rounded-2xl border p-3 bg-zinc-950/40 transition ${isActive ? 'border-gold-500/60 ring-1 ring-gold-500/30' : 'border-zinc-800 hover:border-zinc-700'}`}>
-                            <div className="h-20 flex items-center justify-center mb-2 bg-zinc-950 rounded-xl overflow-hidden">
+                          <div key={logo.id} className={`dash-logo-card ${isActive ? 'dash-logo-card-active' : ''}`}>
+                            <div className="h-20 flex items-center justify-center mb-2 rounded-xl overflow-hidden" style={{ background: 'var(--dash-bg)' }}>
                               <img src={`${logo.url}${logo.url.includes('?') ? '&' : '?'}t=${logoTimestamp}`} alt={logo.name} className="max-h-16 max-w-full object-contain" />
                             </div>
                             <input
@@ -12939,14 +12939,14 @@ export default function App() {
                               value={logo.name}
                               onChange={(e) => setBrandLogos((prev) => prev.map((l) => (l.id === logo.id ? { ...l, name: e.target.value } : l)))}
                               onBlur={(e) => handleRenameBrandLogo(logo.id, e.target.value)}
-                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] text-white mb-2 focus:border-gold-500/50 outline-none"
+                              className="dash-input w-full px-2 py-1 text-[10px] mb-2"
                               title="Renomear logo"
                             />
                             <div className="flex gap-1.5">
-                              <button type="button" onClick={() => handleSelectBrandLogo(logo.id)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition ${isActive ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-gold-500/30 hover:text-gold-400'}`}>
+                              <button type="button" onClick={() => handleSelectBrandLogo(logo.id)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition border ${isActive ? 'dash-scope-tab-active' : 'dash-option-btn'}`}>
                                 {isActive ? <span className="flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Ativo</span> : 'Usar'}
                               </button>
-                              <button type="button" onClick={() => handleDeleteBrandLogo(logo.id)} className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-500/30 transition" title="Remover">
+                              <button type="button" onClick={() => handleDeleteBrandLogo(logo.id)} className="p-1.5 rounded-lg dash-btn-ghost text-[var(--dash-muted)] hover:text-red-400 hover:border-red-500/30 transition" title="Remover">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -12957,10 +12957,10 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="space-y-3 border-t border-zinc-900 pt-5">
+                <div className="space-y-3 border-t border-[var(--dash-border)] pt-5">
                   <SettingLabel helpTitle="Novo logo" help="Envie um PNG com fundo transparente. O nome ajuda a identificar a marca no catálogo — ex.: canal principal, parceiro, versão branca." align="start" className="mb-0">Adicionar Logo ao Catálogo</SettingLabel>
-                  <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} placeholder="Nome do logo" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
-                  <label className="border-2 border-dashed border-zinc-800 hover:border-gold-500/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[96px] bg-zinc-950/20 hover:bg-zinc-950/40">
+                  <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} placeholder="Nome do logo" className="dash-input placeholder:text-[var(--dash-muted)]" />
+                  <label className="border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[96px] hover:bg-[var(--dash-card-hover)]" style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}>
                     <Upload className="w-6 h-6 text-zinc-500 mb-2" />
                     <span className="text-xs text-gray-400 font-semibold">{uploadingLogo ? 'Enviando imagem...' : 'Escolher imagem PNG'}</span>
                     <span className="text-[9px] text-zinc-500 mt-1">Recomendado: fundo transparente</span>
@@ -12982,8 +12982,8 @@ export default function App() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => { setChannelConfigScope('global'); fetchGlobalRenderConfig(); }} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
-                    <button type="button" onClick={() => setChannelConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                    <button type="button" onClick={() => { setChannelConfigScope('global'); fetchGlobalRenderConfig(); }} className={`dash-scope-tab ${channelConfigScope === 'global' ? 'dash-scope-tab-active' : ''}`}>Padrão Global</button>
+                    <button type="button" onClick={() => setChannelConfigScope('project')} className={`dash-scope-tab ${channelConfigScope === 'project' ? 'dash-scope-tab-active' : ''}`}>Personalizado do Projeto</button>
                   </div>
 
                   <div className="space-y-3">
@@ -12996,14 +12996,14 @@ export default function App() {
                           const activeId = channelConfigScope === 'project' ? (projectSelectedChannelId || selectedChannelId) : selectedChannelId;
                           const isActive = channel.id === activeId;
                           return (
-                            <div key={channel.id} className={`rounded-2xl border p-4 space-y-3 transition ${isActive ? 'border-red-500/40 bg-red-500/5' : 'border-zinc-800 bg-zinc-950/30'}`}>
+                            <div key={channel.id} className={`dash-settings-card space-y-3 ${isActive ? 'border-red-500/40' : ''}`} style={isActive ? { background: 'rgba(232, 101, 120, 0.05)' } : undefined}>
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0 space-y-2">
-                                  <input type="text" value={channel.label} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'label', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Rótulo" />
-                                  <input type="text" value={channel.channelUrl} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelUrl', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="URL do canal" />
+                                  <input type="text" value={channel.label} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'label', e.target.value)} className="dash-input px-2.5 py-1.5 text-xs" placeholder="Rótulo" />
+                                  <input type="text" value={channel.channelUrl} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelUrl', e.target.value)} className="dash-input px-2.5 py-1.5 text-xs" placeholder="URL do canal" />
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    <input type="text" value={channel.channelName || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelName', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Nome (opcional)" />
-                                    <input type="text" value={channel.subscriberCount || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'subscriberCount', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Inscritos (opcional)" />
+                                    <input type="text" value={channel.channelName || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelName', e.target.value)} className="dash-input px-2.5 py-1.5 text-xs" placeholder="Nome (opcional)" />
+                                    <input type="text" value={channel.subscriberCount || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'subscriberCount', e.target.value)} className="dash-input px-2.5 py-1.5 text-xs" placeholder="Inscritos (opcional)" />
                                   </div>
                                 </div>
                                 <div className="flex flex-col gap-1.5 shrink-0">
@@ -13025,12 +13025,12 @@ export default function App() {
                   <div className="space-y-3 border-t border-zinc-900 pt-4">
                     <SettingLabel helpTitle="Adicionar canal" help="Cadastre um novo canal YouTube no catálogo global. Depois selecione qual canal aparece no card de inscrição do encerramento — global ou personalizado por projeto." align="start" className="mb-0 [&_span]:text-gold-500 [&_span]:uppercase [&_span]:tracking-wider">Adicionar Canal ao Catálogo</SettingLabel>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input type="text" value={newChannelLabel} onChange={(e) => setNewChannelLabel(e.target.value)} placeholder="Rótulo do canal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
-                      <input type="text" value={newChannelUrl} onChange={(e) => setNewChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      <input type="text" value={newChannelLabel} onChange={(e) => setNewChannelLabel(e.target.value)} placeholder="Rótulo do canal" className="dash-input placeholder:text-[var(--dash-muted)]" />
+                      <input type="text" value={newChannelUrl} onChange={(e) => setNewChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="dash-input placeholder:text-[var(--dash-muted)]" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input type="text" value={globalYoutubeChannelName} onChange={(e) => setGlobalYoutubeChannelName(e.target.value)} placeholder="Nome do canal (opcional)" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
-                      <input type="text" value={globalYoutubeSubscriberCount} onChange={(e) => setGlobalYoutubeSubscriberCount(e.target.value)} placeholder="Inscritos (opcional)" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      <input type="text" value={globalYoutubeChannelName} onChange={(e) => setGlobalYoutubeChannelName(e.target.value)} placeholder="Nome do canal (opcional)" className="dash-input placeholder:text-[var(--dash-muted)]" />
+                      <input type="text" value={globalYoutubeSubscriberCount} onChange={(e) => setGlobalYoutubeSubscriberCount(e.target.value)} placeholder="Inscritos (opcional)" className="dash-input placeholder:text-[var(--dash-muted)]" />
                     </div>
                     <button type="button" onClick={handleAddYoutubeChannel} className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider transition">Adicionar Canal</button>
                   </div>

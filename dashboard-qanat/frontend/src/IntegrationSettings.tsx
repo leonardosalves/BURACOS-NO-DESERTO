@@ -58,14 +58,14 @@ export function IntegrationSettings({
 }: Props) {
   return (
     <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
-      <div className="border-b border-zinc-900 pb-4">
+      <div className="border-b border-[var(--dash-border)] pb-4">
         <SectionHeader
           title="INTEGRAÇÕES DE PUBLICAÇÃO"
           helpId="settings-integracoes"
-          icon={<Plug className="w-4 h-4 text-gold-500" />}
+          icon={<Plug className="w-4 h-4 text-[var(--dash-primary)]" />}
           subtitle={(
             <>
-              OAuth e credenciais para publicar e exportar. Toque no <span className="text-gold-400/90">?</span> de cada plataforma.
+              OAuth e credenciais para publicar e exportar. Toque no <span className="text-[var(--dash-primary)]">?</span> de cada plataforma.
             </>
           )}
         />
@@ -73,7 +73,7 @@ export function IntegrationSettings({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Canva */}
-        <div className="space-y-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
+        <div className="dash-settings-card">
           <div className="flex justify-between items-center gap-2">
             <span className="font-bold text-zinc-300 flex items-center gap-1.5">
               Canva Connect
@@ -81,11 +81,11 @@ export function IntegrationSettings({
                 Conecta sua conta Canva para exportar thumbnails e artes do vídeo direto do Lumiera, sem baixar e reenviar manualmente.
               </SettingHelpTip>
             </span>
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.canva?.connected ? 'bg-cyan-500/10 text-cyan-400' : 'bg-zinc-800 text-zinc-500'}`}>
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.canva?.connected ? 'bg-cyan-500/10 text-cyan-400' : 'bg-[var(--dash-card-hover)] text-[var(--dash-muted)]'}`}>
               {uploadStatus.canva?.connected ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
-          <p className="text-[9px] text-zinc-500 leading-relaxed">
+          <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed">
             Redirect: <code className="text-cyan-300">http://127.0.0.1:3005/api/canva/callback</code>
           </p>
           {!uploadStatus.canva?.hasSecrets ? (
@@ -95,14 +95,14 @@ export function IntegrationSettings({
                 placeholder="Canva Client ID"
                 value={canvaClientId}
                 onChange={(e) => setCanvaClientId(e.target.value)}
-                className="w-full bg-black border border-zinc-850 focus:border-cyan-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                className="dash-input"
               />
               <input
                 type="password"
                 placeholder="Canva Client Secret"
                 value={canvaClientSecret}
                 onChange={(e) => setCanvaClientSecret(e.target.value)}
-                className="w-full bg-black border border-zinc-850 focus:border-cyan-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                className="dash-input"
               />
               <button
                 type="button"
@@ -120,7 +120,7 @@ export function IntegrationSettings({
                     fetchUploadStatus();
                   }
                 }}
-                className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                className="w-full dash-btn-ghost text-[10px] py-1.5"
               >
                 Salvar Chaves Canva
               </button>
@@ -139,7 +139,8 @@ export function IntegrationSettings({
                       toast('Autorize o Canva na nova aba.');
                     }
                   }}
-                  className="w-full bg-cyan-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
+                  className="w-full dash-btn-primary text-[10px] py-1.5"
+                  style={{ background: 'var(--dash-info)', color: '#fff' }}
                 >
                   Vincular Conta Canva
                 </button>
@@ -149,15 +150,15 @@ export function IntegrationSettings({
         </div>
 
         {/* YouTube */}
-        <div className="space-y-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
+        <div className="dash-settings-card">
           <span className="font-bold text-zinc-300 flex items-center gap-1.5">
             YouTube (upload + analytics)
             <SettingHelpTip title="YouTube" align="start">
               Upload direto, metadados, teste A/B de títulos e analytics. Exige OAuth Google com as permissões de canal e YouTube Data API.
             </SettingHelpTip>
           </span>
-          <p className="text-[9px] text-zinc-500 leading-relaxed">
-            Redirect: <code className="text-gold-400">http://127.0.0.1:3005/api/upload/youtube/callback</code>
+          <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed">
+            Redirect: <code className="text-[var(--dash-primary)]">http://127.0.0.1:3005/api/upload/youtube/callback</code>
           </p>
           {!uploadStatus.youtube?.has_secrets ? (
             <div className="space-y-2">
@@ -166,14 +167,14 @@ export function IntegrationSettings({
                 placeholder="Client ID"
                 value={ytClientId}
                 onChange={(e) => setYtClientId(e.target.value)}
-                className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                className="dash-input"
               />
               <input
                 type="password"
                 placeholder="Client Secret"
                 value={ytClientSecret}
                 onChange={(e) => setYtClientSecret(e.target.value)}
-                className="w-full bg-black border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                className="dash-input"
               />
               <button
                 type="button"
@@ -188,7 +189,7 @@ export function IntegrationSettings({
                     fetchUploadStatus();
                   }
                 }}
-                className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+                className="w-full dash-btn-ghost text-[10px] py-1.5"
               >
                 Salvar Chaves YouTube
               </button>
@@ -213,16 +214,16 @@ export function IntegrationSettings({
                       toast('Autorize todas as permissões solicitadas.');
                     }
                   }}
-                  className="w-full bg-gold-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]"
+                  className="w-full dash-btn-primary text-[10px] py-1.5"
                 >
                   Vincular Conta Google
                 </button>
               ) : !uploadStatus.youtube?.titleTestReady ? (
-                <button type="button" onClick={onRelinkYoutube} className="w-full bg-amber-500 text-zinc-950 font-bold py-1.5 rounded-lg text-[10px]">
+                <button type="button" onClick={onRelinkYoutube} className="w-full dash-btn-primary text-[10px] py-1.5" style={{ background: 'var(--dash-warning)', color: '#0c1018' }}>
                   Revincular (ativar teste A/B)
                 </button>
               ) : (
-                <button type="button" onClick={onRelinkYoutube} className="w-full bg-zinc-900 hover:bg-zinc-850 text-zinc-300 font-bold py-1.5 rounded-lg text-[10px]">
+                <button type="button" onClick={onRelinkYoutube} className="w-full dash-btn-ghost text-[10px] py-1.5">
                   Reconectar conta
                 </button>
               )}
@@ -231,28 +232,28 @@ export function IntegrationSettings({
         </div>
 
         {/* Instagram */}
-        <div className="space-y-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
+        <div className="dash-settings-card">
           <span className="font-bold text-zinc-300 flex items-center gap-1.5">
             Instagram
             <SettingHelpTip title="Instagram" align="start">
               Publicação via Meta Graph API. OAuth com App ID/Secret ou token manual da conta Business/Creator vinculada.
             </SettingHelpTip>
           </span>
-          <p className="text-[9px] text-zinc-500">OAuth Meta ou token manual.</p>
+          <p className="text-[9px] text-[var(--dash-muted)]">OAuth Meta ou token manual.</p>
           <div className="grid grid-cols-2 gap-2">
             <input
               type="text"
               placeholder="Meta App ID"
               value={igAppId}
               onChange={(e) => setIgAppId(e.target.value)}
-              className="bg-black border border-zinc-850 rounded-lg px-2 py-1.5 text-[11px] text-white"
+              className="dash-input"
             />
             <input
               type="password"
               placeholder="Meta App Secret"
               value={igAppSecret}
               onChange={(e) => setIgAppSecret(e.target.value)}
-              className="bg-black border border-zinc-850 rounded-lg px-2 py-1.5 text-[11px] text-white"
+              className="dash-input"
             />
           </div>
           <button
@@ -270,24 +271,24 @@ export function IntegrationSettings({
                 toast('Autorize o Instagram no Meta e volte ao painel.');
               } else toast('Configure App ID/Secret primeiro.');
             }}
-            className="w-full bg-pink-500/10 border border-pink-500/30 text-pink-300 font-bold py-1.5 rounded-lg text-[10px]"
+            className="w-full dash-btn-primary text-[10px] py-1.5"
           >
             Conectar Instagram (OAuth)
           </button>
-          <div className="space-y-2 border-t border-zinc-800 pt-2">
+          <div className="space-y-2 border-t border-[var(--dash-border)] pt-2">
             <input
               type="text"
               placeholder="ID da Conta Business"
               value={igAccountId}
               onChange={(e) => setIgAccountId(e.target.value)}
-              className="w-full bg-black border border-zinc-850 rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+              className="dash-input"
             />
             <input
               type="password"
               placeholder="Token de Acesso Graph API"
               value={igAccessToken}
               onChange={(e) => setIgAccessToken(e.target.value)}
-              className="w-full bg-black border border-zinc-850 rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+              className="dash-input"
             />
             <button
               type="button"
@@ -305,7 +306,7 @@ export function IntegrationSettings({
                   fetchUploadStatus();
                 }
               }}
-              className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+              className="w-full dash-btn-ghost text-[10px] py-1.5"
             >
               Salvar Token Manual
             </button>
@@ -314,7 +315,7 @@ export function IntegrationSettings({
 
         {/* TikTok + Kwai */}
         <div className="space-y-3">
-          <div className="space-y-2 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
+          <div className="dash-settings-card">
             <div className="flex justify-between items-center gap-2">
               <span className="font-bold text-zinc-300 flex items-center gap-1.5">
                 TikTok Session
@@ -322,7 +323,7 @@ export function IntegrationSettings({
                   Abre um navegador controlado para você fazer login no TikTok. A sessão fica salva para upload automático de Shorts.
                 </SettingHelpTip>
               </span>
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--dash-card-hover)] text-[var(--dash-muted)]'}`}>
                 {uploadStatus.tiktok?.connected ? 'Ativa' : 'Inativa'}
               </span>
             </div>
@@ -336,12 +337,12 @@ export function IntegrationSettings({
                 });
                 if (res.ok) toast('Navegador de login aberto. Faça login e feche a janela.');
               }}
-              className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+              className="w-full dash-btn-ghost text-[10px] py-1.5"
             >
               Iniciar Login no TikTok
             </button>
           </div>
-          <div className="space-y-2 p-4 bg-zinc-950 rounded-2xl border border-zinc-900/60 text-xs">
+          <div className="dash-settings-card">
             <div className="flex justify-between items-center gap-2">
               <span className="font-bold text-zinc-300 flex items-center gap-1.5">
                 Kwai Session
@@ -349,7 +350,7 @@ export function IntegrationSettings({
                   Mesmo fluxo do TikTok: login via navegador automatizado e sessão persistida para publicar no Kwai.
                 </SettingHelpTip>
               </span>
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-800 text-zinc-500'}`}>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--dash-card-hover)] text-[var(--dash-muted)]'}`}>
                 {uploadStatus.kwai?.connected ? 'Ativa' : 'Inativa'}
               </span>
             </div>
@@ -363,7 +364,7 @@ export function IntegrationSettings({
                 });
                 if (res.ok) toast('Navegador de login aberto. Faça login e feche a janela.');
               }}
-              className="w-full bg-zinc-900 hover:bg-zinc-850 text-white font-bold py-1.5 rounded-lg text-[10px]"
+              className="w-full dash-btn-ghost text-[10px] py-1.5"
             >
               Iniciar Login no Kwai
             </button>
