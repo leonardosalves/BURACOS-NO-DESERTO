@@ -12440,7 +12440,7 @@ export default function App() {
                 embedded
                 toast={toast}
                 onRelinkYoutube={handleRelinkYoutube}
-                nicheKeyword={config?.niche || ''}
+                nicheKeyword={config?.niche || nicheInput || ''}
                 alerts={youtubeChannelAlerts}
                 geminiBrowserMode={geminiBrowserMode}
                 aiProvider={aiProvider}

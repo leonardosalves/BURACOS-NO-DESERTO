@@ -1010,6 +1010,18 @@ app.post("/api/config", (req, res) => {
     for (const [key, value] of Object.entries(req.body || {})) {
       if (value === null) {
         delete mergedConfig[key];
+      } else if (key === "upload_metadata" && value && typeof value === "object" && !Array.isArray(value)) {
+        const prevMeta = existingConfig.upload_metadata && typeof existingConfig.upload_metadata === "object"
+          ? existingConfig.upload_metadata
+          : {};
+        mergedConfig.upload_metadata = {
+          ...prevMeta,
+          ...value,
+          youtube: { ...(prevMeta.youtube || {}), ...(value.youtube || {}) },
+          instagram: { ...(prevMeta.instagram || {}), ...(value.instagram || {}) },
+          tiktok: { ...(prevMeta.tiktok || {}), ...(value.tiktok || {}) },
+          kwai: { ...(prevMeta.kwai || {}), ...(value.kwai || {}) },
+        };
       } else {
         mergedConfig[key] = value;
       }
@@ -2296,6 +2308,7 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
         niche: niche || plan.niche || "Geral",
         format: fmtShort ? "SHORT" : "LONG",
         maxCompetitors: 5,
+        projectsRoot: PROJECTS_ROOT,
         llmFn: competitorLlmFn,
         repairJsonFn: competitorRepairFn,
       });
@@ -9398,6 +9411,7 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
       format,
       maxCompetitors,
       seedChannels,
+      projectsRoot: PROJECTS_ROOT,
       llmFn,
       repairJsonFn,
     });

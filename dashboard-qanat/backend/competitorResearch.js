@@ -88,17 +88,120 @@ async function youtubeDataGet(accessToken, apiPath, params = {}) {
   return data;
 }
 
+function readNicheFromCompetitorMemory(workspaceDir) {
+  const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, COMPETITOR_MEMORY_FILE);
+  if (!fs.existsSync(memoryPath)) return "";
+  try {
+    const content = fs.readFileSync(memoryPath, "utf8");
+    const match = content.match(/^niche:\s*(.+)$/m);
+    return match ? String(match[1]).trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+function defaultProjectsRoot() {
+  const home = process.env.USERPROFILE || process.env.HOME || "";
+  return home ? path.join(home, "Desktop", "Lumiera Videos") : "";
+}
+
+function isChannelBrandNiche(niche, channelTitle = "") {
+  const n = String(niche || "").trim().toLowerCase();
+  const t = String(channelTitle || "").trim().toLowerCase();
+  if (!n) return true;
+  if (t && (n === t || n.includes(t) || t.includes(n))) return true;
+  if (/^(ai |the )/.test(n)) return true;
+  if (/construction stories|building stories|ai construction/i.test(n)) return true;
+  return false;
+}
+
+const GENERIC_NICHE_KEYS = new Set([
+  "história",
+  "historia",
+  "customized",
+  "geral",
+  "tecnologia",
+  "geral",
+  "shorts",
+  "youtube",
+]);
+
+function nichePriorityScore(niche, count) {
+  const key = String(niche || "").trim().toLowerCase();
+  let score = count;
+  if (GENERIC_NICHE_KEYS.has(key)) score *= 0.15;
+  const words = key.split(/\s+/).filter(Boolean).length;
+  if (words >= 3) score *= 1.6;
+  else if (words >= 2) score *= 1.35;
+  if (/engenharia|curiosidade|fato|mist[eé]rio|arqueologia/i.test(key)) score *= 1.25;
+  return score;
+}
+
+function collectProjectNiches(projectsRoot) {
+  const counts = new Map();
+  const labels = new Map();
+  const root = projectsRoot || defaultProjectsRoot();
+  const roots = [
+    path.join(root, "videos longos"),
+    path.join(root, "videos curtos shorts"),
+  ];
+  for (const scanRoot of roots) {
+    if (!fs.existsSync(scanRoot)) continue;
+    for (const item of fs.readdirSync(scanRoot)) {
+      const cfgPath = path.join(scanRoot, item, "config_qanat.json");
+      const cfg = readJsonFile(cfgPath);
+      const niche = String(cfg?.niche || "").trim();
+      if (!niche || isChannelBrandNiche(niche)) continue;
+      const key = niche.toLowerCase();
+      counts.set(key, (counts.get(key) || 0) + 1);
+      if (!labels.has(key) || niche.length > labels.get(key).length) labels.set(key, niche);
+    }
+  }
+  return [...counts.entries()]
+    .map(([key, count]) => ({ niche: labels.get(key) || key, score: nichePriorityScore(labels.get(key) || key, count), count }))
+    .sort((a, b) => b.score - a.score || b.count - a.count)
+    .map((entry) => entry.niche);
+}
+
+function resolveResearchNiche(workspaceDir, { niche, config = {}, channelTitle = "", projectsRoot = "" } = {}) {
+  const explicit = String(niche || config.niche || "").trim();
+  if (explicit && !isChannelBrandNiche(explicit, channelTitle)) return explicit;
+
+  const projectNiches = collectProjectNiches(projectsRoot);
+  if (projectNiches.length) return projectNiches[0];
+
+  const fromMemory = readNicheFromCompetitorMemory(workspaceDir);
+  if (fromMemory && !isChannelBrandNiche(fromMemory, channelTitle)) return fromMemory;
+
+  const keywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
+  if (keywords.length >= 3) {
+    return `${keywords[0]} ${keywords[1]} ${keywords[2]}`.trim();
+  }
+
+  return "engenharia antiga curiosidades história";
+}
+
 function buildSearchQueries(niche, format) {
   const base = String(niche || "").trim();
   const fmt = String(format || "SHORT").toUpperCase();
   const queries = [];
   if (base) {
     queries.push(base);
-    if (fmt === "SHORT") queries.push(`${base} shorts`);
-    else queries.push(`${base} documentary`);
+    if (fmt === "SHORT") {
+      queries.push(`${base} shorts`);
+      queries.push(`${base} curiosidades`);
+    } else {
+      queries.push(`${base} documentário`);
+      queries.push(`${base} documentary`);
+    }
   }
-  if (fmt === "SHORT") queries.push("construction history shorts");
-  return [...new Set(queries.filter(Boolean))].slice(0, 3);
+  if (fmt === "SHORT") {
+    queries.push("curiosidades história shorts");
+    queries.push("fatos surpreendentes shorts");
+  } else {
+    queries.push("documentário história engenharia");
+  }
+  return [...new Set(queries.filter(Boolean))].slice(0, 5);
 }
 
 async function searchCompetitorChannels(accessToken, { niche, format, maxCompetitors, excludeChannelId }) {
@@ -243,7 +346,17 @@ async function fetchChannelRecentVideos(accessToken, channelId, { limit = DEFAUL
       url: `https://www.youtube.com/watch?v=${v.id}`,
       thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || "",
     };
-  }).filter((v) => videoMatchesFormat(v, format));
+  });
+
+  let filtered = videos.filter((v) => videoMatchesFormat(v, format));
+  if (filtered.length < 3 && videos.length > filtered.length) {
+    filtered = videos.filter((v) => {
+      const fmt = String(format || "SHORT").toUpperCase();
+      if (fmt === "LONG") return v.durationSec > 60;
+      return v.durationSec <= 300 || titleSuggestsShort(v.title);
+    });
+  }
+  if (filtered.length < 3) filtered = videos;
 
   return {
     channel: {
@@ -253,7 +366,7 @@ async function fetchChannelRecentVideos(accessToken, channelId, { limit = DEFAUL
       videoCount: formatCount(item?.statistics?.videoCount),
       url: `https://www.youtube.com/channel/${channelId}`,
     },
-    videos,
+    videos: filtered,
   };
 }
 
@@ -557,6 +670,7 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
   competitors = [],
   analysis = {},
   outliers = [],
+  channelTitle = "",
 }) {
   ensureAgentDirs(workspaceDir);
   const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, COMPETITOR_MEMORY_FILE);
@@ -565,7 +679,13 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
     : `# Inteligência competitiva\n\n> 🔗 [[MEMORIA-LUMIERA]]\n\n`;
 
   const today = new Date().toISOString().slice(0, 10);
-  content = content.replace(/niche: .*/m, `niche: ${niche}`);
+  const existingNiche = (content.match(/^niche:\s*(.+)$/m) || [])[1]?.trim() || "";
+  const nicheToPersist = isChannelBrandNiche(niche, channelTitle)
+    ? (existingNiche && !isChannelBrandNiche(existingNiche, channelTitle) ? existingNiche : niche)
+    : niche;
+  if (!isChannelBrandNiche(nicheToPersist, channelTitle)) {
+    content = content.replace(/niche: .*/m, `niche: ${nicheToPersist}`);
+  }
   content = content.replace(/updated: .*/m, `updated: ${today}`);
 
   const tableMarker = "## Quem monitorar (lista viva)";
@@ -629,6 +749,7 @@ export async function runCompetitorResearch(workspaceDir, {
   maxCompetitors = DEFAULT_MAX_COMPETITORS,
   videosPerChannel = DEFAULT_VIDEOS_PER_CHANNEL,
   seedChannels = [],
+  projectsRoot = "",
   llmFn = null,
   repairJsonFn = null,
 } = {}) {
@@ -642,8 +763,13 @@ export async function runCompetitorResearch(workspaceDir, {
   const ownChannelId = ownOverview?.items?.[0]?.id || null;
 
   const config = readJsonFile(path.join(workspaceDir, "config_qanat.json")) || {};
-  const resolvedNiche = String(niche || config.niche || "").trim()
-    || (ownOverview?.items?.[0]?.snippet?.title || "conteúdo YouTube");
+  const channelTitle = ownOverview?.items?.[0]?.snippet?.title || "";
+  const resolvedNiche = resolveResearchNiche(workspaceDir, {
+    niche,
+    config,
+    channelTitle,
+    projectsRoot: projectsRoot || defaultProjectsRoot(),
+  });
   const resolvedFormat = String(format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
   const maxC = Math.min(Math.max(Number(maxCompetitors) || DEFAULT_MAX_COMPETITORS, 1), 10);
 
@@ -770,6 +896,7 @@ export async function runCompetitorResearch(workspaceDir, {
     competitors: channelReports,
     analysis,
     outliers: topOutliers,
+    channelTitle,
   });
 
   return {

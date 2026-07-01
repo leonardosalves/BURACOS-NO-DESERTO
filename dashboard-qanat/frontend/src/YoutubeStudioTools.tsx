@@ -31,6 +31,7 @@ type Props = {
 };
 
 export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, onApplyIdea }: Props) {
+  const [competitorNiche, setCompetitorNiche] = useState(nicheKeyword);
   const [webhooks, setWebhooks] = useState({ telegram: '', discord: '' });
   const [responseStats, setResponseStats] = useState<{ averageHours: number | null; sampleSize: number } | null>(null);
   const [ideas, setIdeas] = useState<Array<{ title: string; angle?: string; mentions?: number }>>([]);
@@ -47,13 +48,18 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
     ideas?: Array<{ title: string; hookPt?: string }>;
   } | null>(null);
   const [competitorResult, setCompetitorResult] = useState<{
-    competitors?: Array<{ title: string; outlierCount: number }>;
+    niche?: string;
+    competitors?: Array<{ title: string; outlierCount: number; videosScanned?: number; url?: string }>;
     outliers?: Array<{ title: string; channelTitle: string; outlierRatio: number }>;
     analysis?: { derivedIdeas?: Array<{ title: string; hookPt?: string }> };
     memory?: { memoryFile?: string };
     aiAnalysisFailed?: boolean;
     aiAnalysisWarning?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (nicheKeyword && !competitorNiche) setCompetitorNiche(nicheKeyword);
+  }, [nicheKeyword, competitorNiche]);
 
   const loadEditorialQueue = useCallback(async () => {
     try {
@@ -168,7 +174,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          niche: nicheKeyword || undefined,
+          niche: (competitorNiche || nicheKeyword || '').trim() || undefined,
           format: creatorFormat === 'LONGO' ? 'LONG' : 'SHORT',
           maxCompetitors: 5,
           useAi: true,
@@ -363,13 +369,39 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             {competitorLoading ? 'Pesquisando...' : 'Buscar concorrentes'}
           </button>
         </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={competitorNiche}
+            onChange={(e) => setCompetitorNiche(e.target.value)}
+            placeholder="Nicho para busca (ex.: engenharia antiga, curiosidades)"
+            className="flex-1 dash-input px-2 py-1.5 text-[10px]"
+          />
+        </div>
         <p className="text-[8px] text-zinc-600">
-          A IA descobre canais no nicho{nicheKeyword ? ` (${nicheKeyword})` : ''}, detecta outliers (3.5× média), analisa hook/CTA/mecânica e salva em Obsidian.
+          Detecta outliers (3.5× média), analisa hook/CTA/mecânica e salva em Obsidian.
+          {!competitorNiche.trim() && !nicheKeyword ? ' Sem nicho definido, o backend usa memória dos projetos.' : ''}
         </p>
         {competitorResult && (
           <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-2 space-y-1.5">
+            {competitorResult.niche && (
+              <p className="text-[8px] text-zinc-500">Nicho usado: <span className="text-zinc-300">{competitorResult.niche}</span></p>
+            )}
             {competitorResult.aiAnalysisWarning && (
               <p className="text-[8px] text-amber-400/90">{competitorResult.aiAnalysisWarning}</p>
+            )}
+            {(competitorResult.competitors || []).length > 0 ? (
+              <ul className="space-y-0.5">
+                {(competitorResult.competitors || []).slice(0, 5).map((c, i) => (
+                  <li key={i} className="text-[8px] text-zinc-500 truncate">
+                    {c.title} — {c.videosScanned ?? 0} vídeos, {c.outlierCount} outlier(s)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[8px] text-amber-400/90">
+                Nenhum canal encontrado. Defina o nicho acima (ex.: engenharia antiga) e tente de novo.
+              </p>
             )}
             {(competitorResult.analysis?.derivedIdeas || []).slice(0, 3).map((idea, i) => (
               <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
