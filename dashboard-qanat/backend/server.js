@@ -10729,6 +10729,102 @@ app.post("/api/notebooklm/improve-script", async (req, res) => {
   }
 });
 
+// API: Improve narration draft inline (wizard — before approving and distributing to blocks)
+app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
+  const {
+    narrativeScript: narrativeScriptRaw,
+    narrativeScriptTagged: narrativeScriptTaggedRaw,
+    niche: nicheRaw,
+    format: formatRaw,
+    blockCount: blockCountRaw,
+    useNotebooklm,
+    ideaTitle,
+    isListicle,
+    listicleRank,
+  } = req.body || {};
+
+  const narrativeScript = String(narrativeScriptRaw || "").trim();
+  if (narrativeScript.length < 40) {
+    return res.status(400).json({ error: "A narração precisa ter ao menos 40 caracteres para melhorar." });
+  }
+
+  const niche = String(nicheRaw || "documentário").trim();
+  const format = formatRaw === "SHORTS" ? "SHORTS" : "LONGO";
+  const blockCount = Number(blockCountRaw) || (format === "SHORTS" ? 5 : 12);
+
+  // Use any available project dir for API key resolution
+  const projDir = getProjectDir(req);
+
+  // NotebookLM research
+  let notebooklmResearch = null;
+  let notebooklmBlock = "";
+
+  if (useNotebooklm !== false) {
+    try {
+      console.log("[NotebookLM] Analisando draft de narração para melhorias (wizard)...");
+      notebooklmResearch = await fetchNotebooklmScriptImprovements({
+        backendDir: __dirname,
+        niche,
+        format,
+        narrativeScript,
+      });
+      notebooklmBlock = formatNotebooklmPromptBlock(notebooklmResearch, "SUGESTÕES NOTEBOOKLM");
+      if (!notebooklmBlock) {
+        notebooklmBlock = "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+      }
+    } catch (err) {
+      console.warn("[NotebookLM] Melhoria de draft falhou:", err.message);
+      notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+    }
+  } else {
+    notebooklmBlock = "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+  }
+
+  try {
+    const rawScript = {
+      narrative_script: narrativeScript,
+      narrative_script_tagged: String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
+    };
+
+    const improvePrompt = buildNotebooklmNarrationEnrichPrompt({
+      niche,
+      format,
+      ideaTitle: ideaTitle || niche,
+      rawScript,
+      notebooklmBlock,
+      blockCount,
+      isListicle: Boolean(isListicle),
+      listicleRank: Number(listicleRank) || 20,
+    });
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Melhorar narração draft (NotebookLM)",
+      prompt: improvePrompt,
+      temperature: 0.6,
+    });
+    if (responseText == null) return;
+
+    const parsed = normalizeKeys(await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Melhorar narração draft",
+    ));
+
+    return res.json({
+      success: true,
+      narrative_script: parsed.narrative_script || narrativeScript,
+      narrative_script_tagged: parsed.narrative_script_tagged || parsed.narrative_script || "",
+      strategy: parsed.strategy || null,
+      technical_config: parsed.technical_config || null,
+      notebooklm_enriched: Boolean(notebooklmResearch?.available && !notebooklmResearch?.fallback),
+      suggestions: notebooklmResearch?.summary || "",
+    });
+  } catch (err) {
+    console.error("[NotebookLM] Erro ao melhorar draft de narração:", err);
+    return res.status(500).json({ error: "Erro ao melhorar narração", details: err.message });
+  }
+});
+
 // API: Automap available files in ASSETS to script narrative blocks using Gemini
 
 app.post("/api/ai/auto-map-assets", async (req, res) => {
