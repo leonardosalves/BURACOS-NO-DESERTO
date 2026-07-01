@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Download, Mic, Wand2, Play, Music, Upload, AlertTriangle,
-  CheckCircle2, Loader2, Sparkles, Image, Video, ExternalLink,
+  CheckCircle2, Loader2, Sparkles, Image, Video, ExternalLink, Scissors,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { NarrationReplacePanel } from './NarrationReplacePanel';
@@ -461,6 +461,17 @@ export function WorkflowToolkit({
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ maxScenes: 15, onlyMissing: true }),
   }).then((d) => { if (d) onTimelineRefresh?.(); });
+
+  const handleClipFactory = () => runAction('Clip Factory', '/api/workflow/clip-factory', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enqueue: true }),
+  }).then((d) => {
+    if (d && typeof d === 'object' && 'enqueued' in d) {
+      toast(`Clip Factory: ${String((d as { enqueued?: number }).enqueued ?? 0)} Short(s) na fila editorial.`);
+      onNavigateTab?.('youtube-studio');
+    }
+  });
 
   const handleAutoMap = () => runAction('Auto-map', '/api/ai/auto-map-assets', { method: 'POST' })
     .then((d) => { if (d) onTimelineRefresh?.(); });
@@ -974,6 +985,7 @@ export function WorkflowToolkit({
 
       <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
         {btn('Buscar B-roll', <Download className="w-3 h-3" />, handleStock, 'sky')}
+        {btn('Clip Factory', <Scissors className="w-3 h-3" />, handleClipFactory, 'cyan')}
         {btn('Auto-map IA', <Wand2 className="w-3 h-3" />, handleAutoMap, 'violet')}
         {btn('Trilha BGM', <Music className="w-3 h-3" />, handleBgm, 'emerald')}
         {btn('Preparar pub.', <Upload className="w-3 h-3" />, handlePublishPrep, 'gold')}
