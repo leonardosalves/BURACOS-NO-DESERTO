@@ -11929,8 +11929,23 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
   return verified.overlays;
 }
 
-function resolveLastMileOverlayCollisions(overlays) {
+function resolveLastMileOverlayCollisions(overlays, config = {}) {
   if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
+
+  // Resolve minimum gap from production config (overlay_min_gap setting)
+  const isShort = config.aspect_ratio !== "16:9";
+  const isListicle = config.content_mode === "LISTICLE";
+  const gapSetting = config.overlay_min_gap || "normal";
+  let minGap;
+  if (gapSetting === "tight") {
+    minGap = isShort ? (isListicle ? 8 : 4) : (isListicle ? 9 : 12);
+  } else if (gapSetting === "relaxed") {
+    minGap = isShort ? (isListicle ? 14 : 8) : (isListicle ? 16 : 26);
+  } else {
+    // "normal" default
+    minGap = isShort ? 4 : 5;
+  }
+  console.log(`[Last-Mile Resolver] Gap mínimo entre overlays: ${minGap}s (config: ${gapSetting})`);
 
   // Filter informative overlays and system ones (e.g. HUD, retention, etc.)
   const informative = overlays.filter(isInformativeOverlay);
@@ -11954,12 +11969,12 @@ function resolveLastMileOverlayCollisions(overlays) {
       continue;
     }
 
-    // Check overlap with the last accepted informative overlay
-    if (start < lastEnd + 0.5) {
-      console.log(`[Last-Mile Resolver] Conflito detectado para overlay ${overlay.id} (start: ${start.toFixed(2)}s) com o fim do anterior em ${lastEnd.toFixed(2)}s.`);
+    // Check overlap with the last accepted informative overlay using config gap
+    if (start < lastEnd + minGap) {
+      console.log(`[Last-Mile Resolver] Conflito detectado para overlay ${overlay.id} (start: ${start.toFixed(2)}s) com o fim do anterior em ${lastEnd.toFixed(2)}s. Gap necessário: ${minGap}s.`);
 
       // Try pushing start time of this overlay forward, if it leaves a readable chunk
-      const pushedStart = lastEnd + 0.5;
+      const pushedStart = lastEnd + minGap;
       if (pushedStart + 2.5 <= start + duration) {
         console.log(`  -> Empurrando início de ${overlay.id} de ${start.toFixed(2)}s para ${pushedStart.toFixed(2)}s`);
         start = pushedStart;
@@ -12040,7 +12055,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     repair: true,
   });
   result = timingVerified.overlays;
-  result = resolveLastMileOverlayCollisions(result);
+  result = resolveLastMileOverlayCollisions(result, config);
   storyboard.overlay_timing_report = timingVerified.report;
 
   const quality = validateVideoQuality({
