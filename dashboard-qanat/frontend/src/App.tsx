@@ -4757,10 +4757,10 @@ export default function App() {
 
   };
 
-  const getMusicUrl = (fileName: string) => {
-    const projKey = activeProject.replace(/ /g, "_");
+  const getMusicUrl = useCallback((fileName: string, projectOverride?: string) => {
+    const projKey = (projectOverride || activeProject).replace(/ /g, "_");
     return `/api/projects-media/${encodeURIComponent(projKey)}/${encodeURIComponent(fileName)}`;
-  };
+  }, [activeProject]);
 
   const togglePlayMusic = (fileName: string) => {
 
@@ -11693,9 +11693,14 @@ export default function App() {
 
               {editorSubTab === 'narration' && config && (
                 <div className="glass-panel p-6 rounded-3xl max-w-4xl space-y-6">
+                  {selectedProject && selectedProject !== activeProject && (
+                    <div className="text-[10px] px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/5 text-amber-200">
+                      Projeto no seletor ({selectedProject}) difere do ativo ({activeProject}). Clique <strong>Carregar Projeto</strong> antes de ouvir ou editar.
+                    </div>
+                  )}
                   <NarrationReplacePanel
                     getProjectUrl={getProjectUrl}
-                    getMediaUrl={getMusicUrl}
+                    getMediaUrl={(file) => getMusicUrl(file, activeProject)}
                     toast={(msg) => toast(msg)}
                     hasNarration={!!status?.has_narration}
                     hasTimings={!!status?.block_timings}
