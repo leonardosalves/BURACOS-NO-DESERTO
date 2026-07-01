@@ -276,6 +276,16 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'agents-videoagent': {
+    title: 'VideoAgent Planner',
+    body: (
+      <>
+        Adaptação do <strong>HKUDS/VideoAgent</strong>: você descreve o vídeo em linguagem natural; o Lumiera detecta intents
+        (Short viral, pesquisa concorrentes, SEO, etc.), monta a cadeia de agentes reais (Creator, NotebookLM, render, upload)
+        e gera storyboard beats. Planos são gravados em <code>memory/videoagent-lumiera.md</code> no Obsidian.
+      </>
+    ),
+  },
   'agents-config': {
     title: 'Configuração Agents',
     body: (

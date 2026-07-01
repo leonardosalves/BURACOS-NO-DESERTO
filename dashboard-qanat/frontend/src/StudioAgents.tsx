@@ -17,6 +17,7 @@ import {
   Package,
 } from 'lucide-react';
 import { SectionHeader, SectionLabel } from './SectionHeader';
+import { VideoAgentPlanner } from './VideoAgentPlanner';
 
 type AgentConfig = {
   autoCaptureOnQualityCheck: boolean;
@@ -154,6 +155,7 @@ type StudioAgentsProps = {
   projectVideoFormat?: string;
   projectAspectRatio?: string;
   getProjectUrl: (endpoint: string) => string;
+  onNavigateTab?: (tab: string) => void;
 };
 
 function resolveProjectFormat(videoFormat?: string, aspectRatio?: string): 'SHORT' | 'LONG' {
@@ -169,6 +171,7 @@ export function StudioAgents({
   projectVideoFormat,
   projectAspectRatio,
   getProjectUrl,
+  onNavigateTab,
 }: StudioAgentsProps) {
   const projectFormat = resolveProjectFormat(projectVideoFormat, projectAspectRatio);
   const [loading, setLoading] = useState(true);
@@ -560,6 +563,15 @@ export function StudioAgents({
           )}
         </div>
       </div>
+
+      <VideoAgentPlanner
+        projectNiche={projectNiche}
+        projectFormat={projectFormat}
+        getProjectUrl={getProjectUrl}
+        onNavigateTab={onNavigateTab}
+        onOpenObsidian={openObsidian}
+        obsidianInstalled={obsidian.installed}
+      />
 
       {skillsRegistry && (
         <div className="glass-panel p-6 rounded-2xl space-y-4">
