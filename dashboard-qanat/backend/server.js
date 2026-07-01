@@ -75,6 +75,7 @@ import {
   bulkReplyComments,
   commentsToCsv,
   computeChannelResponseStats,
+  fetchChannelTitleExperiments,
   generateCommentIdeas,
   generateDailyReport,
   getExtendedStudioSettings,
@@ -8390,6 +8391,16 @@ app.put("/api/youtube/channel/settings", (req, res) => {
     if (req.body?.selectedChannelId !== undefined) patch.selectedChannelId = String(req.body.selectedChannelId || "").trim();
     if (req.body?.slaHours !== undefined) patch.slaHours = Math.min(Math.max(Number(req.body.slaHours) || 24, 1), 168);
     if (req.body?.autoQueueEnabled !== undefined) patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
+    if (req.body?.smtp !== undefined) {
+      const smtp = req.body.smtp;
+      patch.smtp = smtp && typeof smtp === "object" ? {
+        host: String(smtp.host || "").trim(),
+        port: Number(smtp.port) || 587,
+        user: String(smtp.user || "").trim(),
+        pass: String(smtp.pass || "").trim(),
+        from: String(smtp.from || smtp.user || "").trim(),
+      } : null;
+    }
     if (Object.keys(patch).length) saveExtendedStudioSettings(WORKSPACE_DIR, patch);
     res.json(getExtendedStudioSettings(WORKSPACE_DIR));
   } catch (err) {
@@ -8528,6 +8539,16 @@ app.get("/api/youtube/channel/lumiera-videos", async (req, res) => {
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos Lumiera");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/title-experiments", async (req, res) => {
+  try {
+    const report = await fetchChannelTitleExperiments(WORKSPACE_DIR, PROJECTS_ROOT);
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao listar testes A/B de título");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });

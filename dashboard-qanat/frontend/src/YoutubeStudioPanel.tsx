@@ -16,6 +16,9 @@ import {
 } from './youtubeStudioPrefs';
 import { YoutubeStudioTools } from './YoutubeStudioTools';
 import { YoutubeStudioPro } from './YoutubeStudioPro';
+import { YoutubeStudioSettings } from './YoutubeStudioSettings';
+import { YoutubeStudioTitleAb } from './YoutubeStudioTitleAb';
+import { PostPublishChecklist } from './PostPublishChecklist';
 
 type ChannelOverview = {
   connected: boolean;
@@ -213,14 +216,18 @@ function RetentionSparkline({ points }: { points: Array<{ ratio: number; watchRa
   return (
     <div className="space-y-1">
       <div className="flex items-end gap-px h-20 rounded-lg bg-zinc-950 border border-zinc-900 p-2">
-        {sampled.map((point) => (
-          <div
-            key={point.ratio}
-            className="flex-1 bg-gold-500/70 rounded-t-sm min-w-[2px]"
-            style={{ height: `${Math.max(4, (point.watchRatio / max) * 100)}%` }}
-            title={`${Math.round(point.ratio * 100)}% do vídeo · ${(point.watchRatio * 100).toFixed(0)}% assistindo`}
-          />
-        ))}
+        {sampled.map((point) => {
+          const barHeight = Math.max(4, Math.round((point.watchRatio / max) * 64));
+          return (
+            <div
+              key={point.ratio}
+              className="flex-1 flex flex-col justify-end h-full min-w-[2px]"
+              title={`${Math.round(point.ratio * 100)}% do vídeo · ${(point.watchRatio * 100).toFixed(0)}% assistindo`}
+            >
+              <div className="w-full bg-gold-500/70 rounded-t-sm min-h-[4px]" style={{ height: `${barHeight}px` }} />
+            </div>
+          );
+        })}
       </div>
       <p className="text-[9px] text-zinc-600">Retenção relativa ao longo do vídeo (Analytics API)</p>
     </div>
@@ -303,6 +310,7 @@ export function YoutubeStudioPanel({
   const [bulkReplyText, setBulkReplyText] = useState('');
   const [videoFormatFilter, setVideoFormatFilter] = useState<'all' | 'SHORT' | 'LONG'>('all');
   const [activeTab, setActiveTab] = useState<StudioTab>('resumo');
+  const [postChecklistProject, setPostChecklistProject] = useState<{ projectName: string; videoId: string } | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const periodDaysRef = useRef(periodDays);
   periodDaysRef.current = periodDays;
@@ -1009,16 +1017,46 @@ export function YoutubeStudioPanel({
                     >
                       Ver detalhe
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostChecklistProject({
+                        projectName: item.projectName,
+                        videoId: item.videoId,
+                      })}
+                      className={`text-[9px] font-bold px-2 py-1 rounded border ${
+                        postChecklistProject?.projectName === item.projectName
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                          : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Pós-upload
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+        {postChecklistProject && (
+          <div className="mt-3">
+            <PostPublishChecklist
+              projectName={postChecklistProject.projectName}
+              videoId={postChecklistProject.videoId}
+              toast={toast}
+              compact
+            />
+          </div>
+        )}
       </div>
       )}
 
       {activeTab === 'videos' && (
+      <div className="space-y-4">
+      <YoutubeStudioTitleAb
+        toast={toast}
+        onSelectProject={onSelectProject}
+        onRefreshSummary={() => loadChannelSummary(true, true)}
+      />
       <div className="glass-panel p-4 sm:p-5 rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
@@ -1230,14 +1268,22 @@ export function YoutubeStudioPanel({
                   <div className="lg:col-span-3 p-3 rounded-lg bg-zinc-950 border border-zinc-900">
                     <p className="text-[9px] text-zinc-500 mb-2">Views por dia (últimos 7d)</p>
                     <div className="flex items-end gap-1 h-16">
-                      {videoDetail.velocityTimeline.points.map((p) => (
-                        <div
-                          key={p.date}
-                          className="flex-1 bg-cyan-500/60 rounded-t min-w-[4px]"
-                          style={{ height: `${Math.max(8, (p.views / Math.max(...videoDetail.velocityTimeline!.points!.map((x) => x.views), 1)) * 100)}%` }}
-                          title={`${p.date}: ${p.views} views`}
-                        />
-                      ))}
+                      {(() => {
+                        const pts = videoDetail.velocityTimeline!.points!;
+                        const maxV = Math.max(...pts.map((x) => x.views), 1);
+                        return pts.map((p) => {
+                          const h = Math.max(4, Math.round((p.views / maxV) * 56));
+                          return (
+                            <div
+                              key={p.date}
+                              className="flex-1 flex flex-col justify-end h-full min-w-[4px]"
+                              title={`${p.date}: ${p.views} views`}
+                            >
+                              <div className="w-full bg-cyan-500/60 rounded-t min-h-[4px]" style={{ height: `${h}px` }} />
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 ) : null}
@@ -1254,6 +1300,7 @@ export function YoutubeStudioPanel({
             ) : null}
           </div>
         )}
+      </div>
       </div>
       )}
 
@@ -1571,6 +1618,11 @@ export function YoutubeStudioPanel({
 
       {activeTab === 'ferramentas' && (
       <div className="space-y-4">
+      <YoutubeStudioSettings
+        toast={toast}
+        periodDays={periodDays}
+        onSaved={() => loadChannelSummary(true, true)}
+      />
       <YoutubeStudioPro
         viewsThreshold={viewsThreshold}
         selectedVideoId={selectedVideoId}

@@ -3,7 +3,7 @@
 # Painel YouTube Studio no Lumiera
 
 > Branch: `feature/youtube-studio-panel`  
-> Status: Fase 5 concluída (Fases 1–4 concluídas)
+> Status: Fases 1–6 concluídas (Studio Pro + UX em abas)
 
 ## Objetivo
 
@@ -227,3 +227,19 @@ Revincular: **Configurações → Integrações → Revincular YouTube** (ou Upl
 - [x] Cache reduz chamadas repetidas à API do YouTube
 - [x] Botão Atualizar força refresh (`refresh=1`)
 - [x] Threshold de alerta 48h editável e persistido
+
+### Fase 6 — Studio Pro, abas e configuração na UI (concluída)
+
+- Painel principal em abas: **Resumo · Vídeos · Comentários · Ferramentas**
+- **Studio Pro**: inbox zero, SLA, fila de aprovação, SEO, heatmap, YPP, checklist pré-upload, notas
+- **Configurações na UI** (`YoutubeStudioSettings`): e-mail relatórios, SMTP, metas 48h por projeto, PWA
+- **Testes A/B de título** no painel (`GET /api/youtube/channel/title-experiments`)
+- **Checklist pós-publicação** integrado na aba Resumo (por projeto Lumiera)
+- Correção de gráficos com altura em pixels (heatmap, velocity, retenção)
+
+## Critérios de aceite Fase 6
+
+- [x] Abas reduzem scroll vertical do painel
+- [x] SMTP e metas 48h editáveis sem editar JSON manualmente
+- [x] Experimentos A/B ativos listados com rankings e ações (aplicar vencedor / encerrar)
+- [x] Checklist pós-upload acessível pelo card Lumiera no Resumo

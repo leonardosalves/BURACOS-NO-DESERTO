@@ -161,7 +161,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
 
       <p className="text-[9px] text-zinc-600 flex items-center gap-1">
         <Target className="w-3 h-3" />
-        Metas 48h por projeto: edite em youtube_studio_settings.json → projectGoals
+        Metas 48h: Ferramentas → Configurações do canal
       </p>
     </div>
   );
