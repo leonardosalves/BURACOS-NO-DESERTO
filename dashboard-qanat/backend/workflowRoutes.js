@@ -33,6 +33,7 @@ import {
   loadVoiceboxConfig,
   probeVoiceboxServer,
   buildVoiceboxVoiceList,
+  buildVoiceboxStatusHint,
 } from "./voiceboxTts.js";
 import { flattenWordTranscripts, realignTimelineAssetsToSpeech } from "./timelineSceneSync.js";
 import {
@@ -489,9 +490,10 @@ export function registerWorkflowRoutes(app, deps) {
             voices: voiceboxVoices,
             available: voiceboxProbe.ok,
             serverUrl: voiceboxProbe.baseUrl,
-            hint: voiceboxProbe.ok
-              ? `7 engines (Qwen, Chatterbox, Kokoro…) · GPU: ${voiceboxProbe.gpuAvailable ? "sim" : "CPU"} · perfil=${voiceboxVoices[0]?.label || "—"}`
-              : (voiceboxProbe.error || "Offline: instale Voicebox (MSI) ou .\\scripts\\start-voicebox.ps1"),
+            gpuAvailable: Boolean(voiceboxProbe.gpuAvailable),
+            backendType: voiceboxProbe.backendType || null,
+            profileCount: (voiceboxProbe.profiles || []).length,
+            hint: buildVoiceboxStatusHint(voiceboxProbe, voiceboxVoices),
           },
           {
             id: "fish",

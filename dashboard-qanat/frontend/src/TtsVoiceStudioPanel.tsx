@@ -21,6 +21,9 @@ type TtsEngineOption = {
   serverUrl?: string;
   hint?: string;
   cloudModel?: string;
+  gpuAvailable?: boolean;
+  backendType?: string | null;
+  profileCount?: number;
 };
 
 const FISH_TAG_CHIPS = [
@@ -330,14 +333,22 @@ export function TtsVoiceStudioPanel({
       </div>
 
       {activeEngine && (
-        <p className={`text-[9px] px-2 py-1 rounded-lg border ${
-          activeEngine.available
-            ? 'text-emerald-300/90 border-emerald-500/25 bg-emerald-500/5'
-            : 'text-amber-300/90 border-amber-500/25 bg-amber-500/5'
-        }`}>
-          {activeEngine.available ? activeEngine.hint : (activeEngine.hint || 'Motor offline')}
-          {activeEngine.serverUrl ? ` · ${activeEngine.serverUrl}` : ''}
-        </p>
+        <div className="space-y-1">
+          <p className={`text-[9px] px-2 py-1 rounded-lg border ${
+            activeEngine.available
+              ? 'text-emerald-300/90 border-emerald-500/25 bg-emerald-500/5'
+              : 'text-amber-300/90 border-amber-500/25 bg-amber-500/5'
+          }`}>
+            {activeEngine.available ? activeEngine.hint : (activeEngine.hint || 'Motor offline')}
+            {activeEngine.serverUrl ? ` | ${activeEngine.serverUrl}` : ''}
+          </p>
+          {studioEngine === 'voicebox' && activeEngine.available && activeEngine.gpuAvailable === false && (
+            <p className="text-[8px] text-zinc-500 px-2 leading-relaxed">
+              GPU nao detectada — Voicebox usa CPU ({activeEngine.backendType || 'pytorch'}). Funciona normalmente, mas a geracao demora mais.
+              Com placa NVIDIA e drivers CUDA, reinicie o app Voicebox para tentar acelerar.
+            </p>
+          )}
+        </div>
       )}
 
       {studioEngine === 'fish' && (
