@@ -393,14 +393,17 @@ export function registerWorkflowRoutes(app, deps) {
           },
           {
             id: "fish",
-            label: "Fish Speech S2 (local, GPU)",
+            label: "Fish Speech S2",
             defaultVoice: fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
             voices: fishVoices,
             available: fishProbe.ok,
+            mode: fishProbe.mode || "local",
             serverUrl: fishProbe.baseUrl,
             hint: fishProbe.ok
-              ? "Servidor ativo — suporta tags inline [pausa], [ênfase], etc."
-              : `Offline: ${fishProbe.error || "inicie tools/api_server.py na porta 8080"}`,
+              ? (fishProbe.mode === "cloud"
+                ? "Fish Audio API (cloud) — tags inline [pausa], [ênfase]"
+                : "Servidor local ativo — tags inline [pausa], [ênfase]")
+              : (fishProbe.error || "Offline: .\\scripts\\start-fish-speech.ps1 ou fish_speech.api_key no config"),
           },
           {
             id: "edge",

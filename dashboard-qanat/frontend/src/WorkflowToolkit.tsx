@@ -36,6 +36,7 @@ type TtsEngineOption = {
   defaultSpeed?: number;
   voices: TtsVoiceOption[];
   available?: boolean;
+  mode?: string;
   serverUrl?: string;
   hint?: string;
 };
@@ -662,8 +663,10 @@ export function WorkflowToolkit({
               }`}
             >
               {activeTtsEngine.available
-                ? (ttsEngine === 'fish' ? 'Servidor ativo' : 'Pacote instalado')
-                : (ttsEngine === 'fish' ? 'Servidor offline' : 'Pacote ausente')}
+                ? (ttsEngine === 'fish'
+                  ? (activeTtsEngine.mode === 'cloud' ? 'API cloud' : 'Servidor local')
+                  : 'Pacote instalado')
+                : (ttsEngine === 'fish' ? 'Offline' : 'Pacote ausente')}
             </span>
             {activeTtsEngine.serverUrl ? (
               <span className="text-[8px] text-zinc-600 font-mono">{activeTtsEngine.serverUrl}</span>
@@ -678,7 +681,7 @@ export function WorkflowToolkit({
                 || 'Chatterbox — pip install chatterbox-tts. Multilingual V3 para PT; Turbo para EN com [chuckle].')
               : ttsEngine === 'fish'
                 ? (activeTtsEngine?.hint
-                  || 'Fish Speech S2 — GPU local. Use tags do Creator (Fish Audio) ou narrative_script_tagged.')
+                  || 'Local: .\\scripts\\start-fish-speech.ps1 · Cloud: fish_speech.api_key no config_qanat.json')
                 : 'Edge TTS usa vozes Microsoft na nuvem.'}
         </div>
         {btn('Gerar narração', <Mic className="w-3 h-3" />, handleTts, 'emerald')}
