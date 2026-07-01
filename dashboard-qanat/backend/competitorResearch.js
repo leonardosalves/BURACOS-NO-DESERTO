@@ -14,6 +14,7 @@ import {
   assertTitleTestScopes,
   getYoutubeAccessToken,
 } from "./youtubeTitleAnalytics.js";
+import { extractJsonCandidate, parseJsonLocally } from "./aiJsonParse.js";
 
 const COMPETITOR_MEMORY_FILE = "competitor-intelligence.md";
 const OUTLIER_MULTIPLIER = 3.5;
@@ -273,93 +274,104 @@ function detectOutliers(videos = []) {
     .sort((a, b) => b.outlierRatio - a.outlierRatio);
 }
 
-function parseJsonFromLlm(text = "") {
-  const raw = String(text || "").trim();
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced ? fenced[1].trim() : raw;
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    const start = candidate.indexOf("{");
-    const end = candidate.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(candidate.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
-    return null;
+function salvagePartialAnalysis(text = "", fallback = {}) {
+  const salvaged = { ...fallback };
+  const candidate = extractJsonCandidate(text);
+  for (const key of ["derivedIdeas", "outlierAnalyses", "promotedPatterns", "competitorErrors", "competitors"]) {
+    const re = new RegExp(`"${key}"\\s*:\\s*(\\[[\\s\\S]*?\\])`);
+    const match = candidate.match(re);
+    if (!match) continue;
+    try {
+      const arr = JSON.parse(match[1].replace(/,\s*]/g, "]"));
+      if (Array.isArray(arr) && arr.length) salvaged[key] = arr;
+    } catch { /* ignore */ }
   }
+  return salvaged;
+}
+
+function normalizeAnalysisShape(parsed = {}, fallback = {}) {
+  if (!parsed || typeof parsed !== "object") return null;
+  const pickArray = (value, fb = []) => (Array.isArray(value) && value.length ? value : fb);
+  return {
+    competitors: pickArray(parsed.competitors, fallback.competitors),
+    outlierAnalyses: pickArray(parsed.outlierAnalyses, fallback.outlierAnalyses),
+    derivedIdeas: pickArray(parsed.derivedIdeas, fallback.derivedIdeas),
+    promotedPatterns: Array.isArray(parsed.promotedPatterns) ? parsed.promotedPatterns : [],
+    competitorErrors: Array.isArray(parsed.competitorErrors) ? parsed.competitorErrors : [],
+  };
+}
+
+async function parseCompetitorAnalysis(llmText, { fallback, repairFn = null } = {}) {
+  if (!llmText) return { analysis: null, repaired: false, salvaged: false };
+
+  try {
+    return { analysis: normalizeAnalysisShape(parseJsonLocally(llmText), fallback), repaired: false, salvaged: false };
+  } catch (firstErr) {
+    console.warn("[CompetitorResearch] JSON parse:", firstErr.message);
+  }
+
+  if (repairFn) {
+    try {
+      const candidate = extractJsonCandidate(llmText).slice(0, 14000);
+      const repairedText = await repairFn(candidate);
+      if (repairedText) {
+        return {
+          analysis: normalizeAnalysisShape(parseJsonLocally(repairedText), fallback),
+          repaired: true,
+          salvaged: false,
+        };
+      }
+    } catch (repairErr) {
+      console.warn("[CompetitorResearch] JSON repair:", repairErr.message);
+    }
+  }
+
+  const partial = salvagePartialAnalysis(llmText, fallback);
+  const hasUseful = (partial.derivedIdeas?.length || 0) > 0
+    || (partial.outlierAnalyses?.length || 0) > 0;
+  if (hasUseful) {
+    return { analysis: normalizeAnalysisShape(partial, fallback), repaired: false, salvaged: true };
+  }
+
+  return { analysis: null, repaired: false, salvaged: false };
 }
 
 function buildAnalysisPrompt({ niche, format, competitors, outliers }) {
   const payload = {
     niche,
     format,
-    competitors: competitors.map((c) => ({
+    outliers: outliers.slice(0, 4).map((o) => ({
+      channel: o.channelTitle,
+      title: o.title.slice(0, 120),
+      views: o.views,
+      ratio: o.outlierRatio,
+      url: o.url,
+    })),
+    competitors: competitors.slice(0, 5).map((c) => ({
       title: c.title,
       subscribers: c.subscriberCount,
       url: c.url,
-      videoCount: c.videoCount,
-    })),
-    outliers: outliers.map((o) => ({
-      channel: o.channelTitle,
-      title: o.title,
-      views: o.views,
-      medianViews: o.channelMedianViews,
-      ratio: o.outlierRatio,
-      ageDays: o.ageDays,
-      duration: o.durationLabel,
-      url: o.url,
-      description: o.description,
     })),
   };
 
-  return `Você é analista de inteligência competitiva para YouTube (${format}) no nicho "${niche}".
+  return `Analista YouTube Shorts — nicho "${niche}".
 
-Dados coletados automaticamente da API do YouTube (outliers = views ≥ ${OUTLIER_MULTIPLIER}× mediana do canal):
+OUTLIERS (views ≥ ${OUTLIER_MULTIPLIER}× mediana):
+${JSON.stringify(payload.outliers)}
 
-${JSON.stringify(payload, null, 2)}
+CANAIS:
+${JSON.stringify(payload.competitors)}
 
-Analise em português do Brasil. Estude MECÂNICA e packaging — nunca copie tópico palavra por palavra.
-
-Retorne APENAS JSON válido (sem markdown) neste schema:
+Retorne SOMENTE um objeto JSON (sem markdown, sem comentários). Aspas duplas em strings. Sem vírgula trailing.
 {
-  "competitors": [
-    { "title": "", "url": "", "size": "", "notes": "", "monitor": true }
-  ],
-  "outlierAnalyses": [
-    {
-      "videoTitle": "",
-      "channel": "",
-      "videoUrl": "",
-      "hook": { "visual": "", "verbal": "", "onScreen": "", "archetype": "" },
-      "structure": { "format": "", "beats": "", "openLoops": "" },
-      "cta": { "type": "", "text": "" },
-      "packaging": { "titlePattern": "", "thumbHint": "" },
-      "mechanic": "",
-      "competitorMistakes": ""
-    }
-  ],
-  "derivedIdeas": [
-    {
-      "title": "",
-      "hookPt": "",
-      "whyNotCopy": "",
-      "pillar": "impactful|practical|provocative|astonishing",
-      "mechanicSource": ""
-    }
-  ],
-  "promotedPatterns": [],
-  "competitorErrors": []
+  "competitors":[{"title":"","url":"","size":"","notes":"","monitor":true}],
+  "outlierAnalyses":[{"videoTitle":"","channel":"","videoUrl":"","hook":{"verbal":"","onScreen":"","archetype":""},"structure":{"format":"","beats":""},"cta":{"type":"","text":""},"mechanic":"","competitorMistakes":""}],
+  "derivedIdeas":[{"title":"","hookPt":"","whyNotCopy":"","pillar":"astonishing","mechanicSource":""}],
+  "promotedPatterns":[],
+  "competitorErrors":[]
 }
 
-Regras:
-- outlierAnalyses: 1 entrada por outlier (máx ${outliers.length})
-- derivedIdeas: exatamente 3 ideias originais para o canal do usuário
-- promotedPatterns: só se a mesma mecânica aparecer em 2+ outliers
-- competitorErrors: erros recorrentes observados nos outliers`;
+Regras: PT-BR; mecânica (não cópia); derivedIdeas=3; outlierAnalyses=1 por outlier.`;
 }
 
 function formatSubscriberCount(n) {
@@ -536,6 +548,7 @@ export async function runCompetitorResearch(workspaceDir, {
   videosPerChannel = DEFAULT_VIDEOS_PER_CHANNEL,
   seedChannels = [],
   llmFn = null,
+  repairJsonFn = null,
 } = {}) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
@@ -642,20 +655,25 @@ export async function runCompetitorResearch(workspaceDir, {
     });
     try {
       const llmText = await llmFn(prompt);
-      const parsed = llmText ? parseJsonFromLlm(llmText) : null;
-      if (parsed && typeof parsed === "object") {
-        analysis = {
-          competitors: parsed.competitors || analysis.competitors,
-          outlierAnalyses: parsed.outlierAnalyses || analysis.outlierAnalyses,
-          derivedIdeas: parsed.derivedIdeas || analysis.derivedIdeas,
-          promotedPatterns: parsed.promotedPatterns || [],
-          competitorErrors: parsed.competitorErrors || [],
-        };
+      const { analysis: parsed, repaired, salvaged } = await parseCompetitorAnalysis(llmText, {
+        fallback: analysis,
+        repairFn: repairJsonFn,
+      });
+      if (parsed) {
+        analysis = parsed;
+        if (repaired) {
+          aiAnalysisWarning = "Análise IA recuperada (JSON reparado automaticamente).";
+        } else if (salvaged) {
+          aiAnalysisWarning = "Análise IA parcial recuperada dos outliers.";
+        }
       } else {
         aiAnalysisFailed = true;
         aiAnalysisWarning = llmText
           ? "IA retornou resposta inválida — usando análise automática básica."
           : "IA indisponível — dados do YouTube salvos com análise básica.";
+        if (llmText) {
+          console.warn("[CompetitorResearch] Resposta IA (trecho):", String(llmText).slice(0, 400));
+        }
       }
     } catch (err) {
       aiAnalysisFailed = true;
