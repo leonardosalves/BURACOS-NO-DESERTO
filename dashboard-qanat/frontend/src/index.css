@@ -598,10 +598,73 @@
     border-color: var(--dash-primary);
   }
 
-  /* Botões primários legados (bg-gold-500 + texto escuro) */
+  /* Botões primários legados — elimina amarelo/dourado do design antigo */
+  .dash-shell .bg-gold-500,
+  .dash-shell .bg-amber-500 {
+    background-color: var(--dash-primary) !important;
+  }
+
+  .dash-shell .hover\:bg-gold-600:hover,
+  .dash-shell .hover\:bg-amber-600:hover,
+  .dash-shell .disabled\:bg-gold-500\/50:disabled {
+    background-color: var(--dash-primary-dark) !important;
+  }
+
   .dash-shell .bg-gold-500.text-zinc-950,
-  .dash-shell .bg-gold-500.hover\:text-zinc-950 {
+  .dash-shell .bg-gold-500.hover\:text-zinc-950,
+  .dash-shell .bg-amber-500.text-zinc-950 {
     color: #fff !important;
+  }
+
+  .dash-shell .from-gold-500 {
+    --tw-gradient-from: var(--dash-primary) var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(130 128 253 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+
+  .dash-shell .to-amber-500 {
+    --tw-gradient-to: var(--dash-primary-dark) var(--tw-gradient-to-position);
+  }
+
+  .dash-shell .hover\:from-gold-600:hover {
+    --tw-gradient-from: var(--dash-primary-dark) var(--tw-gradient-from-position);
+  }
+
+  .dash-shell .hover\:to-amber-600:hover {
+    --tw-gradient-to: #4f3bc0 var(--tw-gradient-to-position);
+  }
+
+  .dash-segment-btn {
+    @apply px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer;
+    background: var(--dash-card-hover);
+    color: var(--dash-muted);
+    border: 1px solid var(--dash-border-soft);
+  }
+
+  .dash-segment-btn:hover {
+    color: #fff;
+    border-color: var(--dash-border);
+  }
+
+  .dash-segment-btn-active {
+    background: var(--dash-primary) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 14px rgba(130, 128, 253, 0.22);
+  }
+
+  .dash-shell .text-gold-500,
+  .dash-shell .text-gold-400,
+  .dash-shell .text-amber-500,
+  .dash-shell .text-amber-400 {
+    color: var(--dash-primary) !important;
+  }
+
+  .dash-shell .border-gold-500,
+  .dash-shell .border-gold-500\/30,
+  .dash-shell .border-gold-500\/40,
+  .dash-shell .focus\:border-gold-500:focus {
+    border-color: rgba(130, 128, 253, 0.45) !important;
   }
 
   /* ── Page layout (Settings / Creator) ── */
