@@ -6079,9 +6079,16 @@ async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride 
 
         if (response.ok) {
           const result = await response.json();
-          let responseText = result.choices?.[0]?.message?.content || "";
+          const msg = result.choices?.[0]?.message || {};
+          let responseText = typeof msg.content === "string" ? msg.content : "";
+          if (!responseText && Array.isArray(msg.content)) {
+            responseText = msg.content.map((part) => part?.text || part?.content || "").join("\n");
+          }
+          if (!responseText) {
+            responseText = msg.reasoning_content || msg.reasoning || "";
+          }
           responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-          console.log(`[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt}`);
+          console.log(`[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt} (${responseText.length} chars)`);
           return responseText;
         }
 
@@ -8729,9 +8736,17 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
     const llmFn = useAi
       ? async (prompt) => {
           const failures = [];
+          const LLM_TIMEOUT_MS = 90000;
+          const withTimeout = (promise, label) => Promise.race([
+            promise,
+            new Promise((_, reject) => {
+              setTimeout(() => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)), LLM_TIMEOUT_MS);
+            }),
+          ]);
+
           const tryLlm = async (label, fn) => {
             try {
-              const text = String(await fn() || "").trim();
+              const text = String(await withTimeout(fn(), label) || "").trim();
               if (text) return text;
               failures.push(`${label}: resposta vazia`);
             } catch (err) {
@@ -8742,19 +8757,28 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
           };
 
           let text = await tryLlm("provider", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-            maxRetries: 2,
+            maxRetries: 1,
             models: getAiProvider(WORKSPACE_DIR) === "nvidia"
-              ? NVIDIA_MODELS.slice(0, 2)
-              : [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash", "gemini-2.0-flash"],
+              ? NVIDIA_MODELS.slice(0, 1)
+              : [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash"],
             temperature: 0.5,
             projectDir: WORKSPACE_DIR,
           }));
 
-          if (!text) {
-            for (const key of getApiKeys(WORKSPACE_DIR).slice(0, 5)) {
+          if (!text && getAiProvider(WORKSPACE_DIR) === "nvidia") {
+            text = await tryLlm("nvidia-alt", () => callNvidiaWithRetry(prompt, {
+              maxRetries: 1,
+              models: NVIDIA_MODELS.slice(1, 3),
+              temperature: 0.5,
+              projectDir: WORKSPACE_DIR,
+            }));
+          }
+
+          if (!text && getAiProvider(WORKSPACE_DIR) !== "nvidia") {
+            for (const key of getApiKeys(WORKSPACE_DIR).slice(0, 2)) {
               text = await tryLlm("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
                 maxRetries: 1,
-                models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+                models: ["gemini-2.0-flash"],
                 temperature: 0.5,
                 projectDir: WORKSPACE_DIR,
                 forceProvider: "gemini",
