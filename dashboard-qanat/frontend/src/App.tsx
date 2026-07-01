@@ -7120,13 +7120,23 @@ export default function App() {
 
     };
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = () => {
 
-      setLogs(prev => [...prev, `[Erro Conexão] SSE encerrado inesperadamente.`]);
+      setLogs((prev) => {
+        const last = prev[prev.length - 1] || '';
+        if (last.includes('Planejamento de overlays') || last.includes('Token de planejamento')) {
+          return [...prev, '[Dashboard] Render bloqueado — veja as linhas acima (overlays/Gemini).'];
+        }
+        return [...prev, '[Erro Conexão] SSE encerrado inesperadamente.'];
+      });
 
       eventSource.close();
 
       setRendering(false);
+
+      setRenderProgress((prev) => (prev ? { ...prev, phase: 'Render interrompido' } : null));
+
+      setTimeout(() => setRenderProgress(null), 5000);
 
     };
 

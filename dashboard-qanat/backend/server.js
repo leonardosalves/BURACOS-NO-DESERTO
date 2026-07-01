@@ -3641,6 +3641,16 @@ async function ensureProjectSfxTracks(projDir) {
 }
 
 // Planeja overlays via Gemini no Chrome (obrigatório quando gemini_browser_mode) ou API
+function countProjectPlannedOverlays(storyboard = {}) {
+  if (Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0) {
+    return storyboard.overlays_ai.length;
+  }
+  if (Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0) {
+    return storyboard.overlays.filter((o) => o && o.id && !String(o.id).startsWith("sys-")).length;
+  }
+  return 0;
+}
+
 function createOverlayPlanSessionId() {
   return `lum-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -3673,12 +3683,17 @@ app.post("/api/render/plan-overlays", async (req, res) => {
           : []);
 
       if (existingOverlays.length > 0) {
-        const planToken = existingSb.overlays_plan_token || `cached-${Date.now()}`;
+        const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const plannedAt = new Date().toISOString();
+        existingSb.overlays_ai = JSON.parse(JSON.stringify(existingOverlays));
+        existingSb.overlays_plan_token = planToken;
+        existingSb.overlays_planned_at = plannedAt;
+        fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(existingSb, null, 2), "utf8");
         console.log(`[Plan Overlays] Overlays já existem (${existingOverlays.length} itens, token=${planToken}) — pulando chamada à IA.`);
         return res.json({
           success: true,
           overlayCount: existingOverlays.length,
-          plannedAt: existingSb.overlays_planned_at || new Date().toISOString(),
+          plannedAt,
           hyperframes: existingSb.overlays_hyperframes || false,
           planToken,
           source: "cached",
@@ -3981,16 +3996,38 @@ app.get("/api/render/:mode", async (req, res) => {
           ? new Date(storyboardGate.overlays_planned_at).getTime()
           : 0;
         const planAgeMs = plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
-        const overlayCount = Array.isArray(storyboardGate.overlays_ai) ? storyboardGate.overlays_ai.length : 0;
+        const overlayCount = countProjectPlannedOverlays(storyboardGate);
         const reqToken = String(req.query.overlay_plan_token || "").trim();
         const savedToken = String(storyboardGate.overlays_plan_token || "").trim();
-        const tokenOk = reqToken && savedToken && reqToken === savedToken;
-        if (overlayCount < 1 || planAgeMs > 5 * 60 * 1000 || !tokenOk) {
-          sendLog("=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ===");
-          sendLog("[Remotion] O render foi bloqueado. Aguarde o Gemini no Chrome terminar antes de compilar.");
-          if (!tokenOk) {
-            sendLog("[Remotion] Token de planejamento inválido — o render iniciou antes da resposta do Gemini.");
+        let tokenOk = reqToken && savedToken && reqToken === savedToken;
+        const planMaxAgeMs = 30 * 60 * 1000;
+
+        if (!tokenOk && reqToken && overlayCount >= 1) {
+          storyboardGate.overlays_plan_token = reqToken;
+          storyboardGate.overlays_planned_at = new Date().toISOString();
+          if (!Array.isArray(storyboardGate.overlays_ai) || !storyboardGate.overlays_ai.length) {
+            const fallback = countProjectPlannedOverlays(storyboardGate);
+            if (fallback > 0 && Array.isArray(storyboardGate.overlays)) {
+              storyboardGate.overlays_ai = JSON.parse(JSON.stringify(
+                storyboardGate.overlays.filter((o) => o && o.id && !String(o.id).startsWith("sys-")),
+              ));
+            }
           }
+          fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboardGate, null, 2), "utf8");
+          tokenOk = true;
+          sendLog("[Remotion] Token de overlays sincronizado com o storyboard.");
+        }
+
+        if (overlayCount < 1 || planAgeMs > planMaxAgeMs || !tokenOk) {
+          sendLog("=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ===");
+          if (overlayCount < 1) {
+            sendLog("[Remotion] Nenhum overlay no storyboard. Clique em «Gerar overlays IA» ou aguarde o Gemini no Chrome.");
+          } else if (!tokenOk) {
+            sendLog("[Remotion] Token de planejamento inválido — clique Render de novo após o Gemini concluir.");
+          } else {
+            sendLog("[Remotion] Planejamento expirou (>30 min). Gere overlays novamente antes do render.");
+          }
+          res.write(`data: ${JSON.stringify({ type: "failed", code: 2, reason: "overlay_plan_gate" })}\n\n`);
           res.end();
           cleanup();
           return;
