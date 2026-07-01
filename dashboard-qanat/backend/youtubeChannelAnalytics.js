@@ -33,13 +33,33 @@ function writeCacheStore(workspaceDir, store) {
   fs.writeFileSync(getCacheFilePath(workspaceDir), JSON.stringify(store, null, 2), "utf8");
 }
 
+function normalizeVideoFormat(value) {
+  const raw = String(value || "").trim().toUpperCase();
+  if (raw === "SHORT" || raw === "SHORTS") return "SHORT";
+  return "LONG";
+}
+
+function enrichVideosReport(data) {
+  if (!data?.videos?.length) return data;
+  return {
+    ...data,
+    videos: data.videos.map((video) => ({
+      ...video,
+      videoFormat: normalizeVideoFormat(video.videoFormat || video.format),
+    })),
+  };
+}
+
 function getCachedPayload(workspaceDir, cacheKey, ttlMs) {
   const entry = readCacheStore(workspaceDir)[cacheKey];
   if (!entry?.fetchedAt || !entry?.data) return null;
   const ageMs = Date.now() - new Date(entry.fetchedAt).getTime();
   if (ageMs > ttlMs) return null;
+  const data = cacheKey.startsWith("videos:")
+    ? enrichVideosReport(entry.data)
+    : entry.data;
   return {
-    ...entry.data,
+    ...data,
     fromCache: true,
     cachedAt: entry.fetchedAt,
   };
@@ -303,12 +323,12 @@ async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28
   const videos = [...videoMetaById.values()]
     .map((meta) => ({
       ...meta,
-      videoFormat: formatByVideoId.get(meta.videoId) || "LONG",
+      videoFormat: normalizeVideoFormat(formatByVideoId.get(meta.videoId) || "LONG"),
       metrics: metricsByVideoId.get(meta.videoId) || emptyMetrics,
     }))
     .sort((a, b) => (b.metrics.views || 0) - (a.metrics.views || 0));
 
-  return {
+  return enrichVideosReport({
     channelId: channelItem?.id || null,
     channelTitle: channelItem?.snippet?.title || "",
     periodDays: days,
@@ -318,21 +338,29 @@ async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28
     fetchedAt: new Date().toISOString(),
     reachNote:
       "Impressões e CTR de thumbnail só existem no YouTube Studio. O Lumiera mostra views, engajamento e minutos assistidos do período.",
-  };
+  });
 }
 
 export async function fetchChannelVideosWithAnalytics(
   workspaceDir,
-  { days = 28, limit = 25, forceRefresh = false } = {},
+  { days = 28, limit = 25, forceRefresh = false, format = "all" } = {},
 ) {
-  const cacheKey = `videos:${days}:${limit}`;
-  return withChannelCache(
+  const cacheKey = `videos:v2:${days}:${limit}`;
+  const report = await withChannelCache(
     workspaceDir,
     cacheKey,
     CACHE_TTL_MS.videos,
     forceRefresh,
     () => fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days, limit }),
   );
+  const normalizedFormat = String(format || "all").toUpperCase();
+  if (normalizedFormat === "ALL" || !report?.videos) return report;
+  const target = normalizedFormat === "SHORTS" ? "SHORT" : normalizedFormat;
+  return {
+    ...report,
+    formatFilter: target,
+    videos: report.videos.filter((video) => video.videoFormat === target),
+  };
 }
 
 function normalizeCommentText(value = "") {

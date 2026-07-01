@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, Bell, ExternalLink, Eye, FolderOpen, Loader2, MessageCircle, MessageSquareReply,
   RefreshCw, Search, Send, Sparkles, ThumbsUp, TrendingUp, Users, Video, Youtube, CheckCircle2, Mail,
@@ -230,6 +230,12 @@ function formatNumber(value: number) {
   return n.toLocaleString('pt-BR');
 }
 
+function normalizeVideoFormat(value?: string): 'SHORT' | 'LONG' {
+  const raw = String(value || '').trim().toUpperCase();
+  if (raw === 'SHORT' || raw === 'SHORTS') return 'SHORT';
+  return 'LONG';
+}
+
 function formatDateTime(iso?: string) {
   if (!iso) return '—';
   try {
@@ -293,6 +299,8 @@ export function YoutubeStudioPanel({
   const [bulkReplyText, setBulkReplyText] = useState('');
   const [videoFormatFilter, setVideoFormatFilter] = useState<'all' | 'SHORT' | 'LONG'>('all');
   const [translations, setTranslations] = useState<Record<string, string>>({});
+  const periodDaysRef = useRef(periodDays);
+  periodDaysRef.current = periodDays;
 
   useEffect(() => {
     if (nicheKeyword && !appliedKeyword) {
@@ -354,19 +362,25 @@ export function YoutubeStudioPanel({
     });
   }, [onAlertsSync, viewsThreshold]);
 
-  const loadChannelSummary = useCallback(async (silent = false, forceRefresh = false) => {
+  const loadChannelSummary = useCallback(async (
+    silent = false,
+    forceRefresh = false,
+    daysOverride?: number,
+  ) => {
+    const days = daysOverride ?? periodDaysRef.current;
     if (!silent) setLoading(true);
     else setRefreshing(true);
     setLumieraLoading(true);
     try {
       const params = new URLSearchParams({
-        days: String(periodDays),
+        days: String(days),
         limit: '25',
         viewsThreshold: String(viewsThreshold),
+        _: String(Date.now()),
       });
       if (forceRefresh) params.set('refresh', '1');
 
-      const res = await fetch(`/api/youtube/channel/summary?${params.toString()}`);
+      const res = await fetch(`/api/youtube/channel/summary?${params.toString()}`, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok && res.status !== 403) {
         throw new Error(data.details || data.error || 'Falha ao carregar canal');
@@ -388,7 +402,12 @@ export function YoutubeStudioPanel({
       setRefreshing(false);
       setLumieraLoading(false);
     }
-  }, [periodDays, syncAlertsPayload, toast, viewsThreshold]);
+  }, [syncAlertsPayload, toast, viewsThreshold]);
+
+  const changePeriodDays = useCallback((days: number) => {
+    setPeriodDays(days);
+    void loadChannelSummary(true, true, days);
+  }, [loadChannelSummary]);
 
   const loadVideoDetail = useCallback(async (videoId: string) => {
     setVideoDetailLoading(true);
@@ -591,6 +610,21 @@ export function YoutubeStudioPanel({
   const scopesMissing = overview?.connected && !overview.scopesReady;
   const hotVideoIds = new Set((alerts?.hotVideos || []).map((item) => item.videoId));
   const lumieraByVideoId = alerts?.lumieraVideoById || {};
+
+  const filteredVideos = useMemo(() => {
+    const rows = videosReport?.videos || [];
+    if (videoFormatFilter === 'all') return rows;
+    return rows.filter((video) => normalizeVideoFormat(video.videoFormat) === videoFormatFilter);
+  }, [videoFormatFilter, videosReport?.videos]);
+
+  const formatCounts = useMemo(() => {
+    const rows = videosReport?.videos || [];
+    return {
+      all: rows.length,
+      short: rows.filter((video) => normalizeVideoFormat(video.videoFormat) === 'SHORT').length,
+      long: rows.filter((video) => normalizeVideoFormat(video.videoFormat) === 'LONG').length,
+    };
+  }, [videosReport?.videos]);
 
   if (loading && !overview) {
     return (
@@ -937,6 +971,10 @@ export function YoutubeStudioPanel({
               {videosReport?.startDate && videosReport?.endDate
                 ? `${formatShortDate(videosReport.startDate)} — ${formatShortDate(videosReport.endDate)}`
                 : `Últimos ${periodDays} dias`}
+              {videosReport?.videos?.length
+                ? ` · ${filteredVideos.length} de ${videosReport.videos.length} vídeos`
+                : ''}
+              {refreshing ? ' · atualizando…' : ''}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -951,19 +989,20 @@ export function YoutubeStudioPanel({
                     : 'bg-zinc-950 text-zinc-500 border-zinc-800'
                 }`}
               >
-                {fmt === 'all' ? 'Todos formatos' : fmt}
+                {fmt === 'all' ? `Todos (${formatCounts.all})` : `${fmt} (${fmt === 'SHORT' ? formatCounts.short : formatCounts.long})`}
               </button>
             ))}
             {[7, 28, 90].map((days) => (
               <button
                 key={days}
                 type="button"
-                onClick={() => setPeriodDays(days)}
+                onClick={() => changePeriodDays(days)}
+                disabled={refreshing && periodDays === days}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
                   periodDays === days
                     ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
                     : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:text-zinc-300'
-                }`}
+                } ${refreshing ? 'opacity-80' : ''}`}
               >
                 {days}d
               </button>
@@ -985,6 +1024,14 @@ export function YoutubeStudioPanel({
               ? 'Conecte o YouTube para ver a tabela de vídeos.'
               : 'Nenhum vídeo encontrado no período.'}
           </p>
+        ) : !filteredVideos.length ? (
+          <p className="text-[11px] text-zinc-500 py-6 text-center">
+            {videoFormatFilter === 'SHORT'
+              ? 'Nenhum Short nos últimos uploads deste período.'
+              : videoFormatFilter === 'LONG'
+                ? 'Nenhum vídeo longo nos últimos uploads deste período.'
+                : 'Nenhum vídeo corresponde ao filtro.'}
+          </p>
         ) : (
           <div className="overflow-x-auto -mx-1">
             <table className="w-full min-w-[640px] text-left text-[11px]">
@@ -999,9 +1046,7 @@ export function YoutubeStudioPanel({
                 </tr>
               </thead>
               <tbody>
-                {videosReport.videos
-                  .filter((v) => videoFormatFilter === 'all' || v.videoFormat === videoFormatFilter)
-                  .map((video) => {
+                {filteredVideos.map((video) => {
                   const lumieraRef = lumieraByVideoId[video.videoId];
                   const isHot = hotVideoIds.has(video.videoId);
                   return (
@@ -1036,7 +1081,7 @@ export function YoutubeStudioPanel({
                       </a>
                       <span className="text-[9px] text-zinc-600 block mt-0.5">
                         {formatShortDate(video.publishedAt)}
-                        {video.videoFormat ? ` · ${video.videoFormat}` : ''}
+                        {` · ${normalizeVideoFormat(video.videoFormat)}`}
                       </span>
                       {lumieraRef && (
                         <button
