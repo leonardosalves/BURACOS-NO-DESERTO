@@ -603,6 +603,15 @@ export function WorkflowToolkit({
         </div>
       ) : null}
 
+      <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
+        {btn('Buscar B-roll', <Download className="w-3 h-3" />, handleStock, 'sky')}
+        {btn('Clip Factory', <Scissors className="w-3 h-3" />, handleClipFactory, 'cyan')}
+        {btn('Auto-map IA', <Wand2 className="w-3 h-3" />, handleAutoMap, 'violet')}
+        {btn('Trilha BGM', <Music className="w-3 h-3" />, handleBgm, 'emerald')}
+        {btn('Preparar pub.', <Upload className="w-3 h-3" />, handlePublishPrep, 'gold')}
+        {onNavigateTab && btn('Metadados', <Image className="w-3 h-3" />, () => onNavigateTab('ai'), 'gold')}
+      </div>
+
       {getMediaUrl && (
         <NarrationReplacePanel
           getProjectUrl={getProjectUrl}
@@ -619,8 +628,11 @@ export function WorkflowToolkit({
         />
       )}
 
+      <details className="lumiera-collapsible-section" open>
+        <summary>Narração TTS</summary>
+        <div className="lumiera-collapsible-body">
       <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-2.5 space-y-2">
-        <p className="text-[9px] text-zinc-500 uppercase tracking-wide font-bold">Narração TTS</p>
+        <p className="text-[9px] text-zinc-500 uppercase tracking-wide font-bold">Motor e voz</p>
         <div className={`grid gap-2 ${compact ? 'grid-cols-1' : 'grid-cols-2'}`}>
           <label className="space-y-1">
             <span className="text-[9px] text-zinc-500">Motor</span>
@@ -699,11 +711,16 @@ export function WorkflowToolkit({
         </div>
         {btn('Gerar narração', <Mic className="w-3 h-3" />, handleTts, 'emerald')}
       </div>
+        </div>
+      </details>
 
+      <details className="lumiera-collapsible-section">
+        <summary className="text-violet-300/90">ComfyUI + LTX (vídeo IA)</summary>
+        <div className="lumiera-collapsible-body">
       <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-2.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[9px] text-violet-300 uppercase tracking-wide font-bold flex items-center gap-1">
-            <Video className="w-3 h-3" /> ComfyUI + LTX (RTX 4060 Ti 8GB)
+            <Video className="w-3 h-3" /> Servidor e modelos
           </p>
           {comfyStatus?.paths?.ui && (
             <a href={comfyStatus.paths.ui} target="_blank" rel="noreferrer" className="text-[8px] text-violet-400 hover:text-violet-200 flex items-center gap-0.5">
@@ -984,19 +1001,13 @@ export function WorkflowToolkit({
           </pre>
         )}
       </div>
-
-      <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
-        {btn('Buscar B-roll', <Download className="w-3 h-3" />, handleStock, 'sky')}
-        {btn('Clip Factory', <Scissors className="w-3 h-3" />, handleClipFactory, 'cyan')}
-        {btn('Auto-map IA', <Wand2 className="w-3 h-3" />, handleAutoMap, 'violet')}
-        {btn('Trilha BGM', <Music className="w-3 h-3" />, handleBgm, 'emerald')}
-        {btn('Preparar pub.', <Upload className="w-3 h-3" />, handlePublishPrep, 'gold')}
-        {onNavigateTab && btn('Metadados', <Image className="w-3 h-3" />, () => onNavigateTab('ai'), 'gold')}
-      </div>
+        </div>
+      </details>
 
       {showPipeline && (
-        <div className="space-y-2 pt-1 border-t border-zinc-800/80">
-          <p className="text-[9px] text-zinc-500 uppercase tracking-wide font-bold">Autopilot</p>
+        <details className="lumiera-collapsible-section">
+          <summary>Autopilot (pipeline)</summary>
+          <div className="lumiera-collapsible-body space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {btn('Pipeline completo', <Play className="w-3 h-3" />, () => runPipeline('sync,stock,automap,bgm,mix,metadata,thumbnails'), 'violet')}
             {btn('Só mídia + map', <Play className="w-3 h-3" />, () => runPipeline('stock,automap'), 'sky')}
@@ -1007,7 +1018,8 @@ export function WorkflowToolkit({
               {pipelineLog.slice(-8).join('\n')}
             </pre>
           )}
-        </div>
+          </div>
+        </details>
       )}
 
     </div>

@@ -1868,7 +1868,7 @@
   }
 
   .dash-project-tab-head {
-    @apply flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5 sm:mb-6 p-4 sm:p-5 rounded-lg;
+    @apply flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3 sm:mb-4 p-3 sm:p-4 rounded-lg;
     background: var(--dash-card);
     border: 1px solid var(--dash-border);
     box-shadow: 0 1px 15px rgba(255, 255, 255, 0.04);
@@ -1890,12 +1890,12 @@
   }
 
   .dash-project-tab-sub {
-    @apply text-xs sm:text-sm mt-1 leading-relaxed max-w-2xl;
+    @apply text-[11px] sm:text-xs mt-0.5 leading-relaxed max-w-2xl hidden sm:block;
     color: var(--dash-muted);
   }
 
   .dash-project-tab-body {
-    @apply min-w-0 space-y-6 sm:space-y-8;
+    @apply min-w-0 space-y-4;
   }
 
   .dash-insights-row {
@@ -1994,19 +1994,23 @@
   }
 
   .lumiera-render-workspace {
-    @apply space-y-4 min-w-0 w-full;
+    @apply space-y-3 min-w-0 w-full;
+  }
+
+  .lumiera-render-hero {
+    @apply space-y-3 min-w-0 w-full rounded-xl;
   }
 
   .lumiera-render-grid {
-    @apply grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_min(22rem,34%)] gap-4 sm:gap-5 min-w-0 items-start;
+    @apply grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_min(20rem,32%)] gap-3 sm:gap-4 min-w-0 items-start;
   }
 
   .lumiera-render-engines-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0 w-full;
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3 min-w-0 w-full;
   }
 
   .lumiera-render-sidebar {
-    @apply min-w-0 xl:sticky xl:top-4;
+    @apply min-w-0 xl:sticky xl:top-2;
   }
 
   .lumiera-render-output-panel details summary::-webkit-details-marker {
@@ -2014,8 +2018,8 @@
   }
 
   .lumiera-render-card {
-    @apply p-4 sm:p-5 rounded-lg flex flex-col justify-between gap-3 font-sans min-w-0;
-    min-height: 11rem;
+    @apply p-3 sm:p-4 rounded-lg flex flex-col justify-between gap-2 font-sans min-w-0;
+    min-height: 0;
     background: var(--dash-card);
     box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
   }
@@ -2041,7 +2045,27 @@
   }
 
   .lumiera-panel-stack {
-    @apply space-y-6 sm:space-y-8 min-w-0 w-full;
+    @apply space-y-4 min-w-0 w-full;
+  }
+
+  .lumiera-collapsible-section {
+    @apply rounded-lg border border-zinc-800/80 bg-zinc-950/30 overflow-hidden;
+  }
+
+  .lumiera-collapsible-section > summary {
+    @apply list-none cursor-pointer px-3 py-2.5 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wide text-zinc-400 hover:text-zinc-200 transition;
+  }
+
+  .lumiera-collapsible-section > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .lumiera-collapsible-section[open] > summary {
+    @apply border-b border-zinc-800/60 text-zinc-300;
+  }
+
+  .lumiera-collapsible-body {
+    @apply p-3 space-y-3;
   }
 
   .lumiera-fill-view {
