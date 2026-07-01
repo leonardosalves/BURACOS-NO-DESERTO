@@ -70,11 +70,11 @@ export function SettingsProduction({
 
   return (
     <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
-      <div className="border-b border-zinc-900 pb-4">
+      <div className="border-b border-[var(--dash-border)] pb-4">
         <SectionHeader
           title="PRODUÇÃO DO PROJETO"
           helpId="settings-producao"
-          icon={<Clapperboard className="w-4 h-4 text-gold-500" />}
+          icon={<Clapperboard className="w-4 h-4 text-[var(--dash-primary)]" />}
           subtitle={(
             <>
               Mix de áudio, ritmo de overlays e orçamento da IA — salvo em <span className="text-zinc-300">config_qanat.json</span> por projeto.
@@ -100,19 +100,15 @@ export function SettingsProduction({
                 onClick={() => setDraft((prev) => applyProductionPatch(prev, {
                   overlay_intensity: o.id === 'normal' ? undefined : o.id,
                 }))}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
-                  intensity === o.id
-                    ? 'border-gold-500/60 bg-gold-500/15 text-gold-300'
-                    : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600'
-                }`}
+                className={`dash-option-btn ${intensity === o.id ? 'dash-option-btn-active' : ''}`}
               >
                 {o.label}
               </button>
             ))}
           </div>
-          <p className="text-[9px] text-zinc-500">{INTENSITY_OPTIONS.find((o) => o.id === intensity)?.hint}</p>
+          <p className="text-[9px] text-[var(--dash-muted)]">{INTENSITY_OPTIONS.find((o) => o.id === intensity)?.hint}</p>
 
-          <div className="space-y-2 pt-2 border-t border-zinc-900">
+          <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
             <SettingLabel
               helpTitle="Intervalo entre overlays"
               help="Tempo mínimo de tela limpa entre um overlay e o próximo. Apertado deixa a edição mais dinâmica; Relaxado dá mais respiro visual."
@@ -128,17 +124,13 @@ export function SettingsProduction({
                   onClick={() => setDraft((prev) => applyProductionPatch(prev, {
                     overlay_min_gap: o.id === 'normal' ? undefined : o.id,
                   }))}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${
-                    gap === o.id
-                      ? 'border-gold-500/60 bg-gold-500/15 text-gold-300'
-                      : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600'
-                  }`}
+                  className={`dash-option-btn ${gap === o.id ? 'dash-option-btn-active' : ''}`}
                 >
                   {o.label}
                 </button>
               ))}
             </div>
-            <p className="text-[9px] text-zinc-500">{GAP_OPTIONS.find((o) => o.id === gap)?.hint}</p>
+            <p className="text-[9px] text-[var(--dash-muted)]">{GAP_OPTIONS.find((o) => o.id === gap)?.hint}</p>
           </div>
 
           <div className="space-y-2">
@@ -157,7 +149,7 @@ export function SettingsProduction({
                   overlay_max_duration: v > 0 ? v : undefined,
                 }));
               }}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
+              className="dash-select"
             >
               {MAX_DURATION_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -189,22 +181,18 @@ export function SettingsProduction({
               onChange={(e) => setDraft((prev) => applyProductionPatch(prev, {
                 project_music_volume: parseFloat(e.target.value),
               }))}
-              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-gold-500"
+              className="dash-range"
             />
             <button
               type="button"
               onClick={() => setDraft((prev) => applyProductionPatch(prev, { project_music_volume: undefined }))}
-              className={`w-full py-2 rounded-xl text-[10px] font-bold border transition ${
-                projectVol === undefined
-                  ? 'border-gold-500/40 bg-gold-500/10 text-gold-400'
-                  : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'
-              }`}
+              className={`dash-reset-btn ${projectVol === undefined ? 'dash-reset-btn-active' : ''}`}
             >
               Usar global ({Math.round(globalMusicVolume * 100)}%)
             </button>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-zinc-900">
+          <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
             <SettingLabel
               helpTitle="Ducking da trilha"
               help="Quanto a música abaixa automaticamente quando a narração está ativa. Forte prioriza a voz; Leve mantém a trilha mais audível."
@@ -220,17 +208,13 @@ export function SettingsProduction({
                   onClick={() => setDraft((prev) => applyProductionPatch(prev, {
                     bgm_duck_strength: o.id === 'normal' ? undefined : o.id,
                   }))}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${
-                    duck === o.id
-                      ? 'border-gold-500/60 bg-gold-500/15 text-gold-300'
-                      : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600'
-                  }`}
+                  className={`dash-option-btn ${duck === o.id ? 'dash-option-btn-active' : ''}`}
                 >
                   {o.label}
                 </button>
               ))}
             </div>
-            <p className="text-[9px] text-zinc-500">{DUCK_OPTIONS.find((o) => o.id === duck)?.hint}</p>
+            <p className="text-[9px] text-[var(--dash-muted)]">{DUCK_OPTIONS.find((o) => o.id === duck)?.hint}</p>
           </div>
 
           <div className="space-y-2">
@@ -255,16 +239,12 @@ export function SettingsProduction({
               onChange={(e) => setDraft((prev) => applyProductionPatch(prev, {
                 overlay_sfx_volume: parseFloat(e.target.value) === 1 ? undefined : parseFloat(e.target.value),
               }))}
-              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-gold-500"
+              className="dash-range"
             />
             <button
               type="button"
               onClick={() => setDraft((prev) => applyProductionPatch(prev, { overlay_sfx_volume: undefined }))}
-              className={`w-full py-2 rounded-xl text-[10px] font-bold border transition ${
-                draft.overlay_sfx_volume === undefined
-                  ? 'border-gold-500/40 bg-gold-500/10 text-gold-400'
-                  : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'
-              }`}
+              className={`dash-reset-btn ${draft.overlay_sfx_volume === undefined ? 'dash-reset-btn-active' : ''}`}
             >
               Usar padrão (100%)
             </button>
@@ -272,18 +252,18 @@ export function SettingsProduction({
         </div>
       </div>
 
-      <p className="text-[9px] text-zinc-600 leading-relaxed border-t border-zinc-900 pt-3">
+      <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed border-t border-[var(--dash-border)] pt-3">
         {isShortFormat
           ? 'Shorts: listicles mantêm limite rígido de overlays independente da densidade.'
           : 'Vídeos longos: densidade, intervalo e duração afetam o planejamento da IA e a validação no render.'}
       </p>
 
-      <div className="flex justify-end border-t border-zinc-900 pt-4">
+      <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
         <button
           type="button"
           onClick={() => onSave(draft)}
           disabled={saving}
-          className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2"
+          className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Salvando...' : 'Salvar Produção do Projeto'}
