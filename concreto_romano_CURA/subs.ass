@@ -1,0 +1,151 @@
+[Script Info]
+Title: Qanat Documentary Subtitles
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,2,30,30,320,1
+Style: Impact,Arial,72,&H0000C5FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,0,5,30,30,30,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.16,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}O{\c&HFFFFFF&}{\1a&H44&}{\fs48} nosso concreto raxa
+Dialogue: 0,0:00:00.16,0:00:00.38,Default,,0,0,0,,{\1a&H44&}{\fs48} O {\c&HFFE080&}{\1a&H00&}{\fs58}nosso{\c&HFFFFFF&}{\1a&H44&}{\fs48} concreto raxa
+Dialogue: 0,0:00:00.38,0:00:01.00,Default,,0,0,0,,{\1a&H44&}{\fs48} O nosso {\c&H00C5FF&}{\1a&H00&}{\fs58}concreto{\c&HFFFFFF&}{\1a&H44&}{\fs48} raxa
+Dialogue: 0,0:00:01.00,0:00:01.62,Default,,0,0,0,,{\1a&H44&}{\fs48} O nosso concreto {\c&HFFE080&}{\1a&H00&}{\fs58}raxa{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:01.62,0:00:01.72,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}em{\c&HFFFFFF&}{\1a&H44&}{\fs48} décadas.
+Dialogue: 0,0:00:01.72,0:00:02.30,Default,,0,0,0,,{\1a&H44&}{\fs48} em {\c&HFFE080&}{\1a&H00&}{\fs58}décadas.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:03.44,0:00:03.56,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Mas{\c&HFFFFFF&}{\1a&H44&}{\fs48} este piere romano
+Dialogue: 0,0:00:03.56,0:00:03.92,Default,,0,0,0,,{\1a&H44&}{\fs48} Mas {\c&HFFE080&}{\1a&H00&}{\fs58}este{\c&HFFFFFF&}{\1a&H44&}{\fs48} piere romano
+Dialogue: 0,0:00:03.92,0:00:04.24,Default,,0,0,0,,{\1a&H44&}{\fs48} Mas este {\c&HFFE080&}{\1a&H00&}{\fs58}piere{\c&HFFFFFF&}{\1a&H44&}{\fs48} romano
+Dialogue: 0,0:00:04.24,0:00:04.68,Default,,0,0,0,,{\1a&H44&}{\fs48} Mas este piere {\c&H00C5FF&}{\1a&H00&}{\fs58}romano{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:04.68,0:00:05.16,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}existe{\c&HFFFFFF&}{\1a&H44&}{\fs48} intacto a 2
+Dialogue: 0,0:00:05.16,0:00:05.94,Default,,0,0,0,,{\1a&H44&}{\fs48} existe {\c&HFFE080&}{\1a&H00&}{\fs58}intacto{\c&HFFFFFF&}{\1a&H44&}{\fs48} a 2
+Dialogue: 0,0:00:05.94,0:00:06.02,Default,,0,0,0,,{\1a&H44&}{\fs48} existe intacto {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} 2
+Dialogue: 0,0:00:06.02,0:00:06.40,Default,,0,0,0,,{\1a&H44&}{\fs48} existe intacto a {\c&HFFE080&}{\1a&H00&}{\fs58}2{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:06.40,0:00:06.56,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}mil{\c&HFFFFFF&}{\1a&H44&}{\fs48} anos
+Dialogue: 0,0:00:06.56,0:00:06.94,Default,,0,0,0,,{\1a&H44&}{\fs48} mil {\c&HFFE080&}{\1a&H00&}{\fs58}anos{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:06.94,0:00:07.18,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}sobre{\c&HFFFFFF&}{\1a&H44&}{\fs48} a força da
+Dialogue: 0,0:00:07.18,0:00:07.34,Default,,0,0,0,,{\1a&H44&}{\fs48} sobre {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} força da
+Dialogue: 0,0:00:07.34,0:00:07.68,Default,,0,0,0,,{\1a&H44&}{\fs48} sobre a {\c&HFFE080&}{\1a&H00&}{\fs58}força{\c&HFFFFFF&}{\1a&H44&}{\fs48} da
+Dialogue: 0,0:00:07.68,0:00:07.88,Default,,0,0,0,,{\1a&H44&}{\fs48} sobre a força {\c&HFFE080&}{\1a&H00&}{\fs58}da{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:07.88,0:00:08.08,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}água{\c&HFFFFFF&}{\1a&H44&}{\fs48} salgada.
+Dialogue: 0,0:00:08.08,0:00:08.64,Default,,0,0,0,,{\1a&H44&}{\fs48} água {\c&HFFE080&}{\1a&H00&}{\fs58}salgada.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:09.54,0:00:09.68,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}O{\c&HFFFFFF&}{\1a&H44&}{\fs48} segredo?
+Dialogue: 0,0:00:09.68,0:00:10.20,Default,,0,0,0,,{\1a&H44&}{\fs48} O {\c&HFFE080&}{\1a&H00&}{\fs58}segredo?{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:10.96,0:00:11.22,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Ele{\c&HFFFFFF&}{\1a&H44&}{\fs48} se cura sozinho.
+Dialogue: 0,0:00:11.22,0:00:11.38,Default,,0,0,0,,{\1a&H44&}{\fs48} Ele {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} cura sozinho.
+Dialogue: 0,0:00:11.38,0:00:11.76,Default,,0,0,0,,{\1a&H44&}{\fs48} Ele se {\c&HFFE080&}{\1a&H00&}{\fs58}cura{\c&HFFFFFF&}{\1a&H44&}{\fs48} sozinho.
+Dialogue: 0,0:00:11.76,0:00:12.34,Default,,0,0,0,,{\1a&H44&}{\fs48} Ele se cura {\c&HFFE080&}{\1a&H00&}{\fs58}sozinho.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:13.50,0:00:14.02,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Sientistas{\c&HFFFFFF&}{\1a&H44&}{\fs48} do M,
+Dialogue: 0,0:00:14.02,0:00:14.20,Default,,0,0,0,,{\1a&H44&}{\fs48} Sientistas {\c&HFFE080&}{\1a&H00&}{\fs58}do{\c&HFFFFFF&}{\1a&H44&}{\fs48} M,
+Dialogue: 0,0:00:14.20,0:00:14.42,Default,,0,0,0,,{\1a&H44&}{\fs48} Sientistas do {\c&HFFE080&}{\1a&H00&}{\fs58}M,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:14.74,0:00:14.82,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}te{\c&HFFFFFF&}{\1a&H44&}{\fs48} finalmente desvendaram em
+Dialogue: 0,0:00:14.82,0:00:15.38,Default,,0,0,0,,{\1a&H44&}{\fs48} te {\c&HFFE080&}{\1a&H00&}{\fs58}finalmente{\c&HFFFFFF&}{\1a&H44&}{\fs48} desvendaram em
+Dialogue: 0,0:00:15.38,0:00:16.22,Default,,0,0,0,,{\1a&H44&}{\fs48} te finalmente {\c&HFFE080&}{\1a&H00&}{\fs58}desvendaram{\c&HFFFFFF&}{\1a&H44&}{\fs48} em
+Dialogue: 0,0:00:16.22,0:00:16.34,Default,,0,0,0,,{\1a&H44&}{\fs48} te finalmente desvendaram {\c&HFFE080&}{\1a&H00&}{\fs58}em{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:16.34,0:00:16.40,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} mistério milenar.
+Dialogue: 0,0:00:16.40,0:00:16.84,Default,,0,0,0,,{\1a&H44&}{\fs48} se {\c&HFFE080&}{\1a&H00&}{\fs58}mistério{\c&HFFFFFF&}{\1a&H44&}{\fs48} milenar.
+Dialogue: 0,0:00:16.84,0:00:17.42,Default,,0,0,0,,{\1a&H44&}{\fs48} se mistério {\c&HFFE080&}{\1a&H00&}{\fs58}milenar.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:18.12,0:00:18.36,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Os{\c&HFFFFFF&}{\1a&H44&}{\fs48} romanos misturavam calviva
+Dialogue: 0,0:00:18.36,0:00:18.82,Default,,0,0,0,,{\1a&H44&}{\fs48} Os {\c&HFFE080&}{\1a&H00&}{\fs58}romanos{\c&HFFFFFF&}{\1a&H44&}{\fs48} misturavam calviva
+Dialogue: 0,0:00:18.82,0:00:19.30,Default,,0,0,0,,{\1a&H44&}{\fs48} Os romanos {\c&HFFE080&}{\1a&H00&}{\fs58}misturavam{\c&HFFFFFF&}{\1a&H44&}{\fs48} calviva
+Dialogue: 0,0:00:19.30,0:00:19.92,Default,,0,0,0,,{\1a&H44&}{\fs48} Os romanos misturavam {\c&HFFE080&}{\1a&H00&}{\fs58}calviva{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:19.92,0:00:20.08,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}em{\c&HFFFFFF&}{\1a&H44&}{\fs48} temperaturas extremas,
+Dialogue: 0,0:00:20.08,0:00:20.58,Default,,0,0,0,,{\1a&H44&}{\fs48} em {\c&HFFE080&}{\1a&H00&}{\fs58}temperaturas{\c&HFFFFFF&}{\1a&H44&}{\fs48} extremas,
+Dialogue: 0,0:00:20.58,0:00:21.26,Default,,0,0,0,,{\1a&H44&}{\fs48} em temperaturas {\c&HFFE080&}{\1a&H00&}{\fs58}extremas,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:21.62,0:00:21.90,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}criando{\c&HFFFFFF&}{\1a&H44&}{\fs48} pequenos fragmentos brancos
+Dialogue: 0,0:00:21.90,0:00:22.40,Default,,0,0,0,,{\1a&H44&}{\fs48} criando {\c&HFFE080&}{\1a&H00&}{\fs58}pequenos{\c&HFFFFFF&}{\1a&H44&}{\fs48} fragmentos brancos
+Dialogue: 0,0:00:22.40,0:00:23.02,Default,,0,0,0,,{\1a&H44&}{\fs48} criando pequenos {\c&HFFE080&}{\1a&H00&}{\fs58}fragmentos{\c&HFFFFFF&}{\1a&H44&}{\fs48} brancos
+Dialogue: 0,0:00:23.02,0:00:23.50,Default,,0,0,0,,{\1a&H44&}{\fs48} criando pequenos fragmentos {\c&HFFE080&}{\1a&H00&}{\fs58}brancos{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:23.50,0:00:24.20,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}conhecidos{\c&HFFFFFF&}{\1a&H44&}{\fs48} como clastos de
+Dialogue: 0,0:00:24.20,0:00:24.50,Default,,0,0,0,,{\1a&H44&}{\fs48} conhecidos {\c&HFFE080&}{\1a&H00&}{\fs58}como{\c&HFFFFFF&}{\1a&H44&}{\fs48} clastos de
+Dialogue: 0,0:00:24.50,0:00:25.08,Default,,0,0,0,,{\1a&H44&}{\fs48} conhecidos como {\c&HFFE080&}{\1a&H00&}{\fs58}clastos{\c&HFFFFFF&}{\1a&H44&}{\fs48} de
+Dialogue: 0,0:00:25.08,0:00:25.26,Default,,0,0,0,,{\1a&H44&}{\fs48} conhecidos como clastos {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:25.26,0:00:25.58,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}cál.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:26.20,0:00:26.66,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Quando{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma rachadura começa
+Dialogue: 0,0:00:26.66,0:00:26.80,Default,,0,0,0,,{\1a&H44&}{\fs48} Quando {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} rachadura começa
+Dialogue: 0,0:00:26.80,0:00:27.18,Default,,0,0,0,,{\1a&H44&}{\fs48} Quando uma {\c&HFFE080&}{\1a&H00&}{\fs58}rachadura{\c&HFFFFFF&}{\1a&H44&}{\fs48} começa
+Dialogue: 0,0:00:27.18,0:00:27.64,Default,,0,0,0,,{\1a&H44&}{\fs48} Quando uma rachadura {\c&HFFE080&}{\1a&H00&}{\fs58}começa{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:27.64,0:00:27.92,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} se abrir,
+Dialogue: 0,0:00:27.92,0:00:27.96,Default,,0,0,0,,{\1a&H44&}{\fs48} a {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} abrir,
+Dialogue: 0,0:00:27.96,0:00:28.16,Default,,0,0,0,,{\1a&H44&}{\fs48} a se {\c&HFFE080&}{\1a&H00&}{\fs58}abrir,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:28.16,0:00:28.40,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}e{\c&HFFFFFF&}{\1a&H44&}{\fs48} a água da
+Dialogue: 0,0:00:28.40,0:00:28.90,Default,,0,0,0,,{\1a&H44&}{\fs48} e {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} água da
+Dialogue: 0,0:00:28.90,0:00:29.12,Default,,0,0,0,,{\1a&H44&}{\fs48} e a {\c&HFFE080&}{\1a&H00&}{\fs58}água{\c&HFFFFFF&}{\1a&H44&}{\fs48} da
+Dialogue: 0,0:00:29.12,0:00:29.30,Default,,0,0,0,,{\1a&H44&}{\fs48} e a água {\c&HFFE080&}{\1a&H00&}{\fs58}da{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:29.30,0:00:29.74,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}chuva{\c&HFFFFFF&}{\1a&H44&}{\fs48} ou do mar
+Dialogue: 0,0:00:29.74,0:00:29.88,Default,,0,0,0,,{\1a&H44&}{\fs48} chuva {\c&HFFE080&}{\1a&H00&}{\fs58}ou{\c&HFFFFFF&}{\1a&H44&}{\fs48} do mar
+Dialogue: 0,0:00:29.88,0:00:30.02,Default,,0,0,0,,{\1a&H44&}{\fs48} chuva ou {\c&HFFE080&}{\1a&H00&}{\fs58}do{\c&HFFFFFF&}{\1a&H44&}{\fs48} mar
+Dialogue: 0,0:00:30.02,0:00:30.18,Default,,0,0,0,,{\1a&H44&}{\fs48} chuva ou do {\c&HFFE080&}{\1a&H00&}{\fs58}mar{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:30.18,0:00:30.84,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}penetra{\c&HFFFFFF&}{\1a&H44&}{\fs48} na estrutura,
+Dialogue: 0,0:00:30.84,0:00:30.96,Default,,0,0,0,,{\1a&H44&}{\fs48} penetra {\c&HFFE080&}{\1a&H00&}{\fs58}na{\c&HFFFFFF&}{\1a&H44&}{\fs48} estrutura,
+Dialogue: 0,0:00:30.96,0:00:31.54,Default,,0,0,0,,{\1a&H44&}{\fs48} penetra na {\c&HFFE080&}{\1a&H00&}{\fs58}estrutura,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:31.98,0:00:32.22,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}ela{\c&HFFFFFF&}{\1a&H44&}{\fs48} dissolve esses pedaços
+Dialogue: 0,0:00:32.22,0:00:32.82,Default,,0,0,0,,{\1a&H44&}{\fs48} ela {\c&HFFE080&}{\1a&H00&}{\fs58}dissolve{\c&HFFFFFF&}{\1a&H44&}{\fs48} esses pedaços
+Dialogue: 0,0:00:32.82,0:00:33.00,Default,,0,0,0,,{\1a&H44&}{\fs48} ela dissolve {\c&HFFE080&}{\1a&H00&}{\fs58}esses{\c&HFFFFFF&}{\1a&H44&}{\fs48} pedaços
+Dialogue: 0,0:00:33.00,0:00:33.48,Default,,0,0,0,,{\1a&H44&}{\fs48} ela dissolve esses {\c&HFFE080&}{\1a&H00&}{\fs58}pedaços{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:33.48,0:00:33.68,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48} cál acumulados.
+Dialogue: 0,0:00:33.68,0:00:33.94,Default,,0,0,0,,{\1a&H44&}{\fs48} de {\c&HFFE080&}{\1a&H00&}{\fs58}cál{\c&HFFFFFF&}{\1a&H44&}{\fs48} acumulados.
+Dialogue: 0,0:00:33.94,0:00:34.60,Default,,0,0,0,,{\1a&H44&}{\fs48} de cál {\c&HFFE080&}{\1a&H00&}{\fs58}acumulados.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:35.26,0:00:35.74,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Essa{\c&HFFFFFF&}{\1a&H44&}{\fs48} solução rica em
+Dialogue: 0,0:00:35.74,0:00:36.20,Default,,0,0,0,,{\1a&H44&}{\fs48} Essa {\c&HFFE080&}{\1a&H00&}{\fs58}solução{\c&HFFFFFF&}{\1a&H44&}{\fs48} rica em
+Dialogue: 0,0:00:36.20,0:00:36.60,Default,,0,0,0,,{\1a&H44&}{\fs48} Essa solução {\c&HFFE080&}{\1a&H00&}{\fs58}rica{\c&HFFFFFF&}{\1a&H44&}{\fs48} em
+Dialogue: 0,0:00:36.60,0:00:36.78,Default,,0,0,0,,{\1a&H44&}{\fs48} Essa solução rica {\c&HFFE080&}{\1a&H00&}{\fs58}em{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:36.78,0:00:37.18,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}cálcio{\c&HFFFFFF&}{\1a&H44&}{\fs48} recristaliza rapidamente,
+Dialogue: 0,0:00:37.18,0:00:38.06,Default,,0,0,0,,{\1a&H44&}{\fs48} cálcio {\c&H00C5FF&}{\1a&H00&}{\fs58}recristaliza{\c&HFFFFFF&}{\1a&H44&}{\fs48} rapidamente,
+Dialogue: 0,0:00:38.06,0:00:38.82,Default,,0,0,0,,{\1a&H44&}{\fs48} cálcio recristaliza {\c&HFFE080&}{\1a&H00&}{\fs58}rapidamente,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:39.28,0:00:39.70,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}preenchendo{\c&HFFFFFF&}{\1a&H44&}{\fs48} a fenda e
+Dialogue: 0,0:00:39.70,0:00:39.86,Default,,0,0,0,,{\1a&H44&}{\fs48} preenchendo {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} fenda e
+Dialogue: 0,0:00:39.86,0:00:40.16,Default,,0,0,0,,{\1a&H44&}{\fs48} preenchendo a {\c&HFFE080&}{\1a&H00&}{\fs58}fenda{\c&HFFFFFF&}{\1a&H44&}{\fs48} e
+Dialogue: 0,0:00:40.16,0:00:40.52,Default,,0,0,0,,{\1a&H44&}{\fs48} preenchendo a fenda {\c&HFFE080&}{\1a&H00&}{\fs58}e{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:40.52,0:00:40.94,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}colando{\c&HFFFFFF&}{\1a&H44&}{\fs48} o concreto de
+Dialogue: 0,0:00:40.94,0:00:41.16,Default,,0,0,0,,{\1a&H44&}{\fs48} colando {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} concreto de
+Dialogue: 0,0:00:41.16,0:00:41.40,Default,,0,0,0,,{\1a&H44&}{\fs48} colando o {\c&H00C5FF&}{\1a&H00&}{\fs58}concreto{\c&HFFFFFF&}{\1a&H44&}{\fs48} de
+Dialogue: 0,0:00:41.40,0:00:41.68,Default,,0,0,0,,{\1a&H44&}{\fs48} colando o concreto {\c&HFFE080&}{\1a&H00&}{\fs58}de{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:41.68,0:00:42.00,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}volta{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:42.00,0:00:42.56,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}antes{\c&HFFFFFF&}{\1a&H44&}{\fs48} que o estragualmente.
+Dialogue: 0,0:00:42.56,0:00:42.76,Default,,0,0,0,,{\1a&H44&}{\fs48} antes {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48} o estragualmente.
+Dialogue: 0,0:00:42.76,0:00:42.82,Default,,0,0,0,,{\1a&H44&}{\fs48} antes que {\c&HFFE080&}{\1a&H00&}{\fs58}o{\c&HFFFFFF&}{\1a&H44&}{\fs48} estragualmente.
+Dialogue: 0,0:00:42.82,0:00:43.70,Default,,0,0,0,,{\1a&H44&}{\fs48} antes que o {\c&HFFE080&}{\1a&H00&}{\fs58}estragualmente.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:44.36,0:00:45.12,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Enquanto{\c&HFFFFFF&}{\1a&H44&}{\fs48} nossas pontes modernas
+Dialogue: 0,0:00:45.12,0:00:45.40,Default,,0,0,0,,{\1a&H44&}{\fs48} Enquanto {\c&HFFE080&}{\1a&H00&}{\fs58}nossas{\c&HFFFFFF&}{\1a&H44&}{\fs48} pontes modernas
+Dialogue: 0,0:00:45.40,0:00:45.80,Default,,0,0,0,,{\1a&H44&}{\fs48} Enquanto nossas {\c&HFFE080&}{\1a&H00&}{\fs58}pontes{\c&HFFFFFF&}{\1a&H44&}{\fs48} modernas
+Dialogue: 0,0:00:45.80,0:00:46.38,Default,,0,0,0,,{\1a&H44&}{\fs48} Enquanto nossas pontes {\c&HFFE080&}{\1a&H00&}{\fs58}modernas{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:46.38,0:00:47.10,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}desmoronam{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:47.10,0:00:47.42,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}e{\c&HFFFFFF&}{\1a&H44&}{\fs48} exigen uma notensão
+Dialogue: 0,0:00:47.42,0:00:47.74,Default,,0,0,0,,{\1a&H44&}{\fs48} e {\c&HFFE080&}{\1a&H00&}{\fs58}exigen{\c&HFFFFFF&}{\1a&H44&}{\fs48} uma notensão
+Dialogue: 0,0:00:47.74,0:00:47.98,Default,,0,0,0,,{\1a&H44&}{\fs48} e exigen {\c&HFFE080&}{\1a&H00&}{\fs58}uma{\c&HFFFFFF&}{\1a&H44&}{\fs48} notensão
+Dialogue: 0,0:00:47.98,0:00:48.42,Default,,0,0,0,,{\1a&H44&}{\fs48} e exigen uma {\c&HFFE080&}{\1a&H00&}{\fs58}notensão{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:48.42,0:00:49.06,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}constante,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:49.78,0:00:49.90,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} engenharia antiga usava
+Dialogue: 0,0:00:49.90,0:00:50.40,Default,,0,0,0,,{\1a&H44&}{\fs48} a {\c&HFFE080&}{\1a&H00&}{\fs58}engenharia{\c&HFFFFFF&}{\1a&H44&}{\fs48} antiga usava
+Dialogue: 0,0:00:50.40,0:00:50.90,Default,,0,0,0,,{\1a&H44&}{\fs48} a engenharia {\c&HFFE080&}{\1a&H00&}{\fs58}antiga{\c&HFFFFFF&}{\1a&H44&}{\fs48} usava
+Dialogue: 0,0:00:50.90,0:00:51.50,Default,,0,0,0,,{\1a&H44&}{\fs48} a engenharia antiga {\c&HFFE080&}{\1a&H00&}{\fs58}usava{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:51.50,0:00:51.74,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}a{\c&HFFFFFF&}{\1a&H44&}{\fs48} própria natureza para
+Dialogue: 0,0:00:51.74,0:00:52.02,Default,,0,0,0,,{\1a&H44&}{\fs48} a {\c&HFFE080&}{\1a&H00&}{\fs58}própria{\c&HFFFFFF&}{\1a&H44&}{\fs48} natureza para
+Dialogue: 0,0:00:52.02,0:00:52.60,Default,,0,0,0,,{\1a&H44&}{\fs48} a própria {\c&H00C5FF&}{\1a&H00&}{\fs58}natureza{\c&HFFFFFF&}{\1a&H44&}{\fs48} para
+Dialogue: 0,0:00:52.60,0:00:52.80,Default,,0,0,0,,{\1a&H44&}{\fs48} a própria natureza {\c&HFFE080&}{\1a&H00&}{\fs58}para{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:52.80,0:00:52.96,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} reconstruir.
+Dialogue: 0,0:00:52.96,0:00:53.58,Default,,0,0,0,,{\1a&H44&}{\fs48} se {\c&HFFE080&}{\1a&H00&}{\fs58}reconstruir.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:54.56,0:00:54.78,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}Se{\c&HFFFFFF&}{\1a&H44&}{\fs48} você acha que
+Dialogue: 0,0:00:54.78,0:00:55.02,Default,,0,0,0,,{\1a&H44&}{\fs48} Se {\c&HFFE080&}{\1a&H00&}{\fs58}você{\c&HFFFFFF&}{\1a&H44&}{\fs48} acha que
+Dialogue: 0,0:00:55.02,0:00:55.28,Default,,0,0,0,,{\1a&H44&}{\fs48} Se você {\c&HFFE080&}{\1a&H00&}{\fs58}acha{\c&HFFFFFF&}{\1a&H44&}{\fs48} que
+Dialogue: 0,0:00:55.28,0:00:55.44,Default,,0,0,0,,{\1a&H44&}{\fs48} Se você acha {\c&HFFE080&}{\1a&H00&}{\fs58}que{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:55.44,0:00:55.92,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}deveríamos{\c&HFFFFFF&}{\1a&H44&}{\fs48} adotar essa tecnologia
+Dialogue: 0,0:00:55.92,0:00:56.36,Default,,0,0,0,,{\1a&H44&}{\fs48} deveríamos {\c&HFFE080&}{\1a&H00&}{\fs58}adotar{\c&HFFFFFF&}{\1a&H44&}{\fs48} essa tecnologia
+Dialogue: 0,0:00:56.36,0:00:56.56,Default,,0,0,0,,{\1a&H44&}{\fs48} deveríamos adotar {\c&HFFE080&}{\1a&H00&}{\fs58}essa{\c&HFFFFFF&}{\1a&H44&}{\fs48} tecnologia
+Dialogue: 0,0:00:56.56,0:00:56.90,Default,,0,0,0,,{\1a&H44&}{\fs48} deveríamos adotar essa {\c&HFFE080&}{\1a&H00&}{\fs58}tecnologia{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:56.90,0:00:57.58,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}hoje,{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:57.58,0:00:58.00,Default,,0,0,0,,{\1a&H44&}{\fs48} {\c&HFFE080&}{\1a&H00&}{\fs58}se{\c&HFFFFFF&}{\1a&H44&}{\fs48} inscreve no canal.
+Dialogue: 0,0:00:58.00,0:00:58.42,Default,,0,0,0,,{\1a&H44&}{\fs48} se {\c&HFFE080&}{\1a&H00&}{\fs58}inscreve{\c&HFFFFFF&}{\1a&H44&}{\fs48} no canal.
+Dialogue: 0,0:00:58.42,0:00:58.52,Default,,0,0,0,,{\1a&H44&}{\fs48} se inscreve {\c&HFFE080&}{\1a&H00&}{\fs58}no{\c&HFFFFFF&}{\1a&H44&}{\fs48} canal.
+Dialogue: 0,0:00:58.52,0:00:58.76,Default,,0,0,0,,{\1a&H44&}{\fs48} se inscreve no {\c&HFFE080&}{\1a&H00&}{\fs58}canal.{\c&HFFFFFF&}{\1a&H44&}{\fs48}
+Dialogue: 0,0:00:00.00,0:00:04.00,Impact,,0,0,0,,2.000 ANOS INTAC TO
+Dialogue: 0,0:00:04.10,0:00:07.00,Impact,,0,0,0,,CURA SOZINHO!
+Dialogue: 0,0:00:18.48,0:00:23.38,Impact,,0,0,0,,MISTÉRIO DO MIT REVELADO
+Dialogue: 0,0:00:56.68,0:00:42.76,Impact,,0,0,0,,RECRISTALIZAÇÃO ATIVA
+Dialogue: 0,0:01:10.86,0:00:58.76,Impact,,0,0,0,,ENGENHARIA ETERNA?

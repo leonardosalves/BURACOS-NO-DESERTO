@@ -1,0 +1,242 @@
+{
+  "strategy": {
+    "title_main": "O Concreto de 2.000 Anos que Se Cura Sozinho",
+    "title_variations": [
+      "O segredo do concreto romano revelado",
+      "Por que as pontes romanas não caem?",
+      "O ingrediente secreto do Império Romano",
+      "Eles sabiam disso há 2.000 anos!",
+      "O concreto indestrutível de Roma"
+    ],
+    "hook": "O nosso concreto racha em décadas, mas este píer romano resiste há dois mil anos.",
+    "target_audience": "Entusiastas de história, curiosos por ciência, engenheiros e fãs de mistérios antigos.",
+    "tone": "Curioso, impactante, científico e dinâmico.",
+    "pinned_comment": "Você acha que a engenharia moderna deveria voltar a usar as técnicas romanas? Comente o que pensa!",
+    "cta": "Se você quer descobrir mais mistérios do passado, se inscreve no canal!"
+  },
+  "narrative_script": "O nosso concreto racha em décadas, mas este píer romano resiste intacto há dois mil anos sob a força da água salgada. O segredo? Ele se cura sozinho. Cientistas do MIT finalmente desvendaram esse mistério milenar. Os romanos misturavam cal viva em temperaturas extremas, criando pequenos fragmentos brancos conhecidos como clastos de cal. Quando uma rachadura começa a se abrir e a água da chuva ou do mar penetra na estrutura, ela dissolve esses pedaços de cal acumulados. Essa solução rica em cálcio recristaliza rapidamente, preenchendo a fenda e colando o concreto de volta antes que o estrago aumente. Enquanto nossas pontes modernas desmoronam e exigem manutenção constante, a engenharia antiga usava a própria natureza para se reconstruir. Se você acha que deveríamos adotar essa tecnologia hoje, se inscreve no canal!",
+  "visual_prompts": [
+    {
+      "scene": "1.1",
+      "block": 1,
+      "narration_text": "O nosso concreto racha em décadas, mas este píer romano resiste intacto há dois mil anos sob a força da água salgada.",
+      "function": "",
+      "duration": "5 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic slow motion video of violent ocean waves crashing against ancient, moss-covered Roman stone ruins on a rocky coast, high detail, 2k resolution, no text.",
+      "text_overlay": "",
+      "editor_notes": "Corte rápido inicial para reter atenção. Uso de vídeo dinâmico com ondas para gerar impacto visual imediato.",
+      "stock_query": "ocean waves crashing roman ruins"
+    },
+    {
+      "scene": "1.2",
+      "block": 1,
+      "narration_text": "O segredo? Ele se cura sozinho.",
+      "function": "",
+      "duration": "3 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Photorealistic close-up of concrete texture with glowing, magical golden and white veins slowly filling in a deep crack, dramatic side lighting, sharp detail, 2k resolution, no text.",
+      "text_overlay": "",
+      "editor_notes": "Zoom lento (Ken Burns) aproximando na rachadura que brilha, simbolizando a cura de forma lúdica mas realista.",
+      "stock_query": "glowing cracked concrete texture"
+    },
+    {
+      "scene": "2.1",
+      "block": 2,
+      "narration_text": "Cientistas do MIT finalmente desvendaram esse mistério milenar.",
+      "function": "",
+      "duration": "3 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Cinematic portrait of a scientist in a high-tech modern laboratory looking through a microscope at an ancient stone sample, cool blue and warm orange lighting, photorealistic 2k, no text.",
+      "text_overlay": "",
+      "editor_notes": "Transição suave de dissolução. Foco no cientista para validar a descoberta científica.",
+      "stock_query": "scientist laboratory microscope rock analysis"
+    },
+    {
+      "scene": "2.2",
+      "block": 2,
+      "narration_text": "Os romanos misturavam cal viva em temperaturas extremas, criando pequenos fragmentos brancos conhecidos como clastos de cal.",
+      "function": "",
+      "duration": "4 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Photorealistic historical scene of Roman workers in tunics mixing glowing hot, white molten lime and dark volcanic ash in a dusty, sunlit construction site, steam rising, cinematic, 2k resolution, no text.",
+      "text_overlay": "",
+      "editor_notes": "Slide lateral rápido. A imagem deve ser rica em fumaça e faíscas para contrastar com a cena anterior do laboratório.",
+      "stock_query": "ancient roman construction workers lime mixing"
+    },
+    {
+      "scene": "3.1",
+      "block": 3,
+      "narration_text": "Quando uma rachadura começa a se abrir e a água da chuva ou do mar penetra na estrutura, ela dissolve esses pedaços de cal acumulados.",
+      "function": "",
+      "duration": "4 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Extreme macro video of water droplets seeping into a dark, porous stone crack, dissolving tiny white mineral crystals inside, high speed detail, cinematic studio lighting, 2k, no text.",
+      "text_overlay": "",
+      "editor_notes": "Uso de vídeo em macro para mostrar a água agindo quimicamente. Corte seco e preciso.",
+      "stock_query": "water seeping into rock macro"
+    },
+    {
+      "scene": "4.1",
+      "block": 4,
+      "narration_text": "Essa solução rica em cálcio recristaliza rapidamente, preenchendo a fenda e colando o concreto de volta antes que o estrago aumente.",
+      "function": "",
+      "duration": "4 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Microscopic view of beautiful white calcium carbonate crystals rapidly growing and weaving together inside a dark stone crevice, photorealistic 2k resolution, studio lighting, no text.",
+      "text_overlay": "",
+      "editor_notes": "Efeito Ken Burns de aproximação rápida para destacar os cristais se unindo.",
+      "stock_query": "calcium crystals growing microscope"
+    },
+    {
+      "scene": "5.1",
+      "block": 5,
+      "narration_text": "Enquanto nossas pontes modernas desmoronam e exigem manutenção constante, a engenharia antiga usava a própria natureza para se reconstruir.",
+      "function": "",
+      "duration": "4 segundos",
+      "type": "imagem IA 2k",
+      "aspect_ratio": "16:9",
+      "prompt": "Wide cinematic shot of a decaying modern concrete bridge with exposed rusty steel rebars and massive cracks, gloomy overcast sky, dramatic lighting, photorealistic 2k, no text.",
+      "text_overlay": "",
+      "editor_notes": "Corte de contraste. Mostra o fracasso da engenharia moderna em oposição à romana.",
+      "stock_query": "cracked decaying modern concrete bridge rusty rebar"
+    },
+    {
+      "scene": "5.2",
+      "block": 5,
+      "narration_text": "Se você acha que deveríamos adotar essa tecnologia hoje, se inscreve no canal!",
+      "function": "",
+      "duration": "4 segundos",
+      "type": "vídeo IA (max 10s)",
+      "aspect_ratio": "16:9",
+      "prompt": "Sweeping cinematic drone shot of a magnificent, intact Roman aqueduct stretching across a lush green valley during a golden sunset, majestic scale, 2k resolution, no text.",
+      "text_overlay": "",
+      "editor_notes": "Vídeo em movimento para encerrar em tom épico e inspirador. O botão de inscrição deve aparecer em overlay na edição.",
+      "stock_query": "roman aqueduct sunset drone"
+    }
+  ],
+  "editing_map": "Mantenha o ritmo acelerado típico de Shorts (cortes a cada 3-4 segundos). Use zoom digital constante (efeito Ken Burns) nas imagens estáticas para dar sensação de movimento de câmera 3D. Aplique efeitos sonoros táteis (foley) como: água batendo nas rochas (0:01), som de vidro ou cristal quebrando/se unindo (0:12), vapor ou fogo (0:18), e água escorrendo (0:24). Insira legendas dinâmicas, grandes, centralizadas na tela, pintando palavras-chave de amarelo ou verde para retenção visual.",
+  "hyperframe_prompt": "Crie um vídeo em formato vertical (9:16) sobre o mistério do concreto romano que se cura sozinho. O tom deve ser misterioso, dinâmico e altamente profissional. Use transições rápidas e foley realista para os momentos em que a água e o cálcio reagem. Garanta que as imagens de microscopia e do império romano tenham alto contraste e fotorrealismo extremo.",
+  "bgm_recommendations": [
+    {
+      "block": 1,
+      "recommendation": "Trilha sonora misteriosa e urgente, com sintetizadores e percussão de baixa frequência para prender a atenção no gancho."
+    },
+    {
+      "block": 2,
+      "recommendation": "Evolução da música para um tom mais investigativo e científico, com elementos eletrônicos sutis de laboratório."
+    },
+    {
+      "block": 3,
+      "recommendation": "Efeitos sonoros de água escorrendo e som de pedra rachando em destaque sobre a trilha, que mantém a tensão."
+    },
+    {
+      "block": 4,
+      "recommendation": "Subida de tom com cordas épicas revelando a 'mágica' da cura química dos cristais."
+    },
+    {
+      "block": 5,
+      "recommendation": "Final grandioso com metais e percussão orquestral de impacto, finalizando com um corte seco para o CTA."
+    }
+  ],
+  "checklist": {
+    "click_potential": 9,
+    "retention_potential": 9,
+    "comments_potential": 8,
+    "feedback": "Tema extremamente viral que une ciência prática com história. O gancho inicial com contraste de 'nosso concreto racha vs píer romano resiste' garante alta retenção inicial."
+  },
+  "technical_config": {
+    "script": "O nosso concreto racha em décadas, mas este píer romano resiste intacto há dois mil anos sob a força da água salgada. O segredo? Ele se cura sozinho.\nCientistas do MIT finalmente desvendaram esse mistério milenar. Os romanos misturavam cal viva em temperaturas extremas, criando pequenos fragmentos brancos conhecidos como clastos de cal.\nQuando uma rachadura começa a se abrir e a água da chuva ou do mar penetra na estrutura, ela dissolve esses pedaços de cal acumulados.\nEssa solução rica em cálcio recristaliza rapidamente, preenchendo a fenda e colando o concreto de volta antes que o estrago aumente.\nEnquanto nossas pontes modernas desmoronam e exigem manutenção constante, a engenharia antiga usava a própria natureza para se reconstruir. Se você acha que deveríamos adotar essa tecnologia hoje, se inscreve no canal!",
+    "block_phrases": [
+      {
+        "block": 1,
+        "phrase": "O nosso concreto racha em décadas, mas este píer romano resiste intacto"
+      },
+      {
+        "block": 2,
+        "phrase": "Cientistas do MIT finalmente desvendaram"
+      },
+      {
+        "block": 3,
+        "phrase": "Quando uma rachadura começa a se abrir"
+      },
+      {
+        "block": 4,
+        "phrase": "Essa solução rica em cálcio recristaliza"
+      },
+      {
+        "block": 5,
+        "phrase": "Enquanto nossas pontes modernas desmoronam"
+      }
+    ],
+    "impact_texts": [
+      {
+        "block": 1,
+        "start_offset": 0,
+        "end_offset": 4,
+        "text": "2.000 ANOS INTAC TO"
+      },
+      {
+        "block": 1,
+        "start_offset": 4.1,
+        "end_offset": 7,
+        "text": "CURA SOZINHO!"
+      },
+      {
+        "block": 2,
+        "start_offset": 7.1,
+        "end_offset": 12,
+        "text": "MISTÉRIO DO MIT REVELADO"
+      },
+      {
+        "block": 4,
+        "start_offset": 23,
+        "end_offset": 28,
+        "text": "RECRISTALIZAÇÃO ATIVA"
+      },
+      {
+        "block": 5,
+        "start_offset": 28.1,
+        "end_offset": 35,
+        "text": "ENGENHARIA ETERNA?"
+      }
+    ],
+    "highlight_keywords": [
+      "concreto",
+      "romano",
+      "cura sozinho",
+      "MIT",
+      "clastos de cal",
+      "recristaliza",
+      "natureza"
+    ],
+    "bgm_mappings": [
+      {
+        "block": 1,
+        "file": "epic_mysterious_intro.mp3"
+      },
+      {
+        "block": 2,
+        "file": "scientific_discovery_beats.mp3"
+      },
+      {
+        "block": 3,
+        "file": "chemical_reaction_tension.mp3"
+      },
+      {
+        "block": 4,
+        "file": "reveal_triumph_strings.mp3"
+      },
+      {
+        "block": 5,
+        "file": "ancient_legacy_outro.mp3"
+      }
+    ]
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "highlight_keywords": [
+    "concreto",
+    "romano",
+    "cura sozinho",
+    "MIT",
+    "clastos de cal",
+    "recristaliza",
+    "natureza"
+  ],
+  "bgm_mappings": [
+    {
+      "block": 1,
+      "file": "epic_mysterious_intro.mp3"
+    },
+    {
+      "block": 2,
+      "file": "scientific_discovery_beats.mp3"
+    },
+    {
+      "block": 3,
+      "file": "chemical_reaction_tension.mp3"
+    },
+    {
+      "block": 4,
+      "file": "reveal_triumph_strings.mp3"
+    },
+    {
+      "block": 5,
+      "file": "ancient_legacy_outro.mp3"
+    }
+  ],
+  "impact_texts": [
+    {
+      "block": 1,
+      "start_offset": 0,
+      "end_offset": 4,
+      "text": "2.000 ANOS INTAC TO"
+    },
+    {
+      "block": 1,
+      "start_offset": 4.1,
+      "end_offset": 7,
+      "text": "CURA SOZINHO!"
+    },
+    {
+      "block": 2,
+      "start_offset": 7.1,
+      "end_offset": 12,
+      "text": "MISTÉRIO DO MIT REVELADO"
+    },
+    {
+      "block": 4,
+      "start_offset": 23,
+      "end_offset": 28,
+      "text": "RECRISTALIZAÇÃO ATIVA"
+    },
+    {
+      "block": 5,
+      "start_offset": 28.1,
+      "end_offset": 35,
+      "text": "ENGENHARIA ETERNA?"
+    }
+  ],
+  "block_phrases": [
+    {
+      "block": 1,
+      "phrase": "O nosso concreto racha em décadas, mas este píer romano resiste intacto"
+    },
+    {
+      "block": 2,
+      "phrase": "Cientistas do MIT finalmente desvendaram"
+    },
+    {
+      "block": 3,
+      "phrase": "Quando uma rachadura começa a se abrir"
+    },
+    {
+      "block": 4,
+      "phrase": "Essa solução rica em cálcio recristaliza"
+    },
+    {
+      "block": 5,
+      "phrase": "Enquanto nossas pontes modernas desmoronam"
+    }
+  ],
+  "timeline_assets": {
+    "1": [
+      {
+        "asset": "Ocean_waves_crashing_Roman_ruins_202606222234.mp4",
+        "type": "video",
+        "fixed": 8.5
+      }
+    ],
+    "2": [
+      {
+        "asset": "Cinematic_portrait_of_a_scientist_202606222237.jpeg",
+        "type": "image",
+        "fixed": 4
+      },
+      {
+        "asset": "Photorealistic_historical_scene_of_Roman_202606222238.jpeg",
+        "type": "image",
+        "fixed": 7.5
+      }
+    ],
+    "3": [
+      {
+        "asset": "Microscopic_view_of_beautiful_white_202606222242.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_close-up_of_concrete_texture_202606222236.jpeg",
+        "type": "image"
+      }
+    ],
+    "4": [
+      {
+        "asset": "Cinematic_portrait_of_a_scientist_202606222237.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Microscopic_view_of_beautiful_white_202606222242.jpeg",
+        "type": "image"
+      }
+    ],
+    "5": [
+      {
+        "asset": "Cinematic_portrait_of_a_scientist_202606222237.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_historical_scene_of_Roman_202606222238.jpeg",
+        "type": "image"
+      }
+    ],
+    "6": [
+      {
+        "asset": "Photorealistic_historical_scene_of_Roman_202606222238.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Roman_aqueduct_in_green_valley_202606222245.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ],
+    "7": [
+      {
+        "asset": "Microscopic_view_of_beautiful_white_202606222242.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_close-up_of_concrete_texture_202606222236.jpeg",
+        "type": "image"
+      }
+    ],
+    "8": [
+      {
+        "asset": "Water_droplets_seeping_into_stone_202606222240.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Photorealistic_close-up_of_concrete_texture_202606222236.jpeg",
+        "type": "image"
+      }
+    ],
+    "9": [
+      {
+        "asset": "Water_droplets_seeping_into_stone_202606222240.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Microscopic_view_of_beautiful_white_202606222242.jpeg",
+        "type": "image"
+      }
+    ],
+    "10": [
+      {
+        "asset": "Microscopic_view_of_beautiful_white_202606222242.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Photorealistic_close-up_of_concrete_texture_202606222236.jpeg",
+        "type": "image"
+      }
+    ],
+    "11": [
+      {
+        "asset": "Roman_aqueduct_in_green_valley_202606222245.mp4",
+        "type": "video",
+        "fixed": 8
+      },
+      {
+        "asset": "Wide_cinematic_shot_of_a_202606222243.jpeg",
+        "type": "image"
+      }
+    ],
+    "12": [
+      {
+        "asset": "Wide_cinematic_shot_of_a_202606222243.jpeg",
+        "type": "image"
+      },
+      {
+        "asset": "Ocean_waves_crashing_Roman_ruins_202606222234.mp4",
+        "type": "video",
+        "fixed": 8
+      }
+    ]
+  },
+  "aspect_ratio": "9:16"
+}

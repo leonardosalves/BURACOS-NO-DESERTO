@@ -1,0 +1,872 @@
+[
+    {
+        "index": 1,
+        "filename": "segment_001.mp3",
+        "start_time": 0.0,
+        "duration": 2.3,
+        "end_time": 2.3,
+        "words": [
+            {
+                "word": " O",
+                "start": 0.0,
+                "end": 0.16
+            },
+            {
+                "word": " nosso",
+                "start": 0.16,
+                "end": 0.38
+            },
+            {
+                "word": " concreto",
+                "start": 0.38,
+                "end": 1.0
+            },
+            {
+                "word": " raxa",
+                "start": 1.0,
+                "end": 1.62
+            },
+            {
+                "word": " em",
+                "start": 1.62,
+                "end": 1.72
+            },
+            {
+                "word": " décadas.",
+                "start": 1.72,
+                "end": 2.3
+            }
+        ],
+        "text": " O nosso concreto raxa em décadas."
+    },
+    {
+        "index": 2,
+        "filename": "segment_002.mp3",
+        "start_time": 3.44,
+        "duration": 3.5000000000000004,
+        "end_time": 6.94,
+        "words": [
+            {
+                "word": " Mas",
+                "start": 0.0,
+                "end": 0.1200000000000001
+            },
+            {
+                "word": " este",
+                "start": 0.1200000000000001,
+                "end": 0.48
+            },
+            {
+                "word": " piere",
+                "start": 0.48,
+                "end": 0.8000000000000003
+            },
+            {
+                "word": " romano",
+                "start": 0.8000000000000003,
+                "end": 1.2399999999999998
+            },
+            {
+                "word": " existe",
+                "start": 1.2399999999999998,
+                "end": 1.7200000000000002
+            },
+            {
+                "word": " intacto",
+                "start": 1.7200000000000002,
+                "end": 2.5000000000000004
+            },
+            {
+                "word": " a",
+                "start": 2.5000000000000004,
+                "end": 2.5799999999999996
+            },
+            {
+                "word": " 2",
+                "start": 2.5799999999999996,
+                "end": 2.9600000000000004
+            },
+            {
+                "word": " mil",
+                "start": 2.9600000000000004,
+                "end": 3.1199999999999997
+            },
+            {
+                "word": " anos",
+                "start": 3.1199999999999997,
+                "end": 3.5000000000000004
+            }
+        ],
+        "text": " Mas este piere romano existe intacto a 2 mil anos"
+    },
+    {
+        "index": 3,
+        "filename": "segment_003.mp3",
+        "start_time": 6.94,
+        "duration": 1.7000000000000002,
+        "end_time": 8.64,
+        "words": [
+            {
+                "word": " sobre",
+                "start": 0.0,
+                "end": 0.23999999999999932
+            },
+            {
+                "word": " a",
+                "start": 0.23999999999999932,
+                "end": 0.39999999999999947
+            },
+            {
+                "word": " força",
+                "start": 0.39999999999999947,
+                "end": 0.7399999999999993
+            },
+            {
+                "word": " da",
+                "start": 0.7399999999999993,
+                "end": 0.9399999999999995
+            },
+            {
+                "word": " água",
+                "start": 0.9399999999999995,
+                "end": 1.1399999999999997
+            },
+            {
+                "word": " salgada.",
+                "start": 1.1399999999999997,
+                "end": 1.7000000000000002
+            }
+        ],
+        "text": " sobre a força da água salgada."
+    },
+    {
+        "index": 4,
+        "filename": "segment_004.mp3",
+        "start_time": 9.54,
+        "duration": 0.6600000000000001,
+        "end_time": 10.2,
+        "words": [
+            {
+                "word": " O",
+                "start": 0.0,
+                "end": 0.14000000000000057
+            },
+            {
+                "word": " segredo?",
+                "start": 0.14000000000000057,
+                "end": 0.6600000000000001
+            }
+        ],
+        "text": " O segredo?"
+    },
+    {
+        "index": 5,
+        "filename": "segment_005.mp3",
+        "start_time": 10.96,
+        "duration": 1.379999999999999,
+        "end_time": 12.34,
+        "words": [
+            {
+                "word": " Ele",
+                "start": 0.0,
+                "end": 0.2599999999999998
+            },
+            {
+                "word": " se",
+                "start": 0.2599999999999998,
+                "end": 0.41999999999999993
+            },
+            {
+                "word": " cura",
+                "start": 0.41999999999999993,
+                "end": 0.7999999999999989
+            },
+            {
+                "word": " sozinho.",
+                "start": 0.7999999999999989,
+                "end": 1.379999999999999
+            }
+        ],
+        "text": " Ele se cura sozinho."
+    },
+    {
+        "index": 6,
+        "filename": "segment_006.mp3",
+        "start_time": 13.5,
+        "duration": 0.9199999999999999,
+        "end_time": 14.42,
+        "words": [
+            {
+                "word": " Sientistas",
+                "start": 0.0,
+                "end": 0.5199999999999996
+            },
+            {
+                "word": " do",
+                "start": 0.5199999999999996,
+                "end": 0.6999999999999993
+            },
+            {
+                "word": " M,",
+                "start": 0.6999999999999993,
+                "end": 0.9199999999999999
+            }
+        ],
+        "text": " Sientistas do M,"
+    },
+    {
+        "index": 7,
+        "filename": "segment_007.mp3",
+        "start_time": 14.74,
+        "duration": 2.6800000000000015,
+        "end_time": 17.42,
+        "words": [
+            {
+                "word": " te",
+                "start": 0.0,
+                "end": 0.08000000000000007
+            },
+            {
+                "word": " finalmente",
+                "start": 0.08000000000000007,
+                "end": 0.6400000000000006
+            },
+            {
+                "word": " desvendaram",
+                "start": 0.6400000000000006,
+                "end": 1.4799999999999986
+            },
+            {
+                "word": " em",
+                "start": 1.4799999999999986,
+                "end": 1.5999999999999996
+            },
+            {
+                "word": " se",
+                "start": 1.5999999999999996,
+                "end": 1.6599999999999984
+            },
+            {
+                "word": " mistério",
+                "start": 1.6599999999999984,
+                "end": 2.0999999999999996
+            },
+            {
+                "word": " milenar.",
+                "start": 2.0999999999999996,
+                "end": 2.6800000000000015
+            }
+        ],
+        "text": " te finalmente desvendaram em se mistério milenar."
+    },
+    {
+        "index": 8,
+        "filename": "segment_008.mp3",
+        "start_time": 18.12,
+        "duration": 3.1400000000000006,
+        "end_time": 21.26,
+        "words": [
+            {
+                "word": " Os",
+                "start": 0.0,
+                "end": 0.23999999999999844
+            },
+            {
+                "word": " romanos",
+                "start": 0.23999999999999844,
+                "end": 0.6999999999999993
+            },
+            {
+                "word": " misturavam",
+                "start": 0.6999999999999993,
+                "end": 1.1799999999999997
+            },
+            {
+                "word": " calviva",
+                "start": 1.1799999999999997,
+                "end": 1.8000000000000007
+            },
+            {
+                "word": " em",
+                "start": 1.8000000000000007,
+                "end": 1.9599999999999973
+            },
+            {
+                "word": " temperaturas",
+                "start": 1.9599999999999973,
+                "end": 2.4599999999999973
+            },
+            {
+                "word": " extremas,",
+                "start": 2.4599999999999973,
+                "end": 3.1400000000000006
+            }
+        ],
+        "text": " Os romanos misturavam calviva em temperaturas extremas,"
+    },
+    {
+        "index": 9,
+        "filename": "segment_009.mp3",
+        "start_time": 21.62,
+        "duration": 1.879999999999999,
+        "end_time": 23.5,
+        "words": [
+            {
+                "word": " criando",
+                "start": 0.0,
+                "end": 0.2799999999999976
+            },
+            {
+                "word": " pequenos",
+                "start": 0.2799999999999976,
+                "end": 0.7799999999999976
+            },
+            {
+                "word": " fragmentos",
+                "start": 0.7799999999999976,
+                "end": 1.3999999999999986
+            },
+            {
+                "word": " brancos",
+                "start": 1.3999999999999986,
+                "end": 1.879999999999999
+            }
+        ],
+        "text": " criando pequenos fragmentos brancos"
+    },
+    {
+        "index": 10,
+        "filename": "segment_010.mp3",
+        "start_time": 23.5,
+        "duration": 2.0799999999999983,
+        "end_time": 25.58,
+        "words": [
+            {
+                "word": " conhecidos",
+                "start": 0.0,
+                "end": 0.6999999999999993
+            },
+            {
+                "word": " como",
+                "start": 0.6999999999999993,
+                "end": 1.0
+            },
+            {
+                "word": " clastos",
+                "start": 1.0,
+                "end": 1.5799999999999983
+            },
+            {
+                "word": " de",
+                "start": 1.5799999999999983,
+                "end": 1.7600000000000016
+            },
+            {
+                "word": " cál.",
+                "start": 1.7600000000000016,
+                "end": 2.0799999999999983
+            }
+        ],
+        "text": " conhecidos como clastos de cál."
+    },
+    {
+        "index": 11,
+        "filename": "segment_011.mp3",
+        "start_time": 26.2,
+        "duration": 1.9600000000000009,
+        "end_time": 28.16,
+        "words": [
+            {
+                "word": " Quando",
+                "start": 0.0,
+                "end": 0.46000000000000085
+            },
+            {
+                "word": " uma",
+                "start": 0.46000000000000085,
+                "end": 0.6000000000000014
+            },
+            {
+                "word": " rachadura",
+                "start": 0.6000000000000014,
+                "end": 0.9800000000000004
+            },
+            {
+                "word": " começa",
+                "start": 0.9800000000000004,
+                "end": 1.4400000000000013
+            },
+            {
+                "word": " a",
+                "start": 1.4400000000000013,
+                "end": 1.7200000000000024
+            },
+            {
+                "word": " se",
+                "start": 1.7200000000000024,
+                "end": 1.7600000000000016
+            },
+            {
+                "word": " abrir,",
+                "start": 1.7600000000000016,
+                "end": 1.9600000000000009
+            }
+        ],
+        "text": " Quando uma rachadura começa a se abrir,"
+    },
+    {
+        "index": 12,
+        "filename": "segment_012.mp3",
+        "start_time": 28.16,
+        "duration": 3.379999999999999,
+        "end_time": 31.54,
+        "words": [
+            {
+                "word": " e",
+                "start": 0.0,
+                "end": 0.23999999999999844
+            },
+            {
+                "word": " a",
+                "start": 0.23999999999999844,
+                "end": 0.7399999999999984
+            },
+            {
+                "word": " água",
+                "start": 0.7399999999999984,
+                "end": 0.9600000000000009
+            },
+            {
+                "word": " da",
+                "start": 0.9600000000000009,
+                "end": 1.1400000000000006
+            },
+            {
+                "word": " chuva",
+                "start": 1.1400000000000006,
+                "end": 1.5799999999999983
+            },
+            {
+                "word": " ou",
+                "start": 1.5799999999999983,
+                "end": 1.7199999999999989
+            },
+            {
+                "word": " do",
+                "start": 1.7199999999999989,
+                "end": 1.8599999999999994
+            },
+            {
+                "word": " mar",
+                "start": 1.8599999999999994,
+                "end": 2.0199999999999996
+            },
+            {
+                "word": " penetra",
+                "start": 2.0199999999999996,
+                "end": 2.6799999999999997
+            },
+            {
+                "word": " na",
+                "start": 2.6799999999999997,
+                "end": 2.8000000000000007
+            },
+            {
+                "word": " estrutura,",
+                "start": 2.8000000000000007,
+                "end": 3.379999999999999
+            }
+        ],
+        "text": " e a água da chuva ou do mar penetra na estrutura,"
+    },
+    {
+        "index": 13,
+        "filename": "segment_013.mp3",
+        "start_time": 31.98,
+        "duration": 2.620000000000001,
+        "end_time": 34.6,
+        "words": [
+            {
+                "word": " ela",
+                "start": 0.0,
+                "end": 0.23999999999999844
+            },
+            {
+                "word": " dissolve",
+                "start": 0.23999999999999844,
+                "end": 0.8399999999999999
+            },
+            {
+                "word": " esses",
+                "start": 0.8399999999999999,
+                "end": 1.0199999999999996
+            },
+            {
+                "word": " pedaços",
+                "start": 1.0199999999999996,
+                "end": 1.4999999999999964
+            },
+            {
+                "word": " de",
+                "start": 1.4999999999999964,
+                "end": 1.6999999999999993
+            },
+            {
+                "word": " cál",
+                "start": 1.6999999999999993,
+                "end": 1.9599999999999973
+            },
+            {
+                "word": " acumulados.",
+                "start": 1.9599999999999973,
+                "end": 2.620000000000001
+            }
+        ],
+        "text": " ela dissolve esses pedaços de cál acumulados."
+    },
+    {
+        "index": 14,
+        "filename": "segment_014.mp3",
+        "start_time": 35.26,
+        "duration": 3.5600000000000023,
+        "end_time": 38.82,
+        "words": [
+            {
+                "word": " Essa",
+                "start": 0.0,
+                "end": 0.480000000000004
+            },
+            {
+                "word": " solução",
+                "start": 0.480000000000004,
+                "end": 0.9400000000000048
+            },
+            {
+                "word": " rica",
+                "start": 0.9400000000000048,
+                "end": 1.3400000000000034
+            },
+            {
+                "word": " em",
+                "start": 1.3400000000000034,
+                "end": 1.5200000000000031
+            },
+            {
+                "word": " cálcio",
+                "start": 1.5200000000000031,
+                "end": 1.9200000000000017
+            },
+            {
+                "word": " recristaliza",
+                "start": 1.9200000000000017,
+                "end": 2.8000000000000043
+            },
+            {
+                "word": " rapidamente,",
+                "start": 2.8000000000000043,
+                "end": 3.5600000000000023
+            }
+        ],
+        "text": " Essa solução rica em cálcio recristaliza rapidamente,"
+    },
+    {
+        "index": 15,
+        "filename": "segment_015.mp3",
+        "start_time": 39.28,
+        "duration": 2.719999999999999,
+        "end_time": 42.0,
+        "words": [
+            {
+                "word": " preenchendo",
+                "start": 0.0,
+                "end": 0.4200000000000017
+            },
+            {
+                "word": " a",
+                "start": 0.4200000000000017,
+                "end": 0.5799999999999983
+            },
+            {
+                "word": " fenda",
+                "start": 0.5799999999999983,
+                "end": 0.8799999999999955
+            },
+            {
+                "word": " e",
+                "start": 0.8799999999999955,
+                "end": 1.240000000000002
+            },
+            {
+                "word": " colando",
+                "start": 1.240000000000002,
+                "end": 1.6599999999999966
+            },
+            {
+                "word": " o",
+                "start": 1.6599999999999966,
+                "end": 1.8799999999999955
+            },
+            {
+                "word": " concreto",
+                "start": 1.8799999999999955,
+                "end": 2.1199999999999974
+            },
+            {
+                "word": " de",
+                "start": 2.1199999999999974,
+                "end": 2.3999999999999986
+            },
+            {
+                "word": " volta",
+                "start": 2.3999999999999986,
+                "end": 2.719999999999999
+            }
+        ],
+        "text": " preenchendo a fenda e colando o concreto de volta"
+    },
+    {
+        "index": 16,
+        "filename": "segment_016.mp3",
+        "start_time": 42.0,
+        "duration": 1.7000000000000028,
+        "end_time": 43.7,
+        "words": [
+            {
+                "word": " antes",
+                "start": 0.0,
+                "end": 0.5600000000000023
+            },
+            {
+                "word": " que",
+                "start": 0.5600000000000023,
+                "end": 0.759999999999998
+            },
+            {
+                "word": " o",
+                "start": 0.759999999999998,
+                "end": 0.8200000000000003
+            },
+            {
+                "word": " estragualmente.",
+                "start": 0.8200000000000003,
+                "end": 1.7000000000000028
+            }
+        ],
+        "text": " antes que o estragualmente."
+    },
+    {
+        "index": 17,
+        "filename": "segment_017.mp3",
+        "start_time": 44.36,
+        "duration": 2.740000000000002,
+        "end_time": 47.1,
+        "words": [
+            {
+                "word": " Enquanto",
+                "start": 0.0,
+                "end": 0.759999999999998
+            },
+            {
+                "word": " nossas",
+                "start": 0.759999999999998,
+                "end": 1.0399999999999991
+            },
+            {
+                "word": " pontes",
+                "start": 1.0399999999999991,
+                "end": 1.4399999999999977
+            },
+            {
+                "word": " modernas",
+                "start": 1.4399999999999977,
+                "end": 2.020000000000003
+            },
+            {
+                "word": " desmoronam",
+                "start": 2.020000000000003,
+                "end": 2.740000000000002
+            }
+        ],
+        "text": " Enquanto nossas pontes modernas desmoronam"
+    },
+    {
+        "index": 18,
+        "filename": "segment_018.mp3",
+        "start_time": 47.1,
+        "duration": 1.9600000000000009,
+        "end_time": 49.06,
+        "words": [
+            {
+                "word": " e",
+                "start": 0.0,
+                "end": 0.3200000000000003
+            },
+            {
+                "word": " exigen",
+                "start": 0.3200000000000003,
+                "end": 0.6400000000000006
+            },
+            {
+                "word": " uma",
+                "start": 0.6400000000000006,
+                "end": 0.8799999999999955
+            },
+            {
+                "word": " notensão",
+                "start": 0.8799999999999955,
+                "end": 1.3200000000000003
+            },
+            {
+                "word": " constante,",
+                "start": 1.3200000000000003,
+                "end": 1.9600000000000009
+            }
+        ],
+        "text": " e exigen uma notensão constante,"
+    },
+    {
+        "index": 19,
+        "filename": "segment_019.mp3",
+        "start_time": 49.78,
+        "duration": 3.799999999999997,
+        "end_time": 53.58,
+        "words": [
+            {
+                "word": " a",
+                "start": 0.0,
+                "end": 0.11999999999999744
+            },
+            {
+                "word": " engenharia",
+                "start": 0.11999999999999744,
+                "end": 0.6199999999999974
+            },
+            {
+                "word": " antiga",
+                "start": 0.6199999999999974,
+                "end": 1.1199999999999974
+            },
+            {
+                "word": " usava",
+                "start": 1.1199999999999974,
+                "end": 1.7199999999999989
+            },
+            {
+                "word": " a",
+                "start": 1.7199999999999989,
+                "end": 1.9600000000000009
+            },
+            {
+                "word": " própria",
+                "start": 1.9600000000000009,
+                "end": 2.240000000000002
+            },
+            {
+                "word": " natureza",
+                "start": 2.240000000000002,
+                "end": 2.8200000000000003
+            },
+            {
+                "word": " para",
+                "start": 2.8200000000000003,
+                "end": 3.019999999999996
+            },
+            {
+                "word": " se",
+                "start": 3.019999999999996,
+                "end": 3.1799999999999997
+            },
+            {
+                "word": " reconstruir.",
+                "start": 3.1799999999999997,
+                "end": 3.799999999999997
+            }
+        ],
+        "text": " a engenharia antiga usava a própria natureza para se reconstruir."
+    },
+    {
+        "index": 20,
+        "filename": "segment_020.mp3",
+        "start_time": 54.56,
+        "duration": 3.019999999999996,
+        "end_time": 57.58,
+        "words": [
+            {
+                "word": " Se",
+                "start": 0.0,
+                "end": 0.21999999999999886
+            },
+            {
+                "word": " você",
+                "start": 0.21999999999999886,
+                "end": 0.46000000000000085
+            },
+            {
+                "word": " acha",
+                "start": 0.46000000000000085,
+                "end": 0.7199999999999989
+            },
+            {
+                "word": " que",
+                "start": 0.7199999999999989,
+                "end": 0.8799999999999955
+            },
+            {
+                "word": " deveríamos",
+                "start": 0.8799999999999955,
+                "end": 1.3599999999999994
+            },
+            {
+                "word": " adotar",
+                "start": 1.3599999999999994,
+                "end": 1.7999999999999972
+            },
+            {
+                "word": " essa",
+                "start": 1.7999999999999972,
+                "end": 2.0
+            },
+            {
+                "word": " tecnologia",
+                "start": 2.0,
+                "end": 2.3399999999999963
+            },
+            {
+                "word": " hoje,",
+                "start": 2.3399999999999963,
+                "end": 3.019999999999996
+            }
+        ],
+        "text": " Se você acha que deveríamos adotar essa tecnologia hoje,"
+    },
+    {
+        "index": 21,
+        "filename": "segment_021.mp3",
+        "start_time": 57.58,
+        "duration": 1.1799999999999997,
+        "end_time": 58.76,
+        "words": [
+            {
+                "word": " se",
+                "start": 0.0,
+                "end": 0.4200000000000017
+            },
+            {
+                "word": " inscreve",
+                "start": 0.4200000000000017,
+                "end": 0.8400000000000034
+            },
+            {
+                "word": " no",
+                "start": 0.8400000000000034,
+                "end": 0.9400000000000048
+            },
+            {
+                "word": " canal.",
+                "start": 0.9400000000000048,
+                "end": 1.1799999999999997
+            }
+        ],
+        "text": " se inscreve no canal."
+    }
+]
