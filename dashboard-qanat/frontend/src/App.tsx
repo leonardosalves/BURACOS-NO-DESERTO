@@ -2508,6 +2508,11 @@ export default function App() {
       setGeminiExtensionReady(false);
       setGeminiExtensionDiag('Falha ao verificar extensão');
     });
+    const onBridgeReady = () => {
+      void refreshGeminiExtensionStatus();
+    };
+    window.addEventListener('lumiera-gemini-bridge-ready', onBridgeReady);
+    return () => window.removeEventListener('lumiera-gemini-bridge-ready', onBridgeReady);
   }, [geminiBrowserMode]);
 
   useEffect(() => {

@@ -3,7 +3,7 @@ const APP_SOURCE = 'lumiera-app';
 
 function formatExtensionError(message: string) {
   if (/extension context invalidated|context invalidated|extensão recarregada/i.test(message)) {
-    return 'Extensão recarregada — pressione F5 nesta página do Lumiera agora. (Ou desligue Gemini no Chrome e use a API.)';
+    return 'Extensão reconectando — aguarde 2s e tente de novo.';
   }
   if (/receiving end does not exist|could not establish connection|sem conexão/i.test(message)) {
     return 'Aba do Gemini desconectada. Abra https://gemini.google.com/app, faça login e tente de novo.';
@@ -126,7 +126,7 @@ export async function queryGeminiViaExtension(prompt: string): Promise<string> {
 function isRetryableGeminiError(err: unknown): boolean {
   const msg = String(err instanceof Error ? err.message : err);
   if (/timeout aguardando|demorou demais/i.test(msg)) return false;
-  return /receiving end does not exist|could not establish connection|extensão não|context invalidated|não conectada|não respondeu|desconectada/i.test(msg);
+  return /receiving end does not exist|could not establish connection|extensão não|context invalidated|extensão recarregada|reconectando|não conectada|não respondeu|desconectada/i.test(msg);
 }
 
 export async function queryGeminiWithRetry(
@@ -151,7 +151,10 @@ export async function queryGeminiWithRetry(
       lastErr = err instanceof Error ? err : new Error(String(err));
       extensionCached = false;
       if (!isRetryableGeminiError(lastErr) || i >= attempts - 1) break;
-      await sleep(800);
+      if (/extensão recarregada|reconectando|context invalidated/i.test(lastErr.message)) {
+        await waitForBridgeScript(4000);
+      }
+      await sleep(2000);
     }
   }
   throw lastErr || new Error('Automação Gemini falhou.');
