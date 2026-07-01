@@ -1,0 +1,31 @@
+# Lumiera — índice de patterns (loop-engineering)
+# Fonte: https://github.com/cobusgreyling/loop-engineering
+
+patterns:
+  - id: changelog-drafter
+    name: Changelog Drafter
+    goal: Rascunho de release notes para commits/merges do Lumiera
+    cadence: 1d
+    risk: low
+    state: changelog-drafter-state.md
+    starter: active
+    week_one_mode: L1
+    token_cost: low
+
+  - id: daily-triage
+    name: Daily Triage
+    goal: Scan matinal de CI, issues e backlog do estúdio
+    cadence: 1d-2h
+    risk: low
+    state: STATE.md
+    week_one_mode: L1
+    token_cost: low
+
+  - id: issue-triage
+    name: Issue Triage
+    goal: Fila limpa de issues — dedupe e priorização
+    cadence: 2h-1d
+    risk: low
+    state: issue-triage-state.md
+    week_one_mode: L1
+    token_cost: low
