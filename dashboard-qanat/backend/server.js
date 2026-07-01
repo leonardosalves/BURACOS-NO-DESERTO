@@ -6648,7 +6648,8 @@ function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
 }
 
 function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
-  return getAiProvider(projectDir) === "gemini" && isGeminiBrowserModeEnabled(projectDir);
+  // gemini_browser_mode ativo = prioridade sobre ai_provider (NVIDIA, xAI, etc.)
+  return isGeminiBrowserModeEnabled(projectDir);
 }
 
 /**
