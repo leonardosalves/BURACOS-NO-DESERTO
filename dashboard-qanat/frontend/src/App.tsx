@@ -12706,7 +12706,15 @@ export default function App() {
                                 try {
                                   const d = await refreshGeminiExtensionStatus();
                                   if (d.pingOk) toast.success(`Extensão OK ${d.version ? `(v${d.version})` : ''}`);
-                                  else toast.error(d.error || 'Extensão não conectada', { duration: 8000 });
+                                  else {
+                                    const err = d.error || 'Extensão não conectada';
+                                    toast.error(
+                                      /recarregada|F5/i.test(err)
+                                        ? `${err} Pressione F5 agora.`
+                                        : err,
+                                      { duration: 10000 },
+                                    );
+                                  }
                                 } finally {
                                   setGeminiExtensionTesting(false);
                                 }

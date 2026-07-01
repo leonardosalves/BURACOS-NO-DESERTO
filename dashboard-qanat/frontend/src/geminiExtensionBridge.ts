@@ -2,8 +2,8 @@ const BRIDGE_SOURCE = 'lumiera-gemini-bridge';
 const APP_SOURCE = 'lumiera-app';
 
 function formatExtensionError(message: string) {
-  if (/extension context invalidated|context invalidated/i.test(message)) {
-    return 'Extensão foi recarregada. Recarregue esta página (F5) e tente de novo.';
+  if (/extension context invalidated|context invalidated|extensão recarregada/i.test(message)) {
+    return 'Extensão recarregada — pressione F5 nesta página do Lumiera agora. (Ou desligue Gemini no Chrome e use a API.)';
   }
   if (/receiving end does not exist|could not establish connection|sem conexão/i.test(message)) {
     return 'Aba do Gemini desconectada. Abra https://gemini.google.com/app, faça login e tente de novo.';

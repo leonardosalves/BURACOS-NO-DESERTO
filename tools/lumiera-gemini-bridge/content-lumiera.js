@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.3";
+  const VERSION = "1.4.4";
 
   function announceReady() {
     try {
@@ -62,6 +62,15 @@
     if (!data || data.source !== "lumiera-app") return;
 
     if (data.type === "LUMIERA_GEMINI_PING") {
+      if (!isExtensionContextValid()) {
+        postBridgeMessage({
+          type: "LUMIERA_GEMINI_PONG",
+          requestId: data.requestId,
+          ok: false,
+          error: CONTEXT_INVALIDATED_MSG,
+        });
+        return;
+      }
       postBridgeMessage({
         type: "LUMIERA_GEMINI_PONG",
         requestId: data.requestId,

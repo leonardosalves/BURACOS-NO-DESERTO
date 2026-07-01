@@ -7318,9 +7318,12 @@ async function callGeminiLlm(req, res, projDir, {
   if (browserText) return browserText;
 
   const hasGeminiApiKey = Boolean(getApiKey(projDir) || getApiKey(WORKSPACE_DIR));
-  const useBrowser = shouldOfferGeminiBrowser(projDir) && !(preferApi && hasGeminiApiKey);
-  if (preferApi && hasGeminiApiKey && shouldOfferGeminiBrowser(projDir)) {
-    console.log(`[Gemini] ${title}: API direta (mais rápida que Chrome) — gemini_browser_mode ignorado nesta chamada.`);
+  const titleLower = String(title || "").toLowerCase();
+  const creatorTask = /creator|ideias|narra|roteiro|listicle|script master/i.test(titleLower);
+  const preferApiEffective = preferApi || (creatorTask && hasGeminiApiKey);
+  const useBrowser = shouldOfferGeminiBrowser(projDir) && !(preferApiEffective && hasGeminiApiKey);
+  if (preferApiEffective && hasGeminiApiKey && shouldOfferGeminiBrowser(projDir)) {
+    console.log(`[Gemini] ${title}: API direta — gemini_browser_mode ignorado (chave configurada).`);
   }
 
   if (useBrowser) {
