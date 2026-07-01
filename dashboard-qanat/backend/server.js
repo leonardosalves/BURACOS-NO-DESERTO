@@ -1292,20 +1292,33 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  let lastPipelineError = "";
+
   const sendLog = (text) => {
+    if (/\[ERROR\]|\[PIPELINE_ERROR\]/i.test(text)) {
+      lastPipelineError = String(text).replace(/^\[Error\]\s*/i, "").trim();
+    }
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
   };
 
   sendLog(`[Pipeline] Iniciando Upload Automatizado com plataformas: ${platforms}...`);
-  
-  const scriptPath = path.join(projDir, "upload_pipeline.py");
-  if (!fs.existsSync(scriptPath)) {
-    ensureFileExists("upload_pipeline.py", projDir);
+
+  const uploadScripts = [
+    "lumiera_workspace.py",
+    "upload_pipeline.py",
+    "upload_youtube.py",
+    "upload_instagram.py",
+    "upload_tiktok_playwright.py",
+    "upload_kwai_playwright.py",
+  ];
+  for (const scriptName of uploadScripts) {
+    ensureFileExists(scriptName, projDir);
   }
 
   const child = spawn(PYTHON_PATH, ["upload_pipeline.py", projDir, platforms], {
     cwd: projDir,
-    shell: true
+    shell: true,
+    env: { ...process.env, LUMIERA_WORKSPACE: WORKSPACE_DIR },
   });
 
   child.stdout.on("data", (data) => {
@@ -1352,7 +1365,12 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
 
       res.write(`data: ${JSON.stringify({ type: "complete", message: "Processo de upload concluído!", videoId })}\n\n`);
     } else {
-      res.write(`data: ${JSON.stringify({ type: "error", message: `O processo encerrou com código ${code}` })}\n\n`);
+      const hint = lastPipelineError
+        || (code === 1 ? "Verifique: vídeo renderizado em OUTPUT/, OAuth YouTube em Configurações e metadados salvos." : "");
+      const message = hint
+        ? `Upload falhou: ${hint}`
+        : `O processo encerrou com código ${code}`;
+      res.write(`data: ${JSON.stringify({ type: "error", message, code, detail: lastPipelineError || undefined })}\n\n`);
     }
     res.end();
   });

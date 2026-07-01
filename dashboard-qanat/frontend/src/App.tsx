@@ -11213,7 +11213,8 @@ export default function App() {
                           } else if (data.type === "error") {
                             eventSource.close();
                             setUploading(false);
-                            toast("Erro ao executar pipeline: " + data.message);
+                            const detail = data.detail || data.message || 'Erro desconhecido';
+                            toast.error(`Upload falhou: ${detail}`);
                           }
                         };
                         eventSource.onerror = () => {

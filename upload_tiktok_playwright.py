@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+
+from lumiera_workspace import resolve_workspace
 import time
 from playwright.sync_api import sync_playwright
 
@@ -50,16 +52,8 @@ def main():
         sys.exit(1)
     print(f"[INFO] Vídeo para upload: {os.path.basename(video_path)}")
     
-    workspace_dir = project_dir
-    found_ws = False
-    for _ in range(5):
-        if os.path.exists(os.path.join(workspace_dir, "run_qanat_dashboard.bat")):
-            found_ws = True
-            break
-        workspace_dir = os.path.dirname(workspace_dir)
-    if not found_ws:
-        workspace_dir = os.path.abspath(os.path.join(project_dir, "..", ".."))
-        
+    workspace_dir = resolve_workspace(project_dir)
+
     cookies_path = os.path.join(workspace_dir, "tiktok_cookies.json")
     
     if not os.path.exists(cookies_path):

@@ -4,6 +4,8 @@ import subprocess
 import json
 import glob
 
+from lumiera_workspace import resolve_workspace, resolve_script
+
 def get_project_dir():
     if len(sys.argv) > 1:
         return os.path.abspath(sys.argv[1])
@@ -59,20 +61,19 @@ def get_video_specs(video_path):
         return None
 
 def run_upload_script(script_name, project_dir):
-    script_path = os.path.join(project_dir, script_name)
-    if not os.path.exists(script_path):
-        script_path = os.path.join(os.path.dirname(project_dir), script_name)
-    if not os.path.exists(script_path):
-        script_path = os.path.abspath(os.path.join(project_dir, "..", "..", script_name))
-        
-    if not os.path.exists(script_path):
+    workspace = resolve_workspace(project_dir)
+    script_path = resolve_script(project_dir, script_name, workspace)
+
+    if not script_path:
         print(f"[ERROR] Script de upload {script_name} não encontrado.")
+        print(f"[ERROR] Workspace Lumiera: {workspace}")
         return "NÃO ENCONTRADO"
-        
-    print(f"\n[INFO] Executando robô: {script_name}...")
+
+    print(f"\n[INFO] Executando robô: {script_name} ({script_path})...")
+    env = {**os.environ, "LUMIERA_WORKSPACE": workspace}
     cmd = [sys.executable, script_path, project_dir]
     try:
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
         while True:
             output = process.stdout.readline()
             if output == '' and process.poll() is not None:
@@ -173,6 +174,11 @@ def main():
         icon = "✅" if status == "SUCESSO" else "❌" if status in ("FALHA", "ERRO EXCEÇÃO") else "⚠️"
         print(f"  {icon} {label}: {status}")
     print("="*50)
+
+    failed = [label for label, status in reports.items() if status != "SUCESSO"]
+    if failed:
+        print(f"[PIPELINE_ERROR] Falha no upload: {', '.join(failed)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
