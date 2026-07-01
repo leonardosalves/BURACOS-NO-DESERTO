@@ -7161,9 +7161,9 @@ export default function App() {
 
                   {/* Action buttons row at the top */}
 
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
 
-                    <div>
+                    <div className="flex-1 min-w-[280px]">
 
                       <SectionHeader
                         title="Arquivos de Mídia por Bloco"
@@ -7175,7 +7175,7 @@ export default function App() {
 
                     </div>
 
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto lg:justify-end">
 
                       <div className="flex items-center gap-2">
 
