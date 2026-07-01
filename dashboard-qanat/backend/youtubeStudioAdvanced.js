@@ -310,17 +310,135 @@ export async function fetchVideoCtrAndRevenue(workspaceDir, videoId, { days = 28
   }
 }
 
-export async function tagVideosShortsLong(accessToken, videoIds = []) {
-  if (!videoIds.length) return new Map();
-  const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds.slice(0, 50).join(",")}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
-  const data = await res.json();
+const SHORTS_MAX_DURATION_SEC = 180;
+
+async function fetchVideoDetailsMap(accessToken, videoIds = []) {
   const map = new Map();
-  for (const item of data.items || []) {
-    const sec = parseDurationSeconds(item.contentDetails?.duration);
-    map.set(item.id, sec > 0 && sec <= 60 ? "SHORT" : "LONG");
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const chunk = videoIds.slice(i, i + 50);
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${chunk.join(",")}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    const data = await res.json();
+    for (const item of data.items || []) {
+      map.set(item.id, {
+        durationSec: parseDurationSeconds(item.contentDetails?.duration),
+        title: item.snippet?.title || "",
+      });
+    }
+  }
+  return map;
+}
+
+async function fetchCreatorContentTypeByVideo(accessToken, videoIds = [], { startDate, endDate } = {}) {
+  const map = new Map();
+  if (!videoIds.length || !startDate || !endDate) return map;
+
+  const batchSize = 6;
+  for (let i = 0; i < videoIds.length; i += batchSize) {
+    const chunk = videoIds.slice(i, i + batchSize);
+    await Promise.all(chunk.map(async (videoId) => {
+      try {
+        const params = new URLSearchParams({
+          ids: "channel==MINE",
+          startDate,
+          endDate,
+          metrics: "views",
+          dimensions: "video,creatorContentType",
+          filters: `video==${videoId}`,
+          maxResults: "5",
+        });
+        const res = await fetch(
+          `https://youtubeanalytics.googleapis.com/v2/reports?${params.toString()}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        );
+        const data = await res.json();
+        const row = data.rows?.[0];
+        if (!row) return;
+        const type = String(row[1] || "").toLowerCase();
+        if (type === "shorts") map.set(videoId, "SHORT");
+        else if (type.includes("video")) map.set(videoId, "LONG");
+      } catch {
+        /* analytics opcional por vídeo */
+      }
+    }));
+  }
+  return map;
+}
+
+function titleSuggestsShort(title = "") {
+  return /#shorts?\b|#short\b|\bshorts\b/i.test(String(title));
+}
+
+export async function tagVideosShortsLong(
+  accessToken,
+  videoIds = [],
+  { lumieraFormatById = {}, startDate, endDate } = {},
+) {
+  if (!videoIds.length) return new Map();
+
+  const range = startDate && endDate
+    ? { startDate, endDate }
+    : periodRange(365);
+
+  const detailsMap = await fetchVideoDetailsMap(accessToken, videoIds);
+  const map = new Map();
+  const needsAnalytics = [];
+
+  for (const videoId of videoIds) {
+    const lumiera = String(lumieraFormatById[videoId] || "").toUpperCase();
+    if (lumiera === "SHORTS" || lumiera === "SHORT") {
+      map.set(videoId, "SHORT");
+      continue;
+    }
+    if (lumiera === "LONGO" || lumiera === "LONG") {
+      map.set(videoId, "LONG");
+      continue;
+    }
+
+    const details = detailsMap.get(videoId) || {};
+    const sec = details.durationSec || 0;
+    const title = details.title || "";
+
+    if (titleSuggestsShort(title)) {
+      map.set(videoId, "SHORT");
+      continue;
+    }
+
+    if (sec > 0 && sec <= 60) {
+      map.set(videoId, "SHORT");
+      continue;
+    }
+
+    if (sec > SHORTS_MAX_DURATION_SEC) {
+      map.set(videoId, "LONG");
+      continue;
+    }
+
+    if (sec > 60 && sec <= SHORTS_MAX_DURATION_SEC) {
+      needsAnalytics.push(videoId);
+      continue;
+    }
+
+    needsAnalytics.push(videoId);
+  }
+
+  if (needsAnalytics.length) {
+    const analyticsMap = await fetchCreatorContentTypeByVideo(accessToken, needsAnalytics, range);
+    for (const videoId of needsAnalytics) {
+      const analyticsFormat = analyticsMap.get(videoId);
+      if (analyticsFormat) {
+        map.set(videoId, analyticsFormat);
+        continue;
+      }
+      const sec = detailsMap.get(videoId)?.durationSec || 0;
+      map.set(videoId, sec > 0 && sec <= SHORTS_MAX_DURATION_SEC ? "SHORT" : "LONG");
+    }
+  }
+
+  for (const videoId of videoIds) {
+    if (!map.has(videoId)) map.set(videoId, "LONG");
   }
   return map;
 }

@@ -46,6 +46,7 @@ export function registerWorkflowRoutes(app, deps) {
     getXaiApiKey,
     getAiProvider,
     getOpenRouterApiKey,
+    getNvidiaApiKey,
     getEpidemicSoundKey,
     buildProjectTranscript,
     buildTimelineFromStoryboard,
@@ -53,6 +54,7 @@ export function registerWorkflowRoutes(app, deps) {
     callGeminiWithRetry,
     callGeminiLlm,
     generateMetadataWithXai,
+    generateMetadataWithNvidia,
     generateYoutubeThumbnailImages,
     runAutoSoundtrackLogic,
     readJsonFile,
@@ -63,6 +65,7 @@ export function registerWorkflowRoutes(app, deps) {
     const apiKeys = getApiKeys(projDir);
     const xaiKey = getXaiApiKey(projDir);
     const aiProvider = getAiProvider(projDir);
+    const nvidiaKey = getNvidiaApiKey ? getNvidiaApiKey(projDir) : null;
 
     const configPath = path.join(projDir, "config_qanat.json");
     const timingsPath = path.join(projDir, "block_timings.json");
@@ -102,7 +105,9 @@ export function registerWorkflowRoutes(app, deps) {
     let text = "";
     let fallback = false;
 
-    if (aiProvider === "xai" && xaiKey) {
+    if (aiProvider === "nvidia" && nvidiaKey && generateMetadataWithNvidia) {
+      text = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+    } else if (aiProvider === "xai" && xaiKey) {
       text = await generateMetadataWithXai(prompt, xaiKey, format);
     } else if (req && res && callGeminiLlm) {
       try {
@@ -119,7 +124,9 @@ export function registerWorkflowRoutes(app, deps) {
         text = responseText;
       } catch (geminiErr) {
         if (geminiErr.geminiBrowserPending) throw geminiErr;
-        if (xaiKey) {
+        if (nvidiaKey && generateMetadataWithNvidia) {
+          text = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+        } else if (xaiKey) {
           text = await generateMetadataWithXai(prompt, xaiKey, format);
         } else {
           text = buildFallbackYoutubeMetadata({
@@ -140,7 +147,9 @@ export function registerWorkflowRoutes(app, deps) {
       try {
         text = await callGeminiWithRetry(apiKeys[0], prompt, { temperature: 0.55 });
       } catch (geminiErr) {
-        if (xaiKey) {
+        if (nvidiaKey && generateMetadataWithNvidia) {
+          text = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+        } else if (xaiKey) {
           text = await generateMetadataWithXai(prompt, xaiKey, format);
         } else {
           text = buildFallbackYoutubeMetadata({

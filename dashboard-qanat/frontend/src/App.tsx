@@ -633,7 +633,9 @@ export default function App() {
 
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
-    const [aiProvider, setAiProvider] = useState<'gemini' | 'xai' | 'openrouter'>('gemini');
+    const [aiProvider, setAiProvider] = useState<'gemini' | 'xai' | 'openrouter' | 'nvidia'>('gemini');
+  const [nvidiaKeyInput, setNvidiaKeyInput] = useState<string>('');
+  const [hasNvidiaKey, setHasNvidiaKey] = useState<boolean>(false);
 
   const [geminiKeysInput, setGeminiKeysInput] = useState<string>('');
 
@@ -2098,6 +2100,7 @@ export default function App() {
         setHasXaiKey(!!settingsData.has_xai_key);
 
         setHasOpenRouterKey(!!settingsData.has_openrouter_key);
+        setHasNvidiaKey(!!settingsData.has_nvidia_key);
 
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
@@ -2108,7 +2111,9 @@ export default function App() {
           || (settingsData.gemini_key_count || 0) > 0
           || !!settingsData.has_xai_key
           || settingsData.provider === 'openrouter'
-          || !!settingsData.has_openrouter_key,
+          || !!settingsData.has_openrouter_key
+          || settingsData.provider === 'nvidia'
+          || !!settingsData.has_nvidia_key,
         );
 
       }
@@ -5023,6 +5028,7 @@ export default function App() {
           xai_key: xaiKeyInput,
 
           openrouter_key: openrouterKeyInput,
+          nvidia_key: nvidiaKeyInput,
 
           gemini_browser_mode: geminiBrowserMode,
 })
@@ -5044,6 +5050,7 @@ export default function App() {
         setHasXaiKey(!!data.has_xai_key);
 
         setHasOpenRouterKey(!!data.has_openrouter_key);
+        setHasNvidiaKey(!!data.has_nvidia_key);
 
         setHasEpidemicKey(!!data.has_epidemic_key);
 
@@ -5054,7 +5061,9 @@ export default function App() {
           || (data.gemini_key_count || 0) > 0
           || !!data.has_xai_key
           || data.provider === 'openrouter'
-          || !!data.has_openrouter_key,
+          || !!data.has_openrouter_key
+          || data.provider === 'nvidia'
+          || !!data.has_nvidia_key,
         );
 
         setGeminiKeysInput('');
@@ -5062,6 +5071,7 @@ export default function App() {
         setXaiKeyInput('');
 
         setOpenRouterKeyInput('');
+        setNvidiaKeyInput('');
 
         setEpidemicKeyInput('');
 
@@ -12339,12 +12349,13 @@ export default function App() {
                     <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">Gemini: {geminiKeyCount} chave(s)</span>
 
                     <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">xAI: {hasXaiKey ? 'configurado' : 'vazio'}</span>
+                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">NVIDIA API: {hasNvidiaKey ? 'configurado' : 'vazio'}</span>
 
                   </div>
 
                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
                   <button onClick={() => setAiProvider('gemini')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'gemini' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
 
@@ -12394,6 +12405,23 @@ export default function App() {
                     </div>
 
                     <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API do OpenRouter com rotação de modelos free do Gemini, Llama e Qwen.</p>
+
+                  </button>
+
+                  <button onClick={() => setAiProvider('nvidia')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'nvidia' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        NVIDIA API
+                        <SettingHelpTip title="NVIDIA API" align="start">Chamadas de IA de alto desempenho via NVIDIA API com múltiplos modelos (Minimax, Qwen, Kimi, GLM, Deepseek).</SettingHelpTip>
+                      </span>
+
+                      {aiProvider === 'nvidia' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API da NVIDIA com múltiplos modelos integrados e rotação/fallback.</p>
 
                   </button>
 
@@ -12516,6 +12544,30 @@ export default function App() {
                       <input type="password" value={openrouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder="Deixe vazio para usar a padrão ou cole uma chave personalizada." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
 
                       <p className="text-[10px] text-zinc-500 leading-relaxed">Opcional. Se não fornecida, o sistema usará a chave privada pré-configurada.</p>
+
+                    </div>
+
+                    <div className="space-y-2">
+
+                      <div className="flex items-center justify-between">
+
+                        <SettingLabel helpTitle="Chave NVIDIA API" help="Chave da API da NVIDIA. Necessária para usar os modelos de IA da NVIDIA." align="start">Chave NVIDIA API</SettingLabel>
+
+                        {hasNvidiaKey ? (
+
+                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Configurada</span>
+
+                        ) : (
+
+                          <span className="text-[9px] bg-red-950/80 border border-red-800 text-red-400 px-2 py-0.5 rounded-full font-bold">Não Configurada</span>
+
+                        )}
+
+                      </div>
+
+                      <input type="password" value={nvidiaKeyInput} onChange={(e) => setNvidiaKeyInput(e.target.value)} placeholder="Cole a chave NVIDIA API. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">A chave da NVIDIA será usada quando você selecionar NVIDIA API como provedor.</p>
 
                     </div>
 

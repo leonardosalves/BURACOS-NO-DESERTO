@@ -380,16 +380,112 @@ export function deleteChannelNote(workspaceDir, noteId) {
   return { success: true };
 }
 
+export async function fetchYppMilestones(workspaceDir) {
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+
+  const chRes = await fetch(
+    "https://www.googleapis.com/youtube/v3/channels?part=statistics&mine=true",
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const chData = await chRes.json();
+  const stats = chData?.items?.[0]?.statistics || {};
+  const subscribers = Number(stats.subscriberCount || 0);
+
+  const endDate = new Date().toISOString().slice(0, 10);
+  const start365 = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const start90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  let watchMinutes12m = 0;
+  let shortsViews90d = 0;
+
+  try {
+    const watchData = await queryYoutubeAnalytics(accessToken, new URLSearchParams({
+      ids: "channel==MINE",
+      startDate: start365,
+      endDate,
+      metrics: "estimatedMinutesWatched",
+      dimensions: "day",
+      maxResults: 500,
+    }));
+    watchMinutes12m = (watchData.rows || []).reduce((sum, row) => sum + Number(row[1] || 0), 0);
+  } catch {
+    watchMinutes12m = 0;
+  }
+
+  try {
+    const shortsData = await queryYoutubeAnalytics(accessToken, new URLSearchParams({
+      ids: "channel==MINE",
+      startDate: start90,
+      endDate,
+      metrics: "views",
+      dimensions: "creatorContentType",
+      maxResults: 10,
+    }));
+    for (const row of shortsData.rows || []) {
+      if (String(row[0] || "").toLowerCase() === "shorts") {
+        shortsViews90d = Number(row[1] || 0);
+      }
+    }
+  } catch {
+    shortsViews90d = 0;
+  }
+
+  const watchHours12m = Math.round((watchMinutes12m / 60) * 10) / 10;
+  const SUBS_REQ = 1000;
+  const WATCH_HOURS_REQ = 4000;
+  const SHORTS_VIEWS_REQ = 10_000_000;
+
+  const subsMet = subscribers >= SUBS_REQ;
+  const watchMet = watchHours12m >= WATCH_HOURS_REQ;
+  const shortsMet = shortsViews90d >= SHORTS_VIEWS_REQ;
+
+  const pct = (current, required) => Math.min(100, Math.round((current / required) * 1000) / 10);
+
+  return {
+    available: true,
+    subscribers: {
+      current: subscribers,
+      required: SUBS_REQ,
+      progressPct: pct(subscribers, SUBS_REQ),
+      met: subsMet,
+    },
+    watchHours12m: {
+      current: watchHours12m,
+      required: WATCH_HOURS_REQ,
+      progressPct: pct(watchHours12m, WATCH_HOURS_REQ),
+      met: watchMet,
+    },
+    shortsViews90d: {
+      current: shortsViews90d,
+      required: SHORTS_VIEWS_REQ,
+      progressPct: pct(shortsViews90d, SHORTS_VIEWS_REQ),
+      met: shortsMet,
+    },
+    eligibleStandard: subsMet && watchMet,
+    eligibleShorts: subsMet && shortsMet,
+    recommendedPath: shortsViews90d > watchHours12m * 2000 ? "shorts" : "watch_hours",
+    note: "YPP: 1.000 inscritos + 4.000h (12 meses) ou 10M views Shorts (90 dias).",
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 export async function fetchProDashboard(workspaceDir, comments = []) {
   const settings = getProSettings(workspaceDir);
   const inbox = computeInboxStats(comments, settings);
   const queue = (settings.approvalQueue || []).filter((q) => q.status === "pending" || q.status === "approved");
   const seo = mineSeoKeywords(comments, { limit: 8 });
   let heatmap = { available: false };
+  let ypp = { available: false };
   try {
     heatmap = await fetchAudienceHeatmap(workspaceDir, { days: 28 });
   } catch {
     heatmap = { available: false };
+  }
+  try {
+    ypp = await fetchYppMilestones(workspaceDir);
+  } catch {
+    ypp = { available: false };
   }
   return {
     inbox,
@@ -397,6 +493,7 @@ export async function fetchProDashboard(workspaceDir, comments = []) {
     replyHistory: (settings.replyHistory || []).slice(0, 10),
     seoOpportunities: seo,
     heatmap,
+    ypp,
     preUpload: getPreUploadChecklistState(workspaceDir),
     channelNotes: (settings.channelNotes || []).slice(0, 5),
     slaHours: settings.slaHours,

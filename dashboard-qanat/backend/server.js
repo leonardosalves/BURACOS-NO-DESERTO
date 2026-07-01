@@ -96,6 +96,7 @@ import {
   fetchAudienceHeatmap,
   fetchProDashboard,
   fetchRetentionCliffReport,
+  fetchYppMilestones,
   getPreUploadChecklistState,
   getProSettings,
   mineSeoKeywords,
@@ -6651,6 +6652,15 @@ async function callGeminiLlm(req, res, projDir, {
   }
 
   const provider = getAiProvider(projDir);
+  if (provider === "nvidia") {
+    const apiKey = getNvidiaApiKey(projDir);
+    if (!apiKey) {
+      res.status(401).json({
+        error: "Chave de API da NVIDIA não configurada nas configurações.",
+      });
+      return null;
+    }
+  }
   if (provider === "gemini") {
     const apiKey = getApiKey(projDir);
     if (!apiKey) {
@@ -6706,6 +6716,51 @@ function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
 
   return null;
 
+}
+
+async function generateMetadataWithNvidia(prompt, apiKey, format = "LONG") {
+  const formatLabel = format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
+  
+  let lastError = null;
+  for (const model of NVIDIA_MODELS) {
+    try {
+      console.log(`[NVIDIA API - Metadata] Tentando modelo: ${model}`);
+      const response = await fetch("http://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: "system", content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.` },
+            { role: "user", content: prompt }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        let errData = {};
+        try { errData = await response.json(); } catch (e) {}
+        const errMsg = errData.error?.message || response.statusText;
+        console.warn(`[NVIDIA API - Metadata] Erro ${response.status} de ${model}: ${errMsg}`);
+        lastError = new Error(`Erro da NVIDIA [${model}]: ${errMsg}`);
+        continue;
+      }
+
+      const result = await response.json();
+      const responseText = result.choices?.[0]?.message?.content || "";
+      if (responseText) {
+        console.log(`[NVIDIA API - Metadata] Sucesso com modelo=${model}`);
+        return responseText;
+      }
+    } catch (err) {
+      console.warn(`[NVIDIA API - Metadata] Exceção com ${model}: ${err.message}`);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Falha ao gerar metadados com NVIDIA API após tentar todos os modelos.");
 }
 
 async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
@@ -6899,6 +6954,7 @@ app.get("/api/ai/settings", (req, res) => {
     has_xai_key: !!getXaiApiKey(projDir),
 
     has_openrouter_key: !!getOpenRouterApiKey(projDir),
+    has_nvidia_key: !!getNvidiaApiKey(projDir),
 
     has_epidemic_key: true,
 
@@ -6921,6 +6977,7 @@ app.post("/api/ai/settings", (req, res) => {
     gemini_keys,
     xai_key,
     openrouter_key,
+    nvidia_key,
     epidemic_sound_key,
     gemini_browser_mode,
   } = req.body || {};
@@ -6929,7 +6986,7 @@ app.post("/api/ai/settings", (req, res) => {
 
     let config = readJsonFile(configPath) || {};
 
-    if (provider === "gemini" || provider === "xai" || provider === "openrouter") {
+    if (provider === "gemini" || provider === "xai" || provider === "openrouter" || provider === "nvidia") {
 
       config.ai_provider = provider;
 
@@ -6971,6 +7028,12 @@ app.post("/api/ai/settings", (req, res) => {
 
     }
 
+    if (typeof nvidia_key === "string" && nvidia_key.trim()) {
+
+      config.nvidia_api_key = nvidia_key.trim();
+
+    }
+
     if (typeof epidemic_sound_key === "string") {
 
       config.epidemic_sound_key = epidemic_sound_key.trim();
@@ -6998,6 +7061,7 @@ app.post("/api/ai/settings", (req, res) => {
       has_xai_key: !!getXaiApiKey(projDir),
 
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
+      has_nvidia_key: !!getNvidiaApiKey(projDir),
 
       has_epidemic_key: true,
 
@@ -7678,7 +7742,8 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
   const openrouterKey = getOpenRouterApiKey(projDir);
 
-  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey) && !shouldOfferGeminiBrowser(projDir)) {
+  const nvidiaKey = getNvidiaApiKey(projDir);
+  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey) && !(aiProvider === "nvidia" && nvidiaKey) && !shouldOfferGeminiBrowser(projDir)) {
 
     return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
 
@@ -7848,6 +7913,14 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       }
     }
 
+    if (aiProvider === "nvidia" && nvidiaKey && !forceBrowser) {
+
+      const responseText = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+
+      return await respondWithMetadata(responseText, { provider: "nvidia" });
+
+    }
+
     if (aiProvider === "xai" && xaiKey && !forceBrowser) {
 
       const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
@@ -7907,6 +7980,28 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       return res.status(422).json({
         error: "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
       });
+    }
+
+    if (nvidiaKey) {
+
+      try {
+
+        const responseText = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+
+        return await respondWithMetadata(responseText, {
+
+          provider: "nvidia",
+
+          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei NVIDIA API como fallback.`
+
+        });
+
+      } catch (err) {
+
+        errors.push({ status: "nvidia", message: err.message, quotaExceeded: false });
+
+      }
+
     }
 
     if (xaiKey) {
@@ -8221,6 +8316,7 @@ app.get("/api/youtube/channel/videos", async (req, res) => {
       days,
       limit,
       forceRefresh: youtubeChannelForceRefresh(req),
+      projectsRoot: PROJECTS_ROOT,
     });
     res.json(report);
   } catch (err) {
@@ -8741,6 +8837,15 @@ app.put("/api/youtube/channel/pro/sla", (req, res) => {
     res.json(getProSettings(WORKSPACE_DIR));
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/pro/ypp-milestones", async (req, res) => {
+  try {
+    res.json(await fetchYppMilestones(WORKSPACE_DIR));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar marcos YPP");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
@@ -12028,6 +12133,7 @@ workflowApi = registerWorkflowRoutes(app, {
   getXaiApiKey,
   getAiProvider,
   getOpenRouterApiKey,
+  getNvidiaApiKey,
   getEpidemicSoundKey,
   buildProjectTranscript,
   buildTimelineFromStoryboard,
@@ -12035,6 +12141,7 @@ workflowApi = registerWorkflowRoutes(app, {
   callGeminiWithRetry,
   callGeminiLlm,
   generateMetadataWithXai,
+  generateMetadataWithNvidia,
   generateYoutubeThumbnailImages,
   runAutoSoundtrackLogic,
   readJsonFile,
