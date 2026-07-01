@@ -7837,7 +7837,10 @@ export default function App() {
                                       onChange={() => toggleTimelineClipSelection(blockKey, idx, false)}
                                       className="rounded border-zinc-700"
                                     />
-                                    Selecionar (Shift+clique adiciona)
+                                    Selecionar
+                                    <SettingHelpTip title="Multi-seleção" align="start">
+                                      Marque vários clips para excluir em lote na barra OpenCut. Shift+clique ou Ctrl/Cmd+clique no card também adiciona à seleção.
+                                    </SettingHelpTip>
                                   </label>
 
                                   {/* Visual Preview */}

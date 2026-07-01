@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { ZoomIn, ZoomOut, Trash2, FileJson, Palette } from 'lucide-react';
 import { CANVAS_BG_PRESETS } from './opencutTimeline';
+import { SettingHelpTip } from './SettingHelpTip';
 
 type Props = {
   previewZoom: number;
@@ -49,9 +50,19 @@ export function TimelineOpenCutBar({
 
   return (
     <div className="flex flex-wrap items-center gap-3 w-full rounded-xl border border-zinc-800/80 bg-zinc-950/50 px-3 py-2.5">
-      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 shrink-0">OpenCut</span>
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">OpenCut</span>
+        <SettingHelpTip title="Barra OpenCut" align="start">
+          Controles inspirados no OpenCut v0.3.0: zoom do preview, fundo do canvas no render, importação de transcrição e exclusão em lote.
+          Marque clips com o checkbox ou Shift/Ctrl+clique para selecionar vários.
+        </SettingHelpTip>
+      </div>
 
-      <div className="flex items-center gap-1.5" title="Zoom do preview (OpenCut v0.3)">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] text-zinc-600 uppercase tracking-wide">Zoom</span>
+        <SettingHelpTip title="Zoom do preview" align="start">
+          Aumenta ou reduz a miniatura dos assets na grade (50–150%). Só afeta a visualização no dashboard — não altera o vídeo final.
+        </SettingHelpTip>
         <ZoomOut className="w-3 h-3 text-zinc-600" />
         <input
           type="range"
@@ -66,7 +77,11 @@ export function TimelineOpenCutBar({
         <span className="text-[9px] text-zinc-500 tabular-nums w-8">{previewZoom}%</span>
       </div>
 
-      <div className="flex items-center gap-1.5" title="Fundo do canvas no render">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[9px] text-zinc-600 uppercase tracking-wide">Fundo</span>
+        <SettingHelpTip title="Fundo do canvas" align="start">
+          Cor de fundo nas áreas vazias do vídeo renderizado (letterbox, logo, gaps). Salva em config como canvas_background e vai para o Remotion.
+        </SettingHelpTip>
         <Palette className="w-3 h-3 text-zinc-600 shrink-0" />
         <select
           value={CANVAS_BG_PRESETS.find((p) => p.color === canvasBackground)?.id || 'custom'}
@@ -86,33 +101,39 @@ export function TimelineOpenCutBar({
           value={canvasBackground || '#050506'}
           onChange={(e) => onCanvasBackgroundChange(e.target.value)}
           className="w-7 h-7 rounded border border-zinc-800 bg-transparent cursor-pointer"
-          title="Cor de fundo do canvas"
         />
       </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".json,application/json"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void importTranscript(f);
-          e.target.value = '';
-        }}
-      />
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        className="text-[10px] font-bold px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-sky-300 hover:border-sky-500/30 transition flex items-center gap-1"
-        title="Importar word_transcripts.json (OpenCut: transcript → captions)"
-      >
-        <FileJson className="w-3 h-3" /> Importar transcrição
-      </button>
+      <div className="flex items-center gap-1.5">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void importTranscript(f);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-sky-300 hover:border-sky-500/30 transition flex items-center gap-1"
+        >
+          <FileJson className="w-3 h-3" /> Importar transcrição
+        </button>
+        <SettingHelpTip title="Importar transcrição" align="start">
+          Carrega JSON Whisper (array de segmentos ou objeto com segments). Grava word_transcripts.json no projeto para legendas e sincronização com blocos.
+        </SettingHelpTip>
+      </div>
 
       {selectedCount > 0 && (
         <div className="flex items-center gap-1.5 ml-auto">
           <span className="text-[10px] text-zinc-500 tabular-nums">{selectedCount} selecionado(s)</span>
+          <SettingHelpTip title="Exclusão em lote" align="end">
+            Remove todos os clips marcados de uma vez. Use o checkbox em cada card ou Shift/Ctrl+clique para multi-seleção. Limpar desmarca sem excluir.
+          </SettingHelpTip>
           <button
             type="button"
             onClick={onBulkDelete}

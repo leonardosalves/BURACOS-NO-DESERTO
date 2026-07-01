@@ -28,6 +28,19 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     body: (
       <>
         Edição do roteiro por blocos, frases de impacto, palavras-chave em destaque e tags de narração para TTS. Salva em config e storyboard.
+        A barra <strong>OpenCut</strong> oferece zoom do preview, fundo do canvas, importação de transcrição JSON, volume/velocidade por clip e exclusão em lote — use o <span className="text-gold-400/90">?</span> em cada controle.
+      </>
+    ),
+  },
+  'timeline-opencut': {
+    title: 'Barra OpenCut',
+    body: (
+      <>
+        <strong>Zoom</strong> — escala das miniaturas na grade (só preview).{' '}
+        <strong>Fundo</strong> — cor do canvas no render final.{' '}
+        <strong>Importar transcrição</strong> — JSON Whisper → word_transcripts.json para legendas.{' '}
+        <strong>Volume / Velocidade</strong> — por clip de vídeo no card do asset.{' '}
+        <strong>Multi-seleção</strong> — checkbox ou Shift/Ctrl+clique; Excluir remove todos de uma vez.
       </>
     ),
   },
