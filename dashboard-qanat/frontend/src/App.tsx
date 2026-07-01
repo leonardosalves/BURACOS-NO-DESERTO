@@ -125,7 +125,12 @@ import {
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
-import { getYoutubeViewsThreshold } from './youtubeStudioPrefs';
+import { ProjectYoutubeCard } from './ProjectYoutubeCard';
+import {
+  getYoutubeNotificationsEnabled,
+  getYoutubePollIntervalMs,
+  getYoutubeViewsThreshold,
+} from './youtubeStudioPrefs';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
   applySplitNarrationToBlockAssets,
@@ -336,7 +341,7 @@ const RENDER_MODE_LABELS: Record<PendingRenderJob['mode'], string> = {
 type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
 
 const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
-const YOUTUBE_ALERTS_POLL_MS = 20 * 60 * 1000;
+
 
 const PROJECT_WORKSPACE_TABS = [
   { id: 'status' as const, label: 'Render', icon: Tv, helpId: 'tab-status' },
@@ -574,6 +579,7 @@ export default function App() {
     kwai: { connected: false }
   });
   const [youtubeChannelAlerts, setYoutubeChannelAlerts] = useState<YoutubeChannelAlerts | null>(null);
+  const youtubeBadgePrevRef = useRef(0);
   const [ytClientId, setYtClientId] = useState<string>('');
   const [ytClientSecret, setYtClientSecret] = useState<string>('');
   const [canvaClientId, setCanvaClientId] = useState<string>('');
@@ -1841,9 +1847,36 @@ export default function App() {
 
   useEffect(() => {
     fetchYoutubeChannelAlerts();
-    const timer = window.setInterval(fetchYoutubeChannelAlerts, YOUTUBE_ALERTS_POLL_MS);
-    return () => window.clearInterval(timer);
+    let timer = window.setInterval(fetchYoutubeChannelAlerts, getYoutubePollIntervalMs());
+    const onPollChange = () => {
+      window.clearInterval(timer);
+      timer = window.setInterval(fetchYoutubeChannelAlerts, getYoutubePollIntervalMs());
+    };
+    window.addEventListener('lumiera-youtube-poll-change', onPollChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('lumiera-youtube-poll-change', onPollChange);
+    };
   }, [fetchYoutubeChannelAlerts]);
+
+  useEffect(() => {
+    if (!getYoutubeNotificationsEnabled() || typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'granted') return;
+    const badge = youtubeChannelAlerts?.badgeCount ?? 0;
+    const prev = youtubeBadgePrevRef.current;
+    if (badge > prev && badge > 0) {
+      const unanswered = youtubeChannelAlerts?.unansweredComments ?? 0;
+      const hot = youtubeChannelAlerts?.hotVideos?.length ?? 0;
+      const parts = [];
+      if (unanswered > 0) parts.push(`${unanswered} comentário(s) sem resposta`);
+      if (hot > 0) parts.push(`${hot} vídeo(s) em alta`);
+      new Notification('Canal YouTube — Lumiera', {
+        body: parts.join(' · ') || `${badge} alerta(s)`,
+        tag: 'lumiera-youtube-alerts',
+      });
+    }
+    youtubeBadgePrevRef.current = badge;
+  }, [youtubeChannelAlerts]);
 
   useEffect(() => {
     if (activeTab === 'youtube-studio') {
@@ -5392,8 +5425,10 @@ export default function App() {
       if (res.ok) {
         if (data.titleTestStarted) toast('Teste A/B de títulos iniciado automaticamente.');
         if (data.pinnedComment?.success) toast('Comentário fixo publicado.');
+        toast('Vídeo no ar! Acompanhe métricas em Canal YouTube na sidebar.');
         fetchTitleExperiment();
         fetchTitleExperimentAnalytics();
+        fetchYoutubeChannelAlerts();
       }
     } catch {
       // optional hook
@@ -11261,6 +11296,15 @@ export default function App() {
                       </button>
                     )}
                   </div>
+
+                  {titleExperimentVideoId && activeProject && (
+                    <ProjectYoutubeCard
+                      projectName={activeProject}
+                      videoId={titleExperimentVideoId}
+                      toast={toast}
+                      onOpenYoutubePanel={() => setActiveTab('youtube-studio')}
+                    />
+                  )}
 
                   {/* Auth Configuration */}
                   <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-3">

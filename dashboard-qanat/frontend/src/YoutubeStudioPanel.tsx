@@ -1,10 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle, ExternalLink, Eye, FolderOpen, Loader2, MessageCircle, MessageSquareReply,
-  RefreshCw, Search, Send, ThumbsUp, TrendingUp, Users, Video, Youtube,
+  AlertTriangle, Bell, ExternalLink, Eye, FolderOpen, Loader2, MessageCircle, MessageSquareReply,
+  RefreshCw, Search, Send, Sparkles, ThumbsUp, TrendingUp, Users, Video, Youtube, CheckCircle2, Mail,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
-import { getYoutubeViewsThreshold, setYoutubeViewsThreshold } from './youtubeStudioPrefs';
+import {
+  getYoutubeNotificationsEnabled,
+  getYoutubePollIntervalMinutes,
+  getYoutubeViewsThreshold,
+  requestYoutubeNotificationPermission,
+  setYoutubeNotificationsEnabled,
+  setYoutubePollIntervalMinutes,
+  setYoutubeViewsThreshold,
+} from './youtubeStudioPrefs';
 
 type ChannelOverview = {
   connected: boolean;
@@ -79,12 +87,35 @@ type CommentsReport = {
   keyword: string;
   comments: CommentRow[];
   totalFetched?: number;
+  nextPageToken?: string | null;
   fetchedAt?: string;
   replyNote?: string;
   error?: string;
   details?: string;
   needsReauth?: boolean;
   hint?: string;
+};
+
+type ReplyTemplate = { id: string; label: string; text: string };
+
+type PeriodComparison = {
+  available?: boolean;
+  periodDays?: number;
+  comparison?: Record<string, { current: number; previous: number; changePct: number }>;
+};
+
+type ReachMetrics = {
+  available?: boolean;
+  metrics?: { impressions?: number; impressionClickThroughRate?: number; views?: number };
+  note?: string;
+};
+
+type WeeklyReport = {
+  text?: string;
+  views7d?: number;
+  views7dChange?: number;
+  unansweredComments?: number;
+  fileName?: string;
 };
 
 type CommentFilter = 'all' | 'unanswered';
@@ -235,7 +266,17 @@ export function YoutubeStudioPanel({
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [viewsThreshold, setViewsThreshold] = useState(() => getYoutubeViewsThreshold());
+  const [pollMinutes, setPollMinutes] = useState(() => getYoutubePollIntervalMinutes());
+  const [notificationsOn, setNotificationsOn] = useState(() => getYoutubeNotificationsEnabled());
   const [fromCache, setFromCache] = useState(false);
+  const [commentsNextPageToken, setCommentsNextPageToken] = useState<string | null>(null);
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+  const [replyTemplates, setReplyTemplates] = useState<ReplyTemplate[]>([]);
+  const [periodComparison, setPeriodComparison] = useState<PeriodComparison | null>(null);
+  const [reachMetrics, setReachMetrics] = useState<ReachMetrics | null>(null);
+  const [suggestingId, setSuggestingId] = useState<string | null>(null);
+  const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
 
   useEffect(() => {
     if (nicheKeyword && !appliedKeyword) {
@@ -243,25 +284,38 @@ export function YoutubeStudioPanel({
     }
   }, [nicheKeyword, appliedKeyword]);
 
-  const loadComments = useCallback(async (filter: CommentFilter, keyword: string) => {
-    setCommentsLoading(true);
+  const loadComments = useCallback(async (
+    filter: CommentFilter,
+    keyword: string,
+    { append = false, pageToken = '' } = {},
+  ) => {
+    if (append) setLoadingMoreComments(true);
+    else setCommentsLoading(true);
     try {
-      const params = new URLSearchParams({
-        limit: '20',
-        filter,
-      });
+      const params = new URLSearchParams({ limit: '20', filter });
       if (keyword.trim()) params.set('keyword', keyword.trim());
+      if (pageToken) params.set('pageToken', pageToken);
       const res = await fetch(`/api/youtube/channel/comments?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok && res.status !== 403) {
         throw new Error(data.details || data.error || 'Falha ao carregar comentários');
       }
-      setCommentsReport(data as CommentsReport);
+      const report = data as CommentsReport;
+      setCommentsNextPageToken(report.nextPageToken || null);
+      if (append) {
+        setCommentsReport((prev) => ({
+          ...report,
+          comments: [...(prev?.comments || []), ...(report.comments || [])],
+        }));
+      } else {
+        setCommentsReport(report);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar comentários';
       toast(message);
     } finally {
       setCommentsLoading(false);
+      setLoadingMoreComments(false);
     }
   }, [toast]);
 
@@ -301,6 +355,9 @@ export function YoutubeStudioPanel({
       if (data.videos) setVideosReport(data.videos as VideosReport);
       if (data.lumiera?.videos) setLumieraVideos(data.lumiera.videos as LumieraVideoRow[]);
       if (data.alerts) syncAlertsPayload(data.alerts as Record<string, unknown>);
+      if (data.periodComparison) setPeriodComparison(data.periodComparison as PeriodComparison);
+      if (data.reach) setReachMetrics(data.reach as ReachMetrics);
+      if (data.settings?.replyTemplates) setReplyTemplates(data.settings.replyTemplates as ReplyTemplate[]);
       setFromCache(Boolean(data.fromCache));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar dados do YouTube';
@@ -356,6 +413,84 @@ export function YoutubeStudioPanel({
       setReplyingId(null);
     }
   }, [appliedKeyword, commentFilter, loadComments, replyDrafts, toast]);
+
+  const markCommentHandled = useCallback(async (threadId: string) => {
+    try {
+      const res = await fetch('/api/youtube/channel/comments/handled', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId }),
+      });
+      if (!res.ok) throw new Error('Falha ao marcar comentário');
+      setCommentsReport((prev) => prev ? {
+        ...prev,
+        comments: prev.comments.filter((c) => c.threadId !== threadId),
+      } : prev);
+      await loadChannelSummary(true, true);
+      toast('Comentário marcado como tratado.');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao marcar comentário');
+    }
+  }, [loadChannelSummary, toast]);
+
+  const suggestCommentReply = useCallback(async (comment: CommentRow) => {
+    setSuggestingId(comment.commentId);
+    try {
+      const lumieraRef = alerts?.lumieraVideoById?.[comment.videoId];
+      const res = await fetch('/api/youtube/channel/comments/suggest-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          commentText: comment.text,
+          videoTitle: comment.videoTitle,
+          niche: lumieraRef?.niche || nicheKeyword,
+          authorName: comment.authorDisplayName,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha na sugestão IA');
+      setReplyDrafts((prev) => ({ ...prev, [comment.commentId]: data.suggestion || '' }));
+      toast('Sugestão de resposta gerada.');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro na sugestão IA');
+    } finally {
+      setSuggestingId(null);
+    }
+  }, [alerts?.lumieraVideoById, nicheKeyword, toast]);
+
+  const loadWeeklyReport = useCallback(async () => {
+    setWeeklyLoading(true);
+    try {
+      const res = await fetch(`/api/youtube/channel/weekly-report?viewsThreshold=${viewsThreshold}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao gerar relatório');
+      setWeeklyReport(data as WeeklyReport);
+      toast('Relatório semanal gerado.');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro no relatório semanal');
+    } finally {
+      setWeeklyLoading(false);
+    }
+  }, [toast, viewsThreshold]);
+
+  const sendWeeklyReport = useCallback(async () => {
+    setWeeklyLoading(true);
+    try {
+      const res = await fetch('/api/youtube/channel/weekly-report/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viewsThreshold }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.report) setWeeklyReport(data.report as WeeklyReport);
+      if (data.sent) toast(`Relatório enviado para ${data.to}`);
+      else toast(data.note || data.error || 'Relatório salvo localmente (configure e-mail/SMTP para envio).');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao enviar relatório');
+    } finally {
+      setWeeklyLoading(false);
+    }
+  }, [toast, viewsThreshold]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
@@ -438,6 +573,42 @@ export function YoutubeStudioPanel({
                 className="w-16 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300 text-[10px] tabular-nums"
               />
               views
+            </label>
+            <label className="flex items-center gap-1 text-[9px] text-zinc-500">
+              Poll
+              <select
+                value={pollMinutes}
+                onChange={(e) => {
+                  const next = setYoutubePollIntervalMinutes(Number(e.target.value));
+                  setPollMinutes(next);
+                  toast(`Polling de alertas: ${next} min`);
+                }}
+                className="px-1 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300 text-[10px]"
+              >
+                <option value={5}>5 min</option>
+                <option value={20}>20 min</option>
+                <option value={60}>60 min</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1 text-[9px] text-zinc-500 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationsOn}
+                onChange={async (e) => {
+                  const enabled = e.target.checked;
+                  if (enabled) {
+                    const perm = await requestYoutubeNotificationPermission();
+                    if (perm !== 'granted') {
+                      toast('Permissão de notificação negada pelo navegador.');
+                      return;
+                    }
+                  }
+                  setYoutubeNotificationsEnabled(enabled);
+                  setNotificationsOn(enabled);
+                }}
+                className="rounded border-zinc-700"
+              />
+              <Bell className="w-3 h-3" />
             </label>
             <button
               type="button"
@@ -591,6 +762,42 @@ export function YoutubeStudioPanel({
               </p>
             </div>
           </div>
+        )}
+
+        {periodComparison?.available && periodComparison.comparison && (
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {(['views', 'estimatedMinutesWatched', 'subscribersGained', 'likes', 'comments'] as const).map((key) => {
+              const item = periodComparison.comparison?.[key];
+              if (!item) return null;
+              const labels: Record<string, string> = {
+                views: 'Views 7d',
+                estimatedMinutesWatched: 'Minutos 7d',
+                subscribersGained: 'Inscritos 7d',
+                likes: 'Likes 7d',
+                comments: 'Coment. 7d',
+              };
+              const positive = item.changePct >= 0;
+              return (
+                <div key={key} className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-900/80">
+                  <p className="text-[8px] text-zinc-600 uppercase">{labels[key]}</p>
+                  <p className="text-sm font-bold text-white tabular-nums">{formatNumber(item.current)}</p>
+                  <p className={`text-[9px] tabular-nums ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {positive ? '+' : ''}{item.changePct}% vs 7d ant.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {reachMetrics?.available && reachMetrics.metrics && (
+          <p className="mt-3 text-[9px] text-zinc-500">
+            Impressões ({periodDays}d): {formatNumber(reachMetrics.metrics.impressions || 0)}
+            {reachMetrics.metrics.impressionClickThroughRate
+              ? ` · CTR ${(reachMetrics.metrics.impressionClickThroughRate * 100).toFixed(2)}%`
+              : ''}
+            {reachMetrics.note ? ` — ${reachMetrics.note}` : ''}
+          </p>
         )}
       </div>
 
@@ -996,7 +1203,29 @@ export function YoutubeStudioPanel({
                           <ThumbsUp className="w-3 h-3" /> {comment.likeCount}
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => markCommentHandled(comment.threadId)}
+                        className="text-[9px] font-bold px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-500 hover:text-emerald-400 inline-flex items-center gap-1"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        Tratado
+                      </button>
                     </div>
+                    {replyTemplates.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {replyTemplates.map((tpl) => (
+                          <button
+                            key={`${comment.commentId}-${tpl.id}`}
+                            type="button"
+                            onClick={() => setReplyDrafts((prev) => ({ ...prev, [comment.commentId]: tpl.text }))}
+                            className="text-[8px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-gold-300"
+                          >
+                            {tpl.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="mt-3 flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
@@ -1016,6 +1245,19 @@ export function YoutubeStudioPanel({
                       />
                       <button
                         type="button"
+                        onClick={() => suggestCommentReply(comment)}
+                        disabled={suggestingId === comment.commentId}
+                        className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[10px] font-bold disabled:opacity-50"
+                      >
+                        {suggestingId === comment.commentId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        IA
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => submitCommentReply(comment.commentId)}
                         disabled={replyingId === comment.commentId}
                         className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gold-500 text-zinc-950 text-[10px] font-bold disabled:opacity-50"
@@ -1032,7 +1274,57 @@ export function YoutubeStudioPanel({
                 </div>
               </div>
             ))}
+            {commentsNextPageToken && (
+              <button
+                type="button"
+                onClick={() => loadComments(commentFilter, appliedKeyword, {
+                  append: true,
+                  pageToken: commentsNextPageToken,
+                })}
+                disabled={loadingMoreComments}
+                className="w-full py-2.5 rounded-xl border border-zinc-800 text-[10px] text-zinc-400 hover:text-white hover:border-zinc-700"
+              >
+                {loadingMoreComments ? 'Carregando...' : 'Carregar mais comentários'}
+              </button>
+            )}
           </div>
+        )}
+      </div>
+
+      <div className="glass-panel p-5 rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Mail className="w-4 h-4 text-zinc-400" />
+              Relatório semanal
+            </h3>
+            <p className="text-[10px] text-zinc-500 mt-0.5">
+              Gerado automaticamente a cada 7 dias. Configure e-mail e SMTP em youtube_studio_settings.json para envio.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={loadWeeklyReport}
+              disabled={weeklyLoading}
+              className="text-[10px] px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300"
+            >
+              Gerar agora
+            </button>
+            <button
+              type="button"
+              onClick={sendWeeklyReport}
+              disabled={weeklyLoading}
+              className="text-[10px] px-3 py-1.5 rounded-lg bg-gold-500/15 border border-gold-500/30 text-gold-300"
+            >
+              Enviar e-mail
+            </button>
+          </div>
+        </div>
+        {weeklyReport?.text && (
+          <pre className="text-[10px] text-zinc-400 whitespace-pre-wrap bg-zinc-950 border border-zinc-900 rounded-xl p-3 max-h-48 overflow-y-auto">
+            {weeklyReport.text}
+          </pre>
         )}
       </div>
     </div>

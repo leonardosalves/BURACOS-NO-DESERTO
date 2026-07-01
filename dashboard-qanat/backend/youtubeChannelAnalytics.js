@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { getHandledCommentIds } from "./youtubeStudioSettings.js";
 import {
   assertTitleTestScopes,
   fetchRetentionCurve,
@@ -379,8 +380,8 @@ function mapCommentThread(thread, channelId) {
   };
 }
 
-function applyCommentFilters(comments, { filter = "all", keyword = "" } = {}) {
-  let result = comments.filter((item) => !item.isOwnChannelComment);
+function applyCommentFilters(comments, { filter = "all", keyword = "", handledIds = new Set() } = {}) {
+  let result = comments.filter((item) => !item.isOwnChannelComment && !handledIds.has(item.threadId));
 
   if (filter === "unanswered") {
     result = result.filter((item) => !item.isAnswered);
@@ -401,6 +402,7 @@ export async function fetchChannelComments(workspaceDir, {
   limit = 20,
   filter = "all",
   keyword = "",
+  pageToken = "",
 } = {}) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
@@ -421,14 +423,18 @@ export async function fetchChannelComments(workspaceDir, {
   // Busca extra: comentários do próprio canal são sempre excluídos da lista.
   const fetchCount = wantsFilter ? Math.min(maxResults * 3, 100) : Math.min(maxResults * 2, 100);
 
-  const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
+  const threadParams = {
     part: "snippet,replies",
     allThreadsRelatedToChannelId: channelId,
     order: "time",
     maxResults: fetchCount,
     moderationStatus: "published",
-  });
+  };
+  if (pageToken) threadParams.pageToken = pageToken;
 
+  const threadsData = await youtubeDataGet(accessToken, "commentThreads", threadParams);
+
+  const handledIds = getHandledCommentIds(workspaceDir);
   const mapped = (threadsData?.items || []).map((thread) => mapCommentThread(thread, channelId));
 
   const missingTitleIds = [
@@ -449,7 +455,7 @@ export async function fetchChannelComments(workspaceDir, {
     });
   }
 
-  const filtered = applyCommentFilters(mapped, { filter, keyword }).slice(0, maxResults);
+  const filtered = applyCommentFilters(mapped, { filter, keyword, handledIds }).slice(0, maxResults);
 
   return {
     channelId,
@@ -458,8 +464,10 @@ export async function fetchChannelComments(workspaceDir, {
     keyword: String(keyword || "").trim(),
     comments: filtered,
     totalFetched: mapped.length,
+    handledHidden: mapped.filter((item) => handledIds.has(item.threadId)).length,
+    nextPageToken: threadsData?.nextPageToken || null,
     fetchedAt: new Date().toISOString(),
-    replyNote: "Comentários iniciados pelo canal são ocultados. Responda pelo Lumiera abaixo ou abra no YouTube Studio.",
+    replyNote: "Comentários do canal e marcados como tratados ficam ocultos. Responda pelo Lumiera ou abra no Studio.",
   };
 }
 
@@ -675,7 +683,7 @@ export function collectLumieraPublishedVideos(projectsRoot) {
   return results;
 }
 
-async function countUnansweredComments(accessToken, channelId, scanLimit = 50) {
+async function countUnansweredComments(accessToken, channelId, scanLimit = 50, handledIds = new Set()) {
   const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
     part: "snippet,replies",
     allThreadsRelatedToChannelId: channelId,
@@ -686,6 +694,8 @@ async function countUnansweredComments(accessToken, channelId, scanLimit = 50) {
 
   let count = 0;
   for (const thread of threadsData?.items || []) {
+    const threadId = thread?.id || "";
+    if (handledIds.has(threadId)) continue;
     const snippet = thread?.snippet || {};
     const top = snippet.topLevelComment?.snippet || {};
     if (isOwnChannelComment(top, channelId)) continue;
@@ -748,8 +758,9 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   const lumieraVideos = collectLumieraPublishedVideos(projectsRoot);
   const lumieraVideoIds = lumieraVideos.map((item) => item.videoId);
 
+  const handledIds = getHandledCommentIds(workspaceDir);
   const [unansweredComments, velocityResults] = await Promise.all([
-    countUnansweredComments(accessToken, channelId, commentScanLimit),
+    countUnansweredComments(accessToken, channelId, commentScanLimit, handledIds),
     Promise.all(
       lumieraVideos.slice(0, Math.min(Math.max(maxProjects, 1), 20)).map(async (entry) => {
         try {
@@ -839,7 +850,10 @@ export async function fetchChannelSummary(
     forceRefresh = false,
   } = {},
 ) {
-  const [overview, videos, lumiera, alerts] = await Promise.all([
+  const { fetchChannelPeriodComparison, fetchChannelReachMetrics } = await import("./youtubeStudioExtras.js");
+  const { loadStudioSettings } = await import("./youtubeStudioSettings.js");
+
+  const [overview, videos, lumiera, alerts, periodComparison, reach] = await Promise.all([
     fetchChannelOverview(workspaceDir, { forceRefresh }),
     fetchChannelVideosWithAnalytics(workspaceDir, { days, limit, forceRefresh }),
     fetchLumieraVideosReport(workspaceDir, projectsRoot, { days, forceRefresh }),
@@ -848,6 +862,8 @@ export async function fetchChannelSummary(
       maxProjects,
       forceRefresh,
     }),
+    fetchChannelPeriodComparison(workspaceDir, { days: 7 }).catch(() => ({ available: false })),
+    fetchChannelReachMetrics(workspaceDir, { days }).catch(() => ({ available: false })),
   ]);
 
   return {
@@ -855,6 +871,11 @@ export async function fetchChannelSummary(
     videos,
     lumiera,
     alerts,
+    periodComparison,
+    reach,
+    settings: {
+      replyTemplates: loadStudioSettings(workspaceDir).replyTemplates,
+    },
     fetchedAt: new Date().toISOString(),
     fromCache: Boolean(
       overview?.fromCache || videos?.fromCache || lumiera?.fromCache || alerts?.fromCache,
