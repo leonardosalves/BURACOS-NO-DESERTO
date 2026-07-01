@@ -119,6 +119,49 @@ function pioneerLabel(angleSaturation, pioneerScore, gapScore) {
   return "saturado";
 }
 
+/** Texto de estratégia YouTube — não é tema de vídeo. */
+const PIONEER_STRATEGY_RE = [
+  /macro-nicho/i,
+  /satura[cç][aã]o/i,
+  /pioneirismo/i,
+  /gap\s*\d/i,
+  /canal\(is\)\s+dedicado/i,
+  /nicho\s+virgem/i,
+  /oceano\s+azul/i,
+  /poucos?\s+canais/i,
+  /ângulo\s+est[aá]\s+vazio/i,
+];
+
+function isPioneerStrategyText(text = "") {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  return PIONEER_STRATEGY_RE.some((re) => re.test(t));
+}
+
+function buildFirstVideoIdea(niche) {
+  const existing = String(niche.firstVideoIdea || "").trim();
+  if (existing && !isPioneerStrategyText(existing)) return existing.slice(0, 240);
+
+  const macro = String(niche.macroNiche || "").trim();
+  const angle = String(niche.angle || "").trim();
+  const pattern = String(niche.formatPattern || "").trim();
+
+  if (angle && pattern) return `${angle} — ${pattern}`.slice(0, 240);
+  if (angle) return angle.slice(0, 240);
+  if (macro && pattern) return `${macro}: ${pattern}`.slice(0, 240);
+  return String(niche.label || "Vídeo pioneiro").slice(0, 240);
+}
+
+function buildContentHook(niche) {
+  const angle = String(niche.angle || "").trim();
+  const idea = buildFirstVideoIdea(niche);
+  if (angle && !isPioneerStrategyText(angle)) return angle.slice(0, 500);
+  if (idea && !isPioneerStrategyText(idea)) return idea.slice(0, 500);
+  const macro = String(niche.macroNiche || "").trim();
+  const pattern = String(niche.formatPattern || "").trim();
+  return `${macro}: ${pattern || angle || idea}`.slice(0, 500);
+}
+
 function buildMatrixCandidates(baseNiche, format) {
   const fmt = String(format || "SHORTS").toUpperCase();
   const isLong = fmt === "LONG" || fmt === "LONGO";
@@ -364,7 +407,7 @@ function scorePioneerOpportunity(candidate, yt, format) {
     whyPioneer = "Muitos canais já cobrem este ângulo — só vale com twist visual ou narrativo único.";
   }
 
-  return {
+  const scored = {
     label: candidate.label,
     macroNiche: candidate.macroNiche,
     angle: candidate.angle,
@@ -380,7 +423,10 @@ function scorePioneerOpportunity(candidate, yt, format) {
     whyPioneer,
     format: videoFormat,
     youtube: yt,
+    firstVideoIdea: candidate.firstVideoIdea,
   };
+  scored.firstVideoIdea = buildFirstVideoIdea(scored);
+  return scored;
 }
 
 async function generateAnglesWithLlm({ llmFn, baseNiche, format }) {
@@ -408,7 +454,7 @@ Gere 8 oportunidades pioneiras. Cada uma DEVE ter:
 - youtubeSearchQuery: 4-7 palavras para buscar concorrência no YouTube (sem aspas, sem título de blog)
 - firstVideoIdea: título do 1º vídeo
 
-PROIBIDO: "melhores nichos", "canais dark", tierlist, RPM, listas de nichos do YouTube, títulos de artigo/blog.
+PROIBIDO em firstVideoIdea/angle: meta-YouTube (saturação, gap, pioneirismo, "nicho virgem", RPM, tierlist, "melhores nichos", canais dark, títulos de blog.
 
 Retorne APENAS JSON:
 {
@@ -468,8 +514,8 @@ JSON apenas:
       "formatPattern": "...",
       "label": "resumo curto",
       "pioneerScore": 0-100,
-      "whyPioneer": "1-2 frases explicando POR QUE é pioneiro (não é lista de nichos do YouTube)",
-      "firstVideoIdea": "...",
+      "whyPioneer": "1-2 frases de ESTRATÉGIA (saturação/gap) — NÃO use como título do vídeo",
+      "firstVideoIdea": "título sobre o CONTEÚDO real (ângulo/tema), nunca sobre YouTube strategy",
       "risk": "..."
     }
   ]
@@ -518,13 +564,11 @@ ${JSON.stringify(scored.slice(0, 12).map((s) => ({
 }
 
 function buildPioneerIdea(niche) {
-  const title = niche.firstVideoIdea || `Pioneiro: ${niche.label}`.slice(0, 80);
-  const hook = niche.status === "virgem" || niche.status === "pioneiro"
-    ? `${niche.formatPattern} em "${niche.macroNiche}" — ângulo com ~${niche.dedicatedChannels ?? "?"} canal(is) dedicado(s) na busca.`
-    : `Testar formato "${niche.formatPattern}" no nicho ${niche.macroNiche}.`;
+  const title = buildFirstVideoIdea(niche);
+  const hookPt = buildContentHook(niche);
   return {
     title,
-    hookPt: hook,
+    hookPt,
     mechanic: "pioneer-niche",
     whyWorks: niche.whyPioneer,
     format: niche.format || "SHORTS",
@@ -532,6 +576,9 @@ function buildPioneerIdea(niche) {
     saturationPct: niche.saturationPct,
     status: niche.status,
     macroNiche: niche.macroNiche,
+    angle: niche.angle,
+    formatPattern: niche.formatPattern,
+    youtubeSearchQuery: niche.youtubeSearchQuery,
   };
 }
 

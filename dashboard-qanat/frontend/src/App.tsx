@@ -6450,6 +6450,7 @@ export default function App() {
         promise: customOutline.trim(),
         emotion: 'Curiosity / Action',
         isCustom: true,
+        pioneerNiche: editorialIdeaImport?.mechanic === 'pioneer-niche',
         hook: customHooks.trim(),
         hooks: customHooks.trim(),
         blocks: customBlocks.filter((b) => b.content.trim() !== ''),
@@ -6704,6 +6705,7 @@ export default function App() {
       source: options?.source,
       sourceProject,
       sourceBlock: options?.sourceBlock ?? (mechanicBlock ? Number(mechanicBlock[1]) : undefined),
+      pioneerMeta: options?.pioneerMeta,
     };
 
     bumpCreatorGenToken();
@@ -12495,7 +12497,7 @@ export default function App() {
                   embedded
                   niche={config?.niche || ''}
                   onApplyCreatorIdea={(title, hookPt, options) => {
-                    void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
+                    void handleApplyYoutubeStudioIdea(title, hookPt, options);
                   }}
                   onGoToIntegrations={() => {
                     setSettingsSection('integracoes');

@@ -89,6 +89,14 @@ export function saveEditorialQueue(workspaceDir, items) {
     sourceViews: item.sourceViews ?? null,
     mechanic: String(item.mechanic || "").trim().slice(0, 200),
     whyWorks: String(item.whyWorks || "").trim().slice(0, 400),
+    pioneerMeta: item.pioneerMeta && typeof item.pioneerMeta === "object"
+      ? {
+        macroNiche: item.pioneerMeta.macroNiche || null,
+        angle: item.pioneerMeta.angle || null,
+        formatPattern: item.pioneerMeta.formatPattern || null,
+        youtubeSearchQuery: item.pioneerMeta.youtubeSearchQuery || null,
+      }
+      : null,
     format: item.format === "LONG" || item.format === "LONGO" ? "LONGO" : "SHORTS",
     status: STATUSES.includes(item.status) ? item.status : "inbox",
     createdAt: item.createdAt || new Date().toISOString(),
@@ -132,13 +140,23 @@ export function enqueueEditorialIdeas(workspaceDir, ideas = [], meta = {}) {
     const key = titleKey(title);
     if (seen.has(key)) continue;
     seen.add(key);
+    const hookRaw = idea.hookPt || idea.angle || title;
+    const pioneerMeta = idea.macroNiche || idea.angle || idea.formatPattern
+      ? {
+        macroNiche: idea.macroNiche || null,
+        angle: idea.angle || null,
+        formatPattern: idea.formatPattern || null,
+        youtubeSearchQuery: idea.youtubeSearchQuery || null,
+      }
+      : null;
     items.unshift({
       id: randomUUID(),
       title,
-      hookPt: coerceEditorialText(idea.hookPt || idea.angle, title),
+      hookPt: coerceEditorialText(hookRaw, title),
       source,
       mechanic: idea.mechanicSource || idea.mechanic || "",
       whyWorks: idea.whyNotCopy || idea.whyWorks || "",
+      pioneerMeta,
       format,
       status: "inbox",
       createdAt: new Date().toISOString(),
