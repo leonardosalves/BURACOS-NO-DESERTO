@@ -17,6 +17,12 @@ import {
   runPythonScript,
 } from "./workflowTools.js";
 import { KOKORO_VOICES, KOKORO_DEFAULT_VOICE, KOKORO_DEFAULT_SPEED } from "./kokoroTts.js";
+import {
+  loadFishSpeechConfig,
+  probeFishSpeechServer,
+  buildFishSpeechVoiceList,
+  FISH_SPEECH_DEFAULT_VOICE,
+} from "./fishSpeechTts.js";
 import { flattenWordTranscripts, realignTimelineAssetsToSpeech } from "./timelineSceneSync.js";
 import {
   buildYoutubeMetadataPrompt,
@@ -354,30 +360,49 @@ export function registerWorkflowRoutes(app, deps) {
     }
   });
 
-  app.get("/api/tts/voices", (_req, res) => {
-    res.json({
-      engines: [
-        {
-          id: "kokoro",
-          label: "Kokoro (local, grátis)",
-          defaultVoice: KOKORO_DEFAULT_VOICE,
-          defaultSpeed: KOKORO_DEFAULT_SPEED,
-          voices: KOKORO_VOICES,
-        },
-        {
-          id: "edge",
-          label: "Edge TTS (Microsoft)",
-          defaultVoice: "pt-BR-AntonioNeural",
-          voices: [
-            { id: "pt-BR-AntonioNeural", label: "Antonio — PT-BR masculino", group: "pt" },
-            { id: "pt-BR-FranciscaNeural", label: "Francisca — PT-BR feminino", group: "pt" },
-            { id: "en-US-RogerNeural", label: "Roger — EN grave", group: "en" },
-            { id: "en-US-ChristopherNeural", label: "Christopher — EN maduro", group: "en" },
-            { id: "en-US-GuyNeural", label: "Guy — EN seco", group: "en" },
-          ],
-        },
-      ],
-    });
+  app.get("/api/tts/voices", async (_req, res) => {
+    try {
+      const fishConfig = loadFishSpeechConfig({ workspaceDir: WORKSPACE_DIR });
+      const fishProbe = await probeFishSpeechServer(fishConfig);
+      const fishVoices = buildFishSpeechVoiceList(fishProbe);
+
+      res.json({
+        engines: [
+          {
+            id: "kokoro",
+            label: "Kokoro (local, grátis)",
+            defaultVoice: KOKORO_DEFAULT_VOICE,
+            defaultSpeed: KOKORO_DEFAULT_SPEED,
+            voices: KOKORO_VOICES,
+          },
+          {
+            id: "fish",
+            label: "Fish Speech S2 (local, GPU)",
+            defaultVoice: fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
+            voices: fishVoices,
+            available: fishProbe.ok,
+            serverUrl: fishProbe.baseUrl,
+            hint: fishProbe.ok
+              ? "Servidor ativo — suporta tags inline [pausa], [ênfase], etc."
+              : `Offline: ${fishProbe.error || "inicie tools/api_server.py na porta 8080"}`,
+          },
+          {
+            id: "edge",
+            label: "Edge TTS (Microsoft)",
+            defaultVoice: "pt-BR-AntonioNeural",
+            voices: [
+              { id: "pt-BR-AntonioNeural", label: "Antonio — PT-BR masculino", group: "pt" },
+              { id: "pt-BR-FranciscaNeural", label: "Francisca — PT-BR feminino", group: "pt" },
+              { id: "en-US-RogerNeural", label: "Roger — EN grave", group: "en" },
+              { id: "en-US-ChristopherNeural", label: "Christopher — EN maduro", group: "en" },
+              { id: "en-US-GuyNeural", label: "Guy — EN seco", group: "en" },
+            ],
+          },
+        ],
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post("/api/tts/generate-narration", async (req, res) => {
@@ -390,6 +415,7 @@ export function registerWorkflowRoutes(app, deps) {
         pitch: pitch || "+0Hz",
         speed,
         platform: engine || "kokoro",
+        workspaceDir: WORKSPACE_DIR,
       });
       res.json(result);
     } catch (err) {
