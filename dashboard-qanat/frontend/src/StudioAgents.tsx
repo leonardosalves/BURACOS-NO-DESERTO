@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 import { VideoAgentPlanner } from './VideoAgentPlanner';
+import type { GeminiBrowserRequest } from './geminiAiFetch';
 
 type AgentConfig = {
   autoCaptureOnQualityCheck: boolean;
@@ -156,6 +157,15 @@ type StudioAgentsProps = {
   projectAspectRatio?: string;
   getProjectUrl: (endpoint: string) => string;
   onNavigateTab?: (tab: string) => void;
+  postAi: (
+    path: string,
+    init?: RequestInit,
+  ) => Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest & Record<string, unknown> }>;
+  onExecuteCreator?: (
+    title: string,
+    hook: string,
+    options?: { format?: 'LONGO' | 'SHORTS' },
+  ) => Promise<void>;
 };
 
 function resolveProjectFormat(videoFormat?: string, aspectRatio?: string): 'SHORT' | 'LONG' {
@@ -172,6 +182,8 @@ export function StudioAgents({
   projectAspectRatio,
   getProjectUrl,
   onNavigateTab,
+  postAi,
+  onExecuteCreator,
 }: StudioAgentsProps) {
   const projectFormat = resolveProjectFormat(projectVideoFormat, projectAspectRatio);
   const [loading, setLoading] = useState(true);
@@ -568,9 +580,11 @@ export function StudioAgents({
         projectNiche={projectNiche}
         projectFormat={projectFormat}
         getProjectUrl={getProjectUrl}
+        postAi={postAi}
         onNavigateTab={onNavigateTab}
         onOpenObsidian={openObsidian}
         obsidianInstalled={obsidian.installed}
+        onExecuteCreator={onExecuteCreator}
       />
 
       {skillsRegistry && (

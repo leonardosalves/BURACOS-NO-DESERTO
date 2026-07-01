@@ -94,6 +94,7 @@ import {
   appendPlanToObsidian,
   LUMIERA_AGENT_REGISTRY,
   LUMIERA_INTENT_MAP,
+  extractVideoTitleFromRequirement,
   planVideoAgentLocally,
   planVideoAgentWithLlm,
 } from "./videoAgentPlanner.js";
@@ -1953,10 +1954,178 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
       }
     }
 
-    res.json({ ok: true, plan, obsidian, editorialQueue });
+    const suggestedTitle = extractVideoTitleFromRequirement(requirementText);
+    res.json({ ok: true, plan, obsidian, editorialQueue, suggestedTitle });
   } catch (err) {
     console.error("[VideoAgentPlanner]", err.message);
     res.status(500).json({ error: "Falha ao planejar vídeo", details: err.message });
+  }
+});
+
+app.post("/api/ai/video-agent/execute", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const {
+      requirement = "",
+      format: formatRaw = "SHORTS",
+      niche = "",
+      useAi = false,
+      plan: planIn = null,
+      steps = null,
+    } = req.body || {};
+
+    const requirementText = String(requirement || "").trim();
+    if (!requirementText && !planIn?.lumieraActions?.length) {
+      return res.status(400).json({ error: "Descreva o pedido ou envie um plano." });
+    }
+
+    const format = String(formatRaw || planIn?.format || "SHORTS").toUpperCase() === "LONGO" ||
+      String(formatRaw || "").toUpperCase() === "LONG"
+      ? "LONGO"
+      : "SHORTS";
+
+    let plan = planIn;
+    if (!plan?.lumieraActions?.length) {
+      plan = planVideoAgentLocally(requirementText, { format, niche });
+      if (useAi) {
+        const browserText = extractBrowserResponse(req.body);
+        if (browserText) {
+          const llmFn = async () => browserText;
+          plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+        } else {
+          let browserPending = false;
+          const llmFn = async (prompt) => {
+            const text = await callGeminiLlm(req, res, projDir, {
+              title: "VideoAgent · Executar plano",
+              prompt,
+              temperature: 0.55,
+            });
+            if (text == null) {
+              browserPending = true;
+              return "";
+            }
+            return text;
+          };
+          const enhanced = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+          if (browserPending) return;
+          plan = enhanced;
+        }
+      }
+      appendPlanToObsidian(WORKSPACE_DIR, plan);
+    }
+
+    const wanted = Array.isArray(steps) && steps.length
+      ? steps
+      : (plan.lumieraActions || []).map((a) => a.action);
+
+    const results = [];
+    const suggestedTitle = extractVideoTitleFromRequirement(plan.requirement || requirementText);
+    const hookHint = plan.storyboardBeats?.[0]?.narrationHint || "";
+    const fmtShort = format !== "LONGO";
+
+    const runStep = async (key, fn) => {
+      if (!wanted.includes(key)) return;
+      try {
+        const payload = await fn();
+        results.push({ step: key, status: "ok", ...payload });
+      } catch (err) {
+        console.warn(`[VideoAgentExecute] ${key}:`, err.message);
+        results.push({ step: key, status: "error", error: err.message });
+      }
+    };
+
+    const creatorSteps = ["creator_ideas", "creator_narration", "creator_script"];
+    if (creatorSteps.some((k) => wanted.includes(k))) {
+      results.push({
+        step: "creator_pipeline",
+        status: "pending_ui",
+        title: suggestedTitle,
+        hook: hookHint,
+        format,
+        niche: niche || plan.niche || "Geral",
+        message: "Abrir Creator, criar projeto e gerar narração",
+      });
+    }
+
+    await runStep("competitor_research", async () => {
+      const report = await runCompetitorResearch(WORKSPACE_DIR, {
+        niche: niche || plan.niche || "Geral",
+        format: fmtShort ? "SHORT" : "LONG",
+        maxCompetitors: 5,
+        useAi: true,
+      });
+      let editorialQueue = null;
+      if (wanted.includes("editorial_queue") && report?.analysis?.derivedIdeas?.length) {
+        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const enqueued = enqueueEditorialIdeas(
+          WORKSPACE_DIR,
+          report.analysis.derivedIdeas,
+          { source: "videoagent-execute", format: fmtShort ? "SHORTS" : "LONGO" },
+        );
+        editorialQueue = { enqueued: report.analysis.derivedIdeas.length, total: enqueued.items.length };
+      }
+      return {
+        derivedIdeas: report?.analysis?.derivedIdeas?.length || 0,
+        outliers: report?.analysis?.outliers?.length || 0,
+        editorialQueue,
+      };
+    });
+
+    if (wanted.includes("editorial_queue") && !results.some((r) => r.step === "competitor_research" && r.editorialQueue)) {
+      try {
+        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const enqueued = enqueueEditorialIdeas(
+          WORKSPACE_DIR,
+          [{ title: suggestedTitle, hookPt: hookHint, mechanic: "videoagent-execute" }],
+          { source: "videoagent-execute", format: fmtShort ? "SHORTS" : "LONGO" },
+        );
+        results.push({ step: "editorial_queue", status: "ok", total: enqueued.items.length });
+      } catch (err) {
+        results.push({ step: "editorial_queue", status: "error", error: err.message });
+      }
+    }
+
+    await runStep("top_winners", async () => {
+      const { generateTopWinnerIdeas } = await import("./youtubeEditorialQueue.js");
+      const report = await generateTopWinnerIdeas(WORKSPACE_DIR, PROJECTS_ROOT, {
+        niche: niche || plan.niche || "",
+        limit: 3,
+        llmFn: async (prompt) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+          maxRetries: 1,
+          temperature: 0.4,
+          projectDir: WORKSPACE_DIR,
+        }),
+      });
+      if (!report.ok) throw new Error(report.error || "Top winners indisponível");
+      return { variations: report.ideas?.length || 0, total: report.queueCount || 0 };
+    });
+
+    await runStep("retention_cliff", async () => {
+      const videoId = String(req.body?.videoId || "").trim();
+      if (!videoId) {
+        return { skipped: true, message: "Informe videoId para análise de retenção" };
+      }
+      const report = await fetchRetentionCliffReport(WORKSPACE_DIR, videoId);
+      return { cliffs: report?.cliffs?.length || 0 };
+    });
+
+    const deferred = [];
+    if (wanted.includes("overlay_plan")) deferred.push({ step: "overlay_plan", tab: "editor", api: "/api/studio-agents/plan-overlays" });
+    if (wanted.includes("youtube_metadata")) deferred.push({ step: "youtube_metadata", tab: "ai" });
+    if (wanted.includes("render_short") || wanted.includes("render_long")) deferred.push({ step: "render", tab: "status" });
+    if (wanted.includes("upload_youtube")) deferred.push({ step: "upload_youtube", tab: "upload" });
+
+    res.json({
+      ok: true,
+      plan,
+      suggestedTitle,
+      results,
+      deferred,
+      creatorTrigger: results.find((r) => r.step === "creator_pipeline" && r.status === "pending_ui") || null,
+    });
+  } catch (err) {
+    console.error("[VideoAgentExecute]", err.message);
+    res.status(500).json({ error: "Falha na execução VideoAgent", details: err.message });
   }
 });
 
