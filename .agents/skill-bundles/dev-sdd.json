@@ -1,8 +1,21 @@
 {
   "name": "dev-sdd",
-  "description": "Spec-Driven Development — constitution, spec, plan, tasks, implement (GitHub Spec Kit adaptado)",
+  "description": "Spec-Driven Development + engenharia mattpocock (grill, TDD, debug, review)",
   "tasks": ["ops"],
   "formats": ["SHORT", "LONG"],
-  "skills": ["speckit-lumiera", "speckit-specify", "speckit-plan", "speckit-tasks", "speckit-implement", "lumiera-ops"],
-  "instruction": "Para pedidos complexos: specify → clarify → plan → tasks → implement. Ler .specify/memory/constitution.md antes de codar. Commit e restart backend ao final (lumiera-ops)."
+  "skills": [
+    "speckit-lumiera",
+    "speckit-specify",
+    "speckit-clarify",
+    "speckit-plan",
+    "speckit-tasks",
+    "speckit-implement",
+    "grill-with-docs",
+    "tdd",
+    "diagnosing-bugs",
+    "code-review",
+    "writing-great-skills",
+    "lumiera-ops"
+  ],
+  "instruction": "Features complexas: grill-with-docs ou speckit-clarify → specify → plan → tasks → implement. Bugs: diagnosing-bugs. Código novo: tdd nos seams do backend. Antes de merge: code-review. Autoria de skills: writing-great-skills. Commit e restart (lumiera-ops). Issue tracker: docs/agents/issue-tracker.md."
 }

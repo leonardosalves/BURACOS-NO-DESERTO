@@ -4,12 +4,12 @@
 
 Bundles JSON usados pelo Studio Agents para injetar skills no prompt.
 
+- `dev-sdd.json` — SDD (speckit) + mattpocock (grill, tdd, diagnosing-bugs, code-review)
 - `long-documentary.json` — ver [[skills/studio-agents-hermes]]
 - `long-ideas.json` — ver [[skills/studio-agents-hermes]]
+- `openmontage-prod.json` — ver [[skills/studio-agents-hermes]]
 - `publish-seo.json` — ver [[skills/studio-agents-hermes]]
 - `shorts-ideas.json` — ver [[skills/studio-agents-hermes]]
 - `shorts-script.json` — ver [[skills/studio-agents-hermes]]
 - `shorts-viral.json` — ver [[skills/studio-agents-hermes]]
 - `studio-overlay-agent.json` — ver [[skills/studio-agents-hermes]]
-- `dev-sdd.json` — Spec-Driven Development ([[skills/speckit-lumiera]])
-- `openmontage-prod.json` — Referência de vídeo + preflight + reviewer ([[memory/openmontage-lumiera]])

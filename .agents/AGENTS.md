@@ -49,7 +49,23 @@ Hub: [[skills/speckit-lumiera|Spec Kit Lumiera]] · Bundle: `dev-sdd.json` · Re
 
 **Não** rodar `specify init` na raiz (projeto brownfield).
 
-## 6. Skills (Obsidian)
+## 6. Agent skills (mattpocock engineering)
+
+### Issue tracker
+
+Híbrido Spec Kit (`specs/`) + local markdown (`.scratch/`). Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Vocabulário padrão em `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/`. Ver `docs/agents/domain.md`.
+
+Instalação: `.\scripts\setup-mattpocock-skills.ps1` · Bundle: `dev-sdd.json`
+
+## 7. Skills (Obsidian)
 
 Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 
