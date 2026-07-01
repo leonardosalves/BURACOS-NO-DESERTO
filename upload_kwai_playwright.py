@@ -2,14 +2,9 @@ import os
 import sys
 import json
 
-from lumiera_workspace import resolve_workspace
+from lumiera_workspace import resolve_workspace, resolve_project_dir, resolve_output_video
 import time
 from playwright.sync_api import sync_playwright
-
-def get_project_dir():
-    if len(sys.argv) > 1:
-        return os.path.abspath(sys.argv[1])
-    return os.path.abspath(os.getcwd())
 
 def load_json(filepath):
     if not os.path.exists(filepath):
@@ -30,32 +25,12 @@ def save_json(filepath, data):
         print(f"[ERROR] Falha ao salvar {os.path.basename(filepath)}: {e}")
         return False
 
-def find_output_video(project_dir):
-    output_dir = os.path.join(project_dir, "OUTPUT")
-    if not os.path.exists(output_dir):
-        return None
-    import glob
-    mp4_files = glob.glob(os.path.join(output_dir, "**", "*.mp4"), recursive=True)
-    if not mp4_files:
-        mp4_files = glob.glob(os.path.join(project_dir, "*.mp4"))
-    if not mp4_files:
-        return None
-    for f in mp4_files:
-        if os.path.basename(f) == "video_final_60fps.mp4":
-            return f
-    remotion_files = [f for f in mp4_files if "remotion_" in os.path.basename(f)]
-    if remotion_files:
-        remotion_files.sort(key=os.path.getmtime, reverse=True)
-        return remotion_files[0]
-    mp4_files.sort(key=os.path.getmtime, reverse=True)
-    return mp4_files[0]
-
 def main():
     print("=== KWAI PLAYWRIGHT AUTOMATED UPLOADER ===")
-    project_dir = get_project_dir()
+    project_dir = resolve_project_dir()
     print(f"[INFO] Pasta do projeto: {project_dir}")
-    
-    video_path = find_output_video(project_dir)
+    video_override = os.environ.get("LUMIERA_UPLOAD_VIDEO", "").strip() or None
+    video_path = resolve_output_video(project_dir, video_override)
     if not video_path:
         print("[ERROR] Nenhum arquivo de vídeo (.mp4) encontrado na pasta OUTPUT.")
         sys.exit(1)

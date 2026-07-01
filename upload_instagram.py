@@ -2,18 +2,13 @@ import os
 import sys
 import json
 
-from lumiera_workspace import resolve_workspace
+from lumiera_workspace import resolve_workspace, resolve_project_dir, resolve_output_video
 import urllib.request
 import urllib.parse
 import urllib.error
 import time
 import glob
 import mimetypes
-
-def get_project_dir():
-    if len(sys.argv) > 1:
-        return os.path.abspath(sys.argv[1])
-    return os.path.abspath(os.getcwd())
 
 def load_json(filepath):
     if not os.path.exists(filepath):
@@ -34,24 +29,7 @@ def save_json(filepath, data):
         print(f"[ERROR] Falha ao salvar {os.path.basename(filepath)}: {e}")
         return False
 
-def find_output_video(project_dir):
-    output_dir = os.path.join(project_dir, "OUTPUT")
-    if not os.path.exists(output_dir):
-        return None
-    mp4_files = glob.glob(os.path.join(output_dir, "**", "*.mp4"), recursive=True)
-    if not mp4_files:
-        mp4_files = glob.glob(os.path.join(project_dir, "*.mp4"))
-    if not mp4_files:
-        return None
-    for f in mp4_files:
-        if os.path.basename(f) == "video_final_60fps.mp4":
-            return f
-    remotion_files = [f for f in mp4_files if "remotion_" in os.path.basename(f)]
-    if remotion_files:
-        remotion_files.sort(key=os.path.getmtime, reverse=True)
-        return remotion_files[0]
-    mp4_files.sort(key=os.path.getmtime, reverse=True)
-    return mp4_files[0]
+
 
 def get_temp_public_url(video_path):
     print("[INFO] Fazendo upload temporário do vídeo para o file.io (necessário para a Graph API do Meta)...")
@@ -147,9 +125,9 @@ def publish_media(ig_account_id, access_token, container_id):
 
 def main():
     print("=== INSTAGRAM REELS UPLOADER ===")
-    project_dir = get_project_dir()
-    
-    video_path = find_output_video(project_dir)
+    project_dir = resolve_project_dir()
+    video_override = os.environ.get("LUMIERA_UPLOAD_VIDEO", "").strip() or None
+    video_path = resolve_output_video(project_dir, video_override)
     if not video_path:
         print("[ERROR] Vídeo (.mp4) não encontrado na pasta OUTPUT.")
         sys.exit(1)
