@@ -1,0 +1,26 @@
+---
+description: Exploração de código com menos tokens — codebase-memory-mcp + mapa Lumiera
+alwaysApply: true
+---
+
+# Inteligência de código (economia de tokens)
+
+## Ordem recomendada
+
+1. **Mapa Lumiera** — `GET http://127.0.0.1:3005/api/studio-agents/code-map` ou `.agents/memory/lumiera-code-map.md`
+2. **codebase-memory-mcp** (se instalado) — `index_repository` uma vez; depois `search_graph`, `trace_path`, `get_architecture`
+3. **Grep direcionado** — só após saber o módulo (ex. `skillsRegistry.js`, não todo o repo)
+4. **Read file** — trecho necessário, não arquivo de 14k linhas inteiro
+
+## MCP opcionais (setup)
+
+```powershell
+.\scripts\setup-context-mcp.ps1
+```
+
+Instala templates para **codebase-memory-mcp** (grafo de código) e documenta **headroom** (compressão de contexto LLM).
+
+## Produção de vídeo vs código
+
+- Roteiro, SEO, overlays → `.agents/AGENTS.md` + skills Studio Agents
+- Implementação TypeScript/JS → `.cursor/rules/ponytail-dev.mdc`

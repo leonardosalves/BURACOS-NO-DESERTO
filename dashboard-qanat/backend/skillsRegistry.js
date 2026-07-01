@@ -11,6 +11,7 @@ import {
   loadStudioAgentsConfig,
   saveStudioAgentsConfig,
 } from "./agentMemory.js";
+import { compressPromptAddendum } from "./lumieraContextCompress.js";
 
 const SKILLS_ROOT = "skills";
 const BUNDLES_DIR = "skill-bundles";
@@ -396,7 +397,7 @@ export function buildStudioAgentsPromptAddendum(workspaceDir, opts = {}) {
       maxSkills: opts.maxSkills ?? resolveMaxSkillsForTask(task, format),
     }),
   ];
-  return parts.filter(Boolean).join("\n");
+  return compressPromptAddendum(parts.filter(Boolean).join("\n"));
 }
 
 /** Anexa memória + skills bundle ao prompt do Creator / metadados / overlays. */
