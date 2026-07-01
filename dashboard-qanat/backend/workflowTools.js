@@ -34,6 +34,7 @@ import {
 } from "./mediaUsageRegistry.js";
 import { searchArchiveOrgMedia } from "./archiveOrgStock.js";
 import { searchBingImagesMedia } from "./bingImageStock.js";
+import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 
 const NARRATION_FILENAME = "narracao_mestra_premium.mp3";
 
@@ -214,7 +215,9 @@ export function analyzeSceneGaps(projDir, { config = {}, storyboard = {} } = {})
         scene: vp.scene || `${vp.block}.${i + 1}`,
         block: Number(vp.block || 1),
         narration_text: String(vp.narration_text || "").slice(0, 120),
-        stock_query: vp.stock_query || vp.prompt || "",
+        stock_query: resolveStockSearchQuery(vp, {
+          strategyTitle: storyboard?.strategy?.title_main || "",
+        }),
         type: vp.type || "image",
         isVideo: isVideoScene(vp),
         action: "fetch_stock",
@@ -303,21 +306,8 @@ async function searchPixabay(query, { apiKey, isVideo = false, skipSourceIds = n
   return null;
 }
 
-function buildStockQuery(target = {}) {
-  const stock = String(target.stock_query || "").trim();
-  const narration = String(target.narration_text || "").trim();
-  const generic = new Set(["cinematic", "documentary", "documentary scene", "video", "image"]);
-  if (stock && !generic.has(stock.toLowerCase())) return stock.slice(0, 80);
-  if (narration.length >= 12) {
-    const words = narration
-      .replace(/[^\w\sà-úÀ-Ú]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 4)
-      .slice(0, 6)
-      .join(" ");
-    if (words.length >= 8) return words.slice(0, 80);
-  }
-  return stock || "cinematic documentary";
+function buildStockQuery(target = {}, { strategyTitle = "" } = {}) {
+  return resolveStockSearchQuery(target, { strategyTitle });
 }
 
 export async function fetchStockForScenes(projDir, {
@@ -330,11 +320,14 @@ export async function fetchStockForScenes(projDir, {
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
   const keys = getWorkflowApiKeys(workspaceDir, projDir);
   const gapReport = analyzeSceneGaps(projDir, { config, storyboard });
+  const strategyTitle = storyboard?.strategy?.title_main || "";
   const targets = onlyMissing ? gapReport.gaps : (storyboard.visual_prompts || []).map((vp, index) => ({
     index,
     scene: vp.scene,
     block: vp.block,
-    stock_query: vp.stock_query || vp.prompt,
+    stock_query: resolveStockSearchQuery(vp, { strategyTitle }),
+    narration_text: vp.narration_text,
+    prompt: vp.prompt,
     isVideo: isVideoScene(vp),
   }));
 
@@ -361,7 +354,7 @@ export async function fetchStockForScenes(projDir, {
   const projectName = path.basename(projDir);
 
   for (const target of targets.slice(0, maxScenes)) {
-    const query = buildStockQuery(target);
+    const query = buildStockQuery(target, { strategyTitle });
     if (!query) continue;
     onLog(`[Stock] Buscando: "${query}" (cena ${target.scene || target.index + 1})...`);
 
