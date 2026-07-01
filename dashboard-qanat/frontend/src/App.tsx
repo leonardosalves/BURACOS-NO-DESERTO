@@ -8690,18 +8690,49 @@ export default function App() {
 
           </div>
 
-          {activeProject && (
-            <div className="shrink-0 px-4 py-2 border-t border-zinc-900/60">
-              <button
-                type="button"
-                onClick={() => setActiveTab('projects')}
-                className="w-full text-left rounded-xl px-3 py-2 bg-zinc-950/60 border border-zinc-800/80 hover:border-gold-500/30 transition"
-              >
-                <p className="text-[9px] text-zinc-500 uppercase tracking-wider">Projeto ativo</p>
-                <p className="text-[11px] font-semibold text-gold-300 truncate" title={activeProject}>
-                  {activeProject}
-                </p>
-              </button>
+          {recentProjects.length > 0 && (
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 font-sans min-h-0 border-t border-zinc-900/60">
+              <div className="flex items-center justify-between px-1">
+                <span className="lumiera-section-label">Recentes</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('projects')}
+                  className="text-[9px] text-zinc-500 hover:text-gold-400 transition"
+                >
+                  Ver todos
+                </button>
+              </div>
+              <div className="space-y-0.5">
+                {recentProjects
+                  .map((name) => projects.find((p) => p.name === name))
+                  .filter((proj): proj is ProjectListItem => Boolean(proj))
+                  .slice(0, 8)
+                  .map((proj) => {
+                    const isSelected = activeProject === proj.name;
+                    const isShort = proj.format === 'SHORTS';
+                    return (
+                      <button
+                        key={proj.name}
+                        type="button"
+                        onClick={() => handleSelectProject(proj.name)}
+                        className={`w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-semibold transition flex items-center gap-2 min-w-0 ${
+                          isSelected
+                            ? 'bg-gold-500/10 border border-gold-500/25 text-gold-300'
+                            : 'text-gray-400 border border-transparent hover:bg-zinc-900/40 hover:text-gray-200'
+                        }`}
+                      >
+                        {isShort ? (
+                          <Smartphone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-amber-500' : 'text-zinc-600'}`} />
+                        ) : (
+                          <Tv className={`w-3 h-3 shrink-0 ${isSelected ? 'text-gold-500' : 'text-zinc-600'}`} />
+                        )}
+                        <span className="line-clamp-2 min-w-0 flex-1" title={proj.title || proj.name}>
+                          {proj.title || proj.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
           )}
 
