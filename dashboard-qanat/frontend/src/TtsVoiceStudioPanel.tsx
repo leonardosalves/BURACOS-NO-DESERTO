@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ExternalLink, Loader2, Mic, Sparkles, Volume2, Wand2,
+  ExternalLink, Loader2, Mic, Play, Sparkles, Square, Volume2, Wand2,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { buildTaggedNarration } from './taggedNarration';
@@ -27,6 +27,9 @@ const FISH_TAG_CHIPS = [
   '[ênfase]', '[pausa]', '[pausa longa]', '[rápido]', '[lento]',
   '[suspiro]', '[inhale]', '[risada leve]', '[tom de narrador documental em português brasileiro]',
 ];
+
+const FISH_PREVIEW_FALLBACK =
+  'Esta é uma amostra da voz do narrador. Tom documental, natural e claro em português brasileiro.';
 
 const VOICEBOX_ENGINES = [
   { id: 'chatterbox', label: 'Chatterbox (multilíngue PT)' },
@@ -66,6 +69,12 @@ export function TtsVoiceStudioPanel({
   const [fishRepPenalty, setFishRepPenalty] = useState(1.1);
   const [fishChunkLength, setFishChunkLength] = useState(300);
   const [fishProsodySpeed, setFishProsodySpeed] = useState(1);
+  const [fishPreviewing, setFishPreviewing] = useState(false);
+  const [fishPreviewPlaying, setFishPreviewPlaying] = useState(false);
+  const [fishPreviewSample, setFishPreviewSample] = useState('');
+
+  const fishPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const fishPreviewUrlRef = useRef<string | null>(null);
 
   const [vbVoice, setVbVoice] = useState('');
   const [vbEngine, setVbEngine] = useState('chatterbox');
@@ -108,6 +117,91 @@ export function TtsVoiceStudioPanel({
       setFishTaggedText(buildTaggedNarration(narrativeScript, 'fish', { taggedScript }));
     }
   }, [narrativeScript, taggedScript]);
+
+  const fishPreviewText = useMemo(() => {
+    const plain = narrativeScript.replace(/\[[^\]]+\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (plain.length >= 40) {
+      const sentence = plain.match(/[^.!?]+[.!?]?/)?.[0]?.trim() || plain;
+      return sentence.slice(0, 180).trim();
+    }
+    return FISH_PREVIEW_FALLBACK;
+  }, [narrativeScript]);
+
+  const stopFishPreview = useCallback(() => {
+    if (fishPreviewAudioRef.current) {
+      fishPreviewAudioRef.current.pause();
+      fishPreviewAudioRef.current.currentTime = 0;
+    }
+    setFishPreviewPlaying(false);
+  }, []);
+
+  const revokeFishPreviewUrl = useCallback(() => {
+    if (fishPreviewUrlRef.current) {
+      URL.revokeObjectURL(fishPreviewUrlRef.current);
+      fishPreviewUrlRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => {
+    stopFishPreview();
+    revokeFishPreviewUrl();
+  }, [stopFishPreview, revokeFishPreviewUrl]);
+
+  useEffect(() => {
+    stopFishPreview();
+    revokeFishPreviewUrl();
+    setFishPreviewSample('');
+  }, [fishVoice, fishTemperature, fishTopP, fishRepPenalty, fishProsodySpeed, stopFishPreview, revokeFishPreviewUrl]);
+
+  const handleFishPreview = async () => {
+    if (!fishEngine?.available) {
+      toast('Fish Audio indisponível — verifique API key ou servidor local.');
+      return;
+    }
+    setFishPreviewing(true);
+    stopFishPreview();
+    revokeFishPreviewUrl();
+    try {
+      const res = await fetch(getProjectUrl('/api/tts/fish-preview'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voice: fishVoice,
+          narrativeScript,
+          sampleText: fishPreviewText,
+          fish: {
+            temperature: fishTemperature,
+            topP: fishTopP,
+            repetitionPenalty: fishRepPenalty,
+            prosodySpeed: fishProsodySpeed,
+            cloudModel: fishEngine?.cloudModel,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(String(err.error || 'Falha na amostra de voz'));
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      fishPreviewUrlRef.current = url;
+      const sampleHeader = res.headers.get('X-Fish-Sample-Text');
+      setFishPreviewSample(sampleHeader ? decodeURIComponent(sampleHeader) : fishPreviewText);
+      const audio = new Audio(url);
+      fishPreviewAudioRef.current = audio;
+      audio.onended = () => setFishPreviewPlaying(false);
+      audio.onerror = () => {
+        setFishPreviewPlaying(false);
+        toast('Erro ao reproduzir amostra.');
+      };
+      await audio.play();
+      setFishPreviewPlaying(true);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao gerar amostra Fish.');
+    } finally {
+      setFishPreviewing(false);
+    }
+  };
 
   const fishVoicesGrouped = useMemo(() => {
     const voices = fishEngine?.voices || [];
@@ -249,22 +343,49 @@ export function TtsVoiceStudioPanel({
       {studioEngine === 'fish' && (
         <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-zinc-950/50 p-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1 sm:col-span-2">
+            <div className="space-y-1 sm:col-span-2">
               <span className="text-[9px] text-zinc-500 uppercase font-bold">Voz (biblioteca Fish)</span>
-              <select
-                value={fishVoice}
-                onChange={(e) => setFishVoice(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] text-zinc-200"
-              >
-                {fishVoicesGrouped.map(([group, voices]) => (
-                  <optgroup key={group} label={group}>
-                    {voices.map((v) => (
-                      <option key={v.id} value={v.id}>{v.label}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
+              <div className="flex gap-2">
+                <select
+                  value={fishVoice}
+                  onChange={(e) => setFishVoice(e.target.value)}
+                  className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] text-zinc-200"
+                >
+                  {fishVoicesGrouped.map(([group, voices]) => (
+                    <optgroup key={group} label={group}>
+                      {voices.map((v) => (
+                        <option key={v.id} value={v.id}>{v.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={fishPreviewing || !fishEngine?.available}
+                  onClick={() => { void handleFishPreview(); }}
+                  className="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-2 rounded-lg border border-cyan-500/35 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition disabled:opacity-40"
+                  title="Gerar e ouvir amostra curta com a voz selecionada"
+                >
+                  {fishPreviewing
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <Play className="w-3.5 h-3.5" />}
+                  Ouvir
+                </button>
+                {fishPreviewPlaying && (
+                  <button
+                    type="button"
+                    onClick={stopFishPreview}
+                    className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                    title="Parar amostra"
+                  >
+                    <Square className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[8px] text-zinc-600 leading-relaxed">
+                Amostra: {fishPreviewSample || fishPreviewText}
+              </p>
+            </div>
 
             <label className="space-y-1">
               <span className="text-[9px] text-zinc-500">Temperatura ({fishTemperature})</span>

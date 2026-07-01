@@ -222,7 +222,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Estúdio de voz TTS',
     body: (
       <>
-        Gere <code>narracao_mestra_premium.mp3</code> com Fish Audio (cloud, tags <code>[ênfase]</code> <code>[pausa]</code>, temperatura, velocidade) ou Voicebox (clone local). Após gerar, rode <strong>Sincronizar timings (Whisper)</strong> acima para alinhar blocos e legendas.
+        Gere <code>narracao_mestra_premium.mp3</code> com Fish Audio (cloud, tags <code>[ênfase]</code> <code>[pausa]</code>, temperatura, velocidade) ou Voicebox (clone local). Use <strong>Ouvir</strong> ao lado da voz Fish para testar uma amostra antes de gerar o MP3 completo. Após gerar, rode <strong>Sincronizar timings (Whisper)</strong> acima para alinhar blocos e legendas.
       </>
     ),
   },

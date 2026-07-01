@@ -240,6 +240,41 @@ export async function probeFishSpeechServer(config = {}, opts = {}) {
   };
 }
 
+export const FISH_PREVIEW_SAMPLE_PT =
+  "Esta é uma amostra da voz do narrador. Tom documental, natural e claro em português brasileiro.";
+
+function applyFishOptionOverrides(config = {}, fishOpt = {}) {
+  const fish = config.fish_speech || config.fishSpeech || {};
+  return {
+    fish_speech: {
+      ...fish,
+      ...(fishOpt.temperature != null ? { temperature: Number(fishOpt.temperature) } : {}),
+      ...(fishOpt.topP != null ? { top_p: Number(fishOpt.topP) } : {}),
+      ...(fishOpt.top_p != null ? { top_p: Number(fishOpt.top_p) } : {}),
+      ...(fishOpt.repetitionPenalty != null ? { repetition_penalty: Number(fishOpt.repetitionPenalty) } : {}),
+      ...(fishOpt.repetition_penalty != null ? { repetition_penalty: Number(fishOpt.repetition_penalty) } : {}),
+      ...(fishOpt.chunkLength != null ? { chunk_length: Number(fishOpt.chunkLength) } : {}),
+      ...(fishOpt.chunk_length != null ? { chunk_length: Number(fishOpt.chunk_length) } : {}),
+      ...(fishOpt.prosodySpeed != null ? { prosody_speed: Number(fishOpt.prosodySpeed) } : {}),
+      ...(fishOpt.prosody_speed != null ? { prosody_speed: Number(fishOpt.prosody_speed) } : {}),
+      ...(fishOpt.cloudModel ? { cloud_model: String(fishOpt.cloudModel) } : {}),
+      ...(fishOpt.cloud_model ? { cloud_model: String(fishOpt.cloud_model) } : {}),
+    },
+  };
+}
+
+export function buildFishPreviewSample(narrativeScript = "") {
+  const plain = String(narrativeScript || "")
+    .replace(/\[[^\]]+\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (plain.length >= 40) {
+    const sentence = plain.match(/[^.!?]+[.!?]?/)?.[0]?.trim() || plain;
+    return sentence.slice(0, 180).trim();
+  }
+  return FISH_PREVIEW_SAMPLE_PT;
+}
+
 export function buildFishSpeechVoiceList(probe = {}) {
   const voices = [
     {
@@ -274,19 +309,16 @@ export function buildFishSpeechVoiceList(probe = {}) {
   return voices;
 }
 
-export async function synthesizeFishSpeech(text, {
-  outputPath,
+export async function fetchFishSpeechAudio(text, {
   referenceId = null,
   config = {},
   onLog = () => {},
+  timeoutMs = 900000,
 } = {}) {
   const cfg = resolveFishSpeechConfig(config);
   const plain = String(text || "").trim();
   if (!plain || plain.length < 20) {
     throw new Error("Texto muito curto para Fish Speech.");
-  }
-  if (!outputPath) {
-    throw new Error("Caminho de saída ausente para Fish Speech.");
   }
 
   const probe = await probeFishSpeechServer(config);
@@ -341,7 +373,7 @@ export async function synthesizeFishSpeech(text, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(900000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   if (!res.ok) {
@@ -354,14 +386,56 @@ export async function synthesizeFishSpeech(text, {
     throw new Error("Fish Speech retornou áudio vazio.");
   }
 
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, buffer);
-
   return {
-    outputPath,
+    buffer,
     referenceId: refId,
     format: cfg.format,
     bytes: buffer.length,
     mode,
+  };
+}
+
+export async function previewFishSpeechVoice({
+  voice = null,
+  sampleText = "",
+  narrativeScript = "",
+  config = {},
+  fishOptions = {},
+  onLog = () => {},
+} = {}) {
+  const mergedConfig = applyFishOptionOverrides(config, fishOptions);
+  const text = String(sampleText || "").trim() || buildFishPreviewSample(narrativeScript);
+  const result = await fetchFishSpeechAudio(text, {
+    referenceId: voice,
+    config: mergedConfig,
+    onLog,
+    timeoutMs: 120000,
+  });
+  return {
+    ...result,
+    sampleText: text,
+  };
+}
+
+export async function synthesizeFishSpeech(text, {
+  outputPath,
+  referenceId = null,
+  config = {},
+  onLog = () => {},
+} = {}) {
+  if (!outputPath) {
+    throw new Error("Caminho de saída ausente para Fish Speech.");
+  }
+
+  const result = await fetchFishSpeechAudio(text, { referenceId, config, onLog });
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, result.buffer);
+
+  return {
+    outputPath,
+    referenceId: result.referenceId,
+    format: result.format,
+    bytes: result.bytes,
+    mode: result.mode,
   };
 }

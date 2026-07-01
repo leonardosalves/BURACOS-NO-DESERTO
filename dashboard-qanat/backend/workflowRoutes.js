@@ -21,6 +21,7 @@ import {
   loadFishSpeechConfig,
   probeFishSpeechServer,
   buildFishSpeechVoiceList,
+  previewFishSpeechVoice,
   FISH_SPEECH_DEFAULT_VOICE,
 } from "./fishSpeechTts.js";
 import {
@@ -521,6 +522,27 @@ export function registerWorkflowRoutes(app, deps) {
           },
         ],
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/tts/fish-preview", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const { voice, sampleText, narrativeScript, fish } = req.body || {};
+      const fishConfig = loadFishSpeechConfig({ workspaceDir: WORKSPACE_DIR, projectDir: projDir });
+      const result = await previewFishSpeechVoice({
+        voice,
+        sampleText,
+        narrativeScript,
+        config: fishConfig,
+        fishOptions: fish && typeof fish === "object" ? fish : {},
+      });
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("X-Fish-Sample-Text", encodeURIComponent(result.sampleText || ""));
+      res.setHeader("X-Fish-Voice-Id", String(result.referenceId || voice || FISH_SPEECH_DEFAULT_VOICE));
+      res.send(result.buffer);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
