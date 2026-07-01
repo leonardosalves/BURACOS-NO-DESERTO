@@ -306,6 +306,12 @@ interface VideoQualityReport {
   preset?: string | null;
   epidemicMood?: string | null;
   preRenderAdvice?: PreRenderAdvice;
+  slideshow_risk?: {
+    average: number;
+    verdict: string;
+    dimensions?: Record<string, number>;
+  };
+  sample_approved?: boolean;
   workshop?: {
     staged?: boolean;
     id?: string;
@@ -330,6 +336,7 @@ type PendingRenderJob = {
   isProres: boolean;
   previewSeconds: number;
   resolution: '1080p' | '2k';
+  sampleMode?: boolean;
 };
 
 type StudioBundlePreview = {
@@ -7174,6 +7181,7 @@ export default function App() {
       job.previewSeconds,
       job.resolution,
       true,
+      job.sampleMode,
     );
   };
 
@@ -7188,10 +7196,11 @@ export default function App() {
     previewSeconds = 0,
     resolution: '1080p' | '2k' = effectiveRenderResolution,
     skipAdviceCheck = false,
+    sampleMode = false,
   ) => {
     if (rendering) return;
 
-    if (!skipAdviceCheck) {
+    if (!skipAdviceCheck && !sampleMode) {
       try {
         const res = await fetch(getProjectUrl('/api/projects/video-quality'));
         if (res.ok) {
@@ -7212,6 +7221,7 @@ export default function App() {
               isProres,
               previewSeconds,
               resolution,
+              sampleMode,
             });
             setPreRenderModalOpen(true);
             return;
@@ -7342,7 +7352,8 @@ export default function App() {
       if (overlayPlanToken) queryParams.push(`overlay_plan_token=${encodeURIComponent(overlayPlanToken)}`);
     }
     if (isProres) queryParams.push("prores=1");
-    if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
+    if (sampleMode) queryParams.push('sample=1');
+    else if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
     if (resolution === '2k') queryParams.push('resolution=2k');
     const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
 
@@ -8878,6 +8889,15 @@ export default function App() {
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>Renderizar via Remotion PRO</span>
+                    </button>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('remotion-pro', false, false, false, false, 0, effectiveRenderResolution, false, true)}
+                      className="bg-zinc-900 border border-cyan-500/35 hover:border-cyan-400/50 disabled:opacity-50 disabled:cursor-not-allowed text-cyan-300 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
+                      title="OpenMontage sample-first: 12s com gancho + 1 cena → ASSETS/sample/"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>Amostra 12s (PRO)</span>
                     </button>
                     <button
                       disabled={rendering || !status?.has_narration}

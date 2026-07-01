@@ -15,6 +15,7 @@ import {
   overlayTimingIssuesFromReport,
   resolveOverlaysForTimingCheck,
 } from "./overlayTiming.js";
+import { scoreSlideshowRisk, slideshowRiskToQualityIssues } from "./slideshowRisk.js";
 
 export { stabilizeOverlayTimings };
 
@@ -1170,9 +1171,18 @@ export function validateVideoQuality({
     }
   }
 
+  const slideshowRisk = scoreSlideshowRisk({
+    overlays: sorted,
+    visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+    config,
+  });
+  issues.push(...slideshowRiskToQualityIssues(slideshowRisk));
+
   const errors = issues.filter((i) => i.severity === "error").length;
   const warnings = issues.filter((i) => i.severity === "warning").length;
   let score = Math.max(0, 100 - errors * 25 - warnings * 8 - issues.filter((i) => i.severity === "info").length * 2);
+  if (slideshowRisk.verdict === "fail") score = Math.min(score, 65);
+  else if (slideshowRisk.verdict === "revise") score = Math.min(score, 78);
   const hookPolluted = issues.some((i) => i.code === "hook_polluted");
   if (isShort && hookPolluted) {
     score = Math.min(score, 72);
@@ -1182,6 +1192,7 @@ export function validateVideoQuality({
     ok: errors === 0,
     score,
     issues,
+    slideshow_risk: slideshowRisk,
     plan: {
       format: plan.format,
       maxOverlays: Number(plan.limits.finalMaxTotal || plan.limits.maxTotal || 8),
@@ -1415,10 +1426,17 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     plannedCount: hasPlannedOverlays ? storyboard.overlays_ai.length : 0,
   };
 
+  const sampleApproved = Boolean(
+    storyboard.sample_approved_at
+    || (Array.isArray(storyboard.sample_renders) && storyboard.sample_renders.length > 0),
+  );
+
   return {
     ...baseQuality,
     issues: [...(baseQuality.issues || []), ...timingIssues],
     overlay_timing: overlayTiming,
+    sample_approved: sampleApproved,
+    sample_last: storyboard.sample_last_render_at || null,
   };
 }
 

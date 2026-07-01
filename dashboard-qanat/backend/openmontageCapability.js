@@ -106,6 +106,9 @@ export async function buildCapabilityMenu(ctx) {
         statusRow("pixabay", "Pixabay", Boolean(stockKeys.pixabay), {
           hint: stockKeys.pixabay ? "API ativa" : "Settings → Pixabay API key",
         }),
+        statusRow("archive_org", "Archive.org", projCfg.use_archive_org !== false, {
+          hint: "Documental — sem chave, fallback após Pexels/Pixabay",
+        }),
       ],
     },
     {

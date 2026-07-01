@@ -29,6 +29,13 @@ export type PreRenderSuggestion = {
   manualOnly?: boolean;
 };
 
+export type SlideshowRiskReport = {
+  average: number;
+  verdict: string;
+  dimensions?: Record<string, number>;
+  findings?: { dimension: string; message: string }[];
+};
+
 export type PreRenderAdvice = {
   ready: boolean;
   score: number | null;
@@ -36,6 +43,7 @@ export type PreRenderAdvice = {
   blockingCount: number;
   suggestionCount: number;
   suggestions: PreRenderSuggestion[];
+  slideshow_risk?: SlideshowRiskReport | null;
 };
 
 type TabId = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents';
@@ -188,6 +196,22 @@ export function PreRenderAdvicePanel({
           )}
           {' · '}
           Formato {advice.format === 'SHORT' ? 'Shorts' : 'Longo'}
+          {advice.slideshow_risk ? (
+            <>
+              {' · '}
+              <span
+                className={
+                  advice.slideshow_risk.verdict === 'fail'
+                    ? 'text-red-400'
+                    : advice.slideshow_risk.verdict === 'revise'
+                      ? 'text-amber-400'
+                      : 'text-zinc-500'
+                }
+              >
+                Slideshow {advice.slideshow_risk.average}/5 ({advice.slideshow_risk.verdict})
+              </span>
+            </>
+          ) : null}
         </p>
         {onRefresh && (
           <button

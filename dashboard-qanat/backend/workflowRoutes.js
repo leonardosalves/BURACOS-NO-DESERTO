@@ -58,6 +58,8 @@ import {
 import { buildCapabilityMenu } from "./openmontageCapability.js";
 import { analyzeReferenceVideo } from "./openmontageReference.js";
 import { extractBrowserResponse } from "./geminiBrowser.js";
+import { runClipFactory } from "./clipFactory.js";
+import { searchArchiveOrg } from "./archiveOrgStock.js";
 
 export function registerWorkflowRoutes(app, deps) {
   const {
@@ -715,6 +717,32 @@ export function registerWorkflowRoutes(app, deps) {
       if (!res.headersSent) {
         res.status(500).json({ error: err.message });
       }
+    }
+  });
+
+  app.post("/api/workflow/clip-factory", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const { enqueue = true } = req.body || {};
+      const result = runClipFactory(WORKSPACE_DIR, projDir, { enqueue: enqueue !== false });
+      if (!result.ok) {
+        return res.status(400).json({ error: result.error || "Clip Factory falhou" });
+      }
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/workflow/archive-search", async (req, res) => {
+    try {
+      const q = String(req.query.q || "").trim();
+      if (!q) return res.status(400).json({ error: "Informe q=termo de busca" });
+      const preferVideo = req.query.video === "1";
+      const hits = await searchArchiveOrg(q, { rows: 10, preferVideo });
+      res.json({ ok: true, query: q, hits });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
   });
 

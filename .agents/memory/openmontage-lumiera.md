@@ -48,13 +48,22 @@ Adaptação dos padrões de produção do [calesthio/OpenMontage](https://github
 
 OpenMontage é **AGPL-3.0**. Lumiera reimplementa padrões documentados nas skills públicas com atribuição — não copia código Python wholesale.
 
+## Features implementadas (2026-07-01)
+
+| Feature | API / UI |
+|---------|----------|
+| Clip Factory | `POST /api/workflow/clip-factory` · Workflow → Clip Factory |
+| Archive.org stock | fallback em `fetchStockForScenes` · `GET /api/workflow/archive-search` |
+| Sample-first 12s | `?sample=1` no render · botão «Amostra 12s (PRO)» · `POST /api/projects/sample-approve` |
+| Slideshow risk | `slideshowRisk.js` · gate em `validateVideoQuality` + pré-render |
+
 ## Pipelines OpenMontage × Lumiera
 
 | Pipeline OM | Equivalente Lumiera |
 |-------------|---------------------|
 | `short-form-viral` | shorts-viral bundle + Creator SHORT |
-| `documentary` | long-documentary bundle + NotebookLM |
+| `documentary` | long-documentary bundle + NotebookLM + Archive.org |
 | `animation` | HyperFrames + ComfyUI LTX |
 | `talking-head` | Fish Speech / Chatterbox clone |
-| `clip-factory` | (planejado) longo → shorts na fila editorial |
+| `clip-factory` | `clipFactory.js` → fila editorial |
 | `hybrid` | VideoAgent multi-step |

@@ -135,6 +135,41 @@ const ISSUE_PLAYBOOKS = {
     tab: "settings",
     priority: "info",
   },
+  slideshow_risk_fail: {
+    title: "Risco slideshow — bloqueado",
+    summary: "Montagem parece slides animados (texto demais, pouco movimento, repetição).",
+    steps: [
+      "Adicione B-roll de vídeo (Workflow → Buscar stock inclui Archive.org).",
+      "Alterne tipos de overlay: counter → bar-chart → kinetic-text.",
+      "Remova lower-thirds placeholder (INFO) — só dados concretos.",
+      "Replaneje overlays com Studio Agents e atualize Qualidade Pré-Render.",
+    ],
+    tab: "workflow",
+    priority: "error",
+  },
+  slideshow_risk_revise: {
+    title: "Risco slideshow — revisar",
+    summary: "Variedade visual abaixo do ideal — risco de retenção fraca.",
+    steps: [
+      "Injete 1–2 counters ou bar-charts com dados do roteiro.",
+      "Troque imagens estáticas por clip stock quando possível.",
+      "Veja dimensões no painel Qualidade Pré-Render (slideshow risk).",
+    ],
+    tab: "workflow",
+    priority: "warning",
+  },
+  sample_not_rendered: {
+    title: "Amostra 12s não renderizada",
+    summary: "OpenMontage sample-first: valide gancho e voz antes do render completo.",
+    steps: [
+      "Aba Render → «Amostra 12s (PRO)» — ouve voz, vê estilo, sente pacing.",
+      "Ajuste roteiro/overlays se necessário.",
+      "Depois renderize o vídeo completo.",
+    ],
+    tab: "status",
+    priority: "warning",
+    manualOnly: true,
+  },
   quality_score: {
     title: "Score de qualidade baixo",
     summary: "Vários problemas acumulados — render pode sair abaixo do padrão.",
@@ -177,7 +212,7 @@ const WORKFLOW_PLAYBOOKS = {
     title: "Cenas sem mídia (B-roll)",
     summary: "Há cenas no roteiro sem imagem/vídeo em ASSETS.",
     steps: [
-      "Workflow → Buscar B-roll (Pexels/Pixabay) para as cenas faltantes.",
+      "Workflow → Buscar B-roll (Pexels/Pixabay/Archive.org) para as cenas faltantes.",
       "Ou Associe mídias com IA (auto_map).",
       "Confira previews na aba Editor.",
     ],
@@ -348,6 +383,39 @@ export function buildPreRenderAdvice(qualityReport = {}, workflow = {}) {
     }
   }
 
+  if (qualityReport.slideshow_risk?.verdict === "fail") {
+    const book = ISSUE_PLAYBOOKS.slideshow_risk_fail;
+    if (!suggestions.some((s) => s.code === "slideshow_risk_fail")) {
+      suggestions.push({
+        id: "slideshow_risk_fail",
+        priority: "error",
+        title: book.title,
+        summary: `Score ${qualityReport.slideshow_risk.average}/5 — ${qualityReport.slideshow_risk.findings?.[0]?.message || book.summary}`,
+        steps: book.steps,
+        tab: book.tab,
+        code: "slideshow_risk_fail",
+      });
+    }
+  }
+
+  if (
+    qualityReport.plan?.format === "SHORT"
+    && !qualityReport.sample_approved
+    && (qualityReport.score ?? 0) >= 70
+    && !suggestions.some((s) => s.id === "sample_not_rendered")
+  ) {
+    const book = ISSUE_PLAYBOOKS.sample_not_rendered;
+    suggestions.push({
+      id: "sample_not_rendered",
+      priority: "warning",
+      title: book.title,
+      summary: book.summary,
+      steps: book.steps,
+      tab: book.tab,
+      manualOnly: true,
+    });
+  }
+
   if (Number(qualityReport.score) < 80 && !suggestions.some((s) => s.code === "quality_score")) {
     const book = ISSUE_PLAYBOOKS.quality_score;
     suggestions.push({
@@ -371,14 +439,18 @@ export function buildPreRenderAdvice(qualityReport = {}, workflow = {}) {
   );
 
   const blocking = sorted.filter((s) => s.priority === "error");
-  const ready = blocking.length === 0 && (qualityReport.score ?? 0) >= 80;
+  const slideshowBlocks = qualityReport.slideshow_risk?.verdict === "fail";
+  const ready = blocking.length === 0
+    && !slideshowBlocks
+    && (qualityReport.score ?? 0) >= 80;
 
   return {
     ready,
     score: qualityReport.score ?? null,
     format,
-    blockingCount: blocking.length,
+    blockingCount: blocking.length + (slideshowBlocks ? 1 : 0),
     suggestionCount: sorted.length,
     suggestions: sorted,
+    slideshow_risk: qualityReport.slideshow_risk || null,
   };
 }

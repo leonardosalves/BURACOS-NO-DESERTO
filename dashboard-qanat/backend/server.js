@@ -1670,6 +1670,20 @@ app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
   }
 });
 
+// API: Aprovar amostra sample-first (OpenMontage) — libera render completo sem aviso
+app.post("/api/projects/sample-approve", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    const storyboard = readJsonFile(storyboardPath) || {};
+    storyboard.sample_approved_at = new Date().toISOString();
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    res.json({ ok: true, sample_approved_at: storyboard.sample_approved_at });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API: Pre-render video quality check (overlays, listicle ranks, hook pollution)
 app.get("/api/projects/video-quality", async (req, res) => {
   try {
@@ -4414,14 +4428,21 @@ app.get("/api/render/:mode", async (req, res) => {
 
       const isProres = req.query.prores === "1" || req.query.transparent === "1";
       const useHyperframes = req.query.hyperframes === "1";
-      const previewSecs = Math.min(60, Math.max(0, Number(req.query.preview) || 0));
+      const isSample = req.query.sample === "1";
+      const previewSecs = isSample
+        ? Math.min(15, Math.max(10, Number(req.query.sampleSeconds) || 12))
+        : Math.min(60, Math.max(0, Number(req.query.preview) || 0));
       const resolution = resolveRenderResolution(req);
+      if (isSample) {
+        sendLog(`[Remotion] Modo amostra OpenMontage: ${previewSecs}s (gancho + 1 cena).`);
+      }
       if (useHyperframes) {
         sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
       }
       const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
         previewDuration: previewSecs > 0 ? previewSecs : undefined,
         resolution,
+        sampleRender: isSample,
       });
       if (resolution === "2k") {
         sendLog("[Remotion] Resolução 2K ativada (2560×1440 ou 1440×2560).");
@@ -5952,11 +5973,38 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   fs.mkdirSync(outputDir, { recursive: true });
 
   const fileExt = isProres ? "mov" : "mp4";
-  const outputPath = path.join(outputDir, `remotion_${Date.now()}.${fileExt}`);
+  let outputPath = path.join(outputDir, `remotion_${Date.now()}.${fileExt}`);
+  let sampleMeta = null;
+
+  if (options.sampleRender) {
+    const sampleDir = path.join(projectDir, "ASSETS", "sample");
+    fs.mkdirSync(sampleDir, { recursive: true });
+    const sbPath = path.join(projectDir, "storyboard.json");
+    let sb = readProjectJson(projectDir, "storyboard.json", {});
+    const version = (Number(sb.sample_version) || 0) + 1;
+    outputPath = path.join(sampleDir, `sample_v${version}.${fileExt}`);
+    const at = new Date().toISOString();
+    sb.sample_version = version;
+    sb.sample_last_render_at = at;
+    sb.sample_renders = Array.isArray(sb.sample_renders) ? sb.sample_renders : [];
+    sb.sample_renders.push({
+      version,
+      file: `ASSETS/sample/sample_v${version}.${fileExt}`,
+      seconds: options.previewDuration || 12,
+      at,
+    });
+    try {
+      fs.writeFileSync(sbPath, JSON.stringify(sb, null, 2), "utf8");
+    } catch (e) {
+      console.warn("[Remotion] Falha ao salvar sample metadata:", e.message);
+    }
+    sampleMeta = { version, seconds: options.previewDuration || 12 };
+  }
 
   return {
     propsPath,
     outputPath,
+    sampleMeta,
     totalDuration,
     sceneCount: validScenes.length,
     captionCount: finalCaptions.length,

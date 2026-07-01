@@ -28,6 +28,7 @@ import {
   loadStockUsageRegistry,
   registerStockUsage,
 } from "./mediaUsageRegistry.js";
+import { searchArchiveOrgMedia } from "./archiveOrgStock.js";
 
 const NARRATION_FILENAME = "narracao_mestra_premium.mp3";
 
@@ -332,10 +333,12 @@ export async function fetchStockForScenes(projDir, {
     isVideo: isVideoScene(vp),
   }));
 
-  if (!keys.pexels && !keys.pixabay) {
+  const useArchive = config.use_archive_org !== false;
+
+  if (!keys.pexels && !keys.pixabay && !useArchive) {
     return {
       success: false,
-      error: "Configure pexels_api_key ou pixabay_api_key em Configurações → APIs & Mídia.",
+      error: "Configure Pexels/Pixabay ou mantenha Archive.org ativo em Configurações → APIs & Mídia.",
       fetched: [],
       skipped: targets.length,
     };
@@ -361,6 +364,13 @@ export async function fetchStockForScenes(projDir, {
       media = await searchPexels(query, { apiKey: keys.pexels, isVideo: target.isVideo, skipSourceIds });
       if (!media && keys.pixabay) {
         media = await searchPixabay(query, { apiKey: keys.pixabay, isVideo: target.isVideo, skipSourceIds });
+      }
+      if (!media && useArchive) {
+        media = await searchArchiveOrgMedia(query, {
+          preferVideo: target.isVideo,
+          skipSourceIds,
+        });
+        if (media) onLog(`[Stock] Archive.org: "${query}" → ${media.sourceId}`);
       }
     } catch (err) {
       errors.push({ scene: target.scene, query, error: err.message });
