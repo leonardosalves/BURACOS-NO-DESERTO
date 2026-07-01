@@ -12427,8 +12427,7 @@ export default function App() {
 
                 </div>
 
-                {aiProvider === 'gemini' && (
-                  <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
+                <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-white font-cinzel flex items-center gap-2">
@@ -12484,7 +12483,6 @@ export default function App() {
                       </label>
                     </div>
                   </div>
-                )}
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
