@@ -848,12 +848,103 @@ export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = fals
 ]`;
 }
 
-export function needsVisualPromptsRepair(storyboard = {}) {
+/** Extrai número de bloco inteiro — aceita block/bloco ou scene no formato "2.1". */
+export function parseBlockNumber(raw, sceneRaw) {
+  if (raw != null && raw !== "") {
+    const n = Number(String(raw).trim());
+    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  }
+  if (sceneRaw != null && sceneRaw !== "") {
+    const sceneStr = String(sceneRaw).trim();
+    const dotMatch = sceneStr.match(/^(\d+)\./);
+    if (dotMatch) return parseInt(dotMatch[1], 10);
+    const n = Number(sceneStr);
+    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  }
+  return null;
+}
+
+export function countUniqueVisualBlocks(visualPrompts = []) {
+  const blocks = new Set();
+  for (const vp of visualPrompts) {
+    const b = parseBlockNumber(vp?.block ?? vp?.bloco, vp?.scene ?? vp?.cena);
+    if (b) blocks.add(b);
+  }
+  return blocks.size;
+}
+
+export function needsVisualPromptsRepair(storyboard = {}, { blockCount = 5, format = "LONGO" } = {}) {
   const vps = storyboard.visual_prompts || [];
   if (!Array.isArray(vps) || vps.length === 0) return true;
   const emptyNarr = vps.filter((vp) => !String(vp.narration_text || vp.narracao || "").trim()).length;
   const emptyPrompt = vps.filter((vp) => !String(vp.prompt || vp.visual_prompt || "").trim()).length;
-  return emptyNarr > 0 || emptyPrompt > 0;
+  if (emptyNarr > 0 || emptyPrompt > 0) return true;
+
+  const blockPhrases = storyboard.technical_config?.block_phrases || [];
+  const expectedBlocks = blockPhrases.length > 0 ? blockPhrases.length : blockCount;
+  const uniqueBlocks = countUniqueVisualBlocks(vps);
+  if (uniqueBlocks < expectedBlocks) return true;
+
+  const minScenes = format === "SHORTS"
+    ? Math.max(5, expectedBlocks)
+    : Math.max(8, expectedBlocks);
+  if (vps.length < Math.min(minScenes, expectedBlocks * 2)) return true;
+
+  return false;
+}
+
+/**
+ * Normaliza block/scene nos visual_prompts e redistribui quando a IA
+ * devolveu poucas cenas ou concentrou tudo em um único bloco.
+ */
+export function normalizeVisualPromptBlocks(
+  parsedData = {},
+  { blockCount = 5, format = "LONGO", ideaTitle = "" } = {},
+) {
+  const result = { ...parsedData };
+  const vps = Array.isArray(result.visual_prompts) ? [...result.visual_prompts] : [];
+  if (!vps.length) return result;
+
+  const blockPhrases = result.technical_config?.block_phrases || [];
+  const expectedBlocks = blockPhrases.length > 0 ? blockPhrases.length : blockCount;
+
+  let normalized = vps.map((vp, index) => {
+    const block = parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena)
+      ?? Math.min(expectedBlocks, Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1);
+    const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
+    const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.(\\d+)$`));
+    return {
+      ...vp,
+      block,
+      scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
+    };
+  });
+
+  const uniqueBlocks = countUniqueVisualBlocks(normalized);
+  const tooFewScenes = normalized.length < Math.max(expectedBlocks, format === "SHORTS" ? 5 : 8);
+  const blocksCollapsed = uniqueBlocks < expectedBlocks;
+
+  if (blocksCollapsed && normalized.length >= expectedBlocks) {
+    const perBlock = Math.ceil(normalized.length / expectedBlocks);
+    normalized = normalized.map((vp, index) => {
+      const block = Math.min(expectedBlocks, Math.floor(index / perBlock) + 1);
+      const sceneInBlock = (index % perBlock) + 1;
+      return { ...vp, block, scene: `${block}.${sceneInBlock}` };
+    });
+  } else if ((blocksCollapsed || tooFewScenes) && String(result.narrative_script || "").trim()) {
+    const deterministic = buildDeterministicVisualPromptsFromNarration(result.narrative_script, {
+      blockCount: expectedBlocks,
+      format,
+      ideaTitle,
+    });
+    if (deterministic.length > 0) {
+      result.visual_prompts = deterministic;
+      return result;
+    }
+  }
+
+  result.visual_prompts = normalized;
+  return result;
 }
 
 export function buildVisualPromptsFromNarrationPrompt({

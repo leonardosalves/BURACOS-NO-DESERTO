@@ -437,9 +437,32 @@ const getSceneDurationSeconds = (scene: any) => {
 
 };
 
+const parseCreatorBlockNumber = (raw: unknown, sceneRaw?: unknown): number => {
+  if (raw != null && raw !== '') {
+    const n = Number(String(raw).trim());
+    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  }
+  if (sceneRaw != null && sceneRaw !== '') {
+    const sceneStr = String(sceneRaw).trim();
+    const dotMatch = sceneStr.match(/^(\d+)\./);
+    if (dotMatch) return parseInt(dotMatch[1], 10);
+    const n = Number(sceneStr);
+    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  }
+  return 1;
+};
+
+const countCreatorUniqueBlocks = (visualPrompts: any[]) => {
+  const blocks = new Set<number>();
+  (visualPrompts || []).forEach((vp) => {
+    blocks.add(parseCreatorBlockNumber(vp?.block ?? vp?.bloco, vp?.scene ?? vp?.cena));
+  });
+  return blocks.size;
+};
+
 const getBlockTimingSummary = (visualPrompts: any[], blockNum: number, gapSeconds = 2) => {
 
-  const scenes = (visualPrompts || []).filter((scene: any) => (scene?.block || 1) === blockNum);
+  const scenes = (visualPrompts || []).filter((scene: any) => parseCreatorBlockNumber(scene?.block ?? scene?.bloco, scene?.scene ?? scene?.cena) === blockNum);
 
   const sceneSeconds = scenes.reduce((total: number, scene: any) => total + getSceneDurationSeconds(scene), 0);
 
@@ -6589,6 +6612,10 @@ export default function App() {
       if (ok && !data.needs_browser) {
         setGeneratedScriptData(data);
         setCreatorScript(data.narrative_script || approved);
+        const blockNums = [...new Set(
+          (data.visual_prompts || []).map((vp: any) => parseCreatorBlockNumber(vp?.block ?? vp?.bloco, vp?.scene ?? vp?.cena)),
+        )].sort((a, b) => a - b);
+        setExpandedBlocks(Object.fromEntries(blockNums.map((b) => [b, true])));
         setShowNarrationReview(false);
         setCreatorStep(2);
         await fetchProjects();
@@ -6622,10 +6649,20 @@ export default function App() {
 
   const creatorScenesNeedRepair = useMemo(() => {
     const vps = generatedScriptData?.visual_prompts || [];
-    if (!vps.length) return false;
-    return vps.some((vp: any) => !String(vp?.narration_text || vp?.narration_excerpt || '').trim()
+    if (!vps.length) return true;
+    const missingFields = vps.some((vp: any) => !String(vp?.narration_text || vp?.narration_excerpt || '').trim()
       || !String(vp?.prompt || '').trim());
-  }, [generatedScriptData?.visual_prompts]);
+    if (missingFields) return true;
+    const blockPhrases = generatedScriptData?.technical_config?.block_phrases || [];
+    const expectedBlocks = blockPhrases.length > 0
+      ? blockPhrases.length
+      : (formatSelector === 'SHORTS' ? 5 : 12);
+    if (countCreatorUniqueBlocks(vps) < expectedBlocks) return true;
+    const minScenes = formatSelector === 'SHORTS'
+      ? Math.max(5, expectedBlocks)
+      : Math.max(8, expectedBlocks);
+    return vps.length < Math.min(minScenes, expectedBlocks * 2);
+  }, [generatedScriptData?.visual_prompts, generatedScriptData?.technical_config?.block_phrases, formatSelector]);
 
   const handleEvaluateScriptChecklist = async () => {
     const projectName = narrationProjectName || creatorProjectName || activeProject;
@@ -14627,13 +14664,21 @@ export default function App() {
 
                           (generatedScriptData?.visual_prompts || []).forEach((vp: any) => {
 
-                            const b = vp.block || 1;
+                            const b = parseCreatorBlockNumber(vp?.block ?? vp?.bloco, vp?.scene ?? vp?.cena);
 
                             if (!promptsByBlock[b]) promptsByBlock[b] = [];
 
                             promptsByBlock[b].push(vp);
 
                           });
+
+                          const blockPhrases = generatedScriptData?.technical_config?.block_phrases || [];
+                          const expectedBlocks = blockPhrases.length > 0
+                            ? blockPhrases.length
+                            : (formatSelector === 'SHORTS' ? 5 : 12);
+                          for (let i = 1; i <= expectedBlocks; i += 1) {
+                            if (!promptsByBlock[i]) promptsByBlock[i] = [];
+                          }
 
                           const sortedBlocks = Object.keys(promptsByBlock).map(Number).sort((a, b) => a - b);
 
@@ -14663,7 +14708,7 @@ export default function App() {
 
                                     <span className="bg-gold-500 text-zinc-950 text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-md">
 
-                                      BLOCO {String(blockNum).padStart(2, '0')}
+                                      BLOCO {String(Math.floor(blockNum)).padStart(2, '0')}
 
                                     </span>
 

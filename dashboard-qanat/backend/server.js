@@ -199,6 +199,8 @@ import {
   mergeEnrichedNarration,
   normalizeNarrationBlocks,
   needsVisualPromptsRepair,
+  normalizeVisualPromptBlocks,
+  parseBlockNumber,
   buildVisualPromptsFromNarrationPrompt,
   mergeVisualPromptsRepair,
   normalizeScriptChecklist,
@@ -11385,7 +11387,7 @@ function normalizeKeys(data) {
 
     scene: vp.scene || vp.cena || (index + 1),
 
-    block: vp.block || vp.bloco || Math.floor(index / 2) + 1,
+    block: parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) || Math.floor(index / 2) + 1,
 
     narration_text: vp.narration_text || vp.narration_excerpt || vp.trecho_narracao || vp.narracao || vp.texto_narracao || vp.narration || vp.script_segment || "",
 
@@ -12105,7 +12107,9 @@ REGRAS FINAIS:
         parsedData.narrative_script_tagged = approvedNarration;
       }
 
-      if (needsVisualPromptsRepair(parsedData)) {
+      const vpRepairOpts = { blockCount: listicleBlockCount, format };
+
+      if (needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
         try {
           const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
             approvedNarration,
@@ -12133,7 +12137,13 @@ REGRAS FINAIS:
         }
       }
 
-      if (needsVisualPromptsRepair(parsedData)) {
+      parsedData = normalizeVisualPromptBlocks(parsedData, {
+        blockCount: listicleBlockCount,
+        format,
+        ideaTitle: idea.title,
+      });
+
+      if (needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
         const deterministic = buildDeterministicVisualPromptsFromNarration(approvedNarration, {
           blockCount: listicleBlockCount,
           format,
@@ -12190,6 +12200,12 @@ REGRAS FINAIS:
       niche,
       ideaTitle: idea.title,
       apiKey,
+    });
+
+    parsedData = normalizeVisualPromptBlocks(parsedData, {
+      blockCount: listicleBlockCount,
+      format,
+      ideaTitle: idea.title,
     });
 
     if (isListicle) {
@@ -12361,6 +12377,11 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
     ));
     storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
     storyboard.narrative_script = approvedNarration;
+    storyboard = normalizeVisualPromptBlocks(storyboard, {
+      blockCount,
+      format,
+      ideaTitle: config.niche || storyboard.strategy?.title_main || "Vídeo",
+    });
 
     fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
 
