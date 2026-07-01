@@ -205,7 +205,8 @@ type Props = {
   alerts?: YoutubeChannelAlerts | null;
   onSelectProject?: (projectName: string) => void;
   onAlertsSync?: (alerts: YoutubeChannelAlerts) => void;
-  onApplyCreatorIdea?: (title: string, hookPt?: string) => void;
+  onApplyCreatorIdea?: (title: string, hookPt?: string, options?: { format?: 'LONGO' | 'SHORTS' }) => void;
+  onSchedulePublish?: (slot: { iso: string; local: string; label?: string }) => void;
   geminiBrowserMode?: boolean;
   aiProvider?: string;
   resolveBrowserResponse?: GeminiBrowserResolver;
@@ -280,6 +281,7 @@ export function YoutubeStudioPanel({
   onSelectProject,
   onAlertsSync,
   onApplyCreatorIdea,
+  onSchedulePublish,
   geminiBrowserMode = false,
   aiProvider = 'gemini',
   resolveBrowserResponse,
@@ -776,9 +778,15 @@ export function YoutubeStudioPanel({
             {alerts.alerts.map((alert) => (
               <div
                 key={alert.type}
-                className="p-3 rounded-xl border border-gold-500/25 bg-gold-500/5 flex flex-wrap items-center justify-between gap-2"
+                className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${
+                  alert.type === 'views_drop'
+                    ? 'border-red-500/35 bg-red-500/10'
+                    : 'border-gold-500/25 bg-gold-500/5'
+                }`}
               >
-                <p className="text-[11px] text-gold-200/90">{alert.label}</p>
+                <p className={`text-[11px] ${alert.type === 'views_drop' ? 'text-red-200/95' : 'text-gold-200/90'}`}>
+                  {alert.label}
+                </p>
                 {alert.type === 'unanswered_comments' && (
                   <button
                     type="button"
@@ -929,12 +937,14 @@ export function YoutubeStudioPanel({
                 comments: 'Coment. 7d',
               };
               const positive = item.changePct >= 0;
+              const criticalDrop = key === 'views' && item.changePct <= -30;
               return (
-                <div key={key} className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-900/80">
+                <div key={key} className={`p-2.5 rounded-xl border ${criticalDrop ? 'bg-red-500/10 border-red-500/30' : 'bg-zinc-950 border-zinc-900/80'}`}>
                   <p className="text-[8px] text-zinc-600 uppercase">{labels[key]}</p>
                   <p className="text-sm font-bold text-white tabular-nums">{formatNumber(item.current)}</p>
                   <p className={`text-[9px] tabular-nums ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
                     {positive ? '+' : ''}{item.changePct}% vs 7d ant.
+                    {criticalDrop ? ' · alerta' : ''}
                   </p>
                 </div>
               );
@@ -1653,6 +1663,7 @@ export function YoutubeStudioPanel({
         periodDays={periodDays}
         toast={toast}
         onApplyIdea={onApplyCreatorIdea}
+        onSchedulePublish={onSchedulePublish}
         onRefreshComments={() => loadComments(commentFilter, appliedKeyword)}
       />
 

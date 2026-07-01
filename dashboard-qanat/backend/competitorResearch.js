@@ -442,22 +442,103 @@ function appendCompetitorErrors(content, errors = []) {
   return content.replace(marker, `${marker}\n${additions.join("\n")}`);
 }
 
-function buildFichaMarkdown(analysis) {
-  const lines = [];
-  for (const o of analysis.outlierAnalyses || []) {
-    lines.push(`#### ${escapeTableCell(o.videoTitle)}`);
-    lines.push(`- **Canal:** ${escapeTableCell(o.channel)}`);
-    lines.push(`- **URL:** ${o.videoUrl || "—"}`);
-    lines.push(`- **Mecânica:** ${escapeTableCell(o.mechanic)}`);
-    lines.push(`- **Hook verbal:** ${escapeTableCell(o.hook?.verbal)}`);
-    lines.push(`- **Hook visual:** ${escapeTableCell(o.hook?.visual)}`);
-    lines.push(`- **Texto na tela:** ${escapeTableCell(o.hook?.onScreen)}`);
-    lines.push(`- **Estrutura:** ${escapeTableCell(o.structure?.format)} — ${escapeTableCell(o.structure?.beats)}`);
-    lines.push(`- **CTA:** ${escapeTableCell(o.cta?.text)} (${escapeTableCell(o.cta?.type)})`);
-    lines.push(`- **Packaging:** ${escapeTableCell(o.packaging?.titlePattern)}`);
-    lines.push("");
+function formatVideoAge(publishedAt) {
+  if (!publishedAt) return "—";
+  const days = Math.max(0, Math.round((Date.now() - new Date(publishedAt).getTime()) / (24 * 60 * 60 * 1000)));
+  if (days < 30) return `${days}d`;
+  if (days < 365) return `${Math.round(days / 30)}m`;
+  return `${Math.round(days / 365)}a`;
+}
+
+function buildFullOutlierFicha(outlier = {}, analysisEntry = {}) {
+  const title = escapeTableCell(analysisEntry.videoTitle || outlier.title || "Outlier");
+  const views = outlier.views != null ? Number(outlier.views).toLocaleString("pt-BR") : "—";
+  const ratio = outlier.outlierRatio != null ? `${outlier.outlierRatio}×` : "—";
+  const median = outlier.channelMedianViews != null ? Number(outlier.channelMedianViews).toLocaleString("pt-BR") : "—";
+  const duration = outlier.durationLabel || (outlier.durationSec ? `${outlier.durationSec}s` : "—");
+  const videoId = outlier.videoId || "";
+  const url = analysisEntry.videoUrl || outlier.url || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "—");
+
+  return [
+    `### ${title}`,
+    `- **Canal:** ${escapeTableCell(analysisEntry.channel || outlier.channelTitle)}`,
+    `- **videoId / URL:** ${videoId || "—"} · ${url}`,
+    `- **Views / idade / duração:** ${views} / ${formatVideoAge(outlier.publishedAt)} / ${duration}`,
+    `- **Outlier?** ${ratio} vs mediana do canal (${median} views)`,
+    "",
+    "#### Hook (0–3s)",
+    `- Visual (1º frame): ${escapeTableCell(analysisEntry.hook?.visual)}`,
+    `- Verbal (1ª frase): ${escapeTableCell(analysisEntry.hook?.verbal || outlier.title)}`,
+    `- Texto na tela: ${escapeTableCell(analysisEntry.hook?.onScreen)}`,
+    `- Arquétipo: ${escapeTableCell(analysisEntry.hook?.archetype)}`,
+    "",
+    "#### Estrutura",
+    `- Formato: ${escapeTableCell(analysisEntry.structure?.format)}`,
+    `- Blocos / beats: ${escapeTableCell(analysisEntry.structure?.beats)}`,
+    `- Open loops: ${escapeTableCell(analysisEntry.structure?.openLoops)}`,
+    `- Pattern interrupts: ${escapeTableCell(analysisEntry.structure?.patternInterrupts)}`,
+    "",
+    "#### Retenção & payoff",
+    `- O que o gancho prometeu: ${escapeTableCell(analysisEntry.retention?.promise)}`,
+    `- Onde entrega: ${escapeTableCell(analysisEntry.retention?.payoffAt)}`,
+    "",
+    "#### CTA",
+    `- Último bloco / comentário fixo: ${escapeTableCell(analysisEntry.cta?.text)}`,
+    `- Tipo: ${escapeTableCell(analysisEntry.cta?.type)}`,
+    "",
+    "#### Packaging",
+    `- Thumb (3–5 palavras): ${escapeTableCell(analysisEntry.packaging?.thumbHint)}`,
+    `- Título: ${escapeTableCell(analysisEntry.packaging?.titlePattern || outlier.title)}`,
+    "",
+    "#### Mecânica extraída (1 linha)",
+    `> ${escapeTableCell(analysisEntry.mechanic || `Outlier ${ratio} no nicho`)}`,
+    "",
+    analysisEntry.competitorMistakes
+      ? `#### Erros do concorrente\n- ${escapeTableCell(analysisEntry.competitorMistakes)}\n`
+      : "",
+  ].filter(Boolean).join("\n");
+}
+
+function appendFichaArchive(content, outliers = [], analyses = []) {
+  const marker = "## Ficha de dissecção (por vídeo outlier)";
+  if (!outliers.length) return content;
+
+  const analysisByTitle = new Map(
+    (analyses || []).map((a) => [String(a.videoTitle || "").toLowerCase(), a]),
+  );
+
+  const blocks = outliers.map((o) => {
+    const key = String(o.title || "").toLowerCase();
+    const entry = analysisByTitle.get(key) || {};
+    return buildFullOutlierFicha(o, entry);
+  });
+
+  const deduped = blocks.filter((block) => {
+    const titleLine = block.split("\n")[0].replace(/^###\s*/, "").trim().toLowerCase();
+    return titleLine && !content.toLowerCase().includes(titleLine);
+  });
+  if (!deduped.length) return content;
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const sectionBody = `\n\n<!-- auto:${stamp} -->\n${deduped.join("\n\n---\n\n")}\n`;
+
+  if (!content.includes(marker)) {
+    return `${content.trimEnd()}\n\n${marker}\n${sectionBody}`;
   }
-  return lines.join("\n");
+  return content.replace(marker, `${marker}${sectionBody}`);
+}
+
+function buildFichaMarkdown(analysis, outliers = []) {
+  if (!outliers.length) {
+    return (analysis.outlierAnalyses || []).map((o) => buildFullOutlierFicha({}, o)).join("\n\n---\n\n");
+  }
+  const analysisByTitle = new Map(
+    (analysis.outlierAnalyses || []).map((a) => [String(a.videoTitle || "").toLowerCase(), a]),
+  );
+  return outliers.slice(0, 4).map((o) => {
+    const entry = analysisByTitle.get(String(o.title || "").toLowerCase()) || {};
+    return buildFullOutlierFicha(o, entry);
+  }).join("\n\n---\n\n");
 }
 
 function buildIdeasMarkdown(ideas = []) {
@@ -516,7 +597,7 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
     `**Outliers detectados:** ${outliers.length}`,
     "",
     "#### Fichas de dissecção (IA)",
-    buildFichaMarkdown(analysis),
+    buildFichaMarkdown(analysis, outliers),
     "#### Ideias Lumiera derivadas",
     buildIdeasMarkdown(analysis.derivedIdeas || []),
   ].join("\n");
@@ -526,6 +607,7 @@ export function appendCompetitorResearchToMemory(workspaceDir, {
     body: researchBody,
   });
 
+  content = appendFichaArchive(content, outliers, analysis.outlierAnalyses || []);
   content = appendCandidates(content, analysis.derivedIdeas || []);
   content = appendPromotedPatterns(content, analysis.promotedPatterns || []);
   content = appendCompetitorErrors(content, analysis.competitorErrors || []);

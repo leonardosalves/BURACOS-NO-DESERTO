@@ -308,6 +308,69 @@ async function youtubeDataGet(accessToken, path, params = {}) {
   return data;
 }
 
+const WEEKDAY_SHORT_TO_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+function zonedDateParts(date, timeZone = PUBLISH_TIMEZONE) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "numeric",
+    hour12: false,
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.filter((p) => p.type !== "literal").map((p) => [p.type, p.value]));
+  return {
+    year: map.year,
+    month: map.month,
+    day: map.day,
+    weekday: WEEKDAY_SHORT_TO_INDEX[map.weekday] ?? null,
+    hour: Number(map.hour),
+  };
+}
+
+/** Próximo slot de publicação no heatmap (dia + hora em Brasília). */
+export function computeNextPublishSlot(heatmap = {}) {
+  const targetWd = heatmap?.bestWeekday?.weekday;
+  if (targetWd == null) return null;
+
+  let targetHour = heatmap?.bestHour?.hour;
+  if (targetHour == null && heatmap?.bestTimeWindow) {
+    const m = String(heatmap.bestTimeWindow).match(/(\d{1,2})h/);
+    if (m) targetHour = Number(m[1]);
+  }
+  if (targetHour == null) targetHour = 11;
+
+  const minLeadMs = 30 * 60 * 1000;
+  for (let dayOffset = 0; dayOffset < 14; dayOffset += 1) {
+    const probe = new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000);
+    const parts = zonedDateParts(probe);
+    if (parts.weekday !== targetWd) continue;
+
+    const isoLocal = `${parts.year}-${parts.month}-${parts.day}T${String(targetHour).padStart(2, "0")}:00:00-03:00`;
+    const slot = new Date(isoLocal);
+    if (slot.getTime() > Date.now() + minLeadMs) {
+      return {
+        iso: slot.toISOString(),
+        local: slot.toLocaleString("pt-BR", {
+          timeZone: PUBLISH_TIMEZONE,
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        label: heatmap.recommendedPublishTime || `${heatmap.bestWeekday?.label || ""} ${heatmap.bestTimeWindow || ""}`.trim(),
+        weekday: heatmap.bestWeekday?.label,
+        hour: targetHour,
+        timeZone: PUBLISH_TIMEZONE,
+      };
+    }
+  }
+  return null;
+}
+
 function hourInTimezone(isoDate, timeZone = PUBLISH_TIMEZONE) {
   if (!isoDate) return null;
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -460,7 +523,7 @@ export async function fetchAudienceHeatmap(workspaceDir, { days = 28 } = {}) {
       ? `${bestWeekday.label}, ${publishHours.bestTimeWindow} (Brasília)`
       : bestWeekday.label;
 
-    return {
+    const heatmapPayload = {
       available: true,
       periodDays: days,
       startDate,
@@ -476,6 +539,8 @@ export async function fetchAudienceHeatmap(workspaceDir, { days = 28 } = {}) {
       videosAnalyzed: publishHours.videosAnalyzed,
       note: "Dia: views da audiência. Horário: publicações do canal com mais views (proxy do melhor horário).",
     };
+    heatmapPayload.suggestedPublishSlot = computeNextPublishSlot(heatmapPayload);
+    return heatmapPayload;
   } catch (err) {
     return { available: false, error: err.message, byWeekday: [], daily: [], byHour: [] };
   }

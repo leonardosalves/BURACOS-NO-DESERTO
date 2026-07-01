@@ -8,7 +8,7 @@ type Props = {
   viewsThreshold: number;
   nicheKeyword?: string;
   toast: (msg: string) => void;
-  onApplyIdea?: (title: string, hookPt?: string) => void;
+  onApplyIdea?: (title: string, hookPt?: string, options?: { format?: 'LONGO' | 'SHORTS' }) => void;
 };
 
 export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, onApplyIdea }: Props) {
@@ -20,6 +20,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
   const [pinVideoId, setPinVideoId] = useState('');
   const [pinText, setPinText] = useState('');
   const [competitorLoading, setCompetitorLoading] = useState(false);
+  const [creatorFormat, setCreatorFormat] = useState<'SHORTS' | 'LONGO'>('SHORTS');
   const [competitorResult, setCompetitorResult] = useState<{
     competitors?: Array<{ title: string; outlierCount: number }>;
     outliers?: Array<{ title: string; channelTitle: string; outlierRatio: number }>;
@@ -97,7 +98,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           niche: nicheKeyword || undefined,
-          format: 'SHORT',
+          format: creatorFormat === 'LONGO' ? 'LONG' : 'SHORT',
           maxCompetitors: 5,
           useAi: true,
         }),
@@ -107,7 +108,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
       setCompetitorResult(data);
       const n = (data.outliers || []).length;
       const ideas = (data.analysis?.derivedIdeas || []).length;
-      const base = `Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias → Obsidian`;
+      const base = `Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias + fichas → Obsidian`;
       toast(data.aiAnalysisFailed ? `${base} (${data.aiAnalysisWarning || 'análise básica'})` : base);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro na pesquisa de concorrentes');
@@ -151,7 +152,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             <li key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
               <span className="truncate">{idea.title}</span>
               {onApplyIdea && (
-                <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.angle)} className="text-gold-400 shrink-0">Creator ▶</button>
+                <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.angle, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
               )}
             </li>
           ))}
@@ -192,6 +193,23 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             <Search className="w-3 h-3 text-amber-400" />
             Pesquisa de concorrentes (IA)
           </p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] text-zinc-600">Creator ▶</span>
+            <button
+              type="button"
+              onClick={() => setCreatorFormat('SHORTS')}
+              className={`text-[8px] px-2 py-0.5 rounded border ${creatorFormat === 'SHORTS' ? 'bg-gold-500/15 text-gold-300 border-gold-500/30' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}
+            >
+              Short
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreatorFormat('LONGO')}
+              className={`text-[8px] px-2 py-0.5 rounded border ${creatorFormat === 'LONGO' ? 'bg-gold-500/15 text-gold-300 border-gold-500/30' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}
+            >
+              Longo
+            </button>
+          </div>
           <button
             type="button"
             disabled={competitorLoading}
@@ -214,7 +232,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
               <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
                 <span className="truncate">{idea.title}</span>
                 {onApplyIdea && (
-                  <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.hookPt)} className="text-gold-400 shrink-0">Creator ▶</button>
+                  <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.hookPt, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
                 )}
               </div>
             ))}

@@ -1881,6 +1881,8 @@ export default function App() {
       const parts = [];
       if (unanswered > 0) parts.push(`${unanswered} comentário(s) sem resposta`);
       if (hot > 0) parts.push(`${hot} vídeo(s) em alta`);
+      const viewsDrop = youtubeChannelAlerts?.alerts?.find((a) => a.type === 'views_drop');
+      if (viewsDrop?.label) parts.push(viewsDrop.label);
       new Notification('Canal YouTube — Lumiera', {
         body: parts.join(' · ') || `${badge} alerta(s)`,
         tag: 'lumiera-youtube-alerts',
@@ -6253,6 +6255,13 @@ export default function App() {
       }
     }
     return { ok: false, safeName: base, created: false, error: 'Não foi possível criar uma pasta única para o projeto.' };
+  };
+
+  const handleScheduleFromHeatmap = (slot: { iso: string; local: string; label?: string }) => {
+    setYtPublishAt(slot.iso);
+    setYtPrivacy('private');
+    setActiveTab('upload');
+    toast.success(`Publicação agendada: ${slot.local}${slot.label ? ` (${slot.label})` : ''}. Revise na aba Upload.`);
   };
 
   const handleApplyYoutubeStudioIdea = async (
@@ -12461,9 +12470,10 @@ export default function App() {
                 resolveBrowserResponse={resolveBrowserResponse}
                 onSelectProject={handleSelectProject}
                 onAlertsSync={setYoutubeChannelAlerts}
-                onApplyCreatorIdea={(title, hookPt) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt);
+                onApplyCreatorIdea={(title, hookPt, options) => {
+                  void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
                 }}
+                onSchedulePublish={handleScheduleFromHeatmap}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
                   setActiveTab('settings');

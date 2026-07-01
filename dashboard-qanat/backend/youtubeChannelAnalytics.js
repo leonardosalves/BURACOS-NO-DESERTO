@@ -928,6 +928,23 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   );
 
   const alerts = [];
+  try {
+    const { fetchChannelPeriodComparison } = await import("./youtubeStudioExtras.js");
+    const period = await fetchChannelPeriodComparison(workspaceDir, { days: 7 });
+    const viewsChange = period?.comparison?.views?.changePct;
+    if (period?.available && viewsChange != null && viewsChange <= -30) {
+      alerts.push({
+        type: "views_drop",
+        count: 1,
+        label: `Views caíram ${viewsChange}% vs 7 dias anteriores (${period.comparison.views.current} vs ${period.comparison.views.previous})`,
+        changePct: viewsChange,
+        currentViews: period.comparison.views.current,
+        previousViews: period.comparison.views.previous,
+      });
+    }
+  } catch (err) {
+    console.warn("[ChannelAlerts] Comparação de views:", err.message);
+  }
   if (unansweredComments > 0) {
     alerts.push({
       type: "unanswered_comments",
@@ -952,7 +969,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   const report = {
     connected: true,
     scopesReady: true,
-    badgeCount: unansweredComments + hotVideos.length,
+    badgeCount: unansweredComments + hotVideos.length + alerts.filter((a) => a.type === "views_drop").length,
     unansweredComments,
     hotVideos,
     lumieraVideos,
