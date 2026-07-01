@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle, ExternalLink, Eye, Loader2, MessageCircle, RefreshCw,
-  ThumbsUp, Users, Video, Youtube,
+  AlertTriangle, ExternalLink, Eye, Loader2, MessageCircle, MessageSquareReply,
+  RefreshCw, Search, ThumbsUp, Users, Video, Youtube,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 
@@ -56,10 +56,43 @@ type VideosReport = {
   hint?: string;
 };
 
+type CommentRow = {
+  threadId: string;
+  commentId: string;
+  videoId: string;
+  videoTitle: string;
+  authorDisplayName: string;
+  authorProfileImageUrl: string;
+  text: string;
+  publishedAt: string;
+  likeCount: number;
+  replyCount: number;
+  isAnswered: boolean;
+  studioUrl: string;
+  watchUrl: string | null;
+};
+
+type CommentsReport = {
+  channelId: string;
+  filter: string;
+  keyword: string;
+  comments: CommentRow[];
+  totalFetched?: number;
+  fetchedAt?: string;
+  replyNote?: string;
+  error?: string;
+  details?: string;
+  needsReauth?: boolean;
+  hint?: string;
+};
+
+type CommentFilter = 'all' | 'unanswered';
+
 type Props = {
   onGoToIntegrations: () => void;
   onRelinkYoutube: () => void;
   toast: (msg: string) => void;
+  nicheKeyword?: string;
 };
 
 function formatNumber(value: number) {
@@ -89,14 +122,52 @@ function formatShortDate(iso?: string) {
   }
 }
 
-export function YoutubeStudioPanel({ onGoToIntegrations, onRelinkYoutube, toast }: Props) {
+export function YoutubeStudioPanel({
+  onGoToIntegrations,
+  onRelinkYoutube,
+  toast,
+  nicheKeyword = '',
+}: Props) {
   const [overview, setOverview] = useState<ChannelOverview | null>(null);
   const [videosReport, setVideosReport] = useState<VideosReport | null>(null);
+  const [commentsReport, setCommentsReport] = useState<CommentsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [periodDays, setPeriodDays] = useState(28);
+  const [commentFilter, setCommentFilter] = useState<CommentFilter>('all');
+  const [keywordInput, setKeywordInput] = useState(nicheKeyword);
+  const [appliedKeyword, setAppliedKeyword] = useState('');
 
-  const loadData = useCallback(async (silent = false) => {
+  useEffect(() => {
+    if (nicheKeyword && !appliedKeyword) {
+      setKeywordInput(nicheKeyword);
+    }
+  }, [nicheKeyword, appliedKeyword]);
+
+  const loadComments = useCallback(async (filter: CommentFilter, keyword: string) => {
+    setCommentsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: '20',
+        filter,
+      });
+      if (keyword.trim()) params.set('keyword', keyword.trim());
+      const res = await fetch(`/api/youtube/channel/comments?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 403) {
+        throw new Error(data.details || data.error || 'Falha ao carregar comentários');
+      }
+      setCommentsReport(data as CommentsReport);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar comentários';
+      toast(message);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [toast]);
+
+  const loadOverviewAndVideos = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
@@ -126,11 +197,26 @@ export function YoutubeStudioPanel({ onGoToIntegrations, onRelinkYoutube, toast 
     }
   }, [periodDays, toast]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      loadOverviewAndVideos(true),
+      loadComments(commentFilter, appliedKeyword),
+    ]);
+    setRefreshing(false);
+  }, [appliedKeyword, commentFilter, loadComments, loadOverviewAndVideos]);
 
-  const needsReauth = Boolean(overview?.needsReauth || videosReport?.needsReauth);
+  useEffect(() => {
+    loadOverviewAndVideos();
+  }, [loadOverviewAndVideos]);
+
+  useEffect(() => {
+    loadComments(commentFilter, appliedKeyword);
+  }, [commentFilter, appliedKeyword, loadComments]);
+
+  const needsReauth = Boolean(
+    overview?.needsReauth || videosReport?.needsReauth || commentsReport?.needsReauth,
+  );
   const notConnected = overview && !overview.connected;
   const scopesMissing = overview?.connected && !overview.scopesReady;
 
@@ -159,7 +245,7 @@ export function YoutubeStudioPanel({ onGoToIntegrations, onRelinkYoutube, toast 
             </span>
             <button
               type="button"
-              onClick={() => loadData(true)}
+              onClick={() => refreshAll()}
               disabled={refreshing}
               className="text-[10px] text-zinc-400 hover:text-gold-400 transition flex items-center gap-1 px-2 py-1 rounded-lg border border-zinc-800 hover:border-zinc-700"
             >
@@ -370,6 +456,167 @@ export function YoutubeStudioPanel({ onGoToIntegrations, onRelinkYoutube, toast 
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel p-5 rounded-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-zinc-400" />
+              Comentários recentes
+            </h3>
+            <p className="text-[10px] text-zinc-500 mt-0.5">
+              {commentsReport?.fetchedAt
+                ? `Atualizado ${formatDateTime(commentsReport.fetchedAt)}`
+                : 'Últimos comentários do canal'}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {(['all', 'unanswered'] as CommentFilter[]).map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setCommentFilter(filter)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
+                  commentFilter === filter
+                    ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
+                    : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:text-zinc-300'
+                }`}
+              >
+                {filter === 'all' ? 'Todos' : 'Sem resposta'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+            <input
+              type="search"
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') setAppliedKeyword(keywordInput.trim());
+              }}
+              placeholder={nicheKeyword ? `Filtrar por palavra-chave (ex.: ${nicheKeyword})` : 'Filtrar por palavra-chave do nicho...'}
+              className="w-full pl-8 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setAppliedKeyword(keywordInput.trim())}
+            className="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-[10px] font-bold text-zinc-300 hover:text-white shrink-0"
+          >
+            Aplicar filtro
+          </button>
+          {appliedKeyword && (
+            <button
+              type="button"
+              onClick={() => {
+                setAppliedKeyword('');
+                setKeywordInput('');
+              }}
+              className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-500 hover:text-zinc-300 shrink-0"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+
+        {commentsReport?.replyNote && (
+          <p className="text-[10px] text-zinc-600 mb-3 leading-relaxed">{commentsReport.replyNote}</p>
+        )}
+
+        {commentsLoading ? (
+          <div className="py-8 flex items-center justify-center gap-2 text-zinc-500 text-[11px]">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Carregando comentários...
+          </div>
+        ) : !commentsReport?.comments?.length ? (
+          <p className="text-[11px] text-zinc-500 py-6 text-center">
+            {notConnected || scopesMissing || needsReauth
+              ? 'Conecte o YouTube para ver comentários.'
+              : commentFilter === 'unanswered'
+                ? 'Nenhum comentário sem resposta no lote carregado.'
+                : appliedKeyword
+                  ? `Nenhum comentário com "${appliedKeyword}".`
+                  : 'Nenhum comentário recente encontrado.'}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {commentsReport.comments.map((comment) => (
+              <div
+                key={comment.threadId}
+                className="p-4 rounded-xl bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800/80 transition"
+              >
+                <div className="flex items-start gap-3">
+                  {comment.authorProfileImageUrl ? (
+                    <img
+                      src={comment.authorProfileImageUrl}
+                      alt=""
+                      className="w-8 h-8 rounded-full border border-zinc-800 object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-bold text-zinc-200">{comment.authorDisplayName}</span>
+                      <span className="text-[9px] text-zinc-600">{formatDateTime(comment.publishedAt)}</span>
+                      {!comment.isAnswered && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          Sem resposta
+                        </span>
+                      )}
+                      {comment.replyCount > 0 && (
+                        <span className="text-[9px] text-zinc-600">
+                          {comment.replyCount} resposta{comment.replyCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-300 leading-relaxed mt-1 whitespace-pre-wrap break-words">
+                      {comment.text}
+                    </p>
+                    {comment.videoTitle && (
+                      <p className="text-[9px] text-zinc-600 mt-1.5 truncate" title={comment.videoTitle}>
+                        em: {comment.videoTitle}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      {comment.studioUrl && (
+                        <a
+                          href={comment.studioUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-300 hover:text-red-200"
+                        >
+                          <MessageSquareReply className="w-3 h-3" />
+                          Responder no Studio
+                        </a>
+                      )}
+                      {comment.watchUrl && (
+                        <a
+                          href={comment.watchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] text-zinc-500 hover:text-gold-400"
+                        >
+                          Ver no YouTube <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {comment.likeCount > 0 && (
+                        <span className="text-[9px] text-zinc-600 inline-flex items-center gap-1">
+                          <ThumbsUp className="w-3 h-3" /> {comment.likeCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

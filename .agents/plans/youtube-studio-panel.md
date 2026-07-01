@@ -3,7 +3,7 @@
 # Painel YouTube Studio no Lumiera
 
 > Branch: `feature/youtube-studio-panel`  
-> Status: Fase 1 em implementação
+> Status: Fase 2 em implementação (Fase 1 concluída)
 
 ## Objetivo
 
@@ -39,11 +39,11 @@ Trazer métricas essenciais do YouTube Studio para dentro do Lumiera — inscrit
 - `App.tsx`: novo `AppTab` `youtube-studio`, botão na sidebar
 - `sectionHelpContent.tsx`: ajuda da aba
 
-### Fase 2 — Comentários recentes
+### Fase 2 — Comentários recentes (esta branch)
 
-- `GET /api/youtube/channel/comments?limit=20` via `commentThreads.list`
-- Painel lateral com respostas rápidas (link para Studio)
-- Filtro: não respondidos / com palavra-chave do nicho
+- `GET /api/youtube/channel/comments?limit=20&filter=all|unanswered&keyword=` via `commentThreads.list`
+- Painel de comentários com link **Responder no Studio**
+- Filtros: todos / sem resposta / palavra-chave (nicho do projeto ativo como sugestão)
 
 ### Fase 3 — Alertas e polling
 
@@ -143,9 +143,38 @@ Revincular: **Configurações → Integrações → Revincular YouTube** (ou Upl
 
 ## Critérios de aceite Fase 1
 
-- [ ] Aba **Canal YouTube** visível na sidebar
-- [ ] Com conta conectada e escopos OK: cards + tabela carregam
-- [ ] Sem conta: empty state com link para integrações
-- [ ] Escopos faltando: mensagem clara + botão revincular
-- [ ] Refresh manual atualiza timestamp
-- [ ] Erros da API retornam `needsReauth` quando aplicável
+- [x] Aba **Canal YouTube** visível na sidebar
+- [x] Com conta conectada e escopos OK: cards + tabela carregam
+- [x] Sem conta: empty state com link para integrações
+- [x] Escopos faltando: mensagem clara + botão revincular
+- [x] Refresh manual atualiza timestamp
+- [x] Erros da API retornam `needsReauth` quando aplicável
+
+### `GET /api/youtube/channel/comments`
+
+```json
+{
+  "channelId": "UC...",
+  "filter": "unanswered",
+  "keyword": "construção",
+  "comments": [
+    {
+      "threadId": "...",
+      "videoId": "abc",
+      "videoTitle": "...",
+      "authorDisplayName": "User",
+      "text": "Que vídeo incrível!",
+      "isAnswered": false,
+      "studioUrl": "https://studio.youtube.com/video/abc/comments",
+      "watchUrl": "https://www.youtube.com/watch?v=abc&lc=..."
+    }
+  ]
+}
+```
+
+## Critérios de aceite Fase 2
+
+- [ ] Lista comentários recentes do canal
+- [ ] Filtro **Sem resposta** oculta threads já respondidas pelo canal
+- [ ] Filtro por palavra-chave (nicho do projeto como default)
+- [ ] Cada item tem link para YouTube Studio e para o vídeo

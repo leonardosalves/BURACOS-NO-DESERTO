@@ -40,6 +40,7 @@ import {
   syncExperimentVideoId,
 } from "./youtubeTitleAnalytics.js";
 import {
+  fetchChannelComments,
   fetchChannelOverview,
   fetchChannelVideosWithAnalytics,
 } from "./youtubeChannelAnalytics.js";
@@ -8058,6 +8059,25 @@ app.get("/api/youtube/channel/videos", async (req, res) => {
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/comments", async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 20, 1), 50);
+  const filter = String(req.query?.filter || "all").toLowerCase();
+  const keyword = String(req.query?.keyword || "").trim();
+  const allowedFilters = new Set(["all", "unanswered"]);
+  const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
+  try {
+    const report = await fetchChannelComments(WORKSPACE_DIR, {
+      limit,
+      filter: resolvedFilter,
+      keyword,
+    });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar comentários do canal");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });

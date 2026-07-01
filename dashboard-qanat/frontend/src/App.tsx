@@ -12181,6 +12181,7 @@ export default function App() {
               <YoutubeStudioPanel
                 toast={toast}
                 onRelinkYoutube={handleRelinkYoutube}
+                nicheKeyword={config?.niche || ''}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
                   setActiveTab('settings');
