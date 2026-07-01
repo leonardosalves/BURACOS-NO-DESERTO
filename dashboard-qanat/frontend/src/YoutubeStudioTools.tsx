@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Download, Lightbulb, MessageSquare, Send, Webhook, BarChart3, Target, Radio,
+  Search, RefreshCw, ExternalLink,
 } from 'lucide-react';
 
 type Props = {
@@ -18,6 +19,13 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
   const [channels, setChannels] = useState<Array<{ id: string; title: string; selected?: boolean }>>([]);
   const [pinVideoId, setPinVideoId] = useState('');
   const [pinText, setPinText] = useState('');
+  const [competitorLoading, setCompetitorLoading] = useState(false);
+  const [competitorResult, setCompetitorResult] = useState<{
+    competitors?: Array<{ title: string; outlierCount: number }>;
+    outliers?: Array<{ title: string; channelTitle: string; outlierRatio: number }>;
+    analysis?: { derivedIdeas?: Array<{ title: string; hookPt?: string }> };
+    memory?: { memoryFile?: string };
+  } | null>(null);
 
   useEffect(() => {
     fetch('/api/youtube/channel/settings').then((r) => r.json()).then((d) => {
@@ -76,6 +84,33 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
     });
     if (res.ok) toast('Comentário fixado no vídeo.');
     else toast('Falha ao fixar comentário.');
+  };
+
+  const runCompetitorResearch = async () => {
+    setCompetitorLoading(true);
+    setCompetitorResult(null);
+    try {
+      const res = await fetch('/api/youtube/channel/competitor-research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          niche: nicheKeyword || undefined,
+          format: 'SHORT',
+          maxCompetitors: 5,
+          useAi: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha na pesquisa');
+      setCompetitorResult(data);
+      const n = (data.outliers || []).length;
+      const ideas = (data.analysis?.derivedIdeas || []).length;
+      toast(`Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias → Obsidian`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro na pesquisa de concorrentes');
+    } finally {
+      setCompetitorLoading(false);
+    }
   };
 
   return (
@@ -147,6 +182,58 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
           {channels.length} canal(is) — troque o ativo na seção Studio Pro acima.
         </p>
       )}
+
+      <div className="border-t border-zinc-900 pt-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[9px] text-zinc-500 flex items-center gap-1">
+            <Search className="w-3 h-3 text-amber-400" />
+            Pesquisa de concorrentes (IA)
+          </p>
+          <button
+            type="button"
+            disabled={competitorLoading}
+            onClick={runCompetitorResearch}
+            className="text-[9px] px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 inline-flex items-center gap-1"
+          >
+            {competitorLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+            {competitorLoading ? 'Pesquisando...' : 'Buscar concorrentes'}
+          </button>
+        </div>
+        <p className="text-[8px] text-zinc-600">
+          A IA descobre canais no nicho{nicheKeyword ? ` (${nicheKeyword})` : ''}, detecta outliers (3.5× média), analisa hook/CTA/mecânica e salva em Obsidian.
+        </p>
+        {competitorResult && (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-2 space-y-1.5">
+            {(competitorResult.analysis?.derivedIdeas || []).slice(0, 3).map((idea, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
+                <span className="truncate">{idea.title}</span>
+                {onApplyIdea && (
+                  <button type="button" onClick={() => onApplyIdea(idea.title)} className="text-gold-400 shrink-0">Creator →</button>
+                )}
+              </div>
+            ))}
+            {(competitorResult.outliers || []).slice(0, 2).map((o, i) => (
+              <p key={`o-${i}`} className="text-[8px] text-zinc-600 truncate">
+                Outlier {o.outlierRatio}× — {o.channelTitle}: {o.title}
+              </p>
+            ))}
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch('/api/studio-agents/obsidian/open', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ relativePath: 'memory/competitor-intelligence.md' }),
+                });
+                toast('Abrindo competitor-intelligence.md no Obsidian');
+              }}
+              className="text-[8px] text-cyan-400 inline-flex items-center gap-1"
+            >
+              <ExternalLink className="w-3 h-3" /> Ver memória Obsidian
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="border-t border-zinc-900 pt-3 space-y-2">
         <p className="text-[9px] text-zinc-500 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Fixar comentário no vídeo</p>
