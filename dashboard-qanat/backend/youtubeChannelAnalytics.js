@@ -50,14 +50,171 @@ function enrichVideosReport(data) {
   };
 }
 
+function lumieraProjectDirExists(projectPath) {
+  if (!projectPath) return false;
+  try {
+    return fs.existsSync(projectPath) && fs.statSync(projectPath).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+export function filterExistingLumieraVideos(items = []) {
+  return (items || []).filter((item) => lumieraProjectDirExists(item?.projectPath));
+}
+
+function sanitizeCachedLumieraPayload(data, cacheKey = "") {
+  if (!data || typeof data !== "object") return { data, changed: false };
+
+  let changed = false;
+  const next = { ...data };
+
+  if (Array.isArray(next.videos)) {
+    const filtered = filterExistingLumieraVideos(next.videos);
+    if (filtered.length !== next.videos.length) {
+      next.videos = filtered;
+      changed = true;
+    }
+  }
+
+  if (Array.isArray(next.lumieraVideos)) {
+    const filtered = filterExistingLumieraVideos(next.lumieraVideos);
+    if (filtered.length !== next.lumieraVideos.length) {
+      next.lumieraVideos = filtered;
+      changed = true;
+    }
+  }
+
+  if (Array.isArray(next.hotVideos)) {
+    const filtered = filterExistingLumieraVideos(next.hotVideos);
+    if (filtered.length !== next.hotVideos.length) {
+      next.hotVideos = filtered;
+      changed = true;
+    }
+  }
+
+  if (Array.isArray(next.deadVideos)) {
+    const filtered = filterExistingLumieraVideos(next.deadVideos);
+    if (filtered.length !== next.deadVideos.length) {
+      next.deadVideos = filtered;
+      changed = true;
+    }
+  }
+
+  if (next.lumieraVideoById && typeof next.lumieraVideoById === "object") {
+    const filteredMap = Object.fromEntries(
+      filterExistingLumieraVideos(Object.values(next.lumieraVideoById)).map((item) => [item.videoId, item]),
+    );
+    if (Object.keys(filteredMap).length !== Object.keys(next.lumieraVideoById).length) {
+      next.lumieraVideoById = filteredMap;
+      changed = true;
+    }
+  }
+
+  if (Array.isArray(next.alerts)) {
+    const alerts = next.alerts.map((alert) => {
+      if (!Array.isArray(alert?.videos)) return alert;
+      const filtered = filterExistingLumieraVideos(alert.videos);
+      if (filtered.length === alert.videos.length) return alert;
+      changed = true;
+      return { ...alert, videos: filtered, count: filtered.length };
+    }).filter((alert) => !Array.isArray(alert?.videos) || alert.videos.length > 0 || alert.type === "views_drop" || alert.type === "unanswered_comments");
+    next.alerts = alerts;
+  }
+
+  if (changed && (cacheKey.startsWith("alerts:") || cacheKey.startsWith("lumiera:"))) {
+    const hot = next.hotVideos?.length ?? 0;
+    const dead = next.deadVideos?.length ?? 0;
+    const unanswered = Number(next.unansweredComments || 0);
+    const viewsDrop = next.alerts?.filter((a) => a.type === "views_drop").length ?? 0;
+    next.badgeCount = unanswered + hot + dead + viewsDrop;
+  }
+
+  return { data: next, changed };
+}
+
+export function purgeYoutubeChannelCacheForProject(workspaceDir, { projectName = "", projectPath = "" } = {}) {
+  const store = readCacheStore(workspaceDir);
+  const name = String(projectName || "").trim();
+  const dir = String(projectPath || "").trim();
+  let touched = false;
+
+  const matches = (item) => {
+    if (!item) return false;
+    if (dir && item.projectPath === dir) return true;
+    if (name && item.projectName === name) return true;
+    return false;
+  };
+
+  for (const [cacheKey, entry] of Object.entries(store)) {
+    if (!entry?.data) continue;
+    const { data, changed } = sanitizeCachedLumieraPayload({
+      ...entry.data,
+      videos: (entry.data.videos || []).filter((item) => !matches(item)),
+      lumieraVideos: (entry.data.lumieraVideos || []).filter((item) => !matches(item)),
+      hotVideos: (entry.data.hotVideos || []).filter((item) => !matches(item)),
+      deadVideos: (entry.data.deadVideos || []).filter((item) => !matches(item)),
+      alerts: Array.isArray(entry.data.alerts)
+        ? entry.data.alerts.map((alert) => {
+            if (!Array.isArray(alert?.videos)) return alert;
+            const filtered = alert.videos.filter((item) => !matches(item));
+            return { ...alert, videos: filtered, count: filtered.length };
+          }).filter((alert) => !Array.isArray(alert?.videos) || alert.videos.length > 0 || alert.type === "views_drop" || alert.type === "unanswered_comments")
+        : entry.data.alerts,
+    }, cacheKey);
+
+    const explicitRemoved = changed
+      || (entry.data.videos || []).length !== (data.videos || []).length
+      || (entry.data.lumieraVideos || []).length !== (data.lumieraVideos || []).length;
+
+    if (explicitRemoved) {
+      store[cacheKey] = { ...entry, data };
+      touched = true;
+    }
+  }
+
+  if (touched) writeCacheStore(workspaceDir, store);
+  return { purged: touched, projectName: name || null };
+}
+
+export function sanitizeYoutubeChannelCacheStore(workspaceDir) {
+  const store = readCacheStore(workspaceDir);
+  let touched = false;
+  for (const [cacheKey, entry] of Object.entries(store)) {
+    if (!entry?.data) continue;
+    if (!cacheKey.startsWith("lumiera:") && !cacheKey.startsWith("alerts:")) continue;
+    const { data, changed } = sanitizeCachedLumieraPayload(entry.data, cacheKey);
+    if (changed) {
+      store[cacheKey] = { ...entry, data };
+      touched = true;
+    }
+  }
+  if (touched) writeCacheStore(workspaceDir, store);
+  return { sanitized: touched };
+}
+
 function getCachedPayload(workspaceDir, cacheKey, ttlMs) {
+  sanitizeYoutubeChannelCacheStore(workspaceDir);
   const entry = readCacheStore(workspaceDir)[cacheKey];
   if (!entry?.fetchedAt || !entry?.data) return null;
   const ageMs = Date.now() - new Date(entry.fetchedAt).getTime();
   if (ageMs > ttlMs) return null;
-  const data = cacheKey.startsWith("videos:")
+  let data = cacheKey.startsWith("videos:")
     ? enrichVideosReport(entry.data)
     : entry.data;
+
+  if (cacheKey.startsWith("lumiera:") || cacheKey.startsWith("alerts:")) {
+    const sanitized = sanitizeCachedLumieraPayload(data, cacheKey);
+    data = sanitized.data;
+    if (sanitized.changed) {
+      const store = readCacheStore(workspaceDir);
+      if (store[cacheKey]) {
+        store[cacheKey] = { ...store[cacheKey], data };
+        writeCacheStore(workspaceDir, store);
+      }
+    }
+  }
+
   return {
     ...data,
     fromCache: true,
@@ -693,7 +850,7 @@ async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { da
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const { startDate, endDate } = periodDates(days);
-  const lumieraVideos = collectLumieraPublishedVideos(projectsRoot);
+  const lumieraVideos = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
   const { getExtendedStudioSettings, loadLumieraExperiments } = await import("./youtubeStudioAdvanced.js");
   const studioSettings = getExtendedStudioSettings(workspaceDir);
 
@@ -796,6 +953,7 @@ export function collectLumieraPublishedVideos(projectsRoot) {
       } catch {
         continue;
       }
+      if (!lumieraProjectDirExists(fullPath)) continue;
 
       const cfg = readJsonSafe(path.join(fullPath, "config_qanat.json"));
       const experiment = readJsonSafe(path.join(fullPath, "youtube_title_experiment.json"));
@@ -879,7 +1037,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
       badgeCount: 0,
       unansweredComments: 0,
       hotVideos: [],
-      lumieraVideos: collectLumieraPublishedVideos(projectsRoot),
+      lumieraVideos: filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot)),
       alerts: [],
       views48hThreshold,
       pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
@@ -903,7 +1061,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
     throw new Error("Nenhum canal encontrado na conta conectada.");
   }
 
-  const lumieraVideos = collectLumieraPublishedVideos(projectsRoot);
+  const lumieraVideos = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
   const lumieraVideoIds = lumieraVideos.map((item) => item.videoId);
 
   const handledIds = getHandledCommentIds(workspaceDir);

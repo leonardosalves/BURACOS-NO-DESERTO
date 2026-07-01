@@ -51,6 +51,7 @@ import {
   fetchChannelSummary,
   fetchLumieraVideosReport,
   fetchVideoStudioDetail,
+  purgeYoutubeChannelCacheForProject,
   replyToChannelComment,
 } from "./youtubeChannelAnalytics.js";
 import {
@@ -863,7 +864,17 @@ app.post("/api/projects/delete", (req, res) => {
 
     }
 
+    const deletedPath = projDir;
     fs.rmSync(projDir, { recursive: true, force: true });
+
+    try {
+      purgeYoutubeChannelCacheForProject(WORKSPACE_DIR, {
+        projectName: safeName,
+        projectPath: deletedPath,
+      });
+    } catch (cacheErr) {
+      console.warn("[projects/delete] Falha ao limpar cache YouTube:", cacheErr.message);
+    }
 
     res.json({ success: true, message: `Projeto ${safeName} excluído com sucesso!` });
 
