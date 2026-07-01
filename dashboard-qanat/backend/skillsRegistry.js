@@ -6,7 +6,11 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { buildLearningsPromptAddendum, loadStudioAgentsConfig } from "./agentMemory.js";
+import {
+  buildLearningsPromptAddendum,
+  loadStudioAgentsConfig,
+  saveStudioAgentsConfig,
+} from "./agentMemory.js";
 
 const SKILLS_ROOT = "skills";
 const BUNDLES_DIR = "skill-bundles";
@@ -428,6 +432,113 @@ function proposalId() {
   return `prop-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
 }
 
+export function buildWorkshopCaptureFingerprint({
+  skill = "",
+  niche = "",
+  format = "SHORT",
+  category = "",
+  projectName = "",
+} = {}) {
+  return [
+    String(skill).trim().toLowerCase(),
+    String(niche).trim().toLowerCase(),
+    String(format).trim().toUpperCase(),
+    String(category).trim().toLowerCase(),
+    String(projectName).trim().toLowerCase(),
+  ].join("|");
+}
+
+function getWorkshopHandledSets(workspaceDir) {
+  const config = loadStudioAgentsConfig(workspaceDir);
+  const raw = config.workshopHandled || {};
+  return {
+    applied: new Set(Array.isArray(raw.applied) ? raw.applied : []),
+    rejected: new Set(Array.isArray(raw.rejected) ? raw.rejected : []),
+  };
+}
+
+export function rememberWorkshopHandled(workspaceDir, fingerprint, outcome = "applied") {
+  const fp = String(fingerprint || "").trim();
+  if (!fp) return;
+  const config = loadStudioAgentsConfig(workspaceDir);
+  const raw = config.workshopHandled || { applied: [], rejected: [] };
+  const applied = Array.isArray(raw.applied) ? [...raw.applied] : [];
+  const rejected = Array.isArray(raw.rejected) ? [...raw.rejected] : [];
+
+  if (outcome === "rejected") {
+    if (!rejected.includes(fp)) rejected.unshift(fp);
+    const idx = applied.indexOf(fp);
+    if (idx >= 0) applied.splice(idx, 1);
+  } else {
+    if (!applied.includes(fp)) applied.unshift(fp);
+    const idx = rejected.indexOf(fp);
+    if (idx >= 0) rejected.splice(idx, 1);
+  }
+
+  saveStudioAgentsConfig(workspaceDir, {
+    workshopHandled: {
+      applied: applied.slice(0, 150),
+      rejected: rejected.slice(0, 150),
+    },
+  });
+}
+
+export function isWorkshopCaptureHandled(workspaceDir, fingerprint) {
+  const fp = String(fingerprint || "").trim();
+  if (!fp) return false;
+  const { applied, rejected } = getWorkshopHandledSets(workspaceDir);
+  return applied.has(fp) || rejected.has(fp);
+}
+
+export function fingerprintFromProposal(proposal = {}) {
+  if (proposal.fingerprint) return proposal.fingerprint;
+  if (proposal.captureLine) {
+    const line = String(proposal.captureLine);
+    const nicheMatch = line.match(/\*\*([^*]+)\*\*/);
+    const projectMatch = line.match(/\/\s*score\s*\d+\s*\/\s*([^\n]+)/i);
+    const categoryMatch = String(proposal.summary || "").match(/·\s*([^·]+)\s*·\s*score/i);
+    return buildWorkshopCaptureFingerprint({
+      skill: proposal.skill,
+      niche: nicheMatch?.[1] || "",
+      format: line.includes("/ LONG") ? "LONG" : "SHORT",
+      category: categoryMatch?.[1]?.trim() || "",
+      projectName: projectMatch?.[1]?.trim() || "",
+    });
+  }
+  return `legacy::${proposal.id || proposal.summary || "unknown"}`;
+}
+
+export function shouldSkipWorkshopStage(workspaceDir, {
+  skill,
+  niche,
+  format,
+  category,
+  projectName,
+  captureLine,
+  fingerprint,
+  pending = [],
+} = {}) {
+  const fp = fingerprint || buildWorkshopCaptureFingerprint({
+    skill, niche, format, category, projectName,
+  });
+  if (isWorkshopCaptureHandled(workspaceDir, fp)) return { skip: true, reason: "handled", fingerprint: fp };
+
+  const skillPath = path.join(getSkillsRoot(workspaceDir), skill, "SKILL.md");
+  if (captureLine && fs.existsSync(skillPath)) {
+    const content = fs.readFileSync(skillPath, "utf8");
+    if (content.includes(captureLine)) {
+      rememberWorkshopHandled(workspaceDir, fp, "applied");
+      return { skip: true, reason: "already_in_skill", fingerprint: fp };
+    }
+  }
+
+  if (pending.some((p) => p.fingerprint === fp)) {
+    return { skip: true, reason: "pending", fingerprint: fp };
+  }
+
+  return { skip: false, fingerprint: fp };
+}
+
 export function listSkillWorkshopProposals(workspaceDir) {
   const dir = getPendingDir(workspaceDir);
   if (!fs.existsSync(dir)) return [];
@@ -463,6 +574,8 @@ export function stageSkillProposal(workspaceDir, proposal = {}) {
     new_string: proposal.new_string || "",
     content: proposal.content || "",
     source: proposal.source || "studio-agents",
+    fingerprint: proposal.fingerprint || "",
+    captureLine: proposal.captureLine || "",
     createdAt: new Date().toISOString(),
   };
   fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(record, null, 2), "utf8");
@@ -477,6 +590,10 @@ export function applySkillProposal(workspaceDir, proposal) {
 
   let content = fs.readFileSync(skillPath, "utf8");
   const action = proposal.action || "patch";
+
+  if (proposal.captureLine && content.includes(proposal.captureLine)) {
+    return { applied: true, skill: slug, action, skipped: true, reason: "already_in_skill" };
+  }
 
   if (action === "patch" && proposal.old_string && proposal.new_string) {
     if (!content.includes(proposal.old_string)) {
@@ -499,6 +616,7 @@ export function applyWorkshopProposalById(workspaceDir, id) {
   if (!fs.existsSync(filePath)) throw new Error("Proposta não encontrada.");
   const proposal = JSON.parse(fs.readFileSync(filePath, "utf8"));
   const result = applySkillProposal(workspaceDir, proposal);
+  rememberWorkshopHandled(workspaceDir, fingerprintFromProposal(proposal), "applied");
   fs.unlinkSync(filePath);
   return result;
 }
@@ -506,8 +624,14 @@ export function applyWorkshopProposalById(workspaceDir, id) {
 export function rejectWorkshopProposal(workspaceDir, id) {
   const filePath = path.join(getPendingDir(workspaceDir), `${id}.json`);
   if (!fs.existsSync(filePath)) throw new Error("Proposta não encontrada.");
+  let fingerprint = id;
+  try {
+    const proposal = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    fingerprint = fingerprintFromProposal(proposal);
+  } catch { /* ignore */ }
   fs.unlinkSync(filePath);
-  return { rejected: true, id };
+  rememberWorkshopHandled(workspaceDir, fingerprint, "rejected");
+  return { rejected: true, id, fingerprint };
 }
 
 export function ensureDefaultSkillBundles(workspaceDir) {

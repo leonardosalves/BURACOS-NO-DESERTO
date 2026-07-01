@@ -20,6 +20,7 @@ import {
 } from "./agentMemory.js";
 import {
   listSkillWorkshopProposals,
+  shouldSkipWorkshopStage,
   stageSkillProposal,
 } from "./skillsRegistry.js";
 
@@ -66,16 +67,25 @@ export function maybeStageWorkshopFromCapture(workspaceDir, {
   if (autoPending.length >= 5) return null;
 
   const primary = patterns[0];
-  const dedupeKey = `${niche}::${primary.category}::${Math.round(score)}`;
-  if (autoPending.some((p) => String(p.summary || "").includes(dedupeKey.split("::")[1]) && String(p.summary || "").includes(niche))) {
-    return null;
-  }
   const skill = resolveSkillSlugForPattern(primary.category);
+  const captureLine = `**${niche}** / ${format} / score ${score}${projectName ? ` / ${projectName}` : ""}`;
+
+  const skip = shouldSkipWorkshopStage(workspaceDir, {
+    skill,
+    niche,
+    format,
+    category: primary.category,
+    projectName,
+    captureLine,
+    pending: autoPending,
+  });
+  if (skip.skip) return null;
+
   const marker = "## Ver também";
   const bulletLines = patterns.slice(0, 4).map((p) => `- \`${p.category}\` ${p.description}`).join("\n");
   const stamp = new Date().toISOString().slice(0, 10);
   const header = `## Aprendizados capturados (workshop — ${stamp})`;
-  const block = `${header}\n\n**${niche}** / ${format} / score ${score}${projectName ? ` / ${projectName}` : ""}\n${bulletLines}\n`;
+  const block = `${header}\n\n${captureLine}\n${bulletLines}\n`;
 
   return stageSkillProposal(workspaceDir, {
     skill,
@@ -84,6 +94,8 @@ export function maybeStageWorkshopFromCapture(workspaceDir, {
     old_string: marker,
     new_string: `${block}\n${marker}`,
     source: "auto-capture",
+    fingerprint: skip.fingerprint,
+    captureLine,
   });
 }
 

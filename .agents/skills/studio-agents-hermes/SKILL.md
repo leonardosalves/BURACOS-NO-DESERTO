@@ -113,6 +113,14 @@ Depois: seção Lumiera, stub Obsidian, atualizar bundle se necessário.
 - `SHORT/overlay_timing` Overlay "lt-methane-gas" @ 14.0s: desvio 12.8s da palavra-chave (1.2s)
 - `SHORT/overlay_timing` Overlay "info-ignition" @ 28.0s: desvio 26.8s da palavra-chave (1.2s)
 
+## Aprendizados capturados (workshop — 2026-07-01)
+
+**Engenharia antiga** / SHORT / score 84 / Automato_Heron_Primeiro
+- `SHORT/lt_repeat` Alternar tipos entre overlays — evitar dois lower-thirds seguidos
+- `SHORT/overlay_timing` Overlay "lt-heron-alexandria" @ 7.5s: desvio 7.5s da palavra-chave (0.0s)
+- `SHORT/overlay_timing` Overlay "info-automatos-heron" @ 20.0s: desvio 20.0s da palavra-chave (0.0s)
+- `SHORT/overlay_timing` Overlay "lt-motor-vapor" @ 35.0s: desvio 35.0s da palavra-chave (0.0s)
+
 ## Ver também
 
 - `../skills-registry-external/SKILL.md` — catálogo upstream

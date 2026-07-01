@@ -474,7 +474,13 @@ export function StudioAgents({
       const res = await fetch(`/api/studio-agents/skill-workshop/${id}/${action}`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.details || 'Falha no workshop');
-      toast.success(action === 'apply' ? 'Skill atualizada' : 'Proposta descartada');
+      toast.success(
+        action === 'apply'
+          ? data.skipped
+            ? 'Aprendizado já estava na skill — proposta arquivada'
+            : 'Skill atualizada — não vai reaparecer para este projeto'
+          : 'Proposta descartada — não vai reaparecer',
+      );
       await fetchStatus();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro no workshop');
