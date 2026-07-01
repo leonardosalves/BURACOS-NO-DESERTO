@@ -61,7 +61,7 @@ export function TimelineOpenCutBar({
       <div className="flex items-center gap-1.5">
         <span className="text-[9px] text-zinc-600 uppercase tracking-wide">Zoom</span>
         <SettingHelpTip title="Zoom do preview" align="start">
-          Aumenta ou reduz a miniatura dos assets na grade (50–150%). Só afeta a visualização no dashboard — não altera o vídeo final.
+          Aumenta ou reduz a miniatura dos assets na grade (50–150%) em tempo real. Só afeta a visualização no dashboard — não altera o vídeo final.
         </SettingHelpTip>
         <ZoomOut className="w-3 h-3 text-zinc-600" />
         <input
@@ -80,7 +80,7 @@ export function TimelineOpenCutBar({
       <div className="flex items-center gap-1.5">
         <span className="text-[9px] text-zinc-600 uppercase tracking-wide">Fundo</span>
         <SettingHelpTip title="Fundo do canvas" align="start">
-          Cor de fundo nas áreas vazias do vídeo renderizado (letterbox, logo, gaps). Salva em config como canvas_background e vai para o Remotion.
+          Cor de fundo nas áreas vazias do vídeo renderizado (letterbox, logo, gaps). Atualiza o fundo dos previews dos cards em tempo real. Salva em config como canvas_background e vai para o Remotion.
         </SettingHelpTip>
         <Palette className="w-3 h-3 text-zinc-600 shrink-0" />
         <select
