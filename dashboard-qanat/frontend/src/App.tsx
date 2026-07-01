@@ -125,6 +125,7 @@ import {
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
+import { YoutubeStudioHomeCard } from './YoutubeStudioHomeCard';
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
 import { PostPublishChecklist } from './PostPublishChecklist';
 import {
@@ -8447,6 +8448,11 @@ export default function App() {
           {activeTab === 'status' && (
 
             <div className="lumiera-panel-stack animate-fade-in">
+
+              <YoutubeStudioHomeCard
+                viewsThreshold={getYoutubeViewsThreshold()}
+                onOpenPanel={() => setActiveTab('youtube-studio')}
+              />
 
               {videoQuality && (
                 <div className="glass-panel p-5 rounded-2xl font-sans">

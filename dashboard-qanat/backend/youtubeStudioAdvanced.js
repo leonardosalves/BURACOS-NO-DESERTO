@@ -73,6 +73,14 @@ export function getExtendedStudioSettings(workspaceDir) {
     selectedChannelId: String(stored.selectedChannelId || "").trim(),
     dailyReportEmail: String(stored.dailyReportEmail || stored.weeklyReportEmail || "").trim(),
     lastDailyReportAt: stored.lastDailyReportAt || null,
+    slaHours: Number(stored.slaHours) || 24,
+    approvalQueue: Array.isArray(stored.approvalQueue) ? stored.approvalQueue : [],
+    replyHistory: Array.isArray(stored.replyHistory) ? stored.replyHistory : [],
+    channelNotes: Array.isArray(stored.channelNotes) ? stored.channelNotes : [],
+    preUploadChecklist: stored.preUploadChecklist && typeof stored.preUploadChecklist === "object"
+      ? stored.preUploadChecklist
+      : {},
+    autoQueueEnabled: stored.autoQueueEnabled !== false,
   };
 }
 

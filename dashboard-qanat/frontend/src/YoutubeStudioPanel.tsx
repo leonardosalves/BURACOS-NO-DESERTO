@@ -14,6 +14,7 @@ import {
   setYoutubeViewsThreshold,
 } from './youtubeStudioPrefs';
 import { YoutubeStudioTools } from './YoutubeStudioTools';
+import { YoutubeStudioPro } from './YoutubeStudioPro';
 
 type ChannelOverview = {
   connected: boolean;
@@ -427,7 +428,8 @@ export function YoutubeStudioPanel({
     }
   }, [periodDays, toast]);
 
-  const submitCommentReply = useCallback(async (commentId: string) => {
+  const submitCommentReply = useCallback(async (comment: CommentRow) => {
+    const commentId = comment.commentId;
     const text = replyDrafts[commentId]?.trim();
     if (!text) {
       toast('Digite uma resposta antes de enviar.');
@@ -438,7 +440,14 @@ export function YoutubeStudioPanel({
       const res = await fetch('/api/youtube/channel/comments/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parentId: commentId, text }),
+        body: JSON.stringify({
+          parentId: commentId,
+          threadId: comment.threadId,
+          videoId: comment.videoId,
+          videoTitle: comment.videoTitle,
+          text,
+          source: 'manual',
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1454,7 +1463,7 @@ export function YoutubeStudioPanel({
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
-                                submitCommentReply(comment.commentId);
+                                submitCommentReply(comment);
                               }
                             }}
                             placeholder="Responder pelo Lumiera..."
@@ -1475,7 +1484,7 @@ export function YoutubeStudioPanel({
                           </button>
                           <button
                             type="button"
-                            onClick={() => submitCommentReply(comment.commentId)}
+                            onClick={() => submitCommentReply(comment)}
                             disabled={replyingId === comment.commentId}
                             className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gold-500 text-zinc-950 text-[10px] font-bold disabled:opacity-50"
                           >
@@ -1509,6 +1518,15 @@ export function YoutubeStudioPanel({
           </div>
         )}
       </div>
+
+      <YoutubeStudioPro
+        viewsThreshold={viewsThreshold}
+        selectedVideoId={selectedVideoId}
+        periodDays={periodDays}
+        toast={toast}
+        onApplyIdea={onApplyCreatorIdea}
+        onRefreshComments={() => loadComments(commentFilter, appliedKeyword)}
+      />
 
       <YoutubeStudioTools
         viewsThreshold={viewsThreshold}
