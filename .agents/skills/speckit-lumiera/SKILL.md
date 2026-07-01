@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/speckit-lumiera|speckit lumiera]] · [[SKILLS]]
+
 ---
 name: speckit-lumiera
 description: |

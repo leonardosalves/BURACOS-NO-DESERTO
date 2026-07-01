@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/loop-me|loop me]] · [[SKILLS]]
+
 ---
 name: loop-me
 description: Grill me about specs for the workflows I want to build, within this workspace.

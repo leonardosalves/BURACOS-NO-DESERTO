@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/openmontage-reference-video|openmontage reference video]] · [[SKILLS]]
+
 ---
 name: openmontage-reference-video
 description: |

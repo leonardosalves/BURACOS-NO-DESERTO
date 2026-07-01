@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/openmontage-reviewer|openmontage reviewer]] · [[SKILLS]]
+
 ---
 name: openmontage-reviewer
 description: |

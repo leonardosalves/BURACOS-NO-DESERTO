@@ -121,6 +121,38 @@ Depois: seção Lumiera, stub Obsidian, atualizar bundle se necessário.
 - `SHORT/overlay_timing` Overlay "info-automatos-heron" @ 20.0s: desvio 20.0s da palavra-chave (0.0s)
 - `SHORT/overlay_timing` Overlay "lt-motor-vapor" @ 35.0s: desvio 35.0s da palavra-chave (0.0s)
 
+## Aprendizados capturados (workshop — 2026-07-01)
+
+**Customized** / LONG / score 0 / From_Mud_to_Mansion
+- `LONG/lt_repeat` Alternar tipos entre overlays — evitar dois lower-thirds seguidos
+- `LONG/overlay_budget` Respeitar orçamento máximo de overlays do formato
+- `LONG/overlay_timing` Overlay "info-card-1" @ 18.0s: desvio 13.7s da palavra-chave (4.3s)
+- `LONG/overlay_timing` Overlay "lower-third-1" @ 55.0s: desvio 50.7s da palavra-chave (4.3s)
+
+## Aprendizados capturados (workshop — 2026-07-01)
+
+**Customized** / SHORT / score 59 / Portcullis_Mechanics
+- `SHORT/text_too_long` Overlay "info-engineering-mechanisms": 35 palavras (máx. 12) — "• <span style="color:#00FF87; font-weigh..."
+- `SHORT/text_too_long` Overlay "info-death-bottle": 23 palavras (máx. 12) — "Invasores encurralados entre <span style..."
+- `SHORT/overlay_budget` Respeitar orçamento máximo de overlays do formato
+- `SHORT/overlay_timing` Overlay "counter-portcullis-weight" @ 27.0s: desvio 26.6s da palavra-chave (0.4s)
+
+## Aprendizados capturados (workshop — 2026-07-01)
+
+**Customized** / SHORT / score 72 / Trincheiras_e_matac_es__a_brutal_defesa_vertical_de_port_es_antigos
+- `SHORT/hook_polluted` Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo
+- `SHORT/overlay_timing` Overlay "lt-intro-medieval" @ 0.5s: no gancho (0.5s < 1.5s)
+- `SHORT/overlay_timing` Overlay "info-cal-virgem" @ 19.0s: desvio 14.9s da palavra-chave (4.1s)
+- `SHORT/overlay_timing` Overlay "info-castelo-impenetrable" @ 39.5s: desvio 38.4s da palavra-chave (1.1s)
+
+## Aprendizados capturados (workshop — 2026-07-01)
+
+**Customized** / SHORT / score 72 / atiradores_de_elite
+- `SHORT/hook_polluted` Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo
+- `SHORT/overlay_timing` Overlay "lt-intro" @ 0.5s: no gancho (0.5s < 1.5s)
+- `SHORT/overlay_timing` Overlay "info-field-of-fire" @ 25.0s: desvio 18.3s da palavra-chave (6.7s)
+- `SHORT/overlay_timing` Overlay "info-modern-legacy" @ 56.0s: desvio 55.1s da palavra-chave (0.9s)
+
 ## Ver também
 
 - `../skills-registry-external/SKILL.md` — catálogo upstream

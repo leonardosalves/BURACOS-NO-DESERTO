@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/diagnosing-bugs|diagnosing bugs]] · [[SKILLS]]
+
 ---
 name: diagnosing-bugs
 description: |

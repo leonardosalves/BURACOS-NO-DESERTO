@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/teach|teach]] · [[SKILLS]]
+
 ---
 name: teach
 description: Teach the user a new skill or concept, within this workspace.

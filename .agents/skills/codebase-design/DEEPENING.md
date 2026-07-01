@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[SKILLS]]
+
 # Deepening
 
 How to deepen a cluster of shallow modules safely, given its dependencies. Assumes the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **seam**, **adapter**.

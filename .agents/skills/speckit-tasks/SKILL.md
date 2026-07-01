@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/speckit-tasks|speckit tasks]] · [[SKILLS]]
+
 ---
 name: speckit-tasks
 description: |
