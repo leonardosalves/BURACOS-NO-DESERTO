@@ -210,7 +210,7 @@ type Props = {
   selectedVideoId?: string | null;
   periodDays?: number;
   toast: (msg: string) => void;
-  onApplyIdea?: (title: string) => void;
+  onApplyIdea?: (title: string, hookPt?: string) => void;
   onRefreshComments?: () => void;
 };
 

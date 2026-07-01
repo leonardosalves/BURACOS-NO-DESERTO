@@ -205,7 +205,7 @@ type Props = {
   alerts?: YoutubeChannelAlerts | null;
   onSelectProject?: (projectName: string) => void;
   onAlertsSync?: (alerts: YoutubeChannelAlerts) => void;
-  onApplyCreatorIdea?: (title: string) => void;
+  onApplyCreatorIdea?: (title: string, hookPt?: string) => void;
   geminiBrowserMode?: boolean;
   aiProvider?: string;
   resolveBrowserResponse?: GeminiBrowserResolver;
