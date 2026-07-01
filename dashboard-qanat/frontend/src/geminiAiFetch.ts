@@ -39,6 +39,29 @@ function jsonRequestHeaders(init: RequestInit): HeadersInit {
   return headers;
 }
 
+const DEFAULT_AI_FETCH_TIMEOUT_MS = 360_000;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = DEFAULT_AI_FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(
+        'A geração demorou demais (timeout). Tente de novo — se usar Gemini no Chrome, mantenha gemini.google.com aberto.',
+      );
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 /**
  * Chama um endpoint de IA. Se o backend pedir modo navegador (needs_browser),
  * a extensão Lumiera consulta gemini.google.com automaticamente e reenvia com browser_response.
@@ -50,9 +73,11 @@ export async function fetchGeminiAi(
     geminiBrowserMode: boolean;
     aiProvider: string;
     resolveBrowserResponse: GeminiBrowserResolver;
+    timeoutMs?: number;
   },
 ): Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest }> {
-  const firstRes = await fetch(url, init);
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_AI_FETCH_TIMEOUT_MS;
+  const firstRes = await fetchWithTimeout(url, init, timeoutMs);
   let data: GeminiBrowserRequest = {};
   try {
     data = await firstRes.json();
@@ -89,12 +114,12 @@ export async function fetchGeminiAi(
       ...(data.metadata_session_id ? { metadata_session_id: data.metadata_session_id } : {}),
     };
 
-    const secondRes = await fetch(url, {
+    const secondRes = await fetchWithTimeout(url, {
       ...init,
       method: init.method || 'POST',
       headers: jsonRequestHeaders(init),
       body: JSON.stringify(body),
-    });
+    }, timeoutMs);
     const secondData: GeminiBrowserRequest = await secondRes.json().catch(() => ({}));
     if (secondRes.ok && secondData.needs_browser) {
       return {

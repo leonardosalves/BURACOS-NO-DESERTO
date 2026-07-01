@@ -12200,7 +12200,12 @@ REGRAS FINAIS:
     }
 
     if (scriptPhase === "narration") {
+      const skipPostProcess = isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
+      if (skipPostProcess) {
+        console.log("[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração.");
+      }
       try {
+        if (skipPostProcess) throw new Error("skip_humanize");
         const repairPrompt = buildNarrationHumanizeRepairPrompt({
           format,
           ideaTitle: idea.title,
@@ -12220,7 +12225,9 @@ REGRAS FINAIS:
         parsedData = mergeHumanizedNarration(parsedData, repaired, format);
         console.log("[Creator Script] Humanização da narração (fase 1) aplicada.");
       } catch (repairErr) {
-        console.warn("[Creator Script] Humanização da narração falhou, usando rascunho:", repairErr.message);
+        if (repairErr.message !== "skip_humanize") {
+          console.warn("[Creator Script] Humanização da narração falhou, usando rascunho:", repairErr.message);
+        }
       }
 
       parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
@@ -12228,7 +12235,8 @@ REGRAS FINAIS:
       let notebooklmEnriched = false;
       let notebooklmEnrichSummary = "";
       if (
-        useNotebooklm !== false
+        !skipPostProcess
+        && useNotebooklm !== false
         && notebooklmResearch?.available
         && String(parsedData.narrative_script || "").trim().length >= 40
       ) {

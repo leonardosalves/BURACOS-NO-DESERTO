@@ -6583,8 +6583,15 @@ export default function App() {
     return creatorGenTokenRef.current;
   };
 
-  const resetCreatorWizard = useCallback((opts?: { deleteServerSessionFor?: string }) => {
+  /** Cancela geração em voo e evita botão preso em "Gerando narração…". */
+  const cancelCreatorGeneration = () => {
     bumpCreatorGenToken();
+    setCreatorLoading(false);
+    setCreatorLoadingMode('idle');
+  };
+
+  const resetCreatorWizard = useCallback((opts?: { deleteServerSessionFor?: string }) => {
+    cancelCreatorGeneration();
     setAutomation({ active: false });
     clearWizardSession();
 
@@ -6699,6 +6706,8 @@ export default function App() {
             : 'Narração gerada — revise antes do roteiro.',
           toastId,
         );
+        await fetchProjects();
+        setActiveProject(projectName);
       } else if (token === creatorGenTokenRef.current) {
         toast.error(String(data.error || data.details || 'Erro ao gerar narração.'), { id: toastId });
       }
@@ -6747,7 +6756,7 @@ export default function App() {
       pioneerMeta: options?.pioneerMeta,
     };
 
-    bumpCreatorGenToken();
+    cancelCreatorGeneration();
     setAutomation({ active: false });
     setShowNarrationReview(false);
     setNarrationDraft('');
@@ -6826,43 +6835,18 @@ export default function App() {
     if (!validateCreatorScriptInputs()) return;
 
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-    const token = bumpCreatorGenToken();
-    setCreatorLoading(true);
-    setCreatorLoadingMode('narration');
-    setGeneratedScriptData(null);
-    setShowNarrationReview(false);
+    const niche = ideationTab === 'listicle'
+      ? (listNiche.trim() || listTopic.trim())
+      : ideationTab === 'custom'
+        ? (nicheInput.trim() || config?.niche || 'Geral')
+        : nicheInput.trim() || config?.niche || 'Geral';
 
-    try {
-      const { ok, data } = await postAi('/api/ai/creator/script', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildCreatorScriptPayload('narration')),
-      });
-      if (token !== creatorGenTokenRef.current) return;
-      if (ok && !data.needs_browser) {
-        applyNarrationGenerationResult(
-          data,
-          safeProjectName,
-          token,
-          data.notebooklm_enriched
-            ? 'Narração gerada e enriquecida com NotebookLM — revise antes de montar o roteiro.'
-            : 'Narração gerada — revise e edite antes de montar o roteiro.',
-        );
-        await fetchProjects();
-        setActiveProject(safeProjectName);
-      } else if (token === creatorGenTokenRef.current) {
-        toast.error(String(data.error || data.details || 'Erro ao gerar narração.'));
-      }
-    } catch (err: unknown) {
-      if (token === creatorGenTokenRef.current) {
-        toast.error(err instanceof Error ? err.message : 'Falha na geração da narração.');
-      }
-    } finally {
-      if (token === creatorGenTokenRef.current) {
-        setCreatorLoading(false);
-        setCreatorLoadingMode('idle');
-      }
-    }
+    await runCreatorNarrationGeneration(safeProjectName, buildCreatorScriptPayload('narration'), {
+      baseTitle: customTitle.trim() || safeProjectName,
+      format: formatSelector,
+      niche,
+      toastId: 'creator-narration-direct',
+    });
   };
 
   const handleApproveNarrationAndGenerateScript = async () => {
