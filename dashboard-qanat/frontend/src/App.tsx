@@ -136,6 +136,8 @@ import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
 import { AppShell } from './AppShell';
 import { DashminStats } from './DashminStats';
+import { DashminDashboard } from './DashminDashboard';
+import { DashminPageLayout } from './DashminPageLayout';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -8472,6 +8474,17 @@ export default function App() {
                 activeProject={activeProject}
               />
 
+              <DashminDashboard
+                projects={projects}
+                activeProject={activeProject}
+                status={status}
+                videoQualityScore={videoQuality?.score}
+                outputCount={outputs.length}
+                onOpenWorkflow={() => setActiveTab('workflow')}
+                onOpenCreator={openCreatorTab}
+                onOpenProjects={() => setActiveTab('projects')}
+              />
+
               <YoutubeStudioHomeCard
                 viewsThreshold={getYoutubeViewsThreshold()}
                 onOpenPanel={() => setActiveTab('youtube-studio')}
@@ -12243,6 +12256,12 @@ export default function App() {
 
           {activeTab === 'projects' && (
             <TabErrorBoundary tabName="Projetos">
+              <DashminPageLayout
+                title="Biblioteca de Projetos"
+                subtitle="Filtre por formato, nicho e abra o workspace de cada vídeo."
+                breadcrumb={['Dashboard', 'Projetos']}
+                icon={<Tv className="w-5 h-5" />}
+              >
               <ProjectsLibraryPanel
                 projects={projects}
                 activeProject={activeProject}
@@ -12255,6 +12274,7 @@ export default function App() {
                 }}
                 onDeleteProject={(name) => void handleDeleteProject(name)}
               />
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 
@@ -12310,8 +12330,14 @@ export default function App() {
 
           {activeTab === 'settings' && (
 
-            <div className="lumiera-panel-stack animate-fade-in font-sans min-w-0">
+            <DashminPageLayout
+              title="Configurações"
+              subtitle="IA, APIs, render, visual, produção, marca e integrações do estúdio."
+              breadcrumb={['Dashboard', 'Configurações']}
+              icon={<Settings className="w-5 h-5" />}
+            >
               <SettingsSectionNav active={settingsSection} onChange={setSettingsSection} />
+              <div className="lumiera-panel-stack font-sans min-w-0">
 
               {settingsSection === 'ia' && (
               <div className="glass-panel p-6 rounded-3xl space-y-5">
@@ -13097,6 +13123,7 @@ export default function App() {
               )}
 
             </div>
+            </DashminPageLayout>
 
           )}
 
@@ -13104,18 +13131,15 @@ export default function App() {
 
           {activeTab === 'creator' && (
 
-            <div className="lumiera-fill-view space-y-6 animate-fade-in overflow-hidden">
+            <DashminPageLayout
+              className="lumiera-fill-view overflow-hidden"
+              title="Criador de Vídeos com IA"
+              subtitle={`Wizard em 7 passos · passo ${creatorStep} de 7`}
+              breadcrumb={['Dashboard', 'Produção', 'Creator IA']}
+              icon={<Sparkles className="w-5 h-5 animate-pulse" />}
+            >
 
-              {/* Steps Progress Header */}
-
-              <div className="glass-panel p-5 rounded-2xl shrink-0">
-
-                <SectionHeader
-                  title="CRIADOR DE VÍDEOS AUTOMATIZADO COM IA"
-                  helpId="creator-wizard"
-                  icon={<Sparkles className="w-5 h-5 text-gold-500 animate-pulse" />}
-                  className="mb-4"
-                />
+              <div className="glass-panel p-5 rounded-lg shrink-0 space-y-4">
 
                 <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px]">
                   {wizardSavedAtLabel ? (
@@ -13191,7 +13215,7 @@ export default function App() {
 
                         creatorStep === step 
 
-                          ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/25 scale-110' 
+                          ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/25 scale-110' 
 
                           : creatorStep > step 
 
@@ -13231,7 +13255,7 @@ export default function App() {
 
               {/* Steps Content Area */}
 
-              <div className="flex-1 bg-[#09090b] border border-zinc-900 rounded-3xl p-6 min-h-0 overflow-y-auto">
+              <div className="flex-1 glass-panel border border-dash-border rounded-lg p-6 min-h-0 overflow-y-auto">
 
                 {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
@@ -15227,7 +15251,7 @@ export default function App() {
 
               </div>
 
-            </div>
+            </DashminPageLayout>
 
           )}
 

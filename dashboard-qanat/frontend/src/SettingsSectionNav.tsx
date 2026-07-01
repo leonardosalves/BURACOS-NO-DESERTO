@@ -37,10 +37,10 @@ export function SettingsSectionNav({ active, onChange }: Props) {
               key={s.id}
               type="button"
               onClick={() => onChange(s.id)}
-              className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-3 py-2 rounded-xl border transition min-w-0 max-w-full text-center leading-snug ${
+              className={`flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[10px] font-bold px-3 py-2 rounded-full border transition min-w-0 max-w-full text-center leading-snug ${
                 active === s.id
-                  ? 'border-gold-500/50 bg-gold-500/10 text-gold-400'
-                  : 'border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                  ? 'dash-nav-pill-active'
+                  : 'border-dash-border bg-dash-card-hover text-zinc-400 hover:border-dash-primary/40 hover:text-white'
               }`}
             >
               {s.icon}

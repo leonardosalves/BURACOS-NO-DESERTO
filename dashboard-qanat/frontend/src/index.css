@@ -418,6 +418,241 @@
     color: var(--dash-primary);
   }
 
+  /* ── Dashboard widgets (fase 2) ── */
+  .dash-dashboard-grid {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 min-w-0;
+  }
+
+  .dash-span-2-lg {
+    @apply lg:col-span-2;
+  }
+
+  .dash-card {
+    @apply p-5 rounded-lg min-w-0;
+    background: var(--dash-card);
+    box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+  }
+
+  .dash-card-highlight {
+    background: linear-gradient(135deg, #182335 0%, #1f2d4a 55%, #1b2540 100%);
+    border-color: rgba(130, 128, 253, 0.2);
+  }
+
+  .dash-card-header {
+    @apply flex items-start justify-between gap-3;
+  }
+
+  .dash-card-eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-wider mb-1;
+    color: var(--dash-muted);
+  }
+
+  .dash-card-title {
+    @apply text-lg font-bold text-white leading-tight;
+  }
+
+  .dash-card-desc {
+    @apply text-sm mt-2 leading-relaxed;
+    color: var(--dash-muted);
+  }
+
+  .dash-congrats-ring {
+    @apply flex flex-col items-center justify-center gap-1 shrink-0 w-24 h-24 rounded-full;
+    background: rgba(130, 128, 253, 0.12);
+    border: 1px solid rgba(130, 128, 253, 0.25);
+  }
+
+  .dash-congrats-pct {
+    @apply text-2xl font-bold text-dash-primary leading-none;
+  }
+
+  .dash-progress-track {
+    @apply w-full h-2 rounded-full overflow-hidden mt-4;
+    background: var(--dash-border);
+  }
+
+  .dash-progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+    background: linear-gradient(90deg, var(--dash-primary-dark), var(--dash-primary));
+  }
+
+  .dash-bar-chart {
+    @apply flex items-end justify-center gap-8 h-36 pt-2;
+  }
+
+  .dash-bar-col {
+    @apply flex flex-col items-center gap-2 h-full justify-end min-w-[48px];
+  }
+
+  .dash-bar {
+    @apply w-10 rounded-t-md min-h-[8px] transition-all duration-500;
+  }
+
+  .dash-bar-long {
+    background: linear-gradient(180deg, var(--dash-primary), var(--dash-primary-dark));
+  }
+
+  .dash-bar-short {
+    background: linear-gradient(180deg, var(--dash-info), #067a84);
+  }
+
+  .dash-bar-label {
+    @apply text-[10px] font-bold uppercase tracking-wide;
+    color: var(--dash-muted);
+  }
+
+  .dash-bar-value {
+    @apply text-sm font-bold text-white;
+  }
+
+  .dash-todo-list {
+    @apply list-none m-0 p-0 space-y-2;
+  }
+
+  .dash-todo-item {
+    @apply flex items-start gap-3 p-3 rounded-lg transition;
+    background: var(--dash-card-hover);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-todo-item.done {
+    opacity: 0.72;
+  }
+
+  .dash-todo-check {
+    @apply shrink-0 mt-0.5;
+    color: var(--dash-primary);
+  }
+
+  .dash-todo-item:not(.done) .dash-todo-check {
+    color: var(--dash-muted);
+  }
+
+  .dash-todo-text {
+    @apply text-sm font-semibold text-white leading-snug;
+  }
+
+  .dash-todo-tag {
+    @apply inline-block text-[9px] font-bold uppercase tracking-wide mt-1 px-2 py-0.5 rounded-full;
+  }
+
+  .dash-tag-urgent {
+    background: rgba(252, 115, 131, 0.15);
+    color: var(--dash-danger);
+  }
+
+  .dash-tag-normal {
+    background: rgba(130, 128, 253, 0.15);
+    color: var(--dash-primary);
+  }
+
+  .dash-tag-low {
+    background: rgba(196, 196, 196, 0.12);
+    color: var(--dash-muted);
+  }
+
+  .dash-icon-btn {
+    @apply w-9 h-9 rounded-full flex items-center justify-center border-0 cursor-pointer transition;
+    background: var(--dash-primary);
+    color: #fff;
+  }
+
+  .dash-icon-btn:hover {
+    background: var(--dash-primary-dark);
+  }
+
+  .dash-link-btn {
+    @apply text-xs font-bold bg-transparent border-0 cursor-pointer transition p-0;
+    color: var(--dash-primary);
+  }
+
+  .dash-link-btn:hover {
+    color: #fff;
+  }
+
+  .dash-btn-primary {
+    @apply font-bold py-2.5 px-5 rounded-full transition cursor-pointer border-0 inline-flex items-center justify-center gap-2;
+    background: var(--dash-primary);
+    color: #fff;
+  }
+
+  .dash-btn-primary:hover {
+    background: var(--dash-primary-dark);
+  }
+
+  .dash-btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .dash-btn-ghost {
+    @apply font-bold py-2 px-4 rounded-full transition cursor-pointer inline-flex items-center justify-center gap-2;
+    background: transparent;
+    color: var(--dash-muted);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-btn-ghost:hover {
+    color: #fff;
+    border-color: var(--dash-primary);
+  }
+
+  /* Botões primários legados (bg-gold-500 + texto escuro) */
+  .dash-shell .bg-gold-500.text-zinc-950,
+  .dash-shell .bg-gold-500.hover\:text-zinc-950 {
+    color: #fff !important;
+  }
+
+  /* ── Page layout (Settings / Creator) ── */
+  .dash-page {
+    @apply space-y-5 min-w-0;
+  }
+
+  .dash-page-hero {
+    @apply p-5 rounded-lg;
+    background: var(--dash-card);
+    box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(130, 128, 253, 0.12);
+  }
+
+  .dash-breadcrumb {
+    @apply flex flex-wrap items-center gap-1 text-[11px] font-semibold mb-3;
+    color: var(--dash-muted);
+  }
+
+  .dash-page-icon {
+    @apply w-11 h-11 rounded-full flex items-center justify-center;
+    background: rgba(130, 128, 253, 0.15);
+    color: var(--dash-primary);
+  }
+
+  .dash-page-title {
+    @apply text-xl sm:text-2xl font-bold text-white leading-tight;
+  }
+
+  .dash-page-subtitle {
+    @apply text-sm mt-1 leading-relaxed;
+    color: var(--dash-muted);
+  }
+
+  .dash-page-body {
+    @apply space-y-5 min-w-0;
+  }
+
+  .dash-page.lumiera-fill-view {
+    @apply flex flex-col min-h-0 flex-1 overflow-hidden;
+  }
+
+  .dash-page.lumiera-fill-view .dash-page-body {
+    @apply flex flex-col flex-1 min-h-0 gap-5 overflow-hidden;
+  }
+
+  .dash-nav-pill-active {
+    border-color: rgba(130, 128, 253, 0.5) !important;
+    background: rgba(130, 128, 253, 0.12) !important;
+    color: var(--dash-primary) !important;
+  }
+
   /* ── Legacy Lumiera classes → Dashmin styling ── */
   .lumiera-shell {
     @apply min-h-screen flex flex-col min-w-0;
@@ -538,20 +773,6 @@
   .lumiera-fill-view {
     @apply flex flex-col min-h-0 flex-1 overflow-hidden font-sans;
     max-height: calc(100vh - 8rem);
-  }
-
-  .dash-btn-primary {
-    @apply font-bold py-2.5 px-5 rounded-full transition cursor-pointer border-0 inline-flex items-center justify-center gap-2;
-    background: var(--dash-primary);
-    color: #fff;
-  }
-
-  .dash-btn-primary:hover {
-    background: var(--dash-primary-dark);
-  }
-
-  .dash-btn-primary:disabled {
-    @apply opacity-50 cursor-not-allowed;
   }
 
   @media (max-width: 767px) {
