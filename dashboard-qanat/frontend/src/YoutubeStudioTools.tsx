@@ -225,7 +225,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             <li key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
               <span className="truncate">{idea.title}</span>
               {onApplyIdea && (
-                <button type="button" title="Abrir no Creator (página preparada)" onClick={() => onApplyIdea(idea.title, idea.angle, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
+                <button type="button" title="Abrir no Creator (página preparada)" onClick={() => onApplyIdea(idea.title, idea.angle, { format: creatorFormat })} className="text-[var(--dash-primary)] shrink-0">Creator ▶</button>
               )}
             </li>
           ))}
@@ -237,13 +237,13 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
           value={webhooks.telegram}
           onChange={(e) => setWebhooks((w) => ({ ...w, telegram: e.target.value }))}
           placeholder="Webhook Telegram (URL completa)"
-          className="px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white"
+          className="dash-input px-2 py-1.5 text-[10px]"
         />
         <input
           value={webhooks.discord}
           onChange={(e) => setWebhooks((w) => ({ ...w, discord: e.target.value }))}
           placeholder="Webhook Discord"
-          className="px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white"
+          className="dash-input px-2 py-1.5 text-[10px]"
         />
       </div>
       <div className="flex gap-2">
@@ -319,7 +319,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
                       whyWorks: item.whyWorks,
                       source: item.source,
                     })}
-                    className="text-gold-400 shrink-0"
+                    className="text-[var(--dash-primary)] shrink-0"
                   >
                     ▶
                   </button>
@@ -341,14 +341,14 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             <button
               type="button"
               onClick={() => setCreatorFormat('SHORTS')}
-              className={`text-[8px] px-2 py-0.5 rounded border ${creatorFormat === 'SHORTS' ? 'bg-gold-500/15 text-gold-300 border-gold-500/30' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}
+              className={`text-[8px] px-2 py-0.5 rounded border ${creatorFormat === 'SHORTS' ? 'dash-studio-tab-active' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}
             >
               Short
             </button>
             <button
               type="button"
               onClick={() => setCreatorFormat('LONGO')}
-              className={`text-[8px] px-2 py-0.5 rounded border ${creatorFormat === 'LONGO' ? 'bg-gold-500/15 text-gold-300 border-gold-500/30' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}
+              className={`text-[8px] px-2 py-0.5 rounded border ${creatorFormat === 'LONGO' ? 'dash-studio-tab-active' : 'bg-zinc-900 text-zinc-500 border-zinc-800'}`}
             >
               Longo
             </button>
@@ -375,7 +375,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
               <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
                 <span className="truncate">{idea.title}</span>
                 {onApplyIdea && (
-                  <button type="button" title="Abrir no Creator (página preparada)" onClick={() => onApplyIdea(idea.title, idea.hookPt, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
+                  <button type="button" title="Abrir no Creator (página preparada)" onClick={() => onApplyIdea(idea.title, idea.hookPt, { format: creatorFormat })} className="text-[var(--dash-primary)] shrink-0">Creator ▶</button>
                 )}
               </div>
             ))}
@@ -405,8 +405,8 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
       <div className="border-t border-zinc-900 pt-3 space-y-2">
         <p className="text-[9px] text-zinc-500 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Fixar comentário no vídeo</p>
         <div className="flex flex-col sm:flex-row gap-2">
-          <input value={pinVideoId} onChange={(e) => setPinVideoId(e.target.value)} placeholder="videoId" className="flex-1 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white" />
-          <input value={pinText} onChange={(e) => setPinText(e.target.value)} placeholder="Texto do comentário fixo" className="flex-[2] px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-[10px] text-white" />
+          <input value={pinVideoId} onChange={(e) => setPinVideoId(e.target.value)} placeholder="videoId" className="flex-1 dash-input px-2 py-1.5 text-[10px]" />
+          <input value={pinText} onChange={(e) => setPinText(e.target.value)} placeholder="Texto do comentário fixo" className="flex-[2] dash-input px-2 py-1.5 text-[10px]" />
           <button type="button" onClick={pinComment} className="text-[9px] px-3 py-1.5 rounded bg-gold-500/15 border border-gold-500/30 text-gold-300 inline-flex items-center gap-1">
             <Send className="w-3 h-3" /> Fixar
           </button>

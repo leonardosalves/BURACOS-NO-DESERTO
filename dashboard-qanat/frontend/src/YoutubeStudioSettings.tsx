@@ -153,7 +153,7 @@ export function YoutubeStudioSettings({ toast, periodDays = 28, onSaved }: Props
       </h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+        <div className="dash-settings-card rounded-xl space-y-2">
           <p className="text-[10px] font-bold text-zinc-300 flex items-center gap-1">
             <Mail className="w-3.5 h-3.5" /> Relatórios por e-mail
           </p>
@@ -175,7 +175,7 @@ export function YoutubeStudioSettings({ toast, periodDays = 28, onSaved }: Props
           />
         </div>
 
-        <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+        <div className="dash-settings-card rounded-xl space-y-2">
           <p className="text-[10px] font-bold text-zinc-300">SMTP (envio automático)</p>
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -215,7 +215,7 @@ export function YoutubeStudioSettings({ toast, periodDays = 28, onSaved }: Props
         </div>
       </div>
 
-      <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+      <div className="dash-settings-card rounded-xl space-y-2">
         <p className="text-[10px] font-bold text-zinc-300 flex items-center gap-1">
           <Target className="w-3.5 h-3.5 text-amber-400" /> Metas views 48h
         </p>
@@ -276,7 +276,7 @@ export function YoutubeStudioSettings({ toast, periodDays = 28, onSaved }: Props
           type="button"
           onClick={save}
           disabled={saving}
-          className="text-[10px] px-3 py-1.5 rounded-lg bg-gold-500/15 border border-gold-500/30 text-gold-300 font-bold disabled:opacity-50"
+          className="dash-btn-primary text-[10px] px-3 py-1.5 font-bold disabled:opacity-50"
         >
           {saving ? 'Salvando…' : 'Salvar configurações'}
         </button>

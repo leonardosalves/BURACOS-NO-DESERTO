@@ -119,7 +119,7 @@ export function YoutubeStudioTitleAb({ toast, onSelectProject, onRefreshSummary 
         <button
           type="button"
           onClick={load}
-          className="text-[9px] px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-zinc-400"
+          className="dash-btn-ghost text-[9px] px-2 py-1"
         >
           Atualizar
         </button>
@@ -127,7 +127,7 @@ export function YoutubeStudioTitleAb({ toast, onSelectProject, onRefreshSummary 
 
       <div className="space-y-3">
         {experiments.map((row) => (
-          <div key={row.projectName} className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+          <div key={row.projectName} className="dash-settings-card rounded-xl space-y-2">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-white truncate">{row.title}</p>
@@ -136,7 +136,7 @@ export function YoutubeStudioTitleAb({ toast, onSelectProject, onRefreshSummary 
                   href={`https://youtu.be/${row.videoId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[8px] text-zinc-500 hover:text-gold-400 inline-flex items-center gap-0.5 mt-0.5"
+                  className="text-[8px] text-[var(--dash-muted)] hover:text-[var(--dash-primary)] inline-flex items-center gap-0.5 mt-0.5"
                 >
                   {row.videoId} <ExternalLink className="w-3 h-3" />
                 </a>
@@ -156,8 +156,8 @@ export function YoutubeStudioTitleAb({ toast, onSelectProject, onRefreshSummary 
                 {row.rankings!.map((r) => (
                   <li
                     key={r.id}
-                    className={`flex items-center justify-between gap-2 text-[9px] px-2 py-1 rounded ${
-                      r.isActive ? 'bg-violet-500/10 border border-violet-500/20' : 'bg-zinc-900/50'
+                    className={`flex items-center justify-between gap-2 text-[9px] px-2 py-1 rounded border ${
+                      r.isActive ? 'dash-studio-tab-active' : 'dash-option-btn border-transparent'
                     }`}
                   >
                     <span className="text-zinc-300 truncate">

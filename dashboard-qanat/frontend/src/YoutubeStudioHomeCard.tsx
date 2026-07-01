@@ -41,7 +41,7 @@ export function YoutubeStudioHomeCard({ onOpenPanel, viewsThreshold = 100 }: Pro
     <button
       type="button"
       onClick={onOpenPanel}
-      className="glass-panel p-4 rounded-2xl w-full text-left hover:border-gold-500/20 border border-transparent transition"
+      className="glass-panel p-4 rounded-2xl w-full text-left hover:border-[rgba(130,128,253,0.35)] border border-transparent transition"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
