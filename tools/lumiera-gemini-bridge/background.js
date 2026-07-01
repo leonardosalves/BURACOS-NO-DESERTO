@@ -121,6 +121,23 @@ async function ensureGeminiContentScript(tabId) {
   }
 }
 
+function sendTabMessageWithTimeout(tabId, message, timeoutMs = 300000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Timeout aguardando resposta do Gemini na aba (5 min)."));
+    }, timeoutMs);
+    chrome.tabs.sendMessage(tabId, message, (resp) => {
+      clearTimeout(timer);
+      const err = chrome.runtime.lastError;
+      if (err?.message) {
+        reject(new Error(err.message));
+        return;
+      }
+      resolve(resp);
+    });
+  });
+}
+
 async function runPromptOnTab(tabId, prompt) {
   await ensureGeminiContentScript(tabId);
   await injectGeminiScript(tabId);
@@ -135,8 +152,12 @@ async function runPromptOnTab(tabId, prompt) {
     // segue mesmo se não conseguir focar a aba
   }
 
+  const timeoutMs = /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(String(prompt || ""))
+    ? 300000
+    : 200000;
+
   try {
-    const resp = await chrome.tabs.sendMessage(tabId, { type: "LUMIERA_RUN_PROMPT", prompt });
+    const resp = await sendTabMessageWithTimeout(tabId, { type: "LUMIERA_RUN_PROMPT", prompt }, timeoutMs);
     if (resp?.ok) return String(resp.text || "").trim();
     throw new Error(resp?.error || "Automação Gemini falhou.");
   } finally {
@@ -160,7 +181,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.4.8" });
+    sendResponse({ ok: true, version: "1.4.9" });
     return;
   }
   if (message?.type === "LUMIERA_REINJECT_LUMIERA") {

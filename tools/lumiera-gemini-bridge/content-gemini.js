@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.8";
+  const VERSION = "1.4.9";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -230,28 +230,12 @@
     return nodes[nodes.length - 1] || null;
   }
 
+  function isGeminiStillStreaming() {
+    return [...document.querySelectorAll("button")].some(isStopResponseButton);
+  }
+
   function isGenerating() {
-    if ([...document.querySelectorAll("button")].some(isStopResponseButton)) return true;
-
-    const latestRoot = getLatestModelMessageRoot();
-    const spinnerScopes = latestRoot
-      ? [latestRoot]
-      : [document];
-    for (const scope of spinnerScopes) {
-      const spinners = [...scope.querySelectorAll(
-        "mat-progress-spinner, mat-spinner, .loading-indicator",
-      )].filter(isVisible);
-      if (spinners.length > 0) return true;
-    }
-
-    if (latestRoot) {
-      const busy = [...latestRoot.querySelectorAll(
-        '[aria-busy="true"], [class*="streaming" i], [class*="thinking" i]',
-      )].filter(isVisible);
-      if (busy.length > 0) return true;
-    }
-
-    return false;
+    return isGeminiStillStreaming();
   }
 
   function hasModelResponseActions() {
@@ -265,14 +249,15 @@
   }
 
   function getLatestFreshModelText(beforeTexts) {
-    const current = snapshotModelMessages();
-    for (let i = current.length - 1; i >= 0; i -= 1) {
-      const text = String(current[i]?.text || "").trim();
-      if (text.length > 80 && !beforeTexts.includes(text)) return text;
-    }
-    return collectModelTexts()
+    const candidates = [];
+    snapshotModelMessages().forEach((entry) => {
+      const text = String(entry?.text || "").trim();
+      if (text.length > 80 && !beforeTexts.includes(text)) candidates.push(text);
+    });
+    collectModelTexts()
       .filter((t) => !beforeTexts.includes(t) && t.length > 80)
-      .sort((a, b) => b.length - a.length)[0] || "";
+      .forEach((t) => candidates.push(t));
+    return [...new Set(candidates)].sort((a, b) => b.length - a.length)[0] || "";
   }
 
   function extractPlanSessionFromPrompt(prompt) {
@@ -325,11 +310,49 @@
   function isUsableNarrationPayload(parsed) {
     if (!parsed || typeof parsed !== "object") return false;
     const script = String(parsed.narrative_script || "").trim();
-    if (script.length < 100) return false;
-    if (script.length >= 220) return true;
-    const strategy = parsed.strategy;
-    return Boolean(strategy && typeof strategy === "object"
-      && String(strategy.title_main || strategy.hook || strategy.tone || "").trim().length >= 4);
+    return script.length >= 80;
+  }
+
+  function looksLikeNarrationCandidate(text) {
+    const t = String(text || "").trim();
+    if (t.length < 280 || looksLikeLumieraPrompt(t)) return false;
+    return /"narrative_script"\s*:/i.test(t);
+  }
+
+  function salvageScriptJsonText(text) {
+    const raw = String(text || "").trim();
+    if (!raw) return null;
+    const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const start = cleaned.search(/\{/);
+    if (start < 0) return null;
+    let slice = cleaned.slice(start);
+    const openBraces = (slice.match(/\{/g) || []).length - (slice.match(/\}/g) || []).length;
+    const openBrackets = (slice.match(/\[/g) || []).length - (slice.match(/\]/g) || []).length;
+    for (let i = 0; i < openBrackets; i += 1) slice += "]";
+    for (let i = 0; i < openBraces; i += 1) slice += "}";
+    const attempts = [
+      slice,
+      slice.replace(/,\s*([}\]])/g, "$1"),
+      slice.replace(/[""]/g, '"').replace(/['']/g, "'").replace(/,\s*([}\]])/g, "$1"),
+    ];
+    for (const candidate of attempts) {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (isUsableNarrationPayload(parsed)) return candidate;
+      } catch {
+        // tenta próximo
+      }
+    }
+    return null;
+  }
+
+  function pickScriptResponsePayload(text) {
+    const strict = extractScriptJsonPayload(text);
+    if (strict) return strict;
+    const salvaged = salvageScriptJsonText(text);
+    if (salvaged) return salvaged;
+    if (looksLikeNarrationCandidate(text)) return String(text || "").trim();
+    return null;
   }
 
   function extractScriptJsonPayload(text) {
@@ -357,9 +380,8 @@
 
   function isAcceptableScriptResponse(text, beforeTexts) {
     const t = String(text || "").trim();
-    if (!t || beforeTexts.includes(t) || t.length < 280) return false;
-    if (!/"narrative_script"\s*:/i.test(t)) return false;
-    return Boolean(extractScriptJsonPayload(t));
+    if (!t || beforeTexts.includes(t)) return false;
+    return Boolean(pickScriptResponsePayload(t));
   }
 
   function findScriptJsonResponse(beforeTexts) {
@@ -606,64 +628,65 @@
   }
 
   async function waitForScriptResponse(beforeTexts, beforeMessages, submitStartedAt, deadline) {
-    const MIN_WAIT_MS = 8000;
-    const STABLE_MS = 1400;
-    const IDLE_AFTER_GEN_MS = 900;
+    const MIN_WAIT_MS = 6000;
+    const STABLE_MS = 900;
     let stableText = "";
     let stableSince = 0;
     let lastLen = 0;
     let lastLenAt = submitStartedAt;
-    let notGeneratingSince = 0;
 
     while (Date.now() < deadline) {
-      await sleep(400);
+      await sleep(350);
       if (Date.now() - submitStartedAt < MIN_WAIT_MS) continue;
 
       const raw = getLatestFreshModelText(beforeTexts)
-        || findScriptJsonResponse(beforeTexts)
         || getLatestGrownModelText(beforeTexts, beforeMessages)
+        || findScriptJsonResponse(beforeTexts)
         || "";
-      if (!raw) continue;
+      if (!looksLikeNarrationCandidate(raw)) continue;
 
-      if (raw.length > lastLen + 20) {
+      if (raw.length > lastLen + 12) {
         lastLen = raw.length;
         lastLenAt = Date.now();
         stableText = "";
         stableSince = 0;
+        continue;
       }
 
-      const json = extractScriptJsonPayload(raw);
-      if (!json) continue;
-
-      const generating = isGenerating();
-      const responseActions = hasModelResponseActions();
+      const streaming = isGeminiStillStreaming();
       const quietFor = Date.now() - lastLenAt;
+      const responseActions = hasModelResponseActions();
 
-      if (!generating) {
-        notGeneratingSince = notGeneratingSince || Date.now();
-      } else {
-        notGeneratingSince = 0;
-      }
-
-      if (generating && quietFor < 1200 && !responseActions) continue;
-
-      if (raw === stableText) {
-        const stableFor = Date.now() - stableSince;
-        const idleFor = notGeneratingSince ? Date.now() - notGeneratingSince : 0;
-        if (responseActions && stableFor >= 500) return json;
-        if (!generating && idleFor >= IDLE_AFTER_GEN_MS && stableFor >= STABLE_MS) return json;
-        if (!generating && quietFor >= 1800 && stableFor >= 900) return json;
-      } else {
+      if (raw !== stableText) {
         stableText = raw;
         stableSince = Date.now();
+        continue;
+      }
+
+      const stableFor = Date.now() - stableSince;
+      if (streaming && quietFor < 1500) continue;
+
+      if (responseActions && stableFor >= 400) {
+        const payload = pickScriptResponsePayload(raw);
+        if (payload) return payload;
+      }
+
+      if (!streaming && stableFor >= STABLE_MS && quietFor >= 700) {
+        const payload = pickScriptResponsePayload(raw);
+        if (payload) return payload;
+      }
+
+      if (!streaming && quietFor >= 2200 && stableFor >= 600) {
+        const payload = pickScriptResponsePayload(raw);
+        if (payload) return payload;
       }
     }
 
     const lastChance = getLatestFreshModelText(beforeTexts)
       || getLatestGrownModelText(beforeTexts, beforeMessages);
-    const lastJson = extractScriptJsonPayload(lastChance);
-    if (lastJson && isAcceptableScriptResponse(lastChance, beforeTexts) && !isGenerating()) {
-      return lastJson;
+    if (!isGeminiStillStreaming()) {
+      const payload = pickScriptResponsePayload(lastChance);
+      if (payload) return payload;
     }
 
     throw new Error(
@@ -742,12 +765,12 @@
 
     document.querySelectorAll('[data-message-author-role="model"]').forEach((node) => {
       if (isUserMessageNode(node)) return;
-      pushUniqueText(blocks, seen, node.innerText || node.textContent);
+      pushUniqueText(blocks, seen, readNodeText(node));
     });
 
     document.querySelectorAll("model-response").forEach((node) => {
       const root = node.closest("[data-message-id]") || node.parentElement || node;
-      pushUniqueText(blocks, seen, root.innerText || root.textContent);
+      pushUniqueText(blocks, seen, readNodeText(root));
     });
 
     document.querySelectorAll("message-content").forEach((node) => {
@@ -755,7 +778,15 @@
         || node.closest("[data-message-id]")
         || node;
       if (isUserMessageNode(root)) return;
-      pushUniqueText(blocks, seen, root.innerText || root.textContent);
+      pushUniqueText(blocks, seen, readNodeText(root));
+    });
+
+    queryDeepAll(document, "pre code, pre, code-block").forEach((node) => {
+      const root = node.closest('[data-message-author-role="model"]')
+        || node.closest("[data-message-id]")
+        || node.closest("model-response");
+      if (!root || isUserMessageNode(root)) return;
+      pushUniqueText(blocks, seen, readNodeText(node));
     });
 
     const selectors = [
@@ -867,7 +898,21 @@
 
   function readNodeText(node) {
     if (!node) return "";
-    return String(node.innerText || node.textContent || "").trim();
+    const pieces = [];
+    const seen = new Set();
+    const push = (text) => {
+      const t = String(text || "").trim();
+      if (t.length < 2 || seen.has(t)) return;
+      seen.add(t);
+      pieces.push(t);
+    };
+
+    push(node.innerText || node.textContent);
+    queryDeepAll(node, "pre, code, pre code, .markdown, message-content, model-response").forEach((el) => {
+      push(el.innerText || el.textContent);
+    });
+
+    return pieces.sort((a, b) => b.length - a.length)[0] || "";
   }
 
   function snapshotModelMessages() {
