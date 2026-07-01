@@ -34,7 +34,7 @@ export function useGeminiBrowserResolver(
         : isIdeas
           ? '10 ideias em JSON (~1–2 min). Não feche gemini.google.com.'
           : isNarration
-            ? 'Narração em JSON (~1–3 min). Deixe gemini.google.com aberto — o overlay some quando o chat terminar.'
+            ? 'Narração (~1–3 min). Deixe a aba gemini.google.com EM FOCO — não clique no Lumiera até terminar.'
             : 'Consultando gemini.google.com (até ~4 min)…';
     const startedAt = Date.now();
     const baseHint = hint;

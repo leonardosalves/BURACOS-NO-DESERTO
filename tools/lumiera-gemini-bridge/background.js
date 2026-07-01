@@ -152,15 +152,22 @@ async function runPromptOnTab(tabId, prompt) {
     // segue mesmo se não conseguir focar a aba
   }
 
-  const timeoutMs = /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(String(prompt || ""))
-    ? 300000
-    : 200000;
+  const isScriptPrompt = /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(String(prompt || ""));
+  const timeoutMs = isScriptPrompt ? 300000 : 200000;
+
+  const keepalive = isScriptPrompt
+    ? setInterval(() => {
+      chrome.tabs.update(tabId, { active: true }).catch(() => {});
+      chrome.tabs.sendMessage(tabId, { type: "LUMIERA_GEMINI_PING" }).catch(() => {});
+    }, 3000)
+    : null;
 
   try {
     const resp = await sendTabMessageWithTimeout(tabId, { type: "LUMIERA_RUN_PROMPT", prompt }, timeoutMs);
     if (resp?.ok) return String(resp.text || "").trim();
     throw new Error(resp?.error || "Automação Gemini falhou.");
   } finally {
+    if (keepalive) clearInterval(keepalive);
     if (previousTabId) {
       try {
         await chrome.tabs.update(previousTabId, { active: true });
@@ -181,7 +188,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.4.9" });
+    sendResponse({ ok: true, version: "1.5.0" });
     return;
   }
   if (message?.type === "LUMIERA_REINJECT_LUMIERA") {
