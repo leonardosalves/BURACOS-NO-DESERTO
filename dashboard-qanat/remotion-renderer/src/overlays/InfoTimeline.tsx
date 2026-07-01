@@ -193,11 +193,12 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
       case "classic":
       default:
         base = {
-          background: "linear-gradient(145deg, rgba(8,8,12,0.90) 0%, rgba(18,18,26,0.87) 100%)",
-          backdropFilter: "blur(14px)",
+          background: "linear-gradient(145deg, rgba(6,6,10,0.97) 0%, rgba(14,14,22,0.95) 100%)",
+          backdropFilter: "blur(16px)",
           borderRadius: isVertical ? 16 : 12,
           padding: isVertical ? "16px 32px" : "12px 24px",
-          border: `1px solid ${accentColor}26`,
+          border: `1px solid ${accentColor}55`,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.06)",
         };
         break;
     }
@@ -290,6 +291,9 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
     return fontStyle;
   };
 
+  const legibilityShadow = "0 1px 2px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.75), 0 0 24px rgba(0,0,0,0.45)";
+  const panelStyle = getThemeStyle();
+
   return (
     <AbsoluteFill
       style={{
@@ -302,11 +306,13 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
       <div
         style={{
           transform: `scale(${scaleSpring})`,
-          filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.7))",
+          filter: "drop-shadow(0 10px 36px rgba(0,0,0,0.85))",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          gap: isVertical ? 28 : 20,
+          alignItems: "stretch",
+          gap: isVertical ? 20 : 16,
+          maxWidth: isVertical ? "88%" : isHorizontal ? "92%" : "78%",
+          ...panelStyle,
         }}
       >
         {/* Title */}
@@ -315,8 +321,10 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
             position: "relative",
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: 14,
-            ...getThemeStyle(),
+            paddingBottom: isVertical ? 4 : 2,
+            borderBottom: `1px solid ${accentColor}33`,
           }}
         >
           {/* Theme Corner Decorators */}
@@ -335,8 +343,9 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
           />
           <span
             style={{
-              color: "#F8FAFC",
+              color: "#FFFFFF",
               textTransform: "uppercase",
+              textShadow: legibilityShadow,
               ...getThemeFont("title"),
             }}
           >
@@ -349,10 +358,12 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
           style={{
             display: "flex",
             flexDirection: isHorizontal ? "row" : "column",
-            alignItems: "center",
-            gap: 0,
+            alignItems: isHorizontal ? "center" : "stretch",
+            gap: isHorizontal ? 0 : 10,
             position: "relative",
-            padding: isVertical ? "16px 20px" : "12px 16px",
+            padding: isVertical ? "8px 4px 4px" : "4px 8px 8px",
+            background: "rgba(0,0,0,0.28)",
+            borderRadius: isVertical ? 12 : 8,
           }}
         >
           {safeEvents.map((event, index) => {
@@ -397,48 +408,59 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: isVertical ? 8 : 6,
-                    minWidth: isVertical ? 120 : 90,
+                    flexDirection: isHorizontal ? "column" : "row",
+                    alignItems: isHorizontal ? "center" : "flex-start",
+                    gap: isHorizontal ? 6 : 12,
+                    minWidth: isVertical ? undefined : 90,
+                    width: isHorizontal ? undefined : "100%",
                     opacity: textOpacity,
+                    padding: isHorizontal ? 0 : "8px 12px",
+                    background: isHorizontal ? "transparent" : "rgba(0,0,0,0.22)",
+                    borderRadius: 8,
+                    borderLeft: isHorizontal ? "none" : `3px solid ${isHighlight ? accentColor : `${accentColor}55`}`,
                   }}
                 >
                   {/* Year label */}
                   <span
                     style={{
-                      color: isHighlight ? accentColor : "rgba(248,250,252,0.65)",
-                      textAlign: "center",
+                      color: isHighlight ? accentColor : "#F8FAFC",
+                      textAlign: isHorizontal ? "center" : "left",
+                      flexShrink: 0,
+                      minWidth: isHorizontal ? undefined : 72,
+                      textShadow: legibilityShadow,
                       ...getThemeFont("year"),
                     }}
                   >
                     {event.year}
                   </span>
 
-                  {/* Dot */}
+                  {isHorizontal && (
                   <div
                     style={{
                       width: isHighlight ? (isVertical ? 18 : 14) : (isVertical ? 12 : 10),
                       height: isHighlight ? (isVertical ? 18 : 14) : (isVertical ? 12 : 10),
                       borderRadius: "50%",
-                      backgroundColor: isHighlight ? accentColor : "rgba(248,250,252,0.4)",
+                      backgroundColor: isHighlight ? accentColor : "rgba(248,250,252,0.55)",
                       transform: `scale(${dotScale})`,
                       boxShadow: isHighlight
                         ? `0 0 16px ${accentColor}60, 0 0 4px ${accentColor}`
                         : "none",
                       border: isHighlight
                         ? `2px solid ${accentColor}`
-                        : "1px solid rgba(248,250,252,0.2)",
+                        : "1px solid rgba(248,250,252,0.35)",
                     }}
                   />
+                  )}
 
                   {/* Description */}
                   <span
                     style={{
-                      color: "rgba(248,250,252,0.72)",
-                      textAlign: "center",
-                      maxWidth: isVertical ? 140 : 100,
-                      lineHeight: 1.3,
+                      color: "#FFFFFF",
+                      textAlign: isHorizontal ? "center" : "left",
+                      maxWidth: isHorizontal ? 100 : undefined,
+                      flex: isHorizontal ? undefined : 1,
+                      lineHeight: 1.35,
+                      textShadow: legibilityShadow,
                       ...getThemeFont("desc"),
                     }}
                     dangerouslySetInnerHTML={{ __html: event.description }}
