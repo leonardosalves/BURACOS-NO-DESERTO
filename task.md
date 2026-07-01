@@ -1,0 +1,4 @@
+- [x] Ajustar `align_transcripts.py` com Levenshtein Fuzzy Matching, Lookahead e Interpolação Monotônica
+- [x] Executar `align_transcripts.py` para gerar novos tempos
+- [/] Executar `build_video.py` para renderizar o vídeo final
+- [ ] Commitar e dar push no Git
