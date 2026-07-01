@@ -522,13 +522,14 @@ export function WorkflowToolkit({
     label: string,
     icon: React.ReactNode,
     onClick: () => void,
-    variant: 'gold' | 'emerald' | 'violet' | 'sky' = 'gold',
+    variant: 'gold' | 'emerald' | 'violet' | 'sky' | 'cyan' = 'gold',
   ) => {
     const colors = {
       gold: 'border-gold-500/30 text-gold-400 hover:bg-gold-500/10',
       emerald: 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10',
       violet: 'border-violet-500/30 text-violet-300 hover:bg-violet-500/10',
       sky: 'border-sky-500/30 text-sky-300 hover:bg-sky-500/10',
+      cyan: 'border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10',
     };
     const isBusy = busy === label || busy === 'Pipeline';
     return (
