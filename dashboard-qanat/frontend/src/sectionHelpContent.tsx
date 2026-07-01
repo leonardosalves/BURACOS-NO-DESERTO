@@ -83,7 +83,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Canal YouTube',
     body: (
       <>
-        Visão geral do canal com carregamento rápido (cache 5 min), tabela de vídeos, projetos Lumiera, comentários com resposta pelo Lumiera e alertas configuráveis (threshold views 48h) na sidebar a cada 20 min.
+        Visão geral do canal com cache, comparativo 7d vs 7d, impressões/CTR quando disponível, templates e sugestão IA para comentários, marcar como tratado, relatório semanal, polling e notificações configuráveis.
       </>
     ),
   },

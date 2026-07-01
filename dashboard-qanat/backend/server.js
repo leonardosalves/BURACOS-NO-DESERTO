@@ -57,6 +57,21 @@ import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
 import { runPostUploadHooks } from "./postUploadService.js";
 import { startTitleRotationScheduler } from "./titleRotationScheduler.js";
 import {
+  loadStudioSettings,
+  markCommentHandled,
+  saveStudioSettings,
+  updateReplyTemplates,
+} from "./youtubeStudioSettings.js";
+import {
+  fetchChannelPeriodComparison,
+  fetchChannelReachMetrics,
+  fetchProjectYoutubeSnapshot,
+  generateWeeklyReport,
+  sendWeeklyReportEmail,
+  suggestCommentReply,
+  startYoutubeWeeklyReportScheduler,
+} from "./youtubeStudioExtras.js";
+import {
   applyThumbnailVariant,
   getThumbnailExperimentReport,
   loadThumbnailExperiment,
@@ -8118,6 +8133,7 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query?.limit) || 20, 1), 50);
   const filter = String(req.query?.filter || "all").toLowerCase();
   const keyword = String(req.query?.keyword || "").trim();
+  const pageToken = String(req.query?.pageToken || "").trim();
   const allowedFilters = new Set(["all", "unanswered"]);
   const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
   try {
@@ -8125,10 +8141,119 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
       limit,
       filter: resolvedFilter,
       keyword,
+      pageToken,
     });
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar comentários do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/settings", (req, res) => {
+  try {
+    res.json(loadStudioSettings(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/youtube/channel/settings", (req, res) => {
+  try {
+    const templates = req.body?.replyTemplates;
+    const weeklyReportEmail = req.body?.weeklyReportEmail;
+    if (templates) updateReplyTemplates(WORKSPACE_DIR, templates);
+    if (weeklyReportEmail !== undefined) {
+      saveStudioSettings(WORKSPACE_DIR, { weeklyReportEmail: String(weeklyReportEmail || "").trim() });
+    }
+    res.json(loadStudioSettings(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/comments/handled", (req, res) => {
+  try {
+    const result = markCommentHandled(WORKSPACE_DIR, req.body?.threadId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/comments/suggest-reply", async (req, res) => {
+  try {
+    const result = await suggestCommentReply({
+      commentText: String(req.body?.commentText || "").trim(),
+      videoTitle: String(req.body?.videoTitle || "").trim(),
+      niche: String(req.body?.niche || "").trim(),
+      authorName: String(req.body?.authorName || "").trim(),
+    }, (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, { ...opts, projectDir: WORKSPACE_DIR }));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/period-comparison", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 7, 1), 28);
+  try {
+    const report = await fetchChannelPeriodComparison(WORKSPACE_DIR, { days });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao comparar períodos");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/reach", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  try {
+    const report = await fetchChannelReachMetrics(WORKSPACE_DIR, { days });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar impressões");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/weekly-report", async (req, res) => {
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  try {
+    const report = await generateWeeklyReport(WORKSPACE_DIR, PROJECTS_ROOT, { views48hThreshold });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao gerar relatório semanal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/weekly-report/send", async (req, res) => {
+  const views48hThreshold = Math.min(Math.max(Number(req.body?.viewsThreshold) || 100, 1), 100000);
+  try {
+    const result = await sendWeeklyReportEmail(WORKSPACE_DIR, PROJECTS_ROOT, {
+      views48hThreshold,
+      to: req.body?.to,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/project-snapshot", async (req, res) => {
+  const projectName = String(req.query?.project || "").trim();
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  if (!projectName) {
+    return res.status(400).json({ error: "Parâmetro project é obrigatório." });
+  }
+  try {
+    const snapshot = await fetchProjectYoutubeSnapshot(WORKSPACE_DIR, PROJECTS_ROOT, projectName, {
+      views48hThreshold,
+    });
+    res.json(snapshot);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar snapshot do projeto");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -11501,6 +11626,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
     console.warn("[NotebookLM] status check failed:", e.message);
   }
   startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
+  startYoutubeWeeklyReportScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
 });
 
 server.on("error", (err) => {
