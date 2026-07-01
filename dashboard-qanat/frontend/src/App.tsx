@@ -188,6 +188,7 @@ import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import { NarrationReplacePanel } from './NarrationReplacePanel';
 import { TtsVoiceStudioPanel } from './TtsVoiceStudioPanel';
+import { LumieraDubPanel } from './LumieraDubPanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
 interface BGM {
@@ -1355,7 +1356,7 @@ export default function App() {
   const [loadingStoryboard, setLoadingStoryboard] = useState<boolean>(false);
   const [generatingOverlays, setGeneratingOverlays] = useState<boolean>(false);
 
-  const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json' | 'narration'>('script');
+  const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json' | 'narration' | 'dub'>('script');
 
   // Form fields
 
@@ -11624,6 +11625,26 @@ export default function App() {
 
                   </button>
 
+                  <button
+
+                    onClick={() => setEditorSubTab('dub')}
+
+                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
+
+                      editorSubTab === 'dub'
+
+                        ? 'border-gold-500 text-gold-500'
+
+                        : 'border-transparent text-gray-400 hover:text-white'
+
+                    }`}
+
+                  >
+
+                    Dublagem (MP4)
+
+                  </button>
+
                 </div>
 
                 {config && (
@@ -11646,6 +11667,17 @@ export default function App() {
 
               {editorSubTab === 'assets' && config && (
                 renderRichTimelineEditor()
+              )}
+
+              {editorSubTab === 'dub' && config && (
+                <div className="glass-panel p-6 rounded-3xl max-w-4xl">
+                  <LumieraDubPanel
+                    getProjectUrl={getProjectUrl}
+                    getMediaUrl={getMusicUrl}
+                    toast={(msg) => toast(msg)}
+                    onComplete={() => fetchData()}
+                  />
+                </div>
               )}
 
               {editorSubTab === 'narration' && config && (

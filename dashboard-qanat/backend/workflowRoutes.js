@@ -67,6 +67,12 @@ import { analyzeReferenceVideo } from "./openmontageReference.js";
 import { extractBrowserResponse } from "./geminiBrowser.js";
 import { runClipFactory } from "./clipFactory.js";
 import { searchArchiveOrg } from "./archiveOrgStock.js";
+import {
+  listDubSourceVideos,
+  analyzeDubProject,
+  runLumieraDub,
+  DUB_TARGET_LANGUAGES,
+} from "./lumieraDub.js";
 
 export function registerWorkflowRoutes(app, deps) {
   const {
@@ -565,6 +571,68 @@ export function registerWorkflowRoutes(app, deps) {
       });
       res.json(result);
     } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  async function dubCallGemini(projDir, prompt, opts = {}) {
+    const apiKeys = getApiKeys(projDir);
+    if (!apiKeys?.[0]) throw new Error("Chave Gemini não configurada para tradução.");
+    return callGeminiWithRetry(apiKeys[0], prompt, { ...opts, projectDir: projDir });
+  }
+
+  app.get("/api/dub/sources", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      res.json({
+        sources: listDubSourceVideos(projDir),
+        languages: DUB_TARGET_LANGUAGES,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/dub/analyze", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const logs = [];
+      const { sourceId, language } = req.body || {};
+      const result = await analyzeDubProject(projDir, {
+        sourceId,
+        pythonPath: PYTHON_PATH,
+        language: language || "auto",
+        onLog: (msg) => logs.push(msg),
+      });
+      res.json({ ...result, logs });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/dub/generate", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const logs = [];
+      const body = req.body || {};
+      const result = await runLumieraDub(projDir, {
+        sourceId: body.sourceId,
+        targetLanguage: body.targetLanguage || "en",
+        sourceLanguage: body.sourceLanguage || "auto",
+        engine: body.engine || "fish",
+        voice: body.voice,
+        skipTranslate: Boolean(body.skipTranslate),
+        bgmVolume: body.bgmVolume ?? 0.35,
+        forceRetranscribe: Boolean(body.forceRetranscribe),
+        fishOptions: body.fish && typeof body.fish === "object" ? body.fish : {},
+      }, {
+        pythonPath: PYTHON_PATH,
+        workspaceDir: WORKSPACE_DIR,
+        callGemini: (prompt, opts) => dubCallGemini(projDir, prompt, opts),
+      });
+      res.json({ ...result, logs });
+    } catch (err) {
+      if (err?.geminiBrowserPending) return;
       res.status(500).json({ error: err.message });
     }
   });
