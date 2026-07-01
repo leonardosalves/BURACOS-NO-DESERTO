@@ -367,6 +367,15 @@ app.use(cors());
 
 app.use(express.json());
 
+// Catch malformed JSON syntax errors to prevent crashing
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.warn("[Body Parser Error] Malformed JSON received:", err.message);
+    return res.status(400).json({ error: "Malformed JSON payload: " + err.message });
+  }
+  next(err);
+});
+
 app.use("/api/projects-media", (req, res, next) => {
 
   const decodedUrl = decodeURIComponent(req.path);
@@ -8719,18 +8728,45 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
   try {
     const llmFn = useAi
       ? async (prompt) => {
-          const provider = getAiProvider(WORKSPACE_DIR);
-          const models = provider === "nvidia"
-            ? NVIDIA_MODELS.slice(0, 1)
-            : [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash"];
-          const text = await callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+          const failures = [];
+          const tryLlm = async (label, fn) => {
+            try {
+              const text = String(await fn() || "").trim();
+              if (text) return text;
+              failures.push(`${label}: resposta vazia`);
+            } catch (err) {
+              failures.push(`${label}: ${err.message}`);
+              console.warn(`[CompetitorResearch] ${label} falhou:`, err.message);
+            }
+            return null;
+          };
+
+          let text = await tryLlm("provider", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
             maxRetries: 2,
-            models,
+            models: getAiProvider(WORKSPACE_DIR) === "nvidia"
+              ? NVIDIA_MODELS.slice(0, 2)
+              : [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash", "gemini-2.0-flash"],
             temperature: 0.5,
             projectDir: WORKSPACE_DIR,
-          });
-          if (text) return text;
-          throw new Error("IA indisponível para análise de concorrentes.");
+          }));
+
+          if (!text) {
+            for (const key of getApiKeys(WORKSPACE_DIR).slice(0, 5)) {
+              text = await tryLlm("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
+                maxRetries: 1,
+                models: ["gemini-2.5-flash", "gemini-2.0-flash"],
+                temperature: 0.5,
+                projectDir: WORKSPACE_DIR,
+                forceProvider: "gemini",
+              }));
+              if (text) break;
+            }
+          }
+
+          if (!text) {
+            console.warn("[CompetitorResearch] IA esgotada:", failures.join(" | "));
+          }
+          return text;
         }
       : null;
 
