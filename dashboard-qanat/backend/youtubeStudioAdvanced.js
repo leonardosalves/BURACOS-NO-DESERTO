@@ -622,6 +622,60 @@ export function savePostPublishChecklistItem(projectPath, itemId, done = true) {
   return { success: true, itemId, done };
 }
 
+export async function fetchChannelTitleExperiments(workspaceDir, projectsRoot) {
+  const { loadTitleExperiment, getTitleExperimentReport } = await import("./youtubeTitleAnalytics.js");
+  const projects = collectLumieraPublishedVideos(projectsRoot);
+  const experiments = [];
+
+  for (const entry of projects) {
+    const experiment = loadTitleExperiment(entry.projectPath);
+    if (!experiment?.videoId || experiment.status !== "running") continue;
+    try {
+      const report = await getTitleExperimentReport(workspaceDir, entry.projectPath);
+      experiments.push({
+        projectName: entry.projectName,
+        format: entry.format,
+        videoId: experiment.videoId,
+        title: entry.title || entry.projectName,
+        experiment: {
+          status: experiment.status,
+          activeVariantId: experiment.activeVariantId,
+          rotateHours: experiment.rotateHours,
+          variants: (experiment.variants || []).map((v) => ({
+            id: v.id,
+            text: v.text,
+            isActive: experiment.activeVariantId === v.id,
+          })),
+        },
+        rankings: report.rankings || [],
+        winner: report.winner || null,
+        analytics: report.analytics?.available
+          ? { views: report.analytics.metrics?.views ?? 0 }
+          : null,
+      });
+    } catch (err) {
+      experiments.push({
+        projectName: entry.projectName,
+        format: entry.format,
+        videoId: experiment.videoId,
+        title: entry.title || entry.projectName,
+        experiment: {
+          status: experiment.status,
+          activeVariantId: experiment.activeVariantId,
+          variants: (experiment.variants || []).length,
+        },
+        error: err.message,
+      });
+    }
+  }
+
+  return {
+    available: true,
+    count: experiments.length,
+    experiments,
+  };
+}
+
 export async function loadLumieraExperiments(projectsRoot, lumieraVideos = []) {
   const { loadTitleExperiment } = await import("./youtubeTitleAnalytics.js");
   const { loadThumbnailExperiment } = await import("./thumbnailExperiment.js");
