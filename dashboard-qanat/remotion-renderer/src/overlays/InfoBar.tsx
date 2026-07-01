@@ -33,6 +33,8 @@ export interface InfoBarProps {
   position?: "center" | "bottom-center" | "right";
   /** Visual Theme */
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
+  /** Actual overlay sequence duration in frames */
+  durationInFrames?: number;
   /** Dynamic CSS override styles from Gemini AI */
   customStyle?: {
     background?: string;
@@ -98,15 +100,17 @@ export const InfoBar: React.FC<InfoBarProps> = ({
   accentColor = "#D4AF37",
   position = "center",
   theme = "classic",
+  durationInFrames: propDurationInFrames,
   customStyle,
 }) => {
   const safeItems = Array.isArray(items) ? items : [];
   if (safeItems.length === 0) return null;
 
   const frame = useCurrentFrame();
-  const { fps, durationInFrames, width, height } = useVideoConfig();
+  const { fps, durationInFrames: videoDurationInFrames, width, height } = useVideoConfig();
   const isVertical = height > width;
 
+  const effectiveDurationInFrames = propDurationInFrames ?? videoDurationInFrames;
   const maxValue = Math.max(...safeItems.map((i) => i.value), 1);
 
   // Overall fade
@@ -116,7 +120,7 @@ export const InfoBar: React.FC<InfoBarProps> = ({
   });
   const fadeOut = interpolate(
     frame,
-    [durationInFrames - 14, durationInFrames],
+    [effectiveDurationInFrames - 14, effectiveDurationInFrames],
     [1, 0],
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
@@ -358,10 +362,10 @@ export const InfoBar: React.FC<InfoBarProps> = ({
 
           {/* Bars */}
           {safeItems.map((item, index) => {
-            const staggerDelay = index * 6;
+            const staggerDelay = index * 4;
             const barProgress = interpolate(
               frame,
-              [10 + staggerDelay, 32 + staggerDelay],
+              [6 + staggerDelay, 20 + staggerDelay],
               [0, 1],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             );

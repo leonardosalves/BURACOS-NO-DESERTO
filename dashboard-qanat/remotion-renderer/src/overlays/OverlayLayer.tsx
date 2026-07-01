@@ -142,7 +142,7 @@ function sanitizeOverlayProps<T extends Overlay["props"]>(raw: T): T {
   return props;
 }
 
-const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
+const OverlayComponent: React.FC<{ overlay: Overlay; durationInFrames: number }> = ({ overlay, durationInFrames }) => {
   const props = sanitizeOverlayProps(overlay.props || ({} as Overlay["props"]));
   switch (overlay.type) {
     case "lower-third":
@@ -153,7 +153,7 @@ const OverlayComponent: React.FC<{ overlay: Overlay }> = ({ overlay }) => {
       if (!Array.isArray((props as { items?: unknown[] }).items) || !(props as { items?: unknown[] }).items?.length) {
         return null;
       }
-      return <InfoBar {...props} />;
+      return <InfoBar {...props} durationInFrames={durationInFrames} />;
     case "timeline":
       if (!Array.isArray((props as { events?: unknown[] }).events) || !(props as { events?: unknown[] }).events?.length) {
         return null;
@@ -232,7 +232,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ overlays }) => {
             durationInFrames={durationInFrames}
             premountFor={fps * 0.5}
           >
-            <OverlayComponent overlay={overlay} />
+            <OverlayComponent overlay={overlay} durationInFrames={durationInFrames} />
           </Sequence>
         );
       })}
