@@ -34,8 +34,8 @@ export function useGeminiBrowserResolver(
         : isIdeas
           ? '10 ideias em JSON (~1–2 min). Não feche gemini.google.com.'
           : isNarration
-            ? 'Narração em JSON (~2–4 min). Mantenha gemini.google.com aberto e aguarde.'
-            : 'Consultando gemini.google.com (até ~2 min)…';
+            ? 'Narração em JSON (~2–4 min). Deixe gemini.google.com aberto — não mude de aba até concluir.'
+            : 'Consultando gemini.google.com (até ~4 min)…';
     setAutomation?.({ active: true, title, hint });
     try {
       return await queryGeminiWithRetry(opts.prompt, {

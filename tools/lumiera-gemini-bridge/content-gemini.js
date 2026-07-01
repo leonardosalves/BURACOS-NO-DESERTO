@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.2";
+  const VERSION = "1.4.3";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -269,6 +269,48 @@
       || /FORMATO DE SAÍDA OBRIGATÓRIO/i.test(text);
   }
 
+  function isScriptPrompt(prompt) {
+    const task = extractTaskType(prompt);
+    if (task === "script") return true;
+    const text = String(prompt || "");
+    return /Gerar narração|narrative_script|Script Master|roteiro creator/i.test(text)
+      || /"narrative_script"\s*:/i.test(text)
+      || /"visual_prompts"\s*:/i.test(text);
+  }
+
+  function extractScriptJsonPayload(text) {
+    let cleaned = String(text || "").trim();
+    if (!cleaned) return null;
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
+    }
+
+    const keyIdx = cleaned.search(/"narrative_script"\s*:/i);
+    if (keyIdx < 0) return null;
+    const braceStart = cleaned.lastIndexOf("{", keyIdx);
+    if (braceStart < 0) return null;
+    const obj = extractBalancedJsonSpan(cleaned, braceStart, "{", "}");
+    if (!obj || obj.length < 60) return null;
+
+    try {
+      const parsed = JSON.parse(obj);
+      if (parsed?.narrative_script) return obj;
+    } catch {
+      if (/"narrative_script"\s*:\s*"(.{80,})/is.test(obj)) return obj;
+    }
+    return null;
+  }
+
+  function findScriptJsonResponse(beforeTexts) {
+    const all = collectModelTexts();
+    const fresh = all.filter((t) => isFreshModelText(t, beforeTexts));
+    for (const text of [...fresh].reverse()) {
+      const json = extractScriptJsonPayload(text);
+      if (json && json.length > 80) return json;
+    }
+    return null;
+  }
+
   function looksLikeMetadataResponse(text) {
     const t = String(text || "");
     return /##\s*T[ÍI]TULOS/i.test(t)
@@ -499,6 +541,53 @@
     throw new Error(
       "Timeout aguardando metadados do Gemini (150s). "
       + "A resposta apareceu em gemini.google.com? Recarregue a aba (F5) e tente de novo.",
+    );
+  }
+
+  async function waitForScriptResponse(beforeTexts, beforeMessages, submitStartedAt, deadline) {
+    const MIN_WAIT_MS = 8000;
+    const STABLE_MS = 1400;
+    let stableJson = "";
+    let stableSince = 0;
+    let lastLongText = "";
+
+    while (Date.now() < deadline) {
+      await sleep(450);
+      if (Date.now() - submitStartedAt < MIN_WAIT_MS) continue;
+
+      const json = findScriptJsonResponse(beforeTexts);
+      if (json) {
+        if (json === stableJson) {
+          const stableFor = Date.now() - stableSince;
+          if (stableFor >= STABLE_MS && !isGenerating()) return json;
+          if (stableFor >= STABLE_MS * 3) return json;
+        } else {
+          stableJson = json;
+          stableSince = Date.now();
+        }
+        continue;
+      }
+
+      const candidate = getLatestModelResponseText(beforeMessages, beforeTexts, {
+        expectMetadata: false,
+        submitStartedAt,
+        prompt: "",
+      });
+      if (candidate && /"narrative_script"/i.test(candidate)) {
+        if (candidate.length >= lastLongText.length) lastLongText = candidate;
+        const partial = extractScriptJsonPayload(candidate);
+        if (partial && partial.length > 180 && !isGenerating()) return partial;
+      }
+    }
+
+    const fallback = findScriptJsonResponse(beforeTexts)
+      || extractScriptJsonPayload(lastLongText);
+    if (fallback && fallback.length > 80) return fallback;
+    if (lastLongText.length >= 240) return lastLongText;
+
+    throw new Error(
+      "Timeout aguardando narração do Gemini (240s). "
+      + "Veja se a resposta apareceu em gemini.google.com — recarregue a aba (F5) e tente de novo.",
     );
   }
 
@@ -985,6 +1074,7 @@
     const metadataSession = extractMetadataSessionFromPrompt(prompt);
     const expectOverlayJson = isOverlayPlanningPrompt(prompt);
     const expectMetadata = isMetadataPrompt(prompt);
+    const expectScriptJson = isScriptPrompt(prompt);
     const submitStartedAt = Date.now();
     let activeInput = input;
     const filled = await ensureInputFilled(activeInput, prompt);
@@ -1015,10 +1105,18 @@
       );
     }
 
-    const deadline = Date.now() + (expectMetadata ? 150000 : 130000);
+    const deadline = Date.now() + (
+      expectMetadata ? 150000
+        : expectScriptJson ? 240000
+          : expectOverlayJson ? 150000
+            : 130000
+    );
 
     if (expectMetadata) {
       return waitForMetadataResponse(before, beforeMessages, submitStartedAt, deadline, metadataSession);
+    }
+    if (expectScriptJson) {
+      return waitForScriptResponse(before, beforeMessages, submitStartedAt, deadline);
     }
     if (expectOverlayJson) {
       return waitForOverlayResponse(before, beforeMessages, knownOverlayJson, planSession, submitStartedAt, deadline);
@@ -1035,6 +1133,7 @@
       if (candidate === lastCandidate) {
         stableHits += 1;
         if (stableHits >= 2 && !isGenerating()) return candidate;
+        if (stableHits >= 5 && candidate.length > 600) return candidate;
       } else {
         lastCandidate = candidate;
         stableHits = 0;
