@@ -91,6 +91,13 @@ import {
 } from "./youtubeStudioAdvanced.js";
 import { runCompetitorResearch } from "./competitorResearch.js";
 import {
+  appendPlanToObsidian,
+  LUMIERA_AGENT_REGISTRY,
+  LUMIERA_INTENT_MAP,
+  planVideoAgentLocally,
+  planVideoAgentWithLlm,
+} from "./videoAgentPlanner.js";
+import {
   addChannelNote,
   appendReplyHistory,
   buildApprovalQueueFromComments,
@@ -1868,6 +1875,88 @@ app.post("/api/studio-agents/consolidate", (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ error: "Erro ao consolidar memória", details: err.message });
+  }
+});
+
+app.get("/api/ai/video-agent/registry", (_req, res) => {
+  res.json({
+    intents: LUMIERA_INTENT_MAP,
+    agents: LUMIERA_AGENT_REGISTRY,
+    source: "HKUDS/VideoAgent (adaptado Lumiera)",
+  });
+});
+
+app.post("/api/ai/video-agent/plan", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const {
+      requirement = "",
+      format: formatRaw = "SHORTS",
+      niche = "",
+      useAi = true,
+      enqueueQueue = false,
+    } = req.body || {};
+
+    const requirementText = String(requirement || "").trim();
+    if (!requirementText) {
+      return res.status(400).json({ error: "Descreva o que você quer produzir (requirement)." });
+    }
+
+    const format = String(formatRaw || "SHORTS").toUpperCase() === "LONGO" ||
+      String(formatRaw || "").toUpperCase() === "LONG"
+      ? "LONGO"
+      : "SHORTS";
+
+    const browserText = extractBrowserResponse(req.body);
+    let plan;
+
+    if (browserText) {
+      const llmFn = async () => browserText;
+      plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+      plan.aiEnhanced = true;
+      plan.source = "videoagent-lumiera-browser";
+    } else if (useAi) {
+      let browserPending = false;
+      const llmFn = async (prompt) => {
+        const text = await callGeminiLlm(req, res, projDir, {
+          title: "VideoAgent · Plano Lumiera",
+          prompt,
+          temperature: 0.55,
+        });
+        if (text == null) {
+          browserPending = true;
+          return "";
+        }
+        return text;
+      };
+      plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+      if (browserPending) return;
+    } else {
+      plan = planVideoAgentLocally(requirementText, { format, niche });
+    }
+
+    const obsidian = appendPlanToObsidian(WORKSPACE_DIR, plan);
+
+    let editorialQueue = null;
+    if (enqueueQueue || /fila|editorial|concorrente|replicar/i.test(requirementText)) {
+      try {
+        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const title = requirementText.slice(0, 200);
+        const enqueued = enqueueEditorialIdeas(
+          WORKSPACE_DIR,
+          [{ title, hookPt: plan.reasoning?.slice(0, 300) || "", mechanic: "videoagent-plan" }],
+          { source: "videoagent-plan", format: format === "LONGO" ? "LONG" : "SHORTS" },
+        );
+        editorialQueue = { enqueued: 1, total: enqueued.items.length };
+      } catch (err) {
+        console.warn("[VideoAgentPlanner] Fila editorial:", err.message);
+      }
+    }
+
+    res.json({ ok: true, plan, obsidian, editorialQueue });
+  } catch (err) {
+    console.error("[VideoAgentPlanner]", err.message);
+    res.status(500).json({ error: "Falha ao planejar vídeo", details: err.message });
   }
 });
 

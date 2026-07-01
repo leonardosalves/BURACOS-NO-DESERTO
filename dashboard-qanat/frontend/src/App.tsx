@@ -12456,6 +12456,7 @@ export default function App() {
                 projectVideoFormat={config?.video_format}
                 projectAspectRatio={config?.aspect_ratio}
                 getProjectUrl={getProjectUrl}
+                onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
               />
             </TabErrorBoundary>
           )}

@@ -34,6 +34,9 @@ OUTPUT/
 *.7z
 *.pdf
 
+# Vendor clones (referência local, não versionar)
+.vendor/
+
 # Temp files & tool directories
 .gemini/
 .tempmediaStorage/
