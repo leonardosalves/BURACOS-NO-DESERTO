@@ -123,6 +123,12 @@ export async function queryGeminiViaExtension(prompt: string): Promise<string> {
   return String(resp.text || '').trim();
 }
 
+/** Captura manualmente o JSON de narração já visível em gemini.google.com */
+export async function captureGeminiNarrationNow(): Promise<string> {
+  const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_CAPTURE' }, 45000);
+  return String(resp.text || '').trim();
+}
+
 function isRetryableGeminiError(err: unknown): boolean {
   const msg = String(err instanceof Error ? err.message : err);
   if (/timeout aguardando|demorou demais/i.test(msg)) return false;

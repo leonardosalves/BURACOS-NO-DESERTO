@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.5.1";
+  const VERSION = "2.0.0";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -345,14 +345,65 @@
     return script.length >= 120 || tech.length >= 120;
   }
 
-  function looksLikeNarrationCandidate(text) {
+  function looksLikeNarrationCandidate(text, opts = {}) {
     const t = normalizeCapturedModelText(String(text || "").trim());
-    if (t.length < 100) return false;
     if (!/["']?narrative_script["']?\s*:/i.test(t)) return false;
-    if (/["']?narrative_script["']?\s*:\s*["']/i.test(t) && t.length >= 160) return true;
-    if (/["']?strategy["']?\s*:\s*\{/.test(t) && t.length >= 180) return true;
+    if (opts.manual) return t.length >= 60;
+    if (t.length < 80) return false;
+    if (/["']?narrative_script["']?\s*:\s*["']/i.test(t) && t.length >= 120) return true;
+    if (/["']?strategy["']?\s*:\s*\{/.test(t) && t.length >= 140) return true;
     if (looksLikeLumieraPrompt(t) && !/["']?technical_config["']?\s*:/i.test(t)) return false;
-    return t.length >= 140;
+    return t.length >= 100;
+  }
+
+  async function tryClipboardCapture() {
+    const root = getLatestModelMessageRoot();
+    if (!root) return "";
+    const copyBtn = [...root.querySelectorAll("button, [role='button']")].find((btn) => {
+      const label = `${btn.getAttribute("aria-label") || ""} ${btn.getAttribute("mattooltip") || btn.getAttribute("matTooltip") || ""}`.toLowerCase();
+      return /copy|copiar/.test(label);
+    });
+    if (!copyBtn) return "";
+    clickElement(copyBtn);
+    await sleep(500);
+    try {
+      const text = await navigator.clipboard.readText();
+      return normalizeCapturedModelText(text);
+    } catch {
+      return "";
+    }
+  }
+
+  function collectNarrationCandidates(session = {}) {
+    const { beforeTexts = [], beforeMessageCount = 0, manual = false } = session;
+    const candidates = [];
+    const push = (text) => {
+      const n = normalizeCapturedModelText(text);
+      if (looksLikeNarrationCandidate(n, { manual })) candidates.push(n);
+    };
+
+    if (manual) {
+      collectModelTexts().forEach(push);
+      snapshotModelMessages().forEach((entry) => push(entry?.text || ""));
+    } else {
+      push(readScriptCandidateText(beforeTexts, [], beforeMessageCount));
+      push(getLatestNewModelText(beforeMessageCount, beforeTexts));
+    }
+    return [...new Set(candidates)].sort((a, b) => b.length - a.length);
+  }
+
+  async function captureScriptResponseNow(session = {}) {
+    const clip = await tryClipboardCapture();
+    if (clip && looksLikeNarrationCandidate(clip, { manual: true })) {
+      return pickScriptResponsePayload(clip) || clip;
+    }
+
+    for (const raw of collectNarrationCandidates(session)) {
+      const payload = pickScriptResponsePayload(raw);
+      if (payload) return payload;
+      if (!isGeminiStillStreaming() && raw.length >= 300) return raw;
+    }
+    return null;
   }
 
   function salvageScriptJsonText(text) {
@@ -1246,6 +1297,51 @@
     return isGenerating();
   }
 
+  async function submitPromptOnly(prompt) {
+    const input = findInput();
+    if (!input) {
+      throw new Error("Campo do Gemini não encontrado. Abra https://gemini.google.com/app logado.");
+    }
+
+    const before = collectModelTexts();
+    const beforeMessages = snapshotModelMessages();
+    const beforeMessageCount = beforeMessages.length;
+    const submitStartedAt = Date.now();
+    let activeInput = input;
+    const filled = await ensureInputFilled(activeInput, prompt);
+    if (!filled) {
+      activeInput = findInput() || activeInput;
+      focusInputChain(activeInput);
+      await sleep(400);
+      const retryFilled = await ensureInputFilled(activeInput, prompt, 2);
+      if (!retryFilled) {
+        throw new Error(
+          "O Gemini não reconheceu o texto no campo. "
+          + "Deixe gemini.google.com visível e logado; recarregue a aba (F5) e tente de novo.",
+        );
+      }
+    }
+
+    const inputLen = getInputText(activeInput).length;
+    const sent = await trySubmit(activeInput);
+    if (!sent) {
+      const btn = findSendButton(activeInput);
+      const btnState = btn
+        ? `botão=${btn.getAttribute("aria-label") || "sem-label"}, habilitado=${isBtnEnabled(btn)}`
+        : "botão não encontrado";
+      throw new Error(
+        `Não consegui enviar no Gemini (${btnState}, texto=${inputLen} chars). `
+        + "Recarregue a extensão, F5 no Lumiera e deixe gemini.google.com aberto.",
+      );
+    }
+
+    return {
+      beforeTexts: before,
+      beforeMessageCount,
+      submitStartedAt,
+    };
+  }
+
   async function submitPrompt(prompt) {
     const input = findInput();
     if (!input) {
@@ -1332,6 +1428,21 @@
     if (message?.type === "LUMIERA_GEMINI_PING") {
       sendResponse({ ok: true, version: VERSION });
       return;
+    }
+    if (message?.type === "LUMIERA_SUBMIT_ONLY") {
+      submitPromptOnly(String(message.prompt || ""))
+        .then((session) => sendResponse({ ok: true, session }))
+        .catch((err) => sendResponse({ ok: false, error: err?.message || String(err) }));
+      return true;
+    }
+    if (message?.type === "LUMIERA_CAPTURE_SCRIPT") {
+      captureScriptResponseNow(message.session || { manual: true, beforeTexts: [], beforeMessageCount: 0 })
+        .then((text) => {
+          if (text) sendResponse({ ok: true, text });
+          else sendResponse({ ok: false, error: "Narração ainda não detectada no chat." });
+        })
+        .catch((err) => sendResponse({ ok: false, error: err?.message || String(err) }));
+      return true;
     }
     if (message?.type !== "LUMIERA_RUN_PROMPT") return;
 

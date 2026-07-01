@@ -6,10 +6,16 @@ const LUMIERA_MATCH = [
   "http://localhost:5173/*",
 ];
 
+const EXT_VERSION = "2.0.0";
+
 let cachedGeminiTabId = null;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function isNarrationPrompt(prompt) {
+  return /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(String(prompt || ""));
 }
 
 function waitForTabComplete(tabId, timeoutMs = 20000) {
@@ -138,7 +144,57 @@ function sendTabMessageWithTimeout(tabId, message, timeoutMs = 300000) {
   });
 }
 
+async function captureOnGeminiTab(tabId, session) {
+  const cap = await sendTabMessageWithTimeout(
+    tabId,
+    { type: "LUMIERA_CAPTURE_SCRIPT", session },
+    20000,
+  );
+  if (cap?.ok && cap?.text) return String(cap.text).trim();
+  return "";
+}
+
+async function runNarrationPrompt(tabId, prompt) {
+  await ensureGeminiContentScript(tabId);
+  await injectGeminiScript(tabId);
+  await chrome.tabs.update(tabId, { active: true });
+  await sleep(400);
+
+  const submit = await sendTabMessageWithTimeout(tabId, { type: "LUMIERA_SUBMIT_ONLY", prompt }, 90000);
+  if (!submit?.ok || !submit?.session) {
+    throw new Error(submit?.error || "Falha ao enviar prompt no Gemini.");
+  }
+
+  const session = submit.session;
+  const deadline = Date.now() + 240000;
+  let lastError = "Narração ainda não detectada no chat.";
+
+  while (Date.now() < deadline) {
+    await sleep(1200);
+    await chrome.tabs.update(tabId, { active: true }).catch(() => {});
+    try {
+      const text = await captureOnGeminiTab(tabId, session);
+      if (text.length > 200) return text;
+      lastError = "Narração ainda não detectada no chat.";
+    } catch (err) {
+      lastError = String(err?.message || err);
+      await injectGeminiScript(tabId);
+    }
+  }
+
+  const last = await captureOnGeminiTab(tabId, { ...session, manual: true });
+  if (last.length > 200) return last;
+
+  throw new Error(
+    `${lastError} Abra gemini.google.com, confira a resposta JSON e use Capturar do Gemini no Lumiera.`,
+  );
+}
+
 async function runPromptOnTab(tabId, prompt) {
+  if (isNarrationPrompt(prompt)) {
+    return runNarrationPrompt(tabId, prompt);
+  }
+
   await ensureGeminiContentScript(tabId);
   await injectGeminiScript(tabId);
 
@@ -152,22 +208,11 @@ async function runPromptOnTab(tabId, prompt) {
     // segue mesmo se não conseguir focar a aba
   }
 
-  const isScriptPrompt = /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(String(prompt || ""));
-  const timeoutMs = isScriptPrompt ? 300000 : 200000;
-
-  const keepalive = isScriptPrompt
-    ? setInterval(() => {
-      chrome.tabs.update(tabId, { active: true }).catch(() => {});
-      chrome.tabs.sendMessage(tabId, { type: "LUMIERA_GEMINI_PING" }).catch(() => {});
-    }, 3000)
-    : null;
-
   try {
-    const resp = await sendTabMessageWithTimeout(tabId, { type: "LUMIERA_RUN_PROMPT", prompt }, timeoutMs);
+    const resp = await sendTabMessageWithTimeout(tabId, { type: "LUMIERA_RUN_PROMPT", prompt }, 200000);
     if (resp?.ok) return String(resp.text || "").trim();
     throw new Error(resp?.error || "Automação Gemini falhou.");
   } finally {
-    if (keepalive) clearInterval(keepalive);
     if (previousTabId) {
       try {
         await chrome.tabs.update(previousTabId, { active: true });
@@ -176,6 +221,23 @@ async function runPromptOnTab(tabId, prompt) {
       }
     }
   }
+}
+
+async function captureNarrationFromGemini() {
+  const tabId = await ensureGeminiTab();
+  await ensureGeminiContentScript(tabId);
+  await chrome.tabs.update(tabId, { active: true });
+  await sleep(300);
+  const text = await captureOnGeminiTab(tabId, { manual: true, beforeTexts: [], beforeMessageCount: 0 });
+  if (!text) {
+    throw new Error("Não achei JSON com narrative_script no Gemini. Copie a resposta ou gere de novo.");
+  }
+  return text;
+}
+
+async function handleGeminiQuery(prompt) {
+  const tabId = await ensureGeminiTab();
+  return runPromptOnTab(tabId, prompt);
 }
 
 chrome.runtime.onStartup.addListener(() => {
@@ -188,19 +250,30 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.5.1" });
+    sendResponse({ ok: true, version: EXT_VERSION });
     return;
   }
   if (message?.type === "LUMIERA_REINJECT_LUMIERA") {
     void reinjectLumieraBridge().then(() => sendResponse({ ok: true }));
     return true;
   }
+  if (message?.type === "LUMIERA_GEMINI_CAPTURE") {
+    (async () => {
+      try {
+        const text = await captureNarrationFromGemini();
+        sendResponse({ ok: true, text });
+      } catch (err) {
+        cachedGeminiTabId = null;
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
+    })();
+    return true;
+  }
   if (message?.type !== "LUMIERA_GEMINI_QUERY") return;
 
   (async () => {
     try {
-      const tabId = await ensureGeminiTab();
-      const text = await runPromptOnTab(tabId, message.prompt);
+      const text = await handleGeminiQuery(message.prompt);
       sendResponse({ ok: true, text });
     } catch (err) {
       cachedGeminiTabId = null;
