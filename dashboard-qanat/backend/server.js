@@ -6088,8 +6088,11 @@ async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride 
             responseText = msg.reasoning_content || msg.reasoning || "";
           }
           responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-          console.log(`[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt} (${responseText.length} chars)`);
-          return responseText;
+          if (responseText) {
+            console.log(`[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt} (${responseText.length} chars)`);
+            return responseText;
+          }
+          console.warn(`[NVIDIA API] ${model} retornou vazio na tentativa ${attempt}/${maxRetries}`);
         }
 
         const errData = await response.json().catch(() => ({}));
@@ -8733,53 +8736,54 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
   const useAi = req.body?.useAi !== false;
 
   try {
+    const LLM_TIMEOUT_MS = 90000;
+    const withTimeout = (promise, label) => Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)), LLM_TIMEOUT_MS);
+      }),
+    ]);
+
+    const tryCompetitorLlm = async (label, fn) => {
+      try {
+        const text = String(await withTimeout(fn(), label) || "").trim();
+        if (text) return text;
+        console.warn(`[CompetitorResearch] ${label}: resposta vazia`);
+      } catch (err) {
+        console.warn(`[CompetitorResearch] ${label} falhou:`, err.message);
+      }
+      return null;
+    };
+
     const llmFn = useAi
       ? async (prompt) => {
-          const failures = [];
-          const LLM_TIMEOUT_MS = 90000;
-          const withTimeout = (promise, label) => Promise.race([
-            promise,
-            new Promise((_, reject) => {
-              setTimeout(() => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)), LLM_TIMEOUT_MS);
-            }),
-          ]);
+          let text = null;
 
-          const tryLlm = async (label, fn) => {
-            try {
-              const text = String(await withTimeout(fn(), label) || "").trim();
-              if (text) return text;
-              failures.push(`${label}: resposta vazia`);
-            } catch (err) {
-              failures.push(`${label}: ${err.message}`);
-              console.warn(`[CompetitorResearch] ${label} falhou:`, err.message);
+          if (getAiProvider(WORKSPACE_DIR) === "nvidia") {
+            for (const model of NVIDIA_MODELS.slice(0, 4)) {
+              text = await tryCompetitorLlm(`nvidia-${model}`, () => callNvidiaWithRetry(prompt, {
+                maxRetries: 1,
+                models: [model],
+                temperature: 0.2,
+                projectDir: WORKSPACE_DIR,
+              }));
+              if (text) break;
             }
-            return null;
-          };
-
-          let text = await tryLlm("provider", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-            maxRetries: 1,
-            models: getAiProvider(WORKSPACE_DIR) === "nvidia"
-              ? NVIDIA_MODELS.slice(0, 1)
-              : [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash"],
-            temperature: 0.5,
-            projectDir: WORKSPACE_DIR,
-          }));
-
-          if (!text && getAiProvider(WORKSPACE_DIR) === "nvidia") {
-            text = await tryLlm("nvidia-alt", () => callNvidiaWithRetry(prompt, {
+          } else {
+            text = await tryCompetitorLlm("provider", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
               maxRetries: 1,
-              models: NVIDIA_MODELS.slice(1, 3),
-              temperature: 0.5,
+              models: [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash"],
+              temperature: 0.2,
               projectDir: WORKSPACE_DIR,
             }));
           }
 
           if (!text && getAiProvider(WORKSPACE_DIR) !== "nvidia") {
             for (const key of getApiKeys(WORKSPACE_DIR).slice(0, 2)) {
-              text = await tryLlm("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
+              text = await tryCompetitorLlm("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
                 maxRetries: 1,
                 models: ["gemini-2.0-flash"],
-                temperature: 0.5,
+                temperature: 0.2,
                 projectDir: WORKSPACE_DIR,
                 forceProvider: "gemini",
               }));
@@ -8787,8 +8791,31 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
             }
           }
 
+          return text;
+        }
+      : null;
+
+    const repairJsonFn = useAi
+      ? async (candidate) => {
+          const repairPrompt = `Corrija o JSON abaixo para sintaxe 100% válida. Preserve todos os textos. Retorne APENAS o JSON, sem markdown.\n\n${candidate}`;
+          let text = null;
+          for (const model of ["qwen/qwen3.5-397b-a17b", "moonshotai/kimi-k2.6", "deepseek/deepseek-v4-flash"]) {
+            text = await tryCompetitorLlm(`json-repair-${model}`, () => callNvidiaWithRetry(repairPrompt, {
+              maxRetries: 1,
+              models: [model],
+              temperature: 0,
+              projectDir: WORKSPACE_DIR,
+            }));
+            if (text) break;
+          }
           if (!text) {
-            console.warn("[CompetitorResearch] IA esgotada:", failures.join(" | "));
+            text = await tryCompetitorLlm("json-repair-gemini", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), repairPrompt, {
+              maxRetries: 1,
+              models: ["gemini-2.0-flash"],
+              temperature: 0,
+              projectDir: WORKSPACE_DIR,
+              forceProvider: "gemini",
+            }));
           }
           return text;
         }
@@ -8800,6 +8827,7 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
       maxCompetitors,
       seedChannels,
       llmFn,
+      repairJsonFn,
     });
     res.json(report);
   } catch (err) {

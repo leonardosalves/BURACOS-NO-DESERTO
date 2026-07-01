@@ -108,7 +108,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
       const n = (data.outliers || []).length;
       const ideas = (data.analysis?.derivedIdeas || []).length;
       const base = `Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias → Obsidian`;
-      toast(data.aiAnalysisWarning ? `${base} (${data.aiAnalysisWarning})` : base);
+      toast(data.aiAnalysisFailed ? `${base} (${data.aiAnalysisWarning || 'análise básica'})` : base);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro na pesquisa de concorrentes');
     } finally {
