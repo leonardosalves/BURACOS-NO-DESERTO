@@ -835,6 +835,96 @@
     border-color: rgba(130, 128, 253, 0.2);
   }
 
+  /* ── YouTube Studio panels ── */
+  .dash-studio-stat {
+    @apply p-3 rounded-xl;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border-soft);
+  }
+
+  .dash-studio-stat-sm {
+    @apply p-2.5 rounded-xl border;
+    background: var(--dash-bg);
+    border-color: var(--dash-border);
+  }
+
+  .dash-studio-tab-group {
+    @apply flex gap-1 p-1 rounded-xl;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-studio-tab {
+    @apply flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-colors border border-transparent cursor-pointer;
+    color: var(--dash-muted);
+  }
+
+  .dash-studio-tab:hover {
+    color: #fff;
+  }
+
+  .dash-studio-tab-active {
+    background: rgba(130, 128, 253, 0.14) !important;
+    color: var(--dash-primary-light) !important;
+    border-color: rgba(130, 128, 253, 0.35) !important;
+  }
+
+  .dash-studio-tab-flex {
+    @apply flex-1;
+  }
+
+  .dash-studio-detail-panel {
+    @apply mt-4 p-4 rounded-xl border;
+    background: rgba(130, 128, 253, 0.06);
+    border-color: rgba(130, 128, 253, 0.22);
+  }
+
+  .dash-studio-chart-panel {
+    @apply flex items-end gap-px h-20 rounded-lg p-2;
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-studio-chart-bar {
+    @apply w-full rounded-t-sm min-h-[4px];
+    background: rgba(130, 128, 253, 0.55);
+  }
+
+  .dash-studio-chart-bar-strong {
+    background: var(--dash-primary);
+  }
+
+  .dash-studio-chart-bar-info {
+    @apply w-full rounded-t min-h-[4px];
+    background: rgba(8, 184, 196, 0.55);
+  }
+
+  .dash-studio-row-hot {
+    background: rgba(130, 128, 253, 0.04);
+  }
+
+  .dash-studio-row-selected {
+    background: rgba(130, 128, 253, 0.1) !important;
+    box-shadow: inset 0 0 0 1px rgba(130, 128, 253, 0.28);
+  }
+
+  .dash-studio-heatmap-bar {
+    @apply w-full rounded-t min-h-[6px];
+    background: rgba(130, 128, 253, 0.45);
+  }
+
+  .dash-studio-heatmap-bar-best {
+    background: var(--dash-primary);
+  }
+
+  .dash-studio-heatmap-hour {
+    background: rgba(8, 184, 196, 0.45);
+  }
+
+  .dash-studio-heatmap-hour-best {
+    background: var(--dash-info);
+  }
+
   .dash-logo-preview {
     @apply rounded-xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden;
     background: var(--dash-bg);

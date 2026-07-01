@@ -121,7 +121,7 @@ function HeatmapHourStrip({
               title={`${slot.label}: ${slot.views.toLocaleString('pt-BR')} views`}
             >
               <div
-                className={`w-full rounded-t min-h-[3px] ${isBest ? 'bg-amber-400' : 'bg-amber-500/50'}`}
+                className={`dash-studio-heatmap-hour min-h-[3px] ${isBest ? 'dash-studio-heatmap-hour-best' : ''}`}
                 style={{ height: `${barHeight}px` }}
               />
             </div>
@@ -153,7 +153,7 @@ function HeatmapDailyStrip({ daily }: { daily: Array<{ day: string; views: numbe
               className="flex-1 flex flex-col justify-end h-full"
               title={`${day.day}: ${day.views.toLocaleString('pt-BR')} views`}
             >
-              <div className="w-full rounded-t bg-orange-500/40 min-h-[3px]" style={{ height: `${h}px` }} />
+              <div className="dash-studio-heatmap-bar min-h-[3px]" style={{ height: `${h}px` }} />
             </div>
           );
         })}
@@ -176,7 +176,7 @@ function ProSectionCard({
   className?: string;
 }) {
   return (
-    <div className={`p-3 rounded-xl bg-zinc-950 border border-zinc-800 ${className}`}>
+    <div className={`dash-settings-card rounded-xl ${className}`}>
       <p className="text-[10px] font-bold text-zinc-300 flex items-center gap-1 mb-2">
         {icon}
         {title}
@@ -198,7 +198,7 @@ function MilestoneBar({ label, data }: { label: string; data?: Milestone }) {
       </div>
       <div className="h-1.5 rounded-full bg-zinc-900 overflow-hidden">
         <div
-          className={`h-full rounded-full ${data.met ? 'bg-emerald-500' : 'bg-gold-500'}`}
+          className={`h-full rounded-full ${data.met ? 'bg-[var(--dash-success)]' : 'bg-[var(--dash-primary)]'}`}
           style={{ width: `${Math.min(100, data.progressPct)}%` }}
         />
       </div>
@@ -415,7 +415,7 @@ export function YoutubeStudioPro({
           type="button"
           onClick={loadDashboard}
           disabled={loading}
-          className="text-[9px] px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white"
+          className="dash-btn-ghost text-[9px] px-2 py-1"
         >
           {loading ? 'Atualizando…' : 'Atualizar'}
         </button>
@@ -428,20 +428,20 @@ export function YoutubeStudioPro({
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className={`p-2.5 rounded-xl border ${inbox?.inboxZero ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-zinc-950 border-zinc-800'}`}>
+            <div className={`dash-studio-stat-sm ${inbox?.inboxZero ? 'bg-emerald-500/10 border-emerald-500/25' : ''}`}>
               <p className="text-[8px] text-zinc-500 uppercase flex items-center gap-1"><Inbox className="w-3 h-3" /> Pendentes</p>
               <p className="text-base font-bold text-white tabular-nums">{inbox?.pending ?? '—'}</p>
             </div>
-            <div className={`p-2.5 rounded-xl border ${(inbox?.overdue ?? 0) > 0 ? 'bg-red-500/10 border-red-500/25' : 'bg-zinc-950 border-zinc-800'}`}>
+            <div className={`dash-studio-stat-sm ${(inbox?.overdue ?? 0) > 0 ? 'bg-red-500/10 border-red-500/25' : ''}`}>
               <p className="text-[8px] text-zinc-500 uppercase flex items-center gap-1"><Clock className="w-3 h-3" /> SLA+</p>
               <p className="text-base font-bold text-red-300 tabular-nums">{inbox?.overdue ?? 0}</p>
             </div>
-            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
-              <p className="text-[8px] text-zinc-500 uppercase">Fila</p>
+            <div className="dash-studio-stat-sm">
+              <p className="text-[8px] text-[var(--dash-muted)] uppercase">Fila</p>
               <p className="text-base font-bold text-cyan-300 tabular-nums">{inbox?.queuePending ?? 0}</p>
             </div>
-            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
-              <p className="text-[8px] text-zinc-500 uppercase flex items-center gap-1"><History className="w-3 h-3" /> Histórico</p>
+            <div className="dash-studio-stat-sm">
+              <p className="text-[8px] text-[var(--dash-muted)] uppercase flex items-center gap-1"><History className="w-3 h-3" /> Histórico</p>
               <p className="text-base font-bold text-zinc-200 tabular-nums">{inbox?.repliesLogged ?? 0}</p>
             </div>
           </div>
@@ -467,17 +467,13 @@ export function YoutubeStudioPro({
             </div>
           )}
 
-          <div className="flex gap-1 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+          <div className="dash-studio-tab-group">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-violet-500/15 text-violet-200 border border-violet-500/25'
-                    : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
-                }`}
+                className={`dash-studio-tab dash-studio-tab-flex ${activeTab === tab.id ? 'dash-studio-tab-active' : ''}`}
               >
                 {tab.icon}
                 {tab.label}
@@ -498,7 +494,7 @@ export function YoutubeStudioPro({
                     title="Monetização YPP"
                     icon={
                       <>
-                        <Award className="w-3.5 h-3.5 text-gold-400" />
+                        <Award className="w-3.5 h-3.5 text-[var(--dash-primary)]" />
                         {(dashboard.ypp.eligibleStandard || dashboard.ypp.eligibleShorts) && (
                           <span className="text-[8px] text-emerald-400 font-bold ml-1">ELEGÍVEL</span>
                         )}
@@ -517,7 +513,7 @@ export function YoutubeStudioPro({
                 {dashboard?.heatmap && (
                   <ProSectionCard
                     title="Heatmap — quando publicar"
-                    icon={<Flame className="w-3.5 h-3.5 text-orange-400" />}
+                    icon={<Flame className="w-3.5 h-3.5 text-[var(--dash-warning)]" />}
                   >
                     {dashboard.heatmap.available && (dashboard.heatmap.byWeekday?.length ?? 0) > 0 ? (
                       <>
@@ -532,10 +528,10 @@ export function YoutubeStudioPro({
                                 title={`${d.label}: ~${d.avgViews} views/dia`}
                               >
                                 <div
-                                  className={`w-full rounded-t min-h-[6px] ${isBest ? 'bg-orange-400' : 'bg-orange-500/70'}`}
+                                  className={`dash-studio-heatmap-bar min-h-[6px] ${isBest ? 'dash-studio-heatmap-bar-best' : ''}`}
                                   style={{ height: `${barHeight}px` }}
                                 />
-                                <span className={`text-[8px] ${isBest ? 'text-orange-400 font-semibold' : 'text-zinc-600'}`}>
+                                <span className={`text-[8px] ${isBest ? 'text-[var(--dash-primary)] font-semibold' : 'text-[var(--dash-muted)]'}`}>
                                   {d.label}
                                 </span>
                               </div>
@@ -543,7 +539,7 @@ export function YoutubeStudioPro({
                           })}
                         </div>
                         {(dashboard.heatmap.recommendedPublishTime || dashboard.heatmap.bestWeekday) && (
-                          <p className="text-[8px] text-orange-400/90 mt-1">
+                          <p className="text-[8px] text-[var(--dash-primary-light)] mt-1">
                             Melhor para publicar:{' '}
                             <span className="font-semibold">
                               {dashboard.heatmap.recommendedPublishTime || dashboard.heatmap.bestWeekday!.label}
@@ -557,7 +553,7 @@ export function YoutubeStudioPro({
                           />
                         )}
                         {dashboard.heatmap.bestTimeWindow && (
-                          <p className="text-[8px] text-amber-400/80 mt-1">
+                          <p className="text-[8px] text-[var(--dash-info)] mt-1">
                             Pico de horário: <span className="font-semibold">{dashboard.heatmap.bestTimeWindow}</span>
                             {dashboard.heatmap.timeZone === 'America/Sao_Paulo' ? ' (Brasília)' : ''}
                           </p>
@@ -577,7 +573,7 @@ export function YoutubeStudioPro({
                               type="button"
                               title="Define data/hora na aba Upload e abre o projeto"
                               onClick={() => onSchedulePublish(dashboard.heatmap!.suggestedPublishSlot!)}
-                              className="text-[8px] px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:text-orange-200"
+                              className="dash-btn-primary text-[8px] px-2 py-1"
                             >
                               Agendar no Upload →
                             </button>
@@ -605,7 +601,7 @@ export function YoutubeStudioPro({
                           <span className="text-zinc-200">{op.keyword}</span> · {op.mentions}×
                         </span>
                         {onApplyIdea && (
-                          <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(op.titleIdea)} className="text-gold-400 shrink-0 text-[8px]">Creator ▶</button>
+                          <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(op.titleIdea)} className="text-[var(--dash-primary)] shrink-0 text-[8px]">Creator ▶</button>
                         )}
                       </li>
                     ))}
@@ -637,7 +633,7 @@ export function YoutubeStudioPro({
 
           {activeTab === 'inbox' && (
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
+              <div className="flex flex-wrap items-center gap-2 dash-studio-stat-sm">
                 <label className="text-[8px] text-zinc-500">SLA</label>
                 <input
                   type="number"
@@ -673,8 +669,8 @@ export function YoutubeStudioPro({
                         onClick={() => switchChannel(ch.id)}
                         className={`text-[8px] px-2 py-1 rounded-lg border ${
                           ch.selected
-                            ? 'bg-gold-500/15 text-gold-300 border-gold-500/30'
-                            : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300'
+                            ? 'dash-studio-tab-active'
+                            : 'dash-option-btn text-[8px] px-2 py-1'
                         }`}
                       >
                         {ch.title}
@@ -710,7 +706,7 @@ export function YoutubeStudioPro({
                             type="button"
                             disabled={sendingId === item.id}
                             onClick={() => queueAction(item.id, 'send', queueEdits[item.id] ?? item.suggestedText)}
-                            className="text-[8px] px-2 py-0.5 rounded bg-gold-500/15 border border-gold-500/30 text-gold-300 inline-flex items-center gap-1"
+                            className="dash-btn-primary text-[8px] px-2 py-0.5 inline-flex items-center gap-1"
                           >
                             {sendingId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                             Enviar
