@@ -109,6 +109,10 @@ export function extractSourceIdFromFilename(filename = "") {
   if (pexels) return `pexels:${pexels[1]}`;
   const pixabay = base.match(/(?:^|_)pixabay_(\d+)(?:_|\.)/i);
   if (pixabay) return `pixabay:${pixabay[1]}`;
+  const bing = base.match(/(?:^|_)bing_([a-f0-9]{8,16})(?:_|\.)/i);
+  if (bing) return `bing:${bing[1]}`;
+  const archive = base.match(/(?:^|_)archive_([a-z0-9_-]+)(?:_|\.)/i);
+  if (archive) return `archive:${archive[1]}`;
   return "";
 }
 

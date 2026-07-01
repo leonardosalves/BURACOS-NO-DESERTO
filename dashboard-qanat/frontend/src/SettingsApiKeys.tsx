@@ -123,7 +123,7 @@ export function SettingsApiKeys({
             />
           </div>
           <p className="text-[10px] text-[var(--dash-muted)] leading-relaxed">
-            Pelo menos uma chave de stock habilita o buscador automático de B-roll no Creator.
+            Pexels ou Pixabay aceleram o B-roll; sem chaves, o Lumiera usa Bing Images (scrap) e Archive.org para imagens.
           </p>
         </div>
       </div>

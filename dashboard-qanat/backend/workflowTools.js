@@ -33,6 +33,7 @@ import {
   registerStockUsage,
 } from "./mediaUsageRegistry.js";
 import { searchArchiveOrgMedia } from "./archiveOrgStock.js";
+import { searchBingImagesMedia } from "./bingImageStock.js";
 
 const NARRATION_FILENAME = "narracao_mestra_premium.mp3";
 
@@ -337,12 +338,13 @@ export async function fetchStockForScenes(projDir, {
     isVideo: isVideoScene(vp),
   }));
 
+  const useBing = config.use_bing_images !== false;
   const useArchive = config.use_archive_org !== false;
 
-  if (!keys.pexels && !keys.pixabay && !useArchive) {
+  if (!keys.pexels && !keys.pixabay && !useBing && !useArchive) {
     return {
       success: false,
-      error: "Configure Pexels/Pixabay ou mantenha Archive.org ativo em Configurações → APIs & Mídia.",
+      error: "Configure Pexels/Pixabay ou mantenha Bing Images / Archive.org ativos.",
       fetched: [],
       skipped: targets.length,
     };
@@ -368,6 +370,10 @@ export async function fetchStockForScenes(projDir, {
       media = await searchPexels(query, { apiKey: keys.pexels, isVideo: target.isVideo, skipSourceIds });
       if (!media && keys.pixabay) {
         media = await searchPixabay(query, { apiKey: keys.pixabay, isVideo: target.isVideo, skipSourceIds });
+      }
+      if (!media && useBing && !target.isVideo) {
+        media = await searchBingImagesMedia(query, { skipSourceIds });
+        if (media) onLog(`[Stock] Bing Images: "${query}" → ${media.sourceId}`);
       }
       if (!media && useArchive) {
         media = await searchArchiveOrgMedia(query, {
