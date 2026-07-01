@@ -135,6 +135,7 @@ import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
 import { AppShell } from './AppShell';
+import { resolveStockSearchQuery } from './stockSearchQuery';
 import type { AppTab } from './appTabs';
 import { isGlobalViewTab, RESTORABLE_APP_TABS } from './appTabs';
 
@@ -15163,7 +15164,10 @@ export default function App() {
 
                                       const isVideo = vp?.type?.toLowerCase()?.includes("vídeo") || vp?.type?.toLowerCase()?.includes("video") || false;
 
-                                      const searchQuery = vp?.stock_query || 'cinematic';
+                                      const searchQuery = resolveStockSearchQuery(vp, {
+                                        strategyTitle: generatedScriptData?.strategy?.title_main || '',
+                                        projectTitle: customTitle?.trim() || '',
+                                      });
 
                                       const sceneDurationSeconds = getSceneDurationSeconds(vp);
 

@@ -1,5 +1,7 @@
 /** Regras e pós-processamento para roteiros naturais, coerentes e com mensagem clara. */
 
+import { resolveStockSearchQuery } from "./stockSearchQuery.js";
+
 export const ROBOTIC_PHRASE_PATTERNS = [
   /neste vídeo vamos/gi,
   /sem mais delongas/gi,
@@ -1362,16 +1364,19 @@ export function buildDeterministicVisualPromptsFromNarration(
   const text = String(approvedNarration || "").trim();
   if (!text) return [];
   const sentences = text.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter((s) => s.length > 8);
+  const resolveSceneStockQuery = (scene) => resolveStockSearchQuery(scene, { strategyTitle: ideaTitle });
   if (!sentences.length) {
+    const narration_text = text.slice(0, 280);
+    const prompt = `Photorealistic 2k cinematic documentary scene illustrating: ${narration_text.slice(0, 160)}. Dramatic lighting, sharp detail, no text.`;
     return [{
       scene: "1.1",
       block: 1,
-      narration_text: text.slice(0, 280),
+      narration_text,
       type: "imagem IA 2k",
       duration: "5 segundos",
-      prompt: `Photorealistic 2k cinematic documentary scene related to ${ideaTitle || "the topic"}. Dramatic lighting, sharp detail, no text.`,
+      prompt,
       editor_notes: "Ken Burns zoom in",
-      stock_query: ideaTitle || "documentary",
+      stock_query: resolveSceneStockQuery({ narration_text, prompt }),
     }];
   }
   const targetScenes = format === "SHORTS" ? Math.min(12, Math.max(5, sentences.length)) : Math.min(50, Math.max(20, sentences.length));
@@ -1381,15 +1386,16 @@ export function buildDeterministicVisualPromptsFromNarration(
   let sceneInBlock = 1;
   for (let i = 0; i < sentences.length; i += perScene) {
     const chunk = sentences.slice(i, i + perScene).join(" ");
+    const prompt = `Photorealistic 2k cinematic scene illustrating: ${chunk.slice(0, 160)}. Documentary style, dramatic lighting, no text.`;
     vps.push({
       scene: `${block}.${sceneInBlock}`,
       block,
       narration_text: chunk,
       type: "imagem IA 2k",
       duration: "4 segundos",
-      prompt: `Photorealistic 2k cinematic scene illustrating: ${chunk.slice(0, 160)}. Documentary style, dramatic lighting, no text.`,
+      prompt,
       editor_notes: "Ken Burns zoom in",
-      stock_query: ideaTitle || "documentary scene",
+      stock_query: resolveSceneStockQuery({ narration_text: chunk, prompt }),
     });
     sceneInBlock += 1;
     if (sceneInBlock > Math.max(2, Math.ceil(blockCount / 4))) {
