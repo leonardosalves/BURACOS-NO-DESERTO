@@ -3661,6 +3661,32 @@ app.post("/api/render/plan-overlays", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const useHyperframes = req.body?.hyperframes === true;
+    const forceRegenerate = req.body?.force === true;
+
+    // Check if overlays were already planned — skip AI if they exist
+    if (!forceRegenerate) {
+      const existingSb = readProjectJson(projDir, "storyboard.json", {});
+      const existingOverlays = Array.isArray(existingSb.overlays_ai) && existingSb.overlays_ai.length > 0
+        ? existingSb.overlays_ai
+        : (Array.isArray(existingSb.overlays) && existingSb.overlays.length > 0
+          ? existingSb.overlays.filter(o => o && o.id && !String(o.id).startsWith("sys-"))
+          : []);
+
+      if (existingOverlays.length > 0) {
+        const planToken = existingSb.overlays_plan_token || `cached-${Date.now()}`;
+        console.log(`[Plan Overlays] Overlays já existem (${existingOverlays.length} itens, token=${planToken}) — pulando chamada à IA.`);
+        return res.json({
+          success: true,
+          overlayCount: existingOverlays.length,
+          plannedAt: existingSb.overlays_planned_at || new Date().toISOString(),
+          hyperframes: existingSb.overlays_hyperframes || false,
+          planToken,
+          source: "cached",
+          skippedAi: true,
+        });
+      }
+    }
+
     const browserTextRaw = extractBrowserResponse(req.body);
     const browserText = browserTextRaw
       ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
