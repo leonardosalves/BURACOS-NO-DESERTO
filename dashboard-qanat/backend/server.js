@@ -400,6 +400,71 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+function resolveProjectDirFromName(rawProjName) {
+  if (!rawProjName) return null;
+
+  const decoded = decodeURIComponent(String(rawProjName));
+  const candidates = [
+    rawProjName,
+    decoded,
+    String(rawProjName).replace(/ /g, "_"),
+    decoded.replace(/ /g, "_"),
+  ];
+  const unique = [...new Set(candidates.filter(Boolean))];
+
+  const tryDir = (name) => {
+    for (const parent of [LONGS_DIR, SHORTS_DIR, WORKSPACE_DIR]) {
+      const dir = path.join(parent, name);
+      if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) return dir;
+    }
+    return null;
+  };
+
+  for (const name of unique) {
+    const hit = tryDir(name);
+    if (hit) return hit;
+  }
+
+  const prefix = unique.sort((a, b) => b.length - a.length)[0];
+  if (prefix && prefix.length >= 10) {
+    const matches = [];
+    for (const parent of [LONGS_DIR, SHORTS_DIR]) {
+      if (!fs.existsSync(parent)) continue;
+      for (const item of fs.readdirSync(parent)) {
+        const full = path.join(parent, item);
+        try {
+          if (fs.statSync(full).isDirectory() && item.startsWith(prefix)) matches.push(full);
+        } catch {
+          /* skip */
+        }
+      }
+    }
+    if (matches.length === 1) return matches[0];
+  }
+
+  const slugParts = String(prefix || unique[0] || "").split("_").filter(Boolean);
+  if (slugParts.length >= 2) {
+    const head = slugParts.slice(0, 2).join("_");
+    const headMatches = [];
+    for (const parent of [LONGS_DIR, SHORTS_DIR]) {
+      if (!fs.existsSync(parent)) continue;
+      for (const item of fs.readdirSync(parent)) {
+        const full = path.join(parent, item);
+        try {
+          if (fs.statSync(full).isDirectory() && (item === head || item.startsWith(`${head}_`))) {
+            headMatches.push(full);
+          }
+        } catch {
+          /* skip */
+        }
+      }
+    }
+    if (headMatches.length === 1) return headMatches[0];
+  }
+
+  return null;
+}
+
 app.use("/api/projects-media", (req, res, next) => {
 
   const decodedUrl = decodeURIComponent(req.path);
@@ -412,67 +477,41 @@ app.use("/api/projects-media", (req, res, next) => {
 
   }
 
-  
+  if (parts[0] === "ASSETS") {
 
-  const projName = parts[0].replace(/ /g, "_");
-
-  
-
-  // Decide where this file lives
-
-  let projDir = WORKSPACE_DIR;
-
-  if (projName === "ASSETS") {
-
-    projDir = WORKSPACE_DIR;
-
-    const fileSubpath = parts.join("/");
-
-    const fullFilePath = path.join(projDir, fileSubpath);
+    const fullFilePath = path.join(WORKSPACE_DIR, parts.join("/"));
 
     if (fs.existsSync(fullFilePath)) {
 
-      return res.sendFile(fullFilePath);
+      return res.sendFile(path.resolve(fullFilePath));
 
     }
 
-  } else {
-
-    const candidateLong = path.join(LONGS_DIR, projName);
-
-    const candidateShort = path.join(SHORTS_DIR, projName);
-
-    
-
-    if (fs.existsSync(candidateLong)) {
-
-      projDir = candidateLong;
-
-    } else if (fs.existsSync(candidateShort)) {
-
-      projDir = candidateShort;
-
-    } else {
-
-      projDir = path.join(WORKSPACE_DIR, projName);
-
-    }
-
-    
-
-    const fileSubpath = parts.slice(1).join("/");
-
-    const fullFilePath = path.join(projDir, fileSubpath);
-
-    if (fs.existsSync(fullFilePath)) {
-
-      return res.sendFile(fullFilePath);
-
-    }
+    return res.status(404).json({ error: "Arquivo não encontrado." });
 
   }
 
-  next();
+  const projName = parts[0].replace(/ /g, "_");
+
+  const projDir = resolveProjectDirFromName(projName);
+
+  if (!projDir) {
+
+    return res.status(404).json({ error: `Projeto não encontrado: ${projName}` });
+
+  }
+
+  const fileSubpath = parts.slice(1).join("/");
+
+  const fullFilePath = path.join(projDir, fileSubpath);
+
+  if (fs.existsSync(fullFilePath)) {
+
+    return res.sendFile(path.resolve(fullFilePath));
+
+  }
+
+  return res.status(404).json({ error: "Arquivo de mídia não encontrado." });
 
 });
 
@@ -484,35 +523,10 @@ function getProjectDir(req) {
     return WORKSPACE_DIR;
   }
 
-  // Test multiple project name variations for robust matching
-  const decoded = decodeURIComponent(rawProjName);
-  const candidates = [
-    rawProjName,
-    decoded,
-    rawProjName.replace(/ /g, "_"),
-    decoded.replace(/ /g, "_"),
-    rawProjName.replace(/%20/g, " "),
-    decoded.replace(/ /g, "%20")
-  ];
-
-  const uniqueCandidates = [...new Set(candidates)];
-
-  for (const name of uniqueCandidates) {
-    const candidateLong = path.join(LONGS_DIR, name);
-    if (fs.existsSync(candidateLong)) {
-      global.lastActiveProjectDir = candidateLong;
-      return candidateLong;
-    }
-    const candidateShort = path.join(SHORTS_DIR, name);
-    if (fs.existsSync(candidateShort)) {
-      global.lastActiveProjectDir = candidateShort;
-      return candidateShort;
-    }
-    const candidateWork = path.join(WORKSPACE_DIR, name);
-    if (fs.existsSync(candidateWork)) {
-      global.lastActiveProjectDir = candidateWork;
-      return candidateWork;
-    }
+  const resolved = resolveProjectDirFromName(rawProjName);
+  if (resolved) {
+    global.lastActiveProjectDir = resolved;
+    return resolved;
   }
 
   global.lastActiveProjectDir = WORKSPACE_DIR;

@@ -115,18 +115,39 @@ export function NarrationReplacePanel({
     };
   };
 
-  const togglePreview = () => {
+  const togglePreview = async () => {
     if (!hasNarration && !uploadOk) return;
     if (playing && audioRef.current) {
       audioRef.current.pause();
+      audioRef.current = null;
       setPlaying(false);
       return;
     }
-    const audio = new Audio(narrationUrl);
-    audioRef.current = audio;
-    audio.onended = () => setPlaying(false);
-    audio.play().catch(() => toast('Erro ao reproduzir narração.'));
-    setPlaying(true);
+    try {
+      const head = await fetch(narrationUrl, { method: 'HEAD' });
+      const contentType = head.headers.get('content-type') || '';
+      if (!head.ok || !contentType.includes('audio')) {
+        toast('MP3 não encontrado para este projeto. Clique em Carregar Projeto no Editor.');
+        return;
+      }
+      const audio = new Audio(narrationUrl);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setPlaying(false);
+        audioRef.current = null;
+      };
+      audio.onerror = () => {
+        setPlaying(false);
+        audioRef.current = null;
+        toast('Erro ao reproduzir narração (arquivo inválido ou inacessível).');
+      };
+      await audio.play();
+      setPlaying(true);
+    } catch {
+      setPlaying(false);
+      audioRef.current = null;
+      toast('Erro ao reproduzir narração.');
+    }
   };
 
   const showResyncWarning = needsResync || (hasNarration && !hasTimings);
