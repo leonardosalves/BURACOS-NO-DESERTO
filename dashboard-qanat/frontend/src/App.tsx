@@ -125,6 +125,7 @@ import {
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
+import { getYoutubeViewsThreshold } from './youtubeStudioPrefs';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
   applySplitNarrationToBlockAssets,
@@ -1819,7 +1820,7 @@ export default function App() {
 
   const fetchYoutubeChannelAlerts = useCallback(async () => {
     try {
-      const res = await fetch('/api/youtube/channel/alerts');
+      const res = await fetch(`/api/youtube/channel/alerts?viewsThreshold=${getYoutubeViewsThreshold()}`);
       const data = await res.json().catch(() => ({}));
       if (res.ok || res.status === 403) {
         setYoutubeChannelAlerts({
@@ -12227,6 +12228,7 @@ export default function App() {
                 nicheKeyword={config?.niche || ''}
                 alerts={youtubeChannelAlerts}
                 onSelectProject={handleSelectProject}
+                onAlertsSync={setYoutubeChannelAlerts}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
                   setActiveTab('settings');
