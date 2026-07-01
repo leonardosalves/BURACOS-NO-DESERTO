@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertTriangle, Bell, ExternalLink, Eye, FolderOpen, Loader2, MessageCircle, MessageSquareReply,
-  RefreshCw, Search, Send, Sparkles, ThumbsUp, TrendingUp, Users, Video, Youtube, CheckCircle2, Mail,
+  AlertTriangle, Bell, ExternalLink, Eye, FolderOpen, LayoutDashboard, Loader2, MessageCircle,
+  MessageSquareReply, RefreshCw, Search, Send, Sparkles, ThumbsUp, TrendingUp, Users, Video, Wrench,
+  Youtube, CheckCircle2, Mail,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import {
@@ -125,6 +126,8 @@ type WeeklyReport = {
 };
 
 type CommentFilter = 'all' | 'unanswered';
+
+type StudioTab = 'resumo' | 'videos' | 'comentarios' | 'ferramentas';
 
 type LumieraVideoRef = {
   projectName: string;
@@ -299,6 +302,7 @@ export function YoutubeStudioPanel({
   const [bulkSelected, setBulkSelected] = useState<Record<string, boolean>>({});
   const [bulkReplyText, setBulkReplyText] = useState('');
   const [videoFormatFilter, setVideoFormatFilter] = useState<'all' | 'SHORT' | 'LONG'>('all');
+  const [activeTab, setActiveTab] = useState<StudioTab>('resumo');
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const periodDaysRef = useRef(periodDays);
   periodDaysRef.current = periodDays;
@@ -635,6 +639,17 @@ export function YoutubeStudioPanel({
     };
   }, [videosReport?.videos]);
 
+  const commentsBadge = alerts?.unansweredComments
+    ?? commentsReport?.comments?.filter((c) => !c.isAnswered).length
+    ?? 0;
+
+  const studioTabs: Array<{ id: StudioTab; label: string; icon: React.ReactNode; badge?: number }> = [
+    { id: 'resumo', label: 'Resumo', icon: <LayoutDashboard className="w-3 h-3" /> },
+    { id: 'videos', label: 'Vídeos', icon: <Video className="w-3 h-3" />, badge: filteredVideos.length || undefined },
+    { id: 'comentarios', label: 'Comentários', icon: <MessageCircle className="w-3 h-3" />, badge: commentsBadge || undefined },
+    { id: 'ferramentas', label: 'Ferramentas', icon: <Wrench className="w-3 h-3" /> },
+  ];
+
   if (loading && !overview) {
     return (
       <div className="glass-panel p-8 rounded-2xl flex items-center justify-center gap-3 text-zinc-400">
@@ -735,7 +750,10 @@ export function YoutubeStudioPanel({
                 {alert.type === 'unanswered_comments' && (
                   <button
                     type="button"
-                    onClick={() => setCommentFilter('unanswered')}
+                    onClick={() => {
+                      setActiveTab('comentarios');
+                      setCommentFilter('unanswered');
+                    }}
                     className="text-[10px] font-bold px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white"
                   >
                     Ver comentários
@@ -836,30 +854,30 @@ export function YoutubeStudioPanel({
         )}
 
         {overview?.channel && (
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900/80">
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-900/80">
               <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase tracking-wider mb-1">
                 <Users className="w-3.5 h-3.5" /> Inscritos
               </div>
-              <p className="text-2xl font-bold text-white tabular-nums">
+              <p className="text-xl font-bold text-white tabular-nums">
                 {overview.channel.hiddenSubscriberCount
                   ? 'Oculto'
                   : formatNumber(overview.channel.subscriberCount)}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900/80">
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-900/80">
               <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase tracking-wider mb-1">
                 <Eye className="w-3.5 h-3.5" /> Views totais
               </div>
-              <p className="text-2xl font-bold text-white tabular-nums">
+              <p className="text-xl font-bold text-white tabular-nums">
                 {formatNumber(overview.channel.viewCount)}
               </p>
             </div>
-            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900/80">
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-900/80">
               <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase tracking-wider mb-1">
                 <Video className="w-3.5 h-3.5" /> Vídeos
               </div>
-              <p className="text-2xl font-bold text-white tabular-nums">
+              <p className="text-xl font-bold text-white tabular-nums">
                 {formatNumber(overview.channel.videoCount)}
               </p>
             </div>
@@ -901,10 +919,34 @@ export function YoutubeStudioPanel({
             {reachMetrics.note ? ` — ${reachMetrics.note}` : ''}
           </p>
         )}
+
+        <div className="mt-4 flex gap-1 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+          {studioTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-gold-500/15 text-gold-300 border border-gold-500/25'
+                  : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+              }`}
+            >
+              {tab.icon}
+              <span className="hidden sm:inline">{tab.label}</span>
+              {tab.badge != null && tab.badge > 0 && (
+                <span className="min-w-[14px] px-1 py-0.5 rounded-full bg-zinc-800 text-[8px] tabular-nums">
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="glass-panel p-5 rounded-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      {activeTab === 'resumo' && (
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <FolderOpen className="w-4 h-4 text-cyan-400" />
@@ -959,7 +1001,10 @@ export function YoutubeStudioPanel({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSelectedVideoId(item.videoId)}
+                      onClick={() => {
+                        setSelectedVideoId(item.videoId);
+                        setActiveTab('videos');
+                      }}
                       className="text-[9px] font-bold px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white"
                     >
                       Ver detalhe
@@ -971,9 +1016,11 @@ export function YoutubeStudioPanel({
           </div>
         )}
       </div>
+      )}
 
-      <div className="glass-panel p-5 rounded-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      {activeTab === 'videos' && (
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
             <h3 className="text-sm font-bold text-white">Desempenho por vídeo</h3>
             <p className="text-[10px] text-zinc-500 mt-0.5">
@@ -1208,9 +1255,11 @@ export function YoutubeStudioPanel({
           </div>
         )}
       </div>
+      )}
 
-      <div className="glass-panel p-5 rounded-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+      {activeTab === 'comentarios' && (
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-zinc-400" />
@@ -1312,7 +1361,7 @@ export function YoutubeStudioPanel({
                   : 'Nenhum comentário recente encontrado.'}
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[min(70vh,640px)] overflow-y-auto pr-1">
             {commentsReport.comments.map((comment) => (
               <div
                 key={comment.threadId}
@@ -1518,7 +1567,10 @@ export function YoutubeStudioPanel({
           </div>
         )}
       </div>
+      )}
 
+      {activeTab === 'ferramentas' && (
+      <div className="space-y-4">
       <YoutubeStudioPro
         viewsThreshold={viewsThreshold}
         selectedVideoId={selectedVideoId}
@@ -1535,7 +1587,7 @@ export function YoutubeStudioPanel({
         onApplyIdea={onApplyCreatorIdea}
       />
 
-      <div className="glass-panel p-5 rounded-2xl">
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1586,6 +1638,8 @@ export function YoutubeStudioPanel({
           </pre>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }
