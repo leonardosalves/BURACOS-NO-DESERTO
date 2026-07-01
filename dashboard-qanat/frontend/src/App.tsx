@@ -56,7 +56,6 @@ import {
 
   Plus,
 
-  Folder,
   Smartphone,
   Share2,
 
@@ -8535,32 +8534,6 @@ export default function App() {
                   </SettingHelpTip>
                 </span>
 
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('projects')}
-                className={`lumiera-sidebar-btn ${
-                  activeTab === 'projects'
-                    ? 'bg-gold-500/10 border border-gold-500/30 text-gold-300'
-                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-gold-300 hover:border-zinc-700'
-                }`}
-              >
-                <Folder className="w-4 h-4" />
-                <span>Projetos</span>
-                {projects.length > 0 && (
-                  <span className="ml-auto text-[9px] text-zinc-500 tabular-nums">{projects.length}</span>
-                )}
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-projects'].title} align="start">
-                    {SECTION_HELP['tab-projects'].body}
-                  </SettingHelpTip>
-                </span>
               </button>
 
               <button
