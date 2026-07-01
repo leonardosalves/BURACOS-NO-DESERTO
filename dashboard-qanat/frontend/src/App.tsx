@@ -6702,17 +6702,25 @@ export default function App() {
       });
       if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
-        applyNarrationGenerationResult(
-          data,
-          projectName,
-          token,
-          data.notebooklm_enriched
-            ? 'Narração pronta (NotebookLM) — revise antes do roteiro.'
-            : 'Narração gerada — revise antes do roteiro.',
-          toastId,
-        );
-        await fetchProjects();
-        setActiveProject(projectName);
+        const scriptLen = String(data.narrative_script || '').trim().length;
+        if (scriptLen < 180) {
+          toast.error(
+            'Resposta do Gemini incompleta — o chat não terminou. Veja gemini.google.com, espere o JSON completo e clique em Gerar Narração de novo.',
+            { id: toastId, duration: 10000 },
+          );
+        } else {
+          applyNarrationGenerationResult(
+            data,
+            projectName,
+            token,
+            data.notebooklm_enriched
+              ? 'Narração pronta (NotebookLM) — revise antes do roteiro.'
+              : 'Narração gerada — revise antes do roteiro.',
+            toastId,
+          );
+          await fetchProjects();
+          setActiveProject(projectName);
+        }
       } else if (token === creatorGenTokenRef.current) {
         toast.error(String(data.error || data.details || 'Erro ao gerar narração.'), { id: toastId });
       }

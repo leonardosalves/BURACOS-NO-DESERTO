@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lumiera Gemini Bridge",
-  "version": "1.4.5",
+  "version": "1.4.7",
   "description": "Automatiza o Gemini no Chrome para o dashboard Lumiera — sem copiar/colar.",
   "permissions": ["tabs", "scripting", "storage", "clipboardWrite", "clipboardRead"],
   "host_permissions": [
