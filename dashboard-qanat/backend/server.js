@@ -12866,13 +12866,24 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
 
     console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
 
+    const notebooklmEnriched = Boolean(notebooklmResearch?.available && !notebooklmResearch?.fallback);
+    let notebooklmReason = "pesquisa_ok";
+    if (useNotebooklm === false) {
+      notebooklmReason = "disabled";
+    } else if (!notebooklmResearch) {
+      notebooklmReason = "unavailable";
+    } else if (notebooklmResearch.fallback || !notebooklmResearch.available) {
+      notebooklmReason = notebooklmResearch.needsLogin ? "needs_login" : "fallback";
+    }
+
     return res.json({
       success: true,
       narrative_script: parsed.narrative_script || narrativeScript,
       narrative_script_tagged: parsed.narrative_script_tagged || parsed.narrative_script || "",
       strategy: parsed.strategy || null,
       technical_config: parsed.technical_config || null,
-      notebooklm_enriched: Boolean(notebooklmResearch?.available && !notebooklmResearch?.fallback),
+      notebooklm_enriched: notebooklmEnriched,
+      notebooklm_reason: notebooklmReason,
       suggestions: notebooklmResearch?.summary || "",
     });
   } catch (err) {

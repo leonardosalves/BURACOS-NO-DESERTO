@@ -6226,11 +6226,20 @@ export default function App() {
             typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
           );
         }
-        setNarrationNotebooklmEnriched(true);
+        setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
+        const nlmReason = data.notebooklm_reason as string | undefined;
+        const nlmFallbackMsg =
+          nlmReason === 'disabled'
+            ? 'Checkbox "Usar NotebookLM" está desmarcado — só clareza/retenção via IA.'
+            : nlmReason === 'needs_login'
+              ? 'NotebookLM desconectado — rode .\\nlm-login.ps1 na pasta Lumiera.'
+              : nlmReason === 'fallback'
+                ? 'NotebookLM falhou — melhorias só de clareza/retenção via IA.'
+                : 'NotebookLM sem fontes no notebook deste nicho — melhorias via IA.';
         toast.success(
           data.notebooklm_enriched
             ? 'Narração melhorada com pesquisa NotebookLM!'
-            : 'Narração melhorada (sem pesquisa NotebookLM — melhorias de clareza e retenção aplicadas).',
+            : `Narração melhorada (sem pesquisa NotebookLM). ${nlmFallbackMsg}`,
         );
       } else {
         toast.error(data.error || 'Erro ao melhorar narração.');
