@@ -76,7 +76,7 @@
 @layer components {
   /* ── Dashmin shell ── */
   .dash-shell {
-    @apply min-h-screen flex min-w-0 text-white font-dash;
+    @apply min-h-screen flex min-w-0 text-white font-sans;
     background-color: var(--dash-bg);
   }
 
