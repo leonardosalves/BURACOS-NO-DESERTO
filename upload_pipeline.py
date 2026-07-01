@@ -4,31 +4,12 @@ import subprocess
 import json
 import glob
 
-from lumiera_workspace import resolve_workspace, resolve_script
+from lumiera_workspace import resolve_workspace, resolve_script, resolve_project_dir, resolve_output_video
 
-def get_project_dir():
-    if len(sys.argv) > 1:
-        return os.path.abspath(sys.argv[1])
-    return os.path.abspath(os.getcwd())
-
-def find_output_video(project_dir):
-    output_dir = os.path.join(project_dir, "OUTPUT")
-    if not os.path.exists(output_dir):
-        return None
-    mp4_files = glob.glob(os.path.join(output_dir, "**", "*.mp4"), recursive=True)
-    if not mp4_files:
-        mp4_files = glob.glob(os.path.join(project_dir, "*.mp4"))
-    if not mp4_files:
-        return None
-    for f in mp4_files:
-        if os.path.basename(f) == "video_final_60fps.mp4":
-            return f
-    remotion_files = [f for f in mp4_files if "remotion_" in os.path.basename(f)]
-    if remotion_files:
-        remotion_files.sort(key=os.path.getmtime, reverse=True)
-        return remotion_files[0]
-    mp4_files.sort(key=os.path.getmtime, reverse=True)
-    return mp4_files[0]
+def get_video_override():
+    if len(sys.argv) > 3 and str(sys.argv[3]).strip():
+        return str(sys.argv[3]).strip()
+    return os.environ.get("LUMIERA_UPLOAD_VIDEO", "").strip() or None
 
 def get_video_specs(video_path):
     print("[INFO] Analisando especificações do vídeo com ffprobe...")
@@ -70,7 +51,10 @@ def run_upload_script(script_name, project_dir):
         return "NÃO ENCONTRADO"
 
     print(f"\n[INFO] Executando robô: {script_name} ({script_path})...")
-    env = {**os.environ, "LUMIERA_WORKSPACE": workspace}
+    env = {**os.environ, "LUMIERA_WORKSPACE": workspace, "LUMIERA_PROJECT_DIR": project_dir}
+    upload_video = os.environ.get("LUMIERA_UPLOAD_VIDEO", "").strip()
+    if upload_video:
+        env["LUMIERA_UPLOAD_VIDEO"] = upload_video
     cmd = [sys.executable, script_path, project_dir]
     try:
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
@@ -94,11 +78,16 @@ def main():
     print("        QANAT AUTOMATED MULTI-UPLOAD PIPELINE        ")
     print("====================================================")
     
-    project_dir = get_project_dir()
-    video_path = find_output_video(project_dir)
-    
+    project_dir = resolve_project_dir()
+    video_override = get_video_override()
+    if video_override:
+        os.environ["LUMIERA_UPLOAD_VIDEO"] = video_override
+    video_path = resolve_output_video(project_dir, video_override)
+
     if not video_path:
-        print("[ERROR] Vídeo (.mp4) final não encontrado no projeto.")
+        hint = f" (procurado: {video_override})" if video_override else ""
+        print(f"[ERROR] Vídeo (.mp4) final não encontrado no projeto{hint}.")
+        print(f"[ERROR] Pasta do projeto: {project_dir}")
         sys.exit(1)
         
     print(f"[INFO] Vídeo de Entrada: {os.path.basename(video_path)}")

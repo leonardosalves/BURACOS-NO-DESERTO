@@ -139,13 +139,12 @@ import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
 import { AppShell } from './AppShell';
-import { DashminStats } from './DashminStats';
-import { DashminDashboard } from './DashminDashboard';
+
 import { DashminActivityFeed } from './DashminActivityFeed';
 import { DashminPageLayout } from './DashminPageLayout';
 import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 import { DashminYoutubePulse } from './DashminYoutubePulse';
-import { DashminRetentionChart } from './DashminRetentionChart';
+
 import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
 import { DashminUiElementsPage } from './DashminUiElementsPage';
 import { DashminExtensionsPage } from './DashminExtensionsPage';
@@ -154,7 +153,7 @@ import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
 import { clipKey, parseClipKey } from './opencutTimeline';
-import { YoutubeStudioHomeCard } from './YoutubeStudioHomeCard';
+
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
 import { PostPublishChecklist } from './PostPublishChecklist';
 import {
@@ -623,6 +622,7 @@ export default function App() {
   const [projectDataLoading, setProjectDataLoading] = useState(false);
 
   const [outputs, setOutputs] = useState<OutputVideo[]>([]);
+  const [selectedUploadVideo, setSelectedUploadVideo] = useState<string | null>(null);
 
   const [musicFiles, setMusicFiles] = useState<MusicFile[]>([]);
 
@@ -2261,6 +2261,20 @@ export default function App() {
     }
 
   };
+
+  useEffect(() => {
+    if (!outputs.length) {
+      setSelectedUploadVideo(null);
+      return;
+    }
+    setSelectedUploadVideo((prev) => {
+      if (prev && outputs.some((o) => o.name === prev)) return prev;
+      const sorted = [...outputs].sort(
+        (a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime(),
+      );
+      return sorted[0]?.name ?? null;
+    });
+  }, [outputs, activeProject]);
 
   const fetchHeaderWeather = async () => {
 
@@ -8582,72 +8596,57 @@ export default function App() {
 
             <DashminProjectTabLayout tab="status" activeProject={activeProject}>
 
-            <div className="lumiera-panel-stack">
+            <div className="lumiera-render-workspace">
 
-              <DashminStats
-                projectCount={projects.length}
-                recentCount={recentProjects.length}
-                youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
-                activeProject={activeProject}
-              />
-
-              <DashminStatPills
-                projectCount={projects.length}
-                outputCount={outputs.length}
-                completedSteps={[
-                  status?.has_config,
-                  status?.has_narration,
-                  status?.has_soundtrack,
-                  status?.has_highlight_clip,
-                  (videoQuality?.score ?? 0) >= 60,
-                ].filter(Boolean).length}
-                totalSteps={5}
-              />
-
-              <DashminDashboard
-                projects={projects}
-                activeProject={activeProject}
-                status={status}
-                videoQualityScore={videoQuality?.score}
-                outputCount={outputs.length}
-                onOpenWorkflow={() => setActiveTab('workflow')}
-                onOpenCreator={openCreatorTab}
-                onOpenProjects={() => setActiveTab('projects')}
-              />
-
-              <DashminActivityFeed
-                activeProject={activeProject}
-                projects={projects}
-                recentProjects={recentProjects}
-                hasNarration={status?.has_narration}
-                outputCount={outputs.length}
-                videoQualityScore={videoQuality?.score}
-                youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
-                rendering={rendering}
-                renderPercent={renderProgress?.percent}
-                onOpenYoutube={() => setActiveTab('youtube-studio')}
-                onOpenWorkflow={() => setActiveTab('workflow')}
-              />
-
-              <div className="dash-insights-row">
-                <DashminYoutubePulse
-                  hotVideos={youtubeChannelAlerts?.hotVideos}
-                  viewsThreshold={getYoutubeViewsThreshold()}
-                  onOpenYoutube={() => setActiveTab('youtube-studio')}
+              <div className="lumiera-render-topbar glass-panel px-4 py-3 rounded-xl border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
+                <DashminStatPills
+                  projectCount={projects.length}
+                  outputCount={outputs.length}
+                  completedSteps={[
+                    status?.has_config,
+                    status?.has_narration,
+                    status?.has_soundtrack,
+                    status?.has_highlight_clip,
+                    (videoQuality?.score ?? 0) >= 60,
+                  ].filter(Boolean).length}
+                  totalSteps={5}
                 />
-                <DashminRetentionChart
-                  points={titleRetention?.retention?.points as { watchRatio?: number; ratio?: number }[] | undefined}
-                  videoLabel={titleExperimentVideoId || activeProject}
-                />
+                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300">
+                  <span className="flex items-center gap-1.5">
+                    <Tv className="w-3.5 h-3.5 text-gold-500" />
+                    <span>Resolução: <strong className="text-gold-400">{renderResolutionLabel}</strong></span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('settings')}
+                    className="text-[10px] text-zinc-500 hover:text-gold-400 transition"
+                  >
+                    Configurações →
+                  </button>
+                </div>
               </div>
 
-              <YoutubeStudioHomeCard
-                viewsThreshold={getYoutubeViewsThreshold()}
-                onOpenPanel={() => setActiveTab('youtube-studio')}
-              />
+              {config && !status?.has_narration && (
+                <div className="glass-panel px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[11px] text-amber-200/90">
+                    Projeto ainda sem narração. Use Workflow antes de renderizar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('workflow')}
+                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-3 py-1.5 rounded-lg transition"
+                  >
+                    Ir para Workflow →
+                  </button>
+                </div>
+              )}
+
+              <div className="lumiera-render-grid">
+                <div className="lumiera-render-primary space-y-4 min-w-0">
 
               {videoQuality && (
-                <div className="glass-panel p-5 rounded-2xl font-sans">
+                <details className="glass-panel rounded-2xl font-sans group" open={videoQuality.score < 80}>
+                  <summary className="p-4 cursor-pointer list-none flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <SectionHeader
                       title="Qualidade Pré-Render"
@@ -8655,15 +8654,20 @@ export default function App() {
                       icon={<CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />}
                     />
                     <div className="flex items-center gap-3">
+                      <span className={`text-lg font-bold tabular-nums ${videoQuality.score >= 80 ? 'text-emerald-400' : videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {videoQuality.score}/100
+                      </span>
+                      <span className="text-[10px] text-zinc-500 group-open:hidden">expandir</span>
+                    </div>
+                  </summary>
+                  <div className="px-4 pb-4 pt-0 border-t border-zinc-800/60">
+                  <div className="flex flex-wrap items-center gap-3 mb-3 pt-3">
                       {videoQuality.preset && (
                         <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Preset: {videoQuality.preset}</span>
                       )}
                       {videoQuality.epidemicMood && (
                         <span className="text-[10px] text-zinc-500">BGM: {videoQuality.epidemicMood}</span>
                       )}
-                      <span className={`text-lg font-bold tabular-nums ${videoQuality.score >= 80 ? 'text-emerald-400' : videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
-                        {videoQuality.score}/100
-                      </span>
                       <button
                         type="button"
                         onClick={() => fetchVideoQuality()}
@@ -8672,7 +8676,6 @@ export default function App() {
                         <RefreshCw className="w-3 h-3" /> Atualizar
                       </button>
                     </div>
-                  </div>
                   {videoQuality.preRenderAdvice ? (
                     <div className="mt-3">
                       <PreRenderAdvicePanel
@@ -8754,44 +8757,11 @@ export default function App() {
                       )}
                     </div>
                   )}
-                </div>
+                  </div>
+                </details>
               )}
 
-              {config && !status?.has_narration && (
-                <div className="glass-panel px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] text-amber-200/90">
-                    Projeto ainda sem narração ou preparação completa. Use Workflow e Tarefas antes de renderizar.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('workflow')}
-                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-3 py-1.5 rounded-lg transition"
-                  >
-                    Ir para Workflow →
-                  </button>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-2 glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80">
-                <div className="flex items-center gap-2 text-xs text-zinc-300">
-                  <Tv className="w-3.5 h-3.5 text-gold-500" />
-                  <span>Resolução ativa: <strong className="text-gold-400">{renderResolutionLabel}</strong></span>
-                  {config?.render_resolution ? (
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">· projeto</span>
-                  ) : (
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">· global</span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('settings')}
-                  className="text-[10px] text-zinc-500 hover:text-gold-400 transition"
-                >
-                  Alterar em Configurações →
-                </button>
-              </div>
-
-              <div className="lumiera-card-grid">
+              <div className="lumiera-render-engines-grid">
                 
                 {/* Compiler Card */}
                 <div className="glass-panel lumiera-render-card">
@@ -8934,130 +8904,126 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Rendered Videos List */}
+                </div>
 
-              <div className="glass-panel p-6 rounded-3xl space-y-4">
+                <aside className="lumiera-render-sidebar space-y-4">
+                  <div className="glass-panel p-4 rounded-2xl space-y-3 lumiera-render-output-panel">
+                    <div className="flex items-center justify-between gap-2">
+                      <SectionHeader title="Saída (OUTPUT)" helpId="render-output" />
+                      {selectedUploadVideo && (
+                        <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Para upload</span>
+                      )}
+                    </div>
 
-                <SectionHeader title="VÍDEOS RENDERIZADOS NA SAÍDA (OUTPUT)" helpId="render-output" />
-
-                {outputs.length === 0 ? (
-
-                  <div className="text-center py-10 bg-zinc-950/20 border border-zinc-900 rounded-2xl text-gray-500 text-xs font-sans">
-
-                    Nenhum arquivo final encontrado na pasta OUTPUT. Inicie uma compilação acima.
-
-                  </div>
-
-                ) : (
-
-                  <div className="divide-y divide-zinc-900 border border-zinc-900 rounded-2xl overflow-hidden bg-zinc-950/20 font-sans">
-
-                    {outputs.map((video) => (
-
-                      <div key={video.name} className="flex justify-between items-center p-4 hover:bg-zinc-900/10 transition">
-
-                        <div className="flex items-center gap-3">
-
-                          <Video className="w-4.5 h-4.5 text-gold-500" />
-
-                          <div>
-
-                            <div className="flex items-center gap-2">
-
-                              <span className="text-xs font-semibold text-white block">{video.name}</span>
-
-                              <span className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-
-                                video.renderEngine === 'remotion'
-
-                                  ? 'text-water-300 bg-water-500/10 border-water-400/20'
-
-                                  : 'text-gold-500 bg-gold-500/10 border-gold-500/20'
-
-                              }`}>
-
-                                {video.renderEngineLabel || (video.name.toLowerCase().startsWith('remotion_') ? 'Remotion' : 'Renderizador Padrão')}
-
-                              </span>
-
-                            </div>
-
-                            <span className="text-[10px] text-gray-500">Modificado em {new Date(video.modifiedAt).toLocaleString('pt-BR')}</span>
-
-                          </div>
-
-                        </div>
-
-                        <div className="flex items-center gap-3 font-sans">
-
-                          <span className="text-xs font-mono text-zinc-400 mr-2">{getFormatBytes(video.sizeBytes)}</span>
-
-                          <button 
-
-                            onClick={() => {
-
-                              const videoPath = activeProject === "Buracos no Deserto" 
-
-                                ? `/OUTPUT/qanat_persa_video_final/${video.name}`
-
-                                : `/${activeProject}/OUTPUT/qanat_persa_video_final/${video.name}`;
-
-                              setPreviewVideoUrl(`/api/projects-media${videoPath}`);
-
-                            }}
-
-                            className="bg-gold-500 hover:bg-gold-600 text-zinc-950 px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-gold-500/10"
-
-                          >
-
-                            <Play className="w-3.5 h-3.5 fill-current" />
-
-                            <span>Visualizar</span>
-
-                          </button>
-
-                          <a 
-
-                            href={`/api/projects-media${activeProject === "Buracos no Deserto" ? "/OUTPUT/qanat_persa_video_final/" + video.name : "/" + activeProject + "/OUTPUT/qanat_persa_video_final/" + video.name}?download=true`} 
-
-                            download 
-
-                            className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white hover:bg-zinc-800 px-3.5 py-1.5 rounded-lg text-[11px] font-medium transition flex items-center gap-1.5"
-
-                          >
-
-                            <Download className="w-3.5 h-3.5" />
-
-                            <span>Download</span>
-
-                          </a>
-
-                          <button
-
-                            onClick={() => setPendingOutputDelete(video)}
-
-                            className="bg-red-950 border border-red-900/50 text-red-400 hover:bg-red-900 hover:text-red-300 px-3 py-1.5 rounded-lg text-[11px] font-medium transition flex items-center gap-1.5 cursor-pointer"
-
-                            title={`Excluir ${video.name}`}
-
-                          >
-
-                            <Trash2 className="w-3.5 h-3.5" />
-
-                          </button>
-
-                        </div>
-
+                    {outputs.length === 0 ? (
+                      <div className="text-center py-8 bg-zinc-950/20 border border-zinc-900 rounded-xl text-gray-500 text-[11px] font-sans">
+                        Nenhum vídeo em OUTPUT. Inicie um render ao lado.
                       </div>
+                    ) : (
+                      <div className="divide-y divide-zinc-900 border border-zinc-900 rounded-xl overflow-hidden bg-zinc-950/20 font-sans max-h-[min(52vh,28rem)] overflow-y-auto">
+                        {outputs.map((video) => (
+                          <div
+                            key={video.name}
+                            className={`p-3 transition ${selectedUploadVideo === video.name ? 'bg-violet-500/10 border-l-2 border-l-violet-500' : 'hover:bg-zinc-900/10'}`}
+                          >
+                            <div className="flex items-start gap-2">
+                              <input
+                                type="radio"
+                                name="upload-output-video"
+                                checked={selectedUploadVideo === video.name}
+                                onChange={() => setSelectedUploadVideo(video.name)}
+                                className="mt-1 accent-violet-500 cursor-pointer"
+                                title="Usar este vídeo no upload"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-[11px] font-semibold text-white truncate max-w-full">{video.name}</span>
+                                  <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                                    video.renderEngine === 'remotion'
+                                      ? 'text-water-300 bg-water-500/10 border-water-400/20'
+                                      : 'text-gold-500 bg-gold-500/10 border-gold-500/20'
+                                  }`}>
+                                    {video.renderEngineLabel || (video.name.toLowerCase().startsWith('remotion_') ? 'Remotion' : 'Padrão')}
+                                  </span>
+                                </div>
+                                <span className="text-[9px] text-gray-500 block">
+                                  {getFormatBytes(video.sizeBytes)} · {new Date(video.modifiedAt).toLocaleString('pt-BR')}
+                                </span>
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const videoPath = activeProject === 'Buracos no Deserto'
+                                        ? `/OUTPUT/qanat_persa_video_final/${video.name}`
+                                        : `/${activeProject}/OUTPUT/qanat_persa_video_final/${video.name}`;
+                                      setPreviewVideoUrl(`/api/projects-media${videoPath}`);
+                                    }}
+                                    className="bg-gold-500/90 hover:bg-gold-500 text-zinc-950 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Play className="w-3 h-3 fill-current" />
+                                    Ver
+                                  </button>
+                                  <a
+                                    href={`/api/projects-media${activeProject === 'Buracos no Deserto' ? `/OUTPUT/qanat_persa_video_final/${video.name}` : `/${activeProject}/OUTPUT/qanat_persa_video_final/${video.name}`}?download=true`}
+                                    download
+                                    className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-2 py-1 rounded-md text-[10px] font-medium flex items-center gap-1"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPendingOutputDelete(video)}
+                                    className="bg-red-950/80 border border-red-900/50 text-red-400 hover:text-red-300 px-2 py-1 rounded-md text-[10px] cursor-pointer"
+                                    title={`Excluir ${video.name}`}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                    ))}
-
+                    {selectedUploadVideo && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('upload')}
+                        className="w-full text-[10px] font-bold text-violet-200 bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 py-2 rounded-lg transition cursor-pointer"
+                      >
+                        Ir para Upload com este vídeo →
+                      </button>
+                    )}
                   </div>
 
-                )}
-
+                  <details className="glass-panel rounded-xl">
+                    <summary className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer">
+                      Canal & atividade
+                    </summary>
+                    <div className="px-4 pb-4 space-y-4 border-t border-zinc-800/60 pt-3">
+                      <DashminActivityFeed
+                        activeProject={activeProject}
+                        projects={projects}
+                        recentProjects={recentProjects}
+                        hasNarration={status?.has_narration}
+                        outputCount={outputs.length}
+                        videoQualityScore={videoQuality?.score}
+                        youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
+                        rendering={rendering}
+                        renderPercent={renderProgress?.percent}
+                        onOpenYoutube={() => setActiveTab('youtube-studio')}
+                        onOpenWorkflow={() => setActiveTab('workflow')}
+                      />
+                      <DashminYoutubePulse
+                        hotVideos={youtubeChannelAlerts?.hotVideos}
+                        viewsThreshold={getYoutubeViewsThreshold()}
+                        onOpenYoutube={() => setActiveTab('youtube-studio')}
+                      />
+                    </div>
+                  </details>
+                </aside>
               </div>
-
             </div>
 
             </DashminProjectTabLayout>
@@ -11222,6 +11188,22 @@ export default function App() {
                   {/* Salvar Metadados GLOBAIS */}
                   <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
                     <span className="ui-micro-label text-gray-500 block text-balance-safe">Ações Globais</span>
+                    {selectedUploadVideo ? (
+                      <div className="text-[10px] text-zinc-400 p-2.5 rounded-lg border border-emerald-500/25 bg-emerald-500/5 leading-relaxed">
+                        Vídeo para publicar: <strong className="text-emerald-300">{selectedUploadVideo}</strong>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('status')}
+                          className="block mt-1 text-[9px] text-zinc-500 hover:text-white transition"
+                        >
+                          Trocar na aba Render →
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-amber-300/90 p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5">
+                        Nenhum vídeo em OUTPUT. Renderize na aba Render primeiro.
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => { void applyMetadataToUpload(); }}
@@ -11278,7 +11260,8 @@ export default function App() {
                           .map(([key]) => key)
                           .join(",");
                         
-                        const eventSource = new EventSource(getProjectUrl(`/api/projects/upload-pipeline?platforms=${platformList}`));
+                        const videoParam = selectedUploadVideo ? `&video=${encodeURIComponent(selectedUploadVideo)}` : '';
+                        const eventSource = new EventSource(getProjectUrl(`/api/projects/upload-pipeline?platforms=${platformList}${videoParam}`));
                         eventSource.onmessage = (event) => {
                           const data = JSON.parse(event.data);
                           if (data.type === "log") {
@@ -11308,7 +11291,7 @@ export default function App() {
                           toast("Falha na conexão SSE.");
                         };
                       }}
-                      disabled={uploading}
+                      disabled={uploading || !selectedUploadVideo}
                       className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 font-bold py-3 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-gold-500/10"
                     >
                       <Share2 className="w-4 h-4" />

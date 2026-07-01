@@ -1950,9 +1950,29 @@
     @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 min-w-0 w-full;
   }
 
+  .lumiera-render-workspace {
+    @apply space-y-4 min-w-0 w-full;
+  }
+
+  .lumiera-render-grid {
+    @apply grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_min(22rem,34%)] gap-4 sm:gap-5 min-w-0 items-start;
+  }
+
+  .lumiera-render-engines-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0 w-full;
+  }
+
+  .lumiera-render-sidebar {
+    @apply min-w-0 xl:sticky xl:top-4;
+  }
+
+  .lumiera-render-output-panel details summary::-webkit-details-marker {
+    display: none;
+  }
+
   .lumiera-render-card {
-    @apply p-5 sm:p-6 rounded-lg flex flex-col justify-between gap-4 font-sans min-w-0;
-    min-height: 15rem;
+    @apply p-4 sm:p-5 rounded-lg flex flex-col justify-between gap-3 font-sans min-w-0;
+    min-height: 11rem;
     background: var(--dash-card);
     box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
   }

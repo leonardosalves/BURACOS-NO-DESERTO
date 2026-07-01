@@ -559,6 +559,25 @@ function ensureFileExists(fileName, targetDir) {
 
 }
 
+const UPLOAD_SCRIPT_NAMES = [
+  "lumiera_workspace.py",
+  "upload_pipeline.py",
+  "upload_youtube.py",
+  "upload_instagram.py",
+  "upload_tiktok_playwright.py",
+  "upload_kwai_playwright.py",
+];
+
+function syncUploadScripts(targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const scriptName of UPLOAD_SCRIPT_NAMES) {
+    const srcPath = path.join(WORKSPACE_DIR, scriptName);
+    const targetPath = path.join(targetDir, scriptName);
+    if (!fs.existsSync(srcPath)) continue;
+    fs.copyFileSync(srcPath, targetPath);
+  }
+}
+
 // API: List valid projects in workspace
 
 app.get("/api/projects", (req, res) => {
@@ -1285,6 +1304,7 @@ app.post("/api/upload/launch-login", (req, res) => {
 app.get("/api/projects/upload-pipeline", (req, res) => {
   const projDir = getProjectDir(req);
   const platforms = req.query.platforms || "";
+  const uploadVideo = String(req.query.video || "").trim();
   
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -1302,23 +1322,23 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
   };
 
   sendLog(`[Pipeline] Iniciando Upload Automatizado com plataformas: ${platforms}...`);
+  sendLog(`[Pipeline] Projeto: ${projDir}`);
+  if (uploadVideo) sendLog(`[Pipeline] Vídeo selecionado: ${uploadVideo}`);
 
-  const uploadScripts = [
-    "lumiera_workspace.py",
-    "upload_pipeline.py",
-    "upload_youtube.py",
-    "upload_instagram.py",
-    "upload_tiktok_playwright.py",
-    "upload_kwai_playwright.py",
-  ];
-  for (const scriptName of uploadScripts) {
-    ensureFileExists(scriptName, projDir);
-  }
+  syncUploadScripts(projDir);
 
-  const child = spawn(PYTHON_PATH, ["upload_pipeline.py", projDir, platforms], {
+  const pipelineArgs = [path.join(projDir, "upload_pipeline.py"), projDir, platforms];
+  if (uploadVideo) pipelineArgs.push(uploadVideo);
+
+  const child = spawn(PYTHON_PATH, pipelineArgs, {
     cwd: projDir,
-    shell: true,
-    env: { ...process.env, LUMIERA_WORKSPACE: WORKSPACE_DIR },
+    shell: false,
+    env: {
+      ...process.env,
+      LUMIERA_WORKSPACE: WORKSPACE_DIR,
+      LUMIERA_PROJECT_DIR: projDir,
+      ...(uploadVideo ? { LUMIERA_UPLOAD_VIDEO: uploadVideo } : {}),
+    },
   });
 
   child.stdout.on("data", (data) => {
