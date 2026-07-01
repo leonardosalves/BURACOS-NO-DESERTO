@@ -220,8 +220,8 @@ export function buildOverlayOrchestrationPlan({
   };
 
   if (isShort) {
-    const shortMax = isListicle ? 8 : Math.min(8, Math.max(5, Math.floor(duration / 8)));
-    const aiBudget = isListicle ? 2 : shortMax;
+    const shortMax = isListicle ? 5 : 3;
+    const aiBudget = isListicle ? 2 : 3;
     plan.limits = {
       maxTotal: aiBudget,
       finalMaxTotal: shortMax,
@@ -283,9 +283,10 @@ export function buildOverlayOrchestrationPlan({
         "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
       ];
   } else {
+    const minutes = Math.max(1, Math.floor(duration / 60));
     const maxOverlays = isListicle
-      ? Math.min(14, Math.max(5, Math.floor(duration / 40)))
-      : Math.min(12, Math.max(4, Math.floor(duration / 50)));
+      ? Math.min(minutes * 2, Math.max(3, Math.floor(duration / 40)))
+      : Math.min(minutes * 2, Math.max(3, minutes));
     plan.limits = {
       maxTotal: maxOverlays,
       maxData: Math.ceil(maxOverlays * 0.35),

@@ -12097,6 +12097,36 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   });
   result = timingVerified.overlays;
   result = resolveLastMileOverlayCollisions(result, config);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // REGRA ABSOLUTA DE QUANTIDADE DE OVERLAYS (não pode ser ultrapassada)
+  // Shorts: MAX 3 overlays informativos
+  // Longos: MAX 1 por minuto (ex: vídeo de 5min = 5 overlays), max 2/min
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    const isShortVideo = config.aspect_ratio !== "16:9" || totalDuration < 120;
+    const informative = result.filter(isInformativeOverlay);
+    const system = result.filter(o => !isInformativeOverlay(o));
+
+    let maxAllowed;
+    if (isShortVideo) {
+      maxAllowed = 3;
+    } else {
+      const minutes = Math.max(1, Math.floor(totalDuration / 60));
+      maxAllowed = Math.min(minutes * 2, Math.max(3, minutes));
+    }
+
+    if (informative.length > maxAllowed) {
+      // Keep the best-distributed overlays, sorted by start time
+      informative.sort((a, b) => a.start - b.start);
+      const kept = informative.slice(0, maxAllowed);
+      const removed = informative.slice(maxAllowed);
+      removed.forEach(o => console.log(`[Overlay Cap] Removido overlay ${o.id} — limite absoluto: ${maxAllowed} (${isShortVideo ? 'SHORT' : 'LONG'})`));
+      console.log(`[Overlay Cap] ${informative.length} → ${kept.length} overlays (limite: ${maxAllowed} para ${isShortVideo ? 'Shorts' : `vídeo de ${Math.floor(totalDuration/60)}min`})`);
+      result = [...kept, ...system];
+    }
+  }
+
   storyboard.overlay_timing_report = timingVerified.report;
 
   const quality = validateVideoQuality({
