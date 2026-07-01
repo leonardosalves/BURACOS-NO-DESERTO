@@ -79,6 +79,14 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-youtube-studio': {
+    title: 'Canal YouTube',
+    body: (
+      <>
+        Visão geral do canal conectado: inscritos, views totais e tabela de desempenho por vídeo (views, likes, comentários, minutos assistidos). Usa a mesma conta OAuth do Upload. Revincule em Integrações se faltar permissão de analytics.
+      </>
+    ),
+  },
   'tab-creator': {
     title: 'Novo Projeto com IA',
     body: (

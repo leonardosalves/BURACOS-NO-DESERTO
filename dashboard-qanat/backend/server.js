@@ -40,6 +40,10 @@ import {
   syncExperimentVideoId,
 } from "./youtubeTitleAnalytics.js";
 import {
+  fetchChannelOverview,
+  fetchChannelVideosWithAnalytics,
+} from "./youtubeChannelAnalytics.js";
+import {
   LUMIERA_BACKEND_BASE,
   LUMIERA_YOUTUBE_CALLBACK,
 } from "./lumieraUrls.js";
@@ -8033,6 +8037,28 @@ app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Erro ao gerar capas no Canva", details: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/overview", async (req, res) => {
+  try {
+    const overview = await fetchChannelOverview(WORKSPACE_DIR);
+    res.json(overview);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar visão geral do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/videos", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
+  try {
+    const report = await fetchChannelVideosWithAnalytics(WORKSPACE_DIR, { days, limit });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 

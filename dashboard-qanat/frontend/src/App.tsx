@@ -82,6 +82,8 @@ import {
 
   Wand2,
 
+  Youtube,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -122,6 +124,7 @@ import {
 } from './productionConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
+import { YoutubeStudioPanel } from './YoutubeStudioPanel';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
   applySplitNarrationToBlockAssets,
@@ -526,12 +529,12 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents';
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio';
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
     const saved = initialWizardSession?.activeTab;
-    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents'];
+    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio'];
     return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
   });
 
@@ -2814,7 +2817,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents') {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio') {
       setActiveTab(tab);
     }
   };
@@ -8207,6 +8210,29 @@ export default function App() {
                 </span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setActiveTab('youtube-studio')}
+                className={`lumiera-sidebar-btn ${
+                  activeTab === 'youtube-studio'
+                    ? 'bg-red-500/10 border border-red-500/30 text-red-300'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-red-300 hover:border-zinc-700'
+                }`}
+              >
+                <Youtube className="w-4 h-4" />
+                <span>Canal YouTube</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-youtube-studio'].title} align="start">
+                    {SECTION_HELP['tab-youtube-studio'].body}
+                  </SettingHelpTip>
+                </span>
+              </button>
+
             </div>
 
           </div>
@@ -8289,7 +8315,7 @@ export default function App() {
         {/* Tab Content Panel */}
 
         <main className="lumiera-main">
-          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && (
+          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && (
             <div className="lumiera-project-bar">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
                 <div className="min-w-0 flex-1">
@@ -12146,6 +12172,19 @@ export default function App() {
                 projectVideoFormat={config?.video_format}
                 projectAspectRatio={config?.aspect_ratio}
                 getProjectUrl={getProjectUrl}
+              />
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'youtube-studio' && (
+            <TabErrorBoundary tabName="Canal YouTube">
+              <YoutubeStudioPanel
+                toast={toast}
+                onRelinkYoutube={handleRelinkYoutube}
+                onGoToIntegrations={() => {
+                  setSettingsSection('integracoes');
+                  setActiveTab('settings');
+                }}
               />
             </TabErrorBoundary>
           )}
