@@ -40,6 +40,7 @@ import {
   syncExperimentVideoId,
 } from "./youtubeTitleAnalytics.js";
 import {
+  fetchChannelAlerts,
   fetchChannelComments,
   fetchChannelOverview,
   fetchChannelVideosWithAnalytics,
@@ -8059,6 +8060,21 @@ app.get("/api/youtube/channel/videos", async (req, res) => {
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/alerts", async (req, res) => {
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const maxProjects = Math.min(Math.max(Number(req.query?.maxProjects) || 12, 1), 20);
+  try {
+    const report = await fetchChannelAlerts(WORKSPACE_DIR, PROJECTS_ROOT, {
+      views48hThreshold,
+      maxProjects,
+    });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar alertas do canal");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });

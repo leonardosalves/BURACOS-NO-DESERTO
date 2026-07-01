@@ -83,7 +83,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Canal YouTube',
     body: (
       <>
-        Visão geral do canal conectado: inscritos, views totais, desempenho por vídeo e comentários recentes (filtro sem resposta e palavra-chave do nicho). Respostas abrem no YouTube Studio. Usa a mesma conta OAuth do Upload.
+        Visão geral do canal conectado: inscritos, views totais, desempenho por vídeo e comentários recentes. Alertas automáticos a cada 20 min (badge na sidebar): comentários sem resposta e vídeos Lumiera com views 48h altas. Respostas abrem no YouTube Studio.
       </>
     ),
   },
