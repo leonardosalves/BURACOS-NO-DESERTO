@@ -6703,7 +6703,7 @@ export default function App() {
       if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
         const scriptLen = String(data.narrative_script || '').trim().length;
-        if (scriptLen < 180) {
+        if (scriptLen < 80) {
           toast.error(
             'Resposta do Gemini incompleta — o chat não terminou. Veja gemini.google.com, espere o JSON completo e clique em Gerar Narração de novo.',
             { id: toastId, duration: 10000 },
@@ -6722,7 +6722,8 @@ export default function App() {
           setActiveProject(projectName);
         }
       } else if (token === creatorGenTokenRef.current) {
-        toast.error(String(data.error || data.details || 'Erro ao gerar narração.'), { id: toastId });
+        const errMsg = [data.error, data.details].filter(Boolean).join(' — ') || 'Erro ao gerar narração.';
+        toast.error(String(errMsg), { id: toastId, duration: 10000 });
       }
     } catch (err: unknown) {
       if (token === creatorGenTokenRef.current) {

@@ -188,7 +188,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.5.0" });
+    sendResponse({ ok: true, version: "1.5.1" });
     return;
   }
   if (message?.type === "LUMIERA_REINJECT_LUMIERA") {

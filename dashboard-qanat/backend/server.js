@@ -202,6 +202,7 @@ import {
   buildFullScriptFromNarrationPrompt,
   buildCreatorPhase2Prompt,
   salvageScriptJson,
+  enrichBrowserNarrationParsed,
   buildDeterministicVisualPromptsFromNarration,
   buildNarrationHumanizeRepairPrompt,
   mergeHumanizedNarration,
@@ -12166,9 +12167,9 @@ REGRAS FINAIS:
         "Roteiro e estrategia",
       );
     } catch (parseErr) {
-      if (scriptPhase === "full" && approvedNarration) {
+      if ((scriptPhase === "narration" && isBrowserResponse) || (scriptPhase === "full" && approvedNarration)) {
         rawData = salvageScriptJson(responseText) || {};
-        console.warn("[Creator Script] JSON fase 2 inválido — salvage/fallback:", parseErr.message);
+        console.warn("[Creator Script] JSON inválido — salvage/fallback:", parseErr.message);
         if (!Object.keys(rawData).length) {
           throw parseErr;
         }
@@ -12178,6 +12179,12 @@ REGRAS FINAIS:
     }
 
     let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
+    if (scriptPhase === "narration" && isBrowserResponse) {
+      parsedData = applyScriptTextQuality(
+        normalizeKeys(enrichBrowserNarrationParsed(parsedData, responseText)),
+        format,
+      );
+    }
 
     if (scriptPhase === "full" && approvedNarration && existingStrategy && Object.keys(existingStrategy).length) {
       parsedData.strategy = { ...existingStrategy, ...(parsedData.strategy || {}) };
@@ -12201,11 +12208,11 @@ REGRAS FINAIS:
 
     if (scriptPhase === "narration") {
       const narrationLen = String(parsedData.narrative_script || "").trim().length;
-      if (isBrowserResponse && narrationLen < 180) {
+      if (isBrowserResponse && narrationLen < 80) {
         return res.status(422).json({
           error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
-          details: `Narração capturada com apenas ${narrationLen} caracteres. Aguarde o JSON completo em gemini.google.com e gere de novo.`,
-          hint: "Recarregue a extensão Lumiera Gemini Bridge (v1.4.9+) e não mude de aba durante a geração.",
+          details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Aguarde o JSON completo em gemini.google.com e gere de novo.`,
+          hint: "Recarregue a extensão Lumiera Gemini Bridge (v1.5.0+) e mantenha gemini.google.com em foco.",
         });
       }
 

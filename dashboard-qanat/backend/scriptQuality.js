@@ -1237,11 +1237,59 @@ ${buildChecklistSchemaBlock()}
 ${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}`;
 }
 
+export function extractNarrativeScriptFromRaw(responseText = "") {
+  const raw = String(responseText || "");
+  const patterns = [
+    /"narrative_script"\s*:\s*"([\s\S]*?)"\s*,\s*"narrative_script_tagged"/i,
+    /"narrative_script"\s*:\s*"((?:\\.|[^"\\])*)"/i,
+    /'narrative_script'\s*:\s*'((?:\\.|[^'\\])*)'/i,
+  ];
+  for (const re of patterns) {
+    const m = raw.match(re);
+    if (!m?.[1]) continue;
+    const decoded = m[1]
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\r")
+      .replace(/\\t/g, "\t")
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'")
+      .trim();
+    if (decoded.length >= 40) return decoded;
+  }
+  return "";
+}
+
+export function enrichBrowserNarrationParsed(parsed = {}, responseText = "") {
+  const out = { ...parsed };
+  const current = String(out.narrative_script || "").trim();
+  const salvaged = salvageScriptJson(responseText) || {};
+  const salvagedNarr = String(salvaged.narrative_script || "").trim();
+  const extracted = extractNarrativeScriptFromRaw(responseText);
+  const techScript = typeof out.technical_config?.script === "string"
+    ? out.technical_config.script.trim()
+    : "";
+
+  const best = [current, salvagedNarr, extracted, techScript]
+    .sort((a, b) => b.length - a.length)[0] || "";
+
+  if (best.length > current.length) out.narrative_script = best;
+
+  const tagged = String(out.narrative_script_tagged || salvaged.narrative_script_tagged || "").trim();
+  if (tagged.length > 40) out.narrative_script_tagged = tagged;
+  else if (best.length > 80 && !out.narrative_script_tagged) out.narrative_script_tagged = best;
+
+  if (!out.strategy && salvaged.strategy) out.strategy = salvaged.strategy;
+  if (!out.technical_config && salvaged.technical_config) out.technical_config = salvaged.technical_config;
+
+  return out;
+}
+
 export function salvageScriptJson(responseText = "") {
   const raw = String(responseText || "").trim();
   if (!raw) return null;
   try {
-    return JSON.parse(extractJsonCandidateForSalvage(raw));
+    const parsed = JSON.parse(extractJsonCandidateForSalvage(raw));
+    if (String(parsed?.narrative_script || "").trim().length >= 40) return parsed;
   } catch {
     /* try partial */
   }
@@ -1254,8 +1302,10 @@ export function salvageScriptJson(responseText = "") {
       /* ignore */
     }
   }
+  const extractedNarr = extractNarrativeScriptFromRaw(raw);
+  if (extractedNarr) out.narrative_script = extractedNarr;
   const narrMatch = raw.match(/"narrative_script"\s*:\s*"((?:\\.|[^"\\])*)"/);
-  if (narrMatch) {
+  if (narrMatch && !out.narrative_script) {
     try {
       out.narrative_script = JSON.parse(`"${narrMatch[1]}"`);
     } catch {
