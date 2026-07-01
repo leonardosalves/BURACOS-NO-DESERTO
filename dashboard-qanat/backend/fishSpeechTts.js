@@ -243,7 +243,7 @@ export async function probeFishSpeechServer(config = {}, opts = {}) {
 export const FISH_PREVIEW_SAMPLE_PT =
   "Esta é uma amostra da voz do narrador. Tom documental, natural e claro em português brasileiro.";
 
-function applyFishOptionOverrides(config = {}, fishOpt = {}) {
+export function applyFishOptionOverrides(config = {}, fishOpt = {}) {
   const fish = config.fish_speech || config.fishSpeech || {};
   return {
     fish_speech: {

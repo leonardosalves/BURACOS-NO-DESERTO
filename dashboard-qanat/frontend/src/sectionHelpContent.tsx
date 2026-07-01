@@ -226,6 +226,14 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'lumiera-dub': {
+    title: 'Lumiera Dub — MP4 completo',
+    body: (
+      <>
+        Dublagem automática do vídeo renderizado: Whisper transcreve a fala, Gemini traduz por bloco, TTS (Fish/Voicebox/Kokoro/Edge) gera a nova voz com <em>speed-up</em> por slot, e o mux preserva o BGM original em volume reduzido. Saída em <code>OUTPUT/qanat_persa_video_final/lumiera_dub_*.mp4</code>. Use <strong>Analisar</strong> para pré-visualizar blocos antes de gerar.
+      </>
+    ),
+  },
   'timeline-highlights': {
     title: 'Palavras-chave em destaque',
     body: (
