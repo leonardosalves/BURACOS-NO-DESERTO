@@ -12456,7 +12456,11 @@ export default function App() {
                 projectVideoFormat={config?.video_format}
                 projectAspectRatio={config?.aspect_ratio}
                 getProjectUrl={getProjectUrl}
+                postAi={postAi}
                 onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
+                onExecuteCreator={(title, hook, options) =>
+                  handleApplyYoutubeStudioIdea(title, hook, { format: options?.format })
+                }
               />
             </TabErrorBoundary>
           )}

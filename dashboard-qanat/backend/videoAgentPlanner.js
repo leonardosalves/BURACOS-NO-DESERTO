@@ -240,6 +240,19 @@ function buildStoryboardBeatsFallback(requirement, format = "SHORTS") {
   return beats;
 }
 
+export function extractVideoTitleFromRequirement(requirement) {
+  const raw = String(requirement || "").trim();
+  if (!raw) return "Novo vídeo Lumiera";
+  const stripped = raw
+    .replace(/^(criar|fazer|gerar|produzir|montar)\s+/i, "")
+    .replace(/^(um|uma)\s+/i, "")
+    .replace(/^(short|shorts|vídeo|video)\s+(viral\s+)?(sobre|de|com)\s+/i, "")
+    .replace(/^(vídeo\s+longo|long-form|documentário)\s+(sobre|de|com)\s+/i, "")
+    .trim();
+  const title = (stripped || raw).slice(0, 120);
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
 function buildUserInputs(chain, requirement) {
   const inputs = [];
   if (chain.includes("creator_narration") || chain.includes("creator_script")) {
@@ -247,7 +260,7 @@ function buildUserInputs(chain, requirement) {
       node: "video_title",
       description: "Título / ideia do vídeo",
       links: [{ CreatorNarration: "title" }, { CreatorScript: "title" }],
-      suggested: requirement.slice(0, 120),
+      suggested: extractVideoTitleFromRequirement(requirement),
     });
   }
   if (chain.includes("competitor_research")) {

@@ -277,12 +277,13 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     ),
   },
   'agents-videoagent': {
-    title: 'VideoAgent Planner',
+    title: 'VideoAgent — Automação',
     body: (
       <>
-        Adaptação do <strong>HKUDS/VideoAgent</strong>: você descreve o vídeo em linguagem natural; o Lumiera detecta intents
-        (Short viral, pesquisa concorrentes, SEO, etc.), monta a cadeia de agentes reais (Creator, NotebookLM, render, upload)
-        e gera storyboard beats. Planos são gravados em <code>memory/videoagent-lumiera.md</code> no Obsidian.
+        <strong>Executar automaticamente</strong> — detecta intents, roda pesquisa de concorrentes / top winners / fila editorial no
+        servidor e dispara o Creator (criar projeto + narração) como no botão ▶ do YouTube Studio. Usa a extensão Gemini Chrome via{' '}
+        <code>postAi</code> — sem colar resposta manual. <strong>Só ver plano</strong> — preview da cadeia e storyboard beats
+        (gravado em <code>memory/videoagent-lumiera.md</code>).
       </>
     ),
   },

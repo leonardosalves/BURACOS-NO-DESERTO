@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { GitBranch, Sparkles, ArrowRight, BookOpen, ListOrdered } from 'lucide-react';
+import {
+  GitBranch,
+  Sparkles,
+  ArrowRight,
+  BookOpen,
+  ListOrdered,
+  Play,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import type { GeminiBrowserRequest } from './geminiAiFetch';
 
 type LumieraAction = {
   step: number;
@@ -32,18 +43,40 @@ type VideoAgentPlan = {
   aiEnhanced?: boolean;
 };
 
+type ExecuteResult = {
+  step: string;
+  status: string;
+  error?: string;
+  message?: string;
+  derivedIdeas?: number;
+  editorialQueue?: { enqueued?: number; total?: number };
+  variations?: number;
+  total?: number;
+};
+
 type ObsidianResult = {
   memoryPath?: string;
   memoryFile?: string;
 };
 
+type PostAiFn = (
+  path: string,
+  init?: RequestInit,
+) => Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest & Record<string, unknown> }>;
+
 type VideoAgentPlannerProps = {
   projectNiche?: string;
   projectFormat: 'SHORT' | 'LONG';
   getProjectUrl: (endpoint: string) => string;
+  postAi: PostAiFn;
   onNavigateTab?: (tab: string) => void;
   onOpenObsidian?: (file: string) => void;
   obsidianInstalled?: boolean;
+  onExecuteCreator?: (
+    title: string,
+    hook: string,
+    options?: { format?: 'LONGO' | 'SHORTS' },
+  ) => Promise<void>;
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -54,6 +87,7 @@ const TAB_LABELS: Record<string, string> = {
   ai: 'IA · Metadados',
   upload: 'Upload',
   'youtube-studio': 'Canal YouTube',
+  status: 'Render',
 };
 
 const EXAMPLE_PROMPTS = [
@@ -63,66 +97,190 @@ const EXAMPLE_PROMPTS = [
   'Diagnóstico pós-upload: retenção caiu e views -30% esta semana',
 ];
 
+const STEP_LABELS: Record<string, string> = {
+  creator_pipeline: 'Creator — projeto + narração',
+  competitor_research: 'Pesquisa concorrentes',
+  editorial_queue: 'Fila editorial',
+  top_winners: 'Replicar top 3',
+  retention_cliff: 'Penhasco de retenção',
+  overlay_plan: 'Planejar overlays',
+};
+
 export function VideoAgentPlanner({
   projectNiche = 'Geral',
   projectFormat,
   getProjectUrl,
+  postAi,
   onNavigateTab,
   onOpenObsidian,
   obsidianInstalled = false,
+  onExecuteCreator,
 }: VideoAgentPlannerProps) {
   const [requirement, setRequirement] = useState('');
   const [useAi, setUseAi] = useState(true);
   const [enqueueQueue, setEnqueueQueue] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'plan' | 'execute' | null>(null);
   const [plan, setPlan] = useState<VideoAgentPlan | null>(null);
   const [obsidianMeta, setObsidianMeta] = useState<ObsidianResult | null>(null);
+  const [executeResults, setExecuteResults] = useState<ExecuteResult[] | null>(null);
 
   const apiFormat = projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO';
 
+  const requestPlan = async (opts: { useAi: boolean }) => {
+    const text = requirement.trim();
+    if (!text) throw new Error('Descreva o vídeo ou tarefa em linguagem natural.');
+
+    const { ok, data } = await postAi(getProjectUrl('/api/ai/video-agent/plan'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requirement: text,
+        format: apiFormat,
+        niche: projectNiche,
+        useAi: opts.useAi,
+        enqueueQueue,
+      }),
+    });
+
+    if (!ok) throw new Error(String(data.error || data.details || 'Falha no planejamento'));
+
+    const planData = data.plan as VideoAgentPlan | undefined;
+    if (!planData) throw new Error('Plano vazio — tente desmarcar "Enriquecer com IA".');
+
+    return {
+      plan: planData,
+      obsidian: data.obsidian as ObsidianResult | undefined,
+      aiEnhanced: Boolean(planData.aiEnhanced),
+    };
+  };
+
   const runPlan = async () => {
+    setBusy('plan');
+    setExecuteResults(null);
+    try {
+      let result;
+      try {
+        result = await requestPlan({ useAi });
+      } catch {
+        result = await requestPlan({ useAi: false });
+        toast.success('Plano gerado (modo local — IA indisponível)');
+      }
+      setPlan(result.plan);
+      setObsidianMeta(result.obsidian || null);
+      if (result.aiEnhanced) {
+        toast.success('Plano VideoAgent enriquecido com IA');
+      } else if (useAi) {
+        toast.success('Plano VideoAgent gerado');
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao planejar');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runExecute = async () => {
     const text = requirement.trim();
     if (!text) {
       toast.error('Descreva o vídeo ou tarefa em linguagem natural.');
       return;
     }
-    setBusy(true);
+
+    setBusy('execute');
+    setExecuteResults(null);
+    const toastId = 'videoagent-execute';
+
     try {
-      const res = await fetch(getProjectUrl('/api/ai/video-agent/plan'), {
+      toast.loading('VideoAgent executando cadeia…', { id: toastId });
+
+      const { ok, data } = await postAi(getProjectUrl('/api/ai/video-agent/execute'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requirement: text,
           format: apiFormat,
           niche: projectNiche,
-          useAi,
-          enqueueQueue,
+          useAi: false,
+          plan: plan || undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.details || 'Falha no planejamento');
 
-      if (data.needs_browser || data.prompt) {
-        toast('Cole a resposta do Gemini no campo ou use a extensão Chrome.', { duration: 6000 });
-        return;
+      if (!ok) throw new Error(String(data.error || data.details || 'Falha na execução'));
+
+      const results = (data.results || []) as ExecuteResult[];
+      const deferred = (data.deferred || []) as { step: string; tab?: string }[];
+      const creatorTrigger = data.creatorTrigger as {
+        title?: string;
+        hook?: string;
+        format?: string;
+      } | null;
+
+      setPlan((data.plan as VideoAgentPlan) || plan);
+      setExecuteResults(results);
+
+      if (creatorTrigger?.title && onExecuteCreator) {
+        const fmt = creatorTrigger.format === 'LONGO' ? 'LONGO' : 'SHORTS';
+        try {
+          await onExecuteCreator(creatorTrigger.title, creatorTrigger.hook || '', { format: fmt });
+          const idx = results.findIndex((r) => r.step === 'creator_pipeline');
+          if (idx >= 0) {
+            results[idx] = {
+              ...results[idx],
+              status: 'ok',
+              message: `Projeto "${creatorTrigger.title.slice(0, 48)}" — narração em andamento`,
+            };
+          }
+        } catch (err: unknown) {
+          const idx = results.findIndex((r) => r.step === 'creator_pipeline');
+          if (idx >= 0) {
+            results[idx] = {
+              ...results[idx],
+              status: 'error',
+              error: err instanceof Error ? err.message : 'Falha no Creator',
+            };
+          }
+        }
       }
 
-      setPlan(data.plan || null);
-      setObsidianMeta(data.obsidian || null);
-      toast.success(
-        data.plan?.aiEnhanced
-          ? 'Plano VideoAgent enriquecido com IA'
-          : 'Plano VideoAgent gerado (regras locais)',
-      );
-      if (data.editorialQueue?.enqueued) {
-        toast(`Ideia adicionada à fila editorial (${data.editorialQueue.total} itens)`, {
-          icon: '📋',
-        });
+      for (const item of deferred) {
+        if (item.step === 'overlay_plan') {
+          const overlayRes = await postAi(getProjectUrl('/api/studio-agents/plan-overlays'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hyperframes: true }),
+          });
+          if (overlayRes.ok) {
+            results.push({
+              step: 'overlay_plan',
+              status: 'ok',
+              message: `${overlayRes.data.overlayCount ?? 0} overlays planejados`,
+            });
+          } else {
+            results.push({
+              step: 'overlay_plan',
+              status: 'error',
+              error: String(overlayRes.data.error || 'Falha overlays'),
+            });
+          }
+        } else if (item.tab && onNavigateTab) {
+          onNavigateTab(item.tab);
+        }
+      }
+
+      setExecuteResults([...results]);
+
+      const okCount = results.filter((r) => r.status === 'ok' || r.status === 'pending_ui').length;
+      const errCount = results.filter((r) => r.status === 'error').length;
+
+      if (errCount === 0) {
+        toast.success(`Automação concluída — ${okCount} etapa(s) processada(s)`, { id: toastId });
+      } else {
+        toast(`Concluído com ${errCount} aviso(s) — veja o log abaixo`, { id: toastId, icon: '⚠️' });
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao planejar');
+      toast.error(err instanceof Error ? err.message : 'Erro na automação', { id: toastId });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
 
@@ -136,10 +294,10 @@ export function VideoAgentPlanner({
   return (
     <div className="glass-panel p-6 rounded-2xl space-y-4 border border-violet-500/15">
       <SectionHeader
-        title="VideoAgent Planner"
+        title="VideoAgent — Automação"
         helpId="agents-videoagent"
         icon={<GitBranch className="w-4 h-4 text-violet-400 shrink-0" />}
-        subtitle="Adaptação do HKUDS/VideoAgent: analisa seu pedido, detecta intents e monta a cadeia de agentes Lumiera com storyboard beats."
+        subtitle="Descreva o vídeo em linguagem natural. O Lumiera detecta intents, executa o que for possível (Creator, pesquisa, fila, overlays) e mostra o restante com atalhos de aba."
       />
 
       <div className="flex flex-wrap gap-2">
@@ -171,7 +329,7 @@ export function VideoAgentPlanner({
             onChange={(e) => setUseAi(e.target.checked)}
             className="rounded border-zinc-700"
           />
-          Enriquecer com IA (Gemini)
+          Enriquecer plano com IA
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -192,15 +350,72 @@ export function VideoAgentPlanner({
         </span>
       </div>
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={runPlan}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 border border-violet-500/40 text-xs font-bold text-violet-300 hover:from-violet-500/30 transition disabled:opacity-50"
-      >
-        <Sparkles className="w-3.5 h-3.5" />
-        {busy ? 'Planejando…' : 'Gerar plano VideoAgent'}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          disabled={!!busy}
+          onClick={runExecute}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/25 to-violet-500/15 border border-emerald-500/45 text-xs font-bold text-emerald-300 hover:from-emerald-500/35 transition disabled:opacity-50"
+        >
+          {busy === 'execute' ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Play className="w-3.5 h-3.5" />
+          )}
+          {busy === 'execute' ? 'Executando…' : 'Executar automaticamente'}
+        </button>
+        <button
+          type="button"
+          disabled={!!busy}
+          onClick={runPlan}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500/20 to-fuchsia-500/10 border border-violet-500/40 text-xs font-bold text-violet-300 hover:from-violet-500/30 transition disabled:opacity-50"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          {busy === 'plan' ? 'Planejando…' : 'Só ver plano'}
+        </button>
+      </div>
+
+      {executeResults && executeResults.length > 0 && (
+        <div className="space-y-2 border-t border-zinc-800 pt-4">
+          <p className="text-[10px] uppercase tracking-widest font-bold text-emerald-400/90">
+            Log de execução
+          </p>
+          <ul className="space-y-1.5">
+            {executeResults.map((r, i) => (
+              <li
+                key={`${r.step}-${i}`}
+                className={`text-xs px-3 py-2 rounded-lg border flex items-start gap-2 ${
+                  r.status === 'error'
+                    ? 'border-red-500/25 bg-red-500/5 text-red-200/90'
+                    : r.status === 'pending_ui'
+                      ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90'
+                      : 'border-emerald-500/25 bg-emerald-500/5 text-emerald-100/90'
+                }`}
+              >
+                {r.status === 'error' ? (
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                ) : r.status === 'pending_ui' ? (
+                  <Loader2 className="w-3.5 h-3.5 shrink-0 mt-0.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                )}
+                <span>
+                  <span className="font-mono text-[10px] opacity-80">
+                    {STEP_LABELS[r.step] || r.step}
+                  </span>
+                  {r.error ? ` — ${r.error}` : null}
+                  {r.message ? ` — ${r.message}` : null}
+                  {r.derivedIdeas != null ? ` — ${r.derivedIdeas} ideia(s)` : null}
+                  {r.editorialQueue?.enqueued
+                    ? ` — ${r.editorialQueue.enqueued} na fila`
+                    : null}
+                  {r.variations != null ? ` — ${r.variations} variação(ões)` : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {plan && (
         <div className="space-y-4 border-t border-zinc-800 pt-4 animate-fade-in">

@@ -41,15 +41,34 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 
 ## Como usar no dashboard
 
-1. Aba **Studio Agents** → bloco **VideoAgent Planner**
-2. Descreva o vídeo em PT-BR (ex.: "Short viral sobre engenharia antiga com NotebookLM")
-3. Opcional: enriquecer com IA (Gemini) ou só regras locais
-4. Siga a cadeia clicando nas abas sugeridas
-5. Planos ficam logados abaixo em **Planos gerados**
+1. Aba **Studio Agents** → **VideoAgent — Automação**
+2. Descreva o vídeo em PT-BR
+3. **Executar automaticamente** (botão verde) — roda a cadeia:
+   - Creator: cria projeto + gera narração (igual ▶ do YouTube Studio)
+   - Pesquisa concorrentes + fila editorial (servidor)
+   - Top 3 winners → fila
+   - Overlays com memória do estúdio (se na cadeia)
+4. **Só ver plano** — preview sem executar
+5. Usa `postAi` + extensão Gemini Chrome — **não** pede colar resposta manual
 
 ## API
 
 - `GET /api/ai/video-agent/registry` — intents + agentes
 - `POST /api/ai/video-agent/plan` — `{ requirement, format, niche, useAi, enqueueQueue }`
+- `POST /api/ai/video-agent/execute` — plano + execução server-side + `creatorTrigger` para UI
 
 ## Planos gerados (VideoAgent)
+
+### 2026-07-01 06:29 — Short viral sobre engenharia antiga
+- **Feasibility:** Feasible
+- **Intents:** Short viral
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — ideias → Creator — narração → Creator — roteiro + cenas → Overlays / HyperFrames → Render Short 9:16 → Metadados YouTube → Upload YouTube
+- **Reasoning:** Plano Lumiera com 7 etapas derivadas dos intents VideoAgent: Short viral.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
