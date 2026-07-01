@@ -68,7 +68,7 @@ export default {
         }
       },
       fontFamily: {
-        cinzel: ['Cinzel', 'serif'],
+        cinzel: ['"PT Sans"', 'Inter', 'sans-serif'],
         sans: ['"PT Sans"', 'Inter', 'sans-serif'],
         dash: ['"PT Sans"', 'sans-serif'],
       }

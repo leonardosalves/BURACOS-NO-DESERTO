@@ -152,7 +152,7 @@ function FormatColumn({
             <Tv className="w-5 h-5 text-gold-400 shrink-0" />
           )}
           <div>
-            <p className="text-sm font-bold text-white font-cinzel">
+            <p className="text-sm font-bold text-white font-sans">
               {isShort ? 'Shorts' : 'Longos'}
             </p>
             <p className="text-[10px] text-zinc-500">{isShort ? '9:16 vertical' : '16:9 horizontal'}</p>

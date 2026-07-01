@@ -907,7 +907,7 @@ export function YoutubeStudioPanel({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-white font-cinzel truncate">{overview.channel.title}</h2>
+              <h2 className="text-lg font-bold text-white font-sans truncate">{overview.channel.title}</h2>
               <a
                 href={`https://studio.youtube.com/channel/${overview.channel.id}`}
                 target="_blank"

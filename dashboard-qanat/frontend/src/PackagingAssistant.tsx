@@ -330,8 +330,8 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
       {/* Header Title */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
         <div>
-          <span className="text-[9px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">Ferramentas de Destaque</span>
-          <h1 className="text-2xl font-bold text-white tracking-tight mt-1 font-cinzel flex items-center gap-2">
+          <span className="text-[9px] font-bold text-gold-500 uppercase tracking-widest block font-sans">Ferramentas de Destaque</span>
+          <h1 className="text-2xl font-bold text-white tracking-tight mt-1 font-sans flex items-center gap-2">
             <Sliders className="w-5 h-5 text-gold-500" />
             LUMIERA COPILOT
             <span className="text-[10px] bg-gold-500/10 text-gold-500 border border-gold-500/20 px-2 py-0.5 rounded-full font-sans uppercase">
@@ -379,7 +379,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
         <div className="glass-panel p-5 rounded-3xl flex flex-col gap-4 border border-zinc-900/50">
           <div className="flex items-center gap-2 border-b border-zinc-900/60 pb-3">
             <BookOpen className="w-4 h-4 text-gold-500" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Upload do Vídeo</h3>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Upload do Vídeo</h3>
           </div>
 
           <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 space-y-3">
@@ -462,7 +462,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
           <div className="flex items-center justify-between border-b border-zinc-900/60 pb-3">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-gold-500" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Miniatura (Thumbnail)</h3>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Miniatura (Thumbnail)</h3>
             </div>
             
             <button
@@ -557,13 +557,13 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
                         strokeDashoffset={2 * Math.PI * 34 * (1 - (analysisResult?.score || 70) / 100)} 
                         className="transition-all duration-1000 ease-out" />
               </svg>
-              <span className="absolute text-xl font-bold text-white font-cinzel">{isAnalyzing ? '...' : `${analysisResult?.score || 0}%`}</span>
+              <span className="absolute text-xl font-bold text-white font-sans">{isAnalyzing ? '...' : `${analysisResult?.score || 0}%`}</span>
             </div>
           </div>
 
           <div className="col-span-3 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Avaliação Detalhada</h4>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Avaliação Detalhada</h4>
               <button onClick={() => setShowAnalysis(false)} className="text-zinc-500 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
@@ -606,7 +606,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
         <div className="flex items-center justify-between border-b border-zinc-900/60 pb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-gold-500 animate-pulse" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Título e Descrição do Vídeo</h3>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Título e Descrição do Vídeo</h3>
           </div>
           <button
             onClick={handleGenerateTitleSuggestions}
@@ -691,7 +691,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
         <div className="glass-panel p-5 rounded-3xl border border-zinc-900/50 flex flex-col gap-3 min-h-[300px]">
           <div className="flex items-center gap-2 border-b border-zinc-900/60 pb-3">
             <Play className="w-4 h-4 text-gold-500" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Visualização Local</h3>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Visualização Local</h3>
           </div>
 
           <div className="bg-zinc-950/60 rounded-2xl border border-zinc-900 flex-1 overflow-hidden relative flex items-center justify-center min-h-[220px]">
@@ -712,7 +712,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
           <div className="flex items-center justify-between border-b border-zinc-900/60 pb-3">
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-gold-500" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Capítulos (Timestamps)</h3>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Capítulos (Timestamps)</h3>
             </div>
             <button 
               onClick={() => copyToClipboard(chapters.map(c => `${c.time} - ${c.title}`).join("\n"), "Capítulos")}
@@ -782,7 +782,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
         <div className="flex items-center justify-between border-b border-zinc-900/60 pb-3">
           <div className="flex items-center gap-2">
             <Tag className="w-4 h-4 text-gold-500" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Metadados Adicionais</h3>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Metadados Adicionais</h3>
           </div>
           <button
             onClick={handleGenerateCommentSuggestions}
@@ -888,7 +888,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
             {/* Modal header */}
             <div className="p-4 border-b border-zinc-900/60 flex justify-between items-center">
               <div>
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-cinzel">Teste de Destaque no Feed</h3>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider font-sans">Teste de Destaque no Feed</h3>
                 <p className="text-[9px] text-zinc-550">Simule a competição visual da sua miniatura em feed real do YouTube.</p>
               </div>
               <div className="flex items-center gap-3">
@@ -1015,8 +1015,8 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
 
             {gameStage === 'countdown' && (
               <div className="text-center py-20 space-y-4">
-                <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">O Teste Começará Em Breve</span>
-                <div className="text-6xl font-extrabold text-white animate-ping font-cinzel">{countdown}</div>
+                <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-sans">O Teste Começará Em Breve</span>
+                <div className="text-6xl font-extrabold text-white animate-ping font-sans">{countdown}</div>
                 <p className="text-[10px] text-gray-500 max-w-xs mx-auto leading-relaxed">
                   Encontre sua miniatura na grade de 6 imagens e clique nela o mais rápido possível!
                 </p>
@@ -1026,7 +1026,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
             {gameStage === 'playing' && (
               <div className="space-y-4">
                 <div className="text-center">
-                  <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest block font-cinzel">Ache sua miniatura</span>
+                  <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest block font-sans">Ache sua miniatura</span>
                   <h4 className="text-sm font-bold text-white mt-1">CLIQUE NELA IMEDIATAMENTE!</h4>
                 </div>
 
@@ -1053,7 +1053,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
                 <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto animate-bounce" />
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold text-zinc-550 uppercase tracking-widest block">Teste de Velocidade de Reconhecimento</span>
-                  <h3 className="text-3xl font-extrabold text-white font-cinzel">{reactionTime} ms</h3>
+                  <h3 className="text-3xl font-extrabold text-white font-sans">{reactionTime} ms</h3>
                   <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
                     {reactionTime && reactionTime < 800 
                       ? "Excelente! Destaque imediato. Sua thumbnail sobressai no feed em menos de um segundo!"
@@ -1091,7 +1091,7 @@ Forneça uma resposta direta, concisa e prática de refinamento para o editor de
           <div className="p-4 border-b border-zinc-900/60 flex justify-between items-center bg-zinc-950/20">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-gold-500" />
-              <h3 className="font-bold text-white uppercase tracking-wider font-cinzel">Refinar com IA</h3>
+              <h3 className="font-bold text-white uppercase tracking-wider font-sans">Refinar com IA</h3>
             </div>
             <button onClick={() => setShowChatPanel(false)} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition cursor-pointer">
               <X className="w-5 h-5" />
