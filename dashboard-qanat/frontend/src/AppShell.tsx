@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Cloud,
   Globe,
+  Home,
   LayoutTemplate,
   Menu,
   Puzzle,
@@ -25,6 +26,7 @@ import { SECTION_HELP } from './sectionHelpContent';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
 
 type AppTab =
+  | 'home'
   | 'status'
   | 'workflow'
   | 'timeline'
@@ -175,8 +177,8 @@ export function AppShell({
           <button
             type="button"
             className="dash-brand"
-            onClick={() => setActiveTab('status')}
-            title="Lumiera Studio"
+            onClick={() => setActiveTab('home')}
+            title="Lumiera Studio — Início"
           >
             <span className="dash-brand-icon">
               <Sparkles className="w-5 h-5" />
@@ -199,6 +201,13 @@ export function AppShell({
         <div className="dash-sidebar-body">
           <p className="dash-nav-category">Produção</p>
           <ul className="dash-nav-list">
+            <SidebarLink
+              active={activeTab === 'home'}
+              onClick={() => setActiveTab('home')}
+              icon={Home}
+              label="Início"
+              helpId="tab-home"
+            />
             <SidebarLink
               active={activeTab === 'creator'}
               onClick={onOpenCreator}

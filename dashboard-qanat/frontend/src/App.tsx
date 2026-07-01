@@ -142,6 +142,7 @@ import { AppShell } from './AppShell';
 
 import { DashminActivityFeed } from './DashminActivityFeed';
 import { DashminPageLayout } from './DashminPageLayout';
+import { LumieraHomePage } from './LumieraHomePage';
 import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 import { DashminYoutubePulse } from './DashminYoutubePulse';
 
@@ -607,13 +608,13 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach' | 'projects' | 'dash-ui' | 'dash-extensions';
+  type AppTab = 'home' | 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach' | 'projects' | 'dash-ui' | 'dash-extensions';
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
     const saved = initialWizardSession?.activeTab;
-    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp', 'trend-forecast', 'agent-reach', 'projects'];
-    return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
+    const allowed: AppTab[] = ['home', 'status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp', 'trend-forecast', 'agent-reach', 'projects'];
+    return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'home';
   });
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
@@ -2986,7 +2987,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach' || activeTab === 'projects' || activeTab === 'dash-ui' || activeTab === 'dash-extensions') {
+    if (activeTab === 'home' || activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach' || activeTab === 'projects' || activeTab === 'dash-ui' || activeTab === 'dash-extensions') {
       setActiveTab(tab);
     }
   };
@@ -8494,6 +8495,7 @@ export default function App() {
   };
 
   const projectWorkspaceBar =
+    activeTab !== 'home' &&
     activeTab !== 'creator' &&
     activeTab !== 'settings' &&
     activeTab !== 'agents' &&
@@ -8589,6 +8591,33 @@ export default function App() {
         projectBar={projectWorkspaceBar}
       >
         <div className="text-balance-safe">
+
+          {activeTab === 'home' && (
+            <TabErrorBoundary tabName="Início">
+              <LumieraHomePage
+                projects={projects}
+                activeProject={activeProject}
+                recentProjects={recentProjects}
+                status={status}
+                videoQualityScore={videoQuality?.score}
+                outputCount={outputs.length}
+                youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
+                hotVideos={youtubeChannelAlerts?.hotVideos}
+                rendering={rendering}
+                renderPercent={renderProgress?.percent}
+                viewsThreshold={getYoutubeViewsThreshold()}
+                onOpenCreator={openCreatorTab}
+                onOpenProjects={() => setActiveTab('projects')}
+                onOpenWorkflow={() => setActiveTab('workflow')}
+                onOpenTimeline={() => setActiveTab('timeline')}
+                onOpenMusic={() => setActiveTab('music')}
+                onOpenRender={() => setActiveTab('status')}
+                onOpenUpload={() => setActiveTab('upload')}
+                onOpenMetadata={() => setActiveTab('ai')}
+                onOpenYoutube={() => setActiveTab('youtube-studio')}
+              />
+            </TabErrorBoundary>
+          )}
 
           {/* TAB: RENDER */}
 

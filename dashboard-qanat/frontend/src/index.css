@@ -437,6 +437,49 @@
   }
 
   /* ── Dashboard widgets (fase 2) ── */
+  .lumiera-home {
+    @apply min-w-0 w-full;
+  }
+
+  .lumiera-home-hero-meta {
+    @apply p-4 rounded-lg;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--dash-border-soft);
+  }
+
+  .lumiera-home-pipeline {
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0;
+  }
+
+  .lumiera-home-step {
+    @apply text-left p-4 rounded-lg border transition cursor-pointer min-w-0 flex flex-col;
+    background: var(--dash-card);
+    border-color: var(--dash-border-soft);
+  }
+
+  .lumiera-home-step:hover {
+    border-color: rgba(130, 128, 253, 0.35);
+    background: var(--dash-card-hover);
+  }
+
+  .lumiera-home-step-icon {
+    @apply w-9 h-9 rounded-lg flex items-center justify-center mb-2;
+    background: rgba(130, 128, 253, 0.12);
+    color: var(--dash-primary);
+  }
+
+  .lumiera-home-step-label {
+    @apply text-xs font-bold text-white block;
+  }
+
+  .lumiera-home-step-desc {
+    @apply text-[10px] text-dash-muted mt-1 leading-relaxed block flex-1;
+  }
+
+  .lumiera-home-capabilities {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0;
+  }
+
   .dash-dashboard-grid {
     @apply grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 min-w-0;
   }

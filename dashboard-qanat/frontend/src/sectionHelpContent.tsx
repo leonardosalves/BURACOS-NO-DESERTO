@@ -101,6 +101,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-home': {
+    title: 'Início',
+    body: (
+      <>
+        Visão geral do Lumiera: estatísticas do estúdio, pipeline de produção em 6 etapas, progresso do projeto ativo,
+        atividade recente e atalhos para Creator, Render, Upload e Canal YouTube.
+      </>
+    ),
+  },
   'tab-projects': {
     title: 'Biblioteca de Projetos',
     body: (
