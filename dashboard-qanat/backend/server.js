@@ -7312,11 +7312,18 @@ async function callGeminiLlm(req, res, projDir, {
   prompt = null,
   bodyOverride = null,
   temperature = null,
+  preferApi = false,
 } = {}) {
   const browserText = extractBrowserResponse(req.body);
   if (browserText) return browserText;
 
-  if (shouldOfferGeminiBrowser(projDir)) {
+  const hasGeminiApiKey = Boolean(getApiKey(projDir) || getApiKey(WORKSPACE_DIR));
+  const useBrowser = shouldOfferGeminiBrowser(projDir) && !(preferApi && hasGeminiApiKey);
+  if (preferApi && hasGeminiApiKey && shouldOfferGeminiBrowser(projDir)) {
+    console.log(`[Gemini] ${title}: API direta (mais rápida que Chrome) — gemini_browser_mode ignorado nesta chamada.`);
+  }
+
+  if (useBrowser) {
     const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
     const promptText = bodyOverride
       ? buildPromptFromBodyOverride(bodyOverride)
@@ -12154,6 +12161,7 @@ REGRAS FINAIS:
       title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
       prompt: promptSystem,
       temperature: isListicle ? 0.75 : 0.85,
+      preferApi: scriptPhase === "narration",
     });
     if (responseText == null) return;
 

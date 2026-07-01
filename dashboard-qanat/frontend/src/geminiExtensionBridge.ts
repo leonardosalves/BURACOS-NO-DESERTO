@@ -112,7 +112,7 @@ export function estimateGeminiQueryTimeoutMs(prompt: string): number {
   if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(prompt)) return 200000;
   if (len > 6000 || /"overlays"\s*:/i.test(prompt) || /LUMIERA_TASK:overlay/i.test(prompt)) return 180000;
   if (/Ideas Engine|"best_idea_index"|ranking_ideas/i.test(prompt)) return 150000;
-  if (/Gerar narração|narrative_script|LUMIERA_TASK:script/i.test(prompt)) return 240000;
+  if (/Gerar narração|narrative_script|LUMIERA_TASK:script/i.test(prompt)) return 300000;
   if (len > 3000) return 130000;
   return 120000;
 }
