@@ -83,7 +83,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Canal YouTube',
     body: (
       <>
-        Visão geral do canal conectado: inscritos, views totais e tabela de desempenho por vídeo (views, likes, comentários, minutos assistidos). Usa a mesma conta OAuth do Upload. Revincule em Integrações se faltar permissão de analytics.
+        Visão geral do canal conectado: inscritos, views totais, desempenho por vídeo e comentários recentes (filtro sem resposta e palavra-chave do nicho). Respostas abrem no YouTube Studio. Usa a mesma conta OAuth do Upload.
       </>
     ),
   },

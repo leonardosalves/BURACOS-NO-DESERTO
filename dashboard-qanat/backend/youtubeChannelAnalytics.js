@@ -212,3 +212,111 @@ export async function fetchChannelVideosWithAnalytics(workspaceDir, { days = 28,
       "Impressões e CTR de thumbnail só existem no YouTube Studio. O Lumiera mostra views, engajamento e minutos assistidos do período.",
   };
 }
+
+function normalizeCommentText(value = "") {
+  return String(value)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function threadHasChannelReply(thread, channelId) {
+  const replies = thread?.replies?.comments || [];
+  return replies.some((reply) => reply?.snippet?.authorChannelId === channelId);
+}
+
+function mapCommentThread(thread, channelId) {
+  const snippet = thread?.snippet || {};
+  const top = snippet.topLevelComment?.snippet || {};
+  const videoId = snippet.videoId || "";
+  const threadId = thread?.id || "";
+  const topCommentId = snippet.topLevelComment?.id || "";
+  const replyCount = Number(snippet.totalReplyCount || 0);
+  const isAnswered = replyCount > 0 && threadHasChannelReply(thread, channelId);
+
+  return {
+    threadId,
+    commentId: topCommentId,
+    videoId,
+    videoTitle: snippet.videoTitle || "",
+    authorDisplayName: top.authorDisplayName || "",
+    authorProfileImageUrl: top.authorProfileImageUrl || "",
+    text: normalizeCommentText(top.textDisplay || top.textOriginal || ""),
+    publishedAt: top.publishedAt || top.updatedAt || "",
+    likeCount: Number(top.likeCount || 0),
+    replyCount,
+    isAnswered,
+    studioUrl: videoId
+      ? `https://studio.youtube.com/video/${videoId}/comments`
+      : `https://studio.youtube.com/channel/${channelId}/comments`,
+    watchUrl: videoId && topCommentId
+      ? `https://www.youtube.com/watch?v=${videoId}&lc=${topCommentId}`
+      : videoId
+        ? `https://www.youtube.com/watch?v=${videoId}`
+        : null,
+  };
+}
+
+function applyCommentFilters(comments, { filter = "all", keyword = "" } = {}) {
+  let result = [...comments];
+
+  if (filter === "unanswered") {
+    result = result.filter((item) => !item.isAnswered);
+  }
+
+  const keywordNorm = String(keyword || "").trim().toLowerCase();
+  if (keywordNorm) {
+    result = result.filter((item) => {
+      const haystack = `${item.text} ${item.videoTitle} ${item.authorDisplayName}`.toLowerCase();
+      return haystack.includes(keywordNorm);
+    });
+  }
+
+  return result;
+}
+
+export async function fetchChannelComments(workspaceDir, {
+  limit = 20,
+  filter = "all",
+  keyword = "",
+} = {}) {
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+
+  const channelData = await youtubeDataGet(accessToken, "channels", {
+    part: "snippet",
+    mine: "true",
+  });
+
+  const channelItem = channelData?.items?.[0];
+  const channelId = channelItem?.id;
+  if (!channelId) {
+    throw new Error("Nenhum canal encontrado na conta conectada.");
+  }
+
+  const maxResults = Math.min(Math.max(Number(limit) || 20, 1), 50);
+  const wantsFilter = filter === "unanswered" || String(keyword || "").trim().length > 0;
+  const fetchCount = wantsFilter ? Math.min(maxResults * 3, 100) : maxResults;
+
+  const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
+    part: "snippet,replies",
+    allThreadsRelatedToChannelId: channelId,
+    order: "time",
+    maxResults: fetchCount,
+    moderationStatus: "published",
+  });
+
+  const mapped = (threadsData?.items || []).map((thread) => mapCommentThread(thread, channelId));
+  const filtered = applyCommentFilters(mapped, { filter, keyword }).slice(0, maxResults);
+
+  return {
+    channelId,
+    channelTitle: channelItem?.snippet?.title || "",
+    filter,
+    keyword: String(keyword || "").trim(),
+    comments: filtered,
+    totalFetched: mapped.length,
+    fetchedAt: new Date().toISOString(),
+    replyNote: "Respostas pelo Lumiera ainda não estão disponíveis — use o link para abrir no YouTube Studio.",
+  };
+}
