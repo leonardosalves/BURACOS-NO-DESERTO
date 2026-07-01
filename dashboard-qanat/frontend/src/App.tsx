@@ -8745,7 +8745,7 @@ export default function App() {
                     <button
                       disabled={rendering || !status?.has_narration}
                       onClick={() => triggerRender('remotion-pro')}
-                      className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-amber-500/10 cursor-pointer w-full"
+                      className="bg-dash-primary hover:bg-dash-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-dash-primary/15 cursor-pointer w-full"
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>Renderizar via Remotion PRO</span>
@@ -9793,7 +9793,7 @@ export default function App() {
 
                       onClick={handleAutoSoundtrack}
 
-                      className="bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-600 hover:to-amber-600 disabled:opacity-50 text-zinc-950 text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-gold-500/10 cursor-pointer flex items-center gap-2"
+                      className="bg-gradient-to-r from-dash-primary to-dash-primary-dark hover:from-dash-primary-dark hover:to-dash-primary disabled:opacity-50 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-dash-primary/15 cursor-pointer flex items-center gap-2"
 
                     >
 
@@ -13227,7 +13227,7 @@ export default function App() {
 
                   <div 
 
-                    className="absolute left-4 h-0.5 bg-gold-500 top-1/2 -translate-y-1/2 -z-10 transition-all duration-300"
+                    className="absolute left-4 h-0.5 bg-dash-primary top-1/2 -translate-y-1/2 -z-10 transition-all duration-300"
 
                     style={{ width: `${((creatorStep - 1) / 6) * 100}%` }}
 
@@ -13245,7 +13245,7 @@ export default function App() {
 
                         creatorStep === step 
 
-                          ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/25 scale-110' 
+                          ? 'bg-dash-primary text-white shadow-lg shadow-dash-primary/25 scale-110'
 
                           : creatorStep > step 
 
@@ -13411,37 +13411,25 @@ export default function App() {
                         </div>
                       )}
                       
-                      <div className="flex gap-2 border-t border-zinc-900/60 pt-3">
+                      <div className="flex flex-wrap gap-2 border-t border-zinc-900/60 pt-3">
                         <button
                           type="button"
                           onClick={() => setIdeationTab('ai')}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                            ideationTab === 'ai'
-                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
-                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
-                          }`}
+                          className={`dash-segment-btn ${ideationTab === 'ai' ? 'dash-segment-btn-active' : ''}`}
                         >
                           <span>💡 Gerar com IA</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setIdeationTab('custom')}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                            ideationTab === 'custom'
-                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
-                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
-                          }`}
+                          className={`dash-segment-btn ${ideationTab === 'custom' ? 'dash-segment-btn-active' : ''}`}
                         >
                           <span>✏️ Ideia Personalizada</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setIdeationTab('listicle')}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                            ideationTab === 'listicle'
-                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
-                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
-                          }`}
+                          className={`dash-segment-btn ${ideationTab === 'listicle' ? 'dash-segment-btn-active' : ''}`}
                         >
                           <span>📊 Top N / Listicle</span>
                         </button>
