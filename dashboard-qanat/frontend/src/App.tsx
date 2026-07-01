@@ -799,6 +799,11 @@ export default function App() {
   const [hasPexelsKey, setHasPexelsKey] = useState<boolean>(false);
   const [hasPixabayKey, setHasPixabayKey] = useState<boolean>(false);
   const [savingApiKeys, setSavingApiKeys] = useState<boolean>(false);
+  const [supermemoryKeyInput, setSupermemoryKeyInput] = useState<string>('');
+  const [supermemoryBaseUrlInput, setSupermemoryBaseUrlInput] = useState<string>('');
+  const [hasSupermemoryKey, setHasSupermemoryKey] = useState<boolean>(false);
+  const [supermemoryEnabled, setSupermemoryEnabled] = useState<boolean>(true);
+  const [testingSupermemory, setTestingSupermemory] = useState<boolean>(false);
 
   const [hasEpidemicKey, setHasEpidemicKey] = useState<boolean>(false);
 
@@ -5032,13 +5037,49 @@ export default function App() {
         setHasPexelsKey(!!data.has_pexels_key);
         setHasPixabayKey(!!data.has_pixabay_key);
         setHasEpidemicKey(!!data.has_epidemic_key);
+        setHasSupermemoryKey(!!data.has_supermemory_key);
+        setSupermemoryEnabled(data.supermemory_enabled !== false);
+        if (data.supermemory_base_url) {
+          setSupermemoryBaseUrlInput(data.supermemory_base_url);
+        }
       }
     } catch { /* ignore */ }
   };
 
+  const handleTestSupermemory = async () => {
+    setTestingSupermemory(true);
+    try {
+      if (supermemoryKeyInput.trim()) {
+        await fetch('/api/settings/global-api-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            supermemory_api_key: supermemoryKeyInput.trim(),
+            supermemory_base_url: supermemoryBaseUrlInput.trim() || undefined,
+            supermemory_enabled: supermemoryEnabled,
+          }),
+        });
+      }
+      const res = await fetch('/api/supermemory/test', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha no teste');
+      toast.success('Supermemory conectado — memória entre sessões pronta.');
+      setHasSupermemoryKey(true);
+      setSupermemoryKeyInput('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao testar Supermemory');
+    } finally {
+      setTestingSupermemory(false);
+    }
+  };
+
   const handleSaveApiKeys = async () => {
-    const hasInput = epidemicKeyInput.trim() || pexelsKeyInput.trim() || pixabayKeyInput.trim();
-    if (!hasInput) {
+    const hasInput = epidemicKeyInput.trim()
+      || pexelsKeyInput.trim()
+      || pixabayKeyInput.trim()
+      || supermemoryKeyInput.trim()
+      || supermemoryBaseUrlInput.trim();
+    if (!hasInput && !hasSupermemoryKey && !hasEpidemicKey && !hasPexelsKey && !hasPixabayKey) {
       toast.error('Digite pelo menos uma chave para salvar.');
       return;
     }
@@ -5051,6 +5092,9 @@ export default function App() {
           epidemic_sound_key: epidemicKeyInput.trim() || undefined,
           pexels_api_key: pexelsKeyInput.trim() || undefined,
           pixabay_api_key: pixabayKeyInput.trim() || undefined,
+          supermemory_api_key: supermemoryKeyInput.trim() || undefined,
+          supermemory_base_url: supermemoryBaseUrlInput.trim() || undefined,
+          supermemory_enabled: supermemoryEnabled,
         }),
       });
       if (!res.ok) throw new Error(await readApiError(res, 'Falha ao salvar chaves de API'));
@@ -5058,9 +5102,12 @@ export default function App() {
       setHasEpidemicKey(!!data.has_epidemic_key);
       setHasPexelsKey(!!data.has_pexels_key);
       setHasPixabayKey(!!data.has_pixabay_key);
+      setHasSupermemoryKey(!!data.has_supermemory_key);
+      setSupermemoryEnabled(data.supermemory_enabled !== false);
       setEpidemicKeyInput('');
       setPexelsKeyInput('');
       setPixabayKeyInput('');
+      setSupermemoryKeyInput('');
       toast.success('Chaves de API salvas globalmente.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao salvar chaves');
@@ -12817,6 +12864,15 @@ export default function App() {
                   setPixabayKeyInput={setPixabayKeyInput}
                   hasPexelsKey={hasPexelsKey}
                   hasPixabayKey={hasPixabayKey}
+                  supermemoryKeyInput={supermemoryKeyInput}
+                  setSupermemoryKeyInput={setSupermemoryKeyInput}
+                  hasSupermemoryKey={hasSupermemoryKey}
+                  supermemoryEnabled={supermemoryEnabled}
+                  setSupermemoryEnabled={setSupermemoryEnabled}
+                  supermemoryBaseUrlInput={supermemoryBaseUrlInput}
+                  setSupermemoryBaseUrlInput={setSupermemoryBaseUrlInput}
+                  testingSupermemory={testingSupermemory}
+                  onTestSupermemory={handleTestSupermemory}
                   saving={savingApiKeys}
                   onSave={handleSaveApiKeys}
                 />
