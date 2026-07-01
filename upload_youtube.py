@@ -6,6 +6,8 @@ import urllib.parse
 import urllib.error
 import glob
 
+from lumiera_workspace import resolve_workspace
+
 def get_project_dir():
     if len(sys.argv) > 1:
         return os.path.abspath(sys.argv[1])
@@ -276,15 +278,7 @@ def main():
         print("[ERROR] Vídeo (.mp4) não encontrado na pasta OUTPUT.")
         sys.exit(1)
 
-    workspace_dir = project_dir
-    found_ws = False
-    for _ in range(5):
-        if os.path.exists(os.path.join(workspace_dir, "run_qanat_dashboard.bat")):
-            found_ws = True
-            break
-        workspace_dir = os.path.dirname(workspace_dir)
-    if not found_ws:
-        workspace_dir = os.path.abspath(os.path.join(project_dir, "..", ".."))
+    workspace_dir = resolve_workspace(project_dir)
 
     secrets_path = os.path.join(workspace_dir, "youtube_client_secrets.json")
     token_path = os.path.join(workspace_dir, "youtube_token.json")
