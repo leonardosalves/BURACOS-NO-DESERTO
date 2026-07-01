@@ -1,9 +1,15 @@
+import fs from "fs";
+import path from "path";
 import {
   assertTitleTestScopes,
+  fetchVideoVelocity,
   getYoutubeAccessToken,
   getYoutubeTokenScopes,
   throwIfInsufficientScope,
 } from "./youtubeTitleAnalytics.js";
+
+const DEFAULT_VIEWS_48H_THRESHOLD = 100;
+const DEFAULT_POLL_INTERVAL_MINUTES = 20;
 
 const VIDEO_METRICS = [
   "views",
@@ -337,5 +343,178 @@ export async function fetchChannelComments(workspaceDir, {
     totalFetched: mapped.length,
     fetchedAt: new Date().toISOString(),
     replyNote: "Respostas pelo Lumiera ainda não estão disponíveis — use o link para abrir no YouTube Studio.",
+  };
+}
+
+function readJsonSafe(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+export function collectLumieraPublishedVideos(projectsRoot) {
+  const results = [];
+  const seen = new Set();
+  const roots = [
+    { dir: path.join(projectsRoot, "videos longos"), format: "LONGO" },
+    { dir: path.join(projectsRoot, "videos curtos shorts"), format: "SHORTS" },
+  ];
+
+  for (const { dir, format } of roots) {
+    if (!fs.existsSync(dir)) continue;
+    for (const item of fs.readdirSync(dir)) {
+      const fullPath = path.join(dir, item);
+      try {
+        if (!fs.statSync(fullPath).isDirectory()) continue;
+      } catch {
+        continue;
+      }
+
+      const cfg = readJsonSafe(path.join(fullPath, "config_qanat.json"));
+      const videoId = String(cfg?.upload_metadata?.youtube?.post_id || "").trim();
+      if (!videoId || seen.has(videoId)) continue;
+
+      seen.add(videoId);
+      results.push({
+        projectName: item,
+        projectPath: fullPath,
+        format,
+        videoId,
+        niche: cfg?.niche || "",
+        title: cfg?.upload_metadata?.youtube?.title || cfg?.strategy?.title_main || "",
+      });
+    }
+  }
+
+  return results;
+}
+
+async function countUnansweredComments(accessToken, channelId, scanLimit = 50) {
+  const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
+    part: "snippet,replies",
+    allThreadsRelatedToChannelId: channelId,
+    order: "time",
+    maxResults: Math.min(Math.max(scanLimit, 1), 100),
+    moderationStatus: "published",
+  });
+
+  let count = 0;
+  for (const thread of threadsData?.items || []) {
+    const snippet = thread?.snippet || {};
+    const replyCount = Number(snippet.totalReplyCount || 0);
+    const isAnswered = replyCount > 0 && threadHasChannelReply(thread, channelId);
+    if (!isAnswered) count += 1;
+  }
+  return count;
+}
+
+export async function fetchChannelAlerts(workspaceDir, projectsRoot, {
+  views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
+  maxProjects = 12,
+  commentScanLimit = 50,
+} = {}) {
+  const scopeStatus = await getYoutubeTokenScopes(workspaceDir);
+  if (!scopeStatus.connected) {
+    return {
+      connected: false,
+      scopesReady: false,
+      badgeCount: 0,
+      unansweredComments: 0,
+      hotVideos: [],
+      lumieraVideos: [],
+      alerts: [],
+      views48hThreshold,
+      pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  if (!scopeStatus.ready) {
+    return {
+      connected: true,
+      scopesReady: false,
+      badgeCount: 0,
+      unansweredComments: 0,
+      hotVideos: [],
+      lumieraVideos: collectLumieraPublishedVideos(projectsRoot),
+      alerts: [],
+      views48hThreshold,
+      pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
+      scopeStatus,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+
+  const channelData = await youtubeDataGet(accessToken, "channels", {
+    part: "snippet",
+    mine: "true",
+  });
+  const channelId = channelData?.items?.[0]?.id;
+  if (!channelId) {
+    throw new Error("Nenhum canal encontrado na conta conectada.");
+  }
+
+  const lumieraVideos = collectLumieraPublishedVideos(projectsRoot);
+  const lumieraVideoIds = lumieraVideos.map((item) => item.videoId);
+
+  const [unansweredComments, velocityResults] = await Promise.all([
+    countUnansweredComments(accessToken, channelId, commentScanLimit),
+    Promise.all(
+      lumieraVideos.slice(0, Math.min(Math.max(maxProjects, 1), 20)).map(async (entry) => {
+        try {
+          const velocity = await fetchVideoVelocity(workspaceDir, entry.videoId);
+          return { ...entry, views48h: velocity.views48h, available: true };
+        } catch (err) {
+          return { ...entry, views48h: 0, available: false, error: err.message };
+        }
+      }),
+    ),
+  ]);
+
+  const hotVideos = velocityResults.filter(
+    (item) => item.available && item.views48h >= views48hThreshold,
+  );
+
+  const alerts = [];
+  if (unansweredComments > 0) {
+    alerts.push({
+      type: "unanswered_comments",
+      count: unansweredComments,
+      label: `${unansweredComments} comentário(s) sem resposta`,
+    });
+  }
+  if (hotVideos.length > 0) {
+    alerts.push({
+      type: "hot_videos",
+      count: hotVideos.length,
+      label: `${hotVideos.length} vídeo(s) Lumiera com views 48h ≥ ${views48hThreshold}`,
+      videos: hotVideos.map((item) => ({
+        projectName: item.projectName,
+        videoId: item.videoId,
+        views48h: item.views48h,
+        format: item.format,
+      })),
+    });
+  }
+
+  return {
+    connected: true,
+    scopesReady: true,
+    badgeCount: unansweredComments + hotVideos.length,
+    unansweredComments,
+    hotVideos,
+    lumieraVideos,
+    lumieraVideoIds,
+    lumieraVideoById: Object.fromEntries(lumieraVideos.map((item) => [item.videoId, item])),
+    alerts,
+    views48hThreshold,
+    pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
+    fetchedAt: new Date().toISOString(),
   };
 }

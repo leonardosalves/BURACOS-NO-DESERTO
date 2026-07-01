@@ -124,7 +124,7 @@ import {
 } from './productionConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
-import { YoutubeStudioPanel } from './YoutubeStudioPanel';
+import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { warnLongListicleTitles } from './ListicleHudPreview';
 import {
   applySplitNarrationToBlockAssets,
@@ -335,6 +335,7 @@ const RENDER_MODE_LABELS: Record<PendingRenderJob['mode'], string> = {
 type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
 
 const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
+const YOUTUBE_ALERTS_POLL_MS = 20 * 60 * 1000;
 
 const PROJECT_WORKSPACE_TABS = [
   { id: 'status' as const, label: 'Render', icon: Tv, helpId: 'tab-status' },
@@ -571,6 +572,7 @@ export default function App() {
     tiktok: { connected: false },
     kwai: { connected: false }
   });
+  const [youtubeChannelAlerts, setYoutubeChannelAlerts] = useState<YoutubeChannelAlerts | null>(null);
   const [ytClientId, setYtClientId] = useState<string>('');
   const [ytClientSecret, setYtClientSecret] = useState<string>('');
   const [canvaClientId, setCanvaClientId] = useState<string>('');
@@ -1814,6 +1816,39 @@ export default function App() {
       console.error("Erro ao carregar status de upload:", e);
     }
   };
+
+  const fetchYoutubeChannelAlerts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/youtube/channel/alerts');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok || res.status === 403) {
+        setYoutubeChannelAlerts({
+          badgeCount: Number(data.badgeCount || 0),
+          unansweredComments: Number(data.unansweredComments || 0),
+          hotVideos: data.hotVideos || [],
+          lumieraVideoById: data.lumieraVideoById || {},
+          alerts: data.alerts || [],
+          pollIntervalMinutes: data.pollIntervalMinutes,
+          views48hThreshold: data.views48hThreshold,
+          fetchedAt: data.fetchedAt,
+        });
+      }
+    } catch (e) {
+      console.error('Erro ao carregar alertas YouTube:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchYoutubeChannelAlerts();
+    const timer = window.setInterval(fetchYoutubeChannelAlerts, YOUTUBE_ALERTS_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [fetchYoutubeChannelAlerts]);
+
+  useEffect(() => {
+    if (activeTab === 'youtube-studio') {
+      fetchYoutubeChannelAlerts();
+    }
+  }, [activeTab, fetchYoutubeChannelAlerts]);
 
   const fetchProjects = async () => {
 
@@ -8221,6 +8256,14 @@ export default function App() {
               >
                 <Youtube className="w-4 h-4" />
                 <span>Canal YouTube</span>
+                {(youtubeChannelAlerts?.badgeCount ?? 0) > 0 && (
+                  <span
+                    className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center tabular-nums"
+                    title="Alertas do canal (comentários ou views 48h)"
+                  >
+                    {(youtubeChannelAlerts?.badgeCount ?? 0) > 99 ? '99+' : youtubeChannelAlerts?.badgeCount}
+                  </span>
+                )}
                 <span
                   className="inline-flex"
                   onClick={(e) => e.stopPropagation()}
@@ -12182,6 +12225,8 @@ export default function App() {
                 toast={toast}
                 onRelinkYoutube={handleRelinkYoutube}
                 nicheKeyword={config?.niche || ''}
+                alerts={youtubeChannelAlerts}
+                onSelectProject={handleSelectProject}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
                   setActiveTab('settings');

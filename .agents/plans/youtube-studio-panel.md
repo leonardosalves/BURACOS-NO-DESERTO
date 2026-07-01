@@ -3,7 +3,7 @@
 # Painel YouTube Studio no Lumiera
 
 > Branch: `feature/youtube-studio-panel`  
-> Status: Fase 2 em implementação (Fase 1 concluída)
+> Status: Fase 3 concluída (Fases 1–2 concluídas)
 
 ## Objetivo
 
@@ -45,11 +45,12 @@ Trazer métricas essenciais do YouTube Studio para dentro do Lumiera — inscrit
 - Painel de comentários com link **Responder no Studio**
 - Filtros: todos / sem resposta / palavra-chave (nicho do projeto ativo como sugestão)
 
-### Fase 3 — Alertas e polling
+### Fase 3 — Alertas e polling (concluída)
 
-- Polling a cada 15–30 min (analytics tem delay de ~48h para algumas métricas)
-- Badge no sidebar se views 48h > threshold
-- Cruzar `videoId` dos projetos Lumiera com linhas da tabela
+- `GET /api/youtube/channel/alerts?viewsThreshold=100` — comentários sem resposta + views 48h dos projetos Lumiera
+- Polling frontend a cada 20 min enquanto o dashboard está aberto
+- Badge vermelho na sidebar **Canal YouTube** (`badgeCount = sem resposta + vídeos quentes`)
+- Tabela de vídeos marca linhas Lumiera e destaca alto desempenho em 48h
 
 ## Design de API
 
@@ -178,3 +179,23 @@ Revincular: **Configurações → Integrações → Revincular YouTube** (ou Upl
 - [x] Filtro **Sem resposta** oculta threads já respondidas pelo canal
 - [x] Filtro por palavra-chave (nicho do projeto como default)
 - [x] Cada item tem link para YouTube Studio e para o vídeo
+
+### `GET /api/youtube/channel/alerts`
+
+```json
+{
+  "badgeCount": 3,
+  "unansweredComments": 2,
+  "hotVideos": [{ "projectName": "MeuProjeto", "videoId": "abc", "views48h": 240 }],
+  "lumieraVideoById": { "abc": { "projectName": "MeuProjeto", "videoId": "abc" } },
+  "pollIntervalMinutes": 20,
+  "alerts": [{ "type": "unanswered_comments", "count": 2, "label": "2 comentário(s) sem resposta" }]
+}
+```
+
+## Critérios de aceite Fase 3
+
+- [x] Endpoint de alertas leve para polling
+- [x] Polling automático a cada 20 min no frontend
+- [x] Badge na sidebar quando há alertas
+- [x] Cruzamento videoId ↔ projeto Lumiera na tabela

@@ -88,11 +88,42 @@ type CommentsReport = {
 
 type CommentFilter = 'all' | 'unanswered';
 
+type LumieraVideoRef = {
+  projectName: string;
+  videoId: string;
+  format: string;
+  niche?: string;
+  title?: string;
+};
+
+export type YoutubeChannelAlerts = {
+  badgeCount: number;
+  unansweredComments: number;
+  hotVideos: Array<{
+    projectName: string;
+    videoId: string;
+    views48h: number;
+    format: string;
+  }>;
+  lumieraVideoById?: Record<string, LumieraVideoRef>;
+  alerts: Array<{
+    type: string;
+    count: number;
+    label: string;
+    videos?: Array<{ projectName: string; videoId: string; views48h: number }>;
+  }>;
+  pollIntervalMinutes?: number;
+  views48hThreshold?: number;
+  fetchedAt?: string;
+};
+
 type Props = {
   onGoToIntegrations: () => void;
   onRelinkYoutube: () => void;
   toast: (msg: string) => void;
   nicheKeyword?: string;
+  alerts?: YoutubeChannelAlerts | null;
+  onSelectProject?: (projectName: string) => void;
 };
 
 function formatNumber(value: number) {
@@ -127,6 +158,8 @@ export function YoutubeStudioPanel({
   onRelinkYoutube,
   toast,
   nicheKeyword = '',
+  alerts = null,
+  onSelectProject,
 }: Props) {
   const [overview, setOverview] = useState<ChannelOverview | null>(null);
   const [videosReport, setVideosReport] = useState<VideosReport | null>(null);
@@ -219,6 +252,8 @@ export function YoutubeStudioPanel({
   );
   const notConnected = overview && !overview.connected;
   const scopesMissing = overview?.connected && !overview.scopesReady;
+  const hotVideoIds = new Set((alerts?.hotVideos || []).map((item) => item.videoId));
+  const lumieraByVideoId = alerts?.lumieraVideoById || {};
 
   if (loading && !overview) {
     return (
@@ -254,6 +289,49 @@ export function YoutubeStudioPanel({
             </button>
           </div>
         </div>
+
+        {alerts && alerts.alerts.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {alerts.alerts.map((alert) => (
+              <div
+                key={alert.type}
+                className="p-3 rounded-xl border border-gold-500/25 bg-gold-500/5 flex flex-wrap items-center justify-between gap-2"
+              >
+                <p className="text-[11px] text-gold-200/90">{alert.label}</p>
+                {alert.type === 'unanswered_comments' && (
+                  <button
+                    type="button"
+                    onClick={() => setCommentFilter('unanswered')}
+                    className="text-[10px] font-bold px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white"
+                  >
+                    Ver comentários
+                  </button>
+                )}
+                {alert.type === 'hot_videos' && alert.videos?.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {alert.videos.slice(0, 3).map((video) => (
+                      <button
+                        key={video.videoId}
+                        type="button"
+                        onClick={() => onSelectProject?.(video.projectName)}
+                        className="text-[9px] font-bold px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/25 text-red-300 hover:text-red-200"
+                        title={`${video.views48h} views em 48h`}
+                      >
+                        {video.projectName} · {formatNumber(video.views48h)} views/48h
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+            {alerts.pollIntervalMinutes ? (
+              <p className="text-[9px] text-zinc-600">
+                Alertas atualizados automaticamente a cada {alerts.pollIntervalMinutes} min
+                {alerts.fetchedAt ? ` · ${formatDateTime(alerts.fetchedAt)}` : ''}
+              </p>
+            ) : null}
+          </div>
+        )}
 
         {(notConnected || scopesMissing || needsReauth) && (
           <div className="mt-4 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -407,8 +485,16 @@ export function YoutubeStudioPanel({
                 </tr>
               </thead>
               <tbody>
-                {videosReport.videos.map((video) => (
-                  <tr key={video.videoId} className="border-b border-zinc-900/60 hover:bg-zinc-950/50">
+                {videosReport.videos.map((video) => {
+                  const lumieraRef = lumieraByVideoId[video.videoId];
+                  const isHot = hotVideoIds.has(video.videoId);
+                  return (
+                  <tr
+                    key={video.videoId}
+                    className={`border-b border-zinc-900/60 hover:bg-zinc-950/50 ${
+                      isHot ? 'bg-gold-500/5' : ''
+                    }`}
+                  >
                     <td className="py-2.5 pr-3">
                       {video.thumbnailUrl ? (
                         <img
@@ -433,6 +519,21 @@ export function YoutubeStudioPanel({
                       <span className="text-[9px] text-zinc-600 block mt-0.5">
                         {formatShortDate(video.publishedAt)}
                       </span>
+                      {lumieraRef && (
+                        <button
+                          type="button"
+                          onClick={() => onSelectProject?.(lumieraRef.projectName)}
+                          className="text-[8px] mt-1 px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:text-cyan-300"
+                          title="Abrir projeto Lumiera"
+                        >
+                          Lumiera · {lumieraRef.projectName}
+                        </button>
+                      )}
+                      {isHot && (
+                        <span className="text-[8px] mt-1 ml-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-block">
+                          Alto em 48h
+                        </span>
+                      )}
                     </td>
                     <td className="py-2.5 pr-3 text-right text-white tabular-nums font-medium">
                       {formatNumber(video.metrics.views)}
@@ -453,7 +554,8 @@ export function YoutubeStudioPanel({
                       {formatNumber(video.metrics.estimatedMinutesWatched)}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
