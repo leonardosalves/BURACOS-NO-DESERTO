@@ -1974,9 +1974,34 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
     }
 
     const suggestedTitle = extractVideoTitleFromRequirement(requirementText);
-    res.json({ ok: true, plan, obsidian, editorialQueue, suggestedTitle, aiEnhanced });
+    if (!res.headersSent) {
+      res.json({ ok: true, plan, obsidian, editorialQueue, suggestedTitle, aiEnhanced });
+    }
   } catch (err) {
     console.error("[VideoAgentPlanner]", err.message);
+    if (res.headersSent) return;
+    try {
+      const requirementText = String(req.body?.requirement || "").trim();
+      if (requirementText) {
+        const formatRaw = req.body?.format || "SHORTS";
+        const format = String(formatRaw).toUpperCase() === "LONGO" ||
+          String(formatRaw).toUpperCase() === "LONG"
+          ? "LONGO"
+          : "SHORTS";
+        const niche = String(req.body?.niche || "");
+        const plan = planVideoAgentLocally(requirementText, { format, niche });
+        return res.json({
+          ok: true,
+          plan,
+          aiEnhanced: false,
+          fallback: true,
+          warning: err.message,
+          suggestedTitle: extractVideoTitleFromRequirement(requirementText),
+        });
+      }
+    } catch (fallbackErr) {
+      console.error("[VideoAgentPlanner] fallback local falhou:", fallbackErr.message);
+    }
     res.status(500).json({ error: "Falha ao planejar vídeo", details: err.message });
   }
 });

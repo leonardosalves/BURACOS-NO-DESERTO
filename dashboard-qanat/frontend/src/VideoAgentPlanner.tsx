@@ -117,7 +117,7 @@ export function VideoAgentPlanner({
   onExecuteCreator,
 }: VideoAgentPlannerProps) {
   const [requirement, setRequirement] = useState('');
-  const [useAi, setUseAi] = useState(true);
+  const [useAi, setUseAi] = useState(false);
   const [enqueueQueue, setEnqueueQueue] = useState(false);
   const [busy, setBusy] = useState<'plan' | 'execute' | null>(null);
   const [plan, setPlan] = useState<VideoAgentPlan | null>(null);
@@ -166,6 +166,10 @@ export function VideoAgentPlanner({
     const planData = data.plan as VideoAgentPlan | undefined;
     if (!planData?.lumieraActions?.length) {
       throw new Error('Plano vazio — reformule o pedido.');
+    }
+
+    if (data.fallback && data.warning) {
+      console.warn('[VideoAgent] plano local (fallback):', data.warning);
     }
 
     return {
