@@ -34,7 +34,7 @@ export function useGeminiBrowserResolver(
     setAutomation?.({ active: true, title, hint });
     try {
       return await queryGeminiWithRetry(opts.prompt, {
-        attempts: 3,
+        attempts: isMetadata ? 2 : 3,
         onAttempt: (attempt) => setAutomation?.({
           active: true,
           title,

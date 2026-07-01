@@ -204,13 +204,33 @@ export function hasCompleteMetadataSections(text) {
   return hasTags && (hasPinned || hasHashtags);
 }
 
+export function isPartialMetadataContent(text) {
+  const t = normalizeMetadataMarkdown(String(text || "").trim());
+  if (t.length < 280) return false;
+  if (looksLikeLumieraPrompt(t)) return false;
+  if (looksLikeOverlayJsonResponse(t)) return false;
+  if (looksLikeMetadataTemplate(t) && !hasFilledYoutubeTitles(t)) return false;
+  if (!looksLikeMetadataResponse(t)) return false;
+
+  const desc = (t.match(/##\s*DESCRI[ÇC][ÃA]O[^\n]*\n([\s\S]*?)(?=\n##\s+|$)/i)?.[1] || "").trim();
+  const hasTitles = hasFilledYoutubeTitles(t) || /##\s*T[ÍI]TULOS/i.test(t);
+  const hasDesc = desc.length >= 40;
+  const variantCount = (t.match(/Variante\s+[ABC]/gi) || []).length;
+
+  if (hasCompleteMetadataSections(t)) return true;
+  if (hasTitles && hasDesc) return true;
+  if (hasTitles && variantCount >= 2) return true;
+  if (hasDesc && variantCount >= 1 && t.length >= 600) return true;
+  return false;
+}
+
 export function hasRealMetadataContent(text) {
   const t = String(text || "").trim();
   if (t.length < 180) return false;
   if (looksLikeLumieraPrompt(t)) return false;
   if (looksLikeOverlayJsonResponse(t)) return false;
   if (looksLikeMetadataTemplate(t) && !hasFilledYoutubeTitles(t)) return false;
-  return hasCompleteMetadataSections(t);
+  return hasCompleteMetadataSections(t) || isPartialMetadataContent(t);
 }
 
 export function looksLikeFallbackMetadata(text) {
