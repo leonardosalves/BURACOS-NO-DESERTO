@@ -113,6 +113,25 @@ Ver [[memory/agent-frameworks-reference]] para mapeamento com OpenAI Agents, Goo
 
 Lumiera já implementa equivalentes em Node: [[skills/studio-agents-hermes]], `deerFlowResearch.js`, `videoAgentPlanner.js`.
 
+## Google Gemini SDK
+
+| Repo | Status Lumiera |
+|------|----------------|
+| [deprecated-generative-ai-python](https://github.com/google-gemini/deprecated-generative-ai-python) | ❌ Arquivado — não instalar |
+| [googleapis/js-genai](https://github.com/googleapis/js-genai) | 📋 Referência — migrar `callGeminiWithRetry` → `@google/genai` |
+| [googleapis/python-genai](https://github.com/googleapis/python-genai) | Scripts Python (TimesFM venv) |
+
+Ver [[memory/google-gemini-sdk-reference]].
+
+## Google Research
+
+Monorepo [google-research/google-research](https://github.com/google-research/google-research) — catálogo curado, não clonar inteiro.
+
+| Projeto | Status |
+|---------|--------|
+| TimesFM ([timesfm](https://github.com/google-research/timesfm)) | **Integrado** — `timesfmForecast.js` |
+| better_storylines, assemblenet, videoprism, CIQA | Candidatos — ver [[memory/google-research-reference]] |
+
 ## Candidatas futuras (avaliar antes de instalar)
 
 | Repo@skill | Motivo | Prioridade |

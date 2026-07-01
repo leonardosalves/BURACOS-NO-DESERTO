@@ -10,7 +10,7 @@ Referência de frameworks multi-agente — **padrões aplicáveis ao Lumiera**, 
 | Orquestração | [[skills/studio-agents-hermes]] — bundles, workshop, API `/api/studio-agents/skills` |
 | Pesquisa profunda | `deerFlowResearch.js` + [[skills/deer-flow-research]] |
 | VideoAgent | `videoAgentPlanner.js` — intents, tool routing |
-| Provider | Gemini default (`aiProviderRouter.js`) |
+| Provider | Gemini default — HTTP `callGeminiWithRetry` em `server.js`; migrar para `@google/genai` |
 | MCP | NotebookLM, Supermemory, Canva — ver [[skills/mcp-builder]] |
 | Memória | Supermemory + `.agents/memory/` |
 
@@ -35,6 +35,28 @@ Fonte: [google/adk-python](https://github.com/google/adk-python)
 - **Gemini-native** — Lumiera já usa Gemini; ADK informa padrões de `FunctionDeclaration` e multi-turn tool loops
 
 **Não portar:** deploy ADK/GCP; backend permanece Express local.
+
+## Google Gemini SDK
+
+| Repo | Status | Lumiera |
+|------|--------|---------|
+| [deprecated-generative-ai-python](https://github.com/google-gemini/deprecated-generative-ai-python) | Arquivado EOL 2025 | ❌ Não usar |
+| [googleapis/js-genai](https://github.com/googleapis/js-genai) (`@google/genai`) | SDK oficial Node/TS | ✅ Alvo de migração |
+| [googleapis/python-genai](https://github.com/googleapis/python-genai) | SDK Python unificado | Scripts auxiliares (TimesFM) |
+
+Detalhes: [[memory/google-gemini-sdk-reference]]
+
+**Features SDK a adotar:** streaming Creator, function calling VideoAgent, MCP `mcpToTool`, Interactions API (Deep Research), prompt caching.
+
+## Google Research
+
+Monorepo [google-research/google-research](https://github.com/google-research/google-research) — centenas de projetos de ML/visão/NLP.
+
+**Já no Lumiera:** TimesFM → `timesfmForecast.js` (Radar de Tendências).
+
+**Candidatos:** `better_storylines`, `assemblenet`, `t5`, `videoprism`, `CIQA` (thumbnails).
+
+Catálogo completo: [[memory/google-research-reference]]
 
 ## OpenAI Cookbook
 Fonte: [openai/openai-cookbook](https://github.com/openai/openai-cookbook)
@@ -70,12 +92,16 @@ Fonte: [anthropics/skills](https://github.com/anthropics/skills)
 
 ## Próximos passos sugeridos
 
-1. Handoff explícito VideoAgent ↔ DeerFlow (padrão OpenAI Agents)
-2. Eval automatizado de roteiro pós-geração (cookbook LLM-judge)
-3. MCP ComfyUI para Clip Factory (usar [[skills/mcp-builder]])
+1. Migrar `callGeminiWithRetry` → `@google/genai` ([[memory/google-gemini-sdk-reference]])
+2. Handoff explícito VideoAgent ↔ DeerFlow (padrão OpenAI Agents)
+3. Eval automatizado de roteiro pós-geração (cookbook LLM-judge)
+4. MCP ComfyUI para Clip Factory (usar [[skills/mcp-builder]])
+5. Avaliar `better_storylines` / `assemblenet` do Google Research ([[memory/google-research-reference]])
 
 ## Links
 - [[SKILLS]]
 - [[skills/skills-registry-external]]
+- [[memory/google-gemini-sdk-reference]]
+- [[memory/google-research-reference]]
 - [[memory/videoagent-lumiera]]
 - [[memory/lumiera-code-map]]

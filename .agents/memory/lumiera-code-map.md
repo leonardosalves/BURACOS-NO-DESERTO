@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[memory/lumiera-code-map]] · [[MEMORY]]
+
 # Lumiera code map
 
 > Mapa estrutural para agentes — fonte canônica: `dashboard-qanat/backend/lumieraCodeMap.js`  
@@ -20,9 +22,17 @@
 | `agentMemory.js` | Memória procedural — capture/promote learnings |
 | `videoAgentPlanner.js` | VideoAgent → intents Lumiera |
 
+## Gemini (provider default)
+
+- `server.js` → `callGeminiWithRetry()` — HTTP `generativelanguage.googleapis.com/v1beta`
+- Migrar para `@google/genai` ([[memory/google-gemini-sdk-reference]])
+- Modo browser: `geminiBrowser.js` + extensão `lumiera-gemini-bridge`
+- TimesFM (Google Research): `timesfmForecast.js` ([[memory/google-research-reference]])
+
 ## APIs (grupos)
 
 - `/api/studio-agents` — status, skills, learnings, plan-overlays, **code-map**
+- `/api/trends/forecast` — TimesFM + Modo Pioneiro
 - `/api/ai/creator` — script (narration/full), ideas
 - `/api/workflow` — clip-factory, analyze-reference, capability-menu
 - `/api/projects` — storyboard, wizard-session, config
