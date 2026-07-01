@@ -15,7 +15,7 @@ export const FISH_SPEECH_DEFAULTS = {
   cloudBaseUrl: FISH_CLOUD_BASE,
   apiKey: "",
   mode: "auto",
-  cloudModel: "s2-pro",
+  cloudModel: "s2.1-pro-free",
   format: "mp3",
   temperature: 0.8,
   topP: 0.8,
