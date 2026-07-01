@@ -9,6 +9,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
+import { DashCardMenu } from './dashmin/ui';
 
 export type ActivityItem = {
   id: string;
@@ -164,7 +165,16 @@ export function DashminActivityFeed({
           <p className="dash-card-eyebrow">Tempo real</p>
           <h3 className="dash-card-title text-base">Atividade do estúdio</h3>
         </div>
-        <Radio className="w-5 h-5 text-dash-success shrink-0 animate-pulse" />
+        <div className="flex items-center gap-2 shrink-0">
+          <Radio className="w-5 h-5 text-dash-success animate-pulse" />
+          <DashCardMenu
+            items={[
+              { id: 'live', label: 'Ao vivo' },
+              { id: 'today', label: 'Hoje' },
+              { id: 'all', label: 'Todas' },
+            ]}
+          />
+        </div>
       </div>
       <ul className="dash-activity-list">
         {items.map((item) => {

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
 import { DashminAnalyticsChart } from './DashminAnalyticsChart';
+import { DashCardMenu } from './dashmin/ui';
 
 type WorkspaceStatusLike = {
   has_narration?: boolean;
@@ -126,6 +127,13 @@ export function DashminDashboard({
             <p className="dash-card-eyebrow">Biblioteca</p>
             <h3 className="dash-card-title text-base">Analytics</h3>
           </div>
+          <DashCardMenu
+            items={[
+              { id: 'daily', label: 'Diário' },
+              { id: 'monthly', label: 'Mensal' },
+              { id: 'sort', label: 'Ordenar' },
+            ]}
+          />
         </div>
         <DashminAnalyticsChart projects={projects} />
       </div>
@@ -136,9 +144,18 @@ export function DashminDashboard({
             <p className="dash-card-eyebrow">Hoje · pipeline</p>
             <h3 className="dash-card-title text-base">Lista de tarefas</h3>
           </div>
-          <button type="button" className="dash-icon-btn" onClick={onOpenWorkflow} title="Abrir Workflow">
-            <Plus className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" className="dash-icon-btn" onClick={onOpenWorkflow} title="Abrir Workflow">
+              <Plus className="w-4 h-4" />
+            </button>
+            <DashCardMenu
+              items={[
+                { id: 'today', label: 'Hoje' },
+                { id: 'week', label: 'Esta semana' },
+                { id: 'all', label: 'Todas' },
+              ]}
+            />
+          </div>
         </div>
         <ul className="dash-todo-list">
           {todoItems.map((item) => (

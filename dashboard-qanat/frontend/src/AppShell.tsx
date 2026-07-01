@@ -6,7 +6,9 @@ import {
   ChevronRight,
   Cloud,
   Globe,
+  LayoutTemplate,
   Menu,
+  Puzzle,
   RefreshCw,
   Search,
   Settings,
@@ -38,7 +40,9 @@ type AppTab =
   | 'comfy-mcp'
   | 'trend-forecast'
   | 'agent-reach'
-  | 'projects';
+  | 'projects'
+  | 'dash-ui'
+  | 'dash-extensions';
 
 type GlobalNavItem = {
   id: AppTab;
@@ -48,6 +52,11 @@ type GlobalNavItem = {
   badge?: number;
   accent?: 'default' | 'youtube' | 'sky' | 'amber';
 };
+
+const DESIGN_NAV: GlobalNavItem[] = [
+  { id: 'dash-ui', label: 'UI Elements', icon: LayoutTemplate, helpId: 'tab-dash-ui' },
+  { id: 'dash-extensions', label: 'Extensions', icon: Puzzle, helpId: 'tab-dash-extensions' },
+];
 
 const STUDIO_NAV: GlobalNavItem[] = [
   { id: 'agents', label: 'Studio Agents', icon: Bot, helpId: 'tab-agents' },
@@ -244,6 +253,20 @@ export function AppShell({
               </ul>
             </>
           )}
+
+          <p className="dash-nav-category">Design System</p>
+          <ul className="dash-nav-list">
+            {DESIGN_NAV.map((item) => (
+              <SidebarLink
+                key={item.id}
+                active={activeTab === item.id}
+                onClick={() => setActiveTab(item.id)}
+                icon={item.icon}
+                label={item.label}
+                helpId={item.helpId}
+              />
+            ))}
+          </ul>
 
           <p className="dash-nav-category">Estúdio</p>
           <ul className="dash-nav-list">
