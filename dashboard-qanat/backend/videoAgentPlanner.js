@@ -386,6 +386,18 @@ JSON puro:
   }
 }
 
+const MAX_PLAN_HISTORY = 12;
+
+function capVideoAgentPlanHistory(content, marker, maxPlans = MAX_PLAN_HISTORY) {
+  const idx = content.indexOf(marker);
+  if (idx === -1) return content;
+  const head = content.slice(0, idx + marker.length);
+  const tail = content.slice(idx + marker.length);
+  const blocks = tail.split(/\n(?=### \d{4}-\d{2}-\d{2})/).map((b) => b.trim()).filter(Boolean);
+  if (blocks.length <= maxPlans) return content;
+  return `${head}\n\n${blocks.slice(0, maxPlans).join("\n\n")}\n`;
+}
+
 export function appendPlanToObsidian(workspaceDir, plan) {
   ensureAgentDirs(workspaceDir);
   const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, MEMORY_FILE);
@@ -413,6 +425,7 @@ export function appendPlanToObsidian(workspaceDir, plan) {
   } else {
     content = content.replace(marker, `${marker}\n\n${block}`);
   }
+  content = capVideoAgentPlanHistory(content, marker);
 
   fs.writeFileSync(memoryPath, content, "utf8");
   repairVaultGraphLinks(workspaceDir);

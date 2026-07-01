@@ -18,6 +18,7 @@ import {
   polishTitles,
   sanitizeTitle,
 } from "./titleGenerator.js";
+import { compressTranscriptForPrompt } from "./lumieraContextCompress.js";
 
 export const YOUTUBE_METADATA_PIPELINE_VERSION = 4;
 
@@ -363,6 +364,7 @@ export function buildYoutubeMetadataPrompt({
 }) {
   const listicleCtx = resolveListicleContext(storyboard, config);
   const storyContext = buildStoryContext(storyboard, config);
+  const promptTranscript = compressTranscriptForPrompt(transcript, { format });
   const titleFacts = extractTitleFacts({ transcript, storyboard, config });
   const titleFactsBlock = buildTitleFactsBlock(titleFacts);
   const listicleRules = buildListicleMetadataRules(listicleCtx, format);
@@ -422,7 +424,7 @@ ${listicleRules}
 
 Roteiro do Vídeo (FONTE PRINCIPAL — leia inteiro antes de escrever qualquer título):
 --- INÍCIO DO ROTEIRO ---
-${transcript}
+${promptTranscript}
 --- FIM DO ROTEIRO ---
 
 ${formatRules}

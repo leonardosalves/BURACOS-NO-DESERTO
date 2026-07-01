@@ -53,6 +53,7 @@ import {
   LUMIERA_BACKEND_BASE,
   LUMIERA_YOUTUBE_CALLBACK,
 } from "./lumieraUrls.js";
+import { LUMIERA_CODE_MAP, getCompactCodeMapText } from "./lumieraCodeMap.js";
 import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
 import { runPostUploadHooks } from "./postUploadService.js";
 import { startTitleRotationScheduler } from "./titleRotationScheduler.js";
@@ -1858,6 +1859,19 @@ app.get("/api/studio-agents/learnings", (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Erro ao carregar aprendizados", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/code-map", (req, res) => {
+  try {
+    const compact = String(req.query.compact || "").toLowerCase();
+    if (compact === "1" || compact === "true" || compact === "text") {
+      res.type("text/plain; charset=utf-8").send(getCompactCodeMapText());
+      return;
+    }
+    res.json(LUMIERA_CODE_MAP);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar code map", details: err.message });
   }
 });
 
