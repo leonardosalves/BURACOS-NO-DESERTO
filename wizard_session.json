@@ -1,0 +1,301 @@
+{
+  "version": 1,
+  "savedAt": "2026-07-01T01:00:21.149Z",
+  "wasInWizard": true,
+  "activeTab": "creator",
+  "activeProject": "Buracos no Deserto",
+  "creatorStep": 1,
+  "nicheInput": "curiosidades e fatos surpreendentes",
+  "formatSelector": "SHORTS",
+  "ideasData": {
+    "diagnostic": {
+      "looking_for": "Quebras de padrão intelectuais, fenômenos inexplicados e paradoxos do nosso cotidiano.",
+      "pain_points": "Encontrar canais que repetem as mesmas cinco listas da Wikipedia exaustivamente.",
+      "desires": "Adquirir um conhecimento bizarro e real que sirva de munição para conversas e cause espanto imediato.",
+      "retention_fears": "Ganchos longos, excesso de adjetivos e demora para entregar a promessa principal do vídeo.",
+      "comment_hooks": "Fatos históricos ou biológicos altamente específicos e documentados que forçam o espectador a checar no Google.",
+      "title_style": "Afirmações diretas, enxutas e ancoradas em dados concretos (nomes, lugares ou datas específicas).",
+      "core_emotion": "Perplexidade misturada com o sentimento de urgência de descobrir a verdade.",
+      "retention_topics": "Contradições geográficas, bizarrices biológicas evolutivas e paradoxos cronológicos reais.",
+      "strong_angle": "Contrastar uma verdade tida como absoluta com um acontecimento bizarro que pouquíssimas pessoas conhecem."
+    },
+    "ideas": [
+      {
+        "title": "O mapa de 1513 que previu a Antártida 🗺️",
+        "promise": "Explicar o mistério cronológico do mapa de Piri Reis, desenhado séculos antes do continente ser descoberto.",
+        "emotion": "Surpresa",
+        "why_works": "Desafia diretamente as linhas do tempo dos livros escolares de geografia através de um documento histórico real.",
+        "best_format": "SHORTS",
+        "viral_category": "provocative",
+        "hook_angle": "secret",
+        "hooks": "Um mapa de 1513 desenhou a Antártida perfeita.",
+        "hook_candidates": [
+          "Um mapa de 1513 desenhou a Antártida perfeita.",
+          "Como esse mapa antigo desenhou um continente oculto?",
+          "A geografia impossível impressa em 1513."
+        ],
+        "wow_facts_preview": [
+          "Desenhado pelo almirante turco Piri Reis",
+          "Mostra o continente sem cobertura de gelo",
+          "Antártida só foi descoberta oficialmente em 1820"
+        ]
+      },
+      {
+        "title": "Este lago da Tanzânia mumifica animais 🦅",
+        "promise": "Apresentar a química letal do Lago Natron que petrifica e preserva corpos de aves intactos.",
+        "emotion": "Surpresa",
+        "why_works": "Quebra a expectativa comum sobre a natureza ao mostrar águas que agem de forma idêntica à mumificação egípcia.",
+        "best_format": "SHORTS",
+        "viral_category": "astonishing",
+        "hook_angle": "shock",
+        "hooks": "Este lago africano transforma animais em pedra.",
+        "hook_candidates": [
+          "Este lago africano transforma animais em pedra.",
+          "O ecossistema mortal que petrifica aves inteiras.",
+          "Animais viram estátuas de sal neste lugar."
+        ],
+        "wow_facts_preview": [
+          "O pH da água atinge a marca extrema de 10.5",
+          "Preserva cadáveres com precisão cirúrgica de estátua",
+          "Temperatura local chega a bater 60 graus célsius"
+        ]
+      },
+      {
+        "title": "O erro de arquitetura que derreteu carros",
+        "promise": "Expor o desastre do arranha-céu côncavo de Londres que virou uma lente térmica na calçada.",
+        "emotion": "Surpresa",
+        "why_works": "Associa uma falha de engenharia hipermoderna a um dano material bizarro e totalmente visual.",
+        "best_format": "SHORTS",
+        "viral_category": "impactful",
+        "hook_angle": "problem_solution",
+        "hooks": "Este arranha-céu em Londres derreteu carros na rua.",
+        "hook_candidates": [
+          "Este arranha-céu em Londres derreteu carros na rua.",
+          "O prédio côncavo que virou um raio solar térmico.",
+          "Como a luz de um edifício destruiu um Jaguar."
+        ],
+        "wow_facts_preview": [
+          "Edifício Walkie Talkie causou o surto em 2013",
+          "Luz refletida concentrou calor de 117 graus",
+          "Derreteu a carenagem plástica de veículos estacionados"
+        ]
+      },
+      {
+        "title": "O salmão que você compra nasce cinza 🐟",
+        "promise": "Explicar o processo industrial de pigmentação artificial adicionado à ração dos peixes de cativeiro.",
+        "emotion": "Curiosidade",
+        "why_works": "Ativa o interesse prático ao revelar um segredo biológico de um alimento de consumo diário massivo.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "before_after",
+        "hooks": "O salmão de cativeiro nasce inteiramente cinza.",
+        "hook_candidates": [
+          "O salmão de cativeiro nasce inteiramente cinza.",
+          "A cor rosa do seu peixe é puramente artificial.",
+          "Antes cinza, depois rosa: o truque do salmão."
+        ],
+        "wow_facts_preview": [
+          "Peixes de fazenda não comem pequenos crustáceos",
+          "A indústria adiciona astaxantina sintética na ração",
+          "Sem o aditivo a carne seria branca ou acinzentada"
+        ]
+      },
+      {
+        "title": "Uma nuvem invisível sufocou 1700 pessoas",
+        "promise": "Relatar o desastre do Lago Nyos em 1986, onde uma liberação súbita de CO2 dizimou vilas inteiras.",
+        "emotion": "Surpresa",
+        "why_works": "Uma tragédia real documentada que opera de forma silenciosa, parecendo enredo de suspense de ficção científica.",
+        "best_format": "SHORTS",
+        "viral_category": "astonishing",
+        "hook_angle": "breaking",
+        "hooks": "Em 1986, uma nuvem invisible asfixiou três vilas.",
+        "hook_candidates": [
+          "Em 1986, uma nuvem invisible asfixiou três vilas.",
+          "O dia em que um lago asfixiou 1700 pessoas.",
+          "A erupção invisível que eliminou populações dormindo."
+        ],
+        "wow_facts_preview": [
+          "Erupção límnica ocorrida em Camarões no ano de 1986",
+          "1 milhão de toneladas de CO2 expelidas em minutos",
+          "Gás cobriu de forma letal um raio de 25km"
+        ]
+      },
+      {
+        "title": "Quase nenhuma bandeira usa a cor roxa 💡",
+        "promise": "Demonstrar a escassez histórica do pigmento roxo extraído de moluscos até a revolução sintética.",
+        "emotion": "Curiosidade",
+        "why_works": "Usa uma observação visual simples da geopolítica global que passa batida por 99% das pessoas.",
+        "best_format": "SHORTS",
+        "viral_category": "provocative",
+        "hook_angle": "challenge",
+        "hooks": "Apenas dois países usam a cor roxa em bandeiras.",
+        "hook_candidates": [
+          "Apenas dois países usam a cor roxa em bandeiras.",
+          "A cor proibida nas bandeiras de quase todo o mundo.",
+          "Descubra por que imperadores monopolizavam o tecido roxo."
+        ],
+        "wow_facts_preview": [
+          "Dominica e Nicarágua são as únicas exceções mundiais",
+          "Pigmento exigia dez mil caracóis para um grama",
+          "A alternativa sintética barata surgiu só em 1856"
+        ]
+      },
+      {
+        "title": "Abaixo do Magic Kingdom há ruas secretas",
+        "promise": "Expor o imenso labirinto subterrâneo construído sob o parque principal da Disney na Flórida.",
+        "emotion": "Surpresa",
+        "why_works": "Revela os segredos estruturais de engenharia de um dos pontos turísticos mais vigiados e famosos do planeta.",
+        "best_format": "SHORTS",
+        "viral_category": "impactful",
+        "hook_angle": "secret",
+        "hooks": "Existe uma cidade subterrânea oculta debaixo da Disney.",
+        "hook_candidates": [
+          "Existe uma cidade subterrânea oculta debaixo da Disney.",
+          "Os túneis secretos que sustentam o parque temático.",
+          "O mundo subterrâneo construído abaixo do Magic Kingdom."
+        ],
+        "wow_facts_preview": [
+          "O complexo gigante chama-se túneis Utilidores",
+          "Ocupa um espaço de 360 mil metros quadrados",
+          "Construído para mover lixo e funcionários sem quebrar a ilusão"
+        ]
+      },
+      {
+        "title": "O pequeno furo na caneta salva vidas 🖋️",
+        "promise": "Mostrar a lógica de segurança por trás do orifício nas tampas das canetas esferográficas Bic.",
+        "emotion": "Curiosidade",
+        "why_works": "Conecta um traço de design totalmente despercebido em um item doméstico banal a um salva-vidas crucial.",
+        "best_format": "SHORTS",
+        "viral_category": "practical",
+        "hook_angle": "personal",
+        "hooks": "O furo na tampa da caneta Bic salva vidas.",
+        "hook_candidates": [
+          "O furo na tampa da caneta Bic salva vidas.",
+          "Você tem esse objeto em casa e não sabe disso.",
+          "O detalhe de engenharia que impede mortes por asfixia."
+        ],
+        "wow_facts_preview": [
+          "Norma de segurança internacional implementada em 1991",
+          "Permite a passagem contínua de ar caso seja engolida",
+          "Reduziu drasticamente casos de sufocamento acidental"
+        ]
+      },
+      {
+        "title": "A ilha brasileira proibida para humanos",
+        "promise": "Revelar as condições biológicas extremas da Ilha da Queimada Grande, dominada por cobras venenosas.",
+        "emotion": "Surpresa",
+        "why_works": "Explora o medo instintivo e a fascinação por ecossistemas intocados onde a presença humana foi banida por lei.",
+        "best_format": "SHORTS",
+        "viral_category": "astonishing",
+        "hook_angle": "shock",
+        "hooks": "Esta ilha brasileira tem cinco cobras por metro quadrado.",
+        "hook_candidates": [
+          "Esta ilha brasileira tem os piores monstros da costa.",
+          "O pedaço de terra isolado proibido pela Marinha.",
+          "O lugar perigoso dominado pela jararaca-ilhoa."
+        ],
+        "wow_facts_preview": [
+          "Localizada no litoral sul de São Paulo",
+          "Abriga a letal espécie jararaca-ilhoa isolada há séculos",
+          "Veneno evoluiu para derreter tecidos e agir de imediato"
+        ]
+      },
+      {
+        "title": "Quem inventou o primeiro meme em 1921",
+        "promise": "Apresentar a tirinha cômica centenária que utilizou a estrutura exata de piada visual usada hoje.",
+        "emotion": "Curiosidade",
+        "why_works": "Faz uma ponte hilária e direta com a cultura digital contemporânea, provando que o humor visual não é novo.",
+        "best_format": "SHORTS",
+        "viral_category": "provocative",
+        "hook_angle": "question",
+        "hooks": "O primeiro meme do mundo foi impresso em 1921.",
+        "hook_candidates": [
+          "O primeiro meme do mundo foi impresso em 1921.",
+          "A piada centenária idêntica ao humor do Twitter.",
+          "Quem desenhou o formato de piada moderna há cem anos?"
+        ],
+        "wow_facts_preview": [
+          "Publicado na revista de humor satírico Judge",
+          "Usa o molde estrito de Expectativa versus Realidade",
+          "Ilustração com mais de cem anos de idade histórica"
+        ]
+      }
+    ],
+    "best_idea_index": 2,
+    "best_idea_reason": "A ideia do arranha-céu que derrete carros reúne as melhores métricas para retenção imediata em Shorts. Ela amarra um objeto moderno facilmente reconhecível (um prédio espelhado), um erro de engenharia colossal de um país famoso e um desfecho absurdo com prova material clara (um Jaguar de luxo deformado pelo reflexo solar). O apelo inteiramente visual alimenta o tempo de tela e gera discussões instintivas nos comentários sobre a estupidez da arquitetura."
+  },
+  "selectedIdeaIndex": 0,
+  "generatedScriptData": null,
+  "creatorProjectName": "mapa_1513_previu",
+  "creatorScript": "Por que centenas de pessoas dançaram até morrer? Em julho de 1518, uma mulher chamada Frau Troffea começou a dançar sem parar nas ruas de Estrasburgo. Em um mês, quatrocentas pessoas se juntaram a ela. Elas dançavam dia e noite, chorando de dor e implorando para parar. No auge, o surto matava quinze pessoas por dia por exaustão ou infarto. Bizarramente, o governo contratou músicos para incentivar a dança, achando que o cansaço curaria a crise. A ciência moderna aponta que o estresse extremo da fome causou um colapso mental coletivo.",
+  "ideationTab": "ai",
+  "customTitle": "",
+  "customHooks": "",
+  "customOutline": "",
+  "customBlocks": [
+    {
+      "block": 1,
+      "content": ""
+    }
+  ],
+  "customIdeaTitle": "O mapa de 1513 que previu a Antártida 🗺️",
+  "customIdeaPromise": "Explicar o mistério cronológico do mapa de Piri Reis, desenhado séculos antes do continente ser descoberto.",
+  "customIdeaHook": "",
+  "customIdeaEmotion": "Surpresa",
+  "customIdeaBlocks": "",
+  "listNiche": "curiosidades e fatos surpreendentes",
+  "listTopic": "fatos mais chocantes que poucos conhecem",
+  "rankCount": 3,
+  "rankOrder": "desc",
+  "listicleHudStyle": "full",
+  "listicleIdeasData": null,
+  "listicleSearchNiche": "curiosidades engenharia antiga",
+  "ideasSearchNiche": "curiosidades e fatos surpreendentes",
+  "selectedListicleIdeaIndex": -1,
+  "showNarrationReview": false,
+  "narrationDraft": "Por que centenas de pessoas dançaram até morrer? Em julho de 1518, uma mulher chamada Frau Troffea começou a dançar sem parar nas ruas de Estrasburgo. Em um mês, quatrocentas pessoas se juntaram a ela. Elas dançavam dia e noite, chorando de dor e implorando para parar. No auge, o surto matava quinze pessoas por dia por exaustão ou infarto. Bizarramente, o governo contratou músicos para incentivar a dança, achando que o cansaço curaria a crise. A ciência moderna aponta que o estresse extremo da fome causou um colapso mental coletivo.",
+  "narrationTaggedDraft": "",
+  "narrationStrategy": {
+    "title_main": "A epidemia de dança que matou pessoas 💃",
+    "title_variations": [],
+    "hook": "Por que centenas de pessoas dançaram até morrer?",
+    "target_audience": "Público interessado em curiosidades históricas, mistérios médicos e fatos bizarras",
+    "tone": "Curioso, enxuto e documental",
+    "pinned_comment": "",
+    "cta": ""
+  },
+  "narrationBlockPhrases": [
+    {
+      "block": 1,
+      "phrase": "Por que centenas de pessoas"
+    },
+    {
+      "block": 2,
+      "phrase": "Em julho de 1518, uma"
+    },
+    {
+      "block": 3,
+      "phrase": "Em um mês, quatrocentas pessoas"
+    },
+    {
+      "block": 4,
+      "phrase": "No auge, o surto matava"
+    },
+    {
+      "block": 5,
+      "phrase": "A ciência moderna aponta que"
+    }
+  ],
+  "narrationBlockScript": "Por que centenas de pessoas dançaram até morrer?\n\nEm julho de 1518, uma mulher chamada Frau Troffea começou a dançar sem parar nas ruas de Estrasburgo.\n\nEm um mês, quatrocentas pessoas se juntaram a ela. Elas dançavam dia e noite, chorando de dor e implorando para parar.\n\nNo auge, o surto matava quinze pessoas por dia por exaustão ou infarto. Bizarramente, o governo contratou músicos para incentivar a dança, achando que o cansaço curaria a crise.\n\nA ciência moderna aponta que o estresse extremo da fome causou um colapso mental coletivo.",
+  "narrationNotebooklmEnriched": false,
+  "narrationProjectName": "epidemia_danca_matou",
+  "useNotebooklm": true,
+  "uploadedScenes": {},
+  "expandedBlocks": {
+    "1": true,
+    "2": true,
+    "3": true,
+    "4": true,
+    "5": true
+  }
+}

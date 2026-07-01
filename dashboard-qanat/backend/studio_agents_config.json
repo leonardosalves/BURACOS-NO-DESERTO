@@ -1,5 +1,5 @@
 {
-  "autoCaptureOnQualityCheck": false,
+  "autoCaptureOnQualityCheck": true,
   "applyLearningsInAgentMode": true,
   "promoteThreshold": 3
 }

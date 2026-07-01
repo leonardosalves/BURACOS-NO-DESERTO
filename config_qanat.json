@@ -59,5 +59,8 @@
     "passado",
     "futuro"
   ],
-  "gemini_browser_mode": true
+  "gemini_browser_mode": true,
+  "design_preset": "documentary-history",
+  "caption_style": "shorts-viral",
+  "accent_color": "#C5A889"
 }

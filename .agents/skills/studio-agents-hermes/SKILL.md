@@ -105,6 +105,14 @@ Depois: seção Lumiera, stub Obsidian, atualizar bundle se necessário.
 - Agente editar skill sem workshop quando `skillsWriteApproval: true`
 - Bundle sem `instruction` — o modelo não sabe priorizar entre skills
 
+## Aprendizados capturados (workshop — 2026-06-30)
+
+**História** / SHORT / score 76 / banheiros_romanos_eram
+- `SHORT/lt_repeat` Alternar tipos entre overlays — evitar dois lower-thirds seguidos
+- `SHORT/overlay_timing` Overlay "lt-explosions" @ 1.9s: fora do bloco 1 (0.0–6.5s)
+- `SHORT/overlay_timing` Overlay "lt-methane-gas" @ 14.0s: desvio 12.8s da palavra-chave (1.2s)
+- `SHORT/overlay_timing` Overlay "info-ignition" @ 28.0s: desvio 26.8s da palavra-chave (1.2s)
+
 ## Ver também
 
 - `../skills-registry-external/SKILL.md` — catálogo upstream

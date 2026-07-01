@@ -26,4 +26,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-06-30T23:08:01.040Z
+atualizado: 2026-07-01T02:24:51.695Z

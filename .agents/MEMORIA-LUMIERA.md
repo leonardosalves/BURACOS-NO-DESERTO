@@ -33,10 +33,15 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/youtube-thumbnail|youtube thumbnail]]
 
 ## Memória por nicho
+- [[memory/curiosidades-e-fatos-surpreendentes]]
+- [[memory/curiosidades-e-objetos-do-cotidiano]]
+- [[memory/curiosidades]]
 - [[memory/engenharia]]
+- [[memory/geral]]
 - [[memory/historia]]
 
 ## Logs recentes
+- [[agent_runs/2026-07-01]]
 - [[agent_runs/2026-06-30]]
 
 ## Regras por formato
@@ -48,4 +53,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-06-30T23:08:01.039Z
+atualizado: 2026-07-01T02:24:51.694Z

@@ -1,11 +1,11 @@
-> 🔗 [[MEMORIA-LUMIERA]] · [[memory/engenharia]] · [[MEMORY]]
-
 # engenharia
+
+> 🔗 [[MEMORIA-LUMIERA]] · [[MEMORY]]
 
 ## Meta
 niche: engenharia
-updated: 2026-06-30T22:34:17.037Z
-runs: 110
+updated: 2026-06-30T23:04:21.392Z
+runs: 112
 
 ## Padrões promovidos
 - [overlay_timing] Overlay "hf-mystery-1" @ 1.9s: fora da cena 1.2 (0.0–4.0s), em 1.9s (count: 1)
@@ -23,12 +23,13 @@ runs: 110
 - [overlay_timing] Overlay "hf-barchart-3" @ 0.5s: no gancho (0.5s < 1.5s); desvio 20.4s da palavra-chave (20.9s) (count: 12)
 - [overlay_timing] Overlay "hf-lthird-2" @ 0.5s: no gancho (0.5s < 1.5s) (count: 12)
 - [overlay_timing] Overlay "hf-counter-4" @ 0.5s: no gancho (0.5s < 1.5s); desvio 3.7s da palavra-chave (4.2s) (count: 12)
-- [SHORT/overlay_timing] Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo (count: 8)
+- [SHORT/overlay_timing] Evitar overlays informativos no gancho Short (<1.5s) — manter hook limpo (count: 10)
+- [SHORT/overlay_timing] Revisar timing do overlay em relação à narração e às cenas (count: 6)
+- [SHORT/overlay_timing] Overlay "hf-mystery-1" @ 1.9s: fora da cena 1.2 (0.0–4.0s), em 1.9s (count: 6)
+- [SHORT/overlay_timing] Overlay "hf-mystery-2" @ 14.9s: fora da cena 2.1 (14.5–18.5s), em 14.9s (count: 5)
+- [SHORT/overlay_timing] Overlay "hf-mystery-3" @ 20.8s: fora da cena 3.1 (20.4–24.4s), em 20.8s (count: 5)
 - [SHORT/overlay_timing] Overlay "hf-lthird-2" @ 11.4s: fora da cena 3.1 (12.1–16.1s), em 11.4s; desvio 4.2s da palavra-chave (15.5s) (count: 4)
-- [SHORT/overlay_timing] Revisar timing do overlay em relação à narração e às cenas (count: 4)
-- [SHORT/overlay_timing] Overlay "hf-mystery-1" @ 1.9s: fora da cena 1.2 (0.0–4.0s), em 1.9s (count: 4)
-- [SHORT/overlay_timing] Overlay "hf-mystery-2" @ 14.9s: fora da cena 2.1 (14.5–18.5s), em 14.9s (count: 3)
-- [SHORT/overlay_timing] Overlay "hf-mystery-3" @ 20.8s: fora da cena 3.1 (20.4–24.4s), em 20.8s (count: 3)
+- [SHORT/overlay_timing] Overlay "hf-mystery-5" @ 32.2s: fora da cena 4.2 (31.8–36.8s), em 32.2s (count: 3)
 - [overlay_timing] Overlay "hf-mystery-1" @ 1.9s: fora da cena 1.2 (0.0–4.0s), em 1.9s (count: 2)
 - [overlay_timing] Overlay "hf-mystery-2" @ 14.5s: fora da cena 2.1 (14.5–18.5s), em 14.5s (count: 2)
 - [overlay_timing] Overlay "hf-mystery-3" @ 19.7s: fora da cena 3.1 (20.4–24.4s), em 19.7s (count: 2)
@@ -47,4 +48,3 @@ runs: 110
 - [SHORT/overlay_timing] Overlay "hf-counter-4" @ 24.6s: fora da cena 4.1 (24.1–30.1s), em 24.6s (count: 1)
 - [SHORT/overlay_timing] Overlay "hf-mystery-2" @ 14.5s: fora da cena 2.1 (14.5–18.5s), em 14.5s (count: 1)
 - [SHORT/overlay_timing] Overlay "hf-mystery-3" @ 19.7s: fora da cena 3.1 (20.4–24.4s), em 19.7s (count: 1)
-- [SHORT/overlay_timing] Overlay "hf-mystery-5" @ 32.2s: fora da cena 4.2 (31.8–36.8s), em 32.2s (count: 1)
