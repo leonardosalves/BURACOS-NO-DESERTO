@@ -580,7 +580,7 @@ export function YoutubeStudioPro({
                           <span className="text-zinc-200">{op.keyword}</span> · {op.mentions}×
                         </span>
                         {onApplyIdea && (
-                          <button type="button" onClick={() => onApplyIdea(op.titleIdea)} className="text-gold-400 shrink-0 text-[8px]">Creator →</button>
+                          <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(op.titleIdea)} className="text-gold-400 shrink-0 text-[8px]">Creator ▶</button>
                         )}
                       </li>
                     ))}

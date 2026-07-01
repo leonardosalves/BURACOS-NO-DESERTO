@@ -151,7 +151,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             <li key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
               <span className="truncate">{idea.title}</span>
               {onApplyIdea && (
-                <button type="button" onClick={() => onApplyIdea(idea.title, idea.angle)} className="text-gold-400 shrink-0">Creator →</button>
+                <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.angle)} className="text-gold-400 shrink-0">Creator ▶</button>
               )}
             </li>
           ))}
@@ -214,7 +214,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
               <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
                 <span className="truncate">{idea.title}</span>
                 {onApplyIdea && (
-                  <button type="button" onClick={() => onApplyIdea(idea.title, idea.hookPt)} className="text-gold-400 shrink-0">Creator →</button>
+                  <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.hookPt)} className="text-gold-400 shrink-0">Creator ▶</button>
                 )}
               </div>
             ))}
