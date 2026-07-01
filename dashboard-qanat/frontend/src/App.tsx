@@ -2129,7 +2129,7 @@ export default function App() {
         setYtTitle(meta.youtube?.title || '');
         setYtDescription(meta.youtube?.description || '');
         setYtPrivacy(meta.youtube?.privacy || 'private');
-        setYtTags(meta.youtube?.tags || '');
+        setYtTags(Array.isArray(meta.youtube?.tags) ? meta.youtube.tags.join(', ') : (meta.youtube?.tags || ''));
         setYtChapters(meta.youtube?.chapters || '');
         setYtPinnedComment(meta.youtube?.pinned_comment || meta.youtube?.pinnedComment || '');
         setYtPublishAt(meta.youtube?.publish_at || meta.youtube?.publishAt || '');
@@ -5547,6 +5547,72 @@ export default function App() {
     } catch {
       if (!opts?.silent) toast.error('Erro ao aplicar metadados ao upload.');
       return false;
+    }
+  };
+
+  const buildUploadMetadataPayload = () => ({
+    youtube: {
+      title: ytTitle.trim(),
+      description: ytDescription.trim(),
+      privacy: ytPrivacy,
+      tags: ytTags.trim(),
+      chapters: ytChapters.trim(),
+      pinned_comment: ytPinnedComment.trim(),
+      category_id: ytCategoryId.trim() || '27',
+      publish_at: ytPublishAt.trim() || undefined,
+      thumbnail: ytThumbnailPath || undefined,
+      thumbnail_variant: ytThumbnailVariant || undefined,
+    },
+    instagram: { title: igCaption.trim() },
+    tiktok: { title: ttCaption.trim() },
+    kwai: { title: kwCaption.trim() },
+  });
+
+  const saveUploadMetadataToProject = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ upload_metadata: buildUploadMetadataPayload() }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleFixYoutubeMetadata = async () => {
+    const videoId = titleExperimentVideoId || config?.upload_metadata?.youtube?.post_id;
+    if (!videoId) {
+      toast.error('Nenhum vídeo publicado vinculado a este projeto.');
+      return;
+    }
+    if (!ytTitle.trim()) {
+      await applyMetadataToUpload({ silent: true });
+    }
+    if (!ytTitle.trim()) {
+      toast.error('Preencha o título antes de corrigir no YouTube.');
+      return;
+    }
+    const saved = await saveUploadMetadataToProject();
+    if (!saved) {
+      toast.error('Erro ao salvar metadados no projeto.');
+      return;
+    }
+    try {
+      const res = await fetch(getProjectUrl('/api/upload/youtube/apply-metadata'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Metadados corrigidos no YouTube!');
+      } else {
+        toast.error(data.error || 'Falha ao corrigir metadados no YouTube.');
+      }
+    } catch {
+      toast.error('Erro de conexão ao corrigir metadados.');
     }
   };
 
@@ -11179,43 +11245,36 @@ export default function App() {
                     </button>
                     <button
                       onClick={async () => {
-                        try {
-                          const upload_metadata = {
-                            youtube: {
-                              title: ytTitle.trim(),
-                              description: ytDescription.trim(),
-                              privacy: ytPrivacy,
-                              tags: ytTags.trim(),
-                              chapters: ytChapters.trim(),
-                              pinned_comment: ytPinnedComment.trim(),
-                              category_id: ytCategoryId.trim() || '27',
-                              publish_at: ytPublishAt.trim() || undefined,
-                              thumbnail: ytThumbnailPath || undefined,
-                              thumbnail_variant: ytThumbnailVariant || undefined,
-                            },
-                            instagram: { title: igCaption.trim() },
-                            tiktok: { title: ttCaption.trim() },
-                            kwai: { title: kwCaption.trim() }
-                          };
-                          const res = await fetch(getProjectUrl('/api/config'), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ upload_metadata })
-                          });
-                          if (res.ok) {
-                            toast("Metadados salvos com sucesso!");
-                          }
-                        } catch (e) {
-                          toast("Erro ao salvar metadados.");
-                        }
+                        const ok = await saveUploadMetadataToProject();
+                        toast(ok ? 'Metadados salvos com sucesso!' : 'Erro ao salvar metadados.');
                       }}
                       className="w-full bg-zinc-900 border border-zinc-800 hover:border-gold-500/20 text-gold-500 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
                     >
                       Salvar Metadados do Projeto
                     </button>
+                    {(titleExperimentVideoId || config?.upload_metadata?.youtube?.post_id) && (
+                      <button
+                        type="button"
+                        onClick={() => { void handleFixYoutubeMetadata(); }}
+                        className="w-full bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/30 text-amber-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                      >
+                        Corrigir metadados no YouTube (vídeo já enviado)
+                      </button>
+                    )}
                     <button
                       onClick={async () => {
-                        // Generate pipeline execution
+                        if (!ytTitle.trim()) {
+                          await applyMetadataToUpload({ silent: true });
+                        }
+                        if (!ytTitle.trim()) {
+                          toast.error('Defina um título (use Preencher com metadados IA) antes de publicar.');
+                          return;
+                        }
+                        const saved = await saveUploadMetadataToProject();
+                        if (!saved) {
+                          toast.error('Erro ao salvar metadados antes do upload.');
+                          return;
+                        }
                         setUploading(true);
                         setUploadLogs([]);
                         setUploadProgress(0);
