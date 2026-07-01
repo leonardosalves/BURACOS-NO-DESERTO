@@ -15,10 +15,16 @@ alwaysApply: true
 ## MCP opcionais (setup)
 
 ```powershell
-.\scripts\setup-context-mcp.ps1
+.\scripts\setup-context-mcp.ps1   # grafo de código (codebase-memory-mcp)
+.\scripts\setup-agent-reach.ps1   # busca na internet (Exa, Jina, YouTube, GitHub)
 ```
 
-Instala templates para **codebase-memory-mcp** (grafo de código) e documenta **headroom** (compressão de contexto LLM).
+## Busca na internet (Agent Reach)
+
+1. **MCP exa** no Cursor — `web_search_exa`, `web_fetch_exa` (após reiniciar Cursor)
+2. **CLI** — `mcporter call 'exa.web_search_exa(query: "...", numResults: 5)' --config config/mcporter.json`
+3. **Páginas** — `curl -s "https://r.jina.ai/URL"`
+4. **Skill** — `agent-reach` (doctor: `agent-reach doctor`)
 
 ## Produção de vídeo vs código
 
