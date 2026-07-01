@@ -3,7 +3,7 @@
 # Painel YouTube Studio no Lumiera
 
 > Branch: `feature/youtube-studio-panel`  
-> Status: Fase 3 concluída (Fases 1–2 concluídas)
+> Status: Fase 4 concluída (Fases 1–3 concluídas)
 
 ## Objetivo
 
@@ -199,3 +199,17 @@ Revincular: **Configurações → Integrações → Revincular YouTube** (ou Upl
 - [x] Polling automático a cada 20 min no frontend
 - [x] Badge na sidebar quando há alertas
 - [x] Cruzamento videoId ↔ projeto Lumiera na tabela
+
+### Fase 4 — Detalhe, Lumiera e respostas (concluída)
+
+- `GET /api/youtube/channel/video/:videoId/detail` — analytics + retenção + views 48h
+- `GET /api/youtube/channel/lumiera-videos` — projetos com `post_id` ou experimento de título
+- `POST /api/youtube/channel/comments/reply` — responder comentário pelo Lumiera
+- UI: painel Lumiera, detalhe do vídeo (sparkline retenção), campo de resposta inline
+
+## Critérios de aceite Fase 4
+
+- [x] Lista projetos Lumiera publicados no YouTube com métricas
+- [x] Clique no vídeo abre detalhe com retenção e velocity 48h
+- [x] Resposta a comentários publicada via API (OAuth force-ssl)
+- [x] Descoberta de videoId também via `youtube_title_experiment.json`

@@ -2,6 +2,8 @@ import fs from "fs";
 import path from "path";
 import {
   assertTitleTestScopes,
+  fetchRetentionCurve,
+  fetchVideoAnalytics,
   fetchVideoVelocity,
   getYoutubeAccessToken,
   getYoutubeTokenScopes,
@@ -373,7 +375,140 @@ export async function fetchChannelComments(workspaceDir, {
     comments: filtered,
     totalFetched: mapped.length,
     fetchedAt: new Date().toISOString(),
-    replyNote: "Respostas pelo Lumiera ainda não estão disponíveis — use o link para abrir no YouTube Studio.",
+    replyNote: "Responda pelo Lumiera abaixo ou abra no YouTube Studio.",
+  };
+}
+
+export async function replyToChannelComment(workspaceDir, { parentId, text } = {}) {
+  await assertTitleTestScopes(workspaceDir);
+  const commentParentId = String(parentId || "").trim();
+  const replyText = String(text || "").trim();
+
+  if (!commentParentId) {
+    throw new Error("parentId do comentário é obrigatório.");
+  }
+  if (!replyText) {
+    throw new Error("Texto da resposta é obrigatório.");
+  }
+
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+  const res = await fetch("https://www.googleapis.com/youtube/v3/comments?part=snippet", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      snippet: {
+        parentId: commentParentId,
+        textOriginal: replyText.slice(0, 10000),
+      },
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    const message = data?.error?.message || "Falha ao publicar resposta no YouTube.";
+    throwIfInsufficientScope(message);
+    throw new Error(message);
+  }
+
+  return {
+    success: true,
+    commentId: data?.id || null,
+    publishedAt: data?.snippet?.publishedAt || new Date().toISOString(),
+  };
+}
+
+export async function fetchVideoStudioDetail(workspaceDir, videoId, { days = 28 } = {}) {
+  const normalizedVideoId = String(videoId || "").trim();
+  if (!normalizedVideoId) {
+    throw new Error("videoId é obrigatório.");
+  }
+
+  await assertTitleTestScopes(workspaceDir);
+  const { startDate, endDate } = periodDates(days);
+
+  const [analytics, retention, velocity] = await Promise.all([
+    fetchVideoAnalytics(workspaceDir, normalizedVideoId, { startDate, endDate }),
+    fetchRetentionCurve(workspaceDir, normalizedVideoId, { startDate, endDate }).catch((err) => ({
+      videoId: normalizedVideoId,
+      points: [],
+      error: err.message,
+    })),
+    fetchVideoVelocity(workspaceDir, normalizedVideoId).catch((err) => ({
+      videoId: normalizedVideoId,
+      views48h: 0,
+      error: err.message,
+    })),
+  ]);
+
+  return {
+    videoId: normalizedVideoId,
+    periodDays: days,
+    startDate,
+    endDate,
+    analytics,
+    retention,
+    velocity,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+export async function fetchLumieraVideosReport(workspaceDir, projectsRoot, { days = 28 } = {}) {
+  await assertTitleTestScopes(workspaceDir);
+  const accessToken = await getYoutubeAccessToken(workspaceDir);
+  const { startDate, endDate } = periodDates(days);
+  const lumieraVideos = collectLumieraPublishedVideos(projectsRoot);
+
+  const enriched = await Promise.all(
+    lumieraVideos.map(async (entry) => {
+      let metrics = null;
+      let views48h = 0;
+      let thumbnailUrl = "";
+
+      try {
+        const [metricResult, velocity, videoData] = await Promise.all([
+          fetchSingleVideoMetrics(accessToken, entry.videoId, startDate, endDate),
+          fetchVideoVelocity(workspaceDir, entry.videoId).catch(() => ({ views48h: 0 })),
+          youtubeDataGet(accessToken, "videos", { part: "snippet", id: entry.videoId }),
+        ]);
+
+        metrics = metricResult;
+        views48h = Number(velocity?.views48h || 0);
+        const snippet = videoData?.items?.[0]?.snippet || {};
+        thumbnailUrl = snippet?.thumbnails?.medium?.url || snippet?.thumbnails?.default?.url || "";
+        if (!entry.title && snippet?.title) {
+          entry.title = snippet.title;
+        }
+      } catch {
+        metrics = null;
+      }
+
+      return {
+        ...entry,
+        thumbnailUrl,
+        views48h,
+        metrics: metrics || {
+          views: 0,
+          estimatedMinutesWatched: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          subscribersGained: 0,
+        },
+        studioUrl: `https://studio.youtube.com/video/${entry.videoId}/analytics/tab-overview/period-default`,
+        watchUrl: `https://www.youtube.com/watch?v=${entry.videoId}`,
+      };
+    }),
+  );
+
+  return {
+    periodDays: days,
+    startDate,
+    endDate,
+    videos: enriched.sort((a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0)),
+    fetchedAt: new Date().toISOString(),
   };
 }
 
@@ -405,7 +540,10 @@ export function collectLumieraPublishedVideos(projectsRoot) {
       }
 
       const cfg = readJsonSafe(path.join(fullPath, "config_qanat.json"));
-      const videoId = String(cfg?.upload_metadata?.youtube?.post_id || "").trim();
+      const experiment = readJsonSafe(path.join(fullPath, "youtube_title_experiment.json"));
+      const videoId = String(
+        cfg?.upload_metadata?.youtube?.post_id || experiment?.videoId || "",
+      ).trim();
       if (!videoId || seen.has(videoId)) continue;
 
       seen.add(videoId);

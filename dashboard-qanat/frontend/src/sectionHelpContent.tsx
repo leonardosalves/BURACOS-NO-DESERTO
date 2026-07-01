@@ -83,7 +83,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Canal YouTube',
     body: (
       <>
-        Visão geral do canal conectado: inscritos, views totais, desempenho por vídeo e comentários recentes. Alertas automáticos a cada 20 min (badge na sidebar): comentários sem resposta e vídeos Lumiera com views 48h altas. Respostas abrem no YouTube Studio.
+        Visão geral do canal: inscritos, views, tabela de vídeos (clique para retenção), projetos Lumiera publicados, comentários com resposta direta pelo Lumiera e alertas automáticos a cada 20 min na sidebar.
       </>
     ),
   },

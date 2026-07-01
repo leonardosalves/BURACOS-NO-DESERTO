@@ -44,6 +44,9 @@ import {
   fetchChannelComments,
   fetchChannelOverview,
   fetchChannelVideosWithAnalytics,
+  fetchLumieraVideosReport,
+  fetchVideoStudioDetail,
+  replyToChannelComment,
 } from "./youtubeChannelAnalytics.js";
 import {
   LUMIERA_BACKEND_BASE,
@@ -8094,6 +8097,41 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar comentários do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/comments/reply", async (req, res) => {
+  const parentId = String(req.body?.parentId || req.body?.commentId || "").trim();
+  const text = String(req.body?.text || "").trim();
+  try {
+    const result = await replyToChannelComment(WORKSPACE_DIR, { parentId, text });
+    res.json(result);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao responder comentário");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/video/:videoId/detail", async (req, res) => {
+  const videoId = String(req.params?.videoId || "").trim();
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  try {
+    const detail = await fetchVideoStudioDetail(WORKSPACE_DIR, videoId, { days });
+    res.json(detail);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar detalhe do vídeo");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/lumiera-videos", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  try {
+    const report = await fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, { days });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos Lumiera");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
