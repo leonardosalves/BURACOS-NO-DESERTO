@@ -72,6 +72,23 @@ import {
   startYoutubeWeeklyReportScheduler,
 } from "./youtubeStudioExtras.js";
 import {
+  bulkReplyComments,
+  commentsToCsv,
+  computeChannelResponseStats,
+  generateCommentIdeas,
+  generateDailyReport,
+  getExtendedStudioSettings,
+  getPostPublishChecklist,
+  listManagedChannels,
+  pinVideoComment,
+  saveExtendedStudioSettings,
+  savePostPublishChecklistItem,
+  sendWebhookNotification,
+  startYoutubeDailyReportScheduler,
+  translateCommentText,
+  videosToCsv,
+} from "./youtubeStudioAdvanced.js";
+import {
   applyThumbnailVariant,
   getThumbnailExperimentReport,
   loadThumbnailExperiment,
@@ -8137,11 +8154,15 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
   const allowedFilters = new Set(["all", "unanswered"]);
   const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
   try {
+    const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
     const report = await fetchChannelComments(WORKSPACE_DIR, {
       limit,
       filter: resolvedFilter,
       keyword,
       pageToken,
+      projectsRoot: PROJECTS_ROOT,
+      views48hThreshold,
+      enrich: true,
     });
     res.json(report);
   } catch (err) {
@@ -8152,7 +8173,7 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
 
 app.get("/api/youtube/channel/settings", (req, res) => {
   try {
-    res.json(loadStudioSettings(WORKSPACE_DIR));
+    res.json(getExtendedStudioSettings(WORKSPACE_DIR));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -8161,12 +8182,19 @@ app.get("/api/youtube/channel/settings", (req, res) => {
 app.put("/api/youtube/channel/settings", (req, res) => {
   try {
     const templates = req.body?.replyTemplates;
-    const weeklyReportEmail = req.body?.weeklyReportEmail;
     if (templates) updateReplyTemplates(WORKSPACE_DIR, templates);
-    if (weeklyReportEmail !== undefined) {
-      saveStudioSettings(WORKSPACE_DIR, { weeklyReportEmail: String(weeklyReportEmail || "").trim() });
+    const patch = {};
+    if (req.body?.weeklyReportEmail !== undefined) patch.weeklyReportEmail = String(req.body.weeklyReportEmail || "").trim();
+    if (req.body?.dailyReportEmail !== undefined) patch.dailyReportEmail = String(req.body.dailyReportEmail || "").trim();
+    if (req.body?.autoReplyRules) patch.autoReplyRules = req.body.autoReplyRules;
+    if (req.body?.webhooks) patch.webhooks = req.body.webhooks;
+    if (req.body?.projectGoals) patch.projectGoals = req.body.projectGoals;
+    if (req.body?.defaultProjectGoalViews48h !== undefined) {
+      patch.defaultProjectGoalViews48h = Number(req.body.defaultProjectGoalViews48h) || 100;
     }
-    res.json(loadStudioSettings(WORKSPACE_DIR));
+    if (req.body?.selectedChannelId !== undefined) patch.selectedChannelId = String(req.body.selectedChannelId || "").trim();
+    if (Object.keys(patch).length) saveExtendedStudioSettings(WORKSPACE_DIR, patch);
+    res.json(getExtendedStudioSettings(WORKSPACE_DIR));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -8296,6 +8324,161 @@ app.get("/api/youtube/channel/lumiera-videos", async (req, res) => {
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos Lumiera");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/list", async (req, res) => {
+  try {
+    res.json(await listManagedChannels(WORKSPACE_DIR));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao listar canais");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/comments/bulk-reply", async (req, res) => {
+  try {
+    res.json(await bulkReplyComments(WORKSPACE_DIR, { replies: req.body?.replies || [] }));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro no envio em lote");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/comments/pin", async (req, res) => {
+  try {
+    res.json(await pinVideoComment(WORKSPACE_DIR, {
+      videoId: String(req.body?.videoId || "").trim(),
+      text: String(req.body?.text || "").trim(),
+    }));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao fixar comentário");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/channel/comments/translate", async (req, res) => {
+  try {
+    res.json(await translateCommentText(
+      String(req.body?.text || ""),
+      String(req.body?.targetLang || "pt"),
+      (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, { ...opts, projectDir: WORKSPACE_DIR }),
+    ));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/comments/ideas", async (req, res) => {
+  const niche = String(req.query?.niche || "").trim();
+  const useAi = String(req.query?.ai || "") === "1";
+  try {
+    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
+      limit: 40,
+      filter: "unanswered",
+      projectsRoot: PROJECTS_ROOT,
+      enrich: false,
+    });
+    const { generateCommentIdeas: genIdeas } = await import("./youtubeStudioAdvanced.js");
+    res.json(await genIdeas(
+      commentsReport.comments || [],
+      niche,
+      useAi ? (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, { ...opts, projectDir: WORKSPACE_DIR }) : null,
+    ));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/export.csv", async (req, res) => {
+  const type = String(req.query?.type || "comments");
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  try {
+    if (type === "videos") {
+      const [videos, lumiera] = await Promise.all([
+        fetchChannelVideosWithAnalytics(WORKSPACE_DIR, { days: 28, limit: 50 }),
+        fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, { days: 28 }),
+      ]);
+      const csv = videosToCsv([
+        ...(videos.videos || []),
+        ...(lumiera.videos || []).map((v) => ({ ...v, videoFormat: v.format })),
+      ]);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="youtube-videos.csv"');
+      return res.send(csv);
+    }
+    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
+      limit: 50,
+      filter: "all",
+      projectsRoot: PROJECTS_ROOT,
+      views48hThreshold,
+      enrich: true,
+    });
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="youtube-comments.csv"');
+    res.send(commentsToCsv(commentsReport.comments || []));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao exportar CSV");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/response-stats", async (req, res) => {
+  try {
+    const { assertTitleTestScopes, getYoutubeAccessToken } = await import("./youtubeTitleAnalytics.js");
+    await assertTitleTestScopes(WORKSPACE_DIR);
+    const accessToken = await getYoutubeAccessToken(WORKSPACE_DIR);
+    const channelData = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).then((r) => r.json());
+    const ch = channelData?.items?.[0];
+    res.json(await computeChannelResponseStats(accessToken, ch?.id, ch?.snippet?.title || "", ch?.snippet?.customUrl || ""));
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro nas estatísticas de resposta");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/daily-report", async (req, res) => {
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  try {
+    res.json(await generateDailyReport(WORKSPACE_DIR, PROJECTS_ROOT, { views48hThreshold }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/webhooks/test", async (req, res) => {
+  try {
+    const settings = getExtendedStudioSettings(WORKSPACE_DIR);
+    const webhooks = { ...settings.webhooks, ...(req.body?.webhooks || {}) };
+    res.json({ results: await sendWebhookNotification(webhooks, req.body?.message || "Teste Lumiera — Canal YouTube") });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/post-publish-checklist", async (req, res) => {
+  const projectName = String(req.query?.project || "").trim();
+  const videoId = String(req.query?.videoId || "").trim();
+  if (!projectName) return res.status(400).json({ error: "project é obrigatório." });
+  try {
+    res.json(await getPostPublishChecklist(WORKSPACE_DIR, PROJECTS_ROOT, projectName, videoId));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/channel/post-publish-checklist", async (req, res) => {
+  const projectName = String(req.body?.project || "").trim();
+  const itemId = String(req.body?.itemId || "").trim();
+  if (!projectName || !itemId) return res.status(400).json({ error: "project e itemId obrigatórios." });
+  try {
+    const { collectLumieraPublishedVideos } = await import("./youtubeChannelAnalytics.js");
+    const entry = collectLumieraPublishedVideos(PROJECTS_ROOT).find((p) => p.projectName === projectName);
+    res.json(savePostPublishChecklistItem(entry?.projectPath, itemId, req.body?.done !== false));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -11627,6 +11810,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   }
   startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
   startYoutubeWeeklyReportScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
+  startYoutubeDailyReportScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
 });
 
 server.on("error", (err) => {

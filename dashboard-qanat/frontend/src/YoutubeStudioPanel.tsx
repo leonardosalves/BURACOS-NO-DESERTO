@@ -13,6 +13,7 @@ import {
   setYoutubePollIntervalMinutes,
   setYoutubeViewsThreshold,
 } from './youtubeStudioPrefs';
+import { YoutubeStudioTools } from './YoutubeStudioTools';
 
 type ChannelOverview = {
   connected: boolean;
@@ -42,6 +43,7 @@ type VideoRow = {
   title: string;
   publishedAt: string;
   thumbnailUrl: string;
+  videoFormat?: 'SHORT' | 'LONG';
   metrics: {
     views: number;
     estimatedMinutesWatched: number;
@@ -79,6 +81,9 @@ type CommentRow = {
   isAnswered: boolean;
   studioUrl: string;
   watchUrl: string | null;
+  sentiment?: 'positive' | 'critical' | 'question' | 'neutral';
+  priorityScore?: number;
+  autoReplySuggestion?: { suggestedText?: string; label?: string; keyword?: string } | null;
 };
 
 type CommentsReport = {
@@ -157,6 +162,9 @@ type LumieraVideoRow = {
   niche?: string;
   thumbnailUrl?: string;
   views48h: number;
+  goalViews48h?: number;
+  goalMet?: boolean;
+  titleExperiment?: { status?: string; activeVariantId?: string; variants?: number } | null;
   metrics: VideoRow['metrics'];
   studioUrl?: string;
   watchUrl?: string;
@@ -177,6 +185,8 @@ type VideoDetail = {
     views48h?: number;
     error?: string;
   };
+  velocityTimeline?: { points?: Array<{ date: string; views: number }>; totalViews?: number };
+  ctrRevenue?: { available?: boolean; metrics?: Record<string, number>; note?: string };
 };
 
 type Props = {
@@ -187,6 +197,7 @@ type Props = {
   alerts?: YoutubeChannelAlerts | null;
   onSelectProject?: (projectName: string) => void;
   onAlertsSync?: (alerts: YoutubeChannelAlerts) => void;
+  onApplyCreatorIdea?: (title: string) => void;
 };
 
 function RetentionSparkline({ points }: { points: Array<{ ratio: number; watchRatio: number }> }) {
@@ -247,6 +258,7 @@ export function YoutubeStudioPanel({
   alerts = null,
   onSelectProject,
   onAlertsSync,
+  onApplyCreatorIdea,
 }: Props) {
   const [overview, setOverview] = useState<ChannelOverview | null>(null);
   const [videosReport, setVideosReport] = useState<VideosReport | null>(null);
@@ -277,6 +289,10 @@ export function YoutubeStudioPanel({
   const [suggestingId, setSuggestingId] = useState<string | null>(null);
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Record<string, boolean>>({});
+  const [bulkReplyText, setBulkReplyText] = useState('');
+  const [videoFormatFilter, setVideoFormatFilter] = useState<'all' | 'SHORT' | 'LONG'>('all');
+  const [translations, setTranslations] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (nicheKeyword && !appliedKeyword) {
@@ -292,7 +308,11 @@ export function YoutubeStudioPanel({
     if (append) setLoadingMoreComments(true);
     else setCommentsLoading(true);
     try {
-      const params = new URLSearchParams({ limit: '20', filter });
+      const params = new URLSearchParams({
+        limit: '20',
+        filter,
+        viewsThreshold: String(viewsThreshold),
+      });
       if (keyword.trim()) params.set('keyword', keyword.trim());
       if (pageToken) params.set('pageToken', pageToken);
       params.set('_', String(Date.now()));
@@ -318,7 +338,7 @@ export function YoutubeStudioPanel({
       setCommentsLoading(false);
       setLoadingMoreComments(false);
     }
-  }, [toast]);
+  }, [toast, viewsThreshold]);
 
   const syncAlertsPayload = useCallback((payload: Record<string, unknown>) => {
     if (!onAlertsSync || !payload) return;
@@ -492,6 +512,44 @@ export function YoutubeStudioPanel({
       setWeeklyLoading(false);
     }
   }, [toast, viewsThreshold]);
+
+  const bulkReplySelected = useCallback(async () => {
+    const selected = (commentsReport?.comments || []).filter((c) => bulkSelected[c.commentId] && !c.isAnswered);
+    if (!selected.length || !bulkReplyText.trim()) {
+      toast('Selecione comentários e digite a resposta em lote.');
+      return;
+    }
+    const res = await fetch('/api/youtube/channel/comments/bulk-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        replies: selected.map((c) => ({ commentId: c.commentId, text: bulkReplyText.trim() })),
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast(`${data.sent} resposta(s) publicada(s).`);
+      setBulkReplyText('');
+      setBulkSelected({});
+      await loadComments(commentFilter, appliedKeyword);
+    } else toast(data.error || 'Falha no envio em lote.');
+  }, [appliedKeyword, bulkReplyText, bulkSelected, commentFilter, commentsReport?.comments, loadComments, toast]);
+
+  const translateComment = useCallback(async (comment: CommentRow) => {
+    try {
+      const res = await fetch('/api/youtube/channel/comments/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: comment.text, targetLang: 'pt' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTranslations((prev) => ({ ...prev, [comment.commentId]: data.translation }));
+      }
+    } catch {
+      toast('Erro na tradução.');
+    }
+  }, [toast]);
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
@@ -840,9 +898,13 @@ export function YoutubeStudioPanel({
                   <p className="text-[9px] text-cyan-400/90 mt-0.5">{item.projectName} · {item.format}</p>
                   <div className="flex flex-wrap gap-2 mt-1.5 text-[9px] text-zinc-500">
                     <span>{formatNumber(item.metrics.views)} views ({periodDays}d)</span>
-                    <span className="inline-flex items-center gap-0.5 text-amber-400/90">
+                    <span className={`inline-flex items-center gap-0.5 ${item.goalMet ? 'text-emerald-400/90' : 'text-amber-400/90'}`}>
                       <TrendingUp className="w-3 h-3" /> {formatNumber(item.views48h)} / 48h
+                      {item.goalViews48h ? ` (meta ${item.goalViews48h})` : ''}
                     </span>
+                    {item.titleExperiment?.status === 'running' && (
+                      <span className="text-violet-400/90">A/B título ativo</span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     <button
@@ -877,7 +939,21 @@ export function YoutubeStudioPanel({
                 : `Últimos ${periodDays} dias`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {(['all', 'SHORT', 'LONG'] as const).map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                onClick={() => setVideoFormatFilter(fmt)}
+                className={`px-2 py-1 rounded-lg text-[9px] font-bold border ${
+                  videoFormatFilter === fmt
+                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    : 'bg-zinc-950 text-zinc-500 border-zinc-800'
+                }`}
+              >
+                {fmt === 'all' ? 'Todos formatos' : fmt}
+              </button>
+            ))}
             {[7, 28, 90].map((days) => (
               <button
                 key={days}
@@ -923,7 +999,9 @@ export function YoutubeStudioPanel({
                 </tr>
               </thead>
               <tbody>
-                {videosReport.videos.map((video) => {
+                {videosReport.videos
+                  .filter((v) => videoFormatFilter === 'all' || v.videoFormat === videoFormatFilter)
+                  .map((video) => {
                   const lumieraRef = lumieraByVideoId[video.videoId];
                   const isHot = hotVideoIds.has(video.videoId);
                   return (
@@ -958,6 +1036,7 @@ export function YoutubeStudioPanel({
                       </a>
                       <span className="text-[9px] text-zinc-600 block mt-0.5">
                         {formatShortDate(video.publishedAt)}
+                        {video.videoFormat ? ` · ${video.videoFormat}` : ''}
                       </span>
                       {lumieraRef && (
                         <button
@@ -1046,6 +1125,30 @@ export function YoutubeStudioPanel({
                 <div className="lg:col-span-3">
                   <RetentionSparkline points={videoDetail.retention?.points || []} />
                 </div>
+                {videoDetail.velocityTimeline?.points?.length ? (
+                  <div className="lg:col-span-3 p-3 rounded-lg bg-zinc-950 border border-zinc-900">
+                    <p className="text-[9px] text-zinc-500 mb-2">Views por dia (últimos 7d)</p>
+                    <div className="flex items-end gap-1 h-16">
+                      {videoDetail.velocityTimeline.points.map((p) => (
+                        <div
+                          key={p.date}
+                          className="flex-1 bg-cyan-500/60 rounded-t min-w-[4px]"
+                          style={{ height: `${Math.max(8, (p.views / Math.max(...videoDetail.velocityTimeline!.points!.map((x) => x.views), 1)) * 100)}%` }}
+                          title={`${p.date}: ${p.views} views`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {videoDetail.ctrRevenue?.available && videoDetail.ctrRevenue.metrics && (
+                  <p className="lg:col-span-3 text-[9px] text-zinc-500">
+                    Impressões: {formatNumber(videoDetail.ctrRevenue.metrics.impressions || 0)}
+                    {videoDetail.ctrRevenue.metrics.impressionClickThroughRate
+                      ? ` · CTR ${(videoDetail.ctrRevenue.metrics.impressionClickThroughRate * 100).toFixed(2)}%` : ''}
+                    {videoDetail.ctrRevenue.metrics.estimatedRevenue
+                      ? ` · Receita ~${videoDetail.ctrRevenue.metrics.estimatedRevenue.toFixed(2)}` : ''}
+                  </p>
+                )}
               </div>
             ) : null}
           </div>
@@ -1125,6 +1228,20 @@ export function YoutubeStudioPanel({
           <p className="text-[10px] text-zinc-600 mb-3 leading-relaxed">{commentsReport.replyNote}</p>
         )}
 
+        {commentFilter === 'unanswered' && (commentsReport?.comments?.length ?? 0) > 0 && (
+          <div className="mb-3 flex flex-col sm:flex-row gap-2 p-3 rounded-xl bg-zinc-950 border border-zinc-900">
+            <input
+              value={bulkReplyText}
+              onChange={(e) => setBulkReplyText(e.target.value)}
+              placeholder="Resposta em lote para selecionados..."
+              className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-[11px] text-white"
+            />
+            <button type="button" onClick={bulkReplySelected} className="px-3 py-2 rounded-lg bg-gold-500 text-zinc-950 text-[10px] font-bold">
+              Enviar em lote
+            </button>
+          </div>
+        )}
+
         {commentsLoading ? (
           <div className="py-8 flex items-center justify-center gap-2 text-zinc-500 text-[11px]">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -1148,6 +1265,17 @@ export function YoutubeStudioPanel({
                 className="p-4 rounded-xl bg-zinc-950 border border-zinc-900/80 hover:border-zinc-800/80 transition"
               >
                 <div className="flex items-start gap-3">
+                  {!comment.isAnswered && (
+                    <input
+                      type="checkbox"
+                      checked={Boolean(bulkSelected[comment.commentId])}
+                      onChange={(e) => setBulkSelected((prev) => ({
+                        ...prev,
+                        [comment.commentId]: e.target.checked,
+                      }))}
+                      className="mt-2 rounded border-zinc-700"
+                    />
+                  )}
                   {comment.authorProfileImageUrl ? (
                     <img
                       src={comment.authorProfileImageUrl}
@@ -1175,10 +1303,37 @@ export function YoutubeStudioPanel({
                           {comment.replyCount} resposta{comment.replyCount !== 1 ? 's' : ''}
                         </span>
                       )}
+                      {comment.sentiment && comment.sentiment !== 'neutral' && (
+                        <span className={`text-[8px] px-1 py-0.5 rounded ${
+                          comment.sentiment === 'critical' ? 'bg-red-500/10 text-red-300'
+                            : comment.sentiment === 'question' ? 'bg-blue-500/10 text-blue-300'
+                              : 'bg-emerald-500/10 text-emerald-300'
+                        }`}>
+                          {comment.sentiment === 'critical' ? 'Crítica' : comment.sentiment === 'question' ? 'Pergunta' : 'Positivo'}
+                        </span>
+                      )}
+                      {typeof comment.priorityScore === 'number' && comment.priorityScore > 0 && (
+                        <span className="text-[8px] text-zinc-600">prio {comment.priorityScore}</span>
+                      )}
                     </div>
                     <p className="text-[11px] text-zinc-300 leading-relaxed mt-1 whitespace-pre-wrap break-words">
                       {comment.text}
                     </p>
+                    {translations[comment.commentId] && (
+                      <p className="text-[10px] text-zinc-500 mt-1 italic">{translations[comment.commentId]}</p>
+                    )}
+                    {comment.autoReplySuggestion?.suggestedText && !comment.isAnswered && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyDrafts((prev) => ({
+                          ...prev,
+                          [comment.commentId]: comment.autoReplySuggestion!.suggestedText || '',
+                        }))}
+                        className="text-[9px] mt-1 text-gold-400 hover:text-gold-300"
+                      >
+                        Regra «{comment.autoReplySuggestion.label}»: aplicar template
+                      </button>
+                    )}
                     {comment.videoTitle && (
                       <p className="text-[9px] text-zinc-600 mt-1.5 truncate" title={comment.videoTitle}>
                         em: {comment.videoTitle}
@@ -1211,6 +1366,13 @@ export function YoutubeStudioPanel({
                           <ThumbsUp className="w-3 h-3" /> {comment.likeCount}
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => translateComment(comment)}
+                        className="text-[9px] text-zinc-500 hover:text-zinc-300"
+                      >
+                        Traduzir
+                      </button>
                       <button
                         type="button"
                         onClick={() => markCommentHandled(comment.threadId)}
@@ -1303,12 +1465,19 @@ export function YoutubeStudioPanel({
         )}
       </div>
 
+      <YoutubeStudioTools
+        viewsThreshold={viewsThreshold}
+        nicheKeyword={nicheKeyword}
+        toast={toast}
+        onApplyIdea={onApplyCreatorIdea}
+      />
+
       <div className="glass-panel p-5 rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Mail className="w-4 h-4 text-zinc-400" />
-              Relatório semanal
+              Relatórios
             </h3>
             <p className="text-[10px] text-zinc-500 mt-0.5">
               Gerado automaticamente a cada 7 dias. Configure e-mail e SMTP em youtube_studio_settings.json para envio.
@@ -1329,7 +1498,22 @@ export function YoutubeStudioPanel({
               disabled={weeklyLoading}
               className="text-[10px] px-3 py-1.5 rounded-lg bg-gold-500/15 border border-gold-500/30 text-gold-300"
             >
-              Enviar e-mail
+              Enviar semanal
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setWeeklyLoading(true);
+                try {
+                  const res = await fetch(`/api/youtube/channel/daily-report?viewsThreshold=${viewsThreshold}`);
+                  const data = await res.json();
+                  if (res.ok) { setWeeklyReport(data); toast('Resumo diário gerado.'); }
+                } finally { setWeeklyLoading(false); }
+              }}
+              disabled={weeklyLoading}
+              className="text-[10px] px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300"
+            >
+              Diário
             </button>
           </div>
         </div>

@@ -126,6 +126,7 @@ import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
+import { PostPublishChecklist } from './PostPublishChecklist';
 import {
   getYoutubeNotificationsEnabled,
   getYoutubePollIntervalMs,
@@ -11366,6 +11367,22 @@ export default function App() {
                   subtitle="Selecione um projeto existente para substituir narração, imagens, vídeos ou trilhas sonoras por bloco."
                 />
 
+                {titleExperimentVideoId && selectedProject && (
+                  <div className="mt-4 space-y-3">
+                    <ProjectYoutubeCard
+                      projectName={selectedProject}
+                      videoId={titleExperimentVideoId}
+                      toast={toast}
+                      onOpenYoutubePanel={() => setActiveTab('youtube-studio')}
+                    />
+                    <PostPublishChecklist
+                      projectName={selectedProject}
+                      videoId={titleExperimentVideoId}
+                      toast={toast}
+                    />
+                  </div>
+                )}
+
                 <div className="mt-6 flex gap-4">
 
                   <select 
@@ -12273,6 +12290,15 @@ export default function App() {
                 alerts={youtubeChannelAlerts}
                 onSelectProject={handleSelectProject}
                 onAlertsSync={setYoutubeChannelAlerts}
+                onApplyCreatorIdea={(title) => {
+                  setActiveTab('creator');
+                  setCreatorStep(1);
+                  setNicheInput((prev) => prev || config?.niche || '');
+                  toast(`Ideia enviada ao Creator: ${title.slice(0, 80)}…`);
+                  try {
+                    sessionStorage.setItem('lumiera_creator_idea_from_youtube', title);
+                  } catch { /* ignore */ }
+                }}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
                   setActiveTab('settings');
