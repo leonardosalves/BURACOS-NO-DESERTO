@@ -50,8 +50,15 @@ type TrendIdea = {
 
 type PioneerNiche = {
   label?: string;
+  macroNiche?: string;
+  angle?: string;
+  formatPattern?: string;
+  youtubeSearchQuery?: string;
   pioneerScore?: number;
   saturationPct?: number;
+  macroSaturationPct?: number;
+  gapScore?: number;
+  dedicatedChannels?: number;
   interestScore?: number;
   status?: 'virgem' | 'pioneiro' | 'emergente' | 'saturado';
   whyPioneer?: string;
@@ -61,6 +68,7 @@ type PioneerNiche = {
   youtube?: {
     channelCount?: number;
     videoCount?: number;
+    dedicatedChannels?: number;
     avgTopViews?: number;
     sampleChannels?: { title?: string }[];
   };
@@ -335,8 +343,9 @@ export function TrendForecastPanel({
             <p className="text-[11px] font-bold text-violet-100">Modo Pioneiro — desbravar nichos vazios</p>
           </div>
           <p className="text-[10px] text-zinc-500 leading-relaxed">
-            Cruza Exa (interesse emergente na web) com busca no YouTube (canais/vídeos encontrados).
-            Prioriza nichos <strong className="text-violet-300">virgens</strong> e <strong className="text-cyan-300">pioneiros</strong> onde você pode ser referência.
+            Parte de <strong className="text-zinc-300">macro-nichos reais</strong> (finanças, história, documentário…) e busca
+            <strong className="text-violet-300"> ângulos + padrões de vídeo</strong> que quase ninguém faz no YouTube BR.
+            <strong className="text-cyan-300"> Virgem</strong> = poucos canais dedicados naquele ângulo, não “título de blog sem resultados”.
           </p>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-[10px] text-zinc-400 cursor-pointer">
@@ -506,28 +515,46 @@ function PioneerNicheList({
           </span>
         )}
       </div>
+      <p className="text-[9px] text-zinc-600 leading-relaxed">
+        Cada card = <span className="text-zinc-400">macro-nicho</span> + <span className="text-zinc-400">ângulo/formato</span>.
+        Gap alto = categoria existe (ex.: história), mas o recorte específico está vazio.
+      </p>
       <ul className="space-y-2">
         {niches.slice(0, 10).map((n) => (
           <li
-            key={n.label}
+            key={`${n.macroNiche}-${n.youtubeSearchQuery || n.label}`}
             className="p-3 rounded-xl bg-zinc-950/50 border border-violet-900/30 space-y-2"
           >
             <div className="flex items-start gap-2 flex-wrap">
-              <p className="text-[11px] font-semibold text-zinc-100 flex-1 min-w-0">{n.label}</p>
+              <div className="flex-1 min-w-0 space-y-1">
+                {n.macroNiche && (
+                  <span className="text-[8px] font-bold uppercase tracking-wide text-amber-400/90">{n.macroNiche}</span>
+                )}
+                <p className="text-[11px] font-semibold text-zinc-100">{n.label || n.angle}</p>
+              </div>
               <PioneerStatusBadge status={n.status} />
               <span className="text-[9px] font-bold text-violet-300 tabular-nums">
                 {Number(n.pioneerScore || 0).toFixed(0)} pts
               </span>
             </div>
+            {n.formatPattern && (
+              <p className="text-[9px] text-violet-300/80">
+                Formato: {n.formatPattern}
+              </p>
+            )}
+            {n.angle && n.angle !== n.label && (
+              <p className="text-[9px] text-zinc-500 leading-relaxed">{n.angle}</p>
+            )}
             {n.whyPioneer && (
               <p className="text-[9px] text-zinc-400 leading-relaxed">{n.whyPioneer}</p>
             )}
-            {n.youtube && (
+            {(n.youtube || n.gapScore != null) && (
               <p className="text-[9px] text-zinc-600">
-                YouTube: ~{n.youtube.channelCount?.toLocaleString('pt-BR') ?? '?'} canais ·
-                ~{n.youtube.videoCount?.toLocaleString('pt-BR') ?? '?'} vídeos ·
-                saturação {n.saturationPct}%
-                {n.youtube.avgTopViews ? ` · top ~${n.youtube.avgTopViews.toLocaleString('pt-BR')} views` : ''}
+                Busca: <code className="text-zinc-500">{n.youtubeSearchQuery || n.youtube?.query}</code>
+                {n.dedicatedChannels != null ? ` · ${n.dedicatedChannels} canal(is) dedicado(s)` : ''}
+                {n.saturationPct != null ? ` · saturação ângulo ${n.saturationPct}%` : ''}
+                {n.macroSaturationPct != null ? ` · macro ${n.macroSaturationPct}%` : ''}
+                {n.gapScore != null ? ` · gap ${n.gapScore}` : ''}
               </p>
             )}
             {n.firstVideoIdea && (
