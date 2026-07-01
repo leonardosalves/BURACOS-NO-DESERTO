@@ -8675,12 +8675,7 @@ export default function App() {
               <div className="lumiera-render-grid">
                 <div className="lumiera-render-primary space-y-4 min-w-0">
 
-              {videoQuality && (
-                videoQuality.score < 80
-                || !videoQuality.ok
-                || videoQuality.issues.some((i) => i.severity === 'error' || i.severity === 'warning')
-                || videoQuality.preRenderAdvice
-              ) && (
+              {videoQuality && (!(videoQuality.score >= 80) || !videoQuality.ok || videoQuality.issues.some((i) => i.severity === 'error' || i.severity === 'warning') || Boolean(videoQuality.preRenderAdvice)) && (
                 <details className="glass-panel rounded-2xl font-sans group" open>
                   <summary className="p-4 cursor-pointer list-none flex flex-wrap items-center justify-between gap-3">
                     <SectionHeader
