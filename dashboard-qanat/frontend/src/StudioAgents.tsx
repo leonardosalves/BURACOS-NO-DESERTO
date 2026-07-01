@@ -15,7 +15,11 @@ import {
   AlertTriangle,
   Layers,
   Package,
+  Play,
+  Settings,
 } from 'lucide-react';
+
+type StudioAgentsSection = 'automacao' | 'qualidade' | 'memoria' | 'skills';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 import { VideoAgentPlanner } from './VideoAgentPlanner';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
@@ -202,6 +206,7 @@ export function StudioAgents({
   const [capturePreview, setCapturePreview] = useState<CapturePreview | null>(null);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
   const [consolidatePreview, setConsolidatePreview] = useState<ConsolidatePreview | null>(null);
+  const [section, setSection] = useState<StudioAgentsSection>('automacao');
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -351,6 +356,7 @@ export function StudioAgents({
         workshop: data.workshop || null,
       });
 
+      setSection('qualidade');
       toast.success(
         `${label} concluído — ${data.patterns?.length ?? 0} padrão(ões) registrado(s)`,
       );
@@ -477,6 +483,36 @@ export function StudioAgents({
     }
   };
 
+  const workshopPending = skillsRegistry?.pendingProposals ?? 0;
+  const graphOrphans = obsidian.graph?.orphans ?? 0;
+
+  const sectionTabs: Array<{
+    id: StudioAgentsSection;
+    label: string;
+    icon: React.ReactNode;
+    badge?: number;
+  }> = [
+    { id: 'automacao', label: 'Automação', icon: <Play className="w-3 h-3" /> },
+    {
+      id: 'qualidade',
+      label: 'Qualidade',
+      icon: <Zap className="w-3 h-3" />,
+      badge: capturePreview ? 1 : undefined,
+    },
+    {
+      id: 'memoria',
+      label: 'Memória',
+      icon: <Database className="w-3 h-3" />,
+      badge: graphOrphans > 0 ? graphOrphans : undefined,
+    },
+    {
+      id: 'skills',
+      label: 'Skills',
+      icon: <Layers className="w-3 h-3" />,
+      badge: workshopPending > 0 ? workshopPending : undefined,
+    },
+  ];
+
   const runPlanOverlays = async () => {
     setBusy('plan-overlays');
     try {
@@ -502,221 +538,116 @@ export function StudioAgents({
   };
 
   return (
-    <div className="lumiera-panel-stack animate-fade-in max-w-5xl w-full mx-auto">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <SectionHeader
-          title="Studio Agents"
-          helpId="agents-overview"
-          size="lg"
-          icon={<Bot className="w-7 h-7 text-gold-500 shrink-0" />}
-          subtitle="Área separada do fluxo normal. Captura padrões de qualidade por projeto, consolida aprendizados por nicho e aplica memória só quando você usa as ações desta aba."
-        />
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            disabled={!!busy}
-            onClick={repairObsidianGraph}
-            title="Liga notas órfãs ao hub MEMORIA-LUMIERA"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-bold hover:border-amber-400/50 transition disabled:opacity-40"
-          >
-            {busy === 'graph-repair' ? 'Reparando…' : 'Reparar grafo'}
-          </button>
-          <button
-            type="button"
-            disabled={!!busy || !obsidian.installed}
-            onClick={() => openObsidian()}
-            title={obsidian.installed ? 'Abrir vault .agents no Obsidian' : 'Instale o Obsidian em obsidian.md'}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-bold hover:border-violet-400/50 hover:text-violet-200 transition disabled:opacity-40"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            {busy === 'obsidian' ? 'Abrindo…' : 'Abrir no Obsidian'}
-          </button>
-          <button
-            type="button"
-            onClick={() => { fetchStatus(); fetchLearnings(); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 text-xs font-bold hover:border-gold-500/30 hover:text-gold-400 transition"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </button>
-        </div>
-      </div>
-
-      <div className="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <SectionHeader
-          title="Memória visual (Obsidian)"
-          helpId="agents-obsidian"
-          icon={<BookOpen className="w-5 h-5 text-violet-400 shrink-0" />}
-          subtitle="As notas em .agents/ são um vault Obsidian. Edite MEMORY.md, memória por nicho e logs com wikilinks e grafo."
-        />
-        <div className="flex flex-col gap-2 text-[10px] text-zinc-500 font-mono min-w-0">
-          <span className="break-all">{obsidian.vaultDir || '.agents/'}</span>
-          {obsidian.graph ? (
-            <span
-              className={
-                obsidian.graph.orphans === 0 ? 'text-emerald-400/90' : 'text-amber-400/90'
-              }
-            >
-              Grafo: {obsidian.graph.connected}/{obsidian.graph.total} ligadas ao hub
-              {obsidian.graph.orphans > 0 ? ` · ${obsidian.graph.orphans} órfã(s)` : ''}
-            </span>
-          ) : null}
-          {obsidian.installed ? (
-            <span className="text-emerald-400/90">Obsidian detectado</span>
-          ) : (
-            <a
-              href="https://obsidian.md/download"
-              target="_blank"
-              rel="noreferrer"
-              className="text-violet-400 hover:text-violet-300 inline-flex items-center gap-1"
-            >
-              Baixar Obsidian <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
-        </div>
-      </div>
-
-      <VideoAgentPlanner
-        projectNiche={projectNiche}
-        projectFormat={projectFormat}
-        getProjectUrl={getProjectUrl}
-        postAi={postAi}
-        onNavigateTab={onNavigateTab}
-        onOpenObsidian={openObsidian}
-        obsidianInstalled={obsidian.installed}
-        onExecuteCreator={onExecuteCreator}
-      />
-
-      {skillsRegistry && (
-        <div className="glass-panel p-6 rounded-2xl space-y-4">
+    <div className="lumiera-panel-stack animate-fade-in max-w-5xl w-full mx-auto space-y-3">
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <SectionHeader
-            title="Skills (Hermes / OpenClaw)"
-            helpId="agents-skills"
-            icon={<Layers className="w-4 h-4 text-sky-400 shrink-0" />}
-            subtitle="Bundles carregam skills sob demanda no prompt — progressive disclosure, sem dump de todo o vault."
+            title="Studio Agents"
+            helpId="agents-overview"
+            size="lg"
+            icon={<Bot className="w-6 h-6 text-gold-500 shrink-0" />}
+            subtitle="Memória do estúdio, automação VideoAgent e qualidade por projeto."
           />
-          <div className="flex flex-wrap gap-3 text-xs">
-            <span className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300">
-              <span className="text-zinc-500">Skills </span>
-              <span className="font-bold tabular-nums">{skillsRegistry.skillsCount}</span>
-            </span>
-            <span className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300">
-              <span className="text-zinc-500">Bundles </span>
-              <span className="font-bold tabular-nums">{skillsRegistry.bundlesCount}</span>
-            </span>
-            {bundleMap.overlay ? (
-              <span className="px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-200">
-                <Package className="w-3 h-3 inline mr-1 opacity-70" />
-                overlay → <span className="font-mono">{bundleMap.overlay}</span>
-              </span>
-            ) : null}
-            {(skillsRegistry.pendingProposals ?? 0) > 0 ? (
-              <span className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/35 text-amber-200 animate-pulse">
-                Workshop: {skillsRegistry.pendingProposals} pendente(s)
-              </span>
-            ) : null}
-            {skillsRegistry.skillsInAgentMode ? (
-              <span className="text-emerald-400/90">Injeção ativa</span>
-            ) : (
-              <span className="text-amber-400/90">Injeção desligada</span>
-            )}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              disabled={!!busy || !obsidian.installed}
+              onClick={() => openObsidian()}
+              title="Abrir vault .agents"
+              className="p-2 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:border-violet-400/50 transition disabled:opacity-40"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              disabled={!!busy}
+              onClick={repairObsidianGraph}
+              title="Reparar grafo Obsidian"
+              className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:border-amber-400/50 transition disabled:opacity-40"
+            >
+              <Brain className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { fetchStatus(); fetchLearnings(); }}
+              className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-gold-500/30 hover:text-gold-400 transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
-          {skillsRegistry.bundles && skillsRegistry.bundles.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {skillsRegistry.bundles.map((b) => (
-                <div
-                  key={b.slug}
-                  className="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950/80 text-[11px]"
-                >
-                  <p className="font-bold text-zinc-200">{b.name}</p>
-                  <p className="text-zinc-500 mt-0.5 line-clamp-2">{b.description}</p>
-                  <p className="text-zinc-600 font-mono mt-1 truncate">{b.skills.join(' · ')}</p>
-                </div>
-              ))}
-            </div>
-          )}
-          {skillsRegistry.pending && skillsRegistry.pending.length > 0 && (
-            <div className="space-y-2 border-t border-zinc-800 pt-4">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-amber-400">
-                Workshop — {skillsRegistry.pending.length} proposta(s)
-              </p>
-              <ul className="space-y-2">
-                {skillsRegistry.pending.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5"
-                  >
-                    <span className="text-xs text-amber-100/90">
-                      <span className="font-mono text-amber-400">{p.skill}</span>
-                      {p.summary ? ` — ${p.summary}` : ` (${p.action})`}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={!!busy}
-                        onClick={() => runWorkshopAction(p.id, 'apply')}
-                        className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                      >
-                        Aplicar
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!!busy}
-                        onClick={() => runWorkshopAction(p.id, 'reject')}
-                        className="px-2 py-1 rounded-lg text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700"
-                      >
-                        Rejeitar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
+          <span>
+            Projeto: <span className="text-zinc-300 font-mono">{activeProject}</span>
+          </span>
+          <span className="text-zinc-700">·</span>
+          <span>
+            Nicho: <span className="text-zinc-300">{projectNiche}</span>
+          </span>
+          <span className="text-zinc-700">·</span>
+          <span className={projectFormat === 'SHORT' ? 'text-amber-400' : 'text-sky-400'}>
+            {projectFormat === 'SHORT' ? 'Shorts' : 'Longo'}
+          </span>
+          <span className="text-zinc-700">·</span>
+          <span className="tabular-nums">
+            <span className="text-gold-400">{totals.nicheFiles}</span> nichos
+            {' · '}
+            <span className="text-emerald-400">{totals.promoted}</span> promovidos
+            {' · '}
+            <span className="text-amber-400">{totals.candidates}</span> em observação
+          </span>
+        </div>
+
+        <div className="flex gap-1 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+          {sectionTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSection(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-[10px] font-bold transition-colors min-w-0 ${
+                section === tab.id
+                  ? tab.id === 'automacao'
+                    ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/25'
+                    : 'bg-gold-500/12 text-gold-300 border border-gold-500/25'
+                  : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+              }`}
+            >
+              {tab.icon}
+              <span className="truncate">{tab.label}</span>
+              {tab.badge != null && tab.badge > 0 ? (
+                <span className="min-w-[14px] px-1 py-0.5 rounded-full bg-zinc-800 text-[8px] tabular-nums shrink-0">
+                  {tab.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {section === 'automacao' && (
+        <VideoAgentPlanner
+          projectNiche={projectNiche}
+          projectFormat={projectFormat}
+          getProjectUrl={getProjectUrl}
+          postAi={postAi}
+          onNavigateTab={onNavigateTab}
+          onOpenObsidian={openObsidian}
+          obsidianInstalled={obsidian.installed}
+          onExecuteCreator={onExecuteCreator}
+        />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-panel p-5 rounded-2xl">
-          <div className="flex items-center gap-2 text-gold-500 mb-2">
-            <Database className="w-4 h-4" />
-            <SectionLabel helpId="agents-stats" className="text-[10px] uppercase tracking-widest font-bold text-gold-500">
-              Nichos
-            </SectionLabel>
-          </div>
-          <p className="text-3xl font-bold text-white tabular-nums">{totals.nicheFiles}</p>
-        </div>
-        <div className="glass-panel p-5 rounded-2xl">
-          <div className="flex items-center gap-2 text-emerald-400 mb-2">
-            <TrendingUp className="w-4 h-4" />
-            <span className="text-[10px] uppercase tracking-widest font-bold">Promovidos</span>
-          </div>
-          <p className="text-3xl font-bold text-white tabular-nums">{totals.promoted}</p>
-        </div>
-        <div className="glass-panel p-5 rounded-2xl">
-          <div className="flex items-center gap-2 text-amber-400 mb-2">
-            <Brain className="w-4 h-4" />
-            <span className="text-[10px] uppercase tracking-widest font-bold">Em observação</span>
-          </div>
-          <p className="text-3xl font-bold text-white tabular-nums">{totals.candidates}</p>
-        </div>
-      </div>
-
-      <div className="glass-panel p-6 rounded-2xl space-y-4">
+      {section === 'qualidade' && (
+        <>
+      <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-4">
         <SectionHeader
-          title={`Ações — projeto ativo: ${activeProject}`}
+          title="Qualidade do projeto"
           helpId="agents-actions"
           icon={<Zap className="w-4 h-4 text-gold-500" />}
+          subtitle="Captura, reflexão e overlays com memória do estúdio injetada."
         />
-        <p className="text-[11px] text-zinc-500">
-          Nicho: <span className="text-zinc-300">{projectNiche}</span>
-          {' · '}
-          Formato:{' '}
-          <span className={projectFormat === 'SHORT' ? 'text-amber-400' : 'text-sky-400'}>
-            {projectFormat === 'SHORT' ? 'Shorts 9:16' : 'Longo 16:9'}
-          </span>
-        </p>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             disabled={!!busy}
@@ -758,7 +689,7 @@ export function StudioAgents({
         </p>
       </div>
 
-      {capturePreview && (
+      {capturePreview ? (
         <div className="glass-panel p-6 rounded-2xl space-y-4 border border-gold-500/20">
           <div className="flex items-start justify-between gap-3">
             <SectionHeader
@@ -861,10 +792,264 @@ export function StudioAgents({
             </div>
           )}
         </div>
+      ) : null}
+
+      <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-3">
+        <SectionHeader
+          title={`Aprendizados — ${projectNiche}`}
+          helpId="agents-learnings"
+          icon={<BookOpen className="w-4 h-4 text-gold-500" />}
+          subtitle={`Formato ${projectFormat === 'SHORT' ? 'Shorts' : 'Longo'} · edite em Obsidian ou consolide acima.`}
+        />
+        {learnings.length === 0 ? (
+          <p className="text-xs text-zinc-500">
+            Nenhum aprendizado ainda. Capture qualidade de alguns renders e consolide a memória.
+          </p>
+        ) : (
+          <ul className="space-y-2 max-h-64 overflow-y-auto">
+            {learnings.map((l, i) => (
+              <li
+                key={`${l.text}-${i}`}
+                className={`text-xs px-3 py-2 rounded-lg border ${
+                  l.baseline
+                    ? 'border-sky-500/25 bg-sky-500/5 text-sky-100/90'
+                    : l.promoted
+                      ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-100/90'
+                      : 'border-zinc-800 bg-zinc-950/50 text-zinc-400'
+                }`}
+              >
+                {l.baseline ? (
+                  <span className="text-[9px] uppercase tracking-wider text-sky-400/80 mr-2">padrão</span>
+                ) : null}
+                {l.text}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+        </>
       )}
 
-      <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <SectionHeader title="Configuração" helpId="agents-config" />
+      {section === 'memoria' && (
+        <>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="glass-panel p-4 rounded-2xl">
+          <div className="flex items-center gap-1.5 text-gold-500 mb-1">
+            <Database className="w-3.5 h-3.5" />
+            <SectionLabel helpId="agents-stats" className="text-[9px] uppercase tracking-widest font-bold text-gold-500">
+              Nichos
+            </SectionLabel>
+          </div>
+          <p className="text-2xl font-bold text-white tabular-nums">{totals.nicheFiles}</p>
+        </div>
+        <div className="glass-panel p-4 rounded-2xl">
+          <div className="flex items-center gap-1.5 text-emerald-400 mb-1">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span className="text-[9px] uppercase tracking-widest font-bold">Promovidos</span>
+          </div>
+          <p className="text-2xl font-bold text-white tabular-nums">{totals.promoted}</p>
+        </div>
+        <div className="glass-panel p-4 rounded-2xl">
+          <div className="flex items-center gap-1.5 text-amber-400 mb-1">
+            <Brain className="w-3.5 h-3.5" />
+            <span className="text-[9px] uppercase tracking-widest font-bold">Observação</span>
+          </div>
+          <p className="text-2xl font-bold text-white tabular-nums">{totals.candidates}</p>
+        </div>
+      </div>
+
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <SectionHeader
+          title="Obsidian"
+          helpId="agents-obsidian"
+          icon={<BookOpen className="w-4 h-4 text-violet-400 shrink-0" />}
+          subtitle="Vault .agents/ — memória visual com wikilinks e grafo."
+        />
+        <div className="flex flex-col gap-1 text-[10px] text-zinc-500 font-mono min-w-0 sm:text-right">
+          <span className="break-all">{obsidian.vaultDir || '.agents/'}</span>
+          {obsidian.graph ? (
+            <span className={obsidian.graph.orphans === 0 ? 'text-emerald-400/90' : 'text-amber-400/90'}>
+              Grafo: {obsidian.graph.connected}/{obsidian.graph.total}
+              {obsidian.graph.orphans > 0 ? ` · ${obsidian.graph.orphans} órfã(s)` : ''}
+            </span>
+          ) : null}
+          {obsidian.installed ? (
+            <button
+              type="button"
+              onClick={() => openObsidian('memory/videoagent-lumiera.md')}
+              className="text-left sm:text-right text-violet-400 hover:text-violet-300"
+            >
+              Abrir videoagent-lumiera.md →
+            </button>
+          ) : (
+            <a
+              href="https://obsidian.md/download"
+              target="_blank"
+              rel="noreferrer"
+              className="text-violet-400 hover:text-violet-300 inline-flex items-center gap-1 sm:justify-end"
+            >
+              Baixar Obsidian <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      {niches.length > 0 && (
+        <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-3">
+          <SectionHeader
+            title="Memória por nicho"
+            helpId="agents-niche-memory"
+            subtitle="Clique na linha para abrir a nota no Obsidian."
+          />
+          <div className="overflow-x-auto max-h-72 overflow-y-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="sticky top-0 bg-zinc-950/95 backdrop-blur-sm z-10">
+                <tr className="text-zinc-500 border-b border-zinc-800">
+                  <th className="py-2 pr-4">Nicho</th>
+                  <th className="py-2 pr-4">Runs</th>
+                  <th className="py-2 pr-4">Prom.</th>
+                  <th className="py-2 pr-4">Cand.</th>
+                  <th className="py-2 w-8" />
+                </tr>
+              </thead>
+              <tbody>
+                {niches.map((n) => {
+                  const isActiveNiche =
+                    n.niche.toLowerCase() === projectNiche.toLowerCase() ||
+                    n.slug === projectNiche.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                  return (
+                    <tr
+                      key={n.slug}
+                      className={`border-b border-zinc-900 transition ${
+                        isActiveNiche ? 'bg-gold-500/5' : ''
+                      } ${obsidian.installed ? 'cursor-pointer hover:bg-violet-500/5' : ''}`}
+                      onClick={() => {
+                        if (obsidian.installed) openObsidian(`memory/${n.slug}.md`);
+                      }}
+                    >
+                      <td className={`py-2 pr-4 ${isActiveNiche ? 'text-gold-400 font-semibold' : 'text-zinc-300'}`}>
+                        {n.niche}
+                      </td>
+                      <td className="py-2 pr-4 tabular-nums">{n.runs}</td>
+                      <td className="py-2 pr-4 tabular-nums text-emerald-400">{n.promoted}</td>
+                      <td className="py-2 pr-4 tabular-nums text-amber-400">{n.candidates}</td>
+                      <td className="py-2 text-violet-400/60">
+                        {obsidian.installed ? <BookOpen className="w-3.5 h-3.5" /> : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {recentLogs.length > 0 && (
+        <div className="glass-panel p-5 rounded-2xl space-y-2">
+          <SectionHeader title="Log recente" helpId="agents-log" />
+          {recentLogs.slice(0, 2).map((log) => (
+            <pre
+              key={log.date}
+              className="text-[10px] text-zinc-500 whitespace-pre-wrap font-mono max-h-28 overflow-y-auto"
+            >
+              {log.content.slice(0, 1200)}
+            </pre>
+          ))}
+        </div>
+      )}
+        </>
+      )}
+
+      {section === 'skills' && !skillsRegistry && (
+        <div className="glass-panel p-6 rounded-2xl text-xs text-zinc-500 text-center">
+          Carregando skills…
+        </div>
+      )}
+
+      {section === 'skills' && skillsRegistry && (
+        <>
+      <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-4">
+        <SectionHeader
+          title="Skills (Hermes / OpenClaw)"
+          helpId="agents-skills"
+          icon={<Layers className="w-4 h-4 text-sky-400 shrink-0" />}
+          subtitle="Bundles carregados sob demanda nos prompts do estúdio."
+        />
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300">
+            Skills <span className="font-bold tabular-nums">{skillsRegistry.skillsCount}</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300">
+            Bundles <span className="font-bold tabular-nums">{skillsRegistry.bundlesCount}</span>
+          </span>
+          {bundleMap.overlay ? (
+            <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-200 text-[10px]">
+              <Package className="w-3 h-3 inline mr-1 opacity-70" />
+              overlay → <span className="font-mono">{bundleMap.overlay}</span>
+            </span>
+          ) : null}
+          {skillsRegistry.skillsInAgentMode ? (
+            <span className="text-emerald-400/90 text-[10px]">Injeção ativa</span>
+          ) : (
+            <span className="text-amber-400/90 text-[10px]">Injeção desligada</span>
+          )}
+        </div>
+        {skillsRegistry.bundles && skillsRegistry.bundles.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            {skillsRegistry.bundles.map((b) => (
+              <div
+                key={b.slug}
+                className="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950/80 text-[11px]"
+              >
+                <p className="font-bold text-zinc-200">{b.name}</p>
+                <p className="text-zinc-500 mt-0.5 line-clamp-2">{b.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {skillsRegistry.pending && skillsRegistry.pending.length > 0 && (
+          <div className="space-y-2 border-t border-zinc-800 pt-3">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-amber-400">
+              Workshop — {skillsRegistry.pending.length} pendente(s)
+            </p>
+            <ul className="space-y-2 max-h-40 overflow-y-auto">
+              {skillsRegistry.pending.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5"
+                >
+                  <span className="text-xs text-amber-100/90">
+                    <span className="font-mono text-amber-400">{p.skill}</span>
+                    {p.summary ? ` — ${p.summary}` : ` (${p.action})`}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      onClick={() => runWorkshopAction(p.id, 'apply')}
+                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    >
+                      Aplicar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      onClick={() => runWorkshopAction(p.id, 'reject')}
+                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700"
+                    >
+                      Rejeitar
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-4">
+        <SectionHeader title="Configuração" helpId="agents-config" icon={<Settings className="w-4 h-4 text-zinc-400" />} />
         <label className="flex items-center gap-3 text-xs text-zinc-300 cursor-pointer">
           <input
             type="checkbox"
@@ -930,112 +1115,7 @@ export function StudioAgents({
           </div>
         </div>
       </div>
-
-      <div className="glass-panel p-6 rounded-2xl space-y-3">
-        <SectionHeader
-          title={`Aprendizados — ${projectNiche} (${projectFormat === 'SHORT' ? 'Shorts' : 'Longo'})`}
-          helpId="agents-learnings"
-          icon={<BookOpen className="w-4 h-4 text-gold-500" />}
-          subtitle="Regras de sucesso do formato + padrões promovidos do nicho. Edite em Obsidian ou consolide aqui."
-        />
-        {learnings.length === 0 ? (
-          <p className="text-xs text-zinc-500">
-            Nenhum aprendizado ainda. Capture qualidade de alguns renders e consolide a memória.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {learnings.map((l, i) => (
-              <li
-                key={`${l.text}-${i}`}
-                className={`text-xs px-3 py-2 rounded-lg border ${
-                  l.baseline
-                    ? 'border-sky-500/25 bg-sky-500/5 text-sky-100/90'
-                    : l.promoted
-                      ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-100/90'
-                      : 'border-zinc-800 bg-zinc-950/50 text-zinc-400'
-                }`}
-              >
-                {l.baseline ? (
-                  <span className="text-[9px] uppercase tracking-wider text-sky-400/80 mr-2">padrão</span>
-                ) : null}
-                {l.text}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {niches.length > 0 && (
-        <div className="glass-panel p-6 rounded-2xl space-y-3">
-          <SectionHeader
-            title="Memória por nicho"
-            helpId="agents-niche-memory"
-            subtitle="Clique em uma linha para abrir a nota do nicho no Obsidian."
-          />
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead>
-                <tr className="text-zinc-500 border-b border-zinc-800">
-                  <th className="py-2 pr-4">Nicho</th>
-                  <th className="py-2 pr-4">Runs</th>
-                  <th className="py-2 pr-4">Promovidos</th>
-                  <th className="py-2 pr-4">Candidatos</th>
-                  <th className="py-2 w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {niches.map((n) => {
-                  const isActiveNiche =
-                    n.niche.toLowerCase() === projectNiche.toLowerCase() ||
-                    n.slug === projectNiche.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                  return (
-                    <tr
-                      key={n.slug}
-                      className={`border-b border-zinc-900 transition ${
-                        isActiveNiche ? 'bg-gold-500/5' : ''
-                      } ${obsidian.installed ? 'cursor-pointer hover:bg-violet-500/5' : ''}`}
-                      onClick={() => {
-                        if (obsidian.installed) openObsidian(`memory/${n.slug}.md`);
-                      }}
-                      title={
-                        obsidian.installed
-                          ? `Abrir memory/${n.slug}.md no Obsidian`
-                          : 'Instale o Obsidian para abrir notas'
-                      }
-                    >
-                      <td className={`py-2 pr-4 ${isActiveNiche ? 'text-gold-400 font-semibold' : 'text-zinc-300'}`}>
-                        {n.niche}
-                        {isActiveNiche ? (
-                          <span className="ml-2 text-[9px] text-gold-500/70 uppercase">ativo</span>
-                        ) : null}
-                      </td>
-                      <td className="py-2 pr-4 tabular-nums">{n.runs}</td>
-                      <td className="py-2 pr-4 tabular-nums text-emerald-400">{n.promoted}</td>
-                      <td className="py-2 pr-4 tabular-nums text-amber-400">{n.candidates}</td>
-                      <td className="py-2 text-violet-400/60">
-                        {obsidian.installed ? <BookOpen className="w-3.5 h-3.5" /> : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {recentLogs.length > 0 && (
-        <div className="glass-panel p-6 rounded-2xl space-y-2">
-          <SectionHeader title="Log recente" helpId="agents-log" />
-          {recentLogs.slice(0, 2).map((log) => (
-            <pre
-              key={log.date}
-              className="text-[10px] text-zinc-500 whitespace-pre-wrap font-mono max-h-32 overflow-y-auto"
-            >
-              {log.content.slice(0, 1200)}
-            </pre>
-          ))}
-        </div>
+        </>
       )}
 
       {showConsolidateModal && (

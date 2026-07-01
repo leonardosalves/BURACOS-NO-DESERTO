@@ -123,6 +123,7 @@ export function VideoAgentPlanner({
   const [plan, setPlan] = useState<VideoAgentPlan | null>(null);
   const [obsidianMeta, setObsidianMeta] = useState<ObsidianResult | null>(null);
   const [executeResults, setExecuteResults] = useState<ExecuteResult[] | null>(null);
+  const [planExpanded, setPlanExpanded] = useState(false);
 
   const apiFormat = projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO';
 
@@ -157,6 +158,7 @@ export function VideoAgentPlanner({
   const runPlan = async () => {
     setBusy('plan');
     setExecuteResults(null);
+    setPlanExpanded(false);
     try {
       let result;
       try {
@@ -188,6 +190,7 @@ export function VideoAgentPlanner({
 
     setBusy('execute');
     setExecuteResults(null);
+    setPlanExpanded(false);
     const toastId = 'videoagent-execute';
 
     try {
@@ -418,8 +421,9 @@ export function VideoAgentPlanner({
       )}
 
       {plan && (
-        <div className="space-y-4 border-t border-zinc-800 pt-4 animate-fade-in">
-          <div className="flex flex-wrap gap-3 text-xs">
+        <div className="space-y-3 border-t border-zinc-800 pt-4 animate-fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2 text-xs">
             <span
               className={`px-3 py-1.5 rounded-lg border ${
                 plan.feasibility === 'Feasible'
@@ -438,8 +442,20 @@ export function VideoAgentPlanner({
               {(plan.lumieraActions || []).length} etapas
             </span>
           </div>
+            <button
+              type="button"
+              onClick={() => setPlanExpanded((v) => !v)}
+              className="text-[10px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded-lg border border-zinc-800"
+            >
+              {planExpanded ? 'Recolher plano' : 'Ver plano completo'}
+            </button>
+          </div>
 
-          {(plan.intents?.explicit?.length > 0 || plan.intents?.implicit?.length > 0) && (
+          {!planExpanded ? (
+            <p className="text-xs text-zinc-500 line-clamp-2">{plan.reasoning}</p>
+          ) : null}
+
+          {planExpanded && (plan.intents?.explicit?.length > 0 || plan.intents?.implicit?.length > 0) && (
             <div className="text-xs space-y-1">
               {plan.intents.explicit?.length > 0 && (
                 <p>
@@ -456,8 +472,11 @@ export function VideoAgentPlanner({
             </div>
           )}
 
-          <p className="text-xs text-zinc-400 leading-relaxed">{plan.reasoning}</p>
+          {planExpanded ? (
+            <p className="text-xs text-zinc-400 leading-relaxed">{plan.reasoning}</p>
+          ) : null}
 
+          {planExpanded ? (
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 flex items-center gap-1.5">
               <ListOrdered className="w-3 h-3" />
@@ -490,8 +509,9 @@ export function VideoAgentPlanner({
               ))}
             </ol>
           </div>
+          ) : null}
 
-          {(plan.storyboardBeats || []).length > 0 && (
+          {planExpanded && (plan.storyboardBeats || []).length > 0 && (
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
                 Storyboard beats
@@ -511,7 +531,7 @@ export function VideoAgentPlanner({
             </div>
           )}
 
-          {obsidianInstalled && onOpenObsidian && obsidianMeta?.memoryFile ? (
+          {planExpanded && obsidianInstalled && onOpenObsidian && obsidianMeta?.memoryFile ? (
             <button
               type="button"
               onClick={() => onOpenObsidian(`memory/${obsidianMeta.memoryFile}`)}
