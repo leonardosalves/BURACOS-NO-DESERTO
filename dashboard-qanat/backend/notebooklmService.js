@@ -187,19 +187,23 @@ function addTextSource(notebookId, title, text, backendDir) {
   }
 }
 
-function runOptionalFastResearch(notebookId, query, backendDir) {
+function runOptionalFastResearch(notebookId, query, backendDir, mode = "fast") {
+  const researchMode = mode === "deep" ? "deep" : "fast";
+  const maxWait = researchMode === "deep" ? "300" : "45";
+  const startTimeout = researchMode === "deep" ? 120000 : 45000;
+  const statusTimeout = researchMode === "deep" ? 320000 : 50000;
   try {
     const startRaw = runNlm(
-      ["research", "start", query, "--notebook-id", notebookId, "--mode", "fast"],
-      { timeoutMs: 45000, backendDir },
+      ["research", "start", query, "--notebook-id", notebookId, "--mode", researchMode],
+      { timeoutMs: startTimeout, backendDir },
     );
     const started = parseJsonOutput(startRaw);
     const taskId = started?.task_id || started?.id;
     if (!taskId) return false;
 
     const statusRaw = runNlm(
-      ["research", "status", notebookId, "--task-id", taskId, "--max-wait", "45"],
-      { timeoutMs: 50000, backendDir },
+      ["research", "status", notebookId, "--task-id", taskId, "--max-wait", maxWait],
+      { timeoutMs: statusTimeout, backendDir },
     );
     const status = parseJsonOutput(statusRaw);
     if (status?.status === "completed" || status?.state === "completed") {
@@ -361,6 +365,7 @@ async function runNotebooklmPipeline({
   narrativeScript,
   backendDir,
   runResearch = false,
+  researchMode = "fast",
 }) {
   const status = getNotebooklmStatus(backendDir);
   if (!status.authenticated) {
@@ -387,7 +392,7 @@ async function runNotebooklmPipeline({
     const researchQuery = contentMode === "LISTICLE"
       ? `melhores fatos e curiosidades sobre ${listTopic || niche} para vídeo top ${rankCount}`
       : `fatos surpreendentes tendências e perguntas do público sobre ${niche}`;
-    runOptionalFastResearch(notebookId, researchQuery, backendDir);
+    runOptionalFastResearch(notebookId, researchQuery, backendDir, researchMode);
   }
 
   let question;
@@ -424,8 +429,10 @@ export async function fetchNotebooklmResearch(niche, format, options = {}) {
       listTopic: options.listTopic,
       rankOrder: options.rankOrder,
       purpose: "ideas",
+      idea: options.idea,
       backendDir,
       runResearch: options.runResearch === true,
+      researchMode: options.researchMode === "deep" ? "deep" : "fast",
     });
   } catch (err) {
     console.warn("[NotebookLM] Ideas research failed:", err.message);

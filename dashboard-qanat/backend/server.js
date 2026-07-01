@@ -124,6 +124,9 @@ import {
 } from "./thumbnailExperiment.js";
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
+import { registerResearchRoutes } from "./researchRoutes.js";
+import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
+import { runDeepResearch } from "./deerFlowResearch.js";
 import {
   getGeminiBrowserMode,
   buildBrowserChatPrompt,
@@ -2136,12 +2139,47 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       });
     }
 
+    const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } = buildCompetitorLlmFns({
+      workspaceDir: WORKSPACE_DIR,
+      getAiProvider,
+      getApiKey,
+      getApiKeys,
+      getGeminiModel,
+      callGeminiWithRetry,
+      callNvidiaWithRetry,
+      NVIDIA_MODELS,
+    }, { useAi: req.body?.useAi !== false });
+
+    await runStep("deep_research", async () => {
+      const topic = requirementText || plan.requirement || suggestedTitle;
+      const deep = await runDeepResearch(WORKSPACE_DIR, {
+        topic,
+        niche: niche || plan.niche || "Geral",
+        format,
+        llmFn: competitorLlmFn,
+        repairJsonFn: competitorRepairFn,
+        getApiKeys,
+        apiKey: getApiKey(WORKSPACE_DIR),
+        backendDir: __dirname,
+        notebooklmDeep: req.body?.notebooklmDeep === true,
+        enqueueIdeas: wanted.includes("editorial_queue"),
+      });
+      if (!deep.ok) throw new Error(deep.error || "Pesquisa profunda falhou");
+      return {
+        derivedIdeas: deep.report?.derivedIdeas?.length || 0,
+        editorialQueue: deep.editorialQueue,
+        memoryFile: deep.obsidian?.memoryFile,
+        factCount: deep.report?.factCount || 0,
+      };
+    });
+
     await runStep("competitor_research", async () => {
       const report = await runCompetitorResearch(WORKSPACE_DIR, {
         niche: niche || plan.niche || "Geral",
         format: fmtShort ? "SHORT" : "LONG",
         maxCompetitors: 5,
-        useAi: true,
+        llmFn: competitorLlmFn,
+        repairJsonFn: competitorRepairFn,
       });
       let editorialQueue = null;
       if (wanted.includes("editorial_queue") && report?.analysis?.derivedIdeas?.length) {
@@ -12859,6 +12897,18 @@ workflowApi = registerWorkflowRoutes(app, {
   generateYoutubeThumbnailImages,
   runAutoSoundtrackLogic,
   readJsonFile,
+});
+
+registerResearchRoutes(app, {
+  WORKSPACE_DIR,
+  BACKEND_DIR: __dirname,
+  getApiKey,
+  getApiKeys,
+  getAiProvider,
+  getGeminiModel,
+  callGeminiWithRetry,
+  callNvidiaWithRetry,
+  NVIDIA_MODELS,
 });
 
 // Serve frontend build static files in production (must be after API routes)
