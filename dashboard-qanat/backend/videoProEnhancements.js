@@ -9,6 +9,7 @@ import { buildOverlayOrchestrationPlan, detectNicheCategory } from "./overlayOrc
 import { buildListicleVideoSeed, pickListicleLottieKey } from "./listicleLottieResolve.js";
 import {
   stabilizeOverlayTimings,
+  hasAiPlannedOverlays,
   isHudOverlay,
   verifyAndRepairAiOverlayTiming,
   overlayTimingIssuesFromReport,
@@ -862,6 +863,15 @@ export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboa
 
 export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = [], projectDir = "") {
   if (!isListicleProject(config, storyboard)) return overlays || [];
+
+  if (hasAiPlannedOverlays(storyboard)) {
+    console.log("[Listicle PRO] overlays_ai ativos — sem HUD/recap/stingers automáticos (só overlays IA).");
+    return avoidListicleHudCollisions(
+      stripListicleCenterRankKinetics(overlays || [], config, storyboard),
+      config,
+      storyboard,
+    );
+  }
 
   const projectSlug = projectDir ? path.basename(projectDir) : String(config.project_slug || "");
   const isShort = isShortFormVideo(config);

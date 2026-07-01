@@ -30,6 +30,44 @@ export function isHudOverlay(overlay = {}) {
   return id.startsWith("listicle-") || id === "retention-hook" || id === "mid-video-cta";
 }
 
+/** Storyboard com overlays planejados pela IA (Studio Agents / Gemini) — sem HUD listicle automático. */
+export function hasAiPlannedOverlays(storyboard = {}) {
+  return Array.isArray(storyboard?.overlays_ai) && storyboard.overlays_ai.length > 0;
+}
+
+const PLACEHOLDER_OVERLAY_TITLES = new Set([
+  "info",
+  "informação",
+  "informacao",
+  "dado",
+  "comparação",
+  "comparacao",
+  "linha do tempo",
+]);
+
+export function isPlaceholderInformativeOverlay(overlay = {}) {
+  if (!overlay || isHudOverlay(overlay)) return false;
+  const p = overlay.props || {};
+  const type = String(overlay.type || "");
+
+  if (type === "lower-third") {
+    const title = String(p.title || p.subtitle || p.text || p.label || "").trim();
+    if (!title || PLACEHOLDER_OVERLAY_TITLES.has(title.toLowerCase())) return true;
+  }
+
+  if (type === "counter") {
+    const label = String(p.label || p.title || "").trim();
+    if (!label || PLACEHOLDER_OVERLAY_TITLES.has(label.toLowerCase())) return true;
+  }
+
+  if (type === "kinetic-text") {
+    const text = String(p.text || p.title || "").trim();
+    if (!text) return true;
+  }
+
+  return false;
+}
+
 export function extractBlockIndex(overlay = {}, sceneRef = "") {
   const fromBlock = Number(overlay.block || overlay.props?.block || 0);
   if (fromBlock > 0) return fromBlock - 1;
