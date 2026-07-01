@@ -305,6 +305,7 @@ export function convertCinematicMarkersForTts(taggedScript = "", platform = "fis
     if (!w) return match;
     if (platform === "fish") return `[ênfase] ${w}`;
     if (platform === "eleven") return `[emphasis] ${w}`;
+    if (platform === "chatterbox" || platform === "turbo") return w;
     return `[ênfase] ${w}`;
   };
 
@@ -314,9 +315,18 @@ export function convertCinematicMarkersForTts(taggedScript = "", platform = "fis
       const word = rest.split(/\s+/)[0] || "";
       return emphasisNext(m, word);
     })
-    .replace(/\[rápido\]/gi, platform === "eleven" ? "[fast]" : "[rápido]")
-    .replace(/\[lento\]/gi, platform === "eleven" ? "[slowly]" : "[lento]")
-    .replace(/\[pausa\]|\[pause\]/gi, platform === "fish" ? "[pausa]" : platform === "eleven" ? "[pause]" : "(pause 600ms)");
+    .replace(/\[rápido\]/gi, platform === "eleven" ? "[fast]" : platform === "chatterbox" || platform === "turbo" ? "" : "[rápido]")
+    .replace(/\[lento\]/gi, platform === "eleven" ? "[slowly]" : platform === "chatterbox" || platform === "turbo" ? "" : "[lento]")
+    .replace(/\[pausa\]|\[pause\]/gi, platform === "fish"
+      ? "[pausa]"
+      : platform === "eleven"
+        ? "[pause]"
+        : platform === "chatterbox" || platform === "turbo"
+          ? " ... "
+          : "(pause 600ms)")
+    .replace(/\(breath\)/gi, platform === "chatterbox" || platform === "turbo" ? " " : "(breath)")
+    .replace(/\(sigh\)/gi, platform === "chatterbox" || platform === "turbo" ? " " : "(sigh)")
+    .replace(/\(laughs?\)/gi, platform === "chatterbox" || platform === "turbo" ? " [chuckle] " : "(laughs)");
 
   return text.replace(/\s+/g, " ").trim();
 }

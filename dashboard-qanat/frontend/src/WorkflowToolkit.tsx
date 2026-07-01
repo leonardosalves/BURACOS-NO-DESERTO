@@ -438,6 +438,8 @@ export function WorkflowToolkit({
       body.speed = Number.isFinite(speed) ? speed : 0.82;
     } else if (ttsEngine === 'fish') {
       /* Fish Speech usa narrative_script_tagged + reference_id no backend */
+    } else if (ttsEngine === 'chatterbox') {
+      /* Chatterbox usa narrative_script_tagged + preset de voz no backend */
     } else {
       body.rate = '-8%';
     }
@@ -648,16 +650,20 @@ export function WorkflowToolkit({
             />
           </label>
         )}
-        {ttsEngine === 'fish' && activeTtsEngine && (
+        {(ttsEngine === 'fish' || ttsEngine === 'chatterbox') && activeTtsEngine && (
           <div className="flex flex-wrap gap-1.5 items-center">
             <span
               className={`text-[8px] px-1.5 py-0.5 rounded border ${
                 activeTtsEngine.available
-                  ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10'
+                  ? ttsEngine === 'fish'
+                    ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10'
+                    : 'text-violet-300 border-violet-500/30 bg-violet-500/10'
                   : 'text-amber-300 border-amber-500/30 bg-amber-500/10'
               }`}
             >
-              {activeTtsEngine.available ? 'Servidor ativo' : 'Servidor offline'}
+              {activeTtsEngine.available
+                ? (ttsEngine === 'fish' ? 'Servidor ativo' : 'Pacote instalado')
+                : (ttsEngine === 'fish' ? 'Servidor offline' : 'Pacote ausente')}
             </span>
             {activeTtsEngine.serverUrl ? (
               <span className="text-[8px] text-zinc-600 font-mono">{activeTtsEngine.serverUrl}</span>
@@ -667,10 +673,13 @@ export function WorkflowToolkit({
         <div className="text-[8px] text-zinc-600">
           {ttsEngine === 'kokoro'
             ? 'Kokoro roda local (grátis). Primeira geração baixa o modelo (~300 MB).'
-            : ttsEngine === 'fish'
+            : ttsEngine === 'chatterbox'
               ? (activeTtsEngine?.hint
-                || 'Fish Speech S2 — GPU local. Use tags do Creator (Fish Audio) ou narrative_script_tagged.')
-              : 'Edge TTS usa vozes Microsoft na nuvem.'}
+                || 'Chatterbox — pip install chatterbox-tts. Multilingual V3 para PT; Turbo para EN com [chuckle].')
+              : ttsEngine === 'fish'
+                ? (activeTtsEngine?.hint
+                  || 'Fish Speech S2 — GPU local. Use tags do Creator (Fish Audio) ou narrative_script_tagged.')
+                : 'Edge TTS usa vozes Microsoft na nuvem.'}
         </div>
         {btn('Gerar narração', <Mic className="w-3 h-3" />, handleTts, 'emerald')}
       </div>

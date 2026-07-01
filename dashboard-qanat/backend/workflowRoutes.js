@@ -23,6 +23,11 @@ import {
   buildFishSpeechVoiceList,
   FISH_SPEECH_DEFAULT_VOICE,
 } from "./fishSpeechTts.js";
+import {
+  probeChatterbox,
+  CHATTERBOX_VOICES,
+  CHATTERBOX_DEFAULT_VOICE,
+} from "./chatterboxTts.js";
 import { flattenWordTranscripts, realignTimelineAssetsToSpeech } from "./timelineSceneSync.js";
 import {
   buildYoutubeMetadataPrompt,
@@ -365,6 +370,7 @@ export function registerWorkflowRoutes(app, deps) {
       const fishConfig = loadFishSpeechConfig({ workspaceDir: WORKSPACE_DIR });
       const fishProbe = await probeFishSpeechServer(fishConfig);
       const fishVoices = buildFishSpeechVoiceList(fishProbe);
+      const chatterboxProbe = await probeChatterbox();
 
       res.json({
         engines: [
@@ -374,6 +380,16 @@ export function registerWorkflowRoutes(app, deps) {
             defaultVoice: KOKORO_DEFAULT_VOICE,
             defaultSpeed: KOKORO_DEFAULT_SPEED,
             voices: KOKORO_VOICES,
+          },
+          {
+            id: "chatterbox",
+            label: "Chatterbox (local, GPU)",
+            defaultVoice: CHATTERBOX_DEFAULT_VOICE,
+            voices: CHATTERBOX_VOICES,
+            available: chatterboxProbe.ok,
+            hint: chatterboxProbe.ok
+              ? `Pacote OK — device: ${chatterboxProbe.device || "auto"}. Clone opcional via reference_audio no config.`
+              : `Indisponível: ${chatterboxProbe.error || "pip install chatterbox-tts"}`,
           },
           {
             id: "fish",
