@@ -137,6 +137,7 @@ import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPan
 import { AppShell } from './AppShell';
 import { DashminStats } from './DashminStats';
 import { DashminDashboard } from './DashminDashboard';
+import { DashminActivityFeed } from './DashminActivityFeed';
 import { DashminPageLayout } from './DashminPageLayout';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
@@ -8485,6 +8486,20 @@ export default function App() {
                 onOpenProjects={() => setActiveTab('projects')}
               />
 
+              <DashminActivityFeed
+                activeProject={activeProject}
+                projects={projects}
+                recentProjects={recentProjects}
+                hasNarration={status?.has_narration}
+                outputCount={outputs.length}
+                videoQualityScore={videoQuality?.score}
+                youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
+                rendering={rendering}
+                renderPercent={renderProgress?.percent}
+                onOpenYoutube={() => setActiveTab('youtube-studio')}
+                onOpenWorkflow={() => setActiveTab('workflow')}
+              />
+
               <YoutubeStudioHomeCard
                 viewsThreshold={getYoutubeViewsThreshold()}
                 onOpenPanel={() => setActiveTab('youtube-studio')}
@@ -12233,24 +12248,39 @@ export default function App() {
 
           {activeTab === 'agents' && (
             <TabErrorBoundary tabName="Studio Agents">
-              <StudioAgents
-                activeProject={activeProject}
-                projectNiche={config?.niche || 'Geral'}
-                projectVideoFormat={config?.video_format}
-                projectAspectRatio={config?.aspect_ratio}
-                getProjectUrl={getProjectUrl}
-                postAi={postAi}
-                onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
-                onExecuteCreator={(title, hook, options) =>
-                  handleApplyYoutubeStudioIdea(title, hook, { format: options?.format })
-                }
-              />
+              <DashminPageLayout
+                title="Studio Agents"
+                subtitle="Memória do estúdio, VideoAgent, skills e qualidade por projeto."
+                breadcrumb={['Dashboard', 'Estúdio', 'Studio Agents']}
+                icon={<Bot className="w-5 h-5" />}
+              >
+                <StudioAgents
+                  embedded
+                  activeProject={activeProject}
+                  projectNiche={config?.niche || 'Geral'}
+                  projectVideoFormat={config?.video_format}
+                  projectAspectRatio={config?.aspect_ratio}
+                  getProjectUrl={getProjectUrl}
+                  postAi={postAi}
+                  onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
+                  onExecuteCreator={(title, hook, options) =>
+                    handleApplyYoutubeStudioIdea(title, hook, { format: options?.format })
+                  }
+                />
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 
           {activeTab === 'comfy-mcp' && (
             <TabErrorBoundary tabName="Comfy MCP">
-              <ComfyMcpPage />
+              <DashminPageLayout
+                title="Comfy MCP"
+                subtitle="Agente criativo na nuvem — imagem, vídeo, áudio e 3D via MCP."
+                breadcrumb={['Dashboard', 'Estúdio', 'Comfy MCP']}
+                icon={<Cloud className="w-5 h-5" />}
+              >
+                <ComfyMcpPage embedded />
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 
@@ -12280,33 +12310,56 @@ export default function App() {
 
           {activeTab === 'agent-reach' && (
             <TabErrorBoundary tabName="Pesquisa Web">
-              <AgentReachPanel
-                niche={config?.niche || ''}
-                onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
-                }}
-              />
+              <DashminPageLayout
+                title="Pesquisa Web"
+                subtitle="Agent Reach — Exa, Jina, GitHub, Bilibili e RSS integrados."
+                breadcrumb={['Dashboard', 'Estúdio', 'Pesquisa Web']}
+                icon={<Globe className="w-5 h-5" />}
+              >
+                <AgentReachPanel
+                  embedded
+                  niche={config?.niche || ''}
+                  onApplyCreatorIdea={(title, hookPt, options) => {
+                    void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
+                  }}
+                />
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 
           {activeTab === 'trend-forecast' && (
             <TabErrorBoundary tabName="Radar de Tendências">
-              <TrendForecastPanel
-                niche={config?.niche || ''}
-                onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
-                }}
-                onGoToIntegrations={() => {
-                  setSettingsSection('integracoes');
-                  setActiveTab('settings');
-                }}
-              />
+              <DashminPageLayout
+                title="Radar de Tendências"
+                subtitle="Previsão TimesFM + Analytics do canal para nichos e vídeos em alta."
+                breadcrumb={['Dashboard', 'Estúdio', 'Radar Tendências']}
+                icon={<TrendingUp className="w-5 h-5" />}
+              >
+                <TrendForecastPanel
+                  embedded
+                  niche={config?.niche || ''}
+                  onApplyCreatorIdea={(title, hookPt, options) => {
+                    void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
+                  }}
+                  onGoToIntegrations={() => {
+                    setSettingsSection('integracoes');
+                    setActiveTab('settings');
+                  }}
+                />
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 
           {activeTab === 'youtube-studio' && (
             <TabErrorBoundary tabName="Canal YouTube">
+              <DashminPageLayout
+                title="Canal YouTube"
+                subtitle="Métricas, comentários, alertas 48h e ferramentas de crescimento."
+                breadcrumb={['Dashboard', 'Estúdio', 'Canal YouTube']}
+                icon={<Youtube className="w-5 h-5" />}
+              >
               <YoutubeStudioPanel
+                embedded
                 toast={toast}
                 onRelinkYoutube={handleRelinkYoutube}
                 nicheKeyword={config?.niche || ''}
@@ -12325,6 +12378,7 @@ export default function App() {
                   setActiveTab('settings');
                 }}
               />
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 

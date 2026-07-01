@@ -210,6 +210,7 @@ type Props = {
   geminiBrowserMode?: boolean;
   aiProvider?: string;
   resolveBrowserResponse?: GeminiBrowserResolver;
+  embedded?: boolean;
 };
 
 function RetentionSparkline({ points }: { points: Array<{ ratio: number; watchRatio: number }> }) {
@@ -285,6 +286,7 @@ export function YoutubeStudioPanel({
   geminiBrowserMode = false,
   aiProvider = 'gemini',
   resolveBrowserResponse,
+  embedded = false,
 }: Props) {
   const [overview, setOverview] = useState<ChannelOverview | null>(null);
   const [videosReport, setVideosReport] = useState<VideosReport | null>(null);
@@ -697,13 +699,15 @@ export function YoutubeStudioPanel({
     <div className="lumiera-panel-stack animate-fade-in space-y-4">
       <div className="glass-panel p-5 rounded-2xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <SectionHeader
-            title="Canal YouTube"
-            helpId="tab-youtube-studio"
-            icon={<Youtube className="w-4 h-4 text-red-400" />}
-            subtitle="Métricas do canal e desempenho dos vídeos — dados via YouTube Analytics API."
-          />
-          <div className="flex items-center gap-2">
+          {!embedded && (
+            <SectionHeader
+              title="Canal YouTube"
+              helpId="tab-youtube-studio"
+              icon={<Youtube className="w-4 h-4 text-red-400" />}
+              subtitle="Métricas do canal e desempenho dos vídeos — dados via YouTube Analytics API."
+            />
+          )}
+          <div className={`flex items-center gap-2 flex-wrap ${embedded ? 'w-full justify-end' : ''}`}>
             <span className="text-[10px] text-zinc-500 tabular-nums">
               Atualizado: {formatDateTime(videosReport?.fetchedAt || overview?.fetchedAt)}
               {fromCache ? ' · cache' : ''}

@@ -170,6 +170,8 @@ type StudioAgentsProps = {
     hook: string,
     options?: { format?: 'LONGO' | 'SHORTS' },
   ) => Promise<void>;
+  /** Oculta cabeçalho duplicado quando dentro de DashminPageLayout */
+  embedded?: boolean;
 };
 
 function resolveProjectFormat(videoFormat?: string, aspectRatio?: string): 'SHORT' | 'LONG' {
@@ -188,6 +190,7 @@ export function StudioAgents({
   onNavigateTab,
   postAi,
   onExecuteCreator,
+  embedded = false,
 }: StudioAgentsProps) {
   const projectFormat = resolveProjectFormat(projectVideoFormat, projectAspectRatio);
   const [loading, setLoading] = useState(true);
@@ -547,14 +550,16 @@ export function StudioAgents({
     <div className="lumiera-panel-stack animate-fade-in max-w-5xl w-full mx-auto space-y-3">
       <div className="glass-panel p-4 sm:p-5 rounded-2xl space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <SectionHeader
-            title="Studio Agents"
-            helpId="agents-overview"
-            size="lg"
-            icon={<Bot className="w-6 h-6 text-gold-500 shrink-0" />}
-            subtitle="Memória do estúdio, automação VideoAgent e qualidade por projeto."
-          />
-          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+          {!embedded && (
+            <SectionHeader
+              title="Studio Agents"
+              helpId="agents-overview"
+              size="lg"
+              icon={<Bot className="w-6 h-6 text-gold-500 shrink-0" />}
+              subtitle="Memória do estúdio, automação VideoAgent e qualidade por projeto."
+            />
+          )}
+          <div className={`flex flex-wrap items-center gap-1.5 shrink-0 ${embedded ? 'ml-auto' : ''}`}>
             <button
               type="button"
               disabled={!!busy || !obsidian.installed}
