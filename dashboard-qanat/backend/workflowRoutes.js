@@ -28,6 +28,11 @@ import {
   CHATTERBOX_VOICES,
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
+import {
+  loadVoiceboxConfig,
+  probeVoiceboxServer,
+  buildVoiceboxVoiceList,
+} from "./voiceboxTts.js";
 import { flattenWordTranscripts, realignTimelineAssetsToSpeech } from "./timelineSceneSync.js";
 import {
   buildYoutubeMetadataPrompt,
@@ -453,6 +458,9 @@ export function registerWorkflowRoutes(app, deps) {
       const fishProbe = await probeFishSpeechServer(fishConfig);
       const fishVoices = buildFishSpeechVoiceList(fishProbe);
       const chatterboxProbe = await probeChatterbox();
+      const voiceboxConfig = loadVoiceboxConfig({ workspaceDir: WORKSPACE_DIR });
+      const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
+      const voiceboxVoices = buildVoiceboxVoiceList(voiceboxProbe);
 
       res.json({
         engines: [
@@ -472,6 +480,17 @@ export function registerWorkflowRoutes(app, deps) {
             hint: chatterboxProbe.ok
               ? `Pacote OK — device: ${chatterboxProbe.device || "auto"}. Clone opcional via reference_audio no config.`
               : `Indisponível: ${chatterboxProbe.error || "pip install chatterbox-tts"}`,
+          },
+          {
+            id: "voicebox",
+            label: "Voicebox (clone local)",
+            defaultVoice: voiceboxProbe.defaultProfileId || voiceboxVoices[0]?.id || "",
+            voices: voiceboxVoices,
+            available: voiceboxProbe.ok,
+            serverUrl: voiceboxProbe.baseUrl,
+            hint: voiceboxProbe.ok
+              ? `7 engines (Qwen, Chatterbox, Kokoro…) · GPU: ${voiceboxProbe.gpuAvailable ? "sim" : "CPU"} · perfil=${voiceboxVoices[0]?.label || "—"}`
+              : (voiceboxProbe.error || "Offline: instale Voicebox (MSI) ou .\\scripts\\start-voicebox.ps1"),
           },
           {
             id: "fish",

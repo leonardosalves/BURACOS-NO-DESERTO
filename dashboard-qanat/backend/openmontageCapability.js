@@ -8,6 +8,7 @@ import fs from "fs";
 import { getWorkflowApiKeys } from "./workflowTools.js";
 import { loadFishSpeechConfig, probeFishSpeechServer } from "./fishSpeechTts.js";
 import { probeChatterbox } from "./chatterboxTts.js";
+import { loadVoiceboxConfig, probeVoiceboxServer } from "./voiceboxTts.js";
 import { getComfyuiStatus } from "./comfyuiService.js";
 import { getNotebooklmStatus } from "./notebooklmService.js";
 
@@ -62,6 +63,8 @@ export async function buildCapabilityMenu(ctx) {
   const fishConfig = loadFishSpeechConfig({ workspaceDir });
   const fishProbe = await probeFishSpeechServer(fishConfig);
   const chatterboxProbe = await probeChatterbox();
+  const voiceboxConfig = loadVoiceboxConfig({ workspaceDir });
+  const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
 
   let comfyStatus = { installed: false, running: false };
   try {
@@ -93,6 +96,11 @@ export async function buildCapabilityMenu(ctx) {
         }),
         statusRow("chatterbox", "Chatterbox", chatterboxProbe.ok, {
           hint: chatterboxProbe.ok ? "GPU local" : chatterboxProbe.error || "pip install chatterbox-tts",
+        }),
+        statusRow("voicebox", "Voicebox", voiceboxProbe.ok, {
+          hint: voiceboxProbe.ok
+            ? `Clone local · ${voiceboxProbe.profiles?.length || 0} perfil(is)`
+            : voiceboxProbe.error || ".\\scripts\\setup-voicebox.ps1",
         }),
       ],
     },

@@ -441,6 +441,8 @@ export function WorkflowToolkit({
       /* Fish Speech usa narrative_script_tagged + reference_id no backend */
     } else if (ttsEngine === 'chatterbox') {
       /* Chatterbox usa narrative_script_tagged + preset de voz no backend */
+    } else if (ttsEngine === 'voicebox') {
+      /* Voicebox: perfil de voz clonado no app local (porta 17493) */
     } else {
       body.rate = '-8%';
     }
