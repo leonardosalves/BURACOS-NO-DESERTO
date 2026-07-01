@@ -1875,6 +1875,7 @@ export default function App() {
         body: JSON.stringify({
           hyperframes: useHyperframes,
           require_browser: effectiveGeminiChrome,
+          force: true,
         }),
       });
 
