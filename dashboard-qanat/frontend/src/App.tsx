@@ -142,6 +142,7 @@ import { DashminPageLayout } from './DashminPageLayout';
 import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 import { DashminYoutubePulse } from './DashminYoutubePulse';
 import { DashminRetentionChart } from './DashminRetentionChart';
+import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -10147,11 +10148,11 @@ export default function App() {
             <DashminProjectTabLayout tab="ai" activeProject={activeProject} className="lumiera-fill-view overflow-hidden">
             <div className="lumiera-fill-view space-y-6 overflow-hidden">
 
-              <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
+              <div className="dash-status-card">
 
                 <div className="flex items-center gap-3">
 
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-dash-primary/10 text-dash-primary'}`}>
 
                     {hasApiKey ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
 
@@ -10159,9 +10160,9 @@ export default function App() {
 
                   <div>
 
-                    <SectionHeader title="PROVEDOR DE IA" helpId="ai-provider-panel" size="sm" titleClassName="text-xs tracking-wide" />
+                    <SectionHeader title="Provedor de IA" helpId="ai-provider-panel" size="sm" titleClassName="text-xs tracking-wide" />
 
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-dash-muted mt-0.5">
 
                       {hasApiKey
                         ? `Conectado via ${aiProviderBadge.short}. ${aiProviderBadge.detail}`
@@ -10179,7 +10180,7 @@ export default function App() {
 
                     onClick={() => setActiveTab('settings')}
 
-                    className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5"
+                    className="dash-btn-ghost-sm"
 
                   >
 
@@ -10199,16 +10200,16 @@ export default function App() {
 
                 {/* Column 1: YouTube Metadata */}
 
-                <div className="flex-1 glass-panel p-4 sm:p-6 rounded-3xl flex flex-col min-h-0 min-w-0 overflow-hidden">
+                <div className="flex-1 dash-chat-panel">
 
-                  <div className="flex justify-between items-start border-b border-zinc-900 pb-3 shrink-0">
+                  <div className="flex justify-between items-start dash-chat-panel-header">
 
                     <div>
 
                       <SectionHeader
                         title="Otimizador de Metadados do YouTube"
                         helpId="ai-metadata"
-                        icon={<Video className="w-4 h-4 text-gold-500" />}
+                        icon={<Video className="w-4 h-4 text-dash-primary" />}
                         size="sm"
                         titleClassName="tracking-widest uppercase text-xs"
                         subtitle={<>Passo 1: <strong className="text-zinc-300">Gerar Metadados</strong> → Passo 2: <strong className="text-zinc-300">Gerar Thumbnails</strong> (botão verde). Títulos, descrição, tags e 3 capas A/B para upload no YouTube.</>}
@@ -10260,7 +10261,7 @@ export default function App() {
 
                       onClick={handleGenerateYoutubeMetadata}
 
-                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-gold-500/10"
+                      className="dash-btn-primary text-[11px] px-4 py-2 disabled:opacity-50"
 
                     >
 
@@ -10273,13 +10274,13 @@ export default function App() {
 
                   </div>
 
-                  <div className="flex-1 bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 overflow-y-auto mt-4 min-h-0 select-text font-sans relative">
+                  <div className="flex-1 dash-inset-panel mt-3 relative">
 
                     {youtubeLoading ? (
 
-                      <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400 text-xs">
+                      <div className="flex flex-col items-center justify-center h-full gap-3 text-dash-muted text-xs">
 
-                        <RefreshCw className="w-6 h-6 animate-spin text-gold-500" />
+                        <RefreshCw className="w-6 h-6 animate-spin text-dash-primary" />
 
                         <span>A IA está analisando o roteiro e gerando metadados ideais...</span>
 
@@ -10295,7 +10296,7 @@ export default function App() {
                           {youtubeMetadataParsed?.description && (
                             <button
                               onClick={applyMetadataToUpload}
-                              className="bg-gold-500/10 border border-gold-500/30 text-gold-400 hover:bg-gold-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                              className="dash-chat-chip font-bold flex items-center gap-1"
                             >
                               <Sparkles className="w-3.5 h-3.5" />
                               Aplicar ao Upload (completo)
@@ -10307,7 +10308,7 @@ export default function App() {
 
                             onClick={() => copyToClipboard(youtubeMetadata, 'youtube')}
 
-                            className="bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition cursor-pointer"
+                            className="dash-btn-ghost-sm"
 
                           >
 
@@ -10718,14 +10719,14 @@ export default function App() {
 
                 {/* Column 2: AI Chat Assistant */}
 
-                <div className="flex-1 glass-panel p-4 sm:p-6 rounded-3xl flex flex-col min-h-0 min-w-0 overflow-hidden font-sans">
+                <div className="flex-1 dash-chat-panel font-sans">
 
-                  <div className="border-b border-zinc-900 pb-3 shrink-0">
+                  <div className="dash-chat-panel-header">
 
                     <SectionHeader
                       title="Chat de Engenharia e Criação IA"
                       helpId="ai-chat"
-                      icon={<Sparkles className="w-4 h-4 text-gold-500" />}
+                      icon={<Sparkles className="w-4 h-4 text-dash-primary" />}
                       size="sm"
                       titleClassName="tracking-widest uppercase text-xs"
                       subtitle="Peça alterações de BGM, sugestões de palavras-chave ou reescrita de textos de impacto."
@@ -10733,171 +10734,27 @@ export default function App() {
 
                   </div>
 
-                  {/* Message History */}
-
-                  <div className="flex-1 bg-zinc-950/20 border border-zinc-900/50 rounded-2xl p-4 overflow-y-auto mt-4 mb-3 space-y-4 min-h-0 select-text font-sans">
-
-                    {chatMessages.map((msg, i) => {
-
+                  <DashminAiChat
+                    messages={chatMessages}
+                    loading={chatLoading}
+                    input={chatInput}
+                    onInputChange={setChatInput}
+                    onSend={handleSendChatMessage}
+                    hasApiKey={hasApiKey}
+                    chatEndRef={chatEndRef}
+                    suggestions={[
+                      { label: '💡 Sugerir Destaques', message: 'Sugerir palavras-chave extras para destacar baseadas no roteiro.' },
+                      { label: '🔥 Impactos Épicos', message: 'Melhorar frases de impacto para deixá-las mais dramáticas e épicas.' },
+                      { label: '🎵 Análise Musical', message: 'Me sugira faixas de trilha sonora ideais para os blocos da metade do vídeo.' },
+                    ]}
+                    renderMessageExtra={(msg) => {
+                      if (msg.role !== 'assistant') return null;
                       const parsedConfig = detectJsonConfig(msg.content);
-
-                      return (
-
-                        <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-
-                          <div className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${msg.role === 'user' ? 'text-gold-500' : 'text-zinc-500'}`}>
-
-                            {msg.role === 'user' ? 'Você' : 'Agente IA'}
-
-                          </div>
-
-                          <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
-
-                            msg.role === 'user' 
-
-                              ? 'bg-gold-500/10 border border-gold-500/20 text-gold-200' 
-
-                              : 'bg-zinc-900/80 border border-zinc-800 text-gray-300'
-
-                          }`}>
-
-                            <div className="whitespace-pre-wrap">{msg.content}</div>
-
-                            {/* Auto apply config suggestions button */}
-
-                            {parsedConfig && (
-
-                              <button
-
-                                onClick={() => applyAiConfig(parsedConfig)}
-
-                                className="mt-3 bg-gold-500 hover:bg-gold-600 text-zinc-950 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer font-sans"
-
-                              >
-
-                                <CheckCircle className="w-3.5 h-3.5" />
-
-                                <span>Aplicar Configuração Sugerida</span>
-
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        </div>
-
-                      );
-
-                    })}
-
-                    {chatLoading && (
-
-                      <div className="flex flex-col items-start">
-
-                        <div className="text-[9px] font-bold uppercase tracking-wider mb-1 text-zinc-500">Agente IA</div>
-
-                        <div className="bg-zinc-900/80 border border-zinc-800 text-gray-400 rounded-2xl px-4 py-3 text-xs flex items-center gap-2">
-
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-gold-500" />
-
-                          <span>Escrevendo resposta...</span>
-
-                        </div>
-
-                      </div>
-
-                    )}
-
-                    <div ref={chatEndRef} />
-
-                  </div>
-
-                  {/* Suggestion Chips */}
-
-                  <div className="flex flex-wrap gap-1.5 mb-3 shrink-0">
-
-                    <button 
-
-                      disabled={chatLoading || !hasApiKey}
-
-                      onClick={() => handleSendChatMessage("Sugerir palavras-chave extras para destacar baseadas no roteiro.")}
-
-                      className="border border-zinc-850 bg-zinc-950 hover:bg-zinc-900 hover:border-zinc-850 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition cursor-pointer"
-
-                    >
-
-                      💡 Sugerir Destaques
-
-                    </button>
-
-                    <button 
-
-                      disabled={chatLoading || !hasApiKey}
-
-                      onClick={() => handleSendChatMessage("Melhorar frases de impacto para deixá-las mais dramáticas e épicas.")}
-
-                      className="border border-zinc-850 bg-zinc-950 hover:bg-zinc-900 hover:border-zinc-850 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition cursor-pointer"
-
-                    >
-
-                      🔥 Impactos Épicos
-
-                    </button>
-
-                    <button 
-
-                      disabled={chatLoading || !hasApiKey}
-
-                      onClick={() => handleSendChatMessage("Me sugira faixas de trilha sonora ideais para os blocos da metade do vídeo.")}
-
-                      className="border border-zinc-850 bg-zinc-950 hover:bg-zinc-900 hover:border-zinc-850 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition cursor-pointer"
-
-                    >
-
-                      🎵 Análise Musical
-
-                    </button>
-
-                  </div>
-
-                  {/* Input form */}
-
-                  <div className="flex gap-2 shrink-0 font-sans">
-
-                    <input 
-
-                      disabled={chatLoading || !hasApiKey}
-
-                      type="text"
-
-                      placeholder={hasApiKey ? "Faça uma pergunta sobre o vídeo..." : "Configure a chave de API acima para usar o chat..."}
-
-                      value={chatInput}
-
-                      onChange={(e) => setChatInput(e.target.value)}
-
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
-
-                      className="flex-1 bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white disabled:opacity-50"
-
-                    />
-
-                    <button 
-
-                      disabled={chatLoading || !chatInput.trim() || !hasApiKey}
-
-                      onClick={() => handleSendChatMessage()}
-
-                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 p-2.5 rounded-xl transition flex items-center justify-center cursor-pointer shadow-lg shadow-gold-500/10"
-
-                    >
-
-                      <Send className="w-4 h-4" />
-
-                    </button>
-
-                  </div>
+                      return parsedConfig ? (
+                        <DashminChatApplyButton onClick={() => applyAiConfig(parsedConfig)} />
+                      ) : null;
+                    }}
+                  />
 
                 </div>
 
@@ -15300,36 +15157,34 @@ export default function App() {
 
       {chatOpen && (
 
-        <div className="fixed bottom-0 right-0 z-40 w-[420px] max-w-[95vw] h-[85vh] max-h-[700px] bg-[#0a0a0c] border-l border-t border-zinc-800 rounded-tl-3xl shadow-2xl flex flex-col animate-fade-in font-sans">
+        <div className="dash-chat-floating">
 
-          {/* Chat Header */}
+          <div className="dash-chat-floating-header">
 
-          <div className="flex justify-between items-center p-4 border-b border-zinc-900 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
 
-            <div className="flex items-center gap-2">
+              <div className="dash-chat-floating-icon">
 
-              <div className="w-8 h-8 bg-gold-500/10 rounded-lg flex items-center justify-center">
-
-                <Bot className="w-4 h-4 text-gold-500" />
+                <Bot className="w-4 h-4" />
 
               </div>
 
-              <div>
+              <div className="min-w-0">
 
-                <SectionHeader title="LUMIERA AGENT" helpId="lumiera-agent" size="sm" titleClassName="text-xs tracking-wide" />
+                <SectionHeader title="Lumiera Agent" helpId="lumiera-agent" size="sm" titleClassName="text-xs tracking-wide" />
 
-                <p className="text-[9px] text-zinc-500">Autonomia total sobre o projeto</p>
+                <p className="text-[9px] text-dash-muted">Autonomia total sobre o projeto</p>
 
               </div>
 
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
 
                 <div className="flex items-center gap-1">
 
                   <span
-                    className={`text-[9px] flex items-center gap-1 ${hasApiKey ? 'text-emerald-500' : 'text-amber-500'}`}
+                    className={`text-[9px] flex items-center gap-1 ${hasApiKey ? 'text-emerald-500' : 'text-dash-primary'}`}
                     title={aiProviderBadge.detail}
                   >
 
@@ -15349,7 +15204,7 @@ export default function App() {
 
                     }}
 
-                    className="text-zinc-500 hover:text-gold-500 p-1 rounded hover:bg-zinc-900 transition cursor-pointer"
+                    className="text-dash-muted hover:text-white p-1 rounded-lg hover:bg-dash-card-hover transition cursor-pointer"
 
                     title="Trocar chave API"
 
@@ -15361,7 +15216,7 @@ export default function App() {
 
                 </div>
 
-              <button onClick={() => setChatOpen(false)} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition cursor-pointer">
+              <button onClick={() => setChatOpen(false)} className="text-dash-muted hover:text-white p-1 rounded-lg hover:bg-dash-card-hover transition cursor-pointer">
 
                 <X className="w-4 h-4" />
 
@@ -15371,131 +15226,27 @@ export default function App() {
 
           </div>
 
-          {/* Messages */}
+          <div className="dash-chat-floating-body">
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-
-            {chatMessages.map((msg, i) => (
-
-              <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-
-                <div className={`text-[8px] font-bold uppercase tracking-wider mb-0.5 ${msg.role === 'user' ? 'text-gold-500' : 'text-zinc-500'}`}>
-
-                  {msg.role === 'user' ? 'Você' : 'Lumiera Agent'}
-
-                </div>
-
-                <div className={`max-w-[90%] rounded-xl px-3 py-2 text-[11px] leading-relaxed ${
-
-                  msg.role === 'user'
-
-                    ? 'bg-gold-500/10 border border-gold-500/20 text-gold-200'
-
-                    : 'bg-zinc-900/80 border border-zinc-800 text-gray-300'
-
-                }`}>
-
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-
-                </div>
-
-              </div>
-
-            ))}
-
-            {chatLoading && (
-
-              <div className="flex items-start">
-
-                <div className="bg-zinc-900/80 border border-zinc-800 text-gray-400 rounded-xl px-3 py-2 text-[11px] flex items-center gap-2">
-
-                  <RefreshCw className="w-3 h-3 animate-spin text-gold-500" />
-
-                  <span>Processando...</span>
-
-                </div>
-
-              </div>
-
-            )}
-
-            <div ref={chatEndRef} />
-
-          </div>
-
-          {/* Quick Actions */}
-
-          <div className="flex flex-wrap gap-1 px-4 pb-2 shrink-0">
-
-            <button disabled={chatLoading || !hasApiKey} onClick={() => handleSendChatMessage("Mostre o status atual do projeto.")}
-
-              className="border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white px-2 py-1 rounded text-[9px] font-semibold transition cursor-pointer">
-
-              📊 Status
-
-            </button>
-
-            <button disabled={chatLoading || !hasApiKey} onClick={() => handleSendChatMessage("Sugira palavras-chave para destacar baseadas no roteiro.")}
-
-              className="border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white px-2 py-1 rounded text-[9px] font-semibold transition cursor-pointer">
-
-              💡 Keywords
-
-            </button>
-
-            <button disabled={chatLoading || !hasApiKey} onClick={() => handleSendChatMessage("Melhore os textos de impacto do vídeo.")}
-
-              className="border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white px-2 py-1 rounded text-[9px] font-semibold transition cursor-pointer">
-
-              🔥 Impactos
-
-            </button>
-
-            <button disabled={chatLoading || !hasApiKey} onClick={() => handleSendChatMessage("Analise e otimize o mapeamento de trilhas sonoras.")}
-
-              className="border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white px-2 py-1 rounded text-[9px] font-semibold transition cursor-pointer">
-
-              🎵 BGM
-
-            </button>
-
-          </div>
-
-          {/* Input */}
-
-          <div className="flex gap-2 p-3 border-t border-zinc-900 shrink-0">
-
-            <input
-
-              disabled={chatLoading || !hasApiKey}
-
-              type="text"
-
-              placeholder={hasApiKey ? "Peça qualquer coisa ao agente..." : "Configure um provedor em Configurações primeiro..."}
-
-              value={chatInput}
-
-              onChange={(e) => setChatInput(e.target.value)}
-
-              onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
-
-              className="flex-1 bg-zinc-950 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white disabled:opacity-50"
-
+            <DashminAiChat
+              compact
+              messages={chatMessages}
+              loading={chatLoading}
+              input={chatInput}
+              onInputChange={setChatInput}
+              onSend={handleSendChatMessage}
+              hasApiKey={hasApiKey}
+              chatEndRef={chatEndRef}
+              assistantLabel="Lumiera Agent"
+              loadingLabel="Processando..."
+              inputPlaceholder={hasApiKey ? 'Peça qualquer coisa ao agente...' : 'Configure um provedor em Configurações primeiro...'}
+              suggestions={[
+                { label: '📊 Status', message: 'Mostre o status atual do projeto.' },
+                { label: '💡 Keywords', message: 'Sugira palavras-chave para destacar baseadas no roteiro.' },
+                { label: '🔥 Impactos', message: 'Melhore os textos de impacto do vídeo.' },
+                { label: '🎵 BGM', message: 'Analise e otimize o mapeamento de trilhas sonoras.' },
+              ]}
             />
-
-            <button
-
-              disabled={chatLoading || !chatInput.trim() || !hasApiKey}
-
-              onClick={() => handleSendChatMessage()}
-
-              className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 p-2 rounded-lg transition cursor-pointer shadow-lg shadow-gold-500/10"
-
-            >
-
-              <Send className="w-4 h-4" />
-
-            </button>
 
           </div>
 
