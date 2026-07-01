@@ -1688,7 +1688,7 @@ export function YoutubeStudioPanel({
 
       <YoutubeStudioTools
         viewsThreshold={viewsThreshold}
-        nicheKeyword={nicheKeyword}
+        nicheKeyword={appliedKeyword || nicheKeyword}
         toast={toast}
         onApplyIdea={onApplyCreatorIdea}
       />
