@@ -27,7 +27,12 @@ export default defineConfig({
     port: 5176,
     strictPort: true,
     proxy: {
-      '/api': 'http://127.0.0.1:3005'
+      '/api': {
+        target: 'http://127.0.0.1:3005',
+        changeOrigin: true,
+        timeout: 120000,
+        proxyTimeout: 120000,
+      }
     }
   }
 })

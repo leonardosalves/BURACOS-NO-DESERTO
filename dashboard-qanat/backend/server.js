@@ -10810,6 +10810,8 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
       "Melhorar narração draft",
     ));
 
+    console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
+
     return res.json({
       success: true,
       narrative_script: parsed.narrative_script || narrativeScript,

@@ -368,14 +368,20 @@ async function runNotebooklmPipeline({
   }
 
   const notebookId = findOrCreateNotebook(niche, backendDir);
-  const brief = buildBriefText({ niche, format, idea, contentMode, rankCount, listTopic, rankOrder });
 
-  addTextSource(
-    notebookId,
-    `Brief Lumiera ${new Date().toISOString().slice(0, 16)}`,
-    brief,
-    backendDir,
-  );
+  const cache = loadCache(backendDir);
+  const key = nicheKey(niche);
+  const notebookExistsInCache = Boolean(cache.notebooks[key]);
+
+  if (purpose !== "improve" || !notebookExistsInCache) {
+    const brief = buildBriefText({ niche, format, idea, contentMode, rankCount, listTopic, rankOrder });
+    addTextSource(
+      notebookId,
+      `Brief Lumiera ${new Date().toISOString().slice(0, 16)}`,
+      brief,
+      backendDir,
+    );
+  }
 
   if (runResearch) {
     const researchQuery = contentMode === "LISTICLE"
