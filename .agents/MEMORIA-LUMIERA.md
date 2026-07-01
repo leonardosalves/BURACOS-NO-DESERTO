@@ -100,6 +100,8 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/mattpocock-skills]]
 - [[memory/openmontage-lumiera]]
 - [[memory/agent-frameworks-reference]]
+- [[memory/google-gemini-sdk-reference]]
+- [[memory/google-research-reference]]
 - [[memory/videoagent-lumiera]]
 
 ## Logs recentes

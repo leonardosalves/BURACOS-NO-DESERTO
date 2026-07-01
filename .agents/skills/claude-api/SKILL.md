@@ -16,7 +16,7 @@ license: Complete terms in LICENSE.txt
 
 # Lumiera
 
-**Provider default:** Gemini (`@google/generative-ai`) em `dashboard-qanat/backend/`. Use esta skill só quando integrar Claude/Anthropic explicitamente ou comparar providers.
+**Provider default:** Gemini via HTTP em `server.js` (`callGeminiWithRetry`); SDK alvo `@google/genai` — ver [[memory/google-gemini-sdk-reference]]. Use esta skill só quando integrar Claude/Anthropic explicitamente.
 
 **Multi-provider:** `aiProviderRouter.js`, config em Configurações → APIs.
 
