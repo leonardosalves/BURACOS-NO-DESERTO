@@ -12,11 +12,14 @@ type Props = {
   blockPhrases?: BlockPhrase[];
   blockScript?: string;
   notebooklmEnriched?: boolean;
+  notebooklmImproving?: boolean;
+  notebooklmAvailable?: boolean;
   loading: boolean;
   loadingMode: 'narration' | 'full' | 'idle';
   onNarrativeChange: (value: string) => void;
   onRegenerate: () => void;
   onApprove: () => void;
+  onNotebooklmImprove?: () => void;
 };
 
 function splitBlockParagraphs(blockScript?: string) {
@@ -32,11 +35,14 @@ export function NarrationReviewPanel({
   blockPhrases = [],
   blockScript,
   notebooklmEnriched,
+  notebooklmImproving = false,
+  notebooklmAvailable = false,
   loading,
   loadingMode,
   onNarrativeChange,
   onRegenerate,
   onApprove,
+  onNotebooklmImprove,
 }: Props) {
   const wordCount = narrativeScript.trim() ? narrativeScript.trim().split(/\s+/).length : 0;
   const paragraphs = useMemo(() => splitBlockParagraphs(blockScript), [blockScript]);
@@ -96,7 +102,7 @@ export function NarrationReviewPanel({
         rows={14}
         value={narrativeScript}
         onChange={(e) => onNarrativeChange(e.target.value)}
-        disabled={loading}
+        disabled={loading || notebooklmImproving}
         className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-sm text-white leading-relaxed resize-y min-h-[200px]"
         placeholder="A narração aparecerá aqui para você revisar..."
       />
@@ -115,7 +121,7 @@ export function NarrationReviewPanel({
       <div className="flex flex-wrap gap-3 justify-end pt-2 border-t border-zinc-900/60">
         <button
           type="button"
-          disabled={loading}
+          disabled={loading || notebooklmImproving}
           onClick={onRegenerate}
           className="bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-zinc-300 text-xs font-bold px-5 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer border border-zinc-800"
         >
@@ -126,9 +132,27 @@ export function NarrationReviewPanel({
           )}
           <span>Regenerar narração</span>
         </button>
+
+        {onNotebooklmImprove && (
+          <button
+            type="button"
+            disabled={loading || notebooklmImproving || !narrativeScript.trim()}
+            onClick={onNotebooklmImprove}
+            className="bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-bold px-5 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer border border-indigo-500/30 shadow-lg shadow-indigo-500/10"
+            title={notebooklmAvailable ? 'Melhorar narração com pesquisa NotebookLM' : 'Melhorar narração (NotebookLM offline — usará fallback)'}
+          >
+            {notebooklmImproving ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>{notebooklmImproving ? 'Melhorando...' : '✨ Melhorar com NotebookLM'}</span>
+          </button>
+        )}
+
         <button
           type="button"
-          disabled={loading || !narrativeScript.trim()}
+          disabled={loading || notebooklmImproving || !narrativeScript.trim()}
           onClick={onApprove}
           className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10"
         >

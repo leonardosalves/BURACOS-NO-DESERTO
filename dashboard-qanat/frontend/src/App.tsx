@@ -5751,6 +5751,75 @@ export default function App() {
     }
   };
 
+  const handleNotebooklmImproveNarrationDraft = async () => {
+    const draft = narrationDraft.trim();
+    if (draft.length < 40) {
+      toast.error('A narração precisa ter ao menos 40 caracteres para melhorar.');
+      return;
+    }
+    setNotebooklmImproving(true);
+    try {
+      const selectedIdea = ideationTab === 'listicle'
+        ? listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex]
+        : ideationTab === 'custom'
+          ? { title: customTitle.trim() }
+          : selectedIdeaIndex === 999
+            ? { title: customIdeaTitle }
+            : (ideasData?.ideas || [])[selectedIdeaIndex];
+
+      const niche = ideationTab === 'listicle'
+        ? (listNiche.trim() || listTopic.trim())
+        : ideationTab === 'custom'
+          ? 'Customized'
+          : nicheInput.trim();
+
+      const blockCount = narrationBlockPhrases.length || (formatSelector === 'SHORTS' ? 5 : 12);
+
+      const { ok, data } = await postAi('/api/notebooklm/improve-narration-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          narrativeScript: draft,
+          narrativeScriptTagged: narrationTaggedDraft.trim() || undefined,
+          niche,
+          format: formatSelector,
+          blockCount,
+          useNotebooklm,
+          ideaTitle: selectedIdea?.title || niche,
+          isListicle: ideationTab === 'listicle',
+          listicleRank: ideationTab === 'listicle' ? rankCount : undefined,
+        }),
+      });
+
+      if (ok && !data.needs_browser) {
+        if (data.narrative_script) setNarrationDraft(data.narrative_script);
+        if (data.narrative_script_tagged) setNarrationTaggedDraft(data.narrative_script_tagged);
+        if (data.strategy) setNarrationStrategy(data.strategy);
+        if (data.technical_config?.block_phrases) {
+          setNarrationBlockPhrases(data.technical_config.block_phrases);
+        }
+        if (data.technical_config?.script) {
+          const scriptBlocks = data.technical_config.script;
+          setNarrationBlockScript(
+            typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+          );
+        }
+        setNarrationNotebooklmEnriched(true);
+        toast.success(
+          data.notebooklm_enriched
+            ? 'Narração melhorada com pesquisa NotebookLM!'
+            : 'Narração melhorada (sem pesquisa NotebookLM — melhorias de clareza e retenção aplicadas).',
+        );
+      } else {
+        toast.error(data.error || 'Erro ao melhorar narração.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Conexão falhou ao melhorar narração.');
+    } finally {
+      setNotebooklmImproving(false);
+    }
+  };
+
   const handleGenerateIdeas = async () => {
 
     if (!nicheInput.trim()) return;
@@ -13619,6 +13688,8 @@ export default function App() {
                         blockPhrases={narrationBlockPhrases}
                         blockScript={narrationBlockScript}
                         notebooklmEnriched={narrationNotebooklmEnriched}
+                        notebooklmImproving={notebooklmImproving}
+                        notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
                         loading={creatorLoading}
                         loadingMode={creatorLoadingMode === 'idle' ? 'idle' : creatorLoadingMode}
                         onNarrativeChange={(value) => {
@@ -13627,6 +13698,7 @@ export default function App() {
                         }}
                         onRegenerate={handleGenerateNarration}
                         onApprove={handleApproveNarrationAndGenerateScript}
+                        onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
                       />
                     )}
 
