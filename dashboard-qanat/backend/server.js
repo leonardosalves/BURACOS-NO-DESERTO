@@ -12200,6 +12200,15 @@ REGRAS FINAIS:
     }
 
     if (scriptPhase === "narration") {
+      const narrationLen = String(parsedData.narrative_script || "").trim().length;
+      if (isBrowserResponse && narrationLen < 180) {
+        return res.status(422).json({
+          error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
+          details: `Narração capturada com apenas ${narrationLen} caracteres. Aguarde o JSON completo em gemini.google.com e gere de novo.`,
+          hint: "Recarregue a extensão Lumiera Gemini Bridge (v1.4.7+) e não mude de aba durante a geração.",
+        });
+      }
+
       const skipPostProcess = isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
       if (skipPostProcess) {
         console.log("[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração.");
