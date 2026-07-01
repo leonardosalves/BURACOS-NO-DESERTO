@@ -143,6 +143,14 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'narration-replace': {
+    title: 'Trocar narração',
+    body: (
+      <>
+        Substitua <code>narracao_mestra_premium.mp3</code> em projetos já prontos. Após o upload, sincronize com Whisper para regenerar <code>word_transcripts.json</code> e <code>block_timings.json</code>. Use TTS abaixo para gerar áudio novo a partir do roteiro.
+      </>
+    ),
+  },
   'timeline-highlights': {
     title: 'Palavras-chave em destaque',
     body: (

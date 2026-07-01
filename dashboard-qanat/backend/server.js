@@ -8404,7 +8404,25 @@ app.post("/api/upload-narration", (req, res) => {
 
   writeStream.on("finish", () => {
 
-    res.json({ success: true, message: "Narração enviada e salva com sucesso!" });
+    const staleFiles = ["word_transcripts.json", "block_timings.json"];
+
+    for (const fname of staleFiles) {
+
+      const stalePath = path.join(projDir, fname);
+
+      if (fs.existsSync(stalePath)) {
+
+        try { fs.unlinkSync(stalePath); } catch (_) {}
+
+      }
+
+    }
+
+    res.json({
+      success: true,
+      needs_resync: true,
+      message: "Narração enviada! Rode a sincronização Whisper para atualizar timings e legendas.",
+    });
 
   });
 
