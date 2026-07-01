@@ -141,6 +141,21 @@ export function buildVoiceboxVoiceList(probe = {}) {
   return voices;
 }
 
+export function buildVoiceboxStatusHint(probe = {}, voices = []) {
+  if (!probe.ok) {
+    return probe.error || "Voicebox offline";
+  }
+  const profileCount = (probe.profiles || []).length;
+  const gpuLine = probe.gpuAvailable
+    ? "GPU ativa (mais rapido)"
+    : "modo CPU (funciona, mas mais lento)";
+  const backend = String(probe.backendType || "pytorch");
+  const profileLine = profileCount > 0
+    ? `${profileCount} perfil(is) de voz`
+    : "nenhum perfil — crie em Voices no app";
+  return `Voicebox online | ${gpuLine} | backend ${backend} | ${profileLine}`;
+}
+
 function resolveProfileId(voice, profiles = [], fallbackId = "") {
   const needle = String(voice || "").trim();
   if (!needle || needle === "__configure__") {

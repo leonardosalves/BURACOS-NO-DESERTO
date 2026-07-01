@@ -88,7 +88,8 @@ if (Test-Path $VoiceboxExe) {
     $ready = Wait-VoiceboxReady 120
     if ($ready) {
         Write-Host "Voicebox ativo: $($ready.url)" -ForegroundColor Green
-        Write-Host "GPU: $($ready.health.gpu_available) · backend: $($ready.health.backend_type)" -ForegroundColor DarkGray
+        $gpuMsg = if ($ready.health.gpu_available) { "GPU ativa" } else { "modo CPU (mais lento, mas OK)" }
+        Write-Host "$gpuMsg | backend: $($ready.health.backend_type)" -ForegroundColor DarkGray
         exit 0
     }
     Write-Host "Voicebox abriu mas a API nao respondeu a tempo." -ForegroundColor Yellow
