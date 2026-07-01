@@ -7,7 +7,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-import { parseAiJson } from "./aiJsonParse.js";
+import { parseJsonFromLlm } from "./aiJsonParse.js";
 import { appendDailyRunLog, ensureAgentDirs, getAgentPaths } from "./agentMemory.js";
 import { repairVaultGraphLinks } from "./obsidianVault.js";
 
@@ -267,7 +267,7 @@ function orderChain(tools) {
 
 function parsePlannerLlmJson(text, fallback) {
   try {
-    const parsed = parseAiJson(text);
+    const parsed = parseJsonFromLlm(text);
     if (parsed && (parsed.agentChain || parsed.lumieraActions)) return parsed;
   } catch { /* ignore */ }
   return fallback;
