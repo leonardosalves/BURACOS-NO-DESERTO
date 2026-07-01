@@ -255,7 +255,7 @@ export function YoutubeStudioPanel({
   const [refreshing, setRefreshing] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [periodDays, setPeriodDays] = useState(28);
-  const [commentFilter, setCommentFilter] = useState<CommentFilter>('all');
+  const [commentFilter, setCommentFilter] = useState<CommentFilter>('unanswered');
   const [keywordInput, setKeywordInput] = useState(nicheKeyword);
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [lumieraVideos, setLumieraVideos] = useState<LumieraVideoRow[]>([]);
@@ -295,7 +295,8 @@ export function YoutubeStudioPanel({
       const params = new URLSearchParams({ limit: '20', filter });
       if (keyword.trim()) params.set('keyword', keyword.trim());
       if (pageToken) params.set('pageToken', pageToken);
-      const res = await fetch(`/api/youtube/channel/comments?${params.toString()}`);
+      params.set('_', String(Date.now()));
+      const res = await fetch(`/api/youtube/channel/comments?${params.toString()}`, { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok && res.status !== 403) {
         throw new Error(data.details || data.error || 'Falha ao carregar comentários');
@@ -1069,14 +1070,17 @@ export function YoutubeStudioPanel({
               <button
                 key={filter}
                 type="button"
-                onClick={() => setCommentFilter(filter)}
+                onClick={() => {
+                  setCommentFilter(filter);
+                  setCommentsNextPageToken(null);
+                }}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
                   commentFilter === filter
                     ? 'bg-gold-500/15 text-gold-400 border-gold-500/30'
                     : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:text-zinc-300'
                 }`}
               >
-                {filter === 'all' ? 'Todos' : 'Sem resposta'}
+                {filter === 'all' ? 'Histórico' : 'Pendentes'}
               </button>
             ))}
           </div>
@@ -1157,7 +1161,11 @@ export function YoutubeStudioPanel({
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[11px] font-bold text-zinc-200">{comment.authorDisplayName}</span>
                       <span className="text-[9px] text-zinc-600">{formatDateTime(comment.publishedAt)}</span>
-                      {!comment.isAnswered && (
+                      {comment.isAnswered ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          Respondido
+                        </span>
+                      ) : (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
                           Sem resposta
                         </span>
@@ -1212,64 +1220,68 @@ export function YoutubeStudioPanel({
                         Tratado
                       </button>
                     </div>
-                    {replyTemplates.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {replyTemplates.map((tpl) => (
+                    {!comment.isAnswered && (
+                      <>
+                        {replyTemplates.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {replyTemplates.map((tpl) => (
+                              <button
+                                key={`${comment.commentId}-${tpl.id}`}
+                                type="button"
+                                onClick={() => setReplyDrafts((prev) => ({ ...prev, [comment.commentId]: tpl.text }))}
+                                className="text-[8px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-gold-300"
+                              >
+                                {tpl.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="text"
+                            value={replyDrafts[comment.commentId] || ''}
+                            onChange={(e) => setReplyDrafts((prev) => ({
+                              ...prev,
+                              [comment.commentId]: e.target.value,
+                            }))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                submitCommentReply(comment.commentId);
+                              }
+                            }}
+                            placeholder="Responder pelo Lumiera..."
+                            className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40"
+                          />
                           <button
-                            key={`${comment.commentId}-${tpl.id}`}
                             type="button"
-                            onClick={() => setReplyDrafts((prev) => ({ ...prev, [comment.commentId]: tpl.text }))}
-                            className="text-[8px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-gold-300"
+                            onClick={() => suggestCommentReply(comment)}
+                            disabled={suggestingId === comment.commentId}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[10px] font-bold disabled:opacity-50"
                           >
-                            {tpl.label}
+                            {suggestingId === comment.commentId ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3 h-3" />
+                            )}
+                            IA
                           </button>
-                        ))}
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => submitCommentReply(comment.commentId)}
+                            disabled={replyingId === comment.commentId}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gold-500 text-zinc-950 text-[10px] font-bold disabled:opacity-50"
+                          >
+                            {replyingId === comment.commentId ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Send className="w-3 h-3" />
+                            )}
+                            Enviar
+                          </button>
+                        </div>
+                      </>
                     )}
-                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={replyDrafts[comment.commentId] || ''}
-                        onChange={(e) => setReplyDrafts((prev) => ({
-                          ...prev,
-                          [comment.commentId]: e.target.value,
-                        }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            submitCommentReply(comment.commentId);
-                          }
-                        }}
-                        placeholder="Responder pelo Lumiera..."
-                        className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => suggestCommentReply(comment)}
-                        disabled={suggestingId === comment.commentId}
-                        className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[10px] font-bold disabled:opacity-50"
-                      >
-                        {suggestingId === comment.commentId ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3 h-3" />
-                        )}
-                        IA
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => submitCommentReply(comment.commentId)}
-                        disabled={replyingId === comment.commentId}
-                        className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gold-500 text-zinc-950 text-[10px] font-bold disabled:opacity-50"
-                      >
-                        {replyingId === comment.commentId ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Send className="w-3 h-3" />
-                        )}
-                        Enviar
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
