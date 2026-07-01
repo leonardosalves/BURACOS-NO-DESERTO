@@ -122,6 +122,12 @@ export async function queryGeminiViaExtension(prompt: string): Promise<string> {
   return String(resp.text || '').trim();
 }
 
+function isRetryableGeminiError(err: unknown): boolean {
+  const msg = String(err instanceof Error ? err.message : err);
+  if (/timeout aguardando|demorou demais/i.test(msg)) return false;
+  return /receiving end does not exist|could not establish connection|extensão não|context invalidated|não conectada|não respondeu|desconectada/i.test(msg);
+}
+
 export async function queryGeminiWithRetry(
   prompt: string,
   opts: { attempts?: number; onAttempt?: (n: number) => void } = {},
@@ -143,7 +149,8 @@ export async function queryGeminiWithRetry(
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       extensionCached = false;
-      if (i < attempts - 1) await sleep(800);
+      if (!isRetryableGeminiError(lastErr) || i >= attempts - 1) break;
+      await sleep(800);
     }
   }
   throw lastErr || new Error('Automação Gemini falhou.');

@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.1";
+  const VERSION = "1.4.2";
 
   function announceReady() {
     try {

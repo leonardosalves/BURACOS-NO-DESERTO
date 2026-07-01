@@ -5319,7 +5319,13 @@ export default function App() {
         } | null;
         const hasCompleteSections = (parsedMeta?.description?.length ?? 0) >= 50
           && ((parsedMeta?.tags?.length ?? 0) >= 8 || (parsedMeta?.hashtags?.length ?? 0) >= 3);
-        const hasRealMetadata = hasCompleteSections
+        const hasPartialMetadata = /Variante\s+[ABC]/i.test(data.text)
+          && (
+            ((parsedMeta?.titles?.length ?? 0) >= 1 && (parsedMeta?.description?.length ?? 0) >= 40)
+            || ((parsedMeta?.description?.length ?? 0) >= 40 && data.text.length >= 600)
+            || (data.text.length >= 700 && /T[íi]tulo\s+pareado/i.test(data.text))
+          );
+        const hasRealMetadata = hasCompleteSections || hasPartialMetadata
           || (!useGeminiChrome && (
             /\d+\.\s+.{12,}/m.test(data.text)
             || /Variante\s+[ABC]\s*[—–\-]/i.test(data.text)

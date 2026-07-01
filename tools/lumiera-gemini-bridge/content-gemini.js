@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.1";
+  const VERSION = "1.4.2";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -376,13 +376,52 @@
     return hasCompleteMetadataSections(t);
   }
 
+  function isPartialMetadataAcceptable(text, beforeTexts) {
+    const t = normalizeMetadataText(String(text || "").trim());
+    if (t.length < 280) return false;
+    if (looksLikeLumieraPrompt(t)) return false;
+    if (extractJsonPayload(t)) return false;
+    if (beforeTexts.includes(t)) return false;
+    if (!looksLikeMetadataResponse(t)) return false;
+
+    const hasTitles = hasFilledYoutubeTitles(t) || /##\s*T[ÍI]TULOS/i.test(t);
+    const hasDesc = extractMetaSection(t, "DESCRI[ÇC][ÃA]O").length >= 40;
+    const variantCount = (t.match(/Variante\s+[ABC]/gi) || []).length;
+    const hasVariants = variantCount >= 1;
+
+    if (hasCompleteMetadataSections(t)) return true;
+    if (hasTitles && hasDesc) return true;
+    if (hasTitles && hasVariants && variantCount >= 2) return true;
+    if (hasDesc && hasVariants && t.length >= 600) return true;
+    if (hasVariants && variantCount >= 2 && t.length >= 700) return true;
+    return false;
+  }
+
   function isAcceptableMetadata(text, beforeTexts, metadataSession = null) {
-    const t = String(text || "").trim();
+    const t = normalizeMetadataText(String(text || "").trim());
     if (t.length < 120) return false;
     if (looksLikeLumieraPrompt(t)) return false;
     if (extractJsonPayload(t)) return false;
     if (beforeTexts.includes(t)) return false;
-    return hasCompleteMetadataSections(t);
+    if (metadataSession && t.includes(metadataSession) && isPartialMetadataAcceptable(t, beforeTexts)) {
+      return true;
+    }
+    return isPartialMetadataAcceptable(t, beforeTexts);
+  }
+
+  function pickMetadataCandidate(beforeTexts, beforeMessages, metadataSession = null) {
+    const current = snapshotModelMessages();
+    for (let i = current.length - 1; i >= 0; i -= 1) {
+      const text = String(current[i]?.text || "").trim();
+      if (isAcceptableMetadata(text, beforeTexts, metadataSession)) return text;
+    }
+    const fresh = collectModelTexts()
+      .filter((t) => !beforeTexts.includes(t))
+      .sort((a, b) => b.length - a.length);
+    for (const text of fresh) {
+      if (isAcceptableMetadata(text, beforeTexts, metadataSession)) return text;
+    }
+    return "";
   }
 
   function getLatestGrownModelText(beforeTexts, beforeMessages) {
@@ -445,9 +484,16 @@
         stableText = raw;
         stableSince = Date.now();
       }
+
+      if (!generating && notGeneratingSince && Date.now() - notGeneratingSince >= 1500) {
+        const doneCandidate = pickMetadataCandidate(beforeTexts, beforeMessages, metadataSession)
+          || getLatestGrownModelText(beforeTexts, beforeMessages);
+        if (isAcceptableMetadata(doneCandidate, beforeTexts, metadataSession)) return doneCandidate;
+      }
     }
 
-    const lastChance = getLatestGrownModelText(beforeTexts, beforeMessages);
+    const lastChance = pickMetadataCandidate(beforeTexts, beforeMessages, metadataSession)
+      || getLatestGrownModelText(beforeTexts, beforeMessages);
     if (isAcceptableMetadata(lastChance, beforeTexts, metadataSession)) return lastChance;
 
     throw new Error(
