@@ -87,7 +87,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto space-y-6 animate-fade-in text-gray-200 p-1">
       {/* Wizard Title & Subtitle */}
       <div className="shrink-0 text-left">
-        <h2 className="text-xl font-extrabold text-white font-cinzel">Customize Your Title Strategy</h2>
+        <h2 className="text-xl font-extrabold text-white font-sans">Customize Your Title Strategy</h2>
         <p className="text-xs text-zinc-400 mt-1">Tell us about your content and audience to get personalized title recommendations</p>
       </div>
 
@@ -95,7 +95,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
       <div className="space-y-3 shrink-0">
         <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
           <span>Step {wizardStep} of 7</span>
-          <span className="text-gold-500 font-cinzel font-bold">
+          <span className="text-gold-500 font-sans font-bold">
             {wizardStep === 1 && 'Content Type'}
             {wizardStep === 2 && 'Brand Voice'}
             {wizardStep === 3 && 'Target Audience'}
@@ -148,7 +148,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 1 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">What type of content do you create?</h3>
+              <h3 className="text-white text-xs font-bold font-sans">What type of content do you create?</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5">Choose the category that best describes your video style</p>
             </div>
 
@@ -269,7 +269,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <div className="text-gold-500">{cat.icon}</div>
-                        <span className="font-cinzel tracking-wider text-[11px]">{cat.name}</span>
+                        <span className="font-sans tracking-wider text-[11px]">{cat.name}</span>
                       </div>
                       {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
                     </button>
@@ -336,7 +336,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 2 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">What's your brand voice?</h3>
+              <h3 className="text-white text-xs font-bold font-sans">What's your brand voice?</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5">How do you communicate with your audience?</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -386,7 +386,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 3 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">Who is your target audience?</h3>
+              <h3 className="text-white text-xs font-bold font-sans">Who is your target audience?</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5">Be specific about who should watch this content</p>
             </div>
 
@@ -568,7 +568,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 4 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">Title Evolution Strategy</h3>
+              <h3 className="text-white text-xs font-bold font-sans">Title Evolution Strategy</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5">How quickly should your titles evolve from specific to broad over time?</p>
             </div>
 
@@ -664,7 +664,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 5 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">Select psychological triggers</h3>
+              <h3 className="text-white text-xs font-bold font-sans">Select psychological triggers</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5">Choose 1-2 triggers that align with your content strategy (max 2)</p>
             </div>
 
@@ -758,7 +758,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 6 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">Pick your title patterns</h3>
+              <h3 className="text-white text-xs font-bold font-sans">Pick your title patterns</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5">Select 1-3 title structures that work best for your content</p>
             </div>
 
@@ -873,7 +873,7 @@ export const TitleStrategyWizard: React.FC<TitleStrategyWizardProps> = ({
         {wizardStep === 7 && (
           <div className="space-y-4 flex-1 text-left">
             <div>
-              <h3 className="text-white text-xs font-bold font-cinzel">Review Your Preferences</h3>
+              <h3 className="text-white text-xs font-bold font-sans">Review Your Preferences</h3>
               <p className="text-[10px] text-zinc-400 mt-0.5 font-sans">These settings will be used to generate optimized title suggestions</p>
             </div>
 

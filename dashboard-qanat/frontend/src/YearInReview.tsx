@@ -278,7 +278,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
 
             <div className="space-y-3">
               <span className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-mono">📅 2025 YEAR IN REVIEW</span>
-              <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight font-cinzel">
+              <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight font-sans">
                 How did your channel perform in 2025?
               </h1>
               <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
@@ -335,7 +335,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
           
           <div className="z-10 text-center space-y-4">
             <div className="text-4xl animate-bounce">🚀</div>
-            <h2 className="text-2xl font-bold text-white font-cinzel animate-pulse">Loading...</h2>
+            <h2 className="text-2xl font-bold text-white font-sans animate-pulse">Loading...</h2>
             <p className="text-xs font-bold text-gold-400 uppercase tracking-widest font-mono">Loading your 2025 Year in Review...</p>
             <p className="text-[10px] text-zinc-500 font-sans leading-normal">Gathering your amazing stats</p>
           </div>
@@ -359,8 +359,8 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                     <img src={`https://i.ytimg.com/vi/${stats.topVideo1.id}/hqdefault.jpg`} className="w-full h-full object-cover rounded-full" alt="Channel Logo" onError={(e) => {e.currentTarget.src = 'https://i.ytimg.com/vi/sljBh1nxc4c/hqdefault.jpg';}} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white font-cinzel">AI Construction Stories's</h3>
-                    <h2 className="text-2xl font-black text-gold-500 font-cinzel mt-1">2025 Year in Review</h2>
+                    <h3 className="text-lg font-bold text-white font-sans">AI Construction Stories's</h3>
+                    <h2 className="text-2xl font-black text-gold-500 font-sans mt-1">2025 Year in Review</h2>
                   </div>
                   <div className="h-28 flex items-center justify-center">
                     {renderAstronaut('celebrating')}
@@ -376,7 +376,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider font-mono">Total Views in 2025</h3>
-                    <div className="text-5xl font-black text-gold-500 font-cinzel py-1">
+                    <div className="text-5xl font-black text-gold-500 font-sans py-1">
                       {stats.totalViews.toLocaleString('pt-BR')}
                     </div>
                     <p className="text-xs text-zinc-300 font-semibold mt-1">times your content was watched</p>
@@ -391,7 +391,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider font-mono">Videos Published</h3>
-                    <div className="text-5xl font-black text-gold-500 font-cinzel py-1">
+                    <div className="text-5xl font-black text-gold-500 font-sans py-1">
                       {stats.totalVideos}
                     </div>
                     <p className="text-xs text-zinc-300 font-semibold mt-1">pieces of content created</p>
@@ -406,7 +406,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider font-mono">Average Engagement</h3>
-                    <div className="text-5xl font-black text-gold-500 font-cinzel py-1">
+                    <div className="text-5xl font-black text-gold-500 font-sans py-1">
                       {stats.avgEngagement}%
                     </div>
                     <p className="text-xs text-zinc-300 font-semibold mt-1">of viewers interacted with your content</p>
@@ -421,7 +421,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider font-mono">Total Watch Time</h3>
-                    <div className="text-5xl font-black text-gold-500 font-cinzel py-1">
+                    <div className="text-5xl font-black text-gold-500 font-sans py-1">
                       {stats.totalWatchTimeHours.toLocaleString('pt-BR')}
                     </div>
                     <p className="text-xs text-zinc-300 font-semibold mt-1">hours of content watched</p>
@@ -486,7 +486,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
 
               {currentSlide === 9 && (
                 <div className="space-y-4 animate-fade-in">
-                  <h3 className="text-white font-bold text-sm font-cinzel mb-2">Your Top Shorts</h3>
+                  <h3 className="text-white font-bold text-sm font-sans mb-2">Your Top Shorts</h3>
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { num: '#1', title: stats.topShort1.title, views: stats.topShort1.views, id: stats.topShort1.id },
@@ -518,7 +518,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider font-mono">{stats.bestMonthName} Was Your Best Month!</h3>
-                    <div className="text-5xl font-black text-gold-500 font-cinzel py-1">
+                    <div className="text-5xl font-black text-gold-500 font-sans py-1">
                       {stats.bestMonthViews.toLocaleString('pt-BR')}
                     </div>
                     <p className="text-xs text-zinc-300 font-semibold mt-1">views</p>
@@ -532,7 +532,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                   <div className="w-12 h-12 rounded-full border border-gold-500 p-0.5 mx-auto bg-zinc-950 overflow-hidden shrink-0">
                     <img src={`https://i.ytimg.com/vi/${stats.topVideo1.id}/hqdefault.jpg`} className="w-full h-full object-cover rounded-full" alt="Channel Logo" />
                   </div>
-                  <h3 className="text-white font-bold text-sm font-cinzel">2025 Snapshot</h3>
+                  <h3 className="text-white font-bold text-sm font-sans">2025 Snapshot</h3>
                   <div className="grid grid-cols-2 gap-4 text-center max-w-sm mx-auto">
                     <div className="bg-zinc-950/60 border border-zinc-900 p-3 rounded-xl">
                       <span className="text-[8px] text-zinc-550 font-bold uppercase tracking-wider">Uploads in 2025</span>
@@ -556,7 +556,7 @@ export const YearInReview: React.FC<YearInReviewProps> = ({ onClose, getProjectU
                     {renderAstronaut('rocket')}
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-white font-bold text-sm font-cinzel">Congrats on an Amazing 2025!</h3>
+                    <h3 className="text-white font-bold text-sm font-sans">Congrats on an Amazing 2025!</h3>
                     <p className="text-[10px] text-zinc-400 max-w-xs mx-auto">Use code <strong className="text-gold-500">TB26</strong> for 26% off any TubeBuddy license</p>
                   </div>
                   <div>

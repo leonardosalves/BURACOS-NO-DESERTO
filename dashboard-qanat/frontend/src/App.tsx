@@ -7024,19 +7024,19 @@ export default function App() {
 
       if (line.startsWith('### ')) {
 
-        return <h4 key={idx} className="text-white font-bold text-sm mt-4 mb-2 tracking-wide font-cinzel">{line.slice(4)}</h4>;
+        return <h4 key={idx} className="text-white font-bold text-sm mt-4 mb-2 tracking-wide font-sans">{line.slice(4)}</h4>;
 
       }
 
       if (line.startsWith('## ')) {
 
-        return <h3 key={idx} className="text-gold-500 font-bold text-base mt-5 mb-2.5 tracking-wide font-cinzel">{line.slice(3)}</h3>;
+        return <h3 key={idx} className="text-gold-500 font-bold text-base mt-5 mb-2.5 tracking-wide font-sans">{line.slice(3)}</h3>;
 
       }
 
       if (line.startsWith('# ')) {
 
-        return <h2 key={idx} className="text-white font-black text-lg mt-6 mb-3 tracking-wide font-cinzel border-b border-zinc-800 pb-1">{line.slice(2)}</h2>;
+        return <h2 key={idx} className="text-white font-black text-lg mt-6 mb-3 tracking-wide font-sans border-b border-zinc-800 pb-1">{line.slice(2)}</h2>;
 
       }
 
@@ -7772,7 +7772,7 @@ export default function App() {
 
                               <div>
 
-                                <h4 className="font-cinzel text-md font-bold text-gold-500">Bloco {blockKey}</h4>
+                                <h4 className="font-sans text-md font-bold text-gold-500">Bloco {blockKey}</h4>
 
                                 <span className="text-[10px] text-zinc-500 font-mono">
 
@@ -9135,7 +9135,7 @@ export default function App() {
 
                         ) : (
 
-                          <span className="text-xs font-bold text-gold-500 tracking-wide uppercase font-cinzel">{impact.text}</span>
+                          <span className="text-xs font-bold text-gold-500 tracking-wide uppercase font-sans">{impact.text}</span>
 
                         )}
 
@@ -10506,7 +10506,7 @@ export default function App() {
 
                                 <div className="flex items-center justify-between mb-2">
 
-                                  <h3 className="text-gold-500 font-bold text-xs tracking-wide font-cinzel uppercase">{title}</h3>
+                                  <h3 className="text-gold-500 font-bold text-xs tracking-wide font-sans uppercase">{title}</h3>
 
                                   <button
 
@@ -11357,7 +11357,7 @@ export default function App() {
 
                     onClick={() => setEditorSubTab('script')}
 
-                    className={`text-xs font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
 
                       editorSubTab === 'script'
 
@@ -11377,7 +11377,7 @@ export default function App() {
 
                     onClick={() => setEditorSubTab('json')}
 
-                    className={`font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+                    className={`font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
 
                       editorSubTab === 'json'
 
@@ -11397,7 +11397,7 @@ export default function App() {
 
                     onClick={() => setEditorSubTab('assets')}
 
-                    className={`text-xs font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
 
                       editorSubTab === 'assets'
 
@@ -11417,7 +11417,7 @@ export default function App() {
 
                     onClick={() => setEditorSubTab('narration')}
 
-                    className={`text-xs font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
 
                       editorSubTab === 'narration'
 
@@ -12314,7 +12314,7 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
                         Gemini
                         <SettingHelpTip title="Gemini" align="start">Google AI Studio (gratuito). Roteiro, overlays, metadados e ideias. Suporta rotação de várias chaves.</SettingHelpTip>
                       </span>
@@ -12331,7 +12331,7 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
                         Grok / xAI
                         <SettingHelpTip title="Grok / xAI" align="start">API da xAI como provedor principal. Útil quando preferir Grok ou como fallback após esgotar chaves Gemini.</SettingHelpTip>
                       </span>
@@ -12348,7 +12348,7 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
                         OpenRouter
                         <SettingHelpTip title="OpenRouter" align="start">Agregador com modelos free (Gemini, Llama, Qwen). Alternativa quando quiser variar modelos sem múltiplas contas.</SettingHelpTip>
                       </span>
@@ -12365,7 +12365,7 @@ export default function App() {
 
                     <div className="flex items-center justify-between">
 
-                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
                         NVIDIA API
                         <SettingHelpTip title="NVIDIA API" align="start">Chamadas de IA de alto desempenho via NVIDIA API com múltiplos modelos (Minimax, Qwen, Kimi, GLM, Deepseek).</SettingHelpTip>
                       </span>
@@ -12383,7 +12383,7 @@ export default function App() {
                 <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-white font-cinzel flex items-center gap-2">
+                        <p className="text-xs font-bold text-white font-sans flex items-center gap-2">
                           <Chrome className="w-4 h-4 text-violet-400" />
                           Gemini no Chrome (extensão)
                           <SettingHelpTip title="Extensão Chrome" align="start">
@@ -12970,7 +12970,7 @@ export default function App() {
 
                 <div className="border-t border-zinc-900 pt-5 space-y-4">
                   <div>
-                    <h4 className="font-cinzel text-xs font-bold text-white tracking-wide flex items-center gap-2">
+                    <h4 className="font-sans text-xs font-bold text-white tracking-wide flex items-center gap-2">
                       <Video className="w-4 h-4 text-red-500" /> CANAL DO YOUTUBE (BOTÃO INSCREVER-SE)
                       <SettingHelpTip title="Botão Inscrever-se" align="start">
                         Card de encerramento com link do canal, nome e contagem de inscritos. Aparece no outro do vídeo junto com o logo.
@@ -13623,7 +13623,7 @@ export default function App() {
                         {/* Diagnostic info banner */}
                         {ideasData?.diagnostic && (
                           <div className="p-5 bg-zinc-950/60 border border-zinc-900 rounded-2xl space-y-4">
-                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">DIAGNÓSTICO E PESQUISA DO NICHO</h5>
+                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-sans">DIAGNÓSTICO E PESQUISA DO NICHO</h5>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                               <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
                                 <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">O que procuram</span>
@@ -13740,7 +13740,7 @@ export default function App() {
 
                                     </div>
 
-                                    <h5 className={`text-xs font-bold font-cinzel tracking-wide ${isSelected ? 'text-gold-500' : 'text-white'}`}>{idea.title}</h5>
+                                    <h5 className={`text-xs font-bold font-sans tracking-wide ${isSelected ? 'text-gold-500' : 'text-white'}`}>{idea.title}</h5>
 
                                     <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed">{idea.promise}</p>
 
@@ -13770,7 +13770,7 @@ export default function App() {
 
                           <div className="p-4 bg-gold-500/5 border border-gold-500/20 rounded-2xl text-xs text-gray-300 leading-relaxed">
 
-                            <strong className="text-gold-500 font-cinzel block text-[10px] uppercase tracking-wider mb-1">Por que esta é a melhor ideia:</strong>
+                            <strong className="text-gold-500 font-sans block text-[10px] uppercase tracking-wider mb-1">Por que esta é a melhor ideia:</strong>
 
                             {ideasData?.best_idea_reason}
 
@@ -13780,7 +13780,7 @@ export default function App() {
 
                         {selectedIdeaIndex !== -1 && (
                           <div className="bg-zinc-950/60 border border-zinc-900 p-5 rounded-2xl space-y-4 mt-6 text-left">
-                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">
+                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-sans">
                               {selectedIdeaIndex === 999 ? "CRIAR IDEIA MANUAL" : "PERSONALIZAR ESTRATÉGIA DA IDEIA"}
                             </h5>
                             
@@ -14231,7 +14231,7 @@ export default function App() {
 
                         <div>
 
-                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">1. MIXAR ÁUDIO</h5>
+                          <h5 className="text-xs font-bold text-white tracking-wider font-sans">1. MIXAR ÁUDIO</h5>
 
                           <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Regenera a trilha sonora de fundo e crossfades baseados nas indicações da IA.</p>
 
@@ -14261,7 +14261,7 @@ export default function App() {
 
                         <div>
 
-                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">2. RENDER PADRÃO</h5>
+                          <h5 className="text-xs font-bold text-white tracking-wider font-sans">2. RENDER PADRÃO</h5>
 
                           <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Compila o vídeo final padrão usando as mídias da linha do tempo e legendas animadas.</p>
 
@@ -14288,7 +14288,7 @@ export default function App() {
                       {/* Render Remotion card */}
                       <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
                         <div>
-                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">3. RENDER REMOTION</h5>
+                          <h5 className="text-xs font-bold text-white tracking-wider font-sans">3. RENDER REMOTION</h5>
                           <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera o vídeo com o motor moderno do Remotion, ideal para Shorts com transições fluidas.</p>
                         </div>
                         <button 
@@ -14304,7 +14304,7 @@ export default function App() {
                       <div className="bg-zinc-950 border border-amber-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-amber-500/30 transition">
                         <div>
                           <div className="flex justify-between items-start">
-                            <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">4. REMOTION PRO</h5>
+                            <h5 className="text-xs font-bold text-white tracking-wider font-sans">4. REMOTION PRO</h5>
                             <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">PRO</span>
                           </div>
                           <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera a versão premium contendo infográficos animados automáticos (Lower Thirds, kinetic text e contadores).</p>
@@ -14323,7 +14323,7 @@ export default function App() {
                       <div className="bg-zinc-950 border border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-emerald-500/30 transition">
                         <div>
                           <div className="flex justify-between items-start">
-                            <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">5. HYPERFRAMES AI</h5>
+                            <h5 className="text-xs font-bold text-white tracking-wider font-sans">5. HYPERFRAMES AI</h5>
                             <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">AI</span>
                           </div>
                           <p className="text-[9px] text-gray-400 mt-1 leading-normal">Orquestração dinâmica via IA do catálogo HyperFrames com suporte a transparência ProRes.</p>
@@ -15053,7 +15053,7 @@ export default function App() {
 
                     <div className="flex justify-between items-center">
 
-                      <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider font-cinzel">ROTEIRO COMPLETO (NARRAÇÃO LIMPA)</span>
+                      <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider font-sans">ROTEIRO COMPLETO (NARRAÇÃO LIMPA)</span>
 
                       <button 
 
@@ -15087,7 +15087,7 @@ export default function App() {
 
                         <div>
 
-                          <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider font-cinzel flex items-center gap-2">
+                          <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider font-sans flex items-center gap-2">
 
                             NARRACAO COM TAGS PARA TTS
 
@@ -15131,7 +15131,7 @@ export default function App() {
 
                                 <div className="min-w-0">
 
-                                  <h5 className={`text-[10px] font-bold uppercase tracking-wider font-cinzel ${meta.accentClass}`}>{meta.title}</h5>
+                                  <h5 className={`text-[10px] font-bold uppercase tracking-wider font-sans ${meta.accentClass}`}>{meta.title}</h5>
 
                                   <span className="text-[9px] text-zinc-500">{meta.subtitle}</span>
 
@@ -15317,7 +15317,7 @@ export default function App() {
 
           <div className="bg-[#0c0c0e] border border-zinc-850 rounded-3xl p-6 w-96 max-w-[90%] space-y-4 shadow-2xl">
 
-            <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">Criar Novo Projeto</h3>
+            <h3 className="font-sans font-bold text-white text-sm tracking-wide">Criar Novo Projeto</h3>
 
             <p className="text-xs text-gray-400 leading-relaxed font-sans">
 
@@ -15474,7 +15474,7 @@ export default function App() {
 
               <div className="min-w-0">
 
-                <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">
+                <h3 className="font-sans font-bold text-white text-sm tracking-wide">
 
                   {pendingMusicDelete.name === "__all__" ? "Limpar trilhas sonoras?" : "Excluir trilha sonora?"}
 
@@ -15570,7 +15570,7 @@ export default function App() {
 
               <div className="min-w-0">
 
-                <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">Excluir vídeo renderizado?</h3>
+                <h3 className="font-sans font-bold text-white text-sm tracking-wide">Excluir vídeo renderizado?</h3>
 
                 <p className="text-xs text-gray-400 leading-relaxed mt-2">
 
@@ -15646,7 +15646,7 @@ export default function App() {
 
             <div className="flex justify-between items-center pb-2 border-b border-zinc-850">
 
-              <h3 className="font-cinzel font-bold text-white text-xs tracking-wider">PREVIEW DE VÍDEO COMPILADO</h3>
+              <h3 className="font-sans font-bold text-white text-xs tracking-wider">PREVIEW DE VÍDEO COMPILADO</h3>
 
               <button
 

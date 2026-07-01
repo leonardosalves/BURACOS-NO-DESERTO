@@ -39,7 +39,7 @@ type Props = {
 
 const PRESET_OPTIONS = [
   { id: 'auto', label: 'Automático (por nicho)', hint: 'História, mistério, geografia, dados ou finanças conforme o tema.' },
-  { id: 'documentary-history', label: 'Documentário História', hint: 'Grain + vinheta, tons quentes, Cinzel.' },
+  { id: 'documentary-history', label: 'Documentário História', hint: 'Grain + vinheta, tons quentes, títulos PT Sans.' },
   { id: 'documentary-mystery', label: 'Documentário Mistério', hint: 'Roxo escuro, grain, atmosfera sombria.' },
   { id: 'documentary-geography', label: 'Explorador Geográfico', hint: 'Azul-água + verde, mapas e timeline.' },
   { id: 'documentary-data', label: 'Jornalismo de Dados', hint: 'Limpo, counters e gráficos.' },

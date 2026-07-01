@@ -29,6 +29,7 @@
 
   body {
     @apply antialiased font-sans text-gray-200;
+    font-family: "PT Sans", Inter, sans-serif;
     background-color: var(--dash-bg);
     overflow-x: hidden;
     overflow-wrap: break-word;
@@ -45,10 +46,26 @@
     word-break: normal;
   }
 
+  /* Legado: Cinzel remapeado para PT Sans (Dashmin) */
   .font-cinzel {
-    letter-spacing: 0.02em;
+    font-family: "PT Sans", Inter, sans-serif;
+    letter-spacing: 0.01em;
     overflow-wrap: break-word;
     word-break: normal;
+  }
+
+  .dash-shell h1,
+  .dash-shell h2,
+  .dash-shell h3,
+  .dash-shell h4,
+  .dash-shell h5,
+  .dash-shell h6,
+  .dash-modal,
+  .dash-chat-floating,
+  .glass-panel,
+  .lumiera-fill-view {
+    font-family: "PT Sans", Inter, sans-serif;
+    letter-spacing: 0.01em;
   }
 
   button, input, textarea, select {
@@ -1689,8 +1706,22 @@
   }
 
   .ui-micro-label {
-    @apply font-sans tracking-wide uppercase text-[10px] font-bold;
-    letter-spacing: 0.05em;
+    @apply font-sans uppercase text-[10px] font-bold;
+    letter-spacing: 0.04em;
+    color: var(--dash-muted);
+  }
+
+  .dash-typo-label {
+    @apply font-sans text-[10px] font-bold uppercase tracking-wide;
+    color: var(--dash-muted);
+  }
+
+  .dash-typo-title {
+    @apply font-sans font-bold text-white leading-snug;
+  }
+
+  .dash-typo-section {
+    @apply font-sans text-xs font-bold uppercase tracking-wide text-dash-primary;
   }
 }
 

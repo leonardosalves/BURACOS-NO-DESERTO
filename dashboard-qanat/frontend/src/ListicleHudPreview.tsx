@@ -243,7 +243,7 @@ export function ListicleHudPreview({
           >
             <div className="flex items-center justify-center gap-2.5 flex-wrap">
               <span
-                className="font-cinzel font-extrabold tracking-wide leading-none"
+                className="font-sans font-extrabold tracking-wide leading-none"
                 style={{
                   fontSize: 28,
                   color: isClimax ? '#FFE9A8' : '#FFFFFF',
