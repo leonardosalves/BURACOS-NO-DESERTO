@@ -7312,21 +7312,11 @@ async function callGeminiLlm(req, res, projDir, {
   prompt = null,
   bodyOverride = null,
   temperature = null,
-  preferApi = false,
 } = {}) {
   const browserText = extractBrowserResponse(req.body);
   if (browserText) return browserText;
 
-  const hasGeminiApiKey = Boolean(getApiKey(projDir) || getApiKey(WORKSPACE_DIR));
-  const titleLower = String(title || "").toLowerCase();
-  const creatorTask = /creator|ideias|narra|roteiro|listicle|script master/i.test(titleLower);
-  const preferApiEffective = preferApi || (creatorTask && hasGeminiApiKey);
-  const useBrowser = shouldOfferGeminiBrowser(projDir) && !(preferApiEffective && hasGeminiApiKey);
-  if (preferApiEffective && hasGeminiApiKey && shouldOfferGeminiBrowser(projDir)) {
-    console.log(`[Gemini] ${title}: API direta — gemini_browser_mode ignorado (chave configurada).`);
-  }
-
-  if (useBrowser) {
+  if (shouldOfferGeminiBrowser(projDir)) {
     const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
     const promptText = bodyOverride
       ? buildPromptFromBodyOverride(bodyOverride)
@@ -12164,7 +12154,6 @@ REGRAS FINAIS:
       title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
       prompt: promptSystem,
       temperature: isListicle ? 0.75 : 0.85,
-      preferApi: scriptPhase === "narration",
     });
     if (responseText == null) return;
 

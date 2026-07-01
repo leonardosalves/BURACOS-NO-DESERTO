@@ -1,5 +1,9 @@
 (() => {
-  const VERSION = "1.4.4";
+  const VERSION = "1.4.5";
+
+  const SOURCE = "lumiera-gemini-bridge";
+  const CONTEXT_INVALIDATED_MSG =
+    "Extensão recarregada — aguarde 2s e tente de novo (reconexão automática).";
 
   function announceReady() {
     try {
@@ -9,16 +13,6 @@
       // ignore
     }
   }
-
-  if (globalThis.__lumieraGeminiBridgeLoaded) {
-    announceReady();
-    return;
-  }
-  globalThis.__lumieraGeminiBridgeLoaded = true;
-
-  const SOURCE = "lumiera-gemini-bridge";
-  const CONTEXT_INVALIDATED_MSG =
-    "Extensão recarregada — recarregue esta página do Lumiera (F5) e tente de novo.";
 
   function isExtensionContextValid() {
     try {
@@ -97,6 +91,11 @@
     }
   }
 
+  if (globalThis.__lumieraGeminiBridgeHandler) {
+    window.removeEventListener("message", globalThis.__lumieraGeminiBridgeHandler);
+  }
+  globalThis.__lumieraGeminiBridgeHandler = handleAppMessage;
+  globalThis.__lumieraGeminiBridgeLoaded = true;
   window.addEventListener("message", handleAppMessage);
   announceReady();
 })();

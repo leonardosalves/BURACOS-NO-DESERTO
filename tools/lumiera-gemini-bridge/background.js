@@ -1,4 +1,11 @@
 const GEMINI_MATCH = "https://gemini.google.com/*";
+const LUMIERA_MATCH = [
+  "http://127.0.0.1:5176/*",
+  "http://127.0.0.1:5173/*",
+  "http://localhost:5176/*",
+  "http://localhost:5173/*",
+];
+
 let cachedGeminiTabId = null;
 
 function sleep(ms) {
@@ -28,6 +35,25 @@ function waitForTabComplete(tabId, timeoutMs = 20000) {
       }
     }).catch(() => resolve());
   });
+}
+
+async function reinjectLumieraBridge() {
+  try {
+    const tabs = await chrome.tabs.query({ url: LUMIERA_MATCH });
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content-lumiera.js"],
+        });
+      } catch {
+        // aba pode estar em carregamento
+      }
+    }
+  } catch {
+    // ignore
+  }
 }
 
 async function findGeminiTab() {
@@ -124,10 +150,22 @@ async function runPromptOnTab(tabId, prompt) {
   }
 }
 
+chrome.runtime.onStartup.addListener(() => {
+  void reinjectLumieraBridge();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  void reinjectLumieraBridge();
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "LUMIERA_GEMINI_PING") {
-    sendResponse({ ok: true, version: "1.4.4" });
+    sendResponse({ ok: true, version: "1.4.5" });
     return;
+  }
+  if (message?.type === "LUMIERA_REINJECT_LUMIERA") {
+    void reinjectLumieraBridge().then(() => sendResponse({ ok: true }));
+    return true;
   }
   if (message?.type !== "LUMIERA_GEMINI_QUERY") return;
 
