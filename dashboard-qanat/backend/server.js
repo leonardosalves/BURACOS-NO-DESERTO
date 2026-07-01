@@ -12013,9 +12013,11 @@ Regras dos Prompts Visuais:
 
 - CUBRA 100% DA NARRAÇÃO. Cada 1-2 frases da narração = 1 prompt visual. Nenhuma frase fica sem cobertura visual.
 
-- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
-
-- 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).
+${format === "SHORTS"
+    ? `- SHORTS: mínimo 3 cenas com type "vídeo IA (max 10s)" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento ativo. Distribua os vídeos ao longo do Short; não concentre todos no fim.
+- SHORTS: demais cenas = "imagem IA 2k" (photorealistic 2k, Ken Burns).`
+    : `- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
+- 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).`}
 
 - Prompts variados: close-ups, planos abertos, aéreas, texturas, detalhes, paisagens, mapas, infográficos visuais.
 

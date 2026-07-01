@@ -586,7 +586,7 @@ VISUAL_PROMPTS (crítico para listicle):
 - Mínimo 3 cenas por item (bloco de item)
 - A PRIMEIRA cena de cada item deve ter "text_overlay": "#N — NOME DO ITEM" (N = rank daquele bloco)
 - Prompts visuais: objeto/invenção em close, contexto histórico, impacto moderno
-- 80-90% imagem 2K, 10-20% vídeo IA
+- ${format === "SHORTS" ? "SHORTS: mínimo 3 cenas com type \"vídeo IA (max 10s)\" distribuídas (gancho, meio, payoff); demais imagem 2K" : "80-90% imagem 2K, 10-20% vídeo IA"}
 
 IMPACT_TEXTS (obrigatório):
 - Um impact_text por bloco de item: {"block": N, "start_offset": 0.0, "end_offset": 4.0, "text": "#20 — NOME"}
@@ -815,10 +815,95 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
   return header;
 }
 
+export const SHORTS_MIN_VIDEO_SCENES = 3;
+export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
+
+const MOTION_PROMPT_RE = /\b(motion|moving|drone|aerial|crowd|water|waves|fire|explosion|walking|running|traffic|timelapse|slow motion|camera pan|fly through|flowing|storm|wind|spinning|rotating|collapse|falling|crashing|surge|ripple)\b/i;
+
+export function isVideoSceneType(type = "") {
+  const t = String(type || "").toLowerCase();
+  return t.includes("vídeo") || t.includes("video") || t.includes("mp4");
+}
+
+function adaptPromptForVideoScene(prompt = "") {
+  const p = String(prompt || "").trim();
+  if (!p) return "Cinematic motion, photorealistic, dramatic lighting, no text, max 10 seconds";
+  if (/cinematic motion|max 10/i.test(p)) return p;
+  return `${p.replace(/\.\s*$/, "")}. Cinematic motion, max 10 seconds, no text.`;
+}
+
+function pickEvenlyDistributedIndices(total, count) {
+  if (count <= 0 || total <= 0) return [];
+  if (count >= total) return Array.from({ length: total }, (_, i) => i);
+  if (count === 1) return [0];
+  const indices = [];
+  for (let i = 0; i < count; i++) {
+    indices.push(Math.round((i * (total - 1)) / (count - 1)));
+  }
+  return [...new Set(indices)];
+}
+
+/** Garante pelo menos N cenas de vídeo IA em Shorts (gancho, meio e payoff). */
+export function enforceShortsVideoSceneMix(
+  visualPrompts = [],
+  { format = "LONGO", minVideos = SHORTS_MIN_VIDEO_SCENES } = {},
+) {
+  if (format !== "SHORTS" || !Array.isArray(visualPrompts) || visualPrompts.length === 0) {
+    return visualPrompts;
+  }
+
+  const vps = visualPrompts.map((vp) => ({ ...vp }));
+  const effectiveMin = Math.min(minVideos, vps.length);
+  const currentVideos = vps.filter((vp) => isVideoSceneType(vp.type)).length;
+  if (currentVideos >= effectiveMin) return vps;
+
+  const need = effectiveMin - currentVideos;
+  const preferred = pickEvenlyDistributedIndices(vps.length, effectiveMin)
+    .filter((index) => !isVideoSceneType(vps[index].type));
+
+  const scored = vps
+    .map((vp, index) => ({ index, vp, isVideo: isVideoSceneType(vp.type) }))
+    .filter((entry) => !entry.isVideo)
+    .map((entry) => {
+      let score = 0;
+      const prompt = String(entry.vp.prompt || entry.vp.visual_prompt || "");
+      if (MOTION_PROMPT_RE.test(prompt)) score += 12;
+      if (entry.index === 0) score += 10;
+      if (entry.index === vps.length - 1) score += 6;
+      if (entry.index === Math.floor(vps.length / 2)) score += 4;
+      return { ...entry, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const toConvert = new Set(preferred.slice(0, need));
+  for (const entry of scored) {
+    if (toConvert.size >= need) break;
+    toConvert.add(entry.index);
+  }
+
+  for (const index of toConvert) {
+    const vp = vps[index];
+    const notes = String(vp.editor_notes || "").trim();
+    vps[index] = {
+      ...vp,
+      type: SHORTS_VIDEO_SCENE_TYPE,
+      prompt: adaptPromptForVideoScene(vp.prompt || vp.visual_prompt || ""),
+      editor_notes: notes && /vídeo|video/i.test(notes)
+        ? notes
+        : `${notes || "Ken Burns zoom in"} — vídeo IA para movimento ativo (Shorts)`.trim(),
+    };
+  }
+
+  return vps;
+}
+
 export function buildVisualPromptsRules({ format = "LONGO", isListicle = false, listicleRank = 20 } = {}) {
   const sceneCount = format === "SHORTS"
     ? (isListicle ? `${listicleRank * 2 + 4}-${listicleRank * 3 + 6}` : "5-12")
     : (isListicle ? `${listicleRank * 3}+` : "40-80+");
+  const typeMixRule = format === "SHORTS"
+    ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho, virada e payoff devem ter movimento; distribua vídeos ao longo do Short (não concentre no final). Demais cenas: imagem IA 2k.`
+    : `- 80-90% "imagem IA 2k"; 10-20% "${SHORTS_VIDEO_SCENE_TYPE}" para movimento ativo.`;
 
   return `
 REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizável):
@@ -827,7 +912,7 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 - Gere ${sceneCount} cenas no mínimo.
 - CADA objeto DEVE ter "narration_text" preenchido com o trecho EXATO falado na cena (copiado da narração aprovada).
 - CADA objeto DEVE ter "prompt" em inglês (photorealistic 2k / cinematic motion).
-- 80-90% "imagem IA 2k"; 10-20% "vídeo IA (max 10s)" para movimento ativo.
+${typeMixRule}
 - Nunca deixe narration_text ou prompt vazios.
 - Inclua stock_query em inglês em cada cena.
 ${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}`;
@@ -940,12 +1025,12 @@ export function normalizeVisualPromptBlocks(
       ideaTitle,
     });
     if (deterministic.length > 0) {
-      result.visual_prompts = deterministic;
+      result.visual_prompts = enforceShortsVideoSceneMix(deterministic, { format });
       return result;
     }
   }
 
-  result.visual_prompts = normalized;
+  result.visual_prompts = enforceShortsVideoSceneMix(normalized, { format });
   return result;
 }
 
@@ -1368,7 +1453,7 @@ export function buildDeterministicVisualPromptsFromNarration(
   if (!sentences.length) {
     const narration_text = text.slice(0, 280);
     const prompt = `Photorealistic 2k cinematic documentary scene illustrating: ${narration_text.slice(0, 160)}. Dramatic lighting, sharp detail, no text.`;
-    return [{
+    const singleScene = [{
       scene: "1.1",
       block: 1,
       narration_text,
@@ -1378,6 +1463,7 @@ export function buildDeterministicVisualPromptsFromNarration(
       editor_notes: "Ken Burns zoom in",
       stock_query: resolveSceneStockQuery({ narration_text, prompt }),
     }];
+    return enforceShortsVideoSceneMix(singleScene, { format });
   }
   const targetScenes = format === "SHORTS" ? Math.min(12, Math.max(5, sentences.length)) : Math.min(50, Math.max(20, sentences.length));
   const perScene = Math.max(1, Math.ceil(sentences.length / targetScenes));
@@ -1403,7 +1489,7 @@ export function buildDeterministicVisualPromptsFromNarration(
       sceneInBlock = 1;
     }
   }
-  return vps;
+  return enforceShortsVideoSceneMix(vps, { format });
 }
 
 export function buildNarrationHumanizeRepairPrompt({
