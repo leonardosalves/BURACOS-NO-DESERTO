@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { fetchChannelVideosWithAnalytics } from "./youtubeChannelAnalytics.js";
+import { buildShortIdeasFromLongProject } from "./clipFactory.js";
 
 const QUEUE_FILE = "youtube_editorial_queue.json";
 const STATUSES = ["inbox", "script", "render", "published"];
@@ -30,11 +31,59 @@ export function loadEditorialQueue(workspaceDir) {
   };
 }
 
+/** Repara hookPt corrompidos ([object Object]) de itens Clip Factory já na fila. */
+export function repairCorruptedClipFactoryQueue(workspaceDir, longsDir) {
+  const { items, updatedAt } = loadEditorialQueue(workspaceDir);
+  if (!longsDir || !items.length) return { items, updatedAt };
+
+  let dirty = false;
+  const rebuiltBySource = new Map();
+
+  for (const item of items) {
+    const hp = String(item.hookPt || "");
+    if (!hp.includes("[object Object]")) continue;
+
+    const sourceMatch = String(item.source || "").match(/^clip-factory:(.+)$/);
+    if (!sourceMatch) {
+      const fixed = coerceEditorialText(item.hookPt, item.title);
+      if (fixed && fixed !== item.hookPt) {
+        item.hookPt = fixed;
+        dirty = true;
+      }
+      continue;
+    }
+
+    const slug = sourceMatch[1];
+    if (!rebuiltBySource.has(slug)) {
+      const projDir = path.join(longsDir, slug);
+      const config = readJsonSafe(path.join(projDir, "config_qanat.json")) || {};
+      const storyboard = readJsonSafe(path.join(projDir, "storyboard.json")) || {};
+      const timings = readJsonSafe(path.join(projDir, "block_timings.json")) || {};
+      const built = buildShortIdeasFromLongProject(config, storyboard, timings, slug);
+      rebuiltBySource.set(slug, built.ok ? built.ideas : []);
+    }
+
+    const ideas = rebuiltBySource.get(slug) || [];
+    const match = ideas.find((idea) => idea.mechanic === item.mechanic)
+      || ideas.find((idea) => titleKey(idea.title) === titleKey(item.title));
+    const fixed = match
+      ? coerceEditorialText(match.hookPt, item.title)
+      : coerceEditorialText(item.title, "");
+    if (fixed && fixed !== item.hookPt) {
+      item.hookPt = fixed;
+      dirty = true;
+    }
+  }
+
+  if (!dirty) return { items, updatedAt };
+  return saveEditorialQueue(workspaceDir, items);
+}
+
 export function saveEditorialQueue(workspaceDir, items) {
   const normalized = (items || []).slice(0, 80).map((item) => ({
     id: item.id || randomUUID(),
     title: String(item.title || "").trim().slice(0, 240),
-    hookPt: String(item.hookPt || "").trim().slice(0, 500),
+    hookPt: coerceEditorialText(item.hookPt, item.title).slice(0, 500),
     source: String(item.source || "manual").trim(),
     sourceVideoId: item.sourceVideoId || null,
     sourceViews: item.sourceViews ?? null,
@@ -54,6 +103,23 @@ function titleKey(title) {
   return String(title || "").trim().toLowerCase().slice(0, 120);
 }
 
+/** Evita [object Object] quando hookPt/angle chegam como objeto do Clip Factory. */
+export function coerceEditorialText(value, fallback = "") {
+  if (value == null) return String(fallback || "").trim();
+  if (typeof value === "string") {
+    const s = value.trim();
+    if (!s || s.includes("[object Object]")) return String(fallback || "").trim();
+    return s;
+  }
+  if (typeof value === "object") {
+    const nested = value.phrase ?? value.text ?? value.hook ?? value.title ?? value.angle ?? "";
+    return coerceEditorialText(nested, fallback);
+  }
+  const s = String(value).trim();
+  if (!s || s === "[object Object]" || s.includes("[object Object]")) return String(fallback || "").trim();
+  return s;
+}
+
 export function enqueueEditorialIdeas(workspaceDir, ideas = [], meta = {}) {
   const { items } = loadEditorialQueue(workspaceDir);
   const seen = new Set(items.map((i) => titleKey(i.title)));
@@ -69,7 +135,7 @@ export function enqueueEditorialIdeas(workspaceDir, ideas = [], meta = {}) {
     items.unshift({
       id: randomUUID(),
       title,
-      hookPt: idea.hookPt || idea.angle || "",
+      hookPt: coerceEditorialText(idea.hookPt || idea.angle, title),
       source,
       mechanic: idea.mechanicSource || idea.mechanic || "",
       whyWorks: idea.whyNotCopy || idea.whyWorks || "",
