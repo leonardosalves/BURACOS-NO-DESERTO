@@ -5448,17 +5448,63 @@ export default function App() {
     }
   };
 
-  const applyMetadataToUpload = async () => {
-    const parsed = youtubeMetadataParsed;
-    if (!parsed) {
-      toast('Gere os metadados antes de aplicar.');
-      return;
+  const loadYoutubeMetadataFromCache = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.cached) return null;
+      if (data.text && /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(data.text)) return null;
+      if (data.text) setYoutubeMetadata(normalizeYoutubeMetadataDisplay(data.text));
+      const fmt: 'SHORT' | 'LONG' | '' = data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '';
+      setYoutubeMetadataFormat(fmt);
+      setYoutubeMetadataParsed(data.parsed || null);
+      setYoutubeMetadataStrategy({
+        profileLabel: data.profile?.label,
+        rpm: data.rpm,
+        palette: data.palette,
+      });
+      return { parsed: data.parsed || null, format: fmt };
+    } catch {
+      return null;
     }
+  };
+
+  const fetchYoutubeMetadataCache = async () => {
+    await loadYoutubeMetadataFromCache();
+  };
+
+  const applyMetadataToUpload = async (opts?: { silent?: boolean }) => {
+    let parsed = youtubeMetadataParsed;
+    let format = youtubeMetadataFormat;
+
+    const hasParsedContent = Boolean(
+      parsed?.description
+      || parsed?.titles?.length
+      || parsed?.tags
+      || parsed?.pinnedComment,
+    );
+    if (!hasParsedContent) {
+      const cached = await loadYoutubeMetadataFromCache();
+      if (cached?.parsed) {
+        parsed = cached.parsed;
+        format = cached.format || format;
+      }
+    }
+
+    if (!parsed || (!parsed.description && !parsed.titles?.length)) {
+      if (!opts?.silent) {
+        toast.error('Gere os metadados na aba IA · Metadados primeiro.');
+        setActiveTab('ai');
+      }
+      return false;
+    }
+
     try {
       const adaptRes = await fetch(getProjectUrl('/api/ai/adapt-platform-metadata'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parsed, format: youtubeMetadataFormat || 'LONG' }),
+        body: JSON.stringify({ parsed, format: format || 'LONG' }),
       });
       const adapted = adaptRes.ok ? (await adaptRes.json()).adapted : null;
       const yt = adapted?.youtube || {};
@@ -5468,13 +5514,24 @@ export default function App() {
       setYtTags(Array.isArray(yt.tags) ? yt.tags.join(', ') : (parsed.tags || ''));
       setYtChapters(yt.chapters || parsed.chapters || '');
       setYtPinnedComment(yt.pinned_comment || parsed.pinnedComment || '');
-      setYtCategoryId(yt.category_id || (youtubeMetadataFormat === 'SHORT' ? '22' : '27'));
+      setYtCategoryId(yt.category_id || (format === 'SHORT' ? '22' : '27'));
       if (adapted?.instagram?.title) setIgCaption(adapted.instagram.title);
       if (adapted?.tiktok?.title) setTtCaption(adapted.tiktok.title);
       if (adapted?.kwai?.title) setKwCaption(adapted.kwai.title);
-      toast('Metadados completos aplicados (YouTube + redes).');
+
+      const thumb = youtubeThumbnailsGenerated.find((t) => t.id === 'A') || youtubeThumbnailsGenerated[0];
+      if (thumb?.fileName) {
+        setYtThumbnailPath(`ASSETS/${thumb.fileName}`);
+        setYtThumbnailVariant(thumb.id);
+      }
+
+      if (!opts?.silent) {
+        toast.success('Campos preenchidos com os metadados da aba IA · Metadados.');
+      }
+      return true;
     } catch {
-      toast('Erro ao adaptar metadados.');
+      if (!opts?.silent) toast.error('Erro ao aplicar metadados ao upload.');
+      return false;
     }
   };
 
@@ -5634,25 +5691,7 @@ export default function App() {
     }
   };
 
-  const fetchYoutubeMetadataCache = async () => {
-    try {
-      const res = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.cached) return;
-      if (data.text && /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(data.text)) return;
-      if (data.text) setYoutubeMetadata(normalizeYoutubeMetadataDisplay(data.text));
-      setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
-      setYoutubeMetadataParsed(data.parsed || null);
-      setYoutubeMetadataStrategy({
-        profileLabel: data.profile?.label,
-        rpm: data.rpm,
-        palette: data.palette,
-      });
-    } catch {
-      // ignore cache load errors
-    }
-  };
+
 
   const buildThumbnailBrief = (thumb: {
     id: string;
@@ -6978,6 +7017,18 @@ export default function App() {
     }
 
   }, [creatorStep, activeProject]);
+
+  useEffect(() => {
+    if (activeTab !== 'upload' || !activeProject) return;
+    void loadYoutubeMetadataFromCache();
+    void fetchYoutubeThumbnailImages();
+  }, [activeTab, activeProject]);
+
+  const uploadMetadataReady = Boolean(
+    youtubeMetadataParsed?.titles?.length
+    || youtubeMetadataParsed?.description
+    || youtubeMetadataParsed?.tags,
+  );
 
   // Parse suggested config block from AI content
 
@@ -10873,6 +10924,31 @@ export default function App() {
 
                     {selectedPlatforms.youtube && (
                       <div className="space-y-4 text-xs font-sans">
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl border border-violet-500/25 bg-violet-500/5">
+                          <p className="text-[10px] text-zinc-400 leading-relaxed max-w-md">
+                            {uploadMetadataReady
+                              ? 'Metadados da aba IA · Metadados disponíveis — preencha os campos abaixo com um clique.'
+                              : 'Gere títulos, descrição e tags na aba IA · Metadados, depois volte aqui para preencher.'}
+                          </p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('ai')}
+                              className="text-[9px] font-bold text-zinc-400 hover:text-white px-2.5 py-1.5 rounded-lg border border-zinc-800 transition cursor-pointer"
+                            >
+                              IA · Metadados
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { void applyMetadataToUpload(); }}
+                              disabled={!uploadMetadataReady}
+                              className="text-[9px] font-bold text-violet-100 bg-violet-600/30 hover:bg-violet-600/45 disabled:opacity-40 border border-violet-500/40 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              Preencher com metadados IA
+                            </button>
+                          </div>
+                        </div>
                         <div className="space-y-2">
                           <label className="ui-micro-label text-gray-500 block text-balance-safe">Título no YouTube</label>
                           <input
@@ -11146,6 +11222,15 @@ export default function App() {
                   {/* Salvar Metadados GLOBAIS */}
                   <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
                     <span className="ui-micro-label text-gray-500 block text-balance-safe">Ações Globais</span>
+                    <button
+                      type="button"
+                      onClick={() => { void applyMetadataToUpload(); }}
+                      disabled={!uploadMetadataReady}
+                      className="w-full bg-violet-600/15 hover:bg-violet-600/25 disabled:opacity-40 border border-violet-500/30 text-violet-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Preencher com metadados IA
+                    </button>
                     <button
                       onClick={async () => {
                         try {
