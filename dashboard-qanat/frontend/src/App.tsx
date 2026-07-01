@@ -89,6 +89,10 @@ import {
 
   Globe,
 
+  LayoutTemplate,
+
+  Puzzle,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -143,6 +147,9 @@ import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 import { DashminYoutubePulse } from './DashminYoutubePulse';
 import { DashminRetentionChart } from './DashminRetentionChart';
 import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
+import { DashminUiElementsPage } from './DashminUiElementsPage';
+import { DashminExtensionsPage } from './DashminExtensionsPage';
+import { DashminStatPills } from './DashminStatPills';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -578,7 +585,7 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach' | 'projects';
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast' | 'agent-reach' | 'projects' | 'dash-ui' | 'dash-extensions';
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
@@ -2942,7 +2949,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach' || activeTab === 'projects') {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast' || activeTab === 'agent-reach' || activeTab === 'projects' || activeTab === 'dash-ui' || activeTab === 'dash-extensions') {
       setActiveTab(tab);
     }
   };
@@ -8386,7 +8393,9 @@ export default function App() {
     activeTab !== 'comfy-mcp' &&
     activeTab !== 'trend-forecast' &&
     activeTab !== 'agent-reach' &&
-    activeTab !== 'projects' ? (
+    activeTab !== 'projects' &&
+    activeTab !== 'dash-ui' &&
+    activeTab !== 'dash-extensions' ? (
       <div className="lumiera-project-bar">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
           <div className="min-w-0 flex-1">
@@ -8430,7 +8439,14 @@ export default function App() {
   return (
 
     <>
-      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#0c1018', color: '#fff', border: '1px solid #1a2230' } }} />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          className: 'dash-toast dash-toast-primary',
+          style: { background: '#0c1018', color: '#fff', border: '1px solid #1a2230', borderLeft: '3px solid #8280fd' },
+        }}
+      />
 
       {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
         <PreRenderAdviceModal
@@ -8479,6 +8495,19 @@ export default function App() {
                 recentCount={recentProjects.length}
                 youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
                 activeProject={activeProject}
+              />
+
+              <DashminStatPills
+                projectCount={projects.length}
+                outputCount={outputs.length}
+                completedSteps={[
+                  status?.has_config,
+                  status?.has_narration,
+                  status?.has_soundtrack,
+                  status?.has_highlight_clip,
+                  (videoQuality?.score ?? 0) >= 60,
+                ].filter(Boolean).length}
+                totalSteps={5}
               />
 
               <DashminDashboard
@@ -12077,6 +12106,32 @@ export default function App() {
 
             </DashminProjectTabLayout>
 
+          )}
+
+          {activeTab === 'dash-ui' && (
+            <TabErrorBoundary tabName="UI Elements">
+              <DashminPageLayout
+                title="UI Elements"
+                subtitle="Alerts, badges, buttons, cards, modals, progress, tabs e tipografia — kit Dashmin dark."
+                breadcrumb={['Dashboard', 'Design System', 'UI Elements']}
+                icon={<LayoutTemplate className="w-5 h-5" />}
+              >
+                <DashminUiElementsPage />
+              </DashminPageLayout>
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'dash-extensions' && (
+            <TabErrorBoundary tabName="Extensions">
+              <DashminPageLayout
+                title="Extensions"
+                subtitle="Toastr, Sweet Alert, Rating, Progress animado e Nestable — extensões do tema Dashmin."
+                breadcrumb={['Dashboard', 'Design System', 'Extensions']}
+                icon={<Puzzle className="w-5 h-5" />}
+              >
+                <DashminExtensionsPage />
+              </DashminPageLayout>
+            </TabErrorBoundary>
           )}
 
           {activeTab === 'agents' && (

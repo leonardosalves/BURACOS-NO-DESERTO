@@ -843,6 +843,542 @@
     border-color: rgba(130, 128, 253, 0.35);
   }
 
+  /* ── UI Elements (Dashmin kit) ── */
+  .dash-ui-page,
+  .dash-ext-page {
+    @apply min-w-0;
+  }
+
+  .dash-ui-section {
+    @apply rounded-lg p-5;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border-soft);
+    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .dash-ui-section-title {
+    @apply text-sm font-bold text-white uppercase tracking-wider mb-4 pb-2;
+    border-bottom: 1px solid var(--dash-border);
+  }
+
+  .dash-ui-section-body {
+    @apply min-w-0;
+  }
+
+  .dash-alert {
+    @apply flex items-start gap-3 p-4 rounded-lg text-sm leading-relaxed;
+    border: 1px solid transparent;
+  }
+
+  .dash-alert-icon {
+    @apply w-5 h-5 mt-0.5;
+  }
+
+  .dash-alert-title {
+    @apply font-bold text-white mb-1;
+  }
+
+  .dash-alert-text {
+    color: var(--dash-muted);
+  }
+
+  .dash-alert-close {
+    @apply ml-auto shrink-0 p-1 rounded-md border-0 cursor-pointer transition bg-transparent;
+    color: var(--dash-muted);
+  }
+
+  .dash-alert-close:hover {
+    color: #fff;
+    background: var(--dash-card-hover);
+  }
+
+  .dash-alert-primary {
+    background: rgba(130, 128, 253, 0.1);
+    border-color: rgba(130, 128, 253, 0.3);
+    color: #e9e7ff;
+  }
+
+  .dash-alert-primary .dash-alert-icon {
+    color: var(--dash-primary);
+  }
+
+  .dash-alert-success {
+    background: rgba(91, 196, 134, 0.1);
+    border-color: rgba(91, 196, 134, 0.3);
+  }
+
+  .dash-alert-success .dash-alert-icon {
+    color: var(--dash-success);
+  }
+
+  .dash-alert-warning {
+    background: rgba(232, 168, 74, 0.1);
+    border-color: rgba(232, 168, 74, 0.3);
+  }
+
+  .dash-alert-warning .dash-alert-icon {
+    color: var(--dash-warning);
+  }
+
+  .dash-alert-danger {
+    background: rgba(232, 101, 120, 0.1);
+    border-color: rgba(232, 101, 120, 0.35);
+  }
+
+  .dash-alert-danger .dash-alert-icon {
+    color: var(--dash-danger);
+  }
+
+  .dash-alert-info {
+    background: rgba(8, 184, 196, 0.1);
+    border-color: rgba(8, 184, 196, 0.3);
+  }
+
+  .dash-alert-info .dash-alert-icon {
+    color: var(--dash-info);
+  }
+
+  .dash-ui-badge {
+    @apply inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-2 py-0.5;
+  }
+
+  .dash-ui-badge-pill {
+    @apply rounded-full;
+  }
+
+  .dash-ui-badge-primary {
+    background: rgba(130, 128, 253, 0.15);
+    color: var(--dash-primary);
+  }
+
+  .dash-ui-badge-success {
+    background: rgba(91, 196, 134, 0.15);
+    color: var(--dash-success);
+  }
+
+  .dash-ui-badge-warning {
+    background: rgba(232, 168, 74, 0.15);
+    color: var(--dash-warning);
+  }
+
+  .dash-ui-badge-danger {
+    background: rgba(232, 101, 120, 0.15);
+    color: var(--dash-danger);
+  }
+
+  .dash-ui-badge-info {
+    background: rgba(8, 184, 196, 0.15);
+    color: var(--dash-info);
+  }
+
+  .dash-ui-badge-muted {
+    background: var(--dash-card-hover);
+    color: var(--dash-muted);
+  }
+
+  .dash-ui-btn {
+    @apply inline-flex items-center justify-center gap-2 font-bold rounded-full border-0 cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .dash-ui-btn-sm {
+    @apply text-[10px] px-3 py-1.5;
+  }
+
+  .dash-ui-btn-md {
+    @apply text-xs px-4 py-2;
+  }
+
+  .dash-ui-btn-lg {
+    @apply text-sm px-5 py-2.5;
+  }
+
+  .dash-ui-btn-primary {
+    background: var(--dash-primary);
+    color: #fff;
+  }
+
+  .dash-ui-btn-primary:hover:not(:disabled) {
+    background: var(--dash-primary-dark);
+  }
+
+  .dash-ui-btn-secondary {
+    background: var(--dash-card-hover);
+    color: #fff;
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-ui-btn-success {
+    background: var(--dash-success);
+    color: #0c1018;
+  }
+
+  .dash-ui-btn-danger {
+    background: var(--dash-danger);
+    color: #fff;
+  }
+
+  .dash-ui-btn-info {
+    background: var(--dash-info);
+    color: #0c1018;
+  }
+
+  .dash-ui-btn-outline {
+    background: transparent;
+    color: var(--dash-primary);
+    border: 1px solid rgba(130, 128, 253, 0.45);
+  }
+
+  .dash-ui-btn-ghost {
+    background: transparent;
+    color: var(--dash-muted);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-ui-btn-ghost:hover:not(:disabled) {
+    color: #fff;
+    border-color: var(--dash-primary);
+  }
+
+  .dash-ui-progress-wrap {
+    @apply w-full;
+  }
+
+  .dash-ui-progress-meta {
+    @apply flex justify-between text-[10px] font-bold mb-1;
+    color: var(--dash-muted);
+  }
+
+  .dash-ui-progress-track {
+    @apply h-2 rounded-full overflow-hidden;
+    background: var(--dash-border);
+  }
+
+  .dash-ui-progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  .dash-ui-progress-primary {
+    background: linear-gradient(90deg, var(--dash-primary-dark), var(--dash-primary));
+  }
+
+  .dash-ui-progress-success {
+    background: var(--dash-success);
+  }
+
+  .dash-ui-progress-warning {
+    background: var(--dash-warning);
+  }
+
+  .dash-ui-progress-danger {
+    background: var(--dash-danger);
+  }
+
+  .dash-ui-progress-info {
+    background: var(--dash-info);
+  }
+
+  .dash-ui-progress-striped {
+    background-image: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.12) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.12) 75%,
+      transparent 75%,
+      transparent
+    );
+    background-size: 1rem 1rem;
+  }
+
+  .dash-ui-tabs {
+    @apply flex flex-wrap gap-1;
+  }
+
+  .dash-ui-tabs-underline {
+    @apply border-b border-dash-border pb-0;
+  }
+
+  .dash-ui-tab {
+    @apply inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition cursor-pointer border-0 bg-transparent;
+    color: var(--dash-muted);
+  }
+
+  .dash-ui-tabs-underline .dash-ui-tab {
+    @apply rounded-t-lg border-b-2 border-transparent -mb-px;
+  }
+
+  .dash-ui-tabs-underline .dash-ui-tab-active {
+    color: var(--dash-primary);
+    border-bottom-color: var(--dash-primary);
+  }
+
+  .dash-ui-tabs-pill .dash-ui-tab {
+    @apply rounded-full;
+    background: var(--dash-card-hover);
+  }
+
+  .dash-ui-tabs-pill .dash-ui-tab-active {
+    background: rgba(130, 128, 253, 0.15);
+    color: var(--dash-primary);
+  }
+
+  .dash-list-group {
+    @apply list-none m-0 p-0 rounded-lg overflow-hidden;
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-list-group-item {
+    @apply w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition cursor-pointer border-0 border-b;
+    background: var(--dash-card-hover);
+    border-color: var(--dash-border);
+    color: #fff;
+  }
+
+  .dash-list-group-item:last-child {
+    @apply border-b-0;
+  }
+
+  .dash-list-group-item:hover,
+  .dash-list-group-item.active {
+    background: rgba(130, 128, 253, 0.1);
+    color: var(--dash-primary);
+  }
+
+  .dash-list-group-title {
+    @apply text-sm font-bold;
+  }
+
+  .dash-list-group-sub {
+    @apply text-[11px] mt-0.5;
+    color: var(--dash-muted);
+  }
+
+  .dash-modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background: rgba(2, 3, 10, 0.75);
+    backdrop-filter: blur(4px);
+  }
+
+  .dash-modal {
+    @apply w-full max-w-md rounded-xl overflow-hidden;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  }
+
+  .dash-modal-header {
+    @apply flex items-center justify-between gap-3 px-5 py-4;
+    border-bottom: 1px solid var(--dash-border);
+  }
+
+  .dash-modal-title {
+    @apply text-base font-bold text-white;
+  }
+
+  .dash-modal-close {
+    @apply p-1.5 rounded-lg border-0 cursor-pointer transition;
+    background: var(--dash-card-hover);
+    color: var(--dash-muted);
+  }
+
+  .dash-modal-body {
+    @apply px-5 py-4;
+  }
+
+  .dash-modal-footer {
+    @apply flex justify-end gap-2 px-5 py-4;
+    border-top: 1px solid var(--dash-border);
+    background: var(--dash-bg);
+  }
+
+  .dash-modal-primary .dash-modal-title {
+    color: var(--dash-primary);
+  }
+
+  .dash-modal-danger .dash-modal-title {
+    color: var(--dash-danger);
+  }
+
+  .dash-rating {
+    @apply inline-flex gap-1;
+  }
+
+  .dash-rating-sm .dash-rating-star {
+    @apply w-4 h-4;
+  }
+
+  .dash-rating-md .dash-rating-star {
+    @apply w-5 h-5;
+  }
+
+  .dash-rating-star {
+    @apply border-0 bg-transparent p-0 cursor-pointer transition;
+    color: var(--dash-border);
+  }
+
+  .dash-rating-star.filled {
+    color: var(--dash-warning);
+  }
+
+  .dash-rating-star:hover:not(:disabled) {
+    color: var(--dash-warning);
+  }
+
+  .dash-card-menu {
+    @apply relative shrink-0;
+  }
+
+  .dash-card-menu-trigger {
+    @apply w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition;
+    background: var(--dash-card-hover);
+    color: var(--dash-muted);
+  }
+
+  .dash-card-menu-trigger:hover {
+    color: #fff;
+    background: rgba(130, 128, 253, 0.15);
+  }
+
+  .dash-card-menu-dropdown {
+    @apply absolute top-full mt-1 min-w-[140px] rounded-lg py-1 z-20;
+    right: 0;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .dash-card-menu-left .dash-card-menu-dropdown {
+    right: auto;
+    left: 0;
+  }
+
+  .dash-card-menu-item {
+    @apply w-full text-left px-3 py-2 text-[11px] font-semibold border-0 cursor-pointer transition;
+    background: transparent;
+    color: var(--dash-muted);
+  }
+
+  .dash-card-menu-item:hover {
+    background: var(--dash-card-hover);
+    color: #fff;
+  }
+
+  .dash-nestable {
+    @apply list-none m-0 p-0 space-y-2;
+  }
+
+  .dash-nestable-item {
+    @apply flex items-center gap-3 p-3 rounded-lg transition;
+    background: var(--dash-card-hover);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-nestable-item.dragging {
+    opacity: 0.55;
+    border-color: var(--dash-primary);
+  }
+
+  .dash-nestable-drag {
+    @apply cursor-grab text-dash-muted;
+  }
+
+  .dash-nestable-text {
+    @apply text-sm font-semibold text-white;
+  }
+
+  .dash-nestable-tag {
+    @apply text-[9px] font-bold uppercase tracking-wide mt-1 inline-block;
+    color: var(--dash-muted);
+  }
+
+  .dash-stat-pills {
+    @apply grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6;
+  }
+
+  .dash-stat-pill {
+    @apply flex items-start gap-3 p-4 rounded-lg;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border-soft);
+    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .dash-stat-pill-icon {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center shrink-0;
+  }
+
+  .dash-stat-pill-icon-primary {
+    background: rgba(130, 128, 253, 0.15);
+    color: var(--dash-primary);
+  }
+
+  .dash-stat-pill-icon-info {
+    background: rgba(8, 184, 196, 0.12);
+    color: var(--dash-info);
+  }
+
+  .dash-stat-pill-icon-success {
+    background: rgba(91, 196, 134, 0.12);
+    color: var(--dash-success);
+  }
+
+  .dash-stat-pill-label {
+    @apply text-[10px] font-bold uppercase tracking-wider;
+    color: var(--dash-muted);
+  }
+
+  .dash-stat-pill-value {
+    @apply text-xl font-bold text-white leading-tight mt-0.5;
+  }
+
+  .dash-stat-pill-sub {
+    @apply text-[10px] mt-1;
+    color: var(--dash-muted);
+  }
+
+  .dash-typo-h1 {
+    @apply text-2xl font-bold text-white;
+  }
+
+  .dash-typo-h2 {
+    @apply text-xl font-bold text-white;
+  }
+
+  .dash-typo-h3 {
+    @apply text-lg font-bold text-white;
+  }
+
+  .dash-typo-body {
+    @apply text-sm leading-relaxed;
+    color: var(--dash-muted);
+  }
+
+  .dash-typo-code {
+    @apply text-[11px] px-1.5 py-0.5 rounded;
+    background: var(--dash-card-hover);
+    color: var(--dash-primary);
+  }
+
+  .dash-toast-success {
+    border-left: 3px solid var(--dash-success) !important;
+  }
+
+  .dash-toast-danger {
+    border-left: 3px solid var(--dash-danger) !important;
+  }
+
+  .dash-toast-warning {
+    border-left: 3px solid var(--dash-warning) !important;
+  }
+
+  .dash-toast-info {
+    border-left: 3px solid var(--dash-info) !important;
+  }
+
+  .dash-toast-primary {
+    border-left: 3px solid var(--dash-primary) !important;
+  }
+
   /* ── Page layout (Settings / Creator) ── */
   .dash-page {
     @apply space-y-5 min-w-0;
