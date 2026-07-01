@@ -45,6 +45,7 @@ type SearchResult = {
 type AgentReachPanelProps = {
   niche?: string;
   onApplyCreatorIdea?: (title: string, hookPt: string, options?: { format?: string }) => void;
+  embedded?: boolean;
 };
 
 const PLATFORMS: Platform[] = [
@@ -61,7 +62,7 @@ function statusColor(status?: string) {
   return 'text-zinc-500';
 }
 
-export function AgentReachPanel({ niche = '', onApplyCreatorIdea }: AgentReachPanelProps) {
+export function AgentReachPanel({ niche = '', onApplyCreatorIdea, embedded = false }: AgentReachPanelProps) {
   const [platform, setPlatform] = useState('exa');
   const [query, setQuery] = useState('');
   const [url, setUrl] = useState('');
@@ -151,13 +152,15 @@ export function AgentReachPanel({ niche = '', onApplyCreatorIdea }: AgentReachPa
 
   return (
     <div className="lumiera-panel-stack animate-fade-in font-sans min-w-0 space-y-4">
-      <SectionHeader
-        title="Pesquisa Web"
-        helpId="tab-agent-reach"
-        size="lg"
-        icon={<Globe className="w-6 h-6 text-sky-400 shrink-0" />}
-        subtitle="Busca na internet integrada (Agent Reach) — Exa, Jina, GitHub, Bilibili e RSS, sem terminal"
-      />
+      {!embedded && (
+        <SectionHeader
+          title="Pesquisa Web"
+          helpId="tab-agent-reach"
+          size="lg"
+          icon={<Globe className="w-6 h-6 text-sky-400 shrink-0" />}
+          subtitle="Busca na internet integrada (Agent Reach) — Exa, Jina, GitHub, Bilibili e RSS, sem terminal"
+        />
+      )}
 
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-sky-500/10">
         <div className="flex flex-wrap items-center gap-3">

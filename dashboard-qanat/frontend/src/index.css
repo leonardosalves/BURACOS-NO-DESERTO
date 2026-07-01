@@ -653,6 +653,75 @@
     color: var(--dash-primary) !important;
   }
 
+  .dash-card-analytics {
+    min-height: 280px;
+  }
+
+  .dash-analytics-charts {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0;
+  }
+
+  .dash-analytics-block {
+    @apply min-w-0;
+  }
+
+  .dash-analytics-label {
+    @apply text-[10px] font-bold uppercase tracking-wider mb-1 px-1;
+    color: var(--dash-muted);
+  }
+
+  .dash-activity-card {
+    @apply mb-6;
+  }
+
+  .dash-activity-list {
+    @apply list-none m-0 p-0 space-y-2 max-h-[320px] overflow-y-auto;
+  }
+
+  .dash-activity-item {
+    @apply flex items-start gap-3 p-3 rounded-lg transition;
+    background: var(--dash-card-hover);
+    border: 1px solid var(--dash-border);
+  }
+
+  .dash-activity-icon {
+    @apply w-8 h-8 rounded-full flex items-center justify-center shrink-0;
+  }
+
+  .dash-activity-success .dash-activity-icon {
+    background: rgba(103, 207, 148, 0.15);
+    color: var(--dash-success);
+  }
+
+  .dash-activity-warning .dash-activity-icon {
+    background: rgba(255, 185, 89, 0.15);
+    color: var(--dash-warning);
+  }
+
+  .dash-activity-render .dash-activity-icon {
+    background: rgba(130, 128, 253, 0.2);
+    color: var(--dash-primary);
+  }
+
+  .dash-activity-info .dash-activity-icon {
+    background: rgba(9, 209, 222, 0.12);
+    color: var(--dash-info);
+  }
+
+  .dash-activity-title {
+    @apply text-sm font-bold text-white leading-snug;
+  }
+
+  .dash-activity-detail {
+    @apply text-[11px] mt-0.5 leading-relaxed;
+    color: var(--dash-muted);
+  }
+
+  .dash-activity-time {
+    @apply text-[9px] font-bold uppercase tracking-wide shrink-0 pt-0.5;
+    color: var(--dash-muted);
+  }
+
   /* ── Legacy Lumiera classes → Dashmin styling ── */
   .lumiera-shell {
     @apply min-h-screen flex flex-col min-w-0;

@@ -63,6 +63,7 @@ type TrendForecastPanelProps = {
   niche?: string;
   onApplyCreatorIdea?: (title: string, hookPt: string, options?: { format?: string }) => void;
   onGoToIntegrations?: () => void;
+  embedded?: boolean;
 };
 
 function GrowthBadge({ pct }: { pct?: number }) {
@@ -85,6 +86,7 @@ export function TrendForecastPanel({
   niche = '',
   onApplyCreatorIdea,
   onGoToIntegrations,
+  embedded = false,
 }: TrendForecastPanelProps) {
   const [status, setStatus] = useState<TimesfmStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -148,13 +150,15 @@ export function TrendForecastPanel({
 
   return (
     <div className="lumiera-panel-stack animate-fade-in font-sans min-w-0 space-y-4">
-      <SectionHeader
-        title="Radar de Tendências"
-        helpId="tab-trend-forecast"
-        size="lg"
-        icon={<LineChart className="w-6 h-6 text-amber-400 shrink-0" />}
-        subtitle="Previsão de nichos e vídeos em alta com TimesFM (Google Research) + Analytics do canal"
-      />
+      {!embedded && (
+        <SectionHeader
+          title="Radar de Tendências"
+          helpId="tab-trend-forecast"
+          size="lg"
+          icon={<LineChart className="w-6 h-6 text-amber-400 shrink-0" />}
+          subtitle="Previsão de nichos e vídeos em alta com TimesFM (Google Research) + Analytics do canal"
+        />
+      )}
 
       <div className="glass-panel p-5 rounded-3xl space-y-4 border border-amber-500/10">
         <div className="flex flex-wrap items-center gap-3">

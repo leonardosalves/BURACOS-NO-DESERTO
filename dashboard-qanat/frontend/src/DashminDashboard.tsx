@@ -6,9 +6,9 @@ import {
   FolderOpen,
   PartyPopper,
   Plus,
-  TrendingUp,
 } from 'lucide-react';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
+import { DashminAnalyticsChart } from './DashminAnalyticsChart';
 
 type WorkspaceStatusLike = {
   has_narration?: boolean;
@@ -53,13 +53,6 @@ export function DashminDashboard({
   onOpenCreator,
   onOpenProjects,
 }: DashminDashboardProps) {
-  const formatStats = useMemo(() => {
-    const long = projects.filter((p) => p.format !== 'SHORTS').length;
-    const short = projects.filter((p) => p.format === 'SHORTS').length;
-    const max = Math.max(long, short, 1);
-    return { long, short, max };
-  }, [projects]);
-
   const todoItems = useMemo<TodoItem[]>(() => {
     const s = status;
     return [
@@ -127,34 +120,14 @@ export function DashminDashboard({
         </p>
       </div>
 
-      <div className="dash-card">
-        <div className="dash-card-header mb-4">
+      <div className="dash-card dash-card-analytics">
+        <div className="dash-card-header mb-2">
           <div>
             <p className="dash-card-eyebrow">Biblioteca</p>
-            <h3 className="dash-card-title text-base">Analytics por formato</h3>
-          </div>
-          <TrendingUp className="w-5 h-5 text-dash-primary shrink-0" />
-        </div>
-        <div className="dash-bar-chart">
-          <div className="dash-bar-col">
-            <div
-              className="dash-bar dash-bar-long"
-              style={{ height: `${(formatStats.long / formatStats.max) * 100}%` }}
-              title={`${formatStats.long} longos`}
-            />
-            <span className="dash-bar-label">Longos</span>
-            <span className="dash-bar-value">{formatStats.long}</span>
-          </div>
-          <div className="dash-bar-col">
-            <div
-              className="dash-bar dash-bar-short"
-              style={{ height: `${(formatStats.short / formatStats.max) * 100}%` }}
-              title={`${formatStats.short} shorts`}
-            />
-            <span className="dash-bar-label">Shorts</span>
-            <span className="dash-bar-value">{formatStats.short}</span>
+            <h3 className="dash-card-title text-base">Analytics</h3>
           </div>
         </div>
+        <DashminAnalyticsChart projects={projects} />
       </div>
 
       <div className="dash-card dash-span-2-lg">

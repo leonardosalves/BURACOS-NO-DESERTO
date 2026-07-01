@@ -56,7 +56,7 @@ type ComfyMcpStatus = {
   };
 };
 
-export function ComfyMcpPage() {
+export function ComfyMcpPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [status, setStatus] = useState<ComfyMcpStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -141,18 +141,20 @@ export function ComfyMcpPage() {
     <div className="lumiera-panel-stack animate-fade-in max-w-5xl w-full mx-auto space-y-3 pb-8">
       <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <SectionHeader
-            title="Comfy Cloud MCP"
-            helpId="tab-comfy-mcp"
-            size="lg"
-            icon={<Cloud className="w-6 h-6 text-sky-400 shrink-0" />}
-            subtitle="Agente criativo na nuvem — imagem, vídeo, áudio e 3D via MCP. Sem GPU local obrigatória."
-          />
+          {!embedded && (
+            <SectionHeader
+              title="Comfy Cloud MCP"
+              helpId="tab-comfy-mcp"
+              size="lg"
+              icon={<Cloud className="w-6 h-6 text-sky-400 shrink-0" />}
+              subtitle="Agente criativo na nuvem — imagem, vídeo, áudio e 3D via MCP. Sem GPU local obrigatória."
+            />
+          )}
           <button
             type="button"
             disabled={loading || !!busy}
             onClick={() => fetchStatus()}
-            className="p-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-sky-500/30 hover:text-sky-300 transition disabled:opacity-40"
+            className={`p-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-sky-500/30 hover:text-sky-300 transition disabled:opacity-40 ${embedded ? 'ml-auto' : ''}`}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
