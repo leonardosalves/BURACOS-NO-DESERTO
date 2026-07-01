@@ -1,6 +1,8 @@
+import type { EditorialIdeaImport } from './creatorEditorialImport';
+
 export const WIZARD_SESSION_KEY = 'qanat_wizard_session';
 export const LEGACY_CREATOR_STATE_KEY = 'qanat_creator_state';
-export const WIZARD_SESSION_VERSION = 1;
+export const WIZARD_SESSION_VERSION = 2;
 
 export type WizardSession = {
   version: number;
@@ -46,6 +48,7 @@ export type WizardSession = {
   useNotebooklm: boolean;
   uploadedScenes: Record<string, boolean>;
   expandedBlocks: Record<number, boolean>;
+  editorialIdeaImport?: EditorialIdeaImport | null;
 };
 
 export type WizardSessionPatch = Partial<Omit<WizardSession, 'version' | 'savedAt'>>;
@@ -97,7 +100,7 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
     version: WIZARD_SESSION_VERSION,
     savedAt: new Date().toISOString(),
     wasInWizard: patch.wasInWizard ?? prev.wasInWizard ?? false,
-    activeTab: patch.activeTab ?? prev.activeTab ?? 'status',
+    activeTab: patch.activeTab ?? prev.activeTab ?? 'home',
     activeProject: patch.activeProject ?? prev.activeProject ?? '',
     creatorStep: patch.creatorStep ?? prev.creatorStep ?? 1,
     nicheInput: patch.nicheInput ?? prev.nicheInput ?? '',
@@ -137,6 +140,9 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
     useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? true,
     uploadedScenes: patch.uploadedScenes ?? prev.uploadedScenes ?? {},
     expandedBlocks: patch.expandedBlocks ?? prev.expandedBlocks ?? { 1: true },
+    editorialIdeaImport: patch.editorialIdeaImport !== undefined
+      ? patch.editorialIdeaImport
+      : prev.editorialIdeaImport ?? null,
   };
   const serialized = JSON.stringify(payload);
   localStorage.setItem(WIZARD_SESSION_KEY, serialized);

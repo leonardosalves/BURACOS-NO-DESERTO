@@ -177,7 +177,9 @@ import {
   buildEditorialImportOutline,
   coerceCreatorTextField,
   isClipFactorySource,
+  isPioneerStrategyText,
   parseEditorialSourceProject,
+  resolvePioneerCreatorSeed,
 } from './creatorEditorialImport';
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
@@ -2356,6 +2358,7 @@ export default function App() {
     useNotebooklm,
     uploadedScenes,
     expandedBlocks,
+    editorialIdeaImport,
   }), [
     activeTab, activeProject, creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex,
     generatedScriptData, creatorProjectName, creatorScript, ideationTab, customTitle, customHooks,
@@ -2364,6 +2367,7 @@ export default function App() {
     listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft,
     narrationTaggedDraft, narrationStrategy, narrationBlockPhrases, narrationBlockScript,
     narrationNotebooklmEnriched, narrationProjectName, useNotebooklm, uploadedScenes, expandedBlocks,
+    editorialIdeaImport,
   ]);
 
   const applyWizardSessionPatch = useCallback((patch: WizardSessionPatch) => {
@@ -2405,6 +2409,7 @@ export default function App() {
     if (patch.useNotebooklm !== undefined) setUseNotebooklm(patch.useNotebooklm);
     if (patch.uploadedScenes) setUploadedScenes(patch.uploadedScenes);
     if (patch.expandedBlocks) setExpandedBlocks(patch.expandedBlocks);
+    if (patch.editorialIdeaImport !== undefined) setEditorialIdeaImport(patch.editorialIdeaImport);
     if (patch.activeProject) setActiveProject(patch.activeProject);
     if (patch.activeTab === 'creator' || shouldRestoreWizardTab(patch)) {
       setActiveTab('creator');
@@ -6450,7 +6455,11 @@ export default function App() {
         promise: customOutline.trim(),
         emotion: 'Curiosity / Action',
         isCustom: true,
-        pioneerNiche: editorialIdeaImport?.mechanic === 'pioneer-niche',
+        pioneerNiche: editorialIdeaImport?.mechanic === 'pioneer-niche'
+          || Boolean(editorialIdeaImport?.pioneerMeta)
+          || isPioneerStrategyText(customTitle.trim())
+          || isPioneerStrategyText(customHooks.trim())
+          || /TEMA DO VÍDEO/i.test(customOutline.trim()),
         hook: customHooks.trim(),
         hooks: customHooks.trim(),
         blocks: customBlocks.filter((b) => b.content.trim() !== ''),
@@ -6477,6 +6486,22 @@ export default function App() {
     } else if (ideationTab === 'custom') {
       if (!customTitle.trim()) {
         toast.error('Por favor, preencha o título da sua ideia.');
+        return false;
+      }
+      if (
+        isPioneerStrategyText(customTitle.trim())
+        && isPioneerStrategyText(customHooks.trim())
+        && !customOutline.trim()
+      ) {
+        toast.error(
+          'Título/gancho são texto de estratégia (saturação/gap), não o tema do vídeo. Reabra a ideia pelo Radar → Abrir no Creator.',
+        );
+        return false;
+      }
+      if (isPioneerStrategyText(customTitle.trim()) && !customOutline.trim()) {
+        toast.error(
+          'Preencha o outline com o TEMA real do vídeo (ângulo/assunto), não só a análise de saturação.',
+        );
         return false;
       }
     } else if (!ideasData || selectedIdeaIndex === -1) {
@@ -6688,8 +6713,13 @@ export default function App() {
     const autoRun = options?.autoRun === true;
     const safeTitle = coerceCreatorTextField(title, '');
     const safeHook = coerceCreatorTextField(hookPt, safeTitle);
-    const cleaned = cleanYoutubeStudioIdeaSeed(safeTitle, safeHook);
-    const hook = safeHook || cleaned;
+    const isPioneer = options?.mechanic === 'pioneer-niche' || Boolean(options?.pioneerMeta);
+    const pioneerSeed = isPioneer
+      ? resolvePioneerCreatorSeed(safeTitle, safeHook, options?.pioneerMeta, options?.whyWorks)
+      : null;
+    const cleaned = pioneerSeed?.title || cleanYoutubeStudioIdeaSeed(safeTitle, safeHook);
+    const hook = pioneerSeed?.hook
+      || (isPioneerStrategyText(safeHook) ? cleaned : (safeHook || cleaned));
     const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
     const format = options?.format || 'SHORTS';
     const projectSlug = slugCreatorProjectFromTitle(hook || cleaned);
@@ -12478,7 +12508,7 @@ export default function App() {
                   embedded
                   niche={config?.niche || ''}
                   onApplyCreatorIdea={(title, hookPt, options) => {
-                    void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
+                    void handleApplyYoutubeStudioIdea(title, hookPt, options);
                   }}
                 />
               </DashminPageLayout>
@@ -12528,7 +12558,7 @@ export default function App() {
                 onSelectProject={handleSelectProject}
                 onAlertsSync={setYoutubeChannelAlerts}
                 onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
+                  void handleApplyYoutubeStudioIdea(title, hookPt, options);
                 }}
                 onSchedulePublish={handleScheduleFromHeatmap}
                 onGoToIntegrations={() => {

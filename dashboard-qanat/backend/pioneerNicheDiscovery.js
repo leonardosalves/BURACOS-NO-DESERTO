@@ -130,9 +130,10 @@ const PIONEER_STRATEGY_RE = [
   /oceano\s+azul/i,
   /poucos?\s+canais/i,
   /ângulo\s+est[aá]\s+vazio/i,
+  /farsa\s+do\s+mercado/i,
 ];
 
-function isPioneerStrategyText(text = "") {
+export function isPioneerStrategyText(text = "") {
   const t = String(text || "").trim();
   if (!t) return false;
   return PIONEER_STRATEGY_RE.some((re) => re.test(t));

@@ -13,6 +13,56 @@ export type PioneerNicheMeta = {
   youtubeSearchQuery?: string;
 };
 
+/** Texto de estratégia YouTube — não é tema de vídeo (espelha pioneerNicheDiscovery.js). */
+const PIONEER_STRATEGY_RE = [
+  /macro-nicho/i,
+  /satura[cç][aã]o/i,
+  /pioneirismo/i,
+  /gap\s*\d/i,
+  /canal\(is\)\s+dedicado/i,
+  /nicho\s+virgem/i,
+  /oceano\s+azul/i,
+  /poucos?\s+canais/i,
+  /ângulo\s+est[aá]\s+vazio/i,
+  /farsa\s+do\s+mercado/i,
+];
+
+export function isPioneerStrategyText(text = ''): boolean {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  return PIONEER_STRATEGY_RE.some((re) => re.test(t));
+}
+
+function firstNonStrategyText(...candidates: (string | undefined)[]): string {
+  for (const raw of candidates) {
+    const s = String(raw || '').trim();
+    if (s && !isPioneerStrategyText(s)) return s;
+  }
+  return '';
+}
+
+/** Garante título/gancho sobre o TEMA do vídeo, nunca sobre saturação/gap. */
+export function resolvePioneerCreatorSeed(
+  title: string,
+  hook: string,
+  pioneerMeta?: PioneerNicheMeta | null,
+  whyWorks?: string,
+): { title: string; hook: string } {
+  const meta = pioneerMeta || {};
+  const contentTitle = firstNonStrategyText(
+    meta.angle,
+    title,
+    hook,
+    meta.formatPattern && meta.macroNiche ? `${meta.macroNiche}: ${meta.formatPattern}` : '',
+    meta.macroNiche,
+  );
+  const contentHook = firstNonStrategyText(meta.angle, hook, title, contentTitle) || contentTitle;
+  return {
+    title: contentTitle.slice(0, 240),
+    hook: contentHook.slice(0, 500),
+  };
+}
+
 export type CreatorApplyIdeaOptions = {
   format?: 'LONGO' | 'SHORTS';
   /** Só gera narração automaticamente se true (padrão: página preparada). */
@@ -93,10 +143,20 @@ export function buildEditorialImportOutline(
   const parts: string[] = [];
   const researchBlock = buildAgentReachResearchOutline(importData.agentReachResearch);
   if (researchBlock) parts.push(researchBlock);
-  if (importData.mechanic === 'pioneer-niche' && importData.pioneerMeta) {
+  const hasPioneerMeta = Boolean(
+    importData.pioneerMeta?.angle
+    || importData.pioneerMeta?.macroNiche
+    || importData.pioneerMeta?.formatPattern,
+  );
+  if ((importData.mechanic === 'pioneer-niche' || hasPioneerMeta) && importData.pioneerMeta) {
     parts.push(buildPioneerCreatorOutline(importData.pioneerMeta, importData.whyWorks));
-  } else if (importData.whyWorks) {
+  } else if (importData.whyWorks && !isPioneerStrategyText(importData.whyWorks)) {
     parts.push(importData.whyWorks);
+  } else if (importData.whyWorks && isPioneerStrategyText(importData.whyWorks)) {
+    parts.push(
+      'TEMA DO VÍDEO: use o título/gancho como assunto real. Contexto estratégico (NÃO vire isso no roteiro):',
+      importData.whyWorks,
+    );
   }
   if (importData.mechanic) parts.push(`Mecânica: ${importData.mechanic}`);
   if (importData.sourceProject) {
