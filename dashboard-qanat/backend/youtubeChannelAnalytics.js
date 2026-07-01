@@ -340,29 +340,58 @@ function normalizeAuthorChannelId(snippet = {}) {
   return String(snippet?.authorChannelId?.value || snippet?.authorChannelId || "").trim();
 }
 
-function threadHasChannelReply(thread, channelId, channelTitle = "") {
-  const replies = thread?.replies?.comments || [];
+function replyAuthorIsChannel(snippet = {}, channelId, channelTitle = "", channelHandle = "") {
+  if (normalizeAuthorChannelId(snippet) === channelId) return true;
+  const author = String(snippet.authorDisplayName || "").trim().toLowerCase();
   const titleNorm = String(channelTitle || "").trim().toLowerCase();
-  return replies.some((reply) => {
-    const snippet = reply?.snippet || {};
-    if (normalizeAuthorChannelId(snippet) === channelId) return true;
-    if (titleNorm && String(snippet.authorDisplayName || "").trim().toLowerCase() === titleNorm) return true;
+  if (titleNorm && author === titleNorm) return true;
+  const handleNorm = String(channelHandle || "").trim().toLowerCase().replace(/^@/, "");
+  if (handleNorm && (author === `@${handleNorm}` || author.includes(handleNorm))) return true;
+  return false;
+}
+
+function threadHasChannelReply(thread, channelId, channelTitle = "", channelHandle = "") {
+  const replies = thread?.replies?.comments || [];
+  return replies.some((reply) => replyAuthorIsChannel(reply?.snippet, channelId, channelTitle, channelHandle));
+}
+
+async function threadHasChannelReplyDeep(accessToken, thread, channelId, channelTitle = "", channelHandle = "") {
+  if (threadHasChannelReply(thread, channelId, channelTitle, channelHandle)) return true;
+  const replyCount = Number(thread?.snippet?.totalReplyCount || 0);
+  if (replyCount === 0) return false;
+  const parentId = thread?.snippet?.topLevelComment?.id;
+  if (!parentId) return false;
+  try {
+    const data = await youtubeDataGet(accessToken, "comments", {
+      part: "snippet",
+      parentId,
+      maxResults: 100,
+    });
+    return (data?.items || []).some((reply) => (
+      replyAuthorIsChannel(reply?.snippet, channelId, channelTitle, channelHandle)
+    ));
+  } catch {
     return false;
-  });
+  }
 }
 
 function isOwnChannelComment(topSnippet, channelId) {
   return Boolean(normalizeAuthorChannelId(topSnippet) && normalizeAuthorChannelId(topSnippet) === channelId);
 }
 
-function mapCommentThread(thread, channelId, channelTitle = "") {
+async function mapCommentThread(thread, channelId, channelTitle = "", channelHandle = "", accessToken = null) {
   const snippet = thread?.snippet || {};
   const top = snippet.topLevelComment?.snippet || {};
   const videoId = snippet.videoId || "";
   const threadId = thread?.id || "";
   const topCommentId = snippet.topLevelComment?.id || "";
   const replyCount = Number(snippet.totalReplyCount || 0);
-  const isAnswered = replyCount > 0 && threadHasChannelReply(thread, channelId, channelTitle);
+  let isAnswered = false;
+  if (replyCount > 0) {
+    isAnswered = accessToken
+      ? await threadHasChannelReplyDeep(accessToken, thread, channelId, channelTitle, channelHandle)
+      : threadHasChannelReply(thread, channelId, channelTitle, channelHandle);
+  }
   const ownChannelComment = isOwnChannelComment(top, channelId);
 
   return {
@@ -424,14 +453,15 @@ export async function fetchChannelComments(workspaceDir, {
   const channelItem = channelData?.items?.[0];
   const channelId = channelItem?.id;
   const channelTitle = channelItem?.snippet?.title || "";
+  const channelHandle = channelItem?.snippet?.customUrl || "";
   if (!channelId) {
     throw new Error("Nenhum canal encontrado na conta conectada.");
   }
 
   const maxResults = Math.min(Math.max(Number(limit) || 20, 1), 50);
   const wantsFilter = filter === "unanswered" || String(keyword || "").trim().length > 0;
-  // Busca extra: comentários do próprio canal são sempre excluídos da lista.
-  const fetchCount = wantsFilter ? Math.min(maxResults * 3, 100) : Math.min(maxResults * 2, 100);
+  // Busca extra: comentários do próprio canal e já respondidos são filtrados depois.
+  const fetchCount = wantsFilter ? 100 : Math.min(maxResults * 2, 100);
 
   const threadParams = {
     part: "snippet,replies",
@@ -445,7 +475,11 @@ export async function fetchChannelComments(workspaceDir, {
   const threadsData = await youtubeDataGet(accessToken, "commentThreads", threadParams);
 
   const handledIds = getHandledCommentIds(workspaceDir);
-  const mapped = (threadsData?.items || []).map((thread) => mapCommentThread(thread, channelId, channelTitle));
+  const mapped = await Promise.all(
+    (threadsData?.items || []).map((thread) => (
+      mapCommentThread(thread, channelId, channelTitle, channelHandle, accessToken)
+    )),
+  );
 
   const missingTitleIds = [
     ...new Set(mapped.filter((item) => item.videoId && !item.videoTitle).map((item) => item.videoId)),
@@ -693,7 +727,14 @@ export function collectLumieraPublishedVideos(projectsRoot) {
   return results;
 }
 
-async function countUnansweredComments(accessToken, channelId, scanLimit = 50, handledIds = new Set(), channelTitle = "") {
+async function countUnansweredComments(
+  accessToken,
+  channelId,
+  scanLimit = 50,
+  handledIds = new Set(),
+  channelTitle = "",
+  channelHandle = "",
+) {
   const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
     part: "snippet,replies",
     allThreadsRelatedToChannelId: channelId,
@@ -710,7 +751,9 @@ async function countUnansweredComments(accessToken, channelId, scanLimit = 50, h
     const top = snippet.topLevelComment?.snippet || {};
     if (isOwnChannelComment(top, channelId)) continue;
     const replyCount = Number(snippet.totalReplyCount || 0);
-    const isAnswered = replyCount > 0 && threadHasChannelReply(thread, channelId, channelTitle);
+    const isAnswered = replyCount > 0 && await threadHasChannelReplyDeep(
+      accessToken, thread, channelId, channelTitle, channelHandle,
+    );
     if (!isAnswered) count += 1;
   }
   return count;
@@ -763,6 +806,7 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   const channelItem = channelData?.items?.[0];
   const channelId = channelItem?.id;
   const channelTitle = channelItem?.snippet?.title || "";
+  const channelHandle = channelItem?.snippet?.customUrl || "";
   if (!channelId) {
     throw new Error("Nenhum canal encontrado na conta conectada.");
   }
@@ -772,7 +816,9 @@ async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
 
   const handledIds = getHandledCommentIds(workspaceDir);
   const [unansweredComments, velocityResults] = await Promise.all([
-    countUnansweredComments(accessToken, channelId, commentScanLimit, handledIds, channelTitle),
+    countUnansweredComments(
+      accessToken, channelId, commentScanLimit, handledIds, channelTitle, channelHandle,
+    ),
     Promise.all(
       lumieraVideos.slice(0, Math.min(Math.max(maxProjects, 1), 20)).map(async (entry) => {
         try {
