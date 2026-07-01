@@ -1354,31 +1354,6 @@ app.post("/api/outputs/delete", (req, res) => {
 
 });
 
-// API: Plan and generate AI overlays explicitly
-app.post("/api/projects/overlays/plan-ai", async (req, res) => {
-  try {
-    const projDir = getProjectDir(req);
-    const useHyperframes = req.body?.hyperframes === true;
-
-    // Plan and generate overlays via AI
-    const overlays = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
-      skipBrowserCache: true, // Force generating fresh layouts
-    });
-
-    const storyboard = readProjectJson(projDir, "storyboard.json", {});
-
-    res.json({
-      success: true,
-      overlayCount: overlays.length,
-      overlays: storyboard.overlays || overlays,
-      storyboard: storyboard
-    });
-  } catch (err) {
-    console.error("Erro ao planejar overlays pela AI:", err);
-    res.status(500).json({ error: "Falha ao gerar overlays pela AI", details: err.message });
-  }
-});
-
 // API: Get storyboard data
 
 app.get("/api/projects/storyboard", (req, res) => {
@@ -3761,7 +3736,6 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
-    delete storyboard.overlays;
 
     const timingsForPlan = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
     const configForPlan = readProjectJson(projDir, "config_qanat.json", {});
@@ -3778,6 +3752,33 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       projectName: path.basename(projDir),
       blockCount: Array.isArray(timingsForPlan.starts) ? timingsForPlan.starts.length : 0,
     });
+
+    // Align and finalize planned overlays immediately
+    const realigned = normalizeGeminiOverlayPayload(
+      realignPlannedOverlays(
+        cleanedAi,
+        null,
+        storyboard,
+        timingsForPlan.starts || [],
+        timingsForPlan.durations || [],
+        wordTranscriptsPlan,
+        configForPlan,
+      )
+    );
+
+    const finalized = finalizeProjectOverlays(
+      projDir,
+      realigned,
+      configForPlan,
+      storyboard,
+      timingsForPlan.starts || [],
+      timingsForPlan.durations || [],
+      planForTiming,
+      totalDurPlan,
+    );
+
+    storyboard.overlays = finalized;
+
     const sceneMapsPlan = buildSceneTimingMaps(null, storyboard, timingsForPlan.starts || [], timingsForPlan.durations || []);
     const preparedForTiming = resolveOverlaysForTimingCheck(storyboard, timingsForPlan);
     const { report: planTimingReport } = verifyAndRepairAiOverlayTiming(preparedForTiming, {
