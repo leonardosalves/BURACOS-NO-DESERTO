@@ -340,6 +340,11 @@ function threadHasChannelReply(thread, channelId) {
   return replies.some((reply) => reply?.snippet?.authorChannelId === channelId);
 }
 
+function isOwnChannelComment(topSnippet, channelId) {
+  const authorChannelId = String(topSnippet?.authorChannelId?.value || topSnippet?.authorChannelId || "").trim();
+  return Boolean(authorChannelId && authorChannelId === channelId);
+}
+
 function mapCommentThread(thread, channelId) {
   const snippet = thread?.snippet || {};
   const top = snippet.topLevelComment?.snippet || {};
@@ -348,6 +353,7 @@ function mapCommentThread(thread, channelId) {
   const topCommentId = snippet.topLevelComment?.id || "";
   const replyCount = Number(snippet.totalReplyCount || 0);
   const isAnswered = replyCount > 0 && threadHasChannelReply(thread, channelId);
+  const ownChannelComment = isOwnChannelComment(top, channelId);
 
   return {
     threadId,
@@ -356,6 +362,7 @@ function mapCommentThread(thread, channelId) {
     videoTitle: snippet.videoTitle || "",
     authorDisplayName: top.authorDisplayName || "",
     authorProfileImageUrl: top.authorProfileImageUrl || "",
+    isOwnChannelComment: ownChannelComment,
     text: normalizeCommentText(top.textDisplay || top.textOriginal || ""),
     publishedAt: top.publishedAt || top.updatedAt || "",
     likeCount: Number(top.likeCount || 0),
@@ -373,7 +380,7 @@ function mapCommentThread(thread, channelId) {
 }
 
 function applyCommentFilters(comments, { filter = "all", keyword = "" } = {}) {
-  let result = [...comments];
+  let result = comments.filter((item) => !item.isOwnChannelComment);
 
   if (filter === "unanswered") {
     result = result.filter((item) => !item.isAnswered);
@@ -411,7 +418,8 @@ export async function fetchChannelComments(workspaceDir, {
 
   const maxResults = Math.min(Math.max(Number(limit) || 20, 1), 50);
   const wantsFilter = filter === "unanswered" || String(keyword || "").trim().length > 0;
-  const fetchCount = wantsFilter ? Math.min(maxResults * 3, 100) : maxResults;
+  // Busca extra: comentários do próprio canal são sempre excluídos da lista.
+  const fetchCount = wantsFilter ? Math.min(maxResults * 3, 100) : Math.min(maxResults * 2, 100);
 
   const threadsData = await youtubeDataGet(accessToken, "commentThreads", {
     part: "snippet,replies",
@@ -451,7 +459,7 @@ export async function fetchChannelComments(workspaceDir, {
     comments: filtered,
     totalFetched: mapped.length,
     fetchedAt: new Date().toISOString(),
-    replyNote: "Responda pelo Lumiera abaixo ou abra no YouTube Studio.",
+    replyNote: "Comentários iniciados pelo canal são ocultados. Responda pelo Lumiera abaixo ou abra no YouTube Studio.",
   };
 }
 
@@ -679,6 +687,8 @@ async function countUnansweredComments(accessToken, channelId, scanLimit = 50) {
   let count = 0;
   for (const thread of threadsData?.items || []) {
     const snippet = thread?.snippet || {};
+    const top = snippet.topLevelComment?.snippet || {};
+    if (isOwnChannelComment(top, channelId)) continue;
     const replyCount = Number(snippet.totalReplyCount || 0);
     const isAnswered = replyCount > 0 && threadHasChannelReply(thread, channelId);
     if (!isAnswered) count += 1;
