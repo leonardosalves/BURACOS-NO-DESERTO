@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import {
   AlertTriangle,
   CheckCircle2,
+  Compass,
   LineChart,
   Loader2,
   RefreshCw,
@@ -47,6 +48,37 @@ type TrendIdea = {
   growthPct?: number;
 };
 
+type PioneerNiche = {
+  label?: string;
+  pioneerScore?: number;
+  saturationPct?: number;
+  interestScore?: number;
+  status?: 'virgem' | 'pioneiro' | 'emergente' | 'saturado';
+  whyPioneer?: string;
+  firstVideoIdea?: string;
+  risk?: string;
+  format?: string;
+  youtube?: {
+    channelCount?: number;
+    videoCount?: number;
+    avgTopViews?: number;
+    sampleChannels?: { title?: string }[];
+  };
+};
+
+type PioneerDiscovery = {
+  ok?: boolean;
+  pioneerNiches?: PioneerNiche[];
+  pioneerIdeas?: TrendIdea[];
+  summary?: {
+    scanned?: number;
+    virginCount?: number;
+    pioneerCount?: number;
+    topPick?: string;
+  };
+  exaAvailable?: boolean;
+};
+
 type ForecastResult = {
   ok?: boolean;
   engine?: string;
@@ -56,6 +88,7 @@ type ForecastResult = {
   shortTrends?: TrendVideo[];
   longTrends?: TrendVideo[];
   derivedIdeas?: TrendIdea[];
+  pioneerDiscovery?: PioneerDiscovery;
   editorialQueue?: { enqueued?: number; total?: number };
 };
 
@@ -65,6 +98,27 @@ type TrendForecastPanelProps = {
   onGoToIntegrations?: () => void;
   embedded?: boolean;
 };
+
+function PioneerStatusBadge({ status }: { status?: PioneerNiche['status'] }) {
+  const map = {
+    virgem: 'bg-violet-500/20 text-violet-200 border-violet-500/40',
+    pioneiro: 'bg-cyan-500/15 text-cyan-200 border-cyan-500/30',
+    emergente: 'bg-amber-500/10 text-amber-200 border-amber-500/25',
+    saturado: 'bg-zinc-600/20 text-zinc-400 border-zinc-600/40',
+  } as const;
+  const labels = {
+    virgem: 'Virgem',
+    pioneiro: 'Pioneiro',
+    emergente: 'Emergente',
+    saturado: 'Saturado',
+  } as const;
+  const key = status && status in map ? status : 'emergente';
+  return (
+    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${map[key]}`}>
+      {labels[key]}
+    </span>
+  );
+}
 
 function GrowthBadge({ pct }: { pct?: number }) {
   const v = Number(pct || 0);
@@ -94,6 +148,9 @@ export function TrendForecastPanel({
   const [format, setFormat] = useState<'all' | 'SHORTS' | 'LONGO'>('all');
   const [horizon, setHorizon] = useState(7);
   const [enqueueIdeas, setEnqueueIdeas] = useState(true);
+  const [discoverPioneers, setDiscoverPioneers] = useState(true);
+  const [pioneerOnly, setPioneerOnly] = useState(false);
+  const [pioneerResult, setPioneerResult] = useState<PioneerDiscovery | null>(null);
   const [result, setResult] = useState<ForecastResult | null>(null);
 
   const fetchStatus = useCallback(async () => {
@@ -114,12 +171,51 @@ export function TrendForecastPanel({
     void fetchStatus();
   }, [fetchStatus]);
 
+  const runPioneerScan = async () => {
+    setBusy(true);
+    setPioneerResult(null);
+    setResult(null);
+    const toastId = 'pioneer-scan';
+    try {
+      toast.loading('Varrendo nichos pioneiros no YouTube…', { id: toastId });
+      const res = await fetch('/api/trends/pioneer-niches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: format === 'LONGO' ? 'LONGO' : format === 'SHORTS' ? 'SHORTS' : 'SHORTS',
+          niche,
+          useAi: true,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(String(data.error || data.details || 'Falha na varredura'));
+      setPioneerResult(data);
+      const top = data.summary?.topPick;
+      toast.success(
+        `${data.summary?.pioneerCount ?? 0} nicho(s) pioneiro(s)${top ? ` · destaque: ${top.slice(0, 40)}` : ''}`,
+        { id: toastId },
+      );
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro na varredura', { id: toastId });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const runForecast = async () => {
+    if (pioneerOnly) {
+      await runPioneerScan();
+      return;
+    }
     setBusy(true);
     setResult(null);
+    setPioneerResult(null);
     const toastId = 'trend-forecast';
     try {
-      toast.loading('Previsão TimesFM em andamento…', { id: toastId });
+      toast.loading(
+        discoverPioneers ? 'TimesFM + varredura de nichos pioneiros…' : 'Previsão TimesFM em andamento…',
+        { id: toastId },
+      );
       const res = await fetch('/api/trends/forecast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,16 +223,19 @@ export function TrendForecastPanel({
           format,
           horizon,
           enqueueIdeas,
+          discoverPioneers,
           niche,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(String(data.error || data.details || 'Falha na previsão'));
       setResult(data);
+      if (data.pioneerDiscovery?.ok) setPioneerResult(data.pioneerDiscovery);
       const engine = data.engine === 'timesfm-2.5' ? 'TimesFM 2.5' : 'fallback estatístico';
       const queue = data.editorialQueue?.enqueued;
+      const pioneers = data.pioneerDiscovery?.summary?.pioneerCount;
       toast.success(
-        `Previsão pronta (${engine})${queue ? ` · ${queue} ideia(s) na fila` : ''}`,
+        `Previsão pronta (${engine})${pioneers ? ` · ${pioneers} pioneiro(s)` : ''}${queue ? ` · ${queue} na fila` : ''}`,
         { id: toastId },
       );
     } catch (err: unknown) {
@@ -156,7 +255,7 @@ export function TrendForecastPanel({
           helpId="tab-trend-forecast"
           size="lg"
           icon={<LineChart className="w-6 h-6 text-amber-400 shrink-0" />}
-          subtitle="Previsão de nichos e vídeos em alta com TimesFM (Google Research) + Analytics do canal"
+          subtitle="Previsão TimesFM + descoberta de nichos virgens/pioneiros (pouca concorrência no YouTube)"
         />
       )}
 
@@ -226,8 +325,45 @@ export function TrendForecastPanel({
               onChange={(e) => setEnqueueIdeas(e.target.checked)}
               className="rounded border-zinc-700"
             />
-            Enfileirar ideias previstas na fila editorial
+            Enfileirar ideias na fila editorial
           </label>
+        </div>
+
+        <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 space-y-2">
+          <div className="flex items-center gap-2">
+            <Compass className="w-4 h-4 text-violet-300" />
+            <p className="text-[11px] font-bold text-violet-100">Modo Pioneiro — desbravar nichos vazios</p>
+          </div>
+          <p className="text-[10px] text-zinc-500 leading-relaxed">
+            Cruza Exa (interesse emergente na web) com busca no YouTube (canais/vídeos encontrados).
+            Prioriza nichos <strong className="text-violet-300">virgens</strong> e <strong className="text-cyan-300">pioneiros</strong> onde você pode ser referência.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-[10px] text-zinc-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={discoverPioneers}
+                onChange={(e) => {
+                  setDiscoverPioneers(e.target.checked);
+                  if (e.target.checked) setPioneerOnly(false);
+                }}
+                className="rounded border-zinc-700"
+              />
+              Incluir na previsão completa
+            </label>
+            <label className="flex items-center gap-2 text-[10px] text-zinc-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pioneerOnly}
+                onChange={(e) => {
+                  setPioneerOnly(e.target.checked);
+                  if (e.target.checked) setDiscoverPioneers(false);
+                }}
+                className="rounded border-zinc-700"
+              />
+              Só varredura pioneira (mais rápido)
+            </label>
+          </div>
         </div>
 
         <button
@@ -236,10 +372,17 @@ export function TrendForecastPanel({
           onClick={() => void runForecast()}
           className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold py-3 rounded-xl transition"
         >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          Gerar previsão de tendências
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : pioneerOnly ? <Compass className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+          {pioneerOnly ? 'Varrer nichos pioneiros' : discoverPioneers ? 'Previsão + nichos pioneiros' : 'Gerar previsão de tendências'}
         </button>
       </div>
+
+      {(pioneerResult?.pioneerNiches?.length ?? 0) > 0 && (
+        <PioneerNicheList
+          discovery={pioneerResult}
+          onApply={onApplyCreatorIdea}
+        />
+      )}
 
       {result && (
         <>
@@ -337,6 +480,80 @@ export function TrendForecastPanel({
           </button>
         </p>
       )}
+    </div>
+  );
+}
+
+function PioneerNicheList({
+  discovery,
+  onApply,
+}: {
+  discovery: PioneerDiscovery | null;
+  onApply?: (title: string, hook: string, options?: { format?: string }) => void;
+}) {
+  const niches = discovery?.pioneerNiches || [];
+  const summary = discovery?.summary;
+
+  return (
+    <div className="glass-panel p-5 rounded-3xl space-y-3 border border-violet-500/15">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Compass className="w-4 h-4 text-violet-300" />
+        <p className="text-xs font-bold text-zinc-200">Nichos pioneiros para desbravar</p>
+        {summary && (
+          <span className="text-[9px] text-zinc-500 ml-auto">
+            {summary.scanned} analisados · {summary.virginCount ?? 0} virgens · {summary.pioneerCount ?? 0} pioneiros
+            {discovery?.exaAvailable ? ' · Exa' : ' · heurística'}
+          </span>
+        )}
+      </div>
+      <ul className="space-y-2">
+        {niches.slice(0, 10).map((n) => (
+          <li
+            key={n.label}
+            className="p-3 rounded-xl bg-zinc-950/50 border border-violet-900/30 space-y-2"
+          >
+            <div className="flex items-start gap-2 flex-wrap">
+              <p className="text-[11px] font-semibold text-zinc-100 flex-1 min-w-0">{n.label}</p>
+              <PioneerStatusBadge status={n.status} />
+              <span className="text-[9px] font-bold text-violet-300 tabular-nums">
+                {Number(n.pioneerScore || 0).toFixed(0)} pts
+              </span>
+            </div>
+            {n.whyPioneer && (
+              <p className="text-[9px] text-zinc-400 leading-relaxed">{n.whyPioneer}</p>
+            )}
+            {n.youtube && (
+              <p className="text-[9px] text-zinc-600">
+                YouTube: ~{n.youtube.channelCount?.toLocaleString('pt-BR') ?? '?'} canais ·
+                ~{n.youtube.videoCount?.toLocaleString('pt-BR') ?? '?'} vídeos ·
+                saturação {n.saturationPct}%
+                {n.youtube.avgTopViews ? ` · top ~${n.youtube.avgTopViews.toLocaleString('pt-BR')} views` : ''}
+              </p>
+            )}
+            {n.firstVideoIdea && (
+              <p className="text-[9px] text-cyan-400/90">1º vídeo: {n.firstVideoIdea}</p>
+            )}
+            {n.risk && (
+              <p className="text-[9px] text-amber-500/80">Risco: {n.risk}</p>
+            )}
+            {onApply && (
+              <button
+                type="button"
+                onClick={() =>
+                  onApply(
+                    n.firstVideoIdea || `Pioneiro: ${n.label}`,
+                    n.whyPioneer || '',
+                    { format: n.format },
+                  )
+                }
+                className="text-[10px] text-violet-300 hover:text-violet-200"
+              >
+                Abrir no Creator
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
