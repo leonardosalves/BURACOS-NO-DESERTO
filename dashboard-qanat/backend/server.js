@@ -11858,6 +11858,65 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
   return verified.overlays;
 }
 
+}
+
+function resolveLastMileOverlayCollisions(overlays) {
+  if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
+
+  // Filter informative overlays and system ones (e.g. HUD, retention, etc.)
+  const informative = overlays.filter(isInformativeOverlay);
+  const system = overlays.filter(o => !isInformativeOverlay(o));
+
+  // Sort them chronologically by start time
+  informative.sort((a, b) => a.start - b.start);
+
+  const resolved = [];
+  let lastEnd = -Infinity;
+
+  for (const overlay of informative) {
+    let start = Number(overlay.start);
+    let duration = Number(overlay.duration) || 4;
+
+    // Check overlap with the last accepted informative overlay
+    if (start < lastEnd + 0.5) {
+      console.log(`[Last-Mile Resolver] Conflito detectado para overlay ${overlay.id} (start: ${start.toFixed(2)}s) com o fim do anterior em ${lastEnd.toFixed(2)}s.`);
+
+      // Try pushing start time of this overlay forward, if it leaves a readable chunk
+      const pushedStart = lastEnd + 0.5;
+      if (pushedStart + 2.5 <= start + duration) {
+        console.log(`  -> Empurrando início de ${overlay.id} de ${start.toFixed(2)}s para ${pushedStart.toFixed(2)}s`);
+        start = pushedStart;
+        duration = Math.max(2.5, (start + duration) - pushedStart);
+      } else {
+        // Enforce sequence logic: try reducing the duration of the previous overlay instead
+        const prev = resolved[resolved.length - 1];
+        if (prev) {
+          const maxPrevEnd = start - 0.5;
+          const newPrevDur = maxPrevEnd - prev.start;
+          if (newPrevDur >= 2.5) {
+            console.log(`  -> Encurtando overlay anterior ${prev.id} de ${prev.duration.toFixed(2)}s para ${newPrevDur.toFixed(2)}s (acabando em ${maxPrevEnd.toFixed(2)}s)`);
+            prev.duration = newPrevDur;
+            lastEnd = prev.start + prev.duration;
+          } else {
+            // Remove the current overlay to prevent double overlays / screen cluttering
+            console.log(`  -> Ignorando overlay ${overlay.id} totalmente para evitar colisão na tela.`);
+            continue;
+          }
+        } else {
+          continue;
+        }
+      }
+    }
+
+    overlay.start = start;
+    overlay.duration = duration;
+    resolved.push(overlay);
+    lastEnd = start + duration;
+  }
+
+  return [...resolved, ...system];
+}
+
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
   let result = filterOverlaysByVisualConfig(overlays, config);
   result = injectProLayoutOverlays(result, config, storyboard, starts, durations, orchestrationPlan);
@@ -11903,6 +11962,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     repair: true,
   });
   result = timingVerified.overlays;
+  result = resolveLastMileOverlayCollisions(result);
   storyboard.overlay_timing_report = timingVerified.report;
 
   const quality = validateVideoQuality({
