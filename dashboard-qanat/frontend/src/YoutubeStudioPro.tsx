@@ -64,8 +64,10 @@ type ProDashboard = {
   seoOpportunities: Array<{ keyword: string; mentions: number; titleIdea: string; type?: string }>;
   heatmap?: {
     available?: boolean;
+    error?: string;
     byWeekday?: Array<{ label: string; intensity: number; avgViews: number }>;
     bestWeekday?: { label: string; views: number };
+    daily?: Array<{ day: string; views: number }>;
     note?: string;
   };
   preUpload?: {
@@ -83,6 +85,29 @@ function formatCompact(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 10_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString('pt-BR');
+}
+
+function HeatmapDailyStrip({ daily }: { daily: Array<{ day: string; views: number }> }) {
+  const maxDaily = Math.max(...daily.map((x) => x.views), 1);
+  return (
+    <div className="mt-2">
+      <p className="text-[8px] text-zinc-600 mb-1">Últimos {daily.length} dias</p>
+      <div className="flex gap-0.5 h-8 items-end">
+        {daily.map((day) => {
+          const h = Math.max(3, Math.round((day.views / maxDaily) * 28));
+          return (
+            <div
+              key={day.day}
+              className="flex-1 flex flex-col justify-end h-full"
+              title={`${day.day}: ${day.views.toLocaleString('pt-BR')} views`}
+            >
+              <div className="w-full rounded-t bg-orange-500/40 min-h-[3px]" style={{ height: `${h}px` }} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function MilestoneBar({ label, data }: { label: string; data?: Milestone }) {
@@ -473,24 +498,50 @@ export function YoutubeStudioPro({
           )}
 
           {/* Heatmap */}
-          {dashboard?.heatmap?.available && dashboard.heatmap.byWeekday && (
+          {dashboard?.heatmap && (
             <div>
               <p className="text-[10px] font-bold text-zinc-300 flex items-center gap-1 mb-2">
                 <Flame className="w-3.5 h-3.5 text-orange-400" /> Heatmap (dia da semana)
               </p>
-              <div className="flex gap-1 items-end h-16">
-                {dashboard.heatmap.byWeekday.map((d) => (
-                  <div key={d.label} className="flex-1 flex flex-col items-center gap-0.5" title={`${d.label}: ~${d.avgViews} views/dia`}>
-                    <div
-                      className="w-full rounded-t bg-orange-500/70 min-h-[4px]"
-                      style={{ height: `${Math.max(8, d.intensity)}%` }}
-                    />
-                    <span className="text-[8px] text-zinc-600">{d.label}</span>
+              {dashboard.heatmap.available && (dashboard.heatmap.byWeekday?.length ?? 0) > 0 ? (
+                <>
+                  <div className="flex gap-1 h-16 items-end">
+                    {dashboard.heatmap.byWeekday!.map((d) => {
+                      const isBest = dashboard.heatmap!.bestWeekday?.label === d.label;
+                      const barHeight = Math.max(6, Math.round((d.intensity / 100) * 56));
+                      return (
+                        <div
+                          key={d.label}
+                          className="flex-1 flex flex-col items-center justify-end h-full gap-0.5"
+                          title={`${d.label}: ~${d.avgViews} views/dia`}
+                        >
+                          <div
+                            className={`w-full rounded-t min-h-[6px] ${isBest ? 'bg-orange-400' : 'bg-orange-500/70'}`}
+                            style={{ height: `${barHeight}px` }}
+                          />
+                          <span className={`text-[8px] ${isBest ? 'text-orange-400 font-semibold' : 'text-zinc-600'}`}>
+                            {d.label}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-              {dashboard.heatmap.note && (
-                <p className="text-[9px] text-zinc-600 mt-1">{dashboard.heatmap.note}</p>
+                  {dashboard.heatmap.bestWeekday && (
+                    <p className="text-[9px] text-orange-400/90 mt-1">
+                      Melhor dia: <span className="font-semibold">{dashboard.heatmap.bestWeekday.label}</span>
+                    </p>
+                  )}
+                  {(dashboard.heatmap.daily?.length ?? 0) > 0 && (
+                    <HeatmapDailyStrip daily={dashboard.heatmap.daily!} />
+                  )}
+                  {dashboard.heatmap.note && (
+                    <p className="text-[9px] text-zinc-600 mt-1">{dashboard.heatmap.note}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[10px] text-zinc-500">
+                  {dashboard.heatmap.error || 'Dados de audiência indisponíveis para o período.'}
+                </p>
               )}
             </div>
           )}
