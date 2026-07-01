@@ -722,6 +722,50 @@
     color: var(--dash-muted);
   }
 
+  /* ── Project workspace tabs (fase 4) ── */
+  .dash-project-tab {
+    @apply min-w-0 w-full;
+  }
+
+  .dash-project-tab-head {
+    @apply flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5 sm:mb-6 p-4 sm:p-5 rounded-lg;
+    background: var(--dash-card);
+    border: 1px solid var(--dash-border);
+    box-shadow: 0 1px 15px rgba(255, 255, 255, 0.04);
+  }
+
+  .dash-project-tab-icon {
+    @apply w-9 h-9 rounded-lg flex items-center justify-center shrink-0;
+    background: rgba(130, 128, 253, 0.15);
+    color: var(--dash-primary);
+  }
+
+  .dash-project-tab-crumb {
+    @apply flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-wide mb-1;
+    color: var(--dash-muted);
+  }
+
+  .dash-project-tab-title {
+    @apply text-lg sm:text-xl font-bold text-white leading-tight;
+  }
+
+  .dash-project-tab-sub {
+    @apply text-xs sm:text-sm mt-1 leading-relaxed max-w-2xl;
+    color: var(--dash-muted);
+  }
+
+  .dash-project-tab-body {
+    @apply min-w-0 space-y-6 sm:space-y-8;
+  }
+
+  .dash-insights-row {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 min-w-0;
+  }
+
+  .dash-youtube-pulse {
+    min-height: 280px;
+  }
+
   /* ── Legacy Lumiera classes → Dashmin styling ── */
   .lumiera-shell {
     @apply min-h-screen flex flex-col min-w-0;
@@ -755,9 +799,10 @@
   }
 
   .lumiera-project-bar {
-    @apply shrink-0 backdrop-blur-sm px-4 sm:px-6 py-3 min-w-0 border-b;
-    background: var(--dash-card);
+    @apply shrink-0 px-4 sm:px-6 py-3 min-w-0 border-b;
+    background: linear-gradient(180deg, var(--dash-card) 0%, rgba(24, 35, 53, 0.92) 100%);
     border-color: var(--dash-border);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   }
 
   .lumiera-section-label {

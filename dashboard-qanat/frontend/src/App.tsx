@@ -139,6 +139,9 @@ import { DashminStats } from './DashminStats';
 import { DashminDashboard } from './DashminDashboard';
 import { DashminActivityFeed } from './DashminActivityFeed';
 import { DashminPageLayout } from './DashminPageLayout';
+import { DashminProjectTabLayout } from './DashminProjectTabLayout';
+import { DashminYoutubePulse } from './DashminYoutubePulse';
+import { DashminRetentionChart } from './DashminRetentionChart';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -8466,7 +8469,9 @@ export default function App() {
 
           {activeTab === 'status' && (
 
-            <div className="lumiera-panel-stack animate-fade-in">
+            <DashminProjectTabLayout tab="status" activeProject={activeProject}>
+
+            <div className="lumiera-panel-stack">
 
               <DashminStats
                 projectCount={projects.length}
@@ -8499,6 +8504,18 @@ export default function App() {
                 onOpenYoutube={() => setActiveTab('youtube-studio')}
                 onOpenWorkflow={() => setActiveTab('workflow')}
               />
+
+              <div className="dash-insights-row">
+                <DashminYoutubePulse
+                  hotVideos={youtubeChannelAlerts?.hotVideos}
+                  viewsThreshold={getYoutubeViewsThreshold()}
+                  onOpenYoutube={() => setActiveTab('youtube-studio')}
+                />
+                <DashminRetentionChart
+                  points={titleRetention?.retention?.points as { watchRatio?: number; ratio?: number }[] | undefined}
+                  videoLabel={titleExperimentVideoId || activeProject}
+                />
+              </div>
 
               <YoutubeStudioHomeCard
                 viewsThreshold={getYoutubeViewsThreshold()}
@@ -8919,19 +8936,13 @@ export default function App() {
 
             </div>
 
+            </DashminProjectTabLayout>
+
           )}
 
           {activeTab === 'workflow' && (
-            <div className="lumiera-panel-stack animate-fade-in">
-              <div className="glass-panel p-5 rounded-2xl font-sans">
-                <SectionHeader
-                  title="Workflow e Tarefas"
-                  helpId="workflow-toolkit"
-                  icon={<Wand2 className="w-4 h-4 text-gold-400" />}
-                  subtitle="Narração TTS, ComfyUI + LTX, B-roll, auto-map, trilha, metadados e pipelines automáticos. Prepare o projeto aqui; a aba Render fica só para compilar o vídeo final."
-                />
-              </div>
-
+            <DashminProjectTabLayout tab="workflow" activeProject={activeProject}>
+            <div className="lumiera-panel-stack">
               {config ? (
                 <WorkflowToolkit
                   getProjectUrl={getProjectUrl}
@@ -8952,6 +8963,7 @@ export default function App() {
                 </div>
               )}
             </div>
+            </DashminProjectTabLayout>
           )}
 
           {/* TAB: TIMELINE & BLOCKS */}
@@ -8976,7 +8988,8 @@ export default function App() {
                 </div>
               ) : (
 
-            <div className="lumiera-panel-stack animate-fade-in">
+            <DashminProjectTabLayout tab="timeline" activeProject={activeProject}>
+            <div className="lumiera-panel-stack">
 
               {/* Keywords panel */}
 
@@ -9159,6 +9172,8 @@ export default function App() {
               {renderRichTimelineEditor()}
             </div>
 
+            </DashminProjectTabLayout>
+
               )}
             </TabErrorBoundary>
           )}
@@ -9185,40 +9200,21 @@ export default function App() {
                 </div>
               ) : (
 
-            <div className="space-y-8 animate-fade-in font-sans">
-
-              {/* Mixer Header */}
-
-              <div className="glass-panel p-4 sm:p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 min-w-0">
-
-                <div>
-
-                  <SectionHeader
-                    title="ESTÚDIO DE MIXAGEM DA TRILHA DE FUNDO"
-                    helpId="music-mixer"
-                    icon={<Volume2 className="w-5 h-5 text-gold-500" />}
-                    subtitle="Selecione qual das músicas baixadas deve tocar de fundo em cada bloco. As transições com crossfade de 2.0s serão geradas dinamicamente."
-                  />
-
-                </div>
-
-                <button 
-
+            <DashminProjectTabLayout
+              tab="music"
+              activeProject={activeProject}
+              actions={
+                <button
                   disabled={mixing}
-
                   onClick={() => mixBGM(true)}
-
                   className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 shrink-0 shadow-lg shadow-gold-500/10 cursor-pointer"
-
                 >
-
                   <RefreshCw className={`w-4 h-4 ${mixing ? 'animate-spin' : ''}`} />
-
                   <span>{mixing ? 'Misturando Trilhas...' : 'Regenerar Trilha Sonora'}</span>
-
                 </button>
-
-              </div>
+              }
+            >
+            <div className="space-y-8 font-sans">
 
               {/* Music mappings grid */}
 
@@ -10089,6 +10085,8 @@ export default function App() {
 
             </div>
 
+            </DashminProjectTabLayout>
+
               )}
             </TabErrorBoundary>
           )}
@@ -10097,36 +10095,22 @@ export default function App() {
 
           {activeTab === 'terminal' && (
 
-            <div className="lumiera-fill-view space-y-4 animate-fade-in">
-
-              <div className="flex justify-between items-center border-b border-zinc-900 pb-2 shrink-0">
-
-                <div>
-
-                  <SectionHeader
-                    title="CONSOLE DE COMPILAÇÃO E LOGS"
-                    helpId="tab-terminal"
-                    icon={<Terminal className="w-5 h-5 text-gold-500" />}
-                    subtitle="Logs em tempo real de execução do compilador Python/FFmpeg."
-                  />
-
-                </div>
-
-                <button 
-
+            <DashminProjectTabLayout
+              tab="terminal"
+              activeProject={activeProject}
+              className="lumiera-fill-view"
+              actions={
+                <button
                   onClick={() => setLogs([])}
-
                   className="text-xs text-gray-400 hover:text-white font-semibold cursor-pointer border border-zinc-850 px-3 py-1.5 rounded-lg hover:bg-zinc-900 transition"
-
                 >
-
                   Limpar Console
-
                 </button>
+              }
+            >
+            <div className="lumiera-fill-view space-y-4 min-h-0 flex-1">
 
-              </div>
-
-              <div className="flex-1 bg-[#040405] border border-zinc-900 rounded-2xl p-5 font-mono text-xs text-emerald-400 overflow-y-auto space-y-1.5 select-text shadow-inner">
+              <div className="flex-1 bg-[#040405] border border-zinc-900 rounded-2xl p-5 font-mono text-xs text-emerald-400 overflow-y-auto space-y-1.5 select-text shadow-inner min-h-[50vh]">
 
                 {logs.length === 0 ? (
 
@@ -10152,13 +10136,16 @@ export default function App() {
 
             </div>
 
+            </DashminProjectTabLayout>
+
           )}
 
           {/* TAB 5: AI AGENT */}
 
           {activeTab === 'ai' && (
 
-            <div className="lumiera-fill-view space-y-6 animate-fade-in overflow-hidden">
+            <DashminProjectTabLayout tab="ai" activeProject={activeProject} className="lumiera-fill-view overflow-hidden">
+            <div className="lumiera-fill-view space-y-6 overflow-hidden">
 
               <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
 
@@ -10918,23 +10905,16 @@ export default function App() {
 
             </div>
 
+            </DashminProjectTabLayout>
+
           )}
 
           {/* TAB: PROJECT EDITOR */}
 
           {/* TAB: UPLOAD MULTI & DISTRIBUICAO */}
           {activeTab === 'upload' && (
-            <div className="space-y-6 animate-fade-in font-sans">
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
-                <div>
-                  <SectionHeader
-                    title="Upload & Distribuição Multi-Plataforma"
-                    helpId="upload-platforms"
-                    size="md"
-                    subtitle="Prepare os metadados e publique seus vídeos nas redes sociais de forma automatizada."
-                  />
-                </div>
-              </div>
+            <DashminProjectTabLayout tab="upload" activeProject={activeProject}>
+            <div className="space-y-6 font-sans">
 
               {/* Step 1: Select platforms & Edit metadata */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -11417,21 +11397,15 @@ export default function App() {
               )}
 
             </div>
+            </DashminProjectTabLayout>
           )}
 
                     {activeTab === 'editor' && (
 
-            <div className="space-y-6 animate-fade-in font-sans">
+            <DashminProjectTabLayout tab="editor" activeProject={activeProject}>
+            <div className="space-y-6 font-sans">
 
               <div className="glass-panel p-6 rounded-3xl">
-
-                <SectionHeader
-                  title="EDITOR DE PROJETOS"
-                  helpId="editor-project"
-                  icon={<Settings className="w-6 h-6 text-gold-500" />}
-                  size="lg"
-                  subtitle="Selecione um projeto existente para substituir narração, imagens, vídeos ou trilhas sonoras por bloco."
-                />
 
                 {titleExperimentVideoId && selectedProject && (
                   <div className="mt-4 space-y-3">
@@ -12243,6 +12217,8 @@ export default function App() {
               )}
 
             </div>
+
+            </DashminProjectTabLayout>
 
           )}
 

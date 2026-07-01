@@ -2,18 +2,18 @@ import React, { useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
+import {
+  DASH_CHART,
+  dashApexGrid,
+  dashApexTooltip,
+  dashApexXAxis,
+  dashApexYAxis,
+  dashChartFont,
+} from './dashminChartTheme';
 
 type DashminAnalyticsChartProps = {
   projects: ProjectListItem[];
   nicheBreakdown?: { label: string; count: number }[];
-};
-
-const DASH_CHART_THEME = {
-  primary: '#8280fd',
-  info: '#09d1de',
-  success: '#67cf94',
-  grid: '#2b3c57',
-  muted: '#c4c4c4',
 };
 
 function buildNicheBreakdown(projects: ProjectListItem[]) {
@@ -35,12 +35,8 @@ export function DashminAnalyticsChart({ projects, nicheBreakdown }: DashminAnaly
 
   const formatOptions: ApexOptions = useMemo(
     () => ({
-      chart: {
-        type: 'bar',
-        toolbar: { show: false },
-        background: 'transparent',
-        fontFamily: '"PT Sans", sans-serif',
-      },
+      ...dashChartFont(),
+      chart: { ...dashChartFont().chart, type: 'bar' },
       plotOptions: {
         bar: {
           borderRadius: 6,
@@ -48,40 +44,23 @@ export function DashminAnalyticsChart({ projects, nicheBreakdown }: DashminAnaly
           distributed: true,
         },
       },
-      colors: [DASH_CHART_THEME.primary, DASH_CHART_THEME.info],
+      colors: [DASH_CHART.primary, DASH_CHART.info],
       dataLabels: { enabled: false },
       legend: { show: false },
-      grid: {
-        borderColor: DASH_CHART_THEME.grid,
-        strokeDashArray: 4,
-        xaxis: { lines: { show: false } },
-      },
-      xaxis: {
-        categories: ['Longos', 'Shorts'],
-        labels: { style: { colors: DASH_CHART_THEME.muted, fontSize: '11px', fontWeight: 600 } },
-        axisBorder: { show: false },
-        axisTicks: { show: false },
-      },
-      yaxis: {
-        labels: { style: { colors: DASH_CHART_THEME.muted, fontSize: '10px' } },
-      },
-      tooltip: {
-        theme: 'dark',
+      grid: { ...dashApexGrid(), xaxis: { lines: { show: false } } },
+      xaxis: dashApexXAxis(['Longos', 'Shorts']),
+      yaxis: dashApexYAxis(),
+      tooltip: dashApexTooltip({
         y: { formatter: (v) => `${v} projeto(s)` },
-      },
+      }),
     }),
     [],
   );
 
   const nicheOptions: ApexOptions = useMemo(
     () => ({
-      chart: {
-        type: 'area',
-        toolbar: { show: false },
-        background: 'transparent',
-        sparkline: { enabled: false },
-        fontFamily: '"PT Sans", sans-serif',
-      },
+      ...dashChartFont(),
+      chart: { ...dashChartFont().chart, type: 'area', sparkline: { enabled: false } },
       stroke: { curve: 'smooth', width: 2 },
       fill: {
         type: 'gradient',
@@ -92,27 +71,15 @@ export function DashminAnalyticsChart({ projects, nicheBreakdown }: DashminAnaly
           stops: [0, 90, 100],
         },
       },
-      colors: [DASH_CHART_THEME.success],
+      colors: [DASH_CHART.success],
       dataLabels: { enabled: false },
-      grid: {
-        borderColor: DASH_CHART_THEME.grid,
-        strokeDashArray: 4,
-      },
-      xaxis: {
-        categories: niches.map((n) => n.label),
-        labels: {
-          style: { colors: DASH_CHART_THEME.muted, fontSize: '9px' },
-          rotate: -25,
-          trim: true,
-          hideOverlappingLabels: true,
-        },
-        axisBorder: { show: false },
-        axisTicks: { show: false },
-      },
-      yaxis: {
-        labels: { style: { colors: DASH_CHART_THEME.muted, fontSize: '10px' } },
-      },
-      tooltip: { theme: 'dark' },
+      grid: dashApexGrid(),
+      xaxis: dashApexXAxis(
+        niches.map((n) => n.label),
+        -25,
+      ),
+      yaxis: dashApexYAxis(),
+      tooltip: dashApexTooltip(),
     }),
     [niches],
   );
