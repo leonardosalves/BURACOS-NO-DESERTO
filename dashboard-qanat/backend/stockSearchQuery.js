@@ -10,6 +10,19 @@ const GENERIC_QUERIES = new Set([
   "documentary scene",
   "video",
   "image",
+  "bird",
+  "birds",
+  "animal",
+  "animals",
+  "nature",
+  "fish",
+  "person",
+  "people",
+  "building",
+  "bridge",
+  "car",
+  "plane",
+  "ship",
 ]);
 
 function normalizeComparable(text = "") {

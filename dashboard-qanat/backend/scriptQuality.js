@@ -1,6 +1,13 @@
 /** Regras e pós-processamento para roteiros naturais, coerentes e com mensagem clara. */
 
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
+import {
+  enrichVisualPromptsSpecificity,
+  buildSceneSpecificPrompt,
+  VISUAL_PROMPT_SPECIFICITY_RULES,
+} from "./scenePromptSpecificity.js";
+
+export { VISUAL_PROMPT_SPECIFICITY_RULES } from "./scenePromptSpecificity.js";
 
 export const ROBOTIC_PHRASE_PATTERNS = [
   /neste vídeo vamos/gi,
@@ -915,7 +922,8 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 ${typeMixRule}
 - Nunca deixe narration_text ou prompt vazios.
 - Inclua stock_query em inglês em cada cena.
-${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}`;
+${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}
+${VISUAL_PROMPT_SPECIFICITY_RULES}`;
 }
 
 export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = false, listicleRank = 20 } = {}) {
@@ -928,9 +936,9 @@ export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = fals
      "narration_text": "Trecho EXATO da narração aprovada para esta cena (1-2 frases, NUNCA vazio)",
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
      "duration": "3 a 5 segundos",
-     "prompt": "Prompt cinematográfico completo em inglês (NUNCA vazio)",
+     "prompt": "Prompt em inglês com sujeito ESPECÍFICO da cena (espécie, objeto, lugar nomeado) + ação exata do narration_text — nunca genérico",
      "editor_notes": "Ken Burns zoom in, dissolve, etc.",
-     "stock_query": "termo curto em inglês"
+     "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
    }
 ]`;
 }
@@ -1025,12 +1033,18 @@ export function normalizeVisualPromptBlocks(
       ideaTitle,
     });
     if (deterministic.length > 0) {
-      result.visual_prompts = enforceShortsVideoSceneMix(deterministic, { format });
+      result.visual_prompts = enrichVisualPromptsSpecificity(
+        enforceShortsVideoSceneMix(deterministic, { format }),
+        { strategyTitle: ideaTitle },
+      );
       return result;
     }
   }
 
-  result.visual_prompts = enforceShortsVideoSceneMix(normalized, { format });
+  result.visual_prompts = enrichVisualPromptsSpecificity(
+    enforceShortsVideoSceneMix(normalized, { format }),
+    { strategyTitle: ideaTitle },
+  );
   return result;
 }
 
@@ -1452,18 +1466,24 @@ export function buildDeterministicVisualPromptsFromNarration(
   const resolveSceneStockQuery = (scene) => resolveStockSearchQuery(scene, { strategyTitle: ideaTitle });
   if (!sentences.length) {
     const narration_text = text.slice(0, 280);
-    const prompt = `Photorealistic 2k cinematic documentary scene illustrating: ${narration_text.slice(0, 160)}. Dramatic lighting, sharp detail, no text.`;
-    const singleScene = [{
+    const sceneDraft = {
       scene: "1.1",
       block: 1,
       narration_text,
       type: "imagem IA 2k",
       duration: "5 segundos",
-      prompt,
       editor_notes: "Ken Burns zoom in",
-      stock_query: resolveSceneStockQuery({ narration_text, prompt }),
+    };
+    const prompt = buildSceneSpecificPrompt(sceneDraft);
+    const singleScene = [{
+      ...sceneDraft,
+      prompt,
+      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }, { strategyTitle: ideaTitle }),
     }];
-    return enforceShortsVideoSceneMix(singleScene, { format });
+    return enrichVisualPromptsSpecificity(
+      enforceShortsVideoSceneMix(singleScene, { format }),
+      { strategyTitle: ideaTitle },
+    );
   }
   const targetScenes = format === "SHORTS" ? Math.min(12, Math.max(5, sentences.length)) : Math.min(50, Math.max(20, sentences.length));
   const perScene = Math.max(1, Math.ceil(sentences.length / targetScenes));
@@ -1472,16 +1492,19 @@ export function buildDeterministicVisualPromptsFromNarration(
   let sceneInBlock = 1;
   for (let i = 0; i < sentences.length; i += perScene) {
     const chunk = sentences.slice(i, i + perScene).join(" ");
-    const prompt = `Photorealistic 2k cinematic scene illustrating: ${chunk.slice(0, 160)}. Documentary style, dramatic lighting, no text.`;
-    vps.push({
+    const sceneDraft = {
       scene: `${block}.${sceneInBlock}`,
       block,
       narration_text: chunk,
       type: "imagem IA 2k",
       duration: "4 segundos",
-      prompt,
       editor_notes: "Ken Burns zoom in",
-      stock_query: resolveSceneStockQuery({ narration_text: chunk, prompt }),
+    };
+    const prompt = buildSceneSpecificPrompt(sceneDraft);
+    vps.push({
+      ...sceneDraft,
+      prompt,
+      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }, { strategyTitle: ideaTitle }),
     });
     sceneInBlock += 1;
     if (sceneInBlock > Math.max(2, Math.ceil(blockCount / 4))) {
@@ -1489,7 +1512,10 @@ export function buildDeterministicVisualPromptsFromNarration(
       sceneInBlock = 1;
     }
   }
-  return enforceShortsVideoSceneMix(vps, { format });
+  return enrichVisualPromptsSpecificity(
+    enforceShortsVideoSceneMix(vps, { format }),
+    { strategyTitle: ideaTitle },
+  );
 }
 
 export function buildNarrationHumanizeRepairPrompt({
