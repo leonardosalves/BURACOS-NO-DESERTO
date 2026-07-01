@@ -1,0 +1,60 @@
+{
+  "profile": "rtx_4060_ti_8gb",
+  "gpu": "NVIDIA GeForce RTX 4060 Ti",
+  "vram_gb": 8,
+  "comfyui_port": 8188,
+  "launch_args": ["--lowvram", "--reserve-vram", "1024", "--preview-method", "auto"],
+  "notes": "LTX-2 GGUF distilled — otimizado para 8GB. Use resolução baixa e poucos frames.",
+  "ltx": {
+    "model_gguf": "ltx-2-19b-distilled_Q4_K_M.gguf",
+    "text_encoder": "gemma_3_12B_it_fp8_e4m3fn.safetensors",
+    "embeddings_connector": "ltx-2-19b-embeddings_connector_distill_bf16.safetensors",
+    "video_vae": "LTX2_video_vae_bf16.safetensors",
+    "audio_vae": "LTX2_audio_vae_bf16.safetensors",
+    "width": 640,
+    "height": 384,
+    "frames": 17,
+    "steps": 8,
+    "cfg": 1,
+    "fps": 24,
+    "workflow_t2v": "LTX2_T2V_GGUF.json",
+    "workflow_i2v": "LTX2_I2V_GGUF.json"
+  },
+  "models_download": [
+    {
+      "repo": "Kijai/LTXV2_comfy",
+      "file": "diffusion_models/ltx-2-19b-distilled_Q4_K_M.gguf",
+      "dest": "models/diffusion_models/ltx-2-19b-distilled_Q4_K_M.gguf"
+    },
+    {
+      "repo": "Kijai/LTXV2_comfy",
+      "file": "VAE/LTX2_video_vae_bf16.safetensors",
+      "dest": "models/vae/LTX2_video_vae_bf16.safetensors"
+    },
+    {
+      "repo": "Kijai/LTXV2_comfy",
+      "file": "VAE/LTX2_audio_vae_bf16.safetensors",
+      "dest": "models/vae/LTX2_audio_vae_bf16.safetensors"
+    },
+    {
+      "repo": "Kijai/LTXV2_comfy",
+      "file": "text_encoders/ltx-2-19b-embeddings_connector_distill_bf16.safetensors",
+      "dest": "models/text_encoders/ltx-2-19b-embeddings_connector_distill_bf16.safetensors"
+    },
+    {
+      "repo": "GitMylo/LTX-2-comfy_gemma_fp8_e4m3fn",
+      "file": "gemma_3_12B_it_fp8_e4m3fn.safetensors",
+      "dest": "models/text_encoders/gemma_3_12B_it_fp8_e4m3fn.safetensors"
+    },
+    {
+      "repo": "Lightricks/LTX-2",
+      "file": "ltx-2-19b-distilled-lora-384.safetensors",
+      "dest": "models/loras/ltx-2-19b-distilled-lora-384.safetensors"
+    },
+    {
+      "repo": "Lightricks/LTX-2",
+      "file": "ltx-2-spatial-upscaler-x2-1.0.safetensors",
+      "dest": "models/latent_upscale_models/ltx-2-spatial-upscaler-x2-1.0.safetensors"
+    }
+  ]
+}

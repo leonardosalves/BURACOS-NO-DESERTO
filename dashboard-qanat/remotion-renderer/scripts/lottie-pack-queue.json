@@ -1,0 +1,12 @@
+{
+  "policy": "append_only — adicione entradas aqui; rode npm run lottie:sync. Nunca apague arquivos em lottie_assets.",
+  "scope": "global_lumiera_all_videos",
+  "pending": [
+    {
+      "key": "example",
+      "file": "lottie_edu_example_1.json",
+      "url": "https://assets1.lottiefiles.com/packages/lf20_EXAMPLE.json",
+      "note": "Substitua URL real do LottieFiles e mova para PACK em download-lottie-pack.mjs"
+    }
+  ]
+}

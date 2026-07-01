@@ -1,5 +1,21 @@
 {
-  "gemini_api_key": "AIzaSyCK2xSuCo75Oid6iRodooEk9DwHDNONBzo",
+  "gemini_api_key": "AQ.Ab8RN6ITzAGgNxWz-25T4KR93qEGHs8Lplfu48KcZkx7kS9v6A",
+  "gemini_api_keys": [
+    "AQ.Ab8RN6ITzAGgNxWz-25T4KR93qEGHs8Lplfu48KcZkx7kS9v6A",
+    "AQ.Ab8RN6KT1oC4snPn_k0Q5jYg7F6NV6r7Xu-q-b_yk2w-NZIRFA",
+    "AQ.Ab8RN6Ku2iup25WfpAr6U5aPkJzFajGwpYrC_gTU_Pmcy9W-2g",
+    "AQ.Ab8RN6KXRQ1sD3CdKIpK7eX_gZXuNNuQAmyHWuzNpqnZI1H-hQ",
+    "AQ.Ab8RN6L_WwT4kgO9uF23_d4iIY3IEGjUnVMfNsdQagHG8k3TlQ",
+    "AQ.Ab8RN6KSsuZs8EXzOyF5QjblqG-LoMATCYKhnGyq5-O6uHc5zg",
+    "AQ.Ab8RN6L3xWsYEdjNKxra7EgT53U17bJWlf9IzrggF4mzJwtZDQ",
+    "AQ.Ab8RN6KjnX6tPKxl0Dul7I_pyBA96-gSmY5TTHJzwb0aMk7LjA",
+    "AQ.Ab8RN6LOPx_KYsGomNDdagr8AWKx8KMyt4D6mM1Rme0lzSFQWQ",
+    "AQ.Ab8RN6KpwWb5epv4-l_ryGetcPOKJnmxCQbmFUF5QWzSZn-Eyw"
+  ],
+  "xai_api_key": "xai-JF3eqntgM2tbQEh6oQI6hwtuNuhnoFOH3RZcFX154PmVMAgI7Yt1JNP0y54DAX6cNO0pW0fllP0uHKOj",
+  "epidemic_sound_key": "",
+  "ai_provider": "gemini",
+  "gemini_model": "gemini-2.5-flash",
   "highlight_keywords": [
     "pirâmides",
     "tumbas",
@@ -43,137 +59,8 @@
     "passado",
     "futuro"
   ],
-  "bgm_mappings": [
-    {
-      "block": 1,
-      "file": "Ancient Desert Cinematic .mp3"
-    }
-  ],
-  "impact_texts": [
-    {
-      "block": 1,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "NÃO ERAM TÚMULOS?"
-    },
-    {
-      "block": 2,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "O REAL PROPÓSITO REVELADO"
-    },
-    {
-      "block": 3,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "LACUNAS NA HISTÓRIA"
-    },
-    {
-      "block": 4,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "PIRÂMIDES: USINAS DE ENERGIA?"
-    },
-    {
-      "block": 5,
-      "start_offset": 0,
-      "end_offset": 2.5,
-      "text": "OBSERVATÓRIOS CÓSMICOS"
-    },
-    {
-      "block": 6,
-      "start_offset": 0,
-      "end_offset": 3,
-      "text": "PORTAIS PARA OUTROS REINOS?"
-    },
-    {
-      "block": 7,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "MÚLTIPLOS PROPÓSITOS"
-    },
-    {
-      "block": 8,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "A GRANDE CAVIDADE"
-    },
-    {
-      "block": 9,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "QUEM CONSTRUIU? COMO?"
-    },
-    {
-      "block": 10,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "EXPANDA SUA MENTE"
-    },
-    {
-      "block": 11,
-      "start_offset": 0,
-      "end_offset": 2.5,
-      "text": "O MAIOR MISTÉRIO DA HUMANIDADE"
-    },
-    {
-      "block": 12,
-      "start_offset": 0,
-      "end_offset": 2,
-      "text": "QUAL SUA TEORIA?"
-    }
-  ],
-  "block_phrases": [
-    {
-      "block": 1,
-      "phrase": "Por milênios, fomos ensinados que as pirâmides do Egito eram monumentos grandiosos, tumbas para faraós."
-    },
-    {
-      "block": 2,
-      "phrase": "Prepare-se para uma jornada que vai desvendar os véus da história oficial."
-    },
-    {
-      "block": 3,
-      "phrase": "A narrativa das pirâmides como meras tumbas, embora amplamente aceita, sempre teve suas lacunas."
-    },
-    {
-      "block": 4,
-      "phrase": "Uma das teorias mais fascinantes aponta para as pirâmides como verdadeiras usinas de energia."
-    },
-    {
-      "block": 5,
-      "phrase": "Indo além da energia, muitos estudiosos argumentam que as pirâmides funcionavam como observatórios cósmicos ou calendários gigantes."
-    },
-    {
-      "block": 6,
-      "phrase": "E se as pirâmides fossem ainda mais extraordinárias?"
-    },
-    {
-      "block": 7,
-      "phrase": "Talvez a verdade seja ainda mais complexa: e se as pirâmides não tivessem *um* propósito, mas múltiplos?"
-    },
-    {
-      "block": 8,
-      "phrase": "Recentemente, avanços tecnológicos como a muografia têm revelado segredos surpreendentes."
-    },
-    {
-      "block": 9,
-      "phrase": "A questão fundamental que permanece é: quem realmente construiu as pirâmides com tal sofisticação e conhecimento?"
-    },
-    {
-      "block": 10,
-      "phrase": "Em resumo, as pirâmides do Egito podem ter sido muito mais do que meras tumbas."
-    },
-    {
-      "block": 11,
-      "phrase": "A verdade é que as pirâmides continuam sendo um dos maiores enigmas da humanidade."
-    },
-    {
-      "block": 12,
-      "phrase": "Qual dessas teorias você acha mais convincente?"
-    }
-  ],
-  "aspect_ratio": "16:9",
-  "use_single_bgm": true,
-  "single_bgm": "Ancient Desert Cinematic .mp3"
+  "gemini_browser_mode": true,
+  "design_preset": "documentary-history",
+  "caption_style": "shorts-viral",
+  "accent_color": "#C5A889"
 }

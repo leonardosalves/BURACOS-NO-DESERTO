@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "notebooklm-mcp": {
+      "command": "notebooklm-mcp",
+      "args": [],
+      "env": {
+        "NOTEBOOKLM_MCP_CLI_PATH": "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.notebooklm-data"
+      }
+    }
+  }
+}
