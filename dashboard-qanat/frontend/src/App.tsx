@@ -156,6 +156,7 @@ import {
   type CreatorApplyIdeaOptions,
   type EditorialIdeaImport,
   buildEditorialImportOutline,
+  coerceCreatorTextField,
   isClipFactorySource,
   parseEditorialSourceProject,
 } from './creatorEditorialImport';
@@ -6479,8 +6480,10 @@ export default function App() {
     options?: CreatorApplyIdeaOptions,
   ) => {
     const autoRun = options?.autoRun === true;
-    const cleaned = cleanYoutubeStudioIdeaSeed(title, hookPt);
-    const hook = String(hookPt || cleaned).trim();
+    const safeTitle = coerceCreatorTextField(title, '');
+    const safeHook = coerceCreatorTextField(hookPt, safeTitle);
+    const cleaned = cleanYoutubeStudioIdeaSeed(safeTitle, safeHook);
+    const hook = safeHook || cleaned;
     const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
     const format = options?.format || 'SHORTS';
     const projectSlug = slugCreatorProjectFromTitle(hook || cleaned);

@@ -9250,8 +9250,8 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
 
 app.get("/api/youtube/channel/editorial-queue", async (_req, res) => {
   try {
-    const { loadEditorialQueue } = await import("./youtubeEditorialQueue.js");
-    res.json(loadEditorialQueue(WORKSPACE_DIR));
+    const { repairCorruptedClipFactoryQueue } = await import("./youtubeEditorialQueue.js");
+    res.json(repairCorruptedClipFactoryQueue(WORKSPACE_DIR, LONGS_DIR));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

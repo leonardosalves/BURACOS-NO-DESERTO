@@ -1,0 +1,89 @@
+{
+  "items": [
+    {
+      "id": "31c9bc3f-3f14-4342-a816-8b28fca68a2d",
+      "title": "#2 3 fatos rápidos — From_Mud_to_Mansion",
+      "hookPt": "#2 3 fatos rápidos — From_Mud_to_Mansion",
+      "source": "clip-factory:From_Mud_to_Mansion",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "clip-factory-compilation",
+      "whyWorks": "Compilação dos melhores momentos do vídeo longo.",
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-01T14:45:20.315Z",
+      "updatedAt": "2026-07-01T14:58:27.526Z"
+    },
+    {
+      "id": "0400a443-cbd5-4a6e-a55b-68cef675d9e2",
+      "title": "⚡ Gancho em 60s — From_Mud_to_Mansion",
+      "hookPt": "Imagina só tentar construir um arranha-céu gigante em uma tigela enorme de",
+      "source": "clip-factory:From_Mud_to_Mansion",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "clip-factory-hook",
+      "whyWorks": "Abre com o mesmo gancho do longo, pacing acelerado para Shorts.",
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-01T14:45:20.315Z",
+      "updatedAt": "2026-07-01T14:58:27.527Z"
+    },
+    {
+      "id": "ecc75411-a0c6-4487-8bde-3da7ece92a2f",
+      "title": "3 fatos brutais sobre [TEMA] — estilo \"Antigos eram gênios, não mágicos\"",
+      "hookPt": "Antigos eram gênios, não mágicos!",
+      "source": "top-winners",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "curiosidade histórica",
+      "whyWorks": "764 views em 7d — replicar mecânica \"curiosidade histórica\", trocar objeto/época",
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-01T14:33:13.296Z",
+      "updatedAt": "2026-07-01T14:58:27.527Z"
+    },
+    {
+      "id": "56a310b1-a87f-4f10-bb2c-59e0192224f7",
+      "title": "Top 3: [TEMA] que mudou a história (mesma mecânica de ranking)",
+      "hookPt": "O segredo da clepsidra de Ctesíbio",
+      "source": "top-winners",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "revelação / segredo",
+      "whyWorks": "837 views em 7d — replicar mecânica \"revelação / segredo\", trocar objeto/época",
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-01T14:33:13.296Z",
+      "updatedAt": "2026-07-01T14:58:27.527Z"
+    },
+    {
+      "id": "1f3ad1d4-95c7-4089-92c3-cac6947e27ab",
+      "title": "O segredo de [OBJETO ANTIGO] que curiosidades e fatos surpreendentes ignora",
+      "hookPt": "Como os Vikings navegavam na névoa sem bússola?",
+      "source": "top-winners",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "explicação causal",
+      "whyWorks": "933 views em 7d — replicar mecânica \"explicação causal\", trocar objeto/época",
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-01T14:33:13.296Z",
+      "updatedAt": "2026-07-01T14:58:27.527Z"
+    },
+    {
+      "id": "f603d07a-383a-4627-92a3-31e3f15c4018",
+      "title": "Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas",
+      "hookPt": "Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.",
+      "source": "videoagent-plan",
+      "sourceVideoId": null,
+      "sourceViews": null,
+      "mechanic": "videoagent-plan",
+      "whyWorks": "",
+      "format": "SHORTS",
+      "status": "inbox",
+      "createdAt": "2026-07-01T06:37:01.849Z",
+      "updatedAt": "2026-07-01T14:58:27.527Z"
+    }
+  ],
+  "updatedAt": "2026-07-01T14:58:27.527Z"
+}

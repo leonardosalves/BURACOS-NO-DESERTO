@@ -21,8 +21,20 @@ export function isLongFormProject(config = {}) {
   return aspect === "16:9" || format === "LONGO" || format === "LONG";
 }
 
+/** block_phrases pode ser string ou { block, phrase } — extrai texto legível. */
+export function phraseFromBlockEntry(entry) {
+  if (entry == null) return "";
+  if (typeof entry === "string") return entry.replace(/\s+/g, " ").trim();
+  if (typeof entry === "object") {
+    const raw = entry.phrase ?? entry.text ?? entry.hook ?? entry.content ?? entry.line ?? "";
+    return String(raw).replace(/\s+/g, " ").trim();
+  }
+  const s = String(entry).replace(/\s+/g, " ").trim();
+  return s === "[object Object]" ? "" : s;
+}
+
 function hookFromText(text = "", maxWords = 10) {
-  const words = String(text).replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  const words = phraseFromBlockEntry(text).split(" ").filter(Boolean);
   if (!words.length) return "";
   return words.slice(0, maxWords).join(" ");
 }
@@ -41,7 +53,9 @@ export function buildShortIdeasFromLongProject(config = {}, storyboard = {}, tim
     return { ok: false, error: "Clip Factory só aplica a projetos longos (16:9 / LONGO)." };
   }
 
-  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const blockPhrases = Array.isArray(config.block_phrases)
+    ? config.block_phrases.map(phraseFromBlockEntry).filter(Boolean)
+    : [];
   const starts = Array.isArray(timings.starts) ? timings.starts : [];
   const durations = Array.isArray(timings.durations) ? timings.durations : [];
   const niche = String(config.niche || storyboard.niche || "Geral").trim();
@@ -66,7 +80,7 @@ export function buildShortIdeasFromLongProject(config = {}, storyboard = {}, tim
 
   const bodyBlocks = blockPhrases.slice(1, Math.max(1, blockPhrases.length - 1));
   for (let i = 0; i < bodyBlocks.length && ideas.length < maxIdeas; i++) {
-    const phrase = String(bodyBlocks[i] || "").trim();
+    const phrase = phraseFromBlockEntry(bodyBlocks[i]);
     if (phrase.length < 24) continue;
     const hook = hookFromText(phrase, 14);
     const blockNum = i + 2;

@@ -42,3 +42,21 @@ export function buildEditorialImportOutline(importData: Pick<EditorialIdeaImport
 export function isClipFactorySource(source?: string): boolean {
   return String(source || '').startsWith('clip-factory:');
 }
+
+/** Normaliza texto vindo da fila — evita [object Object] no Creator. */
+export function coerceCreatorTextField(value: unknown, fallback = ''): string {
+  if (value == null) return String(fallback || '').trim();
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (!s || s.includes('[object Object]')) return String(fallback || '').trim();
+    return s;
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const nested = obj.phrase ?? obj.text ?? obj.hook ?? obj.title ?? obj.angle ?? '';
+    return coerceCreatorTextField(nested, fallback);
+  }
+  const s = String(value).trim();
+  if (!s || s === '[object Object]' || s.includes('[object Object]')) return String(fallback || '').trim();
+  return s;
+}
