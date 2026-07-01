@@ -99,6 +99,15 @@ import {
   planVideoAgentWithLlm,
 } from "./videoAgentPlanner.js";
 import {
+  appendLoopRunLog,
+  getLoopEngineeringStatus,
+  listLoopPatterns,
+  runLoopAudit,
+  runLoopCost,
+  runLoopInit,
+  runLoopSync,
+} from "./loopEngineering.js";
+import {
   addChannelNote,
   appendReplyHistory,
   buildApprovalQueueFromComments,
@@ -1705,13 +1714,88 @@ app.get("/api/projects/video-quality", async (req, res) => {
 app.get("/api/studio-agents/status", (req, res) => {
   try {
     ensureDefaultSkillBundles(WORKSPACE_DIR);
+    let loops = null;
+    try {
+      loops = getLoopEngineeringStatus(WORKSPACE_DIR);
+    } catch (loopErr) {
+      loops = { installed: false, error: loopErr.message };
+    }
     res.json({
       ...getDashboard(WORKSPACE_DIR),
       obsidian: getObsidianVaultStatus(WORKSPACE_DIR),
       skills: getSkillsRegistryStatus(WORKSPACE_DIR),
+      loops,
     });
   } catch (err) {
     res.status(500).json({ error: "Erro ao carregar Studio Agents", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/loops/status", (req, res) => {
+  try {
+    const includeCli = req.query.cli === "1" || req.query.includeCli === "true";
+    res.json(getLoopEngineeringStatus(WORKSPACE_DIR, { includeCli }));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar Loop Engineering", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/loops/patterns", (req, res) => {
+  try {
+    res.json({ patterns: listLoopPatterns() });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao listar patterns", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/loops/audit", (req, res) => {
+  try {
+    const suggest = req.body?.suggest === true;
+    const audit = runLoopAudit(WORKSPACE_DIR, { suggest });
+    res.json({ ok: true, audit });
+  } catch (err) {
+    res.status(500).json({ error: "loop-audit falhou", details: err.message, raw: err.raw });
+  }
+});
+
+app.post("/api/studio-agents/loops/sync", (req, res) => {
+  try {
+    const sync = runLoopSync(WORKSPACE_DIR);
+    res.json({ ok: true, sync });
+  } catch (err) {
+    res.status(500).json({ error: "loop-sync falhou", details: err.message, raw: err.raw });
+  }
+});
+
+app.get("/api/studio-agents/loops/cost", (req, res) => {
+  try {
+    const pattern = String(req.query.pattern || "changelog-drafter");
+    const level = String(req.query.level || "L1");
+    const cadence = req.query.cadence ? String(req.query.cadence) : undefined;
+    const cost = runLoopCost(WORKSPACE_DIR, { pattern, level, cadence });
+    res.json({ ok: true, cost });
+  } catch (err) {
+    res.status(500).json({ error: "loop-cost falhou", details: err.message, raw: err.raw });
+  }
+});
+
+app.post("/api/studio-agents/loops/init", (req, res) => {
+  try {
+    const pattern = String(req.body?.pattern || "changelog-drafter");
+    const tool = String(req.body?.tool || "grok");
+    const result = runLoopInit(WORKSPACE_DIR, { pattern, tool });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "loop-init falhou", details: err.message, raw: err.raw });
+  }
+});
+
+app.post("/api/studio-agents/loops/log-run", (req, res) => {
+  try {
+    const result = appendLoopRunLog(WORKSPACE_DIR, req.body || {});
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Falha ao registrar run", details: err.message });
   }
 });
 

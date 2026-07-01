@@ -17,11 +17,13 @@ import {
   Package,
   Play,
   Settings,
+  Repeat,
 } from 'lucide-react';
 
-type StudioAgentsSection = 'automacao' | 'qualidade' | 'memoria' | 'skills';
+type StudioAgentsSection = 'automacao' | 'qualidade' | 'memoria' | 'skills' | 'loops';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 import { VideoAgentPlanner } from './VideoAgentPlanner';
+import { LoopEngineering } from './LoopEngineering';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
 
 type AgentConfig = {
@@ -207,6 +209,7 @@ export function StudioAgents({
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
   const [consolidatePreview, setConsolidatePreview] = useState<ConsolidatePreview | null>(null);
   const [section, setSection] = useState<StudioAgentsSection>('automacao');
+  const [loopsStatus, setLoopsStatus] = useState<Record<string, unknown> | null>(null);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -220,6 +223,7 @@ export function StudioAgents({
       setRecentLogs(data.recentLogs || []);
       setObsidian(data.obsidian || { installed: false });
       setSkillsRegistry(data.skills || null);
+      setLoopsStatus(data.loops || null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro ao carregar Studio Agents');
     } finally {
@@ -491,6 +495,8 @@ export function StudioAgents({
 
   const workshopPending = skillsRegistry?.pendingProposals ?? 0;
   const graphOrphans = obsidian.graph?.orphans ?? 0;
+  const loopAuditScore = (loopsStatus as { audit?: { score?: number } } | null)?.audit?.score;
+  const loopSyncIssues = (loopsStatus as { sync?: { issueCount?: number } } | null)?.sync?.issueCount ?? 0;
 
   const sectionTabs: Array<{
     id: StudioAgentsSection;
@@ -516,6 +522,17 @@ export function StudioAgents({
       label: 'Skills',
       icon: <Layers className="w-3 h-3" />,
       badge: workshopPending > 0 ? workshopPending : undefined,
+    },
+    {
+      id: 'loops',
+      label: 'Loops',
+      icon: <Repeat className="w-3 h-3" />,
+      badge:
+        loopSyncIssues > 0
+          ? loopSyncIssues
+          : loopAuditScore != null && loopAuditScore < 70
+            ? 1
+            : undefined,
     },
   ];
 
@@ -552,7 +569,7 @@ export function StudioAgents({
             helpId="agents-overview"
             size="lg"
             icon={<Bot className="w-6 h-6 text-gold-500 shrink-0" />}
-            subtitle="Memória do estúdio, automação VideoAgent e qualidade por projeto."
+            subtitle="Memória do estúdio, VideoAgent, Loop Engineering e qualidade por projeto."
           />
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             <button
@@ -1122,6 +1139,16 @@ export function StudioAgents({
         </div>
       </div>
         </>
+      )}
+
+      {section === 'loops' && (
+        <LoopEngineering
+          busy={busy}
+          setBusy={setBusy}
+          onOpenObsidian={openObsidian}
+          obsidianInstalled={obsidian.installed}
+          initialStatus={loopsStatus as Parameters<typeof LoopEngineering>[0]['initialStatus']}
+        />
       )}
 
       {showConsolidateModal && (
