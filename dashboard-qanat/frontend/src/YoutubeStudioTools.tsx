@@ -25,6 +25,8 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
     outliers?: Array<{ title: string; channelTitle: string; outlierRatio: number }>;
     analysis?: { derivedIdeas?: Array<{ title: string; hookPt?: string }> };
     memory?: { memoryFile?: string };
+    aiAnalysisFailed?: boolean;
+    aiAnalysisWarning?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -101,11 +103,12 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Falha na pesquisa');
+      if (!res.ok) throw new Error(data.details || data.error || 'Falha na pesquisa');
       setCompetitorResult(data);
       const n = (data.outliers || []).length;
       const ideas = (data.analysis?.derivedIdeas || []).length;
-      toast(`Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias → Obsidian`);
+      const base = `Pesquisa concluída: ${data.competitors?.length || 0} canais, ${n} outliers, ${ideas} ideias → Obsidian`;
+      toast(data.aiAnalysisWarning ? `${base} (${data.aiAnalysisWarning})` : base);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro na pesquisa de concorrentes');
     } finally {
@@ -204,6 +207,9 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
         </p>
         {competitorResult && (
           <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-2 space-y-1.5">
+            {competitorResult.aiAnalysisWarning && (
+              <p className="text-[8px] text-amber-400/90">{competitorResult.aiAnalysisWarning}</p>
+            )}
             {(competitorResult.analysis?.derivedIdeas || []).slice(0, 3).map((idea, i) => (
               <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
                 <span className="truncate">{idea.title}</span>

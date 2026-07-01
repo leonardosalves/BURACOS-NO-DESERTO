@@ -630,6 +630,9 @@ export async function runCompetitorResearch(workspaceDir, {
     competitorErrors: [],
   };
 
+  let aiAnalysisFailed = false;
+  let aiAnalysisWarning = null;
+
   if (llmFn && topOutliers.length > 0) {
     const prompt = buildAnalysisPrompt({
       niche: resolvedNiche,
@@ -637,16 +640,27 @@ export async function runCompetitorResearch(workspaceDir, {
       competitors: channelReports,
       outliers: topOutliers,
     });
-    const llmText = await llmFn(prompt);
-    const parsed = parseJsonFromLlm(llmText);
-    if (parsed && typeof parsed === "object") {
-      analysis = {
-        competitors: parsed.competitors || analysis.competitors,
-        outlierAnalyses: parsed.outlierAnalyses || analysis.outlierAnalyses,
-        derivedIdeas: parsed.derivedIdeas || analysis.derivedIdeas,
-        promotedPatterns: parsed.promotedPatterns || [],
-        competitorErrors: parsed.competitorErrors || [],
-      };
+    try {
+      const llmText = await llmFn(prompt);
+      const parsed = llmText ? parseJsonFromLlm(llmText) : null;
+      if (parsed && typeof parsed === "object") {
+        analysis = {
+          competitors: parsed.competitors || analysis.competitors,
+          outlierAnalyses: parsed.outlierAnalyses || analysis.outlierAnalyses,
+          derivedIdeas: parsed.derivedIdeas || analysis.derivedIdeas,
+          promotedPatterns: parsed.promotedPatterns || [],
+          competitorErrors: parsed.competitorErrors || [],
+        };
+      } else {
+        aiAnalysisFailed = true;
+        aiAnalysisWarning = llmText
+          ? "IA retornou resposta inválida — usando análise automática básica."
+          : "IA indisponível — dados do YouTube salvos com análise básica.";
+      }
+    } catch (err) {
+      aiAnalysisFailed = true;
+      aiAnalysisWarning = `IA falhou (${err.message}) — dados do YouTube salvos com análise básica.`;
+      console.warn("[CompetitorResearch]", aiAnalysisWarning);
     }
   }
 
@@ -662,6 +676,8 @@ export async function runCompetitorResearch(workspaceDir, {
     ok: true,
     niche: resolvedNiche,
     format: resolvedFormat,
+    aiAnalysisFailed,
+    aiAnalysisWarning,
     competitors: channelReports.map((c) => ({
       id: c.id,
       title: c.title,
