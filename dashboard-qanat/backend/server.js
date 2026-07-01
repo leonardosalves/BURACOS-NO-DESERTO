@@ -12205,7 +12205,7 @@ REGRAS FINAIS:
         return res.status(422).json({
           error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
           details: `Narração capturada com apenas ${narrationLen} caracteres. Aguarde o JSON completo em gemini.google.com e gere de novo.`,
-          hint: "Recarregue a extensão Lumiera Gemini Bridge (v1.4.8+) e não mude de aba durante a geração.",
+          hint: "Recarregue a extensão Lumiera Gemini Bridge (v1.4.9+) e não mude de aba durante a geração.",
         });
       }
 

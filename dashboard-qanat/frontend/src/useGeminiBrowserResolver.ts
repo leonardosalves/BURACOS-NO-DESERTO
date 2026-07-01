@@ -36,18 +36,27 @@ export function useGeminiBrowserResolver(
           : isNarration
             ? 'Narração em JSON (~1–3 min). Deixe gemini.google.com aberto — o overlay some quando o chat terminar.'
             : 'Consultando gemini.google.com (até ~4 min)…';
-    setAutomation?.({ active: true, title, hint });
+    const startedAt = Date.now();
+    const baseHint = hint;
+    const tickHint = (attempt?: number) => {
+      const sec = Math.floor((Date.now() - startedAt) / 1000);
+      const attemptSuffix = attempt && attempt > 1 ? ` · tentativa ${attempt}` : '';
+      setAutomation?.({
+        active: true,
+        title,
+        hint: `${baseHint} (${sec}s${attemptSuffix})`,
+        attempt,
+      });
+    };
+    tickHint();
+    const tick = window.setInterval(() => tickHint(), 4000);
     try {
       return await queryGeminiWithRetry(opts.prompt, {
         attempts: isMetadata ? 2 : isNarration ? 2 : 3,
-        onAttempt: (attempt) => setAutomation?.({
-          active: true,
-          title,
-          hint: attempt > 1 ? `${hint} Tentativa ${attempt}…` : hint,
-          attempt,
-        }),
+        onAttempt: (attempt) => tickHint(attempt),
       });
     } finally {
+      window.clearInterval(tick);
       setAutomation?.({ active: false });
     }
   }, [setAutomation]);

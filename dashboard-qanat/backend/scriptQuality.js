@@ -1254,6 +1254,30 @@ export function salvageScriptJson(responseText = "") {
       /* ignore */
     }
   }
+  const narrMatch = raw.match(/"narrative_script"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  if (narrMatch) {
+    try {
+      out.narrative_script = JSON.parse(`"${narrMatch[1]}"`);
+    } catch {
+      out.narrative_script = narrMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+    }
+  }
+  const taggedMatch = raw.match(/"narrative_script_tagged"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  if (taggedMatch) {
+    try {
+      out.narrative_script_tagged = JSON.parse(`"${taggedMatch[1]}"`);
+    } catch {
+      out.narrative_script_tagged = taggedMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+    }
+  }
+  const techMatch = raw.match(/"technical_config"\s*:\s*(\{[\s\S]*\})\s*\}?/);
+  if (techMatch) {
+    try {
+      out.technical_config = JSON.parse(techMatch[1].replace(/,\s*$/g, ""));
+    } catch {
+      /* ignore */
+    }
+  }
   const vpMatch = raw.match(/"visual_prompts"\s*:\s*(\[[\s\S]*)/);
   if (vpMatch) {
     try {
