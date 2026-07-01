@@ -187,6 +187,7 @@ import {
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import { NarrationReplacePanel } from './NarrationReplacePanel';
+import { TtsVoiceStudioPanel } from './TtsVoiceStudioPanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
 interface BGM {
@@ -11648,7 +11649,7 @@ export default function App() {
               )}
 
               {editorSubTab === 'narration' && config && (
-                <div className="glass-panel p-6 rounded-3xl max-w-2xl">
+                <div className="glass-panel p-6 rounded-3xl max-w-4xl space-y-6">
                   <NarrationReplacePanel
                     getProjectUrl={getProjectUrl}
                     getMediaUrl={getMusicUrl}
@@ -11668,6 +11669,19 @@ export default function App() {
                       toast.success('Texto da narração salvo no storyboard.');
                     }}
                     showScriptEdit={!!storyboardData}
+                  />
+                  <TtsVoiceStudioPanel
+                    getProjectUrl={getProjectUrl}
+                    toast={(msg) => toast(msg)}
+                    narrativeScript={storyboardData?.narrative_script || ''}
+                    taggedScript={storyboardData?.narrative_script_tagged || ''}
+                    onUpdated={() => fetchData()}
+                    onTaggedScriptChange={(value) => {
+                      if (!storyboardData) return;
+                      const next = { ...storyboardData, narrative_script_tagged: value };
+                      setStoryboardData(next);
+                      debounceSaveStoryboard(next);
+                    }}
                   />
                 </div>
               )}

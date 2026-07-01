@@ -63,6 +63,7 @@ export function resolveFishSpeechConfig(config = {}) {
     maxNewTokens: Number(fish.max_new_tokens ?? fish.maxNewTokens ?? FISH_SPEECH_DEFAULTS.maxNewTokens),
     useTaggedScript: fish.use_tagged_script !== false && fish.useTaggedScript !== false,
     defaultReferenceId: String(fish.default_reference_id || fish.defaultReferenceId || ""),
+    prosodySpeed: Number(fish.prosody_speed ?? fish.prosodySpeed ?? 1),
   };
 }
 
@@ -300,6 +301,7 @@ export async function synthesizeFishSpeech(text, {
     ? referenceId
     : (cfg.defaultReferenceId || null);
 
+  const prosodySpeed = Number(cfg.prosodySpeed ?? cfg.prosody_speed);
   const body = {
     text: plain,
     format: cfg.format,
@@ -317,6 +319,13 @@ export async function synthesizeFishSpeech(text, {
     condition_on_previous_chunks: true,
     min_chunk_length: 50,
   };
+  if (Number.isFinite(prosodySpeed) && prosodySpeed > 0 && prosodySpeed !== 1) {
+    body.prosody = {
+      speed: prosodySpeed,
+      volume: 0,
+      normalize_loudness: true,
+    };
+  }
 
   onLog(`[Fish Speech] ${plain.length} chars · ref=${refId || "padrão"} · ${mode} · ${baseUrl}`);
 
