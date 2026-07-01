@@ -130,6 +130,7 @@ import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPa
 import { ComfyMcpPage } from './ComfyMcpPage';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
+import { TimelineClipPreview } from './TimelineClipPreview';
 import { clipKey, parseClipKey } from './opencutTimeline';
 import { YoutubeStudioHomeCard } from './YoutubeStudioHomeCard';
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
@@ -7843,123 +7844,20 @@ export default function App() {
                                     </SettingHelpTip>
                                   </label>
 
-                                  {/* Visual Preview */}
-
-                                  <div 
-
-                                    className={`bg-zinc-950 rounded-lg overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview mx-auto ${
-
-                                      config.aspect_ratio === '9:16' ? 'h-64' : 'w-full'
-
-                                    }`}
-
-                                    style={{
-                                      aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9',
-                                      transform: `scale(${timelinePreviewZoom / 100})`,
-                                      transformOrigin: 'center center',
+                                  <TimelineClipPreview
+                                    asset={asset}
+                                    getAssetUrl={getAssetUrl}
+                                    aspectRatio={config.aspect_ratio}
+                                    previewZoom={timelinePreviewZoom}
+                                    canvasBackground={config.canvas_background || '#050506'}
+                                    clipDuration={getAssetDuration(blockKey, idx)}
+                                    sourceDuration={videoFileDurations[asset.asset]}
+                                    onSourceDuration={(path, dur) => {
+                                      setVideoFileDurations((prev) =>
+                                        prev[path] === dur ? prev : { ...prev, [path]: dur },
+                                      );
                                     }}
-
-                                  >
-
-                                    {asset.type === 'video' ? (
-
-                                      <video 
-
-                                        key={asset.asset}
-
-                                        src={getAssetUrl(asset.asset)} 
-
-                                        className="w-full h-full object-cover" 
-
-                                        controls={false} 
-
-                                        muted 
-
-                                        loop 
-
-                                        autoPlay 
-
-                                        playsInline 
-
-                                        onLoadedMetadata={(e) => {
-
-                                          const dur = e.currentTarget.duration;
-
-                                          if (dur && !isNaN(dur)) {
-
-                                            setVideoFileDurations(prev => {
-
-                                              if (prev[asset.asset] === dur) return prev;
-
-                                              return { ...prev, [asset.asset]: dur };
-
-                                            });
-
-                                          }
-
-                                        }}
-
-                                        onLoadedData={(e) => {
-
-                                          e.currentTarget.style.display = 'block';
-
-                                        }}
-
-                                        onError={(e) => {
-
-                                          e.currentTarget.style.display = 'none';
-
-                                        }}
-
-                                      />
-
-                                    ) : (
-
-                                      <img 
-
-                                        key={asset.asset}
-
-                                        src={getAssetUrl(asset.asset)} 
-
-                                        className="w-full h-full object-cover" 
-
-                                        alt="Preview" 
-
-                                        onLoad={(e) => {
-
-                                          e.currentTarget.style.display = 'block';
-
-                                        }}
-
-                                        onError={(e) => {
-
-                                          e.currentTarget.style.display = 'none';
-
-                                        }}
-
-                                      />
-
-                                    )}
-
-                                    {/* Overlay duration */}
-
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
-
-                                      ⏱️ {getAssetDuration(blockKey, idx).toFixed(1)}s
-
-                                      {asset.type === 'video' && videoFileDurations[asset.asset] !== undefined && (
-
-                                        <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
-
-                                          / {videoFileDurations[asset.asset].toFixed(1)}s
-
-                                        </span>
-
-                                      )}
-
-                                    </div>
-
-                                  </div>
+                                  />
 
                                   {/* Dynamic narration - words redistribute based on asset duration */}
 
@@ -12070,117 +11968,28 @@ export default function App() {
 
                                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Visual da Cena</label>
 
-                                  <div 
-
-                                    className="bg-zinc-950 rounded-xl overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview w-full h-24"
-
-                                  >
+                                  <div className="relative w-full group/preview">
 
                                     {correspondingAsset && correspondingAsset.asset ? (
 
                                       <>
 
-                                        {correspondingAsset.type === 'video' ? (
+                                        <TimelineClipPreview
+                                          compact
+                                          asset={correspondingAsset}
+                                          getAssetUrl={getAssetUrl}
+                                          aspectRatio={config?.aspect_ratio}
+                                          canvasBackground={config?.canvas_background || '#050506'}
+                                          clipDuration={getAssetDuration(blockKey, assetIdx)}
+                                          sourceDuration={videoFileDurations[correspondingAsset.asset]}
+                                          onSourceDuration={(path, dur) => {
+                                            setVideoFileDurations((prev) =>
+                                              prev[path] === dur ? prev : { ...prev, [path]: dur },
+                                            );
+                                          }}
+                                        />
 
-                                          <video 
-
-                                            key={correspondingAsset.asset}
-
-                                            src={getAssetUrl(correspondingAsset.asset)} 
-
-                                            className="w-full h-full object-cover" 
-
-                                            controls={false} 
-
-                                            muted 
-
-                                            loop 
-
-                                            autoPlay 
-
-                                            playsInline 
-
-                                            onLoadedMetadata={(e) => {
-
-                                              const dur = e.currentTarget.duration;
-
-                                              if (dur && !isNaN(dur)) {
-
-                                                setVideoFileDurations(prev => {
-
-                                                  if (prev[correspondingAsset.asset] === dur) return prev;
-
-                                                  return { ...prev, [correspondingAsset.asset]: dur };
-
-                                                });
-
-                                              }
-
-                                            }}
-
-                                            onLoadedData={(e) => {
-
-                                              e.currentTarget.style.display = 'block';
-
-                                            }}
-
-                                            onError={(e) => {
-
-                                              e.currentTarget.style.display = 'none';
-
-                                            }}
-
-                                          />
-
-                                        ) : (
-
-                                          <img 
-
-                                            key={correspondingAsset.asset}
-
-                                            src={getAssetUrl(correspondingAsset.asset)} 
-
-                                            className="w-full h-full object-cover" 
-
-                                            alt="Preview" 
-
-                                            onLoad={(e) => {
-
-                                              e.currentTarget.style.display = 'block';
-
-                                            }}
-
-                                            onError={(e) => {
-
-                                              e.currentTarget.style.display = 'none';
-
-                                            }}
-
-                                          />
-
-                                        )}
-
-                                        {/* Small badge overlay showing duration */}
-
-                                        <div className="absolute bottom-1 right-1 bg-black/70 text-white font-mono text-[8px] px-1 py-0.2 rounded font-bold">
-
-                                          ⏱️ {getAssetDuration(blockKey, assetIdx).toFixed(1)}s
-
-                                          {correspondingAsset.type === 'video' && videoFileDurations[correspondingAsset.asset] !== undefined && (
-
-                                            <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
-
-                                              / {videoFileDurations[correspondingAsset.asset].toFixed(1)}s
-
-                                            </span>
-
-                                          )}
-
-                                        </div>
-
-                                        {/* Hover overlay to replace */}
-
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition flex items-center justify-center gap-2">
+                                        <div className="absolute inset-0 z-10 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition flex items-center justify-center gap-2 rounded-xl">
 
                                           <input 
 

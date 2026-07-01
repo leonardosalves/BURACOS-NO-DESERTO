@@ -17,7 +17,7 @@ export function TimelineClipOpenCutControls({ asset, onFieldChange }: Props) {
       <div className="flex items-center gap-1.5">
         <span className="text-[8px] uppercase tracking-wider text-zinc-600 font-bold">Clip (OpenCut)</span>
         <SettingHelpTip title="Controles por clip" align="start">
-          Volume e velocidade do B-roll de cada asset. Valores salvos na timeline e aplicados no render Remotion. A narração principal não é afetada.
+          Volume e velocidade do B-roll de cada asset. O preview do card acima atualiza em tempo real ao mover os sliders. Valores vão para o render Remotion; a narração principal não é afetada.
         </SettingHelpTip>
       </div>
       <div className="flex items-center gap-2">
