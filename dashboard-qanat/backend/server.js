@@ -220,6 +220,9 @@ import {
   extractBlockIndex,
   getBlockTiming,
   isInformativeOverlay,
+  isHudOverlay,
+  hasAiPlannedOverlays,
+  isPlaceholderInformativeOverlay,
   redistributeInformativeOverlayStarts,
   verifyAndRepairAiOverlayTiming,
   overlayTimingIssuesFromReport,
@@ -13181,7 +13184,16 @@ function repairOverlayPropsForRemotion(overlay) {
   }
 
   if (overlay.type === "lower-third") {
-    if (!p.title) p.title = String(p.subtitle || p.text || p.label || "INFO");
+    const title = String(p.title || "").trim();
+    const subtitle = String(p.subtitle || "").trim();
+    const fallback = String(p.text || p.label || "").trim();
+    const resolved = title || subtitle || fallback;
+    if (!resolved || isPlaceholderInformativeOverlay({ ...overlay, props: { ...p, title: resolved } })) {
+      console.log(`[Overlays] Lower-third ${overlay.id} placeholder (${resolved || "vazio"}) — removido.`);
+      return null;
+    }
+    p.title = title || resolved;
+    if (!p.subtitle && subtitle && title) p.subtitle = subtitle;
     if (!p.position) p.position = "bottom-left";
   }
 
@@ -13246,7 +13258,7 @@ function normalizeGeminiOverlayPayload(overlays = []) {
     return overlay;
   })
     .map((overlay) => repairOverlayPropsForRemotion(overlay))
-    .filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type));
+    .filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type) && !isPlaceholderInformativeOverlay(o));
 }
 
 function stripSystemInjectedOverlays(overlays = []) {
@@ -13536,9 +13548,17 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
 
 function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
   let result = filterOverlaysByVisualConfig(overlays, config);
-  result = injectProLayoutOverlays(result, config, storyboard, starts, durations, orchestrationPlan);
+  const aiOverlayMode = hasAiPlannedOverlays(storyboard);
+  if (!aiOverlayMode) {
+    result = injectProLayoutOverlays(result, config, storyboard, starts, durations, orchestrationPlan);
+  }
   result = injectListicleRankOverlays(result, storyboard, config, starts, durations, projectDir);
-  result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
+  if (!aiOverlayMode) {
+    result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
+  }
+  if (aiOverlayMode) {
+    result = result.filter((o) => !isHudOverlay(o) && !isPlaceholderInformativeOverlay(o));
+  }
   result = avoidListicleHudCollisions(result, config, storyboard);
   result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
   result = stabilizeOverlayTimings(result, {
