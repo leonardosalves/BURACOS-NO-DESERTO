@@ -7,6 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        dash: {
+          bg: '#060818',
+          card: '#182335',
+          'card-hover': '#1b2e4b',
+          border: '#2b3c57',
+          'border-soft': '#232736',
+          primary: '#8280fd',
+          'primary-dark': '#6045e2',
+          'primary-light': '#e9e7ff',
+          success: '#67cf94',
+          info: '#09d1de',
+          warning: '#ffb959',
+          danger: '#fc7383',
+          muted: '#c4c4c4',
+        },
         zinc: {
           850: '#222226',
         },
@@ -40,7 +55,8 @@ export default {
       },
       fontFamily: {
         cinzel: ['Cinzel', 'serif'],
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"PT Sans"', 'Inter', 'sans-serif'],
+        dash: ['"PT Sans"', 'sans-serif'],
       }
     },
   },

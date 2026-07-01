@@ -68,10 +68,10 @@ function ProjectCard({
       <button
         type="button"
         onClick={onSelect}
-        className={`flex-1 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 min-w-0 border ${
+        className={`flex-1 text-left px-3 py-2.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 min-w-0 border ${
           isSelected
-            ? 'bg-gold-500/10 border-gold-500/30 text-gold-300'
-            : 'bg-zinc-950/40 border-zinc-800/60 text-zinc-400 hover:bg-zinc-900/60 hover:text-zinc-200'
+            ? 'bg-dash-primary/10 border-dash-primary/30 text-dash-primary'
+            : 'bg-dash-card border-dash-border text-zinc-400 hover:bg-dash-card-hover hover:text-white'
         }`}
       >
         {isShort ? (

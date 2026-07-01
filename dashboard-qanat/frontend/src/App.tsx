@@ -134,6 +134,8 @@ import { ComfyMcpPage } from './ComfyMcpPage';
 import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
+import { AppShell } from './AppShell';
+import { DashminStats } from './DashminStats';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -8361,11 +8363,67 @@ export default function App() {
     );
   };
 
+  const openCreatorTab = () => {
+    setActiveTab('creator');
+    const session = loadWizardSession();
+    if (session?.creatorStep && session.creatorStep > 1) {
+      setCreatorStep(session.creatorStep);
+    }
+  };
+
+  const projectWorkspaceBar =
+    activeTab !== 'creator' &&
+    activeTab !== 'settings' &&
+    activeTab !== 'agents' &&
+    activeTab !== 'youtube-studio' &&
+    activeTab !== 'comfy-mcp' &&
+    activeTab !== 'trend-forecast' &&
+    activeTab !== 'agent-reach' &&
+    activeTab !== 'projects' ? (
+      <div className="lumiera-project-bar">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
+          <div className="min-w-0 flex-1">
+            <p className="lumiera-section-label">Projeto ativo</p>
+            <p className="text-sm font-bold text-white text-balance-safe break-words">{activeProject}</p>
+          </div>
+          <nav className="lumiera-tab-nav">
+            {PROJECT_WORKSPACE_TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const help = tab.helpId ? SECTION_HELP[tab.helpId] : null;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`lumiera-tab-btn ${isActive ? 'dash-tab-active' : ''}`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="leading-snug">{tab.label}</span>
+                  {help && (
+                    <span
+                      className="inline-flex"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      role="presentation"
+                    >
+                      <SettingHelpTip title={help.title} align="start">
+                        {help.body}
+                      </SettingHelpTip>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+    ) : null;
+
   return (
 
-    <div className="lumiera-shell">
-
-      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1c1c24', color: '#fff', border: '1px solid #2d2d3d' } }} />
+    <>
+      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#182335', color: '#fff', border: '1px solid #2b3c57' } }} />
 
       {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
         <PreRenderAdviceModal
@@ -8385,393 +8443,34 @@ export default function App() {
         />
       )}
 
-      {/* Header */}
-
-      <header className="lumiera-header">
-
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-
-          <div className="w-10 h-10 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center">
-
-            <Sparkles className="w-5 h-5 text-gold-500 animate-pulse" />
-
-          </div>
-
-          <div className="min-w-0">
-
-            <h1 className="font-cinzel font-bold text-base sm:text-lg text-white text-balance-safe">LUMIERA CINEMATIC STUDIO</h1>
-
-            <p className="text-[10px] sm:text-xs text-gray-500 font-sans text-balance-safe line-clamp-safe-2">Painel de Controle e Renderização Automatizada • {activeProject}</p>
-
-          </div>
-
-        </div>
-
-        <div className="lumiera-btn-row shrink-0">
-
-          <div className="lumiera-status-pill">
-
-            <div className="flex items-center gap-2">
-
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-
-              <span className="text-gray-300 font-medium whitespace-nowrap">Servidor Ativo</span>
-
-            </div>
-
-            <span className="h-4 w-px bg-zinc-700"></span>
-
-            <div className="flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
-
-              <CalendarDays className="w-3.5 h-3.5 text-gold-500" />
-
-              <span>{formattedHeaderDate}</span>
-
-            </div>
-
-            <div className="flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
-
-              <Thermometer className="w-3.5 h-3.5 text-amber-400" />
-
-              <span>{headerTemperatureLabel}</span>
-
-            </div>
-
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button 
-
-              onClick={() => setActiveTab('settings')}
-
-              className={`p-2 border rounded-lg transition duration-150 cursor-pointer ${
-
-                activeTab === 'settings'
-
-                  ? 'bg-gold-500/10 border-gold-500/30 text-gold-500'
-
-                  : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:text-white'
-
-              }`}
-
-              title="Configurações"
-
-            >
-
-              <Settings className="w-4 h-4" />
-
-            </button>
-            <SettingHelpTip title={SECTION_HELP['settings-config'].title} align="end">
-              {SECTION_HELP['settings-config'].body}
-            </SettingHelpTip>
-          </div>
-
-          <button 
-
-            onClick={fetchData} 
-
-            className="p-2 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 hover:text-white transition duration-150 cursor-pointer"
-
-            title="Atualizar dados"
-
-          >
-
-            <RefreshCw className="w-4 h-4" />
-
-          </button>
-
-        </div>
-
-      </header>
-
-      {/* Main Workspace */}
-
-      <div className="lumiera-workspace">
-
-        {/* Sidebar Tabs */}
-
-        <aside className="lumiera-sidebar">
-
-          <div className="shrink-0 p-4 space-y-3 border-b border-zinc-900/60">
-
-            {/* Global AI Project Creator Button */}
-
-            <div className="space-y-2">
-
-              <button 
-
-                onClick={() => {
-                  setActiveTab('creator');
-                  const session = loadWizardSession();
-                  if (session?.creatorStep && session.creatorStep > 1) {
-                    setCreatorStep(session.creatorStep);
-                  }
-                }}
-
-                className={`lumiera-sidebar-btn shadow-lg hover:scale-[1.01] ${
-
-                  activeTab === 'creator'
-
-                    ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-zinc-950 shadow-gold-500/10'
-
-                    : 'bg-zinc-900 border border-zinc-800 text-gold-500 hover:text-white hover:bg-zinc-850 hover:border-zinc-700'
-
-                }`}
-
-              >
-
-                <Sparkles className="w-4 h-4 animate-pulse" />
-
-                <span>Novo Projeto com IA</span>
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-creator'].title} align="start">
-                    {SECTION_HELP['tab-creator'].body}
-                  </SettingHelpTip>
-                </span>
-
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('agents')}
-                className={`lumiera-sidebar-btn ${
-                  activeTab === 'agents'
-                    ? 'bg-gold-500/15 border border-gold-500/35 text-gold-400'
-                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-gold-400 hover:border-zinc-700'
-                }`}
-              >
-                <Bot className="w-4 h-4" />
-                <span>Studio Agents</span>
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-agents'].title} align="start">
-                    {SECTION_HELP['tab-agents'].body}
-                  </SettingHelpTip>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('youtube-studio')}
-                className={`lumiera-sidebar-btn ${
-                  activeTab === 'youtube-studio'
-                    ? 'bg-red-500/10 border border-red-500/30 text-red-300'
-                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-red-300 hover:border-zinc-700'
-                }`}
-              >
-                <Youtube className="w-4 h-4" />
-                <span>Canal YouTube</span>
-                {(youtubeChannelAlerts?.badgeCount ?? 0) > 0 && (
-                  <span
-                    className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center tabular-nums"
-                    title="Alertas do canal (comentários ou views 48h)"
-                  >
-                    {(youtubeChannelAlerts?.badgeCount ?? 0) > 99 ? '99+' : youtubeChannelAlerts?.badgeCount}
-                  </span>
-                )}
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-youtube-studio'].title} align="start">
-                    {SECTION_HELP['tab-youtube-studio'].body}
-                  </SettingHelpTip>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('agent-reach')}
-                className={`lumiera-sidebar-btn ${
-                  activeTab === 'agent-reach'
-                    ? 'bg-sky-500/10 border border-sky-500/30 text-sky-300'
-                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-sky-300 hover:border-zinc-700'
-                }`}
-              >
-                <Globe className="w-4 h-4" />
-                <span>Pesquisa Web</span>
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-agent-reach'].title} align="start">
-                    {SECTION_HELP['tab-agent-reach'].body}
-                  </SettingHelpTip>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('trend-forecast')}
-                className={`lumiera-sidebar-btn ${
-                  activeTab === 'trend-forecast'
-                    ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
-                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-amber-300 hover:border-zinc-700'
-                }`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>Radar Tendências</span>
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-trend-forecast'].title} align="start">
-                    {SECTION_HELP['tab-trend-forecast'].body}
-                  </SettingHelpTip>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('comfy-mcp')}
-                className={`lumiera-sidebar-btn ${
-                  activeTab === 'comfy-mcp'
-                    ? 'bg-sky-500/10 border border-sky-500/30 text-sky-300'
-                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-sky-300 hover:border-zinc-700'
-                }`}
-              >
-                <Cloud className="w-4 h-4" />
-                <span>Comfy MCP</span>
-                <span
-                  className="inline-flex"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  role="presentation"
-                >
-                  <SettingHelpTip title={SECTION_HELP['tab-comfy-mcp'].title} align="start">
-                    {SECTION_HELP['tab-comfy-mcp'].body}
-                  </SettingHelpTip>
-                </span>
-              </button>
-
-            </div>
-
-          </div>
-
-          {recentProjects.length > 0 && (
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 font-sans min-h-0 border-t border-zinc-900/60">
-              <div className="flex items-center justify-between px-1">
-                <span className="lumiera-section-label">Recentes</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('projects')}
-                  className="text-[9px] text-zinc-500 hover:text-gold-400 transition"
-                >
-                  Ver todos
-                </button>
-              </div>
-              <div className="space-y-0.5">
-                {recentProjects
-                  .map((name) => projects.find((p) => p.name === name))
-                  .filter((proj): proj is ProjectListItem => Boolean(proj))
-                  .slice(0, 8)
-                  .map((proj) => {
-                    const isSelected = activeProject === proj.name;
-                    const isShort = proj.format === 'SHORTS';
-                    return (
-                      <button
-                        key={proj.name}
-                        type="button"
-                        onClick={() => handleSelectProject(proj.name)}
-                        className={`w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-semibold transition flex items-center gap-2 min-w-0 ${
-                          isSelected
-                            ? 'bg-gold-500/10 border border-gold-500/25 text-gold-300'
-                            : 'text-gray-400 border border-transparent hover:bg-zinc-900/40 hover:text-gray-200'
-                        }`}
-                      >
-                        {isShort ? (
-                          <Smartphone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-amber-500' : 'text-zinc-600'}`} />
-                        ) : (
-                          <Tv className={`w-3 h-3 shrink-0 ${isSelected ? 'text-gold-500' : 'text-zinc-600'}`} />
-                        )}
-                        <span className="line-clamp-2 min-w-0 flex-1" title={proj.title || proj.name}>
-                          {proj.title || proj.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-relaxed border-t border-zinc-800 font-sans text-balance-safe break-words">
-
-            Desenvolvido por Antigravity Studio. Versão 1.2.0 • Remotion e Hyperframe Engine.
-
-          </div>
-
-        </aside>
-
-        {/* Tab Content Panel */}
-
-        <main className="lumiera-main">
-          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && activeTab !== 'comfy-mcp' && activeTab !== 'trend-forecast' && activeTab !== 'agent-reach' && activeTab !== 'projects' && (
-            <div className="lumiera-project-bar">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
-                <div className="min-w-0 flex-1">
-                  <p className="lumiera-section-label">Projeto ativo</p>
-                  <p className="text-sm font-bold text-white font-cinzel text-balance-safe break-words">{activeProject}</p>
-                </div>
-                <nav className="lumiera-tab-nav">
-                  {PROJECT_WORKSPACE_TABS.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    const help = tab.helpId ? SECTION_HELP[tab.helpId] : null;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`lumiera-tab-btn ${
-                          isActive
-                            ? 'bg-gold-500/15 text-gold-400 border border-gold-500/30'
-                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="leading-snug">{tab.label}</span>
-                        {help && (
-                          <span
-                            className="inline-flex"
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
-                            role="presentation"
-                          >
-                            <SettingHelpTip title={help.title} align="start">
-                              {help.body}
-                            </SettingHelpTip>
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-            </div>
-          )}
-
-          <div className="lumiera-content text-balance-safe">
+      <AppShell
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        activeProject={activeProject}
+        projects={projects}
+        recentProjects={recentProjects}
+        onSelectProject={handleSelectProject}
+        onOpenCreator={openCreatorTab}
+        formattedHeaderDate={formattedHeaderDate}
+        headerTemperatureLabel={headerTemperatureLabel}
+        youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}
+        onRefresh={fetchData}
+        projectBar={projectWorkspaceBar}
+      >
+        <div className="text-balance-safe">
 
           {/* TAB: RENDER */}
 
           {activeTab === 'status' && (
 
             <div className="lumiera-panel-stack animate-fade-in">
+
+              <DashminStats
+                projectCount={projects.length}
+                recentCount={recentProjects.length}
+                youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
+                activeProject={activeProject}
+              />
 
               <YoutubeStudioHomeCard
                 viewsThreshold={getYoutubeViewsThreshold()}
@@ -15532,10 +15231,8 @@ export default function App() {
 
           )}
 
-          </div>
-        </main>
-
-      </div>
+        </div>
+      </AppShell>
 
       {/* Global Floating Chat Button */}
 
@@ -15545,7 +15242,7 @@ export default function App() {
 
           onClick={() => setChatOpen(true)}
 
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gold-500 hover:bg-gold-600 text-zinc-950 rounded-full flex items-center justify-center shadow-2xl shadow-gold-500/30 transition-all duration-200 hover:scale-110 cursor-pointer"
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-dash-primary hover:bg-dash-primary-dark text-white rounded-full flex items-center justify-center shadow-2xl shadow-dash-primary/30 transition-all duration-200 hover:scale-110 cursor-pointer"
 
           title="Abrir Assistente IA"
 
@@ -16256,8 +15953,7 @@ export default function App() {
         </div>
 
       )}
-
-    </div>
+    </>
 
   );
 
