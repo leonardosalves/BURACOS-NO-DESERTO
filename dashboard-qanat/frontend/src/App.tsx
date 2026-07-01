@@ -8429,7 +8429,7 @@ export default function App() {
   return (
 
     <>
-      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#182335', color: '#fff', border: '1px solid #2b3c57' } }} />
+      <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#0c1018', color: '#fff', border: '1px solid #1a2230' } }} />
 
       {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
         <PreRenderAdviceModal

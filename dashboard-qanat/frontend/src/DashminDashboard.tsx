@@ -168,7 +168,7 @@ export function DashminDashboard({
         </div>
         <div className="dash-storage-ring">
           <svg viewBox="0 0 120 120" className="w-28 h-28 mx-auto">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="#2b3c57" strokeWidth="10" />
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#1a2230" strokeWidth="10" />
             <circle
               cx="60"
               cy="60"
@@ -183,7 +183,7 @@ export function DashminDashboard({
             <text x="60" y="58" textAnchor="middle" className="fill-white text-xl font-bold">
               {storagePct}%
             </text>
-            <text x="60" y="74" textAnchor="middle" className="fill-[#c4c4c4] text-[9px]">
+            <text x="60" y="74" textAnchor="middle" className="fill-dash-muted text-[9px]">
               usado
             </text>
           </svg>
