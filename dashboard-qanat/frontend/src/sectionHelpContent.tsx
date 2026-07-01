@@ -101,6 +101,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-trend-forecast': {
+    title: 'Radar de Tendências (TimesFM)',
+    body: (
+      <>
+        Previsão de nichos e vídeos Short/Longo em alta usando <strong>TimesFM 2.5</strong> (Google Research) sobre séries de views do YouTube Analytics.
+        Gera ranking de crescimento, ideias derivadas e opcionalmente enfileira na fila editorial. Sem TimesFM instalado, usa fallback estatístico.
+      </>
+    ),
+  },
   'tab-comfy-mcp': {
     title: 'Comfy Cloud MCP',
     body: (

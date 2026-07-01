@@ -125,6 +125,7 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerResearchRoutes } from "./researchRoutes.js";
+import { registerTimesfmRoutes } from "./timesfmRoutes.js";
 import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
 import { runDeepResearch } from "./deerFlowResearch.js";
 import {
@@ -12909,6 +12910,12 @@ registerResearchRoutes(app, {
   callGeminiWithRetry,
   callNvidiaWithRetry,
   NVIDIA_MODELS,
+});
+
+registerTimesfmRoutes(app, {
+  WORKSPACE_DIR,
+  PROJECTS_ROOT,
+  PYTHON_PATH,
 });
 
 // Serve frontend build static files in production (must be after API routes)
