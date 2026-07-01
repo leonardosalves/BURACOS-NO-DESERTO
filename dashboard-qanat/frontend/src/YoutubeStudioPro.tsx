@@ -1,8 +1,31 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle, CheckCircle2, Clock, Flame, History, Inbox, Layers,
+  AlertTriangle, Award, CheckCircle2, Clock, Download, Flame, History, Inbox, Layers,
   Loader2, MessageSquare, Radio, Search, Send, Sparkles, StickyNote, TrendingDown,
 } from 'lucide-react';
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
+
+type Milestone = {
+  current: number;
+  required: number;
+  progressPct: number;
+  met: boolean;
+};
+
+type YppMilestones = {
+  available?: boolean;
+  subscribers?: Milestone;
+  watchHours12m?: Milestone;
+  shortsViews90d?: Milestone;
+  eligibleStandard?: boolean;
+  eligibleShorts?: boolean;
+  recommendedPath?: string;
+  note?: string;
+};
 
 type InboxStats = {
   slaHours: number;
@@ -51,9 +74,36 @@ type ProDashboard = {
     progressPct: number;
   };
   channelNotes?: Array<{ id: string; text: string; createdAt: string }>;
+  ypp?: YppMilestones;
   slaHours?: number;
   autoQueueEnabled?: boolean;
 };
+
+function formatCompact(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString('pt-BR');
+}
+
+function MilestoneBar({ label, data }: { label: string; data?: Milestone }) {
+  if (!data) return null;
+  return (
+    <div>
+      <div className="flex justify-between text-[9px] text-zinc-500 mb-0.5">
+        <span>{label}</span>
+        <span className={data.met ? 'text-emerald-400' : 'text-zinc-400'}>
+          {formatCompact(data.current)} / {formatCompact(data.required)}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${data.met ? 'bg-emerald-500' : 'bg-gold-500'}`}
+          style={{ width: `${Math.min(100, data.progressPct)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 type RetentionCliff = {
   available?: boolean;
@@ -97,6 +147,8 @@ export function YoutubeStudioPro({
   const [channels, setChannels] = useState<Array<{ id: string; title: string; selected?: boolean }>>([]);
   const [queueEdits, setQueueEdits] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [pwaInstalled, setPwaInstalled] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -209,6 +261,33 @@ export function YoutubeStudioPro({
     fetch('/api/youtube/channel/list').then((r) => r.json()).then((d) => setChannels(d.channels || [])).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone;
+    if (standalone) setPwaInstalled(true);
+
+    const onInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', onInstall);
+    return () => window.removeEventListener('beforeinstallprompt', onInstall);
+  }, []);
+
+  const installPwa = async () => {
+    if (!installPrompt) {
+      toast('No Chrome/Edge: menu ⋮ → Instalar Lumiera. Build de produção necessária.');
+      return;
+    }
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      setPwaInstalled(true);
+      setInstallPrompt(null);
+      toast('Lumiera instalado como app.');
+    }
+  };
+
   const inbox = dashboard?.inbox;
 
   return (
@@ -259,6 +338,44 @@ export function YoutubeStudioPro({
               <CheckCircle2 className="w-3.5 h-3.5" /> Inbox zero — nenhum comentário pendente no lote.
             </p>
           )}
+
+          {/* YPP Milestones */}
+          {dashboard?.ypp?.available && (
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+              <p className="text-[10px] font-bold text-zinc-300 flex items-center gap-1">
+                <Award className="w-3.5 h-3.5 text-gold-400" />
+                Monetização YPP
+                {(dashboard.ypp.eligibleStandard || dashboard.ypp.eligibleShorts) && (
+                  <span className="text-[8px] text-emerald-400 font-bold ml-1">ELEGÍVEL</span>
+                )}
+              </p>
+              <MilestoneBar label="Inscritos" data={dashboard.ypp.subscribers} />
+              <MilestoneBar label="Horas (12 meses)" data={dashboard.ypp.watchHours12m} />
+              <MilestoneBar label="Views Shorts (90d)" data={dashboard.ypp.shortsViews90d} />
+              {dashboard.ypp.note && (
+                <p className="text-[9px] text-zinc-600">{dashboard.ypp.note}</p>
+              )}
+            </div>
+          )}
+
+          {/* PWA */}
+          <div className="flex flex-wrap items-center gap-2">
+            {!pwaInstalled && (
+              <button
+                type="button"
+                onClick={installPwa}
+                className="text-[9px] px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-300 inline-flex items-center gap-1"
+              >
+                <Download className="w-3 h-3" />
+                Instalar app (PWA)
+              </button>
+            )}
+            {pwaInstalled && (
+              <span className="text-[9px] text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> App instalado
+              </span>
+            )}
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-[9px] text-zinc-500">SLA (horas)</label>

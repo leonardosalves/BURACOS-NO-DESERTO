@@ -259,7 +259,10 @@ export async function fetchChannelOverview(workspaceDir, { forceRefresh = false 
   );
 }
 
-async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28, limit = 25 } = {}) {
+async function fetchChannelVideosWithAnalyticsUncached(
+  workspaceDir,
+  { days = 28, limit = 25, projectsRoot = null } = {},
+) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const { startDate, endDate } = periodDates(days);
@@ -299,12 +302,22 @@ async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28
   });
 
   const videoIds = [...videoMetaById.keys()];
+  const lumieraFormatById = {};
+  if (projectsRoot) {
+    for (const row of collectLumieraPublishedVideos(projectsRoot)) {
+      if (row.videoId) lumieraFormatById[row.videoId] = row.format;
+    }
+  }
   const [metricsByVideoId, formatByVideoId] = await Promise.all([
     fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDate),
     (async () => {
       try {
         const { tagVideosShortsLong } = await import("./youtubeStudioAdvanced.js");
-        return tagVideosShortsLong(accessToken, videoIds);
+        return tagVideosShortsLong(accessToken, videoIds, {
+          lumieraFormatById,
+          startDate,
+          endDate,
+        });
       } catch {
         return new Map();
       }
@@ -343,15 +356,15 @@ async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28
 
 export async function fetchChannelVideosWithAnalytics(
   workspaceDir,
-  { days = 28, limit = 25, forceRefresh = false, format = "all" } = {},
+  { days = 28, limit = 25, forceRefresh = false, format = "all", projectsRoot = null } = {},
 ) {
-  const cacheKey = `videos:v2:${days}:${limit}`;
+  const cacheKey = `videos:v3:${days}:${limit}`;
   const report = await withChannelCache(
     workspaceDir,
     cacheKey,
     CACHE_TTL_MS.videos,
     forceRefresh,
-    () => fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days, limit }),
+    () => fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days, limit, projectsRoot }),
   );
   const normalizedFormat = String(format || "all").toUpperCase();
   if (normalizedFormat === "ALL" || !report?.videos) return report;
@@ -1005,7 +1018,7 @@ export async function fetchChannelSummary(
 
   const [overview, videos, lumiera, alerts, periodComparison, reach] = await Promise.all([
     fetchChannelOverview(workspaceDir, { forceRefresh }),
-    fetchChannelVideosWithAnalytics(workspaceDir, { days, limit, forceRefresh }),
+    fetchChannelVideosWithAnalytics(workspaceDir, { days, limit, forceRefresh, projectsRoot }),
     fetchLumieraVideosReport(workspaceDir, projectsRoot, { days, forceRefresh }),
     fetchChannelAlerts(workspaceDir, projectsRoot, {
       views48hThreshold,
