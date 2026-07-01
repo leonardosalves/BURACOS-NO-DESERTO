@@ -6040,7 +6040,7 @@ const NVIDIA_MODELS = [
   "deepseek/deepseek-v4-flash"
 ];
 
-async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
+async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null, models = null } = {}) {
   const apiKey = getNvidiaApiKey(projectDir);
   if (!apiKey) {
     throw new Error("Chave de API da NVIDIA não configurada.");
@@ -6048,12 +6048,13 @@ async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride 
   
   const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
   let lastError = null;
+  const modelList = Array.isArray(models) && models.length ? models : NVIDIA_MODELS;
   
-  for (const model of NVIDIA_MODELS) {
+  for (const model of modelList) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`[NVIDIA API] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`);
-        const response = await fetch("http://integrate.api.nvidia.com/v1/chat/completions", {
+        const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -6200,10 +6201,10 @@ function getGeminiModelChain(projectDir = WORKSPACE_DIR, overrideModels = null) 
   return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
 }
 
-async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = null, bodyOverride = null, temperature = null, projectDir = null } = {}) {
+async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = null, bodyOverride = null, temperature = null, projectDir = null, forceProvider = null } = {}) {
   const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
   const modelChain = getGeminiModelChain(projDir, models);
-  const provider = getAiProvider(projDir);
+  const provider = forceProvider || getAiProvider(projDir);
   if (provider === "nvidia") {
     return await callNvidiaWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
   }
@@ -6679,6 +6680,73 @@ async function callGeminiLlm(req, res, projDir, {
   });
 }
 
+/**
+ * LLM rápido para Studio (comentários): 1 tentativa no provider ativo,
+ * fallback Gemini API, depois modo navegador se habilitado.
+ */
+async function callStudioQuickLlm(req, res, projDir, {
+  title = "Consulta IA Lumiera",
+  prompt,
+  temperature = 0.7,
+} = {}) {
+  const browserText = extractBrowserResponse(req.body);
+  if (browserText) return String(browserText).trim();
+
+  const failures = [];
+  const run = async (label, fn) => {
+    try {
+      const text = String(await fn() || "").trim();
+      if (text) return text;
+      failures.push(`${label}: resposta vazia`);
+    } catch (err) {
+      failures.push(`${label}: ${err.message}`);
+      console.warn(`[Studio LLM] ${label} falhou:`, err.message);
+    }
+    return null;
+  };
+
+  const provider = getAiProvider(projDir);
+  const quickModels = provider === "nvidia"
+    ? NVIDIA_MODELS.slice(0, 1)
+    : provider === "xai"
+      ? XAI_MODELS.slice(0, 1)
+      : provider === "openrouter"
+        ? null
+        : [getGeminiModel(projDir), "gemini-2.5-flash"];
+
+  let text = await run(provider, () => callGeminiWithRetry(getApiKey(projDir), prompt, {
+    maxRetries: 1,
+    models: quickModels,
+    temperature,
+    projectDir: projDir,
+  }));
+
+  if (!text) {
+    const geminiKeys = getApiKeys(projDir);
+    if (geminiKeys.length > 0) {
+      text = await run("gemini-fallback", () => callGeminiWithRetry(geminiKeys[0], prompt, {
+        maxRetries: 1,
+        models: [getGeminiModel(projDir), "gemini-2.5-flash", "gemini-2.0-flash"],
+        temperature,
+        projectDir: projDir,
+        forceProvider: "gemini",
+      }));
+    }
+  }
+
+  if (!text && isGeminiBrowserModeEnabled(projDir)) {
+    const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
+    const promptText = buildBrowserTaskPrompt(title, String(prompt ?? ""), "", browserOpts);
+    res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+    return null;
+  }
+
+  if (!text) {
+    throw new Error(failures[0] || "IA indisponível. Verifique Integrações ou ative Gemini no Chrome.");
+  }
+  return text;
+}
+
 function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
 
   const globalCfg = loadRenderConfig(__dirname);
@@ -6726,7 +6794,7 @@ async function generateMetadataWithNvidia(prompt, apiKey, format = "LONG") {
   for (const model of NVIDIA_MODELS) {
     try {
       console.log(`[NVIDIA API - Metadata] Tentando modelo: ${model}`);
-      const response = await fetch("http://integrate.api.nvidia.com/v1/chat/completions", {
+      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -8419,13 +8487,26 @@ app.post("/api/youtube/channel/comments/handled", (req, res) => {
 
 app.post("/api/youtube/channel/comments/suggest-reply", async (req, res) => {
   try {
-    const result = await suggestCommentReply({
-      commentText: String(req.body?.commentText || "").trim(),
-      videoTitle: String(req.body?.videoTitle || "").trim(),
-      niche: String(req.body?.niche || "").trim(),
-      authorName: String(req.body?.authorName || "").trim(),
-    }, (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, { ...opts, projectDir: WORKSPACE_DIR }));
-    res.json(result);
+    const commentText = String(req.body?.commentText || "").trim();
+    if (!commentText) {
+      return res.status(400).json({ error: "Comentário vazio." });
+    }
+    const prompt = `Você responde comentários de um canal YouTube em português do Brasil.
+Nicho do canal: ${String(req.body?.niche || "").trim() || "conteúdo em geral"}
+Vídeo: ${String(req.body?.videoTitle || "").trim() || "sem título"}
+Autor do comentário: ${String(req.body?.authorName || "").trim() || "espectador"}
+Comentário: ${commentText}
+
+Escreva UMA resposta curta (1-3 frases), autêntica, sem tom de IA, sem hashtags, sem pedir like/inscrição de forma agressiva.
+Retorne só o texto da resposta, sem aspas nem prefixos.`;
+
+    const suggestion = await callStudioQuickLlm(req, res, WORKSPACE_DIR, {
+      title: "Resposta a comentário YouTube",
+      prompt,
+      temperature: 0.7,
+    });
+    if (suggestion === null) return;
+    res.json({ suggestion: suggestion.slice(0, 10000) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -8585,11 +8666,22 @@ app.post("/api/youtube/channel/comments/pin", async (req, res) => {
 
 app.post("/api/youtube/channel/comments/translate", async (req, res) => {
   try {
-    res.json(await translateCommentText(
-      String(req.body?.text || ""),
-      String(req.body?.targetLang || "pt"),
-      (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, { ...opts, projectDir: WORKSPACE_DIR }),
-    ));
+    const text = String(req.body?.text || "").trim();
+    const targetLang = String(req.body?.targetLang || "pt");
+    if (!text) {
+      return res.status(400).json({ error: "Texto vazio." });
+    }
+    const langLabel = targetLang === "pt" ? "português do Brasil" : targetLang;
+    const prompt = `Traduza para ${langLabel} mantendo tom natural:
+"${text.slice(0, 2000)}"
+Retorne só a tradução, sem aspas.`;
+    const translation = await callStudioQuickLlm(req, res, WORKSPACE_DIR, {
+      title: "Traduzir comentário YouTube",
+      prompt,
+      temperature: 0.2,
+    });
+    if (translation === null) return;
+    res.json({ translation: translation.slice(0, 5000), targetLang });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
