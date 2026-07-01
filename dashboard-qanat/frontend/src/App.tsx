@@ -8755,56 +8755,198 @@ export default function App() {
 
             <div className="lumiera-render-workspace">
 
-              <div className="lumiera-render-topbar glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300">
-                  <span className="flex items-center gap-1.5">
-                    <Tv className="w-3.5 h-3.5 text-gold-500" />
-                    <span>Resolução: <strong className="text-gold-400">{renderResolutionLabel}</strong></span>
-                  </span>
-                  {videoQuality && (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded tabular-nums ${
-                      videoQuality.score >= 80
-                        ? 'text-emerald-400 bg-emerald-500/10'
-                        : videoQuality.score >= 60
-                          ? 'text-amber-400 bg-amber-500/10'
-                          : 'text-red-400 bg-red-500/10'
-                    }`}>
-                      Qualidade {videoQuality.score}/100
+              <div className="lumiera-render-hero">
+                <div className="lumiera-render-topbar glass-panel px-3 py-2 rounded-lg border border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-300">
+                    <span className="flex items-center gap-1.5">
+                      <Tv className="w-3.5 h-3.5 text-gold-500" />
+                      <span><strong className="text-gold-400">{renderResolutionLabel}</strong></span>
                     </span>
-                  )}
-                  {outputs.length > 0 && (
-                    <span className="text-[10px] text-zinc-500">{outputs.length} vídeo(s) em OUTPUT</span>
-                  )}
+                    {videoQuality && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tabular-nums ${
+                        videoQuality.score >= 80
+                          ? 'text-emerald-400 bg-emerald-500/10'
+                          : videoQuality.score >= 60
+                            ? 'text-amber-400 bg-amber-500/10'
+                            : 'text-red-400 bg-red-500/10'
+                      }`}>
+                        {videoQuality.score}/100
+                      </span>
+                    )}
+                    {outputs.length > 0 && (
+                      <span className="text-[9px] text-zinc-500">{outputs.length} em OUTPUT</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('settings')}
+                    className="text-[9px] text-zinc-500 hover:text-gold-400 transition shrink-0"
+                  >
+                    Resolução →
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('settings')}
-                  className="text-[10px] text-zinc-500 hover:text-gold-400 transition shrink-0"
-                >
-                  Alterar resolução →
-                </button>
+                <div className="lumiera-render-engines-grid">
+                
+                {/* Compiler Card */}
+                <div className="glass-panel lumiera-render-card">
+                  <div>
+                    <SectionHeader
+                      title="RENDERIZADOR PADRÃO"
+                      helpId="render-standard"
+                      icon={<Tv className="w-4 h-4 text-gold-500" />}
+                      size="sm"
+                      titleClassName="text-[10px]"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-0.5">Legendas Gold/Water e Ken Burns.</p>
+                  </div>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <button 
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('standard')}
+                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-gold-500/10 cursor-pointer w-full"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Compilação Padrão</span>
+                    </button>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('standard', false, true)}
+                      className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-gold-500 font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-2 text-[10px] cursor-pointer w-full"
+                      title="Renderiza mantendo as legendas normais, mas removendo os textos grandes de impacto no centro da tela."
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      <span>Sem títulos grandes</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="glass-panel lumiera-render-card">
+                  <div>
+                    <SectionHeader
+                      title="REMOTION ENGINE"
+                      helpId="render-remotion"
+                      icon={<ExternalLink className="w-4 h-4 text-water-300" />}
+                      size="sm"
+                      titleClassName="text-[10px]"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-0.5">Timeline + narração + legendas.</p>
+                  </div>
+                  <button
+                    disabled={rendering || !status?.has_narration}
+                    onClick={() => triggerRender('remotion')}
+                    className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Render Remotion</span>
+                  </button>
+                </div>
+
+                <div className="glass-panel-glow border border-amber-500/30 lumiera-render-card">
+                  <div>
+                    <div className="flex flex-wrap justify-between items-start gap-1">
+                      <SectionHeader
+                        title="REMOTION PRO"
+                        helpId="render-remotion-pro"
+                        icon={<Sparkles className="w-4 h-4 text-amber-500" />}
+                        size="sm"
+                        titleClassName="text-[10px]"
+                      />
+                      <span className="bg-amber-500/15 text-amber-500 text-[7px] font-bold px-1.5 py-0.5 rounded uppercase">Premium</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Infográficos e textos de impacto.</p>
+                  </div>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('remotion-pro')}
+                      className="bg-dash-primary hover:bg-dash-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Render PRO</span>
+                    </button>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        disabled={rendering || !status?.has_narration}
+                        onClick={() => triggerRender('remotion-pro', false, false, false, false, 0, effectiveRenderResolution, false, true)}
+                        className="bg-zinc-900 border border-cyan-500/35 hover:border-cyan-400/50 disabled:opacity-50 text-cyan-300 font-bold py-1.5 rounded-lg text-[9px] cursor-pointer"
+                        title="Amostra 12s"
+                      >
+                        Amostra 12s
+                      </button>
+                      <button
+                        disabled={rendering || !status?.has_narration}
+                        onClick={() => triggerRender('remotion-pro', false, false, false, false, 30)}
+                        className="bg-zinc-900 border border-amber-500/30 hover:border-amber-400/50 disabled:opacity-50 text-amber-300 font-bold py-1.5 rounded-lg text-[9px] cursor-pointer"
+                        title="Preview 30s"
+                      >
+                        Preview 30s
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-panel-glow border border-emerald-500/30 lumiera-render-card">
+                  <div>
+                    <div className="flex flex-wrap justify-between items-start gap-1">
+                      <SectionHeader
+                        title="HYPERFRAMES AI"
+                        helpId="render-hyperframes"
+                        icon={<Sparkles className="w-4 h-4 text-emerald-400" />}
+                        size="sm"
+                        titleClassName="text-[10px]"
+                      />
+                      <span className="bg-emerald-500/15 text-emerald-400 text-[7px] font-bold px-1.5 py-0.5 rounded uppercase">Orq.</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Catálogo HyperFrames · ProRes opcional.</p>
+                  </div>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <label className="flex items-center gap-1.5 text-[9px] text-zinc-400 cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        id="prores-alpha-checkbox" 
+                        className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-3 h-3" 
+                      />
+                      <span>ProRes Alpha</span>
+                    </label>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => {
+                        const proresCheck = document.getElementById('prores-alpha-checkbox') as HTMLInputElement;
+                        triggerRender('remotion-pro', false, false, true, proresCheck?.checked);
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>HyperFrames AI</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
               </div>
 
               {config && !status?.has_narration && (
-                <div className="glass-panel px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] text-amber-200/90">
-                    Projeto ainda sem narração. Use Workflow antes de renderizar.
+                <div className="glass-panel px-3 py-2 rounded-lg border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[10px] text-amber-200/90">
+                    Sem narração — use Workflow antes de renderizar.
                   </p>
                   <button
                     type="button"
                     onClick={() => setActiveTab('workflow')}
-                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-3 py-1.5 rounded-lg transition"
+                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-2.5 py-1 rounded-lg transition"
                   >
-                    Ir para Workflow →
+                    Workflow →
                   </button>
                 </div>
               )}
 
               <div className="lumiera-render-grid">
-                <div className="lumiera-render-primary space-y-4 min-w-0">
+                <div className="lumiera-render-primary space-y-3 min-w-0">
 
               {videoQuality && (!(videoQuality.score >= 80) || !videoQuality.ok || videoQuality.issues.some((i) => i.severity === 'error' || i.severity === 'warning') || Boolean(videoQuality.preRenderAdvice)) && (
-                <details className="glass-panel rounded-2xl font-sans group" open>
+                <details
+                  className="glass-panel rounded-xl font-sans group"
+                  open={videoQuality.score < 70 || !videoQuality.ok || videoQuality.issues.some((i) => i.severity === 'error')}
+                >
                   <summary className="p-4 cursor-pointer list-none flex flex-wrap items-center justify-between gap-3">
                     <SectionHeader
                       title="Ajustes antes do render"
@@ -8885,141 +9027,6 @@ export default function App() {
                   </div>
                 </details>
               )}
-
-              <div className="lumiera-render-engines-grid">
-                
-                {/* Compiler Card */}
-                <div className="glass-panel lumiera-render-card">
-                  <div>
-                    <SectionHeader
-                      title="RENDERIZADOR PADRÃO"
-                      helpId="render-standard"
-                      icon={<Tv className="w-4 h-4 text-gold-500" />}
-                    />
-                    <p className="text-[11px] text-gray-500 mt-1">Legendas Gold/Water Blue e Ken Burns.</p>
-                  </div>
-                  <div className="flex flex-col gap-2 w-full">
-                    <button 
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('standard')}
-                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-gold-500/10 cursor-pointer w-full"
-                    >
-                      <Play className="w-4 h-4 fill-current" />
-                      <span>Iniciar Compilação Padrão</span>
-                    </button>
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('standard', false, true)}
-                      className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-gold-500 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
-                      title="Renderiza mantendo as legendas normais, mas removendo os textos grandes de impacto no centro da tela."
-                    >
-                      <Video className="w-3.5 h-3.5" />
-                      <span>Render sem Titulos Grandes</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Remotion Quick info */}
-                <div className="glass-panel lumiera-render-card">
-                  <div>
-                    <SectionHeader
-                      title="REMOTION ENGINE"
-                      helpId="render-remotion"
-                      icon={<ExternalLink className="w-4 h-4 text-water-300" />}
-                    />
-                    <p className="text-[11px] text-gray-500 mt-1">Timeline + narração + legendas da transcrição.</p>
-                  </div>
-                  <div className="flex flex-col gap-2 w-full">
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('remotion')}
-                      className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>Renderizar via Remotion</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Remotion PRO Card */}
-                <div className="glass-panel-glow border border-amber-500/30 lumiera-render-card">
-                  <div>
-                    <div className="flex flex-wrap justify-between items-start gap-2">
-                      <SectionHeader
-                        title="REMOTION PRO"
-                        helpId="render-remotion-pro"
-                        icon={<Sparkles className="w-4 h-4 text-amber-500" />}
-                      />
-                      <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1">Infográficos, lower thirds e textos de impacto.</p>
-                  </div>
-                  <div className="flex flex-col gap-2 w-full">
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('remotion-pro')}
-                      className="bg-dash-primary hover:bg-dash-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-dash-primary/15 cursor-pointer w-full"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Renderizar via Remotion PRO</span>
-                    </button>
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('remotion-pro', false, false, false, false, 0, effectiveRenderResolution, false, true)}
-                      className="bg-zinc-900 border border-cyan-500/35 hover:border-cyan-400/50 disabled:opacity-50 disabled:cursor-not-allowed text-cyan-300 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
-                      title="OpenMontage sample-first: 12s com gancho + 1 cena → ASSETS/sample/"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      <span>Amostra 12s (PRO)</span>
-                    </button>
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('remotion-pro', false, false, false, false, 30)}
-                      className="bg-zinc-900 border border-amber-500/30 hover:border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed text-amber-300 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
-                      title="Renderiza só os primeiros 30 segundos para validar gancho e ritmo"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      <span>Preview 30s (PRO)</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Remotion PRO + HyperFrames AI Card */}
-                <div className="glass-panel-glow border border-emerald-500/30 lumiera-render-card">
-                  <div>
-                    <div className="flex flex-wrap justify-between items-start gap-2">
-                      <SectionHeader
-                        title="HYPERFRAMES AI"
-                        helpId="render-hyperframes"
-                        icon={<Sparkles className="w-4 h-4 text-emerald-400" />}
-                      />
-                      <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Orquestrado</span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1">Catálogo HyperFrames · opcional ProRes Alpha.</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 w-full">
-                    <label className="flex items-center gap-1.5 text-[9px] text-zinc-400 cursor-pointer select-none">
-                      <input 
-                        type="checkbox" 
-                        id="prores-alpha-checkbox" 
-                        className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-3 h-3" 
-                      />
-                      <span>Fundo Transparente (ProRes Alpha)</span>
-                    </label>
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => {
-                        const proresCheck = document.getElementById('prores-alpha-checkbox') as HTMLInputElement;
-                        triggerRender('remotion-pro', false, false, true, proresCheck?.checked);
-                      }}
-                      className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-emerald-500/10 cursor-pointer w-full"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Render HyperFrames AI</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
 
                 </div>
 
@@ -9175,7 +9182,9 @@ export default function App() {
 
               {/* Keywords panel */}
 
-              <div className="glass-panel p-6 rounded-3xl space-y-4">
+              <details className="lumiera-collapsible-section glass-panel" open>
+                <summary>Palavras-chave em destaque</summary>
+                <div className="lumiera-collapsible-body space-y-3">
 
                 <div>
 
@@ -9244,12 +9253,14 @@ export default function App() {
                   </button>
 
                 </div>
-
-              </div>
+                </div>
+              </details>
 
               {/* Block timings list */}
 
-              <div className="glass-panel p-6 rounded-3xl space-y-4">
+              <details className="lumiera-collapsible-section glass-panel">
+                <summary>Textos de impacto (12 blocos)</summary>
+                <div className="lumiera-collapsible-body space-y-3">
 
                 <SectionHeader title="TEXTOS DE IMPACTO DA LINHA DO TEMPO (12 BLOCOS)" helpId="timeline-impact" />
 
@@ -9348,8 +9359,8 @@ export default function App() {
                   ))}
 
                 </div>
-
-              </div>
+                </div>
+              </details>
 
               {renderRichTimelineEditor()}
             </div>
@@ -9396,7 +9407,7 @@ export default function App() {
                 </button>
               }
             >
-            <div className="space-y-8 font-sans">
+            <div className="lumiera-panel-stack font-sans">
 
               {/* Music mappings grid */}
 
@@ -9404,7 +9415,7 @@ export default function App() {
 
                 {/* Mappings */}
 
-                <div className="glass-panel p-6 rounded-3xl space-y-4">
+                <div className="glass-panel p-4 rounded-xl space-y-3">
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-3 gap-2">
 
@@ -11481,9 +11492,9 @@ export default function App() {
                     {activeTab === 'editor' && (
 
             <DashminProjectTabLayout tab="editor" activeProject={activeProject}>
-            <div className="space-y-6 font-sans">
+            <div className="lumiera-panel-stack font-sans">
 
-              <div className="glass-panel p-6 rounded-3xl">
+              <div className="glass-panel p-4 rounded-xl">
 
                 {titleExperimentVideoId && selectedProject && (
                   <div className="mt-4 space-y-3">
