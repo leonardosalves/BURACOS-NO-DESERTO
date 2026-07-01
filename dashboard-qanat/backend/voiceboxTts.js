@@ -8,7 +8,11 @@ import path from "path";
 import { spawn } from "child_process";
 import { getFfmpegStatus } from "./pythonEnv.js";
 
-export const VOICEBOX_DEFAULT_URLS = ["http://127.0.0.1:17493", "http://127.0.0.1:17600"];
+export const VOICEBOX_DEFAULT_URLS = [
+  "http://127.0.0.1:17493",
+  "http://127.0.0.1:17600",
+  "http://127.0.0.1:8000",
+];
 export const VOICEBOX_DEFAULT_ENGINE = "chatterbox";
 export const VOICEBOX_DEFAULT_LANGUAGE = "pt";
 
