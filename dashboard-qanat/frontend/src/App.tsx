@@ -89,10 +89,6 @@ import {
 
   Globe,
 
-  LayoutTemplate,
-
-  Puzzle,
-
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -149,8 +145,7 @@ import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 
 
 import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
-import { DashminUiElementsPage } from './DashminUiElementsPage';
-import { DashminExtensionsPage } from './DashminExtensionsPage';
+
 
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
@@ -12405,32 +12400,6 @@ export default function App() {
 
             </DashminProjectTabLayout>
 
-          )}
-
-          {activeTab === 'dash-ui' && (
-            <TabErrorBoundary tabName="UI Elements">
-              <DashminPageLayout
-                title="UI Elements"
-                subtitle="Alerts, badges, buttons, cards, modals, progress, tabs e tipografia — kit Dashmin dark."
-                breadcrumb={['Dashboard', 'Design System', 'UI Elements']}
-                icon={<LayoutTemplate className="w-5 h-5" />}
-              >
-                <DashminUiElementsPage />
-              </DashminPageLayout>
-            </TabErrorBoundary>
-          )}
-
-          {activeTab === 'dash-extensions' && (
-            <TabErrorBoundary tabName="Extensions">
-              <DashminPageLayout
-                title="Extensions"
-                subtitle="Toastr, Sweet Alert, Rating, Progress animado e Nestable — extensões do tema Dashmin."
-                breadcrumb={['Dashboard', 'Design System', 'Extensions']}
-                icon={<Puzzle className="w-5 h-5" />}
-              >
-                <DashminExtensionsPage />
-              </DashminPageLayout>
-            </TabErrorBoundary>
           )}
 
           {activeTab === 'agents' && (

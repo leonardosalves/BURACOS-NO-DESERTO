@@ -16,9 +16,7 @@ export type AppTab =
   | 'comfy-mcp'
   | 'trend-forecast'
   | 'agent-reach'
-  | 'projects'
-  | 'dash-ui'
-  | 'dash-extensions';
+  | 'projects';
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
   'home',
@@ -38,8 +36,6 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   'trend-forecast',
   'agent-reach',
   'projects',
-  'dash-ui',
-  'dash-extensions',
 ];
 
 export const GLOBAL_VIEW_TABS: AppTab[] = [
@@ -52,8 +48,6 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   'trend-forecast',
   'agent-reach',
   'projects',
-  'dash-ui',
-  'dash-extensions',
 ];
 
 export function isGlobalViewTab(tab: AppTab): boolean {
