@@ -6201,6 +6201,151 @@ export default function App() {
     return true;
   };
 
+  const slugCreatorProjectFromTitle = (title: string) => {
+    const slug = title
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter((w) => w.length > 1)
+      .slice(0, 4)
+      .join('_');
+    return slug || 'projeto_novo';
+  };
+
+  const cleanYoutubeStudioIdeaSeed = (title: string, hookPt?: string) => {
+    const seed = String(hookPt || title || '').trim();
+    return seed
+      .replace(/^Ideia\s+\d+\s*[—-]\s*mec[aâ]nica de\s*"?/i, '')
+      .replace(/"?\.\.\."?$/g, '')
+      .replace(/"$/g, '')
+      .trim() || seed;
+  };
+
+  const ensureCreatorProjectFolder = async (
+    baseTitle: string,
+    format: 'LONGO' | 'SHORTS',
+    niche: string,
+  ): Promise<{ ok: boolean; safeName: string; created: boolean; error?: string }> => {
+    const base = slugCreatorProjectFromTitle(baseTitle);
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const candidate = attempt === 0 ? base : `${base}_${attempt + 1}`;
+      const safeName = candidate.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      try {
+        const res = await fetch('/api/projects/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: safeName, format, niche: niche.trim() || 'Geral' }),
+        });
+        const data = await res.json();
+        if (res.ok) return { ok: true, safeName, created: true };
+        if (res.status === 400 && String(data.error || '').includes('Já existe')) continue;
+        return { ok: false, safeName, created: false, error: data.error || 'Erro ao criar projeto' };
+      } catch {
+        return { ok: false, safeName, created: false, error: 'Falha na conexão ao criar projeto.' };
+      }
+    }
+    return { ok: false, safeName: base, created: false, error: 'Não foi possível criar uma pasta única para o projeto.' };
+  };
+
+  const handleApplyYoutubeStudioIdea = async (
+    title: string,
+    hookPt?: string,
+    options?: { autoRun?: boolean; format?: 'LONGO' | 'SHORTS' },
+  ) => {
+    const autoRun = options?.autoRun !== false;
+    const cleaned = cleanYoutubeStudioIdeaSeed(title, hookPt);
+    const hook = hookPt?.trim() && hookPt.trim() !== cleaned ? hookPt.trim() : '';
+    const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
+    const format = options?.format || 'SHORTS';
+    const projectSlug = slugCreatorProjectFromTitle(cleaned);
+
+    setActiveTab('creator');
+    setCreatorStep(1);
+    setIdeationTab('custom');
+    setCustomTitle(cleaned);
+    setCustomHooks(hook);
+    setNicheInput((prev) => prev || niche);
+    setFormatSelector(format);
+    setCreatorProjectName(projectSlug);
+
+    if (!autoRun) {
+      toast(`Creator → Passo 1 · Ideia Personalizada: ${cleaned.slice(0, 72)}${cleaned.length > 72 ? '…' : ''}`);
+      return;
+    }
+
+    const toastId = 'yt-studio-idea-auto';
+    toast.loading('Criando projeto e gerando narração…', { id: toastId });
+
+    const proj = await ensureCreatorProjectFolder(cleaned, format, niche);
+    if (!proj.ok) {
+      toast.error(proj.error || 'Erro ao criar projeto', { id: toastId });
+      return;
+    }
+
+    setCreatorProjectName(proj.safeName);
+    await fetchProjects();
+    setActiveProject(proj.safeName);
+
+    setCreatorLoading(true);
+    setCreatorLoadingMode('narration');
+    setGeneratedScriptData(null);
+    setShowNarrationReview(false);
+
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          niche: 'Customized',
+          format,
+          idea: {
+            title: cleaned,
+            promise: '',
+            emotion: 'Curiosity / Action',
+            isCustom: true,
+            hook,
+            hooks: hook,
+            blocks: [],
+          },
+          project: proj.safeName,
+          useNotebooklm,
+          phase: 'narration',
+        }),
+      });
+      if (ok && !data.needs_browser) {
+        setNarrationDraft(data.narrative_script || '');
+        setNarrationTaggedDraft(data.narrative_script_tagged || '');
+        setNarrationStrategy(data.strategy || null);
+        setNarrationBlockPhrases(data.technical_config?.block_phrases || []);
+        const scriptBlocks = data.technical_config?.script;
+        setNarrationBlockScript(
+          typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+        );
+        setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
+        setNarrationProjectName(proj.safeName);
+        setShowNarrationReview(true);
+        toast.success(
+          proj.created
+            ? data.notebooklm_enriched
+              ? `Projeto "${proj.safeName}" criado — narração pronta (NotebookLM). Revise antes do roteiro.`
+              : `Projeto "${proj.safeName}" criado — narração pronta. Revise antes do roteiro.`
+            : data.notebooklm_enriched
+              ? 'Narração gerada (NotebookLM) — revise antes do roteiro.'
+              : 'Narração gerada — revise antes do roteiro.',
+          { id: toastId },
+        );
+      } else {
+        toast.error(data.error || data.details || 'Erro ao gerar narração.', { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha na geração da narração.', { id: toastId });
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
   const handleGenerateNarration = async () => {
     if (!validateCreatorScriptInputs()) return;
 
@@ -12310,21 +12455,7 @@ export default function App() {
                 onSelectProject={handleSelectProject}
                 onAlertsSync={setYoutubeChannelAlerts}
                 onApplyCreatorIdea={(title, hookPt) => {
-                  const seed = String(hookPt || title || '').trim();
-                  const cleaned = seed
-                    .replace(/^Ideia\s+\d+\s*[—-]\s*mec[aâ]nica de\s*"?/i, '')
-                    .replace(/"?\.\.\."?$/g, '')
-                    .replace(/"$/g, '')
-                    .trim() || seed;
-                  setActiveTab('creator');
-                  setCreatorStep(1);
-                  setIdeationTab('custom');
-                  setCustomTitle(cleaned);
-                  if (hookPt && hookPt.trim() && hookPt.trim() !== cleaned) {
-                    setCustomHooks(hookPt.trim());
-                  }
-                  setNicheInput((prev) => prev || config?.niche || '');
-                  toast(`Creator → Passo 1 · Ideia Personalizada: ${cleaned.slice(0, 72)}${cleaned.length > 72 ? '…' : ''}`);
+                  void handleApplyYoutubeStudioIdea(title, hookPt);
                 }}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
