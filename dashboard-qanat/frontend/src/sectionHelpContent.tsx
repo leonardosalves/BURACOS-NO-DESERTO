@@ -281,10 +281,9 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'VideoAgent — Automação',
     body: (
       <>
-        <strong>Executar automaticamente</strong> — detecta intents, roda pesquisa de concorrentes / top winners / fila editorial no
-        servidor e dispara o Creator (criar projeto + narração) como no botão ▶ do YouTube Studio. Usa a extensão Gemini Chrome via{' '}
-        <code>postAi</code> — sem colar resposta manual. <strong>Só ver plano</strong> — preview da cadeia e storyboard beats
-        (gravado em <code>memory/videoagent-lumiera.md</code>).
+        <strong>Só ver plano</strong> — gera preview instantâneo com regras locais (sem Gemini). Se &quot;Enriquecer com IA&quot; estiver
+        marcado, tenta melhorar o plano depois via extensão Chrome. <strong>Executar automaticamente</strong> — roda a cadeia no servidor
+        e dispara Creator / pesquisa / fila editorial.
       </>
     ),
   },

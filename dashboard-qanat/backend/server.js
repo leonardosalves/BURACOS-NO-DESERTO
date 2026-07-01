@@ -1909,34 +1909,53 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
       : "SHORTS";
 
     const browserText = extractBrowserResponse(req.body);
-    let plan;
+    const localPlan = planVideoAgentLocally(requirementText, { format, niche });
+    let plan = localPlan;
+    let aiEnhanced = false;
 
-    if (browserText) {
-      const llmFn = async () => browserText;
-      plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
-      plan.aiEnhanced = true;
-      plan.source = "videoagent-lumiera-browser";
-    } else if (useAi) {
-      let browserPending = false;
-      const llmFn = async (prompt) => {
-        const text = await callGeminiLlm(req, res, projDir, {
-          title: "VideoAgent · Plano Lumiera",
-          prompt,
-          temperature: 0.55,
-        });
-        if (text == null) {
-          browserPending = true;
-          return "";
+    try {
+      if (browserText) {
+        const llmFn = async () => browserText;
+        plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+        plan.aiEnhanced = true;
+        plan.source = "videoagent-lumiera-browser";
+        aiEnhanced = true;
+      } else if (useAi) {
+        let browserPending = false;
+        const llmFn = async (prompt) => {
+          const text = await callGeminiLlm(req, res, projDir, {
+            title: "VideoAgent · Plano Lumiera",
+            prompt,
+            temperature: 0.55,
+          });
+          if (text == null) {
+            browserPending = true;
+            return "";
+          }
+          return text;
+        };
+        const enhanced = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+        if (browserPending) return;
+        if (enhanced?.lumieraActions?.length) {
+          plan = enhanced;
+          aiEnhanced = Boolean(enhanced.aiEnhanced);
         }
-        return text;
-      };
-      plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
-      if (browserPending) return;
-    } else {
-      plan = planVideoAgentLocally(requirementText, { format, niche });
+      }
+    } catch (llmErr) {
+      console.warn("[VideoAgentPlanner] IA falhou — plano local:", llmErr.message);
+      plan = { ...localPlan, aiEnhanced: false, llmError: llmErr.message };
     }
 
-    const obsidian = appendPlanToObsidian(WORKSPACE_DIR, plan);
+    if (!plan?.lumieraActions?.length) {
+      plan = localPlan;
+    }
+
+    let obsidian = null;
+    try {
+      obsidian = appendPlanToObsidian(WORKSPACE_DIR, plan);
+    } catch (obsErr) {
+      console.warn("[VideoAgentPlanner] Obsidian log falhou:", obsErr.message);
+    }
 
     let editorialQueue = null;
     if (enqueueQueue || /fila|editorial|concorrente|replicar/i.test(requirementText)) {
@@ -1955,7 +1974,7 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
     }
 
     const suggestedTitle = extractVideoTitleFromRequirement(requirementText);
-    res.json({ ok: true, plan, obsidian, editorialQueue, suggestedTitle });
+    res.json({ ok: true, plan, obsidian, editorialQueue, suggestedTitle, aiEnhanced });
   } catch (err) {
     console.error("[VideoAgentPlanner]", err.message);
     res.status(500).json({ error: "Falha ao planejar vídeo", details: err.message });
