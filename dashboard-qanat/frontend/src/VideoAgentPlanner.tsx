@@ -127,52 +127,74 @@ export function VideoAgentPlanner({
 
   const apiFormat = projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO';
 
-  const requestPlan = async (opts: { useAi: boolean }) => {
+  const requestPlan = async (opts: { useAi: boolean; viaPostAi?: boolean }) => {
     const text = requirement.trim();
     if (!text) throw new Error('Descreva o vídeo ou tarefa em linguagem natural.');
 
-    const { ok, data } = await postAi(getProjectUrl('/api/ai/video-agent/plan'), {
+    const payload = {
+      requirement: text,
+      format: apiFormat,
+      niche: projectNiche,
+      useAi: opts.useAi,
+      enqueueQueue,
+    };
+    const url = getProjectUrl('/api/ai/video-agent/plan');
+    const init: RequestInit = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requirement: text,
-        format: apiFormat,
-        niche: projectNiche,
-        useAi: opts.useAi,
-        enqueueQueue,
-      }),
-    });
+      body: JSON.stringify(payload),
+    };
 
-    if (!ok) throw new Error(String(data.error || data.details || 'Falha no planejamento'));
+    let ok = false;
+    let data: Record<string, unknown> = {};
+
+    if (opts.viaPostAi) {
+      const aiRes = await postAi(url, init);
+      ok = aiRes.ok;
+      data = aiRes.data as Record<string, unknown>;
+    } else {
+      const res = await fetch(url, init);
+      data = await res.json().catch(() => ({}));
+      ok = res.ok;
+    }
+
+    if (!ok) {
+      const detail = data.details ? ` (${String(data.details)})` : '';
+      throw new Error(String(data.error || 'Falha no planejamento') + detail);
+    }
 
     const planData = data.plan as VideoAgentPlan | undefined;
-    if (!planData) throw new Error('Plano vazio — tente desmarcar "Enriquecer com IA".');
+    if (!planData?.lumieraActions?.length) {
+      throw new Error('Plano vazio — reformule o pedido.');
+    }
 
     return {
       plan: planData,
       obsidian: data.obsidian as ObsidianResult | undefined,
-      aiEnhanced: Boolean(planData.aiEnhanced),
+      aiEnhanced: Boolean(planData.aiEnhanced || data.aiEnhanced),
     };
   };
 
   const runPlan = async () => {
     setBusy('plan');
     setExecuteResults(null);
-    setPlanExpanded(false);
     try {
-      let result;
-      try {
-        result = await requestPlan({ useAi });
-      } catch {
-        result = await requestPlan({ useAi: false });
-        toast.success('Plano gerado (modo local — IA indisponível)');
-      }
+      const result = await requestPlan({ useAi: false, viaPostAi: false });
       setPlan(result.plan);
       setObsidianMeta(result.obsidian || null);
-      if (result.aiEnhanced) {
-        toast.success('Plano VideoAgent enriquecido com IA');
-      } else if (useAi) {
-        toast.success('Plano VideoAgent gerado');
+      setPlanExpanded(true);
+
+      if (useAi) {
+        try {
+          const enriched = await requestPlan({ useAi: true, viaPostAi: true });
+          setPlan(enriched.plan);
+          setObsidianMeta(enriched.obsidian || null);
+          toast.success('Plano enriquecido com IA');
+        } catch {
+          toast.success('Plano local pronto (IA indisponível — use regras locais)');
+        }
+      } else {
+        toast.success('Plano gerado');
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro ao planejar');
@@ -332,7 +354,7 @@ export function VideoAgentPlanner({
             onChange={(e) => setUseAi(e.target.checked)}
             className="rounded border-zinc-700"
           />
-          Enriquecer plano com IA
+          Enriquecer plano com IA (opcional, após preview local)
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
