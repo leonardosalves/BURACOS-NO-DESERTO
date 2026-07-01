@@ -2009,7 +2009,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
       ) : null}
 
       {/* Professional overlays: infographics, lower thirds, kinetic text */}
-      <OverlayLayer overlays={overlays} />
+      <AbsoluteFill style={{ zIndex: 1000, pointerEvents: "none" }}>
+        <OverlayLayer overlays={overlays} />
+      </AbsoluteFill>
 
       {isLastSceneLogo && youtubeChannelInfo && (
         <Sequence
