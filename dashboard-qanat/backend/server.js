@@ -131,6 +131,13 @@ import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
+import {
+  fetchMemoryContext,
+  getSupermemoryStatus,
+  isSupermemoryEnabled,
+  persistConversation,
+  testSupermemoryConnection,
+} from "./supermemoryClient.js";
 import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
 import { runDeepResearch } from "./deerFlowResearch.js";
 import {
@@ -2734,6 +2741,7 @@ function getGlobalApiKeysStatus() {
     has_epidemic_key: epidemic.length > 100,
     has_pexels_key: !!(cfg.pexels_api_key || "").trim(),
     has_pixabay_key: !!(cfg.pixabay_api_key || "").trim(),
+    ...getSupermemoryStatus(__dirname),
   };
 }
 
@@ -2747,7 +2755,14 @@ app.get("/api/settings/global-api-keys", (req, res) => {
 
 app.post("/api/settings/global-api-keys", (req, res) => {
   try {
-    const { epidemic_sound_key, pexels_api_key, pixabay_api_key } = req.body || {};
+    const {
+      epidemic_sound_key,
+      pexels_api_key,
+      pixabay_api_key,
+      supermemory_api_key,
+      supermemory_base_url,
+      supermemory_enabled,
+    } = req.body || {};
     const cfg = loadRenderConfig(__dirname);
     if (typeof epidemic_sound_key === "string" && epidemic_sound_key.trim()) {
       cfg.epidemic_sound_key = epidemic_sound_key.trim();
@@ -2758,8 +2773,35 @@ app.post("/api/settings/global-api-keys", (req, res) => {
     if (typeof pixabay_api_key === "string" && pixabay_api_key.trim()) {
       cfg.pixabay_api_key = pixabay_api_key.trim();
     }
+    if (typeof supermemory_api_key === "string" && supermemory_api_key.trim()) {
+      cfg.supermemory_api_key = supermemory_api_key.trim();
+    }
+    if (typeof supermemory_base_url === "string" && supermemory_base_url.trim()) {
+      cfg.supermemory_base_url = supermemory_base_url.trim().replace(/\/$/, "");
+    }
+    if (typeof supermemory_enabled === "boolean") {
+      cfg.supermemory_enabled = supermemory_enabled;
+    }
     saveRenderConfig(__dirname, cfg);
     res.json({ success: true, ...getGlobalApiKeysStatus() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/supermemory/status", (req, res) => {
+  try {
+    res.json(getSupermemoryStatus(__dirname));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/supermemory/test", async (req, res) => {
+  try {
+    const result = await testSupermemoryConnection(__dirname);
+    if (!result.ok) return res.status(400).json(result);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -7914,7 +7956,19 @@ app.post("/api/ai/chat", async (req, res) => {
 
   try {
 
-    const systemInstruction = getProjectContext(projDir);
+    let systemInstruction = getProjectContext(projDir);
+    let supermemoryMeta = null;
+
+    if (isSupermemoryEnabled(__dirname)) {
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";
+      const mem = await fetchMemoryContext(__dirname, projDir, lastUserMsg);
+      if (mem?.contextBlock) {
+        systemInstruction += `\n\n${mem.contextBlock}`;
+        supermemoryMeta = { injected: true, containerTags: mem.containerTags };
+      } else if (mem?.containerTags) {
+        supermemoryMeta = { injected: false, containerTags: mem.containerTags };
+      }
+    }
 
     const formattedContents = messages.map(msg => ({
 
@@ -7942,7 +7996,16 @@ app.post("/api/ai/chat", async (req, res) => {
     });
     if (responseText == null) return;
 
-    res.json({ text: responseText || "Desculpe, não consegui obter uma resposta." });
+    if (isSupermemoryEnabled(__dirname) && responseText) {
+      persistConversation(__dirname, projDir, messages, responseText).catch((err) => {
+        console.warn("[supermemory] persistConversation:", err.message);
+      });
+    }
+
+    res.json({
+      text: responseText || "Desculpe, não consegui obter uma resposta.",
+      supermemory: supermemoryMeta,
+    });
 
   } catch (err) {
 

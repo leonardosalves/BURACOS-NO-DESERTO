@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    },
+    "comfy-cloud": {
+      "url": "https://cloud.comfy.org/mcp",
+      "headers": {
+        "X-API-Key": "comfyui-c71e6fa4b1f8efc844172304f7a5290606f40f410994be9da13defcee8b51892"
+      }
+    }
+  }
+}

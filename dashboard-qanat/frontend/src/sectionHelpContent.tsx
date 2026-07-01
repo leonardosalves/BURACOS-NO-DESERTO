@@ -278,7 +278,8 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'APIs e Mídia',
     body: (
       <>
-        Chaves Gemini, OpenRouter, Epidemic Sound, ElevenLabs e paths de pastas de projetos/vídeos.
+        Chaves Epidemic Sound, Pexels, Pixabay e Supermemory (memória entre conversas no chat e no Cursor via MCP).
+        Supermemory: console.supermemory.ai → API Keys. Cursor: .cursor/mcp.json ou scripts/setup-supermemory.ps1.
       </>
     ),
   },
