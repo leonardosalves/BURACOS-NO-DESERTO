@@ -132,9 +132,9 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Radar de Tendências (TimesFM)',
     body: (
       <>
-        Previsão de nichos e vídeos Short/Longo em alta com <strong>TimesFM 2.5</strong> + modo <strong>Pioneiro</strong>:
-        cruza Exa (interesse na web) com saturação no YouTube (canais/vídeos na busca) para achar nichos virgens ou pouco explorados onde você pode ser referência.
-        Enfileira ideias na fila editorial. Sem TimesFM, usa fallback estatístico.
+        Previsão TimesFM + modo <strong>Pioneiro</strong>: parte de macro-nichos reais (finanças, história, documentário…)
+        e mede <strong>ângulos e padrões de vídeo</strong> pouco cobertos no YouTube BR (gap entre nicho amplo vs recorte específico).
+        Ignora listas meta de “melhores nichos”. Enfileira ideias na fila editorial.
       </>
     ),
   },
