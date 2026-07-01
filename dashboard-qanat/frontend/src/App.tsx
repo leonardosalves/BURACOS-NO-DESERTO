@@ -128,6 +128,9 @@ import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { ComfyMcpPage } from './ComfyMcpPage';
+import { TimelineOpenCutBar } from './TimelineOpenCutBar';
+import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
+import { clipKey, parseClipKey } from './opencutTimeline';
 import { YoutubeStudioHomeCard } from './YoutubeStudioHomeCard';
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
 import { PostPublishChecklist } from './PostPublishChecklist';
@@ -206,6 +209,8 @@ interface ConfigData {
   geo_map_overlays?: boolean;
   accent_color?: string;
   secondary_color?: string;
+  /** Fundo do canvas no render (OpenCut-style) */
+  canvas_background?: string;
   listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
   long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
   overlay_intensity?: 'light' | 'normal' | 'rich';
@@ -902,6 +907,8 @@ export default function App() {
 
   const [syncingTimings, setSyncingTimings] = useState<boolean>(false);
   const [shouldAutoAlign, setShouldAutoAlign] = useState<boolean>(false);
+  const [timelinePreviewZoom, setTimelinePreviewZoom] = useState(100);
+  const [timelineSelectedClips, setTimelineSelectedClips] = useState<Set<string>>(() => new Set());
 
   const [uploadingNarration, setUploadingNarration] = useState<boolean>(false);
 
@@ -3549,6 +3556,39 @@ export default function App() {
 
     toast.success("Asset removido da linha do tempo!");
 
+  };
+
+  const toggleTimelineClipSelection = (blockKey: string, index: number, additive: boolean) => {
+    const key = clipKey(blockKey, index);
+    setTimelineSelectedClips((prev) => {
+      const next = additive ? new Set(prev) : new Set<string>();
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const bulkDeleteTimelineClips = () => {
+    if (!config || timelineSelectedClips.size === 0) return;
+    const byBlock: Record<string, number[]> = {};
+    timelineSelectedClips.forEach((key) => {
+      const parsed = parseClipKey(key);
+      if (!parsed) return;
+      if (!byBlock[parsed.blockKey]) byBlock[parsed.blockKey] = [];
+      byBlock[parsed.blockKey].push(parsed.index);
+    });
+    const timelineAssets = { ...(config.timeline_assets || {}) };
+    Object.entries(byBlock).forEach(([blockKey, indices]) => {
+      const sorted = [...indices].sort((a, b) => b - a);
+      const blockAssets = [...(timelineAssets[blockKey] || [])];
+      sorted.forEach((idx) => blockAssets.splice(idx, 1));
+      timelineAssets[blockKey] = blockAssets;
+    });
+    const updatedConfig = { ...config, timeline_assets: timelineAssets };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
+    setTimelineSelectedClips(new Set());
+    toast.success(`${timelineSelectedClips.size} clip(s) removido(s)`);
   };
 
   const addTimelineAsset = (blockKey: string) => {
@@ -7564,6 +7604,29 @@ export default function App() {
 
                   </div>
 
+                  <TimelineOpenCutBar
+                    previewZoom={timelinePreviewZoom}
+                    onPreviewZoomChange={setTimelinePreviewZoom}
+                    canvasBackground={config.canvas_background || '#050506'}
+                    onCanvasBackgroundChange={(color) => {
+                      const updated = { ...config, canvas_background: color };
+                      setConfig(updated);
+                      saveConfig(updated);
+                    }}
+                    selectedCount={timelineSelectedClips.size}
+                    onBulkDelete={bulkDeleteTimelineClips}
+                    onClearSelection={() => setTimelineSelectedClips(new Set())}
+                    getProjectUrl={getProjectUrl}
+                    onTranscriptImported={async () => {
+                      try {
+                        const transRes = await fetch(getMusicUrl('word_transcripts.json'));
+                        if (transRes.ok) setWordTranscripts(await transRes.json());
+                      } catch { /* ignore */ }
+                      fetchStatus();
+                    }}
+                    toast={(msg) => toast(msg)}
+                  />
+
                   {(() => {
 
                     const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
@@ -7749,9 +7812,33 @@ export default function App() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => (
+                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => {
+                                const selKey = clipKey(blockKey, idx);
+                                const isSelected = timelineSelectedClips.has(selKey);
+                                return (
 
-                                <div key={idx} className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex flex-col justify-between space-y-3 hover:border-zinc-855 transition">
+                                <div
+                                  key={idx}
+                                  onClick={(e) => {
+                                    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                                      e.preventDefault();
+                                      toggleTimelineClipSelection(blockKey, idx, true);
+                                    }
+                                  }}
+                                  className={`bg-zinc-950 border p-4 rounded-xl flex flex-col justify-between space-y-3 transition ${
+                                    isSelected ? 'border-sky-500/50 ring-1 ring-sky-500/20' : 'border-zinc-900 hover:border-zinc-855'
+                                  }`}
+                                >
+
+                                  <label className="flex items-center gap-2 text-[9px] text-zinc-500 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => toggleTimelineClipSelection(blockKey, idx, false)}
+                                      className="rounded border-zinc-700"
+                                    />
+                                    Selecionar (Shift+clique adiciona)
+                                  </label>
 
                                   {/* Visual Preview */}
 
@@ -7763,7 +7850,11 @@ export default function App() {
 
                                     }`}
 
-                                    style={{ aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9' }}
+                                    style={{
+                                      aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9',
+                                      transform: `scale(${timelinePreviewZoom / 100})`,
+                                      transformOrigin: 'center center',
+                                    }}
 
                                   >
 
@@ -8189,6 +8280,11 @@ export default function App() {
 
                                   </div>
 
+                                  <TimelineClipOpenCutControls
+                                    asset={asset}
+                                    onFieldChange={(field, value) => updateTimelineAssetField(blockKey, idx, field, value)}
+                                  />
+
                                   {/* Actions row: Replace/Substituir and Delete */}
 
                                   <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
@@ -8227,7 +8323,8 @@ export default function App() {
 
                                 </div>
 
-                              ))}
+                              );
+                              })}
 
                             </div>
 

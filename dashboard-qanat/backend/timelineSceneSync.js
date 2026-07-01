@@ -508,6 +508,12 @@ export function buildTimelineAssetMap({
         entry.user_locked = true;
         entry.manual_asset = true;
       }
+      if (Number.isFinite(Number(prevSlot?.volume))) {
+        entry.volume = Math.min(1, Math.max(0, Number(prevSlot.volume)));
+      }
+      if (Number.isFinite(Number(prevSlot?.playback_rate))) {
+        entry.playback_rate = Math.min(2, Math.max(0.25, Number(prevSlot.playback_rate)));
+      }
       if (!entry.narration_segment && promptObj) {
         const seg = String(promptObj.narration_text || promptObj.narration_excerpt || "").trim();
         if (seg) entry.narration_segment = seg;

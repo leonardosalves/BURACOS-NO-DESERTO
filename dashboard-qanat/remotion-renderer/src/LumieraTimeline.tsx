@@ -85,6 +85,10 @@ type TimelineScene = {
 
   editorNotes?: string;
 
+  volume?: number;
+
+  playback_rate?: number;
+
 
 
 };
@@ -238,6 +242,7 @@ export type LumieraTimelineProps = {
   shortsCaptionBgmPulse?: boolean;
   shortsPortalTransition?: boolean;
   shortsPortalEvery?: number;
+  canvasBackground?: string;
 };
 
 
@@ -317,6 +322,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   shortsPortalTransition: true,
 
   shortsPortalEvery: 4,
+
+  canvasBackground: "#050506",
 
 };
 
@@ -905,6 +912,9 @@ const SceneMedia: React.FC<{
 
 
 
+  const clipVolume = scene.volume ?? 0;
+  const clipRate = scene.playback_rate ?? 1;
+
   if (scene.type === "video") {
 
 
@@ -925,7 +935,7 @@ const SceneMedia: React.FC<{
 
 
 
-          muted
+          muted={clipVolume <= 0}
 
 
 
@@ -933,7 +943,11 @@ const SceneMedia: React.FC<{
 
 
 
-          volume={0}
+          volume={clipVolume}
+
+
+
+          playbackRate={clipRate}
 
 
 
@@ -1709,6 +1723,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   shortsCaptionBgmPulse = true,
   shortsPortalTransition = true,
   shortsPortalEvery = 4,
+  canvasBackground = "#050506",
 }) => {
   const isShort = format === "9:16";
   const showVignette = vignette;
@@ -1739,7 +1754,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-    <AbsoluteFill style={{ backgroundColor: transparent ? "transparent" : "#050506" }}>
+    <AbsoluteFill style={{ backgroundColor: transparent ? "transparent" : canvasBackground }}>
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Cinzel:wght@700;900&family=Inter:wght@400;500;700&display=swap');

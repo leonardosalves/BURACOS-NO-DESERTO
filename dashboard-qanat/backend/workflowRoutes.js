@@ -337,7 +337,76 @@ export function registerWorkflowRoutes(app, deps) {
     };
   }
 
+  function normalizeImportedTranscript(raw) {
+    let segments = null;
+    if (Array.isArray(raw)) segments = raw;
+    else if (raw && typeof raw === "object" && Array.isArray(raw.segments)) segments = raw.segments;
+    else return null;
+
+    if (
+      segments.length > 0
+      && Array.isArray(segments[0]?.words)
+      && (segments[0].start_time !== undefined || segments[0].filename)
+    ) {
+      return segments;
+    }
+
+    return segments.map((seg, idx) => {
+      const segStart = Number(seg.start ?? seg.start_time ?? 0);
+      const segEnd = Number(seg.end ?? seg.end_time ?? segStart + Number(seg.duration || 0));
+      const rawWords = Array.isArray(seg.words) ? seg.words : [];
+      const wordsFormatted = rawWords.map((w, k) => {
+        let wStart = Number(w.start ?? 0);
+        let wEnd = Number(w.end ?? wStart);
+        if (wStart >= segStart - 0.01) {
+          wStart -= segStart;
+          wEnd -= segStart;
+        }
+        let wText = String(w.word ?? w.text ?? "").trim();
+        if (k > 0 && wText && !wText.startsWith(" ") && !wText.startsWith("-")) {
+          wText = ` ${wText}`;
+        }
+        return {
+          word: wText,
+          start: Math.max(0, wStart),
+          end: Math.max(0, wEnd),
+        };
+      });
+
+      return {
+        index: idx + 1,
+        block: Number(seg.block) || 1,
+        filename: seg.filename || `segment_${String(idx + 1).padStart(3, "0")}.mp3`,
+        start_time: segStart,
+        duration: Math.max(0.1, segEnd - segStart),
+        end_time: segEnd,
+        words: wordsFormatted,
+        text: String(seg.text ?? "").trim(),
+      };
+    });
+  }
+
   const sceneGapsCache = new Map();
+
+  app.post("/api/workflow/import-transcript", (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const { transcript } = req.body || {};
+      const normalized = normalizeImportedTranscript(transcript);
+      if (!normalized?.length) {
+        return res.status(400).json({
+          error: "Formato JSON inválido. Envie um array de segmentos ou { segments: [...] }.",
+        });
+      }
+      const wordsPath = path.join(projDir, "word_transcripts.json");
+      fs.writeFileSync(wordsPath, JSON.stringify(normalized, null, 2), "utf8");
+      const wordCount = flattenWordTranscripts(normalized).length;
+      res.json({ ok: true, wordCount, segmentCount: normalized.length });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/workflow/scene-gaps", (req, res) => {
     try {
       const projDir = getProjectDir(req);
