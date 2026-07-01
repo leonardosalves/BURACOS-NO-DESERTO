@@ -4,6 +4,7 @@ import {
   CheckCircle2, Loader2, Sparkles, Image, Video, ExternalLink,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import { NarrationReplacePanel } from './NarrationReplacePanel';
 
 type SceneGapAction = {
   id: string;
@@ -40,12 +41,15 @@ type AiFetchResult = { ok: boolean; status: number; data: Record<string, unknown
 
 type Props = {
   getProjectUrl: (path: string) => string;
+  getMediaUrl?: (fileName: string) => string;
   postAi?: (path: string, init?: RequestInit) => Promise<AiFetchResult>;
   toast: (msg: string) => void;
   onNarrationReady?: () => void;
   onTimelineRefresh?: () => void;
   onMetadataReady?: (data?: unknown) => void;
   onNavigateTab?: (tab: string) => void;
+  hasNarration?: boolean;
+  hasTimings?: boolean;
   compact?: boolean;
   showPipeline?: boolean;
   /** When false, skips auto-fetch (reduces load when panel is off-screen). */
@@ -54,12 +58,15 @@ type Props = {
 
 export function WorkflowToolkit({
   getProjectUrl,
+  getMediaUrl,
   postAi,
   toast,
   onNarrationReady,
   onTimelineRefresh,
   onMetadataReady,
   onNavigateTab,
+  hasNarration,
+  hasTimings,
   compact = false,
   showPipeline = true,
   enabled = true,
@@ -569,6 +576,22 @@ export function WorkflowToolkit({
           )}
         </div>
       ) : null}
+
+      {getMediaUrl && (
+        <NarrationReplacePanel
+          getProjectUrl={getProjectUrl}
+          getMediaUrl={getMediaUrl}
+          toast={toast}
+          hasNarration={hasNarration ?? gaps?.hasNarration}
+          hasTimings={hasTimings ?? gaps?.hasTimings}
+          onUpdated={() => {
+            refreshGaps(true);
+            onNarrationReady?.();
+            onTimelineRefresh?.();
+          }}
+          compact
+        />
+      )}
 
       <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-2.5 space-y-2">
         <p className="text-[9px] text-zinc-500 uppercase tracking-wide font-bold">Narração TTS</p>

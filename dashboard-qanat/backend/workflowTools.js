@@ -427,6 +427,15 @@ export async function generateNarrationTts(projDir, {
   const engine = String(platform || "kokoro").toLowerCase();
   const dest = path.join(projDir, NARRATION_FILENAME);
 
+  const invalidateNarrationTimings = () => {
+    for (const fname of ["word_transcripts.json", "block_timings.json"]) {
+      const stalePath = path.join(projDir, fname);
+      if (fs.existsSync(stalePath)) {
+        try { fs.unlinkSync(stalePath); } catch (_) {}
+      }
+    }
+  };
+
   if (engine === "kokoro") {
     const kokoroVoice = voice || KOKORO_DEFAULT_VOICE;
     const kokoroSpeed = Number(speed);
@@ -437,6 +446,7 @@ export async function generateNarrationTts(projDir, {
       workDir: projDir,
       onLog,
     });
+    invalidateNarrationTimings();
     return {
       success: true,
       file: NARRATION_FILENAME,
@@ -445,7 +455,7 @@ export async function generateNarrationTts(projDir, {
       speed: result.speed,
       engine: "kokoro",
       durationSeconds: result.durationSeconds,
-      message: `Narração Kokoro gerada (${result.voice}, ${result.durationSeconds?.toFixed(1) || "?"}s).`,
+      message: `Narração Kokoro gerada (${result.voice}, ${result.durationSeconds?.toFixed(1) || "?"}s). Rode sync Whisper para atualizar timings.`,
     };
   }
 
@@ -464,6 +474,7 @@ export async function generateNarrationTts(projDir, {
     const result = await tts.synthesize();
     const buffer = Buffer.from(await result.audio.arrayBuffer());
     fs.writeFileSync(dest, buffer);
+    invalidateNarrationTimings();
 
     return {
       success: true,
@@ -471,7 +482,7 @@ export async function generateNarrationTts(projDir, {
       chars: textForTts.length,
       voice: edgeVoice,
       engine: "edge",
-      message: `Narração Edge TTS gerada (${edgeVoice}).`,
+      message: `Narração Edge TTS gerada (${edgeVoice}). Rode sync Whisper para atualizar timings.`,
     };
   }
 

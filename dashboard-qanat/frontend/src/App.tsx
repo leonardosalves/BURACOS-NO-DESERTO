@@ -135,6 +135,7 @@ import {
 } from './timelineNarrationSync';
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
+import { NarrationReplacePanel } from './NarrationReplacePanel';
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
 interface BGM {
@@ -1263,7 +1264,7 @@ export default function App() {
 
   const [loadingStoryboard, setLoadingStoryboard] = useState<boolean>(false);
 
-  const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json'>('script');
+  const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json' | 'narration'>('script');
 
   // Form fields
 
@@ -8507,9 +8508,13 @@ export default function App() {
               {config ? (
                 <WorkflowToolkit
                   getProjectUrl={getProjectUrl}
+                  getMediaUrl={getMusicUrl}
                   postAi={postAi}
                   toast={(msg) => toast(msg)}
                   enabled={activeTab === 'workflow'}
+                  hasNarration={!!status?.has_narration}
+                  hasTimings={!!status?.block_timings}
+                  onNarrationReady={() => fetchData()}
                   onTimelineRefresh={() => fetchData()}
                   onMetadataReady={() => fetchData({ includeVideoQuality: true })}
                   onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
@@ -10989,7 +10994,7 @@ export default function App() {
                   helpId="editor-project"
                   icon={<Settings className="w-6 h-6 text-gold-500" />}
                   size="lg"
-                  subtitle="Selecione um projeto existente para substituir imagens, vídeos ou trilhas sonoras por bloco."
+                  subtitle="Selecione um projeto existente para substituir narração, imagens, vídeos ou trilhas sonoras por bloco."
                 />
 
                 <div className="mt-6 flex gap-4">
@@ -11096,6 +11101,26 @@ export default function App() {
 
                   </button>
 
+                  <button
+
+                    onClick={() => setEditorSubTab('narration')}
+
+                    className={`text-xs font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+
+                      editorSubTab === 'narration'
+
+                        ? 'border-gold-500 text-gold-500'
+
+                        : 'border-transparent text-gray-400 hover:text-white'
+
+                    }`}
+
+                  >
+
+                    Narração (Áudio)
+
+                  </button>
+
                 </div>
 
                 {config && (
@@ -11118,6 +11143,31 @@ export default function App() {
 
               {editorSubTab === 'assets' && config && (
                 renderRichTimelineEditor()
+              )}
+
+              {editorSubTab === 'narration' && config && (
+                <div className="glass-panel p-6 rounded-3xl max-w-2xl">
+                  <NarrationReplacePanel
+                    getProjectUrl={getProjectUrl}
+                    getMediaUrl={getMusicUrl}
+                    toast={(msg) => toast(msg)}
+                    hasNarration={!!status?.has_narration}
+                    hasTimings={!!status?.block_timings}
+                    onUpdated={() => fetchData()}
+                    narrativeScript={storyboardData?.narrative_script || ''}
+                    onNarrativeChange={(value) => {
+                      if (!storyboardData) return;
+                      const next = { ...storyboardData, narrative_script: value };
+                      setStoryboardData(next);
+                      debounceSaveStoryboard(next);
+                    }}
+                    onSaveScript={() => {
+                      if (storyboardData) saveCreatorStoryboard(storyboardData);
+                      toast.success('Texto da narração salvo no storyboard.');
+                    }}
+                    showScriptEdit={!!storyboardData}
+                  />
+                </div>
               )}
 
               {editorSubTab === 'script' && (
