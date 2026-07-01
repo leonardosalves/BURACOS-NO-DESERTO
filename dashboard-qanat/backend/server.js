@@ -12070,7 +12070,7 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
      "duration": "3 a 5 segundos",
 
-     "prompt": "Prompt em inglês com sujeito ESPECÍFICO do narration_text (espécie, objeto, lugar, pessoa) + ação exata da cena. Imagem: photorealistic 2k, sharp detail. Vídeo: cinematic motion, max 10s. Nunca genérico (ex.: northern gannet plunge-diving, não 'a bird').",
+     "prompt": "Descrição visual em INGLÊS apenas — NUNCA cole narration_text aqui. Traduza a cena: sujeito específico + ação + enquadramento (ex.: macro close-up of triangular beak with fluid streaming along lateral edges). Imagem: photorealistic 2k. Vídeo: cinematic motion, max 10s.",
 
      "editor_notes": "Como usar na edição: Ken Burns zoom in, dissolve, corte seco, etc. + justificativa imagem vs vídeo.",
 
