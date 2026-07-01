@@ -151,6 +151,7 @@ import {
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
 } from './timelineNarrationSync';
+import { repairMojibake, repairMojibakeDeep } from './textEncoding';
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import { NarrationReplacePanel } from './NarrationReplacePanel';
@@ -1947,7 +1948,7 @@ export default function App() {
 
       if (res.ok) {
 
-        setStoryboardData(await res.json());
+        setStoryboardData(repairMojibakeDeep(await res.json()));
 
       }
 
@@ -3973,9 +3974,11 @@ export default function App() {
 
         if (cleanedPart === tw.clean || matchWords(cleanedPart, tw.clean)) {
 
+          const transcriptWord = repairMojibake(String(tw.word || "").trim());
+
           result.push({
 
-            word: part,
+            word: transcriptWord || part,
 
             start: tw.start,
 
@@ -4001,7 +4004,7 @@ export default function App() {
 
         result.push({
 
-          word: part,
+          word: repairMojibake(part),
 
           start: fallbackStart,
 
