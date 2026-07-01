@@ -1,5 +1,7 @@
 /** Narração por bloco/asset — sem vazamento entre blocos; split só quando o usuário pede. */
 
+import { repairMojibake } from "./textEncoding";
+
 export type BlockTimingStatus = {
   block_timings?: {
     starts?: number[];
@@ -61,13 +63,16 @@ export function getBlockTimeBounds(status: BlockTimingStatus | undefined, blockN
 }
 
 export function getBlockNarrationText(ctx: NarrationSyncContext, blockNum: number): string {
+  const bp = ctx.config?.block_phrases?.find((x) => Number(x.block) === blockNum);
+  const blockPhrase = repairMojibake(String(bp?.phrase || "").trim());
+  if (blockPhrase) return blockPhrase;
+
   const scenes = (ctx.storyboard?.visual_prompts || []).filter((vp) => Number(vp.block) === blockNum);
   const sceneTexts = scenes
-    .map((vp) => String(vp.narration_text || vp.narration_excerpt || "").trim())
+    .map((vp) => repairMojibake(String(vp.narration_text || vp.narration_excerpt || "").trim()))
     .filter(Boolean);
   if (sceneTexts.length > 0) return sceneTexts.join(" ");
-  const bp = ctx.config?.block_phrases?.find((x) => Number(x.block) === blockNum);
-  return String(bp?.phrase || "").trim();
+  return "";
 }
 
 /** Divide o texto do bloco proporcionalmente à duração de cada asset (ação explícita do usuário). */
@@ -112,13 +117,15 @@ export function applySplitNarrationToBlockAssets(
 export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: string, assetIdx: number): string {
   const assets = ctx.config?.timeline_assets?.[blockKey] || [];
   const asset = assets[assetIdx];
-  const segment = String(asset?.narration_segment || "").trim();
+  const segment = repairMojibake(String(asset?.narration_segment || "").trim());
   if (segment) return segment;
 
   const blockNum = parseInt(blockKey, 10);
   const scenes = (ctx.storyboard?.visual_prompts || []).filter((vp) => Number(vp.block) === blockNum);
   if (scenes.length > assetIdx) {
-    const sceneText = String(scenes[assetIdx]?.narration_text || scenes[assetIdx]?.narration_excerpt || "").trim();
+    const sceneText = repairMojibake(
+      String(scenes[assetIdx]?.narration_text || scenes[assetIdx]?.narration_excerpt || "").trim(),
+    );
     if (sceneText) return sceneText;
   }
 

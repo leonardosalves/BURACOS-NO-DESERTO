@@ -275,6 +275,7 @@ import {
   recalculateSequentialAudioStarts,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
+import { hasMojibakeDeep, repairStoryboardEncoding } from "./textEncoding.js";
 import { loadStockUsageRegistry } from "./mediaUsageRegistry.js";
 import {
   needsListItemsRepair,
@@ -1558,6 +1559,19 @@ app.get("/api/projects/storyboard", (req, res) => {
     }
 
     data.checklist = normalizeScriptChecklist(data.checklist);
+
+    if (hasMojibakeDeep(data)) {
+      const repaired = repairStoryboardEncoding(data);
+      try {
+        fs.writeFileSync(storyboardPath, JSON.stringify(repaired, null, 2), "utf8");
+        console.log(`[storyboard] Mojibake reparado em ${path.basename(projDir)}`);
+      } catch (writeErr) {
+        console.warn("[storyboard] Falha ao persistir reparo de encoding:", writeErr.message);
+      }
+      res.json(repaired);
+      return;
+    }
+
     res.json(data);
 
   } catch (err) {
@@ -4807,7 +4821,13 @@ function readProjectJson(projectDir, fileName, fallback = {}) {
 
   try {
 
-    return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+    const data = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+
+    if (fileName === "storyboard.json") {
+      return repairStoryboardEncoding(data);
+    }
+
+    return data;
 
   } catch (e) {
 
