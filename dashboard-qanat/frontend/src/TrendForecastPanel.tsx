@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
+import { resolvePioneerCreatorSeed } from './creatorEditorialImport';
 
 type TimesfmStatus = {
   timesfmInstalled?: boolean;
@@ -567,23 +568,30 @@ function PioneerNicheList({
             {onApply && (
               <button
                 type="button"
-                onClick={() =>
-                  onApply(
-                    n.firstVideoIdea || n.label || n.angle || `Pioneiro: ${n.macroNiche}`,
+                onClick={() => {
+                  const pioneerMeta = {
+                    macroNiche: n.macroNiche,
+                    angle: n.angle,
+                    formatPattern: n.formatPattern,
+                    youtubeSearchQuery: n.youtubeSearchQuery,
+                  };
+                  const seed = resolvePioneerCreatorSeed(
+                    n.firstVideoIdea || n.label || '',
                     n.angle || n.firstVideoIdea || n.label || '',
+                    pioneerMeta,
+                    n.whyPioneer,
+                  );
+                  onApply(
+                    seed.title || n.label || `Pioneiro: ${n.macroNiche}`,
+                    seed.hook || seed.title,
                     {
                       format: (n.format === 'LONGO' ? 'LONGO' : 'SHORTS') as 'LONGO' | 'SHORTS',
                       mechanic: 'pioneer-niche',
                       whyWorks: n.whyPioneer,
-                      pioneerMeta: {
-                        macroNiche: n.macroNiche,
-                        angle: n.angle,
-                        formatPattern: n.formatPattern,
-                        youtubeSearchQuery: n.youtubeSearchQuery,
-                      },
+                      pioneerMeta,
                     },
-                  )
-                }
+                  );
+                }}
                 className="text-[10px] text-violet-300 hover:text-violet-200"
               >
                 Abrir no Creator

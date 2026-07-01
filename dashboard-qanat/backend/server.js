@@ -131,6 +131,7 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
+import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
 import { registerAgentReachRoutes } from "./agentReachRoutes.js";
 import {
   fetchMemoryContext,
@@ -11940,8 +11941,13 @@ Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\n
 
   if (idea.isCustom) {
     promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante — estilo UGC falado (skill ugc-scriptwriter). Fechamento DECLARATIVO; proibido "Você prefere…?" ou perguntas vazias de comentário. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
-    if (idea.pioneerNiche) {
-      promptSystem += `\n\nMODO NICHO PIONEIRO: O vídeo deve ser SOBRE O TEMA/ÂNGULO descrito na promessa (fatos, história, objeto, fenômeno real). PROIBIDO fazer vídeo sobre "nicho virgem", saturação de mercado, gap de pontos, como encontrar nichos no YouTube ou estratégia de criador. Se a promessa tiver "Contexto estratégico", use só como nota interna — não vire isso no roteiro.`;
+    const pioneerMode = idea.pioneerNiche
+      || isPioneerStrategyText(idea.title)
+      || isPioneerStrategyText(idea.promise)
+      || isPioneerStrategyText(customHookVal)
+      || /TEMA DO VÍDEO/i.test(String(idea.promise || ""));
+    if (pioneerMode) {
+      promptSystem += `\n\nMODO NICHO PIONEIRO: O vídeo deve ser SOBRE O TEMA/ÂNGULO descrito na promessa (fatos, história, objeto, fenômeno real). PROIBIDO fazer vídeo sobre "nicho virgem", saturação de mercado, gap de pontos, como encontrar nichos no YouTube, "farsa do mercado saturado" ou estratégia de criador. Se a promessa tiver "Contexto estratégico", use só como nota interna — não vire isso no roteiro.`;
     }
     if (webResearchContext) {
       promptSystem += webResearchContext;
