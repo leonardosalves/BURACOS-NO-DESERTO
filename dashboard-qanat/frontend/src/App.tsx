@@ -1263,6 +1263,7 @@ export default function App() {
   const [storyboardData, setStoryboardData] = useState<any | null>(null);
 
   const [loadingStoryboard, setLoadingStoryboard] = useState<boolean>(false);
+  const [generatingOverlays, setGeneratingOverlays] = useState<boolean>(false);
 
   const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json' | 'narration'>('script');
 
@@ -1855,6 +1856,35 @@ export default function App() {
 
     }
 
+  };
+
+  const handleGenerateAiOverlays = async () => {
+    if (!activeProject) {
+      toast.error('Carregue um projeto antes de gerar overlays.');
+      return;
+    }
+    setGeneratingOverlays(true);
+    const toastId = toast.loading('IA planejando overlays para o vídeo...');
+    try {
+      const res = await fetch(getProjectUrl('/api/projects/overlays/plan-ai'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hyperframes: config?.use_hyperframes !== false })
+      });
+      if (res.ok) {
+        toast.success('Overlays planejados e gerados com sucesso pela IA!', { id: toastId });
+        await fetchStoryboard(activeProject);
+        await fetchVideoQuality(activeProject);
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
+        toast.error(errData.error || 'Falha ao planejar overlays via AI.', { id: toastId });
+      }
+    } catch (err) {
+      console.error('Error generating overlays:', err);
+      toast.error('Erro de conexão ao planejar overlays.', { id: toastId });
+    } finally {
+      setGeneratingOverlays(false);
+    }
   };
 
   const fetchVideoQuality = async (projName = activeProject) => {
@@ -12051,17 +12081,23 @@ export default function App() {
 
                     </div>
 
-                    <button
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleGenerateAiOverlays}
+                        disabled={generatingOverlays}
+                        className="bg-gold-500 hover:bg-gold-600 disabled:bg-gold-500/50 text-zinc-950 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>{generatingOverlays ? 'Planejando...' : 'Gerar Overlays pela AI'}</span>
+                      </button>
 
-                      onClick={() => copyToClipboard(JSON.stringify(storyboardData, null, 2), 'storyboard-json')}
-
-                      className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-
-                    >
-
-                      <span>{copiedSection === 'storyboard-json' ? 'Copiado!' : 'Copiar JSON'}</span>
-
-                    </button>
+                      <button
+                        onClick={() => copyToClipboard(JSON.stringify(storyboardData, null, 2), 'storyboard-json')}
+                        className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <span>{copiedSection === 'storyboard-json' ? 'Copiado!' : 'Copiar JSON'}</span>
+                      </button>
+                    </div>
 
                   </div>
 

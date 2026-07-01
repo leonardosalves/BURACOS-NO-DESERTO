@@ -1354,6 +1354,31 @@ app.post("/api/outputs/delete", (req, res) => {
 
 });
 
+// API: Plan and generate AI overlays explicitly
+app.post("/api/projects/overlays/plan-ai", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const useHyperframes = req.body?.hyperframes === true;
+
+    // Plan and generate overlays via AI
+    const overlays = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
+      skipBrowserCache: true, // Force generating fresh layouts
+    });
+
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+
+    res.json({
+      success: true,
+      overlayCount: overlays.length,
+      overlays: storyboard.overlays || overlays,
+      storyboard: storyboard
+    });
+  } catch (err) {
+    console.error("Erro ao planejar overlays pela AI:", err);
+    res.status(500).json({ error: "Falha ao gerar overlays pela AI", details: err.message });
+  }
+});
+
 // API: Get storyboard data
 
 app.get("/api/projects/storyboard", (req, res) => {
@@ -5349,22 +5374,57 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 
-  // Generate overlays via AI (pass actual scene timeline for precise timing sync)
-  const overlays = await generateOverlaysWithAI(projectDir, useHyperframes, validScenes, {
-    totalDuration,
-    projectName: path.basename(projectDir),
-  });
-
-  ensureProjectSfxPack(projectDir);
-  augmentSfxTimelineForOverlays(projectDir, overlays, timings.starts || [], config);
-  const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
-  const bgmDuckPoints = buildBgmDuckPoints(overlays, wordTranscripts);
-
-  // Scrape YouTube channel info and save avatar locally
-  const youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
-  
-  // Save overlays + quality report to storyboard
+  // Load planned overlays from storyboard.json instead of generating via AI during render
   const freshSb = readProjectJson(projectDir, "storyboard.json", {});
+  const plannedRaw = Array.isArray(freshSb.overlays_ai) && freshSb.overlays_ai.length > 0
+    ? freshSb.overlays_ai
+    : (Array.isArray(freshSb.overlays) && freshSb.overlays.length > 0
+      ? stripSystemInjectedOverlays(freshSb.overlays)
+      : []);
+
+  let overlays = [];
+  if (plannedRaw.length > 0) {
+    console.log(`[Remotion Render] Alinhando ${plannedRaw.length} overlays informativos com a linha do tempo física.`);
+    const starts = Array.isArray(timings.starts) ? timings.starts : [];
+    const durations = Array.isArray(timings.durations) ? timings.durations : [];
+    
+    // Alinha os overlays com os tempos físicos das cenas
+    const realigned = normalizeGeminiOverlayPayload(
+      realignPlannedOverlays(
+        plannedRaw,
+        validScenes,
+        freshSb,
+        starts,
+        durations,
+        wordTranscripts,
+        config,
+      )
+    );
+
+    const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
+      config,
+      niche: config.niche || "Geral",
+      totalDuration,
+      projectName: path.basename(projectDir),
+      sceneCount: validScenes.length,
+      blockCount: Array.isArray(config.block_phrases) ? config.block_phrases.length : 0,
+    });
+
+    overlays = finalizeProjectOverlays(
+      projectDir,
+      realigned,
+      config,
+      freshSb,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      totalDuration,
+    );
+  } else {
+    console.log("[Remotion Render] Nenhum overlay planejado encontrado no storyboard.json.");
+  }
+
+  // Update storyboard overlays with aligned rendering overlays
   storyboard.overlays = overlays;
   storyboard.quality_report = freshSb.quality_report || storyboard.quality_report;
   try {
