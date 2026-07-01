@@ -110,8 +110,7 @@ function inferBacklinkLine(relPath) {
   if (relPath === "AGENTS.md") return `> 🔗 ${HUB_LINK} · [[SKILLS]] · [[MEMORY]]`;
   if (relPath === "SKILLS.md") return `> 🔗 ${HUB_LINK} · [[AGENTS]] · [[MEMORY]]`;
   if (relPath.startsWith("memory/")) {
-    const slug = relPath.replace("memory/", "").replace(".md", "");
-    return `> 🔗 ${HUB_LINK} · [[memory/${slug}]] · [[MEMORY]]`;
+    return `> 🔗 ${HUB_LINK} · [[MEMORY]] · [[SKILLS]] · [[AGENTS]]`;
   }
   if (relPath.startsWith("agent_runs/")) {
     const day = relPath.replace("agent_runs/", "").replace(".md", "");
@@ -120,9 +119,17 @@ function inferBacklinkLine(relPath) {
   if (relPath.startsWith("skill-bundles/")) {
     return `> 🔗 ${HUB_LINK} · [[skills/studio-agents-hermes]] · [[SKILLS]]`;
   }
-  const skillRef = relPath.match(/^skills\/([^/]+)\/(references|assets)\/(.+)\.md$/);
+  const skillNested = relPath.match(/^skills\/([^/]+)\/(.+)\.md$/);
+  if (skillNested) {
+    const [, slug, rest] = skillNested;
+    if (rest !== "SKILL") {
+      const label = skillLabel(slug);
+      return `> 🔗 ${HUB_LINK} · [[skills/${slug}|${label}]] · [[skills/${slug}/SKILL]] · [[skills/${slug}/REFERENCES]]`;
+    }
+  }
+  const skillRef = relPath.match(/^skills\/([^/]+)\/(references|assets|reference)\/(.+)\.md$/);
   if (skillRef) {
-    const [, slug, , refFile] = skillRef;
+    const [, slug] = skillRef;
     const label = skillLabel(slug);
     return `> 🔗 ${HUB_LINK} · [[skills/${slug}|${label}]] · [[skills/${slug}/SKILL]] · [[skills/${slug}/REFERENCES]]`;
   }
@@ -152,27 +159,51 @@ function prependBacklinkIfMissing(filePath, backlinkLine) {
   return true;
 }
 
+const SKILL_DOC_SKIP_DIRS = new Set(["scripts", "eval-viewer", "node_modules", ".git"]);
+
 function listSkillReferenceFiles(skillDir) {
   const refs = [];
-  for (const sub of ["references", "assets"]) {
-    const dir = path.join(skillDir, sub);
-    if (!fs.existsSync(dir)) continue;
-    for (const file of fs.readdirSync(dir)) {
-      if (file.endsWith(".md")) refs.push(`${sub}/${file.replace(/\.md$/, "")}`);
+  if (!fs.existsSync(skillDir)) return refs;
+
+  function walk(dir, prefix = "") {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (SKILL_DOC_SKIP_DIRS.has(entry.name)) continue;
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full, rel);
+        continue;
+      }
+      if (!entry.name.endsWith(".md")) continue;
+      if (entry.name === "SKILL.md" || entry.name === "REFERENCES.md") continue;
+      refs.push(rel.replace(/\.md$/, ""));
     }
   }
+
+  walk(skillDir);
   return refs.sort();
 }
 
 function buildSkillReferencesIndex(slug, refFiles) {
   const label = skillLabel(slug);
-  const lines = refFiles.map((r) => `- [[${r}]]`);
+  const byFolder = new Map();
+  for (const r of refFiles) {
+    const folder = r.includes("/") ? r.split("/")[0] : "(raiz)";
+    if (!byFolder.has(folder)) byFolder.set(folder, []);
+    byFolder.get(folder).push(r);
+  }
+  const sections = [];
+  for (const [folder, items] of [...byFolder.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    sections.push(`### ${folder}`);
+    sections.push(items.map((r) => `- [[${r}]]`).join("\n"));
+    sections.push("");
+  }
   return [
     `# Referências — ${label}`,
     "",
     `> 🔗 ${HUB_LINK} · [[skills/${slug}]] · [[skills/${slug}/SKILL]] · [[SKILLS]]`,
     "",
-    lines.length ? lines.join("\n") : "- _(sem referências em references/ ou assets/)_",
+    sections.length ? sections.join("\n") : "- _(sem docs aninhados)_",
     "",
   ].join("\n");
 }
@@ -247,11 +278,51 @@ export function repairVaultGraphLinks(workspaceDir) {
     if (prependBacklinkIfMissing(file, backlink)) repaired += 1;
   }
 
+  ensureMemoryIndexNote(vaultDir);
+
   fs.writeFileSync(path.join(vaultDir, HUB_NOTE), buildHubNote(workspaceDir), "utf8");
   fs.writeFileSync(path.join(vaultDir, "SKILLS.md"), buildSkillsIndexNote(vaultDir), "utf8");
 
   const audit = auditVaultGraph(workspaceDir);
   return { repaired, ...audit };
+}
+
+function ensureMemoryIndexNote(vaultDir) {
+  const memoryDir = path.join(vaultDir, "memory");
+  const memoryPath = path.join(vaultDir, "MEMORY.md");
+  if (!fs.existsSync(memoryDir)) return;
+
+  const files = fs.readdirSync(memoryDir).filter((f) => f.endsWith(".md")).sort();
+  const links = files.map((f) => {
+    const slug = f.replace(".md", "");
+    return `- [[memory/${slug}]]`;
+  });
+
+  let existing = fs.existsSync(memoryPath) ? fs.readFileSync(memoryPath, "utf8") : "";
+  if (!HUB_LINK_RE.test(existing)) {
+    existing = `> 🔗 ${HUB_LINK} · [[SKILLS]] · [[AGENTS]]\n\n${existing}`;
+  }
+
+  const marker = "## Índice memória por nicho";
+  const block = [
+    marker,
+    "",
+    links.length ? links.join("\n") : "- _(vazio)_",
+    "",
+    `atualizado: ${new Date().toISOString()}`,
+    "",
+  ].join("\n");
+
+  if (existing.includes(marker)) {
+    existing = existing.replace(
+      /## Índice memória por nicho[\s\S]*?(?=\n## |\n# |$)/,
+      `${block.trim()}\n`,
+    );
+  } else {
+    existing = `${existing.trimEnd()}\n\n${block}`;
+  }
+
+  fs.writeFileSync(memoryPath, existing, "utf8");
 }
 
 function ensureSkillGraphLinks(vaultDir) {
@@ -360,6 +431,8 @@ function buildHubNote(workspaceDir) {
     `- [[MEMORY]] — regras globais do estúdio`,
     `- [[AGENTS]] — documentação dos agentes`,
     `- [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)`,
+    `- [[memory/agent-frameworks-reference]] · [[memory/google-gemini-sdk-reference]] · [[memory/google-research-reference]]`,
+    `- [[memory/lumiera-code-map]] · [[memory/videoagent-lumiera]]`,
     bundlesNote,
     "",
     "## Skills",

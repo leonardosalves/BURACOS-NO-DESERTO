@@ -387,3 +387,7 @@ See [rules/voiceover.md](rules/voiceover.md) for adding AI-generated voiceover t
 **Regras do estúdio:** CSS transitions/Tailwind animate são proibidos no render Remotion — use `useCurrentFrame` + `interpolate`. Não sobrepor overlays nas legendas (`AGENTS.md`).
 
 Carregar sob demanda: pasta `rules/` (37 guias oficiais Remotion).
+
+## Referências
+
+- [[skills/remotion-best-practices/REFERENCES|Índice de references/assets]]

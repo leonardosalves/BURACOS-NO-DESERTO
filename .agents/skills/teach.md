@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/teach/SKILL|teach (SKILL completa)]].
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/teach/SKILL]]
+- Referências: [[skills/teach/REFERENCES]]

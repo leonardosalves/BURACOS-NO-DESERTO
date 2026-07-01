@@ -3,5 +3,5 @@
 Atalho Obsidian para [[skills/doc-coauthoring/SKILL|doc coauthoring (SKILL completa)]].
 - [[MEMORIA-LUMIERA]]
 - [[SKILLS]]
-- [[skills/speckit-specify]]
+- [[AGENTS]]
 - Documentação: [[skills/doc-coauthoring/SKILL]]

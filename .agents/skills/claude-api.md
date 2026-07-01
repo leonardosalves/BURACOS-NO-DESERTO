@@ -3,5 +3,6 @@
 Atalho Obsidian para [[skills/claude-api/SKILL|claude api (SKILL completa)]].
 - [[MEMORIA-LUMIERA]]
 - [[SKILLS]]
-- [[memory/agent-frameworks-reference]]
+- [[AGENTS]]
 - Documentação: [[skills/claude-api/SKILL]]
+- Referências: [[skills/claude-api/REFERENCES]]

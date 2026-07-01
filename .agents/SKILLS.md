@@ -13,9 +13,9 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/content-strategy|content strategy]] — doc: [[skills/content-strategy/SKILL]]
 - [[skills/decision-mapping|decision mapping]] — doc: [[skills/decision-mapping/SKILL]]
 - [[skills/deer-flow-research|deer flow research]] — doc: [[skills/deer-flow-research/SKILL]]
-- [[skills/doc-coauthoring|doc coauthoring]] — doc: [[skills/doc-coauthoring/SKILL]]
 - [[skills/design-an-interface|design an interface]] — doc: [[skills/design-an-interface/SKILL]]
 - [[skills/diagnosing-bugs|diagnosing bugs]] — doc: [[skills/diagnosing-bugs/SKILL]]
+- [[skills/doc-coauthoring|doc coauthoring]] — doc: [[skills/doc-coauthoring/SKILL]]
 - [[skills/domain-modeling|domain modeling]] — doc: [[skills/domain-modeling/SKILL]]
 - [[skills/edit-article|edit article]] — doc: [[skills/edit-article/SKILL]]
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
@@ -80,4 +80,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-01T21:00:36.990Z
+atualizado: 2026-07-01T21:09:24.595Z

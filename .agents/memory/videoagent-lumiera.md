@@ -59,6 +59,126 @@ Implementação: `dashboard-qanat/backend/videoAgentPlanner.js`
 
 ## Planos gerados (VideoAgent)
 
+### 2026-07-01 06:41 — Short viral sobre engenharia antiga — gancho forte e 5 fatos surpreendentes
+- **Feasibility:** Feasible
+- **Intents:** Short viral
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — ideias → Creator — narração → Creator — roteiro + cenas → Overlays / HyperFrames → Render Short 9:16 → Metadados YouTube → Upload YouTube
+- **Reasoning:** Plano Lumiera com 7 etapas derivadas dos intents VideoAgent: Short viral.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:40 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:39 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:39 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:39 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:37 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:37 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
+### 2026-07-01 06:37 — Pesquisa concorrentes no nicho curiosidades e gerar 3 ideias derivadas
+- **Feasibility:** Feasible
+- **Intents:** Pesquisa concorrentes
+- **Implícitos:** Enriquecer com fatos (NotebookLM)
+- **Chain:** Creator — roteiro + cenas → Pesquisa concorrentes → Fila editorial
+- **Reasoning:** Plano Lumiera com 3 etapas derivadas dos intents VideoAgent: Pesquisa concorrentes.
+
+#### Storyboard beats
+- Beat 1: Gancho visual — rosto/objeto + texto ≤8 palavras · _Primeira frase paga a promessa do título_
+- Beat 2: Pattern interrupt ~10s — fato visual concreto · _Transição com open loop_
+- Beat 3: Pattern interrupt ~12s — fato visual concreto · _Transição com open loop_
+- Beat 4: Pattern interrupt ~14s — fato visual concreto · _Transição com open loop_
+- Beat 5: CTA — pergunta específica ou parte 2 · _Transição com open loop_
+
+
 ### 2026-07-01 06:29 — Short viral sobre engenharia antiga
 - **Feasibility:** Feasible
 - **Intents:** Short viral

@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/improve-codebase-architecture/SKILL|improve codeba
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/improve-codebase-architecture/SKILL]]
+- Referências: [[skills/improve-codebase-architecture/REFERENCES]]

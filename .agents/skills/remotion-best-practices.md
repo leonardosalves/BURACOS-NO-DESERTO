@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/remotion-best-practices/SKILL|remotion best practi
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/remotion-best-practices/SKILL]]
+- Referências: [[skills/remotion-best-practices/REFERENCES]]

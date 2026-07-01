@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/codebase-design/SKILL|codebase design (SKILL compl
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/codebase-design/SKILL]]
+- Referências: [[skills/codebase-design/REFERENCES]]

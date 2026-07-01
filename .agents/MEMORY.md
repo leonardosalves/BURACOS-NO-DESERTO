@@ -24,3 +24,24 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 ## Obsidian
 - Hub: [[MEMORIA-LUMIERA]]
 - Por nicho: `memory/<slug>.md` — categorias `SHORT/` ou `LONG/` indicam escopo do padrão.
+
+## Índice memória por nicho
+
+- [[memory/agent-frameworks-reference]]
+- [[memory/competitor-intelligence]]
+- [[memory/curiosidades-e-fatos-surpreendentes]]
+- [[memory/curiosidades-e-objetos-do-cotidiano]]
+- [[memory/curiosidades]]
+- [[memory/customized]]
+- [[memory/engenharia-antiga]]
+- [[memory/engenharia]]
+- [[memory/geral]]
+- [[memory/google-gemini-sdk-reference]]
+- [[memory/google-research-reference]]
+- [[memory/historia]]
+- [[memory/lumiera-code-map]]
+- [[memory/mattpocock-skills]]
+- [[memory/openmontage-lumiera]]
+- [[memory/videoagent-lumiera]]
+
+atualizado: 2026-07-01T21:09:24.582Z

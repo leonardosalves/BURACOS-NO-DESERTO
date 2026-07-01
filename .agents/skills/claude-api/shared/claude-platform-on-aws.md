@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/claude-api|claude api]] · [[skills/claude-api/SKILL]] · [[skills/claude-api/REFERENCES]]
+
 # Claude Platform on AWS
 
 **Anthropic-operated** access to the Claude Developer Platform through AWS infrastructure — SigV4 authentication, AWS IAM access control, and AWS Marketplace billing. Because Anthropic operates it, **the API surface matches first-party with same-day parity** — for per-feature exceptions, see `shared/platform-availability.md` (the single source of truth; do not rely on an inline exception list here). Model IDs are the bare first-party strings (`claude-opus-4-8`, `claude-sonnet-5`) — **no provider prefix**.

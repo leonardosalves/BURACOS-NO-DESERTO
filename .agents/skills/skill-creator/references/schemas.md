@@ -1,3 +1,5 @@
+> 🔗 [[MEMORIA-LUMIERA]] · [[skills/skill-creator|skill creator]] · [[skills/skill-creator/SKILL]] · [[skills/skill-creator/REFERENCES]]
+
 # JSON Schemas
 
 This document defines the JSON schemas used by skill-creator.

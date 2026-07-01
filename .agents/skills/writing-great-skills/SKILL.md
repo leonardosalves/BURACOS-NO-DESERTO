@@ -97,3 +97,7 @@ Use these to diagnose issues the user may be having with the skill.
 - Triggers PT-BR na `description`; seção **Lumiera** com paths do repo
 - Registrar em [[SKILLS]] e `skills-registry-external`; bundle em `skill-bundles/` se aplicável
 - Workshop Studio Agents: `.agents/pending/skills/` + API `/api/studio-agents/skills`
+
+## Referências
+
+- [[skills/writing-great-skills/REFERENCES|Índice de references/assets]]

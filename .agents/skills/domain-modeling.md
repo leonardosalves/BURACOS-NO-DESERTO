@@ -5,3 +5,4 @@ Atalho Obsidian para [[skills/domain-modeling/SKILL|domain modeling (SKILL compl
 - [[SKILLS]]
 - [[AGENTS]]
 - Documentação: [[skills/domain-modeling/SKILL]]
+- Referências: [[skills/domain-modeling/REFERENCES]]
