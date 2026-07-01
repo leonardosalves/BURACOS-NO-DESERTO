@@ -5370,6 +5370,13 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
   const bgmDuckPoints = buildBgmDuckPoints([], wordTranscripts);
 
+  let youtubeChannelInfo = null;
+  try {
+    youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
+  } catch (e) {
+    console.warn("[Remotion] Falha ao resolver YouTube channel info:", e.message);
+  }
+
   const captions = captionsFromWordTranscripts(wordTranscripts);
 
   const rawCaptions = captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
