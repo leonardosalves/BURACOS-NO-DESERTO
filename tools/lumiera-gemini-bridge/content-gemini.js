@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.9";
+  const VERSION = "1.5.0";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -248,14 +248,45 @@
     });
   }
 
+  function normalizeCapturedModelText(text) {
+    let t = String(text || "").trim();
+    if (!t) return "";
+    const fenced = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced?.[1] && /narrative_script/i.test(fenced[1])) return fenced[1].trim();
+
+    const jsonStarts = [
+      t.search(/\{\s*"strategy"\s*:/i),
+      t.search(/\{\s*['"]strategy['"]\s*:/i),
+      t.search(/\{\s*"narrative_script"\s*:/i),
+      t.search(/\{\s*['"]narrative_script['"]\s*:/i),
+    ].filter((i) => i >= 0);
+    if (jsonStarts.length) {
+      const start = Math.min(...jsonStarts);
+      if (start > 0) t = t.slice(start);
+    }
+    return t.replace(/^```json\s*/i, "").replace(/\s*```$/g, "").trim();
+  }
+
+  function getLatestNewModelText(beforeMessageCount, beforeTexts) {
+    const current = snapshotModelMessages();
+    const newTexts = current
+      .slice(beforeMessageCount)
+      .map((entry) => normalizeCapturedModelText(entry?.text || ""))
+      .filter((t) => t.length > 60);
+    if (newTexts.length) return newTexts.sort((a, b) => b.length - a.length)[0];
+
+    return normalizeCapturedModelText(getLatestFreshModelText(beforeTexts));
+  }
+
   function getLatestFreshModelText(beforeTexts) {
     const candidates = [];
     snapshotModelMessages().forEach((entry) => {
-      const text = String(entry?.text || "").trim();
-      if (text.length > 80 && !beforeTexts.includes(text)) candidates.push(text);
+      const text = normalizeCapturedModelText(entry?.text || "");
+      if (text.length > 60 && !beforeTexts.includes(text)) candidates.push(text);
     });
     collectModelTexts()
-      .filter((t) => !beforeTexts.includes(t) && t.length > 80)
+      .map((t) => normalizeCapturedModelText(t))
+      .filter((t) => !beforeTexts.includes(t) && t.length > 60)
       .forEach((t) => candidates.push(t));
     return [...new Set(candidates)].sort((a, b) => b.length - a.length)[0] || "";
   }
@@ -314,9 +345,13 @@
   }
 
   function looksLikeNarrationCandidate(text) {
-    const t = String(text || "").trim();
-    if (t.length < 280 || looksLikeLumieraPrompt(t)) return false;
-    return /"narrative_script"\s*:/i.test(t);
+    const t = normalizeCapturedModelText(String(text || "").trim());
+    if (t.length < 100) return false;
+    if (!/["']?narrative_script["']?\s*:/i.test(t)) return false;
+    if (/["']?narrative_script["']?\s*:\s*["']/i.test(t) && t.length >= 160) return true;
+    if (/["']?strategy["']?\s*:\s*\{/.test(t) && t.length >= 180) return true;
+    if (looksLikeLumieraPrompt(t) && !/["']?technical_config["']?\s*:/i.test(t)) return false;
+    return t.length >= 140;
   }
 
   function salvageScriptJsonText(text) {
@@ -347,11 +382,12 @@
   }
 
   function pickScriptResponsePayload(text) {
-    const strict = extractScriptJsonPayload(text);
+    const normalized = normalizeCapturedModelText(text);
+    const strict = extractScriptJsonPayload(normalized);
     if (strict) return strict;
-    const salvaged = salvageScriptJsonText(text);
+    const salvaged = salvageScriptJsonText(normalized);
     if (salvaged) return salvaged;
-    if (looksLikeNarrationCandidate(text)) return String(text || "").trim();
+    if (looksLikeNarrationCandidate(normalized)) return normalized;
     return null;
   }
 
@@ -362,7 +398,7 @@
       cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
     }
 
-    const keyIdx = cleaned.search(/"narrative_script"\s*:/i);
+    const keyIdx = cleaned.search(/["']?narrative_script["']?\s*:/i);
     if (keyIdx < 0) return null;
     const braceStart = cleaned.lastIndexOf("{", keyIdx);
     if (braceStart < 0) return null;
@@ -627,72 +663,94 @@
     );
   }
 
-  async function waitForScriptResponse(beforeTexts, beforeMessages, submitStartedAt, deadline) {
-    const MIN_WAIT_MS = 6000;
-    const STABLE_MS = 900;
-    let stableText = "";
-    let stableSince = 0;
-    let lastLen = 0;
-    let lastLenAt = submitStartedAt;
+  function readScriptCandidateText(beforeTexts, beforeMessages, beforeMessageCount) {
+    return getLatestNewModelText(beforeMessageCount, beforeTexts)
+      || normalizeCapturedModelText(getLatestGrownModelText(beforeTexts, beforeMessages))
+      || normalizeCapturedModelText(findScriptJsonResponse(beforeTexts) || "")
+      || "";
+  }
 
-    while (Date.now() < deadline) {
-      await sleep(350);
-      if (Date.now() - submitStartedAt < MIN_WAIT_MS) continue;
+  function tryCaptureScriptResponse(beforeTexts, beforeMessages, beforeMessageCount, state) {
+    const raw = readScriptCandidateText(beforeTexts, beforeMessages, beforeMessageCount);
+    if (!looksLikeNarrationCandidate(raw)) return null;
 
-      const raw = getLatestFreshModelText(beforeTexts)
-        || getLatestGrownModelText(beforeTexts, beforeMessages)
-        || findScriptJsonResponse(beforeTexts)
-        || "";
-      if (!looksLikeNarrationCandidate(raw)) continue;
-
-      if (raw.length > lastLen + 12) {
-        lastLen = raw.length;
-        lastLenAt = Date.now();
-        stableText = "";
-        stableSince = 0;
-        continue;
-      }
-
-      const streaming = isGeminiStillStreaming();
-      const quietFor = Date.now() - lastLenAt;
-      const responseActions = hasModelResponseActions();
-
-      if (raw !== stableText) {
-        stableText = raw;
-        stableSince = Date.now();
-        continue;
-      }
-
-      const stableFor = Date.now() - stableSince;
-      if (streaming && quietFor < 1500) continue;
-
-      if (responseActions && stableFor >= 400) {
-        const payload = pickScriptResponsePayload(raw);
-        if (payload) return payload;
-      }
-
-      if (!streaming && stableFor >= STABLE_MS && quietFor >= 700) {
-        const payload = pickScriptResponsePayload(raw);
-        if (payload) return payload;
-      }
-
-      if (!streaming && quietFor >= 2200 && stableFor >= 600) {
-        const payload = pickScriptResponsePayload(raw);
-        if (payload) return payload;
-      }
-    }
-
-    const lastChance = getLatestFreshModelText(beforeTexts)
-      || getLatestGrownModelText(beforeTexts, beforeMessages);
-    if (!isGeminiStillStreaming()) {
-      const payload = pickScriptResponsePayload(lastChance);
+    const streaming = isGeminiStillStreaming();
+    if (!streaming) {
+      const payload = pickScriptResponsePayload(raw);
       if (payload) return payload;
     }
 
-    throw new Error(
-      "Timeout aguardando narração do Gemini (240s). "
-      + "O chat terminou em gemini.google.com? Recarregue a aba (F5) e tente de novo.",
-    );
+    if (raw.length > state.lastLen + 8) {
+      state.lastLen = raw.length;
+      state.stableText = "";
+      state.stableSince = 0;
+    }
+
+    if (raw !== state.stableText) {
+      state.stableText = raw;
+      state.stableSince = Date.now();
+      return null;
+    }
+
+    const stableFor = Date.now() - state.stableSince;
+    if (hasModelResponseActions() && stableFor >= 200) {
+      return pickScriptResponsePayload(raw);
+    }
+    if (stableFor >= 700) {
+      return pickScriptResponsePayload(raw);
+    }
+    return null;
+  }
+
+  async function waitForScriptResponse(beforeTexts, beforeMessages, beforeMessageCount, submitStartedAt, deadline) {
+    const state = { lastLen: 0, stableText: "", stableSince: 0 };
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (payload) => {
+        if (settled) return;
+        settled = true;
+        observer.disconnect();
+        clearInterval(pollTimer);
+        resolve(payload);
+      };
+      const fail = (err) => {
+        if (settled) return;
+        settled = true;
+        observer.disconnect();
+        clearInterval(pollTimer);
+        reject(err);
+      };
+
+      const tick = () => {
+        if (Date.now() - submitStartedAt < 4000) return;
+        const hit = tryCaptureScriptResponse(beforeTexts, beforeMessages, beforeMessageCount, state);
+        if (hit) finish(hit);
+      };
+
+      const observer = new MutationObserver(() => tick());
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+
+      const pollTimer = setInterval(() => {
+        if (Date.now() > deadline) {
+          const last = tryCaptureScriptResponse(beforeTexts, beforeMessages, beforeMessageCount, state)
+            || pickScriptResponsePayload(readScriptCandidateText(beforeTexts, beforeMessages, beforeMessageCount));
+          if (last && !isGeminiStillStreaming()) finish(last);
+          else {
+            fail(new Error(
+              "Timeout aguardando narração do Gemini (240s). "
+              + "Mantenha gemini.google.com em foco e tente de novo.",
+            ));
+          }
+          return;
+        }
+        tick();
+      }, 280);
+    });
   }
 
   async function waitForOverlayResponse(beforeTexts, beforeMessages, knownOverlayJson, planSession, submitStartedAt, deadline) {
@@ -1195,6 +1253,7 @@
 
     const before = collectModelTexts();
     const beforeMessages = snapshotModelMessages();
+    const beforeMessageCount = beforeMessages.length;
     const knownOverlayJson = collectKnownOverlayJson(before);
     const planSession = extractPlanSessionFromPrompt(prompt);
     const metadataSession = extractMetadataSessionFromPrompt(prompt);
@@ -1242,7 +1301,7 @@
       return waitForMetadataResponse(before, beforeMessages, submitStartedAt, deadline, metadataSession);
     }
     if (expectScriptJson) {
-      return waitForScriptResponse(before, beforeMessages, submitStartedAt, deadline);
+      return waitForScriptResponse(before, beforeMessages, beforeMessageCount, submitStartedAt, deadline);
     }
     if (expectOverlayJson) {
       return waitForOverlayResponse(before, beforeMessages, knownOverlayJson, planSession, submitStartedAt, deadline);
