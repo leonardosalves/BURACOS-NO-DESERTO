@@ -47,6 +47,14 @@ import {
   getComfyuiProgress,
   resolveComfyuiOutputFile,
 } from "./comfyuiService.js";
+import {
+  getComfyMcpDashboard,
+  saveComfyCloudConfig,
+  testComfyCloudConnection,
+  getComfyCloudQueue,
+  buildCursorMcpConfig,
+  loadComfyCloudConfig,
+} from "./comfyCloudMcp.js";
 
 export function registerWorkflowRoutes(app, deps) {
   const {
@@ -677,6 +685,61 @@ export function registerWorkflowRoutes(app, deps) {
     try {
       const data = await getComfyuiHistory(req.params.promptId);
       res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/comfy-mcp/status", async (req, res) => {
+    try {
+      let localStatus = null;
+      try {
+        localStatus = await getComfyuiStatus();
+      } catch {
+        /* non-blocking */
+      }
+      res.json(await getComfyMcpDashboard(WORKSPACE_DIR, { localStatus }));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/comfy-mcp/config", (req, res) => {
+    try {
+      const config = saveComfyCloudConfig(WORKSPACE_DIR, req.body || {});
+      res.json({ ok: true, config });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/comfy-mcp/test", async (req, res) => {
+    try {
+      const bodyKey = String(req.body?.api_key || "").trim();
+      const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
+      const apiKey = bodyKey || cfg.api_key;
+      const result = await testComfyCloudConnection(apiKey);
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      res.status(err.status === 401 ? 401 : 500).json({ error: err.message, details: err.data });
+    }
+  });
+
+  app.get("/api/comfy-mcp/queue", async (req, res) => {
+    try {
+      const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
+      if (!cfg.api_key) return res.status(400).json({ error: "API key não configurada" });
+      const queue = await getComfyCloudQueue(cfg.api_key);
+      res.json(queue);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/comfy-mcp/cursor-config", (req, res) => {
+    try {
+      const cfg = loadComfyCloudConfig(WORKSPACE_DIR);
+      res.json(buildCursorMcpConfig(cfg, WORKSPACE_DIR));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
