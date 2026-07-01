@@ -140,16 +140,16 @@ import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
 import { AppShell } from './AppShell';
 
-import { DashminActivityFeed } from './DashminActivityFeed';
+
 import { DashminPageLayout } from './DashminPageLayout';
 import { LumieraHomePage } from './LumieraHomePage';
 import { DashminProjectTabLayout } from './DashminProjectTabLayout';
-import { DashminYoutubePulse } from './DashminYoutubePulse';
+
 
 import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
 import { DashminUiElementsPage } from './DashminUiElementsPage';
 import { DashminExtensionsPage } from './DashminExtensionsPage';
-import { DashminStatPills } from './DashminStatPills';
+
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -8627,32 +8627,34 @@ export default function App() {
 
             <div className="lumiera-render-workspace">
 
-              <div className="lumiera-render-topbar glass-panel px-4 py-3 rounded-xl border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
-                <DashminStatPills
-                  projectCount={projects.length}
-                  outputCount={outputs.length}
-                  completedSteps={[
-                    status?.has_config,
-                    status?.has_narration,
-                    status?.has_soundtrack,
-                    status?.has_highlight_clip,
-                    (videoQuality?.score ?? 0) >= 60,
-                  ].filter(Boolean).length}
-                  totalSteps={5}
-                />
+              <div className="lumiera-render-topbar glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-300">
                   <span className="flex items-center gap-1.5">
                     <Tv className="w-3.5 h-3.5 text-gold-500" />
                     <span>Resolução: <strong className="text-gold-400">{renderResolutionLabel}</strong></span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('settings')}
-                    className="text-[10px] text-zinc-500 hover:text-gold-400 transition"
-                  >
-                    Configurações →
-                  </button>
+                  {videoQuality && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded tabular-nums ${
+                      videoQuality.score >= 80
+                        ? 'text-emerald-400 bg-emerald-500/10'
+                        : videoQuality.score >= 60
+                          ? 'text-amber-400 bg-amber-500/10'
+                          : 'text-red-400 bg-red-500/10'
+                    }`}>
+                      Qualidade {videoQuality.score}/100
+                    </span>
+                  )}
+                  {outputs.length > 0 && (
+                    <span className="text-[10px] text-zinc-500">{outputs.length} vídeo(s) em OUTPUT</span>
+                  )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('settings')}
+                  className="text-[10px] text-zinc-500 hover:text-gold-400 transition shrink-0"
+                >
+                  Alterar resolução →
+                </button>
               </div>
 
               {config && !status?.has_narration && (
@@ -8674,20 +8676,21 @@ export default function App() {
                 <div className="lumiera-render-primary space-y-4 min-w-0">
 
               {videoQuality && (
-                <details className="glass-panel rounded-2xl font-sans group" open={videoQuality.score < 80}>
+                videoQuality.score < 80
+                || !videoQuality.ok
+                || videoQuality.issues.some((i) => i.severity === 'error' || i.severity === 'warning')
+                || videoQuality.preRenderAdvice
+              ) && (
+                <details className="glass-panel rounded-2xl font-sans group" open>
                   <summary className="p-4 cursor-pointer list-none flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <SectionHeader
-                      title="Qualidade Pré-Render"
+                      title="Ajustes antes do render"
                       helpId="quality-pre-render"
                       icon={<CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />}
                     />
-                    <div className="flex items-center gap-3">
-                      <span className={`text-lg font-bold tabular-nums ${videoQuality.score >= 80 ? 'text-emerald-400' : videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
-                        {videoQuality.score}/100
-                      </span>
-                      <span className="text-[10px] text-zinc-500 group-open:hidden">expandir</span>
-                    </div>
+                    <span className={`text-sm font-bold tabular-nums ${videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                      {videoQuality.score}/100
+                    </span>
                   </summary>
                   <div className="px-4 pb-4 pt-0 border-t border-zinc-800/60">
                   <div className="flex flex-wrap items-center gap-3 mb-3 pt-3">
@@ -8736,54 +8739,24 @@ export default function App() {
                   ) : (
                     <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
                   )}
-                  {videoQuality.overlay_timing && (
+                  {videoQuality.overlay_timing && (videoQuality.overlay_timing.entries || []).some((e) => e.status === 'error' || e.status === 'warning') && (
                     <div className="mt-4 pt-3 border-t border-zinc-800/80">
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <SectionLabel helpId="overlay-timing" className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                          Timing overlays IA
-                        </SectionLabel>
-                        {videoQuality.overlay_timing.source === 'planned' && (
-                          <span className="text-zinc-500 font-normal normal-case ml-1">(pré-render)</span>
-                        )}
-                        {videoQuality.overlay_timing.repaired ? (
-                          <span className="text-amber-400/90 font-normal normal-case ml-1">
-                            · {videoQuality.overlay_timing.repaired} reparo(s)
-                          </span>
-                        ) : null}
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
+                        Overlays com problema
                       </p>
-                      {(videoQuality.overlay_timing.entries || []).length > 0 ? (
-                        <ul className="space-y-1 max-h-32 overflow-y-auto">
-                          {videoQuality.overlay_timing.entries!.map((entry) => (
-                            <li
-                              key={entry.id}
-                              className={`text-[10px] font-mono flex gap-2 ${
-                                entry.status === 'ok'
-                                  ? 'text-emerald-400/90'
-                                  : entry.status === 'repaired'
-                                    ? 'text-cyan-400/90'
-                                    : entry.status === 'error'
-                                      ? 'text-red-300'
-                                      : 'text-amber-300/90'
-                              }`}
-                            >
-                              <span className="shrink-0 w-3 text-center">
-                                {entry.status === 'ok' ? '✓' : entry.status === 'repaired' ? '↻' : '!'}
-                              </span>
+                      <ul className="space-y-1 max-h-24 overflow-y-auto">
+                        {videoQuality.overlay_timing.entries!
+                          .filter((e) => e.status === 'error' || e.status === 'warning')
+                          .map((entry) => (
+                            <li key={entry.id} className="text-[10px] font-mono text-amber-300/90 flex gap-2">
+                              <span>!</span>
                               <span>
                                 {entry.id} @ {entry.startSec?.toFixed(1)}s
-                                {entry.plannedScene ? ` · cena ${entry.plannedScene}` : ''}
                                 {entry.message ? ` — ${entry.message}` : ''}
                               </span>
                             </li>
                           ))}
-                        </ul>
-                      ) : (
-                        <p className="text-[10px] text-zinc-500">
-                          {videoQuality.overlay_timing.plannedCount
-                            ? `${videoQuality.overlay_timing.plannedCount} overlay(s) planejado(s), mas ainda sem timing verificável — gere block_timings (narração) e clique Atualizar de novo.`
-                            : 'Nenhum overlay da IA ainda. O planejamento ocorre automaticamente antes do render Remotion PRO.'}
-                        </p>
-                      )}
+                      </ul>
                     </div>
                   )}
                   </div>
@@ -8800,9 +8773,7 @@ export default function App() {
                       helpId="render-standard"
                       icon={<Tv className="w-4 h-4 text-gold-500" />}
                     />
-                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                      Gera o documentário cinematográfico padrão com as legendas animadas em Gold/Water Blue e efeitos de zoom Ken Burns anti-jitter.
-                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">Legendas Gold/Water Blue e Ken Burns.</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full">
                     <button 
@@ -8833,9 +8804,7 @@ export default function App() {
                       helpId="render-remotion"
                       icon={<ExternalLink className="w-4 h-4 text-water-300" />}
                     />
-                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                      Monta o vídeo pela linha do tempo mapeada, narração sincronizada e legendas geradas a partir da transcrição.
-                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">Timeline + narração + legendas da transcrição.</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full">
                     <button
@@ -8860,9 +8829,7 @@ export default function App() {
                       />
                       <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                      Gera a versão premium contendo infográficos animados automáticos (Lower Thirds, textos cinéticos de impacto e contadores numéricos).
-                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">Infográficos, lower thirds e textos de impacto.</p>
                   </div>
                   <div className="flex flex-col gap-2 w-full">
                     <button
@@ -8905,9 +8872,7 @@ export default function App() {
                       />
                       <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Orquestrado</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 leading-normal">
-                      Orquestração visual por IA baseada no catálogo HyperFrames. Suporta transparência (ProRes) e mola física.
-                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">Catálogo HyperFrames · opcional ProRes Alpha.</p>
                   </div>
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="flex items-center gap-1.5 text-[9px] text-zinc-400 cursor-pointer select-none">
@@ -9026,31 +8991,6 @@ export default function App() {
                     )}
                   </div>
 
-                  <details className="glass-panel rounded-xl">
-                    <summary className="px-4 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider cursor-pointer">
-                      Canal & atividade
-                    </summary>
-                    <div className="px-4 pb-4 space-y-4 border-t border-zinc-800/60 pt-3">
-                      <DashminActivityFeed
-                        activeProject={activeProject}
-                        projects={projects}
-                        recentProjects={recentProjects}
-                        hasNarration={status?.has_narration}
-                        outputCount={outputs.length}
-                        videoQualityScore={videoQuality?.score}
-                        youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
-                        rendering={rendering}
-                        renderPercent={renderProgress?.percent}
-                        onOpenYoutube={() => setActiveTab('youtube-studio')}
-                        onOpenWorkflow={() => setActiveTab('workflow')}
-                      />
-                      <DashminYoutubePulse
-                        hotVideos={youtubeChannelAlerts?.hotVideos}
-                        viewsThreshold={getYoutubeViewsThreshold()}
-                        onOpenYoutube={() => setActiveTab('youtube-studio')}
-                      />
-                    </div>
-                  </details>
                 </aside>
               </div>
             </div>
