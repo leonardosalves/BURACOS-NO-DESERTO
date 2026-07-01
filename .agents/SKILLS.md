@@ -9,6 +9,12 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/epidemic_sound|Epidemic Sound]] — doc: [[skills/epidemic_sound/SKILL]]
 - [[skills/hyperframes|HyperFrames]] — doc: [[skills/hyperframes/SKILL]]
 - [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
+- [[skills/speckit-lumiera|speckit lumiera]] — doc: [[skills/speckit-lumiera/SKILL]] (GitHub Spec Kit SDD)
+- [[skills/speckit-specify|speckit specify]] — doc: [[skills/speckit-specify/SKILL]]
+- [[skills/speckit-plan|speckit plan]] — doc: [[skills/speckit-plan/SKILL]]
+- [[skills/speckit-tasks|speckit tasks]] — doc: [[skills/speckit-tasks/SKILL]]
+- [[skills/speckit-implement|speckit implement]] — doc: [[skills/speckit-implement/SKILL]]
+- [[skills/speckit-clarify|speckit clarify]] — doc: [[skills/speckit-clarify/SKILL]]
 - [[skills/remotion-best-practices|remotion best practices]] — doc: [[skills/remotion-best-practices/SKILL]]
 - [[skills/remotion-render|remotion render]] — doc: [[skills/remotion-render/SKILL]]
 - [[skills/remotion_docs|Remotion Docs]] — doc: [[skills/remotion_docs/SKILL]]
@@ -26,4 +32,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-01T02:24:51.695Z
+atualizado: 2026-07-01T07:46:46.800Z

@@ -11,3 +11,4 @@ Bundles JSON usados pelo Studio Agents para injetar skills no prompt.
 - `shorts-script.json` — ver [[skills/studio-agents-hermes]]
 - `shorts-viral.json` — ver [[skills/studio-agents-hermes]]
 - `studio-overlay-agent.json` — ver [[skills/studio-agents-hermes]]
+- `dev-sdd.json` — Spec-Driven Development ([[skills/speckit-lumiera]])

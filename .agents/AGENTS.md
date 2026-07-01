@@ -34,7 +34,22 @@
 - **INFOGRAPHIC PRIORITY**: Always show dynamic infographics (like `counter`, `bar-chart`, `timeline`) on screen instead of text overlays when displaying percentages, statistics, or steps.
 - **CATALOG EXCLUSIVITY**: Use exclusively the Remotion-transformed resources listed in `SKILL.md` (e.g., Soft Pill, Accent Underline, Shimmer, Shaders, macOS bash, etc.) to compose and edit each video.
 
-## 5. Skills (Obsidian)
+## 5. Spec-Driven Development (Spec Kit)
+
+Para **features novas**, integrações ou tarefas multi-arquivo, seguir o fluxo [GitHub Spec Kit](https://github.com/github/spec-kit) adaptado ao Lumiera:
+
+1. Constitution → `.specify/memory/constitution.md`
+2. Specify → `specs/<###-nome>/spec.md`
+3. Clarify → ambiguidades antes do plano
+4. Plan → `plan.md` (stack Lumiera)
+5. Tasks → `tasks.md`
+6. Implement → executar tasks + `lumiera-ops`
+
+Hub: [[skills/speckit-lumiera|Spec Kit Lumiera]] · Bundle: `dev-sdd.json` · Regra Cursor: `.cursor/rules/speckit-sdd.mdc`
+
+**Não** rodar `specify init` na raiz (projeto brownfield).
+
+## 6. Skills (Obsidian)
 
 Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 
@@ -59,3 +74,5 @@ Catálogo: [[SKILLS]] · Hub: [[MEMORIA-LUMIERA]]
 - [[skills/skills-registry-external|Registro skills externas]] — awesome-agent-skills, skillsmp
 - [[skills/studio-agents-hermes|Studio Agents Hermes]] — bundles OpenClaw + disclosure Hermes
 - [[skills/lumiera-ops|Lumiera Ops — commit + reiniciar servidores]]
+- [[skills/speckit-lumiera|Spec Kit Lumiera]] — SDD: specify, plan, tasks, implement
+- [[skills/speckit-specify|speckit specify]] · [[skills/speckit-plan|plan]] · [[skills/speckit-tasks|tasks]] · [[skills/speckit-implement|implement]] · [[skills/speckit-clarify|clarify]]

@@ -1,0 +1,8 @@
+{
+  "name": "dev-sdd",
+  "description": "Spec-Driven Development — constitution, spec, plan, tasks, implement (GitHub Spec Kit adaptado)",
+  "tasks": ["ops"],
+  "formats": ["SHORT", "LONG"],
+  "skills": ["speckit-lumiera", "speckit-specify", "speckit-plan", "speckit-tasks", "speckit-implement", "lumiera-ops"],
+  "instruction": "Para pedidos complexos: specify → clarify → plan → tasks → implement. Ler .specify/memory/constitution.md antes de codar. Commit e restart backend ao final (lumiera-ops)."
+}
