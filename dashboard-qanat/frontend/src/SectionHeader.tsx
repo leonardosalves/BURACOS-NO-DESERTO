@@ -13,6 +13,8 @@ type SectionHeaderProps = {
   icon?: React.ReactNode;
   subtitle?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  /** dashmin = PT Sans bold; display = Cinzel (legado) */
+  variant?: 'dashmin' | 'display';
   className?: string;
   titleClassName?: string;
   align?: Align;
@@ -46,6 +48,7 @@ export function SectionHeader({
   icon,
   subtitle,
   size = 'sm',
+  variant = 'dashmin',
   className = '',
   titleClassName = '',
   align = 'start',
@@ -60,7 +63,7 @@ export function SectionHeader({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 flex-1">
           {icon && <span className="shrink-0">{icon}</span>}
           <h3
-            className={`font-cinzel font-bold text-white flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 ${sizeClasses[size]} ${titleClassName}`}
+            className={`${variant === 'display' ? 'font-cinzel' : 'font-sans'} font-bold text-white flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 ${sizeClasses[size]} ${titleClassName}`}
           >
             <span className="min-w-0 break-words [overflow-wrap:anywhere] leading-snug">{title}</span>
             {showHelp && resolved && (
