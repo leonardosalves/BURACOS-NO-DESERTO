@@ -11858,8 +11858,6 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
   return verified.overlays;
 }
 
-}
-
 function resolveLastMileOverlayCollisions(overlays) {
   if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
 
@@ -11872,10 +11870,18 @@ function resolveLastMileOverlayCollisions(overlays) {
 
   const resolved = [];
   let lastEnd = -Infinity;
+  let lastSceneRef = null;
 
   for (const overlay of informative) {
     let start = Number(overlay.start);
     let duration = Number(overlay.duration) || 4;
+    const currentSceneRef = overlay.scene_ref ? String(overlay.scene_ref).trim() : null;
+
+    // Rule: NEVER show two overlays on the same scene (scene_ref match check)
+    if (currentSceneRef && lastSceneRef === currentSceneRef) {
+      console.log(`[Last-Mile Resolver] Removido overlay ${overlay.id} porque compartilha a mesma cena (${currentSceneRef}) com o anterior.`);
+      continue;
+    }
 
     // Check overlap with the last accepted informative overlay
     if (start < lastEnd + 0.5) {
@@ -11912,6 +11918,7 @@ function resolveLastMileOverlayCollisions(overlays) {
     overlay.duration = duration;
     resolved.push(overlay);
     lastEnd = start + duration;
+    lastSceneRef = currentSceneRef;
   }
 
   return [...resolved, ...system];
