@@ -40,6 +40,9 @@ export function GeminiBrowserProvider({ children }: { children: React.ReactNode 
                   {automation.hint || 'Consultando gemini.google.com…'}
                   {automation.attempt && automation.attempt > 1 ? ` Tentativa ${automation.attempt}…` : ''}
                 </p>
+                <p className="text-[9px] text-violet-300/80 mt-1">
+                  Quando o JSON aparecer no Gemini, use o botão &quot;Capturar do Gemini&quot; no Creator se travar.
+                </p>
               </div>
             </div>
           </div>

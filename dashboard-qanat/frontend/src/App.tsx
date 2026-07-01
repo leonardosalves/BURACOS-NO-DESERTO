@@ -97,7 +97,7 @@ import { WorkflowToolkit } from './WorkflowToolkit';
 import { useGeminiBrowserBridge } from './GeminiBrowserBridge';
 import { fetchGeminiAi } from './geminiAiFetch';
 import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
-import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
+import { captureGeminiNarrationNow, diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
 import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { VisualSettings } from './VisualSettings';
@@ -6662,6 +6662,74 @@ export default function App() {
     return true;
   };
 
+  const creatorNarrationPayloadRef = useRef<Record<string, unknown> | null>(null);
+  const creatorNarrationProjectRef = useRef<string>('');
+
+  const applyCapturedNarrationToCreator = async (
+    browserText: string,
+    projectName: string,
+    payload: Record<string, unknown>,
+    toastId = 'creator-narration-capture',
+  ) => {
+    const token = bumpCreatorGenToken();
+    setCreatorLoading(true);
+    setCreatorLoadingMode('narration');
+    toast.loading('Aplicando narração capturada…', { id: toastId });
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, browser_response: browserText }),
+      });
+      if (token !== creatorGenTokenRef.current) return;
+      if (ok && !data.needs_browser) {
+        const scriptLen = String(data.narrative_script || '').trim().length;
+        if (scriptLen < 40) {
+          toast.error('JSON capturado sem narração válida. Copie a resposta completa do Gemini.', { id: toastId });
+        } else {
+          applyNarrationGenerationResult(data, projectName, token, 'Narração capturada — revise antes do roteiro.', toastId);
+          await fetchProjects();
+          setActiveProject(projectName);
+        }
+      } else if (token === creatorGenTokenRef.current) {
+        const errMsg = [data.error, data.details].filter(Boolean).join(' — ') || 'Erro ao aplicar narração.';
+        toast.error(errMsg, { id: toastId, duration: 10000 });
+      }
+    } catch (err: unknown) {
+      if (token === creatorGenTokenRef.current) {
+        toast.error(err instanceof Error ? err.message : 'Falha ao aplicar narração.', { id: toastId });
+      }
+    } finally {
+      if (token === creatorGenTokenRef.current) {
+        setCreatorLoading(false);
+        setCreatorLoadingMode('idle');
+        setAutomation({ active: false });
+      }
+    }
+  };
+
+  const handleCaptureGeminiNarration = async () => {
+    const payload = creatorNarrationPayloadRef.current;
+    const projectName = creatorNarrationProjectRef.current || creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (!payload || !projectName) {
+      toast.error('Gere narração uma vez antes de capturar, ou preencha o projeto.');
+      return;
+    }
+    const toastId = 'creator-narration-capture';
+    toast.loading('Capturando resposta do Gemini…', { id: toastId });
+    try {
+      const text = await captureGeminiNarrationNow();
+      if (!text) {
+        toast.error('Nada capturado. Abra gemini.google.com com a resposta JSON visível.', { id: toastId });
+        return;
+      }
+      await applyCapturedNarrationToCreator(text, projectName, payload, toastId);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Falha ao capturar do Gemini.', { id: toastId });
+      setAutomation({ active: false });
+    }
+  };
+
   const runCreatorNarrationGeneration = async (
     projectName: string,
     payload: Record<string, unknown>,
@@ -6687,6 +6755,9 @@ export default function App() {
       setActiveProject(proj.safeName);
       payload.project = proj.safeName;
     }
+
+    creatorNarrationPayloadRef.current = { ...payload };
+    creatorNarrationProjectRef.current = projectName;
 
     setCreatorLoading(true);
     setCreatorLoadingMode('narration');
@@ -13798,7 +13869,18 @@ export default function App() {
                         </div>
 
                         {/* Submit Button */}
-                        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-900">
+                        <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-zinc-900">
+                          {geminiBrowserMode && (
+                            <button
+                              type="button"
+                              disabled={creatorLoading && creatorLoadingMode !== 'narration'}
+                              onClick={() => void handleCaptureGeminiNarration()}
+                              className="border border-violet-500/40 hover:bg-violet-500/10 disabled:opacity-50 text-violet-200 text-xs font-bold px-5 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer font-sans"
+                            >
+                              <Chrome className="w-4 h-4" />
+                              <span>Capturar do Gemini</span>
+                            </button>
+                          )}
                           <button
                             disabled={creatorLoading || !customTitle.trim() || !creatorProjectName.trim()}
                             onClick={handleGenerateFullScript}
@@ -14233,21 +14315,27 @@ export default function App() {
 
                           </button>
 
-                          <button 
-
-                            disabled={creatorLoading || selectedIdeaIndex === -1}
-
-                            onClick={handleGenerateFullScript}
-
-                            className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 font-sans"
-
-                          >
-
-                            {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-
-                            <span>{creatorLoading && creatorLoadingMode === 'narration' ? 'Gerando narração...' : 'Gerar Narração'}</span>
-
-                          </button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {geminiBrowserMode && (
+                              <button
+                                type="button"
+                                disabled={creatorLoading && creatorLoadingMode !== 'narration'}
+                                onClick={() => void handleCaptureGeminiNarration()}
+                                className="border border-violet-500/40 hover:bg-violet-500/10 disabled:opacity-50 text-violet-200 text-xs font-bold px-4 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer font-sans"
+                              >
+                                <Chrome className="w-4 h-4" />
+                                <span>Capturar do Gemini</span>
+                              </button>
+                            )}
+                            <button
+                              disabled={creatorLoading || selectedIdeaIndex === -1}
+                              onClick={handleGenerateFullScript}
+                              className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 font-sans"
+                            >
+                              {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                              <span>{creatorLoading && creatorLoadingMode === 'narration' ? 'Gerando narração...' : 'Gerar Narração'}</span>
+                            </button>
+                          </div>
 
                         </div>
 

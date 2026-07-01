@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.5.1";
+  const VERSION = "2.0.0";
 
   const SOURCE = "lumiera-gemini-bridge";
   const CONTEXT_INVALIDATED_MSG =
@@ -74,9 +74,9 @@
       return;
     }
 
-    if (data.type === "LUMIERA_GEMINI_QUERY") {
+    if (data.type === "LUMIERA_GEMINI_QUERY" || data.type === "LUMIERA_GEMINI_CAPTURE") {
       safeSendMessage(
-        { type: "LUMIERA_GEMINI_QUERY", prompt: data.prompt },
+        { type: data.type, prompt: data.prompt },
         (resp, err) => {
           const errMsg = err?.message || resp?.error || "";
           postBridgeMessage({

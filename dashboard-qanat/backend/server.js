@@ -203,6 +203,7 @@ import {
   buildCreatorPhase2Prompt,
   salvageScriptJson,
   enrichBrowserNarrationParsed,
+  extractNarrativeScriptFromRaw,
   buildDeterministicVisualPromptsFromNarration,
   buildNarrationHumanizeRepairPrompt,
   mergeHumanizedNarration,
@@ -12207,12 +12208,16 @@ REGRAS FINAIS:
     }
 
     if (scriptPhase === "narration") {
+      const extracted = extractNarrativeScriptFromRaw(responseText);
+      if (extracted.length > String(parsedData.narrative_script || "").trim().length) {
+        parsedData.narrative_script = extracted;
+      }
       const narrationLen = String(parsedData.narrative_script || "").trim().length;
-      if (isBrowserResponse && narrationLen < 80) {
+      if (isBrowserResponse && narrationLen < 40 && responseText.length < 400) {
         return res.status(422).json({
           error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
-          details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Aguarde o JSON completo em gemini.google.com e gere de novo.`,
-          hint: "Recarregue a extensão Lumiera Gemini Bridge (v1.5.0+) e mantenha gemini.google.com em foco.",
+          details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Use Capturar do Gemini no Lumiera.`,
+          hint: "Recarregue a extensão Lumiera Gemini Bridge (v2.0.0+) com gemini.google.com aberto.",
         });
       }
 
