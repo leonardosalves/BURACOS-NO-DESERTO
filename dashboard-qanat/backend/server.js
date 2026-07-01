@@ -1300,6 +1300,50 @@ app.post("/api/upload/launch-login", (req, res) => {
   res.json({ success: true, message: `Navegador aberto na sua área de trabalho para login do ${platform.toUpperCase()}. Realize o login e feche-o para concluir.` });
 });
 
+// POST /api/upload/youtube/apply-metadata — corrige título/descrição/tags de vídeo já enviado
+app.post("/api/upload/youtube/apply-metadata", (req, res) => {
+  const projDir = getProjectDir(req);
+  const configPath = path.join(projDir, "config_qanat.json");
+  let videoId = String(req.body?.videoId || "").trim();
+  if (!videoId && fs.existsSync(configPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      videoId = cfg?.upload_metadata?.youtube?.post_id || "";
+    } catch (e) { /* ignore */ }
+  }
+  if (!videoId) {
+    return res.status(400).json({ error: "videoId ausente. Informe o ID do vídeo no YouTube." });
+  }
+
+  syncUploadScripts(projDir);
+  const scriptPath = path.join(projDir, "upload_youtube.py");
+  const args = [scriptPath, projDir, "--fix-metadata", videoId];
+
+  const child = spawn(PYTHON_PATH, args, {
+    cwd: projDir,
+    shell: false,
+    env: {
+      ...process.env,
+      LUMIERA_WORKSPACE: WORKSPACE_DIR,
+      LUMIERA_PROJECT_DIR: projDir,
+      LUMIERA_FIX_VIDEO_ID: videoId,
+    },
+  });
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (d) => { stdout += d.toString(); });
+  child.stderr.on("data", (d) => { stderr += d.toString(); });
+  child.on("close", (code) => {
+    const log = `${stdout}\n${stderr}`.trim();
+    if (code === 0) {
+      return res.json({ success: true, videoId, log });
+    }
+    const errLine = log.split("\n").find((l) => /\[ERROR\]/i.test(l)) || log.split("\n").pop();
+    res.status(500).json({ error: errLine || `Falha ao aplicar metadados (código ${code})`, log });
+  });
+});
+
 // GET /api/projects/upload-pipeline
 app.get("/api/projects/upload-pipeline", (req, res) => {
   const projDir = getProjectDir(req);

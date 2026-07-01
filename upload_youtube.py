@@ -6,7 +6,12 @@ import urllib.parse
 import urllib.error
 import glob
 
-from lumiera_workspace import resolve_workspace, resolve_project_dir, resolve_output_video
+from lumiera_workspace import (
+    resolve_workspace,
+    resolve_project_dir,
+    resolve_output_video,
+    resolve_youtube_upload_fields,
+)
 
 def load_json(filepath):
     if not os.path.exists(filepath):
@@ -58,6 +63,37 @@ def parse_tags(raw):
     if not raw:
         return []
     return [t.strip() for t in str(raw).replace(";", ",").split(",") if t.strip()]
+
+def update_video_metadata(access_token, video_id, title, description, tags=None, category_id="22", default_language="pt"):
+    print(f"[INFO] Atualizando metadados do vídeo {video_id} no YouTube...")
+    url = "https://www.googleapis.com/youtube/v3/videos?part=snippet"
+    snippet = {
+        "title": title[:100],
+        "description": description or "",
+        "categoryId": str(category_id or "22"),
+        "defaultLanguage": default_language,
+    }
+    if tags:
+        snippet["tags"] = tags[:30]
+    body = {"id": video_id, "snippet": snippet}
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json; charset=UTF-8",
+        },
+        method="PUT",
+    )
+    try:
+        with urllib.request.urlopen(req) as response:
+            json.loads(response.read().decode("utf-8"))
+            print("[SUCESSO] Metadados atualizados no YouTube.")
+            return True
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8")
+        print(f"[ERROR] Falha ao atualizar metadados: {err_msg}")
+        raise
 
 def build_description(description, chapters_text=""):
     base = (description or "").strip()
@@ -280,29 +316,65 @@ def main():
     proj_config_path = os.path.join(project_dir, "config_qanat.json")
     proj_config = load_json(proj_config_path) or {}
 
-    title = os.path.basename(project_dir)
-    description = ""
-    privacy = "private"
+    fix_video_id = os.environ.get("LUMIERA_FIX_VIDEO_ID", "").strip()
+    if len(sys.argv) > 2 and str(sys.argv[2]).strip() == "--fix-metadata":
+        fix_video_id = str(sys.argv[3]).strip() if len(sys.argv) > 3 else fix_video_id
 
-    storyboard_path = os.path.join(project_dir, "storyboard.json")
-    storyboard = load_json(storyboard_path)
-    if storyboard and storyboard.get("strategy"):
-        title = storyboard["strategy"].get("title_main", title)
+    fields = resolve_youtube_upload_fields(project_dir, proj_config)
+    title = fields["title"]
+    description = build_description(fields["description"], fields["chapters"])
+    privacy = fields["privacy"]
+    tags = parse_tags(fields["tags_raw"])
+    category_id = fields["category_id"]
+    publish_at = fields["publish_at"]
+    pinned_comment = fields["pinned_comment"]
+    default_language = fields["default_language"]
+    upload_meta = (proj_config.get("upload_metadata") or {}).get("youtube") or {}
 
-    upload_meta = proj_config.get("upload_metadata", {}).get("youtube", {})
-    title = upload_meta.get("title", title)
-    description = upload_meta.get("description", description)
-    privacy = upload_meta.get("privacy", privacy)
-    tags = parse_tags(upload_meta.get("tags"))
-    category_id = upload_meta.get("category_id") or upload_meta.get("categoryId") or "22"
-    publish_at = upload_meta.get("publish_at") or upload_meta.get("publishAt")
-    chapters = upload_meta.get("chapters") or ""
-    pinned_comment = upload_meta.get("pinned_comment") or upload_meta.get("pinnedComment") or ""
-    default_language = upload_meta.get("default_language") or "pt"
+    if not title or title.lower() == "unknown":
+        print("[ERROR] Título inválido. Salve metadados na aba Upload ou gere em IA · Metadados.")
+        sys.exit(1)
 
-    description = build_description(description, chapters)
+    if fix_video_id:
+        try:
+            update_video_metadata(
+                access_token,
+                fix_video_id,
+                title,
+                description,
+                tags=tags,
+                category_id=category_id,
+                default_language=default_language,
+            )
+            thumb_path = resolve_thumbnail_path(project_dir, {**upload_meta, "thumbnail": fields.get("thumbnail")})
+            if thumb_path:
+                set_video_thumbnail(access_token, fix_video_id, thumb_path)
+            if pinned_comment:
+                post_pinned_comment(access_token, fix_video_id, pinned_comment)
+            if "upload_metadata" not in proj_config:
+                proj_config["upload_metadata"] = {}
+            if "youtube" not in proj_config["upload_metadata"]:
+                proj_config["upload_metadata"]["youtube"] = {}
+            proj_config["upload_metadata"]["youtube"].update({
+                "title": title,
+                "description": fields["description"],
+                "tags": fields["tags_raw"],
+                "chapters": fields["chapters"],
+                "pinned_comment": pinned_comment,
+                "category_id": category_id,
+                "post_id": fix_video_id,
+                "status": "success",
+            })
+            save_json(proj_config_path, proj_config)
+            print(f"[SUCESSO] Metadados reaplicados no vídeo {fix_video_id}")
+            return
+        except Exception as e:
+            print(f"[ERROR] Falha ao corrigir metadados: {e}")
+            sys.exit(1)
 
     print(f"[INFO] Título: {title}")
+    if description:
+        print(f"[INFO] Descrição: {len(description)} caracteres")
     if tags:
         print(f"[INFO] Tags: {', '.join(tags[:8])}{'...' if len(tags) > 8 else ''}")
     if publish_at:
