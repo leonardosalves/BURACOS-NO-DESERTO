@@ -174,7 +174,7 @@ Revincular: **Configurações → Integrações → Revincular YouTube** (ou Upl
 
 ## Critérios de aceite Fase 2
 
-- [ ] Lista comentários recentes do canal
-- [ ] Filtro **Sem resposta** oculta threads já respondidas pelo canal
-- [ ] Filtro por palavra-chave (nicho do projeto como default)
-- [ ] Cada item tem link para YouTube Studio e para o vídeo
+- [x] Lista comentários recentes do canal
+- [x] Filtro **Sem resposta** oculta threads já respondidas pelo canal
+- [x] Filtro por palavra-chave (nicho do projeto como default)
+- [x] Cada item tem link para YouTube Studio e para o vídeo
