@@ -39,6 +39,7 @@ OUTPUT/
 
 # Venv Python dedicado (Chatterbox TTS)
 dashboard-qanat/backend/.venv-chatterbox/
+dashboard-qanat/backend/.venv-timesfm/
 
 # Temp files & tool directories
 .gemini/

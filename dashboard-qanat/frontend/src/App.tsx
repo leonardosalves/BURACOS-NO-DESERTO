@@ -86,6 +86,8 @@ import {
 
   Cloud,
 
+  TrendingUp,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -128,6 +130,7 @@ import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { ComfyMcpPage } from './ComfyMcpPage';
+import { TrendForecastPanel } from './TrendForecastPanel';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
@@ -563,12 +566,12 @@ const initialWizardSession = loadWizardSession();
 
 export default function App() {
 
-  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp';
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio' | 'comfy-mcp' | 'trend-forecast';
 
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
     const saved = initialWizardSession?.activeTab;
-    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp'];
+    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio', 'comfy-mcp', 'trend-forecast'];
     return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
   });
 
@@ -2941,7 +2944,7 @@ export default function App() {
   type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
 
   const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
-    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp') {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio' || activeTab === 'comfy-mcp' || activeTab === 'trend-forecast') {
       setActiveTab(tab);
     }
   };
@@ -8666,6 +8669,29 @@ export default function App() {
 
               <button
                 type="button"
+                onClick={() => setActiveTab('trend-forecast')}
+                className={`lumiera-sidebar-btn ${
+                  activeTab === 'trend-forecast'
+                    ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-amber-300 hover:border-zinc-700'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Radar Tendências</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-trend-forecast'].title} align="start">
+                    {SECTION_HELP['tab-trend-forecast'].body}
+                  </SettingHelpTip>
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveTab('comfy-mcp')}
                 className={`lumiera-sidebar-btn ${
                   activeTab === 'comfy-mcp'
@@ -8769,7 +8795,7 @@ export default function App() {
         {/* Tab Content Panel */}
 
         <main className="lumiera-main">
-          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && activeTab !== 'comfy-mcp' && (
+          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && activeTab !== 'comfy-mcp' && activeTab !== 'trend-forecast' && (
             <div className="lumiera-project-bar">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
                 <div className="min-w-0 flex-1">
@@ -12588,6 +12614,21 @@ export default function App() {
           {activeTab === 'comfy-mcp' && (
             <TabErrorBoundary tabName="Comfy MCP">
               <ComfyMcpPage />
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'trend-forecast' && (
+            <TabErrorBoundary tabName="Radar de Tendências">
+              <TrendForecastPanel
+                niche={config?.niche || ''}
+                onApplyCreatorIdea={(title, hookPt, options) => {
+                  void handleApplyYoutubeStudioIdea(title, hookPt, { format: options?.format });
+                }}
+                onGoToIntegrations={() => {
+                  setSettingsSection('integracoes');
+                  setActiveTab('settings');
+                }}
+              />
             </TabErrorBoundary>
           )}
 
