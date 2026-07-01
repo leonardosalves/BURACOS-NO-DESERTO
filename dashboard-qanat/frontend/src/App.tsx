@@ -152,6 +152,13 @@ import {
   type NarrationSyncContext,
 } from './timelineNarrationSync';
 import { repairMojibake, repairMojibakeDeep } from './textEncoding';
+import {
+  type CreatorApplyIdeaOptions,
+  type EditorialIdeaImport,
+  buildEditorialImportOutline,
+  isClipFactorySource,
+  parseEditorialSourceProject,
+} from './creatorEditorialImport';
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import { NarrationReplacePanel } from './NarrationReplacePanel';
@@ -1286,6 +1293,7 @@ export default function App() {
   };
 
   const [creatorProjectName, setCreatorProjectName] = useState<string>(savedCreatorState.creatorProjectName || '');
+  const [editorialIdeaImport, setEditorialIdeaImport] = useState<EditorialIdeaImport | null>(null);
 
   const [selectedProject, setSelectedProject] = useState<string>(activeProject);
 
@@ -1293,6 +1301,7 @@ export default function App() {
     savedCreatorState.uploadedScenes || {},
   );
   const wizardServerSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const creatorGenTokenRef = useRef(0);
   const wizardRestoredRef = useRef(false);
 
   const [storyboardData, setStoryboardData] = useState<any | null>(null);
@@ -2884,6 +2893,14 @@ export default function App() {
         try { toast.success(data.message); } catch (e) {}
 
         setDeletingProjectName(null);
+
+        const deleted = name.trim();
+        const touchesWizard = deleted === creatorProjectName.trim()
+          || deleted === narrationProjectName.trim()
+          || deleted === activeProject;
+        if (touchesWizard) {
+          resetCreatorWizard({ deleteServerSessionFor: deleted });
+        }
 
         await fetchProjects();
 
@@ -6320,108 +6337,247 @@ export default function App() {
     toast.success(`Publicação agendada: ${slot.local}${slot.label ? ` (${slot.label})` : ''}. Revise na aba Upload.`);
   };
 
-  const handleApplyYoutubeStudioIdea = async (
-    title: string,
-    hookPt?: string,
-    options?: { autoRun?: boolean; format?: 'LONGO' | 'SHORTS' },
-  ) => {
-    const autoRun = options?.autoRun !== false;
-    const cleaned = cleanYoutubeStudioIdeaSeed(title, hookPt);
-    const hook = hookPt?.trim() && hookPt.trim() !== cleaned ? hookPt.trim() : '';
-    const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
-    const format = options?.format || 'SHORTS';
-    const projectSlug = slugCreatorProjectFromTitle(cleaned);
+  const bumpCreatorGenToken = () => {
+    creatorGenTokenRef.current += 1;
+    return creatorGenTokenRef.current;
+  };
 
-    setActiveTab('creator');
+  const resetCreatorWizard = useCallback((opts?: { deleteServerSessionFor?: string }) => {
+    bumpCreatorGenToken();
+    setAutomation({ active: false });
+    clearWizardSession();
+
     setCreatorStep(1);
-    setIdeationTab('custom');
-    setCustomTitle(cleaned);
-    setCustomHooks(hook);
-    setNicheInput((prev) => prev || niche);
-    setFormatSelector(format);
-    setCreatorProjectName(projectSlug);
+    setCreatorLoading(false);
+    setCreatorLoadingMode('idle');
+    setNicheInput('');
+    setIdeasData(null);
+    setSelectedIdeaIndex(-1);
+    setGeneratedScriptData(null);
+    setCreatorScript('');
+    setFormatSelector('LONGO');
+    setCreatorProjectName('');
+    setEditorialIdeaImport(null);
+    setShowNarrationReview(false);
+    setNarrationDraft('');
+    setNarrationTaggedDraft('');
+    setNarrationStrategy(null);
+    setNarrationBlockPhrases([]);
+    setNarrationBlockScript('');
+    setNarrationNotebooklmEnriched(false);
+    setNarrationProjectName('');
+    setCustomTitle('');
+    setCustomHooks('');
+    setCustomOutline('');
+    setCustomBlocks([{ block: 1, content: '' }]);
+    setIdeationTab('ai');
+    setCustomIdeaTitle('');
+    setCustomIdeaPromise('');
+    setCustomIdeaEmotion('');
+    setCustomIdeaHook('');
+    setCustomIdeaBlocks('');
+    setListicleIdeasData(null);
+    setSelectedListicleIdeaIndex(-1);
 
-    if (!autoRun) {
-      toast(`Creator → Passo 1 · Ideia Personalizada: ${cleaned.slice(0, 72)}${cleaned.length > 72 ? '…' : ''}`);
-      return;
+    const project = opts?.deleteServerSessionFor?.trim();
+    if (project) {
+      fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`, { method: 'DELETE' }).catch(() => {});
     }
+  }, [setAutomation]);
 
-    const toastId = 'yt-studio-idea-auto';
-    toast.loading('Criando projeto e gerando narração…', { id: toastId });
+  const applyNarrationGenerationResult = (
+    data: Record<string, unknown>,
+    projectName: string,
+    token: number,
+    successMessage: string,
+    toastId?: string,
+  ) => {
+    if (token !== creatorGenTokenRef.current) return false;
+    setNarrationDraft(String(data.narrative_script || ''));
+    setNarrationTaggedDraft(String(data.narrative_script_tagged || ''));
+    setNarrationStrategy((data.strategy as object) || null);
+    setNarrationBlockPhrases((data.technical_config as { block_phrases?: { block: number; phrase: string }[] })?.block_phrases || []);
+    const scriptBlocks = (data.technical_config as { script?: string | string[] })?.script;
+    setNarrationBlockScript(
+      typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+    );
+    setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
+    setNarrationProjectName(projectName);
+    setShowNarrationReview(true);
+    if (toastId) toast.success(successMessage, { id: toastId });
+    else toast.success(successMessage);
+    return true;
+  };
 
-    const proj = await ensureCreatorProjectFolder(cleaned, format, niche);
-    if (!proj.ok) {
-      toast.error(proj.error || 'Erro ao criar projeto', { id: toastId });
-      return;
+  const runCreatorNarrationGeneration = async (
+    projectName: string,
+    payload: Record<string, unknown>,
+    opts?: { createProjectFirst?: boolean; baseTitle?: string; format?: 'LONGO' | 'SHORTS'; niche?: string; toastId?: string },
+  ) => {
+    const token = bumpCreatorGenToken();
+    const toastId = opts?.toastId || 'creator-narration-gen';
+    const niche = (opts?.niche || config?.niche || nicheInput || 'Geral').trim() || 'Geral';
+    const format = opts?.format || formatSelector;
+
+    if (opts?.createProjectFirst) {
+      toast.loading('Criando projeto…', { id: toastId });
+      const proj = await ensureCreatorProjectFolder(opts.baseTitle || projectName, format, niche);
+      if (token !== creatorGenTokenRef.current) return;
+      if (!proj.ok) {
+        toast.error(proj.error || 'Erro ao criar projeto', { id: toastId });
+        return;
+      }
+      projectName = proj.safeName;
+      setCreatorProjectName(proj.safeName);
+      await fetchProjects();
+      if (token !== creatorGenTokenRef.current) return;
+      setActiveProject(proj.safeName);
+      payload.project = proj.safeName;
     }
-
-    setCreatorProjectName(proj.safeName);
-    await fetchProjects();
-    setActiveProject(proj.safeName);
 
     setCreatorLoading(true);
     setCreatorLoadingMode('narration');
     setGeneratedScriptData(null);
     setShowNarrationReview(false);
+    toast.loading('Gerando narração…', { id: toastId });
 
     try {
       const { ok, data } = await postAi('/api/ai/creator/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          niche: 'Customized',
-          format,
-          idea: {
-            title: cleaned,
-            promise: '',
-            emotion: 'Curiosity / Action',
-            isCustom: true,
-            hook,
-            hooks: hook,
-            blocks: [],
-          },
-          project: proj.safeName,
-          useNotebooklm,
-          phase: 'narration',
-        }),
+        body: JSON.stringify(payload),
       });
+      if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
-        setNarrationDraft(data.narrative_script || '');
-        setNarrationTaggedDraft(data.narrative_script_tagged || '');
-        setNarrationStrategy(data.strategy || null);
-        setNarrationBlockPhrases(data.technical_config?.block_phrases || []);
-        const scriptBlocks = data.technical_config?.script;
-        setNarrationBlockScript(
-          typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+        applyNarrationGenerationResult(
+          data,
+          projectName,
+          token,
+          data.notebooklm_enriched
+            ? 'Narração pronta (NotebookLM) — revise antes do roteiro.'
+            : 'Narração gerada — revise antes do roteiro.',
+          toastId,
         );
-        setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
-        setNarrationProjectName(proj.safeName);
-        setShowNarrationReview(true);
-        toast.success(
-          proj.created
-            ? data.notebooklm_enriched
-              ? `Projeto "${proj.safeName}" criado — narração pronta (NotebookLM). Revise antes do roteiro.`
-              : `Projeto "${proj.safeName}" criado — narração pronta. Revise antes do roteiro.`
-            : data.notebooklm_enriched
-              ? 'Narração gerada (NotebookLM) — revise antes do roteiro.'
-              : 'Narração gerada — revise antes do roteiro.',
-          { id: toastId },
-        );
-      } else {
-        toast.error(data.error || data.details || 'Erro ao gerar narração.', { id: toastId });
+      } else if (token === creatorGenTokenRef.current) {
+        toast.error(String(data.error || data.details || 'Erro ao gerar narração.'), { id: toastId });
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Falha na geração da narração.', { id: toastId });
+    } catch (err: unknown) {
+      if (token === creatorGenTokenRef.current) {
+        toast.error(err instanceof Error ? err.message : 'Falha na geração da narração.', { id: toastId });
+      }
     } finally {
-      setCreatorLoading(false);
-      setCreatorLoadingMode('idle');
+      if (token === creatorGenTokenRef.current) {
+        setCreatorLoading(false);
+        setCreatorLoadingMode('idle');
+      }
     }
+  };
+
+  const handleApplyYoutubeStudioIdea = async (
+    title: string,
+    hookPt?: string,
+    options?: CreatorApplyIdeaOptions,
+  ) => {
+    const autoRun = options?.autoRun === true;
+    const cleaned = cleanYoutubeStudioIdeaSeed(title, hookPt);
+    const hook = String(hookPt || cleaned).trim();
+    const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
+    const format = options?.format || 'SHORTS';
+    const projectSlug = slugCreatorProjectFromTitle(hook || cleaned);
+    const sourceProject = parseEditorialSourceProject(options?.source);
+    const mechanicBlock = options?.mechanic?.match(/clip-factory-bloco-(\d+)/);
+    const importData: EditorialIdeaImport = {
+      title: cleaned,
+      hookPt: hook,
+      format,
+      editorialItemId: options?.editorialItemId,
+      mechanic: options?.mechanic,
+      whyWorks: options?.whyWorks,
+      source: options?.source,
+      sourceProject,
+      sourceBlock: options?.sourceBlock ?? (mechanicBlock ? Number(mechanicBlock[1]) : undefined),
+    };
+
+    bumpCreatorGenToken();
+    setAutomation({ active: false });
+    setShowNarrationReview(false);
+    setNarrationDraft('');
+    setNarrationTaggedDraft('');
+    setNarrationStrategy(null);
+    setNarrationBlockPhrases([]);
+    setNarrationBlockScript('');
+    setNarrationProjectName('');
+    setGeneratedScriptData(null);
+
+    setActiveTab('creator');
+    setCreatorStep(1);
+    setIdeationTab('custom');
+    setCustomTitle(hook || cleaned);
+    setCustomHooks(hook);
+    setCustomOutline(buildEditorialImportOutline(importData));
+    setNicheInput((prev) => prev || niche);
+    setFormatSelector(format);
+    setCreatorProjectName(projectSlug);
+    setEditorialIdeaImport(importData);
+
+    if (options?.editorialItemId) {
+      fetch(`/api/youtube/channel/editorial-queue/${options.editorialItemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'script' }),
+      }).catch(() => {});
+    }
+
+    const originLabel = isClipFactorySource(options?.source)
+      ? `Clip Factory · ${sourceProject || 'longo'}`
+      : options?.source
+        ? options.source
+        : 'Fila editorial';
+    toast.success(`Creator preparado (${originLabel}). Revise os campos e gere a narração.`);
+
+    if (!autoRun) return;
+
+    await runCreatorNarrationGeneration(projectSlug, {
+      niche: 'Customized',
+      format,
+      idea: {
+        title: hook || cleaned,
+        promise: buildEditorialImportOutline(importData),
+        emotion: 'Curiosity / Action',
+        isCustom: true,
+        hook,
+        hooks: hook,
+        blocks: customBlocks.filter((b) => b.content.trim() !== ''),
+      },
+      useNotebooklm,
+      phase: 'narration',
+    }, {
+      createProjectFirst: true,
+      baseTitle: hook || cleaned,
+      format,
+      niche,
+      toastId: 'yt-studio-idea-auto',
+    });
+  };
+
+  const handleGenerateNarrationFromImport = async () => {
+    if (!editorialIdeaImport) return;
+    if (!validateCreatorScriptInputs()) return;
+    const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    await runCreatorNarrationGeneration(safeProjectName, buildCreatorScriptPayload('narration'), {
+      createProjectFirst: true,
+      baseTitle: customTitle.trim() || editorialIdeaImport.hookPt,
+      format: editorialIdeaImport.format,
+      niche: nicheInput.trim() || config?.niche || 'Geral',
+      toastId: 'creator-import-narration',
+    });
   };
 
   const handleGenerateNarration = async () => {
     if (!validateCreatorScriptInputs()) return;
 
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const token = bumpCreatorGenToken();
     setCreatorLoading(true);
     setCreatorLoadingMode('narration');
     setGeneratedScriptData(null);
@@ -6433,33 +6589,30 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildCreatorScriptPayload('narration')),
       });
+      if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
-        setNarrationDraft(data.narrative_script || '');
-        setNarrationTaggedDraft(data.narrative_script_tagged || '');
-        setNarrationStrategy(data.strategy || null);
-        setNarrationBlockPhrases(data.technical_config?.block_phrases || []);
-        const scriptBlocks = data.technical_config?.script;
-        setNarrationBlockScript(
-          typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
-        );
-        setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
-        setNarrationProjectName(safeProjectName);
-        setShowNarrationReview(true);
-        await fetchProjects();
-        setActiveProject(safeProjectName);
-        toast.success(
+        applyNarrationGenerationResult(
+          data,
+          safeProjectName,
+          token,
           data.notebooklm_enriched
             ? 'Narração gerada e enriquecida com NotebookLM — revise antes de montar o roteiro.'
             : 'Narração gerada — revise e edite antes de montar o roteiro.',
         );
-      } else {
-        toast.error(data.error || data.details || 'Erro ao gerar narração.');
+        await fetchProjects();
+        setActiveProject(safeProjectName);
+      } else if (token === creatorGenTokenRef.current) {
+        toast.error(String(data.error || data.details || 'Erro ao gerar narração.'));
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Falha na geração da narração.');
+    } catch (err: unknown) {
+      if (token === creatorGenTokenRef.current) {
+        toast.error(err instanceof Error ? err.message : 'Falha na geração da narração.');
+      }
     } finally {
-      setCreatorLoading(false);
-      setCreatorLoadingMode('idle');
+      if (token === creatorGenTokenRef.current) {
+        setCreatorLoading(false);
+        setCreatorLoadingMode('idle');
+      }
     }
   };
 
@@ -6474,6 +6627,7 @@ export default function App() {
       return;
     }
 
+    const token = bumpCreatorGenToken();
     setCreatorLoading(true);
     setCreatorLoadingMode('full');
 
@@ -6486,6 +6640,7 @@ export default function App() {
           approvedNarrationTagged: narrationTaggedDraft.trim() || undefined,
         })),
       });
+      if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
         setGeneratedScriptData(data);
         setCreatorScript(data.narrative_script || approved);
@@ -6498,17 +6653,21 @@ export default function App() {
           ? ` com ${data.list_items?.length || rankCount} itens`
           : '';
         toast.success(`Roteiro completo gerado${listicleMsg}.`);
-      } else {
+      } else if (token === creatorGenTokenRef.current) {
         const detail = data.details ? `: ${data.details}` : '';
         const hint = data.hint ? ` ${data.hint}` : '';
         toast.error(`${data.error || 'Erro ao gerar roteiro completo'}${detail}${hint}`);
       }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || 'Conexão falhou ao gerar roteiro.');
+    } catch (err: unknown) {
+      if (token === creatorGenTokenRef.current) {
+        console.error(err);
+        toast.error(err instanceof Error ? err.message : 'Conexão falhou ao gerar roteiro.');
+      }
     } finally {
-      setCreatorLoading(false);
-      setCreatorLoadingMode('idle');
+      if (token === creatorGenTokenRef.current) {
+        setCreatorLoading(false);
+        setCreatorLoadingMode('idle');
+      }
     }
   };
 
@@ -13298,39 +13457,10 @@ export default function App() {
 
                 <button 
 
-                  onClick={async () => {
-
-                    clearWizardSession();
+                  onClick={() => {
                     const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
-                    if (project) {
-                      fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`, { method: 'DELETE' }).catch(() => {});
-                    }
-                    setCreatorStep(1);
-                    setNicheInput('');
-                    setIdeasData(null);
-                    setSelectedIdeaIndex(-1);
-                    setGeneratedScriptData(null);
-                    setFormatSelector('LONGO');
-                    setCreatorProjectName('');
-                    
-                    // Reset custom ideas states
-                    setCustomTitle('');
-                    setCustomHooks('');
-                    setCustomOutline('');
-                    setCustomBlocks([
-                      { block: 1, content: '' }
-                    ]);
-                    setIdeationTab('ai');
-                    
-                    // Reset custom strategy fields (generated ideas & manual ideas from zero)
-                    setCustomIdeaTitle("");
-                    setCustomIdeaPromise("");
-                    setCustomIdeaEmotion("");
-                    setCustomIdeaHook("");
-                    setCustomIdeaBlocks("");
-                    
-                    toast.success("Progresso limpo! Novo rascunho iniciado.");
-
+                    resetCreatorWizard({ deleteServerSessionFor: project });
+                    toast.success('Progresso limpo! Novo rascunho iniciado.');
                   }}
 
                   className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 text-[10px] px-3 py-1.5 rounded uppercase font-bold transition flex items-center gap-1 ml-auto cursor-pointer"
@@ -13461,6 +13591,75 @@ export default function App() {
                           )}
                         </div>
                       </div>
+
+                      {editorialIdeaImport && (
+                        <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/5 p-4 space-y-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="space-y-1 min-w-0">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/90">
+                                {isClipFactorySource(editorialIdeaImport.source)
+                                  ? 'Ideia do Clip Factory'
+                                  : 'Ideia da fila editorial'}
+                              </p>
+                              <p className="text-sm font-semibold text-white leading-snug">
+                                {editorialIdeaImport.title}
+                              </p>
+                              {editorialIdeaImport.hookPt && (
+                                <p className="text-xs text-zinc-300 italic">
+                                  &ldquo;{editorialIdeaImport.hookPt}&rdquo;
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditorialIdeaImport(null)}
+                              className="text-[9px] text-zinc-500 hover:text-zinc-300 shrink-0"
+                            >
+                              Dispensar
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-[9px]">
+                            <span className="px-2 py-0.5 rounded-full border border-cyan-500/30 text-cyan-200 bg-cyan-500/10">
+                              {editorialIdeaImport.format === 'SHORTS' ? 'Shorts' : 'Longo'}
+                            </span>
+                            {editorialIdeaImport.sourceProject && (
+                              <span className="px-2 py-0.5 rounded-full border border-zinc-700 text-zinc-400 bg-zinc-900/60">
+                                Origem: {editorialIdeaImport.sourceProject}
+                              </span>
+                            )}
+                            {editorialIdeaImport.mechanic && (
+                              <span className="px-2 py-0.5 rounded-full border border-zinc-700 text-zinc-500 bg-zinc-900/60">
+                                {editorialIdeaImport.mechanic}
+                              </span>
+                            )}
+                          </div>
+                          {editorialIdeaImport.whyWorks && (
+                            <p className="text-[10px] text-zinc-400 leading-relaxed border-t border-zinc-800/80 pt-2">
+                              {editorialIdeaImport.whyWorks}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <button
+                              type="button"
+                              disabled={creatorLoading}
+                              onClick={() => void handleGenerateNarrationFromImport()}
+                              className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                            >
+                              {creatorLoading && creatorLoadingMode === 'narration'
+                                ? <RefreshCw className="w-4 h-4 animate-spin" />
+                                : <Sparkles className="w-4 h-4" />}
+                              Criar projeto e gerar narração
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIdeationTab('custom')}
+                              className="text-[10px] px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:border-zinc-600"
+                            >
+                              Editar campos abaixo
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="flex gap-2 border-t border-zinc-900/60 pt-3">
                         <button

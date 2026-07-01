@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
 import {
   Download, Lightbulb, MessageSquare, Send, Webhook, BarChart3, Target, Radio,
   Search, RefreshCw, ExternalLink, Trophy, Layers,
@@ -10,6 +11,7 @@ type EditorialItem = {
   hookPt?: string;
   source?: string;
   mechanic?: string;
+  whyWorks?: string;
   status: 'inbox' | 'script' | 'render' | 'published';
   format?: 'SHORTS' | 'LONGO';
 };
@@ -25,7 +27,7 @@ type Props = {
   viewsThreshold: number;
   nicheKeyword?: string;
   toast: (msg: string) => void;
-  onApplyIdea?: (title: string, hookPt?: string, options?: { format?: 'LONGO' | 'SHORTS' }) => void;
+  onApplyIdea?: (title: string, hookPt?: string, options?: CreatorApplyIdeaOptions) => void;
 };
 
 export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, onApplyIdea }: Props) {
@@ -223,7 +225,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
             <li key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
               <span className="truncate">{idea.title}</span>
               {onApplyIdea && (
-                <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.angle, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
+                <button type="button" title="Abrir no Creator (página preparada)" onClick={() => onApplyIdea(idea.title, idea.angle, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
               )}
             </li>
           ))}
@@ -309,8 +311,14 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
                 {onApplyIdea && item.status !== 'published' && (
                   <button
                     type="button"
-                    title="Creator ▶"
-                    onClick={() => onApplyIdea(item.title, item.hookPt, { format: item.format || creatorFormat })}
+                    title="Abrir no Creator (página preparada)"
+                    onClick={() => onApplyIdea(item.title, item.hookPt, {
+                      format: item.format || creatorFormat,
+                      editorialItemId: item.id,
+                      mechanic: item.mechanic,
+                      whyWorks: item.whyWorks,
+                      source: item.source,
+                    })}
                     className="text-gold-400 shrink-0"
                   >
                     ▶
@@ -367,7 +375,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
               <div key={i} className="flex items-center justify-between gap-2 text-[10px] text-zinc-400">
                 <span className="truncate">{idea.title}</span>
                 {onApplyIdea && (
-                  <button type="button" title="Cria projeto + gera narração" onClick={() => onApplyIdea(idea.title, idea.hookPt, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
+                  <button type="button" title="Abrir no Creator (página preparada)" onClick={() => onApplyIdea(idea.title, idea.hookPt, { format: creatorFormat })} className="text-gold-400 shrink-0">Creator ▶</button>
                 )}
               </div>
             ))}

@@ -218,7 +218,7 @@ type Props = {
   selectedVideoId?: string | null;
   periodDays?: number;
   toast: (msg: string) => void;
-  onApplyIdea?: (title: string, hookPt?: string, options?: { format?: 'LONGO' | 'SHORTS' }) => void;
+  onApplyIdea?: (title: string, hookPt?: string, options?: import('./creatorEditorialImport').CreatorApplyIdeaOptions) => void;
   onSchedulePublish?: (slot: { iso: string; local: string; label?: string }) => void;
   onRefreshComments?: () => void;
 };

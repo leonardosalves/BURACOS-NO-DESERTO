@@ -468,7 +468,7 @@ export function WorkflowToolkit({
     body: JSON.stringify({ enqueue: true }),
   }).then((d) => {
     if (d && typeof d === 'object' && 'enqueued' in d) {
-      toast(`Clip Factory: ${String((d as { enqueued?: number }).enqueued ?? 0)} Short(s) na fila editorial.`);
+      toast(`Clip Factory: ${String((d as { enqueued?: number }).enqueued ?? 0)} Short(s) na fila. YouTube Studio → ▶ Creator.`);
       onNavigateTab?.('youtube-studio');
     }
   });
