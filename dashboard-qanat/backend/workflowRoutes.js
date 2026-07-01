@@ -502,7 +502,7 @@ export function registerWorkflowRoutes(app, deps) {
             serverUrl: fishProbe.baseUrl,
             hint: fishProbe.ok
               ? (fishProbe.mode === "cloud"
-                ? `Fish Audio API (cloud) · ${fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free"} — tags [pausa], [ênfase]`
+                ? `Fish Audio API (cloud) · ${fishConfig.fish_speech?.cloud_model || fishConfig.fish_speech?.cloudModel || "s2.1-pro-free"} · ${fishProbe.modelCount || fishProbe.references?.length || 0} voz(es) — tags [pausa], [ênfase]`
                 : "Servidor local ativo — tags inline [pausa], [ênfase]")
               : (fishProbe.error || "Offline: .\\scripts\\start-fish-speech.ps1 ou fish_speech.api_key no config"),
           },

@@ -115,15 +115,99 @@ async function probeFishSpeechLocal(cfg, { timeoutMs = 6000 } = {}) {
   }
 }
 
-function probeFishSpeechCloud(cfg) {
+function normalizeFishModel(item, group) {
+  const id = String(item?._id || item?.id || "").trim();
+  if (!id) return null;
+  const state = String(item?.state || "trained").toLowerCase();
+  if (state && state !== "trained") return null;
+  const type = String(item?.type || "tts").toLowerCase();
+  if (type && type !== "tts") return null;
+  return {
+    id,
+    title: String(item?.title || id).trim(),
+    group,
+    languages: Array.isArray(item?.languages) ? item.languages : [],
+  };
+}
+
+async function fetchFishCloudModels(cfg, { timeoutMs = 15000, libraryLanguage = "pt" } = {}) {
+  if (!cfg.apiKey) return [];
+  const signal = AbortSignal.timeout(timeoutMs);
+  const headers = authHeaders(cfg.apiKey, { Accept: "application/json" });
+  const models = [];
+  const seen = new Set();
+
+  const ingest = (items, group) => {
+    for (const raw of items || []) {
+      const model = normalizeFishModel(raw, group);
+      if (!model || seen.has(model.id)) continue;
+      seen.add(model.id);
+      models.push(model);
+    }
+  };
+
+  try {
+    const selfRes = await fetch(`${cfg.cloudBaseUrl}/model?self=true&page_size=50`, { headers, signal });
+    if (selfRes.ok) {
+      const data = await selfRes.json();
+      ingest(data.items, "minhas vozes");
+    }
+  } catch {
+    /* opcional */
+  }
+
+  const lang = String(libraryLanguage || "pt").trim();
+  if (lang) {
+    try {
+      const libRes = await fetch(
+        `${cfg.cloudBaseUrl}/model?page_size=40&language=${encodeURIComponent(lang)}&sort_by=score`,
+        { headers, signal },
+      );
+      if (libRes.ok) {
+        const data = await libRes.json();
+        ingest(data.items, `biblioteca ${lang.toUpperCase()}`);
+      }
+    } catch {
+      /* opcional */
+    }
+  }
+
+  if (!models.length) {
+    try {
+      const fallbackRes = await fetch(`${cfg.cloudBaseUrl}/model?page_size=30&sort_by=score`, { headers, signal });
+      if (fallbackRes.ok) {
+        const data = await fallbackRes.json();
+        ingest(data.items, "biblioteca");
+      }
+    } catch {
+      /* opcional */
+    }
+  }
+
+  return models;
+}
+
+async function probeFishSpeechCloud(cfg, opts = {}) {
+  const libraryLanguage = opts.libraryLanguage || "pt";
+  let models = [];
+  try {
+    models = await fetchFishCloudModels(cfg, { ...opts, libraryLanguage });
+  } catch {
+    models = [];
+  }
+
+  const configuredDefault = cfg.defaultReferenceId && cfg.defaultReferenceId !== FISH_SPEECH_DEFAULT_VOICE
+    ? cfg.defaultReferenceId
+    : "";
+
   return {
     ok: true,
     mode: "cloud",
     baseUrl: cfg.cloudBaseUrl,
-    references: cfg.defaultReferenceId && cfg.defaultReferenceId !== FISH_SPEECH_DEFAULT_VOICE
-      ? [cfg.defaultReferenceId]
-      : [],
-    defaultReferenceId: cfg.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
+    models,
+    references: models.map((m) => m.id),
+    defaultReferenceId: configuredDefault || FISH_SPEECH_DEFAULT_VOICE,
+    modelCount: models.length,
   };
 }
 
@@ -143,7 +227,7 @@ export async function probeFishSpeechServer(config = {}, opts = {}) {
   }
 
   if (cfg.apiKey && cfg.mode !== "local") {
-    return probeFishSpeechCloud(cfg);
+    return probeFishSpeechCloud(cfg, opts);
   }
 
   return {
@@ -157,11 +241,35 @@ export async function probeFishSpeechServer(config = {}, opts = {}) {
 
 export function buildFishSpeechVoiceList(probe = {}) {
   const voices = [
-    { id: FISH_SPEECH_DEFAULT_VOICE, label: "Voz padrão do modelo S2", group: "fish" },
+    {
+      id: FISH_SPEECH_DEFAULT_VOICE,
+      label: probe.mode === "cloud" ? "Voz padrão S2.1 (sem clone)" : "Voz padrão do modelo S2",
+      group: "padrão",
+    },
   ];
-  for (const refId of probe.references || []) {
-    voices.push({ id: refId, label: `Referência: ${refId}`, group: "ref" });
+  const seen = new Set([FISH_SPEECH_DEFAULT_VOICE]);
+
+  for (const model of probe.models || []) {
+    if (!model?.id || seen.has(model.id)) continue;
+    seen.add(model.id);
+    voices.push({
+      id: model.id,
+      label: model.title || model.id,
+      group: model.group || "biblioteca",
+    });
   }
+
+  for (const refId of probe.references || []) {
+    if (!refId || seen.has(refId)) continue;
+    seen.add(refId);
+    const fromModel = (probe.models || []).find((m) => m.id === refId);
+    voices.push({
+      id: refId,
+      label: fromModel?.title || `Referência: ${refId}`,
+      group: fromModel?.group || "ref",
+    });
+  }
+
   return voices;
 }
 
