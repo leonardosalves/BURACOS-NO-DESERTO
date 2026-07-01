@@ -12309,14 +12309,22 @@ export default function App() {
                 resolveBrowserResponse={resolveBrowserResponse}
                 onSelectProject={handleSelectProject}
                 onAlertsSync={setYoutubeChannelAlerts}
-                onApplyCreatorIdea={(title) => {
+                onApplyCreatorIdea={(title, hookPt) => {
+                  const seed = String(hookPt || title || '').trim();
+                  const cleaned = seed
+                    .replace(/^Ideia\s+\d+\s*[—-]\s*mec[aâ]nica de\s*"?/i, '')
+                    .replace(/"?\.\.\."?$/g, '')
+                    .replace(/"$/g, '')
+                    .trim() || seed;
                   setActiveTab('creator');
                   setCreatorStep(1);
+                  setIdeationTab('custom');
+                  setCustomTitle(cleaned);
+                  if (hookPt && hookPt.trim() && hookPt.trim() !== cleaned) {
+                    setCustomHooks(hookPt.trim());
+                  }
                   setNicheInput((prev) => prev || config?.niche || '');
-                  toast(`Ideia enviada ao Creator: ${title.slice(0, 80)}…`);
-                  try {
-                    sessionStorage.setItem('lumiera_creator_idea_from_youtube', title);
-                  } catch { /* ignore */ }
+                  toast(`Creator → Passo 1 · Ideia Personalizada: ${cleaned.slice(0, 72)}${cleaned.length > 72 ? '…' : ''}`);
                 }}
                 onGoToIntegrations={() => {
                   setSettingsSection('integracoes');
