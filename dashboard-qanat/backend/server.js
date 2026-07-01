@@ -4807,6 +4807,73 @@ function resolveRenderResolution(req) {
   return globalConfig.renderResolution === "2k" ? "2k" : "1080p";
 }
 
+function logOverlayTimingAndConflicts(overlays, starts, durations) {
+  if (!Array.isArray(overlays) || overlays.length === 0) {
+    console.log("[Overlays Map] Nenhum overlay ativo na timeline.");
+    return;
+  }
+
+  console.log("\n========================================================");
+  console.log("   🗺️ MAPA DE EXIBIÇÃO DOS OVERLAYS (PRÉ-RENDER)");
+  console.log("========================================================");
+
+  const sorted = [...overlays]
+    .filter(o => o && typeof o.start === "number" && Number.isFinite(o.start))
+    .sort((a, b) => a.start - b.start);
+
+  const activeIntervals = [];
+
+  for (const overlay of sorted) {
+    const start = Number(overlay.start);
+    const duration = Number(overlay.duration) || 4;
+    const end = start + duration;
+    const isSystem = ["hud", "retention-hook", "mid-video-cta", "youtube-sub"].includes(overlay.type) || String(overlay.id).includes("hud");
+
+    const label = `[${overlay.type.toUpperCase()}] "${overlay.props?.title || overlay.props?.text || overlay.id}"`;
+    const timeRangeStr = `${start.toFixed(2)}s - ${end.toFixed(2)}s (dur: ${duration.toFixed(1)}s)`;
+
+    console.log(`- Overlay: ${label.padEnd(45)} | ${timeRangeStr}`);
+
+    if (!isSystem) {
+      activeIntervals.push({
+        id: overlay.id,
+        label,
+        start,
+        end,
+        overlay
+      });
+    }
+  }
+
+  let collisionCount = 0;
+  console.log("--------------------------------------------------------");
+  console.log("   🔍 ANÁLISE DE CONFLITOS DE EXIBIÇÃO SIMULTÂNEA");
+  console.log("--------------------------------------------------------");
+
+  for (let i = 0; i < activeIntervals.length; i++) {
+    for (let j = i + 1; j < activeIntervals.length; j++) {
+      const a = activeIntervals[i];
+      const b = activeIntervals[j];
+
+      const overlap = Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start));
+      if (overlap > 0.05) {
+        collisionCount++;
+        console.warn(`[WARNING] CONFLITO DETECTADO!`);
+        console.warn(`  - Overlay A: ${a.label} (${a.start.toFixed(2)}s - ${a.end.toFixed(2)}s)`);
+        console.warn(`  - Overlay B: ${b.label} (${b.start.toFixed(2)}s - ${b.end.toFixed(2)}s)`);
+        console.warn(`  - Sobreposição: ${overlap.toFixed(2)} segundos concorrentes na tela.`);
+      }
+    }
+  }
+
+  if (collisionCount === 0) {
+    console.log("✅ Excelente: Nenhum conflito de exibição simultânea detectado!");
+  } else {
+    console.warn(`⚠️ Atenção: Detectados ${collisionCount} conflitos de sobreposição temporal entre overlays informativos.`);
+  }
+  console.log("========================================================\n");
+}
+
 async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false, options = {}) {
 
   // Load global render config
@@ -5305,6 +5372,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   } catch (e) {
     console.error("Error writing storyboard overlays:", e);
   }
+
+  // Analyze and log overlay exhibition times and detect any concurrent conflict
+  logOverlayTimingAndConflicts(overlays, timings.starts || [], timings.durations || []);
 
   const resolution = options.resolution === "2k" ? "2k" : "1080p";
 
@@ -11188,17 +11258,30 @@ function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
   }
 
   if (Object.keys(sceneStarts).length === 0 && Array.isArray(storyboard?.visual_prompts)) {
+    const blockAccumulator = {};
     let cumulativeTime = 0;
     for (const vp of storyboard.visual_prompts) {
       const sceneId = String(vp.scene || `${vp.block || 1}.1`).trim();
-      const blockIdx = Math.max(0, Number(vp.block || 1) - 1);
+      const blockNum = Number(vp.block || 1);
+      const blockIdx = Math.max(0, blockNum - 1);
       const blockStart = Number(starts[blockIdx]);
-      const start = Number.isFinite(blockStart) ? blockStart : cumulativeTime;
       const dur = Number(vp.duration_seconds) || Number(String(vp.duration || "").replace(/[^\d.]/g, "")) || 5;
+
+      let start;
+      if (Number.isFinite(blockStart)) {
+        if (blockAccumulator[blockNum] === undefined) {
+          blockAccumulator[blockNum] = blockStart;
+        }
+        start = blockAccumulator[blockNum];
+        blockAccumulator[blockNum] = start + dur;
+      } else {
+        start = cumulativeTime;
+        cumulativeTime = start + dur;
+      }
+
       sceneStarts[sceneId] = start;
       sceneDurations[sceneId] = dur;
       sceneNarration[sceneId] = vp.narration_text || "";
-      cumulativeTime = start + dur;
     }
   }
 
