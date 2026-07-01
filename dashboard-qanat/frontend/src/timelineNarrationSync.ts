@@ -122,10 +122,13 @@ export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: strin
     if (sceneText) return sceneText;
   }
 
-  if (assets.length <= 1) {
-    return getBlockNarrationText(ctx, blockNum);
-  }
-  return "";
+  const blockText = getBlockNarrationText(ctx, blockNum);
+  if (!blockText) return "";
+
+  if (assets.length <= 1) return blockText;
+
+  // Vários assets sem texto por cena: divide o bloco proporcionalmente à duração
+  return splitNarrationAmongAssets(ctx, blockKey, assetIdx);
 }
 
 export function narrationCacheKey(blockNum: number, text: string) {

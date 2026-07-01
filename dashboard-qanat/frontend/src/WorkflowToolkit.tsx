@@ -440,7 +440,12 @@ export function WorkflowToolkit({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    }).then((d) => { if (d) onNarrationReady?.(); });
+    }).then((d) => {
+      if (d) {
+        onNarrationReady?.();
+        toast('MP3 gerado. Próximo passo: Sincronizar timings (Whisper) e, na linha do tempo, Distribuir narração nos blocos.');
+      }
+    });
   };
 
   const handleStock = () => runAction('B-roll', '/api/stock/fetch-for-scenes', {
