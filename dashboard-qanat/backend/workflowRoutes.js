@@ -67,6 +67,7 @@ import { analyzeReferenceVideo } from "./openmontageReference.js";
 import { extractBrowserResponse } from "./geminiBrowser.js";
 import { runClipFactory } from "./clipFactory.js";
 import { searchArchiveOrg } from "./archiveOrgStock.js";
+import { searchBingImages } from "./bingImageStock.js";
 import {
   listDubSourceVideos,
   analyzeDubProject,
@@ -853,6 +854,17 @@ export function registerWorkflowRoutes(app, deps) {
       if (!q) return res.status(400).json({ error: "Informe q=termo de busca" });
       const preferVideo = req.query.video === "1";
       const hits = await searchArchiveOrg(q, { rows: 10, preferVideo });
+      res.json({ ok: true, query: q, hits });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/workflow/bing-image-search", async (req, res) => {
+    try {
+      const q = String(req.query.q || "").trim();
+      if (!q) return res.status(400).json({ error: "Informe q=termo de busca" });
+      const hits = await searchBingImages(q, { count: 12 });
       res.json({ ok: true, query: q, hits });
     } catch (err) {
       res.status(500).json({ error: err.message });

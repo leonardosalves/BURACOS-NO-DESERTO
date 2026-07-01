@@ -15267,6 +15267,13 @@ export default function App() {
 
                                               </a>
 
+                                              {!isVideo && (
+                                                <a href={`https://www.bing.com/images/search?q=${encodeURIComponent(searchQuery)}`} target="_blank" rel="noopener noreferrer"
+                                                  className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer">
+                                                  <span>Bing</span>
+                                                </a>
+                                              )}
+
                                               <a href={`https://www.canva.com/search?q=${encodeURIComponent(searchQuery)}`} target="_blank" rel="noopener noreferrer"
 
                                                 className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer">

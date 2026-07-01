@@ -114,8 +114,11 @@ export async function buildCapabilityMenu(ctx) {
         statusRow("pixabay", "Pixabay", Boolean(stockKeys.pixabay), {
           hint: stockKeys.pixabay ? "API ativa" : "Settings → Pixabay API key",
         }),
+        statusRow("bing_images", "Bing Images (scrap)", projCfg.use_bing_images !== false, {
+          hint: "Sem chave — fallback de imagens após Pexels/Pixabay",
+        }),
         statusRow("archive_org", "Archive.org", projCfg.use_archive_org !== false, {
-          hint: "Documental — sem chave, fallback após Pexels/Pixabay",
+          hint: "Documental — sem chave, fallback após Bing",
         }),
       ],
     },

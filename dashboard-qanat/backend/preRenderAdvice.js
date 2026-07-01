@@ -212,7 +212,7 @@ const WORKFLOW_PLAYBOOKS = {
     title: "Cenas sem mídia (B-roll)",
     summary: "Há cenas no roteiro sem imagem/vídeo em ASSETS.",
     steps: [
-      "Workflow → Buscar B-roll (Pexels/Pixabay/Archive.org) para as cenas faltantes.",
+      "Workflow → Buscar B-roll (Pexels/Pixabay/Bing/Archive.org) para as cenas faltantes.",
       "Ou Associe mídias com IA (auto_map).",
       "Confira previews na aba Editor.",
     ],
