@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle, ExternalLink, Eye, Loader2, MessageCircle, MessageSquareReply,
-  RefreshCw, Search, ThumbsUp, Users, Video, Youtube,
+  AlertTriangle, ExternalLink, Eye, FolderOpen, Loader2, MessageCircle, MessageSquareReply,
+  RefreshCw, Search, Send, ThumbsUp, TrendingUp, Users, Video, Youtube,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 
@@ -117,6 +117,36 @@ export type YoutubeChannelAlerts = {
   fetchedAt?: string;
 };
 
+type LumieraVideoRow = {
+  projectName: string;
+  format: string;
+  videoId: string;
+  title: string;
+  niche?: string;
+  thumbnailUrl?: string;
+  views48h: number;
+  metrics: VideoRow['metrics'];
+  studioUrl?: string;
+  watchUrl?: string;
+};
+
+type VideoDetail = {
+  videoId: string;
+  periodDays: number;
+  analytics: {
+    metrics: VideoRow['metrics'] | null;
+    available?: boolean;
+  };
+  retention: {
+    points?: Array<{ ratio: number; watchRatio: number }>;
+    error?: string;
+  };
+  velocity: {
+    views48h?: number;
+    error?: string;
+  };
+};
+
 type Props = {
   onGoToIntegrations: () => void;
   onRelinkYoutube: () => void;
@@ -125,6 +155,29 @@ type Props = {
   alerts?: YoutubeChannelAlerts | null;
   onSelectProject?: (projectName: string) => void;
 };
+
+function RetentionSparkline({ points }: { points: Array<{ ratio: number; watchRatio: number }> }) {
+  if (!points.length) {
+    return <p className="text-[10px] text-zinc-600">Sem curva de retenção no período.</p>;
+  }
+  const sampled = points.filter((_, index) => index % 4 === 0);
+  const max = Math.max(...sampled.map((point) => point.watchRatio), 0.01);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-end gap-px h-20 rounded-lg bg-zinc-950 border border-zinc-900 p-2">
+        {sampled.map((point) => (
+          <div
+            key={point.ratio}
+            className="flex-1 bg-gold-500/70 rounded-t-sm min-w-[2px]"
+            style={{ height: `${Math.max(4, (point.watchRatio / max) * 100)}%` }}
+            title={`${Math.round(point.ratio * 100)}% do vídeo · ${(point.watchRatio * 100).toFixed(0)}% assistindo`}
+          />
+        ))}
+      </div>
+      <p className="text-[9px] text-zinc-600">Retenção relativa ao longo do vídeo (Analytics API)</p>
+    </div>
+  );
+}
 
 function formatNumber(value: number) {
   const n = Number(value || 0);
@@ -171,6 +224,13 @@ export function YoutubeStudioPanel({
   const [commentFilter, setCommentFilter] = useState<CommentFilter>('all');
   const [keywordInput, setKeywordInput] = useState(nicheKeyword);
   const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [lumieraVideos, setLumieraVideos] = useState<LumieraVideoRow[]>([]);
+  const [lumieraLoading, setLumieraLoading] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [videoDetail, setVideoDetail] = useState<VideoDetail | null>(null);
+  const [videoDetailLoading, setVideoDetailLoading] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyingId, setReplyingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (nicheKeyword && !appliedKeyword) {
@@ -241,14 +301,88 @@ export function YoutubeStudioPanel({
     }
   }, [periodDays, toast]);
 
+  const loadLumieraVideos = useCallback(async () => {
+    setLumieraLoading(true);
+    try {
+      const res = await fetch(`/api/youtube/channel/lumiera-videos?days=${periodDays}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 403) {
+        throw new Error(data.details || data.error || 'Falha ao carregar vídeos Lumiera');
+      }
+      setLumieraVideos((data.videos || []) as LumieraVideoRow[]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar vídeos Lumiera';
+      toast(message);
+    } finally {
+      setLumieraLoading(false);
+    }
+  }, [periodDays, toast]);
+
+  const loadVideoDetail = useCallback(async (videoId: string) => {
+    setVideoDetailLoading(true);
+    try {
+      const res = await fetch(`/api/youtube/channel/video/${encodeURIComponent(videoId)}/detail?days=${periodDays}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 403) {
+        throw new Error(data.details || data.error || 'Falha ao carregar detalhe do vídeo');
+      }
+      setVideoDetail(data as VideoDetail);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar detalhe do vídeo';
+      toast(message);
+      setVideoDetail(null);
+    } finally {
+      setVideoDetailLoading(false);
+    }
+  }, [periodDays, toast]);
+
+  const submitCommentReply = useCallback(async (commentId: string) => {
+    const text = replyDrafts[commentId]?.trim();
+    if (!text) {
+      toast('Digite uma resposta antes de enviar.');
+      return;
+    }
+    setReplyingId(commentId);
+    try {
+      const res = await fetch('/api/youtube/channel/comments/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: commentId, text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.details || data.error || 'Falha ao publicar resposta');
+      }
+      setReplyDrafts((prev) => ({ ...prev, [commentId]: '' }));
+      toast('Resposta publicada no YouTube!');
+      await loadComments(commentFilter, appliedKeyword);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao responder comentário');
+    } finally {
+      setReplyingId(null);
+    }
+  }, [appliedKeyword, commentFilter, loadComments, replyDrafts, toast]);
+
   const refreshAll = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([
       loadOverviewAndVideos(true),
       loadComments(commentFilter, appliedKeyword),
+      loadLumieraVideos(),
     ]);
+    if (selectedVideoId) {
+      await loadVideoDetail(selectedVideoId);
+    }
     setRefreshing(false);
-  }, [appliedKeyword, commentFilter, loadComments, loadOverviewAndVideos]);
+  }, [
+    appliedKeyword,
+    commentFilter,
+    loadComments,
+    loadLumieraVideos,
+    loadOverviewAndVideos,
+    loadVideoDetail,
+    selectedVideoId,
+  ]);
 
   useEffect(() => {
     loadOverviewAndVideos();
@@ -257,6 +391,18 @@ export function YoutubeStudioPanel({
   useEffect(() => {
     loadComments(commentFilter, appliedKeyword);
   }, [commentFilter, appliedKeyword, loadComments]);
+
+  useEffect(() => {
+    loadLumieraVideos();
+  }, [loadLumieraVideos]);
+
+  useEffect(() => {
+    if (!selectedVideoId) {
+      setVideoDetail(null);
+      return;
+    }
+    loadVideoDetail(selectedVideoId);
+  }, [loadVideoDetail, selectedVideoId]);
 
   const needsReauth = Boolean(
     overview?.needsReauth || videosReport?.needsReauth || commentsReport?.needsReauth,
@@ -447,6 +593,71 @@ export function YoutubeStudioPanel({
       <div className="glass-panel p-5 rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-cyan-400" />
+              Vídeos publicados pelo Lumiera
+            </h3>
+            <p className="text-[10px] text-zinc-500 mt-0.5">
+              Projetos com <code className="text-zinc-600">post_id</code> ou experimento de título vinculado ao YouTube
+            </p>
+          </div>
+        </div>
+        {lumieraLoading ? (
+          <div className="py-6 flex items-center justify-center gap-2 text-zinc-500 text-[11px]">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Buscando projetos Lumiera...
+          </div>
+        ) : lumieraVideos.length === 0 ? (
+          <p className="text-[11px] text-zinc-500 py-4 text-center">
+            Nenhum projeto com vídeo publicado encontrado. Após o upload, o <code className="text-zinc-600">post_id</code> fica em config do projeto.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {lumieraVideos.map((item) => (
+              <div
+                key={`${item.projectName}-${item.videoId}`}
+                className="p-3 rounded-xl bg-zinc-950 border border-zinc-900/80 flex gap-3"
+              >
+                {item.thumbnailUrl ? (
+                  <img src={item.thumbnailUrl} alt="" className="w-16 h-11 rounded object-cover border border-zinc-800 shrink-0" />
+                ) : (
+                  <div className="w-16 h-11 rounded bg-zinc-900 border border-zinc-800 shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold text-white truncate">{item.title || item.projectName}</p>
+                  <p className="text-[9px] text-cyan-400/90 mt-0.5">{item.projectName} · {item.format}</p>
+                  <div className="flex flex-wrap gap-2 mt-1.5 text-[9px] text-zinc-500">
+                    <span>{formatNumber(item.metrics.views)} views ({periodDays}d)</span>
+                    <span className="inline-flex items-center gap-0.5 text-amber-400/90">
+                      <TrendingUp className="w-3 h-3" /> {formatNumber(item.views48h)} / 48h
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelectProject?.(item.projectName)}
+                      className="text-[9px] font-bold px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300"
+                    >
+                      Abrir projeto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedVideoId(item.videoId)}
+                      className="text-[9px] font-bold px-2 py-1 rounded bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white"
+                    >
+                      Ver detalhe
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel p-5 rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
             <h3 className="text-sm font-bold text-white">Desempenho por vídeo</h3>
             <p className="text-[10px] text-zinc-500 mt-0.5">
               {videosReport?.startDate && videosReport?.endDate
@@ -475,6 +686,10 @@ export function YoutubeStudioPanel({
         {videosReport?.reachNote && (
           <p className="text-[10px] text-zinc-600 mb-3 leading-relaxed">{videosReport.reachNote}</p>
         )}
+        {videosReport?.details && !videosReport?.videos?.length && (
+          <p className="text-[10px] text-amber-400/90 mb-3">{videosReport.details}</p>
+        )}
+        <p className="text-[9px] text-zinc-600 mb-3">Clique em uma linha para ver retenção e views 48h.</p>
 
         {!videosReport?.videos?.length ? (
           <p className="text-[11px] text-zinc-500 py-6 text-center">
@@ -502,9 +717,10 @@ export function YoutubeStudioPanel({
                   return (
                   <tr
                     key={video.videoId}
-                    className={`border-b border-zinc-900/60 hover:bg-zinc-950/50 ${
+                    onClick={() => setSelectedVideoId((prev) => (prev === video.videoId ? null : video.videoId))}
+                    className={`border-b border-zinc-900/60 hover:bg-zinc-950/50 cursor-pointer ${
                       isHot ? 'bg-gold-500/5' : ''
-                    }`}
+                    } ${selectedVideoId === video.videoId ? 'bg-gold-500/10 ring-1 ring-inset ring-gold-500/25' : ''}`}
                   >
                     <td className="py-2.5 pr-3">
                       {video.thumbnailUrl ? (
@@ -522,6 +738,7 @@ export function YoutubeStudioPanel({
                         href={`https://youtu.be/${video.videoId}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="text-zinc-200 hover:text-gold-400 line-clamp-2 leading-snug"
                         title={video.title}
                       >
@@ -533,7 +750,10 @@ export function YoutubeStudioPanel({
                       {lumieraRef && (
                         <button
                           type="button"
-                          onClick={() => onSelectProject?.(lumieraRef.projectName)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectProject?.(lumieraRef.projectName);
+                          }}
                           className="text-[8px] mt-1 px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:text-cyan-300"
                           title="Abrir projeto Lumiera"
                         >
@@ -569,6 +789,53 @@ export function YoutubeStudioPanel({
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {selectedVideoId && (
+          <div className="mt-4 p-4 rounded-xl border border-gold-500/20 bg-gold-500/5">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <p className="text-[11px] font-bold text-gold-200">
+                Detalhe do vídeo · {selectedVideoId}
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedVideoId(null)}
+                className="text-[9px] text-zinc-500 hover:text-zinc-300"
+              >
+                Fechar
+              </button>
+            </div>
+            {videoDetailLoading ? (
+              <div className="py-4 flex items-center gap-2 text-zinc-500 text-[11px]">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Carregando retenção e velocity...
+              </div>
+            ) : videoDetail ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-900">
+                  <p className="text-[9px] text-zinc-500 uppercase tracking-wider mb-1">Views 48h</p>
+                  <p className="text-xl font-bold text-white tabular-nums">
+                    {formatNumber(videoDetail.velocity?.views48h || 0)}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-900">
+                  <p className="text-[9px] text-zinc-500 uppercase tracking-wider mb-1">Views ({periodDays}d)</p>
+                  <p className="text-xl font-bold text-white tabular-nums">
+                    {formatNumber(videoDetail.analytics?.metrics?.views || 0)}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-900">
+                  <p className="text-[9px] text-zinc-500 uppercase tracking-wider mb-1">Inscritos ganhos</p>
+                  <p className="text-xl font-bold text-white tabular-nums">
+                    {formatNumber(videoDetail.analytics?.metrics?.subscribersGained || 0)}
+                  </p>
+                </div>
+                <div className="lg:col-span-3">
+                  <RetentionSparkline points={videoDetail.retention?.points || []} />
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
@@ -725,6 +992,37 @@ export function YoutubeStudioPanel({
                           <ThumbsUp className="w-3 h-3" /> {comment.likeCount}
                         </span>
                       )}
+                    </div>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={replyDrafts[comment.commentId] || ''}
+                        onChange={(e) => setReplyDrafts((prev) => ({
+                          ...prev,
+                          [comment.commentId]: e.target.value,
+                        }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            submitCommentReply(comment.commentId);
+                          }
+                        }}
+                        placeholder="Responder pelo Lumiera..."
+                        className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => submitCommentReply(comment.commentId)}
+                        disabled={replyingId === comment.commentId}
+                        className="inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gold-500 text-zinc-950 text-[10px] font-bold disabled:opacity-50"
+                      >
+                        {replyingId === comment.commentId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Send className="w-3 h-3" />
+                        )}
+                        Enviar
+                      </button>
                     </div>
                   </div>
                 </div>
