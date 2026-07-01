@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.7";
+  const VERSION = "1.4.8";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -221,50 +221,58 @@
     return /stop response|parar resposta|cancelar resposta|interromper|stop generating|parar geração/.test(combined);
   }
 
+  function getLatestModelMessageRoot() {
+    const nodes = [
+      ...document.querySelectorAll('[data-message-author-role="model"]'),
+      ...document.querySelectorAll("[data-message-id] model-response"),
+      ...document.querySelectorAll("model-response"),
+    ].filter(isVisible);
+    return nodes[nodes.length - 1] || null;
+  }
+
   function isGenerating() {
     if ([...document.querySelectorAll("button")].some(isStopResponseButton)) return true;
 
-    const stopLabels = [...document.querySelectorAll("button[aria-label], button[mattooltip], button[matTooltip]")]
-      .filter(isVisible)
-      .map((btn) => `${btn.getAttribute("aria-label") || ""} ${btn.getAttribute("mattooltip") || btn.getAttribute("matTooltip") || ""}`.toLowerCase());
-    if (stopLabels.some((label) => /stop|parar|cancelar|interromper/.test(label))) return true;
+    const latestRoot = getLatestModelMessageRoot();
+    const spinnerScopes = latestRoot
+      ? [latestRoot]
+      : [document];
+    for (const scope of spinnerScopes) {
+      const spinners = [...scope.querySelectorAll(
+        "mat-progress-spinner, mat-spinner, .loading-indicator",
+      )].filter(isVisible);
+      if (spinners.length > 0) return true;
+    }
 
-    const spinners = [...document.querySelectorAll(
-      "model-response mat-progress-spinner, "
-      + "[data-message-author-role='model'] mat-progress-spinner, "
-      + "message-content mat-progress-spinner, "
-      + "mat-spinner, .loading-indicator, mat-progress-bar",
-    )].filter(isVisible);
-    if (spinners.length > 0) return true;
-
-    const busy = [...document.querySelectorAll(
-      '[aria-busy="true"], '
-      + '[class*="streaming" i], [class*="thinking" i], [class*="generating" i], '
-      + '[class*="in-progress" i], [class*="typing" i], '
-      + 'model-response[class*="loading" i], message-content[class*="loading" i]',
-    )].filter(isVisible);
-    if (busy.length > 0) return true;
-
-    const latestModel = document.querySelector(
-      '[data-message-author-role="model"]:last-of-type, model-response:last-of-type, [data-message-id]:last-of-type model-response',
-    );
-    if (latestModel) {
-      const shimmer = latestModel.querySelector(
-        '[class*="skeleton" i], [class*="shimmer" i], [class*="placeholder" i], mat-progress-spinner',
-      );
-      if (shimmer && isVisible(shimmer)) return true;
+    if (latestRoot) {
+      const busy = [...latestRoot.querySelectorAll(
+        '[aria-busy="true"], [class*="streaming" i], [class*="thinking" i]',
+      )].filter(isVisible);
+      if (busy.length > 0) return true;
     }
 
     return false;
   }
 
-  function isModelResponseGrowing(beforeMessages, minDelta = 18) {
+  function hasModelResponseActions() {
+    const latestRoot = getLatestModelMessageRoot();
+    if (!latestRoot) return false;
+    const actions = [...latestRoot.querySelectorAll("button, [role='button']")].filter(isVisible);
+    return actions.some((btn) => {
+      const label = `${btn.getAttribute("aria-label") || ""} ${btn.getAttribute("mattooltip") || btn.getAttribute("matTooltip") || ""} ${btn.getAttribute("data-test-id") || ""}`.toLowerCase();
+      return /copy|copiar|good response|boa resposta|bad response|ruim|regenerate|regerar|share|compartilhar|thumb/.test(label);
+    });
+  }
+
+  function getLatestFreshModelText(beforeTexts) {
     const current = snapshotModelMessages();
-    if (!current.length) return false;
-    const last = current[current.length - 1];
-    const prev = beforeMessages[beforeMessages.length - 1];
-    if (!prev) return last.len > 120;
-    return last.len > prev.len + minDelta || last.head !== prev.head;
+    for (let i = current.length - 1; i >= 0; i -= 1) {
+      const text = String(current[i]?.text || "").trim();
+      if (text.length > 80 && !beforeTexts.includes(text)) return text;
+    }
+    return collectModelTexts()
+      .filter((t) => !beforeTexts.includes(t) && t.length > 80)
+      .sort((a, b) => b.length - a.length)[0] || "";
   }
 
   function extractPlanSessionFromPrompt(prompt) {
@@ -314,20 +322,14 @@
       || /"visual_prompts"\s*:/i.test(text);
   }
 
-  function isCompleteScriptPayload(parsed) {
+  function isUsableNarrationPayload(parsed) {
     if (!parsed || typeof parsed !== "object") return false;
     const script = String(parsed.narrative_script || "").trim();
-    if (script.length < 180) return false;
-    const tagged = String(parsed.narrative_script_tagged || "").trim();
-    if (tagged.length < 120 && script.length < 400) return false;
+    if (script.length < 100) return false;
+    if (script.length >= 220) return true;
     const strategy = parsed.strategy;
-    const hasStrategy = strategy && typeof strategy === "object"
-      && String(strategy.title_main || strategy.hook || "").trim().length >= 8;
-    const tech = parsed.technical_config;
-    const hasTech = tech && typeof tech === "object"
-      && (Array.isArray(tech.block_phrases) && tech.block_phrases.length > 0
-        || String(tech.script || "").trim().length >= 80);
-    return hasStrategy && hasTech;
+    return Boolean(strategy && typeof strategy === "object"
+      && String(strategy.title_main || strategy.hook || strategy.tone || "").trim().length >= 4);
   }
 
   function extractScriptJsonPayload(text) {
@@ -342,11 +344,11 @@
     const braceStart = cleaned.lastIndexOf("{", keyIdx);
     if (braceStart < 0) return null;
     const obj = extractBalancedJsonSpan(cleaned, braceStart, "{", "}");
-    if (!obj || obj.length < 120) return null;
+    if (!obj || obj.length < 80) return null;
 
     try {
       const parsed = JSON.parse(obj);
-      if (isCompleteScriptPayload(parsed)) return obj;
+      if (isUsableNarrationPayload(parsed)) return obj;
     } catch {
       // JSON ainda incompleto — não capturar no meio do streaming
     }
@@ -355,7 +357,7 @@
 
   function isAcceptableScriptResponse(text, beforeTexts) {
     const t = String(text || "").trim();
-    if (!t || beforeTexts.includes(t) || t.length < 700) return false;
+    if (!t || beforeTexts.includes(t) || t.length < 280) return false;
     if (!/"narrative_script"\s*:/i.test(t)) return false;
     return Boolean(extractScriptJsonPayload(t));
   }
@@ -604,80 +606,69 @@
   }
 
   async function waitForScriptResponse(beforeTexts, beforeMessages, submitStartedAt, deadline) {
-    const MIN_WAIT_MS = 12000;
-    const STABLE_MS = 3500;
-    const IDLE_AFTER_GEN_MS = 4500;
-    const GROWTH_QUIET_MS = 2000;
+    const MIN_WAIT_MS = 8000;
+    const STABLE_MS = 1400;
+    const IDLE_AFTER_GEN_MS = 900;
     let stableText = "";
     let stableSince = 0;
+    let lastLen = 0;
+    let lastLenAt = submitStartedAt;
     let notGeneratingSince = 0;
-    let lastGrowthAt = submitStartedAt;
-    let trackedMessages = beforeMessages;
 
     while (Date.now() < deadline) {
-      await sleep(450);
+      await sleep(400);
       if (Date.now() - submitStartedAt < MIN_WAIT_MS) continue;
 
-      const currentMessages = snapshotModelMessages();
-      if (isModelResponseGrowing(trackedMessages)) {
-        lastGrowthAt = Date.now();
-        trackedMessages = currentMessages;
-      }
+      const raw = getLatestFreshModelText(beforeTexts)
+        || findScriptJsonResponse(beforeTexts)
+        || getLatestGrownModelText(beforeTexts, beforeMessages)
+        || "";
+      if (!raw) continue;
 
-      const generating = isGenerating() || Date.now() - lastGrowthAt < GROWTH_QUIET_MS;
-      if (!generating) {
-        notGeneratingSince = notGeneratingSince || Date.now();
-      } else {
-        notGeneratingSince = 0;
+      if (raw.length > lastLen + 20) {
+        lastLen = raw.length;
+        lastLenAt = Date.now();
         stableText = "";
         stableSince = 0;
       }
 
-      const raw = getLatestGrownModelText(beforeTexts, beforeMessages)
-        || findScriptJsonResponse(beforeTexts)
-        || "";
-      if (!isAcceptableScriptResponse(raw, beforeTexts)) continue;
+      const json = extractScriptJsonPayload(raw);
+      if (!json) continue;
 
-      if (stableText && raw.length > stableText.length + 30) {
-        stableText = raw;
-        stableSince = Date.now();
-        lastGrowthAt = Date.now();
-        continue;
+      const generating = isGenerating();
+      const responseActions = hasModelResponseActions();
+      const quietFor = Date.now() - lastLenAt;
+
+      if (!generating) {
+        notGeneratingSince = notGeneratingSince || Date.now();
+      } else {
+        notGeneratingSince = 0;
       }
+
+      if (generating && quietFor < 1200 && !responseActions) continue;
 
       if (raw === stableText) {
         const stableFor = Date.now() - stableSince;
         const idleFor = notGeneratingSince ? Date.now() - notGeneratingSince : 0;
-        const quietFor = Date.now() - lastGrowthAt;
-        if (
-          !generating
-          && idleFor >= IDLE_AFTER_GEN_MS
-          && quietFor >= GROWTH_QUIET_MS
-          && stableFor >= STABLE_MS
-        ) {
-          const json = extractScriptJsonPayload(raw);
-          if (json) return json;
-        }
+        if (responseActions && stableFor >= 500) return json;
+        if (!generating && idleFor >= IDLE_AFTER_GEN_MS && stableFor >= STABLE_MS) return json;
+        if (!generating && quietFor >= 1800 && stableFor >= 900) return json;
       } else {
         stableText = raw;
         stableSince = Date.now();
       }
     }
 
-    const lastChance = getLatestGrownModelText(beforeTexts, beforeMessages);
+    const lastChance = getLatestFreshModelText(beforeTexts)
+      || getLatestGrownModelText(beforeTexts, beforeMessages);
     const lastJson = extractScriptJsonPayload(lastChance);
-    if (
-      lastJson
-      && !isGenerating()
-      && Date.now() - lastGrowthAt >= GROWTH_QUIET_MS
-      && isAcceptableScriptResponse(lastChance, beforeTexts)
-    ) {
+    if (lastJson && isAcceptableScriptResponse(lastChance, beforeTexts) && !isGenerating()) {
       return lastJson;
     }
 
     throw new Error(
       "Timeout aguardando narração do Gemini (240s). "
-      + "O chat ainda estava respondendo? Deixe terminar em gemini.google.com e tente de novo.",
+      + "O chat terminou em gemini.google.com? Recarregue a aba (F5) e tente de novo.",
     );
   }
 

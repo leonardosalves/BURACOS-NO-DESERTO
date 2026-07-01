@@ -34,7 +34,7 @@ export function useGeminiBrowserResolver(
         : isIdeas
           ? '10 ideias em JSON (~1–2 min). Não feche gemini.google.com.'
           : isNarration
-            ? 'Narração em JSON (~2–4 min). Deixe gemini.google.com aberto — não mude de aba até concluir.'
+            ? 'Narração em JSON (~1–3 min). Deixe gemini.google.com aberto — o overlay some quando o chat terminar.'
             : 'Consultando gemini.google.com (até ~4 min)…';
     setAutomation?.({ active: true, title, hint });
     try {
