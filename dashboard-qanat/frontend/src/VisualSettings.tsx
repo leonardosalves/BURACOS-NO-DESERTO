@@ -141,21 +141,21 @@ function ToggleCard({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-3 p-3 rounded-xl border border-zinc-800/80 bg-zinc-950/60 cursor-pointer hover:border-violet-500/30 transition">
+    <label className="dash-toggle-card">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="accent-violet-500 w-4 h-4 mt-0.5 shrink-0"
+        className="dash-checkbox mt-0.5 shrink-0"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-zinc-200 font-semibold">{label}</span>
           <SettingHelpTip title={label} align="start">{help}</SettingHelpTip>
         </div>
-        <span className="text-[9px] text-zinc-500 leading-relaxed block mt-0.5">{description}</span>
+        <span className="text-[9px] text-[var(--dash-muted)] leading-relaxed block mt-0.5">{description}</span>
         {!checked && defaultChecked && (
-          <span className="text-[8px] text-amber-500/80 mt-1 block">Desligado (padrão: ligado)</span>
+          <span className="text-[8px] text-[var(--dash-warning)] mt-1 block">Desligado (padrão: ligado)</span>
         )}
       </div>
     </label>
@@ -182,14 +182,14 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
 
   return (
     <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--dash-border)] pb-4">
         <SectionHeader
           title="LAYOUT & EFEITOS VISUAIS"
           helpId="settings-visual"
-          icon={<Palette className="w-4 h-4 text-gold-500" />}
+          icon={<Palette className="w-4 h-4 text-[var(--dash-primary)]" />}
           subtitle={(
             <>
-              Ajustes por projeto. Passe o mouse ou toque no <span className="text-gold-400/90">?</span> ao lado de cada item para entender o efeito.
+              Ajustes por projeto. Passe o mouse ou toque no <span className="text-[var(--dash-primary)]">?</span> ao lado de cada item para entender o efeito.
             </>
           )}
         />
@@ -208,13 +208,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             <select
               value={preset}
               onChange={(e) => patchDraft({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white appearance-none"
+              className="dash-select"
             >
               {PRESET_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id} className="bg-zinc-950 text-white">{o.label}</option>
+                <option key={o.id} value={o.id}>{o.label}</option>
               ))}
             </select>
-            <p className="text-[9px] text-zinc-500">{PRESET_OPTIONS.find((o) => o.id === preset)?.hint}</p>
+            <p className="text-[9px] text-[var(--dash-muted)]">{PRESET_OPTIONS.find((o) => o.id === preset)?.hint}</p>
           </div>
 
           <div className="space-y-2">
@@ -228,13 +228,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             <select
               value={caption}
               onChange={(e) => patchDraft({ caption_style: e.target.value === 'auto' ? undefined : e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white appearance-none"
+              className="dash-select"
             >
               {CAPTION_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id} className="bg-zinc-950 text-white">{o.label}</option>
+                <option key={o.id} value={o.id}>{o.label}</option>
               ))}
             </select>
-            <p className="text-[9px] text-zinc-500">{CAPTION_OPTIONS.find((o) => o.id === caption)?.hint}</p>
+            <p className="text-[9px] text-[var(--dash-muted)]">{CAPTION_OPTIONS.find((o) => o.id === caption)?.hint}</p>
           </div>
 
           <div className="space-y-2">
@@ -250,14 +250,15 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                 type="color"
                 value={draft.accent_color || '#C5A880'}
                 onChange={(e) => patchDraft({ accent_color: e.target.value })}
-                className="w-10 h-10 rounded-lg border border-zinc-700 cursor-pointer shrink-0"
+                className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
+                style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
               />
               <input
                 type="text"
                 value={draft.accent_color || ''}
                 placeholder="#C5A880 (automático)"
                 onChange={(e) => patchDraft({ accent_color: e.target.value.trim() || undefined })}
-                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono"
+                className="dash-input flex-1 font-mono"
               />
             </div>
           </div>
@@ -292,7 +293,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                 <select
                   value={triBool(draft[item.key], item.defaultOn)}
                   onChange={(e) => patchDraft({ [item.key]: parseTriBool(e.target.value, item.defaultOn) })}
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-[10px] text-white shrink-0"
+                  className="dash-select w-auto shrink-0 px-3 py-1.5 text-[10px]"
                 >
                   <option value="default">Padrão</option>
                   <option value="on">Ligado</option>
@@ -303,7 +304,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           })}
 
           {isListicle && (
-            <div className="space-y-4 pt-2 border-t border-zinc-900">
+            <div className="space-y-4 pt-2 border-t border-[var(--dash-border)]">
               <div className="space-y-2">
                 <SettingLabel
                   helpTitle="HUD listicle"
@@ -317,7 +318,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                   onChange={(e) => patchDraft({
                     listicle_hud_style: e.target.value as 'auto' | 'full' | 'compact',
                   })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
+                  className="dash-select"
                 >
                   <option value="auto">Automático (compacto se &gt;8 itens)</option>
                   <option value="full">Completo</option>
@@ -340,13 +341,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                       ? undefined
                       : e.target.value as VisualConfig['listicle_hud_theme'],
                   })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3 text-xs text-white"
+                  className="dash-select"
                 >
                   {HUD_THEME_OPTIONS.map((o) => (
                     <option key={o.id} value={o.id}>{o.label}</option>
                   ))}
                 </select>
-                <p className="text-[9px] text-zinc-500">{HUD_THEME_OPTIONS.find((o) => o.id === hudTheme)?.hint}</p>
+                <p className="text-[9px] text-[var(--dash-muted)]">{HUD_THEME_OPTIONS.find((o) => o.id === hudTheme)?.hint}</p>
               </div>
 
               <div className="space-y-2">
@@ -362,14 +363,15 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                     type="color"
                     value={draft.secondary_color || '#D4AF37'}
                     onChange={(e) => patchDraft({ secondary_color: e.target.value })}
-                    className="w-10 h-10 rounded-lg border border-zinc-700 cursor-pointer shrink-0"
+                    className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
+                    style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
                   />
                   <input
                     type="text"
                     value={draft.secondary_color || ''}
                     placeholder="Automático (preset)"
                     onChange={(e) => patchDraft({ secondary_color: e.target.value.trim() || undefined })}
-                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-2.5 text-xs text-white font-mono"
+                    className="dash-input flex-1 font-mono"
                   />
                 </div>
               </div>
@@ -379,8 +381,8 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
       </div>
 
       {!isShortFormat && (
-        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5 space-y-4">
-          <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wider">Zoom Ken Burns (16:9)</p>
+        <div className="dash-effect-panel">
+          <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider">Zoom Ken Burns (16:9)</p>
           <SettingLabel
             helpTitle="Zoom em vídeos longos"
             help="Intensidade do zoom lento em imagens e vídeos no formato 16:9. Mais sutil que Shorts para manter tom documentário."
@@ -395,23 +397,19 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                 key={o.id}
                 type="button"
                 onClick={() => patchDraft({ long_zoom_intensity: o.id })}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
-                  longZoom === o.id
-                    ? 'border-amber-400/60 bg-amber-500/20 text-amber-200'
-                    : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600'
-                }`}
+                className={`dash-option-btn ${longZoom === o.id ? 'dash-option-btn-active' : ''}`}
               >
                 {o.label}
               </button>
             ))}
           </div>
-          <p className="text-[9px] text-zinc-500">{LONG_ZOOM_OPTIONS.find((o) => o.id === longZoom)?.hint}</p>
+          <p className="text-[9px] text-[var(--dash-muted)]">{LONG_ZOOM_OPTIONS.find((o) => o.id === longZoom)?.hint}</p>
         </div>
       )}
 
       {isShortFormat && (
-        <div className="rounded-2xl border border-violet-500/30 bg-violet-500/5 p-5 space-y-5">
-          <p className="text-[10px] text-violet-300 font-bold uppercase tracking-wider flex items-center gap-2">
+        <div className="dash-effect-panel">
+          <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" /> Efeitos Shorts / Reels
           </p>
 
@@ -430,17 +428,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                   key={o.id}
                   type="button"
                   onClick={() => patchDraft({ shorts_zoom_intensity: o.id })}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
-                    zoom === o.id
-                      ? 'border-violet-400 bg-violet-500/25 text-violet-200'
-                      : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600'
-                  }`}
+                  className={`dash-option-btn ${zoom === o.id ? 'dash-option-btn-active' : ''}`}
                 >
                   {o.label}
                 </button>
               ))}
             </div>
-            <p className="text-[9px] text-zinc-500">{ZOOM_OPTIONS.find((o) => o.id === zoom)?.hint}</p>
+            <p className="text-[9px] text-[var(--dash-muted)]">{ZOOM_OPTIONS.find((o) => o.id === zoom)?.hint}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -481,7 +475,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                 helpTitle="Frequência portal"
                 help="Define a cada quantas trocas de cena a transição portal aparece. Valores menores = mais frequente e mais energético."
                 align="start"
-                className="[&_span]:text-zinc-500"
+                className="[&_span]:text-[var(--dash-muted)]"
               >
                 Frequência portal
               </SettingLabel>
@@ -491,11 +485,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                     key={o.value}
                     type="button"
                     onClick={() => patchDraft({ shorts_portal_every: o.value })}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition ${
-                      portalEvery === o.value
-                        ? 'border-violet-400/60 bg-violet-500/15 text-violet-200'
-                        : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'
-                    }`}
+                    className={`dash-option-btn px-3 py-1.5 text-[10px] ${portalEvery === o.value ? 'dash-option-btn-active' : ''}`}
                   >
                     {o.label}
                   </button>
@@ -504,18 +494,18 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
             </div>
           )}
 
-          <p className="text-[9px] text-zinc-500 border-t border-violet-500/15 pt-3">
+          <p className="text-[9px] text-[var(--dash-muted)] border-t border-[var(--dash-border)] pt-3">
             Padrão Shorts: flash + pulso + portal ligados; glow desligado. Grain e vinheta na seção acima.
           </p>
         </div>
       )}
 
-      <div className="flex justify-end border-t border-zinc-900 pt-4">
+      <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
         <button
           type="button"
           onClick={() => onSave(draft)}
           disabled={saving}
-          className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2"
+          className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Salvando...' : 'Salvar Visual do Projeto'}

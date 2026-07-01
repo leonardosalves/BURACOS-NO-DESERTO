@@ -12284,25 +12284,25 @@ export default function App() {
               {settingsSection === 'ia' && (
               <div className="glass-panel p-6 rounded-3xl space-y-5">
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--dash-border)] pb-4">
 
                   <div>
 
                     <SectionHeader
                       title="CONFIGURAÇÕES DE IA"
                       helpId="settings-ia"
-                      icon={<Settings className="w-4 h-4 text-gold-500" />}
-                      subtitle={<>Provedor e chaves de IA. Use o <span className="text-gold-400/90">?</span> ao lado de cada opção para entender o efeito.</>}
+                      icon={<Settings className="w-4 h-4 text-[var(--dash-primary)]" />}
+                      subtitle={<>Provedor e chaves de IA. Use o <span className="text-[var(--dash-primary)]">?</span> ao lado de cada opção para entender o efeito.</>}
                     />
 
                   </div>
 
-                  <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                  <div className="flex items-center gap-2 text-[10px]">
 
-                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">Gemini: {geminiKeyCount} chave(s)</span>
+                    <span className="dash-kpi-pill">Gemini: {geminiKeyCount} chave(s)</span>
 
-                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">xAI: {hasXaiKey ? 'configurado' : 'vazio'}</span>
-                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">NVIDIA API: {hasNvidiaKey ? 'configurado' : 'vazio'}</span>
+                    <span className="dash-kpi-pill">xAI: {hasXaiKey ? 'configurado' : 'vazio'}</span>
+                    <span className="dash-kpi-pill">NVIDIA API: {hasNvidiaKey ? 'configurado' : 'vazio'}</span>
 
                   </div>
 
@@ -12310,7 +12310,7 @@ export default function App() {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                  <button onClick={() => setAiProvider('gemini')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'gemini' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+                  <button onClick={() => setAiProvider('gemini')} className={`dash-provider-card ${aiProvider === 'gemini' ? 'dash-provider-card-active' : ''}`}>
 
                     <div className="flex items-center justify-between">
 
@@ -12319,7 +12319,7 @@ export default function App() {
                         <SettingHelpTip title="Gemini" align="start">Google AI Studio (gratuito). Roteiro, overlays, metadados e ideias. Suporta rotação de várias chaves.</SettingHelpTip>
                       </span>
 
-                      {aiProvider === 'gemini' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+                      {aiProvider === 'gemini' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
 
                     </div>
 
@@ -12327,7 +12327,7 @@ export default function App() {
 
                   </button>
 
-                  <button onClick={() => setAiProvider('xai')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'xai' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+                  <button onClick={() => setAiProvider('xai')} className={`dash-provider-card ${aiProvider === 'xai' ? 'dash-provider-card-active' : ''}`}>
 
                     <div className="flex items-center justify-between">
 
@@ -12336,7 +12336,7 @@ export default function App() {
                         <SettingHelpTip title="Grok / xAI" align="start">API da xAI como provedor principal. Útil quando preferir Grok ou como fallback após esgotar chaves Gemini.</SettingHelpTip>
                       </span>
 
-                      {aiProvider === 'xai' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+                      {aiProvider === 'xai' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
 
                     </div>
 
@@ -12344,7 +12344,7 @@ export default function App() {
 
                   </button>
 
-                  <button onClick={() => setAiProvider('openrouter')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'openrouter' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+                  <button onClick={() => setAiProvider('openrouter')} className={`dash-provider-card ${aiProvider === 'openrouter' ? 'dash-provider-card-active' : ''}`}>
 
                     <div className="flex items-center justify-between">
 
@@ -12353,7 +12353,7 @@ export default function App() {
                         <SettingHelpTip title="OpenRouter" align="start">Agregador com modelos free (Gemini, Llama, Qwen). Alternativa quando quiser variar modelos sem múltiplas contas.</SettingHelpTip>
                       </span>
 
-                      {aiProvider === 'openrouter' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+                      {aiProvider === 'openrouter' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
 
                     </div>
 
@@ -12361,7 +12361,7 @@ export default function App() {
 
                   </button>
 
-                  <button onClick={() => setAiProvider('nvidia')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'nvidia' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+                  <button onClick={() => setAiProvider('nvidia')} className={`dash-provider-card ${aiProvider === 'nvidia' ? 'dash-provider-card-active' : ''}`}>
 
                     <div className="flex items-center justify-between">
 
@@ -12370,7 +12370,7 @@ export default function App() {
                         <SettingHelpTip title="NVIDIA API" align="start">Chamadas de IA de alto desempenho via NVIDIA API com múltiplos modelos (Minimax, Qwen, Kimi, GLM, Deepseek).</SettingHelpTip>
                       </span>
 
-                      {aiProvider === 'nvidia' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+                      {aiProvider === 'nvidia' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
 
                     </div>
 
@@ -12380,7 +12380,7 @@ export default function App() {
 
                 </div>
 
-                <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
+                <div className={`dash-settings-card transition ${geminiBrowserMode ? 'border-[rgba(130,128,253,0.4)]' : ''}`} style={geminiBrowserMode ? { background: 'rgba(130, 128, 253, 0.08)' } : undefined}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-white font-sans flex items-center gap-2">
@@ -12431,7 +12431,7 @@ export default function App() {
                           type="checkbox"
                           checked={geminiBrowserMode}
                           onChange={(e) => setGeminiBrowserMode(e.target.checked)}
-                          className="accent-violet-500 w-4 h-4"
+                          className="dash-checkbox"
                         />
                       </label>
                     </div>
@@ -12448,7 +12448,7 @@ export default function App() {
                       <select
                         value={geminiModel}
                         onChange={(e) => setGeminiModel(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white"
+                        className="dash-select"
                       >
                         {geminiModelOptions.map((option) => (
                           <option key={option.id} value={option.id}>{option.label}</option>
@@ -12466,7 +12466,7 @@ export default function App() {
 
                       <SettingLabel helpTitle="Chaves Gemini" help="Uma chave por linha. O sistema rotaciona automaticamente quando uma atinge limite de quota. Deixe vazio para manter as chaves já salvas." align="start">Chaves Gemini</SettingLabel>
 
-                      <textarea value={geminiKeysInput} onChange={(e) => setGeminiKeysInput(e.target.value)} placeholder="Cole uma ou várias chaves Gemini, uma por linha. Deixe vazio para manter as atuais." className="w-full h-32 bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white resize-none" />
+                      <textarea value={geminiKeysInput} onChange={(e) => setGeminiKeysInput(e.target.value)} placeholder="Cole uma ou várias chaves Gemini, uma por linha. Deixe vazio para manter as atuais." className="dash-textarea h-32" />
 
                     </div>
 
@@ -12482,17 +12482,17 @@ export default function App() {
 
                         {hasOpenRouterKey ? (
 
-                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Ativa (Personalizada)</span>
+                          <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">Ativa (Personalizada)</span>
 
                         ) : (
 
-                          <span className="text-[9px] bg-amber-950/80 border border-amber-800 text-amber-400 px-2 py-0.5 rounded-full font-bold">Ativa (Padrão do Sistema)</span>
+                          <span className="dash-ui-badge dash-ui-badge-warning dash-ui-badge-pill">Ativa (Padrão do Sistema)</span>
 
                         )}
 
                       </div>
 
-                      <input type="password" value={openrouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder="Deixe vazio para usar a padrão ou cole uma chave personalizada." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+                      <input type="password" value={openrouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder="Deixe vazio para usar a padrão ou cole uma chave personalizada." className="dash-input" />
 
                       <p className="text-[10px] text-zinc-500 leading-relaxed">Opcional. Se não fornecida, o sistema usará a chave privada pré-configurada.</p>
 
@@ -12506,17 +12506,17 @@ export default function App() {
 
                         {hasNvidiaKey ? (
 
-                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Configurada</span>
+                          <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">Configurada</span>
 
                         ) : (
 
-                          <span className="text-[9px] bg-red-950/80 border border-red-800 text-red-400 px-2 py-0.5 rounded-full font-bold">Não Configurada</span>
+                          <span className="dash-ui-badge dash-ui-badge-danger dash-ui-badge-pill">Não Configurada</span>
 
                         )}
 
                       </div>
 
-                      <input type="password" value={nvidiaKeyInput} onChange={(e) => setNvidiaKeyInput(e.target.value)} placeholder="Cole a chave NVIDIA API. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+                      <input type="password" value={nvidiaKeyInput} onChange={(e) => setNvidiaKeyInput(e.target.value)} placeholder="Cole a chave NVIDIA API. Deixe vazio para manter a atual." className="dash-input" />
 
                       <p className="text-[10px] text-zinc-500 leading-relaxed">A chave da NVIDIA será usada quando você selecionar NVIDIA API como provedor.</p>
 
@@ -12526,7 +12526,7 @@ export default function App() {
 
                       <SettingLabel helpTitle="Chave xAI / Grok" help="Chave da API xAI. Usada como provedor principal se Grok estiver selecionado, ou como fallback quando todas as chaves Gemini falharem." align="start">Chave xAI / Grok</SettingLabel>
 
-                      <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+                      <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="dash-input" />
 
                       <p className="text-[10px] text-zinc-500 leading-relaxed">A xAI será usada como fallback quando o Gemini esgotar todas as chaves ou como principal se você selecionar Grok / xAI.</p>
 
@@ -12538,7 +12538,7 @@ export default function App() {
 
                 <div className="flex justify-end">
 
-                  <button onClick={handleSaveAiSettings} disabled={savingAiSettings} className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-2">
+                  <button onClick={handleSaveAiSettings} disabled={savingAiSettings} className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2">
 
                     {savingAiSettings ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
 
