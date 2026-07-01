@@ -75,7 +75,8 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Studio Agents',
     body: (
       <>
-        Área separada do fluxo normal. Memória por nicho, captura de qualidade, consolidação de aprendizados e planejamento de overlays com memória do estúdio.
+        Quatro sub-abas: <strong>Automação</strong> (VideoAgent), <strong>Qualidade</strong> (captura/overlays),
+        <strong> Memória</strong> (Obsidian, nichos, logs) e <strong>Skills</strong> (Hermes + configuração).
       </>
     ),
   },
@@ -251,7 +252,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Studio Agents',
     body: (
       <>
-        Sistema de memória incremental (estilo OpenClaw). Não altera o render normal — só aprende quando você usa as ações desta aba.
+        Use as sub-abas no topo: Automação (VideoAgent), Qualidade, Memória e Skills. Resumo do projeto e contadores ficam sempre visíveis no cabeçalho.
       </>
     ),
   },
