@@ -18,7 +18,10 @@
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@lumiera/overlays/*": ["../remotion-renderer/src/overlays/*"]
+    }
   },
   "include": ["src"]
 }

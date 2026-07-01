@@ -1,0 +1,32 @@
+[
+  {
+    "name": "_did",
+    "value": "web_41133903517AB6AC",
+    "domain": ".kwai.com",
+    "path": "/",
+    "expires": 1813966641,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "_did",
+    "value": "web_1005267112400322",
+    "domain": ".cutmotions.com",
+    "path": "/",
+    "expires": 1813966647,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "did",
+    "value": "web_fc526c7a967263aca1259a41158d98b3f5b2",
+    "domain": ".kwai-pro.com",
+    "path": "/",
+    "expires": 1816990678.665439,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  }
+]

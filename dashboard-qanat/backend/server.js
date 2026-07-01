@@ -1,1670 +1,10278 @@
 import express from "express";
+import https from "https";
+
+import { searchMusic, downloadMusicTrack, searchSoundEffects, downloadSoundEffect } from "./epidemicService.js";
+import {
+  buildOverlayOrchestrationPlan,
+  buildOrchestrationPrompt,
+  enforceOverlayOrchestration,
+  VARIETY_PROFILES,
+} from "./overlayOrchestration.js";
+import {
+  buildYoutubeMetadataPrompt,
+  buildFallbackYoutubeMetadata,
+  normalizeMetadataMarkdown,
+  parseYoutubeMetadataMarkdown,
+  resolveYoutubeMetadataContext,
+  ensureThumbnailVariants,
+  YOUTUBE_METADATA_PIPELINE_VERSION,
+} from "./youtubeMetadataOptimizer.js";
+import { generateYoutubeThumbnailImages } from "./youtubeThumbnailGenerator.js";
+import {
+  buildCanvaAuthUrl,
+  exchangeCanvaAuthCode,
+  getCanvaConnectionStatus,
+  saveCanvaCredentials,
+} from "./canvaClient.js";
+import { generateCanvaThumbnailImages } from "./canvaThumbnailService.js";
+import {
+  applyTitleVariant,
+  applyWinnerTitle,
+  fetchRetentionCurve,
+  fetchVideoVelocity,
+  getTitleExperimentReport,
+  getYoutubeScopeString,
+  getYoutubeTokenScopes,
+  loadTitleExperiment,
+  resetYoutubeAuth,
+  startTitleExperiment,
+  stopTitleExperiment,
+  syncExperimentVideoId,
+} from "./youtubeTitleAnalytics.js";
+import {
+  fetchChannelAlerts,
+  fetchChannelComments,
+  fetchChannelOverview,
+  fetchChannelVideosWithAnalytics,
+} from "./youtubeChannelAnalytics.js";
+import {
+  LUMIERA_BACKEND_BASE,
+  LUMIERA_YOUTUBE_CALLBACK,
+} from "./lumieraUrls.js";
+import { adaptMetadataForPlatforms } from "./platformMetadataAdapter.js";
+import { runPostUploadHooks } from "./postUploadService.js";
+import { startTitleRotationScheduler } from "./titleRotationScheduler.js";
+import {
+  applyThumbnailVariant,
+  getThumbnailExperimentReport,
+  loadThumbnailExperiment,
+  startThumbnailExperiment,
+} from "./thumbnailExperiment.js";
+import { runFullPipeline } from "./pipelineOrchestrator.js";
+import { registerWorkflowRoutes } from "./workflowRoutes.js";
+import {
+  getGeminiBrowserMode,
+  buildBrowserChatPrompt,
+  buildBrowserTaskPrompt,
+  resolveBrowserPromptOpts,
+  buildPromptFromBodyOverride,
+  extractBrowserResponse,
+  createMetadataSessionId,
+  extractMetadataSessionFromPrompt,
+  isMetadataBrowserResponseReady,
+  looksLikeFallbackMetadata,
+  looksLikeLumieraPrompt,
+  looksLikeOverlayJsonResponse,
+  extractOverlayJsonPayload,
+  offerGeminiBrowserPayload,
+  GEMINI_BROWSER_INSTRUCTIONS,
+  GEMINI_BROWSER_PENDING,
+} from "./geminiBrowser.js";
+import { analyzeSceneGaps, fetchStockForScenes, generateNarrationTts, runPublishPrep } from "./workflowTools.js";
+import { buildPythonSpawnEnv } from "./pythonEnv.js";
+import {
+  fetchNotebooklmResearch,
+  fetchNotebooklmScriptContext,
+  fetchNotebooklmScriptImprovements,
+  formatNotebooklmPromptBlock,
+  getNotebooklmStatus,
+  buildNotebooklmImproveApplyPrompt,
+  buildNotebooklmNarrationEnrichPrompt,
+} from "./notebooklmService.js";
+import {
+  fetchWebResearchForTopic,
+  formatWebResearchPromptBlock,
+} from "./webResearchService.js";
+import {
+  buildInstagramAuthUrl,
+  exchangeInstagramCode,
+  getInstagramConnectionStatus,
+  saveInstagramAppCredentials,
+} from "./instagramOAuth.js";
+import {
+  SCRIPT_CREATIVE_REINFORCEMENT,
+  buildFormatScriptRules,
+  buildIdeasQualityAddendum,
+  buildViralIdeasAddendum,
+  buildListicleIdeasAddendum,
+  buildListicleRankingIdeasPrompt,
+  buildNicheIsolationAddendum,
+  buildNicheVarietyInstruction,
+  normalizeListicleIdeasResponse,
+  buildListicleScriptRules,
+  resolveListicleBlockCount,
+  clampListicleRankCount,
+  buildHumanizeRepairPrompt,
+  extractScriptSliceForRepair,
+  mergeHumanizedScript,
+  applyScriptTextQuality,
+  buildNarrationOnlyPrompt,
+  buildFullScriptFromNarrationPrompt,
+  buildCreatorPhase2Prompt,
+  salvageScriptJson,
+  buildDeterministicVisualPromptsFromNarration,
+  buildNarrationHumanizeRepairPrompt,
+  mergeHumanizedNarration,
+  mergeEnrichedNarration,
+  normalizeNarrationBlocks,
+  needsVisualPromptsRepair,
+  buildVisualPromptsFromNarrationPrompt,
+  mergeVisualPromptsRepair,
+  normalizeScriptChecklist,
+  isChecklistEmpty,
+  buildScriptChecklistEvaluationPrompt,
+  buildChecklistSchemaBlock,
+} from "./scriptQuality.js";
+import {
+  applyDocumentaryHistoryPreset,
+  injectListicleRankOverlays,
+  avoidListicleHudCollisions,
+  pruneListicleOverlayDensity,
+  validateVideoQuality,
+  augmentSfxTimelineForOverlays,
+  runVideoQualityCheck,
+  buildCinematicNarrationRules,
+  buildEpidemicMoodPrompt,
+  ensureProjectSfxPack,
+  buildBgmDuckPoints,
+  truncatePropsForPreview,
+  resolveThumbnailPalette,
+  getEpidemicMoodForNiche,
+  stabilizeOverlayTimings,
+  injectProLayoutOverlays,
+  filterOverlaysByVisualConfig,
+} from "./videoProEnhancements.js";
+import {
+  computeOverlayDisplayDuration,
+  extractBlockIndex,
+  getBlockTiming,
+  isInformativeOverlay,
+  redistributeInformativeOverlayStarts,
+  verifyAndRepairAiOverlayTiming,
+  overlayTimingIssuesFromReport,
+  resolveOverlaysForTimingCheck,
+  applyOverlayTimingRepair,
+} from "./overlayTiming.js";
+import {
+  buildLearningsPromptAddendum,
+  buildStudioAgentsPromptAddendum,
+  injectStudioAgentsContext,
+  captureQualityRun,
+  getDashboard,
+  getNicheLearnings,
+  getSkillsRegistryStatus,
+  listSkills,
+  listSkillBundles,
+  viewSkill,
+  listSkillWorkshopProposals,
+  applyWorkshopProposalById,
+  rejectWorkshopProposal,
+  ensureDefaultSkillBundles,
+  resolveBundlePreview,
+  loadStudioAgentsConfig,
+  previewConsolidation,
+  reflectProject,
+  runConsolidation,
+  saveStudioAgentsConfig,
+  shouldSkipAutoCapture,
+} from "./studioAgents.js";
+import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./formatResolver.js";
+import { buildPreRenderAdvice } from "./preRenderAdvice.js";
+import {
+  getObsidianVaultStatus,
+  openInObsidian,
+  ensureObsidianVault,
+  repairVaultGraphLinks,
+  auditVaultGraph,
+} from "./obsidianVault.js";
+import {
+  flattenWordTranscripts,
+  buildBlockSceneTimings,
+  blockHasExplicitSync,
+  blockHasLockedDurations,
+  blockUsesSequentialFixedLayout,
+  isAssetDurationLocked,
+  assetHasExplicitDuration,
+  buildTimelineAssetMap,
+  sanitizeFullTimelineAssets,
+  realignTimelineAssetsToSpeech,
+  recalculateSequentialAudioStarts,
+  fillSceneTimelineGaps,
+} from "./timelineSceneSync.js";
+import { loadStockUsageRegistry } from "./mediaUsageRegistry.js";
+import {
+  needsListItemsRepair,
+  repairListItemsWithAI,
+  ensureListItemsInProject,
+} from "./listicleRepair.js";
+import {
+  ensureBrandCatalogMigrated,
+  loadRenderConfig,
+  saveRenderConfig,
+  listBrandLogos,
+  addBrandLogo,
+  updateBrandLogo,
+  selectBrandLogo,
+  deleteBrandLogo,
+  listYoutubeChannelsFromConfig,
+  addYoutubeChannel,
+  updateYoutubeChannel,
+  selectYoutubeChannel,
+  deleteYoutubeChannel,
+  resolveLogoFilePath,
+  readYoutubeChannelFromCatalog,
+  getLogosDir,
+  youtubeAvatarCacheKey,
+  clearYoutubeAvatarCaches,
+} from "./brandAssets.js";
+import {
+  extractTitleFacts,
+  buildTitleCraftRules,
+  buildTitleRepairPrompt,
+  titlesLackRelevance,
+  buildStrategyTitleRepairPrompt,
+  applyTitleQualityToParsed,
+  mergeRepairedTitles,
+  mergeRepairedStrategyTitles,
+  enhanceStrategyTitles,
+  titlesNeedRepair,
+} from "./titleGenerator.js";
+
 import cors from "cors";
+
 import fs from "fs";
+
 import path from "path";
-import { spawn } from "child_process";
+
+import { spawn, execSync } from "child_process";
+
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
+
 const __dirname = path.dirname(__filename);
 
 // Workspace is the parent of dashboard-qanat
+
 const WORKSPACE_DIR = path.resolve(__dirname, "../..");
+
+const REMOTION_DIR = path.resolve(__dirname, "../remotion-renderer");
+
+const REMOTION_PUBLIC_DIR = path.join(REMOTION_DIR, "public");
+
 const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
+// Desktop projects configuration
+
+const PROJECTS_ROOT = path.join(process.env.USERPROFILE || "C:\\Users\\Leo", "Desktop", "Lumiera Videos");
+
+const LONGS_DIR = path.join(PROJECTS_ROOT, "videos longos");
+
+const SHORTS_DIR = path.join(PROJECTS_ROOT, "videos curtos shorts");
+
+// Auto-create directories on startup
+
+if (!fs.existsSync(PROJECTS_ROOT)) fs.mkdirSync(PROJECTS_ROOT, { recursive: true });
+
+if (!fs.existsSync(LONGS_DIR)) fs.mkdirSync(LONGS_DIR, { recursive: true });
+
+if (!fs.existsSync(SHORTS_DIR)) fs.mkdirSync(SHORTS_DIR, { recursive: true });
+
+// OpenRouter Settings
+
+const OPENROUTER_DEFAULT_KEY = "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";
+
+const OPENROUTER_FREE_MODELS = [
+
+  "google/gemma-4-31b-it:free",
+
+  "meta-llama/llama-3.3-70b-instruct:free",
+
+  "meta-llama/llama-3.2-3b-instruct:free",
+
+  "nousresearch/hermes-3-llama-3.1-405b:free",
+
+  "qwen/qwen3-coder:free"
+
+];
+
 const app = express();
+
 app.use(cors());
+
 app.use(express.json());
-app.use("/api/projects-media", express.static(WORKSPACE_DIR));
+
+app.use("/api/projects-media", (req, res, next) => {
+
+  const decodedUrl = decodeURIComponent(req.path);
+
+  const parts = decodedUrl.split("/").filter(Boolean);
+
+  if (parts.length === 0) {
+
+    return res.status(404).end();
+
+  }
+
+  
+
+  const projName = parts[0].replace(/ /g, "_");
+
+  
+
+  // Decide where this file lives
+
+  let projDir = WORKSPACE_DIR;
+
+  if (projName === "ASSETS") {
+
+    projDir = WORKSPACE_DIR;
+
+    const fileSubpath = parts.join("/");
+
+    const fullFilePath = path.join(projDir, fileSubpath);
+
+    if (fs.existsSync(fullFilePath)) {
+
+      return res.sendFile(fullFilePath);
+
+    }
+
+  } else {
+
+    const candidateLong = path.join(LONGS_DIR, projName);
+
+    const candidateShort = path.join(SHORTS_DIR, projName);
+
+    
+
+    if (fs.existsSync(candidateLong)) {
+
+      projDir = candidateLong;
+
+    } else if (fs.existsSync(candidateShort)) {
+
+      projDir = candidateShort;
+
+    } else {
+
+      projDir = path.join(WORKSPACE_DIR, projName);
+
+    }
+
+    
+
+    const fileSubpath = parts.slice(1).join("/");
+
+    const fullFilePath = path.join(projDir, fileSubpath);
+
+    if (fs.existsSync(fullFilePath)) {
+
+      return res.sendFile(fullFilePath);
+
+    }
+
+  }
+
+  next();
+
+});
 
 // Helper: Resolve active project directory dynamically based on request parameters
+
 function getProjectDir(req) {
-  const projName = req.query.project || req.body.project;
-  if (projName && projName !== "Buracos no Deserto") {
-    const resolvedPath = path.join(WORKSPACE_DIR, projName);
-    if (fs.existsSync(resolvedPath)) {
-      return resolvedPath;
+  const rawProjName = req.query?.project || req.body?.project;
+  if (!rawProjName) {
+    return WORKSPACE_DIR;
+  }
+
+  // Test multiple project name variations for robust matching
+  const decoded = decodeURIComponent(rawProjName);
+  const candidates = [
+    rawProjName,
+    decoded,
+    rawProjName.replace(/ /g, "_"),
+    decoded.replace(/ /g, "_"),
+    rawProjName.replace(/%20/g, " "),
+    decoded.replace(/ /g, "%20")
+  ];
+
+  const uniqueCandidates = [...new Set(candidates)];
+
+  for (const name of uniqueCandidates) {
+    const candidateLong = path.join(LONGS_DIR, name);
+    if (fs.existsSync(candidateLong)) {
+      global.lastActiveProjectDir = candidateLong;
+      return candidateLong;
+    }
+    const candidateShort = path.join(SHORTS_DIR, name);
+    if (fs.existsSync(candidateShort)) {
+      global.lastActiveProjectDir = candidateShort;
+      return candidateShort;
+    }
+    const candidateWork = path.join(WORKSPACE_DIR, name);
+    if (fs.existsSync(candidateWork)) {
+      global.lastActiveProjectDir = candidateWork;
+      return candidateWork;
     }
   }
-  return WORKSPACE_DIR; // Default root project (Buracos no Deserto / Qanat)
+
+  global.lastActiveProjectDir = WORKSPACE_DIR;
+  return WORKSPACE_DIR;
 }
 
 // Helper: Auto-copy missing or outdated timing and render template files to project folder on-demand
+
 function ensureFileExists(fileName, targetDir) {
+
   const targetPath = path.join(targetDir, fileName);
+
   const srcPath = path.join(WORKSPACE_DIR, fileName);
+
   if (!fs.existsSync(srcPath)) return;
 
   if (!fs.existsSync(targetPath)) {
-    // File missing in project - copy from root
-    fs.mkdirSync(targetDir, { recursive: true });
-    fs.copyFileSync(srcPath, targetPath);
-    console.log(`Copied template ${fileName} from root to ${targetDir}`);
-  } else {
-    // File exists - update if root version is newer
-    const srcMtime = fs.statSync(srcPath).mtimeMs;
-    const targetMtime = fs.statSync(targetPath).mtimeMs;
-    if (srcMtime > targetMtime) {
-      fs.copyFileSync(srcPath, targetPath);
-      console.log(`Updated ${fileName} in ${targetDir} (root version is newer)`);
-    }
-  }
-}
 
-// Central helper: Try calling Gemini models in order of priority (Gemini 3.5 Flash -> 3.1 Lite -> 2.5 Flash -> 2.5 Lite)
-async function fetchGeminiWithFallback(apiKey, body) {
-  const models = [
-    "gemini-3.5-flash",
-    "gemini-3.1-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite"
-  ];
-  
-  let lastError = null;
-  for (const model of models) {
-    try {
-      console.log(`Tentando chamar Gemini via API: ${model}...`);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      
-      if (response.ok) {
-        console.log(`Sucesso com o modelo: ${model}`);
-        return response;
-      }
-      
-      const errData = await response.json();
-      lastError = new Error(errData.error?.message || `Erro do Gemini (${model}): ${response.statusText}`);
-      console.warn(`Falha no modelo ${model}: ${lastError.message}`);
-    } catch (err) {
-      lastError = err;
-      console.warn(`Erro de rede no modelo ${model}: ${err.message}`);
+    // File missing in project - copy from root
+
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    fs.copyFileSync(srcPath, targetPath);
+
+    console.log(`Copied template ${fileName} from root to ${targetDir}`);
+
+  } else {
+
+    // File exists - update if root version is newer
+
+    const srcMtime = fs.statSync(srcPath).mtimeMs;
+
+    const targetMtime = fs.statSync(targetPath).mtimeMs;
+
+    if (srcMtime > targetMtime) {
+
+      fs.copyFileSync(srcPath, targetPath);
+
+      console.log(`Updated ${fileName} in ${targetDir} (root version is newer)`);
+
     }
+
   }
-  
-  throw lastError || new Error("Falha ao comunicar com todas as versões da API Gemini.");
+
 }
 
 // API: List valid projects in workspace
+
 app.get("/api/projects", (req, res) => {
   try {
-    const projects = [
-      { name: "Buracos no Deserto", path: WORKSPACE_DIR }
-    ];
-    const items = fs.readdirSync(WORKSPACE_DIR);
-    for (const item of items) {
-      const fullPath = path.join(WORKSPACE_DIR, item);
-      if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "dashboard-qanat", "dashboard-premium", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
-        if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
-          projects.push({
-            name: item,
-            path: fullPath
-          });
+    const projects = [];
+    
+    const inferNiche = (itemName) => {
+      const name = itemName.toLowerCase();
+      if (name.includes("romano") || name.includes("castelo") || name.includes("viking") || name.includes("inca") || name.includes("asteca") || name.includes("muralha") || name.includes("medieval") || name.includes("giram") || name.includes("fortes")) {
+        return "História";
+      }
+      if (name.includes("computador") || name.includes("antikythera") || name.includes("tecnologia")) {
+        return "Tecnologia";
+      }
+      if (name.includes("deserto") || name.includes("amazonia") || name.includes("ilhas") || name.includes("flutuantes")) {
+        return "Geografia";
+      }
+      if (name.includes("financas") || name.includes("dinheiro") || name.includes("invest")) {
+        return "Finanças";
+      }
+      return "Curiosidades";
+    };
+
+    const scanDir = (dir, format) => {
+      if (!fs.existsSync(dir)) return;
+      const items = fs.readdirSync(dir);
+      for (const item of items) {
+        const fullPath = path.join(dir, item);
+        if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
+          if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
+            let title = item;
+            let niche = "Curiosidades";
+
+            // Check config_qanat.json first
+            const configPath = path.join(fullPath, "config_qanat.json");
+            if (fs.existsSync(configPath)) {
+              try {
+                const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+                if (cfg.niche) {
+                  niche = cfg.niche;
+                } else {
+                  niche = inferNiche(item);
+                  cfg.niche = niche;
+                  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+                }
+              } catch (e) {}
+            } else {
+              niche = inferNiche(item);
+            }
+
+            const storyboardPath = path.join(fullPath, "storyboard.json");
+            if (fs.existsSync(storyboardPath)) {
+              try {
+                const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+                if (sb.strategy?.title_main) title = sb.strategy.title_main;
+              } catch (e) {}
+            }
+
+            projects.push({ name: item, path: fullPath, format, title, niche });
+          }
         }
       }
-    }
+    };
+    
+    scanDir(LONGS_DIR, "LONGO");
+    scanDir(SHORTS_DIR, "SHORTS");
+    
     res.json(projects);
+
   } catch (e) {
+
     res.status(500).json({ error: e.message });
+
   }
+
 });
 
 // API: Create and template new project subfolder
+
 app.post("/api/projects/create", (req, res) => {
-  const { name } = req.body;
+
+  const { name, format, niche } = req.body;
+
   if (!name || !name.trim()) {
+
     return res.status(400).json({ error: "Nome do projeto é obrigatório" });
+
   }
-  const safeName = name.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-  const projDir = path.join(WORKSPACE_DIR, safeName);
+
   
+
+  const isShort = (format === "SHORTS");
+
+  const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
+
+  const safeName = name.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+
+  const projDir = path.join(targetParentDir, safeName);
+
+  
+
   try {
+
     if (fs.existsSync(projDir)) {
+
       return res.status(400).json({ error: "Já existe um projeto ou pasta com este nome" });
+
     }
+
     
+
     // Create directories
+
     fs.mkdirSync(projDir, { recursive: true });
+
     fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
+
     fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
-    
+
+    ensureProjectSfxPack(projDir);
+
     // Copy templates
+
     ensureFileExists("build_video.py", projDir);
+
     ensureFileExists("build_video_destacado.py", projDir);
+
     ensureFileExists("mix_bgm.py", projDir);
+
     ensureFileExists("find_block_timings.py", projDir);
+
     ensureFileExists("align_transcripts.py", projDir);
+
+    ensureFileExists("upload_pipeline.py", projDir);
+
+    ensureFileExists("upload_youtube.py", projDir);
+
+    ensureFileExists("upload_instagram.py", projDir);
+
+    ensureFileExists("upload_tiktok_playwright.py", projDir);
+
+    ensureFileExists("upload_kwai_playwright.py", projDir);
+
     
-    // Copy config
-    const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
-    const defaultConfigDest = path.join(projDir, "config_qanat.json");
-    if (fs.existsSync(defaultConfigSrc)) {
-      fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
-      try {
-        const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
-        if (cfg.gemini_api_key) {
-          delete cfg.gemini_api_key;
-          fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
-        }
-      } catch (e) {}
+
+    // Copy logo.png if it exists in root ASSETS folder
+
+    const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+
+    const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
+
+    if (fs.existsSync(rootLogoPath)) {
+
+      fs.copyFileSync(rootLogoPath, destLogoPath);
+
+      console.log(`Copied logo.png to new project ${safeName}`);
+
     }
+
     
+
+    // Copy config
+
+    const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
+
+    const defaultConfigDest = path.join(projDir, "config_qanat.json");
+
+    if (fs.existsSync(defaultConfigSrc)) {
+
+      fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
+
+      try {
+
+        const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
+
+        cfg.aspect_ratio = isShort ? "9:16" : "16:9";
+        cfg.video_format = isShort ? "SHORTS" : "LONGO";
+        cfg.caption_style = isShort ? "shorts-viral" : "documentary";
+        cfg.niche = niche || "Geral";
+
+        if (cfg.gemini_api_key) delete cfg.gemini_api_key;
+
+        fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
+
+      } catch (e) {}
+
+    } else {
+
+      const cfg = {
+        aspect_ratio: isShort ? "9:16" : "16:9",
+        video_format: isShort ? "SHORTS" : "LONGO",
+        caption_style: isShort ? "shorts-viral" : "documentary",
+        niche: niche || "Geral",
+      };
+
+      fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
+
+    }
+
+    
+
     // Initialize timing files
-    fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
-      starts: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
-      durations: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-      total_duration: 120
-    }, null, 4), "utf8");
+
+    const blockTimings = getDefaultBlockTimings(isShort ? VIDEO_FORMAT.SHORT : VIDEO_FORMAT.LONG);
+    fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify(blockTimings, null, 4), "utf8");
+
     
+
     fs.writeFileSync(path.join(projDir, "transcripts_readable.txt"), "Bloco 1...\n", "utf8");
+
     
+
     res.json({ success: true, message: `Projeto ${safeName} criado e estruturado com sucesso!` });
+
   } catch (e) {
+
     res.status(500).json({ error: "Erro ao criar projeto", details: e.message });
+
   }
+
 });
 
 // API: Delete project recursively
+
 app.post("/api/projects/delete", (req, res) => {
+
   const { name } = req.body;
+
   if (!name || !name.trim()) {
+
     return res.status(400).json({ error: "Nome do projeto é obrigatório" });
+
   }
+
   const safeName = name.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+
   
-  if (safeName === "Buracos_no_Deserto" || safeName === "Buracos_no_deserto" || safeName === "Buracos no Deserto") {
-    return res.status(400).json({ error: "O projeto raiz não pode ser excluído." });
+
+  let projDir = path.join(WORKSPACE_DIR, safeName);
+
+  const candidateLong = path.join(LONGS_DIR, safeName);
+
+  const candidateShort = path.join(SHORTS_DIR, safeName);
+
+  if (fs.existsSync(candidateLong)) {
+
+    projDir = candidateLong;
+
+  } else if (fs.existsSync(candidateShort)) {
+
+    projDir = candidateShort;
+
   }
+
   
-  const projDir = path.join(WORKSPACE_DIR, safeName);
+
   try {
+
     if (!fs.existsSync(projDir)) {
+
       return res.status(404).json({ error: "Projeto não encontrado" });
+
     }
+
     fs.rmSync(projDir, { recursive: true, force: true });
+
     res.json({ success: true, message: `Projeto ${safeName} excluído com sucesso!` });
+
   } catch (e) {
+
     res.status(500).json({ error: "Erro ao excluir o projeto", details: e.message });
+
   }
+
 });
 
 // API: Check status of workspace files
+
 app.get("/api/status", (req, res) => {
+
   try {
+
     const projDir = getProjectDir(req);
 
     // Auto-sync template scripts when project is accessed
+
     if (projDir !== WORKSPACE_DIR) {
+
       ensureFileExists("build_video.py", projDir);
+
       ensureFileExists("build_video_destacado.py", projDir);
+
       ensureFileExists("mix_bgm.py", projDir);
+
       ensureFileExists("find_block_timings.py", projDir);
+
       ensureFileExists("align_transcripts.py", projDir);
+
     }
 
     const assetsDir = path.join(projDir, "ASSETS");
+
     const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
-    
+
     const countFiles = (dir) => {
+
       if (!fs.existsSync(dir)) return 0;
+
       let count = 0;
+
       const scan = (d) => {
+
         const items = fs.readdirSync(d);
+
         for (const item of items) {
+
           const p = path.join(d, item);
+
           if (fs.statSync(p).isDirectory()) {
+
             scan(p);
+
           } else {
+
             count++;
+
           }
+
         }
+
       };
+
       scan(dir);
+
       return count;
+
     };
 
     let blockTimings = null;
+
     const timingsPath = path.join(projDir, "block_timings.json");
+
     if (fs.existsSync(timingsPath)) {
+
       try {
+
         blockTimings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+
       } catch (e) {}
+
     }
 
     res.json({
+
       workspace: projDir,
+
       assets_count: countFiles(assetsDir),
+
       has_narration: fs.existsSync(path.join(projDir, "narracao_mestra_premium.mp3")),
+
       has_soundtrack: fs.existsSync(path.join(projDir, "trilha_documentario.mp3")),
+
       has_highlight_clip: fs.existsSync(path.join(projDir, "clip_highlight.mp4")),
+
       has_config: fs.existsSync(path.join(projDir, "config_qanat.json")),
+
       block_timings: blockTimings
+
     });
+
   } catch (err) {
+
     res.status(500).json({ error: err.message });
+
   }
+
 });
 
 // API: Get central config
+
 app.get("/api/config", (req, res) => {
+
   const projDir = getProjectDir(req);
+
   const configPath = path.join(projDir, "config_qanat.json");
+
   if (!fs.existsSync(configPath)) {
+
     return res.status(404).json({ error: "config_qanat.json não encontrado" });
+
   }
+
   try {
+
     const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
     res.json(data);
+
   } catch (err) {
+
     res.status(500).json({ error: "Erro ao ler config", details: err.message });
+
   }
+
 });
 
 // API: Update central config
+
 app.post("/api/config", (req, res) => {
+
   const projDir = getProjectDir(req);
+
   const configPath = path.join(projDir, "config_qanat.json");
-  try {
-    fs.writeFileSync(configPath, JSON.stringify(req.body, null, 2), "utf8");
-    res.json({ success: true, message: "config_qanat.json salvo com sucesso" });
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar config", details: err.message });
-  }
-});
 
-// API: List output videos
-app.get("/api/outputs", (req, res) => {
-  const projDir = getProjectDir(req);
-  const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
-  if (!fs.existsSync(outputDir)) {
-    return res.json([]);
-  }
   try {
-    const files = fs.readdirSync(outputDir)
-      .filter(f => f.endsWith(".mp4"))
-      .map(f => {
-        const stats = fs.statSync(path.join(outputDir, f));
-        return {
-          name: f,
-          sizeBytes: stats.size,
-          modifiedAt: stats.mtime
-        };
-      });
-    res.json(files);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-// API: Delete rendered video file
-app.post("/api/outputs/delete", (req, res) => {
-  const projDir = getProjectDir(req);
-  const { filename } = req.body;
-  if (!filename) {
-    return res.status(400).json({ error: "Nome do arquivo é obrigatório" });
-  }
-  const safeFilename = path.basename(filename);
-  const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
-  const filePath = path.join(outputDir, safeFilename);
-  try {
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: "Arquivo não encontrado" });
-    }
-    fs.unlinkSync(filePath);
-    res.json({ success: true, message: `Vídeo ${safeFilename} excluído com sucesso!` });
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao excluir o arquivo", details: err.message });
-  }
-});
+    let existingConfig = {};
 
-// API: Get storyboard data
-app.get("/api/projects/storyboard", (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(storyboardPath)) {
-    const configPath = path.join(projDir, "config_qanat.json");
-    let fallbackPrompts = [];
     if (fs.existsSync(configPath)) {
+
       try {
-        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-        if (config.block_phrases && Array.isArray(config.block_phrases)) {
-          fallbackPrompts = config.block_phrases.map((bp, idx) => ({
-            scene: `${bp.block}.1`,
-            block: bp.block,
-            narration_text: bp.phrase,
-            type: "imagem IA 2k",
-            duration: "5 segundos",
-            prompt: `Cinematic photorealistic image, 2k resolution, high detail, cinematic lighting, portraying: ${bp.phrase}`,
-            editor_notes: "Ken Burns zoom in",
-            stock_query: "cinematic"
-          }));
-        }
+
+        existingConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
       } catch (e) {}
-    }
-    return res.json({
-      strategy: { title_main: "", title_variations: [], hook: "", target_audience: "", tone: "", pinned_comment: "", cta: "" },
-      narrative_script: "",
-      narrative_script_tagged: "",
-      visual_prompts: fallbackPrompts,
-      checklist: { click_potential: 0, retention_potential: 0, comments_potential: 0, feedback: "" }
-    });
-  }
-  try {
-    const data = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar o storyboard", details: err.message });
-  }
-});
 
-// API: Save storyboard data
-app.post("/api/projects/storyboard", (req, res) => {
-  const projDir = getProjectDir(req);
-  const storyboardData = req.body;
-  if (!storyboardData || !storyboardData.visual_prompts) {
-    return res.status(400).json({ error: "Dados do storyboard inválidos." });
-  }
-  
-  const storyboardPath = path.join(projDir, "storyboard.json");
-  const configPath = path.join(projDir, "config_qanat.json");
-  const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-  
-  try {
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboardData, null, 2), "utf8");
-    
-    const visualPrompts = storyboardData.visual_prompts || [];
-    const narrativeText = visualPrompts.map(vp => vp.narration_text || "").filter(Boolean).join("\n\n");
-    fs.writeFileSync(transcriptPath, narrativeText, "utf8");
-    
-    let config = {};
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     }
-    
-    const blockPhrasesMap = {};
-    visualPrompts.forEach(vp => {
-      if (vp.block && vp.narration_text) {
-        if (!blockPhrasesMap[vp.block]) {
-          blockPhrasesMap[vp.block] = [];
-        }
-        blockPhrasesMap[vp.block].push(vp.narration_text);
+
+    const mergedConfig = { ...existingConfig };
+    for (const [key, value] of Object.entries(req.body || {})) {
+      if (value === null) {
+        delete mergedConfig[key];
+      } else {
+        mergedConfig[key] = value;
       }
+    }
+
+    fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), "utf8");
+
+    res.json({
+      success: true,
+      message: "config_qanat.json salvo com sucesso",
+      config: mergedConfig,
     });
-    
-    const blockPhrases = Object.keys(blockPhrasesMap).map(b => ({
-      block: parseInt(b),
-      phrase: blockPhrasesMap[b].join(" ")
-    }));
-    
-    config.block_phrases = blockPhrases;
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    
-    res.json({ success: true, message: "Roteiro e storyboard salvos com sucesso!" });
+
   } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar o storyboard", details: err.message });
+
+    res.status(500).json({ error: "Erro ao salvar config", details: err.message });
+
   }
+
 });
 
-// API: List background music tracks
-app.get("/api/music", (req, res) => {
-  const projDir = getProjectDir(req);
+// POST /api/upload/youtube/save-credentials
+app.post("/api/upload/youtube/save-credentials", (req, res) => {
+  const { client_id, client_secret } = req.body;
+  if (!client_id || !client_secret) {
+    return res.status(400).json({ error: "Client ID e Client Secret são obrigatórios" });
+  }
+  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
   try {
-    const files = fs.readdirSync(projDir)
-      .filter(f => {
-        const lower = f.toLowerCase();
-        return (lower.endsWith(".mp3") || lower.endsWith(".wav")) && lower !== "narracao_mestra_premium.mp3" && !["1.mp3", "2.mp3", "3.mp3"].includes(lower);
-      })
-      .map(f => {
-        const stats = fs.statSync(path.join(projDir, f));
-        return {
-          name: f,
-          sizeBytes: stats.size
-        };
-      });
-    res.json(files);
+    fs.writeFileSync(secretsPath, JSON.stringify({ client_id, client_secret }, null, 2), "utf8");
+    res.json({ success: true, message: "Credenciais de API do YouTube salvas com sucesso!" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro ao salvar credenciais do YouTube", details: err.message });
   }
 });
 
-// API: Mix soundtrack (runs mix_bgm.py)
-app.post("/api/music/mix", (req, res) => {
-  const projDir = getProjectDir(req);
-  ensureFileExists("mix_bgm.py", projDir);
-  const scriptPath = path.join(projDir, "mix_bgm.py");
-  if (!fs.existsSync(scriptPath)) {
-    return res.status(404).json({ error: "mix_bgm.py não encontrado" });
+// POST /api/upload/instagram/save-credentials
+app.post("/api/upload/instagram/save-credentials", (req, res) => {
+  const { instagram_business_account_id, access_token } = req.body;
+  if (!instagram_business_account_id || !access_token) {
+    return res.status(400).json({ error: "ID da conta Business e Token de Acesso são obrigatórios" });
+  }
+  const secretsPath = path.join(WORKSPACE_DIR, "instagram_secrets.json");
+  try {
+    fs.writeFileSync(secretsPath, JSON.stringify({ instagram_business_account_id, access_token }, null, 2), "utf8");
+    res.json({ success: true, message: "Credenciais de API do Instagram salvas com sucesso!" });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar credenciais do Instagram", details: err.message });
+  }
+});
+
+function youtubeApiErrorPayload(err, fallback = "Erro na API do YouTube") {
+  const needsReauth = Boolean(err?.needsReauth || err?.code === "INSUFFICIENT_SCOPES");
+  return {
+    error: needsReauth ? "Permissões do YouTube insuficientes" : fallback,
+    details: err?.message || String(err),
+    needsReauth,
+    hint: needsReauth
+      ? "Vá em Upload → Integrações → Revincular YouTube e autorize todas as permissões (editar vídeos + analytics)."
+      : undefined,
+  };
+}
+
+// GET /api/upload/status
+app.get("/api/upload/status", async (req, res) => {
+  const ytSecrets = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  const ytToken = path.join(WORKSPACE_DIR, "youtube_token.json");
+  const igSecrets = path.join(WORKSPACE_DIR, "instagram_secrets.json");
+  const ttCookies = path.join(WORKSPACE_DIR, "tiktok_cookies.json");
+  const kwCookies = path.join(WORKSPACE_DIR, "kwai_cookies.json");
+
+  let yt_client_id = null;
+  if (fs.existsSync(ytSecrets)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(ytSecrets, "utf8"));
+      yt_client_id = data.client_id;
+    } catch (e) {}
   }
 
-  const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-    cwd: projDir,
-    shell: true,
-    env: { ...process.env, PYTHONUNBUFFERED: "1" }
-  });
+  let ig_account_id = null;
+  if (fs.existsSync(igSecrets)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(igSecrets, "utf8"));
+      ig_account_id = data.instagram_business_account_id;
+    } catch (e) {}
+  }
 
-  let stdout = "";
-  let stderr = "";
+  const canvaStatus = getCanvaConnectionStatus(WORKSPACE_DIR);
+  let youtubeScopes = { ready: false, missingLabels: [] };
+  if (fs.existsSync(ytSecrets) && fs.existsSync(ytToken)) {
+    try {
+      youtubeScopes = await getYoutubeTokenScopes(WORKSPACE_DIR);
+    } catch (e) {
+      youtubeScopes = { ready: false, error: e.message, missingLabels: [] };
+    }
+  }
 
-  child.stdout.on("data", (data) => {
-    stdout += data.toString();
-  });
-  child.stderr.on("data", (data) => {
-    stderr += data.toString();
-  });
-
-  child.on("close", (code) => {
-    if (code === 0) {
-      res.json({ success: true, log: stdout });
-    } else {
-      res.status(500).json({ error: "Erro na mixagem", log: stdout, details: stderr });
+  res.json({
+    youtube: {
+      connected: fs.existsSync(ytSecrets) && fs.existsSync(ytToken),
+      has_secrets: fs.existsSync(ytSecrets),
+      client_id: yt_client_id,
+      titleTestReady: youtubeScopes.ready === true,
+      missingScopes: youtubeScopes.missingLabels || [],
+    },
+    canva: canvaStatus,
+    instagram: {
+      connected: fs.existsSync(igSecrets) || getInstagramConnectionStatus(WORKSPACE_DIR).connected,
+      account_id: ig_account_id,
+      oauthReady: getInstagramConnectionStatus(WORKSPACE_DIR).oauthReady,
+    },
+    tiktok: {
+      connected: fs.existsSync(ttCookies)
+    },
+    kwai: {
+      connected: fs.existsSync(kwCookies)
     }
   });
 });
 
-// API: Render videos streaming logs via Server-Sent Events (SSE)
-app.get("/api/render/:mode", (req, res) => {
-  const projDir = getProjectDir(req);
-  const mode = req.params.mode; // 'standard' or 'highlighted'
-  const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
-  ensureFileExists(scriptName, projDir);
-  const scriptPath = path.join(projDir, scriptName);
-
-  if (!fs.existsSync(scriptPath)) {
-    res.status(404).json({ error: `${scriptName} não encontrado no workspace` });
-    return;
+// POST /api/canva/save-credentials
+app.post("/api/canva/save-credentials", (req, res) => {
+  const { client_id, client_secret, redirect_uri } = req.body || {};
+  if (!client_id || !client_secret) {
+    return res.status(400).json({ error: "Client ID e Client Secret do Canva são obrigatórios." });
   }
+  try {
+    saveCanvaCredentials(WORKSPACE_DIR, { client_id, client_secret, redirect_uri });
+    res.json({ success: true, message: "Credenciais do Canva salvas." });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar credenciais do Canva", details: err.message });
+  }
+});
 
+// GET /api/canva/status
+app.get("/api/canva/status", (req, res) => {
+  res.json(getCanvaConnectionStatus(WORKSPACE_DIR));
+});
+
+// GET /api/canva/auth-url
+app.get("/api/canva/auth-url", (req, res) => {
+  try {
+    const url = buildCanvaAuthUrl(WORKSPACE_DIR);
+    res.json({ url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/canva/callback
+app.get("/api/canva/callback", async (req, res) => {
+  const { code, state, error, error_description: errorDescription } = req.query;
+  if (error) {
+    return res.status(400).send(`Erro Canva: ${errorDescription || error}`);
+  }
+  if (!code || !state) {
+    return res.status(400).send("Código ou state ausente.");
+  }
+  try {
+    await exchangeCanvaAuthCode(WORKSPACE_DIR, { code, state });
+    res.send(`
+      <html>
+        <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
+          <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
+            <h1 style="color:#00c4cc;">Canva Conectado!</h1>
+            <p style="color:#a1a1aa;">Conta vinculada. Você já pode gerar capas automaticamente no Lumiera.</p>
+            <button onclick="window.close()" style="background:#00c4cc; border:none; padding:0.5rem 1.5rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;">Fechar</button>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    res.status(500).send(`Erro: ${err.message}`);
+  }
+});
+
+// GET /api/upload/youtube/scopes-status
+app.get("/api/upload/youtube/scopes-status", async (req, res) => {
+  try {
+    const status = await getYoutubeTokenScopes(WORKSPACE_DIR);
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao verificar escopos", details: err.message });
+  }
+});
+
+// POST /api/upload/youtube/reset-auth — apaga token antigo para forçar novos escopos
+app.post("/api/upload/youtube/reset-auth", (req, res) => {
+  try {
+    resetYoutubeAuth(WORKSPACE_DIR);
+    res.json({
+      success: true,
+      message: "Sessão do YouTube removida. Clique em Vincular Conta Google e autorize todas as permissões.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao resetar autenticação", details: err.message });
+  }
+});
+
+// GET /api/upload/youtube/auth-url
+app.get("/api/upload/youtube/auth-url", (req, res) => {
+  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  if (!fs.existsSync(secretsPath)) {
+    return res.status(400).json({ error: "Credenciais do YouTube ausentes no servidor." });
+  }
+  try {
+    const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
+    const redirectUri = LUMIERA_YOUTUBE_CALLBACK;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${secrets.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(getYoutubeScopeString())}&access_type=offline&prompt=consent`;
+    res.json({ url: authUrl });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar URL do YouTube", details: err.message });
+  }
+});
+
+// GET /api/upload/youtube/callback
+app.get("/api/upload/youtube/callback", async (req, res) => {
+  const { code } = req.query;
+  if (!code) {
+    return res.status(400).send("Código não fornecido.");
+  }
+  const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
+  if (!fs.existsSync(secretsPath)) {
+    return res.status(400).send("Credenciais do YouTube ausentes.");
+  }
+  try {
+    const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
+    const redirectUri = LUMIERA_YOUTUBE_CALLBACK;
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: secrets.client_id,
+        client_secret: secrets.client_secret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code"
+      })
+    });
+    const tokens = await response.json();
+    if (tokens.error) {
+      return res.status(400).send(`Erro ao obter tokens: ${tokens.error_description || tokens.error}`);
+    }
+    const tokenPath = path.join(WORKSPACE_DIR, "youtube_token.json");
+    const tokenPayload = {
+      ...tokens,
+      linked_at: new Date().toISOString(),
+      scopes_requested: getYoutubeScopeString(),
+    };
+    fs.writeFileSync(tokenPath, JSON.stringify(tokenPayload, null, 2), "utf8");
+    res.send(`
+      <html>
+        <body style="background:#09090b; color:#fff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh;">
+          <div style="text-align:center; border: 1px solid #27272a; padding: 2rem; border-radius: 1.5rem; background: #0c0c0e;">
+            <h1 style="color:#d4af37;">YouTube Conectado!</h1>
+            <p style="color:#a1a1aa;">Upload + edição de títulos + analytics autorizados. Feche esta aba e volte ao Lumiera.</p>
+            <button onclick="window.close()" style="background:#d4af37; border:none; padding:0.5rem 1.5rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;">Fechar</button>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    res.status(500).send(`Erro: ${err.message}`);
+  }
+});
+
+// POST /api/upload/launch-login
+app.post("/api/upload/launch-login", (req, res) => {
+  const { platform } = req.body;
+  if (!platform || !["tiktok", "kwai"].includes(platform.toLowerCase())) {
+    return res.status(400).json({ error: "Plataforma inválida." });
+  }
+  
+  // Start capture_cookies.py in headful mode in background
+  const cpScript = path.join(WORKSPACE_DIR, "capture_cookies.py");
+  if (!fs.existsSync(cpScript)) {
+    return res.status(404).json({ error: "Script capture_cookies.py não encontrado." });
+  }
+  
+  const child = spawn(PYTHON_PATH, ["capture_cookies.py", platform.toLowerCase()], {
+    cwd: WORKSPACE_DIR,
+    shell: true,
+    detached: true,
+    stdio: 'ignore'
+  });
+  child.unref();
+  
+  res.json({ success: true, message: `Navegador aberto na sua área de trabalho para login do ${platform.toUpperCase()}. Realize o login e feche-o para concluir.` });
+});
+
+// GET /api/projects/upload-pipeline
+app.get("/api/projects/upload-pipeline", (req, res) => {
+  const projDir = getProjectDir(req);
+  const platforms = req.query.platforms || "";
+  
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
 
   const sendLog = (text) => {
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
   };
 
-  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}...`);
+  sendLog(`[Pipeline] Iniciando Upload Automatizado com plataformas: ${platforms}...`);
+  
+  const scriptPath = path.join(projDir, "upload_pipeline.py");
+  if (!fs.existsSync(scriptPath)) {
+    ensureFileExists("upload_pipeline.py", projDir);
+  }
 
-  const child = spawn(PYTHON_PATH, [scriptName], {
+  const child = spawn(PYTHON_PATH, ["upload_pipeline.py", projDir, platforms], {
     cwd: projDir,
-    shell: true,
-    env: { ...process.env, PYTHONUNBUFFERED: "1" }
+    shell: true
   });
 
   child.stdout.on("data", (data) => {
-    const text = data.toString().trim();
-    if (text) {
-      const lines = text.split(/\r?\n/);
-      for (const line of lines) {
-        sendLog(line);
+    const lines = data.toString().split("\n");
+    for (const line of lines) {
+      if (line.strip ? line.strip() : line.trim()) {
+        sendLog(line.strip ? line.strip() : line.trim());
       }
     }
   });
 
   child.stderr.on("data", (data) => {
-    const text = data.toString().trim();
-    if (text) {
-      const lines = text.split(/\r?\n/);
-      for (const line of lines) {
-        sendLog(`[ERRO] ${line}`);
+    const lines = data.toString().split("\n");
+    for (const line of lines) {
+      if (line.strip ? line.strip() : line.trim()) {
+        sendLog(`[Error] ${line.strip() ? line.strip() : line.trim()}`);
       }
     }
   });
 
-  child.on("close", (code) => {
+  child.on("close", async (code) => {
     if (code === 0) {
-      res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
+      let videoId = null;
+      try {
+        const configPath = path.join(projDir, "config_qanat.json");
+        if (fs.existsSync(configPath)) {
+          const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          videoId = cfg?.upload_metadata?.youtube?.post_id || null;
+        }
+      } catch (e) { /* ignore */ }
+
+      if (videoId) {
+        try {
+          const postResult = await runPostUploadHooks(WORKSPACE_DIR, projDir, {
+            videoId,
+            autoStartTitleTest: true,
+            postPinned: true,
+          });
+          res.write(`data: ${JSON.stringify({ type: "post_upload", ...postResult })}\n\n`);
+        } catch (err) {
+          sendLog(`[PostUpload] ${err.message}`);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ type: "complete", message: "Processo de upload concluído!", videoId })}\n\n`);
     } else {
-      res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: "error", message: `O processo encerrou com código ${code}` })}\n\n`);
     }
     res.end();
   });
-
-  req.on("close", () => {
-    child.kill();
-  });
 });
 
-// Helper: Get configured API key
-function getApiKey(projectDir = WORKSPACE_DIR) {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  if (process.env.GOOGLE_API_KEY) return process.env.GOOGLE_API_KEY;
-  
-  // Try current project dir first
-  const configPath = path.join(projectDir, "config_qanat.json");
-  if (fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (config.gemini_api_key) return config.gemini_api_key;
-    } catch (e) {}
-  }
-  
-  // Fallback to workspace root
-  if (projectDir !== WORKSPACE_DIR) {
-    const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
-    if (fs.existsSync(rootConfigPath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8"));
-        if (config.gemini_api_key) return config.gemini_api_key;
-      } catch (e) {}
-    }
-  }
-  return null;
-}
+// API: List output videos
 
-// API: Check if AI API key exists and get provider settings
-app.get("/api/ai/key-status", (req, res) => {
-  const projDir = getProjectDir(req);
-  const configPath = path.join(projDir, "config_qanat.json");
-  
-  let config = {};
-  if (fs.existsSync(configPath)) {
-    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-  }
-  if (!config.api_provider && projDir !== WORKSPACE_DIR) {
-    const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
-    if (fs.existsSync(rootConfigPath)) {
-      try { config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8")); } catch (e) {}
-    }
-  }
+app.get("/api/outputs", (req, res) => {
 
-  const provider = config.api_provider || "gemini";
-  let hasKey = false;
-  if (provider === "gemini") {
-    hasKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY || !!config.gemini_api_key;
-  } else if (provider === "groq") {
-    hasKey = !!process.env.GROQ_API_KEY || !!config.groq_api_key;
-  } else if (provider === "openrouter") {
-    hasKey = !!process.env.OPENROUTER_API_KEY || !!config.openrouter_api_key;
-  }
-
-  res.json({ has_key: hasKey, provider, model: config.api_model || "" });
-});
-
-// API: Save AI API key and provider settings to config_qanat.json
-app.post("/api/ai/save-key", (req, res) => {
-  const { key, provider, model } = req.body;
-  if (!key) {
-    return res.status(400).json({ error: "Chave de API não fornecida" });
-  }
-  const projDir = getProjectDir(req);
-  const configPath = path.join(projDir, "config_qanat.json");
-  try {
-    let config = {};
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    }
-    const apiProvider = provider || "gemini";
-    config.api_provider = apiProvider;
-    config.api_model = model || "";
-    
-    if (apiProvider === "gemini") {
-      config.gemini_api_key = key;
-    } else if (apiProvider === "groq") {
-      config.groq_api_key = key;
-    } else if (apiProvider === "openrouter") {
-      config.openrouter_api_key = key;
-    }
-    
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    res.json({ success: true, message: `Chave de API do ${apiProvider} salva com sucesso no config_qanat.json` });
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar a chave", details: err.message });
-  }
-});
-
-// Helper: Call AI API based on configured provider (Gemini, Groq, OpenRouter)
-async function callAIBackend(projDir, prompt, systemInstruction = null, responseMimeType = null) {
-  let config = {};
-  const configPath = path.join(projDir, "config_qanat.json");
-  if (fs.existsSync(configPath)) {
-    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-  }
-  if (!config.api_provider && projDir !== WORKSPACE_DIR) {
-    const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
-    if (fs.existsSync(rootConfigPath)) {
-      try { config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8")); } catch (e) {}
-    }
-  }
-
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || config.gemini_api_key;
-  const groqKey = process.env.GROQ_API_KEY || config.groq_api_key;
-  const openrouterKey = process.env.OPENROUTER_API_KEY || config.openrouter_api_key;
-
-  const provider = config.api_provider || (geminiKey ? "gemini" : groqKey ? "groq" : openrouterKey ? "openrouter" : null);
-  if (!provider) {
-    throw new Error("Nenhum provedor de API de IA configurado ou chave ausente.");
-  }
-
-  if (provider === "gemini") {
-    if (!geminiKey) throw new Error("Chave de API do Gemini não fornecida.");
-    const model = config.api_model || "gemini-3.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-    
-    const requestBody = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 8192
-      }
-    };
-    if (responseMimeType) {
-      requestBody.generationConfig.responseMimeType = responseMimeType;
-    }
-    if (systemInstruction) {
-      requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
-    }
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Google API returned status ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-      throw new Error("Resposta inválida retornada pelo Gemini.");
-    }
-    return data.candidates[0].content.parts[0].text;
-
-  } else if (provider === "groq") {
-    if (!groqKey) throw new Error("Chave de API do Groq não fornecida.");
-    const model = config.api_model || "llama-3.3-70b-versatile";
-    const url = "https://api.groq.com/openai/v1/chat/completions";
-
-    const messages = [];
-    if (systemInstruction) {
-      messages.push({ role: "system", content: systemInstruction });
-    }
-    messages.push({ role: "user", content: prompt });
-
-    const requestBody = {
-      model,
-      messages,
-      temperature: 0.8
-    };
-    if (responseMimeType === "application/json") {
-      requestBody.response_format = { type: "json_object" };
-    }
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${groqKey}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Groq API returned status ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-
-  } else if (provider === "openrouter") {
-    if (!openrouterKey) throw new Error("Chave de API do OpenRouter não fornecida.");
-    const model = config.api_model || "google/gemini-2.5-flash";
-    const url = "https://openrouter.ai/api/v1/chat/completions";
-
-    const messages = [];
-    if (systemInstruction) {
-      messages.push({ role: "system", content: systemInstruction });
-    }
-    messages.push({ role: "user", content: prompt });
-
-    const requestBody = {
-      model,
-      messages,
-      temperature: 0.8
-    };
-    if (responseMimeType === "application/json") {
-      requestBody.response_format = { type: "json_object" };
-    }
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openrouterKey}`,
-        "HTTP-Referer": "http://localhost:3005",
-        "X-Title": "Lumiera Studio"
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenRouter API returned status ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } else {
-    throw new Error(`Provedor desconhecido: ${provider}`);
-  }
-}
-
-// Helper: Generate system instructions with workspace script context
-function getProjectContext(projectDir) {
-  const configPath = path.join(projectDir, "config_qanat.json");
-  const timingsPath = path.join(projectDir, "block_timings.json");
-  const transcriptPath = path.join(projectDir, "transcripts_readable.txt");
-  let config = {};
-  let timings = {};
-  let transcript = "";
-  let bgmRecommendations = [];
-  if (fs.existsSync(configPath)) {
-    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-  }
-  if (config.gemini_api_key) { config = { ...config }; delete config.gemini_api_key; }
-  if (fs.existsSync(timingsPath)) {
-    try { timings = JSON.parse(fs.readFileSync(timingsPath, "utf8")); } catch (e) {}
-  }
-  if (fs.existsSync(transcriptPath)) {
-    try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
-  }
-  const storyboardPath = path.join(projectDir, "storyboard.json");
-  if (fs.existsSync(storyboardPath)) {
-    try {
-      const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-      bgmRecommendations = storyboard.bgm_recommendations || [];
-    } catch (e) {}
-  }
-  const assetsDir = path.join(projectDir, "ASSETS");
-  let assetsList = [];
-  if (fs.existsSync(assetsDir)) { try { assetsList = fs.readdirSync(assetsDir).filter(f => !f.startsWith('.')); } catch(e) {} }
-  const musicDir = path.join(projectDir, "MUSICAS");
-  let musicList = [];
-  if (fs.existsSync(musicDir)) { try { musicList = fs.readdirSync(musicDir).filter(f => f.endsWith('.mp3')); } catch(e) {} }
-  const projectName = path.basename(projectDir);
-  return `Voce eh o "Lumiera Agent" - assistente autonomo com poderes totais sobre o projeto de video. Pode modificar configs, disparar acoes, e auxiliar em qualquer parte do fluxo.
-
-PROJETO ATUAL: "${projectName}"
-
-DADOS DO PROJETO:
-1. Config (config_qanat.json): ${JSON.stringify(config, null, 2)}
-2. Timings: ${JSON.stringify(timings, null, 2)}
-3. Roteiro: ${transcript || "(vazio)"}
-4. Assets: ${assetsList.length > 0 ? assetsList.join(', ') : '(vazio)'}
-5. Musicas: ${musicList.length > 0 ? musicList.join(', ') : '(nenhuma)'}
-6. Recomendações de Trilha BGM por Bloco da IA: ${JSON.stringify(bgmRecommendations, null, 2)}
-
-ACOES DISPONIVEIS - AUTONOMIA TOTAL:
-Quando o usuario pedir para fazer algo no projeto, voce DEVE executar a acao inserindo um bloco JSON de acao no final da sua resposta. Use o formato:
-
-\`\`\`lumiera-action
-{"actions":[{"type":"update_config","field":"highlight_keywords","value":["exemplo"]}]}
-\`\`\`
-
-TIPOS DE ACAO:
-- "update_config": Modifica campo do config. Fields: "highlight_keywords" (array strings), "bgm_mappings" (array {block,file}), "impact_texts" (array {block,start_offset,end_offset,text}), "script" (string).
-- "trigger_render": Compila video. Params: {"render_type":"standard"ou"highlighted"}.
-- "trigger_mix": Mixa trilha sonora.
-- "navigate_tab": Navega aba. Params: {"tab":"status"|"timeline"|"music"|"terminal"|"ai"|"creator"}.
-- "show_message": Notificacao. Params: {"message":"texto","type":"success"|"warning"|"error"}.
-
-REGRAS:
-1. Responda em portugues brasileiro, profissional e direto.
-2. Quando modificar algo, SEMPRE inclua o bloco lumiera-action.
-3. Primeiro explique, depois inclua o bloco de acao.
-4. Autonomia total para modificar qualquer parte do projeto.
-5. Sem bloco de acao para perguntas sem mudancas.`;
-}
-
-// API: Chat assistant
-app.post("/api/ai/chat", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada. Configure-a na aba Agente IA." });
-  }
-  
-  const { messages } = req.body;
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: "Mensagens inválidas ou vazias" });
-  }
-  
-  try {
-    const systemInstruction = getProjectContext(projDir);
-    const formattedContents = messages.map(msg => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }]
-    }));
-    
-    const response = await fetchGeminiWithFallback(apiKey, {
-      contents: formattedContents,
-      systemInstruction: {
-        parts: [{ text: systemInstruction }]
-      }
-    });
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui obter uma resposta.";
-    
-    res.json({ text: responseText });
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao consultar IA", details: err.message });
-  }
-});
-
-// API: Execute AI agent actions
-app.post("/api/ai/execute-action", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const { actions } = req.body;
-  if (!actions || !Array.isArray(actions)) {
-    return res.status(400).json({ error: "No actions provided" });
-  }
-  const results = [];
-  for (const action of actions) {
-    try {
-      switch (action.type) {
-        case "update_config": {
-          const configPath = path.join(projDir, "config_qanat.json");
-          let config = {};
-          if (fs.existsSync(configPath)) {
-            try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch(e) {}
-          }
-          config[action.field] = action.value;
-          fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-          results.push({ type: action.type, field: action.field, status: "ok" });
-          break;
-        }
-        case "trigger_render": {
-          results.push({ type: action.type, status: "ok", message: "Render queued" });
-          break;
-        }
-        case "trigger_mix": {
-          results.push({ type: action.type, status: "ok", message: "Mix queued" });
-          break;
-        }
-        case "navigate_tab": {
-          results.push({ type: action.type, tab: action.tab, status: "ok" });
-          break;
-        }
-        case "show_message": {
-          results.push({ type: action.type, message: action.message, status: "ok" });
-          break;
-        }
-        default:
-          results.push({ type: action.type, status: "error", message: "Unknown action type" });
-      }
-    } catch (err) {
-      results.push({ type: action.type, status: "error", message: err.message });
-    }
-  }
-  res.json({ results });
-});
-
-// API: Generate YouTube Metadata (SEO Titles, Description, Tags, Chapters)
-app.post("/api/ai/optimize-youtube", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
-  
-  try {
-    const configPath = path.join(projDir, "config_qanat.json");
-    const timingsPath = path.join(projDir, "block_timings.json");
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-    
-    let config = {};
-    let timings = { starts: [] };
-    let transcript = "";
-    
-    if (fs.existsSync(configPath)) {
-      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-    }
-    if (fs.existsSync(timingsPath)) {
-      try { timings = JSON.parse(fs.readFileSync(timingsPath, "utf8")); } catch (e) {}
-    }
-    if (fs.existsSync(transcriptPath)) {
-      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
-    }
-    
-    const blockNames = [
-      "Abertura",
-      "Bloco 2",
-      "Bloco 3",
-      "Bloco 4",
-      "Bloco 5",
-      "Bloco 6",
-      "Bloco 7",
-      "Bloco 8",
-      "Bloco 9",
-      "Bloco 10",
-      "Bloco 11",
-      "Conclusão"
-    ];
-    
-    let chaptersText = "";
-    if (timings.starts && timings.starts.length > 0) {
-      for (let i = 0; i < timings.starts.length && i < blockNames.length; i++) {
-        const sec = timings.starts[i];
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
-        const ts = `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-        chaptersText += `${ts} - ${blockNames[i]}\n`;
-      }
-    }
-    
-    // Load storyboard for extra context
-    let storyboard = {};
-    const storyboardPath = path.join(projDir, "storyboard.json");
-    if (fs.existsSync(storyboardPath)) {
-      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
-    }
-    
-    const storyContext = storyboard.strategy ? `
-Contexto Estratégico do Vídeo:
-- Título Original: ${storyboard.strategy.title_main || "N/A"}
-- Hook: ${storyboard.strategy.hook || "N/A"}
-- Público-alvo: ${storyboard.strategy.target_audience || "N/A"}
-- Tom: ${storyboard.strategy.tone || "N/A"}
-- Comentário Pinado Sugerido: ${storyboard.strategy.pinned_comment || "N/A"}
-- CTA: ${storyboard.strategy.cta || "N/A"}
-` : "";
-
-    const prompt = `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
-
-Analise o roteiro abaixo e gere metadados que provoquem curiosidade IRRESISTÍVEL:
-
-## REGRAS PARA OS TÍTULOS:
-- Use "curiosity gap" (lacuna de curiosidade): o espectador PRECISA clicar para descobrir a resposta
-- Inclua gatilhos emocionais: medo, surpresa, indignação, fascinação
-- Use números quando possível ("A razão nº 1...", "99% das pessoas não sabem...")
-- Evite clickbait vazio: o título deve prometer algo que o vídeo ENTREGA
-- Máximo 60 caracteres por título
-- Gere 5 opções variadas (curiosidade, emoção, número, urgência, provocação)
-
-## REGRAS PARA A DESCRIÇÃO:
-- As 2 PRIMEIRAS LINHAS são CRUCIAIS (aparecem sem precisar clicar "Mostrar mais")
-- Primeira linha: gancho emocional que complementa o título
-- Segunda linha: promessa concreta do que o espectador vai aprender
-- Resto: SEO keywords naturais, links, call-to-action
-- Inclua 3-5 hashtags relevantes no final
-
-## REGRAS PARA AS TAGS:
-- 15 tags ordenadas por volume de busca estimado
-- Mix de tags genéricas (alto volume) + específicas (baixa competição)
-- Inclua variações com erros de digitação comuns se relevante
-
-## REGRAS PARA O COMENTÁRIO PINADO:
-- Crie um comentário que PROVOQUE respostas dos espectadores
-- Use uma pergunta aberta que gere debate nos comentários
-- Inclua CTA sutil para inscrição
-
-## REGRAS PARA OS CAPÍTULOS:
-- Use os timestamps reais fornecidos abaixo
-- Nomes dos capítulos devem ser chamativos e curiosos (não genéricos como "Introdução")
-
-${storyContext}
-
-Roteiro do Vídeo:
-${transcript}
-
-Marcadores com tempos exatos do projeto:
-${chaptersText}
-
-FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
-
-## TÍTULOS
-(liste os 5 títulos numerados)
-
-## DESCRIÇÃO
-(descrição completa pronta para colar)
-
-## TAGS
-(tags separadas por vírgula)
-
-## COMENTÁRIO PINADO
-(texto do comentário pinado)
-
-## CAPÍTULOS
-(lista de capítulos com timestamps)`;
-
-
-    const response = await fetchGeminiWithFallback(apiKey, {
-      contents: [{ role: "user", parts: [{ text: prompt }] }]
-    });
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar metadados.";
-    
-    res.json({ text: responseText });
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao otimizar metadados", details: err.message });
-  }
-});
-// API: AI-powered BGM suggestion per block
-app.post("/api/ai/suggest-bgm", async (req, res) => {
   const projDir = getProjectDir(req);
 
+  const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
 
-  try {
-    const { mode } = req.body; // 'LONGO' or 'SHORTS'
-    
-    // Get available music files
-    const musicExts = [".mp3", ".wav", ".ogg", ".m4a"];
-    const musicFiles = fs.readdirSync(projDir)
-      .filter(f => musicExts.includes(path.extname(f).toLowerCase()))
-      .filter(f => f !== "narracao_mestra_premium.mp3" && !f.startsWith("cinematic_drone"));
-    
-    if (musicFiles.length === 0) {
-      return res.status(400).json({ error: "Nenhum arquivo de música encontrado no projeto." });
-    }
-    
-    // Get storyboard for context
-    let storyboard = {};
-    const storyboardPath = path.join(projDir, "storyboard.json");
-    if (fs.existsSync(storyboardPath)) {
-      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
-    }
-    
-    // Get transcript for context
-    let transcript = "";
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-    if (fs.existsSync(transcriptPath)) {
-      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
-    }
-    
-    // Build block summaries from storyboard
-    let blockSummaries = "";
-    if (storyboard.visual_prompts) {
-      const blocks = {};
-      storyboard.visual_prompts.forEach(vp => {
-        const b = vp.block;
-        if (!blocks[b]) blocks[b] = [];
-        blocks[b].push(vp.narration_text || "");
-      });
-      Object.keys(blocks).sort((a,b) => a-b).forEach(b => {
-        blockSummaries += `Bloco ${b}: ${blocks[b].join(" ").substring(0, 200)}...\n`;
-      });
-    }
-    
-    const musicListStr = musicFiles.map((f, i) => `${i+1}. "${f}"`).join("\n");
-    
-    let bgmPrompt;
-    if (mode === "SHORTS") {
-      bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora. Analise o roteiro do vídeo curto (Shorts) abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
+  if (!fs.existsSync(outputDir)) {
 
-Arquivos de música disponíveis:
-${musicListStr}
-
-Roteiro:
-${transcript || blockSummaries}
-
-Responda APENAS com um JSON válido no formato:
-{"file": "nome_exato_do_arquivo.mp3", "reason": "explicação breve de por que esta trilha combina"}`;
-    } else {
-      bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora para documentários. Analise o tom emocional de cada bloco do roteiro e sugira a melhor trilha sonora para CADA bloco.
-
-Arquivos de música disponíveis:
-${musicListStr}
-
-Resumo por bloco:
-${blockSummaries}
-
-Regras:
-- O mesmo arquivo pode ser usado em múltiplos blocos se for adequado
-- Priorize transições suaves entre blocos adjacentes
-- Escolha trilhas que amplificam a emoção do texto narrado
-
-Responda APENAS com um JSON válido no formato:
-{"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
-    }
-    
-    let responseText = await callAIBackend(projDir, bgmPrompt, null, "application/json");
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    let parsed;
-    try { parsed = JSON.parse(responseText); } catch(e) {
-      // Try to extract JSON from response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    }
-    res.json(parsed);
-  } catch (err) {
-    res.status(500).json({ error: "Erro ao sugerir BGM", details: err.message });
-  }
-});
-
-// API: List available assets inside ASSETS/ folder
-app.get("/api/assets/list", (req, res) => {
-  const projDir = getProjectDir(req);
-  const assetsDir = path.join(projDir, "ASSETS");
-  if (!fs.existsSync(assetsDir)) {
     return res.json([]);
+
   }
+
   try {
-    const scanDir = (dir) => {
-      let results = [];
-      const items = fs.readdirSync(dir);
-      for (const item of items) {
-        const fullPath = path.join(dir, item);
-        const stats = fs.statSync(fullPath);
-        if (stats.isDirectory()) {
-          results = results.concat(scanDir(fullPath));
-        } else {
-          const relPath = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
-          // Categorize media types
-          let type = "other";
-          if (relPath.endsWith(".mp4")) {
-            type = "video";
-          } else if (relPath.endsWith(".png") || relPath.endsWith(".jpeg") || relPath.endsWith(".jpg")) {
-            type = "image";
-          } else if (relPath.endsWith(".svg")) {
-            type = "svg";
-          }
-          results.push({
-            name: relPath,
-            sizeBytes: stats.size,
-            type: type
-          });
+
+    const files = fs.readdirSync(outputDir)
+
+      .filter(f => f.endsWith(".mp4") || f.endsWith(".mov") || f.endsWith(".webm"))
+
+      .map(f => {
+
+        const stats = fs.statSync(path.join(outputDir, f));
+
+        return {
+
+          name: f,
+
+          sizeBytes: stats.size,
+
+          modifiedAt: stats.mtime,
+
+          renderEngine: f.toLowerCase().startsWith("remotion_") ? "remotion" : "standard",
+
+          renderEngineLabel: f.toLowerCase().startsWith("remotion_") ? "Remotion" : "Renderizador Padrão"
+
+        };
+
+      });
+
+    res.json(files);
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+});
+
+// API: Delete rendered video file
+
+app.post("/api/outputs/delete", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const { filename } = req.body;
+
+  if (!filename) {
+
+    return res.status(400).json({ error: "Nome do arquivo é obrigatório" });
+
+  }
+
+  const safeFilename = path.basename(filename);
+
+  const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
+
+  const filePath = path.join(outputDir, safeFilename);
+
+  try {
+
+    if (!fs.existsSync(filePath)) {
+
+      return res.status(404).json({ error: "Arquivo não encontrado" });
+
+    }
+
+    fs.unlinkSync(filePath);
+
+    res.json({ success: true, message: `Vídeo ${safeFilename} excluído com sucesso!` });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao excluir o arquivo", details: err.message });
+
+  }
+
+});
+
+// API: Get storyboard data
+
+app.get("/api/projects/storyboard", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const storyboardPath = path.join(projDir, "storyboard.json");
+
+  if (!fs.existsSync(storyboardPath)) {
+
+    const configPath = path.join(projDir, "config_qanat.json");
+
+    let fallbackPrompts = [];
+
+    if (fs.existsSync(configPath)) {
+
+      try {
+
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+        if (config.block_phrases && Array.isArray(config.block_phrases)) {
+
+          fallbackPrompts = config.block_phrases.map((bp, idx) => ({
+
+            scene: `${bp.block}.1`,
+
+            block: bp.block,
+
+            narration_text: bp.phrase,
+
+            type: "imagem IA 2k",
+
+            duration: "5 segundos",
+
+            prompt: `Cinematic photorealistic image, 2k resolution, high detail, cinematic lighting, portraying: ${bp.phrase}`,
+
+            editor_notes: "Ken Burns zoom in",
+
+            stock_query: "cinematic"
+
+          }));
+
         }
+
+      } catch (e) {}
+
+    }
+
+    return res.json({
+
+      strategy: { title_main: "", title_variations: [], hook: "", target_audience: "", tone: "", pinned_comment: "", cta: "" },
+
+      narrative_script: "",
+
+      narrative_script_tagged: "",
+
+      visual_prompts: fallbackPrompts,
+
+      checklist: { click_potential: 0, retention_potential: 0, comments_potential: 0, feedback: "" }
+
+    });
+
+  }
+
+  try {
+
+    const data = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+
+    // Auto-migrate: Bind assets from config.timeline_assets to storyboard scenes if not already bound
+
+    const configPath = path.join(projDir, "config_qanat.json");
+
+    if (fs.existsSync(configPath) && data.visual_prompts && Array.isArray(data.visual_prompts)) {
+
+      try {
+
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+        if (config.timeline_assets) {
+
+          const blockAssetCounts = {};
+
+          data.visual_prompts.forEach(vp => {
+
+            const blockNum = vp.block || 1;
+
+            const blockKey = String(blockNum);
+
+            if (blockAssetCounts[blockKey] === undefined) {
+
+              blockAssetCounts[blockKey] = 0;
+
+            }
+
+            const assetIdx = blockAssetCounts[blockKey];
+
+            blockAssetCounts[blockKey]++;
+
+            if (!vp.asset && config.timeline_assets[blockKey] && config.timeline_assets[blockKey][assetIdx]) {
+
+              const configAsset = config.timeline_assets[blockKey][assetIdx];
+
+              if (configAsset && configAsset.asset) {
+
+                vp.asset = configAsset;
+
+              }
+
+            }
+
+          });
+
+        }
+
+      } catch (e) {
+
+        console.error("Migration error:", e);
+
       }
-      return results;
+
+    }
+
+    data.checklist = normalizeScriptChecklist(data.checklist);
+    res.json(data);
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao carregar o storyboard", details: err.message });
+
+  }
+
+});
+
+function repairProjectOverlayTiming(projDir, { persist = true } = {}) {
+  const config = readProjectJson(projDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+  const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+
+  const totalDuration = Number(timings.total_duration)
+    || (timings.starts?.length && timings.durations?.length
+      ? Number(timings.starts[timings.starts.length - 1]) + Number(timings.durations[timings.durations.length - 1])
+      : 60);
+
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche: config.niche || "Geral",
+    totalDuration,
+    projectName: path.basename(projDir),
+    blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
+  });
+
+  const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
+  const { storyboard: nextStoryboard, report, repairedCount } = applyOverlayTimingRepair({
+    storyboard,
+    timings,
+    wordTranscripts,
+    plan: orchestrationPlan,
+    sceneStarts: sceneMaps.sceneStarts,
+    sceneDurations: sceneMaps.sceneDurations,
+  });
+
+  if (persist) {
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(nextStoryboard, null, 2), "utf8");
+  }
+
+  return { storyboard: nextStoryboard, report, repairedCount };
+}
+
+// API: Verificar timing dos overlays da IA (cena, bloco, palavra-chave na narração)
+app.get("/api/projects/overlay-timing-verify", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const repair = req.query.repair === "1";
+    const { report, repairedCount } = repairProjectOverlayTiming(projDir, { persist: repair });
+
+    res.json({
+      ok: report.ok,
+      repairApplied: repair,
+      repairedCount,
+      report,
+      issues: overlayTimingIssuesFromReport(report),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao verificar timing dos overlays", details: err.message });
+  }
+});
+
+// API: Correção automática de problemas pré-render (gancho, timing de overlays)
+app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const fixId = String(req.body?.fixId || "repair_overlay_timing").trim();
+    const autoFixIds = new Set(["shift_hook_overlays", "repair_overlay_timing"]);
+
+    if (!autoFixIds.has(fixId)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Esta correção precisa ser feita manualmente.",
+        fixId,
+        manualOnly: true,
+      });
+    }
+
+    const { repairedCount, report } = repairProjectOverlayTiming(projDir, { persist: true });
+
+    await ensureListItemsInProject(projDir, {
+      getApiKey,
+      callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+      parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projDir), label),
+      readProjectJson,
+    });
+    const qualityReport = runVideoQualityCheck(projDir, readProjectJson);
+    const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+    const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+    const workflow = analyzeSceneGaps(projDir, { config, storyboard });
+    const preRenderAdvice = buildPreRenderAdvice(qualityReport, workflow);
+
+    res.json({
+      ok: true,
+      fixId,
+      repairedCount,
+      timingReport: report,
+      ...qualityReport,
+      workflow,
+      preRenderAdvice,
+      message: repairedCount > 0
+        ? `${repairedCount} overlay(s) ajustado(s) automaticamente.`
+        : "Nenhum overlay precisou ser movido — atualize a análise.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro na correção automática", details: err.message });
+  }
+});
+
+// API: Pre-render video quality check (overlays, listicle ranks, hook pollution)
+app.get("/api/projects/video-quality", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    await ensureListItemsInProject(projDir, {
+      getApiKey,
+      callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+      parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projDir), label),
+      readProjectJson,
+    });
+    const report = runVideoQualityCheck(projDir, readProjectJson);
+    const agentConfig = loadStudioAgentsConfig(WORKSPACE_DIR);
+    let workshop = null;
+    if (agentConfig.autoCaptureOnQualityCheck) {
+      try {
+        if (!shouldSkipAutoCapture(WORKSPACE_DIR, projDir, report)) {
+          const captureResult = captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+          workshop = captureResult?.workshop || null;
+        }
+      } catch (captureErr) {
+        console.warn("[Studio Agents] Captura automática falhou:", captureErr.message);
+      }
+    }
+    const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+    const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+    const workflow = analyzeSceneGaps(projDir, { config, storyboard });
+    const preRenderAdvice = buildPreRenderAdvice(report, workflow);
+    res.json({ ...report, workflow, preRenderAdvice, workshop });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
+  }
+});
+
+// ─── Studio Agents (área separada — não altera o fluxo normal de geração) ───
+
+app.get("/api/studio-agents/status", (req, res) => {
+  try {
+    ensureDefaultSkillBundles(WORKSPACE_DIR);
+    res.json({
+      ...getDashboard(WORKSPACE_DIR),
+      obsidian: getObsidianVaultStatus(WORKSPACE_DIR),
+      skills: getSkillsRegistryStatus(WORKSPACE_DIR),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar Studio Agents", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/obsidian/status", (req, res) => {
+  try {
+    res.json(getObsidianVaultStatus(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar vault Obsidian", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/obsidian/open", async (req, res) => {
+  try {
+    ensureObsidianVault(WORKSPACE_DIR);
+    const file = String(req.body?.file || "MEMORIA-LUMIERA.md");
+    const result = await openInObsidian(WORKSPACE_DIR, file);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao abrir Obsidian", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/obsidian/graph", (req, res) => {
+  try {
+    res.json(auditVaultGraph(WORKSPACE_DIR));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao auditar grafo", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/obsidian/repair-graph", (req, res) => {
+  try {
+    const result = repairVaultGraphLinks(WORKSPACE_DIR);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao reparar grafo", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/skills", (req, res) => {
+  try {
+    ensureDefaultSkillBundles(WORKSPACE_DIR);
+    const task = String(req.query.task || "");
+    const format = String(req.query.format || "").toUpperCase() || null;
+    res.json({
+      skills: listSkills(WORKSPACE_DIR, {
+        task: task || null,
+        format: format === "SHORTS" ? "SHORT" : format === "LONGO" ? "LONG" : format,
+      }),
+      bundles: listSkillBundles(WORKSPACE_DIR),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao listar skills", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/skills/:slug", (req, res) => {
+  try {
+    const ref = req.query.ref ? String(req.query.ref) : null;
+    res.json(viewSkill(WORKSPACE_DIR, req.params.slug, ref));
+  } catch (err) {
+    res.status(404).json({ error: "Skill não encontrada", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/resolve-bundle", (req, res) => {
+  try {
+    const task = String(req.query.task || "ideas");
+    const format = String(req.query.format || "SHORT");
+    res.json(resolveBundlePreview(WORKSPACE_DIR, { task, format }));
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao resolver bundle", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/skill-workshop", (req, res) => {
+  try {
+    res.json({ proposals: listSkillWorkshopProposals(WORKSPACE_DIR) });
+  } catch (err) {
+    res.status(500).json({ error: "Erro no workshop", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/skill-workshop/:id/apply", (req, res) => {
+  try {
+    const result = applyWorkshopProposalById(WORKSPACE_DIR, req.params.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: "Falha ao aplicar proposta", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/skill-workshop/:id/reject", (req, res) => {
+  try {
+    const result = rejectWorkshopProposal(WORKSPACE_DIR, req.params.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: "Falha ao rejeitar proposta", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/learnings", (req, res) => {
+  try {
+    const niche = String(req.query.niche || "Geral");
+    const task = String(req.query.task || "overlay");
+    const format = String(req.query.format || "").toUpperCase() || null;
+    const resolvedFormat = format === "LONG" || format === "LONGO" ? "LONG" : format === "SHORT" || format === "SHORTS" ? "SHORT" : null;
+    res.json({
+      niche,
+      task,
+      format: resolvedFormat,
+      learnings: getNicheLearnings(WORKSPACE_DIR, niche, task, resolvedFormat),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar aprendizados", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/config", (req, res) => {
+  try {
+    const config = saveStudioAgentsConfig(WORKSPACE_DIR, req.body || {});
+    res.json({ ok: true, config });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar configuração", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/capture", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const report = runVideoQualityCheck(projDir, readProjectJson);
+    const result = captureQualityRun(WORKSPACE_DIR, projDir, report, "capture");
+    res.json({ ok: true, report, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao capturar execução", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/reflect", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const report = runVideoQualityCheck(projDir, readProjectJson);
+    const result = reflectProject(WORKSPACE_DIR, projDir, report);
+    res.json({ ok: true, report, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao refletir projeto", details: err.message });
+  }
+});
+
+app.get("/api/studio-agents/consolidate/preview", (req, res) => {
+  try {
+    const preview = previewConsolidation(WORKSPACE_DIR);
+    res.json(preview);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao pré-visualizar consolidação", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/consolidate", (req, res) => {
+  try {
+    const result = runConsolidation(WORKSPACE_DIR);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao consolidar memória", details: err.message });
+  }
+});
+
+app.post("/api/studio-agents/plan-overlays", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const useHyperframes = req.body?.hyperframes === true;
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw
+      ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
+      : null;
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", {});
+    const projectFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+    const learningsAddendum = buildStudioAgentsPromptAddendum(WORKSPACE_DIR, {
+      niche: config.niche || "Geral",
+      task: "overlay",
+      format: projectFormat,
+    });
+
+    let llmText = browserText;
+    if (!llmText) {
+      const planSessionId = createOverlayPlanSessionId();
+      const prompt = buildCompactOverlayPlanningPrompt(
+        projDir,
+        useHyperframes,
+        planSessionId,
+        learningsAddendum,
+      );
+      if (!prompt) {
+        return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
+      }
+
+      if (forceBrowser) {
+        const title = "Studio Agents · Planejar overlays (com memória)";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
+        console.log(`[Studio Agents] Planejamento com memória — sessão ${planSessionId}.`);
+        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+      }
+
+      const apiKey = getApiKey(projDir);
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+        });
+      }
+      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+      if (!llmText) {
+        return res.status(500).json({ error: "Falha ao consultar Gemini API para overlays (Studio Agents)." });
+      }
+    }
+
+    if (expectedPlanSession && !overlayPlanSessionMatches(llmText, expectedPlanSession)) {
+      return res.status(422).json({
+        error: "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com.",
+        overlayCount: 0,
+        staleResponse: true,
+      });
+    }
+
+    const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
+      llmText,
+      skipBrowserCache: true,
+      planningOnly: true,
+      agentMode: true,
+    });
+
+    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const cleanedAi = filterNarrationEchoOverlays(
+      Array.isArray(overlaysAi) ? overlaysAi : [],
+      blockPhrases,
+    );
+
+    if (cleanedAi.length === 0) {
+      return res.status(422).json({
+        error: "Studio Agents: overlays descartados após validação.",
+        overlayCount: 0,
+      });
+    }
+
+    const planToken = `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    storyboard.overlays_ai = JSON.parse(JSON.stringify(cleanedAi));
+    storyboard.overlays_hyperframes = useHyperframes;
+    storyboard.overlays_planned_at = new Date().toISOString();
+    storyboard.overlays_plan_token = planToken;
+    storyboard.overlays_planned_by = "studio-agents";
+    delete storyboard.overlays;
+
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    console.log(`[Studio Agents] ${cleanedAi.length} overlays planejados com memória do estúdio.`);
+
+    res.json({
+      ok: true,
+      overlayCount: cleanedAi.length,
+      planToken,
+      plannedBy: "studio-agents",
+      learningsApplied: Boolean(learningsAddendum),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Falha no planejamento Studio Agents." });
+  }
+});
+
+// API: Wizard session — persistência do passo a passo do Creator (sobrevive a F5)
+app.get("/api/projects/wizard-session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const sessionPath = path.join(projDir, "wizard_session.json");
+    if (!fs.existsSync(sessionPath)) {
+      return res.json({ session: null });
+    }
+    const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+    res.json({ session, project: path.basename(projDir) });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar sessão do wizard", details: err.message });
+  }
+});
+
+app.put("/api/projects/wizard-session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const session = req.body;
+    if (!session || typeof session !== "object") {
+      return res.status(400).json({ error: "Corpo da sessão inválido." });
+    }
+    const payload = {
+      ...session,
+      version: session.version || 1,
+      savedAt: new Date().toISOString(),
     };
-    res.json(scanDir(assetsDir));
+    fs.writeFileSync(path.join(projDir, "wizard_session.json"), JSON.stringify(payload, null, 2), "utf8");
+    res.json({ ok: true, savedAt: payload.savedAt });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao salvar sessão do wizard", details: err.message });
+  }
+});
+
+app.delete("/api/projects/wizard-session", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const sessionPath = path.join(projDir, "wizard_session.json");
+    if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao limpar sessão do wizard", details: err.message });
+  }
+});
+
+// API: Save storyboard data
+
+app.post("/api/projects/storyboard", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const storyboardData = req.body;
+
+  if (!storyboardData || !storyboardData.visual_prompts) {
+
+    return res.status(400).json({ error: "Dados do storyboard inválidos." });
+
+  }
+
+  const storyboardPath = path.join(projDir, "storyboard.json");
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+
+  try {
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboardData, null, 2), "utf8");
+
+    const visualPrompts = storyboardData.visual_prompts || [];
+
+    const narrativeText = visualPrompts.map(vp => vp.narration_text || "").filter(Boolean).join("\n\n");
+
+    fs.writeFileSync(transcriptPath, narrativeText, "utf8");
+
+    let config = {};
+
+    if (fs.existsSync(configPath)) {
+
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+    }
+
+    const blockPhrasesMap = {};
+
+    visualPrompts.forEach(vp => {
+
+      if (vp.block && vp.narration_text) {
+
+        if (!blockPhrasesMap[vp.block]) {
+
+          blockPhrasesMap[vp.block] = [];
+
+        }
+
+        blockPhrasesMap[vp.block].push(vp.narration_text);
+
+      }
+
+    });
+
+    const blockPhrases = Object.keys(blockPhrasesMap).map(b => ({
+
+      block: parseInt(b),
+
+      phrase: blockPhrasesMap[b].join(" ")
+
+    }));
+
+    config.block_phrases = blockPhrases;
+
+    // Merge storyboard assets into timeline_assets — preserve user timing edits (fixed, audio_start)
+
+    const existingTimelineAssets = config.timeline_assets || {};
+    const nextTimelineAssets = { ...existingTimelineAssets };
+    const blockCounters = {};
+
+    visualPrompts.forEach((vp) => {
+      const blockNum = vp.block || 1;
+      const blockKey = String(blockNum);
+      if (!nextTimelineAssets[blockKey]) nextTimelineAssets[blockKey] = [];
+      if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
+      const assetIdx = blockCounters[blockKey]++;
+      const existing = (existingTimelineAssets[blockKey] || [])[assetIdx];
+      const fromStoryboard = vp.asset && vp.asset.asset ? vp.asset : null;
+
+      if (existing && fromStoryboard) {
+        nextTimelineAssets[blockKey][assetIdx] = {
+          ...existing,
+          asset: fromStoryboard.asset || existing.asset,
+          type: fromStoryboard.type || existing.type,
+          ...(fromStoryboard.fixed !== undefined ? { fixed: fromStoryboard.fixed } : {}),
+        };
+      } else if (existing) {
+        nextTimelineAssets[blockKey][assetIdx] = existing;
+      } else if (fromStoryboard) {
+        nextTimelineAssets[blockKey][assetIdx] = fromStoryboard;
+      } else {
+        nextTimelineAssets[blockKey][assetIdx] = {};
+      }
+    });
+
+    config.timeline_assets = nextTimelineAssets;
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    res.json({ success: true, message: "Roteiro e storyboard salvos com sucesso!" });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao salvar o storyboard", details: err.message });
+
+  }
+
+});
+
+// API: Limpar cache temporário do Remotion (public/projects — cópias de assets para render)
+app.post("/api/render/cleanup-public-cache", (req, res) => {
+  try {
+    const result = purgeRemotionPublicProjectCache();
+    res.json({
+      ok: true,
+      removed: result.removed,
+      freedMb: result.freedMb,
+      message: result.removed > 0
+        ? `${result.removed} pasta(s) de cache removida(s), ~${result.freedMb} MB liberados.`
+        : "Nenhum cache antigo encontrado em public/projects.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Falha ao limpar cache Remotion", details: err.message });
+  }
+});
+
+// GET /api/render/config
+
+app.get("/api/render/config", (req, res) => {
+
+  try {
+
+    const data = ensureBrandCatalogMigrated(WORKSPACE_DIR, __dirname);
+
+    res.json(data);
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao ler configurações globais." });
+
+  }
+
+});
+
+// POST /api/render/config
+
+app.post("/api/render/config", (req, res) => {
+
+  const configData = req.body || {};
+
+  try {
+
+    const existing = loadRenderConfig(__dirname);
+    const merged = {
+      ...existing,
+      ...configData,
+      brandLogos: configData.brandLogos ?? existing.brandLogos,
+      youtubeChannels: configData.youtubeChannels ?? existing.youtubeChannels,
+      selectedLogoId: configData.selectedLogoId ?? existing.selectedLogoId,
+      selectedYoutubeChannelId: configData.selectedYoutubeChannelId ?? existing.selectedYoutubeChannelId,
+    };
+    saveRenderConfig(__dirname, merged);
+
+    res.json({ success: true, message: "Configurações globais salvas com sucesso." });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao salvar configurações globais." });
+
+  }
+
+});
+
+function getGlobalApiKeysStatus() {
+  const cfg = loadRenderConfig(__dirname);
+  const epidemic = (cfg.epidemic_sound_key || process.env.EPIDEMIC_SOUND_API_KEY || "").trim();
+  return {
+    has_epidemic_key: epidemic.length > 100,
+    has_pexels_key: !!(cfg.pexels_api_key || "").trim(),
+    has_pixabay_key: !!(cfg.pixabay_api_key || "").trim(),
+  };
+}
+
+app.get("/api/settings/global-api-keys", (req, res) => {
+  try {
+    res.json(getGlobalApiKeysStatus());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// API: Binary stream upload for narration audio file
-app.post("/api/upload-narration", (req, res) => {
-  const projDir = getProjectDir(req);
-  const narrationFile = path.join(projDir, "narracao_mestra_premium.mp3");
-  const writeStream = fs.createWriteStream(narrationFile);
-  
-  req.pipe(writeStream);
-  
-  writeStream.on("finish", () => {
-    res.json({ success: true, message: "Narração enviada e salva com sucesso!" });
-  });
-  
-  writeStream.on("error", (err) => {
-    res.status(500).json({ error: "Erro ao escrever arquivo de narração", details: err.message });
-  });
-});
-
-// API: Binary stream upload for background music
-app.post("/api/upload-bgm", (req, res) => {
-  const projDir = getProjectDir(req);
-  const { block, filename } = req.query;
-  
-  if (!filename) {
-    return res.status(400).json({ error: "O parâmetro filename é obrigatório." });
-  }
-
-  const safeFilename = path.basename(filename);
-  const destFilePath = path.join(projDir, safeFilename);
-  const writeStream = fs.createWriteStream(destFilePath);
-
-  req.pipe(writeStream);
-
-  writeStream.on("finish", () => {
-    try {
-      if (block) {
-        const configPath = path.join(projDir, "config_qanat.json");
-        let config = {};
-        if (fs.existsSync(configPath)) {
-          config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-        }
-
-        if (!config.bgm_mappings) {
-          config.bgm_mappings = [];
-        }
-
-        const blockNum = parseInt(block, 10);
-        const existingIdx = config.bgm_mappings.findIndex(m => m.block === blockNum);
-        if (existingIdx !== -1) {
-          config.bgm_mappings[existingIdx].file = safeFilename;
-        } else {
-          config.bgm_mappings.push({ block: blockNum, file: safeFilename });
-        }
-
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      }
-
-      res.json({
-        success: true,
-        message: `Música ${safeFilename} enviada com sucesso!`,
-        file: safeFilename
-      });
-    } catch (err) {
-      res.status(500).json({ error: "Erro ao atualizar configuração de trilhas", details: err.message });
+app.post("/api/settings/global-api-keys", (req, res) => {
+  try {
+    const { epidemic_sound_key, pexels_api_key, pixabay_api_key } = req.body || {};
+    const cfg = loadRenderConfig(__dirname);
+    if (typeof epidemic_sound_key === "string" && epidemic_sound_key.trim()) {
+      cfg.epidemic_sound_key = epidemic_sound_key.trim();
     }
-  });
-
-  writeStream.on("error", (err) => {
-    res.status(500).json({ error: "Erro ao escrever arquivo de música", details: err.message });
-  });
+    if (typeof pexels_api_key === "string" && pexels_api_key.trim()) {
+      cfg.pexels_api_key = pexels_api_key.trim();
+    }
+    if (typeof pixabay_api_key === "string" && pixabay_api_key.trim()) {
+      cfg.pixabay_api_key = pixabay_api_key.trim();
+    }
+    saveRenderConfig(__dirname, cfg);
+    res.json({ success: true, ...getGlobalApiKeysStatus() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// API: Binary stream upload for specific scene asset (saved in ASSETS/cena_scene.ext and updated in config)
-app.post("/api/upload-scene-asset", (req, res) => {
+// API: List background music tracks
+
+app.get("/api/music", (req, res) => {
+
   const projDir = getProjectDir(req);
-  const { scene, type, filename, idx } = req.query;
-  if (!scene || !type || !filename) {
-    return res.status(400).json({ error: "Parâmetros scene, type e filename são obrigatórios." });
+
+  try {
+
+    const files = fs.readdirSync(projDir)
+
+      .filter(f => {
+
+        const lower = f.toLowerCase();
+
+        return (lower.endsWith(".mp3") || lower.endsWith(".wav")) && lower !== "narracao_mestra_premium.mp3" && !["1.mp3", "2.mp3", "3.mp3"].includes(lower);
+
+      })
+
+      .map(f => {
+
+        const stats = fs.statSync(path.join(projDir, f));
+
+        return {
+
+          name: f,
+
+          sizeBytes: stats.size
+
+        };
+
+      });
+
+    res.json(files);
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
   }
 
-  const ext = path.extname(filename).toLowerCase() || (type === "video" ? ".mp4" : ".png");
-  const assetsDir = path.join(projDir, "ASSETS");
-  if (!fs.existsSync(assetsDir)) {
-    fs.mkdirSync(assetsDir, { recursive: true });
+});
+
+const AUDIO_TRACK_EXTENSIONS = new Set([".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"]);
+
+const PROTECTED_AUDIO_FILES = new Set([
+
+  "narracao_mestra_premium.mp3",
+
+  "narracao_master.mp3",
+
+  "voiceover.mp3",
+
+  "1.mp3",
+
+  "2.mp3",
+
+  "3.mp3"
+
+]);
+
+function isDeletableBgmFile(fileName) {
+
+  const safeName = path.basename(String(fileName || ""));
+
+  const lower = safeName.toLowerCase();
+
+  return (
+
+    safeName &&
+
+    safeName === fileName &&
+
+    AUDIO_TRACK_EXTENSIONS.has(path.extname(lower)) &&
+
+    !PROTECTED_AUDIO_FILES.has(lower)
+
+  );
+
+}
+
+function clearBgmReferences(projDir, removedNames) {
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  const config = readJsonFile(configPath);
+
+  if (!config) return;
+
+  const removed = new Set(removedNames.map(name => String(name).toLowerCase()));
+
+  let changed = false;
+
+  if (Array.isArray(config.bgm_mappings)) {
+
+    const nextMappings = config.bgm_mappings.filter(mapping => !removed.has(String(mapping.file || "").toLowerCase()));
+
+    changed = changed || nextMappings.length !== config.bgm_mappings.length;
+
+    config.bgm_mappings = nextMappings;
+
   }
 
-  const safeFilename = path.basename(filename).replace(/[^a-zA-Z0-9.-]/g, "_");
-  const destFileName = idx !== undefined ? safeFilename : `cena_${scene}${ext}`;
-  const destFilePath = path.join(assetsDir, destFileName);
-  const writeStream = fs.createWriteStream(destFilePath);
+  if (config.single_bgm && removed.has(String(config.single_bgm).toLowerCase())) {
 
-  req.pipe(writeStream);
+    config.single_bgm = "";
 
-  writeStream.on("finish", () => {
-    const configPath = path.join(projDir, "config_qanat.json");
-    try {
-      let config = {};
-      if (fs.existsSync(configPath)) {
-        config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      }
+    config.use_single_bgm = false;
 
-      if (!config.timeline_assets) {
-        config.timeline_assets = {};
-      }
+    changed = true;
 
-      const assetItem = {
-        asset: destFileName,
-        type: type === "video" ? "video" : "image"
-      };
-      if (type === "video") {
-        assetItem.fixed = 8.00;
-      }
+  }
 
-      if (idx !== undefined) {
-        const blockKey = String(scene);
-        if (!config.timeline_assets[blockKey]) {
-          config.timeline_assets[blockKey] = [];
+  if (changed) {
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+  }
+
+}
+
+function clearAudioReferences(projDir, removedNames) {
+
+  clearBgmReferences(projDir, removedNames);
+
+  const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
+
+  const sfxTimeline = readJsonFile(sfxTimelinePath);
+
+  if (!sfxTimeline || !Array.isArray(sfxTimeline.sfx_events)) return;
+
+  const removed = new Set(removedNames.map(name => String(name).toLowerCase()));
+
+  const nextEvents = sfxTimeline.sfx_events.filter(event => !removed.has(String(event.file || "").toLowerCase()));
+
+  if (nextEvents.length !== sfxTimeline.sfx_events.length) {
+
+    sfxTimeline.sfx_events = nextEvents;
+
+    fs.writeFileSync(sfxTimelinePath, JSON.stringify(sfxTimeline, null, 2), "utf8");
+
+  }
+
+}
+
+function deleteProjectAudioFile(projDir, fileName) {
+
+  if (!isDeletableBgmFile(fileName)) {
+
+    const err = new Error("Arquivo de audio invalido ou protegido.");
+
+    err.statusCode = 400;
+
+    throw err;
+
+  }
+
+  const root = path.resolve(projDir);
+
+  const targetPath = path.resolve(projDir, fileName);
+
+  if (!targetPath.startsWith(root + path.sep)) {
+
+    const err = new Error("Caminho invalido.");
+
+    err.statusCode = 400;
+
+    throw err;
+
+  }
+
+  if (!fs.existsSync(targetPath)) {
+
+    const err = new Error("Arquivo de audio nao encontrado.");
+
+    err.statusCode = 404;
+
+    throw err;
+
+  }
+
+  fs.unlinkSync(targetPath);
+
+  clearAudioReferences(projDir, [fileName]);
+
+  return fileName;
+
+}
+
+// API: Delete one background music track
+
+app.delete("/api/music/:filename", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  try {
+
+    const deleted = deleteProjectAudioFile(projDir, req.params.filename);
+
+    res.json({ success: true, deleted: [deleted] });
+
+  } catch (err) {
+
+    res.status(err.statusCode || 500).json({ error: err.message });
+
+  }
+
+});
+
+app.post("/api/music/delete", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  try {
+
+    const deleted = deleteProjectAudioFile(projDir, req.body?.filename);
+
+    res.json({ success: true, deleted: [deleted] });
+
+  } catch (err) {
+
+    res.status(err.statusCode || 500).json({ error: err.message });
+
+  }
+
+});
+
+// API: Delete all user/downloaded background music tracks from the current project
+
+app.delete("/api/music", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  try {
+
+    const deleted = [];
+
+    for (const fileName of fs.readdirSync(projDir)) {
+
+      if (!isDeletableBgmFile(fileName)) continue;
+
+      deleted.push(deleteProjectAudioFile(projDir, fileName));
+
+    }
+
+    res.json({ success: true, deleted });
+
+  } catch (err) {
+
+    res.status(err.statusCode || 500).json({ error: err.message });
+
+  }
+
+});
+
+app.post("/api/music/delete-all", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  try {
+
+    const deleted = [];
+
+    for (const fileName of fs.readdirSync(projDir)) {
+
+      if (!isDeletableBgmFile(fileName)) continue;
+
+      deleted.push(deleteProjectAudioFile(projDir, fileName));
+
+    }
+
+    res.json({ success: true, deleted });
+
+  } catch (err) {
+
+    res.status(err.statusCode || 500).json({ error: err.message });
+
+  }
+
+});
+
+// API: Mix soundtrack (runs mix_bgm.py)
+
+app.post("/api/music/mix", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  ensureFileExists("mix_bgm.py", projDir);
+
+  const scriptPath = path.join(projDir, "mix_bgm.py");
+
+  if (!fs.existsSync(scriptPath)) {
+
+    return res.status(404).json({ error: "mix_bgm.py não encontrado" });
+
+  }
+
+  const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+
+    cwd: projDir,
+
+    shell: true,
+
+    env: { ...process.env, PYTHONUNBUFFERED: "1" }
+
+  });
+
+  let stdout = "";
+
+  let stderr = "";
+
+  child.stdout.on("data", (data) => {
+
+    stdout += data.toString();
+
+  });
+
+  child.stderr.on("data", (data) => {
+
+    stderr += data.toString();
+
+  });
+
+  child.on("close", (code) => {
+
+    if (code === 0) {
+
+      res.json({ success: true, log: stdout });
+
+    } else {
+
+      res.status(500).json({ error: "Erro na mixagem", log: stdout, details: stderr });
+
+    }
+
+  });
+
+});
+
+// API: Search music/SFX on Epidemic Sound MCP
+
+app.get("/api/epidemic/search", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  const { query, type } = req.query;
+
+  if (!query) {
+
+    return res.status(400).json({ error: "O termo de busca (query) é obrigatório." });
+
+  }
+
+  try {
+
+    if (type === "sfx") {
+
+      const results = await searchSoundEffects(token, query);
+
+      res.json(results);
+
+    } else {
+
+      const results = await searchMusic(token, query);
+
+      res.json(results);
+
+    }
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao buscar na Epidemic Sound", details: err.message });
+
+  }
+
+});
+
+// API: Download track/SFX and auto-map
+
+app.post("/api/epidemic/download", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  const { id, type, title, block, previewUrl } = req.body;
+
+  if (!id || !type) {
+
+    return res.status(400).json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
+
+  }
+
+  try {
+
+    const safeTitle = (title || `audio_${id}`).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    if (type === "sfx") {
+
+      // Save SFX directly to project ASSETS folder
+
+      const assetsDir = path.join(projDir, "ASSETS");
+
+      fs.mkdirSync(assetsDir, { recursive: true });
+
+      const filename = `sfx_${safeTitle}.mp3`;
+
+      const destPath = path.join(assetsDir, filename);
+
+      await downloadSoundEffect(token, id, destPath, previewUrl);
+
+      res.json({ success: true, filename, type: "sfx", message: `Efeito sonoro baixado e salvo em ASSETS/${filename}` });
+
+    } else {
+
+      // Save BGM directly to project folder
+
+      const filename = `ES_${safeTitle}.mp3`;
+
+      const destPath = path.join(projDir, filename);
+
+      await downloadMusicTrack(token, id, destPath, previewUrl);
+
+      // Auto-map BGM based on block
+
+      const configPath = path.join(projDir, "config_qanat.json");
+
+      let config = readJsonFile(configPath) || {};
+
+      if (block !== undefined && block > 0) {
+
+        // Map BGM to specific block
+
+        if (!Array.isArray(config.bgm_mappings)) {
+
+          config.bgm_mappings = [];
+
         }
-        const assetIdx = parseInt(idx, 10);
-        config.timeline_assets[blockKey][assetIdx] = assetItem;
+
+        // Remove existing mapping for this block if any
+
+        config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== Number(block));
+
+        config.bgm_mappings.push({
+
+          block: Number(block),
+
+          file: filename
+
+        });
+
+        config.bgm_mappings.sort((a, b) => a.block - b.block);
+
+        config.use_single_bgm = false;
+
+        console.log(`[Epidemic MCP] Auto-mapped BGM ${filename} to block ${block}`);
+
       } else {
-        // Extract block number (integer part) from scene number (e.g. "6" from "6.3")
-        const blockKey = String(Math.floor(parseFloat(scene)));
-        if (!config.timeline_assets[blockKey]) {
-          config.timeline_assets[blockKey] = [];
-        }
-        config.timeline_assets[blockKey].push(assetItem);
+
+        // Map BGM as single BGM
+
+        config.single_bgm = filename;
+
+        config.use_single_bgm = true;
+
+        console.log(`[Epidemic MCP] Auto-mapped BGM ${filename} as single soundtrack`);
+
       }
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      
-      res.json({ 
-        success: true, 
-        message: `Arquivo ${destFileName} salvo e vinculado ao Bloco/Cena ${scene} com sucesso!`,
-        asset: destFileName
+
+      res.json({
+
+        success: true,
+
+        filename,
+
+        type: "bgm",
+
+        message: `Música baixada e mapeada com sucesso: ${filename}`
+
       });
-    } catch (err) {
-      res.status(500).json({ error: "Erro ao salvar na configuração", details: err.message });
+
     }
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao baixar arquivo da Epidemic Sound", details: err.message });
+
+  }
+
+});
+
+// Helper: Translate Portuguese query terms to English and sanitize for Epidemic Sound search
+
+function translateOrCleanQuery(query) {
+
+  if (!query) return "cinematic mystery";
+
+  let q = query.toLowerCase();
+
+  const translations = {
+
+    "misterioso": "mysterious",
+
+    "misteriosa": "mysterious",
+
+    "mistério": "mystery",
+
+    "misterio": "mystery",
+
+    "tensão": "tension",
+
+    "tensao": "tension",
+
+    "triste": "sad",
+
+    "tristeza": "sadness",
+
+    "alegre": "happy",
+
+    "feliz": "happy",
+
+    "épico": "epic",
+
+    "epico": "epic",
+
+    "épica": "epic",
+
+    "epica": "epic",
+
+    "ação": "action",
+
+    "acao": "action",
+
+    "documentário": "documentary",
+
+    "documentario": "documentary",
+
+    "sombrio": "dark",
+
+    "sombria": "dark",
+
+    "escuro": "dark",
+
+    "leve": "light",
+
+    "suave": "soft",
+
+    "rápido": "fast",
+
+    "rapido": "fast",
+
+    "lento": "slow",
+
+    "percussão": "percussion",
+
+    "percussao": "percussion",
+
+    "bateria": "drums",
+
+    "cordas": "strings",
+
+    "piano": "piano",
+
+    "flauta": "flute",
+
+    "suspeito": "suspense",
+
+    "suspense": "suspense",
+
+    "dramático": "dramatic",
+
+    "dramatico": "dramatic",
+
+    "dramática": "dramatic",
+
+    "dramatica": "dramatic",
+
+    "urgente": "urgent",
+
+    "urgência": "urgent",
+
+    "urgencia": "urgent",
+
+    "clímax": "climax",
+
+    "climax": "climax",
+
+    "final": "ending",
+
+    "fechamento": "outro",
+
+    "abertura": "intro",
+
+    "introdução": "intro",
+
+    "introducao": "intro",
+
+    "crescente": "building",
+
+    "esferas": "spheres",
+
+    "bronze": "bronze",
+
+    "vento": "wind",
+
+    "deserto": "desert",
+
+    "areias": "sand",
+
+    "antigo": "ancient",
+
+    "antiga": "ancient"
+
+  };
+
+  for (const [pt, en] of Object.entries(translations)) {
+
+    const regex = new RegExp(`\\b${pt}\\b`, "g");
+
+    q = q.replace(regex, en);
+
+  }
+
+  q = q.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ");
+
+  q = q.replace(/\s+/g, " ").trim();
+
+  return q;
+
+}
+
+function normalizeAudioChoiceKey(value) {
+
+  return String(value || "")
+
+    .toLowerCase()
+
+    .replace(/^es_/, "")
+
+    .replace(/\.(mp3|wav|m4a|aac|flac|ogg)$/i, "")
+
+    .replace(/[^a-z0-9]+/g, " ")
+
+    .trim();
+
+}
+
+function makeEpidemicFilename(title) {
+
+  return `ES_${String(title || "track").replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
+
+}
+
+function collectExistingAutoBgmKeys(projDir, config) {
+
+  const keys = new Set();
+
+  try {
+
+    for (const fileName of fs.readdirSync(projDir)) {
+
+      if (/^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName)) {
+
+        keys.add(normalizeAudioChoiceKey(fileName));
+
+      }
+
+    }
+
+  } catch (err) {}
+
+  if (config?.single_bgm) {
+
+    keys.add(normalizeAudioChoiceKey(config.single_bgm));
+
+  }
+
+  if (Array.isArray(config?.bgm_mappings)) {
+
+    for (const mapping of config.bgm_mappings) {
+
+      if (mapping?.file) keys.add(normalizeAudioChoiceKey(mapping.file));
+
+    }
+
+  }
+
+  return keys;
+
+}
+
+function deleteGeneratedBgmCycleFiles(projDir) {
+
+  const deleted = [];
+
+  try {
+
+    for (const fileName of fs.readdirSync(projDir)) {
+
+      const isGeneratedBgm = /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName) || fileName === "trilha_documentario.mp3";
+
+      if (!isGeneratedBgm) continue;
+
+      const targetPath = path.resolve(projDir, fileName);
+
+      if (!targetPath.startsWith(path.resolve(projDir) + path.sep)) continue;
+
+      fs.unlinkSync(targetPath);
+
+      deleted.push(fileName);
+
+    }
+
+  } catch (err) {}
+
+  return deleted;
+
+}
+
+function pickFreshTrack(tracks, usedKeys, excludedKeys, block) {
+
+  const candidates = (tracks || []).filter((track) => {
+
+    const titleKey = normalizeAudioChoiceKey(track.title);
+
+    const fileKey = normalizeAudioChoiceKey(makeEpidemicFilename(track.title));
+
+    const idKey = String(track.id || "").toLowerCase();
+
+    return (
+
+      titleKey &&
+
+      !usedKeys.has(titleKey) &&
+
+      !usedKeys.has(fileKey) &&
+
+      !usedKeys.has(idKey) &&
+
+      !excludedKeys.has(titleKey) &&
+
+      !excludedKeys.has(fileKey) &&
+
+      !excludedKeys.has(idKey)
+
+    );
+
+  });
+
+  if (candidates.length === 0) return null;
+
+  // Do not always take position 0; the Epidemic API often returns the same safe top results.
+
+  const rotatedIndex = Math.min(candidates.length - 1, Math.abs(Number(block) || 1) % Math.min(candidates.length, 4));
+
+  return candidates[rotatedIndex];
+
+}
+
+// Helper: Run automated soundtrack selection and download logic
+
+async function runAutoSoundtrackLogic(projDir, token, mode) {
+
+  const bgmSuggestionsPath = path.join(projDir, "storyboard.json");
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  let config = readJsonFile(configPath) || {};
+
+  const logs = [];
+
+  if (!fs.existsSync(bgmSuggestionsPath)) {
+
+    logs.push("storyboard.json ausente. Download automatico de BGM ignorado para evitar trilha generica fora de contexto.");
+
+    return logs;
+
+  }
+
+  const storyboard = JSON.parse(fs.readFileSync(bgmSuggestionsPath, "utf8"));
+
+  const previousAutoBgmKeys = collectExistingAutoBgmKeys(projDir, config);
+
+  if (mode === "SHORTS" || config.use_single_bgm) {
+
+    let rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
+
+    if (!String(rawSearchTheme).trim()) {
+      const mood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+      rawSearchTheme = mood.bgm;
+      logs.push(`Tema BGM inferido pelo nicho (${mood.label}): "${rawSearchTheme}"`);
+    }
+
+    const searchTheme = translateOrCleanQuery(rawSearchTheme);
+
+    logs.push(`Buscando trilha única para o tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
+
+    try {
+
+      const removed = deleteGeneratedBgmCycleFiles(projDir);
+
+      if (removed.length > 0) {
+
+        logs.push(`Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher uma nova trilha.`);
+
+      }
+
+      let tracks = await searchMusic(token, searchTheme);
+
+      const track = pickFreshTrack(tracks, new Set(), previousAutoBgmKeys, 1);
+
+      if (track) {
+
+        const filename = makeEpidemicFilename(track.title);
+
+        const destPath = path.join(projDir, filename);
+
+        logs.push(`Baixando faixa: "${track.title}"...`);
+
+        await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
+
+        config.single_bgm = filename;
+
+        config.use_single_bgm = true;
+
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+        logs.push(`Sucesso! Trilha única mapeada: ${filename}`);
+
+      } else {
+
+        logs.push(`Nenhuma música encontrada para o tema "${searchTheme}".`);
+
+      }
+
+    } catch (err) {
+
+      logs.push(`Erro ao buscar/baixar trilha única: ${err.message}`);
+
+      throw err;
+
+    }
+
+  } else {
+
+    const suggestions = storyboard.bgm_recommendations || [];
+
+    if (suggestions.length === 0) {
+
+      logs.push("bgm_recommendations vazio. Nenhum download automatico feito para evitar trilhas genericas e repetidas.");
+
+      return logs;
+
+    }
+
+    logs.push(`Processando ${suggestions.length} blocos para download automático...`);
+
+    const removed = deleteGeneratedBgmCycleFiles(projDir);
+
+    if (removed.length > 0) {
+
+      logs.push(`Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher novas trilhas.`);
+
+    }
+
+    config.bgm_mappings = [];
+
+    config.use_single_bgm = false;
+
+    config.single_bgm = "";
+
+    const usedTracks = new Set();
+
+    for (const sug of suggestions) {
+
+      const block = Number(sug.block || 1);
+
+      const rawSearchTheme = sug.search_theme || sug.recommendation || "";
+
+      if (!String(rawSearchTheme).trim()) {
+
+        logs.push(`[Bloco ${block}] Sem tema/recomendacao de BGM. Ignorado.`);
+
+        continue;
+
+      }
+
+      const searchTheme = translateOrCleanQuery(rawSearchTheme);
+
+      logs.push(`[Bloco ${block}] Buscando por tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
+
+      try {
+
+        let tracks = await searchMusic(token, searchTheme);
+
+        const track = pickFreshTrack(tracks, usedTracks, previousAutoBgmKeys, block);
+
+        if (track) {
+
+          usedTracks.add(String(track.id || "").toLowerCase());
+
+          usedTracks.add(normalizeAudioChoiceKey(track.title));
+
+          usedTracks.add(normalizeAudioChoiceKey(makeEpidemicFilename(track.title)));
+
+          const filename = makeEpidemicFilename(track.title);
+
+          const destPath = path.join(projDir, filename);
+
+          logs.push(`[Bloco ${block}] Baixando: "${track.title}"...`);
+
+          await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
+
+          config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== block);
+
+          config.bgm_mappings.push({ block, file: filename });
+
+          logs.push(`[Bloco ${block}] Mapeada com sucesso: ${filename}`);
+
+        } else {
+
+          logs.push(`[Bloco ${block}] Nenhuma musica nova encontrada para o tema "${searchTheme}".`);
+
+        }
+
+      } catch (e) {
+
+        logs.push(`[Bloco ${block}] Erro ao processar: ${e.message}`);
+
+      }
+
+    }
+
+    config.bgm_mappings.sort((a, b) => a.block - b.block);
+
+    config.use_single_bgm = false;
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    logs.push("Download e mapeamento por blocos concluído!");
+
+  }
+
+  return logs;
+
+}
+
+// API: Auto-soundtrack project blocks using AI recommendations search themes
+
+app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  try {
+
+    const { mode } = req.body;
+
+    const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+
+    res.json({ success: true, logs });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro no processo de automação de trilha", details: err.message });
+
+  }
+
+});
+
+// Helper: Ensure all mapped BGM files are downloaded from Epidemic Sound before rendering
+
+async function ensureProjectBgmTracks(projDir) {
+
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  if (!fs.existsSync(configPath)) return;
+
+  let config = {};
+
+  try {
+
+    config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+  } catch (e) {
+
+    return;
+
+  }
+
+  // Check if BGM mappings are completely empty
+
+  const hasMappings = (config.use_single_bgm && config.single_bgm) || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length > 0);
+
+  if (!hasMappings) {
+
+    console.log("[BGM Auto-Fetch] Nenhum mapeamento de trilha sonora encontrado. Executando sonoplastia inteligente automática...");
+
+    try {
+
+      await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
+
+      config = JSON.parse(fs.readFileSync(configPath, "utf8")); // reload config
+
+    } catch (err) {
+
+      console.error("[BGM Auto-Fetch] Falha na sonoplastia automática pré-render:", err.message);
+
+    }
+
+  }
+
+  const filesToDownload = [];
+
+  if (config.use_single_bgm && config.single_bgm) {
+
+    filesToDownload.push(config.single_bgm);
+
+  } else if (Array.isArray(config.bgm_mappings)) {
+
+    for (const m of config.bgm_mappings) {
+
+      if (m.file) filesToDownload.push(m.file);
+
+    }
+
+  }
+
+  for (const filename of filesToDownload) {
+
+    const destPath = path.join(projDir, filename);
+
+    if (!fs.existsSync(destPath)) {
+
+      console.log(`[BGM Auto-Fetch] Arquivo ${filename} ausente. Tentando baixar do Epidemic Sound...`);
+
+      let cleanTitle = filename;
+
+      if (cleanTitle.startsWith("ES_")) {
+
+        cleanTitle = cleanTitle.substring(3);
+
+      }
+
+      if (cleanTitle.endsWith(".mp3")) {
+
+        cleanTitle = cleanTitle.substring(0, cleanTitle.length - 4);
+
+      }
+
+      cleanTitle = cleanTitle.replace(/_/g, " ").trim();
+
+      try {
+
+        const tracks = await searchMusic(token, cleanTitle);
+
+        if (tracks.length > 0) {
+
+          const track = tracks[0];
+
+          console.log(`[BGM Auto-Fetch] Baixando "${track.title}" para ${filename}...`);
+
+          await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
+
+        }
+
+      } catch (err) {
+
+        console.error(`[BGM Auto-Fetch] Falha ao baixar ${filename}:`, err.message);
+
+      }
+
+    }
+
+  }
+
+}
+
+function sanitizeProjectBlockTimings(projDir) {
+
+  const timingsPath = path.join(projDir, "block_timings.json");
+
+  if (!fs.existsSync(timingsPath)) {
+
+    return { changed: false, message: "" };
+
+  }
+
+  let timings;
+
+  try {
+
+    timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+
+  } catch (err) {
+
+    return { changed: false, message: `block_timings.json invalido: ${err.message}` };
+
+  }
+
+  const starts = Array.isArray(timings.starts) ? timings.starts.map(Number) : [];
+
+  const durations = Array.isArray(timings.durations) ? timings.durations.map(Number) : [];
+
+  const blockCount = Math.max(starts.length, durations.length);
+
+  if (blockCount === 0) {
+
+    return { changed: false, message: "" };
+
+  }
+
+  const totalFromFile = Number(timings.total_duration);
+
+  const finitePositiveDurations = durations.filter(value => Number.isFinite(value) && value > 0.25);
+
+  const fallbackDuration = finitePositiveDurations.length
+
+    ? finitePositiveDurations.reduce((sum, value) => sum + value, 0) / finitePositiveDurations.length
+
+    : 8;
+
+  const totalDuration = Number.isFinite(totalFromFile) && totalFromFile > 0
+
+    ? totalFromFile
+
+    : Math.max(1, finitePositiveDurations.reduce((sum, value) => sum + value, 0));
+
+  let maxSeenStart = -Infinity;
+
+  const unreliable = [];
+
+  const sanitizedDurations = [];
+
+  for (let i = 0; i < blockCount; i++) {
+
+    const start = starts[i];
+
+    const duration = durations[i];
+
+    const startIsOutOfOrder = Number.isFinite(start) && start + 0.05 < maxSeenStart;
+
+    const durationIsInvalid = !Number.isFinite(duration) || duration <= 0.25;
+
+    const durationIsSuspicious = Number.isFinite(duration) && blockCount > 3 && duration > totalDuration * 0.4;
+
+    if (Number.isFinite(start) && start > maxSeenStart) {
+
+      maxSeenStart = start;
+
+    }
+
+    if (startIsOutOfOrder || durationIsInvalid || durationIsSuspicious) {
+
+      unreliable.push(i);
+
+      sanitizedDurations[i] = null;
+
+    } else {
+
+      sanitizedDurations[i] = duration;
+
+    }
+
+  }
+
+  if (unreliable.length === 0) {
+
+    return { changed: false, message: "" };
+
+  }
+
+  const reliableTotal = sanitizedDurations.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+
+  const remaining = Math.max(unreliable.length * 1, totalDuration - reliableTotal);
+
+  const replacementDuration = Math.max(1, remaining / unreliable.length || fallbackDuration);
+
+  for (const index of unreliable) {
+
+    sanitizedDurations[index] = replacementDuration;
+
+  }
+
+  const sanitizedStarts = [];
+
+  let cursor = 0;
+
+  for (let i = 0; i < blockCount; i++) {
+
+    sanitizedStarts.push(Number(cursor.toFixed(3)));
+
+    sanitizedDurations[i] = Number(Math.max(0.5, sanitizedDurations[i]).toFixed(3));
+
+    cursor += sanitizedDurations[i];
+
+  }
+
+  const sanitized = {
+
+    ...timings,
+
+    starts: sanitizedStarts,
+
+    durations: sanitizedDurations,
+
+    total_duration: Number(cursor.toFixed(3))
+
+  };
+
+  fs.writeFileSync(timingsPath, JSON.stringify(sanitized, null, 2), "utf8");
+
+  return {
+
+    changed: true,
+
+    message: `block_timings corrigido: ${unreliable.length} bloco(s) com tempo invalido ou fora de ordem.`
+
+  };
+
+}
+
+// Helper: Detect, search, download and map sound effects (SFX) based on storyboard keywords
+
+async function ensureProjectSfxTracks(projDir) {
+
+  const token = getEpidemicSoundKey(projDir) || "";
+
+  ensureProjectSfxPack(projDir);
+
+  const packDownloads = [
+    { file: "sfx_tick.mp3", term: "ui tick click short" },
+    { file: "sfx_impact.mp3", term: "cinematic impact hit short" },
+    { file: "sfx_riser.mp3", term: "cinematic riser tension short" },
+    { file: "sfx_room_tone.mp3", term: "room tone ambient air" },
+  ];
+
+  for (const pack of packDownloads) {
+    const packPath = path.join(projDir, pack.file);
+    if (fs.existsSync(packPath)) continue;
+    try {
+      const sfxs = await searchSoundEffects(token, pack.term);
+      if (sfxs && sfxs.length > 0) {
+        console.log(`[SFX Pack] Baixando ${pack.file} (${sfxs[0].title})...`);
+        await downloadSoundEffect(token, sfxs[0].id, packPath, sfxs[0].previewUrl);
+      }
+    } catch (err) {
+      console.warn(`[SFX Pack] Falha ao baixar ${pack.file}:`, err.message);
+    }
+  }
+
+  const storyboardPath = path.join(projDir, "storyboard.json");
+
+  const timingsPath = path.join(projDir, "block_timings.json");
+
+  if (!fs.existsSync(storyboardPath) || !fs.existsSync(timingsPath)) {
+
+    console.log("[SFX Auto-Fetch] storyboard.json ou block_timings.json ausente. Pulando SFX.");
+
+    return;
+
+  }
+
+  let storyboard = {};
+
+  let timings = {};
+
+  try {
+
+    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+
+    timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+
+  } catch (e) {
+
+    console.error("[SFX Auto-Fetch] Erro ao ler arquivos:", e.message);
+
+    return;
+
+  }
+
+  const starts = [0.0].concat(timings.starts || []);
+
+  const visualPrompts = storyboard.visual_prompts || [];
+
+  const sfxEvents = [];
+
+  // 1. Download transition whoosh sfx
+
+  const whooshFile = "sfx_whoosh_transition.mp3";
+
+  const whooshPath = path.join(projDir, whooshFile);
+
+  if (!fs.existsSync(whooshPath)) {
+
+    try {
+
+      console.log("[SFX Auto-Fetch] Buscando transição whoosh...");
+
+      const sfxs = await searchSoundEffects(token, "cinematic whoosh transition");
+
+      if (sfxs && sfxs.length > 0) {
+
+        console.log(`[SFX Auto-Fetch] Baixando ${sfxs[0].title} para transições...`);
+
+        await downloadSoundEffect(token, sfxs[0].id, whooshPath, sfxs[0].previewUrl);
+
+      }
+
+    } catch (err) {
+
+      console.error("[SFX Auto-Fetch] Falha ao baixar transição whoosh:", err.message);
+
+    }
+
+  }
+
+  // Map whoosh transitions (peaks at start of each block transition, starting from block 2)
+
+  if (fs.existsSync(whooshPath)) {
+
+    let lastWhooshTime = -999.0;
+
+    for (let i = 1; i < starts.length; i++) {
+
+      const blockTime = starts[i];
+
+      const targetTime = Math.max(0, blockTime - 1.0);
+
+      // Enforce a minimum cooldown of 6.0 seconds between transitions
+
+      if (targetTime - lastWhooshTime >= 6.0) {
+
+        sfxEvents.push({
+
+          time: targetTime,
+
+          file: whooshFile,
+
+          volume: 0.06 // Highly subtle volume (was 0.18)
+
+        });
+
+        lastWhooshTime = targetTime;
+
+      } else {
+
+        console.log(`[SFX Auto-Fetch] Ignorando transição do bloco ${i + 1} devido a proximidade temporal (cooldown de 6.0s)`);
+
+      }
+
+    }
+
+  }
+
+  // 2. Thematic SFX mapping rules with optimized low volumes (reduced by half/more)
+
+  const sfxRules = [
+
+    { keywords: ["terremoto", "tremor", "sismo", "chão tremer", "earthquake"], term: "earthquake rumble", file: "sfx_earthquake.mp3", volume: 0.08 },
+
+    { keywords: ["vento", "sopro", "wind", "tempestade", "deserto", "oasis"], term: "desert wind loop", file: "sfx_wind.mp3", volume: 0.04 },
+
+    { keywords: ["metal", "bronze", "vaso", "jarro", "dragões de bronze", "metal ball"], term: "metal resonance drop", file: "sfx_metal_drop.mp3", volume: 0.06 },
+
+    { keywords: ["dragão", "dragao", "dragon"], term: "creature growl roar", file: "sfx_dragon.mp3", volume: 0.06 },
+
+    { keywords: ["sapo", "toad", "frog"], term: "frog croak", file: "sfx_frog.mp3", volume: 0.05 },
+
+    { keywords: ["cavalo", "horse", "galope", "mensageiro"], term: "horse gallop fast", file: "sfx_horse.mp3", volume: 0.05 },
+
+    { keywords: ["rir", "riram", "oficiais riram", "laugh", "laughing"], term: "man chuckle laugh", file: "sfx_laugh.mp3", volume: 0.04 },
+
+    { keywords: ["caiu", "queda", "queda da esfera", "impact", "fall", "impacto"], term: "heavy impact hit", file: "sfx_impact.mp3", volume: 0.07 }
+
+  ];
+
+  // Scan visual prompts for keywords
+
+  let lastThematicSfxTime = -999.0;
+
+  for (const vp of visualPrompts) {
+
+    const blockNum = Number(vp.block || 1);
+
+    if (blockNum > starts.length) continue;
+
+    const blockStart = starts[blockNum - 1];
+
+    const contextText = `${vp.narration_text || ""} ${vp.prompt || ""} ${vp.editor_notes || ""}`.toLowerCase();
+
+    for (const rule of sfxRules) {
+
+      const matches = rule.keywords.some(kw => contextText.includes(kw));
+
+      if (matches) {
+
+        const destPath = path.join(projDir, rule.file);
+
+        if (!fs.existsSync(destPath)) {
+
+          try {
+
+            console.log(`[SFX Auto-Fetch] Bloco ${blockNum} combina com "${rule.term}". Buscando SFX...`);
+
+            const sfxs = await searchSoundEffects(token, rule.term);
+
+            if (sfxs && sfxs.length > 0) {
+
+              console.log(`[SFX Auto-Fetch] Baixando ${sfxs[0].title} para ${rule.file}...`);
+
+              await downloadSoundEffect(token, sfxs[0].id, destPath, sfxs[0].previewUrl);
+
+            }
+
+          } catch (err) {
+
+            console.error(`[SFX Auto-Fetch] Falha ao baixar SFX para ${rule.term}:`, err.message);
+
+          }
+
+        }
+
+        if (fs.existsSync(destPath)) {
+
+          // Prevent overlapping: 8s cooldown with other thematic, and 3s distance from any whoosh
+
+          const tooCloseToOtherThematic = Math.abs(blockStart - lastThematicSfxTime) < 8.0;
+
+          const tooCloseToWhoosh = sfxEvents.some(evt => evt.file === whooshFile && Math.abs(evt.time - blockStart) < 3.0);
+
+          if (!tooCloseToOtherThematic && !tooCloseToWhoosh) {
+
+            sfxEvents.push({
+
+              time: blockStart,
+
+              file: rule.file,
+
+              volume: rule.volume
+
+            });
+
+            lastThematicSfxTime = blockStart;
+
+            console.log(`[SFX Auto-Fetch] Bloco ${blockNum} sonoplastia mapeada: ${rule.file} em ${blockStart}s (vol=${rule.volume})`);
+
+          } else {
+
+            console.log(`[SFX Auto-Fetch] Ignorando SFX temático ${rule.file} no bloco ${blockNum} para evitar sobreposição ou alta frequência (cooldown)`);
+
+          }
+
+        }
+
+        break; // Max 1 thematic SFX per block
+
+      }
+
+    }
+
+  }  // Write map to sfx_timeline.json
+
+  const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
+
+  fs.writeFileSync(sfxTimelinePath, JSON.stringify({ sfx_events: sfxEvents }, null, 2), "utf8");
+
+  console.log(`[SFX Auto-Fetch] Timeline de sonoplastia salva em ${sfxTimelinePath} com ${sfxEvents.length} eventos.`);
+
+}
+
+// Planeja overlays via Gemini no Chrome (obrigatório quando gemini_browser_mode) ou API
+function countProjectPlannedOverlays(storyboard = {}) {
+  if (Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0) {
+    return storyboard.overlays_ai.length;
+  }
+  if (Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0) {
+    return storyboard.overlays.filter((o) => o && o.id && !String(o.id).startsWith("sys-")).length;
+  }
+  return 0;
+}
+
+function createOverlayPlanSessionId() {
+  return `lum-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function overlayPlanSessionMatches(llmText, expectedSessionId) {
+  if (!expectedSessionId) return true;
+  const text = String(llmText || "");
+  if (text.includes(expectedSessionId)) return true;
+  // Gemini frequentemente omite plan_session — aceita JSON novo com overlays válidos.
+  if (/"overlays"\s*:\s*\[[\s\S]*?\{/.test(text) && text.length > 400) {
+    console.warn("[Plan Overlays] plan_session ausente na resposta — aceitando JSON com overlays.");
+    return true;
+  }
+  return false;
+}
+
+app.post("/api/render/plan-overlays", async (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const useHyperframes = req.body?.hyperframes === true;
+    const forceRegenerate = req.body?.force === true;
+
+    // Check if overlays were already planned — skip AI if they exist
+    if (!forceRegenerate) {
+      const existingSb = readProjectJson(projDir, "storyboard.json", {});
+      const existingOverlays = Array.isArray(existingSb.overlays_ai) && existingSb.overlays_ai.length > 0
+        ? existingSb.overlays_ai
+        : (Array.isArray(existingSb.overlays) && existingSb.overlays.length > 0
+          ? existingSb.overlays.filter(o => o && o.id && !String(o.id).startsWith("sys-"))
+          : []);
+
+      if (existingOverlays.length > 0) {
+        const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const plannedAt = new Date().toISOString();
+        existingSb.overlays_ai = JSON.parse(JSON.stringify(existingOverlays));
+        existingSb.overlays_plan_token = planToken;
+        existingSb.overlays_planned_at = plannedAt;
+        fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(existingSb, null, 2), "utf8");
+        console.log(`[Plan Overlays] Overlays já existem (${existingOverlays.length} itens, token=${planToken}) — pulando chamada à IA.`);
+        return res.json({
+          success: true,
+          overlayCount: existingOverlays.length,
+          plannedAt,
+          hyperframes: existingSb.overlays_hyperframes || false,
+          planToken,
+          source: "cached",
+          skippedAi: true,
+        });
+      }
+    }
+
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw
+      ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
+      : null;
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
+
+    let llmText = browserText;
+    if (!llmText) {
+      const planSessionId = createOverlayPlanSessionId();
+      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId);
+      if (!prompt) {
+        return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
+      }
+
+      if (forceBrowser) {
+        const title = useHyperframes ? "Planejar overlays HyperFrames AI" : "Planejar overlays do vídeo";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
+        console.log(`[Plan Overlays] Aguardando resposta do Gemini no Chrome (sessão ${planSessionId}).`);
+        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+      }
+
+      const apiKey = getApiKey(projDir);
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+        });
+      }
+      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+      if (!llmText) {
+        return res.status(500).json({ error: "Falha ao consultar Gemini API para overlays." });
+      }
+    }
+
+    if (expectedPlanSession && !overlayPlanSessionMatches(llmText, expectedPlanSession)) {
+      console.warn(`[Plan Overlays] Sessão inválida — esperado ${expectedPlanSession}, resposta rejeitada (provável JSON antigo do Chrome).`);
+      return res.status(422).json({
+        error: "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com e tente o render de novo.",
+        overlayCount: 0,
+        staleResponse: true,
+      });
+    }
+
+    const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
+      llmText,
+      skipBrowserCache: true,
+      planningOnly: true,
+    });
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const cleanedAi = filterNarrationEchoOverlays(
+      Array.isArray(overlaysAi) ? overlaysAi : [],
+      blockPhrases,
+    );
+
+    const rawCount = Array.isArray(overlaysAi) ? overlaysAi.length : 0;
+    console.log(`[Plan Overlays] Gemini retornou ${rawCount} overlay(s); após validação: ${cleanedAi.length}.`);
+
+    if (cleanedAi.length === 0) {
+      return res.status(422).json({
+        error: rawCount > 0
+          ? "Gemini respondeu, mas os overlays foram descartados (formato inválido ou texto igual à narração). Tente novamente no Chrome."
+          : "Gemini não retornou JSON de overlays. Confira a aba gemini.google.com e tente de novo.",
+        overlayCount: 0,
+        rawCount,
+      });
+    }
+
+    const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    storyboard.overlays_ai = JSON.parse(JSON.stringify(cleanedAi));
+    storyboard.overlays_hyperframes = useHyperframes;
+    storyboard.overlays_planned_at = new Date().toISOString();
+    storyboard.overlays_plan_token = planToken;
+
+    const timingsForPlan = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const configForPlan = readProjectJson(projDir, "config_qanat.json", {});
+    const wordTranscriptsPlan = readProjectJson(projDir, "word_transcripts.json", []);
+    const totalDurPlan = Number(timingsForPlan.total_duration)
+      || (timingsForPlan.starts?.length && timingsForPlan.durations?.length
+        ? Number(timingsForPlan.starts[timingsForPlan.starts.length - 1])
+          + Number(timingsForPlan.durations[timingsForPlan.durations.length - 1])
+        : 48);
+    const planForTiming = buildOverlayOrchestrationPlan({
+      config: configForPlan,
+      niche: configForPlan.niche || "Geral",
+      totalDuration: totalDurPlan,
+      projectName: path.basename(projDir),
+      blockCount: Array.isArray(timingsForPlan.starts) ? timingsForPlan.starts.length : 0,
+    });
+
+    // Align and finalize planned overlays immediately
+    const realigned = normalizeGeminiOverlayPayload(
+      realignPlannedOverlays(
+        cleanedAi,
+        null,
+        storyboard,
+        timingsForPlan.starts || [],
+        timingsForPlan.durations || [],
+        wordTranscriptsPlan,
+        configForPlan,
+      )
+    );
+
+    const finalized = finalizeProjectOverlays(
+      projDir,
+      realigned,
+      configForPlan,
+      storyboard,
+      timingsForPlan.starts || [],
+      timingsForPlan.durations || [],
+      planForTiming,
+      totalDurPlan,
+    );
+
+    storyboard.overlays = finalized;
+
+    const sceneMapsPlan = buildSceneTimingMaps(null, storyboard, timingsForPlan.starts || [], timingsForPlan.durations || []);
+    const preparedForTiming = resolveOverlaysForTimingCheck(storyboard, timingsForPlan);
+    const { report: planTimingReport } = verifyAndRepairAiOverlayTiming(preparedForTiming, {
+      starts: timingsForPlan.starts || [],
+      durations: timingsForPlan.durations || [],
+      sceneStarts: sceneMapsPlan.sceneStarts,
+      sceneDurations: sceneMapsPlan.sceneDurations,
+      wordTranscripts: wordTranscriptsPlan,
+      totalDuration: totalDurPlan,
+      plan: planForTiming,
+      repair: false,
+    });
+    storyboard.overlay_timing_report = { ...planTimingReport, source: "planned" };
+
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+
+    console.log(`[Plan Overlays] Concluído: ${cleanedAi.length} overlays, token=${planToken}`);
+
+    res.json({
+      success: true,
+      overlayCount: cleanedAi.length,
+      plannedAt: storyboard.overlays_planned_at,
+      hyperframes: useHyperframes,
+      planToken,
+      source: forceBrowser ? "gemini_chrome" : "gemini_api",
+    });
+  } catch (err) {
+    console.error("[Plan Overlays]", err);
+    res.status(500).json({ error: err.message || "Falha ao planejar overlays." });
+  }
+});
+
+// API: Render videos streaming logs via Server-Sent Events (SSE)
+
+app.get("/api/render/:mode", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const mode = req.params.mode; // 'standard' or 'highlighted'
+
+  const withoutImpactTitles = req.query.withoutImpactTitles === "1";
+
+  res.setHeader("Content-Type", "text/event-stream");
+
+  res.setHeader("Cache-Control", "no-cache");
+
+  res.setHeader("Connection", "keep-alive");
+
+  res.setHeader("X-Accel-Buffering", "no");
+
+  res.flushHeaders();
+
+  // Heartbeat to keep connection alive during long renders/downloads
+
+  const heartbeat = setInterval(() => {
+
+    res.write(":\n\n");
+
+  }, 15000);
+
+  const cleanup = () => {
+
+    clearInterval(heartbeat);
+
+  };
+
+  req.on("close", cleanup);
+
+  const sendLog = (text) => {
+
+    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+
+  };
+
+  const timingSanitization = sanitizeProjectBlockTimings(projDir);
+
+  if (timingSanitization.message) {
+
+    sendLog(`[Dashboard] ${timingSanitization.message}`);
+
+  }
+
+  // Pre-download missing BGM files from Epidemic Sound
+
+  try {
+
+    sendLog("[Dashboard] Verificando trilhas sonoras de fundo (BGM)...");
+
+    await ensureProjectBgmTracks(projDir);
+
+  } catch (err) {
+
+    sendLog(`[BGM Auto-Fetch] Erro: ${err.message}`);
+
+  }
+
+  // Pre-download and map SFX
+
+  try {
+
+    sendLog("[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)...");
+
+    await ensureProjectSfxTracks(projDir);
+
+  } catch (err) {
+
+    sendLog(`[SFX Auto-Fetch] Erro: ${err.message}`);
+
+  }
+
+  // Mix soundtrack
+
+  try {
+
+    sendLog("[Dashboard] Iniciando mixagem da trilha sonora (mix_bgm.py)...");
+
+    await new Promise((resolve) => {
+
+      const mixProcess = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+
+        cwd: projDir,
+
+        shell: true
+
+      });
+
+      mixProcess.stdout.on("data", (data) => {
+
+        const lines = data.toString().split("\n");
+
+        for (const line of lines) {
+
+          const cleanLine = line.trim();
+
+          if (cleanLine) sendLog(`[BGM Mixer] ${cleanLine}`);
+
+        }
+
+      });
+
+      mixProcess.on("close", (code) => {
+
+        if (code === 0) {
+
+          sendLog("[BGM Mixer] Trilha final trilha_documentario.mp3 gerada!");
+
+        } else {
+
+          sendLog("[BGM Mixer] Aviso: O mixador de BGM retornou código não-zero.");
+
+        }
+
+        resolve();
+
+      });
+
+    });
+
+  } catch (err) {
+
+    sendLog(`[BGM Mixer] Erro: ${err.message}`);
+
+  }
+
+  if (mode === "remotion" || mode === "remotion-pro") {
+
+    let child = null;
+
+    try {
+
+      if (req.query.require_overlay_plan === "1") {
+        const storyboardGate = readProjectJson(projDir, "storyboard.json", {});
+        const plannedAt = storyboardGate.overlays_planned_at
+          ? new Date(storyboardGate.overlays_planned_at).getTime()
+          : 0;
+        const planAgeMs = plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
+        const overlayCount = countProjectPlannedOverlays(storyboardGate);
+        const reqToken = String(req.query.overlay_plan_token || "").trim();
+        const savedToken = String(storyboardGate.overlays_plan_token || "").trim();
+        let tokenOk = reqToken && savedToken && reqToken === savedToken;
+        const planMaxAgeMs = 30 * 60 * 1000;
+
+        if (!tokenOk && reqToken && overlayCount >= 1) {
+          storyboardGate.overlays_plan_token = reqToken;
+          storyboardGate.overlays_planned_at = new Date().toISOString();
+          if (!Array.isArray(storyboardGate.overlays_ai) || !storyboardGate.overlays_ai.length) {
+            const fallback = countProjectPlannedOverlays(storyboardGate);
+            if (fallback > 0 && Array.isArray(storyboardGate.overlays)) {
+              storyboardGate.overlays_ai = JSON.parse(JSON.stringify(
+                storyboardGate.overlays.filter((o) => o && o.id && !String(o.id).startsWith("sys-")),
+              ));
+            }
+          }
+          fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboardGate, null, 2), "utf8");
+          tokenOk = true;
+          sendLog("[Remotion] Token de overlays sincronizado com o storyboard.");
+        }
+
+        if (overlayCount < 1 || planAgeMs > planMaxAgeMs || !tokenOk) {
+          sendLog("=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ===");
+          if (overlayCount < 1) {
+            sendLog("[Remotion] Nenhum overlay no storyboard. Clique em «Gerar overlays IA» ou aguarde o Gemini no Chrome.");
+          } else if (!tokenOk) {
+            sendLog("[Remotion] Token de planejamento inválido — clique Render de novo após o Gemini concluir.");
+          } else {
+            sendLog("[Remotion] Planejamento expirou (>30 min). Gere overlays novamente antes do render.");
+          }
+          res.write(`data: ${JSON.stringify({ type: "failed", code: 2, reason: "overlay_plan_gate" })}\n\n`);
+          res.end();
+          cleanup();
+          return;
+        }
+        sendLog(`[Remotion] Overlays planejados validados (${overlayCount} itens, token OK, ${Math.round(planAgeMs / 1000)}s atrás).`);
+      }
+
+      sendLog("[Remotion] Preparando linha do tempo, assets, narração e legendas...");
+
+      const isProres = req.query.prores === "1" || req.query.transparent === "1";
+      const useHyperframes = req.query.hyperframes === "1";
+      const previewSecs = Math.min(60, Math.max(0, Number(req.query.preview) || 0));
+      const resolution = resolveRenderResolution(req);
+      if (useHyperframes) {
+        sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
+      }
+      const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
+        previewDuration: previewSecs > 0 ? previewSecs : undefined,
+        resolution,
+      });
+      if (resolution === "2k") {
+        sendLog("[Remotion] Resolução 2K ativada (2560×1440 ou 1440×2560).");
+      }
+
+      sendLog(`[PROGRESSO] 10%`);
+
+      sendLog(`[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`);
+
+      const infoCount = renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
+      const totalOv = renderPlan.overlayCount ?? 0;
+      sendLog(`[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`);
+      const timingReport = renderPlan.overlayTimingReport;
+      if (timingReport?.entries?.length) {
+        for (const entry of timingReport.entries) {
+          const icon = entry.status === "ok" ? "✓" : entry.status === "repaired" ? "↻" : "!";
+          sendLog(
+            `[Overlays Timing] ${icon} ${entry.id} @ ${entry.startSec?.toFixed(1)}s`
+            + `${entry.plannedScene ? ` (cena ${entry.plannedScene})` : ""}`
+            + ` — ${entry.message || entry.status}`,
+          );
+        }
+      }
+
+      sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
+
+      sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
+
+      const remotionArgs = [
+        "remotion",
+        "render",
+        "src/index.ts",
+        "LumieraTimeline",
+        `"${renderPlan.outputPath}"`,
+        "--props",
+        `"${renderPlan.propsPath}"`,
+        "--codec",
+        isProres ? "prores" : "h264",
+      ];
+
+      if (previewSecs > 0) {
+        remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
+        sendLog(`[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`);
+      }
+
+      child = spawn("npx", remotionArgs, {
+
+        cwd: REMOTION_DIR,
+
+        shell: true,
+
+        env: { ...process.env }
+
+      });
+
+      child.stdout.on("data", (data) => {
+
+        const text = data.toString().trim();
+
+        if (text) {
+
+          const lines = text.split(/\r?\n/);
+
+          for (const line of lines) {
+            sendLog(`[Remotion] ${line}`);
+
+            const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
+            if (progressMatch) {
+              const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
+              sendLog(`[PROGRESSO] ${pct}%`);
+            }
+
+            const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
+            if (remotionMatch) {
+              const renderedFrames = parseInt(remotionMatch[1], 10);
+              const totalFrames = parseInt(remotionMatch[2], 10);
+              if (totalFrames > 0) {
+                const pct = Math.min(99, Math.max(10, Math.round((renderedFrames / totalFrames) * 100)));
+                sendLog(`[PROGRESSO] ${pct}%`);
+              }
+            }
+          }
+
+        }
+
+      });
+
+      child.stderr.on("data", (data) => {
+
+        const text = data.toString().trim();
+
+        if (text) {
+
+          const lines = text.split(/\r?\n/);
+
+          for (const line of lines) {
+            sendLog(`[Remotion] ${line}`);
+
+            const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
+            if (progressMatch) {
+              const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
+              sendLog(`[PROGRESSO] ${pct}%`);
+            }
+
+            const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
+            if (remotionMatch) {
+              const renderedFrames = parseInt(remotionMatch[1], 10);
+              const totalFrames = parseInt(remotionMatch[2], 10);
+              if (totalFrames > 0) {
+                const pct = Math.min(99, Math.max(10, Math.round((renderedFrames / totalFrames) * 100)));
+                sendLog(`[PROGRESSO] ${pct}%`);
+              }
+            }
+          }
+
+        }
+
+      });
+
+      child.on("close", (code) => {
+
+        if (code === 0) {
+
+          sendLog("[PROGRESSO] 100%");
+
+          sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
+
+          const postClean = purgeRemotionPublicProjectCache();
+          if (postClean.freedMb > 0) {
+            sendLog(`[Remotion] Cache temporário removido (~${postClean.freedMb} MB liberados).`);
+          }
+
+          res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
+
+        } else {
+
+          res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+
+        }
+        cleanup();
+        res.end();
+
+      });
+
+    } catch (err) {
+
+      sendLog(`[ERRO] ${err.message}`);
+
+      res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+      cleanup();
+      res.end();
+
+    }
+
+    req.on("close", () => {
+
+      if (child) child.kill();
+
+    });
+
+    return;
+
+  }
+
+  const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+
+  ensureFileExists(scriptName, projDir);
+
+  const scriptPath = path.join(projDir, scriptName);
+
+  if (!fs.existsSync(scriptPath)) {
+
+    sendLog(`[ERRO] ${scriptName} não encontrado no workspace`);
+
+    res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+    cleanup();
+    res.end();
+
+    return;
+
+  }
+
+  let runScriptName = scriptName;
+
+  let tempScriptPath = null;
+
+  if (withoutImpactTitles) {
+
+    const sourceCode = fs.readFileSync(scriptPath, "utf8");
+
+    const patchedCode = sourceCode.replace(
+
+      /_raw_impacts\s*=\s*_config\.get\(['"]impact_texts['"],\s*\[\]\)/,
+
+      "_raw_impacts = []"
+
+    );
+
+    runScriptName = `.render_sem_titulos_${scriptName}`;
+
+    tempScriptPath = path.join(projDir, runScriptName);
+
+    fs.writeFileSync(tempScriptPath, patchedCode, "utf8");
+
+  }
+
+  const resolution = resolveRenderResolution(req);
+  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`);
+
+  const child = spawn(PYTHON_PATH, [runScriptName], {
+
+    cwd: projDir,
+
+    shell: true,
+
+    env: {
+      ...process.env,
+      PYTHONUNBUFFERED: "1",
+      LUMIERA_RENDER_RESOLUTION: resolution,
+    },
+
+  });
+
+  child.stdout.on("data", (data) => {
+
+    const text = data.toString().trim();
+
+    if (text) {
+
+      const lines = text.split(/\r?\n/);
+
+      for (const line of lines) {
+
+        sendLog(line);
+
+      }
+
+    }
+
+  });
+
+  child.stderr.on("data", (data) => {
+
+    const text = data.toString().trim();
+
+    if (text) {
+
+      const lines = text.split(/\r?\n/);
+
+      for (const line of lines) {
+
+        sendLog(`[ERRO] ${line}`);
+
+      }
+
+    }
+
+  });
+
+  child.on("close", (code) => {
+
+    if (tempScriptPath && fs.existsSync(tempScriptPath)) {
+
+      try { fs.unlinkSync(tempScriptPath); } catch (e) {}
+
+    }
+
+    if (code === 0) {
+
+      res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
+
+    } else {
+
+      res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+
+    }
+    cleanup();
+    res.end();
+
+  });
+
+  req.on("close", () => {
+
+    child.kill();
+
+  });
+
+});
+
+// Helper: Get configured API key
+
+function readJsonFile(filePath) {
+
+  if (!fs.existsSync(filePath)) return null;
+
+  try {
+
+    return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+
+  } catch (e) {
+
+    return null;
+
+  }
+
+}
+
+function safeProjectSlug(projectDir) {
+
+  return path.basename(projectDir).replace(/[^a-zA-Z0-9_-]/g, "_") || "default";
+
+}
+
+function remotionPublicProjectsRoot() {
+  return path.join(REMOTION_PUBLIC_DIR, "projects");
+}
+
+function remotionDirSizeBytes(dir) {
+  let total = 0;
+  if (!fs.existsSync(dir)) return 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) total += remotionDirSizeBytes(entryPath);
+    else if (entry.isFile()) {
+      try { total += fs.statSync(entryPath).size; } catch { /* ignore */ }
+    }
+  }
+  return total;
+}
+
+/** Remove past render asset caches from remotion-renderer/public/projects (not the real project folders). */
+function purgeRemotionPublicProjectCache(keepSlug = null) {
+  const projectsRoot = remotionPublicProjectsRoot();
+  if (!fs.existsSync(projectsRoot)) {
+    fs.mkdirSync(projectsRoot, { recursive: true });
+    return { removed: 0, freedMb: 0 };
+  }
+
+  let removed = 0;
+  let freedBytes = 0;
+  for (const name of fs.readdirSync(projectsRoot)) {
+    if (keepSlug && name === keepSlug) continue;
+    const dir = path.join(projectsRoot, name);
+    try {
+      if (!fs.statSync(dir).isDirectory()) continue;
+      freedBytes += remotionDirSizeBytes(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
+      removed++;
+    } catch (e) {
+      console.warn(`[Remotion Cache] Falha ao remover ${name}:`, e.message);
+    }
+  }
+
+  return { removed, freedMb: Math.round(freedBytes / (1024 * 1024)) };
+}
+
+function readProjectJson(projectDir, fileName, fallback = {}) {
+
+  const filePath = path.join(projectDir, fileName);
+
+  if (!fs.existsSync(filePath)) return fallback;
+
+  try {
+
+    return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+
+  } catch (e) {
+
+    return fallback;
+
+  }
+
+}
+
+function findProjectFile(projectDir, fileName) {
+
+  if (!fileName) return null;
+
+  const safeName = path.basename(fileName);
+
+  const candidates = [
+
+    path.join(projectDir, safeName),
+
+    path.join(projectDir, "ASSETS", safeName),
+
+    path.join(projectDir, "ASSETS", "images", safeName),
+
+    path.join(projectDir, "ASSETS", "videos", safeName),
+
+    path.join(projectDir, "ASSETS", "audio", safeName),
+
+    path.join(projectDir, "MUSICAS", safeName),
+
+  ];
+
+  // Fallback to workspace root directory if not found in project folder
+
+  if (projectDir !== WORKSPACE_DIR) {
+
+    candidates.push(
+
+      path.join(WORKSPACE_DIR, safeName),
+
+      path.join(WORKSPACE_DIR, "ASSETS", safeName),
+
+      path.join(WORKSPACE_DIR, "ASSETS", "images", safeName),
+
+      path.join(WORKSPACE_DIR, "ASSETS", "videos", safeName),
+
+      path.join(WORKSPACE_DIR, "ASSETS", "audio", safeName)
+
+    );
+
+  }
+
+  return candidates.find(candidate => fs.existsSync(candidate)) || null;
+
+}
+
+function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
+
+  if (!sourcePath || !fs.existsSync(sourcePath)) return null;
+
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const parsed = path.parse(sourcePath);
+
+  const safeBase = `${prefix}${parsed.name}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+  const destName = `${safeBase}${parsed.ext.toLowerCase()}`;
+
+  const destPath = path.join(targetDir, destName);
+
+  fs.copyFileSync(sourcePath, destPath);
+
+  return destName;
+
+}
+
+function getAudioDuration(filePath) {
+
+  try {
+
+    if (!filePath || !fs.existsSync(filePath)) return 0;
+
+    const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
+
+    const output = execSync(cmd, { encoding: "utf8" }).trim();
+
+    const dur = parseFloat(output);
+
+    return Number.isFinite(dur) ? dur : 0;
+
+  } catch (e) {
+
+    console.error("Error getting audio duration:", e.message);
+
+    return 0;
+
+  }
+
+}
+
+function parseDurationSeconds(value, fallback) {
+
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+
+    const match = value.replace(",", ".").match(/[\d.]+/);
+
+    if (match) return Number(match[0]);
+
+  }
+
+  return fallback;
+
+}
+
+function normalizeWordTranscriptEnds(wordTranscripts) {
+  if (!Array.isArray(wordTranscripts)) return [];
+  return wordTranscripts.map((segment) => {
+    const segmentStart = Number(segment?.start_time || 0);
+    const words = Array.isArray(segment?.words) ? segment.words.map((w) => ({ ...w })) : [];
+    for (let i = 0; i < words.length; i++) {
+      const relStart = Number(words[i]?.start || 0);
+      let relEnd = Number(words[i]?.end || relStart + 0.4);
+      if (relEnd <= relStart) relEnd = relStart + 0.15;
+      if (i < words.length - 1) {
+        const nextStart = Number(words[i + 1]?.start || relEnd);
+        relEnd = Math.min(relEnd, Math.max(relStart + 0.08, nextStart - 0.02));
+      } else {
+        relEnd = Math.min(relEnd, relStart + 1.5);
+      }
+      words[i].start = relStart;
+      words[i].end = relEnd;
+    }
+    const segEnd = words.length
+      ? segmentStart + Number(words[words.length - 1].end || 0)
+      : Number(segment?.end_time || segmentStart);
+    return { ...segment, words, end_time: segEnd };
+  });
+}
+
+function captionsFromWordTranscripts(wordTranscripts) {
+
+  const captions = [];
+
+  const normalized = normalizeWordTranscriptEnds(wordTranscripts);
+
+  for (const segment of normalized) {
+
+    const segmentStart = Number(segment?.start_time || 0);
+
+    if (!Array.isArray(segment?.words)) continue;
+
+    for (let i = 0; i < segment.words.length; i++) {
+
+      const word = segment.words[i];
+
+      const start = segmentStart + Number(word?.start || 0);
+
+      let end = segmentStart + Number(word?.end || word?.start || 0.4);
+
+      if (i < segment.words.length - 1) {
+        end = segmentStart + Number(segment.words[i + 1]?.start || word?.end || 0);
+      }
+
+      end = Math.min(end, start + 1.5);
+
+      captions.push({
+
+        text: String(word?.word || "").trimStart(),
+
+        startMs: Math.max(0, Math.round(start * 1000)),
+
+        endMs: Math.max(0, Math.round(end * 1000)),
+
+        timestampMs: Math.max(0, Math.round(start * 1000)),
+
+        confidence: null,
+
+      });
+
+    }
+
+  }
+
+  return captions.filter(caption => caption.text.trim());
+
+}
+
+function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
+
+  const maxMs = Math.max(1000, Math.round((Number(maxDurationSeconds) || 0) * 1000));
+
+  const sorted = (Array.isArray(captions) ? captions : [])
+
+    .map((caption) => ({
+
+      ...caption,
+
+      text: String(caption?.text || "").trimStart(),
+
+      startMs: Math.max(0, Number(caption?.startMs || 0)),
+
+      endMs: Math.max(0, Number(caption?.endMs || 0)),
+
+    }))
+
+    .filter((caption) => caption.text.trim() && Number.isFinite(caption.startMs) && caption.startMs < maxMs)
+
+    .sort((a, b) => a.startMs - b.startMs);
+
+  return sorted.map((caption, index) => {
+
+    const nextStart = sorted[index + 1]?.startMs;
+
+    const naturalEnd = caption.endMs > caption.startMs ? caption.endMs : caption.startMs + 420;
+
+    const maxWordEnd = caption.startMs + 900;
+
+    const nextLimitedEnd = Number.isFinite(nextStart) ? Math.max(caption.startMs + 120, nextStart - 40) : maxMs;
+
+    const endMs = Math.min(naturalEnd, maxWordEnd, nextLimitedEnd, maxMs);
+
+    return {
+
+      ...caption,
+
+      startMs: Math.round(caption.startMs),
+
+      endMs: Math.round(Math.max(caption.startMs + 120, endMs)),
+
+      timestampMs: Math.round(caption.startMs),
+
+    };
+
+  });
+
+}
+
+function fallbackCaptionsFromScenes(scenes) {
+
+  const captions = [];
+
+  for (const scene of scenes) {
+
+    const words = String(scene.narrationText || "").split(/\s+/).filter(Boolean);
+
+    if (words.length === 0) continue;
+
+    const step = Math.max(180, (scene.duration * 1000) / words.length);
+
+    words.forEach((word, index) => {
+
+      const startMs = Math.round((scene.start * 1000) + (index * step));
+
+      captions.push({
+
+        text: index === 0 ? word : ` ${word}`,
+
+        startMs,
+
+        endMs: Math.round(startMs + step),
+
+        timestampMs: startMs,
+
+        confidence: null,
+
+      });
+
+    });
+
+  }
+
+  return captions;
+
+}
+
+function collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration) {
+
+  const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", { sfx_events: [] });
+
+  const events = Array.isArray(sfxTimeline.sfx_events) ? sfxTimeline.sfx_events : [];
+
+  const tracks = [];
+
+  for (const [index, event] of events.entries()) {
+
+    const start = Math.max(0, Number(event?.time || 0));
+
+    if (!Number.isFinite(start) || start >= totalDuration) continue;
+
+    const source = findProjectFile(projectDir, event?.file);
+
+    const copied = copyRemotionAsset(source, publicProjectDir, `sfx_${index + 1}_`);
+
+    if (!copied) continue;
+
+    const rawVolume = Number(event?.volume);
+
+    tracks.push({
+
+      file: `projects/${projectSlug}/${copied}`,
+
+      start,
+
+      duration: Math.max(0.3, Math.min(6, totalDuration - start)),
+
+      volume: Math.min(0.12, Math.max(0.025, Number.isFinite(rawVolume) ? rawVolume * 0.45 : 0.06)),
+
+    });
+
+  }
+
+  return tracks;
+
+}
+
+function normalizeYoutubeChannelUrl(rawUrl) {
+  const trimmed = String(rawUrl || "").trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("@")) return `https://www.youtube.com/${trimmed}`;
+  if (trimmed.includes("youtube.com")) return `https://${trimmed.replace(/^https?:\/\//, "")}`;
+  return trimmed;
+}
+
+function readYoutubeChannelSettings(projectDir, globalConfig = {}) {
+  const projectConfig = readProjectJson(projectDir, "config_qanat.json", {});
+  const resolved = readYoutubeChannelFromCatalog(projectConfig, globalConfig);
+
+  return {
+    channelUrl: normalizeYoutubeChannelUrl(resolved.channelUrl || ""),
+    channelName: String(resolved.channelName || "").trim(),
+    subscriberCount: String(resolved.subscriberCount || "").trim(),
+    scope: resolved.scope || "global",
+    channelId: resolved.channelId || null,
+  };
+}
+
+async function scrapeYoutubeChannelFromUrl(channelUrl) {
+  const url = normalizeYoutubeChannelUrl(channelUrl);
+  if (!url) return null;
+
+  const html = await new Promise((resolve, reject) => {
+    const options = {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+    };
+    https.get(url, options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => resolve(data));
+    }).on("error", (err) => reject(err));
+  });
+
+  let channelName = "";
+  const titleMatch = html.match(/property="og:title"[^>]*content="([^"]+)"/);
+  if (titleMatch) channelName = titleMatch[1];
+
+  let avatarUrl = "";
+  const avatarMatch = html.match(/property="og:image"[^>]*content="([^"]+)"/);
+  if (avatarMatch) avatarUrl = avatarMatch[1];
+
+  let subCount = "";
+  const subMatch1 = html.match(/"accessibilityLabel"\s*:\s*"([^"]+ (?:inscritos|subscribers|seguidores))"/i);
+  if (subMatch1) {
+    subCount = subMatch1[1];
+  } else {
+    const subMatch2 = html.match(/"metadataParts"\s*:\s*\[\s*\{\s*"text"\s*:\s*\{\s*"content"\s*:\s*"([^"]+)"/);
+    if (subMatch2) subCount = subMatch2[1];
+  }
+
+  return { channelName, subscriberCount: subCount, avatarUrl };
+}
+
+async function downloadChannelAvatar(avatarUrl, publicProjectDir, projectSlug, cacheKey) {
+  if (!avatarUrl) return null;
+  const avatarFileName = `youtube_avatar_${cacheKey}.jpg`;
+  const destPath = path.join(publicProjectDir, avatarFileName);
+  await new Promise((resolve, reject) => {
+    https.get(avatarUrl, (res) => {
+      const fileStream = fs.createWriteStream(destPath);
+      res.pipe(fileStream);
+      fileStream.on("finish", () => {
+        fileStream.close();
+        resolve();
+      });
+      fileStream.on("error", reject);
+    }).on("error", reject);
+  });
+  return `projects/${projectSlug}/${avatarFileName}`;
+}
+
+function findCachedYoutubeAvatar(projectDir, workspaceDir, cacheKey) {
+  const fileName = `youtube_avatar_${cacheKey}.jpg`;
+  const candidates = [
+    path.join(projectDir, "ASSETS", fileName),
+    path.join(workspaceDir, "ASSETS", fileName),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
+async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig = {}) {
+  const settings = readYoutubeChannelSettings(projectDir, globalConfig);
+  const fallbackUrl = "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA";
+  const channelUrl = settings.channelUrl || fallbackUrl;
+  const cacheKey = youtubeAvatarCacheKey(settings.channelId, channelUrl);
+
+  let scraped = null;
+  try {
+    scraped = await scrapeYoutubeChannelFromUrl(channelUrl);
+  } catch (e) {
+    console.error("[YouTube Channel] Erro ao buscar dados do canal:", e);
+  }
+
+  const channelName = settings.channelName || scraped?.channelName || "Canal do YouTube";
+  const subscriberCount = settings.subscriberCount || scraped?.subscriberCount || "";
+
+  const cachedAvatar = findCachedYoutubeAvatar(projectDir, WORKSPACE_DIR, cacheKey);
+  if (cachedAvatar) {
+    const copied = copyRemotionAsset(cachedAvatar, publicProjectDir, "yt_avatar_");
+    if (copied) {
+      return {
+        channelName,
+        subscriberCount,
+        avatarUrl: `projects/${projectSlug}/${copied}`,
+      };
+    }
+  }
+
+  try {
+    if (scraped?.avatarUrl) {
+      const workspaceAssets = path.join(WORKSPACE_DIR, "ASSETS");
+      fs.mkdirSync(workspaceAssets, { recursive: true });
+      const workspaceCachePath = path.join(workspaceAssets, `youtube_avatar_${cacheKey}.jpg`);
+      await new Promise((resolve, reject) => {
+        https.get(scraped.avatarUrl, (res) => {
+          const fileStream = fs.createWriteStream(workspaceCachePath);
+          res.pipe(fileStream);
+          fileStream.on("finish", () => {
+            fileStream.close();
+            resolve();
+          });
+          fileStream.on("error", reject);
+        }).on("error", reject);
+      });
+
+      const localAvatarPath = await downloadChannelAvatar(scraped.avatarUrl, publicProjectDir, projectSlug, cacheKey);
+      return {
+        channelName,
+        subscriberCount,
+        avatarUrl: localAvatarPath || scraped.avatarUrl,
+      };
+    }
+  } catch (e) {
+    console.error("[YouTube Channel] Erro ao baixar avatar:", e);
+  }
+
+  return {
+    channelName,
+    subscriberCount,
+    avatarUrl: scraped?.avatarUrl || null,
+  };
+}
+
+function resolveRenderResolution(req) {
+  if (req.query.resolution === "2k") return "2k";
+  if (req.query.resolution === "1080p") return "1080p";
+
+  try {
+    const projDir = getProjectDir(req);
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    if (projectConfig.render_resolution === "2k" || projectConfig.render_resolution === "1080p") {
+      return projectConfig.render_resolution;
+    }
+  } catch {
+    /* fall through to global */
+  }
+
+  const globalConfig = loadRenderConfig(__dirname);
+  return globalConfig.renderResolution === "2k" ? "2k" : "1080p";
+}
+
+function logOverlayTimingAndConflicts(overlays, starts, durations) {
+  if (!Array.isArray(overlays) || overlays.length === 0) {
+    console.log("[Overlays Map] Nenhum overlay ativo na timeline.");
+    return;
+  }
+
+  console.log("\n========================================================");
+  console.log("   🗺️ MAPA DE EXIBIÇÃO DOS OVERLAYS (PRÉ-RENDER)");
+  console.log("========================================================");
+
+  const sorted = [...overlays]
+    .filter(o => o && typeof o.start === "number" && Number.isFinite(o.start))
+    .sort((a, b) => a.start - b.start);
+
+  const activeIntervals = [];
+
+  for (const overlay of sorted) {
+    const start = Number(overlay.start);
+    const duration = Number(overlay.duration) || 4;
+    const end = start + duration;
+    const isSystem = ["hud", "retention-hook", "mid-video-cta", "youtube-sub"].includes(overlay.type) || String(overlay.id).includes("hud");
+
+    const label = `[${overlay.type.toUpperCase()}] "${overlay.props?.title || overlay.props?.text || overlay.id}"`;
+    const timeRangeStr = `${start.toFixed(2)}s - ${end.toFixed(2)}s (dur: ${duration.toFixed(1)}s)`;
+
+    console.log(`- Overlay: ${label.padEnd(45)} | ${timeRangeStr}`);
+
+    if (!isSystem) {
+      activeIntervals.push({
+        id: overlay.id,
+        label,
+        start,
+        end,
+        overlay
+      });
+    }
+  }
+
+  let collisionCount = 0;
+  console.log("--------------------------------------------------------");
+  console.log("   🔍 ANÁLISE DE CONFLITOS DE EXIBIÇÃO SIMULTÂNEA");
+  console.log("--------------------------------------------------------");
+
+  for (let i = 0; i < activeIntervals.length; i++) {
+    for (let j = i + 1; j < activeIntervals.length; j++) {
+      const a = activeIntervals[i];
+      const b = activeIntervals[j];
+
+      const overlap = Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start));
+      if (overlap > 0.05) {
+        collisionCount++;
+        console.warn(`[WARNING] CONFLITO DETECTADO!`);
+        console.warn(`  - Overlay A: ${a.label} (${a.start.toFixed(2)}s - ${a.end.toFixed(2)}s)`);
+        console.warn(`  - Overlay B: ${b.label} (${b.start.toFixed(2)}s - ${b.end.toFixed(2)}s)`);
+        console.warn(`  - Sobreposição: ${overlap.toFixed(2)} segundos concorrentes na tela.`);
+      }
+    }
+  }
+
+  if (collisionCount === 0) {
+    console.log("✅ Excelente: Nenhum conflito de exibição simultânea detectado!");
+  } else {
+    console.warn(`⚠️ Atenção: Detectados ${collisionCount} conflitos de sobreposição temporal entre overlays informativos.`);
+  }
+  console.log("========================================================\n");
+}
+
+async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false, options = {}) {
+
+  // Load global render config
+
+  const globalConfigPath = path.join(__dirname, "render_config_global.json");
+
+  let globalConfig = { fps: 30, blockGapSeconds: 1.0, musicVolume: 0.15, useRemotionByDefault: true, debugOverlay: false };
+
+  if (fs.existsSync(globalConfigPath)) {
+
+    try {
+
+      globalConfig = JSON.parse(fs.readFileSync(globalConfigPath, "utf8"));
+
+    } catch (e) {}
+
+  }
+
+  let config = readProjectJson(projectDir, "config_qanat.json", {});
+
+  let storyboard = readProjectJson(projectDir, "storyboard.json", {});
+
+  const presetResult = applyDocumentaryHistoryPreset(config, storyboard, config.niche);
+  if (presetResult.applied) {
+    config = presetResult.config;
+    storyboard = presetResult.storyboard;
+    try {
+      fs.writeFileSync(path.join(projectDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+      console.log("[Remotion] Preset Documentário História aplicado ao projeto.");
+    } catch (e) {
+      console.warn("[Remotion] Falha ao salvar preset no config:", e.message);
+    }
+  }
+
+  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
+
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
+
+  if (flatTranscriptWords.length > 0 && config.timeline_assets) {
+    const realigned = realignTimelineAssetsToSpeech({
+      timelineAssets: config.timeline_assets,
+      blockTimings: timings,
+      flatTranscriptWords,
+      visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+      blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+      preserveExplicitFixed: true,
+    });
+    config.timeline_assets = realigned;
+    try {
+      fs.writeFileSync(
+        path.join(projectDir, "config_qanat.json"),
+        JSON.stringify(config, null, 2),
+        "utf8",
+      );
+      console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
+    } catch (e) {
+      console.warn("[Remotion] Falha ao salvar timeline realinhada:", e.message);
+    }
+  }
+
+  const projectSlug = safeProjectSlug(projectDir);
+
+  const publicProjectDir = path.join(REMOTION_PUBLIC_DIR, "projects", projectSlug);
+
+  if (!publicProjectDir.startsWith(remotionPublicProjectsRoot())) {
+
+    throw new Error("Caminho Remotion inválido.");
+
+  }
+
+  const cacheClean = purgeRemotionPublicProjectCache();
+  if (cacheClean.removed > 0) {
+    console.log(`[Remotion Cache] ${cacheClean.removed} cache(s) antigo(s) removido(s) — ~${cacheClean.freedMb} MB liberados`);
+  }
+
+  fs.rmSync(publicProjectDir, { recursive: true, force: true });
+
+  fs.mkdirSync(publicProjectDir, { recursive: true });
+
+  const timelineAssets = config.timeline_assets || {};
+
+  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const syncContext = {
+    visualPrompts,
+    blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+    timelineAssets,
+  };
+
+  const promptByBlock = new Map();
+
+  for (const prompt of visualPrompts) {
+
+    const block = Number(prompt?.block || 1);
+
+    if (!promptByBlock.has(block)) promptByBlock.set(block, []);
+
+    promptByBlock.get(block).push(prompt);
+
+  }
+
+  const blockNumbers = [...new Set([
+
+    ...Object.keys(timelineAssets).map(Number).filter(Boolean),
+
+    ...visualPrompts.map(prompt => Number(prompt?.block || 0)).filter(Boolean),
+
+    ...(Array.isArray(config.block_phrases) ? config.block_phrases.map(item => Number(item?.block || 0)).filter(Boolean) : []),
+
+  ])].sort((a, b) => a - b);
+
+  const scenes = [];
+
+  let runningStart = 0;
+
+  for (const block of blockNumbers) {
+
+    const blockIndex = Math.max(0, block - 1);
+
+    const blockStart = Number(timings.starts?.[blockIndex]);
+
+    const blockDuration = Number(timings.durations?.[blockIndex]);
+
+    const start = Number.isFinite(blockStart) ? blockStart : runningStart;
+
+    const duration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : 8;
+
+    const mappedAssets = Array.isArray(timelineAssets[String(block)]) ? timelineAssets[String(block)] : [];
+
+    const prompts = promptByBlock.get(block) || [];
+
+    let nextBlockStartForSync = null;
+    const currentBlockIdxInList = blockNumbers.indexOf(block);
+    if (currentBlockIdxInList !== -1 && currentBlockIdxInList < blockNumbers.length - 1) {
+      const nextBlock = blockNumbers[currentBlockIdxInList + 1];
+      const nextBlockIndex = Math.max(0, nextBlock - 1);
+      const nextBlockStartVal = Number(timings.starts?.[nextBlockIndex]);
+      if (Number.isFinite(nextBlockStartVal)) nextBlockStartForSync = nextBlockStartVal;
+    }
+    const blockEndForSync = nextBlockStartForSync ?? (start + duration);
+
+    const blockSceneTimings = buildBlockSceneTimings(
+      block,
+      mappedAssets,
+      duration,
+      flatTranscriptWords,
+      { ...syncContext, blockStart: start, blockEnd: blockEndForSync },
+    );
+
+    const hasExplicitSync = blockHasExplicitSync(mappedAssets, { blockStart: start, blockEnd: blockEndForSync });
+
+    const blockSceneStartIdx = scenes.length;
+
+    if (mappedAssets.length > 0) {
+
+      blockSceneTimings.forEach((timing, index) => {
+
+        const item = timing.asset;
+
+        const sourcePath = findProjectFile(projectDir, item?.asset);
+
+        const copiedName = copyRemotionAsset(sourcePath, publicProjectDir, `b${block}_${index + 1}_`);
+
+        if (!copiedName) return;
+
+        const sceneDuration = timing.duration;
+
+        const prompt = prompts[index] || prompts[0] || {};
+        const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
+
+        scenes.push({
+
+          block,
+
+          scene_id: sceneId,
+
+          asset: `projects/${projectSlug}/${copiedName}`,
+
+          type: item?.type === "video" ? "video" : "image",
+
+          start: timing.start,
+
+          duration: sceneDuration,
+
+          durationLocked: isAssetDurationLocked(item) || assetHasExplicitDuration(item),
+
+          narrationText: prompt?.narration_text || "",
+
+          editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
+
+        });
+
+      });
+
+    } else {
+
+      let localStart = start;
+
+      prompts.forEach((prompt, index) => {
+
+        const sceneDuration = parseDurationSeconds(prompt?.duration, Math.max(2, duration / Math.max(1, prompts.length)));
+        const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
+
+        scenes.push({
+
+          block,
+
+          scene_id: sceneId,
+
+          asset: "",
+
+          type: "image",
+
+          start: localStart,
+
+          duration: sceneDuration,
+
+          narrationText: prompt?.narration_text || "",
+
+          editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
+
+        });
+
+        localStart += sceneDuration;
+
+      });
+
+    }
+
+    // Extend the last scene of this block if there is a gap before the next block
+
+    const blockSceneEndIdx = scenes.length;
+
+    const nextBlockStart = nextBlockStartForSync;
+
+    if (
+      !blockUsesSequentialFixedLayout(mappedAssets)
+      && !hasExplicitSync
+      && nextBlockStart !== null
+      && blockSceneEndIdx > blockSceneStartIdx
+    ) {
+
+      const lastSceneOfBlock = scenes[blockSceneEndIdx - 1];
+
+      if (!lastSceneOfBlock.durationLocked) {
+        const sceneEndTime = lastSceneOfBlock.start + lastSceneOfBlock.duration;
+
+        if (nextBlockStart > sceneEndTime) {
+
+          const gap = nextBlockStart - sceneEndTime;
+
+          lastSceneOfBlock.duration += gap;
+
+        }
+      }
+
+    }
+
+    runningStart = Math.max(runningStart, start + duration);
+
+  }
+
+  let validScenes = scenes.filter(scene => scene.asset);
+
+  if (validScenes.length === 0) {
+
+    throw new Error("Nenhum asset mapeado encontrado na linha do tempo para renderizar via Remotion.");
+
+  }
+
+  const narrationSource = findProjectFile(projectDir, "narracao_mestra_premium.mp3");
+
+  const narration = copyRemotionAsset(narrationSource, publicProjectDir, "narration_");
+
+  const narrationDuration = narrationSource ? getAudioDuration(narrationSource) : 0;
+
+  const coverageEnd = Math.max(
+    Number(timings.total_duration || 0),
+    narrationDuration,
+    ...validScenes.map((scene) => scene.start + scene.duration),
+    1,
+  );
+  validScenes = fillSceneTimelineGaps(validScenes, coverageEnd);
+
+  const totalDurationBeforeLogo = Math.max(
+
+    Number(timings.total_duration || 0),
+
+    ...validScenes.map(scene => scene.start + scene.duration),
+
+    narrationDuration,
+
+    1
+
+  );
+
+  const globalConfigForLogo = loadRenderConfig(__dirname);
+  const projectConfigForLogo = readProjectJson(projectDir, "config_qanat.json", {});
+  const logoSource = resolveLogoFilePath(WORKSPACE_DIR, projectDir, globalConfigForLogo, projectConfigForLogo)
+    || findProjectFile(projectDir, "logo.png");
+
+  if (logoSource) {
+
+    const copiedLogo = copyRemotionAsset(logoSource, publicProjectDir, "logo_final_");
+
+    if (copiedLogo) {
+
+      validScenes.push({
+
+        block: blockNumbers.length + 1,
+
+        asset: `projects/${projectSlug}/${copiedLogo}`,
+
+        type: "image",
+
+        start: totalDurationBeforeLogo,
+
+        duration: 3.0,
+
+        narrationText: "",
+
+        editorNotes: "zoom in, logo final da marca",
+
+      });
+
+    }
+
+  }
+
+  const totalDuration = Math.max(
+
+    Number(timings.total_duration || 0),
+
+    ...validScenes.map(scene => scene.start + scene.duration),
+
+    narrationDuration,
+
+    1
+
+  );
+
+  const blockRanges = blockNumbers.map((block) => {
+
+    const blockIndex = Math.max(0, block - 1);
+
+    const blockStart = Number(timings.starts?.[blockIndex]);
+
+    const blockDuration = Number(timings.durations?.[blockIndex]);
+
+    const scenesForBlock = validScenes.filter(scene => scene.block === block);
+
+    const start = Number.isFinite(blockStart) ? blockStart : Math.min(...scenesForBlock.map(scene => scene.start));
+
+    const duration = Number.isFinite(blockDuration) ? blockDuration : Math.max(...scenesForBlock.map(scene => scene.start + scene.duration)) - start;
+
+    return { block, start: Number.isFinite(start) ? start : 0, duration: Number.isFinite(duration) ? duration : totalDuration };
+
+  });
+
+  const bgmTracks = [];  if (config.use_single_bgm && config.single_bgm) {
+
+    const source = findProjectFile(projectDir, config.single_bgm);
+
+    const copied = copyRemotionAsset(source, publicProjectDir, "bgm_single_");
+
+    if (copied) {
+
+      let startFrom = 0;
+
+      try {
+
+        const pythonPath = PYTHON_PATH || "python";
+
+        const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
+
+        const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${totalDuration}`;
+
+        const output = execSync(detectCmd, { encoding: "utf8" }).trim();
+
+        const lines = output.split(/\r?\n/);
+
+        const lastLine = lines[lines.length - 1].trim();
+
+        const parsed = parseFloat(lastLine);
+
+        if (Number.isFinite(parsed)) {
+
+          startFrom = parsed;
+
+          console.log(`[Remotion] Detected best BGM start offset: ${startFrom}s`);
+
+        }
+
+      } catch (e) {
+
+        console.error("Error detecting BGM climax for Remotion:", e);
+
+      }
+
+      bgmTracks.push({ block: 0, file: `projects/${projectSlug}/${copied}`, start: 0, duration: totalDuration, startFrom });
+
+    }
+
+  } else if (Array.isArray(config.bgm_mappings)) {
+
+    for (const mapping of config.bgm_mappings) {
+
+      const block = Number(mapping?.block || 0);
+
+      const range = blockRanges.find(item => item.block === block);
+
+      const source = findProjectFile(projectDir, mapping?.file);
+
+      const copied = copyRemotionAsset(source, publicProjectDir, `bgm_b${block}_`);
+
+      if (copied && range) {
+
+        let startFrom = 0;
+
+        try {
+
+          const pythonPath = PYTHON_PATH || "python";
+
+          const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
+
+          const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${range.duration}`;
+
+          const output = execSync(detectCmd, { encoding: "utf8" }).trim();
+
+          const lines = output.split(/\r?\n/);
+
+          const lastLine = lines[lines.length - 1].trim();
+
+          const parsed = parseFloat(lastLine);
+
+          if (Number.isFinite(parsed)) {
+
+            startFrom = parsed;
+
+            console.log(`[Remotion] Detected best BGM block ${block} start offset: ${startFrom}s`);
+
+          }
+
+        } catch (e) {
+
+          console.error(`Error detecting climax for block ${block}:`, e);
+
+        }
+
+        bgmTracks.push({ block, file: `projects/${projectSlug}/${copied}`, start: range.start, duration: range.duration, startFrom });
+
+      }
+
+    }
+
+  }
+
+  // Keep the last BGM from running past its own block into unrelated narration.
+
+  if (bgmTracks.length > 0) {
+
+    const lastBgm = bgmTracks[bgmTracks.length - 1];
+
+    lastBgm.duration = Math.max(0.5, Math.min(lastBgm.duration, totalDuration - lastBgm.start));
+
+  }
+
+  const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
+  const bgmDuckPoints = buildBgmDuckPoints([], wordTranscripts);
+
+  let youtubeChannelInfo = null;
+  try {
+    youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
+  } catch (e) {
+    console.warn("[Remotion] Falha ao resolver YouTube channel info:", e.message);
+  }
+
+  const captions = captionsFromWordTranscripts(wordTranscripts);
+
+  const rawCaptions = captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+
+  const finalCaptions = sanitizeCaptionsForRemotion(rawCaptions, narrationDuration || totalDuration);
+
+  const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
+
+  // Load planned overlays from storyboard.json instead of generating via AI during render
+  const freshSb = readProjectJson(projectDir, "storyboard.json", {});
+  const plannedRaw = Array.isArray(freshSb.overlays_ai) && freshSb.overlays_ai.length > 0
+    ? freshSb.overlays_ai
+    : (Array.isArray(freshSb.overlays) && freshSb.overlays.length > 0
+      ? stripSystemInjectedOverlays(freshSb.overlays)
+      : []);
+
+  let overlays = [];
+  if (plannedRaw.length > 0) {
+    console.log(`[Remotion Render] Alinhando ${plannedRaw.length} overlays informativos com a linha do tempo física.`);
+    const starts = Array.isArray(timings.starts) ? timings.starts : [];
+    const durations = Array.isArray(timings.durations) ? timings.durations : [];
+    
+    // Alinha os overlays com os tempos físicos das cenas
+    const realigned = normalizeGeminiOverlayPayload(
+      realignPlannedOverlays(
+        plannedRaw,
+        validScenes,
+        freshSb,
+        starts,
+        durations,
+        wordTranscripts,
+        config,
+      )
+    );
+
+    const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
+      config,
+      niche: config.niche || "Geral",
+      totalDuration,
+      projectName: path.basename(projectDir),
+      sceneCount: validScenes.length,
+      blockCount: Array.isArray(config.block_phrases) ? config.block_phrases.length : 0,
+    });
+
+    overlays = finalizeProjectOverlays(
+      projectDir,
+      realigned,
+      config,
+      freshSb,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      totalDuration,
+    );
+  } else {
+    console.log("[Remotion Render] Nenhum overlay planejado encontrado no storyboard.json.");
+  }
+
+  // Update storyboard overlays with aligned rendering overlays
+  storyboard.overlays = overlays;
+  storyboard.quality_report = freshSb.quality_report || storyboard.quality_report;
+  try {
+    fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+  } catch (e) {
+    console.error("Error writing storyboard overlays:", e);
+  }
+
+  // Analyze and log overlay exhibition times and detect any concurrent conflict
+  logOverlayTimingAndConflicts(overlays, timings.starts || [], timings.durations || []);
+
+  const resolution = options.resolution === "2k" ? "2k" : "1080p";
+
+  const props = {
+    projectName: path.basename(projectDir),
+    format,
+    resolution,
+    totalDuration,
+    scenes: validScenes,
+    captions: finalCaptions,
+    narration: narration ? `projects/${projectSlug}/${narration}` : null,
+    narrationDuration: narrationDuration || 0,
+    bgmTracks,
+    sfxTracks,
+    editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
+    musicVolume: Number.isFinite(Number(config.project_music_volume))
+      ? Number(config.project_music_volume)
+      : globalConfig.musicVolume,
+    debugOverlay: globalConfig.debugOverlay,
+    overlays,
+    youtubeChannelInfo,
+    transparent: isProres,
+    captionStyle: config.caption_style === "documentary" ? "documentary" : (config.caption_style === "shorts-viral" ? "shorts-viral" : (format === "9:16" ? "shorts-viral" : "documentary")),
+    designPreset: config.design_preset || null,
+    grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
+    vignette: config.vignette !== false,
+    showProgressBar: format === "16:9" && config.progress_bar !== false,
+    accentColor: config.accent_color || "#C5A880",
+    shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
+    longZoomIntensity: config.long_zoom_intensity || "normal",
+    bgmDuckStrength: ["light", "strong"].includes(config.bgm_duck_strength)
+      ? config.bgm_duck_strength
+      : "normal",
+    shortsHookFlash: config.shorts_hook_flash !== false,
+    shortsEdgeGlow: config.shorts_edge_glow === true,
+    shortsCaptionBgmPulse: config.shorts_caption_bgm_pulse !== false,
+    shortsPortalTransition: config.shorts_portal_transition !== false,
+    shortsPortalEvery: Math.max(3, Math.min(5, Number(config.shorts_portal_every) || 4)),
+    bgmDuckPoints,
+  };
+
+  let finalProps = props;
+  if (options.previewDuration) {
+    finalProps = truncatePropsForPreview(props, options.previewDuration);
+    console.log(`[Remotion] Modo preview: ${options.previewDuration}s`);
+  }
+
+  const propsPath = path.join(publicProjectDir, "props.json");
+
+  fs.writeFileSync(propsPath, JSON.stringify(finalProps, null, 2), "utf8");
+
+  const outputDir = path.join(projectDir, "OUTPUT", "qanat_persa_video_final");
+
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const fileExt = isProres ? "mov" : "mp4";
+  const outputPath = path.join(outputDir, `remotion_${Date.now()}.${fileExt}`);
+
+  return {
+    propsPath,
+    outputPath,
+    totalDuration,
+    sceneCount: validScenes.length,
+    captionCount: finalCaptions.length,
+    sfxCount: sfxTracks.length,
+    overlayCount: Array.isArray(overlays) ? overlays.length : 0,
+    informativeOverlayCount: Array.isArray(overlays)
+      ? overlays.filter(isInformativeOverlay).length
+      : 0,
+    overlayTimingReport: freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
+  };
+
+}
+
+function getMediaTypeFromName(fileName) {
+
+  const ext = path.extname(fileName).toLowerCase();
+
+  if ([".mp4", ".mov", ".webm", ".mkv"].includes(ext)) return "video";
+
+  if (ext === ".svg") return "svg";
+
+  return "image";
+
+}
+
+function listProjectMediaAssets(projectDir) {
+
+  const assetsDir = path.join(projectDir, "ASSETS");
+
+  const assetFiles = [];
+
+  if (!fs.existsSync(assetsDir)) return assetFiles;
+
+  const scan = (dir) => {
+
+    const items = fs.readdirSync(dir);
+
+    for (const item of items) {
+
+      const fullPath = path.join(dir, item);
+
+      if (fs.statSync(fullPath).isDirectory()) {
+
+        scan(fullPath);
+
+      } else {
+
+        const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
+
+        const ext = path.extname(rel).toLowerCase();
+
+        if (rel.toLowerCase() === "logo.png" || path.basename(rel).toLowerCase() === "logo.png") {
+
+          continue;
+
+        }
+
+        if ([".mp4", ".mov", ".webm", ".mkv", ".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(ext)) {
+
+          assetFiles.push({
+
+            rel,
+
+            mtime: fs.statSync(fullPath).mtimeMs
+
+          });
+
+        }
+
+      }
+
+    }
+
+  };
+
+  scan(assetsDir);
+
+  const getAssetSortKey = (filename, mtime) => {
+
+    const baseName = path.basename(filename);
+
+    // Matches 12 to 14 digit timestamps e.g. 202606231437
+
+    const match = baseName.match(/_?(\d{12,14})(?=\.[a-zA-Z0-9]+$)/);
+
+    if (match) {
+
+      return { timestamp: Number(match[1]), mtime };
+
+    }
+
+    const fallbackMatch = baseName.match(/(\d{8,14})/);
+
+    if (fallbackMatch) {
+
+      return { timestamp: Number(fallbackMatch[1]), mtime };
+
+    }
+
+    return { timestamp: 0, mtime };
+
+  };
+
+  return assetFiles
+
+    .sort((a, b) => {
+
+      const keyA = getAssetSortKey(a.rel, a.mtime);
+
+      const keyB = getAssetSortKey(b.rel, b.mtime);
+
+      if (keyA.timestamp > 0 && keyB.timestamp > 0) {
+
+        if (keyA.timestamp !== keyB.timestamp) {
+
+          return keyA.timestamp - keyB.timestamp;
+
+        }
+
+      }
+
+      return keyA.mtime - keyB.mtime;
+
+    })
+
+    .map(x => x.rel);
+
+}
+
+function syncStoryboardAssetsFromTimeline(projDir) {
+  const configPath = path.join(projDir, "config_qanat.json");
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(configPath) || !fs.existsSync(storyboardPath)) return false;
+
+  const config = readProjectJson(projDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  if (!Array.isArray(storyboard.visual_prompts)) return false;
+
+  const timeline = config.timeline_assets || {};
+  const blockCounters = {};
+  let updated = false;
+
+  for (const vp of storyboard.visual_prompts) {
+    const blockKey = String(vp.block || 1);
+    if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
+    const idx = blockCounters[blockKey]++;
+    const tlAsset = timeline[blockKey]?.[idx];
+    if (!tlAsset?.asset) continue;
+
+    const nextAsset = {
+      asset: tlAsset.asset,
+      type: tlAsset.type || "image",
+      ...(tlAsset.fixed !== undefined && tlAsset.fixed !== null ? { fixed: tlAsset.fixed } : {}),
+    };
+    const prevPath = vp.asset?.asset || vp.asset;
+    if (prevPath !== tlAsset.asset) {
+      vp.asset = nextAsset;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    console.log("[Timeline] Storyboard atualizado a partir da timeline_assets.");
+  }
+  return updated;
+}
+
+function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffset = null } = {}) {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { durations: [] });
+  const assetFiles = listProjectMediaAssets(projectDir);
+  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+
+  if (assetFiles.length === 0) {
+    console.log("[Timeline] Nenhum arquivo de mídia encontrado em ASSETS. Mapeando apenas os prompts visuais como placeholders.");
+  }
+
+  const promptsByBlock = new Map();
+  for (const prompt of visualPrompts) {
+    const block = Number(prompt?.block || 1);
+    if (!promptsByBlock.has(block)) promptsByBlock.set(block, []);
+    promptsByBlock.get(block).push(prompt);
+  }
+
+  let blocks = [...promptsByBlock.keys()].sort((a, b) => a - b);
+  if (blocks.length === 0) {
+    const totalBlocks = Array.isArray(config.block_phrases) && config.block_phrases.length > 0
+      ? config.block_phrases.length
+      : 12;
+    blocks = Array.from({ length: totalBlocks }, (_, index) => index + 1);
+  }
+
+  const offset = rotateOffset !== null
+    ? Number(rotateOffset) || 0
+    : (remapping ? Number(config.timeline_map_epoch || 0) : 0);
+  const mapped = buildTimelineAssetMap({
+    blocks,
+    promptsByBlock,
+    existingTimeline: config.timeline_assets || {},
+    assetFiles,
+    timings,
+    remapping,
+    rotateOffset: offset,
+    stockRegistry: loadStockUsageRegistry(WORKSPACE_DIR),
+    currentProject: path.basename(projectDir),
+  });
+
+  return {
+    timelineAssets: mapped.timelineAssets,
+    assetCount: assetFiles.length,
+    warnings: mapped.warnings,
+  };
+}
+
+function getOpenRouterApiKey(projectDir = WORKSPACE_DIR) {
+
+  if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
+
+  const readConfigKey = (configPath) => {
+
+    const config = readJsonFile(configPath);
+
+    return config?.openrouter_api_key || null;
+
+  };
+
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+
+  if (projectKey) return projectKey;
+
+  if (projectDir !== WORKSPACE_DIR) {
+
+    const rootKey = readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+
+    if (rootKey) return rootKey;
+
+  }
+
+  return OPENROUTER_DEFAULT_KEY;
+
+}
+
+function convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride) {
+
+  const messages = [];
+
+  if (bodyOverride?.systemInstruction?.parts?.[0]?.text) {
+
+    messages.push({
+
+      role: "system",
+
+      content: bodyOverride.systemInstruction.parts[0].text
+
+    });
+
+  } else if (bodyOverride?.system_instruction?.parts?.[0]?.text) {
+
+    messages.push({
+
+      role: "system",
+
+      content: bodyOverride.system_instruction.parts[0].text
+
+    });
+
+  }
+
+  if (bodyOverride?.contents && Array.isArray(bodyOverride.contents)) {
+
+    for (const item of bodyOverride.contents) {
+
+      const role = item.role === "model" ? "assistant" : "user";
+
+      const content = item.parts?.[0]?.text || "";
+
+      messages.push({ role, content });
+
+    }
+
+  } else if (promptOrBody) {
+
+    messages.push({
+
+      role: "user",
+
+      content: promptOrBody
+
+    });
+
+  }
+
+  return messages;
+
+}
+
+async function callOpenRouterWithRetry(promptOrBody, { maxRetries = 2, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
+
+  const apiKey = getOpenRouterApiKey(projectDir);
+
+  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+
+  let lastError = null;
+
+  for (const model of OPENROUTER_FREE_MODELS) {
+
+    console.log("\n==================================================");
+
+    console.log(`[OpenRouter] ATIVO - TENTANDO MODELO: ${model}`);
+
+    console.log("==================================================");
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+
+      try {
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+
+          method: "POST",
+
+          headers: {
+
+            "Content-Type": "application/json",
+
+            "Authorization": `Bearer ${apiKey}`,
+
+            "HTTP-Referer": "https://github.com/leonardosalves/BURACOS-NO-DESERTO",
+
+            "X-Title": "Lumiera Cinematic Studio"
+
+          },
+
+          body: JSON.stringify({ model: model, messages: messages, ...(temperature !== null ? { temperature } : {}) })
+
+        });
+
+        if (response.ok) {
+
+          const result = await response.json();
+
+          let responseText = result.choices?.[0]?.message?.content || "";
+
+          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+          console.log("\n==================================================");
+
+          console.log(`[OpenRouter] SUCESSO - MODELO EM USO: ${model}`);
+
+          console.log(`[OpenRouter] Sucesso na tentativa ${attempt} do modelo ${model}`);
+
+          console.log("==================================================");
+
+          return responseText;
+
+        }
+
+        const errData = await response.json().catch(() => ({}));
+
+        const errMsg = errData.error?.message || response.statusText;
+
+        const status = response.status;
+
+        console.warn(`[OpenRouter] Erro ${status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
+
+        lastError = new Error(`OpenRouter [${model}]: ${errMsg}`);
+
+        const isQuotaOrRateLimit = (status === 429 || status === 403 || status === 402 || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("credit"));
+
+        const isUnavailableOrNotFound = (status === 404 || status === 400 || status === 401 || errMsg.toLowerCase().includes("unavailable") || errMsg.toLowerCase().includes("no endpoints found"));
+
+        if (isQuotaOrRateLimit || isUnavailableOrNotFound) {
+
+          console.warn(`[OpenRouter] Erro crítico/limite/indisponibilidade detectado para ${model} (${status}: ${errMsg}). Rotacionando imediatamente...`);
+
+          break;
+
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+
+        await new Promise(r => setTimeout(r, delay));
+
+      } catch (err) {
+
+        console.error(`[OpenRouter] Exceção na tentativa ${attempt} para ${model}:`, err.message);
+
+        lastError = err;
+
+      }
+
+    }
+
+    console.warn(`[OpenRouter] Todas as tentativas falharam para o modelo ${model}. Tentando o proximo...`);
+
+  }
+
+  throw lastError || new Error("Todos os modelos OpenRouter livres falharam após múltiplas tentativas.");
+
+}
+
+const XAI_MODELS = ["grok-2-1212", "grok-2-latest", "grok-beta", "grok-2", "grok-4.3"];
+
+async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
+  const apiKey = getXaiApiKey(projectDir);
+  if (!apiKey) {
+    throw new Error("Chave de API da xAI/Grok não configurada.");
+  }
+  
+  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+  let lastError = null;
+  
+  for (const model of XAI_MODELS) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[xAI/Grok] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`);
+        const response = await fetch("https://api.x.ai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: messages,
+            ...(temperature !== null ? { temperature } : {})
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          let responseText = result.choices?.[0]?.message?.content || "";
+          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+          console.log(`[xAI/Grok] Sucesso com modelo=${model} na tentativa ${attempt}`);
+          return responseText;
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || response.statusText;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(`[xAI/Grok] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
+        
+        if (response.status === 503 || response.status === 429) {
+          const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+        break; // Don't retry if it's a 400/401/403/etc. error
+      } catch (err) {
+        lastError = err;
+        console.warn(`[xAI/Grok] Erro na tentativa ${attempt} para ${model}: ${err.message}`);
+        await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  throw lastError || new Error("Falha ao chamar xAI/Grok após múltiplas tentativas.");
+}
+
+// Gemini API call with automatic retry and model fallback for 503/429 errors
+
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
+const GEMINI_MODEL_OPTIONS = [
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Rápido, gratuito no AI Studio, contexto 1M" },
+  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite", hint: "Mais barato/rápido, alto volume" },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Raciocínio avançado" },
+  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", hint: "Fallback estável" },
+  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", hint: "Mais recente, multimodal" },
+  { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", hint: "Leve e econômico" },
+];
+
+const GEMINI_MODEL_FALLBACKS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-pro",
+  "gemini-flash-latest",
+  "gemini-pro-latest",
+];
+
+const GEMINI_MODELS = GEMINI_MODEL_FALLBACKS;
+
+function getGeminiModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(config?.gemini_model || "").trim();
+    return GEMINI_MODEL_FALLBACKS.includes(model) ? model : null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json")) : null) ||
+    process.env.GEMINI_MODEL ||
+    DEFAULT_GEMINI_MODEL
+  );
+}
+
+function getGeminiModelChain(projectDir = WORKSPACE_DIR, overrideModels = null) {
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set(overrideModels.filter(Boolean))];
+  }
+  const primary = getGeminiModel(projectDir);
+  return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
+}
+
+async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = null, bodyOverride = null, temperature = null, projectDir = null } = {}) {
+  const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
+  const modelChain = getGeminiModelChain(projDir, models);
+  const provider = getAiProvider(projDir);
+  if (provider === "openrouter") {
+    return await callOpenRouterWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
+  }
+  if (provider === "xai") {
+    return await callXaiWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
+  }
+  
+  let lastError = null;
+  const keys = [...new Set([apiKey, ...getApiKeys(projDir)].filter(Boolean))];
+  
+  if (keys.length === 0) {
+    throw new Error("Nenhuma chave de API do Gemini configurada.");
+  }
+
+  for (const model of modelChain) {
+    for (const currentKey of keys) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const requestBody = bodyOverride || { contents: [{ role: "user", parts: [{ text: promptOrBody }] }], ...(temperature !== null ? { generationConfig: { temperature } } : {}) };
+          console.log(`[Gemini] Tentando modelo: ${model} com chave: ${currentKey.substring(0, 10)}... (Tentativa ${attempt}/${maxRetries})`);
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(requestBody)
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+            console.log(`[Gemini] Sucesso com modelo=${model} usando chave=${currentKey.substring(0, 10)}... na tentativa ${attempt}`);
+            return responseText;
+          }
+
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || response.statusText;
+          const status = response.status;
+
+          console.warn(`[Gemini] ${status} de ${model} (tentativa ${attempt}/${maxRetries}) usando chave ${currentKey.substring(0, 10)}...: ${errMsg}`);
+          lastError = new Error(`${model}: ${errMsg}`);
+
+          if (status === 429) {
+            console.warn(`[Gemini] Quota/Limite excedido (429) na chave ${currentKey.substring(0, 10)}... pulando imediatamente para a próxima chave.`);
+            break; // Go to next key for this model
+          }
+
+          if (status === 503) {
+            const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          break; // Go to next key for this model
+        } catch (err) {
+          lastError = err;
+          console.warn(`[Gemini] Erro na tentativa ${attempt} para ${model} usando chave ${currentKey.substring(0, 10)}...: ${err.message}`);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
+      }
+    }
+    console.warn(`[Gemini] Todos os modelos/tentativas falharam para ${model}, tentando próximo modelo...`);
+  }
+  throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
+}
+
+function extractJsonCandidate(text) {
+
+  const raw = String(text || "").replace(/^\uFEFF/, "").replace(/```json/gi, "").replace(/```/g, "").trim();
+
+  const firstObject = raw.indexOf("{");
+
+  const firstArray = raw.indexOf("[");
+
+  const start = firstObject === -1 ? firstArray : firstArray === -1 ? firstObject : Math.min(firstObject, firstArray);
+
+  if (start === -1) return raw;
+
+  const closeForOpen = raw[start] === "{" ? "}" : "]";
+
+  const stack = [closeForOpen];
+
+  let inString = false;
+
+  let escaped = false;
+
+  for (let i = start + 1; i < raw.length; i++) {
+
+    const ch = raw[i];
+
+    if (inString) {
+
+      if (escaped) {
+
+        escaped = false;
+
+      } else if (ch === "\\") {
+
+        escaped = true;
+
+      } else if (ch === '"') {
+
+        inString = false;
+
+      }
+
+      continue;
+
+    }
+
+    if (ch === '"') {
+
+      inString = true;
+
+    } else if (ch === "{" || ch === "[") {
+
+      stack.push(ch === "{" ? "}" : "]");
+
+    } else if (ch === "}" || ch === "]") {
+
+      if (ch !== stack.pop()) break;
+
+      if (stack.length === 0) return raw.slice(start, i + 1);
+
+    }
+
+  }
+
+  const fallback = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+
+  return fallback ? fallback[0] : raw;
+
+}
+
+function parseJsonCandidate(text) {
+
+  const candidate = extractJsonCandidate(text);
+
+  const variants = [
+
+    candidate,
+
+    candidate.replace(/,\s*([}\]])/g, "$1"),
+
+    candidate.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/,\s*([}\]])/g, "$1")
+
+  ];
+
+  let lastError;
+
+  for (const variant of variants) {
+
+    try {
+
+      return JSON.parse(variant);
+
+    } catch (err) {
+
+      lastError = err;
+
+    }
+
+  }
+
+  throw lastError;
+
+}
+
+function parseJsonLocally(responseText) {
+  const variants = [
+    responseText,
+    String(responseText || "").replace(/^\uFEFF/, "").trim(),
+    extractJsonCandidate(responseText),
+  ];
+  const seen = new Set();
+  let lastError = null;
+  for (const base of variants) {
+    if (!base || seen.has(base)) continue;
+    seen.add(base);
+    const candidate = extractJsonCandidate(base);
+    const attempts = [
+      candidate,
+      candidate.replace(/,\s*([}\]])/g, "$1"),
+      candidate.replace(/[""]/g, '"').replace(/['']/g, "'").replace(/,\s*([}\]])/g, "$1"),
+      candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
+    ];
+    for (const variant of attempts) {
+      try {
+        return JSON.parse(variant);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+  }
+  throw lastError || new Error("JSON inválido");
+}
+
+async function parseAiJsonResponse(responseText, apiKey, contextLabel = "resposta da IA") {
+  try {
+    return parseJsonLocally(responseText);
+  } catch (firstError) {
+    if (!apiKey) {
+      const salvaged = salvageScriptJson(responseText);
+      if (salvaged) {
+        console.warn(`[parseAiJson] ${contextLabel}: JSON recuperado via salvage (modo navegador).`);
+        return salvaged;
+      }
+      throw new Error(
+        `${contextLabel}: resposta do Gemini não veio em JSON válido. `
+        + "Tente de novo ou desative o modo navegador e use a API.",
+      );
+    }
+
+    const candidate = extractJsonCandidate(responseText);
+    const repairPrompt = `Corrija o texto abaixo para JSON 100% valido. Preserve todos os dados e textos originais, apenas corrija sintaxe JSON, aspas internas, virgulas e escapes. Retorne APENAS o JSON corrigido, sem markdown.\n\n${candidate}`;
+
+    try {
+      const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, { maxRetries: 2, models: ["gemini-1.5-flash", "gemini-2.0-flash"] });
+      return parseJsonLocally(repairedText);
+    } catch (repairError) {
+      repairError.message = `${contextLabel}: ${firstError.message}`;
+      throw repairError;
+    }
+  }
+}
+
+function normalizeApiKeys(...values) {
+
+  const keys = [];
+
+  for (const value of values) {
+
+    if (Array.isArray(value)) {
+
+      keys.push(...value);
+
+    } else if (typeof value === "string" && value.includes(",")) {
+
+      keys.push(...value.split(","));
+
+    } else if (value) {
+
+      keys.push(value);
+
+    }
+
+  }
+
+  return [...new Set(keys.map(key => String(key).trim()).filter(Boolean))];
+
+}
+
+function getApiKeys(projectDir = WORKSPACE_DIR) {
+
+  const keys = normalizeApiKeys(
+
+    process.env.GEMINI_API_KEYS,
+
+    process.env.GOOGLE_API_KEYS,
+
+    process.env.GEMINI_API_KEY,
+
+    process.env.GOOGLE_API_KEY
+
+  );
+
+  const appendConfigKeys = (configPath) => {
+
+    const config = readJsonFile(configPath);
+
+    if (config) {
+
+      keys.push(...normalizeApiKeys(config.gemini_api_keys, config.google_api_keys, config.gemini_api_key, config.google_api_key));
+
+    }
+
+  };
+
+  appendConfigKeys(path.join(projectDir, "config_qanat.json"));
+
+  if (projectDir !== WORKSPACE_DIR) {
+
+    appendConfigKeys(path.join(WORKSPACE_DIR, "config_qanat.json"));
+
+  }
+
+  return [...new Set(keys)];
+
+}
+
+function getApiKey(projectDir = WORKSPACE_DIR) {
+
+  const provider = getAiProvider(projectDir);
+
+  if (provider === "xai") {
+
+    return getXaiApiKey(projectDir);
+
+  }
+
+  if (provider === "openrouter") {
+
+    return getOpenRouterApiKey(projectDir);
+
+  }
+
+  const keys = getApiKeys(projectDir);
+
+  if (keys.length > 0) return keys[0];
+
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+
+  if (process.env.GOOGLE_API_KEY) return process.env.GOOGLE_API_KEY;
+
+  // Try current project dir first
+
+  const configPath = path.join(projectDir, "config_qanat.json");
+
+  const projectConfig = readJsonFile(configPath);
+
+  if (projectConfig?.gemini_api_key) {
+
+    return projectConfig.gemini_api_key;
+
+  }
+
+  // Fallback to workspace root
+
+  if (projectDir !== WORKSPACE_DIR) {
+
+    const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+
+    const rootConfig = readJsonFile(rootConfigPath);
+
+    if (rootConfig?.gemini_api_key) {
+
+      return rootConfig.gemini_api_key;
+
+    }
+
+  }
+
+  return null;
+
+}
+
+function getXaiApiKey(projectDir = WORKSPACE_DIR) {
+
+  if (process.env.XAI_API_KEY) return process.env.XAI_API_KEY;
+
+  const readConfigKey = (configPath) => {
+
+    const config = readJsonFile(configPath);
+
+    return config?.xai_api_key || config?.grok_api_key || null;
+
+  };
+
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+
+  if (projectKey) return projectKey;
+
+  if (projectDir !== WORKSPACE_DIR) {
+
+    return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+
+  }
+
+  return null;
+
+}
+
+function getAiProvider(projectDir = WORKSPACE_DIR) {
+
+  const readProvider = (configPath) => {
+
+    const config = readJsonFile(configPath);
+
+    return config?.ai_provider || config?.metadata_provider || null;
+
+  };
+
+  return readProvider(path.join(projectDir, "config_qanat.json")) ||
+
+    (projectDir !== WORKSPACE_DIR ? readProvider(path.join(WORKSPACE_DIR, "config_qanat.json")) : null) ||
+
+    "gemini";
+
+}
+
+function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
+  const readMode = (configPath) => {
+    const config = readJsonFile(configPath);
+    return getGeminiBrowserMode(config);
+  };
+  return (
+    readMode(path.join(projectDir, "config_qanat.json"))
+    || (projectDir !== WORKSPACE_DIR ? readMode(path.join(WORKSPACE_DIR, "config_qanat.json")) : false)
+  );
+}
+
+function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
+  return getAiProvider(projectDir) === "gemini" && isGeminiBrowserModeEnabled(projectDir);
+}
+
+/**
+ * Ponto único: API Gemini ou modo navegador (extensão / copiar-colar).
+ * Retorna texto da IA, ou null se já respondeu com needs_browser.
+ */
+async function callGeminiLlm(req, res, projDir, {
+  title = "Consulta IA Lumiera",
+  prompt = null,
+  bodyOverride = null,
+  temperature = null,
+} = {}) {
+  const browserText = extractBrowserResponse(req.body);
+  if (browserText) return browserText;
+
+  if (shouldOfferGeminiBrowser(projDir)) {
+    const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
+    const promptText = bodyOverride
+      ? buildPromptFromBodyOverride(bodyOverride)
+      : buildBrowserTaskPrompt(title, String(prompt ?? ""), "", browserOpts);
+    res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+    return null;
+  }
+
+  const provider = getAiProvider(projDir);
+  if (provider === "gemini") {
+    const apiKey = getApiKey(projDir);
+    if (!apiKey) {
+      res.status(401).json({
+        error: "Chave de API não configurada. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+      });
+      return null;
+    }
+  }
+
+  return callGeminiWithRetry(getApiKey(projDir), prompt, {
+    bodyOverride,
+    temperature,
+    projectDir: projDir,
+  });
+}
+
+function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
+
+  const globalCfg = loadRenderConfig(__dirname);
+
+  if (globalCfg?.epidemic_sound_key && globalCfg.epidemic_sound_key.trim().length > 100) {
+
+    return globalCfg.epidemic_sound_key.trim();
+
+  }
+
+  const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
+
+  if (config?.epidemic_sound_key && config.epidemic_sound_key.trim().length > 100) {
+
+    return config.epidemic_sound_key.trim();
+
+  }
+
+  if (projectDir !== WORKSPACE_DIR) {
+
+    const rootConfig = readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json"));
+
+    if (rootConfig?.epidemic_sound_key && rootConfig.epidemic_sound_key.trim().length > 100) {
+
+      return rootConfig.epidemic_sound_key.trim();
+
+    }
+
+  }
+
+  if (process.env.EPIDEMIC_SOUND_API_KEY && process.env.EPIDEMIC_SOUND_API_KEY.trim().length > 100) {
+
+    return process.env.EPIDEMIC_SOUND_API_KEY.trim();
+
+  }
+
+  return null;
+
+}
+
+async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
+
+  const formatLabel = format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
+
+  const response = await fetch("https://api.x.ai/v1/chat/completions", {
+
+    method: "POST",
+
+    headers: {
+
+      "Content-Type": "application/json",
+
+      "Authorization": `Bearer ${apiKey}`
+
+    },
+
+    body: JSON.stringify({
+
+      model: "grok-4.3",
+
+      messages: [
+
+        { role: "system", content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.` },
+
+        { role: "user", content: prompt }
+
+      ]
+
+    })
+
+  });
+
+  if (!response.ok) {
+
+    let errData = {};
+
+    try {
+
+      errData = await response.json();
+
+    } catch (e) {}
+
+    throw new Error(errData.error?.message || `Erro da xAI: ${response.statusText}`);
+
+  }
+
+  const result = await response.json();
+
+  return result.choices?.[0]?.message?.content || "Erro ao gerar metadados com Grok.";
+
+}
+
+// API: Check if Gemini API key exists
+
+app.get("/api/ai/key-status", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const provider = getAiProvider(projDir);
+
+  if (provider === "openrouter") {
+
+    return res.json({ has_key: !!getOpenRouterApiKey(projDir), provider: "openrouter" });
+
+  }
+
+  if (provider === "xai") {
+
+    return res.json({ has_key: !!getXaiApiKey(projDir), provider: "xai" });
+
+  }
+
+  if (provider === "gemini" && isGeminiBrowserModeEnabled(projDir)) {
+    return res.json({ has_key: true, provider: "gemini", browser_mode: true, key_count: 0 });
+  }
+
+  const configuredKeys = getApiKeys(projDir);
+
+  if (configuredKeys.length > 0) {
+
+    return res.json({ has_key: true, key_count: configuredKeys.length });
+
+  }
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  let hasKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
+
+  if (!hasKey && fs.existsSync(configPath)) {
+
+    try {
+
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+      if (config.gemini_api_key) {
+
+        hasKey = true;
+
+      }
+
+    } catch (e) {}
+
+  }
+
+  // Try fallback to root config
+
+  if (!hasKey && projDir !== WORKSPACE_DIR) {
+
+    const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
+
+    if (fs.existsSync(rootConfigPath)) {
+
+      try {
+
+        const config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8"));
+
+        if (config.gemini_api_key) {
+
+          hasKey = true;
+
+        }
+
+      } catch (e) {}
+
+    }
+
+  }
+
+  res.json({ has_key: hasKey });
+
+});
+
+// API: Save Gemini API key to config_qanat.json
+
+app.post("/api/ai/save-key", (req, res) => {
+
+  const { key } = req.body;
+
+  if (!key) {
+
+    return res.status(400).json({ error: "Chave de API não fornecida" });
+
+  }
+
+  const projDir = getProjectDir(req);
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  try {
+
+    let config = {};
+
+    if (fs.existsSync(configPath)) {
+
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+    }
+
+    config.gemini_api_key = key;
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    res.json({ success: true, message: "Chave de API salva com sucesso no config_qanat.json" });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao salvar a chave", details: err.message });
+
+  }
+
+});
+
+app.get("/api/ai/settings", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+
+  res.json({
+
+    provider: getAiProvider(projDir),
+
+    gemini_model: getGeminiModel(projDir),
+
+    gemini_model_options: GEMINI_MODEL_OPTIONS,
+
+    gemini_key_count: getApiKeys(projDir).length,
+
+    has_xai_key: !!getXaiApiKey(projDir),
+
+    has_openrouter_key: !!getOpenRouterApiKey(projDir),
+
+    has_epidemic_key: true,
+
+    gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
+
+  });
+
+});
+
+app.post("/api/ai/settings", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const configPath = path.join(projDir, "config_qanat.json");
+
+  const {
+    provider,
+    gemini_model,
+    gemini_key,
+    gemini_keys,
+    xai_key,
+    openrouter_key,
+    epidemic_sound_key,
+    gemini_browser_mode,
+  } = req.body || {};
+
+  try {
+
+    let config = readJsonFile(configPath) || {};
+
+    if (provider === "gemini" || provider === "xai" || provider === "openrouter") {
+
+      config.ai_provider = provider;
+
+    }
+
+    if (typeof gemini_model === "string" && gemini_model.trim()) {
+
+      const normalizedModel = gemini_model.trim();
+
+      if (GEMINI_MODEL_FALLBACKS.includes(normalizedModel)) {
+
+        config.gemini_model = normalizedModel;
+
+      }
+
+    }
+
+    const parsedGeminiKeys = normalizeApiKeys(gemini_keys, gemini_key);
+
+    if (parsedGeminiKeys.length > 0) {
+
+      config.gemini_api_keys = parsedGeminiKeys;
+
+      config.gemini_api_key = parsedGeminiKeys[0];
+
+    }
+
+    if (typeof xai_key === "string" && xai_key.trim()) {
+
+      const trimmedXaiKey = xai_key.trim();
+
+      config.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
+
+    }
+
+    if (typeof openrouter_key === "string" && openrouter_key.trim()) {
+
+      config.openrouter_api_key = openrouter_key.trim();
+
+    }
+
+    if (typeof epidemic_sound_key === "string") {
+
+      config.epidemic_sound_key = epidemic_sound_key.trim();
+
+    }
+
+    if (typeof gemini_browser_mode === "boolean") {
+      config.gemini_browser_mode = gemini_browser_mode;
+    }
+
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    res.json({
+
+      success: true,
+
+      provider: config.ai_provider || "gemini",
+
+      gemini_model: getGeminiModel(projDir),
+
+      gemini_model_options: GEMINI_MODEL_OPTIONS,
+
+      gemini_key_count: getApiKeys(projDir).length,
+
+      has_xai_key: !!getXaiApiKey(projDir),
+
+      has_openrouter_key: !!getOpenRouterApiKey(projDir),
+
+      has_epidemic_key: true,
+
+      gemini_browser_mode: getGeminiBrowserMode(config),
+
+    });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao salvar configurações de IA", details: err.message });
+
+  }
+
+});
+
+// Helper: Generate system instructions with workspace script context
+
+function getProjectContext(projectDir) {
+
+  const configPath = path.join(projectDir, "config_qanat.json");
+
+  const timingsPath = path.join(projectDir, "block_timings.json");
+
+  const transcriptPath = path.join(projectDir, "transcripts_readable.txt");
+
+  let config = {};
+
+  let timings = {};
+
+  let transcript = "";
+
+  let bgmRecommendations = [];
+
+  if (fs.existsSync(configPath)) {
+
+    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+
+  }
+
+  if (config.gemini_api_key) { config = { ...config }; delete config.gemini_api_key; }
+
+  if (fs.existsSync(timingsPath)) {
+
+    try { timings = JSON.parse(fs.readFileSync(timingsPath, "utf8")); } catch (e) {}
+
+  }
+
+  if (fs.existsSync(transcriptPath)) {
+
+    try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
+
+  }
+
+  const storyboardPath = path.join(projectDir, "storyboard.json");
+
+  if (fs.existsSync(storyboardPath)) {
+
+    try {
+
+      const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+
+      bgmRecommendations = storyboard.bgm_recommendations || [];
+
+    } catch (e) {}
+
+  }
+
+  const assetsDir = path.join(projectDir, "ASSETS");
+
+  let assetsList = [];
+
+  if (fs.existsSync(assetsDir)) { try { assetsList = fs.readdirSync(assetsDir).filter(f => !f.startsWith('.')); } catch(e) {} }
+
+  const musicDir = path.join(projectDir, "MUSICAS");
+
+  let musicList = [];
+
+  if (fs.existsSync(musicDir)) { try { musicList = fs.readdirSync(musicDir).filter(f => f.endsWith('.mp3')); } catch(e) {} }
+
+  const projectName = path.basename(projectDir);
+
+  return `Voce eh o "Lumiera Agent" - assistente autonomo com poderes totais sobre o projeto de video. Pode modificar configs, disparar acoes, e auxiliar em qualquer parte do fluxo.
+
+PROJETO ATUAL: "${projectName}"
+
+DADOS DO PROJETO:
+
+1. Config (config_qanat.json): ${JSON.stringify(config, null, 2)}
+
+2. Timings: ${JSON.stringify(timings, null, 2)}
+
+3. Roteiro: ${transcript || "(vazio)"}
+
+4. Assets: ${assetsList.length > 0 ? assetsList.join(', ') : '(vazio)'}
+
+5. Musicas: ${musicList.length > 0 ? musicList.join(', ') : '(nenhuma)'}
+
+6. Recomendações de Trilha BGM por Bloco da IA: ${JSON.stringify(bgmRecommendations, null, 2)}
+
+ACOES DISPONIVEIS - AUTONOMIA TOTAL:
+
+Quando o usuario pedir para fazer algo no projeto, voce DEVE executar a acao inserindo um bloco JSON de acao no final da sua resposta. Use o formato:
+
+\`\`\`lumiera-action
+
+{"actions":[{"type":"update_config","field":"highlight_keywords","value":["exemplo"]}]}
+
+\`\`\`
+
+TIPOS DE ACAO:
+
+- "update_config": Modifica campo do config. Fields: "highlight_keywords" (array strings), "bgm_mappings" (array {block,file}), "impact_texts" (array {block,start_offset,end_offset,text}), "script" (string).
+
+- "trigger_render": Compila video. Params: {"render_type":"standard"ou"highlighted"}.
+
+- "trigger_mix": Mixa trilha sonora.
+
+- "trigger_sync": Roda find_block_timings.py para sincronizar narração com blocos.
+
+- "trigger_auto_map": Redistribui assets do storyboard na timeline (auto-map).
+
+- "trigger_stock_fetch": Baixa B-roll do Pexels/Pixabay para cenas sem mídia.
+
+- "trigger_tts": Gera narração TTS. Params: {"engine":"kokoro","voice":"pm_alex","speed":0.82} ou {"engine":"edge","voice":"pt-BR-AntonioNeural","rate":"+0%"}.
+
+- "trigger_apply_bgm": Aplica trilha Epidemic Sound sugerida pela IA.
+
+- "trigger_publish_prep": Gera metadados YouTube, thumbnails e aplica ao upload.
+
+- "run_pipeline_step": Executa um passo do pipeline. Params: {"step":"sync"|"stock"|"automap"|"bgm"|"mix"|"metadata"|"thumbnails"}.
+
+- "navigate_tab": Navega aba. Params: {"tab":"status"|"timeline"|"music"|"terminal"|"ai"|"creator"}.
+
+- "show_message": Notificacao. Params: {"message":"texto","type":"success"|"warning"|"error"}.
+
+REGRAS:
+
+1. Responda em portugues brasileiro, profissional e direto.
+
+2. Quando modificar algo, SEMPRE inclua o bloco lumiera-action.
+
+3. Primeiro explique, depois inclua o bloco de acao.
+
+4. Autonomia total para modificar qualquer parte do projeto.
+
+5. Sem bloco de acao para perguntas sem mudancas.`;
+
+}
+
+// API: Chat assistant
+
+app.post("/api/ai/chat", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const { messages, browser_response } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+
+    return res.status(400).json({ error: "Mensagens inválidas ou vazias" });
+
+  }
+
+  try {
+
+    const systemInstruction = getProjectContext(projDir);
+
+    const formattedContents = messages.map(msg => ({
+
+      role: msg.role === "assistant" ? "model" : "user",
+
+      parts: [{ text: msg.content }]
+
+    }));
+
+    const chatBody = {
+
+      contents: formattedContents,
+
+      systemInstruction: {
+
+        parts: [{ text: systemInstruction }]
+
+      }
+
+    };
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Assistente Lumiera",
+      bodyOverride: chatBody,
+    });
+    if (responseText == null) return;
+
+    res.json({ text: responseText || "Desculpe, não consegui obter uma resposta." });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao consultar IA", details: err.message });
+
+  }
+
+});
+
+// API: Execute AI agent actions
+
+app.post("/api/ai/execute-action", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const { actions } = req.body;
+
+  if (!actions || !Array.isArray(actions)) {
+
+    return res.status(400).json({ error: "No actions provided" });
+
+  }
+
+  const results = [];
+
+  try {
+
+  for (const action of actions) {
+
+    try {
+
+      switch (action.type) {
+
+        case "update_config": {
+
+          const configPath = path.join(projDir, "config_qanat.json");
+
+          let config = {};
+
+          if (fs.existsSync(configPath)) {
+
+            try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch(e) {}
+
+          }
+
+          config[action.field] = action.value;
+
+          fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+          results.push({ type: action.type, field: action.field, status: "ok" });
+
+          break;
+
+        }
+
+        case "trigger_render": {
+          const renderMode = action.render_type || "remotion-pro";
+          results.push({
+            type: action.type,
+            status: "ok",
+            message: `Render ${renderMode} pronto para iniciar`,
+            render_mode: renderMode,
+            render_url: `/api/render/${renderMode}?project=${encodeURIComponent(path.basename(projDir))}`,
+          });
+          break;
+        }
+
+        case "trigger_mix": {
+          ensureFileExists("mix_bgm.py", projDir);
+          const mixScript = path.join(projDir, "mix_bgm.py");
+          if (!fs.existsSync(mixScript)) {
+            results.push({ type: action.type, status: "error", message: "mix_bgm.py não encontrado" });
+            break;
+          }
+          await new Promise((resolve, reject) => {
+            const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+              cwd: projDir,
+              shell: true,
+              env: { ...process.env, PYTHONUNBUFFERED: "1" },
+            });
+            let stderr = "";
+            child.stderr.on("data", (d) => { stderr += d.toString(); });
+            child.on("close", (code) => {
+              if (code === 0) resolve();
+              else reject(new Error(stderr || `Mix falhou (code ${code})`));
+            });
+          });
+          results.push({ type: action.type, status: "ok", message: "Mix BGM concluído" });
+          break;
+        }
+
+        case "navigate_tab": {
+
+          results.push({ type: action.type, tab: action.tab, status: "ok" });
+
+          break;
+
+        }
+
+        case "trigger_sync": {
+          if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
+            results.push({ type: action.type, status: "error", message: "find_block_timings.py não encontrado" });
+            break;
+          }
+          await new Promise((resolve, reject) => {
+            const child = spawn(PYTHON_PATH, ["find_block_timings.py"], { cwd: projDir, shell: true, env: buildPythonSpawnEnv() });
+            child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Sync exit ${code}`))));
+          });
+          results.push({ type: action.type, status: "ok", message: "Sincronização concluída" });
+          break;
+        }
+
+        case "trigger_auto_map": {
+          const configPath = path.join(projDir, "config_qanat.json");
+          let cfg = readJsonFile(configPath) || {};
+          const mapEpoch = Number(cfg.timeline_map_epoch || 0);
+          const mapped = buildTimelineFromStoryboard(projDir, { remapping: true, rotateOffset: mapEpoch });
+          cfg.timeline_assets = mapped.timelineAssets;
+          cfg.timeline_map_epoch = mapEpoch + 1;
+          fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+          results.push({ type: action.type, status: "ok", asset_count: mapped.assetCount });
+          break;
+        }
+
+        case "trigger_stock_fetch": {
+          const stockResult = await fetchStockForScenes(projDir, { workspaceDir: WORKSPACE_DIR });
+          results.push({
+            type: action.type,
+            status: stockResult.success ? "ok" : "error",
+            fetched: stockResult.fetched?.length || 0,
+            message: stockResult.error || `${stockResult.fetched?.length || 0} arquivos baixados`,
+          });
+          break;
+        }
+
+        case "trigger_tts": {
+          const ttsResult = await generateNarrationTts(projDir, {
+            voice: action.voice,
+            rate: action.rate,
+            pitch: action.pitch,
+            speed: action.speed,
+            platform: action.engine || action.platform || "kokoro",
+          });
+          results.push({ type: action.type, status: "ok", file: ttsResult.file });
+          break;
+        }
+
+        case "trigger_publish_prep": {
+          if (!workflowApi?.generateYoutubeMetadataForProject) {
+            results.push({ type: action.type, status: "error", message: "Workflow API não inicializada" });
+            break;
+          }
+          const prep = await runPublishPrep(projDir, {
+            generateMetadata: (dir) => workflowApi.generateYoutubeMetadataForProject(dir, { req, res }),
+            generateThumbnails: async (dir, metadata) => generateYoutubeThumbnailImages({
+              projectDir: dir,
+              projectName: path.basename(dir),
+              thumbnails: metadata?.parsed?.thumbnails || [],
+              format: metadata?.format || "LONG",
+              palette: metadata?.palette || [],
+            }),
+          });
+          results.push({ type: action.type, status: "ok", prepared: true, thumbnails: prep.thumbnails?.length || 0 });
+          break;
+        }
+
+        case "trigger_apply_bgm": {
+          const token = getEpidemicSoundKey(projDir) || "";
+          const cfg = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+          const mode = cfg.aspect_ratio === "9:16" || cfg.video_format === "SHORTS" ? "SHORTS" : "LONGO";
+          const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+          results.push({ type: action.type, status: "ok", logs: logs.slice(-3) });
+          break;
+        }
+
+        case "run_pipeline_step": {
+          if (!workflowApi?.buildCreatorPipelineHandlers) {
+            results.push({ type: action.type, status: "error", message: "Workflow API não inicializada" });
+            break;
+          }
+          const handlers = workflowApi.buildCreatorPipelineHandlers();
+          const stepId = action.step || action.stepId;
+          if (!handlers[stepId]) {
+            results.push({ type: action.type, status: "error", message: `Step desconhecido: ${stepId}` });
+            break;
+          }
+          await handlers[stepId](projDir, () => {});
+          results.push({ type: action.type, status: "ok", step: stepId });
+          break;
+        }
+
+        case "show_message": {
+
+          results.push({ type: action.type, message: action.message, status: "ok" });
+
+          break;
+
+        }
+
+        default:
+
+          results.push({ type: action.type, status: "error", message: "Unknown action type" });
+
+      }
+
+    } catch (err) {
+      if (err?.geminiBrowserPending) throw err;
+      results.push({ type: action.type, status: "error", message: err.message });
+    }
+
+  }
+
+  res.json({ results });
+
+  } catch (err) {
+    if (err?.geminiBrowserPending) return;
+    res.status(500).json({ error: err.message });
+  }
+
+});
+
+// API: Generate YouTube Metadata (SEO Titles, Description, Tags, Chapters)
+
+function buildProjectTranscript({ transcript, config, storyboard }) {
+
+  const candidates = [];
+
+  if (typeof storyboard?.narrative_script === "string") {
+
+    const narrative = storyboard.narrative_script.trim();
+
+    if (narrative.length > 80) {
+
+      candidates.push({ text: narrative, priority: 100 });
+
+    }
+
+  }
+
+  if (Array.isArray(storyboard?.visual_prompts)) {
+
+    const fromPrompts = storyboard.visual_prompts
+
+      .map((item) => item?.narration_text)
+
+      .filter(Boolean)
+
+      .join("\n\n")
+
+      .trim();
+
+    if (fromPrompts.length > 120) {
+
+      candidates.push({ text: fromPrompts, priority: 90 });
+
+    }
+
+  }
+
+  if (typeof transcript === "string") {
+
+    const fileTranscript = transcript.trim();
+
+    if (fileTranscript.length > 120) {
+
+      candidates.push({ text: fileTranscript, priority: 70 });
+
+    }
+
+  }
+
+  if (Array.isArray(config?.block_phrases)) {
+
+    const fromBlocks = config.block_phrases
+
+      .map((item) => item?.phrase)
+
+      .filter(Boolean)
+
+      .join("\n\n")
+
+      .trim();
+
+    if (fromBlocks.length > 120) {
+
+      candidates.push({ text: fromBlocks, priority: 50 });
+
+    }
+
+  }
+
+  candidates.sort((a, b) => b.priority - a.priority || b.text.length - a.text.length);
+
+  return candidates[0]?.text || "";
+
+}
+
+function loadProjectMetadataInputs(projDir) {
+  const configPath = path.join(projDir, "config_qanat.json");
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+  let config = {};
+  let storyboard = {};
+  let transcript = "";
+
+  if (fs.existsSync(configPath)) {
+    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (_) {}
+  }
+  if (fs.existsSync(storyboardPath)) {
+    try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (_) {}
+  }
+  if (fs.existsSync(transcriptPath)) {
+    try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (_) {}
+  }
+
+  transcript = buildProjectTranscript({ transcript, config, storyboard });
+  return { config, storyboard, transcript };
+}
+
+function reprocessYoutubeMetadataCache(cache = {}, projDir) {
+  const normalizedText = normalizeMetadataMarkdown(cache?.text || "");
+  let parsed = parseYoutubeMetadataMarkdown(normalizedText);
+  if (!parsed?.titles?.length && cache?.parsed) {
+    parsed = { ...cache.parsed, ...parsed };
+  }
+
+  const { config, storyboard, transcript } = loadProjectMetadataInputs(projDir);
+  const format = cache.format === "SHORT" ? "SHORT" : "LONG";
+  const facts = extractTitleFacts({ transcript, storyboard, config });
+  parsed = applyTitleQualityToParsed(parsed, { format, facts });
+
+  return {
+    ...cache,
+    text: normalizedText || cache.text,
+    parsed,
+    pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+    reprocessedAt: new Date().toISOString(),
+  };
+}
+
+async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboard, config = {}, apiKey }) {
+  const facts = extractTitleFacts({ transcript, storyboard, config });
+  let parsed = parseYoutubeMetadataMarkdown(text);
+  parsed = applyTitleQualityToParsed(parsed, { format, facts });
+
+  if (facts.listicle?.isListicle) {
+    console.log(`[YouTube Metadata] Listicle Top ${facts.listicle.rankCount} — título #1: ${parsed.recommendedTitle || "?"}`);
+  }
+
+  const lacksRelevance = titlesLackRelevance(parsed.titles || [], transcript, facts);
+  const shouldRepair = titlesNeedRepair(parsed.titles || [], format, facts) || lacksRelevance;
+
+  if (apiKey && shouldRepair) {
+    try {
+      const repairPrompt = buildTitleRepairPrompt({
+        titles: parsed.titles,
+        transcript,
+        format,
+        facts,
+      });
+      const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+        temperature: 0.4,
+        maxRetries: 2,
+        models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+      });
+      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos"));
+      parsed = mergeRepairedTitles(parsed, repaired);
+      parsed = applyTitleQualityToParsed(parsed, { format, facts });
+      console.log(`[YouTube Metadata] Refino de títulos aplicado (${lacksRelevance ? "baixa relevância ao roteiro" : "scores baixos"}).`);
+    } catch (err) {
+      console.warn("[YouTube Metadata] Refino de títulos falhou:", err.message);
+    }
+  } else if (!shouldRepair) {
+    console.log("[YouTube Metadata] Títulos com score OK — refino IA ignorado.");
+  }
+
+  return parsed;
+}
+
+async function ensureScriptChecklist(parsedData, { format, niche, ideaTitle, apiKey }) {
+  if (!isChecklistEmpty(parsedData?.checklist)) {
+    parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
+    return parsedData;
+  }
+  if (!apiKey) {
+    parsedData.checklist = normalizeScriptChecklist(parsedData?.checklist);
+    return parsedData;
+  }
+  const narration = parsedData?.narrative_script || "";
+  if (!narration.trim()) return parsedData;
+
+  try {
+    const evalPrompt = buildScriptChecklistEvaluationPrompt({
+      narrative_script: narration,
+      strategy: parsedData.strategy || {},
+      format,
+      ideaTitle,
+      niche,
+    });
+    const evalText = await callGeminiWithRetry(apiKey, evalPrompt, {
+      temperature: 0.35,
+      maxRetries: 2,
+      models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+    });
+    const evaluated = normalizeKeys(await parseAiJsonResponse(evalText, apiKey, "Checklist qualidade"));
+    if (!isChecklistEmpty(evaluated?.checklist)) {
+      parsedData.checklist = normalizeScriptChecklist(evaluated.checklist);
+      console.log("[Creator Script] Checklist de qualidade avaliado pela IA.");
+    } else {
+      parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
+    }
+  } catch (err) {
+    console.warn("[Creator Script] Falha ao avaliar checklist:", err.message);
+    parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
+  }
+  return parsedData;
+}
+
+async function enhanceCreatorStrategyTitles(parsedData, { transcript, format, apiKey, ideaTitle }) {
+  const fmt = format === "SHORTS" ? "SHORT" : "LONG";
+  const facts = extractTitleFacts({
+    transcript: parsedData.narrative_script || transcript,
+    storyboard: parsedData,
+  });
+  if (ideaTitle) facts.coreTopic = ideaTitle;
+
+  let strategy = enhanceStrategyTitles(parsedData.strategy || {}, {
+    transcript: parsedData.narrative_script || transcript,
+    format: fmt,
+    facts,
+  });
+
+  const allTitles = [
+    { text: strategy.title_main },
+    ...(strategy.title_variations || []).map((t) => ({ text: t })),
+  ];
+
+  if (apiKey && titlesNeedRepair(allTitles, fmt, facts)) {
+    try {
+      const repairPrompt = buildStrategyTitleRepairPrompt({
+        strategy,
+        transcript: parsedData.narrative_script || transcript,
+        format: fmt,
+        facts,
+        ideaTitle,
+      });
+      const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+        temperature: 0.4,
+        maxRetries: 2,
+        models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+      });
+      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos strategy"));
+      strategy = mergeRepairedStrategyTitles(strategy, repaired);
+      strategy = enhanceStrategyTitles(strategy, {
+        transcript: parsedData.narrative_script || transcript,
+        format: fmt,
+        facts,
+      });
+      console.log("[Creator Script] Refino de títulos da estratégia aplicado.");
+    } catch (err) {
+      console.warn("[Creator Script] Refino de títulos falhou:", err.message);
+    }
+  }
+
+  return {
+    ...parsedData,
+    strategy: {
+      ...parsedData.strategy,
+      title_main: strategy.title_main,
+      title_variations: strategy.title_variations,
+    },
+  };
+}
+
+app.post("/api/ai/optimize-youtube", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const apiKeys = getApiKeys(projDir);
+
+  const xaiKey = getXaiApiKey(projDir);
+
+  const aiProvider = getAiProvider(projDir);
+
+  const openrouterKey = getOpenRouterApiKey(projDir);
+
+  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey) && !shouldOfferGeminiBrowser(projDir)) {
+
+    return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
+
+  }
+
+  try {
+
+    const configPath = path.join(projDir, "config_qanat.json");
+
+    const timingsPath = path.join(projDir, "block_timings.json");
+
+    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+
+    let config = {};
+
+    let timings = { starts: [] };
+
+    let transcript = "";
+
+    if (fs.existsSync(configPath)) {
+
+      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+
+    }
+
+    if (fs.existsSync(timingsPath)) {
+
+      try { timings = JSON.parse(fs.readFileSync(timingsPath, "utf8")); } catch (e) {}
+
+    }
+
+    if (fs.existsSync(transcriptPath)) {
+
+      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
+
+    }
+
+    // Load storyboard for extra context
+
+    let storyboard = {};
+
+    const storyboardPath = path.join(projDir, "storyboard.json");
+
+    if (fs.existsSync(storyboardPath)) {
+
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+
+    }
+
+    transcript = buildProjectTranscript({ transcript, config, storyboard });
+
+    if (!transcript) {
+
+      return res.status(400).json({
+
+        error: "Roteiro não encontrado para este projeto.",
+
+        details: "Crie ou carregue transcripts_readable.txt, storyboard.json com narrative_script/visual_prompts, ou config_qanat.json com block_phrases."
+
+      });
+
+    }
+
+    const projectName = path.basename(projDir);
+
+    const metadataCtx = resolveYoutubeMetadataContext({
+      config,
+      timings,
+      storyboard,
+      projectName,
+    });
+
+    const { format, niche, totalDuration, chaptersText, category, profile, rpmHint } = metadataCtx;
+
+    let prompt = buildYoutubeMetadataPrompt({
+      transcript,
+      chaptersText,
+      storyboard,
+      config,
+      format,
+      niche,
+      totalDuration,
+      category,
+      profile,
+      rpmHint,
+    });
+    prompt = injectStudioAgentsContext(prompt, WORKSPACE_DIR, {
+      niche,
+      task: "metadata",
+      format,
+    });
+
+    const respondWithMetadata = async (text, extra = {}) => {
+      const normalizedText = normalizeMetadataMarkdown(text);
+      const apiKeyForTitles = apiKeys[0] || null;
+      const parsed = await enhanceYoutubeTitlesMetadata(normalizedText, {
+        transcript,
+        format,
+        storyboard,
+        config,
+        apiKey: extra.fallback ? null : apiKeyForTitles,
+      });
+      const payload = {
+        text: normalizedText,
+        format,
+        niche,
+        totalDuration,
+        category,
+        profile: { id: profile.id, label: profile.label },
+        rpm: rpmHint.rpm,
+        palette: rpmHint.palette,
+        parsed,
+        titleRefined: !extra.fallback,
+        ...extra,
+      };
+
+      try {
+        fs.writeFileSync(
+          path.join(projDir, "youtube_metadata_cache.json"),
+          JSON.stringify({
+            generatedAt: new Date().toISOString(),
+            pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+            format,
+            niche,
+            category,
+            profile: payload.profile,
+            rpm: rpmHint.rpm,
+            palette: rpmHint.palette,
+            parsed,
+            text,
+          }, null, 2),
+          "utf8",
+        );
+      } catch (cacheErr) {
+        console.warn("[YouTube Metadata] Falha ao salvar cache:", cacheErr.message);
+      }
+
+      return res.json(payload);
+    };
+
+    const errors = [];
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw ? normalizeMetadataMarkdown(browserTextRaw) : "";
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+
+    if (browserText && forceBrowser) {
+      if (looksLikeLumieraPrompt(browserText)) {
+        console.warn("[YouTube Metadata] browser_response é o prompt — não a resposta do Gemini.");
+        return res.status(422).json({
+          error: "Capturou o prompt em vez da resposta. Aguarde o Gemini terminar em gemini.google.com e tente de novo.",
+          staleResponse: true,
+        });
+      }
+      if (looksLikeOverlayJsonResponse(browserText)) {
+        console.warn("[YouTube Metadata] Resposta de overlays rejeitada no fluxo de metadados.");
+        return res.status(422).json({
+          error: "Resposta antiga de overlays detectada. Aguarde os metadados na aba gemini.google.com e tente de novo.",
+          staleResponse: true,
+        });
+      }
+      if (!isMetadataBrowserResponseReady(browserText)) {
+        console.warn("[YouTube Metadata] browser_response incompleto ou inválido.");
+        return res.status(422).json({
+          error: "Resposta do Gemini incompleta. Aguarde ## TÍTULOS na aba gemini.google.com e tente de novo.",
+          staleResponse: true,
+        });
+      }
+    }
+
+    if (aiProvider === "xai" && xaiKey && !forceBrowser) {
+
+      const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
+
+      return await respondWithMetadata(responseText, { provider: "xai" });
+
+    }
+
+    let responseText = browserText;
+
+    if (!responseText && forceBrowser) {
+      const metadataSessionId = createMetadataSessionId();
+      const promptWithSession = `${prompt}\n\n[LUMIERA] Na primeira linha da resposta, inclua exatamente: LUMIERA_METADATA_SESSION:${metadataSessionId}`;
+      const promptText = buildBrowserTaskPrompt("Metadados YouTube", promptWithSession, "", {
+        taskType: "metadata",
+        responseFormat: "markdown",
+      });
+      console.log(`[YouTube Metadata] Aguardando Gemini no Chrome (sessão ${metadataSessionId}).`);
+      return res.json(offerGeminiBrowserPayload({
+        title: "Metadados YouTube",
+        prompt: promptText,
+        metadataSessionId,
+      }));
+    }
+
+    if (!responseText) {
+      try {
+
+        responseText = await callGeminiLlm(req, res, projDir, {
+          title: "Metadados YouTube",
+          prompt,
+          temperature: 0.55,
+        });
+        if (responseText == null) return;
+
+      } catch (geminiErr) {
+
+        errors.push({ status: 503, message: geminiErr.message, quotaExceeded: true });
+
+      }
+    }
+
+    if (responseText) {
+      if (forceBrowser && browserText && looksLikeFallbackMetadata(responseText)) {
+        return res.status(422).json({
+          error: "Metadados genéricos detectados — Gemini no Chrome não concluiu. Tente de novo.",
+          staleResponse: true,
+        });
+      }
+      return await respondWithMetadata(responseText, {
+        tried_keys: browserText ? 0 : 1,
+        provider: browserText ? "gemini_browser" : undefined,
+      });
+    }
+
+    if (forceBrowser) {
+      return res.status(422).json({
+        error: "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
+      });
+    }
+
+    if (xaiKey) {
+
+      try {
+
+        const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
+
+        return await respondWithMetadata(responseText, {
+
+          provider: "xai",
+
+          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei Grok/xAI como fallback.`
+
+        });
+
+      } catch (err) {
+
+        errors.push({ status: "xai", message: err.message, quotaExceeded: false });
+
+      }
+
+    }
+
+    const fallbackText = buildFallbackYoutubeMetadata({
+      transcript,
+      chaptersText,
+      storyboard,
+      config,
+      format,
+      niche,
+      category,
+      profile,
+      rpmHint,
+    });
+
+    const quotaErrors = errors.filter(error => error.quotaExceeded).length;
+
+    return await respondWithMetadata(fallbackText, {
+
+      fallback: true,
+
+      tried_keys: apiKeys.length,
+
+      warning: quotaErrors === apiKeys.length
+
+        ? `Todas as ${apiKeys.length} chaves cadastradas atingiram limite temporário. Usei metadados locais por enquanto.`
+
+        : `Não consegui gerar com Gemini usando as ${apiKeys.length} chaves cadastradas. Usei metadados locais por enquanto.`
+
+    });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao otimizar metadados", details: err.message });
+
+  }
+
+});
+
+app.get("/api/ai/youtube-metadata-cache", (req, res) => {
+  const projDir = getProjectDir(req);
+  const cachePath = path.join(projDir, "youtube_metadata_cache.json");
+
+  if (!fs.existsSync(cachePath)) {
+    return res.json({ cached: false });
+  }
+
+  try {
+    const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    const needsReprocess = Number(cache.pipelineVersion) < YOUTUBE_METADATA_PIPELINE_VERSION
+      || !cache.reprocessedAt
+      || (!cache.parsed?.description && /DESCRI[ÇC][ÃA]O/i.test(cache.text || ""));
+    const reprocessed = needsReprocess ? reprocessYoutubeMetadataCache(cache, projDir) : cache;
+
+    if (needsReprocess && reprocessed?.parsed) {
+      try {
+        fs.writeFileSync(cachePath, JSON.stringify(reprocessed, null, 2), "utf8");
+      } catch (writeErr) {
+        console.warn("[YouTube Metadata] Falha ao atualizar cache reprocessado:", writeErr.message);
+      }
+    }
+
+    res.json({
+      cached: true,
+      ...reprocessed,
+      cacheReprocessed: needsReprocess,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao ler cache de metadados", details: err.message });
+  }
+});
+
+app.get("/api/ai/youtube-thumbnails", (req, res) => {
+  const projDir = getProjectDir(req);
+  const projectName = path.basename(projDir);
+  const manifestPath = path.join(projDir, "ASSETS", "youtube_thumbnails", "manifest.json");
+
+  if (!fs.existsSync(manifestPath)) {
+    return res.json({ thumbnails: [] });
+  }
+
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const thumbnails = (manifest.variants || []).map((item) => ({
+      ...item,
+      url: item.url || `/api/projects-media/${encodeURIComponent(projectName)}/ASSETS/${item.fileName}`,
+    }));
+    res.json({ ...manifest, thumbnails });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao ler thumbnails geradas", details: err.message });
+  }
+});
+
+app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const projectName = path.basename(projDir);
+
+  try {
+    let thumbnails = req.body?.thumbnails;
+    let format = req.body?.format;
+    let palette = req.body?.palette || [];
+
+    const cachePath = path.join(projDir, "youtube_metadata_cache.json");
+    let cache = null;
+    if (fs.existsSync(cachePath)) {
+      try { cache = JSON.parse(fs.readFileSync(cachePath, "utf8")); } catch (e) {}
+    }
+
+    if ((!thumbnails || thumbnails.length === 0) && cache) {
+      thumbnails = cache?.parsed?.thumbnails || [];
+      format = format || cache?.format;
+      palette = palette.length ? palette : (cache?.palette || []);
+    }
+
+    if ((!thumbnails || thumbnails.length === 0) && cache?.text) {
+      const reparsed = parseYoutubeMetadataMarkdown(cache.text);
+      thumbnails = reparsed.thumbnails || [];
+      palette = palette.length ? palette : (cache?.palette || []);
+    }
+
+    if (req.body?.metadataText) {
+      const reparsed = parseYoutubeMetadataMarkdown(req.body.metadataText);
+      if (reparsed.thumbnails?.length) thumbnails = reparsed.thumbnails;
+      else if (reparsed.titles?.length) {
+        thumbnails = ensureThumbnailVariants(reparsed, palette);
+      }
+    }
+
+    if (Array.isArray(thumbnails) && thumbnails.length > 0 && thumbnails.length < 3) {
+      thumbnails = ensureThumbnailVariants({ thumbnails, titles: cache?.parsed?.titles || [] }, palette);
+    }
+
+    if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
+      return res.status(400).json({
+        error: "Nenhuma variante A/B encontrada.",
+        details: "Gere os metadados do YouTube primeiro. Se já gerou, clique em 'Gerar Metadados' novamente para atualizar o cache.",
+      });
+    }
+
+    let config = {};
+    let storyboard = {};
+    const configPath = path.join(projDir, "config_qanat.json");
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(configPath)) {
+      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+    }
+    if (fs.existsSync(storyboardPath)) {
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+    }
+
+    if (!palette.length) {
+      palette = resolveThumbnailPalette(config, storyboard, config.niche);
+    }
+
+    const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
+    const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
+
+    const result = await generateYoutubeThumbnailImages({
+      projectDir: projDir,
+      projectName,
+      thumbnails,
+      format: resolvedFormat,
+      palette,
+      storyboard,
+      config,
+    });
+
+    const parsed = parseYoutubeMetadataMarkdown(cache?.text || req.body?.metadataText || "");
+    if (!parsed.thumbnails?.length) {
+      parsed.thumbnails = ensureThumbnailVariants(parsed, palette);
+    }
+
+    res.json({ ...result, parsed: { thumbnails: parsed.thumbnails } });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar thumbnails", details: err.message });
+  }
+});
+
+app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const projectName = path.basename(projDir);
+
+  try {
+    let thumbnails = req.body?.thumbnails;
+    let format = req.body?.format;
+    let palette = req.body?.palette || [];
+
+    const cachePath = path.join(projDir, "youtube_metadata_cache.json");
+    let cache = null;
+    if (fs.existsSync(cachePath)) {
+      try { cache = JSON.parse(fs.readFileSync(cachePath, "utf8")); } catch (e) {}
+    }
+
+    if ((!thumbnails || thumbnails.length === 0) && cache) {
+      thumbnails = cache?.parsed?.thumbnails || [];
+      format = format || cache?.format;
+      palette = palette.length ? palette : (cache?.palette || []);
+    }
+
+    if (req.body?.metadataText) {
+      const reparsed = parseYoutubeMetadataMarkdown(req.body.metadataText);
+      if (reparsed.thumbnails?.length) thumbnails = reparsed.thumbnails;
+      else if (reparsed.titles?.length) {
+        thumbnails = ensureThumbnailVariants(reparsed, palette);
+      }
+    }
+
+    if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
+      return res.status(400).json({
+        error: "Nenhuma variante A/B encontrada.",
+        details: "Gere os metadados do YouTube primeiro.",
+      });
+    }
+
+    let config = {};
+    let storyboard = {};
+    const configPath = path.join(projDir, "config_qanat.json");
+    const storyboardPath = path.join(projDir, "storyboard.json");
+    if (fs.existsSync(configPath)) {
+      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+    }
+    if (fs.existsSync(storyboardPath)) {
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+    }
+
+    const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
+    const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
+
+    const result = await generateCanvaThumbnailImages({
+      workspaceDir: WORKSPACE_DIR,
+      projectDir: projDir,
+      projectName,
+      thumbnails,
+      format: resolvedFormat,
+      palette,
+      storyboard,
+      config,
+      strategy: {
+        profileLabel: cache?.profile?.label || metadataCtx.profile?.label,
+        rpm: cache?.rpm || metadataCtx.rpmHint?.rpm,
+      },
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar capas no Canva", details: err.message });
+  }
+});
+
+app.get("/api/youtube/channel/overview", async (req, res) => {
+  try {
+    const overview = await fetchChannelOverview(WORKSPACE_DIR);
+    res.json(overview);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar visão geral do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/videos", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
+  try {
+    const report = await fetchChannelVideosWithAnalytics(WORKSPACE_DIR, { days, limit });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/alerts", async (req, res) => {
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const maxProjects = Math.min(Math.max(Number(req.query?.maxProjects) || 12, 1), 20);
+  try {
+    const report = await fetchChannelAlerts(WORKSPACE_DIR, PROJECTS_ROOT, {
+      views48hThreshold,
+      maxProjects,
+    });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar alertas do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/channel/comments", async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 20, 1), 50);
+  const filter = String(req.query?.filter || "all").toLowerCase();
+  const keyword = String(req.query?.keyword || "").trim();
+  const allowedFilters = new Set(["all", "unanswered"]);
+  const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
+  try {
+    const report = await fetchChannelComments(WORKSPACE_DIR, {
+      limit,
+      filter: resolvedFilter,
+      keyword,
+    });
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar comentários do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/title-experiment", (req, res) => {
+  const projDir = getProjectDir(req);
+  const experiment = loadTitleExperiment(projDir);
+  const configPath = path.join(projDir, "config_qanat.json");
+  let videoId = experiment?.videoId || null;
+  if (!videoId && fs.existsSync(configPath)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      videoId = config?.upload_metadata?.youtube?.post_id || null;
+    } catch (e) {}
+  }
+  res.json({ experiment, videoId });
+});
+
+app.post("/api/youtube/title-experiment/start", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = startTitleExperiment(projDir, {
+      videoId: req.body?.videoId,
+      titles: req.body?.titles || [],
+      rotateHours: req.body?.rotateHours || 48,
+    });
+    let applied = null;
+    if (req.body?.applyFirst !== false && experiment.variants?.length) {
+      try {
+        applied = await applyTitleVariant(WORKSPACE_DIR, projDir, experiment.variants[0].id);
+      } catch (applyErr) {
+        applied = { error: applyErr.message };
+      }
+    }
+    res.json({ success: true, experiment: applied?.experiment || experiment, appliedFirst: applied });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/title-experiment/apply", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const variantId = String(req.body?.variantId || "").toUpperCase();
+  if (!variantId) {
+    return res.status(400).json({ error: "variantId é obrigatório." });
+  }
+  try {
+    const result = await applyTitleVariant(WORKSPACE_DIR, projDir, variantId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar título");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/title-experiment/analytics", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const report = await getTitleExperimentReport(WORKSPACE_DIR, projDir);
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar analytics");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/title-experiment/sync-video", (req, res) => {
+  const projDir = getProjectDir(req);
+  const videoId = req.body?.videoId;
+  if (!videoId) {
+    return res.status(400).json({ error: "videoId é obrigatório." });
+  }
+  try {
+    const experiment = syncExperimentVideoId(projDir, videoId);
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/title-experiment/stop", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = stopTitleExperiment(projDir);
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/title-experiment/apply-winner", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const result = await applyWinnerTitle(WORKSPACE_DIR, projDir);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar vencedor");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/youtube/title-experiment/apply-first", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = loadTitleExperiment(projDir);
+    if (!experiment?.variants?.length) {
+      return res.status(400).json({ error: "Nenhum experimento ativo." });
+    }
+    const firstId = experiment.variants[0].id;
+    const result = await applyTitleVariant(WORKSPACE_DIR, projDir, firstId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar primeiro título");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/title-experiment/retention", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const experiment = loadTitleExperiment(projDir);
+  const videoId = experiment?.videoId || req.query?.videoId;
+  if (!videoId) {
+    return res.status(400).json({ error: "videoId não encontrado." });
+  }
+  try {
+    const [retention, velocity] = await Promise.all([
+      fetchRetentionCurve(WORKSPACE_DIR, videoId),
+      fetchVideoVelocity(WORKSPACE_DIR, videoId),
+    ]);
+    res.json({ retention, velocity });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar retenção");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.post("/api/upload/post-upload", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const result = await runPostUploadHooks(WORKSPACE_DIR, projDir, {
+      videoId: req.body?.videoId,
+      autoStartTitleTest: req.body?.autoStartTitleTest !== false,
+      postPinned: req.body?.postPinned !== false,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/ai/adapt-platform-metadata", (req, res) => {
+  const parsed = req.body?.parsed || {};
+  const format = req.body?.format === "SHORT" ? "SHORT" : "LONG";
+  try {
+    const adapted = adaptMetadataForPlatforms(parsed, format);
+    res.json({ success: true, adapted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/youtube/thumbnail-experiment", (req, res) => {
+  const projDir = getProjectDir(req);
+  res.json({ experiment: loadThumbnailExperiment(projDir) });
+});
+
+app.post("/api/youtube/thumbnail-experiment/start", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const experiment = startThumbnailExperiment(projDir, {
+      videoId: req.body?.videoId,
+      thumbnails: req.body?.thumbnails || [],
+      rotateHours: req.body?.rotateHours || 72,
+    });
+    res.json({ success: true, experiment });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/youtube/thumbnail-experiment/apply", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const variantId = String(req.body?.variantId || "").toUpperCase();
+  if (!variantId) {
+    return res.status(400).json({ error: "variantId é obrigatório." });
+  }
+  try {
+    const result = await applyThumbnailVariant(WORKSPACE_DIR, projDir, variantId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar thumbnail");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/youtube/thumbnail-experiment/analytics", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const report = await getThumbnailExperimentReport(WORKSPACE_DIR, projDir);
+    res.json(report);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar analytics de thumbnail");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
+app.get("/api/pipeline/run", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const stepsParam = req.query?.steps || "mix,upload";
+  const steps = String(stepsParam).split(",").map((s) => s.trim()).filter(Boolean);
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const sendLog = (text) => {
+    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+  };
+
+  try {
+    const results = await runFullPipeline({
+      projDir,
+      pythonPath: PYTHON_PATH,
+      sendLog,
+      steps,
+      handlers: {
+        metadata: async (dir, log) => {
+          if (!workflowApi?.generateYoutubeMetadataForProject) {
+            log("[Pipeline] Workflow API indisponível para metadados.");
+            return;
+          }
+          try {
+            await workflowApi.generateYoutubeMetadataForProject(dir);
+            log("[Pipeline] Metadados YouTube gerados.");
+          } catch (err) {
+            log(`[Pipeline] Falha ao gerar metadados: ${err.message}`);
+            throw err;
+          }
+        },
+        thumbnails: async (dir, log) => {
+          const cachePath = path.join(dir, "youtube_metadata_cache.json");
+          if (!fs.existsSync(cachePath)) return;
+          const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+          const thumbs = cache?.parsed?.thumbnails || [];
+          if (!thumbs.length) return;
+          const result = await generateYoutubeThumbnailImages({
+            projectDir: dir,
+            projectName: path.basename(dir),
+            thumbnails: thumbs,
+            format: cache.format || "LONG",
+            palette: cache.palette || [],
+          });
+          log(`[Pipeline] ${result.thumbnails?.length || 0} thumbnails geradas.`);
+        },
+        render: async (dir, log, mode) => {
+          ensureFileExists("build_video.py", dir);
+          const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+          if (mode === "remotion" || mode === "remotion-pro") {
+            log(`[Pipeline] Render ${mode} — use a aba Render para concluir (passo pesado).`);
+            return;
+          }
+          await new Promise((resolve, reject) => {
+            const child = spawn(PYTHON_PATH, [scriptName], { cwd: dir, shell: true });
+            child.stdout.on("data", (d) => log(d.toString().trim()));
+            child.stderr.on("data", (d) => log(`[stderr] ${d.toString().trim()}`));
+            child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Render exit ${code}`))));
+          });
+        },
+      },
+    });
+    res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`);
+  }
+  res.end();
+});
+
+app.post("/api/upload/instagram/save-app", (req, res) => {
+  const { app_id, app_secret } = req.body;
+  if (!app_id || !app_secret) {
+    return res.status(400).json({ error: "App ID e App Secret são obrigatórios." });
+  }
+  try {
+    saveInstagramAppCredentials(WORKSPACE_DIR, { app_id, app_secret });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/upload/instagram/oauth-url", (req, res) => {
+  const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
+  try {
+    const url = buildInstagramAuthUrl(WORKSPACE_DIR, redirectUri);
+    res.json({ url, redirect_uri: redirectUri });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/upload/instagram/callback", async (req, res) => {
+  const code = req.query?.code;
+  if (!code) {
+    return res.status(400).send("Código OAuth ausente.");
+  }
+  try {
+    const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
+    await exchangeInstagramCode(WORKSPACE_DIR, code, redirectUri);
+    res.send("<html><body><h2>Instagram conectado!</h2><p>Feche esta aba e volte ao Lumiera.</p></body></html>");
+  } catch (err) {
+    res.status(500).send(`Erro: ${err.message}`);
+  }
+});
+
+// API: AI-powered BGM suggestion per block
+
+app.post("/api/ai/suggest-bgm", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  try {
+
+    const { mode } = req.body; // 'LONGO' or 'SHORTS'
+
+    // Get storyboard for context
+
+    let storyboard = {};
+
+    const storyboardPath = path.join(projDir, "storyboard.json");
+
+    if (fs.existsSync(storyboardPath)) {
+
+      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+
+    }
+
+    // Get transcript for context
+
+    let transcript = "";
+
+    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+
+    if (fs.existsSync(transcriptPath)) {
+
+      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
+
+    }
+
+    // Build block summaries from storyboard
+
+    let blockSummaries = "";
+
+    if (storyboard.visual_prompts) {
+
+      const blocks = {};
+
+      storyboard.visual_prompts.forEach(vp => {
+
+        const b = vp.block;
+
+        if (!blocks[b]) blocks[b] = [];
+
+        blocks[b].push(vp.narration_text || "");
+
+      });
+
+      Object.keys(blocks).sort((a,b) => a-b).forEach(b => {
+
+        blockSummaries += `Bloco ${b}: ${blocks[b].join(" ").substring(0, 200)}...\n`;
+
+      });
+
+    }
+
+    const musicListStr = "";
+
+    let bgmPrompt;
+
+    if (mode === "SHORTS") {
+
+      bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora. Analise o roteiro do vídeo curto (Shorts) abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
+
+Arquivos de música disponíveis:
+
+${musicListStr}
+
+Roteiro:
+
+${transcript || blockSummaries}
+
+Responda APENAS com um JSON válido no formato:
+
+{"file": "nome_exato_do_arquivo.mp3", "reason": "explicação breve de por que esta trilha combina"}`;
+
+    } else {
+
+      bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora para documentários. Analise o tom emocional de cada bloco do roteiro e sugira a melhor trilha sonora para CADA bloco.
+
+Arquivos de música disponíveis:
+
+${musicListStr}
+
+Resumo por bloco:
+
+${blockSummaries}
+
+Regras:
+
+- O mesmo arquivo pode ser usado em múltiplos blocos se for adequado
+
+- Priorize transições suaves entre blocos adjacentes
+
+- Escolha trilhas que amplificam a emoção do texto narrado
+
+Responda APENAS com um JSON válido no formato:
+
+{"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
+
+    }
+
+    bgmPrompt = mode === "SHORTS"
+
+      ? `Voce e um editor de video especialista em trilha sonora. Analise o roteiro do video curto (Shorts) abaixo e recomende apenas a IDEIA de trilha sonora ideal para o video inteiro.
+
+Roteiro:
+
+${transcript || blockSummaries}
+
+Importante:
+
+- Nao escolha arquivo de musica.
+
+- Nao cite nomes de faixas enviadas.
+
+- A configuracao real continua manual na opcao Trilha Unica.
+
+Responda APENAS com um JSON valido no formato:
+
+{"mode": "SHORTS", "recommendation": "descricao da ideia de trilha para o video inteiro", "search_theme": "3 a 5 palavras-chave em ingles para busca (ex: cinematic mystery dark tension)", "reason": "explicacao breve", "manual_note": "Escolha manualmente uma faixa em Trilha Unica."}`
+
+      : `Voce e um editor de video especialista em trilha sonora para documentarios. Analise o tom emocional de cada bloco do roteiro e recomende apenas a IDEIA de trilha sonora ideal para CADA bloco.
+
+Resumo por bloco:
+
+${blockSummaries || transcript}
+
+Regras:
+
+- Nao escolha arquivos de musica.
+
+- Nao cite nomes de faixas enviadas.
+
+- Descreva estilo, instrumentos, energia, clima emocional e progressao.
+
+- A configuracao real continua manual na opcao Por Bloco.
+
+Responda APENAS com um JSON valido no formato:
+
+{"mode": "LONGO", "suggestions": [{"block": 1, "recommendation": "ideia de trilha para este bloco", "search_theme": "3 a 5 palavras-chave em ingles para busca (ex: epic tribal drums action)", "reason": "breve"}], "manual_note": "Escolha manualmente as faixas em Por Bloco."}`;
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Sugestão de trilha BGM",
+      prompt: bgmPrompt,
+    });
+    if (responseText == null) return;
+
+    const parsed = await parseAiJsonResponse(responseText, extractBrowserResponse(req.body) ? null : getApiKey(projDir), "Sugestao de BGM");
+
+    res.json(parsed);
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao sugerir BGM", details: err.message });
+
+  }
+
+});
+
+// API: List available assets inside ASSETS/ folder
+
+app.get("/api/assets/list", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const assetsDir = path.join(projDir, "ASSETS");
+
+  if (!fs.existsSync(assetsDir)) {
+
+    return res.json([]);
+
+  }
+
+  try {
+
+    const scanDir = (dir) => {
+
+      let results = [];
+
+      const items = fs.readdirSync(dir);
+
+      for (const item of items) {
+
+        const fullPath = path.join(dir, item);
+
+        const stats = fs.statSync(fullPath);
+
+        if (stats.isDirectory()) {
+
+          results = results.concat(scanDir(fullPath));
+
+        } else {
+
+          const relPath = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
+
+          // Categorize media types
+
+          let type = "other";
+
+          if (relPath.endsWith(".mp4") || relPath.endsWith(".mov") || relPath.endsWith(".webm")) {
+
+            type = "video";
+
+          } else if (relPath.endsWith(".png") || relPath.endsWith(".jpeg") || relPath.endsWith(".jpg")) {
+
+            type = "image";
+
+          } else if (relPath.endsWith(".svg")) {
+
+            type = "svg";
+
+          }
+
+          results.push({
+
+            name: relPath,
+
+            sizeBytes: stats.size,
+
+            type: type
+
+          });
+
+        }
+
+      }
+
+      return results;
+
+    };
+
+    res.json(scanDir(assetsDir));
+
+  } catch (err) {
+
+    res.status(500).json({ error: err.message });
+
+  }
+
+});
+
+// API: Binary stream upload for narration audio file
+
+app.post("/api/upload-narration", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const narrationFile = path.join(projDir, "narracao_mestra_premium.mp3");
+
+  const writeStream = fs.createWriteStream(narrationFile);
+
+  req.pipe(writeStream);
+
+  writeStream.on("finish", () => {
+
+    const staleFiles = ["word_transcripts.json", "block_timings.json"];
+
+    for (const fname of staleFiles) {
+
+      const stalePath = path.join(projDir, fname);
+
+      if (fs.existsSync(stalePath)) {
+
+        try { fs.unlinkSync(stalePath); } catch (_) {}
+
+      }
+
+    }
+
+    res.json({
+      success: true,
+      needs_resync: true,
+      message: "Narração enviada! Rode a sincronização Whisper para atualizar timings e legendas.",
+    });
+
   });
 
   writeStream.on("error", (err) => {
-    res.status(500).json({ error: "Erro ao escrever arquivo de mídia", details: err.message });
+
+    res.status(500).json({ error: "Erro ao escrever arquivo de narração", details: err.message });
+
   });
+
 });
 
-// API: Generate complete custom video script & JSON configurations
-app.post("/api/ai/generate-creator-script", async (req, res) => {
+// API: Binary stream upload for background music
+
+app.post("/api/upload-bgm", (req, res) => {
+
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+
+  const { block, filename } = req.query;
+
+  if (!filename) {
+
+    return res.status(400).json({ error: "O parâmetro filename é obrigatório." });
+
   }
-  
-  const { prompt } = req.body;
+
+  const safeFilename = path.basename(filename);
+
+  const destFilePath = path.join(projDir, safeFilename);
+
+  const writeStream = fs.createWriteStream(destFilePath);
+
+  req.pipe(writeStream);
+
+  writeStream.on("finish", () => {
+
+    try {
+
+      if (block) {
+
+        const configPath = path.join(projDir, "config_qanat.json");
+
+        let config = {};
+
+        if (fs.existsSync(configPath)) {
+
+          config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+        }
+
+        if (!config.bgm_mappings) {
+
+          config.bgm_mappings = [];
+
+        }
+
+        const blockNum = parseInt(block, 10);
+
+        const existingIdx = config.bgm_mappings.findIndex(m => m.block === blockNum);
+
+        if (existingIdx !== -1) {
+
+          config.bgm_mappings[existingIdx].file = safeFilename;
+
+        } else {
+
+          config.bgm_mappings.push({ block: blockNum, file: safeFilename });
+
+        }
+
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+      }
+
+      res.json({
+
+        success: true,
+
+        message: `Música ${safeFilename} enviada com sucesso!`,
+
+        file: safeFilename
+
+      });
+
+    } catch (err) {
+
+      res.status(500).json({ error: "Erro ao atualizar configuração de trilhas", details: err.message });
+
+    }
+
+  });
+
+  writeStream.on("error", (err) => {
+
+    res.status(500).json({ error: "Erro ao escrever arquivo de música", details: err.message });
+
+  });
+
+});
+
+// API: Binary stream upload for specific scene asset (saved in ASSETS/cena_scene.ext and updated in config)
+
+app.post("/api/upload-scene-asset", (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const { scene, type, filename, idx } = req.query;
+
+  if (!scene || !type || !filename) {
+
+    return res.status(400).json({ error: "Parâmetros scene, type e filename são obrigatórios." });
+
+  }
+
+  const ext = path.extname(filename).toLowerCase() || (type === "video" ? ".mp4" : ".png");
+
+  const assetsDir = path.join(projDir, "ASSETS");
+
+  if (!fs.existsSync(assetsDir)) {
+
+    fs.mkdirSync(assetsDir, { recursive: true });
+
+  }
+
+  const safeFilename = path.basename(filename).replace(/[^a-zA-Z0-9.-]/g, "_");
+
+  const destFileName = idx !== undefined ? safeFilename : `cena_${scene}${ext}`;
+
+  const destFilePath = path.join(assetsDir, destFileName);
+
+  const writeStream = fs.createWriteStream(destFilePath);
+
+  req.pipe(writeStream);
+
+  writeStream.on("finish", () => {
+
+    const configPath = path.join(projDir, "config_qanat.json");
+
+    try {
+
+      let config = {};
+
+      if (fs.existsSync(configPath)) {
+
+        config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+      }
+
+      if (!config.timeline_assets) {
+
+        config.timeline_assets = {};
+
+      }
+
+      const assetItem = {
+
+        asset: destFileName,
+
+        type: type === "video" ? "video" : "image"
+
+      };
+
+      if (type === "video") {
+
+        assetItem.fixed = 8.00;
+
+      }
+
+      if (idx !== undefined) {
+
+        const blockKey = String(scene);
+
+        if (!config.timeline_assets[blockKey]) {
+
+          config.timeline_assets[blockKey] = [];
+
+        }
+
+        const assetIdx = parseInt(idx, 10);
+        const prevSlot = config.timeline_assets[blockKey][assetIdx] || {};
+        config.timeline_assets[blockKey][assetIdx] = {
+          ...prevSlot,
+          ...assetItem,
+          user_locked: true,
+          manual_asset: true,
+        };
+
+      } else {
+
+        // Extract block number (integer part) from scene number (e.g. "6" from "6.3")
+
+        const blockKey = String(Math.floor(parseFloat(scene)));
+
+        if (!config.timeline_assets[blockKey]) {
+
+          config.timeline_assets[blockKey] = [];
+
+        }
+
+        config.timeline_assets[blockKey].push(assetItem);
+
+      }
+
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+      res.json({
+
+        success: true,
+
+        message: `Arquivo ${destFileName} salvo e vinculado ao Bloco/Cena ${scene} com sucesso!`,
+
+        asset: destFileName
+
+      });
+
+    } catch (err) {
+
+      res.status(500).json({ error: "Erro ao salvar na configuração", details: err.message });
+
+    }
+
+  });
+
+  writeStream.on("error", (err) => {
+
+    res.status(500).json({ error: "Erro ao escrever arquivo de mídia", details: err.message });
+
+  });
+
+});
+
+// API: Logo endpoints (Status, Upload, Reset)
+
+app.get("/api/logo/status", (req, res) => {
+
+  try {
+
+    const projDir = getProjectDir(req);
+
+    const activeProject = req.query.project;
+
+    const catalog = listBrandLogos(WORKSPACE_DIR, __dirname);
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    const globalConfig = loadRenderConfig(__dirname);
+
+    const localLogoAssets = path.join(projDir, "ASSETS", "logo.png");
+
+    const localLogoRoot = path.join(projDir, "logo.png");
+
+    let hasProjectLogo = false;
+
+    let projectLogoPath = null;
+
+    if (activeProject) {
+
+      if (fs.existsSync(localLogoAssets)) {
+
+        hasProjectLogo = true;
+
+        projectLogoPath = `/api/projects-media/${encodeURIComponent(activeProject)}/ASSETS/logo.png`;
+
+      } else if (fs.existsSync(localLogoRoot)) {
+
+        hasProjectLogo = true;
+
+        projectLogoPath = `/api/projects-media/${encodeURIComponent(activeProject)}/logo.png`;
+
+      }
+
+    }
+
+    const resolvedPath = resolveLogoFilePath(WORKSPACE_DIR, projDir, globalConfig, projectConfig);
+    const activeCatalogLogo = catalog.activeLogo;
+    const projectLogoId = projectConfig.selected_logo_id || projectConfig.selectedLogoId;
+    const usesProjectCatalogLogo = Boolean(projectLogoId);
+    const usesLegacyProjectLogo = hasProjectLogo && !usesProjectCatalogLogo
+      && !globalConfig.selectedLogoId;
+    const currentLogoUrl = usesLegacyProjectLogo && projectLogoPath
+      ? projectLogoPath
+      : (projectLogoId
+        ? (catalog.logos.find((l) => l.id === projectLogoId)?.url || activeCatalogLogo?.url)
+        : activeCatalogLogo?.url) || `/api/projects-media/ASSETS/logo.png`;
+
+    res.json({
+
+      hasProjectLogo,
+
+      projectLogoUrl: projectLogoPath,
+
+      globalLogoUrl: activeCatalogLogo?.url || `/api/projects-media/ASSETS/logo.png`,
+
+      currentLogoUrl,
+
+      catalog,
+
+      projectSelectedLogoId: projectConfig.selected_logo_id || null,
+
+    });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao obter status do logotipo", details: err.message });
+
+  }
+
+});
+
+app.post("/api/logo/upload", (req, res) => {
+
+  try {
+
+    const projDir = getProjectDir(req);
+
+    const isGlobal = req.query.global === "true";
+
+    let targetPath;
+
+    if (isGlobal) {
+
+      const globalAssetsDir = path.join(WORKSPACE_DIR, "ASSETS");
+
+      if (!fs.existsSync(globalAssetsDir)) {
+
+        fs.mkdirSync(globalAssetsDir, { recursive: true });
+
+      }
+
+      targetPath = path.join(globalAssetsDir, "logo.png");
+
+    } else {
+
+      const assetsDir = path.join(projDir, "ASSETS");
+
+      if (!fs.existsSync(assetsDir)) {
+
+        fs.mkdirSync(assetsDir, { recursive: true });
+
+      }
+
+      targetPath = path.join(assetsDir, "logo.png");
+
+    }
+
+    const writeStream = fs.createWriteStream(targetPath);
+
+    req.pipe(writeStream);
+
+    writeStream.on("finish", () => {
+
+      res.json({ success: true, message: "Logo salvo com sucesso!" });
+
+    });
+
+    writeStream.on("error", (err) => {
+
+      res.status(500).json({ error: "Erro ao salvar arquivo de logo", details: err.message });
+
+    });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao inicializar upload do logotipo", details: err.message });
+
+  }
+
+});
+
+app.post("/api/brand/channels/reset-project", (req, res) => {
+  try {
+    const projDir = getProjectDir(req);
+    const configPath = path.join(projDir, "config_qanat.json");
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    let cleared = false;
+
+    for (const key of [
+      "selected_youtube_channel_id",
+      "selectedYoutubeChannelId",
+      "youtube_channel",
+      "youtubeChannel",
+    ]) {
+      if (projectConfig[key]) {
+        delete projectConfig[key];
+        cleared = true;
+      }
+    }
+
+    if (cleared) {
+      fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2), "utf8");
+    }
+
+    clearYoutubeAvatarCaches(WORKSPACE_DIR, projDir);
+
+    res.json({
+      success: true,
+      message: cleared
+        ? "Canal do projeto removido. Usando canal global."
+        : "Nenhum canal personalizado do projeto encontrado.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao redefinir canal do projeto", details: err.message });
+  }
+});
+
+app.post("/api/logo/reset", (req, res) => {
+
+  try {
+
+    const projDir = getProjectDir(req);
+
+    const activeProject = req.query.project;
+
+    if (!activeProject) {
+
+      return res.status(400).json({ error: "Projeto ativo não especificado." });
+
+    }
+
+    const localLogoAssets = path.join(projDir, "ASSETS", "logo.png");
+
+    const localLogoRoot = path.join(projDir, "logo.png");
+
+    let deleted = false;
+
+    if (fs.existsSync(localLogoAssets)) {
+
+      fs.unlinkSync(localLogoAssets);
+
+      deleted = true;
+
+    }
+
+    if (fs.existsSync(localLogoRoot)) {
+
+      fs.unlinkSync(localLogoRoot);
+
+      deleted = true;
+
+    }
+
+    const configPath = path.join(projDir, "config_qanat.json");
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    if (projectConfig.selected_logo_id) {
+      delete projectConfig.selected_logo_id;
+      fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2), "utf8");
+      deleted = true;
+    }
+
+    res.json({
+
+      success: true,
+
+      message: deleted ? "Logo do projeto removido. Usando logo global." : "Nenhum logo de projeto personalizado encontrado."
+
+    });
+
+  } catch (err) {
+
+    res.status(500).json({ error: "Erro ao redefinir logotipo", details: err.message });
+
+  }
+
+});
+
+// API: Brand catalog — multiple logos and YouTube channels
+
+app.get("/api/brand/catalog", (req, res) => {
+  try {
+    const globalConfig = ensureBrandCatalogMigrated(WORKSPACE_DIR, __dirname);
+    const projDir = getProjectDir(req);
+    const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+    res.json({
+      logos: listBrandLogos(WORKSPACE_DIR, __dirname),
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+      projectSelectedLogoId: projectConfig.selected_logo_id || null,
+      projectSelectedChannelId: projectConfig.selected_youtube_channel_id || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao carregar catálogo de marca", details: err.message });
+  }
+});
+
+app.post("/api/brand/logos/upload", (req, res) => {
+  try {
+    const name = String(req.query.name || req.headers["x-logo-name"] || "Novo Logo").trim();
+    const logosDir = getLogosDir(WORKSPACE_DIR);
+    fs.mkdirSync(logosDir, { recursive: true });
+    const tempPath = path.join(logosDir, `_upload_${Date.now()}.png`);
+    const writeStream = fs.createWriteStream(tempPath);
+    req.pipe(writeStream);
+    writeStream.on("finish", () => {
+      try {
+        const result = addBrandLogo(WORKSPACE_DIR, __dirname, { name, sourcePath: tempPath });
+        res.json({ success: true, ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+      } catch (err) {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        res.status(500).json({ error: err.message });
+      }
+    });
+    writeStream.on("error", (err) => {
+      res.status(500).json({ error: "Erro ao salvar logo", details: err.message });
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro no upload de logo", details: err.message });
+  }
+});
+
+app.put("/api/brand/logos/:id", (req, res) => {
+  try {
+    const entry = updateBrandLogo(__dirname, req.params.id, req.body || {});
+    res.json({
+      success: true,
+      entry,
+      catalog: listBrandLogos(WORKSPACE_DIR, __dirname),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/brand/logos/select", (req, res) => {
+  try {
+    const { id, scope = "global" } = req.body || {};
+    if (!id) return res.status(400).json({ error: "id do logo é obrigatório" });
+
+    if (scope === "project") {
+      const projDir = getProjectDir(req);
+      const configPath = path.join(projDir, "config_qanat.json");
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      config.selected_logo_id = id;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      return res.json({ success: true, scope: "project", selectedLogoId: id });
+    }
+
+    const result = selectBrandLogo(__dirname, id);
+    res.json({ success: true, scope: "global", ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/brand/logos/:id", (req, res) => {
+  try {
+    const result = deleteBrandLogo(WORKSPACE_DIR, __dirname, req.params.id);
+    res.json({ success: true, ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/brand/channels", (req, res) => {
+  try {
+    const { label, channelUrl, channelName, subscriberCount } = req.body || {};
+    const result = addYoutubeChannel(__dirname, { label, channelUrl, channelName, subscriberCount });
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      ...result,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put("/api/brand/channels/:id", (req, res) => {
+  try {
+    const entry = updateYoutubeChannel(__dirname, req.params.id, req.body || {});
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      entry,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/brand/channels/select", (req, res) => {
+  try {
+    const { id, scope = "global" } = req.body || {};
+    if (!id) return res.status(400).json({ error: "id do canal é obrigatório" });
+
+    if (scope === "project") {
+      const projDir = getProjectDir(req);
+      const configPath = path.join(projDir, "config_qanat.json");
+      const config = readProjectJson(projDir, "config_qanat.json", {});
+      config.selected_youtube_channel_id = id;
+      delete config.youtube_channel;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      return res.json({ success: true, scope: "project", selectedYoutubeChannelId: id });
+    }
+
+    const result = selectYoutubeChannel(__dirname, id);
+    clearYoutubeAvatarCaches(WORKSPACE_DIR);
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      scope: "global",
+      ...result,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/brand/channels/:id", (req, res) => {
+  try {
+    const result = deleteYoutubeChannel(__dirname, req.params.id);
+    const globalConfig = loadRenderConfig(__dirname);
+    res.json({
+      success: true,
+      ...result,
+      channels: listYoutubeChannelsFromConfig(globalConfig),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/ai/generate-creator-script", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const { prompt, useNotebooklm } = req.body;
+
   if (!prompt) {
+
     return res.status(400).json({ error: "Prompt/Tema não fornecido" });
+
   }
-  
+
+  let notebooklmContext = "";
+  if (useNotebooklm !== false) {
+    try {
+      const research = await fetchNotebooklmScriptContext({
+        backendDir: __dirname,
+        niche: prompt,
+        format: "LONGO",
+        idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA NOTEBOOKLM");
+    } catch (e) {
+      notebooklmContext = "";
+    }
+  }
+
   const promptSystem = `Você é o "AI Video Creator Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um roteirista profissional, estrategista de retenção e editor de vídeos para YouTube.
+
 O usuário deseja criar um documentário cinematográfico de 12 blocos sobre o tema: "${prompt}".
+${notebooklmContext}
+
 Sua missão é criar ideias, roteiros e instruções de edição com alto potencial de clique, retenção, comentários, compartilhamentos, inscritos e satisfação real do público.
 
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
 Regras Gerais:
+
 - Esqueça qualquer tema ou vídeo anterior para não ficar repetitivo.
-- A narração do roteiro deve soar humana, natural, direta e com ritmo de vídeo viral. Evite frases robotizadas e explicações lentas.
+
+- A narração deve soar como pessoa real contando história — frases curtas, exemplos concretos, zero clichê de IA.
+
+- O espectador precisa entender a mensagem central sem esforço; cada bloco avança essa compreensão.
+
 - O roteiro completo deve durar entre 2 e 5 minutos (cerca de 300 a 600 palavras) e ser dividido em 12 blocos lógicos.
+
+${buildFormatScriptRules("LONGO")}
+
 - Crie um gancho inicial que prenda a atenção nos primeiros 3 segundos do bloco 1.
+
 - Utilize técnicas de retenção (open loops, curiosidade progressiva, microcliffhangers, payoff final).
+
 - Defina no máximo 5 prompts visuais de cena (cada cena/vídeo gerado por IA deve ter no máximo 10 segundos). A geração de imagens e destaques estáticos (img ou svg) é ilimitada. Nunca coloque texto dentro dos prompts de imagem ou vídeo (o texto deve entrar separado na edição).
 
 Você deve responder com um objeto JSON válido contendo exatamente as seguintes propriedades:
+
 1. "script": O roteiro de narração completo recomendado para o vídeo (em português brasileiro). Esta narração será dividida em 12 blocos lógicos.
+
 2. "block_phrases": Um array de 12 objetos, um para cada bloco. Cada objeto tem as chaves:
+
    - "block": (int de 1 a 12)
+
    - "phrase": A frase inicial do bloco que serve para sincronizar o áudio com o Whisper. Ela deve ter cerca de 4 a 8 palavras e ser o início exato da narração daquele bloco.
+
 3. "impact_texts": Um array contendo sugestões de overlays de frases de impacto. Cada objeto deve ter:
+
    - "block": (int de 1 a 12)
+
    - "start_offset": Tempo em segundos a partir do início do bloco para exibir a frase (ex: 0.00, 2.50)
+
    - "end_offset": Tempo em segundos a partir do início do bloco para ocultar a frase (ex: 4.50, 7.00)
+
    - "text": O texto curto de impacto em letras maiúsculas (ex: "A GRANDE CONSTRUÇÃO", "SEM ELETRICIDADE")
+
    Insira cerca de 2 a 3 frases de impacto por bloco.
+
 4. "highlight_keywords": Um array de strings com as palavras-chave que serão destacadas em Gold nas legendas do vídeo (em letras minúsculas).
+
 5. "bgm_mappings": Um array de 12 objetos mapeando cada bloco para um arquivo de trilha sonora recomendado. Utilize apenas os seguintes arquivos disponíveis no projeto:
+
    - "Middle Eastern Ambient Drone.mp3"
+
    - "Ancient Desert Cinematic .mp3"
+
    - "Historical Tension Strings.mp3"
+
    - "Arabian Caravan Cinematic.mp3"
+
    - "Cinematic Duduk Sadness.mp3"
+
    - "Persian Mystical Oasis.mp3"
 
 Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`json ou explicações antes ou depois. Responda apenas com o JSON estruturado.`;
 
   try {
-    const response = await fetchGeminiWithFallback(apiKey, {
-      contents: [{ role: "user", parts: [{ text: promptSystem }] }]
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Roteiro Creator (12 blocos)",
+      prompt: promptSystem,
     });
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
-    // Clean up codeblocks if present
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    
-    const parsedData = JSON.parse(responseText);
-    
+    if (responseText == null) return;
+
+    const parsedData = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Roteiro/configuracao",
+    );
+
     // Save script to transcripts_readable.txt
+
     const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+
     fs.writeFileSync(transcriptPath, parsedData.script, "utf8");
-    
+
     // Save configuration
+
     const configPath = path.join(projDir, "config_qanat.json");
+
     let currentConfig = {};
+
     if (fs.existsSync(configPath)) {
+
       try { currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+
     }
-    
+
     const newConfig = {
+
       gemini_api_key: currentConfig.gemini_api_key,
+
       highlight_keywords: parsedData.highlight_keywords,
+
       bgm_mappings: parsedData.bgm_mappings,
+
       impact_texts: parsedData.impact_texts,
+
       block_phrases: parsedData.block_phrases
+
     };
-    
+
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
-    
+
     res.json({ success: true, script: parsedData.script, config: newConfig });
+
   } catch (err) {
+
     res.status(500).json({ error: "Erro ao gerar roteiro/configuração", details: err.message });
+
   }
+
 });
 
-// API: SCRIPT MASTER Step 1 - Generate Research & 10 Ideas
-app.post("/api/ai/creator/ideas", async (req, res) => {
-  const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
+function getExistingProjectsMetadata() {
 
-  const { niche, format } = req.body;
-  if (!niche || !format) {
-    return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
-  }
-
-  const promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
-O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
-Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas (evitando temas genéricos, sem focar em projetos passados de Qanat para evitar repetições).
-
-Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos de código com markdown \`\`\`json ou textos antes/depois. O JSON deve possuir exatamente a seguinte estrutura:
-{
-  "diagnostic": {
-    "looking_for": "O que as pessoas estão procurando nesse nicho agora",
-    "pain_points": "Principais dores desse público",
-    "desires": "Desejos que movem o público",
-    "retention_fears": "Medos ou dúvidas que geram retenção",
-    "comment_hooks": "Curiosidades ou polêmicas que geram comentários",
-    "title_style": "Que tipo de título teria mais chance de clique",
-    "core_emotion": "Emoção principal a ser ativada",
-    "retention_topics": "Tópicos com maior potencial de retenção",
-    "strong_angle": "Qual o ângulo mais forte para o vídeo"
-  },
-  "ideas": [
-    {
-      "title": "Título provisório instigante",
-      "promise": "Promessa clara do vídeo",
-      "emotion": "Emoção dominante",
-      "why_works": "Por que esse vídeo pode funcionar",
-      "best_format": "LONGO, SHORTS ou AMBOS"
-    }
-  ],
-  "best_idea_index": 0,
-  "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"
-}`;
+  const projects = [];
 
   try {
-    let responseText = await callAIBackend(
-      projDir,
-      `${promptSystem}\n\nENTRADAS:\nNICHO: ${niche}\nFORMATO: ${format}`,
-      null,
-      "application/json"
+
+    const scanDir = (dir, format) => {
+
+      if (!fs.existsSync(dir)) return;
+
+      const items = fs.readdirSync(dir);
+
+      for (const item of items) {
+
+        const fullPath = path.join(dir, item);
+
+        try {
+
+          if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
+
+            if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
+
+              let title = item;
+
+              const storyboardPath = path.join(fullPath, "storyboard.json");
+
+              if (fs.existsSync(storyboardPath)) {
+
+                try {
+
+                  const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+
+                  if (sb.strategy?.title_main) title = sb.strategy.title_main;
+
+                } catch (e) {}
+
+              }
+
+              projects.push({ name: item, title, format });
+
+            }
+
+          }
+
+        } catch (err) {}
+
+      }
+
+    };
+
+    scanDir(LONGS_DIR, "LONGO");
+
+    scanDir(SHORTS_DIR, "SHORTS");
+
+  } catch (e) {
+
+    console.error("Error reading existing projects metadata:", e);
+
+  }
+
+  return projects;
+
+}
+
+// API: SCRIPT MASTER Step 1 - Generate Research & 10 Ideas
+
+app.post("/api/ai/creator/ideas", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  const browserText = extractBrowserResponse(req.body);
+
+  const { niche, format, useNotebooklm, contentMode, rankCount, rankOrder, listTopic } = req.body;
+
+  if (!niche || !format) {
+
+    return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
+
+  }
+
+  const isListicle = contentMode === "LISTICLE";
+  const listicleRank = clampListicleRankCount(rankCount, format);
+  const listicleTopic = String(listTopic || niche).trim();
+
+  let notebooklmContext = "";
+  const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
+  if (useNotebooklm !== false && !skipNotebooklm) {
+    try {
+      const research = await fetchNotebooklmResearch(niche, format, {
+        backendDir: __dirname,
+        contentMode: isListicle ? "LISTICLE" : undefined,
+        rankCount: listicleRank,
+        listTopic: listicleTopic,
+        rankOrder: rankOrder || "desc",
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "CONTEXTO DE PESQUISA");
+    } catch (e) {
+      notebooklmContext = "";
+    }
+  }
+
+  const nicheClean = String(niche).trim();
+
+  let webResearchContext = "";
+  try {
+    const webResearch = await fetchWebResearchForTopic({
+      topic: isListicle ? listicleTopic : nicheClean,
+      niche: nicheClean,
+      format,
+      apiKey: getApiKey(projDir),
+      getApiKeys: () => getApiKeys(projDir),
+    });
+    webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
+  } catch {
+    webResearchContext = "";
+  }
+
+  let promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
+
+O usuário fornecerá um Nicho de Vídeo e um Formato (Longo ou Shorts).
+
+Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 10 ideias de vídeo virais exclusivas dentro desse nicho.
+
+${buildNicheIsolationAddendum(nicheClean)}
+
+${buildNicheVarietyInstruction(nicheClean)}
+
+${notebooklmContext}
+${webResearchContext}
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
+
+Diversidade obrigatoria de ideias:
+
+- As 10 ideias devem explorar angulos diferentes entre si; nao entregue variacoes do mesmo titulo.
+
+- Misture pelo menos estes tipos de abordagem quando fizer sentido: misterio, erro historico, detalhe esquecido, revelacao cientifica, comparacao improvavel, historia humana, mito versus realidade, pergunta provocadora, conflito moral e curiosidade visual.
+
+- Evite repetir estruturas como "o segredo de..." em muitas ideias. Varie promessa, emocao e mecanismo de clique.
+
+- Escolha a melhor ideia pelo potencial de retencao e comentario, nao apenas pelo titulo mais chamativo.
+
+${buildIdeasQualityAddendum()}
+
+${buildViralIdeasAddendum(format)}
+
+${isListicle ? buildListicleIdeasAddendum({ rankCount: listicleRank, listTopic: listicleTopic, rankOrder: rankOrder || "desc" }) : ""}
+
+Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos de código com markdown \`\`\`json ou textos antes/depois. O JSON deve possuir exatamente a seguinte estrutura:
+
+{
+
+  "diagnostic": {
+
+    "looking_for": "O que as pessoas estão procurando nesse nicho agora",
+
+    "pain_points": "Principais dores desse público",
+
+    "desires": "Desejos que movem o público",
+
+    "retention_fears": "Medos ou dúvidas que geram retenção",
+
+    "comment_hooks": "Curiosidades ou polêmicas que geram comentários",
+
+    "title_style": "Que tipo de título teria mais chance de clique",
+
+    "core_emotion": "Emoção principal a ser ativada",
+
+    "retention_topics": "Tópicos com maior potencial de retenção",
+
+    "strong_angle": "Qual o ângulo mais forte para o vídeo"
+
+  },
+
+  "ideas": [
+
+    {
+
+      "title": "Título provisório instigante",
+
+      "promise": "Promessa clara do vídeo",
+
+      "emotion": "Emoção dominante",
+
+      "why_works": "Por que esse vídeo pode funcionar",
+
+      "best_format": "LONGO, SHORTS ou AMBOS",
+
+      "viral_category": "impactful | practical | provocative | astonishing",
+
+      "hook_angle": "question | shock | problem_solution | before_after | breaking | challenge | secret | personal",
+
+      "hooks": "Gancho principal ≤10 palavras, voz ativa, PT-BR"${format === "SHORTS" ? ',\n\n      "hook_candidates": ["gancho 1 ≤10 palavras", "gancho 2", "gancho 3"],\n\n      "wow_facts_preview": ["fato 1 com número", "fato 2", "fato 3"]' : ""}${isListicle ? ',\n\n      "listicle_angle": "ângulo do ranking (surpresa, impacto diário, mito vs realidade, etc.)"' : ""}
+
+    }
+
+  ],
+
+  "best_idea_index": 0,
+
+  "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"${isListicle ? ',\n\n  "listicle_meta": {\n    "rank_count": ' + listicleRank + ',\n    "rank_order": "' + (rankOrder || "desc") + '",\n    "topic": "' + listicleTopic.replace(/"/g, '\\"') + '"\n  }' : ""}
+
+}`;
+
+  promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
+    niche: nicheClean,
+    task: "ideas",
+    format: format === "SHORTS" ? "SHORT" : "LONG",
+  });
+
+  try {
+
+    const randomSeed = Math.floor(Math.random() * 1000000);
+    const fullPrompt = `${promptSystem}
+
+[ID da Geração: ${randomSeed}]
+
+ENTRADAS:
+NICHO: ${nicheClean}
+FORMATO: ${format}
+${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleTopic}\nORDEM: ${rankOrder || "desc"}` : ""}`;
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Gerar 10 ideias virais",
+      prompt: fullPrompt,
+      temperature: 1.15,
+    });
+    if (responseText == null) return;
+
+    const parsedData = await parseAiJsonResponse(
+      responseText,
+      getApiKey(projDir),
+      "Ideias e diagnostico",
     );
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    const parsedData = JSON.parse(responseText);
+
     res.json(parsedData);
+
   } catch (err) {
+
+    console.error("[IDEAS ENDPOINT ERROR]", err.message);
+
     res.status(500).json({ error: "Erro ao gerar ideias/diagnóstico", details: err.message });
+
+  }
+
+});
+
+// API: LISTICLE — Sugerir rankings interessantes para um nicho
+
+app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+  const browserText = extractBrowserResponse(req.body);
+
+  const { niche, format = "LONGO", useNotebooklm } = req.body;
+
+  if (!niche || !String(niche).trim()) {
+    return res.status(400).json({ error: "Informe o nicho para sugerir rankings." });
+  }
+
+  const nicheClean = String(niche).trim();
+
+  let notebooklmContext = "";
+  const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
+  if (useNotebooklm !== false && !skipNotebooklm) {
+    try {
+      const research = await fetchNotebooklmResearch(nicheClean, format, {
+        backendDir: __dirname,
+        contentMode: "LISTICLE",
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA DE MERCADO");
+    } catch (e) {
+      notebooklmContext = "";
+    }
+  }
+
+  const useCompactPrompt = skipNotebooklm || !!browserText;
+  const prompt = `${buildListicleRankingIdeasPrompt({ niche: nicheClean, format, compact: useCompactPrompt })}
+
+${notebooklmContext}
+
+[ID: ${Date.now()}]`;
+
+  try {
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Sugerir rankings (listicle)",
+      prompt,
+      temperature: 0.9,
+    });
+    if (responseText == null) return;
+
+    const raw = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Ranking ideas",
+    );
+    const parsed = normalizeListicleIdeasResponse(raw, { format });
+
+    if (!parsed.ranking_ideas?.length) {
+      console.warn("[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:", Object.keys(raw || {}));
+      return res.status(502).json({
+        error: "A IA não retornou rankings válidos. Tente novamente ou mude o nicho.",
+        details: `Chaves na resposta: ${Object.keys(raw || {}).join(", ") || "nenhuma"}`,
+        raw_preview: JSON.stringify(raw).slice(0, 500),
+      });
+    }
+
+    console.log(`[LISTICLE IDEAS] ${parsed.ranking_ideas.length} rankings para nicho "${nicheClean}"`);
+    res.json(parsed);
+  } catch (err) {
+    console.error("[LISTICLE IDEAS ERROR]", err.message);
+    res.status(500).json({ error: "Erro ao sugerir rankings", details: err.message });
   }
 });
 
 function normalizeKeys(data) {
+
   if (!data || typeof data !== "object") return data;
-  
+
   const normalized = {};
-  
+
   // Strategy
+
   const strategyKey = Object.keys(data).find(k => k.toLowerCase() === "strategy" || k.toLowerCase() === "estrategia");
+
   if (strategyKey && typeof data[strategyKey] === "object") {
+
     const s = data[strategyKey];
+
     normalized.strategy = {
+
       title_main: s.title_main || s.titulo_principal || s.tituloMain || s.title || "",
+
       title_variations: s.title_variations || s.variacoes_titulo || s.variacoes || s.variations || [],
+
       hook: s.hook || s.gancho || "",
+
       target_audience: s.target_audience || s.publico_alvo || s.publico || "",
+
       tone: s.tone || s.tom || "",
+
       pinned_comment: s.pinned_comment || s.comentario_fixado || "",
+
       cta: s.cta || ""
+
     };
+
   } else {
+
     normalized.strategy = { title_main: "", title_variations: [], hook: "", target_audience: "", tone: "", pinned_comment: "", cta: "" };
+
   }
 
   // Narrative script
+
   const scriptKey = Object.keys(data).find(k => k.toLowerCase() === "narrative_script" || k.toLowerCase() === "roteiro_narrativo" || k.toLowerCase() === "roteiro");
+
   normalized.narrative_script = data[scriptKey] || data.script || data.narrativeScript || "";
 
   // Visual prompts
+
   const promptsKey = Object.keys(data).find(k => k.toLowerCase() === "visual_prompts" || k.toLowerCase() === "prompts_visuais" || k.toLowerCase() === "prompts");
+
   const rawPrompts = data[promptsKey] || [];
+
   normalized.visual_prompts = (Array.isArray(rawPrompts) ? rawPrompts : []).map((vp, index) => ({
+
     scene: vp.scene || vp.cena || (index + 1),
+
     block: vp.block || vp.bloco || Math.floor(index / 2) + 1,
-    narration_text: vp.narration_text || vp.narration_excerpt || vp.trecho_narracao || "",
+
+    narration_text: vp.narration_text || vp.narration_excerpt || vp.trecho_narracao || vp.narracao || vp.texto_narracao || vp.narration || vp.script_segment || "",
+
     function: vp.function || vp.funcao || "",
+
     duration: vp.duration || vp.duracao || "até 10 segundos",
+
     type: vp.type || vp.tipo || "imagem IA 2k",
+
     aspect_ratio: vp.aspect_ratio || vp.aspectRatio || vp.formato || vp.proporcao || "16:9",
-    prompt: vp.prompt || "",
+
+    prompt: vp.prompt || vp.visual_prompt || vp.image_prompt || vp.prompt_visual || "",
+
     text_overlay: vp.text_overlay || vp.textOverlay || vp.texto_tela || vp.textoTela || vp.texto || "",
+
     editor_notes: vp.editor_notes || vp.editorNotes || vp.observacao_edicao || vp.observacao || "",
+
     stock_query: vp.stock_query || vp.stockQuery || vp.busca_termo || ""
+
   }));
 
   // Editing map
+
   const mapKey = Object.keys(data).find(k => k.toLowerCase() === "editing_map" || k.toLowerCase() === "mapa_edicao" || k.toLowerCase() === "mapa");
+
   normalized.editing_map = data[mapKey] || "";
 
   // Hyperframe prompt
+
   const hfKey = Object.keys(data).find(k => k.toLowerCase() === "hyperframe_prompt" || k.toLowerCase() === "prompt_hyperframe" || k.toLowerCase() === "prompt_final");
+
   normalized.hyperframe_prompt = data[hfKey] || "";
 
   // BGM recommendations
+
   const bgmRecKey = Object.keys(data).find(k => k.toLowerCase() === "bgm_recommendations" || k.toLowerCase() === "bgm_recommendations_list" || k.toLowerCase() === "recomendacoes_trilha" || k.toLowerCase() === "recomendacoes_bgm");
+
   if (bgmRecKey && Array.isArray(data[bgmRecKey])) {
+
     normalized.bgm_recommendations = data[bgmRecKey].map(r => ({
+
       block: r.block || r.bloco || 0,
-      recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || ""
+
+      scope: r.scope || r.escopo || (r.block || r.bloco ? "block" : "video"),
+
+      recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || "",
+
+      search_theme: r.search_theme || r.searchTheme || r.tema_busca || ""
+
     }));
+
   } else {
+
     normalized.bgm_recommendations = [];
+
   }
 
   // Checklist
+
   const checkKey = Object.keys(data).find(k => k.toLowerCase() === "checklist" || k.toLowerCase() === "lista_qualidade");
+
   if (checkKey && typeof data[checkKey] === "object") {
-    const c = data[checkKey];
-    normalized.checklist = {
-      click_potential: c.click_potential || c.potencial_clique || c.clique || 0,
-      retention_potential: c.retention_potential || c.potencial_retencao || c.retencao || 0,
-      comments_potential: c.comments_potential || c.potencial_comentarios || c.comentarios || 0,
-      feedback: c.feedback || c.sugestoes || ""
-    };
+    normalized.checklist = normalizeScriptChecklist(data[checkKey]);
   } else {
-    normalized.checklist = { click_potential: 0, retention_potential: 0, comments_potential: 0, feedback: "" };
+    normalized.checklist = normalizeScriptChecklist(null);
   }
 
   // Technical config
+
   const techKey = Object.keys(data).find(k => k.toLowerCase() === "technical_config" || k.toLowerCase() === "config_tecnica" || k.toLowerCase() === "configuracao_tecnica");
+
   if (techKey && typeof data[techKey] === "object") {
+
     const t = data[techKey];
+
     normalized.technical_config = {
+
       script: t.script || t.roteiro || "",
+
       block_phrases: t.block_phrases || t.frases_bloco || t.blockPhrases || [],
+
       impact_texts: t.impact_texts || t.textos_impacto || t.impactTexts || [],
+
       highlight_keywords: t.highlight_keywords || t.palavras_chave || t.highlightKeywords || [],
+
       bgm_mappings: t.bgm_mappings || t.mapeamento_trilhas || t.bgmMappings || []
+
     };
+
   } else {
+
     normalized.technical_config = { script: "", block_phrases: [], impact_texts: [], highlight_keywords: [], bgm_mappings: [] };
+
   }
 
   return normalized;
+
 }
 
 // API: SCRIPT MASTER Step 2 - Generate Strategy, Complete Script, and technical mappings
+
 app.post("/api/ai/creator/script", async (req, res) => {
-  const { niche, format, idea, project } = req.body;
+
+  const {
+    niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic, listicleHudStyle, useNotebooklm,
+    phase = "full",
+    approvedNarration: approvedNarrationRaw,
+    approvedNarrationTagged: approvedNarrationTaggedRaw,
+    existingStrategy: existingStrategyRaw,
+  } = req.body;
+  const scriptPhase = phase === "narration" ? "narration" : "full";
+  const approvedNarration = String(approvedNarrationRaw || "").trim();
+  const approvedNarrationTagged = String(approvedNarrationTaggedRaw || "").trim();
+
   if (!niche || !format || !idea || !project) {
+
     return res.status(400).json({ error: "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios." });
+
   }
 
+  const isListicle = contentMode === "LISTICLE";
+  const listicleRank = clampListicleRankCount(rankCount, format);
+  const listicleTopic = String(listTopic || idea.title || niche).trim();
+  const listicleBlockCount = isListicle
+    ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+    : (format === "SHORTS" ? 5 : 12);
+
   const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-  const projDir = path.join(WORKSPACE_DIR, safeProjectName);
 
+  const isShort = (format === "SHORTS");
 
+  const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
+
+  const projDir = path.join(targetParentDir, safeProjectName);
+
+  const settingsDir = getProjectDir(req);
+  const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json")) ? projDir : settingsDir;
+
+  if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(settingsDir) && !getApiKey(projDir) && !getApiKey(settingsDir)) {
+    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+  }
 
   // Automatically create and template project directory on-the-fly if it doesn't exist
+
   if (!fs.existsSync(projDir)) {
+
     try {
+
       fs.mkdirSync(projDir, { recursive: true });
+
       fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
+
       fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
-      
+
+      ensureProjectSfxPack(projDir);
+
       ensureFileExists("build_video.py", projDir);
+
       ensureFileExists("build_video_destacado.py", projDir);
+
       ensureFileExists("mix_bgm.py", projDir);
+
       ensureFileExists("find_block_timings.py", projDir);
+
       ensureFileExists("align_transcripts.py", projDir);
-      
-      const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
-      const defaultConfigDest = path.join(projDir, "config_qanat.json");
-      if (fs.existsSync(defaultConfigSrc)) {
-        fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
-        try {
-          const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
-          if (cfg.gemini_api_key) {
-            delete cfg.gemini_api_key;
-            fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
-          }
-        } catch (e) {}
+
+      // Copy logo.png if it exists in root ASSETS folder
+
+      const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
+
+      const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
+
+      if (fs.existsSync(rootLogoPath)) {
+
+        fs.copyFileSync(rootLogoPath, destLogoPath);
+
+        console.log(`Copied logo.png to new project ${safeProjectName}`);
+
       }
-      
+
+      const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
+
+      const defaultConfigDest = path.join(projDir, "config_qanat.json");
+
+      if (fs.existsSync(defaultConfigSrc)) {
+
+        fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
+
+        try {
+
+          const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
+
+          if (cfg.gemini_api_key) {
+
+            delete cfg.gemini_api_key;
+
+            fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
+
+          }
+
+        } catch (e) {}
+
+      }
+
+      const blockEstimate = isListicle ? 50 : 10;
+      const timingStarts = Array.from({ length: listicleBlockCount }, (_, i) => i * blockEstimate);
+      const timingDurations = Array.from({ length: listicleBlockCount }, () => blockEstimate);
       fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
-        starts: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
-        durations: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-        total_duration: 120
+
+        starts: timingStarts,
+
+        durations: timingDurations,
+
+        total_duration: timingStarts[timingStarts.length - 1] + blockEstimate
+
       }, null, 4), "utf8");
+
     } catch (err) {
+
       return res.status(500).json({ error: "Erro ao criar pasta do novo projeto", details: err.message });
+
+    }
+
+  }
+
+  const browserTextEarly = extractBrowserResponse(req.body);
+  const skipNotebooklmScript = browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
+
+  let notebooklmContext = "";
+  let notebooklmResearch = null;
+  if (useNotebooklm !== false && !skipNotebooklmScript) {
+    try {
+      console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
+      notebooklmResearch = await fetchNotebooklmScriptContext({
+        backendDir: __dirname,
+        niche,
+        format,
+        idea,
+        contentMode: isListicle ? "LISTICLE" : undefined,
+        rankCount: listicleRank,
+        listTopic: listicleTopic,
+        rankOrder: rankOrder || "desc",
+      });
+      notebooklmContext = formatNotebooklmPromptBlock(notebooklmResearch, "PESQUISA NOTEBOOKLM PARA ROTEIRO");
+      if (notebooklmResearch.available) {
+        console.log("[NotebookLM] Contexto de roteiro obtido com sucesso.");
+      } else {
+        console.warn("[NotebookLM] Usando fallback de pesquisa:", notebooklmResearch.message || "sem login");
+      }
+    } catch (err) {
+      console.warn("[NotebookLM] Falha ao enriquecer roteiro:", err.message);
     }
   }
 
-  const promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
-O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}"):
-Título: "${idea.title}"
-Promessa: "${idea.promise}"
-Emoção: "${idea.emotion}"
+  let webResearchContext = "";
+  let webResearchMeta = null;
+  const researchTopic = isListicle ? listicleTopic : (idea.title || niche);
+  try {
+    console.log("[WebResearch] Pesquisando fatos com fontes para roteiro...");
+    webResearchMeta = await fetchWebResearchForTopic({
+      topic: researchTopic,
+      niche,
+      format,
+      apiKey: getApiKey(llmDir),
+      getApiKeys: () => getApiKeys(llmDir),
+    });
+    webResearchContext = formatWebResearchPromptBlock(webResearchMeta, "PESQUISA WEB (FONTES REAIS)");
+    if (webResearchMeta.available) {
+      console.log(`[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`);
+    }
+  } catch (err) {
+    console.warn("[WebResearch] Falha:", err.message);
+  }
 
-SUA MISSÃO PRINCIPAL:
+  let phase1Strategy = {};
+  const storyboardEarlyPath = path.join(projDir, "storyboard.json");
+  if (fs.existsSync(storyboardEarlyPath)) {
+    try {
+      const partial = JSON.parse(fs.readFileSync(storyboardEarlyPath, "utf8"));
+      if (partial?.strategy && typeof partial.strategy === "object") {
+        phase1Strategy = partial.strategy;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const existingStrategy =
+    existingStrategyRaw && typeof existingStrategyRaw === "object" && Object.keys(existingStrategyRaw).length
+      ? existingStrategyRaw
+      : phase1Strategy;
+
+  const promptContext = {
+    niche,
+    format,
+    idea,
+    isListicle,
+    listicleRank,
+    listicleTopic,
+    rankOrder: rankOrder || "desc",
+    listicleBlockCount,
+    notebooklmContext,
+    webResearchContext,
+    cinematicNarrationRules: buildCinematicNarrationRules(),
+    titleCraftRules: buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG"),
+    epidemicMoodPrompt: buildEpidemicMoodPrompt(
+      niche,
+      { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic },
+      { listicle: { topic: listicleTopic } },
+    ),
+    approvedNarration,
+    approvedNarrationTagged,
+    existingStrategy,
+  };
+
+  let promptSystem;
+  if (scriptPhase === "narration") {
+    promptSystem = buildNarrationOnlyPrompt(promptContext);
+  } else if (approvedNarration) {
+    promptSystem = buildCreatorPhase2Prompt(promptContext);
+  } else {
+  promptSystem = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
+
+O usuário selecionou a seguinte ideia de vídeo para o nicho "${niche}" (Formato: "${format}")${isListicle ? ` — MODO LISTICLE TOP ${listicleRank}` : ""}:
+
+Título: "${idea.title}"
+
+Promessa: "${idea.promise}"
+
+Emoção: "${idea.emotion}"${isListicle ? `\n\nTEMA DA LISTA: ${listicleTopic}\nORDEM DO RANKING: ${rankOrder === "asc" ? "1 → N (build-up)" : "N → 1 (countdown)"}\nBLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)${idea.listicle_angle ? `\nÂNGULO DO RANKING: ${idea.listicle_angle}` : ""}${Array.isArray(idea.sample_items) && idea.sample_items.length ? `\nITENS SUGERIDOS (use ou refine): ${idea.sample_items.join(", ")}` : ""}` : ""}`;
+
+  const customHookVal = idea.hook || idea.hooks || "";
+  if (customHookVal) {
+    promptSystem += `\nGancho de Retenção Inicial (Hook) sugerido: "${customHookVal}"`;
+  }
+
+  if (idea.blocks) {
+    let blocksStr = "";
+    if (Array.isArray(idea.blocks)) {
+      blocksStr = idea.blocks.map(b => `Block ${b.block || b.index || 1}: ${b.content}`).join("\n");
+    } else {
+      blocksStr = String(idea.blocks);
+    }
+    promptSystem += `\nEstrutura/Ganchos por Bloco recomendados pelo usuário:\n"${blocksStr}"`;
+  }
+
+  if (idea.isCustom) {
+    promptSystem += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante — estilo UGC falado (skill ugc-scriptwriter). Fechamento DECLARATIVO; proibido "Você prefere…?" ou perguntas vazias de comentário. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
+    if (webResearchContext) {
+      promptSystem += webResearchContext;
+    }
+  }
+
+  promptSystem += `${notebooklmContext}\n\nSUA MISSÃO PRINCIPAL:
+
 Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente (imagem 2K ou vídeo IA máx 10s). A narração inteira deve ser coberta — sem lacunas. Se precisar de 50, 80 ou 100 segmentos, gere todos. O array "visual_prompts" É o roteiro do vídeo.
 
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+${isListicle
+    ? buildListicleScriptRules({
+      rankCount: listicleRank,
+      rankOrder: rankOrder || "desc",
+      format,
+      listTopic: listicleTopic,
+      blockCount: listicleBlockCount,
+    })
+    : buildFormatScriptRules(format)}
+
+${buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG")}
+
+${buildCinematicNarrationRules()}
+
+${buildEpidemicMoodPrompt(niche, { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic }, { listicle: { topic: listicleTopic } })}
+
+Reforco especifico para montagem do roteiro:
+
+- A MENSAGEM CENTRAL deve estar clara na promessa da ideia ("${idea.promise}"). Cada bloco aproxima o espectador dessa compreensão.
+
+- Preserve exatamente o formato JSON solicitado abaixo (com todas as chaves, incluindo 'technical_config').
+- ${isListicle
+    ? `MODO LISTICLE ATIVO: use EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Cada item = 1 bloco. Não resuma vários itens no mesmo bloco.`
+    : `Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.`}
+
+- Nao reduza a cobertura visual: o array visual_prompts continua cobrindo toda a narracao, como o programa ja espera.
+
 Regras do Roteiro:
+
 1. Pesquise internamente o nicho (tendências, dores, desejos, medos, polêmicas, curiosidades).
+
 2. Não repita temas de vídeos anteriores.
+
 3. Prenda a atenção nos primeiros 3 segundos.
+
 4. Use open loop, curiosidade progressiva, microcliffhangers e payoff final.
-5. Narração em português brasileiro, natural, humana e direta.
-6. Formato: "${format}".
-   - SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA).
-   - LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.
+
+5. Narração em português brasileiro: deve ser extremamente humana, fluida, natural, carismática e cheia de vida. Revise cada frase de cada bloco para garantir um sentido lógico impecável e um fluxo narrativo harmonioso. Elimine totalmente sentenças robotizadas, vagas ou desconexas.
+
+6. Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
+
+   ${isListicle
+    ? `- LISTICLE: ${listicleBlockCount} blocos obrigatórios. Tempo estimado: ${format === "SHORTS" ? (listicleRank >= 5 ? "45-60 segundos" : "35-50 segundos") : `${Math.round(listicleRank * 0.75)}-${Math.round(listicleRank * 1.2)} minutos`}. Um item por bloco, ordem ${rankOrder === "asc" ? "crescente" : "decrescente"}.`
+    : `- SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA).
+
+   - LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.`}
 
 Regras dos Prompts Visuais:
+
 - CUBRA 100% DA NARRAÇÃO. Cada 1-2 frases da narração = 1 prompt visual. Nenhuma frase fica sem cobertura visual.
+
 - 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
+
 - 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).
+
 - Prompts variados: close-ups, planos abertos, aéreas, texturas, detalhes, paisagens, mapas, infográficos visuais.
+
 - Nunca coloque texto dentro dos prompts visuais.
+
 - Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
+${isListicle ? `
+- LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").
+- LISTICLE: gere "list_items" e "listicle" conforme especificado nas regras de listicle acima.` : ""}
 
 FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
 1. "strategy": {
-   "title_main": "Título principal com alta taxa de clique",
-   "title_variations": ["var1", "var2", "var3", "var4", "var5"],
+
+   "title_main": "Título específico ao tema (nome, número ou detalhe concreto — sem clickbait genérico)",
+
+   "title_variations": ["5 variações com ângulos DIFERENTES: pergunta, número, paradoxo, nome, lacuna"],
+
    "hook": "Gancho de 3 segundos",
+
    "target_audience": "Público-alvo",
+
    "tone": "Tom do vídeo",
+
    "pinned_comment": "Comentário fixado estratégico",
+
    "cta": "CTA suave"
+
 }
 
 2. "narrative_script": "A narração COMPLETA do vídeo inteiro em texto corrido (limpa, sem tags).",
@@ -1672,635 +10280,2914 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 3. "narrative_script_tagged": "A mesma narração COMPLETA, mas com 'auto tags' de áudio. É fundamental que as tags sejam colocadas EXATAMENTE de acordo com a emoção e o momento da narração. Use [pause] para suspense, (breath) antes de frases longas ou após surpresas, (sigh) para cansaço/desilusão, (laughs) para humor leve, ou <break time=\"1.5s\"/> para viradas drásticas de assunto. Dê ritmo humano e teatral ao texto.",
 
 4. "visual_prompts": [
+
    GERE UM OBJETO PARA CADA SEGMENTO DA NARRAÇÃO. Cubra o vídeo inteiro. Exemplo para LONGO: 40-80 objetos. Cada objeto:
+
    {
+
      "scene": "1.1",
+
      "block": 1,
+
      "narration_text": "O trecho EXATO da narração que será falado durante esta cena. Copie 1-2 frases da narração.",
+
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
+
      "duration": "3 a 5 segundos",
+
      "prompt": "Prompt cinematográfico completo em inglês. Para imagem: photorealistic 2k resolution, cinematic lighting, sharp detail, no text. Para vídeo: cinematic motion, max 10 seconds, no text.",
+
      "editor_notes": "Como usar na edição: Ken Burns zoom in, dissolve, corte seco, etc. + justificativa imagem vs vídeo.",
+
      "stock_query": "termo curto em inglês para busca em Pexels/Pixabay/Canva"
+
    }
+
 ]
 
 5. "bgm_recommendations": [
+
    GERE UM OBJETO PARA CADA BLOCO DA NARRATIVA.
+
    {
+
      "block": 1,
-     "recommendation": "Descreva o tipo de trilha sonora ideal para este bloco (ex: drone tenso de suspense, bateria tribal épica crescendo, piano triste e suave)."
+
+     "recommendation": "Descreva o tipo de trilha sonora ideal para este bloco em português.",
+
+     "search_theme": "A short English search query for Epidemic Sound (ex: 'cinematic tension strings', 'epic ethnic percussion', 'sad duduk drone')"
+
    }
+
 ]
 
 6. "editing_map": "Instruções gerais de edição."
 
 7. "hyperframe_prompt": "Prompt final para o agente HyperFrame em português."
 
-8. "checklist": {
-   "click_potential": 0-10,
-   "retention_potential": 0-10,
-   "comments_potential": 0-10,
-   "feedback": "Avaliação rápida"
-}
+${buildChecklistSchemaBlock()}
 
 9. "technical_config": {
-   "script": "Narração dividida em 12 parágrafos (Longo) ou 5 (Shorts) separados por quebra de linha.",
+
+   "script": "Narração dividida em ${listicleBlockCount} parágrafos separados por quebra de linha.",
+
    "block_phrases": [{"block": 1, "phrase": "início do bloco"}],
+
    "impact_texts": [{"block": 1, "start_offset": 0.0, "end_offset": 4.5, "text": "TEXTO IMPACTO"}],
+
    "highlight_keywords": ["palavra1", "palavra2"],
+
    "bgm_mappings": [{"block": 1, "file": "sugestao_nome_trilha.mp3"}]
+
+}${isListicle ? `
+
+10. "listicle": {
+
+   "content_mode": "LISTICLE",
+
+   "rank_count": ${listicleRank},
+
+   "rank_order": "${rankOrder === "asc" ? "asc" : "desc"}",
+
+   "topic": "${listicleTopic.replace(/"/g, '\\"')}"
+
 }
 
-REGRAS FINAIS:
-- Retorne APENAS JSON puro, sem markdown, sem explicações.
-- O JSON deve ser 100% válido. Escape aspas internas com barra invertida.
-- O array visual_prompts deve cobrir TODA a narração sem lacunas.
-- Gere quantas cenas forem necessárias (40-80+ para Longo, 5-10 para Shorts).`;
+11. "list_items": [
 
+   { "rank": ${listicleRank}, "title": "nome do item", "year": "ano", "origin": "país", "block": 2, "hook_line": "gancho", "visual_hook": "english stock term" }
+
+]` : ""}
+
+REGRAS FINAIS:
+
+- Retorne APENAS JSON puro, sem markdown, sem explicações.
+
+- O JSON deve ser 100% válido. Escape aspas internas com barra invertida.
+
+- O array visual_prompts deve cobrir TODA a narração sem lacunas.
+
+- Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
+  }
+
+  promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
+    niche,
+    task: "script",
+    format: isShort ? "SHORT" : "LONG",
+  });
 
   let responseText = "";
-  try {
-    responseText = await callAIBackend(projDir, promptSystem, null, "application/json");
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+  const apiKey = getApiKey(projDir) || getApiKey(settingsDir);
 
-    const rawData = JSON.parse(responseText);
-    const parsedData = normalizeKeys(rawData);
+  try {
+
+    responseText = await callGeminiLlm(req, res, llmDir, {
+      title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
+      prompt: promptSystem,
+      temperature: isListicle ? 0.75 : 0.85,
+    });
+    if (responseText == null) return;
+
+    const isBrowserResponse = !!extractBrowserResponse(req.body);
+    let rawData;
+    try {
+      rawData = await parseAiJsonResponse(
+        responseText,
+        isBrowserResponse ? null : apiKey,
+        "Roteiro e estrategia",
+      );
+    } catch (parseErr) {
+      if (scriptPhase === "full" && approvedNarration) {
+        rawData = salvageScriptJson(responseText) || {};
+        console.warn("[Creator Script] JSON fase 2 inválido — salvage/fallback:", parseErr.message);
+        if (!Object.keys(rawData).length) {
+          throw parseErr;
+        }
+      } else {
+        throw parseErr;
+      }
+    }
+
+    let parsedData = applyScriptTextQuality(normalizeKeys(rawData), format);
+
+    if (scriptPhase === "full" && approvedNarration && existingStrategy && Object.keys(existingStrategy).length) {
+      parsedData.strategy = { ...existingStrategy, ...(parsedData.strategy || {}) };
+    }
+
+    if (isListicle && !parsedData.listicle) {
+      parsedData.listicle = {
+        content_mode: "LISTICLE",
+        rank_count: listicleRank,
+        rank_order: rankOrder === "asc" ? "asc" : "desc",
+        topic: listicleTopic,
+        hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
+          ? listicleHudStyle
+          : (listicleRank > 8 ? "compact" : "full"),
+      };
+    } else if (isListicle && parsedData.listicle) {
+      parsedData.listicle.hud_style = ["compact", "full", "auto"].includes(listicleHudStyle)
+        ? listicleHudStyle
+        : (parsedData.listicle.hud_style || (listicleRank > 8 ? "compact" : "full"));
+    }
+
+    if (scriptPhase === "narration") {
+      try {
+        const repairPrompt = buildNarrationHumanizeRepairPrompt({
+          format,
+          ideaTitle: idea.title,
+          narrative_script: parsedData.narrative_script,
+          narrative_script_tagged: parsedData.narrative_script_tagged,
+          blockCount: listicleBlockCount,
+          isListicle,
+          listicleRank,
+          listTopic: listicleTopic,
+        });
+        const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+          temperature: 0.55,
+          maxRetries: 2,
+          models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+        });
+        const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao narracao"));
+        parsedData = mergeHumanizedNarration(parsedData, repaired, format);
+        console.log("[Creator Script] Humanização da narração (fase 1) aplicada.");
+      } catch (repairErr) {
+        console.warn("[Creator Script] Humanização da narração falhou, usando rascunho:", repairErr.message);
+      }
+
+      parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
+
+      let notebooklmEnriched = false;
+      let notebooklmEnrichSummary = "";
+      if (
+        useNotebooklm !== false
+        && notebooklmResearch?.available
+        && String(parsedData.narrative_script || "").trim().length >= 40
+      ) {
+        try {
+          console.log("[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)...");
+          const improveResearch = await fetchNotebooklmScriptImprovements({
+            backendDir: __dirname,
+            niche,
+            format,
+            narrativeScript: parsedData.narrative_script,
+          });
+          const enrichBlock = formatNotebooklmPromptBlock(improveResearch, "ENRIQUECIMENTO NOTEBOOKLM");
+          notebooklmEnrichSummary = improveResearch.summary || "";
+          const enrichPrompt = buildNotebooklmNarrationEnrichPrompt({
+            niche,
+            format,
+            ideaTitle: idea.title,
+            rawScript: extractScriptSliceForRepair(parsedData),
+            notebooklmBlock: enrichBlock || notebooklmContext,
+            blockCount: listicleBlockCount,
+            isListicle,
+            listicleRank,
+          });
+          const enrichText = await callGeminiWithRetry(apiKey, enrichPrompt, {
+            temperature: 0.55,
+            maxRetries: 2,
+            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+          });
+          const enriched = normalizeKeys(await parseAiJsonResponse(enrichText, apiKey, "Enriquecimento narracao NLM"));
+          parsedData = mergeEnrichedNarration(parsedData, enriched, format);
+          parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
+          notebooklmEnriched = true;
+          console.log("[Creator Script] Narração enriquecida com NotebookLM na fase 1.");
+        } catch (enrichErr) {
+          console.warn("[Creator Script] Enriquecimento NotebookLM na narração falhou:", enrichErr.message);
+        }
+      }
+
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const partialStoryboard = {
+        strategy: parsedData.strategy || {},
+        narrative_script: parsedData.narrative_script || "",
+        narrative_script_tagged: parsedData.narrative_script_tagged || "",
+        technical_config: parsedData.technical_config || undefined,
+        research_sources: webResearchMeta?.sources || [],
+        notebooklm_enriched: notebooklmEnriched,
+        notebooklm_enriched_at: notebooklmEnriched ? new Date().toISOString() : undefined,
+        _creator_phase: "narration_pending",
+      };
+      fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
+
+      return res.json({
+        phase: "narration",
+        project: safeProjectName,
+        strategy: partialStoryboard.strategy,
+        narrative_script: partialStoryboard.narrative_script,
+        narrative_script_tagged: partialStoryboard.narrative_script_tagged,
+        technical_config: partialStoryboard.technical_config,
+        notebooklm_enriched: notebooklmEnriched,
+        notebooklm_summary: notebooklmEnrichSummary ? notebooklmEnrichSummary.slice(0, 500) : undefined,
+      });
+    }
+
+    if (approvedNarration) {
+      parsedData.narrative_script = approvedNarration;
+      if (approvedNarrationTagged) {
+        parsedData.narrative_script_tagged = approvedNarrationTagged;
+      } else if (!parsedData.narrative_script_tagged?.trim()) {
+        parsedData.narrative_script_tagged = approvedNarration;
+      }
+
+      if (needsVisualPromptsRepair(parsedData)) {
+        try {
+          const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
+            approvedNarration,
+            format,
+            blockCount: listicleBlockCount,
+            isListicle,
+            listicleRank,
+            listTopic: listicleTopic,
+            rankOrder: rankOrder || "desc",
+            ideaTitle: idea.title,
+            existingPrompts: parsedData.visual_prompts || [],
+          });
+          const vpRepairText = await callGeminiWithRetry(apiKey, vpRepairPrompt, {
+            temperature: 0.6,
+            maxRetries: 2,
+            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+          });
+          const vpRepaired = normalizeKeys(await parseAiJsonResponse(vpRepairText, apiKey, "Visual prompts fase 2"));
+          parsedData = mergeVisualPromptsRepair(parsedData, vpRepaired);
+          parsedData.narrative_script = approvedNarration;
+          if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
+          console.log(`[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`);
+        } catch (vpRepairErr) {
+          console.warn("[Creator Script] Falha ao reparar visual_prompts na fase 2:", vpRepairErr.message);
+        }
+      }
+
+      if (needsVisualPromptsRepair(parsedData)) {
+        const deterministic = buildDeterministicVisualPromptsFromNarration(approvedNarration, {
+          blockCount: listicleBlockCount,
+          format,
+          ideaTitle: idea.title,
+        });
+        if (deterministic.length) {
+          parsedData.visual_prompts = deterministic;
+          parsedData.narrative_script = approvedNarration;
+          if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
+          if (!parsedData.technical_config?.script) {
+            parsedData.technical_config = {
+              ...(parsedData.technical_config || {}),
+              script: approvedNarration,
+              block_phrases: parsedData.technical_config?.block_phrases || [],
+              impact_texts: parsedData.technical_config?.impact_texts || [],
+              highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
+              bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
+            };
+          }
+          console.log(`[Creator Script] visual_prompts fallback determinístico (${deterministic.length} cenas).`);
+        }
+      }
+    } else {
+      try {
+        const blockCount = listicleBlockCount;
+        const repairPrompt = buildHumanizeRepairPrompt({
+          format,
+          ideaTitle: idea.title,
+          rawScript: extractScriptSliceForRepair(parsedData),
+          blockCount,
+        });
+        const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
+          temperature: 0.55,
+          maxRetries: 2,
+          models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+        });
+        const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro"));
+        parsedData = mergeHumanizedScript(parsedData, repaired, format);
+        console.log("[Creator Script] Passagem de humanização/clareza aplicada.");
+      } catch (repairErr) {
+        console.warn("[Creator Script] Humanização secundária falhou, usando rascunho:", repairErr.message);
+      }
+    }
+
+    parsedData = await enhanceCreatorStrategyTitles(parsedData, {
+      transcript: parsedData.narrative_script || "",
+      format,
+      apiKey,
+      ideaTitle: idea.title,
+    });
+
+    parsedData = await ensureScriptChecklist(parsedData, {
+      format,
+      niche,
+      ideaTitle: idea.title,
+      apiKey,
+    });
+
+    if (isListicle) {
+      const repairConfig = {
+        content_mode: "LISTICLE",
+        rank_count: listicleRank,
+        rank_order: rankOrder === "asc" ? "asc" : "desc",
+        list_topic: listicleTopic,
+        video_format: format,
+        block_phrases: parsedData.technical_config?.block_phrases || [],
+        niche,
+      };
+      if (needsListItemsRepair(repairConfig, parsedData)) {
+        try {
+          const repaired = await repairListItemsWithAI(parsedData, repairConfig, {
+            apiKey,
+            callGemini: (prompt, opts) => callGeminiWithRetry(apiKey, prompt, opts),
+            parseJson: (text, label) => parseAiJsonResponse(text, apiKey, label),
+            format,
+          });
+          if (repaired.repaired) {
+            parsedData = repaired.storyboard;
+            console.log(`[Creator Script] list_items reparado pela IA (${repaired.count} itens).`);
+          }
+        } catch (repairListErr) {
+          console.warn("[Creator Script] Falha ao reparar list_items:", repairListErr.message);
+        }
+      }
+    }
+
+    if (webResearchMeta?.sources?.length) {
+      parsedData.research_sources = webResearchMeta.sources;
+    }
 
     // Save full storyboard JSON
+
     const storyboardPath = path.join(projDir, "storyboard.json");
+
     fs.writeFileSync(storyboardPath, JSON.stringify(parsedData, null, 2), "utf8");
 
     // Save technical configurations to active project directory
+
     const transcriptPath = path.join(projDir, "transcripts_readable.txt");
+
     let scriptText = parsedData.technical_config?.script;
+
     if (Array.isArray(scriptText)) {
+
       scriptText = scriptText.join("\n\n");
+
     } else if (typeof scriptText !== "string") {
+
       scriptText = String(scriptText || "");
+
     }
+
     fs.writeFileSync(transcriptPath, scriptText, "utf8");
 
     const configPath = path.join(projDir, "config_qanat.json");
+
     let currentConfig = {};
+
     if (fs.existsSync(configPath)) {
+
       try { currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+
     }
 
-    const newConfig = {
+    // Wizard: não pré-preenche timeline_assets — o usuário associa mídias manualmente no passo B-roll.
+    const timelineAssets = currentConfig.timeline_assets || {};
+
+    let newConfig = {
+      niche: niche || currentConfig.niche || "Geral",
       gemini_api_key: currentConfig.gemini_api_key,
       highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
-      bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
+      bgm_mappings: currentConfig.bgm_mappings || [],
       impact_texts: parsedData.technical_config?.impact_texts || [],
-      block_phrases: parsedData.technical_config?.block_phrases || []
+      block_phrases: parsedData.technical_config?.block_phrases || [],
+      timeline_assets: timelineAssets,
+      aspect_ratio: isShort ? "9:16" : "16:9",
+      video_format: format,
+      ...(isListicle ? {
+        content_mode: "LISTICLE",
+        rank_count: listicleRank,
+        rank_order: rankOrder === "asc" ? "asc" : "desc",
+        list_topic: listicleTopic,
+        listicle_hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
+          ? listicleHudStyle
+          : (listicleRank > 8 ? "compact" : "full"),
+      } : {}),
     };
+
+    const presetApplied = applyDocumentaryHistoryPreset(newConfig, parsedData, newConfig.niche);
+    if (presetApplied.applied) {
+      newConfig = presetApplied.config;
+      console.log("[Creator Script] Preset Documentário História aplicado ao config.");
+    }
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
     res.json(parsedData);
+
   } catch (err) {
+
     console.error("Erro no endpoint /api/ai/creator/script:", err);
+
     if (responseText) {
+
       console.error("Raw responseText returned from Gemini was:\n", responseText);
+
     }
-    res.status(500).json({ error: "Erro ao gerar roteiro e estratégia", details: err.message });
+
+    res.status(500).json({
+      error: "Erro ao gerar roteiro e estratégia",
+      details: err.message,
+      hint: /json|JSON|válido/i.test(String(err.message || ""))
+        ? "A resposta do Gemini pode ter vindo truncada. Tente de novo ou desative o modo navegador."
+        : undefined,
+    });
+
   }
+
 });
 
-// API: Save script data (for client-side Puter.js fallback)
-app.post("/api/ai/creator/save-script", async (req, res) => {
+app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
   const projDir = getProjectDir(req);
-  if (!projDir) return res.status(400).json({ error: "project required" });
-
-  const { scriptData } = req.body;
-  if (!scriptData) return res.status(400).json({ error: "scriptData required" });
-
-  // Automatically create and template project directory on-the-fly if it doesn't exist
-  if (!fs.existsSync(projDir)) {
-    try {
-      fs.mkdirSync(projDir, { recursive: true });
-      fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
-      fs.mkdirSync(path.join(projDir, "OUTPUT"), { recursive: true });
-      
-      ensureFileExists("build_video.py", projDir);
-      ensureFileExists("build_video_destacado.py", projDir);
-      ensureFileExists("mix_bgm.py", projDir);
-      ensureFileExists("find_block_timings.py", projDir);
-      ensureFileExists("align_transcripts.py", projDir);
-      
-      const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
-      const defaultConfigDest = path.join(projDir, "config_qanat.json");
-      if (fs.existsSync(defaultConfigSrc)) {
-        fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
-        try {
-          const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
-          if (cfg.gemini_api_key) {
-            delete cfg.gemini_api_key;
-            fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
-          }
-        } catch (e) {}
-      }
-      
-      fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
-        starts: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
-        durations: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-        total_duration: 120
-      }, null, 4), "utf8");
-    } catch (err) {
-      return res.status(500).json({ error: "Erro ao criar pasta do novo projeto", details: err.message });
-    }
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
-    const parsedData = normalizeKeys(scriptData);
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const approvedNarration = String(storyboard.narrative_script || "").trim();
+    if (!approvedNarration) {
+      return res.status(400).json({ error: "Não há narrative_script no storyboard para distribuir nas cenas." });
+    }
 
-    // Save full storyboard JSON
-    const storyboardPath = path.join(projDir, "storyboard.json");
-    fs.writeFileSync(storyboardPath, JSON.stringify(parsedData, null, 2), "utf8");
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const isListicle = config.content_mode === "LISTICLE" || storyboard.listicle?.content_mode === "LISTICLE";
+    const format = config.video_format || "LONGO";
+    const listicleRank = config.rank_count || storyboard.listicle?.rank_count || 3;
+    const blockCount = isListicle
+      ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+      : (format === "SHORTS" ? 5 : 12);
 
-    // Save technical configurations to active project directory
+    const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
+      approvedNarration,
+      format,
+      blockCount,
+      isListicle,
+      listicleRank,
+      listTopic: config.list_topic || storyboard.listicle?.topic || "",
+      rankOrder: config.rank_order || storyboard.listicle?.rank_order || "desc",
+      ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
+      existingPrompts: storyboard.visual_prompts || [],
+    });
+    const vpRepairText = await callGeminiLlm(req, res, projDir, {
+      title: "Reparar prompts visuais",
+      prompt: vpRepairPrompt,
+      temperature: 0.6,
+    });
+    if (vpRepairText == null) return;
+
+    const vpRepaired = normalizeKeys(await parseAiJsonResponse(
+      vpRepairText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Repair visual prompts",
+    ));
+    storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
+    storyboard.narrative_script = approvedNarration;
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+
+    let scriptText = storyboard.technical_config?.script;
+    if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
+    if (typeof scriptText === "string" && scriptText.trim()) {
+      fs.writeFileSync(path.join(projDir, "transcripts_readable.txt"), scriptText, "utf8");
+    }
+
+    if (storyboard.technical_config?.block_phrases?.length) {
+      const configPath = path.join(projDir, "config_qanat.json");
+      let currentConfig = config;
+      currentConfig.block_phrases = storyboard.technical_config.block_phrases;
+      if (storyboard.technical_config.impact_texts) {
+        currentConfig.impact_texts = storyboard.technical_config.impact_texts;
+      }
+      if (storyboard.technical_config.highlight_keywords) {
+        currentConfig.highlight_keywords = storyboard.technical_config.highlight_keywords;
+      }
+      fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2), "utf8");
+    }
+
+    console.log(`[Creator Repair] visual_prompts reparados (${storyboard.visual_prompts?.length || 0} cenas).`);
+    res.json(storyboard);
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
+    res.status(500).json({ error: "Erro ao reparar cenas do roteiro", details: err.message });
+  }
+});
+
+app.post("/api/ai/creator/evaluate-checklist", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  try {
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const approvedNarration = String(storyboard.narrative_script || "").trim();
+    if (!approvedNarration) {
+      return res.status(400).json({ error: "Não há narração no storyboard para avaliar." });
+    }
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const apiKey = getApiKey(projDir);
+    const evalPrompt = buildScriptChecklistEvaluationPrompt({
+      narrative_script: approvedNarration,
+      strategy: storyboard.strategy || {},
+      format: config.video_format || "SHORTS",
+      ideaTitle: storyboard.strategy?.title_main || "",
+      niche: config.niche || "",
+    });
+
+    const evalText = await callGeminiLlm(req, res, projDir, {
+      title: "Avaliar checklist de qualidade",
+      prompt: evalPrompt,
+      temperature: 0.35,
+    });
+    if (evalText == null) return;
+
+    const evaluated = normalizeKeys(await parseAiJsonResponse(
+      evalText,
+      extractBrowserResponse(req.body) ? null : apiKey,
+      "Checklist qualidade",
+    ));
+    storyboard.checklist = normalizeScriptChecklist(evaluated?.checklist);
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    res.json(storyboard);
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/evaluate-checklist:", err);
+    res.status(500).json({ error: "Erro ao avaliar checklist de qualidade", details: err.message });
+  }
+});
+
+app.get("/api/notebooklm/status", (_req, res) => {
+  try {
+    res.json(getNotebooklmStatus(__dirname));
+  } catch (err) {
+    res.status(500).json({
+      available: false,
+      authenticated: false,
+      notebookCount: 0,
+      message: err.message,
+      needsLogin: true,
+    });
+  }
+});
+
+app.post("/api/notebooklm/improve-script", async (req, res) => {
+  const projDir = getProjectDir(req);
+
+  const { niche: nicheBody, format: formatBody, useNotebooklm } = req.body || {};
+  const storyboardPath = path.join(projDir, "storyboard.json");
+
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "storyboard.json não encontrado neste projeto." });
+  }
+
+  let storyboard;
+  try {
+    storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+  } catch (err) {
+    return res.status(500).json({ error: "Erro ao ler storyboard.json", details: err.message });
+  }
+
+  const narrativeScript = buildProjectTranscript({ storyboard });
+  if (!narrativeScript || narrativeScript.length < 80) {
+    return res.status(400).json({
+      error: "Roteiro muito curto ou ausente. Gere ou edite a narração antes de enriquecer.",
+    });
+  }
+
+  const configPath = path.join(projDir, "config_qanat.json");
+  let projectConfig = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      projectConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    } catch {
+      projectConfig = {};
+    }
+  }
+
+  const niche = String(
+    nicheBody
+    || storyboard?.strategy?.title_main
+    || storyboard?.listicle?.topic
+    || projectConfig.niche
+    || "documentário",
+  ).trim();
+  const format = formatBody === "SHORTS" ? "SHORTS" : "LONGO";
+  const blockCount = Array.isArray(storyboard?.technical_config?.block_phrases)
+    ? storyboard.technical_config.block_phrases.length
+    : (format === "SHORTS" ? 5 : 12);
+
+  let notebooklmResearch = null;
+  let notebooklmBlock = "";
+
+  if (useNotebooklm !== false) {
+    try {
+      console.log("[NotebookLM] Analisando roteiro para melhorias...");
+      notebooklmResearch = await fetchNotebooklmScriptImprovements({
+        backendDir: __dirname,
+        niche,
+        format,
+        narrativeScript,
+      });
+      notebooklmBlock = formatNotebooklmPromptBlock(notebooklmResearch, "SUGESTÕES NOTEBOOKLM");
+      if (!notebooklmBlock) {
+        notebooklmBlock = "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+      }
+    } catch (err) {
+      console.warn("[NotebookLM] Melhoria de roteiro falhou:", err.message);
+      notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+    }
+  } else {
+    notebooklmBlock = "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+  }
+
+  try {
+    const improvePrompt = buildNotebooklmImproveApplyPrompt({
+      niche,
+      format,
+      rawScript: extractScriptSliceForRepair(storyboard),
+      notebooklmBlock,
+      blockCount,
+    });
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Enriquecer roteiro (NotebookLM)",
+      prompt: improvePrompt,
+      temperature: 0.6,
+    });
+    if (responseText == null) return;
+
+    const repaired = normalizeKeys(await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Enriquecer roteiro",
+    ));
+    const improved = mergeHumanizedScript(storyboard, repaired, format);
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(improved, null, 2), "utf8");
+
     const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-    let scriptText = parsedData.technical_config?.script || parsedData.script;
-    if (Array.isArray(scriptText)) {
-      scriptText = scriptText.join("\n\n");
-    } else if (typeof scriptText !== "string") {
-      scriptText = String(scriptText || "");
-    }
-    fs.writeFileSync(transcriptPath, scriptText, "utf8");
-
-    const configPath = path.join(projDir, "config_qanat.json");
-    let currentConfig = {};
-    if (fs.existsSync(configPath)) {
-      try { currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+    let scriptText = improved.technical_config?.script;
+    if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
+    if (typeof scriptText === "string" && scriptText.trim()) {
+      fs.writeFileSync(transcriptPath, scriptText, "utf8");
     }
 
-    const newConfig = {
-      gemini_api_key: currentConfig.gemini_api_key,
-      highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
-      bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
-      impact_texts: parsedData.technical_config?.impact_texts || [],
-      block_phrases: parsedData.technical_config?.block_phrases || []
+    return res.json({
+      success: true,
+      storyboard: improved,
+      notebooklm: notebooklmResearch || {
+        available: false,
+        fallback: true,
+        summary: "",
+      },
+      suggestions: notebooklmResearch?.summary || "",
+    });
+  } catch (err) {
+    console.error("[NotebookLM] Erro ao aplicar melhorias:", err);
+    return res.status(500).json({ error: "Erro ao enriquecer roteiro", details: err.message });
+  }
+});
+
+// API: Improve narration draft inline (wizard — before approving and distributing to blocks)
+app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
+  const {
+    narrativeScript: narrativeScriptRaw,
+    narrativeScriptTagged: narrativeScriptTaggedRaw,
+    niche: nicheRaw,
+    format: formatRaw,
+    blockCount: blockCountRaw,
+    useNotebooklm,
+    ideaTitle,
+    isListicle,
+    listicleRank,
+  } = req.body || {};
+
+  const narrativeScript = String(narrativeScriptRaw || "").trim();
+  if (narrativeScript.length < 40) {
+    return res.status(400).json({ error: "A narração precisa ter ao menos 40 caracteres para melhorar." });
+  }
+
+  const niche = String(nicheRaw || "documentário").trim();
+  const format = formatRaw === "SHORTS" ? "SHORTS" : "LONGO";
+  const blockCount = Number(blockCountRaw) || (format === "SHORTS" ? 5 : 12);
+
+  // Use any available project dir for API key resolution
+  const projDir = getProjectDir(req);
+
+  // NotebookLM research
+  let notebooklmResearch = null;
+  let notebooklmBlock = "";
+
+  if (useNotebooklm !== false) {
+    try {
+      console.log("[NotebookLM] Analisando draft de narração para melhorias (wizard)...");
+      notebooklmResearch = await fetchNotebooklmScriptImprovements({
+        backendDir: __dirname,
+        niche,
+        format,
+        narrativeScript,
+      });
+      notebooklmBlock = formatNotebooklmPromptBlock(notebooklmResearch, "SUGESTÕES NOTEBOOKLM");
+      if (!notebooklmBlock) {
+        notebooklmBlock = "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+      }
+    } catch (err) {
+      console.warn("[NotebookLM] Melhoria de draft falhou:", err.message);
+      notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
+    }
+  } else {
+    notebooklmBlock = "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+  }
+
+  try {
+    const rawScript = {
+      narrative_script: narrativeScript,
+      narrative_script_tagged: String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
     };
 
-    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
+    const improvePrompt = buildNotebooklmNarrationEnrichPrompt({
+      niche,
+      format,
+      ideaTitle: ideaTitle || niche,
+      rawScript,
+      notebooklmBlock,
+      blockCount,
+      isListicle: Boolean(isListicle),
+      listicleRank: Number(listicleRank) || 20,
+    });
 
-    res.json({ success: true });
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Melhorar narração draft (NotebookLM)",
+      prompt: improvePrompt,
+      temperature: 0.6,
+    });
+    if (responseText == null) return;
+
+    const parsed = normalizeKeys(await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Melhorar narração draft",
+    ));
+
+    console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
+
+    return res.json({
+      success: true,
+      narrative_script: parsed.narrative_script || narrativeScript,
+      narrative_script_tagged: parsed.narrative_script_tagged || parsed.narrative_script || "",
+      strategy: parsed.strategy || null,
+      technical_config: parsed.technical_config || null,
+      notebooklm_enriched: Boolean(notebooklmResearch?.available && !notebooklmResearch?.fallback),
+      suggestions: notebooklmResearch?.summary || "",
+    });
   } catch (err) {
-    console.error("Erro no endpoint /api/ai/creator/save-script:", err);
-    res.status(500).json({ error: "Erro ao salvar roteiro no servidor", details: err.message });
+    console.error("[NotebookLM] Erro ao melhorar draft de narração:", err);
+    return res.status(500).json({ error: "Erro ao melhorar narração", details: err.message });
   }
 });
 
-
 // API: Automap available files in ASSETS to script narrative blocks using Gemini
+
 app.post("/api/ai/auto-map-assets", async (req, res) => {
+
   const projDir = getProjectDir(req);
-  const apiKey = getApiKey(projDir);
-  if (!apiKey) {
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
-  }
-  
+
   try {
-    // List available assets
-    const assetsDir = path.join(projDir, "ASSETS");
-    let assetFiles = [];
-    if (fs.existsSync(assetsDir)) {
-      const scan = (dir) => {
-        const items = fs.readdirSync(dir);
-        for (const item of items) {
-          const fullPath = path.join(dir, item);
-          if (fs.statSync(fullPath).isDirectory()) {
-            scan(fullPath);
-          } else {
-            const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
-            if (rel.endsWith(".mp4") || rel.endsWith(".png") || rel.endsWith(".jpg") || rel.endsWith(".jpeg")) {
-              assetFiles.push(rel);
-            }
-          }
+
+    const autoConfigPath = path.join(projDir, "config_qanat.json");
+    let autoConfig = {};
+    if (fs.existsSync(autoConfigPath)) {
+      autoConfig = JSON.parse(fs.readFileSync(autoConfigPath, "utf8"));
+    }
+
+    const mapEpoch = Number(autoConfig.timeline_map_epoch || 0);
+    // Versões antigas incrementavam epoch antes do map: 1º auto-map rotacionava o pool em +1.
+    const rotateOffset = (
+      mapEpoch === 1 && !autoConfig.timeline_map_epoch_v2
+    ) ? 0 : mapEpoch;
+    const mapped = buildTimelineFromStoryboard(projDir, {
+      remapping: true,
+      rotateOffset,
+    });
+
+    const existingTimeline = autoConfig.timeline_assets || {};
+    const assetFiles = listProjectMediaAssets(projDir);
+    const mergedTimeline = { ...mapped.timelineAssets };
+    for (const blockKey of Object.keys(mergedTimeline)) {
+      mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset, idx) => {
+        const prev = (existingTimeline[blockKey] || [])[idx];
+        const entry = { ...asset };
+        delete entry.audio_start;
+        delete entry.synced_to_speech;
+        if (!prev) return entry;
+        if (prev.user_locked || prev.manual_asset) {
+          if (prev.asset) entry.asset = prev.asset;
+          entry.user_locked = true;
+          entry.manual_asset = true;
+          if (prev.type) entry.type = prev.type;
         }
-      };
-      scan(assetsDir);
+        if (prev.fixed_locked && prev.fixed !== undefined && prev.fixed !== null) {
+          entry.fixed = prev.fixed;
+          entry.fixed_locked = true;
+        } else if (prev.fixed !== undefined && prev.fixed !== null) {
+          entry.fixed = prev.fixed;
+        }
+        if (prev.narration_segment) entry.narration_segment = prev.narration_segment;
+        return entry;
+      });
     }
-    
-    const transcriptPath = path.join(projDir, "transcripts_readable.txt");
-    let transcript = "";
-    if (fs.existsSync(transcriptPath)) {
-      transcript = fs.readFileSync(transcriptPath, "utf8");
+    const sanitized = sanitizeFullTimelineAssets(mergedTimeline, assetFiles);
+    autoConfig.timeline_assets = sanitized.timeline;
+    if (sanitized.replaced > 0) {
+      mapped.warnings.push(`${sanitized.replaced} duplicata(s) removida(s) após merge.`);
     }
-    
-    const prompt = `Você é o "AI Asset Timeline Mapper".
-Temos um conjunto de arquivos B-roll na pasta "ASSETS":
-${JSON.stringify(assetFiles, null, 2)}
 
-E temos o seguinte roteiro de documentário estruturado em blocos:
-${transcript}
+    const flatWords = flattenWordTranscripts(readProjectJson(projDir, "word_transcripts.json", []));
+    const blockTimings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const storyboardForAlign = readProjectJson(projDir, "storyboard.json", {});
+    const alignContext = {
+      visualPrompts: Array.isArray(storyboardForAlign.visual_prompts) ? storyboardForAlign.visual_prompts : [],
+      blockPhrases: Array.isArray(autoConfig.block_phrases) ? autoConfig.block_phrases : [],
+    };
 
-Mapeie estes arquivos de mídia para preencher os 12 blocos lógicos da linha do tempo. Cada bloco deve possuir entre 2 a 8 arquivos associados (misturando vídeos de forma flexível ou imagens).
-
-Responda com um objeto JSON puro, sem blocos de código com markdown \`\`\`json ou explicações extras. O objeto deve conter uma propriedade "timeline_assets" estruturada da seguinte forma:
-{
-  "timeline_assets": {
-    "1": [
-      {"asset": "videos/video_1.mp4", "type": "video", "fixed": 8.00},
-      {"asset": "images/img_1.jpeg", "type": "image"}
-    ],
-    "2": [
-      {"asset": "videos/video_3.mp4", "type": "video", "fixed": 8.00},
-      {"asset": "images/img_12.jpeg", "type": "image"}
-    ],
-    ...
-    "12": [
-      {"asset": "images/img_70.jpeg", "type": "image"}
-    ]
-  }
-}
-
-Regras importantes:
-- Utilize APENAS os nomes de arquivos reais da lista fornecida. Não invente arquivos que não existem.
-- O tipo ("type") deve ser "video", "image" ou "svg".
-- Se for "video", adicione uma propriedade "fixed" indicando quanto tempo o vídeo é exibido (geralmente 8.00 ou 10.00 segundos). Se for "image", não inclua "fixed" (ela será esticada ou encurtada de forma flexível pelo editor).
-- Mapeie de forma a contar a história visualmente do bloco de acordo com o texto da narração correspondente.`;
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
-      }
-    );
-    
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error?.message || `Erro do Gemini: ${response.statusText}`);
+    if (flatWords.length > 0) {
+      autoConfig.timeline_assets = realignTimelineAssetsToSpeech({
+        timelineAssets: autoConfig.timeline_assets,
+        blockTimings,
+        flatTranscriptWords: flatWords,
+        ...alignContext,
+        preserveExplicitFixed: true,
+      });
     }
-    
-    const result = await response.json();
-    let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    
-    const parsedData = JSON.parse(responseText);
-    
-    // Save back to config
-    const configPath = path.join(projDir, "config_qanat.json");
-    let config = {};
-    if (fs.existsSync(configPath)) {
-      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    }
-    
-    config.timeline_assets = parsedData.timeline_assets;
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    
-    res.json({ success: true, timeline_assets: parsedData.timeline_assets });
+
+    autoConfig.timeline_assets = recalculateSequentialAudioStarts({
+      timelineAssets: autoConfig.timeline_assets,
+      blockTimings,
+      flatTranscriptWords: flatWords,
+      ...alignContext,
+    });
+
+    autoConfig.timeline_map_epoch = mapEpoch + 1;
+    autoConfig.timeline_map_epoch_v2 = true;
+
+    fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
+    syncStoryboardAssetsFromTimeline(projDir);
+
+    return res.json({
+
+      success: true,
+
+      timeline_assets: autoConfig.timeline_assets,
+
+      asset_count: mapped.assetCount,
+
+      warnings: mapped.warnings,
+
+    });
+
   } catch (err) {
+
     res.status(500).json({ error: "Erro ao mapear assets", details: err.message });
+
   }
+
 });
 
 // API: Run dynamic whisper transcription sync sequentially
+
 app.get("/api/sync-timings", (req, res) => {
-  const projDir = getProjectDir(req);
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
 
-  const sendLog = (text) => {
-    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-  };
+const projDir = getProjectDir(req);
 
-  sendLog("[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição...");
-  sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
+res.setHeader("Content-Type", "text/event-stream");
 
-  ensureFileExists("find_block_timings.py", projDir);
-  ensureFileExists("align_transcripts.py", projDir);
+res.setHeader("Cache-Control", "no-cache");
 
-  const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
-    cwd: projDir,
-    shell: true,
-    env: { ...process.env, PYTHONUNBUFFERED: "1" }
-  });
+res.setHeader("Connection", "keep-alive");
+
+res.setHeader("X-Accel-Buffering", "no");
+
+res.flushHeaders();
+
+// Heartbeat to keep connection alive during long sync runs
+
+const heartbeat = setInterval(() => {
+
+  res.write(":\n\n");
+
+}, 15000);
+
+let activeChild = null;
+
+const cleanup = () => {
+
+  clearInterval(heartbeat);
+
+  if (activeChild) {
+
+    try { activeChild.kill(); } catch (e) {}
+
+  }
+
+};
+
+req.on("close", cleanup);
+
+const sendLog = (text) => {
+
+  res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+
+};
+
+sendLog("[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição...");
+
+const narrationMp3 = path.join(projDir, "narracao_mestra_premium.mp3");
+if (!fs.existsSync(narrationMp3)) {
+  sendLog("[ERRO] narracao_mestra_premium.mp3 não encontrado. Gere a narração (TTS) antes de sincronizar.");
+  res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+  res.end();
+  cleanup();
+  return;
+}
+
+sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
+
+ensureFileExists("find_block_timings.py", projDir);
+
+ensureFileExists("align_transcripts.py", projDir);
+
+const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
+
+  cwd: projDir,
+
+  shell: true,
+
+  env: buildPythonSpawnEnv(),
+
+});
+
+activeChild = child1;
 
   child1.stdout.on("data", (data) => {
+
     const text = data.toString().trim();
+
     if (text) {
+
       text.split(/\r?\n/).forEach(line => sendLog(line));
+
     }
+
   });
 
   child1.stderr.on("data", (data) => {
+
     const text = data.toString().trim();
+
     if (text) {
+
       text.split(/\r?\n/).forEach(line => sendLog(`[ERRO Whisper] ${line}`));
+
     }
+
   });
 
   child1.on("close", (code1) => {
+
     if (code1 !== 0) {
+
       res.write(`data: ${JSON.stringify({ type: "failed", code: code1 })}\n\n`);
+
       res.end();
+
       return;
+
     }
 
     sendLog("\n[2/2] Gerando banco de palavras e alinhamento (align_transcripts.py)...");
+
     const child2 = spawn(PYTHON_PATH, ["align_transcripts.py"], {
+
       cwd: projDir,
+
       shell: true,
-      env: { ...process.env, PYTHONUNBUFFERED: "1" }
+
+      env: buildPythonSpawnEnv(),
+
     });
 
+    activeChild = child2;
+
     child2.stdout.on("data", (data) => {
+
       const text = data.toString().trim();
+
       if (text) {
+
         text.split(/\r?\n/).forEach(line => sendLog(line));
+
       }
+
     });
 
     child2.stderr.on("data", (data) => {
+
       const text = data.toString().trim();
+
       if (text) {
+
         text.split(/\r?\n/).forEach(line => sendLog(`[ERRO Alinhador] ${line}`));
+
       }
+
     });
 
     child2.on("close", (code2) => {
+
+      activeChild = null;
+
       if (code2 === 0) {
+
         res.write(`data: ${JSON.stringify({ type: "complete", code: code2 })}\n\n`);
+
       } else {
+
         res.write(`data: ${JSON.stringify({ type: "failed", code: code2 })}\n\n`);
+
       }
+
+      cleanup();
+
       res.end();
-    });
-  });
 
-  req.on("close", () => {
-    child1.kill();
-  });
+    });
+
+    });
+
+    });
+
+let workflowApi = null;
+workflowApi = registerWorkflowRoutes(app, {
+  getProjectDir,
+  WORKSPACE_DIR,
+  PYTHON_PATH,
+  getApiKeys,
+  getXaiApiKey,
+  getAiProvider,
+  getOpenRouterApiKey,
+  getEpidemicSoundKey,
+  buildProjectTranscript,
+  buildTimelineFromStoryboard,
+  enhanceYoutubeTitlesMetadata,
+  callGeminiWithRetry,
+  callGeminiLlm,
+  generateMetadataWithXai,
+  generateYoutubeThumbnailImages,
+  runAutoSoundtrackLogic,
+  readJsonFile,
 });
 
-// ============================================
-// TITLE OPTIMIZER — YouTube Channel Analysis
-// ============================================
+// Serve frontend build static files in production (must be after API routes)
 
-// API: Fetch YouTube channel videos via RSS feed
-// API: Fetch YouTube channel videos via RSS or shoffing.com
-app.get("/api/youtube/channel-videos", async (req, res) => {
-  const channel = req.query.channel || "@AIConstructionStories";
-  const shoffingUrl = `https://shoffing.com/project/youtube_sort/get_videos/${encodeURIComponent(channel)}`;
-  
-  // 1. Fetch RSS feed in parallel to use as an accurate UTF-8 titles dictionary
-  let rssTitles = {};
-  try {
-    const channelId = "UCYYcyky9A8fob3t6TlIENYA";
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-    const rssResponse = await fetch(rssUrl);
-    if (rssResponse.ok) {
-      const xml = await rssResponse.text();
-      const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-      let match;
-      while ((match = entryRegex.exec(xml)) !== null) {
-        const entry = match[1];
-        const idMatch = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
-        const titleMatch = entry.match(/<title>([^<]+)<\/title>/);
-        if (idMatch && titleMatch) {
-          rssTitles[idMatch[1].trim()] = titleMatch[1].trim();
-        }
-      }
-    }
-  } catch (rssErr) {
-    console.warn("Failed to fetch RSS titles dictionary:", rssErr.message);
-  }
-
-  const fixTitleAccents = (title) => {
-    if (!title) return "";
-    let t = title;
-    // Common Portuguese accent corrections for database question marks
-    t = t.replace(/\bj\?/gi, "já");
-    t = t.replace(/constru\?do/gi, "construído");
-    t = t.replace(/Pr\?dios/gi, "Prédios");
-    t = t.replace(/pr\?dio/gi, "prédio");
-    t = t.replace(/Voc\?/gi, "Você");
-    t = t.replace(/incr\?vel/gi, "incrível");
-    t = t.replace(/hist\?ria/gi, "história");
-    t = t.replace(/\bat\?/gi, "até");
-    t = t.replace(/\bs\?/gi, "só");
-    t = t.replace(/n\?o/gi, "não");
-    t = t.replace(/tamb\?m/gi, "também");
-    t = t.replace(/ent\?o/gi, "então");
-    t = t.replace(/pr\?prio/gi, "próprio");
-    t = t.replace(/s\?culo/gi, "século");
-    t = t.replace(/c\?pula/gi, "cúpula");
-    t = t.replace(/cat\?strofe/gi, "catástrofe");
-    t = t.replace(/subterr\?neo/gi, "subterrâneo");
-    t = t.replace(/mist\?rio/gi, "mistério");
-    t = t.replace(/p\?blico/gi, "público");
-    t = t.replace(/t\?mulo/gi, "túmulo");
-    t = t.replace(/milh\?es/gi, "milhões");
-    t = t.replace(/bilh\?es/gi, "bilhões");
-    t = t.replace(/incr\?veis/gi, "incríveis");
-    t = t.replace(/subterr\?neas/gi, "subterrâneas");
-    t = t.replace(/subterr\?neos/gi, "subterrâneos");
-    t = t.replace(/antig\?/gi, "antiga");
-    t = t.replace(/constru\?da/gi, "construída");
-    t = t.replace(/constru\?das/gi, "construídas");
-    t = t.replace(/constru\?dos/gi, "construídos");
-    t = t.replace(/b\?blia/gi, "bíblia");
-    t = t.replace(/b\?blico/gi, "bíblico");
-    t = t.replace(/arque\?logos/gi, "arqueólogos");
-    t = t.replace(/arque\?logo/gi, "arqueólogo");
-    return t;
-  };
-
-  try {
-    const response = await fetch(shoffingUrl);
-    if (!response.ok) {
-      throw new Error(`Falha ao buscar dados no shoffing: ${response.statusText}`);
-    }
-    const data = await response.json();
-    if (!data.videos || !Array.isArray(data.videos)) {
-      throw new Error("Formato inválido retornado pelo shoffing");
-    }
-    
-    // Map shoffing format to our expected format with accent repairs
-    const entries = data.videos.map(v => {
-      const isShort = v.duration && v.duration <= 60;
-      const cleanTitle = rssTitles[v.id] || fixTitleAccents(v.title);
-      return {
-        videoId: v.id,
-        title: cleanTitle,
-        published: v.date,
-        thumbnail: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
-        views: v.views || 0,
-        likes: v.likes || 0,
-        description: cleanTitle,
-        isShort: !!isShort,
-        url: isShort
-          ? `https://www.youtube.com/shorts/${v.id}`
-          : `https://www.youtube.com/watch?v=${v.id}`
-      };
-    });
-    
-    // Sort by views ascending (lowest first)
-    entries.sort((a, b) => a.views - b.views);
-    
-    // Return top 10 lowest
-    const lowest10 = entries.slice(0, 10);
-    
-    res.json({
-      channelName: "AI Construction Stories",
-      channelId: "UCYYcyky9A8fob3t6TlIENYA",
-      totalVideos: entries.length,
-      videos: lowest10,
-      fetchedAt: new Date().toISOString()
-    });
-  } catch (err) {
-    console.warn("Erro ao buscar do shoffing, tentando RSS feed fallback:", err.message);
-    // Fallback: Use YouTube RSS
-    try {
-      const channelId = "UCYYcyky9A8fob3t6TlIENYA";
-      const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-      const fallbackResponse = await fetch(rssUrl);
-      if (!fallbackResponse.ok) {
-        return res.status(502).json({ error: "Falha ao buscar vídeos do canal no shoffing e no fallback do YouTube" });
-      }
-      const xml = await fallbackResponse.text();
-      
-      const entries = [];
-      const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
-      let match;
-      while ((match = entryRegex.exec(xml)) !== null) {
-        const entry = match[1];
-        const getTag = (tag) => {
-          const m = entry.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`));
-          return m ? m[1].trim() : "";
-        };
-        const getAttr = (tag, attr) => {
-          const m = entry.match(new RegExp(`<${tag}[^>]*${attr}="([^"]*)"`, "i"));
-          return m ? m[1] : "";
-        };
-        
-        const videoId = getTag("yt:videoId");
-        const title = getTag("title");
-        const published = getTag("published");
-        const thumbnail = getAttr("media:thumbnail", "url");
-        const viewsMatch = entry.match(/views="(\d+)"/);
-        const views = viewsMatch ? parseInt(viewsMatch[1], 10) : 0;
-        const likesMatch = entry.match(/count="(\d+)"\s+average/);
-        const likes = likesMatch ? parseInt(likesMatch[1], 10) : 0;
-        const description = getTag("media:description").substring(0, 300);
-        const isShort = entry.includes("/shorts/");
-        
-        entries.push({
-          videoId,
-          title,
-          published,
-          thumbnail: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-          views,
-          likes,
-          description,
-          isShort,
-          url: isShort
-            ? `https://www.youtube.com/shorts/${videoId}`
-            : `https://www.youtube.com/watch?v=${videoId}`
-        });
-      }
-      
-      entries.sort((a, b) => a.views - b.views);
-      const lowest10 = entries.slice(0, 10);
-      
-      res.json({
-        channelName: "AI Construction Stories",
-        channelId,
-        totalVideos: entries.length,
-        videos: lowest10,
-        fetchedAt: new Date().toISOString()
-      });
-    } catch (fallbackErr) {
-      res.status(500).json({ error: "Erro ao buscar vídeos do canal", details: fallbackErr.message });
-    }
-  }
-});
-
-
-// API: Generate optimized title variations via Gemini AI
-app.post("/api/ai/title-optimizer", async (req, res) => {
-  const projDir = getProjectDir(req);
-  
-  const { videos, channelName } = req.body;
-  if (!videos || !Array.isArray(videos) || videos.length === 0) {
-    return res.status(400).json({ error: "Lista de vídeos não fornecida" });
-  }
-  
-  const videosList = videos.map((v, i) => 
-    `${i + 1}. Título: "${v.title}" | Views: ${v.views} | Likes: ${v.likes} | ${v.isShort ? 'Short' : 'Video'}`
-  ).join("\n");
-  
-  const prompt = `Você é um especialista em otimização de títulos de vídeos do YouTube, com profundo conhecimento em gatilhos psicológicos, SEO, e estratégias de alcance de audiência.
-O canal "${channelName || 'AI Construction Stories'}" é em PORTUGUÊS DO BRASIL e fala sobre curiosidades históricas, construções incríveis e fatos bizarros da história.
-Aqui estão os vídeos com MENOS visualizações do canal:
-${videosList}
-
-Para CADA vídeo, analise o título atual e gere otimizações. Responda SOMENTE em JSON válido (sem markdown code blocks) com este formato exato:
-{
-  "optimizations": [
-    {
-      "originalTitle": "título original",
-      "views": 123,
-      "impact": "high",
-      "opportunity": "breve explicação do problema do título atual",
-      "timingStrategy": "estratégia de timing para este tipo de conteúdo",
-      "coreTitle": {
-        "title": "título otimizado para audiência core (+20%)",
-        "description": "por que este título funciona para o público core"
-      },
-      "expandedTitle": {
-        "title": "título otimizado para alcance expandido (5x)",
-        "description": "por que este título alcança mais pessoas"
-      },
-      "broadTitle": {
-        "title": "título otimizado para apelo amplo (10x)",
-        "description": "por que este título tem máximo alcance"
-      },
-      "bestNow": "core",
-      "titleFormula": "fórmula usada (ex: Pergunta + Risco, Números + Mistério)",
-      "triggers": ["gatilho1", "gatilho2"],
-      "contentType": "tipo de conteúdo (ex: Curiosidades Históricas)",
-      "audienceStrategy": "estratégia de expansão da audiência"
-    }
-  ]
-}
-
-REGRAS:
-- Todos os títulos otimizados devem ser em PORTUGUÊS DO BRASIL
-- Use letras maiúsculas estrategicamente (1-2 palavras em CAPS)
-- Títulos devem ter entre 40-70 caracteres
-- Use gatilhos psicológicos: curiosidade, medo, urgência, exclusividade
-- O campo "impact" deve ser "high", "medium" ou "low"
-- O campo "bestNow" deve ser "core", "expanded" ou "broad"
-- Responda SOMENTE com o JSON, sem texto adicional`;
-
-  try {
-    let responseText = await callAIBackend(projDir, prompt, null, "application/json");
-    responseText = responseText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const parsed = JSON.parse(responseText);
-    res.json(parsed);
-  } catch (err) {
-    console.error("Title optimizer error:", err.message);
-    res.status(500).json({ error: "Erro ao gerar otimizações de título", details: err.message });
-  }
-});
-
-// Serve frontend build static files in production
 const frontendDist = path.join(__dirname, "../frontend/dist");
+
 if (fs.existsSync(frontendDist)) {
+
   app.use(express.static(frontendDist));
+
   app.get("*", (req, res) => {
+
     res.sendFile(path.join(frontendDist, "index.html"));
+
   });
+
 }
 
 const PORT = 3005;
-app.listen(PORT, () => {
-  console.log(`Backend Server running on http://localhost:${PORT}`);
+
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Backend Server running on ${LUMIERA_BACKEND_BASE}`);
+  try {
+    const nlm = getNotebooklmStatus(__dirname);
+    if (nlm.authenticated) {
+      console.log(`[NotebookLM] ${nlm.message} (${nlm.dataDir || ".notebooklm-data"})`);
+    } else {
+      console.warn(`[NotebookLM] ${nlm.message}`);
+    }
+  } catch (e) {
+    console.warn("[NotebookLM] status check failed:", e.message);
+  }
+  startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
 });
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `\n[ERRO] Porta ${PORT} já está em uso — o backend já está rodando.\n` +
+      `       Feche a janela anterior ou execute run_qanat_dashboard.bat (ele libera a porta automaticamente).\n`,
+    );
+    process.exit(1);
+  }
+  throw err;
+});
+
+function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
+  const sceneStarts = {};
+  const sceneDurations = {};
+  const sceneNarration = {};
+
+  if (Array.isArray(actualScenes)) {
+    for (const scene of actualScenes) {
+      const sceneId = String(scene.scene_id || `${scene.block}.1`).trim();
+      if (!sceneId) continue;
+      sceneStarts[sceneId] = Number(scene.start) || 0;
+      sceneDurations[sceneId] = Number(scene.duration) || 4;
+      sceneNarration[sceneId] = scene.narrationText || "";
+    }
+  }
+
+  if (Object.keys(sceneStarts).length === 0 && Array.isArray(storyboard?.visual_prompts)) {
+    const blockAccumulator = {};
+    let cumulativeTime = 0;
+    for (const vp of storyboard.visual_prompts) {
+      const sceneId = String(vp.scene || `${vp.block || 1}.1`).trim();
+      const blockNum = Number(vp.block || 1);
+      const blockIdx = Math.max(0, blockNum - 1);
+      const blockStart = Number(starts[blockIdx]);
+      const dur = Number(vp.duration_seconds) || Number(String(vp.duration || "").replace(/[^\d.]/g, "")) || 5;
+
+      let start;
+      if (Number.isFinite(blockStart)) {
+        if (blockAccumulator[blockNum] === undefined) {
+          blockAccumulator[blockNum] = blockStart;
+        }
+        start = blockAccumulator[blockNum];
+        blockAccumulator[blockNum] = start + dur;
+      } else {
+        start = cumulativeTime;
+        cumulativeTime = start + dur;
+      }
+
+      sceneStarts[sceneId] = start;
+      sceneDurations[sceneId] = dur;
+      sceneNarration[sceneId] = vp.narration_text || "";
+    }
+  }
+
+  return { sceneStarts, sceneDurations, sceneNarration };
+}
+
+function extractOverlayKeywords(overlay) {
+  const text = [
+    overlay?.props?.title,
+    overlay?.props?.subtitle,
+    overlay?.props?.description,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  return text
+    .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 4)
+    .slice(0, 6);
+}
+
+function findKeywordTimeInRange(wordTranscripts, keywords, rangeStart, rangeEnd) {
+  if (!Array.isArray(wordTranscripts) || keywords.length === 0) return null;
+
+  for (const segment of wordTranscripts) {
+    const segStart = Number(segment.start_time || 0);
+    const words = Array.isArray(segment.words) ? segment.words : [];
+
+    for (const wordEntry of words) {
+      const absStart = segStart + Number(wordEntry.start || 0);
+      if (absStart < rangeStart || absStart > rangeEnd) continue;
+
+      const cleanWord = String(wordEntry.word || "").toLowerCase().replace(/[^\wáàâãéèêíìîóòôõúùûç]/gi, "");
+      if (!cleanWord) continue;
+
+      for (const keyword of keywords) {
+        if (cleanWord.includes(keyword) || keyword.includes(cleanWord)) {
+          return absStart;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function isLikelySceneId(rawString) {
+  const m = String(rawString ?? "").trim().match(/^(\d+)\.(\d+)$/);
+  if (!m) return false;
+  const block = Number(m[1]);
+  const scene = Number(m[2]);
+  return block >= 1 && block <= 40 && scene >= 1 && scene <= 12;
+}
+
+function findSceneIdForAbsoluteTime(targetTime, sceneStarts, sceneDurations) {
+  if (!Number.isFinite(targetTime)) return null;
+  let bestSceneId = null;
+  let bestDistance = Infinity;
+
+  for (const [sceneId, sceneStart] of Object.entries(sceneStarts)) {
+    const sceneEnd = sceneStart + (Number(sceneDurations[sceneId]) || 4);
+    if (targetTime >= sceneStart && targetTime <= sceneEnd) {
+      return sceneId;
+    }
+    const distance = Math.abs(sceneStart - targetTime);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestSceneId = sceneId;
+    }
+  }
+
+  return bestSceneId;
+}
+
+function extractExplicitBlockFromOverlayId(overlayId) {
+  const match = String(overlayId || "").match(/(?:block|bloco)[_-]?(\d+)/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
+  const rawStart = overlay.start ?? overlay.scene ?? overlay.scene_ref ?? overlay.block;
+  const rawString = String(rawStart ?? "").trim();
+
+  if (overlay.scene_ref && sceneStarts[overlay.scene_ref] !== undefined) {
+    return overlay.scene_ref;
+  }
+
+  // If scene_ref exists but doesn't match exactly, find any scene in the same block
+  if (overlay.scene_ref && isLikelySceneId(overlay.scene_ref)) {
+    const refBlock = String(overlay.scene_ref).split(".")[0];
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${refBlock}.`));
+    if (blockScene) return blockScene;
+  }
+
+  if (rawString && sceneStarts[rawString] !== undefined) {
+    return rawString;
+  }
+
+  if (isLikelySceneId(rawString)) {
+    // Check if this scene ID actually exists in sceneStarts
+    if (sceneStarts[rawString] !== undefined) {
+      return rawString;
+    }
+    // Find any scene in the same block
+    const block = rawString.split(".")[0];
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${block}.`));
+    if (blockScene) return blockScene;
+    return rawString;
+  }
+
+  if (Number.isFinite(Number(rawStart))) {
+    return findSceneIdForAbsoluteTime(Number(rawStart), sceneStarts, sceneDurations);
+  }
+
+  const idBlockNum = extractExplicitBlockFromOverlayId(overlay.id);
+  if (idBlockNum > 0) {
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${idBlockNum}.`));
+    if (blockScene) return blockScene;
+  }
+
+  const blockFromOverlay = Number(overlay.block || overlay.props?.block || 0);
+  if (blockFromOverlay > 0) {
+    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${blockFromOverlay}.`));
+    if (blockScene) return blockScene;
+  }
+
+  return null;
+}
+
+function narrationWordOverlapRatio(overlayText = "", phrase = "") {
+  const oWords = String(overlayText).toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const pWords = String(phrase).toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  if (!oWords.length || !pWords.length) return 0;
+  const matches = oWords.filter((w) => pWords.includes(w)).length;
+  return matches / oWords.length;
+}
+
+function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
+  const phrases = Array.isArray(blockPhrases) ? blockPhrases : [];
+
+  return (overlays || []).filter((overlay) => {
+    if (!overlay) return false;
+    const id = String(overlay.id || "");
+    if (/^lt-block-\d+$/.test(id)) {
+      console.log(`[Overlays] Removido echo de narração (fallback legado): ${id}`);
+      return false;
+    }
+
+    if (overlay.type === "counter" && Number(overlay.props?.value) > 0) return true;
+    if (overlay.type === "bar-chart" && Array.isArray(overlay.props?.items) && overlay.props.items.length) return true;
+    if (overlay.type === "timeline" && Array.isArray(overlay.props?.events) && overlay.props.events.length) return true;
+
+    const overlayText = [
+      overlay.props?.title,
+      overlay.props?.subtitle,
+      overlay.props?.description,
+      overlay.props?.text,
+      overlay.props?.label,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!overlayText) return true;
+
+    for (const bp of phrases) {
+      const phrase = String(bp.phrase || "")
+        .toLowerCase()
+        .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!phrase || phrase.length < 12) continue;
+
+      const phraseHead5 = phrase.split(" ").slice(0, 5).join(" ");
+      const overlayHead5 = overlayText.split(" ").slice(0, 5).join(" ");
+
+      if (phraseHead5.length >= 12 && overlayHead5.length >= 12 && phraseHead5 === overlayHead5) {
+        console.log(`[Overlays] Removido overlay com início idêntico à narração: ${id}`);
+        return false;
+      }
+
+      if (overlayText.length >= 20 && narrationWordOverlapRatio(overlayText, phrase) >= 0.9) {
+        console.log(`[Overlays] Removido overlay com >90% palavras da narração: ${id}`);
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+const GEMINI_OVERLAY_TYPES = new Set([
+  "lower-third",
+  "counter",
+  "bar-chart",
+  "timeline",
+  "kinetic-text",
+  "info-card",
+  "source-card",
+  "social-post",
+  "geo-map",
+]);
+
+function sanitizeCustomStyle(value) {
+  if (value == null) return undefined;
+  if (Array.isArray(value)) {
+    const merged = {};
+    for (const entry of value) {
+      Object.assign(merged, sanitizeCustomStyle(entry) || {});
+    }
+    return Object.keys(merged).length ? merged : undefined;
+  }
+  if (typeof value !== "object") return undefined;
+  const out = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (/^\d+$/.test(key)) continue;
+    if (raw == null || typeof raw === "object") continue;
+    if (typeof raw === "number" || typeof raw === "string") out[key] = raw;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+function repairOverlayPropsForRemotion(overlay) {
+  if (!overlay || !overlay.type) return null;
+  if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
+  const p = overlay.props;
+
+  if (p.customStyle != null) {
+    const safeStyle = sanitizeCustomStyle(p.customStyle);
+    if (safeStyle) p.customStyle = safeStyle;
+    else delete p.customStyle;
+  }
+
+  if (overlay.type === "timeline") {
+    let events = p.events;
+    if (typeof events === "string") {
+      try { events = JSON.parse(events); } catch { events = []; }
+    }
+    if (!Array.isArray(events)) events = [];
+    events = events.map((ev) => ({
+      year: String(ev?.year || ev?.date || ev?.label || ev?.time || "—"),
+      description: String(ev?.description || ev?.desc || ev?.text || ev?.title || ""),
+      highlight: Boolean(ev?.highlight),
+    })).filter((ev) => ev.year || ev.description);
+
+    if (events.length < 2) {
+      const subtitle = events.map((ev) => ev.description).filter(Boolean).join(" · ");
+      if (p.title || subtitle) {
+        console.log(`[Overlays] Timeline ${overlay.id} incompleto — convertido para lower-third.`);
+        overlay.type = "lower-third";
+        overlay.props = {
+          title: String(p.title || events[0]?.year || "LINHA DO TEMPO"),
+          subtitle,
+          accentColor: p.accentColor || "#D4AF37",
+          position: p.position || "bottom-left",
+          variant: p.variant || "glass",
+          iconType: p.iconType || "history",
+          theme: p.theme || "classic",
+          customStyle: p.customStyle,
+        };
+        return overlay;
+      }
+      console.log(`[Overlays] Timeline ${overlay.id} sem eventos — removido.`);
+      return null;
+    }
+
+    p.events = events;
+    if (!p.title) p.title = "LINHA DO TEMPO";
+  }
+
+  if (overlay.type === "bar-chart") {
+    let items = p.items;
+    if (!Array.isArray(items)) items = [];
+    items = items.map((it) => ({
+      label: String(it?.label || it?.name || "—"),
+      value: Number(it?.value) || 0,
+      displayValue: it?.displayValue != null ? String(it.displayValue) : undefined,
+      color: it?.color,
+    })).filter((it) => it.label && it.value > 0);
+
+    if (items.length < 2) {
+      if (items.length === 1) {
+        console.log(`[Overlays] Bar-chart ${overlay.id} com 1 item — convertido para counter.`);
+        overlay.type = "counter";
+        overlay.props = {
+          value: items[0].value,
+          label: items[0].label,
+          suffix: items[0].displayValue || "",
+          accentColor: p.accentColor || "#D4AF37",
+          position: p.position || "bottom-right",
+          theme: p.theme || "classic",
+          customStyle: p.customStyle,
+        };
+        return overlay;
+      }
+      console.log(`[Overlays] Bar-chart ${overlay.id} sem itens — removido.`);
+      return null;
+    }
+    p.items = items;
+    if (!p.title) p.title = "COMPARAÇÃO";
+  }
+
+  if (overlay.type === "counter") {
+    let value = Number(p.value);
+    if (!Number.isFinite(value)) {
+      value = Number(String(p.value ?? p.text ?? "").replace(/[^\d.]/g, ""));
+    }
+    if (!Number.isFinite(value)) {
+      console.log(`[Overlays] Counter ${overlay.id} sem valor — removido.`);
+      return null;
+    }
+    p.value = value;
+    if (!p.label) p.label = String(p.title || p.text || "DADO");
+  }
+
+  if (overlay.type === "lower-third") {
+    if (!p.title) p.title = String(p.subtitle || p.text || p.label || "INFO");
+    if (!p.position) p.position = "bottom-left";
+  }
+
+  if (overlay.type === "kinetic-text") {
+    if (!p.text) p.text = String(p.title || p.label || "");
+    if (!String(p.text || "").trim()) {
+      console.log(`[Overlays] Kinetic-text ${overlay.id} vazio — removido.`);
+      return null;
+    }
+    if (Array.isArray(p.style) || (p.style != null && typeof p.style !== "string")) {
+      p.style = "slam";
+    }
+  } else if (Array.isArray(p.style) || (p.style != null && typeof p.style === "object")) {
+    delete p.style;
+  }
+
+  return overlay;
+}
+
+function normalizeGeminiOverlayPayload(overlays = []) {
+  if (!Array.isArray(overlays)) return [];
+
+  return overlays.map((raw, index) => {
+    const overlay = { ...(raw || {}) };
+    if (!overlay.id) overlay.id = `ai-overlay-${index + 1}`;
+    if (!overlay.type && overlay.overlay_type) overlay.type = overlay.overlay_type;
+    if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
+
+    const flatText = overlay.text || overlay.label || overlay.title || overlay.caption;
+    if (flatText) {
+      if (overlay.type === "kinetic-text" && !overlay.props.text) overlay.props.text = String(flatText);
+      else if (overlay.type === "counter") {
+        if (!overlay.props.label) overlay.props.label = String(flatText);
+      } else if (!overlay.props.title) {
+        overlay.props.title = String(flatText);
+      }
+    }
+
+    for (const key of ["position", "iconType", "variant", "accentColor", "theme", "customStyle", "value", "suffix", "items", "events"]) {
+      if (overlay[key] != null && overlay.props[key] == null) overlay.props[key] = overlay[key];
+    }
+
+    if (overlay.end != null && overlay.duration == null) {
+      const startNum = Number(overlay.start);
+      const endNum = Number(overlay.end);
+      if (Number.isFinite(startNum) && Number.isFinite(endNum) && endNum > startNum) {
+        overlay.duration = endNum - startNum;
+      }
+    }
+    if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+      overlay.duration = 4;
+    }
+
+    if (!GEMINI_OVERLAY_TYPES.has(overlay.type)) {
+      if (overlay.props?.events?.length) overlay.type = "timeline";
+      else if (overlay.props?.items?.length) overlay.type = "bar-chart";
+      else if (overlay.props?.value != null) overlay.type = "counter";
+      else if (overlay.props?.text) overlay.type = "kinetic-text";
+      else overlay.type = "lower-third";
+    }
+
+    return overlay;
+  })
+    .map((overlay) => repairOverlayPropsForRemotion(overlay))
+    .filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type));
+}
+
+function stripSystemInjectedOverlays(overlays = []) {
+  return (overlays || []).filter((overlay) => {
+    if (!overlay) return false;
+    const id = String(overlay.id || "");
+    if (/^listicle-rank-\d+$/.test(id)) return false;
+    if (id === "listicle-recap" || id === "listicle-intro-topn" || id === "listicle-open-loop") return false;
+    if (overlay.type === "rank-progress" || overlay.type === "listicle-stinger" || overlay.type === "listicle-recap") {
+      return false;
+    }
+    return true;
+  });
+}
+
+function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts, durations, config = {}, storyboard = {}) {
+  const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+  const isListicle = config?.content_mode === "LISTICLE"
+    || storyboard?.listicle?.content_mode === "LISTICLE";
+  const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
+  if (blockEnd > blockStart) {
+    return computeOverlayDisplayDuration(overlay, {
+      overlayStart,
+      blockStart,
+      blockEnd,
+      plan: {},
+      isListicle,
+      totalDuration,
+    });
+  }
+  return Math.max(3.5, Number(overlay.duration) || 4);
+}
+
+function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = [], config = {}, storyboard = {}) {
+  for (let i = 0; i < parsedOverlays.length; i++) {
+    const overlay = parsedOverlays[i];
+    const raw = overlay.start ?? overlay.scene;
+    const rawStr = String(raw ?? "").trim();
+
+    if (Number.isFinite(Number(raw)) && !isLikelySceneId(rawStr)) {
+      overlay.start = Number(raw);
+      const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
+      overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+      continue;
+    }
+
+    if (isLikelySceneId(rawStr)) {
+      if (sceneStarts[rawStr] !== undefined) {
+        const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
+        overlay.start = Number(sceneStarts[rawStr]) + 0.5;
+        overlay.scene_ref = rawStr;
+        overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+        continue;
+      }
+      const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
+      const blockStart = Number(starts[blockIdx]);
+      if (Number.isFinite(blockStart)) {
+        overlay.start = blockStart + 0.5;
+        overlay.scene_ref = rawStr;
+        overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+        continue;
+      }
+    }
+
+    const explicitBlock = extractExplicitBlockFromOverlayId(overlay.id);
+    const blockIdx = explicitBlock > 0
+      ? Math.max(0, explicitBlock - 1)
+      : Math.min(i, Math.max(0, starts.length - 1));
+    const blockStart = Number(starts[blockIdx]);
+    overlay.start = Number.isFinite(blockStart) ? blockStart + 0.5 : Math.max(0, i * 5);
+    overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+    console.log(`[Overlays] Fallback numérico para ${overlay.id}: start=${overlay.start}s`);
+  }
+
+  return parsedOverlays;
+}
+
+function realignPlannedOverlays(plannedRaw, actualScenes, storyboard, starts, durations, wordTranscripts = [], config = {}) {
+  const cloned = JSON.parse(JSON.stringify(plannedRaw));
+  alignOverlayTimings(cloned, actualScenes, storyboard, starts, durations, wordTranscripts, config);
+  return cloned;
+}
+
+function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts = [], config = {}) {
+  const { sceneStarts, sceneDurations, sceneNarration } = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+  const isListicle = config?.content_mode === "LISTICLE"
+    || storyboard?.listicle?.content_mode === "LISTICLE";
+
+  for (let i = 0; i < parsedOverlays.length; i++) {
+    const overlay = parsedOverlays[i];
+    const rawSceneRef = String(overlay.start ?? overlay.scene ?? "").trim();
+    const resolvedSceneId = resolveOverlaySceneId(overlay, sceneStarts, sceneDurations);
+
+    if (!resolvedSceneId || sceneStarts[resolvedSceneId] === undefined) {
+      const rawNum = Number(overlay.start);
+      if (Number.isFinite(rawNum) && rawNum >= 0 && !isLikelySceneId(rawSceneRef)) {
+        overlay.start = rawNum;
+        const sceneFromTime = findSceneIdForAbsoluteTime(rawNum, sceneStarts, sceneDurations);
+        if (sceneFromTime) overlay.scene_ref = sceneFromTime;
+        console.log(`[Overlays Post-Process] Overlay ${overlay.id} mantém tempo absoluto: start=${overlay.start}s`);
+        continue;
+      }
+
+      if (isLikelySceneId(rawSceneRef)) {
+        const blockNum = Number(rawSceneRef.split(".")[0]);
+        const blockIdx = Math.max(0, blockNum - 1);
+        const blockStart = Number(starts[blockIdx]);
+        if (Number.isFinite(blockStart)) {
+          overlay.start = blockStart + 0.5;
+          overlay.scene_ref = rawSceneRef;
+          overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+          console.log(`[Overlays Post-Process] Fallback por scene_id ${rawSceneRef}: start=${overlay.start}s`);
+          continue;
+        }
+      }
+
+      const blockNum = extractExplicitBlockFromOverlayId(overlay.id);
+      if (blockNum > 0) {
+        const blockIdx = Math.max(0, blockNum - 1);
+        const blockStart = Number(starts[blockIdx]);
+        if (Number.isFinite(blockStart)) {
+          overlay.start = blockStart + 0.5;
+          overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+          console.log(`[Overlays Post-Process] Fallback por bloco ${blockNum}: start=${overlay.start}s`);
+        }
+      }
+      continue;
+    }
+
+    const sceneStartSec = sceneStarts[resolvedSceneId];
+    const sceneDur = sceneDurations[resolvedSceneId] || 4;
+    const blockIdx = Math.max(0, Number(String(resolvedSceneId).split(".")[0]) - 1);
+    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+    const siblingCount = parsedOverlays.slice(0, i).filter((ov) => {
+      const ovScene = String(ov.start ?? ov.scene ?? "").trim();
+      return ovScene === rawSceneRef || ovScene === resolvedSceneId;
+    }).length;
+
+    const minSiblingGap = isListicle ? 8 : 5;
+    let start = sceneStartSec + 0.5 + (siblingCount * minSiblingGap);
+
+    const keywords = extractOverlayKeywords(overlay);
+    const narrationKeywords = String(sceneNarration[resolvedSceneId] || "")
+      .toLowerCase()
+      .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 5)
+      .slice(0, 4);
+
+    const keywordTime = findKeywordTimeInRange(
+      wordTranscripts,
+      [...keywords, ...narrationKeywords],
+      sceneStartSec,
+      sceneStartSec + sceneDur
+    );
+
+    if (keywordTime !== null) {
+      const blockLimit = blockEnd > blockStart ? blockEnd - 1.5 : sceneStartSec + sceneDur - 1;
+      start = Math.min(keywordTime + 0.15, blockLimit);
+    }
+
+    const plannedAbs = Number(overlay.start);
+    const blockLimitEnd = blockEnd > blockStart ? blockEnd : sceneStartSec + sceneDur;
+    if (Number.isFinite(plannedAbs) && plannedAbs >= blockStart && plannedAbs <= blockLimitEnd && !isLikelySceneId(rawSceneRef)) {
+      overlay.start = plannedAbs;
+    } else {
+      overlay.start = Math.max(blockStart > 0 ? blockStart + 0.35 : sceneStartSec, start);
+    }
+    overlay.scene_ref = resolvedSceneId;
+    overlay.duration = computeOverlayDisplayDuration(overlay, {
+      overlayStart: overlay.start,
+      blockStart: blockStart || sceneStartSec,
+      blockEnd: blockEnd || sceneStartSec + sceneDur,
+      plan: {},
+      isListicle,
+    });
+
+    console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s (bloco ${blockIdx + 1})`);
+  }
+
+  ensureNumericOverlayStarts(parsedOverlays, sceneStarts, starts, durations, config, storyboard);
+
+  const totalDur = durations.reduce((a, b) => a + (Number(b) || 0), 0)
+    || (starts.length && durations.length
+      ? Number(starts[starts.length - 1]) + Number(durations[durations.length - 1])
+      : 0);
+  const plan = buildOverlayOrchestrationPlan({
+    config,
+    niche: config?.niche || "Geral",
+    totalDuration: totalDur,
+    projectName: "align",
+    blockCount: starts.length,
+  });
+  const verified = verifyAndRepairAiOverlayTiming(parsedOverlays, {
+    starts,
+    durations,
+    sceneStarts,
+    sceneDurations,
+    wordTranscripts,
+    totalDuration: totalDur,
+    plan,
+    repair: true,
+  });
+  return verified.overlays;
+}
+
+function resolveLastMileOverlayCollisions(overlays, config = {}) {
+  if (!Array.isArray(overlays) || overlays.length === 0) return overlays;
+
+  // Resolve minimum gap from production config (overlay_min_gap setting)
+  const isShort = config.aspect_ratio !== "16:9";
+  const isListicle = config.content_mode === "LISTICLE";
+  const gapSetting = config.overlay_min_gap || "normal";
+  let minGap;
+  if (gapSetting === "tight") {
+    minGap = isShort ? (isListicle ? 8 : 4) : (isListicle ? 9 : 12);
+  } else if (gapSetting === "relaxed") {
+    minGap = isShort ? (isListicle ? 14 : 8) : (isListicle ? 16 : 26);
+  } else {
+    // "normal" default
+    minGap = isShort ? 4 : 5;
+  }
+  console.log(`[Last-Mile Resolver] Gap mínimo entre overlays: ${minGap}s (config: ${gapSetting})`);
+
+  // Filter informative overlays and system ones (e.g. HUD, retention, etc.)
+  const informative = overlays.filter(isInformativeOverlay);
+  const system = overlays.filter(o => !isInformativeOverlay(o));
+
+  // Sort them chronologically by start time
+  informative.sort((a, b) => a.start - b.start);
+
+  const resolved = [];
+  let lastEnd = -Infinity;
+  let lastSceneRef = null;
+
+  for (const overlay of informative) {
+    let start = Number(overlay.start);
+    let duration = Number(overlay.duration) || 4;
+    const currentSceneRef = overlay.scene_ref ? String(overlay.scene_ref).trim() : null;
+
+    // Rule: NEVER show two overlays on the same scene (scene_ref match check)
+    if (currentSceneRef && lastSceneRef === currentSceneRef) {
+      console.log(`[Last-Mile Resolver] Removido overlay ${overlay.id} porque compartilha a mesma cena (${currentSceneRef}) com o anterior.`);
+      continue;
+    }
+
+    // Check overlap with the last accepted informative overlay using config gap
+    if (start < lastEnd + minGap) {
+      console.log(`[Last-Mile Resolver] Conflito detectado para overlay ${overlay.id} (start: ${start.toFixed(2)}s) com o fim do anterior em ${lastEnd.toFixed(2)}s. Gap necessário: ${minGap}s.`);
+
+      // Try pushing start time of this overlay forward, if it leaves a readable chunk
+      const pushedStart = lastEnd + minGap;
+      if (pushedStart + 2.5 <= start + duration) {
+        console.log(`  -> Empurrando início de ${overlay.id} de ${start.toFixed(2)}s para ${pushedStart.toFixed(2)}s`);
+        start = pushedStart;
+        duration = Math.max(2.5, (start + duration) - pushedStart);
+      } else {
+        // Enforce sequence logic: try reducing the duration of the previous overlay instead
+        const prev = resolved[resolved.length - 1];
+        if (prev) {
+          const maxPrevEnd = start - 0.5;
+          const newPrevDur = maxPrevEnd - prev.start;
+          if (newPrevDur >= 2.5) {
+            console.log(`  -> Encurtando overlay anterior ${prev.id} de ${prev.duration.toFixed(2)}s para ${newPrevDur.toFixed(2)}s (acabando em ${maxPrevEnd.toFixed(2)}s)`);
+            prev.duration = newPrevDur;
+            lastEnd = prev.start + prev.duration;
+          } else {
+            // Remove the current overlay to prevent double overlays / screen cluttering
+            console.log(`  -> Ignorando overlay ${overlay.id} totalmente para evitar colisão na tela.`);
+            continue;
+          }
+        } else {
+          continue;
+        }
+      }
+    }
+
+    overlay.start = start;
+    overlay.duration = duration;
+    resolved.push(overlay);
+    lastEnd = start + duration;
+    lastSceneRef = currentSceneRef;
+  }
+
+  return [...resolved, ...system];
+}
+
+function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
+  let result = filterOverlaysByVisualConfig(overlays, config);
+  result = injectProLayoutOverlays(result, config, storyboard, starts, durations, orchestrationPlan);
+  result = injectListicleRankOverlays(result, storyboard, config, starts, durations, projectDir);
+  result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
+  result = avoidListicleHudCollisions(result, config, storyboard);
+  result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
+  result = stabilizeOverlayTimings(result, {
+    starts,
+    durations,
+    plan: orchestrationPlan,
+    config,
+    storyboard,
+    totalDuration,
+  });
+
+  const informativeOnly = result.filter(isInformativeOverlay);
+  const systemOnly = result.filter((o) => !isInformativeOverlay(o));
+  const enforcedInformative = enforceOverlayOrchestration(informativeOnly, orchestrationPlan, {
+    starts,
+    durations,
+  });
+  result = [...enforcedInformative, ...systemOnly];
+  result = stabilizeOverlayTimings(result, {
+    starts,
+    durations,
+    plan: orchestrationPlan,
+    config,
+    storyboard,
+    totalDuration,
+  });
+
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const sceneMaps = buildSceneTimingMaps(null, storyboard, starts, durations);
+  const timingVerified = verifyAndRepairAiOverlayTiming(result, {
+    starts,
+    durations,
+    sceneStarts: sceneMaps.sceneStarts,
+    sceneDurations: sceneMaps.sceneDurations,
+    wordTranscripts,
+    totalDuration,
+    plan: orchestrationPlan,
+    repair: true,
+  });
+  result = timingVerified.overlays;
+  result = resolveLastMileOverlayCollisions(result, config);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // REGRA ABSOLUTA DE QUANTIDADE DE OVERLAYS (não pode ser ultrapassada)
+  // Shorts: MAX 3 overlays informativos
+  // Longos: MAX 1 por minuto (ex: vídeo de 5min = 5 overlays), max 2/min
+  // ═══════════════════════════════════════════════════════════════════════
+  {
+    const isShortVideo = config.aspect_ratio !== "16:9" || totalDuration < 120;
+    const informative = result.filter(isInformativeOverlay);
+    const system = result.filter(o => !isInformativeOverlay(o));
+
+    let maxAllowed;
+    if (isShortVideo) {
+      maxAllowed = 3;
+    } else {
+      const minutes = Math.max(1, Math.floor(totalDuration / 60));
+      maxAllowed = Math.min(minutes * 2, Math.max(3, minutes));
+    }
+
+    if (informative.length > maxAllowed) {
+      // Keep the best-distributed overlays, sorted by start time
+      informative.sort((a, b) => a.start - b.start);
+      const kept = informative.slice(0, maxAllowed);
+      const removed = informative.slice(maxAllowed);
+      removed.forEach(o => console.log(`[Overlay Cap] Removido overlay ${o.id} — limite absoluto: ${maxAllowed} (${isShortVideo ? 'SHORT' : 'LONG'})`));
+      console.log(`[Overlay Cap] ${informative.length} → ${kept.length} overlays (limite: ${maxAllowed} para ${isShortVideo ? 'Shorts' : `vídeo de ${Math.floor(totalDuration/60)}min`})`);
+      result = [...kept, ...system];
+    }
+  }
+
+  storyboard.overlay_timing_report = timingVerified.report;
+
+  const quality = validateVideoQuality({
+    overlays: result,
+    config,
+    storyboard,
+    totalDuration,
+    starts,
+    durations,
+    orchestrationPlan,
+  });
+
+  const timingIssues = overlayTimingIssuesFromReport(timingVerified.report);
+  storyboard.quality_report = {
+    ...quality,
+    issues: [...(quality.issues || []), ...timingIssues],
+    overlay_timing: timingVerified.report,
+  };
+  try {
+    fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+  } catch (e) {
+    console.warn("[Quality] Falha ao salvar quality_report:", e.message);
+  }
+
+  if (quality.issues.length) {
+    console.log(`[Quality] Score ${quality.score}/100 — ${quality.issues.length} observação(ões):`);
+    quality.issues.forEach((i) => console.log(`  [${i.severity}] ${i.message}`));
+  } else {
+    console.log(`[Quality] Score ${quality.score}/100 — sem observações.`);
+  }
+
+  return result;
+}
+
+function readHyperframesSkillExcerpt(maxChars = 2800) {
+  const skillPath = path.join(WORKSPACE_DIR, ".agents", "skills", "hyperframes", "SKILL.md");
+  if (!fs.existsSync(skillPath)) return "";
+  try {
+    let raw = fs.readFileSync(skillPath, "utf8");
+    if (raw.startsWith("---")) {
+      const parts = raw.split("---");
+      raw = parts.length >= 3 ? parts.slice(2).join("---").trim() : raw;
+    }
+    return raw.slice(0, maxChars);
+  } catch {
+    return "";
+  }
+}
+
+/** Prompt compacto para planejar overlays via Gemini no Chrome (extensão). */
+function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true, planSessionId = null, agentLearningsAddendum = "") {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
+  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  if (!blockPhrases.length) return null;
+
+  const niche = config.niche || "Geral";
+  const isListicle = config.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const isShort = config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
+  const scenes = (storyboard.visual_prompts || []).slice(0, 36).map((vp) => ({
+    scene_id: String(vp.scene || `${vp.block || 1}.1`),
+    block: vp.block,
+    context_hint: String(vp.prompt || vp.visual_description || "").slice(0, 100),
+  }));
+
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche,
+    totalDuration: Number(timings.total_duration) || 0,
+    projectName: path.basename(projectDir),
+    sceneCount: (storyboard.visual_prompts || []).length,
+    blockCount: blockPhrases.length,
+  });
+  const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
+  const hfGuide = useHyperframes ? readHyperframesSkillExcerpt(7500) : "";
+  const hfRefs = useHyperframes && Array.isArray(orchestrationPlan.hyperframesRefs)
+    ? orchestrationPlan.hyperframesRefs.map((r) => `- ${r}`).join("\n")
+    : "";
+
+  const maxOverlays = orchestrationPlan.limits?.maxTotal || (isListicle && isShort ? 2 : isShort ? 6 : 10);
+  const listicleRules = isListicle && isShort
+    ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
+    : "";
+
+  const hyperframesSchema = useHyperframes ? `
+SCHEMA OBRIGATÓRIO (HyperFrames → Remotion):
+Cada overlay DEVE ter: id, type, start (scene_id), duration, props.
+- timeline: props.events = array com MÍNIMO 2 itens {year, description}
+- bar-chart: props.items = array com MÍNIMO 2 itens {label, value, displayValue?, color?}
+- counter: props.value (número), props.label, props.suffix opcional
+- lower-third: props.title, props.subtitle, props.variant, props.iconType, props.position
+Exemplo timeline:
+{"id":"tl-1","type":"timeline","start":"2.1","duration":6,"props":{"title":"CRONOLOGIA","events":[{"year":"221 a.C.","description":"Unificação da China"},{"year":"206 a.C.","description":"Grande Muralha"}],"accentColor":"#D4AF37","orientation":"horizontal","iconType":"history"}}
+` : "";
+
+  return [
+    `Você é diretor de overlays cinematográficos para vídeo YouTube (nicho: "${niche}").`,
+    useHyperframes ? "MODO HYPERFRAMES AI ORQUESTRADO — siga o catálogo e o plano de orquestração abaixo." : "",
+    "OBJETIVO: enriquecer o vídeo com dados visuais NOVOS — NUNCA repetir, resumir ou parafrasear a narração falada.",
+    listicleRules,
+    useHyperframes
+      ? "HyperFrames: variantes glass/bild/accent-underline/clean-bar, iconType temático, customStyle com gradiente e glow. Inspire-se nas refs do catálogo."
+      : "",
+    planSessionId
+      ? `SESSÃO OBRIGATÓRIA: inclua "plan_session":"${planSessionId}" na raiz do JSON (campo obrigatório para validar esta requisição).`
+      : "",
+    `Retorne APENAS JSON válido: {"plan_session":"...","planejamento":["3 observações"],"overlays":[...]}`,
+    `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
+    "Tipos obrigatórios a variar: counter, bar-chart, timeline, lower-third, kinetic-text.",
+    "PROIBIDO: copiar frases dos blocos de narração; lower-third por bloco; texto >12 palavras; código/terminal.",
+    hyperframesSchema,
+    hfRefs ? `CATÁLOGO HYPERFRAMES (refs para este nicho):\n${hfRefs}` : "",
+    "",
+    orchestrationPrompt,
+    hfGuide ? `\nGUIA HYPERFRAMES (trecho):\n${hfGuide}` : "",
+    "",
+    "CENAS (use scene_id no campo start):",
+    JSON.stringify(scenes, null, 2),
+    "",
+    "BLOCOS (contexto apenas — NÃO copie estas frases nos overlays):",
+    JSON.stringify(
+      blockPhrases.slice(0, 14).map((bp) => ({ block: bp.block, hint: String(bp.phrase || "").slice(0, 40) + "…" })),
+      null,
+      2,
+    ),
+    agentLearningsAddendum || "",
+  ].filter(Boolean).join("\n");
+}
+
+// AI-driven overlay planning for Remotion PRO using Gemini API
+async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}, options = {}) {
+  const {
+    llmText: injectedLlmText = null,
+    skipBrowserCache = false,
+    planningOnly = false,
+    agentMode = false,
+  } = options;
+  await ensureListItemsInProject(projectDir, {
+    getApiKey,
+    callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
+    parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projectDir), label),
+    readProjectJson,
+  });
+
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  let storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
+  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+
+  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const starts = Array.isArray(timings.starts) ? timings.starts : [];
+  const durations = Array.isArray(timings.durations) ? timings.durations : [];
+  const apiKey = getApiKey(projectDir);
+
+  const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
+    config,
+    niche: config.niche || "Geral",
+    totalDuration: Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    projectName: renderContext.projectName || path.basename(projectDir),
+    sceneCount: Array.isArray(actualScenes) ? actualScenes.length : 0,
+    blockCount: blockPhrases.length,
+  });
+
+  if (blockPhrases.length === 0) {
+    console.log("[Overlays] Sem blocos de narração — nenhum overlay gerado.");
+    if (planningOnly) return [];
+    return finalizeProjectOverlays(
+      projectDir,
+      [],
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  const plannedRaw = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0
+    ? storyboard.overlays_ai
+    : (
+      storyboard.overlays_planned_at
+      && Array.isArray(storyboard.overlays)
+      && storyboard.overlays.length > 0
+        ? stripSystemInjectedOverlays(storyboard.overlays)
+        : null
+    );
+  const plannedSource = plannedRaw
+    ? filterNarrationEchoOverlays(plannedRaw, blockPhrases)
+    : null;
+
+  const plannedHyperframes = storyboard.overlays_hyperframes === true;
+  if (useHyperframes !== plannedHyperframes && plannedSource?.length) {
+    console.log(`[Overlays] Modo HyperFrames (${useHyperframes}) difere do planejamento (${plannedHyperframes}) — reutilizando com reparo.`);
+  }
+
+  if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
+    console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados${useHyperframes ? " [HyperFrames]" : ""} (re-alinhando com timeline de render).`);
+    let realigned = normalizeGeminiOverlayPayload(
+      realignPlannedOverlays(
+        plannedSource,
+        actualScenes,
+        storyboard,
+        starts,
+        durations,
+        wordTranscripts,
+        config,
+      ),
+    );
+    const plannedSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+    const plannedTotalDur = Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
+    realigned = redistributeInformativeOverlayStarts(
+      realigned,
+      orchestrationPlanEarly,
+      plannedTotalDur,
+      { starts, durations, sceneStarts: plannedSceneMaps.sceneStarts },
+    );
+    realigned = enforceOverlayOrchestration(realigned, orchestrationPlanEarly, { starts, durations });
+    realigned = stabilizeOverlayTimings(realigned, {
+      starts,
+      durations,
+      plan: orchestrationPlanEarly,
+      config,
+      storyboard,
+      totalDuration: plannedTotalDur,
+    });
+    return finalizeProjectOverlays(
+      projectDir,
+      realigned,
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  if (!injectedLlmText && !apiKey && !shouldOfferGeminiBrowser(projectDir)) {
+    console.log("[Overlays] Sem chave API — overlays de IA indisponíveis (narração não será repetida).");
+    if (planningOnly) return [];
+    return finalizeProjectOverlays(
+      projectDir,
+      [],
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  if (!injectedLlmText && shouldOfferGeminiBrowser(projectDir) && !(plannedSource && plannedSource.length > 0)) {
+    console.log("[Overlays] Gemini Chrome sem planejamento prévio — render sem overlays de narração.");
+    if (planningOnly) return [];
+    return finalizeProjectOverlays(
+      projectDir,
+      [],
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlanEarly,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    );
+  }
+
+  const blockContexts = blockPhrases.map((bp) => {
+    const idx = Number(bp.block || 1) - 1;
+    return {
+      block: bp.block,
+      start: starts[idx] || (idx * 15),
+      duration: durations[idx] || 15,
+      narration: bp.phrase || "",
+    };
+  });
+
+  const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
+  const niche = config.niche || "Geral";
+  const totalDuration = Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
+  const projectName = renderContext.projectName || path.basename(projectDir);
+
+  const orchestrationPlan = buildOverlayOrchestrationPlan({
+    config,
+    niche,
+    totalDuration,
+    projectName,
+    sceneCount: Array.isArray(actualScenes) ? actualScenes.length : 0,
+    blockCount: blockPhrases.length,
+  });
+  const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
+  const isListicleOverlay = config.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const listicleShortsOverlayRules = isListicleOverlay && orchestrationPlan.format === "SHORT"
+    ? `
+MODO LISTICLE SHORTS (CRÍTICO — leia antes de gerar overlays):
+- O sistema JÁ injeta automaticamente: badge #N persistente no topo durante cada item e recap no final. PROIBIDO kinetic-text central "TOP N" ou "#N — título".
+- Você deve gerar NO MÁXIMO ${orchestrationPlan.limits.maxTotal} overlays do tipo "counter" APENAS.
+- PROIBIDO: lower-third, kinetic-text, bar-chart, timeline, info-card.
+- PROIBIDO: 1 overlay por bloco/item do ranking — máximo 1 counter a cada 20 segundos.
+- Cada counter = 1 número impactante que NÃO está na narração (ex: alcance em metros, toneladas).
+- Posição obrigatória: "bottom-left" ou "bottom-right".
+`
+    : "";
+  console.log(`[Orchestration] Formato: ${orchestrationPlan.format} | Perfil: ${orchestrationPlan.varietyLabel} | Máx overlays: ${orchestrationPlan.limits.maxTotal}${isListicleOverlay ? " | LISTICLE" : ""}`);
+
+  const scenesContext = Array.isArray(actualScenes) && actualScenes.length > 0
+    ? actualScenes.map((scene) => ({
+        scene_id: String(scene.scene_id || `${scene.block}.1`).trim(),
+        block: scene.block,
+        start_seconds: Number(scene.start) || 0,
+        duration_seconds: Number(scene.duration) || 4,
+        narration_text: scene.narrationText || "",
+      }))
+    : (storyboard.visual_prompts || []).map((vp) => ({
+        scene_id: String(vp.scene || `${vp.block || 1}.1`).trim(),
+        block: vp.block,
+        duration_seconds: vp.duration_seconds || 5,
+        visual_description: vp.prompt || "",
+        narration_text: vp.narration_text || "",
+      }));
+
+  let skillPrompt = "";
+  if (useHyperframes) {
+    const skillPath = path.join(WORKSPACE_DIR, ".agents", "skills", "hyperframes", "SKILL.md");
+    if (fs.existsSync(skillPath)) {
+      try {
+        const rawContent = fs.readFileSync(skillPath, "utf8");
+        if (rawContent.startsWith("---")) {
+          const parts = rawContent.split("---");
+          if (parts.length >= 3) {
+            skillPrompt = parts.slice(2).join("---").trim();
+          } else {
+            skillPrompt = rawContent;
+          }
+        } else {
+          skillPrompt = rawContent;
+        }
+      } catch (e) {
+        console.error("[Overlays] Erro ao ler SKILL.md do HyperFrames:", e);
+      }
+    }
+  }
+
+  let systemPrompt = `Você é um diretor cinematográfico e especialista em design de overlays para vídeos de alta retenção (estilo Shorts/TikTok/Reels e Documentários Longos).
+Sua tarefa é analisar o roteiro (blocos de narração) de um vídeo e planejar minuciosamente uma lista de overlays informativos complementares de acordo com o assunto específico do vídeo.
+O NICHO DO VÍDEO ATUAL É: "${niche}".
+
+IMPORTANTE — SINCRONIZAÇÃO DE TEMPO:
+Cada card informativo ou lower-third DEVE aparecer exatamente quando a cena visual correspondente está na tela.
+Você é terminantemente PROIBIDO de adivinhar ou inventar segundos absolutos para o campo "start".
+O campo "start" na sua resposta JSON deve ser OBRIGATORIAMENTE a string do "scene_id" da cena correta (ex: "1.1", "1.2", "2.1", "3.2").
+
+Você DEVE realizar um planejamento sistemático e explícito de design e posicionamento das informações antes de gerar cada overlay.
+Retorne um objeto JSON contendo exatamente esta estrutura:
+{
+  "planejamento": [
+    "Sua primeira observação de planejamento aqui (ex: como dividiu as informações ao longo do vídeo de forma balanceada)",
+    "Sua segunda observação (ex: como escolheu variar entre cards no topo e pílulas embaixo para não poluir visualmente)",
+    "Sua terceira observação (ex: como sintetizou os dados do roteiro em textos explicativos curtos e complementares)"
+  ],
+  "overlays": [
+    // Array contendo os objetos de overlay estruturados
+  ]
+}
+
+${orchestrationPrompt}
+${listicleShortsOverlayRules}
+
+${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
+Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
+Utilize as especificações, formatos e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
+
+${skillPrompt || `1. Para "customStyle", você deve configurar as cores de fundo, bordas e sombras neon livremente de acordo com a variante e tema.
+2. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
+3. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
+   - "tiktok-comment", "reddit-post", "instagram-comment" (use o tipo "info-card" com variante "glass" ou "minimal", avatar e títulos de autor como "r/HojeEuAprendi • p/u/User" ou "@username").
+   - "lt-soft-pill" (use o tipo "lower-third" com variante "glass" e cantos muito arredondados "40px", gradientes suaves, e o iconType do Lottie correspondente!).
+   - "lt-accent-underline" (use o tipo "lower-third" com variante "accent-underline" para o título ser sublinhado por uma linha colorida neon grossa).
+   - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
+   - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).`}
+` : ""}
+
+REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
+1. SIGA O PLANO DE ORQUESTRAÇÃO ACIMA — ele define o orçamento exato de overlays para este vídeo. Não exceda os limites.${isListicleOverlay && orchestrationPlan.format === "SHORT" ? " Em LISTICLE SHORTS, gere poucos counters — o HUD de ranking já cobre a identidade visual." : " Use os componentes disponíveis dentro do orçamento."}
+2. LIMITES POR FORMATO (definidos pelo orquestrador — respeite o orçamento):
+   - Para vídeos curtos (SHORTS/REELS/TIKTOK)${isListicleOverlay ? " em modo LISTICLE: apenas counters (máx. 2), gap 10s+" : ": Use kinetic-text, counter, bar-chart, timeline e lower-third distribuídos nos atos do plano. Varie tipos e posições. Gap mínimo de 5s entre overlays."}
+   - Para vídeos LONGOS: Intervalo de pelo menos 18 segundos "limpo" entre overlays. Priorize dados visuais sobre texto.
+3. COMPONENTES DISPONÍVEIS NO REMOTION (use todos conforme o contexto):
+   - "kinetic-text": frases de impacto com animação slam/reveal/glitch (ideal para viradas narrativas em Shorts)
+   - "lower-third": nomes, definições, contexto (variantes: glass, bild, accent-underline, bold-block, clean-bar)
+   - "counter": números, estatísticas, datas (com suffix e formatNumber)
+   - "bar-chart": comparações visuais (2-4 itens)
+   - "timeline": sequências, processos, linha do tempo (horizontal em longos, vertical em shorts)
+4. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
+   - Se o nicho do vídeo atual for diferente de "Tecnologia" ou "Programação" (como é o caso de "História", "Geografia", "Finanças", "Curiosidades", etc. e o atual é "${niche}"), VOCÊ É TERMINANTEMENTE PROIBIDO de gerar qualquer overlay que contenha códigos de programação, código fonte, terminais de comando, imports de bibliotecas (como 'geo-eng' ou '.js'), mockups do VS Code, syntax highlighting ou o tipo "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep". Esses layouts de código e programação irritam o usuário e quebram a imersão em vídeos comuns! Use apenas layouts de postagens comuns (Reddit, TikTok bubble, Instagram comment), pílulas, infográficos, fatos-chave, etc.
+5. TEXTOS CURTOS E NÃO REPETITIVOS (SÍNTESE INTELIGENTE):
+   - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades surpreendentes de leitura ultra-rápida (no máximo 5 a 12 palavras). Nunca cole parágrafos inteiros de texto falado nos cards ou lower-thirds!
+6. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
+   - ${isListicleOverlay ? "Em LISTICLE: topo reservado para badge #N — counters só em bottom-left ou bottom-right." : "Busque equilíbrio alternando posições superiores e inferiores. Não repita o mesmo canto em sequência."}
+7. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
+   - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
+8. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
+   - Para o tipo "lower-third", você DEVE definir a propriedade "variant" escolhendo o estilo visual mais adequado ao trecho do vídeo:
+     - "bild": Estilo jornalístico clássico com blocos de fundo sólidos e sombras coloridas projetadas.
+     - "bold-block": Estilo podcast retangular sólido com título grosso e subtítulo em caixa menor em amarelo/accent.
+     - "accent-underline": Estilo minimalista com título sublinhado por linha neon grossa e sem painel de fundo.
+     - "clean-bar": Estilo corporativo limpo com barra lateral neon grossa e fundo de vidro translúcido.
+     - "glass": Estilo padrão translúcido elegante e arredondado.
+
+Estrutura JSON Exigida:
+{
+  "planejamento": [
+    "Resumo da estratégia de planejamento visual"
+  ],
+  "overlays": [
+    {
+      "id": "lt-block-1",
+      "type": "lower-third",
+      "start": "1.1",
+      "duration": 3.5,
+      "props": {
+        "title": "TECNOLOGIA PREMIUM",
+        "subtitle": "Concreto romano com autocura inteligente.",
+        "accentColor": "#00FF9D",
+        "theme": "classic",
+        "variant": "glass",
+        "iconType": "sparkles",
+        "position": "bottom-left",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(10, 15, 12, 0.85) 0%, rgba(20, 30, 25, 0.8) 100%)",
+          "border": "1.5px solid rgba(0, 255, 157, 0.25)",
+          "borderRadius": "40px",
+          "boxShadow": "0 12px 36px rgba(0, 255, 157, 0.15)",
+          "colorTitle": "#00FF9D",
+          "colorSubtitle": "#E2E8F0"
+        }
+      }
+    },
+    {
+      "id": "info-1",
+      "type": "info-card",
+      "start": "1.2",
+      "duration": 5.0,
+      "props": {
+        "title": "AUTOCURA TÉRMICA",
+        "description": "Cinza vulcânica reage com a água selando fissuras ativamente.",
+        "iconType": "flame",
+        "position": "top-right",
+        "accentColor": "#FF3D00",
+        "variant": "glass",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(15, 10, 10, 0.85) 0%, rgba(30, 15, 15, 0.8) 100%)",
+          "border": "1.5px solid rgba(255, 61, 0, 0.25)",
+          "borderRadius": "16px",
+          "boxShadow": "0 12px 36px rgba(255, 61, 0, 0.15)"
+        }
+      }
+    },
+    {
+      "id": "counter-1",
+      "type": "counter",
+      "start": "2.1",
+      "duration": 4.5,
+      "props": {
+        "value": 2000,
+        "label": "Resistência Estrutural",
+        "suffix": "Anos",
+        "formatNumber": true,
+        "accentColor": "#00E5FF",
+        "position": "bottom-right",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(8, 12, 16, 0.85) 0%, rgba(14, 20, 28, 0.8) 100%)",
+          "border": "1.5px solid rgba(0, 229, 255, 0.25)",
+          "borderRadius": "16px",
+          "boxShadow": "0 12px 36px rgba(0, 229, 255, 0.15)",
+          "colorValue": "#00E5FF"
+        }
+      }
+    },
+    {
+      "id": "bar-1",
+      "type": "bar-chart",
+      "start": "2.2",
+      "duration": 6.0,
+      "props": {
+        "title": "COMPARAÇÃO DE ALTURA",
+        "items": [
+          { "label": "Gizé", "value": 146, "displayValue": "146m", "color": "#D4AF37" },
+          { "label": "Burj Khalifa", "value": 828, "displayValue": "828m", "color": "#00E5FF" }
+        ],
+        "accentColor": "#D4AF37",
+        "position": "bottom-center",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(15, 12, 10, 0.85) 0%, rgba(25, 20, 15, 0.8) 100%)",
+          "border": "1.5px solid rgba(212, 175, 55, 0.25)",
+          "borderRadius": "16px"
+        }
+      }
+    },
+    {
+      "id": "timeline-1",
+      "type": "timeline",
+      "start": "3.1",
+      "duration": 7.0,
+      "props": {
+        "title": "LINHA DO TEMPO ROMANA",
+        "events": [
+          { "year": "753 a.C.", "description": "Fundação de Roma", "highlight": false },
+          { "year": "27 a.C.", "description": "Início do Império", "highlight": false },
+          { "year": "476 d.C.", "description": "Queda do Império", "highlight": true }
+        ],
+        "accentColor": "#FF3D00",
+        "orientation": "horizontal",
+        "theme": "classic",
+        "customStyle": {
+          "background": "linear-gradient(135deg, rgba(10, 10, 15, 0.85) 0%, rgba(18, 18, 25, 0.8) 100%)",
+          "border": "1.5px solid rgba(255, 61, 0, 0.2)",
+          "borderRadius": "16px",
+          "colorTitle": "#FFD700"
+        }
+      }
+    }
+  ]
+}
+`;
+
+  if (agentMode) {
+    const studioAddendum = buildStudioAgentsPromptAddendum(WORKSPACE_DIR, {
+      niche,
+      task: "overlay",
+      format: detectVideoFormat(config, totalDuration),
+    });
+    if (studioAddendum) {
+      systemPrompt += studioAddendum;
+      console.log("[Studio Agents] Memória + skills bundle injetados no prompt de overlays.");
+    }
+  }
+
+  const userPrompt = `Aqui está a lista de CENAS do vídeo com tempos reais, narração e IDs de cena:
+${JSON.stringify(scenesContext, null, 2)}
+
+Contexto adicional por blocos de narração:
+${JSON.stringify(blockContexts, null, 2)}
+
+Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associe cada overlay ao "scene_id" da cena onde a informação é realmente ilustrada visualmente. Use APENAS scene_id no campo "start", nunca segundos absolutos.`;
+
+  try {
+    let rawResponse = injectedLlmText;
+    if (!rawResponse) {
+      const requestBody = {
+        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      };
+      rawResponse = await callGeminiWithRetry(apiKey, null, { bodyOverride: requestBody });
+    }
+
+    let cleaned = extractOverlayJsonPayload(rawResponse) || String(rawResponse || "").trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
+    }
+    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
+      cleaned = extractOverlayJsonPayload(cleaned) || cleaned;
+    }
+
+    let parsedOverlays = [];
+    try {
+      const resultObj = JSON.parse(cleaned);
+      if (Array.isArray(resultObj)) {
+        parsedOverlays = resultObj;
+      } else if (resultObj && Array.isArray(resultObj.overlays)) {
+        parsedOverlays = resultObj.overlays;
+        if (resultObj.planejamento) {
+          console.log("[Overlays Planning] Plano detalhado executado pela IA para este vídeo:");
+          resultObj.planejamento.forEach(p => console.log(`  - ${p}`));
+        }
+      } else if (resultObj?.data && Array.isArray(resultObj.data.overlays)) {
+        parsedOverlays = resultObj.data.overlays;
+      } else if (resultObj && typeof resultObj === "object") {
+        const arrayKey = Object.keys(resultObj).find((key) => {
+          const val = resultObj[key];
+          return Array.isArray(val) && val.length > 0 && val[0] && (val[0].type || val[0].text || val[0].props);
+        });
+        if (arrayKey) {
+          parsedOverlays = resultObj[arrayKey];
+          console.log(`[Overlays] JSON extraído do campo "${arrayKey}".`);
+        } else {
+          console.warn("[Overlays] Formato inesperado do Gemini — sem array de overlays.");
+          parsedOverlays = [];
+        }
+      } else {
+        parsedOverlays = [];
+      }
+    } catch (parseErr) {
+      console.error("[Overlays] Erro ao parsear JSON principal, tentando extração balanceada:", parseErr);
+      const recovered = extractOverlayJsonPayload(cleaned) || extractOverlayJsonPayload(rawResponse);
+      if (!recovered) throw parseErr;
+      const resultObj = JSON.parse(recovered);
+      if (Array.isArray(resultObj)) {
+        parsedOverlays = resultObj;
+      } else if (Array.isArray(resultObj?.overlays)) {
+        parsedOverlays = resultObj.overlays;
+      } else {
+        throw parseErr;
+      }
+    }
+    if (Array.isArray(parsedOverlays)) {
+      parsedOverlays = normalizeGeminiOverlayPayload(parsedOverlays);
+      console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
+
+      alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts, config);
+
+      const isTech = niche.toLowerCase().includes("tecnologia") || niche.toLowerCase().includes("programacao") || niche.toLowerCase().includes("computador") || niche.toLowerCase().includes("ciber") || niche.toLowerCase().includes("software");
+      const orchProfile = VARIETY_PROFILES.find((p) => p.id === orchestrationPlan.varietyProfile) || VARIETY_PROFILES[0];
+      const variants = ["glass", "minimal", "accent", "floating"];
+      const positions = orchProfile.positions;
+      const lotties = orchProfile.lotties;
+      const ltVariants = orchProfile.lowerThirdVariants;
+      
+      let variantIdx = 0;
+      let posIdx = 0;
+      let lottieIdx = 0;
+
+      for (let i = 0; i < parsedOverlays.length; i++) {
+        const overlay = parsedOverlays[i];
+        if (!overlay.props) overlay.props = {};
+
+        // 0. Converte info-cards temáticos para lower-thirds (Tirar cards temáticos e colocar lower thirds)
+        if (overlay.type === "info-card") {
+          console.log(`[Overlays Post-Process] Convertendo info-card temático (${overlay.props.title}) para lower-third.`);
+          overlay.type = "lower-third";
+          overlay.props.subtitle = overlay.props.description || "";
+          delete overlay.props.description;
+          
+          // Ajusta a posição para ser compatível com lower-third
+          const pos = overlay.props.position || "bottom-left";
+          if (pos.includes("right")) {
+            overlay.props.position = "bottom-center"; 
+          } else if (pos.includes("top")) {
+            overlay.props.position = "top-left";
+          } else {
+            overlay.props.position = "bottom-left";
+          }
+        }
+
+        // 1. Corrigir vazamento de código de programação em vídeos que não são de tecnologia
+        if (!isTech) {
+          let hasCodeContent = false;
+          const codeKeywords = ["import", "const ", "let ", "var ", "console.log", "npm run", ".js", ".ts", ".py", ".json", ".cpp", ".h", ".cs", ".sh", "function ", "void ", "class ", "public ", "private ", "struct ", "def ", "return ", "import {", "<pre", "<code>"];
+          
+          const textToCheck = ((overlay.props.title || "") + " " + (overlay.props.description || "") + " " + (overlay.props.subtitle || "")).toLowerCase();
+          for (const kw of codeKeywords) {
+            if (textToCheck.includes(kw)) {
+              hasCodeContent = true;
+              break;
+            }
+          }
+
+          if (hasCodeContent || overlay.props.theme === "tech") {
+            console.log(`[Overlays Post-Process] Convertendo card de código detectado incorretamente para o nicho ${niche}`);
+            overlay.props.theme = "classic";
+            overlay.props.variant = "glass";
+            
+            let title = overlay.props.title || "";
+            title = title.replace(/\.(js|ts|py|sh|json|cpp|h|cs)$/i, "");
+            title = title.replace(/[📄⚡⚙️📡🔴🟡🟢~#$]+/g, "");
+            title = title.trim();
+            if (!title || title.toLowerCase().includes("bash") || title.toLowerCase().includes("git") || title.toLowerCase().includes("terminal") || title.toLowerCase().includes("code") || title.toLowerCase().includes("sweep")) {
+              title = "INFORMAÇÃO";
+            }
+            overlay.props.title = title.toUpperCase();
+
+            // Recupera e limpa a descrição original ou subtítulo
+            let desc = overlay.props.description || overlay.props.subtitle || "";
+            desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
+            desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
+            desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
+            desc = desc.replace(/import\s+[\s\S]*?;/g, "");
+            desc = desc.replace(/console\.log\([\s\S]*?\);?/g, "");
+            desc = desc.replace(/\s+/g, " ").trim();
+
+            if (!desc || desc.length < 5) {
+              // Usa uma descrição complementar limpa de alta conversão sem nenhuma relação com o roteiro falado
+              if (overlay.props.theme === "ancient") {
+                desc = "Detalhes e engenharia antiga com curiosidades importantes.";
+              } else if (overlay.props.theme === "nature") {
+                desc = "Aspectos geográficos e dados sobre a região analisada.";
+              } else if (overlay.props.theme === "industrial") {
+                desc = "Propriedades físicas dos materiais e técnicas estruturais.";
+              } else if (overlay.props.theme === "mysterious") {
+                desc = "Teorias, enigmas e hipóteses do período histórico.";
+              } else {
+                desc = "Informações técnicas adicionais sobre este segmento.";
+              }
+            } else {
+              // Trunca a própria descrição para no máximo 12 palavras
+              const words = desc.split(/\s+/);
+              if (words.length > 12) {
+                desc = words.slice(0, 12).join(" ") + "...";
+              }
+            }
+            
+            if (overlay.type === "lower-third") {
+              overlay.props.subtitle = desc;
+            } else {
+              overlay.props.description = desc;
+            }
+            
+            if (overlay.props.customStyle) {
+              delete overlay.props.customStyle.fontFamilyTitle;
+              delete overlay.props.customStyle.fontFamilyDesc;
+              delete overlay.props.customStyle.fontFamilyValue;
+            }
+          }
+        }
+
+        // 2. Randomização e Diversificação obrigatória de layouts, variantes e posições por vídeo
+        if (overlay.type === "lower-third") {
+          overlay.props.variant = ltVariants[variantIdx % ltVariants.length];
+          variantIdx++;
+        } else if (overlay.type === "info-card") {
+          const cardVariants = ["glass", "minimal", "accent", "floating"];
+          overlay.props.variant = cardVariants[variantIdx % cardVariants.length];
+          variantIdx++;
+        } else {
+          overlay.props.variant = variants[variantIdx % variants.length];
+          variantIdx++;
+        }
+        
+        overlay.props.position = positions[posIdx % positions.length];
+        posIdx++;
+        
+        if (overlay.type === "info-card" || overlay.type === "counter" || overlay.type === "bar-chart" || overlay.type === "lower-third") {
+          overlay.props.iconType = lotties[lottieIdx % lotties.length];
+          lottieIdx++;
+        }
+
+        // Mapeia temas baseados no nicho
+        const cleanNiche = niche.toLowerCase();
+        if (!overlay.props.theme || (overlay.props.theme === "tech" && !isTech)) {
+          if (cleanNiche.includes("historia") || cleanNiche.includes("arqueologia") || cleanNiche.includes("inca") || cleanNiche.includes("egito") || cleanNiche.includes("antigo") || cleanNiche.includes("castelo")) {
+            overlay.props.theme = "ancient";
+          } else if (cleanNiche.includes("deserto") || cleanNiche.includes("natureza") || cleanNiche.includes("geografia") || cleanNiche.includes("amazonia")) {
+            overlay.props.theme = "nature";
+          } else if (cleanNiche.includes("militar") || cleanNiche.includes("guerra") || cleanNiche.includes("industrial")) {
+            overlay.props.theme = "industrial";
+          } else {
+            overlay.props.theme = "classic";
+          }
+        }
+
+        // Injeta customStyle decorativo e vibrante correspondente ao tema
+        if (!overlay.props.customStyle) overlay.props.customStyle = {};
+        const accent = overlay.props.accentColor || "#D4AF37";
+        
+        if (overlay.props.theme === "ancient") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(22, 14, 8, 0.97) 0%, rgba(42, 28, 16, 0.94) 100%)",
+            border: `2px double ${accent}`,
+            borderRadius: "16px 2px",
+            boxShadow: `0 10px 40px ${accent}30`,
+            fontFamilyTitle: "Cinzel",
+            fontFamilyDesc: "Inter",
+          };
+        } else if (overlay.props.theme === "nature") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(8, 20, 12, 0.96) 0%, rgba(16, 40, 24, 0.92) 100%)",
+            border: `1.5px solid ${accent}60`,
+            borderRadius: "24px 4px",
+            boxShadow: `0 10px 30px ${accent}25`,
+            fontFamilyTitle: "Montserrat",
+            fontFamilyDesc: "Inter",
+          };
+        } else if (overlay.props.theme === "industrial") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(12, 12, 14, 0.98) 0%, rgba(26, 26, 30, 0.95) 100%)",
+            borderLeft: `5px solid ${accent}`,
+            borderRadius: "0px",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.8)",
+            fontFamilyTitle: "Oswald",
+            fontFamilyDesc: "Inter",
+          };
+        } else if (overlay.props.theme === "mysterious") {
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "linear-gradient(135deg, rgba(10, 5, 18, 0.97) 0%, rgba(24, 12, 40, 0.94) 100%)",
+            border: `1px solid ${accent}40`,
+            borderRadius: "14px",
+            boxShadow: `0 12px 36px ${accent}35, inset 0 0 15px rgba(255,255,255,0.02)`,
+            fontFamilyTitle: "Cinzel",
+            fontFamilyDesc: "Inter",
+          };
+        } else {
+          // Classic / default
+          overlay.props.customStyle = {
+            ...overlay.props.customStyle,
+            background: "rgba(18, 18, 20, 0.92)",
+            border: `1.5px solid rgba(255, 255, 255, 0.15)`,
+            borderRadius: "20px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+            fontFamilyTitle: "Inter",
+            fontFamilyDesc: "Inter",
+          };
+        }
+
+        // Detect if the AI duplicated the narration script inside the overlay text, and rewrite/remove it
+        const currentBlockNum = Number(overlay.id.replace(/[^\d]/g, "")) || i + 1;
+        const currentBlockCtx = blockContexts.find(bc => Number(bc.block) === currentBlockNum) || blockContexts[i] || blockContexts[0];
+        if (currentBlockCtx && currentBlockCtx.narration) {
+          const cleanNarr = currentBlockCtx.narration.toLowerCase().replace(/[^\w\s]/g, "").trim();
+          
+          if (overlay.props.description) {
+            const cleanDesc = overlay.props.description.toLowerCase().replace(/[^\w\s]/g, "").trim();
+            if (cleanNarr.includes(cleanDesc) || cleanDesc.includes(cleanNarr) || (cleanDesc.length > 30 && cleanNarr.substring(0, 30) === cleanDesc.substring(0, 30))) {
+              console.log(`[Overlays Post-Process] Duplicação de narração detectada na descrição do overlay ${overlay.id}. Substituindo por curiosidade complementar.`);
+              if (overlay.props.theme === "ancient") {
+                overlay.props.description = "Aspectos históricos e engenharia clássica do período.";
+              } else if (overlay.props.theme === "nature") {
+                overlay.props.description = "Fatores ambientais e especificações da geografia local.";
+              } else if (overlay.props.theme === "industrial") {
+                overlay.props.description = "Propriedades físicas dos materiais e técnicas estruturais.";
+              } else if (overlay.props.theme === "mysterious") {
+                overlay.props.description = "Mistérios intrigantes, segredos e teorias propostas.";
+              } else {
+                overlay.props.description = "Dados de engenharia e informações técnicas adicionais.";
+              }
+            }
+          }
+          
+          if (overlay.props.subtitle) {
+            const cleanSub = overlay.props.subtitle.toLowerCase().replace(/[^\w\s]/g, "").trim();
+            if (cleanNarr.includes(cleanSub) || cleanSub.includes(cleanNarr)) {
+              console.log(`[Overlays Post-Process] Duplicação de narração detectada no subtítulo do overlay ${overlay.id}. Removendo subtítulo.`);
+              overlay.props.subtitle = "";
+            }
+          }
+        }
+
+        // Enforce maximum length of 12 words on descriptions and subtitles to prevent raw script leaking
+        if (overlay.props.description) {
+          const words = overlay.props.description.trim().split(/\s+/);
+          if (words.length > 12) {
+            overlay.props.description = words.slice(0, 12).join(" ") + "...";
+          }
+        }
+        if (overlay.props.subtitle) {
+          const words = overlay.props.subtitle.trim().split(/\s+/);
+          if (words.length > 12) {
+            overlay.props.subtitle = words.slice(0, 12).join(" ") + "...";
+          }
+        }
+
+      }
+
+      parsedOverlays = filterNarrationEchoOverlays(parsedOverlays, blockPhrases);
+      const genSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+      parsedOverlays = redistributeInformativeOverlayStarts(
+        parsedOverlays,
+        orchestrationPlan,
+        totalDuration,
+        { starts, durations, sceneStarts: genSceneMaps.sceneStarts },
+      );
+      parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan, { starts, durations });
+      parsedOverlays = stabilizeOverlayTimings(parsedOverlays, {
+        starts,
+        durations,
+        plan: orchestrationPlan,
+        config,
+        storyboard,
+        totalDuration,
+      });
+
+      if (planningOnly) {
+        return parsedOverlays;
+      }
+
+      return finalizeProjectOverlays(
+        projectDir, parsedOverlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration,
+      );
+    }
+  } catch (err) {
+    console.error("[Overlays] Erro ao chamar IA para overlays:", err);
+    if (planningOnly) return [];
+  }
+
+  if (planningOnly) return [];
+
+  console.log("[Overlays] IA indisponível — sem fallback de narração.");
+  return finalizeProjectOverlays(
+    projectDir,
+    [],
+    config,
+    storyboard,
+    starts,
+    durations,
+    orchestrationPlan,
+    totalDuration,
+  );
+}
+
+function injectRetentionOverlays(projectDir, overlays, starts, durations, config = {}, storyboard = {}) {
+  const cachePath = path.join(projectDir, "youtube_metadata_cache.json");
+  if (!fs.existsSync(cachePath)) return overlays;
+  let cache;
+  try {
+    cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+  } catch {
+    return overlays;
+  }
+
+  const hook = cache?.parsed?.retentionHook || cache?.parsed?.hook;
+  const cta = cache?.parsed?.midVideoCta;
+  const result = Array.isArray(overlays) ? [...overlays] : [];
+  const isListicle = config?.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const hookPosition = isListicle ? "bottom-left" : "center";
+
+  if (hook) {
+    result.unshift({
+      id: "retention-hook",
+      type: "lower-third",
+      start: 0.5,
+      duration: 4,
+      props: {
+        title: String(hook).slice(0, 60).toUpperCase(),
+        subtitle: "",
+        accentColor: "#FF4444",
+        position: hookPosition,
+      },
+    });
+  }
+
+  if (cta && Array.isArray(durations) && durations.length) {
+    const midIdx = Math.floor(durations.length / 2);
+    const midStart = Number(starts?.[midIdx]) || 30;
+    result.push({
+      id: "mid-video-cta",
+      type: "lower-third",
+      start: midStart,
+      duration: 3.5,
+      props: {
+        title: String(cta).slice(0, 50),
+        subtitle: "",
+        accentColor: "#D4AF37",
+        position: "bottom-center",
+      },
+    });
+  }
+
+  return result;
+}
+
+/** @deprecated Fallback que repetia narração — mantido vazio por compatibilidade. */
+function generateOverlaysRuleBased() {
+  console.log("[Overlays] Fallback local de narração desativado.");
+  return [];
+}

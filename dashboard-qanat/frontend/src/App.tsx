@@ -1,16 +1,12 @@
 import toast, { Toaster } from 'react-hot-toast';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-
-import { TitleStrategyWizard } from './TitleStrategyWizard';
-import { YearInReview } from './YearInReview';
-import PackagingAssistant from './PackagingAssistant';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import { 
 
   Video, 
 
-  Sliders,
+  Image,
 
   Music, 
 
@@ -38,6 +34,8 @@ import {
 
   Layers,
 
+  Package,
+
   Sparkles,
 
   Search,
@@ -52,11 +50,15 @@ import {
 
   Lock,
 
+  Chrome,
+
   MessageSquare,
 
   Plus,
 
   Folder,
+  Smartphone,
+  Share2,
 
   ChevronDown,
 
@@ -74,9 +76,70 @@ import {
 
   Pause,
 
-  TrendingUp
+  CalendarDays,
+
+  Thermometer,
+
+  Wand2,
+
+  Youtube,
 
 } from 'lucide-react';
+
+import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
+import { ListicleCreatorStep } from './ListicleCreatorStep';
+import { WorkflowToolkit } from './WorkflowToolkit';
+import { useGeminiBrowserBridge } from './GeminiBrowserBridge';
+import { fetchGeminiAi } from './geminiAiFetch';
+import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
+import { diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
+import { TabErrorBoundary } from './TabErrorBoundary';
+import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
+import { VisualSettings } from './VisualSettings';
+import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
+import { SectionHeader, SectionLabel } from './SectionHeader';
+import { SECTION_HELP } from './sectionHelpContent';
+import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
+import { SettingsProduction } from './SettingsProduction';
+import { StudioAgents } from './StudioAgents';
+import {
+  loadWizardSession,
+  saveWizardSession,
+  clearWizardSession,
+  shouldRestoreWizardTab,
+  resolveWizardActiveProject,
+  isServerSessionNewer,
+  formatWizardSavedAt,
+  type WizardSessionPatch,
+} from './wizardSession';
+import {
+  PreRenderAdviceModal,
+  PreRenderAdvicePanel,
+  type PreRenderAdvice,
+} from './PreRenderAdvice';
+import {
+  applyProductionPatchToConfig,
+  pickProductionConfig,
+  productionDraftToApiPatch,
+} from './productionConfig';
+import { SettingsApiKeys } from './SettingsApiKeys';
+import { IntegrationSettings } from './IntegrationSettings';
+import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
+import { warnLongListicleTitles } from './ListicleHudPreview';
+import {
+  applySplitNarrationToBlockAssets,
+  findBoundedNarrationMatch,
+  getAssetNarrationText as resolveAssetNarrationText,
+  getBlockNarrationText as resolveBlockNarrationText,
+  getBlockTimeBounds as resolveBlockTimeBounds,
+  narrationCacheKey,
+  swapBlockVisualPromptsInStoryboard,
+  type NarrationSyncContext,
+} from './timelineNarrationSync';
+import { sanitizeTimelineAssets } from './timelineAssetSanitize';
+import { NarrationReviewPanel } from './NarrationReviewPanel';
+import { NarrationReplacePanel } from './NarrationReplacePanel';
+import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 
 interface BGM {
 
@@ -111,10 +174,46 @@ interface ConfigData {
   block_phrases?: { block: number; phrase: string }[];
 
   aspect_ratio?: '16:9' | '9:16';
+  video_format?: 'SHORTS' | 'LONGO' | string;
+  render_resolution?: '1080p' | '2k';
+  design_preset?: string;
+  caption_style?: string;
+  grain_overlay?: boolean;
+  vignette?: boolean;
+  progress_bar?: boolean;
+  chapter_stingers?: boolean;
+  source_cards?: boolean;
+  overlay_sfx_sync?: boolean;
+  listicle_hud_style?: 'auto' | 'full' | 'compact';
+  shorts_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  shorts_hook_flash?: boolean;
+  shorts_edge_glow?: boolean;
+  shorts_caption_bgm_pulse?: boolean;
+  shorts_portal_transition?: boolean;
+  shorts_portal_every?: number;
+  social_proof_cards?: boolean;
+  geo_map_overlays?: boolean;
+  accent_color?: string;
+  secondary_color?: string;
+  listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
+  long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  overlay_intensity?: 'light' | 'normal' | 'rich';
+  project_music_volume?: number;
+  overlay_min_gap?: 'tight' | 'normal' | 'relaxed';
+  overlay_max_duration?: number;
+  bgm_duck_strength?: 'light' | 'normal' | 'strong';
+  overlay_sfx_volume?: number;
+  content_mode?: string;
 
   use_single_bgm?: boolean;
 
   single_bgm?: string;
+  upload_metadata?: any;
+  youtube_channel?: {
+    channel_url?: string;
+    channel_name?: string;
+    subscriber_count?: string;
+  };
 
 }
 
@@ -144,6 +243,10 @@ interface OutputVideo {
 
   modifiedAt: string;
 
+  renderEngine?: 'remotion' | 'standard';
+
+  renderEngineLabel?: string;
+
 }
 
 interface MusicFile {
@@ -154,13 +257,292 @@ interface MusicFile {
 
 }
 
+interface HeaderWeather {
+
+  temperature: number | null;
+
+}
+
+interface VideoQualityIssue {
+  severity: 'error' | 'warning' | 'info';
+  code: string;
+  message: string;
+}
+
+interface OverlayTimingEntry {
+  id: string;
+  type?: string;
+  plannedScene?: string | null;
+  block?: number | null;
+  startSec?: number;
+  endSec?: number;
+  keywordMatchSec?: number | null;
+  status: 'ok' | 'warning' | 'repaired' | 'error';
+  message?: string;
+}
+
+interface VideoQualityReport {
+  ok: boolean;
+  score: number;
+  issues: VideoQualityIssue[];
+  plan?: { format: string; maxOverlays: number; profile: string };
+  preset?: string | null;
+  epidemicMood?: string | null;
+  preRenderAdvice?: PreRenderAdvice;
+  workshop?: {
+    staged?: boolean;
+    id?: string;
+    record?: { summary?: string; skill?: string };
+  } | null;
+  overlay_timing?: {
+    checked?: number;
+    repaired?: number;
+    okCount?: number;
+    warnCount?: number;
+    plannedCount?: number;
+    source?: 'rendered' | 'planned' | 'none' | 'verified';
+    entries?: OverlayTimingEntry[];
+  };
+}
+
+type PendingRenderJob = {
+  mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro';
+  fromWizard: boolean;
+  withoutImpactTitles: boolean;
+  useHyperframes: boolean;
+  isProres: boolean;
+  previewSeconds: number;
+  resolution: '1080p' | '2k';
+};
+
+type StudioBundlePreview = {
+  task: string;
+  format: string;
+  bundleSlug: string | null;
+  bundleName: string | null;
+  skillSlugs: string[];
+  maxSkills: number;
+  injectedCount: number;
+};
+
+const RENDER_MODE_LABELS: Record<PendingRenderJob['mode'], string> = {
+  standard: 'Compilação Padrão',
+  highlighted: 'Render Destacado',
+  remotion: 'Remotion',
+  'remotion-pro': 'Remotion PRO',
+};
+
+type ProjectListItem = { name: string; path: string; format?: 'LONGO' | 'SHORTS'; title?: string; niche?: string };
+
+const RECENT_PROJECTS_KEY = 'qanat_recent_projects';
+const YOUTUBE_ALERTS_POLL_MS = 20 * 60 * 1000;
+
+const PROJECT_WORKSPACE_TABS = [
+  { id: 'status' as const, label: 'Render', icon: Tv, helpId: 'tab-status' },
+  { id: 'workflow' as const, label: 'Workflow e Tarefas', icon: Wand2, helpId: 'tab-workflow' },
+  { id: 'timeline' as const, label: 'Roteiro e Tags', icon: Layers, helpId: 'tab-timeline' },
+  { id: 'music' as const, label: 'Trilha BGM', icon: Music, helpId: 'tab-music' },
+  { id: 'ai' as const, label: 'IA · Metadados', icon: Sparkles, helpId: 'tab-ai' },
+  { id: 'upload' as const, label: 'Upload', icon: Share2, helpId: 'tab-upload' },
+  { id: 'editor' as const, label: 'Editor', icon: Settings, helpId: 'tab-editor' },
+  { id: 'terminal' as const, label: 'Terminal', icon: Terminal, helpId: 'tab-terminal' },
+];
+
+const parseDurationSeconds = (duration: unknown) => {
+
+  if (typeof duration === 'number' && Number.isFinite(duration)) return duration;
+
+  if (typeof duration !== 'string') return null;
+
+  const normalized = duration.replace(',', '.');
+
+  const match = normalized.match(/(\d+(?:\.\d+)?)/);
+
+  if (!match) return null;
+
+  const parsed = Number(match[1]);
+
+  return Number.isFinite(parsed) ? parsed : null;
+
+};
+
+const estimateNarrationDurationSeconds = (text: string) => {
+
+  const words = (text || '').trim().split(/\s+/).filter(Boolean).length;
+
+  return Math.max(3, Math.ceil(words / 2.8));
+
+};
+
+const getSceneDurationSeconds = (scene: any) => {
+
+  return parseDurationSeconds(scene?.duration ?? scene?.duracaoSegundos ?? scene?.duration_seconds)
+
+    ?? estimateNarrationDurationSeconds(scene?.narration_text || scene?.narration_excerpt || scene?.narracao || '');
+
+};
+
+const getBlockTimingSummary = (visualPrompts: any[], blockNum: number, gapSeconds = 2) => {
+
+  const scenes = (visualPrompts || []).filter((scene: any) => (scene?.block || 1) === blockNum);
+
+  const sceneSeconds = scenes.reduce((total: number, scene: any) => total + getSceneDurationSeconds(scene), 0);
+
+  return {
+
+    sceneCount: scenes.length,
+
+    sceneSeconds,
+
+    gapSeconds,
+
+    totalSeconds: sceneSeconds + gapSeconds
+
+  };
+
+};
+
+// Premium custom collapsible JSON Tree View
+
+const JsonTreeNode: React.FC<{ label?: string; value: any; depth?: number }> = ({ label, value, depth = 0 }) => {
+
+  const [isExpanded, setIsExpanded] = useState(depth < 2);
+
+  if (value === null) {
+
+    return (
+
+      <div style={{ paddingLeft: `${depth * 12}px` }} className="font-mono text-[11px] py-0.5 select-text">
+
+        {label && <span className="text-gold-500 mr-1.5">{label}:</span>}
+
+        <span className="text-zinc-500">null</span>
+
+      </div>
+
+    );
+
+  }
+
+  if (typeof value === 'object') {
+
+    const isArray = Array.isArray(value);
+
+    const keys = Object.keys(value);
+
+    const isEmpty = keys.length === 0;
+
+    return (
+
+      <div style={{ paddingLeft: `${depth * 12}px` }} className="font-mono text-[11px] py-0.5">
+
+        <div 
+
+          onClick={() => !isEmpty && setIsExpanded(!isExpanded)}
+
+          className={`flex items-center gap-1.5 ${isEmpty ? '' : 'cursor-pointer hover:text-white'} transition select-none`}
+
+        >
+
+          {!isEmpty && (
+
+            <span className="text-zinc-500 text-[9px] shrink-0 font-bold">
+
+              {isExpanded ? '▼' : '▶'}
+
+            </span>
+
+          )}
+
+          {label && <span className="text-gold-500 mr-1.5">{label}:</span>}
+
+          <span className="text-zinc-400">
+
+            {isArray ? `Array[${keys.length}]` : `Object{${keys.length}}`}
+
+          </span>
+
+        </div>
+
+        {isExpanded && !isEmpty && (
+
+          <div className="border-l border-zinc-850 ml-2 pl-2 mt-1 space-y-0.5">
+
+            {keys.map((key) => (
+
+              <JsonTreeNode key={key} label={key} value={value[key]} depth={0} />
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
+    );
+
+  }
+
+  let valColor = "text-emerald-400";
+
+  let valStr = JSON.stringify(value);
+
+  if (typeof value === 'number') {
+
+    valColor = "text-blue-400";
+
+  } else if (typeof value === 'boolean') {
+
+    valColor = "text-purple-400";
+
+  }
+
+  return (
+
+    <div style={{ paddingLeft: `${depth * 12}px` }} className="font-mono text-[11px] py-0.5 select-text">
+
+      {label && <span className="text-gold-500 mr-1.5">{label}:</span>}
+
+      <span className={valColor}>{valStr}</span>
+
+    </div>
+
+  );
+
+};
+
+const JsonTreeView: React.FC<{ value: any }> = ({ value }) => {
+
+  return (
+
+    <div className="space-y-1 font-sans">
+
+      <JsonTreeNode value={value} depth={0} />
+
+    </div>
+
+  );
+
+};
+
+const initialWizardSession = loadWizardSession();
+
 export default function App() {
 
-  const [activeTab, setActiveTab] = useState<'status' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'title-optimizer' | 'year-in-review' | 'packaging-assistant'>('status');
+  type AppTab = 'status' | 'workflow' | 'timeline' | 'music' | 'terminal' | 'ai' | 'creator' | 'editor' | 'settings' | 'upload' | 'agents' | 'youtube-studio';
+
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    if (shouldRestoreWizardTab(initialWizardSession)) return 'creator';
+    const saved = initialWizardSession?.activeTab;
+    const allowed: AppTab[] = ['status', 'workflow', 'timeline', 'music', 'terminal', 'ai', 'creator', 'editor', 'settings', 'upload', 'agents', 'youtube-studio'];
+    return saved && allowed.includes(saved as AppTab) ? (saved as AppTab) : 'status';
+  });
 
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
 
   const [config, setConfig] = useState<ConfigData | null>(null);
+  const [projectDataLoading, setProjectDataLoading] = useState(false);
 
   const [outputs, setOutputs] = useState<OutputVideo[]>([]);
 
@@ -168,57 +550,67 @@ export default function App() {
 
   const [logs, setLogs] = useState<string[]>([]);
 
-  const [currentTime, setCurrentTime] = useState<string>('');
-  const [portoAlegreTemp, setPortoAlegreTemp] = useState<string>('Carregando...');
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR'));
-    }, 1000);
-
-    const fetchWeather = async () => {
-      try {
-        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-30.0331&longitude=-51.2300&current=temperature_2m');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.current && data.current.temperature_2m !== undefined) {
-            setPortoAlegreTemp(`${data.current.temperature_2m}°C`);
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to fetch Porto Alegre weather:", err);
-        setPortoAlegreTemp('--°C');
-      }
-    };
-
-    fetchWeather();
-    const weatherTimer = setInterval(fetchWeather, 300000);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(weatherTimer);
-    };
-  }, []);
-
   const [rendering, setRendering] = useState<boolean>(false);
 
   const [mixing, setMixing] = useState<boolean>(false);
 
   const [playingMusic, setPlayingMusic] = useState<string | null>(null);
-  const [aiBgmSuggestions, setAiBgmSuggestions] = useState<{ block: number; file: string; reason: string }[]>([]);
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  
-
   // Project Management states
 
-  const [projects, setProjects] = useState<{ name: string; path: string }[]>([]);
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [newProjectNiche, setNewProjectNiche] = useState<string>('Geral');
+  const [collapsedNiches, setCollapsedNiches] = useState<Record<string, boolean>>({});
+  const [projectSearchQuery, setProjectSearchQuery] = useState<string>('');
+  const [recentProjects, setRecentProjects] = useState<string[]>([]);
+  const [uploadStatus, setUploadStatus] = useState<{ youtube: any; canva?: any; instagram: any; tiktok: any; kwai: any }>({
+    youtube: { connected: false, has_secrets: false, client_id: null },
+    canva: { connected: false, hasSecrets: false, clientId: null },
+    instagram: { connected: false, account_id: null },
+    tiktok: { connected: false },
+    kwai: { connected: false }
+  });
+  const [youtubeChannelAlerts, setYoutubeChannelAlerts] = useState<YoutubeChannelAlerts | null>(null);
+  const [ytClientId, setYtClientId] = useState<string>('');
+  const [ytClientSecret, setYtClientSecret] = useState<string>('');
+  const [canvaClientId, setCanvaClientId] = useState<string>('');
+  const [canvaClientSecret, setCanvaClientSecret] = useState<string>('');
+  const [igAccountId, setIgAccountId] = useState<string>('');
+  const [igAccessToken, setIgAccessToken] = useState<string>('');
+  const [ytTitle, setYtTitle] = useState<string>('');
+  const [ytDescription, setYtDescription] = useState<string>('');
+  const [ytPrivacy, setYtPrivacy] = useState<string>('private');
+  const [ytTags, setYtTags] = useState<string>('');
+  const [ytChapters, setYtChapters] = useState<string>('');
+  const [ytPinnedComment, setYtPinnedComment] = useState<string>('');
+  const [ytPublishAt, setYtPublishAt] = useState<string>('');
+  const [ytCategoryId, setYtCategoryId] = useState<string>('27');
+  const [ytThumbnailPath, setYtThumbnailPath] = useState<string>('');
+  const [ytThumbnailVariant, setYtThumbnailVariant] = useState<string>('');
+  const [titleRetention, setTitleRetention] = useState<{ velocity?: { views48h?: number }; retention?: { points?: unknown[] } } | null>(null);
+  const [thumbnailExperiment, setThumbnailExperiment] = useState<{ videoId?: string; activeVariantId?: string } | null>(null);
+  const [pipelineRunning, setPipelineRunning] = useState<boolean>(false);
+  const [igAppId, setIgAppId] = useState<string>('');
+  const [igAppSecret, setIgAppSecret] = useState<string>('');
+  const [igCaption, setIgCaption] = useState<string>('');
+  const [ttCaption, setTtCaption] = useState<string>('');
+  const [kwCaption, setKwCaption] = useState<string>('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Record<string, boolean>>({ youtube: true, instagram: false, tiktok: false, kwai: false });
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploadLogs, setUploadLogs] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+
+  const [newProjectFormat, setNewProjectFormat] = useState<'LONGO' | 'SHORTS'>('LONGO');
 
   const [videoFileDurations, setVideoFileDurations] = useState<Record<string, number>>({});
 
-  const [activeProject, setActiveProject] = useState<string>('Buracos no Deserto');
+  const [activeProject, setActiveProject] = useState<string>(
+    resolveWizardActiveProject(initialWizardSession)
+    || localStorage.getItem('qanat_active_project')
+    || 'Buracos no Deserto',
+  );
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
@@ -227,12 +619,86 @@ export default function App() {
   // AI Agent states
 
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
-  const [apiProvider, setApiProvider] = useState<'gemini' | 'groq' | 'openrouter'>('gemini');
-  const [apiModel, setApiModel] = useState<string>('');
 
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
 
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
+
+    const [aiProvider, setAiProvider] = useState<'gemini' | 'xai' | 'openrouter'>('gemini');
+
+  const [geminiKeysInput, setGeminiKeysInput] = useState<string>('');
+
+  const [xaiKeyInput, setXaiKeyInput] = useState<string>('');
+
+  const [openrouterKeyInput, setOpenRouterKeyInput] = useState<string>('');
+
+  const [geminiKeyCount, setGeminiKeyCount] = useState<number>(0);
+
+  const [geminiModel, setGeminiModel] = useState<string>('gemini-2.5-flash');
+
+  const [geminiModelOptions, setGeminiModelOptions] = useState<Array<{ id: string; label: string; hint?: string }>>([
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', hint: 'Rápido, gratuito no AI Studio, contexto 1M' },
+  ]);
+
+  const [hasXaiKey, setHasXaiKey] = useState<boolean>(false);
+
+  const [hasOpenRouterKey, setHasOpenRouterKey] = useState<boolean>(false);
+
+  const [savingAiSettings, setSavingAiSettings] = useState<boolean>(false);
+
+  const [geminiBrowserMode, setGeminiBrowserMode] = useState<boolean>(false);
+
+  const { setAutomation } = useGeminiBrowserBridge();
+  const resolveBrowserResponse = useGeminiBrowserResolver(setAutomation);
+  const [geminiExtensionReady, setGeminiExtensionReady] = useState<boolean | null>(null);
+  const [geminiExtensionDiag, setGeminiExtensionDiag] = useState<string>('');
+  const [geminiExtensionTesting, setGeminiExtensionTesting] = useState(false);
+
+  const [logoStatus, setLogoStatus] = useState<{
+
+    hasProjectLogo: boolean;
+
+    projectLogoUrl: string | null;
+
+    globalLogoUrl: string;
+
+    currentLogoUrl: string;
+
+  } | null>(null);
+
+  const [logoTimestamp, setLogoTimestamp] = useState<number>(Date.now());
+
+  interface BrandLogoItem {
+    id: string;
+    name: string;
+    file: string;
+    url: string;
+    exists?: boolean;
+  }
+
+  interface YoutubeChannelItem {
+    id: string;
+    label: string;
+    channelUrl: string;
+    channelName?: string;
+    subscriberCount?: string;
+  }
+
+  const [brandLogos, setBrandLogos] = useState<BrandLogoItem[]>([]);
+  const [selectedLogoId, setSelectedLogoId] = useState<string | null>(null);
+  const [projectSelectedLogoId, setProjectSelectedLogoId] = useState<string | null>(null);
+  const [newLogoName, setNewLogoName] = useState<string>('');
+
+  const [youtubeChannels, setYoutubeChannels] = useState<YoutubeChannelItem[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [projectSelectedChannelId, setProjectSelectedChannelId] = useState<string | null>(null);
+  const [newChannelLabel, setNewChannelLabel] = useState<string>('');
+  const [newChannelUrl, setNewChannelUrl] = useState<string>('');
+  const [logoCatalogScope, setLogoCatalogScope] = useState<'global' | 'project'>('global');
+
+  const [uploadingLogo, setUploadingLogo] = useState<boolean>(false);
+
+  const [uploadScope, setUploadScope] = useState<'project' | 'global'>('project');
 
   const [chatInput, setChatInput] = useState<string>('');
 
@@ -244,53 +710,184 @@ export default function App() {
 
   const [chatLoading, setChatLoading] = useState<boolean>(false);
 
-  
+  const [epidemicKeyInput, setEpidemicKeyInput] = useState<string>('');
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('ia');
+  const [pexelsKeyInput, setPexelsKeyInput] = useState<string>('');
+  const [pixabayKeyInput, setPixabayKeyInput] = useState<string>('');
+  const [hasPexelsKey, setHasPexelsKey] = useState<boolean>(false);
+  const [hasPixabayKey, setHasPixabayKey] = useState<boolean>(false);
+  const [savingApiKeys, setSavingApiKeys] = useState<boolean>(false);
+
+  const [hasEpidemicKey, setHasEpidemicKey] = useState<boolean>(false);
+
+  const [epidemicSearchQuery, setEpidemicSearchQuery] = useState<string>('');
+
+  const [epidemicSearchResults, setEpidemicSearchResults] = useState<any[]>([]);
+
+  const [searchingEpidemic, setSearchingEpidemic] = useState<boolean>(false);
+
+  const [downloadingEpidemicId, setDownloadingEpidemicId] = useState<string | null>(null);
+
+  const [autoSoundtracking, setAutoSoundtracking] = useState<boolean>(false);
+
+  const [epidemicSearchType, setEpidemicSearchType] = useState<'bgm' | 'sfx'>('bgm');
 
   // YouTube states
 
   const [youtubeMetadata, setYoutubeMetadata] = useState<string>('');
+  const [youtubeMetadataFormat, setYoutubeMetadataFormat] = useState<'SHORT' | 'LONG' | ''>('');
+  const [youtubeMetadataParsed, setYoutubeMetadataParsed] = useState<{
+    titles?: { text: string; chars: number; score?: number; angle?: string | null }[];
+    description?: string;
+    tags?: string;
+    hashtags?: string;
+    chapters?: string;
+    pinnedComment?: string;
+    recommendedTitle?: string;
+    thumbnails?: {
+      id: string;
+      label: string;
+      pairedTitle?: string;
+      overlayText?: string;
+      composition?: string;
+      colors?: string[];
+      focalElement?: string;
+    }[];
+  } | null>(null);
+  const [youtubeMetadataStrategy, setYoutubeMetadataStrategy] = useState<{
+    profileLabel?: string;
+    rpm?: string;
+    palette?: string[];
+  } | null>(null);
 
   const [youtubeLoading, setYoutubeLoading] = useState<boolean>(false);
+  const [youtubeThumbnailsLoading, setYoutubeThumbnailsLoading] = useState<boolean>(false);
+  const [canvaThumbnailsLoading, setCanvaThumbnailsLoading] = useState<boolean>(false);
+  const [youtubeThumbnailsGenerated, setYoutubeThumbnailsGenerated] = useState<{
+    id: string;
+    label?: string;
+    overlayText?: string;
+    fileName?: string;
+    url: string;
+    source?: string;
+    editUrl?: string | null;
+  }[]>([]);
+  const [titleExperiment, setTitleExperiment] = useState<{
+    videoId?: string;
+    activeVariantId?: string;
+    status?: string;
+    variants?: { id: string; text: string; chars?: number; isActive?: boolean }[];
+  } | null>(null);
+  const [titleExperimentAnalytics, setTitleExperimentAnalytics] = useState<{
+    metrics?: {
+      views?: number;
+      estimatedMinutesWatched?: number;
+      averageViewDuration?: number;
+      likes?: number;
+      comments?: number;
+      shares?: number;
+      subscribersGained?: number;
+    };
+    available?: boolean;
+    error?: string;
+    reachNote?: string;
+  } | null>(null);
+  const [titleExperimentRankings, setTitleExperimentRankings] = useState<{
+    id: string;
+    text: string;
+    periodViews?: number | null;
+    periodAvgDuration?: number | null;
+    isActive?: boolean;
+  }[]>([]);
+  const [titleExperimentWinner, setTitleExperimentWinner] = useState<{
+    variantId?: string;
+    title?: string;
+    views?: number;
+  } | null>(null);
+  const [titleExperimentLoading, setTitleExperimentLoading] = useState<boolean>(false);
+  const [titleAbSelected, setTitleAbSelected] = useState<Record<string, boolean>>({});
+  const [titleExperimentVideoId, setTitleExperimentVideoId] = useState<string>('');
 
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+
+  const [taggedNarrations, setTaggedNarrations] = useState<Record<TaggedNarrationPlatform, string>>({
+
+    fish: '',
+
+    eleven: '',
+
+    minimax: ''
+
+  });
 
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
   const [deletingProjectName, setDeletingProjectName] = useState<string | null>(null);
 
+  const [pendingOutputDelete, setPendingOutputDelete] = useState<OutputVideo | null>(null);
+
+  const [deletingOutput, setDeletingOutput] = useState<boolean>(false);
+
+  const [pendingMusicDelete, setPendingMusicDelete] = useState<MusicFile | { name: "__all__"; sizeBytes: number } | null>(null);
+
+  const [deletingMusic, setDeletingMusic] = useState<boolean>(false);
+
   const [renderProgress, setRenderProgress] = useState<{percent: number, phase: string} | null>(null);
+
+  const [videoQuality, setVideoQuality] = useState<VideoQualityReport | null>(null);
+
+  const [preRenderModalOpen, setPreRenderModalOpen] = useState(false);
+  const [pendingRender, setPendingRender] = useState<PendingRenderJob | null>(null);
+  const [preRenderFixingId, setPreRenderFixingId] = useState<string | null>(null);
 
   const [chatOpen, setChatOpen] = useState<boolean>(false);
 
+  const [headerDate, setHeaderDate] = useState<Date>(new Date());
+
+  const [headerWeather, setHeaderWeather] = useState<HeaderWeather>({ temperature: null });
+
   // Creator states
 
-    const savedCreatorState = (() => {
-
-    try {
-
-      const saved = localStorage.getItem('qanat_creator_state');
-
-      if (saved) return JSON.parse(saved);
-
-    } catch(e) {}
-
-    return {};
-
-  })();
+  const savedCreatorState = initialWizardSession || {};
 
   const [creatorStep, setCreatorStep] = useState<number>(savedCreatorState.creatorStep || 1);
 
   const [creatorPrompt, setCreatorPrompt] = useState<string>('');
 
-  const [creatorScript, setCreatorScript] = useState<string>('');
+  const [creatorScript, setCreatorScript] = useState<string>(savedCreatorState.creatorScript || '');
 
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
+  const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full'>('idle');
+  const [showNarrationReview, setShowNarrationReview] = useState<boolean>(savedCreatorState.showNarrationReview || false);
+  const [narrationDraft, setNarrationDraft] = useState<string>(savedCreatorState.narrationDraft || '');
+  const [narrationTaggedDraft, setNarrationTaggedDraft] = useState<string>(savedCreatorState.narrationTaggedDraft || '');
+  const [narrationStrategy, setNarrationStrategy] = useState<any | null>(savedCreatorState.narrationStrategy || null);
+  const [narrationBlockPhrases, setNarrationBlockPhrases] = useState<{ block: number; phrase: string }[]>(
+    savedCreatorState.narrationBlockPhrases || [],
+  );
+  const [narrationBlockScript, setNarrationBlockScript] = useState<string>(savedCreatorState.narrationBlockScript || '');
+  const [narrationNotebooklmEnriched, setNarrationNotebooklmEnriched] = useState<boolean>(
+    savedCreatorState.narrationNotebooklmEnriched || false,
+  );
+  const [narrationProjectName, setNarrationProjectName] = useState<string>(savedCreatorState.narrationProjectName || '');
+  const [useNotebooklm, setUseNotebooklm] = useState<boolean>(savedCreatorState.useNotebooklm !== false);
+  const [notebooklmStatus, setNotebooklmStatus] = useState<{
+    available: boolean;
+    authenticated: boolean;
+    notebookCount?: number;
+    message?: string;
+    needsLogin?: boolean;
+  } | null>(null);
+  const [creatorIdeasBundle, setCreatorIdeasBundle] = useState<StudioBundlePreview | null>(null);
+  const [notebooklmImproving, setNotebooklmImproving] = useState<boolean>(false);
+  const [notebooklmSuggestions, setNotebooklmSuggestions] = useState<string | null>(null);
 
   const [creatorAssets, setCreatorAssets] = useState<{ name: string; sizeBytes: number; type: string }[]>([]);
 
   const [timelineAssets, setTimelineAssets] = useState<any>(null);
 
   const [syncingTimings, setSyncingTimings] = useState<boolean>(false);
+  const [shouldAutoAlign, setShouldAutoAlign] = useState<boolean>(false);
 
   const [uploadingNarration, setUploadingNarration] = useState<boolean>(false);
 
@@ -314,23 +911,366 @@ export default function App() {
 
     best_idea_reason: string;
 
-  } | null>(null);
+  } | null>(
+    savedCreatorState.ideasSearchNiche && savedCreatorState.nicheInput?.trim() === savedCreatorState.ideasSearchNiche
+      ? savedCreatorState.ideasData || null
+      : null,
+  );
 
   const [selectedIdeaIndex, setSelectedIdeaIndex] = useState<number>(savedCreatorState.selectedIdeaIndex !== undefined ? savedCreatorState.selectedIdeaIndex : -1);
 
+  const [customIdeaTitle, setCustomIdeaTitle] = useState(savedCreatorState.customIdeaTitle || '');
+  const [customIdeaPromise, setCustomIdeaPromise] = useState(savedCreatorState.customIdeaPromise || '');
+  const [customIdeaHook, setCustomIdeaHook] = useState(savedCreatorState.customIdeaHook || '');
+  const [customIdeaEmotion, setCustomIdeaEmotion] = useState(savedCreatorState.customIdeaEmotion || '');
+  const [customIdeaBlocks, setCustomIdeaBlocks] = useState(savedCreatorState.customIdeaBlocks || '');
+
+  const [ideationTab, setIdeationTab] = useState<'ai' | 'custom' | 'listicle'>(savedCreatorState.ideationTab || 'ai');
+  const [listNiche, setListNiche] = useState<string>(savedCreatorState.listNiche || '');
+  const [listicleSearchNiche, setListicleSearchNiche] = useState<string>(savedCreatorState.listicleSearchNiche || '');
+  const [ideasSearchNiche, setIdeasSearchNiche] = useState<string>(savedCreatorState.ideasSearchNiche || '');
+  const [listTopic, setListTopic] = useState<string>(savedCreatorState.listTopic || '');
+  const [rankCount, setRankCount] = useState<number>(savedCreatorState.rankCount || 20);
+  const [rankOrder, setRankOrder] = useState<'desc' | 'asc'>(savedCreatorState.rankOrder || 'desc');
+  const [listicleHudStyle, setListicleHudStyle] = useState<'full' | 'compact' | 'auto'>(
+    savedCreatorState.listicleHudStyle || 'auto',
+  );
+  const [listicleIdeasData, setListicleIdeasData] = useState<ListicleIdeasResponse | null>(
+    savedCreatorState.listicleSearchNiche && savedCreatorState.listNiche?.trim() === savedCreatorState.listicleSearchNiche
+      ? savedCreatorState.listicleIdeasData || null
+      : null,
+  );
+  const [selectedListicleIdeaIndex, setSelectedListicleIdeaIndex] = useState<number>(savedCreatorState.selectedListicleIdeaIndex ?? -1);
+  const [customTitle, setCustomTitle] = useState<string>(savedCreatorState.customTitle || '');
+  const [customHooks, setCustomHooks] = useState<string>(savedCreatorState.customHooks || '');
+  const [customOutline, setCustomOutline] = useState<string>(savedCreatorState.customOutline || '');
+  const [customBlocks, setCustomBlocks] = useState<{block: number, content: string}[]>(
+    savedCreatorState.customBlocks || [
+      { block: 1, content: '' }
+    ]
+  );
+
   const [generatedScriptData, setGeneratedScriptData] = useState<any | null>(savedCreatorState.generatedScriptData || null);
 
-  const [creatorProjectName, setCreatorProjectName] = useState<string>('');
+  // Accordion blocks and autosave states for Wizard Step 5
+
+  const [expandedBlocks, setExpandedBlocks] = useState<Record<number, boolean>>(
+    savedCreatorState.expandedBlocks || { 1: true },
+  );
+  const [wizardSavedAtLabel, setWizardSavedAtLabel] = useState(
+    formatWizardSavedAt(savedCreatorState.savedAt),
+  );
+
+  const saveStoryboardTimeoutRef = useRef<any | null>(null);
+
+  // Global render configuration states
+
+  const [globalFps, setGlobalFps] = useState<number>(30);
+
+  const [globalBlockGap, setGlobalBlockGap] = useState<number>(1.0);
+
+  const [globalMusicVolume, setGlobalMusicVolume] = useState<number>(0.15);
+
+  const [globalUseRemotion, setGlobalUseRemotion] = useState<boolean>(true);
+
+  const [globalDebugOverlay, setGlobalDebugOverlay] = useState<boolean>(false);
+  const [globalRenderResolution, setGlobalRenderResolution] = useState<'1080p' | '2k'>('1080p');
+  const [resolutionConfigScope, setResolutionConfigScope] = useState<'global' | 'project'>('global');
+  const [projectRenderResolution, setProjectRenderResolution] = useState<'1080p' | '2k'>('1080p');
+  const [savingProjectResolution, setSavingProjectResolution] = useState<boolean>(false);
+
+  const [globalYoutubeChannelUrl, setGlobalYoutubeChannelUrl] = useState<string>("");
+  const [globalYoutubeChannelName, setGlobalYoutubeChannelName] = useState<string>("");
+  const [globalYoutubeSubscriberCount, setGlobalYoutubeSubscriberCount] = useState<string>("");
+  const [channelConfigScope, setChannelConfigScope] = useState<'project' | 'global'>('global');
+  const [savingChannelConfig, setSavingChannelConfig] = useState<boolean>(false);
+
+  const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
+  const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
+  const [savingProductionConfig, setSavingProductionConfig] = useState<boolean>(false);
+
+  const fetchGlobalRenderConfig = async () => {
+
+    try {
+
+      const res = await fetch('/api/render/config');
+
+      if (res.ok) {
+
+        const data = await res.json();
+
+        setGlobalFps(data.fps || 30);
+
+        setGlobalBlockGap(data.blockGapSeconds !== undefined ? data.blockGapSeconds : 1.0);
+
+        setGlobalMusicVolume(data.musicVolume || 0.15);
+
+        setGlobalUseRemotion(data.useRemotionByDefault !== false);
+
+        setGlobalDebugOverlay(!!data.debugOverlay);
+        setGlobalRenderResolution(data.renderResolution === '2k' ? '2k' : '1080p');
+
+        setGlobalYoutubeChannelUrl(data.youtubeChannel?.channelUrl || "");
+        setGlobalYoutubeChannelName(data.youtubeChannel?.channelName || "");
+        setGlobalYoutubeSubscriberCount(data.youtubeChannel?.subscriberCount || "");
+        setBrandLogos(Array.isArray(data.brandLogos) ? data.brandLogos.map((l: BrandLogoItem) => ({
+          ...l,
+          url: l.url || `/api/projects-media/ASSETS/logos/${encodeURIComponent(l.file)}`,
+        })) : []);
+        setSelectedLogoId(data.selectedLogoId || null);
+        setYoutubeChannels(Array.isArray(data.youtubeChannels) ? data.youtubeChannels : []);
+        setSelectedChannelId(data.selectedYoutubeChannelId || null);
+
+      }
+
+    } catch (err) {
+
+      console.error('Error fetching global render config:', err);
+
+    }
+
+  };
+
+  const handleSaveGlobalRenderConfig = async () => {
+
+    setSavingGlobalConfig(true);
+
+    try {
+
+      const res = await fetch('/api/render/config', {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({
+
+          fps: globalFps,
+
+          blockGapSeconds: globalBlockGap,
+
+          musicVolume: globalMusicVolume,
+
+          useRemotionByDefault: globalUseRemotion,
+
+          debugOverlay: globalDebugOverlay,
+          renderResolution: globalRenderResolution,
+
+          youtubeChannel: {
+            channelUrl: globalYoutubeChannelUrl,
+            channelName: globalYoutubeChannelName,
+            subscriberCount: globalYoutubeSubscriberCount,
+          },
+
+        })
+
+      });
+
+      if (res.ok) {
+
+        toast.success('Configurações globais salvas com sucesso!');
+
+      } else {
+
+        toast.error('Falha ao salvar configurações globais.');
+
+      }
+
+    } catch (err) {
+
+      console.error('Error saving global config:', err);
+
+      toast.error('Erro ao conectar com o servidor.');
+
+    } finally {
+
+      setSavingGlobalConfig(false);
+
+    }
+
+  };
+
+  const handleSaveChannelConfig = async () => {
+    setSavingChannelConfig(true);
+    try {
+      if (channelConfigScope === 'global') {
+        const res = await fetch('/api/render/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fps: globalFps,
+            blockGapSeconds: globalBlockGap,
+            musicVolume: globalMusicVolume,
+            useRemotionByDefault: globalUseRemotion,
+            debugOverlay: globalDebugOverlay,
+            youtubeChannel: {
+              channelUrl: globalYoutubeChannelUrl,
+              channelName: globalYoutubeChannelName,
+              subscriberCount: globalYoutubeSubscriberCount,
+            },
+          }),
+        });
+        if (res.ok) {
+          toast.success('Canal do YouTube (global) salvo com sucesso!');
+        } else {
+          toast.error('Falha ao salvar canal global.');
+        }
+      } else {
+        if (!config) {
+          toast.error('Carregue um projeto antes de salvar o canal.');
+          return;
+        }
+        await saveConfig({
+          ...config,
+          youtube_channel: {
+            channel_url: globalYoutubeChannelUrl,
+            channel_name: globalYoutubeChannelName,
+            subscriber_count: globalYoutubeSubscriberCount,
+          },
+        });
+        toast.success('Canal do YouTube (projeto) salvo com sucesso!');
+      }
+    } catch (err) {
+      console.error('Error saving channel config:', err);
+      toast.error('Erro ao salvar configurações do canal.');
+    } finally {
+      setSavingChannelConfig(false);
+    }
+  };
+
+  useEffect(() => {
+    if (channelConfigScope !== 'project' || !config?.youtube_channel) return;
+    setGlobalYoutubeChannelUrl(config.youtube_channel.channel_url || '');
+    setGlobalYoutubeChannelName(config.youtube_channel.channel_name || '');
+    setGlobalYoutubeSubscriberCount(config.youtube_channel.subscriber_count || '');
+  }, [channelConfigScope, config?.youtube_channel]);
+
+  const debounceSaveStoryboard = (scriptData: any) => {
+
+    if (saveStoryboardTimeoutRef.current) {
+
+      clearTimeout(saveStoryboardTimeoutRef.current);
+
+    }
+
+    saveStoryboardTimeoutRef.current = setTimeout(() => {
+
+      saveCreatorStoryboard(scriptData);
+
+    }, 600);
+
+  };
+
+  const saveCreatorStoryboard = async (scriptData: any) => {
+
+    if (!scriptData) return;
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/projects/storyboard'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify(scriptData)
+
+      });
+
+      if (res.ok) {
+
+        console.log('Storyboard autosaved successfully');
+
+      } else {
+
+        console.error('Failed to autosave storyboard');
+
+      }
+
+    } catch (err) {
+
+      console.error('Error autosaving storyboard:', err);
+
+    }
+
+  };
+
+  const handleUpdateCreatorScene = (index: number, field: string, value: any) => {
+
+    if (!generatedScriptData) return;
+
+    const nextPrompts = [...(generatedScriptData.visual_prompts || [])];
+
+    if (field === 'duration') {
+
+      nextPrompts[index] = { 
+
+        ...nextPrompts[index], 
+
+        duration: `${value} segundos`,
+
+        duration_seconds: value
+
+      };
+
+    } else if (field === 'narration_text') {
+
+      const wasEstimated = parseDurationSeconds(nextPrompts[index].duration) === null || nextPrompts[index].duration_seconds === undefined;
+
+      const nextText = value;
+
+      nextPrompts[index] = { 
+
+        ...nextPrompts[index], 
+
+        narration_text: nextText 
+
+      };
+
+      if (wasEstimated) {
+
+        const est = estimateNarrationDurationSeconds(nextText);
+
+        nextPrompts[index].duration = `${est} segundos`;
+
+      }
+
+    } else {
+
+      nextPrompts[index] = { 
+
+        ...nextPrompts[index], 
+
+        [field]: value 
+
+      };
+
+    }
+
+    const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
+
+    setGeneratedScriptData(nextScriptData);
+
+    debounceSaveStoryboard(nextScriptData);
+
+  };
+
+  const [creatorProjectName, setCreatorProjectName] = useState<string>(savedCreatorState.creatorProjectName || '');
 
   const [selectedProject, setSelectedProject] = useState<string>(activeProject);
 
-  const [uploadedScenes, setUploadedScenes] = useState<Record<number, boolean>>({});
+  const [uploadedScenes, setUploadedScenes] = useState<Record<string, boolean>>(
+    savedCreatorState.uploadedScenes || {},
+  );
+  const wizardServerSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wizardRestoredRef = useRef(false);
 
   const [storyboardData, setStoryboardData] = useState<any | null>(null);
 
   const [loadingStoryboard, setLoadingStoryboard] = useState<boolean>(false);
+  const [generatingOverlays, setGeneratingOverlays] = useState<boolean>(false);
 
-  const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets'>('script');
+  const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json' | 'narration'>('script');
 
   // Form fields
 
@@ -358,212 +1298,557 @@ export default function App() {
 
   const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const activeNarrationStateRef = useRef<{ target: number | string; endTime: number } | null>(null);
-
-  // Title Optimizer states
-  const [titleOptVideos, setTitleOptVideos] = useState<any[]>([]);
-  const [titleOptResults, setTitleOptResults] = useState<any>(null);
-  const [titleOptLoading, setTitleOptLoading] = useState(false);
-  const [titleOptStep, setTitleOptStep] = useState(0);
-  const [titleOptSelectedIdx, setTitleOptSelectedIdx] = useState(0);
-  const [titleOptLastUpdate, setTitleOptLastUpdate] = useState<string | null>(null);
-
-  // Title Strategy Wizard states
-  const [showTitleWizard, setShowTitleWizard] = useState<boolean>(false);
-  const [wizardStep, setWizardStep] = useState<number>(1);
-  const [wizardExpandedCategory, setWizardExpandedCategory] = useState<string>('Educational/Tutorial');
-  const [selectedContentType, setSelectedContentType] = useState<string>('Conceptual Teaching');
-  const [selectedSubTags, setSelectedSubTags] = useState<string[]>([]);
-  const [selectedBrandVoice, setSelectedBrandVoice] = useState<string>('The Authority');
-
-  // Target Audience states
-  const [audienceDescription, setAudienceDescription] = useState<string>('');
-  const [audienceAgeRange, setAudienceAgeRange] = useState<string>('');
-  const [audiencePainPoints, setAudiencePainPoints] = useState<string[]>([]);
-  const [audienceAspirations, setAudienceAspirations] = useState<string[]>([]);
-  const [audienceCoreValues, setAudienceCoreValues] = useState<string[]>([]);
-  const [newPainPoint, setNewPainPoint] = useState<string>('');
-  const [newAspiration, setNewAspiration] = useState<string>('');
-  const [newCoreValue, setNewCoreValue] = useState<string>('');
-
-  // Evolution state
-  const [selectedEvolutionStrategy, setSelectedEvolutionStrategy] = useState<string>('Standard Evolution');
-
-  // Psychological triggers & formulas
-  const [selectedPsychologicalTriggers, setSelectedPsychologicalTriggers] = useState<string[]>(['Curiosity Gap']);
-  const [selectedTitleFormulas, setSelectedTitleFormulas] = useState<string[]>(['Why Questions']);
+  const activeNarrationStateRef = useRef<{ target: number | string; endTime: number; startTimeRelative?: number; startTimeAbsolute?: number; endTimeRelative?: number } | null>(null);
 
   // Helper: Append active project context dynamically to backend URL queries
 
-  const getProjectUrl = (endpoint: string, projectOverride?: string) => {
-
+  const getProjectUrl = useCallback((endpoint: string, projectOverride?: string) => {
     const p = projectOverride || activeProject;
 
     const separator = endpoint.includes('?') ? '&' : '?';
 
     return `${endpoint}${separator}project=${encodeURIComponent(p)}`;
+  }, [activeProject]);
+
+  const postAi = useCallback(async (
+    path: string,
+    init: RequestInit = { method: 'POST' },
+  ) => fetchGeminiAi(
+    getProjectUrl(path),
+    init,
+    { geminiBrowserMode, aiProvider, resolveBrowserResponse },
+  ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
+
+  const aiProviderBadge = useMemo(() => {
+    if (!hasApiKey) {
+      return {
+        short: 'Sem API',
+        detail: 'Configure um provedor em Configurações → IA.',
+      };
+    }
+    if (aiProvider === 'openrouter') {
+      return {
+        short: 'OpenRouter',
+        detail: 'Chamadas de IA via API OpenRouter.',
+      };
+    }
+    if (aiProvider === 'xai') {
+      return {
+        short: 'Grok API',
+        detail: 'Chat e IA via API xAI (Grok). Gemini no Chrome desligado para este provedor.',
+      };
+    }
+    if (geminiBrowserMode) {
+      return {
+        short: 'Gemini Chrome',
+        detail: 'IA via gemini.google.com (extensão Lumiera). Metadados, overlays e agent usam o navegador.',
+      };
+    }
+    return {
+      short: 'Gemini API',
+      detail: 'IA via Google AI Studio (chave API). Sem automação no Chrome.',
+    };
+  }, [hasApiKey, aiProvider, geminiBrowserMode]);
+
+  const readApiError = async (res: Response, fallback: string) => {
+    try {
+      const data = await res.json();
+      return data?.error || data?.message || fallback;
+    } catch {
+      return res.status === 404
+        ? 'Rota não encontrada. Reinicie o backend (porta 3005).'
+        : `${fallback} (HTTP ${res.status})`;
+    }
 
   };
 
-  // Helper to prioritize Backend Gemini and failover to client-side Puter.js
-  const callAIEngine = async (
-    endpoint: string,
-    payload: any,
-    fallbackPrompt: string,
-    puterModel = 'google/gemini-2.5-flash'
-  ): Promise<any> => {
+  const effectiveRenderResolution = useMemo<'1080p' | '2k'>(() => {
+    if (config?.render_resolution === '2k' || config?.render_resolution === '1080p') {
+      return config.render_resolution;
+    }
+    return globalRenderResolution;
+  }, [config?.render_resolution, globalRenderResolution]);
+
+  const renderResolutionLabel = useMemo(() => {
+    const ratio = config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9');
+    if (effectiveRenderResolution === '2k') {
+      return ratio === '9:16' ? '2K · 1440×2560' : '2K · 2560×1440';
+    }
+    return ratio === '9:16' ? '1080p · 1080×1920' : '1080p · 1920×1080';
+  }, [effectiveRenderResolution, config?.aspect_ratio, formatSelector]);
+
+  const formattedHeaderDate = useMemo(() => {
+
+    return new Intl.DateTimeFormat('pt-BR', {
+
+      day: '2-digit',
+
+      month: '2-digit',
+
+      year: 'numeric',
+
+      hour: '2-digit',
+
+      minute: '2-digit',
+
+      timeZone: 'America/Sao_Paulo',
+
+    }).format(headerDate);
+
+  }, [headerDate]);
+
+  const headerTemperatureLabel = headerWeather.temperature === null
+
+    ? '--'
+
+    : `${Math.round(headerWeather.temperature)}\u00b0C`;
+
+  useEffect(() => {
+
+    const cleanNarration = generatedScriptData?.narrative_script || '';
+    const taggedScript = generatedScriptData?.narrative_script_tagged || '';
+
+    if (!cleanNarration && !taggedScript) return;
+
+    setTaggedNarrations({
+      fish: buildTaggedNarration(cleanNarration, 'fish', { taggedScript }),
+      eleven: buildTaggedNarration(cleanNarration, 'eleven', { taggedScript }),
+      minimax: buildTaggedNarration(cleanNarration, 'minimax', { taggedScript }),
+    });
+  }, [generatedScriptData?.narrative_script, generatedScriptData?.narrative_script_tagged]);
+
+  // Logo utilities and API handlers
+
+  const fetchLogoStatus = async () => {
+
     try {
-      const res = await fetch(getProjectUrl(endpoint), {
+
+      const res = await fetch(getProjectUrl('/api/logo/status'));
+
+      if (res.ok) {
+
+        const data = await res.json();
+        setLogoStatus(data);
+        if (data.catalog) {
+          setBrandLogos(Array.isArray(data.catalog.logos) ? data.catalog.logos : []);
+          setSelectedLogoId(data.catalog.selectedLogoId || null);
+        }
+        if (data.projectSelectedLogoId !== undefined) {
+          setProjectSelectedLogoId(data.projectSelectedLogoId);
+        }
+
+      }
+
+    } catch (err) {
+
+      console.error("Error fetching logo status:", err);
+
+    }
+
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.png')) {
+
+      toast.error("O logotipo precisa ser um arquivo PNG (.png).");
+
+      return;
+
+    }
+
+    setUploadingLogo(true);
+
+    const logoName = newLogoName.trim() || file.name.replace(/\.png$/i, '') || 'Novo Logo';
+
+    try {
+
+      const res = await fetch(getProjectUrl(`/api/brand/logos/upload?name=${encodeURIComponent(logoName)}`), {
+
+        method: 'POST',
+
+        body: file,
+
+        headers: {
+
+          'Content-Type': 'image/png'
+
+        }
+
+      });
+
+      if (res.ok) {
+
+        toast.success('Logo adicionado ao catálogo!');
+        setNewLogoName('');
+        e.target.value = '';
+        await fetchBrandCatalog();
+
+        setLogoTimestamp(Date.now());
+
+        fetchLogoStatus();
+
+      } else {
+
+        const data = await res.json();
+
+        toast.error(await readApiError(res, "Falha ao enviar logotipo."));
+
+      }
+
+    } catch (err) {
+
+      console.error("Error uploading logo:", err);
+
+      toast.error(err instanceof Error ? err.message : "Erro de conexão ao enviar o logotipo.");
+
+    } finally {
+
+      setUploadingLogo(false);
+
+    }
+
+  };
+
+  const handleResetLogo = async () => {
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/logo/reset'), {
+
+        method: 'POST'
+
+      });
+
+      if (res.ok) {
+
+        toast.success("Logotipo redefinido para o padrão global!");
+        setProjectSelectedLogoId(null);
+        await fetchBrandCatalog();
+
+        setLogoTimestamp(Date.now());
+
+        fetchLogoStatus();
+
+      } else {
+
+        const data = await res.json();
+
+        toast.error(data.error || "Falha ao redefinir logotipo.");
+
+      }
+
+    } catch (err) {
+
+      console.error("Error resetting logo:", err);
+
+      toast.error("Erro de conexão ao redefinir o logotipo.");
+
+    }
+
+  };
+
+  const fetchBrandCatalog = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/brand/catalog'));
+      if (!res.ok) return;
+      const data = await res.json();
+      const logosData = data.logos || {};
+      setBrandLogos(Array.isArray(logosData.logos) ? logosData.logos : []);
+      setSelectedLogoId(logosData.selectedLogoId || null);
+      setProjectSelectedLogoId(data.projectSelectedLogoId || null);
+      const channelsData = data.channels || {};
+      setYoutubeChannels(Array.isArray(channelsData.channels) ? channelsData.channels : []);
+      setSelectedChannelId(channelsData.selectedYoutubeChannelId || null);
+      setProjectSelectedChannelId(data.projectSelectedChannelId || null);
+    } catch (err) {
+      console.error('Error fetching brand catalog:', err);
+    }
+  };
+
+  const handleSelectBrandLogo = async (id: string) => {
+    try {
+      const res = await fetch(getProjectUrl('/api/brand/logos/select'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ id, scope: logoCatalogScope }),
       });
-      const data = await res.json();
-      if (res.ok && !data.error) {
-        return { ...data, savedOnServer: true };
-      }
-      console.warn(`Backend Gemini failed on ${endpoint}: ${data.error || 'Unknown error'}. Trying Puter.js...`);
-    } catch (err: any) {
-      console.warn(`Backend Gemini connection failed: ${err.message}. Trying Puter.js...`);
-    }
-
-    // Puter.js Fallback
-    if (typeof (window as any).puter !== 'undefined') {
-      try {
-        toast.loading('Gemini offline. Usando IA Puter.js...', { id: 'puter-ai-toast', duration: 3000 });
-        const response = await (window as any).puter.ai.chat(fallbackPrompt, { model: puterModel });
-        let responseText = response.message?.content || response || "";
-        
-        const isJsonExpected = endpoint.includes('title-optimizer') || endpoint.includes('suggest-bgm') || endpoint.includes('creator') || payload.expectJson;
-        if (isJsonExpected) {
-          let cleanText = responseText.replace(/```json\s*/i, '').replace(/```\s*$/i, '').trim();
-          const firstBrace = cleanText.indexOf('{');
-          const firstBracket = cleanText.indexOf('[');
-          let startIdx = -1;
-          let endIdx = -1;
-          if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-            startIdx = firstBrace;
-            endIdx = cleanText.lastIndexOf('}');
-          } else if (firstBracket !== -1) {
-            startIdx = firstBracket;
-            endIdx = cleanText.lastIndexOf(']');
-          }
-          if (startIdx !== -1 && endIdx !== -1) {
-            cleanText = cleanText.substring(startIdx, endIdx + 1);
-          }
-          return JSON.parse(cleanText);
+      if (res.ok) {
+        if (logoCatalogScope === 'global') {
+          try {
+            await fetch(getProjectUrl('/api/logo/reset'), { method: 'POST' });
+          } catch { /* ignore */ }
         }
-        
-        return { text: responseText, success: true };
-      } catch (puterErr: any) {
-        console.error('Puter.js failover failed:', puterErr);
-        throw new Error(`Ambas as conexões de IA (API Gemini & Puter.js) falharam.`);
+        toast.success(`Logo ${logoCatalogScope === 'global' ? 'global' : 'do projeto'} selecionado!`);
+        setLogoTimestamp(Date.now());
+        await fetchBrandCatalog();
+        fetchLogoStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao selecionar logo.');
       }
-    } else {
-      throw new Error('Chave de API do Google AI Studio offline e o SDK Puter.js não está carregado.');
+    } catch {
+      toast.error('Erro ao selecionar logo.');
     }
   };
 
-  const runTitleOptimizer = async () => {
-    setTitleOptLoading(true);
-    setTitleOptStep(1);
+  const handleRenameBrandLogo = async (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
     try {
-      const videosRes = await fetch(getProjectUrl('/api/youtube/channel-videos'));
-      if (!videosRes.ok) {
-        throw new Error('Falha ao buscar vídeos do canal no YouTube.');
+      const res = await fetch(`/api/brand/logos/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      if (res.ok) {
+        await fetchBrandCatalog();
+      } else {
+        toast.error(await readApiError(res, 'Falha ao renomear logo.'));
+        await fetchBrandCatalog();
       }
-      const videosData = await videosRes.json();
-      const vids = videosData.videos || [];
-      setTitleOptVideos(vids);
-      
-      if (vids.length === 0) {
-        throw new Error('Nenhum vídeo retornado para otimização.');
-      }
-
-      setTitleOptStep(2);
-
-      const videosList = vids.map((v: any, i: number) => 
-        `${i + 1}. Título: "${v.title}" | Views: ${v.views} | Likes: ${v.likes} | ${v.isShort ? 'Short' : 'Video'}`
-      ).join("\n");
-
-      const prompt = `Você é um especialista em otimização de títulos de vídeos do YouTube, com profundo conhecimento em gatilhos psicológicos, SEO, e estratégias de alcance de audiência.
-
-O canal "AI Construction Stories" é em PORTUGUÊS DO BRASIL e fala sobre curiosidades históricas, construções incríveis e fatos bizarros da história.
-
-Aqui estão os vídeos com MENOS visualizações do canal:
-${videosList}
-
-Abaixo estão as DIRETRIZES DE CUSTOMIZAÇÃO DA ESTRATÉGIA para gerar as otimizações:
-- Tipo de Conteúdo Principal: ${selectedContentType} (${selectedSubTags.join(', ') || 'Nenhum sub-tag selecionado'})
-- Voz da Marca (Brand Voice): ${selectedBrandVoice}
-- Público-Alvo: ${audienceDescription || 'Niche curiosidades históricas e fatos bizarros'}
-  * Faixa Etária: ${audienceAgeRange || 'Geral'}
-  * Dores/Problemas: ${audiencePainPoints.join(', ') || 'Nenhum'}
-  * Aspirações: ${audienceAspirations.join(', ') || 'Nenhum'}
-  * Valores Core: ${audienceCoreValues.join(', ') || 'Nenhum'}
-- Estratégia de Evolução de Títulos: ${selectedEvolutionStrategy}
-- Gatilhos Psicológicos Escolhidos: ${selectedPsychologicalTriggers.join(', ')}
-- Fórmulas/Padrões de Títulos Preferidos: ${selectedTitleFormulas.join(', ')}
-
-Para CADA vídeo, analise o título atual e gere otimizações alinhadas com as diretrizes acima. Responda SOMENTE em JSON válido (sem markdown code blocks) com este formato exato:
-
-{
-  "optimizations": [
-    {
-      "originalTitle": "título original",
-      "views": 123,
-      "impact": "high",
-      "opportunity": "breve explicação do problema do título atual e como a nova estratégia o resolve",
-      "timingStrategy": "estratégia de timing recomendada",
-      "coreTitle": {
-        "title": "título otimizado para audiência core (+20%)",
-        "description": "por que funciona para a audiência core com base nos valores e dores"
-      },
-      "expandedTitle": {
-        "title": "título otimizado para alcance expandido (5x)",
-        "description": "por que funciona para alcance expandido usando a fórmula selecionada"
-      },
-      "broadTitle": {
-        "title": "título otimizado para apelo amplo (10x)",
-        "description": "por que funciona para apelo amplo usando os gatilhos psicológicos selecionados"
-      },
-      "bestNow": "core",
-      "titleFormula": "nome da fórmula/padrão utilizado",
-      "triggers": ["gatilho1", "gatilho2"],
-      "contentType": "${selectedContentType}",
-      "audienceStrategy": "como a nova estratégia expande o alcance"
-    }
-  ]
-}
-
-REGRAS:
-- Todos os títulos otimizados devem ser em PORTUGUÊS DO BRASIL
-- Use letras maiúsculas estrategicamente
-- Títulos devem ter entre 40-70 caracteres
-- O campo "impact" deve ser "high", "medium" ou "low"
-- O campo "bestNow" deve ser "core", "expanded" ou "broad"
-- Responda SOMENTE com o JSON, sem texto adicional`;
-
-      setTitleOptStep(3);
-
-      const result = await callAIEngine(
-        '/api/ai/title-optimizer',
-        { videos: vids, channelName: "AI Construction Stories" },
-        prompt
-      );
-
-      setTitleOptResults(result);
-      setTitleOptSelectedIdx(0);
-      setTitleOptLastUpdate(new Date().toLocaleString());
-      toast.success('Otimizações de título geradas com sucesso!');
-    } catch (err: any) {
-      toast.error('Erro na otimização de títulos: ' + err.message);
-    } finally {
-      setTitleOptLoading(false);
+    } catch {
+      toast.error('Erro ao renomear logo.');
     }
   };
+
+  const handleSaveProjectRenderResolution = async () => {
+    if (!config) {
+      toast.error('Carregue um projeto antes de salvar a resolução.');
+      return;
+    }
+    setSavingProjectResolution(true);
+    try {
+      await saveConfig({ ...config, render_resolution: projectRenderResolution });
+      toast.success('Resolução do projeto salva!');
+    } catch {
+      toast.error('Erro ao salvar resolução do projeto.');
+    } finally {
+      setSavingProjectResolution(false);
+    }
+  };
+
+  const handleClearProjectRenderResolution = async () => {
+    if (!config) return;
+    setSavingProjectResolution(true);
+    try {
+      const updated = { ...config };
+      delete updated.render_resolution;
+      await saveConfig(updated);
+      setResolutionConfigScope('global');
+      toast.success('Projeto usando resolução global.');
+    } catch {
+      toast.error('Erro ao remover resolução do projeto.');
+    } finally {
+      setSavingProjectResolution(false);
+    }
+  };
+
+  const handleDeleteBrandLogo = async (id: string) => {
+    if (!window.confirm('Remover este logo do catálogo?')) return;
+    try {
+      const res = await fetch(`/api/brand/logos/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Logo removido.');
+        setLogoTimestamp(Date.now());
+        await fetchBrandCatalog();
+        fetchLogoStatus();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao remover logo.');
+      }
+    } catch {
+      toast.error('Erro ao remover logo.');
+    }
+  };
+
+  const handleAddYoutubeChannel = async () => {
+    if (!newChannelUrl.trim()) {
+      toast.error('Informe a URL do canal.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/brand/channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: newChannelLabel.trim() || 'Novo Canal',
+          channelUrl: newChannelUrl.trim(),
+          channelName: globalYoutubeChannelName.trim(),
+          subscriberCount: globalYoutubeSubscriberCount.trim(),
+        }),
+      });
+      if (res.ok) {
+        toast.success('Canal adicionado ao catálogo!');
+        setNewChannelLabel('');
+        setNewChannelUrl('');
+        const data = await res.json();
+        if (data.channels) {
+          setYoutubeChannels(data.channels.channels || []);
+          setSelectedChannelId(data.channels.selectedYoutubeChannelId || null);
+        } else {
+          await fetchBrandCatalog();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao adicionar canal.');
+      }
+    } catch {
+      toast.error('Erro ao adicionar canal.');
+    }
+  };
+
+  const handleSelectYoutubeChannel = async (id: string) => {
+    try {
+      const res = await fetch(getProjectUrl('/api/brand/channels/select'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, scope: channelConfigScope }),
+      });
+      if (res.ok) {
+        if (channelConfigScope === 'global') {
+          try {
+            await fetch(getProjectUrl('/api/brand/channels/reset-project'), { method: 'POST' });
+          } catch { /* ignore */ }
+        }
+        toast.success(`Canal ${channelConfigScope === 'global' ? 'global' : 'do projeto'} selecionado!`);
+        await fetchBrandCatalog();
+        if (channelConfigScope === 'global') fetchGlobalRenderConfig();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao selecionar canal.');
+      }
+    } catch {
+      toast.error('Erro ao selecionar canal.');
+    }
+  };
+
+  const handleDeleteYoutubeChannel = async (id: string) => {
+    if (!window.confirm('Remover este canal do catálogo?')) return;
+    try {
+      const res = await fetch(`/api/brand/channels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Canal removido.');
+        const data = await res.json();
+        if (data.channels) {
+          setYoutubeChannels(data.channels.channels || []);
+          setSelectedChannelId(data.channels.selectedYoutubeChannelId || null);
+        } else {
+          await fetchBrandCatalog();
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao remover canal.');
+      }
+    } catch {
+      toast.error('Erro ao remover canal.');
+    }
+  };
+
+  const handleUpdateYoutubeChannelField = async (channelId: string, field: keyof YoutubeChannelItem, value: string) => {
+    const channel = youtubeChannels.find((c) => c.id === channelId);
+    if (!channel) return;
+    const updated = { ...channel, [field]: value };
+    setYoutubeChannels((prev) => prev.map((c) => (c.id === channelId ? updated : c)));
+    try {
+      const res = await fetch(`/api/brand/channels/${encodeURIComponent(channelId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: updated.label,
+          channelUrl: updated.channelUrl,
+          channelName: updated.channelName || '',
+          subscriberCount: updated.subscriberCount || '',
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao atualizar canal.');
+        await fetchBrandCatalog();
+      }
+    } catch {
+      toast.error('Erro ao atualizar canal.');
+      await fetchBrandCatalog();
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      fetchBrandCatalog();
+      fetchLogoStatus();
+      fetchUploadStatus();
+      fetchWorkflowKeysStatus();
+    }
+  }, [activeTab, activeProject]);
+
+  useEffect(() => {
+
+    setUploadScope(activeProject === 'Buracos no Deserto' ? 'global' : 'project');
+
+  }, [activeProject]);
+
+  useEffect(() => {
+    if (shouldAutoAlign && wordTranscripts.length > 0 && config && config.timeline_assets && status?.block_timings) {
+      setShouldAutoAlign(false);
+      setTimeout(() => {
+        alignAllBlocksToSpeech();
+      }, 200);
+    }
+  }, [wordTranscripts, shouldAutoAlign, config, status]);
 
   // Fetch valid projects list
+
+  const fetchUploadStatus = async () => {
+    try {
+      const res = await fetch('/api/upload/status');
+      if (res.ok) {
+        const data = await res.json();
+        setUploadStatus(data);
+        if (data.youtube?.client_id) setYtClientId(data.youtube.client_id);
+        if (data.canva?.clientId) setCanvaClientId(data.canva.clientId);
+        if (data.instagram?.account_id) setIgAccountId(data.instagram.account_id);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar status de upload:", e);
+    }
+  };
+
+  const fetchYoutubeChannelAlerts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/youtube/channel/alerts');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok || res.status === 403) {
+        setYoutubeChannelAlerts({
+          badgeCount: Number(data.badgeCount || 0),
+          unansweredComments: Number(data.unansweredComments || 0),
+          hotVideos: data.hotVideos || [],
+          lumieraVideoById: data.lumieraVideoById || {},
+          alerts: data.alerts || [],
+          pollIntervalMinutes: data.pollIntervalMinutes,
+          views48hThreshold: data.views48hThreshold,
+          fetchedAt: data.fetchedAt,
+        });
+      }
+    } catch (e) {
+      console.error('Erro ao carregar alertas YouTube:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchYoutubeChannelAlerts();
+    const timer = window.setInterval(fetchYoutubeChannelAlerts, YOUTUBE_ALERTS_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [fetchYoutubeChannelAlerts]);
+
+  useEffect(() => {
+    if (activeTab === 'youtube-studio') {
+      fetchYoutubeChannelAlerts();
+    }
+  }, [activeTab, fetchYoutubeChannelAlerts]);
 
   const fetchProjects = async () => {
 
@@ -611,25 +1896,140 @@ REGRAS:
 
   };
 
+  const handleGenerateAiOverlays = async () => {
+    if (!activeProject) {
+      toast.error('Carregue um projeto antes de gerar overlays.');
+      return;
+    }
+    setGeneratingOverlays(true);
+    const toastId = toast.loading('IA planejando overlays para o vídeo...');
+    try {
+      const effectiveGeminiChrome = config?.use_gemini_chrome === true;
+      const useHyperframes = config?.use_hyperframes !== false;
+
+      const { ok, data } = await postAi('/api/render/plan-overlays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hyperframes: useHyperframes,
+          require_browser: effectiveGeminiChrome,
+          force: true,
+        }),
+      });
+
+      if (!ok || (data as any)?.needs_browser) {
+        toast.error('Geração cancelada ou pendente de resposta do Gemini no Chrome.', { id: toastId });
+        return;
+      }
+
+      if (!(data as any).overlayCount || (data as any).overlayCount < 1) {
+        toast.error((data as any).error || 'Gemini não gerou overlays válidos.', { id: toastId });
+        return;
+      }
+
+      toast.success(`Overlays planejados com sucesso: ${(data as any).overlayCount} overlays gerados!`, { id: toastId });
+      await fetchStoryboard(activeProject);
+      await fetchVideoQuality(activeProject);
+    } catch (err) {
+      console.error('Error generating overlays:', err);
+      toast.error('Erro ao planejar overlays via AI.', { id: toastId });
+    } finally {
+      setGeneratingOverlays(false);
+    }
+  };
+
+  const fetchVideoQuality = async (projName = activeProject) => {
+    try {
+      const res = await fetch(getProjectUrl('/api/projects/video-quality', projName));
+      if (res.ok) {
+        setVideoQuality(await res.json());
+      }
+    } catch (err) {
+      console.error('Error fetching video quality:', err);
+    }
+  };
+
+  const handlePreRenderAutoFix = async (fixId: string) => {
+    setPreRenderFixingId(fixId);
+    try {
+      const res = await fetch(getProjectUrl('/api/projects/pre-render/auto-fix'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fixId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.preRenderAdvice) {
+        setVideoQuality((prev) => (prev ? { ...prev, ...data, preRenderAdvice: data.preRenderAdvice } : data));
+        toast.success(data.message || 'Correção aplicada.');
+        fetchData();
+      } else {
+        toast.error(data.error || 'Não foi possível corrigir automaticamente.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha na correção automática.');
+    } finally {
+      setPreRenderFixingId(null);
+    }
+  };
+
   // Fetch initial project-specific data (run on project change, does not poll periodically to avoid overwriting user inputs)
 
   const fetchInitialProjectData = async () => {
-
+    setProjectDataLoading(true);
     try {
 
       const configRes = await fetch(getProjectUrl('/api/config'));
+
       if (configRes.ok) {
+
         const loadedConfig = await configRes.json();
+        if (!Array.isArray(loadedConfig.highlight_keywords)) loadedConfig.highlight_keywords = [];
+        if (!Array.isArray(loadedConfig.impact_texts)) loadedConfig.impact_texts = [];
+        if (!Array.isArray(loadedConfig.bgm_mappings)) loadedConfig.bgm_mappings = [];
+
         // Auto-set aspect_ratio if not defined, based on format
+
         if (!loadedConfig.aspect_ratio) {
+
           loadedConfig.aspect_ratio = formatSelector === 'SHORTS' ? '9:16' : '16:9';
+
         }
+
         setConfig(loadedConfig);
+        if (loadedConfig.render_resolution === '2k' || loadedConfig.render_resolution === '1080p') {
+          setProjectRenderResolution(loadedConfig.render_resolution);
+          setResolutionConfigScope('project');
+        } else {
+          setResolutionConfigScope('global');
+        }
+        const meta = loadedConfig.upload_metadata || {};
+        setYtTitle(meta.youtube?.title || '');
+        setYtDescription(meta.youtube?.description || '');
+        setYtPrivacy(meta.youtube?.privacy || 'private');
+        setYtTags(meta.youtube?.tags || '');
+        setYtChapters(meta.youtube?.chapters || '');
+        setYtPinnedComment(meta.youtube?.pinned_comment || meta.youtube?.pinnedComment || '');
+        setYtPublishAt(meta.youtube?.publish_at || meta.youtube?.publishAt || '');
+        setYtCategoryId(meta.youtube?.category_id || meta.youtube?.categoryId || '27');
+        setYtThumbnailPath(meta.youtube?.thumbnail || '');
+        setYtThumbnailVariant(meta.youtube?.thumbnail_variant || '');
+        if (meta.youtube?.post_id) setTitleExperimentVideoId(meta.youtube.post_id);
+        setIgCaption(meta.instagram?.title || '');
+        setTtCaption(meta.tiktok?.title || '');
+        setKwCaption(meta.kwai?.title || '');
+        fetchUploadStatus();
+        fetchYoutubeMetadataCache();
+        fetchYoutubeThumbnailImages();
+        fetchTitleExperiment();
+
       }
 
       const musicRes = await fetch(getProjectUrl('/api/music'));
 
-      if (musicRes.ok) setMusicFiles(await musicRes.json());
+      if (musicRes.ok) {
+        const musicData = await musicRes.json();
+        setMusicFiles(Array.isArray(musicData) ? musicData.filter((f) => f && typeof f.name === 'string') : []);
+      }
 
       const aiKeyStatusRes = await fetch(getProjectUrl('/api/ai/key-status'));
 
@@ -638,8 +2038,42 @@ REGRAS:
         const keyData = await aiKeyStatusRes.json();
 
         setHasApiKey(keyData.has_key);
-        setApiProvider(keyData.provider || 'gemini');
-        setApiModel(keyData.model || '');
+
+        if (typeof keyData.key_count === 'number') setGeminiKeyCount(keyData.key_count);
+
+      }
+
+            const aiSettingsRes = await fetch(getProjectUrl('/api/ai/settings'));
+
+      if (aiSettingsRes.ok) {
+
+        const settingsData = await aiSettingsRes.json();
+
+        setAiProvider(settingsData.provider || 'gemini');
+
+        setGeminiModel(settingsData.gemini_model || 'gemini-2.5-flash');
+
+        if (Array.isArray(settingsData.gemini_model_options) && settingsData.gemini_model_options.length > 0) {
+          setGeminiModelOptions(settingsData.gemini_model_options);
+        }
+
+        setGeminiKeyCount(settingsData.gemini_key_count || 0);
+
+        setHasXaiKey(!!settingsData.has_xai_key);
+
+        setHasOpenRouterKey(!!settingsData.has_openrouter_key);
+
+        setHasEpidemicKey(!!settingsData.has_epidemic_key);
+
+        setGeminiBrowserMode(!!settingsData.gemini_browser_mode);
+
+        setHasApiKey(
+          !!settingsData.gemini_browser_mode
+          || (settingsData.gemini_key_count || 0) > 0
+          || !!settingsData.has_xai_key
+          || settingsData.provider === 'openrouter'
+          || !!settingsData.has_openrouter_key,
+        );
 
       }
 
@@ -674,9 +2108,9 @@ REGRAS:
       fetchCreatorAssets();
 
     } catch (err) {
-
       console.error("Error loading initial project data:", err);
-
+    } finally {
+      setProjectDataLoading(false);
     }
 
   };
@@ -703,21 +2137,283 @@ REGRAS:
 
   };
 
-  // Keep a combined fetchData for manual triggers and lifecycle events
+  const fetchHeaderWeather = async () => {
 
-  const fetchData = async () => {
+    try {
 
-    await Promise.all([fetchInitialProjectData(), fetchStatusAndOutputs()]);
+      const weatherRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-30.0346&longitude=-51.2177&current=temperature_2m&timezone=America%2FSao_Paulo&forecast_days=1');
+
+      if (!weatherRes.ok) return;
+
+      const weatherData = await weatherRes.json();
+
+      const temperature = Number(weatherData?.current?.temperature_2m);
+
+      setHeaderWeather({ temperature: Number.isFinite(temperature) ? temperature : null });
+
+    } catch (err) {
+
+      console.error("Error loading Porto Alegre weather:", err);
+
+    }
 
   };
 
-  
+  // Keep a combined fetchData for manual triggers and lifecycle events
+
+  const fetchData = async (opts?: { includeVideoQuality?: boolean }) => {
+    const tasks = [
+      fetchInitialProjectData(),
+      fetchStatusAndOutputs(),
+      fetchHeaderWeather(),
+      fetchLogoStatus(),
+      fetchGlobalRenderConfig(),
+    ];
+    if (opts?.includeVideoQuality) tasks.push(fetchVideoQuality());
+    await Promise.all(tasks);
+  };
+
+  const buildWizardSessionPatch = useCallback((): WizardSessionPatch => ({
+    wasInWizard: activeTab === 'creator' || creatorStep > 1 || showNarrationReview || !!generatedScriptData,
+    activeTab,
+    activeProject,
+    creatorStep,
+    nicheInput,
+    formatSelector,
+    ideasData,
+    selectedIdeaIndex,
+    generatedScriptData,
+    creatorProjectName,
+    creatorScript,
+    ideationTab,
+    customTitle,
+    customHooks,
+    customOutline,
+    customBlocks,
+    customIdeaTitle,
+    customIdeaPromise,
+    customIdeaHook,
+    customIdeaEmotion,
+    customIdeaBlocks,
+    listNiche,
+    listTopic,
+    rankCount,
+    rankOrder,
+    listicleHudStyle,
+    listicleIdeasData,
+    listicleSearchNiche,
+    ideasSearchNiche,
+    selectedListicleIdeaIndex,
+    showNarrationReview,
+    narrationDraft,
+    narrationTaggedDraft,
+    narrationStrategy,
+    narrationBlockPhrases,
+    narrationBlockScript,
+    narrationNotebooklmEnriched,
+    narrationProjectName,
+    useNotebooklm,
+    uploadedScenes,
+    expandedBlocks,
+  }), [
+    activeTab, activeProject, creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex,
+    generatedScriptData, creatorProjectName, creatorScript, ideationTab, customTitle, customHooks,
+    customOutline, customBlocks, customIdeaTitle, customIdeaPromise, customIdeaHook, customIdeaEmotion,
+    customIdeaBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData,
+    listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft,
+    narrationTaggedDraft, narrationStrategy, narrationBlockPhrases, narrationBlockScript,
+    narrationNotebooklmEnriched, narrationProjectName, useNotebooklm, uploadedScenes, expandedBlocks,
+  ]);
+
+  const applyWizardSessionPatch = useCallback((patch: WizardSessionPatch) => {
+    if (patch.creatorStep !== undefined) setCreatorStep(patch.creatorStep);
+    if (patch.nicheInput !== undefined) setNicheInput(patch.nicheInput);
+    if (patch.formatSelector) setFormatSelector(patch.formatSelector);
+    if (patch.ideasData !== undefined) setIdeasData(patch.ideasData as typeof ideasData);
+    if (patch.selectedIdeaIndex !== undefined) setSelectedIdeaIndex(patch.selectedIdeaIndex);
+    if (patch.generatedScriptData !== undefined) setGeneratedScriptData(patch.generatedScriptData);
+    if (patch.creatorProjectName !== undefined) setCreatorProjectName(patch.creatorProjectName);
+    if (patch.creatorScript !== undefined) setCreatorScript(patch.creatorScript);
+    if (patch.ideationTab) setIdeationTab(patch.ideationTab);
+    if (patch.customTitle !== undefined) setCustomTitle(patch.customTitle);
+    if (patch.customHooks !== undefined) setCustomHooks(patch.customHooks);
+    if (patch.customOutline !== undefined) setCustomOutline(patch.customOutline);
+    if (patch.customBlocks) setCustomBlocks(patch.customBlocks);
+    if (patch.customIdeaTitle !== undefined) setCustomIdeaTitle(patch.customIdeaTitle);
+    if (patch.customIdeaPromise !== undefined) setCustomIdeaPromise(patch.customIdeaPromise);
+    if (patch.customIdeaHook !== undefined) setCustomIdeaHook(patch.customIdeaHook);
+    if (patch.customIdeaEmotion !== undefined) setCustomIdeaEmotion(patch.customIdeaEmotion);
+    if (patch.customIdeaBlocks !== undefined) setCustomIdeaBlocks(patch.customIdeaBlocks);
+    if (patch.listNiche !== undefined) setListNiche(patch.listNiche);
+    if (patch.listTopic !== undefined) setListTopic(patch.listTopic);
+    if (patch.rankCount !== undefined) setRankCount(patch.rankCount);
+    if (patch.rankOrder) setRankOrder(patch.rankOrder);
+    if (patch.listicleHudStyle) setListicleHudStyle(patch.listicleHudStyle);
+    if (patch.listicleIdeasData !== undefined) setListicleIdeasData(patch.listicleIdeasData as typeof listicleIdeasData);
+    if (patch.listicleSearchNiche !== undefined) setListicleSearchNiche(patch.listicleSearchNiche);
+    if (patch.ideasSearchNiche !== undefined) setIdeasSearchNiche(patch.ideasSearchNiche);
+    if (patch.selectedListicleIdeaIndex !== undefined) setSelectedListicleIdeaIndex(patch.selectedListicleIdeaIndex);
+    if (patch.showNarrationReview !== undefined) setShowNarrationReview(patch.showNarrationReview);
+    if (patch.narrationDraft !== undefined) setNarrationDraft(patch.narrationDraft);
+    if (patch.narrationTaggedDraft !== undefined) setNarrationTaggedDraft(patch.narrationTaggedDraft);
+    if (patch.narrationStrategy !== undefined) setNarrationStrategy(patch.narrationStrategy);
+    if (patch.narrationBlockPhrases) setNarrationBlockPhrases(patch.narrationBlockPhrases);
+    if (patch.narrationBlockScript !== undefined) setNarrationBlockScript(patch.narrationBlockScript);
+    if (patch.narrationNotebooklmEnriched !== undefined) setNarrationNotebooklmEnriched(patch.narrationNotebooklmEnriched);
+    if (patch.narrationProjectName !== undefined) setNarrationProjectName(patch.narrationProjectName);
+    if (patch.useNotebooklm !== undefined) setUseNotebooklm(patch.useNotebooklm);
+    if (patch.uploadedScenes) setUploadedScenes(patch.uploadedScenes);
+    if (patch.expandedBlocks) setExpandedBlocks(patch.expandedBlocks);
+    if (patch.activeProject) setActiveProject(patch.activeProject);
+    if (patch.activeTab === 'creator' || shouldRestoreWizardTab(patch)) {
+      setActiveTab('creator');
+    }
+    if (patch.savedAt) setWizardSavedAtLabel(formatWizardSavedAt(patch.savedAt));
+  }, []);
+
+  useEffect(() => {
+    const saved = saveWizardSession(buildWizardSessionPatch());
+    setWizardSavedAtLabel(formatWizardSavedAt(saved.savedAt));
+
+    const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+    if (!project || activeTab !== 'creator') return;
+
+    if (wizardServerSaveTimer.current) clearTimeout(wizardServerSaveTimer.current);
+    wizardServerSaveTimer.current = setTimeout(() => {
+      const separator = '/api/projects/wizard-session'.includes('?') ? '&' : '?';
+      fetch(`/api/projects/wizard-session${separator}project=${encodeURIComponent(project)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(saved),
+      }).catch(() => {});
+    }, 1500);
+
+    return () => {
+      if (wizardServerSaveTimer.current) clearTimeout(wizardServerSaveTimer.current);
+    };
+  }, [buildWizardSessionPatch, activeTab, creatorProjectName, narrationProjectName, activeProject]);
+
+  useEffect(() => {
+    if (wizardRestoredRef.current) return;
+    wizardRestoredRef.current = true;
+    const local = loadWizardSession();
+    const project = resolveWizardActiveProject(local);
+    if (!project) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.session) return;
+        if (!isServerSessionNewer(local, data.session.savedAt)) return;
+        applyWizardSessionPatch(data.session);
+        toast.success(
+          `Wizard restaurado — passo ${data.session.creatorStep || 1}${
+            data.session.creatorProjectName ? ` · ${data.session.creatorProjectName}` : ''
+          }`,
+        );
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [applyWizardSessionPatch]);
+
+  useEffect(() => {
+    if (!shouldRestoreWizardTab(initialWizardSession)) return;
+    const step = Number(initialWizardSession?.creatorStep || 1);
+    if (step <= 1 && !initialWizardSession?.showNarrationReview) return;
+    toast.success(`Wizard restaurado — passo ${step} de 7`, { duration: 4500 });
+  }, []);
+
+  useEffect(() => {
+    if (listicleIdeasData && listicleSearchNiche && listNiche.trim() !== listicleSearchNiche) {
+      setListicleIdeasData(null);
+      setSelectedListicleIdeaIndex(-1);
+    }
+  }, [listNiche, listicleIdeasData, listicleSearchNiche]);
+
+  useEffect(() => {
+    if (ideasData && ideasSearchNiche && nicheInput.trim() !== ideasSearchNiche) {
+      setIdeasData(null);
+      setSelectedIdeaIndex(-1);
+    }
+  }, [nicheInput, ideasData, ideasSearchNiche]);
+
+  const refreshGeminiExtensionStatus = async () => {
+    resetGeminiExtensionCache();
+    const diag = await diagnoseGeminiExtension();
+    setGeminiExtensionReady(diag.pingOk);
+    if (diag.pingOk) {
+      setGeminiExtensionDiag(diag.version ? `v${diag.version} conectada` : 'conectada');
+    } else {
+      setGeminiExtensionDiag(diag.error || 'Extensão não respondeu');
+    }
+    return diag;
+  };
+
+  useEffect(() => {
+    if (!geminiBrowserMode) {
+      setGeminiExtensionReady(null);
+      setGeminiExtensionDiag('');
+      return;
+    }
+    refreshGeminiExtensionStatus().catch(() => {
+      setGeminiExtensionReady(false);
+      setGeminiExtensionDiag('Falha ao verificar extensão');
+    });
+  }, [geminiBrowserMode]);
 
   useEffect(() => {
 
-    localStorage.setItem('qanat_creator_state', JSON.stringify({ creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData }));
+    localStorage.setItem('qanat_active_project', activeProject);
 
-  }, [creatorStep, nicheInput, formatSelector, ideasData, selectedIdeaIndex, generatedScriptData]);
+  }, [activeProject]);
+
+  useEffect(() => {
+    if (activeTab === 'creator' || activeTab === 'editor') {
+      fetchNotebooklmStatus();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'creator') return;
+    const fmt = formatSelector === 'SHORTS' ? 'SHORT' : 'LONG';
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/studio-agents/resolve-bundle?task=ideas&format=${fmt}`);
+        if (!res.ok || cancelled) return;
+        const data: StudioBundlePreview = await res.json();
+        if (!cancelled) setCreatorIdeasBundle(data);
+      } catch {
+        if (!cancelled) setCreatorIdeasBundle(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, formatSelector]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_PROJECTS_KEY) || '[]');
+      if (Array.isArray(stored)) {
+        setRecentProjects(stored.filter((item) => typeof item === 'string'));
+      }
+    } catch {
+      setRecentProjects([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeProject) return;
+    setRecentProjects((prev) => {
+      const next = [activeProject, ...prev.filter((name) => name !== activeProject)].slice(0, 5);
+      localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [activeProject]);
 
   useEffect(() => {
 
@@ -726,16 +2422,39 @@ REGRAS:
   }, []);
 
   useEffect(() => {
-
-    fetchData();
-
+    setUploadSuccess(false);
+    setUploadingNarration(false);
+    setSyncingTimings(false);
+    setDragActive(false);
+    setUploadedScenes({});
+    fetchData({ includeVideoQuality: true });
   }, [activeProject]);
+
+  useEffect(() => {
+
+    const clockInterval = setInterval(() => setHeaderDate(new Date()), 60000);
+
+    const weatherInterval = setInterval(fetchHeaderWeather, 600000);
+
+    return () => {
+
+      clearInterval(clockInterval);
+
+      clearInterval(weatherInterval);
+
+    };
+
+  }, []);
 
   useEffect(() => {
 
     // Only poll status and outputs to prevent config overwrites while user is typing
 
-    const interval = setInterval(fetchStatusAndOutputs, 8000);
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchStatusAndOutputs();
+    };
+    const interval = setInterval(tick, 20000);
 
     return () => clearInterval(interval);
 
@@ -895,8 +2614,6 @@ REGRAS:
 
     if (targetIdx < 0 || targetIdx >= newPrompts.length) return;
 
-    
-
     // Swap
 
     const temp = newPrompts[index];
@@ -904,8 +2621,6 @@ REGRAS:
     newPrompts[index] = newPrompts[targetIdx];
 
     newPrompts[targetIdx] = temp;
-
-    
 
     setStoryboardData({ ...storyboardData, visual_prompts: newPrompts });
 
@@ -1043,7 +2758,7 @@ REGRAS:
 
         headers: { 'Content-Type': 'application/json' },
 
-        body: JSON.stringify({ name: newProjectName.trim() })
+        body: JSON.stringify({ name: newProjectName.trim(), format: newProjectFormat, niche: newProjectNiche.trim() })
 
       });
 
@@ -1053,14 +2768,10 @@ REGRAS:
 
         toast.success(data.message);
 
-        setNewProjectName('');
-
-        setShowCreateModal(false);
-
-        await fetchProjects();
-
         const safeName = newProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-
+        setNewProjectName('');
+        setShowCreateModal(false);
+        await fetchProjects();
         setActiveProject(safeName);
 
         setActiveTab('creator'); // Direct to wizard
@@ -1125,6 +2836,144 @@ REGRAS:
 
   };
 
+  const matchesProjectSearch = (proj: ProjectListItem, query: string) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [proj.name, proj.title, proj.niche, proj.format].some(
+      (field) => String(field || '').toLowerCase().includes(q),
+    );
+  };
+
+  const getNicheCollapsed = (collapseKey: string, projList: ProjectListItem[]) => {
+    if (collapsedNiches[collapseKey] !== undefined) return collapsedNiches[collapseKey];
+    return !projList.some((p) => p.name === activeProject);
+  };
+
+  type ProjectWorkspaceTabId = (typeof PROJECT_WORKSPACE_TABS)[number]['id'];
+
+  const leaveGlobalViewForProject = (tab: ProjectWorkspaceTabId = 'status') => {
+    if (activeTab === 'settings' || activeTab === 'creator' || activeTab === 'agents' || activeTab === 'youtube-studio') {
+      setActiveTab(tab);
+    }
+  };
+
+  const handleSelectProject = (name: string) => {
+    setActiveProject(name);
+    leaveGlobalViewForProject('status');
+  };
+
+  const renderSidebarProjectItem = (proj: ProjectListItem) => {
+    const isSelected = activeProject === proj.name;
+    const isShort = proj.format === 'SHORTS';
+    return (
+      <div key={proj.name} className="flex items-center gap-1 group animate-fade-in">
+        <button
+          type="button"
+          onClick={() => handleSelectProject(proj.name)}
+          className={`flex-1 text-left px-2.5 py-2 rounded-lg text-[11px] font-semibold transition flex items-center gap-2 cursor-pointer min-w-0 ${
+            isSelected
+              ? 'bg-gold-500/10 border border-gold-500/25 text-gold-300'
+              : 'text-gray-400 border border-transparent hover:bg-zinc-900/40 hover:text-gray-200'
+          }`}
+        >
+          {isShort ? (
+            <Smartphone className={`w-3 h-3 shrink-0 ${isSelected ? 'text-amber-500' : 'text-zinc-600'}`} />
+          ) : (
+            <Tv className={`w-3 h-3 shrink-0 ${isSelected ? 'text-gold-500' : 'text-zinc-600'}`} />
+          )}
+          <span className="font-sans text-balance-safe line-clamp-safe-2 min-w-0 flex-1" title={proj.title || proj.name}>
+            {proj.title || proj.name}
+          </span>
+        </button>
+        {deletingProjectName === proj.name ? (
+          <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 animate-fade-in shrink-0">
+            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteProject(proj.name); }} className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-1.5 py-0.5 rounded transition cursor-pointer">Sim</button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProjectName(null); }} className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-1.5 py-0.5 rounded transition cursor-pointer ml-0.5">Não</button>
+          </div>
+        ) : (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setDeletingProjectName(proj.name); }} className="p-1.5 text-zinc-600 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0 opacity-0 group-hover:opacity-100" title="Excluir Projeto">
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderProjectNicheGroups = (formatFilter: 'LONGO' | 'SHORTS') => {
+    const filtered = projects.filter((p) => (formatFilter === 'SHORTS' ? p.format === 'SHORTS' : p.format !== 'SHORTS'));
+    if (filtered.length === 0) {
+      return <p className="text-[10px] text-zinc-650 italic px-2 py-1 font-sans">{formatFilter === 'SHORTS' ? 'Nenhum projeto short' : 'Nenhum projeto longo'}</p>;
+    }
+    const grouped = filtered.reduce<Record<string, ProjectListItem[]>>((acc, proj) => {
+      const nicheName = proj.niche || 'Geral';
+      if (!acc[nicheName]) acc[nicheName] = [];
+      acc[nicheName].push(proj);
+      return acc;
+    }, {});
+    return Object.entries(grouped).map(([nicheName, projList]) => {
+      const collapseKey = `${formatFilter === 'SHORTS' ? 'short' : 'long'}-${nicheName}`;
+      const isCollapsed = getNicheCollapsed(collapseKey, projList);
+      return (
+        <div key={collapseKey} className="space-y-1 border border-zinc-900/40 bg-zinc-950/10 rounded-xl p-1.5">
+          <button type="button" onClick={() => setCollapsedNiches((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))} className="w-full flex items-center justify-between text-left px-1.5 py-1 text-gray-500 hover:text-gray-300 transition lumiera-section-label cursor-pointer">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <Folder className="w-3 h-3 text-gold-500/60 shrink-0" />
+              <span className="line-clamp-safe-2 min-w-0">{nicheName} ({projList.length})</span>
+            </div>
+            {isCollapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+          </button>
+          {!isCollapsed && <div className="space-y-0.5 pt-0.5">{projList.map((proj) => renderSidebarProjectItem(proj))}</div>}
+        </div>
+      );
+    });
+  };
+
+  const handleDeleteOutputVideo = async () => {
+
+    if (!pendingOutputDelete) return;
+
+    setDeletingOutput(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/outputs/delete'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({ filename: pendingOutputDelete.name })
+
+      });
+
+      if (res.ok) {
+
+        toast.success(`Vídeo "${pendingOutputDelete.name}" excluído com sucesso!`);
+
+        setOutputs(prev => prev.filter(v => v.name !== pendingOutputDelete.name));
+
+        setPendingOutputDelete(null);
+
+      } else {
+
+        const err = await res.json();
+
+        toast.error(err.error || 'Erro ao excluir o vídeo.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao excluir.');
+
+    } finally {
+
+      setDeletingOutput(false);
+
+    }
+
+  };
+
   const handleUploadSceneAsset = async (sceneNum: number, type: 'video' | 'image', file: File, assetIdx?: number, projectOverride?: string) => {
 
     try {
@@ -1147,7 +2996,157 @@ REGRAS:
 
         toast.success(data.message);
 
-        setUploadedScenes(prev => ({...prev, [sceneNum]: true}));
+        setUploadedScenes(prev => ({...prev, [`${sceneNum}:${assetIdx ?? 'new'}`]: true}));
+
+        // Update asset in storyboard state directly to ensure binding!
+
+        if (activeTab === 'creator' && generatedScriptData) {
+
+          let targetSceneIndex = -1;
+
+          let currentAssetIdx = 0;
+
+          const nextPrompts = [...generatedScriptData.visual_prompts];
+
+          for (let j = 0; j < nextPrompts.length; j++) {
+
+            if ((nextPrompts[j].block || 1) === sceneNum) {
+
+              if (currentAssetIdx === assetIdx) {
+
+                targetSceneIndex = j;
+
+                break;
+
+              }
+
+              currentAssetIdx++;
+
+            }
+
+          }
+
+          if (targetSceneIndex !== -1) {
+
+            nextPrompts[targetSceneIndex] = {
+
+              ...nextPrompts[targetSceneIndex],
+
+              asset: {
+
+                asset: data.asset,
+
+                type,
+
+                ...(type === 'video' ? { fixed: 8.00 } : {})
+
+              }
+
+            };
+
+            const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
+
+            setGeneratedScriptData(nextScriptData);
+
+            saveCreatorStoryboard(nextScriptData);
+
+          }
+
+        } else if (activeTab === 'editor' && storyboardData) {
+
+          let targetSceneIndex = -1;
+
+          let currentAssetIdx = 0;
+
+          const nextPrompts = [...storyboardData.visual_prompts];
+
+          for (let j = 0; j < nextPrompts.length; j++) {
+
+            if ((nextPrompts[j].block || 1) === sceneNum) {
+
+              if (currentAssetIdx === assetIdx) {
+
+                targetSceneIndex = j;
+
+                break;
+
+              }
+
+              currentAssetIdx++;
+
+            }
+
+          }
+
+          if (targetSceneIndex !== -1) {
+
+            nextPrompts[targetSceneIndex] = {
+
+              ...nextPrompts[targetSceneIndex],
+
+              asset: {
+
+                asset: data.asset,
+
+                type,
+
+                ...(type === 'video' ? { fixed: 8.00 } : {})
+
+              }
+
+            };
+
+            const nextStoryboard = { ...storyboardData, visual_prompts: nextPrompts };
+
+            setStoryboardData(nextStoryboard);
+
+            fetch(getProjectUrl('/api/projects/storyboard'), {
+
+              method: 'POST',
+
+              headers: { 'Content-Type': 'application/json' },
+
+              body: JSON.stringify(nextStoryboard)
+
+            });
+
+          }
+
+        }
+
+        if (data.asset && config && (!projectOverride || projectOverride === activeProject)) {
+
+          const blockKey = assetIdx !== undefined ? String(sceneNum) : String(Math.floor(sceneNum));
+
+          const nextTimelineAssets = { ...(config.timeline_assets || {}) };
+
+          const blockAssets = [...(nextTimelineAssets[blockKey] || [])];
+
+          const prevSlot = assetIdx !== undefined ? blockAssets[assetIdx] : undefined;
+          const nextAsset = {
+            ...(prevSlot || {}),
+            asset: data.asset,
+            type,
+            user_locked: true,
+            manual_asset: true,
+            ...(type === 'video' ? { fixed: prevSlot?.fixed ?? 8.00 } : {}),
+          };
+
+          if (assetIdx !== undefined) {
+
+            blockAssets[assetIdx] = nextAsset;
+
+          } else {
+
+            blockAssets.push(nextAsset);
+
+          }
+
+          nextTimelineAssets[blockKey] = blockAssets;
+
+          setConfig({ ...config, timeline_assets: nextTimelineAssets });
+
+        }
 
         fetchData();
 
@@ -1167,9 +3166,166 @@ REGRAS:
 
   };
 
+  const handleRemoveSceneAsset = async (blockKey: string, assetIdx: number) => {
+
+    if (!config) return;
+
+    const nextTimelineAssets = { ...(config.timeline_assets || {}) };
+
+    const blockAssets = [...(nextTimelineAssets[blockKey] || [])];
+
+    if (!blockAssets[assetIdx]) return;
+
+    blockAssets.splice(assetIdx, 1);
+
+    nextTimelineAssets[blockKey] = blockAssets;
+
+    const updatedConfig = { ...config, timeline_assets: nextTimelineAssets };
+
+    setConfig(updatedConfig);
+
+    await saveConfig(updatedConfig);
+
+    // Also remove from storyboard state to keep sync
+
+    const blockNum = parseInt(blockKey);
+
+    if (activeTab === 'creator' && generatedScriptData) {
+
+      let targetSceneIndex = -1;
+
+      let currentAssetIdx = 0;
+
+      const nextPrompts = [...generatedScriptData.visual_prompts];
+
+      for (let j = 0; j < nextPrompts.length; j++) {
+
+        if ((nextPrompts[j].block || 1) === blockNum) {
+
+          if (currentAssetIdx === assetIdx) {
+
+            targetSceneIndex = j;
+
+            break;
+
+          }
+
+          currentAssetIdx++;
+
+        }
+
+      }
+
+      if (targetSceneIndex !== -1) {
+
+        delete nextPrompts[targetSceneIndex].asset;
+
+        const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
+
+        setGeneratedScriptData(nextScriptData);
+
+        saveCreatorStoryboard(nextScriptData);
+
+      }
+
+    } else if (activeTab === 'editor' && storyboardData) {
+
+      let targetSceneIndex = -1;
+
+      let currentAssetIdx = 0;
+
+      const nextPrompts = [...storyboardData.visual_prompts];
+
+      for (let j = 0; j < nextPrompts.length; j++) {
+
+        if ((nextPrompts[j].block || 1) === blockNum) {
+
+          if (currentAssetIdx === assetIdx) {
+
+            targetSceneIndex = j;
+
+            break;
+
+          }
+
+          currentAssetIdx++;
+
+        }
+
+      }
+
+      if (targetSceneIndex !== -1) {
+
+        delete nextPrompts[targetSceneIndex].asset;
+
+        const nextStoryboard = { ...storyboardData, visual_prompts: nextPrompts };
+
+        setStoryboardData(nextStoryboard);
+
+        fetch(getProjectUrl('/api/projects/storyboard'), {
+
+          method: 'POST',
+
+          headers: { 'Content-Type': 'application/json' },
+
+          body: JSON.stringify(nextStoryboard)
+
+        });
+
+      }
+
+    }
+
+    toast.success('Asset removido da cena.');
+
+  };;
+
   // Save config
 
-  const saveConfig = async (updatedConfig: ConfigData) => {
+  const saveConfigPatch = async (
+    patch: Record<string, unknown>,
+    opts?: { skipRefresh?: boolean },
+  ): Promise<ConfigData | null> => {
+    if (Object.keys(patch).length === 0) return null;
+    try {
+      const res = await fetch(getProjectUrl('/api/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        toast.error('Erro ao salvar configuração.');
+        return null;
+      }
+      const data = await res.json().catch(() => ({}));
+      const serverConfig = data?.config;
+      if (!opts?.skipRefresh) {
+        fetchData();
+      }
+      if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
+        return serverConfig as ConfigData;
+      }
+      return null;
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar configuração.');
+      return null;
+    }
+  };
+
+  const saveConfig = async (
+    updatedConfig: ConfigData,
+    opts?: { skipRefresh?: boolean },
+  ) => {
+    const { timeline: sanitizedTimeline, removed: dupesRemoved } = sanitizeTimelineAssets(updatedConfig.timeline_assets);
+    const baseConfig = dupesRemoved > 0
+      ? { ...updatedConfig, timeline_assets: sanitizedTimeline }
+      : updatedConfig;
+    if (dupesRemoved > 0) {
+      toast.info(`Removidos ${dupesRemoved} asset(s) repetido(s) consecutivos na timeline.`);
+      setConfig(baseConfig);
+    }
+    const configToSave = enrichTimelineAudioStarts(baseConfig);
 
     try {
 
@@ -1179,15 +3335,22 @@ REGRAS:
 
         headers: { 'Content-Type': 'application/json' },
 
-        body: JSON.stringify(updatedConfig)
+        body: JSON.stringify(configToSave)
 
       });
 
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const serverConfig = data?.config;
+        const savedConfig = (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0)
+          ? serverConfig as ConfigData
+          : configToSave;
 
-        setConfig(updatedConfig);
+        setConfig(savedConfig);
 
-        fetchData();
+        if (!opts?.skipRefresh) {
+          fetchData();
+        }
 
       } else {
 
@@ -1204,6 +3367,7 @@ REGRAS:
   };
 
   // Debounce ref for auto-saving timeline changes
+
   const timelineSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateTimelineAssetField = (blockKey: string, index: number, field: string, value: any) => {
@@ -1214,9 +3378,7 @@ REGRAS:
 
     const newTimelineAssets = { ...timelineAssets };
 
-    const blockAssets = [...(newTimelineAssets[blockKey] || [])];
-
-    
+    let blockAssets = [...(newTimelineAssets[blockKey] || [])];
 
     if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
 
@@ -1228,8 +3390,17 @@ REGRAS:
 
     } else {
 
-      blockAssets[index] = { ...blockAssets[index], [field]: value };
+      blockAssets[index] = {
+        ...blockAssets[index],
+        [field]: value,
+        ...(field === 'fixed' ? { fixed_locked: true } : {}),
+        ...(field === 'asset' ? { user_locked: true, manual_asset: true } : {}),
+      };
 
+    }
+
+    if (field === 'fixed') {
+      blockAssets = recalculateBlockAudioStarts(blockKey, blockAssets, index);
     }
 
     newTimelineAssets[blockKey] = blockAssets;
@@ -1239,11 +3410,17 @@ REGRAS:
     setConfig(updatedConfig);
 
     // Auto-save to server with debounce (800ms)
+
     if (timelineSaveTimer.current) {
+
       clearTimeout(timelineSaveTimer.current);
+
     }
+
     timelineSaveTimer.current = setTimeout(() => {
+
       saveConfig(updatedConfig);
+
     }, 800);
 
   };
@@ -1262,8 +3439,6 @@ REGRAS:
 
     if (targetIdx < 0 || targetIdx >= blockAssets.length) return;
 
-    
-
     // Swap
 
     const temp = blockAssets[index];
@@ -1272,9 +3447,26 @@ REGRAS:
 
     blockAssets[targetIdx] = temp;
 
-    
+    const speechSynced = blockAssets.some((a: any) => a.synced_to_speech);
+    newTimelineAssets[blockKey] = speechSynced
+      ? blockAssets
+      : recalculateBlockAudioStarts(blockKey, blockAssets);
 
-    newTimelineAssets[blockKey] = blockAssets;
+    let nextStoryboard = storyboardData;
+    if (storyboardData?.visual_prompts?.length) {
+      nextStoryboard = swapBlockVisualPromptsInStoryboard(
+        storyboardData,
+        parseInt(blockKey, 10),
+        index,
+        targetIdx,
+      );
+      setStoryboardData(nextStoryboard);
+      fetch(getProjectUrl('/api/storyboard'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextStoryboard),
+      }).catch(() => {});
+    }
 
     const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
     setConfig(updatedConfig);
@@ -1292,12 +3484,12 @@ REGRAS:
 
     const blockAssets = (newTimelineAssets[blockKey] || []).filter((_, idx) => idx !== index);
 
-    
-
     newTimelineAssets[blockKey] = blockAssets;
 
     const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+
     setConfig(updatedConfig);
+
     saveConfig(updatedConfig);
 
     toast.success("Asset removido da linha do tempo!");
@@ -1314,8 +3506,6 @@ REGRAS:
 
     const blockAssets = [...(newTimelineAssets[blockKey] || [])];
 
-    
-
     blockAssets.push({
 
       asset: "cena_nova.png",
@@ -1324,12 +3514,12 @@ REGRAS:
 
     });
 
-    
-
     newTimelineAssets[blockKey] = blockAssets;
 
     const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+
     setConfig(updatedConfig);
+
     saveConfig(updatedConfig);
 
   };
@@ -1347,30 +3537,45 @@ REGRAS:
   };
 
   const getAssetDuration = (blockKey: string, index: number) => {
+
     if (!config || !config.timeline_assets || !config.timeline_assets[blockKey]) return 0;
+
     const blockNum = parseInt(blockKey, 10);
+
     const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+
     const configs = config.timeline_assets[blockKey];
+
     if (!configs || configs[index] === undefined) return 0;
 
     const current = configs[index];
 
     // Se o asset tem duração fixa definida pelo usuário, SEMPRE respeitar exatamente
+
     if (current.fixed !== undefined && current.fixed !== null) {
+
       return current.fixed;
+
     }
 
     // Para assets sem duração fixa, distribuir o tempo restante do bloco
+
     const sumFixed = configs.reduce((acc: number, c: any) => acc + (c.fixed ? c.fixed : 0), 0);
+
     const flexibleClips = configs.filter((c: any) => c.fixed === undefined || c.fixed === null);
+
     const nFlex = flexibleClips.length;
 
     if (nFlex > 0) {
+
       const remaining = Math.max(0.5 * nFlex, blockDuration - sumFixed);
+
       return remaining / nFlex;
+
     }
 
     return 0.5; // fallback mínimo
+
   };
 
   const getTotalVideoDuration = () => {
@@ -1401,40 +3606,15 @@ REGRAS:
 
   };
 
+  const buildNarrationSyncContext = (): NarrationSyncContext => ({
+    config,
+    storyboard: storyboardData || undefined,
+    status,
+    getAssetDuration,
+  });
+
   const getAssetNarration = (blockKey: string, assetIdx: number) => {
-
-    const blockNum = parseInt(blockKey, 10);
-
-    if (storyboardData && storyboardData.visual_prompts) {
-
-      const blockScenes = storyboardData.visual_prompts.filter((vp: any) => vp.block === blockNum);
-
-      if (blockScenes.length > 0) {
-
-        const correspondingScene = blockScenes[assetIdx];
-
-        if (correspondingScene && correspondingScene.narration_text) {
-
-          return correspondingScene.narration_text;
-
-        }
-
-      }
-
-    }
-
-    // Fallback to config block phrase if available
-
-    if (config && config.block_phrases) {
-
-      const bp = config.block_phrases.find((x: any) => x.block === blockNum);
-
-      if (bp) return bp.phrase;
-
-    }
-
-    return '';
-
+    return resolveAssetNarrationText(buildNarrationSyncContext(), blockKey, assetIdx);
   };
 
   const formatTime = (sec: number): string => {
@@ -1467,6 +3647,99 @@ REGRAS:
 
   };
 
+  const bgmBlockRows = useMemo(() => {
+
+    if (!config) return [];
+
+    const blockSet = new Set<number>();
+
+    (config.block_phrases || []).forEach((item: any) => {
+
+      const block = Number(item.block);
+
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+
+    });
+
+    Object.keys(config.timeline_assets || {}).forEach((key) => {
+
+      const block = Number(key);
+
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+
+    });
+
+    (storyboardData?.bgm_recommendations || []).forEach((item: any) => {
+
+      const block = Number(item.block);
+
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+
+    });
+
+    (storyboardData?.visual_prompts || []).forEach((item: any) => {
+
+      const block = Number(item.block);
+
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+
+    });
+
+    (config.bgm_mappings || []).forEach((item: any) => {
+
+      const block = Number(item.block);
+
+      if (Number.isFinite(block) && block > 0) blockSet.add(block);
+
+    });
+
+    if (blockSet.size === 0) {
+
+      const fallbackCount = status?.block_timings?.durations?.length || 12;
+
+      for (let block = 1; block <= fallbackCount; block++) blockSet.add(block);
+
+    }
+
+    const mappings = config.bgm_mappings || [];
+
+    return Array.from(blockSet)
+
+      .sort((a, b) => a - b)
+
+      .map((block) => ({
+
+        block,
+
+        file: mappings.find((mapping: any) => Number(mapping.block) === block)?.file || ""
+
+      }));
+
+  }, [
+
+    config?.block_phrases,
+
+    config?.timeline_assets,
+
+    config?.bgm_mappings,
+
+    storyboardData?.bgm_recommendations,
+
+    storyboardData?.visual_prompts,
+
+    status?.block_timings?.durations
+
+  ]);
+
+  const safeMusicFiles = useMemo(
+    () => (Array.isArray(musicFiles) ? musicFiles.filter((f) => f && typeof f.name === 'string') : []),
+    [musicFiles],
+  );
+  const safeEpidemicResults = useMemo(
+    () => (Array.isArray(epidemicSearchResults) ? epidemicSearchResults : []),
+    [epidemicSearchResults],
+  );
+
   // Memoized cache for narration timestamp matching
 
   const narrationTextsListString = useMemo(() => {
@@ -1494,211 +3767,53 @@ REGRAS:
   }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts]);
 
   const narrationMatchesCache = useMemo(() => {
-
     const cache: Record<string, {
-
       start: number;
-
       end: number;
-
       duration: number;
-
       matchedWords: number;
-
       totalWords: number;
-
       bestFirstMatchIdx: number;
-
       bestLastMatchIdx: number;
-
     }> = {};
 
     if (!flatTranscriptWords || flatTranscriptWords.length === 0 || !config) {
-
       return cache;
-
     }
 
     const timelineAssets = config.timeline_assets || {};
-
-    const PORTUGUESE_STOP_WORDS = new Set([
-
-      'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas',
-
-      'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
-
-      'para', 'com', 'por', 'sob', 'sobre', 'sem',
-
-      'que', 'se', 'e', 'ou', 'mas', 'porem', 'todavia', 'contudo', 'entretanto',
-
-      'aqui', 'ali', 'la', 'este', 'esta', 'estes', 'estas', 'esse', 'essa', 'esses', 'essas',
-
-      'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'isso', 'aquilo',
-
-      'eu', 'tu', 'ele', 'ela', 'nos', 'vos', 'eles', 'elas', 'me', 'te', 'se', 'lhe',
-
-      'ao', 'aos', 'pelo', 'pela', 'pelos', 'pelas', 'num', 'numa', 'nuns', 'numas',
-
-      'como', 'mais', 'muito', 'seus', 'suas', 'seu', 'sua', 'dele', 'dela', 'deles', 'delas'
-
-    ]);
-
-    const matchWords = (w1: string, w2: string): boolean => {
-
-      if (w1 === w2) return true;
-
-      const s1 = w1.endsWith('s') ? w1.slice(0, -1) : w1;
-
-      const s2 = w2.endsWith('s') ? w2.slice(0, -1) : w2;
-
-      if (s1 === s2 && s1.length > 3) return true;
-
-      return false;
-
-    };
-
-    const uniqueTexts = new Set<string>();
-
-    Object.keys(timelineAssets).forEach(blockKey => {
-
+    Object.keys(timelineAssets).forEach((blockKey) => {
+      const blockNum = parseInt(blockKey, 10);
+      if (!Number.isFinite(blockNum)) return;
+      const bounds = resolveBlockTimeBounds(status, blockNum);
       const assets = timelineAssets[blockKey] || [];
-
-      assets.forEach((asset, idx) => {
-
+      assets.forEach((_, idx) => {
         const narrationText = getAssetNarration(blockKey, idx);
-
-        if (narrationText) {
-
-          uniqueTexts.add(narrationText);
-
-        }
-
+        if (!narrationText) return;
+        const key = narrationCacheKey(blockNum, narrationText);
+        if (cache[key]) return;
+        const hit = findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
+        if (hit) cache[key] = hit;
       });
-
-    });
-
-    uniqueTexts.forEach(narrationText => {
-
-      const targetWords = cleanText(narrationText);
-
-      if (targetWords.length === 0) return;
-
-      const targetWeights = targetWords.map(w => PORTUGUESE_STOP_WORDS.has(w) ? 1 : 10);
-
-      const maxPossibleScore = targetWeights.reduce((acc, val) => acc + val, 0);
-
-      const N = targetWords.length;
-
-      const W = N + 8;
-
-      let bestScore = 0;
-
-      let bestFirstMatchIdx = -1;
-
-      let bestLastMatchIdx = -1;
-
-      for (let i = 0; i <= flatTranscriptWords.length - Math.min(N, flatTranscriptWords.length); i++) {
-
-        let score = 0;
-
-        let firstMatchIdxInWindow = -1;
-
-        let lastMatchIdxInWindow = -1;
-
-        const matchedTargetIndices = new Set<number>();
-
-        const windowWords = flatTranscriptWords.slice(i, i + W);
-
-        windowWords.forEach((w, twIdx) => {
-
-          const cleanTw = w.clean;
-
-          for (let tIdx = 0; tIdx < targetWords.length; tIdx++) {
-
-            if (!matchedTargetIndices.has(tIdx) && matchWords(targetWords[tIdx], cleanTw)) {
-
-              score += targetWeights[tIdx];
-
-              matchedTargetIndices.add(tIdx);
-
-              if (firstMatchIdxInWindow === -1) {
-
-                firstMatchIdxInWindow = twIdx;
-
-              }
-
-              lastMatchIdxInWindow = twIdx;
-
-              break;
-
-            }
-
-          }
-
-        });
-
-        const currentFirstAbs = i + firstMatchIdxInWindow;
-
-        const currentLastAbs = i + lastMatchIdxInWindow;
-
-        const currentSpan = currentLastAbs - currentFirstAbs;
-
-        const bestSpan = bestLastMatchIdx - bestFirstMatchIdx;
-
-        if (score > bestScore || (score === bestScore && score > 0 && firstMatchIdxInWindow !== -1 && (bestFirstMatchIdx === -1 || currentSpan < bestSpan))) {
-
-          bestScore = score;
-
-          bestFirstMatchIdx = currentFirstAbs;
-
-          bestLastMatchIdx = currentLastAbs;
-
+      const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
+      if (blockText) {
+        const key = narrationCacheKey(blockNum, blockText);
+        if (!cache[key]) {
+          const hit = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+          if (hit) cache[key] = hit;
         }
-
       }
-
-      const threshold = Math.max(2, Math.min(11, Math.floor(maxPossibleScore * 0.5)));
-
-      
-
-      if (bestScore >= threshold && bestFirstMatchIdx !== -1 && bestLastMatchIdx !== -1) {
-
-        const start = flatTranscriptWords[bestFirstMatchIdx].start;
-
-        const end = flatTranscriptWords[bestLastMatchIdx].end;
-
-        cache[narrationText] = {
-
-          start: start,
-
-          end: end,
-
-          duration: end - start,
-
-          matchedWords: bestScore,
-
-          totalWords: maxPossibleScore,
-
-          bestFirstMatchIdx: bestFirstMatchIdx,
-
-          bestLastMatchIdx: bestLastMatchIdx
-
-        };
-
-      }
-
     });
 
     return cache;
+  }, [flatTranscriptWords, narrationTextsListString, config, status, storyboardData?.visual_prompts]);
 
-  }, [flatTranscriptWords, narrationTextsListString]);
-
-  const findNarrationTimestamps = (narrationText: string) => {
-
-    if (!narrationText) return null;
-
-    return narrationMatchesCache[narrationText] || null;
-
+  const findNarrationTimestamps = (narrationText: string, blockNum?: number) => {
+    if (!narrationText || blockNum === undefined) return null;
+    const cacheKey = narrationCacheKey(blockNum, narrationText);
+    if (narrationMatchesCache[cacheKey]) return narrationMatchesCache[cacheKey];
+    const bounds = resolveBlockTimeBounds(status, blockNum);
+    return findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
   };
 
   const getStoryboardWordsWithTiming = (
@@ -1800,96 +3915,195 @@ REGRAS:
   };
 
   // === DYNAMIC NARRATION: collect all words per block with audio timestamps ===
+
   const blockNarrationWordsCache = useMemo(() => {
+
     const cache: Record<string, Array<{ word: string; start: number; end: number }>> = {};
+
     if (!config || !config.timeline_assets || !flatTranscriptWords || flatTranscriptWords.length === 0) return cache;
 
     const timelineAssets = config.timeline_assets;
+
     Object.keys(timelineAssets).forEach(blockKey => {
+
       const assets = timelineAssets[blockKey] || [];
+
       const allWords: Array<{ word: string; start: number; end: number }> = [];
+
       const seenPositions = new Set<string>();
 
-      assets.forEach((_, idx) => {
-        const narrationText = getAssetNarration(blockKey, idx);
-        if (!narrationText) return;
-        const matched = narrationMatchesCache[narrationText];
-        if (!matched) return;
-        const words = getStoryboardWordsWithTiming(narrationText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
-        words.forEach(w => {
-          const key = `${w.start.toFixed(3)}-${w.word}`;
-          if (!seenPositions.has(key)) {
-            allWords.push(w);
-            seenPositions.add(key);
-          }
-        });
-      });
+      const blockNum = parseInt(blockKey, 10);
+      const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
+      if (blockText) {
+        const bounds = resolveBlockTimeBounds(status, blockNum);
+        const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+        if (matched) {
+          const words = getStoryboardWordsWithTiming(blockText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
+          words.forEach((w) => {
+            if (w.start < bounds.searchAfter - 0.2 || w.start > bounds.searchBefore + 0.15) return;
+            const key = `${w.start.toFixed(3)}-${w.word}`;
+            if (!seenPositions.has(key)) {
+              allWords.push(w);
+              seenPositions.add(key);
+            }
+          });
+        }
+      }
 
       allWords.sort((a, b) => a.start - b.start);
+
       cache[blockKey] = allWords;
+
     });
+
     return cache;
+
   }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, narrationMatchesCache, flatTranscriptWords]);
 
   // Get dynamically distributed words for a specific asset based on its time window
+
   const getDynamicAssetWords = (blockKey: string, assetIdx: number): {
+
     words: Array<{ word: string; start: number; end: number }>;
+
     text: string;
+
     assetAudioStart: number;
+
     assetAudioEnd: number;
+
     blockAudioStart: number;
+
     blockAudioEnd: number;
+
     totalBlockWords: number;
+
     coveredWords: number;
+
   } | null => {
+
     const blockNum = parseInt(blockKey, 10);
 
     const allBlockWords = blockNarrationWordsCache[blockKey] || [];
+
     if (allBlockWords.length === 0) return null;
 
     // Usar o timestamp da PRIMEIRA PALAVRA real como ponto de partida
+
     // Isso garante que o asset 1 sempre começa onde a narração realmente está no áudio
+
     const narrationStart = allBlockWords[0].start;
+
     const narrationLastEnd = allBlockWords[allBlockWords.length - 1].end;
 
     // Calculate this asset's time window starting from the first narration word
-    let assetAudioStart = narrationStart;
-    for (let i = 0; i < assetIdx; i++) {
-      assetAudioStart += getAssetDuration(blockKey, i);
+
+    const currentAsset = config?.timeline_assets?.[blockKey]?.[assetIdx];
+    let assetAudioStart: number;
+
+    if (currentAsset?.audio_start !== undefined && currentAsset?.audio_start !== null) {
+      assetAudioStart = Number(currentAsset.audio_start);
+    } else {
+      assetAudioStart = narrationStart;
+
+      for (let i = 0; i < assetIdx; i++) {
+
+        assetAudioStart += getAssetDuration(blockKey, i);
+      }
     }
+
     const assetDuration = getAssetDuration(blockKey, assetIdx);
+
     const assetAudioEnd = assetAudioStart + assetDuration;
 
     // Filter words that fall within this asset's time window
+
     // Words are bounded by the block's actual narration words (never leaks to next block)
+
     const assetWords = allBlockWords.filter(w =>
+
       w.start >= assetAudioStart - 0.15 && w.start < assetAudioEnd - 0.05
+
     );
 
     // Count total words covered by ALL assets in the block
+
     const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
+
     let totalEndTime = narrationStart;
+
     for (let i = 0; i < totalAssets; i++) {
+
       totalEndTime += getAssetDuration(blockKey, i);
+
     }
+
     // Coverage: how many of the block's narration words are within the total asset time span
+
     const coveredWords = allBlockWords.filter(w => w.start < totalEndTime - 0.05).length;
 
     return {
+
       words: assetWords,
+
       text: assetWords.map(w => w.word).join(' '),
+
       assetAudioStart,
+
       assetAudioEnd,
+
       blockAudioStart: narrationStart,
+
       blockAudioEnd: narrationLastEnd,
+
       totalBlockWords: allBlockWords.length,
+
       coveredWords
+
     };
+
   };
 
-  const alignBlockAssetsToSpeech = (blockKey: string) => {
+  const recalculateBlockAudioStarts = (blockKey: string, assets: any[], preserveUntilIndex = -1): any[] => {
+    const updated = assets.map((a) => ({ ...a }));
+    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
+    const blockNum = parseInt(blockKey, 10);
+    const fallbackStart = status?.block_timings?.starts?.[blockNum - 1] ?? 0;
+    const narrationStart = allBlockWords.length > 0 ? allBlockWords[0].start : fallbackStart;
 
-    if (!config || !config.timeline_assets || !config.timeline_assets[blockKey]) return;
+    let cursor = narrationStart;
+    for (let i = 0; i < updated.length; i++) {
+      if (i <= preserveUntilIndex && updated[i]?.audio_start !== undefined && updated[i]?.audio_start !== null) {
+        cursor = Number(updated[i].audio_start) + getAssetDuration(blockKey, i);
+        continue;
+      }
+      if (i === 0) {
+        updated[i].audio_start = parseFloat(narrationStart.toFixed(3));
+      } else {
+        updated[i].audio_start = parseFloat(cursor.toFixed(3));
+      }
+      cursor = Number(updated[i].audio_start) + getAssetDuration(blockKey, i);
+    }
+    return updated;
+  };
+
+  const enrichTimelineAudioStarts = (cfg: ConfigData, options?: { force?: boolean }): ConfigData => {
+    const timelineAssets = { ...(cfg.timeline_assets || {}) };
+    Object.keys(timelineAssets).forEach((blockKey) => {
+      const assets = timelineAssets[blockKey];
+      if (!assets?.length) return;
+      const speechSynced = assets.some((a: any) => a.synced_to_speech);
+      if (options?.force || !speechSynced) {
+        timelineAssets[blockKey] = recalculateBlockAudioStarts(blockKey, assets);
+      }
+    });
+    return { ...cfg, timeline_assets: timelineAssets };
+  };
+
+  const alignBlockAssetsToSpeech = (blockKey: string, cfgOverride?: ConfigData) => {
+    const cfg = cfgOverride ?? config;
+
+    if (!cfg || !cfg.timeline_assets || !cfg.timeline_assets[blockKey]) return;
 
     if (!wordTranscripts || wordTranscripts.length === 0) {
 
@@ -1899,7 +4113,7 @@ REGRAS:
 
     }
 
-    const updatedAssets = [...config.timeline_assets[blockKey]];
+    const updatedAssets = [...cfg.timeline_assets[blockKey]];
 
     const blockNum = Number(blockKey);
 
@@ -1925,7 +4139,7 @@ REGRAS:
 
         const text = getAssetNarration(blockKey, i);
 
-        const match = findNarrationTimestamps(text);
+        const match = findNarrationTimestamps(text, blockNum);
 
         if (match) return match.start;
 
@@ -1939,9 +4153,11 @@ REGRAS:
 
     updatedAssets.forEach((asset, idx) => {
 
+      if (asset.fixed_locked) return;
+
       const narrationText = getAssetNarration(blockKey, idx);
 
-      const matched = findNarrationTimestamps(narrationText);
+      const matched = findNarrationTimestamps(narrationText, blockNum);
 
       if (matched) {
 
@@ -1965,6 +4181,11 @@ REGRAS:
 
         }
 
+        delete asset.fixed_locked;
+
+        asset.audio_start = parseFloat(matched.start.toFixed(3));
+        asset.synced_to_speech = true;
+
         alignedCount++;
 
       }
@@ -1981,11 +4202,11 @@ REGRAS:
 
     const newConfig = {
 
-      ...config,
+      ...cfg,
 
       timeline_assets: {
 
-        ...config.timeline_assets,
+        ...cfg.timeline_assets,
 
         [blockKey]: updatedAssets
 
@@ -1993,229 +4214,436 @@ REGRAS:
 
     };
 
-    
-
     saveConfig(newConfig);
 
     toast.success(`${alignedCount} cenas sincronizadas com o tempo da voz com sucesso!`);
 
   };
 
-  const alignAllBlocksToSpeech = () => {
-    if (!config || !config.timeline_assets) return;
-    if (!wordTranscripts || wordTranscripts.length === 0) {
-      toast.error("Transcrições da voz não carregadas ou indisponíveis para este projeto.");
+  const splitBlockNarrationAmongAssets = (blockKey: string) => {
+    if (!config?.timeline_assets?.[blockKey]?.length) return;
+    const assets = config.timeline_assets[blockKey];
+    if (assets.length <= 1) {
+      toast.info('Bloco com 1 asset — narração já é única.');
       return;
+    }
+    const ctx = buildNarrationSyncContext();
+    const full = resolveBlockNarrationText(ctx, parseInt(blockKey, 10));
+    if (!full.trim()) {
+      toast.error('Sem texto de narração neste bloco.');
+      return;
+    }
+    const nextAssets = applySplitNarrationToBlockAssets(ctx, blockKey);
+    const updatedConfig = {
+      ...config,
+      timeline_assets: { ...config.timeline_assets, [blockKey]: nextAssets },
+    };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
+    toast.success(`Narração dividida entre ${nextAssets.length} assets do bloco ${blockKey}.`);
+  };
+
+  const distributeAllBlockNarrations = () => {
+    if (!config?.timeline_assets) return;
+    const ctx = buildNarrationSyncContext();
+    const newTimelineAssets = { ...config.timeline_assets };
+    let blockCount = 0;
+    Object.keys(newTimelineAssets).forEach((blockKey) => {
+      const assets = newTimelineAssets[blockKey];
+      if (!assets?.length || assets.length <= 1) return;
+      const full = resolveBlockNarrationText(ctx, parseInt(blockKey, 10));
+      if (!full.trim()) return;
+      newTimelineAssets[blockKey] = applySplitNarrationToBlockAssets(ctx, blockKey);
+      blockCount += 1;
+    });
+    if (blockCount === 0) {
+      toast.error('Nenhum bloco com múltiplos assets e texto de narração para dividir.');
+      return;
+    }
+    const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
+    setConfig(updatedConfig);
+    saveConfig(updatedConfig);
+    toast.success(`Narração dividida em ${blockCount} bloco(s).`);
+  };
+
+  const handleRepairProjectVisualPrompts = async () => {
+    if (!activeProject?.trim()) {
+      toast.error('Selecione um projeto.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/repair-visual-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: activeProject.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      if (ok && !data.needs_browser) {
+        setStoryboardData(data);
+        await saveCreatorStoryboard(data);
+        if (data.technical_config?.block_phrases && config) {
+          const patched = {
+            ...config,
+            block_phrases: data.technical_config.block_phrases,
+            impact_texts: data.technical_config.impact_texts || config.impact_texts,
+            highlight_keywords: data.technical_config.highlight_keywords || config.highlight_keywords,
+          };
+          setConfig(patched);
+          await saveConfig(patched);
+        }
+        fetchData();
+        toast.success(`Cenas reparadas — ${data.visual_prompts?.length || 0} com narração e prompt.`);
+      } else {
+        toast.error(data.error || data.details || 'Erro ao reparar cenas.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao reparar cenas.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
+  const timelineNeedsWhisperSync = Boolean(
+    status?.has_narration && (!wordTranscripts?.length || !status?.block_timings?.starts?.length),
+  );
+
+  const timelineScenesNeedRepair = useMemo(() => {
+    const vps = storyboardData?.visual_prompts || [];
+    if (!vps.length) return Boolean(storyboardData?.narrative_script?.trim());
+    return vps.some((vp: any) => !String(vp?.narration_text || vp?.narration_excerpt || '').trim());
+  }, [storyboardData?.visual_prompts, storyboardData?.narrative_script]);
+
+  const alignAllBlocksToSpeech = () => {
+
+    if (!config || !config.timeline_assets) return;
+
+    if (!wordTranscripts || wordTranscripts.length === 0) {
+
+      toast.error("Transcrições da voz não carregadas ou indisponíveis para este projeto.");
+
+      return;
+
     }
 
     const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
+
     const newTimelineAssets = { ...config.timeline_assets };
+
     let totalAligned = 0;
 
     for (let blockNum = 1; blockNum <= maxBlocks; blockNum++) {
+
       const blockKey = String(blockNum);
+
       if (!newTimelineAssets[blockKey]) continue;
 
       const updatedAssets = [...newTimelineAssets[blockKey]];
+
       const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+
       const starts = status?.block_timings?.starts;
+
       if (!starts || starts[blockNum - 1] === undefined) continue;
 
       const blockStart = starts[blockNum - 1];
+
       const blockEnd = blockStart + blockDuration;
 
       const getNextMatchedStartLocal = (startIdx: number): number | null => {
+
         for (let i = startIdx; i < updatedAssets.length; i++) {
+
           const text = getAssetNarration(blockKey, i);
-          const match = findNarrationTimestamps(text);
+
+          const match = findNarrationTimestamps(text, blockNum);
+
           if (match) return match.start;
+
         }
+
         return null;
+
       };
 
       updatedAssets.forEach((asset, idx) => {
+
+        if (asset.fixed_locked) return;
+
         const narrationText = getAssetNarration(blockKey, idx);
-        const matched = findNarrationTimestamps(narrationText);
+
+        const matched = findNarrationTimestamps(narrationText, blockNum);
+
         if (matched) {
+
           if (idx === updatedAssets.length - 1) {
+
             asset.fixed = parseFloat(Math.max(0.5, blockEnd - matched.start).toFixed(1));
+
           } else {
+
             const nextStart = getNextMatchedStartLocal(idx + 1);
+
             if (nextStart !== null) {
+
               asset.fixed = parseFloat(Math.max(0.5, nextStart - matched.start).toFixed(1));
+
             } else {
+
               asset.fixed = parseFloat(matched.duration.toFixed(1));
+
             }
+
           }
+
+          delete asset.fixed_locked;
+
+          asset.audio_start = parseFloat(matched.start.toFixed(3));
+          asset.synced_to_speech = true;
+
           totalAligned++;
+
         }
+
       });
 
       newTimelineAssets[blockKey] = updatedAssets;
+
     }
 
     if (totalAligned === 0) {
+
       toast.error("Nenhuma cena pôde ser alinhada com a transcrição da voz.");
+
       return;
+
     }
 
     const newConfig = {
+
       ...config,
+
       timeline_assets: newTimelineAssets
+
     };
 
     saveConfig(newConfig);
+
     toast.success(`✅ ${totalAligned} cenas de TODOS os blocos sincronizadas com a voz!`);
   };
 
-  const getNarrationAudio = () => {
+  const getNarrationAudio = (blockNum?: number) => {
+    const fileName = blockNum ? `${blockNum}.mp3` : "narracao_mestra_premium.mp3";
+    const url = getMusicUrl(fileName);
 
     if (!narrationAudioRef.current) {
-
-      const url = getMusicUrl("narracao_mestra_premium.mp3");
-
       const audio = new Audio(url);
-
       
-
       audio.ontimeupdate = () => {
-
-        setNarrationTime(audio.currentTime);
-
         const state = activeNarrationStateRef.current;
-
         if (state) {
+          if (state.startTimeRelative !== undefined && state.startTimeAbsolute !== undefined) {
+            const elapsed = audio.currentTime - state.startTimeRelative;
+            const absoluteTime = state.startTimeAbsolute + elapsed;
+            setNarrationTime(absoluteTime);
 
-          if (audio.currentTime >= state.endTime - 0.05) {
-
-            audio.pause();
-
-            setPlayingNarration(null);
-
-            activeNarrationStateRef.current = null;
-
+            const targetEndTime = state.endTimeRelative !== undefined ? state.endTimeRelative : state.endTime;
+            if (audio.currentTime >= targetEndTime - 0.05) {
+              audio.pause();
+              setPlayingNarration(null);
+              activeNarrationStateRef.current = null;
+            }
+          } else {
+            setNarrationTime(audio.currentTime);
+            if (audio.currentTime >= state.endTime - 0.05) {
+              audio.pause();
+              setPlayingNarration(null);
+              activeNarrationStateRef.current = null;
+            }
           }
-
+        } else {
+          setNarrationTime(audio.currentTime);
         }
-
       };
 
       audio.onended = () => {
-
         setPlayingNarration(null);
-
         activeNarrationStateRef.current = null;
+      };
 
+      audio.onerror = () => {
+        const state = activeNarrationStateRef.current;
+        const currentSrc = audio.src;
+        if (currentSrc && !currentSrc.includes("narracao_mestra_premium.mp3") && state) {
+          console.warn("Audio segment not found, falling back to master narration");
+          const masterUrl = getMusicUrl("narracao_mestra_premium.mp3");
+          audio.pause();
+          audio.src = masterUrl;
+          audio.load();
+
+          // Switch state to absolute mode by clearing relative markers
+          state.startTimeRelative = undefined;
+          state.endTimeRelative = undefined;
+
+          const startAbs = state.startTimeAbsolute || 0;
+          audio.oncanplay = () => {
+            audio.currentTime = startAbs;
+            audio.play().catch(err => {
+              console.error("Fallback play failed:", err);
+              setPlayingNarration(null);
+              activeNarrationStateRef.current = null;
+            });
+            audio.oncanplay = null;
+          };
+        }
       };
 
       narrationAudioRef.current = audio;
-
+    } else {
+      const audio = narrationAudioRef.current;
+      const fullUrl = new URL(url, window.location.href).href;
+      if (audio.src !== fullUrl) {
+        audio.pause();
+        audio.src = url;
+        audio.load();
+      }
     }
-
     return narrationAudioRef.current;
-
   };
 
   const togglePlaySceneNarration = (blockKey: string, sceneIdx: number) => {
-
     if (playingMusic) {
-
       if (audioPlayerRef.current) {
-
         audioPlayerRef.current.pause();
-
       }
-
       setPlayingMusic(null);
-
     }
 
-    const audio = getNarrationAudio();
-
+    const blockNum = Number(blockKey);
     const targetStr = `scene-${blockKey}-${sceneIdx}`;
 
     if (playingNarration === targetStr) {
-
-      audio.pause();
-
+      const audio = narrationAudioRef.current;
+      audio?.pause();
       setPlayingNarration(null);
-
       activeNarrationStateRef.current = null;
-
       return;
-
     }
 
+    const dynamic = getDynamicAssetWords(blockKey, sceneIdx);
+    const blockAssets = config?.timeline_assets?.[blockKey] || [];
+    const isLastAssetInBlock = sceneIdx === blockAssets.length - 1;
+    const duration = getAssetDuration(blockKey, sceneIdx);
+    const starts = status?.block_timings?.starts;
+    const blockStart = starts?.[blockNum - 1];
+    const narrationText = getAssetNarration(blockKey, sceneIdx);
+    const matched = findNarrationTimestamps(narrationText, blockNum);
+
+    let startTimeRelative = 0;
+    for (let i = 0; i < sceneIdx; i++) {
+      startTimeRelative += getAssetDuration(blockKey, i);
+    }
+
+    let startTimeAbsolute = startTimeRelative;
+    let endTimeAbsolute = startTimeRelative + duration;
+    if (blockStart !== undefined) {
+      startTimeAbsolute = blockStart + startTimeRelative;
+      endTimeAbsolute = startTimeAbsolute + duration;
+    } else if (matched) {
+      startTimeAbsolute = matched.start;
+      endTimeAbsolute = matched.start + (matched.duration || duration);
+    }
+
+    if (dynamic) {
+      startTimeAbsolute = dynamic.assetAudioStart;
+      const lastWord = dynamic.words[dynamic.words.length - 1];
+      endTimeAbsolute = lastWord
+        ? lastWord.end + 0.3
+        : dynamic.assetAudioEnd;
+      if (isLastAssetInBlock) {
+        endTimeAbsolute = Math.max(endTimeAbsolute, dynamic.blockAudioEnd + 0.3);
+      }
+      endTimeAbsolute = Math.max(endTimeAbsolute, startTimeAbsolute + 0.35);
+    } else if (matched?.end) {
+      endTimeAbsolute = Math.max(endTimeAbsolute, matched.end + 0.2);
+    }
+
+    const useMasterTimeline = Boolean(
+      status?.has_narration && blockStart !== undefined && Number.isFinite(blockStart),
+    );
+    const audio = getNarrationAudio(useMasterTimeline ? undefined : blockNum);
     audio.pause();
 
-    const blockNum = Number(blockKey);
-
-    const narrationText = getAssetNarration(blockKey, sceneIdx);
-
-    const matched = findNarrationTimestamps(narrationText);
-
-    const duration = getAssetDuration(blockKey, sceneIdx);
-
-    let startTime = 0;
-
-    let endTime = 0;
-
-    const starts = status?.block_timings?.starts;
-
-    let timelineFound = false;
-
-    if (starts && starts[blockNum - 1] !== undefined) {
-
-      let currentStart = starts[blockNum - 1];
-
-      for (let i = 0; i < sceneIdx; i++) {
-
-        currentStart += getAssetDuration(blockKey, i);
-
-      }
-
-      startTime = currentStart;
-
-      endTime = currentStart + duration;
-
-      timelineFound = true;
-
-    }
-
-    if (!timelineFound) {
-
-      if (matched) {
-
-        startTime = matched.start;
-
-        endTime = matched.start + duration;
-
+    const beginPlayback = () => {
+      if (useMasterTimeline) {
+        activeNarrationStateRef.current = {
+          target: targetStr,
+          startTimeAbsolute,
+          endTime: endTimeAbsolute,
+        };
+        audio.currentTime = startTimeAbsolute;
       } else {
-
-        startTime = 0;
-
-        endTime = duration;
-
+        const relStart = Number.isFinite(blockStart)
+          ? Math.max(0, startTimeAbsolute - Number(blockStart))
+          : startTimeRelative;
+        const relEnd = Number.isFinite(blockStart)
+          ? Math.max(relStart + 0.35, endTimeAbsolute - Number(blockStart))
+          : relStart + duration;
+        activeNarrationStateRef.current = {
+          target: targetStr,
+          startTimeRelative: relStart,
+          startTimeAbsolute,
+          endTimeRelative: relEnd,
+          endTime: endTimeAbsolute,
+        };
+        audio.currentTime = relStart;
       }
 
+      setPlayingNarration(targetStr);
+      audio.play().catch((err) => {
+        console.error("Failed to play scene narration:", err);
+        if (!audio.src.includes("narracao_mestra_premium.mp3")) {
+          console.warn("Play failed for segment. Forcing fallback to master narration.");
+          const masterUrl = getMusicUrl("narracao_mestra_premium.mp3");
+          audio.pause();
+          audio.src = masterUrl;
+          audio.load();
+          activeNarrationStateRef.current = {
+            target: targetStr,
+            startTimeAbsolute,
+            endTime: endTimeAbsolute,
+          };
+          audio.oncanplay = () => {
+            audio.currentTime = startTimeAbsolute;
+            audio.play().catch((e) => {
+              console.error("Fallback play trigger failed:", e);
+              setPlayingNarration(null);
+              activeNarrationStateRef.current = null;
+            });
+            audio.oncanplay = null;
+          };
+        } else {
+          setPlayingNarration(null);
+          activeNarrationStateRef.current = null;
+        }
+      });
+    };
+
+    if (useMasterTimeline) {
+      const masterUrl = getMusicUrl("narracao_mestra_premium.mp3");
+      if (!audio.src.includes("narracao_mestra_premium.mp3")) {
+        audio.src = masterUrl;
+        audio.load();
+        audio.oncanplay = () => {
+          beginPlayback();
+          audio.oncanplay = null;
+        };
+        return;
+      }
     }
 
-    audio.currentTime = startTime;
-
-    activeNarrationStateRef.current = { target: targetStr, endTime: endTime };
-
-    setPlayingNarration(targetStr);
-
-    audio.play().catch(err => {
-
-      console.error("Failed to play scene narration:", err);
-
-      setPlayingNarration(null);
-
-      activeNarrationStateRef.current = null;
-
-    });
-
+    beginPlayback();
   };
 
   const getAssetUrl = (fileName: string) => {
@@ -2225,15 +4653,8 @@ REGRAS:
   };
 
   const getMusicUrl = (fileName: string) => {
-
-    if (activeProject === 'Buracos no Deserto') {
-
-      return `/api/projects-media/${encodeURIComponent(fileName)}`;
-
-    }
-
-    return `/api/projects-media/${encodeURIComponent(activeProject)}/${encodeURIComponent(fileName)}`;
-
+    const projKey = activeProject.replace(/ /g, "_");
+    return `/api/projects-media/${encodeURIComponent(projKey)}/${encodeURIComponent(fileName)}`;
   };
 
   const togglePlayMusic = (fileName: string) => {
@@ -2268,7 +4689,7 @@ REGRAS:
 
       }
 
-      const url = getMusicUrl(fileName);
+      const url = fileName.startsWith("http") ? fileName : getMusicUrl(fileName);
 
       const audio = new Audio(url);
 
@@ -2291,50 +4712,341 @@ REGRAS:
   };
 
   useEffect(() => {
-
-    return () => {
-
-      if (audioPlayerRef.current) {
-
-        audioPlayerRef.current.pause();
-
-      }
-
-    };
-
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+    }
+    if (narrationAudioRef.current) {
+      narrationAudioRef.current.pause();
+      narrationAudioRef.current = null;
+    }
+    setPlayingMusic(null);
+    setPlayingNarration(null);
+    activeNarrationStateRef.current = null;
   }, [activeProject, activeTab]);
 
   // Save API Key
 
-  const handleSaveApiKey = async (customProvider?: 'gemini' | 'groq' | 'openrouter', customModel?: string) => {
+  const handleSaveApiKey = async () => {
+
     if (!apiKeyInput.trim()) return;
 
-    const prov = customProvider || apiProvider;
-    const mod = customModel || apiModel;
-
     try {
+
       const res = await fetch(getProjectUrl('/api/ai/save-key'), {
+
         method: 'POST',
+
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          key: apiKeyInput.trim(),
-          provider: prov,
-          model: mod
-        })
+
+        body: JSON.stringify({ key: apiKeyInput.trim() })
+
       });
 
       if (res.ok) {
+
         setHasApiKey(true);
+
         setApiKeyInput('');
+
         setShowKeyInput(false);
-        toast.success(`Chave de API do ${prov.toUpperCase()} salva com sucesso!`);
+
+        toast.success('Chave de API do Google AI Studio salva com sucesso!');
+
         fetchData();
+
       } else {
+
         toast.error('Erro ao salvar a chave de API.');
+
       }
+
     } catch (err) {
+
       console.error(err);
+
     }
+
+  };
+
+    const handleSearchEpidemic = async () => {
+
+    if (!epidemicSearchQuery.trim()) {
+
+      toast.error('Digite um termo para pesquisar.');
+
+      return;
+
+    }
+
+    setSearchingEpidemic(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl(`/api/epidemic/search?query=${encodeURIComponent(epidemicSearchQuery)}&type=${epidemicSearchType}`));
+
+      const data = await res.json();
+
+      if (res.ok) {
+
+        setEpidemicSearchResults(Array.isArray(data) ? data : []);
+
+        if (data.length === 0) {
+
+          toast(`Nenhum item encontrado no Epidemic Sound (${epidemicSearchType.toUpperCase()}).`);
+
+        } else {
+
+          toast.success(`${data.length} itens encontrados (${epidemicSearchType.toUpperCase()})!`);
+
+        }
+
+      } else {
+
+        toast.error(data.error || 'Erro ao pesquisar.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao pesquisar.');
+
+    } finally {
+
+      setSearchingEpidemic(false);
+
+    }
+
+  };
+
+  const handleDownloadEpidemic = async (track: any, blockNumber?: number) => {
+
+    setDownloadingEpidemicId(track.id);
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/epidemic/download'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({
+
+          id: track.id,
+
+          type: epidemicSearchType,
+
+          title: track.title,
+
+          block: blockNumber,
+
+          previewUrl: track.previewUrl
+
+        })
+
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+
+        toast.success(data.message || 'Arquivo baixado com sucesso!');
+
+        fetchData(); // Refresh local list and BGM config
+
+      } else {
+
+        toast.error(data.error || 'Erro ao baixar.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao baixar.');
+
+    } finally {
+
+      setDownloadingEpidemicId(null);
+
+    }
+
+  };
+
+  const handleAutoSoundtrack = async () => {
+
+    setAutoSoundtracking(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/epidemic/auto-soundtrack'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({
+
+          mode: formatSelector
+
+        })
+
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+
+        toast.success('Sonoplastia automática concluída com sucesso!');
+
+        fetchData();
+
+      } else {
+
+        toast.error((data.error && data.details) ? `${data.error}: ${data.details}` : (data.error || 'Erro na trilha sonora automática.'));
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao processar sonoplastia automática.');
+
+    } finally {
+
+      setAutoSoundtracking(false);
+
+    }
+
+  };
+
+  const fetchWorkflowKeysStatus = async () => {
+    try {
+      const res = await fetch('/api/settings/global-api-keys');
+      if (res.ok) {
+        const data = await res.json();
+        setHasPexelsKey(!!data.has_pexels_key);
+        setHasPixabayKey(!!data.has_pixabay_key);
+        setHasEpidemicKey(!!data.has_epidemic_key);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleSaveApiKeys = async () => {
+    const hasInput = epidemicKeyInput.trim() || pexelsKeyInput.trim() || pixabayKeyInput.trim();
+    if (!hasInput) {
+      toast.error('Digite pelo menos uma chave para salvar.');
+      return;
+    }
+    setSavingApiKeys(true);
+    try {
+      const res = await fetch('/api/settings/global-api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          epidemic_sound_key: epidemicKeyInput.trim() || undefined,
+          pexels_api_key: pexelsKeyInput.trim() || undefined,
+          pixabay_api_key: pixabayKeyInput.trim() || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error(await readApiError(res, 'Falha ao salvar chaves de API'));
+      const data = await res.json();
+      setHasEpidemicKey(!!data.has_epidemic_key);
+      setHasPexelsKey(!!data.has_pexels_key);
+      setHasPixabayKey(!!data.has_pixabay_key);
+      setEpidemicKeyInput('');
+      setPexelsKeyInput('');
+      setPixabayKeyInput('');
+      toast.success('Chaves de API salvas globalmente.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar chaves');
+    } finally {
+      setSavingApiKeys(false);
+    }
+  };
+
+    const handleSaveAiSettings = async () => {
+
+    setSavingAiSettings(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl('/api/ai/settings'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({
+
+          provider: aiProvider,
+
+          gemini_model: geminiModel,
+
+          gemini_keys: geminiKeysInput,
+
+          xai_key: xaiKeyInput,
+
+          openrouter_key: openrouterKeyInput,
+
+          gemini_browser_mode: geminiBrowserMode,
+})
+
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+
+        setGeminiKeyCount(data.gemini_key_count || 0);
+
+        if (data.gemini_model) setGeminiModel(data.gemini_model);
+
+        if (Array.isArray(data.gemini_model_options) && data.gemini_model_options.length > 0) {
+          setGeminiModelOptions(data.gemini_model_options);
+        }
+
+        setHasXaiKey(!!data.has_xai_key);
+
+        setHasOpenRouterKey(!!data.has_openrouter_key);
+
+        setHasEpidemicKey(!!data.has_epidemic_key);
+
+        setGeminiBrowserMode(!!data.gemini_browser_mode);
+
+        setHasApiKey(
+          !!data.gemini_browser_mode
+          || (data.gemini_key_count || 0) > 0
+          || !!data.has_xai_key
+          || data.provider === 'openrouter'
+          || !!data.has_openrouter_key,
+        );
+
+        setGeminiKeysInput('');
+
+        setXaiKeyInput('');
+
+        setOpenRouterKeyInput('');
+
+        setEpidemicKeyInput('');
+
+        toast.success('Configurações de IA salvas com sucesso!');
+
+      } else {
+
+        toast.error(data.error || 'Erro ao salvar configurações.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao salvar configurações.');
+
+    } finally {
+
+      setSavingAiSettings(false);
+
+    }
+
   };
 
   // Parse and execute lumiera-action blocks from AI responses
@@ -2353,17 +5065,13 @@ REGRAS:
 
       // Execute on backend
 
-      const res = await fetch(getProjectUrl('/api/ai/execute-action'), {
-
+      const { ok, data } = await postAi('/api/ai/execute-action', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ actions: parsed.actions })
-
+        body: JSON.stringify({ actions: parsed.actions }),
       });
 
-      if (res.ok) {
+      if (ok && !data.needs_browser) {
 
         // Handle frontend-only actions
 
@@ -2393,6 +5101,23 @@ REGRAS:
 
             fetchData(); // Refresh config from server
 
+          }
+
+          if (
+            action.type === 'trigger_sync' ||
+            action.type === 'trigger_auto_map' ||
+            action.type === 'trigger_stock_fetch' ||
+            action.type === 'trigger_tts' ||
+            action.type === 'trigger_publish_prep' ||
+            action.type === 'trigger_apply_bgm' ||
+            action.type === 'run_pipeline_step'
+          ) {
+            fetchData();
+            if (action.type === 'trigger_tts') setUploadSuccess(true);
+            if (action.type === 'trigger_publish_prep') {
+              fetchYoutubeMetadataCache();
+              fetchYoutubeThumbnailImages();
+            }
           }
 
         }
@@ -2427,31 +5152,25 @@ REGRAS:
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/chat'), {
-
+      const { ok, data } = await postAi('/api/ai/chat', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ messages: updatedMessages })
-
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (ok && data.text) {
 
         const aiText = data.text;
-
-        // Strip action block from displayed text
 
         const displayText = aiText.replace(/```lumiera-action[\s\S]*?```/g, '').trim();
 
         setChatMessages(prev => [...prev, { role: 'assistant', content: displayText || aiText }]);
 
-        // Execute any actions
-
         executeAgentActions(aiText);
+
+      } else if (ok) {
+
+        setChatMessages(prev => [...prev, { role: 'assistant', content: '[Erro] Resposta vazia do Gemini.' }]);
 
       } else {
 
@@ -2461,7 +5180,10 @@ REGRAS:
 
     } catch (err) {
 
-      setChatMessages(prev => [...prev, { role: 'assistant', content: `[Erro] Conexão com o servidor falhou.` }]);
+      const msg = err instanceof Error && err.message.includes('cancelado')
+        ? '[Cancelado] Gemini no navegador.'
+        : '[Erro] Conexão com o servidor falhou.';
+      setChatMessages(prev => [...prev, { role: 'assistant', content: msg }]);
 
     } finally {
 
@@ -2473,119 +5195,542 @@ REGRAS:
 
   // Generate YouTube Metadata
 
-  const handleGenerateYoutubeMetadata = async () => {
+  const generateYoutubeMetadata = async (options?: { silent?: boolean; keepExistingOnError?: boolean }) => {
+    if (youtubeLoading) return false;
 
     setYoutubeLoading(true);
-
-    setYoutubeMetadata('');
-
-    const scriptText = generatedScriptData?.narrative_script || creatorScript || "";
-
-    const fallbackPrompt = `Você é um especialista em SEO para YouTube, psicologia de cliques e crescimento de canais. Seu objetivo é MAXIMIZAR a taxa de clique (CTR) e o engajamento nos comentários.
-
-Analise o roteiro e as informações abaixo para gerar metadados otimizados em PORTUGUÊS DO BRASIL:
-
-Roteiro do Vídeo:
-${scriptText}
-
-FORMATO DE SAÍDA OBRIGATÓRIO (use exatamente estes headers em Markdown):
-
-## TÍTULOS
-(liste 5 títulos numerados focados em curiosidade/CTR, máx 60 caracteres)
-
-## DESCRIÇÃO
-(descrição pronta para copiar e colar com as duas primeiras linhas de impacto, palavras-chave e hashtags)
-
-## TAGS
-(15 tags relevantes separadas por vírgula)
-
-## COMENTÁRIO PINADO
-(comentário engajante com pergunta para gerar debate)
-
-## CAPÍTULOS
-(sugira capítulos com base no roteiro)`;
-
-    try {
-
-      const data = await callAIEngine(
-        '/api/ai/optimize-youtube',
-        { script: scriptText },
-        fallbackPrompt
-      );
-
-      setYoutubeMetadata(data.text);
-
-    } catch (err: any) {
-
-      setYoutubeMetadata(`[Erro] ${err.message || 'Falha ao gerar metadados.'}`);
-
-    } finally {
-
-      setYoutubeLoading(false);
-
+    if (!options?.keepExistingOnError) {
+      setYoutubeMetadata('');
+      setYoutubeMetadataFormat('');
+      setYoutubeMetadataParsed(null);
+      setYoutubeMetadataStrategy(null);
     }
 
+    try {
+      const useGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+      const { ok, data } = await postAi('/api/ai/optimize-youtube', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ require_browser: useGeminiChrome }),
+      });
+
+      if (ok && !data.needs_browser && data.text) {
+        const provider = (data as { provider?: string }).provider;
+        const parsedMeta = data.parsed as {
+          description?: string;
+          tags?: string;
+          hashtags?: string;
+          pinnedComment?: string;
+          titles?: { text: string }[];
+        } | null;
+        const hasCompleteSections = (parsedMeta?.description?.length ?? 0) >= 50
+          && ((parsedMeta?.tags?.length ?? 0) >= 8 || (parsedMeta?.hashtags?.length ?? 0) >= 3);
+        const hasRealMetadata = hasCompleteSections
+          || (!useGeminiChrome && (
+            /\d+\.\s+.{12,}/m.test(data.text)
+            || /Variante\s+[ABC]\s*[—–\-]/i.test(data.text)
+            || ((parsedMeta?.titles?.length ?? 0) >= 1 && !/máx 5 palavras/i.test(data.text))
+          ));
+        if (/LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(data.text)) {
+          const errMsg = 'Capturou o prompt em vez da resposta do Gemini. Tente de novo.';
+          if (!options?.keepExistingOnError) setYoutubeMetadata(`[Erro] ${errMsg}`);
+          if (!options?.silent) toast.error(errMsg);
+          return false;
+        }
+        if (useGeminiChrome && ((data as { fallback?: boolean }).fallback || !hasRealMetadata)) {
+          const errMsg = 'Gemini no Chrome não concluiu — resposta genérica ou incompleta ignorada. Tente de novo.';
+          if (!options?.keepExistingOnError) {
+            setYoutubeMetadata(`[Erro] ${errMsg}`);
+          }
+          if (!options?.silent) toast.error(errMsg);
+          return false;
+        }
+        if (useGeminiChrome && provider && provider !== 'gemini_browser') {
+          const errMsg = 'Metadados não vieram do Gemini no Chrome. Tente de novo.';
+          if (!options?.keepExistingOnError) setYoutubeMetadata(`[Erro] ${errMsg}`);
+          if (!options?.silent) toast.error(errMsg);
+          return false;
+        }
+
+        setYoutubeMetadata(data.text);
+        setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
+        setYoutubeMetadataParsed(data.parsed || null);
+        setYoutubeMetadataStrategy({
+          profileLabel: data.profile?.label,
+          rpm: data.rpm,
+          palette: data.palette,
+        });
+        fetchYoutubeThumbnailImages();
+
+        if (data.warning) toast(data.warning);
+        if (!options?.silent) toast.success('Metadados do vídeo gerados pela IA.');
+        return true;
+      }
+
+      const details = data.details ? `\n\n${data.details}` : '';
+      const stale = (data as { staleResponse?: boolean }).staleResponse;
+      const errMsg = data.error
+        || (stale
+          ? 'Gemini ainda está gerando metadados — aguarde na aba gemini.google.com e tente de novo.'
+          : useGeminiChrome
+            ? 'Gemini no Chrome não respondeu. Deixe gemini.google.com aberto e tente de novo.'
+            : 'Falha ao gerar metadados do YouTube.');
+      if (!options?.keepExistingOnError) {
+        setYoutubeMetadata(`[Erro] ${errMsg}${details}`);
+      }
+      if (!options?.silent) toast.error(errMsg);
+      return false;
+    } catch {
+      if (!options?.keepExistingOnError) {
+        setYoutubeMetadata('[Erro] Falha na conexão com o servidor.');
+      }
+      if (!options?.silent) toast.error('Falha na conexão ao gerar metadados.');
+      return false;
+    } finally {
+      setYoutubeLoading(false);
+    }
+  };
+
+  const handleGenerateYoutubeMetadata = () => { void generateYoutubeMetadata(); };
+
+  const fetchYoutubeThumbnailImages = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/youtube-thumbnails'));
+      if (res.ok) {
+        const data = await res.json();
+        setYoutubeThumbnailsGenerated(data.thumbnails || []);
+      }
+    } catch {
+      setYoutubeThumbnailsGenerated([]);
+    }
+  };
+
+  const fetchTitleExperiment = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment'));
+      if (res.ok) {
+        const data = await res.json();
+        setTitleExperiment(data.experiment || null);
+        if (data.videoId) setTitleExperimentVideoId(data.videoId);
+      }
+    } catch {
+      setTitleExperiment(null);
+    }
+  };
+
+  const fetchTitleExperimentAnalytics = async () => {
+    setTitleExperimentLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment/analytics'));
+      if (res.ok) {
+        const data = await res.json();
+        setTitleExperiment(data.experiment || null);
+        setTitleExperimentAnalytics(data.analytics || null);
+        setTitleExperimentRankings(data.rankings || []);
+        setTitleExperimentWinner(data.winner || null);
+        if (data.experiment?.videoId) setTitleExperimentVideoId(data.experiment.videoId);
+      } else {
+        const err = await res.json();
+        toast(err.hint || err.details || err.error || 'Falha ao buscar analytics.');
+        if (err.needsReauth) fetchUploadStatus();
+      }
+      const retRes = await fetch(getProjectUrl('/api/youtube/title-experiment/retention'));
+      if (retRes.ok) setTitleRetention(await retRes.json());
+      const thumbRes = await fetch(getProjectUrl('/api/youtube/thumbnail-experiment/analytics'));
+      if (thumbRes.ok) {
+        const thumbData = await thumbRes.json();
+        setThumbnailExperiment(thumbData.experiment || null);
+      }
+    } catch {
+      toast('Erro de conexão ao buscar analytics do YouTube.');
+    } finally {
+      setTitleExperimentLoading(false);
+    }
+  };
+
+  const applyMetadataToUpload = async () => {
+    const parsed = youtubeMetadataParsed;
+    if (!parsed) {
+      toast('Gere os metadados antes de aplicar.');
+      return;
+    }
+    try {
+      const adaptRes = await fetch(getProjectUrl('/api/ai/adapt-platform-metadata'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parsed, format: youtubeMetadataFormat || 'LONG' }),
+      });
+      const adapted = adaptRes.ok ? (await adaptRes.json()).adapted : null;
+      const yt = adapted?.youtube || {};
+      const title = yt.title || parsed.recommendedTitle || parsed.titles?.[0]?.text || '';
+      setYtTitle(title.slice(0, 100));
+      setYtDescription(yt.description || parsed.description || '');
+      setYtTags(Array.isArray(yt.tags) ? yt.tags.join(', ') : (parsed.tags || ''));
+      setYtChapters(yt.chapters || parsed.chapters || '');
+      setYtPinnedComment(yt.pinned_comment || parsed.pinnedComment || '');
+      setYtCategoryId(yt.category_id || (youtubeMetadataFormat === 'SHORT' ? '22' : '27'));
+      if (adapted?.instagram?.title) setIgCaption(adapted.instagram.title);
+      if (adapted?.tiktok?.title) setTtCaption(adapted.tiktok.title);
+      if (adapted?.kwai?.title) setKwCaption(adapted.kwai.title);
+      toast('Metadados completos aplicados (YouTube + redes).');
+    } catch {
+      toast('Erro ao adaptar metadados.');
+    }
+  };
+
+  const handlePostUploadComplete = async (videoId?: string) => {
+    if (!videoId) return;
+    setTitleExperimentVideoId(videoId);
+    try {
+      const res = await fetch(getProjectUrl('/api/upload/post-upload'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, autoStartTitleTest: true, postPinned: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.titleTestStarted) toast('Teste A/B de títulos iniciado automaticamente.');
+        if (data.pinnedComment?.success) toast('Comentário fixo publicado.');
+        fetchTitleExperiment();
+        fetchTitleExperimentAnalytics();
+      }
+    } catch {
+      // optional hook
+    }
+  };
+
+  const handleGenerateCanvaThumbnails = async () => {
+    let thumbnails = youtubeMetadataParsed?.thumbnails || [];
+    let format = youtubeMetadataFormat || undefined;
+    let palette = youtubeMetadataStrategy?.palette || [];
+    let metadataText = youtubeMetadata || '';
+
+    if (!thumbnails.length && metadataText && !metadataText.startsWith('[Erro]')) {
+      try {
+        const cacheRes = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+        if (cacheRes.ok) {
+          const cache = await cacheRes.json();
+          thumbnails = cache?.parsed?.thumbnails || thumbnails;
+          format = format || cache?.format;
+          palette = palette.length ? palette : (cache?.palette || []);
+          metadataText = cache?.text || metadataText;
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (!thumbnails.length && !youtubeMetadataParsed?.titles?.length) {
+      toast('Passo 1: gere os metadados antes de usar o Canva.');
+      return;
+    }
+
+    if (!uploadStatus.canva?.connected) {
+      toast('Conecte o Canva em Configurações → Integrações.');
+      return;
+    }
+
+    setCanvaThumbnailsLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/generate-canva-thumbnails'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thumbnails,
+          format,
+          palette,
+          metadataText: metadataText && !metadataText.startsWith('[Erro]') ? metadataText : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setYoutubeThumbnailsGenerated(data.thumbnails || []);
+        toast(`${data.thumbnails?.length || 0} capas geradas no Canva e salvas no projeto.`);
+      } else {
+        toast(data.details ? `${data.error}: ${data.details}` : (data.error || 'Falha ao gerar no Canva.'));
+      }
+    } catch {
+      toast('Erro de conexão ao gerar capas no Canva.');
+    } finally {
+      setCanvaThumbnailsLoading(false);
+    }
+  };
+
+  const handleStartTitleExperiment = async () => {
+    const selectedTitles = (youtubeMetadataParsed?.titles || [])
+      .filter((_, idx) => titleAbSelected[String(idx)] !== false)
+      .slice(0, 5);
+    const fallbackTitles = youtubeMetadataParsed?.titles?.slice(0, 3) || [];
+    const titles = selectedTitles.length >= 2 ? selectedTitles : fallbackTitles;
+
+    if (titles.length < 2) {
+      toast('Marque pelo menos 2 títulos para o teste A/B.');
+      return;
+    }
+
+    const videoId = titleExperimentVideoId.trim();
+    if (!videoId) {
+      toast('Informe o videoId do YouTube (aparece após publicar).');
+      return;
+    }
+
+    setTitleExperimentLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment/start'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, titles }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTitleExperiment(data.experiment || null);
+        toast('Teste A/B de títulos iniciado.');
+        fetchTitleExperimentAnalytics();
+      } else {
+        toast(data.error || 'Falha ao iniciar teste A/B.');
+      }
+    } catch {
+      toast('Erro ao iniciar teste A/B de títulos.');
+    } finally {
+      setTitleExperimentLoading(false);
+    }
+  };
+
+  const handleRelinkYoutube = async () => {
+    await fetch('/api/upload/youtube/reset-auth', { method: 'POST' });
+    const res = await fetch('/api/upload/youtube/auth-url');
+    if (res.ok) {
+      const data = await res.json();
+      window.open(data.url, '_blank');
+      toast('Autorize TODAS as permissões (upload + editar vídeos + analytics).');
+      fetchUploadStatus();
+    } else {
+      toast('Falha ao abrir autorização do YouTube.');
+    }
+  };
+
+  const handleApplyTitleVariant = async (variantId: string) => {
+    setTitleExperimentLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/youtube/title-experiment/apply'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTitleExperiment(data.experiment || null);
+        if (data.appliedTitle) setYtTitle(data.appliedTitle.slice(0, 100));
+        toast(`Título variante ${variantId} aplicado no YouTube.`);
+        fetchTitleExperimentAnalytics();
+      } else {
+        toast(data.hint || data.details || data.error || 'Falha ao aplicar título.');
+        if (data.needsReauth) fetchUploadStatus();
+      }
+    } catch {
+      toast('Erro ao aplicar título no YouTube.');
+    } finally {
+      setTitleExperimentLoading(false);
+    }
+  };
+
+  const fetchYoutubeMetadataCache = async () => {
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.cached) return;
+      if (data.text && /LUMIERA_TASK:|PRIORIDADE ABSOLUTA|--- INÍCIO DO ROTEIRO ---/i.test(data.text)) return;
+      if (data.text) setYoutubeMetadata(normalizeYoutubeMetadataDisplay(data.text));
+      setYoutubeMetadataFormat(data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '');
+      setYoutubeMetadataParsed(data.parsed || null);
+      setYoutubeMetadataStrategy({
+        profileLabel: data.profile?.label,
+        rpm: data.rpm,
+        palette: data.palette,
+      });
+    } catch {
+      // ignore cache load errors
+    }
+  };
+
+  const buildThumbnailBrief = (thumb: {
+    id: string;
+    label?: string;
+    overlayText?: string;
+    pairedTitle?: string;
+    composition?: string;
+    focalElement?: string;
+    colors?: string[];
+  }) => [
+    `Variante ${thumb.id} — ${thumb.label || 'Thumbnail YouTube'}`,
+    thumb.overlayText ? `Texto na capa: ${thumb.overlayText}` : '',
+    thumb.pairedTitle ? `Título pareado: ${thumb.pairedTitle}` : '',
+    thumb.composition ? `Composição: ${thumb.composition}` : '',
+    thumb.focalElement ? `Foco visual: ${thumb.focalElement}` : '',
+    thumb.colors?.length ? `Paleta: ${thumb.colors.join(', ')}` : '',
+    youtubeMetadataStrategy?.profileLabel ? `Perfil: ${youtubeMetadataStrategy.profileLabel}` : '',
+    youtubeMetadataFormat ? `Formato: ${youtubeMetadataFormat === 'SHORT' ? '9:16 Shorts' : '16:9 Longo'}` : '',
+  ].filter(Boolean).join('\n');
+
+  const resolveCanvaCreateUrl = (format: 'SHORT' | 'LONG' | '' = '') => {
+    if (format === 'SHORT') {
+      return 'https://www.canva.com/create/instagram-stories/';
+    }
+    return 'https://www.canva.com/create/youtube-thumbnails/';
+  };
+
+  const openCanvaThumbnailDesigner = async (thumb?: {
+    id: string;
+    label?: string;
+    overlayText?: string;
+    pairedTitle?: string;
+    composition?: string;
+    focalElement?: string;
+    colors?: string[];
+  }) => {
+    const brief = thumb
+      ? buildThumbnailBrief(thumb)
+      : 'YouTube thumbnail — alto CTR, texto curto na capa, contraste forte';
+    await copyToClipboard(brief, thumb ? `canva-${thumb.id}` : 'canva-thumb');
+    const isShort = youtubeMetadataFormat === 'SHORT';
+    const canvaUrl = resolveCanvaCreateUrl(youtubeMetadataFormat);
+    window.open(canvaUrl, '_blank', 'noopener,noreferrer');
+    toast(
+      isShort
+        ? 'Briefing copiado. Abrindo Canva (Stories 9:16 — ideal para Shorts).'
+        : 'Briefing copiado. Abrindo Canva (Thumbnail YouTube 16:9).'
+    );
+  };
+
+  const selectThumbnailForUpload = async (generated: { id: string; fileName?: string; url: string }) => {
+    const thumbnailPath = generated.fileName ? `ASSETS/${generated.fileName}` : '';
+    if (!thumbnailPath) {
+      toast('Caminho da thumbnail inválido.');
+      return;
+    }
+    setYtThumbnailPath(thumbnailPath);
+    setYtThumbnailVariant(generated.id);
+    try {
+      const res = await fetch(getProjectUrl('/api/config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          upload_metadata: {
+            youtube: {
+              title: ytTitle.trim(),
+              description: ytDescription.trim(),
+              privacy: ytPrivacy,
+              thumbnail: thumbnailPath,
+              thumbnail_variant: generated.id,
+            },
+            instagram: { title: igCaption.trim() },
+            tiktok: { title: ttCaption.trim() },
+            kwai: { title: kwCaption.trim() },
+          },
+        }),
+      });
+      if (res.ok) toast(`Thumbnail variante ${generated.id} selecionada para o upload do YouTube.`);
+      else toast('Falha ao salvar thumbnail no projeto.');
+    } catch {
+      toast('Erro ao salvar thumbnail.');
+    }
+  };
+
+  const handleGenerateYoutubeThumbnailImages = async () => {
+    let thumbnails = youtubeMetadataParsed?.thumbnails || [];
+    let format = youtubeMetadataFormat || undefined;
+    let palette = youtubeMetadataStrategy?.palette || [];
+    let metadataText = youtubeMetadata || '';
+
+    if (!thumbnails.length && metadataText && !metadataText.startsWith('[Erro]')) {
+      try {
+        const cacheRes = await fetch(getProjectUrl('/api/ai/youtube-metadata-cache'));
+        if (cacheRes.ok) {
+          const cache = await cacheRes.json();
+          thumbnails = cache?.parsed?.thumbnails || thumbnails;
+          format = format || cache?.format;
+          palette = palette.length ? palette : (cache?.palette || []);
+          metadataText = cache?.text || metadataText;
+          if (cache?.parsed) setYoutubeMetadataParsed(cache.parsed);
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (!thumbnails.length && !youtubeMetadataParsed?.titles?.length) {
+      toast('Passo 1: clique em "Gerar Metadados" antes de gerar as thumbnails.');
+      return;
+    }
+
+    setYoutubeThumbnailsLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/ai/generate-youtube-thumbnails'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thumbnails,
+          format,
+          palette,
+          metadataText: metadataText && !metadataText.startsWith('[Erro]') ? metadataText : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setYoutubeThumbnailsGenerated(data.thumbnails || []);
+        if (data.parsed?.thumbnails?.length) {
+          setYoutubeMetadataParsed((prev) => ({ ...(prev || {}), thumbnails: data.parsed.thumbnails }));
+        }
+        toast(`${data.thumbnails?.length || 0} thumbnails geradas com sucesso.`);
+      } else {
+        toast(data.details ? `${data.error}: ${data.details}` : (data.error || 'Falha ao gerar thumbnails.'));
+      }
+    } catch {
+      toast('Erro de conexão ao gerar thumbnails. Reinicie o servidor do dashboard se acabou de atualizar.');
+    } finally {
+      setYoutubeThumbnailsLoading(false);
+    }
   };
 
   // AI BGM Suggestion
+
   const [suggestingBGM, setSuggestingBGM] = useState<boolean>(false);
 
+  const [bgmSuggestions, setBgmSuggestions] = useState<{ mode?: string; recommendation?: string; search_theme?: string; suggestions?: { block: number; recommendation: string; reason?: string; search_theme?: string }[]; manual_note?: string } | null>(null);
+
   const handleSuggestBGM = async () => {
-    if (!config) return;
+
+    if (!hasApiKey || !config) return;
+
     setSuggestingBGM(true);
-    
-    const format = formatSelector || 'LONGO';
-    const musicListStr = musicFiles.map((f, i) => `${i + 1}. "${f.name}"`).join("\n");
-    const blocksDesc = ((config as any).blocks || []).map((b: any, idx: number) => `Bloco ${idx + 1}: ${b.narrative_text || ''}`).join("\n");
-
-    const fallbackPrompt = format === 'SHORTS'
-      ? `Você é um editor de vídeo especialista em trilha sonora para vídeos curtos. Analise o roteiro do vídeo abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
-
-Arquivos de música disponíveis:
-${musicListStr}
-
-Roteiro:
-${blocksDesc}
-
-Responda APENAS com um JSON válido no formato:
-{"file": "nome_exato_do_arquivo.mp3", "reason": "explicação breve de por que esta trilha combina"}`
-      : `Você é um editor de vídeo especialista em trilha sonora para documentários. Analise o tom emocional de cada bloco do roteiro e sugira a melhor trilha sonora para CADA bloco.
-
-Arquivos de música disponíveis:
-${musicListStr}
-
-Resumo por bloco:
-${blocksDesc}
-
-Regras:
-- O mesmo arquivo pode ser usado em múltiplos blocos se for adequado
-- Priorize transições suaves entre blocos adjacentes
-- Escolha trilhas que amplificam a emoção do texto narrado
-
-Responda APENAS com um JSON válido no formato:
-{"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
 
     try {
-      const data = await callAIEngine(
-        '/api/ai/suggest-bgm',
-        { mode: format, expectJson: true },
-        fallbackPrompt
-      );
 
-      if (format === 'SHORTS' && data.file) {
-        setAiBgmSuggestions([{ block: 1, file: data.file, reason: data.reason || '' }]);
-        toast.success(`🎵 IA sugeriu a trilha: ${data.file}! Veja abaixo para aplicar.`);
-      } else if (data.suggestions && Array.isArray(data.suggestions)) {
-        setAiBgmSuggestions(data.suggestions);
-        toast.success(`🎵 IA sugeriu trilhas para ${data.suggestions.length} blocos! Veja e aplique abaixo.`);
+      const { ok, data } = await postAi('/api/ai/suggest-bgm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: formatSelector }),
+      });
+
+      if (ok && !data.needs_browser) {
+
+        setBgmSuggestions(data);
+
+        toast.success('✨ Sugestões de BGM geradas! Veja abaixo de cada bloco.', { duration: 3000 });
+
       } else {
-        toast.error('Resposta da IA não contém sugestões válidas.');
+
+        toast.error(data.error || 'Erro ao sugerir BGM.');
+
       }
-    } catch (err: any) {
-      toast.error('Erro ao sugerir BGM: ' + err.message);
+
+    } catch (err) {
+
+      toast.error('Falha na conexão ao sugerir BGM.');
+
     } finally {
+
       setSuggestingBGM(false);
+
     }
+
   };
 
   // Generate Script & Alignment config using Gemini
@@ -2600,19 +5745,13 @@ Responda APENAS com um JSON válido no formato:
 
     try {
 
-      const res = await fetch(getProjectUrl('/api/ai/generate-creator-script'), {
-
+      const { ok, data } = await postAi('/api/ai/generate-creator-script', {
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
-        body: JSON.stringify({ prompt: creatorPrompt })
-
+        body: JSON.stringify({ prompt: creatorPrompt, useNotebooklm }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (ok && data.script) {
 
         setCreatorScript(data.script);
 
@@ -2642,192 +5781,539 @@ Responda APENAS com um JSON válido no formato:
 
   // SCRIPT MASTER: Generate 10 ideas
 
+  const fetchNotebooklmStatus = async () => {
+    try {
+      const res = await fetch('/api/notebooklm/status');
+      if (res.ok) {
+        setNotebooklmStatus(await res.json());
+      }
+    } catch {
+      setNotebooklmStatus({
+        available: false,
+        authenticated: false,
+        message: 'NotebookLM indisponível',
+        needsLogin: true,
+      });
+    }
+  };
+
+  const handleNotebooklmImprove = async () => {
+    if (!activeProject || !storyboardData) {
+      toast.error('Selecione um projeto com roteiro primeiro.');
+      return;
+    }
+    const narrative = String(storyboardData.narrative_script || '').trim();
+    if (narrative.length < 80) {
+      toast.error('O roteiro precisa ter narração antes de enriquecer.');
+      return;
+    }
+    setNotebooklmImproving(true);
+    try {
+      const { ok, data } = await postAi('/api/notebooklm/improve-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useNotebooklm }),
+      });
+      if (ok && data.storyboard) {
+        setStoryboardData(data.storyboard);
+        if (data.suggestions) setNotebooklmSuggestions(data.suggestions);
+        toast.success(
+          notebooklmStatus?.authenticated
+            ? 'Roteiro enriquecido com pesquisa NotebookLM!'
+            : 'Roteiro melhorado — execute `nlm login` no terminal para pesquisa real.',
+        );
+      } else {
+        toast.error(data.error || 'Falha ao enriquecer roteiro.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Conexão falhou ao enriquecer roteiro.');
+    } finally {
+      setNotebooklmImproving(false);
+    }
+  };
+
+  const handleNotebooklmImproveNarrationDraft = async () => {
+    const draft = narrationDraft.trim();
+    if (draft.length < 40) {
+      toast.error('A narração precisa ter ao menos 40 caracteres para melhorar.');
+      return;
+    }
+    setNotebooklmImproving(true);
+    try {
+      const selectedIdea = ideationTab === 'listicle'
+        ? listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex]
+        : ideationTab === 'custom'
+          ? { title: customTitle.trim() }
+          : selectedIdeaIndex === 999
+            ? { title: customIdeaTitle }
+            : (ideasData?.ideas || [])[selectedIdeaIndex];
+
+      const niche = ideationTab === 'listicle'
+        ? (listNiche.trim() || listTopic.trim())
+        : ideationTab === 'custom'
+          ? 'Customized'
+          : nicheInput.trim();
+
+      const blockCount = narrationBlockPhrases.length || (formatSelector === 'SHORTS' ? 5 : 12);
+
+      const { ok, data } = await postAi('/api/notebooklm/improve-narration-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          narrativeScript: draft,
+          narrativeScriptTagged: narrationTaggedDraft.trim() || undefined,
+          niche,
+          format: formatSelector,
+          blockCount,
+          useNotebooklm,
+          ideaTitle: selectedIdea?.title || niche,
+          isListicle: ideationTab === 'listicle',
+          listicleRank: ideationTab === 'listicle' ? rankCount : undefined,
+        }),
+      });
+
+      if (ok && !data.needs_browser) {
+        if (data.narrative_script) setNarrationDraft(data.narrative_script);
+        if (data.narrative_script_tagged) setNarrationTaggedDraft(data.narrative_script_tagged);
+        if (data.strategy) setNarrationStrategy(data.strategy);
+        if (data.technical_config?.block_phrases) {
+          setNarrationBlockPhrases(data.technical_config.block_phrases);
+        }
+        if (data.technical_config?.script) {
+          const scriptBlocks = data.technical_config.script;
+          setNarrationBlockScript(
+            typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+          );
+        }
+        setNarrationNotebooklmEnriched(true);
+        toast.success(
+          data.notebooklm_enriched
+            ? 'Narração melhorada com pesquisa NotebookLM!'
+            : 'Narração melhorada (sem pesquisa NotebookLM — melhorias de clareza e retenção aplicadas).',
+        );
+      } else {
+        toast.error(data.error || 'Erro ao melhorar narração.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Conexão falhou ao melhorar narração.');
+    } finally {
+      setNotebooklmImproving(false);
+    }
+  };
+
   const handleGenerateIdeas = async () => {
+
     if (!nicheInput.trim()) return;
+
     setCreatorLoading(true);
+
     setIdeasData(null);
+
     setSelectedIdeaIndex(-1);
 
-    const niche = nicheInput.trim();
-    const format = formatSelector || 'LONGO';
-
-    const prompt = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
-Analise de forma rápida e estratégica o nicho "${niche}" e crie 10 ideias de vídeo virais exclusivas para o formato: ${format}.
-
-Retorne estritamente um JSON no formato abaixo, sem tags de markdown ou texto extra:
-{
-  "diagnostic": {
-    "looking_for": "O que as pessoas estão procurando nesse nicho agora",
-    "pain_points": "Principais dores desse público",
-    "desires": "Desejos que movem o público",
-    "retention_fears": "Medos ou dúvidas que geram retenção",
-    "comment_hooks": "Curiosidades ou polêmicas que geram comentários",
-    "title_style": "Que tipo de título teria mais chance de clique",
-    "core_emotion": "Emoção principal a ser ativada",
-    "retention_topics": "Tópicos com maior potencial de retenção",
-    "strong_angle": "Qual o ângulo mais forte para o vídeo"
-  },
-  "ideas": [
-    {
-      "title": "Título provisório instigante",
-      "promise": "Promessa clara do vídeo",
-      "emotion": "Emoção dominante",
-      "why_works": "Por que esse vídeo pode funcionar",
-      "best_format": "${format}"
-    }
-  ],
-  "best_idea_index": 0,
-  "best_idea_reason": "Explicação detalhada de por que esta é a melhor ideia"
-}
-
-Regras:
-- O campo "best_idea_index" deve indicar o índice da melhor ideia (entre 0 e 9).
-- Todos os títulos e textos devem ser em PORTUGUÊS DO BRASIL.
-- O JSON deve ser perfeitamente parseável.`;
-
     try {
-      const data = await callAIEngine(
-        '/api/ai/creator/ideas',
-        { niche, format, expectJson: true },
-        prompt
+
+      if (geminiBrowserMode && aiProvider === 'gemini') {
+        toast.loading('Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
+      }
+
+      const body = JSON.stringify({
+        niche: nicheInput.trim(),
+        format: formatSelector,
+        useNotebooklm,
+        ...(ideationTab === 'listicle' ? {
+          contentMode: 'LISTICLE',
+          rankCount,
+          rankOrder,
+          listTopic: listTopic.trim() || nicheInput.trim(),
+        } : {}),
+      });
+
+      const { ok, data } = await postAi('/api/ai/creator/ideas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
+
+      toast.dismiss('gemini-ideas');
+
+      if (ok && data.ideas) {
+
+        setIdeasData(data);
+        setIdeasSearchNiche(nicheInput.trim());
+
+        setSelectedIdeaIndex(data.best_idea_index);
+
+        // Auto-fill project name from best idea title (short 3-word summary)
+
+        const bestTitle = data.ideas[data.best_idea_index]?.title || '';
+
+        const stopWords = ['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','no','na','nos','nas','em','por','para','com','e','que','se','ou','ao','à','pelo','pela','pelos','pelas','entre','sobre','sob','até','como','mais','menos','muito','tudo','isso','este','esta','esse','essa','qual','quais'];
+
+        const shortName = bestTitle
+
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+
+          .split(/\s+/)
+
+          .filter(w => w.length > 1 && !stopWords.includes(w.toLowerCase()))
+
+          .slice(0, 3)
+
+          .join('_');
+
+        setCreatorProjectName(shortName);
+
+      } else {
+        const errMsg = data.error || 'Erro desconhecido';
+        toast.error(
+          errMsg.includes('extensão') || errMsg.includes('Extensão') || errMsg.includes('Gemini')
+            ? `${errMsg} Abra gemini.google.com, recarregue o dashboard (F5) e tente de novo.`
+            : `Erro ao analisar o nicho: ${errMsg}`,
+          { duration: 7000 },
+        );
+      }
+
+    } catch (err: any) {
+
+      console.error(err);
+
+      const msg = err?.message || 'Conexão falhou ao analisar o nicho.';
+      toast.error(
+        msg.includes('Extensão') || msg.includes('extensão') || msg.includes('Gemini')
+          ? `${msg} Verifique gemini.google.com e recarregue o dashboard (F5).`
+          : msg,
+        { duration: 7000 },
       );
 
-      setIdeasData(data);
-      setSelectedIdeaIndex(data.best_idea_index);
+    } finally {
 
-      // Auto-fill project name from best idea title (short 3-word summary)
-      const bestTitle = data.ideas[data.best_idea_index]?.title || '';
-      const stopWords = ['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','no','na','nos','nas','em','por','para','com','e','que','se','ou','ao','à','pelo','pela','pelos','pelas','entre','sobre','sob','até','como','mais','menos','muito','tudo','isso','este','esta','esse','essa','qual','quais'];
-      const shortName = bestTitle
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9\s]/g, '')
-        .split(/\s+/)
-        .filter(w => w.length > 1 && !stopWords.includes(w.toLowerCase()))
-        .slice(0, 3)
-        .join('_');
+      setCreatorLoading(false);
 
-      setCreatorProjectName(shortName);
+    }
+
+  };
+
+  // SCRIPT MASTER: Generate Strategy and full narrative script
+
+  const handleSuggestListicleRankings = async () => {
+    if (!listNiche.trim()) {
+      toast.error('Informe o nicho primeiro (ex: história militar, tecnologia).');
+      return;
+    }
+    setCreatorLoading(true);
+    setListicleIdeasData(null);
+    setSelectedListicleIdeaIndex(-1);
+    setNicheInput(listNiche.trim());
+
+    try {
+      if (geminiBrowserMode && aiProvider === 'gemini') {
+        toast.loading('Sugerindo rankings via Gemini no navegador…', { id: 'gemini-listicle' });
+      }
+
+      const body = JSON.stringify({ niche: listNiche.trim(), format: formatSelector, useNotebooklm });
+      const { ok, data } = await postAi('/api/ai/creator/listicle-ideas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      });
+
+      toast.dismiss('gemini-listicle');
+
+      const ideas = data.ranking_ideas || data.rankings || data.ideas || [];
+      if (ok && Array.isArray(ideas) && ideas.length > 0) {
+        const normalized = {
+          ...data,
+          ranking_ideas: ideas,
+          best_index: data.best_index ?? 0,
+        };
+        setListicleIdeasData(normalized);
+        setListicleSearchNiche(listNiche.trim());
+        const best = normalized.best_index ?? 0;
+        setSelectedListicleIdeaIndex(best);
+        const pick = ideas[best];
+        if (pick) {
+          if (pick.list_topic) setListTopic(pick.list_topic);
+          const resolvedFormat = (pick.best_format === 'SHORTS' || pick.best_format === 'LONGO')
+            ? pick.best_format
+            : formatSelector;
+          if (pick.best_format === 'SHORTS' || pick.best_format === 'LONGO') setFormatSelector(pick.best_format);
+          if (pick.suggested_rank_count) {
+            setRankCount(resolvedFormat === 'SHORTS'
+              ? (pick.suggested_rank_count === 5 ? 5 : 3)
+              : pick.suggested_rank_count);
+          }
+          if (pick.title) {
+            const shortName = pick.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter((w: string) => w.length > 1).slice(0, 4).join('_');
+            setCreatorProjectName(shortName || creatorProjectName);
+          }
+        }
+        toast.success(`${ideas.length} rankings sugeridos para "${listNiche.trim()}".`);
+      } else {
+        const hint = data.details ? ` (${data.details})` : '';
+        const preview = data.raw_preview ? ` — ${String(data.raw_preview).slice(0, 120)}` : '';
+        toast.error((data.error || 'Nenhum ranking retornado') + hint + preview, { duration: 6000 });
+      }
     } catch (err: any) {
-      toast.error('Erro ao analisar o nicho: ' + err.message);
+      const msg = err?.message || 'Falha ao sugerir rankings.';
+      toast.error(
+        msg.includes('Extensão') || msg.includes('extensão')
+          ? `${msg} Execute tools/lumiera-gemini-bridge/install.bat e recarregue o dashboard.`
+          : msg,
+        { duration: 7000 },
+      );
     } finally {
       setCreatorLoading(false);
     }
   };
 
-  // SCRIPT MASTER: Generate Strategy and full narrative script
+  const buildCreatorScriptPayload = (
+    phase: 'narration' | 'full',
+    options?: { approvedNarration?: string; approvedNarrationTagged?: string },
+  ) => {
+    const fullExtras = phase === 'full'
+      ? {
+          approvedNarration: options?.approvedNarration,
+          approvedNarrationTagged: options?.approvedNarrationTagged,
+          existingStrategy: narrationStrategy || undefined,
+        }
+      : {};
+    const isCustom = ideationTab === 'custom';
+    const isListicle = ideationTab === 'listicle';
+    const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
 
-  const handleGenerateFullScript = async () => {
-    if (!ideasData || selectedIdeaIndex === -1) return;
-    if (!creatorProjectName.trim()) {
-      toast.error("Por favor, digite o nome do projeto/pasta.");
-      return;
+    if (isListicle) {
+      const selectedRanking = listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex];
+      const title = selectedRanking?.title || `Top ${rankCount} ${listTopic.trim()}`;
+      const nicheForScript = listNiche.trim() || listTopic.trim();
+      return {
+        niche: nicheForScript,
+        format: formatSelector,
+        contentMode: 'LISTICLE',
+        rankCount,
+        rankOrder,
+        listTopic: listTopic.trim(),
+        listicleHudStyle,
+        idea: {
+          title,
+          promise: selectedRanking?.promise || `Ranking dos ${rankCount} itens mais importantes sobre ${listTopic.trim()}, com fatos surpreendentes e impacto no mundo moderno.`,
+          emotion: selectedRanking?.emotion || 'Curiosidade / Surpresa',
+          sample_items: selectedRanking?.sample_items,
+          listicle_angle: selectedRanking?.listicle_angle,
+        },
+        project: safeProjectName,
+        useNotebooklm,
+        phase,
+        ...fullExtras,
+      };
     }
+
+    return {
+      niche: isCustom ? 'Customized' : nicheInput.trim(),
+      format: formatSelector,
+      idea: isCustom ? {
+        title: customTitle.trim(),
+        promise: customOutline.trim(),
+        emotion: 'Curiosity / Action',
+        isCustom: true,
+        hook: customHooks.trim(),
+        hooks: customHooks.trim(),
+        blocks: customBlocks.filter((b) => b.content.trim() !== ''),
+      } : (selectedIdeaIndex === 999 ? {
+        title: customIdeaTitle,
+        promise: customIdeaPromise,
+        emotion: customIdeaEmotion,
+        hook: customIdeaHook,
+        blocks: customIdeaBlocks,
+      } : (ideasData?.ideas || [])[selectedIdeaIndex]),
+      project: safeProjectName,
+      useNotebooklm,
+      phase,
+      ...fullExtras,
+    };
+  };
+
+  const validateCreatorScriptInputs = () => {
+    if (ideationTab === 'listicle') {
+      if (!listTopic.trim()) {
+        toast.error('Escolha ou informe um ranking (tema da lista).');
+        return false;
+      }
+    } else if (ideationTab === 'custom') {
+      if (!customTitle.trim()) {
+        toast.error('Por favor, preencha o título da sua ideia.');
+        return false;
+      }
+    } else if (!ideasData || selectedIdeaIndex === -1) {
+      return false;
+    }
+
+    if (!creatorProjectName.trim()) {
+      toast.error('Por favor, digite o nome do projeto/pasta.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleGenerateNarration = async () => {
+    if (!validateCreatorScriptInputs()) return;
 
     const safeProjectName = creatorProjectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     setCreatorLoading(true);
+    setCreatorLoadingMode('narration');
     setGeneratedScriptData(null);
-
-    const idea = (ideasData.ideas || [])[selectedIdeaIndex];
-    const format = formatSelector || 'LONGO';
-    const niche = nicheInput.trim();
-
-    const fallbackPrompt = `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
-Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente. A narração inteira deve ser coberta — sem lacunas. 
-
-Ideia Selecionada:
-- Título: "${idea.title}"
-- Promessa: "${idea.promise || idea.hook || ''}"
-- Emoção: "${idea.emotion || idea.brief || ''}"
-- Formato: "${format}"
-- Nicho: "${niche}"
-
-Retorne estritamente um JSON no formato abaixo, sem tags de markdown ou texto extra:
-{
-  "project_name": "${safeProjectName}",
-  "niche": "${niche}",
-  "format": "${format}",
-  "strategy": {
-    "title_main": "Título principal com alta taxa de clique",
-    "title_variations": ["var1", "var2", "var3", "var4", "var5"],
-    "hook": "Gancho de 3 segundos",
-    "target_audience": "Público-alvo",
-    "tone": "Tom do vídeo",
-    "pinned_comment": "Comentário fixado estratégico",
-    "cta": "CTA suave"
-  },
-  "narrative_script": "Texto completo da narração corrida",
-  "narrative_script_tagged": "Texto da narração com tags de entonação vocal (use [pause], (sigh), (breath), <break time=\\"1.5s\\"/>)",
-  "visual_prompts": [
-    {
-      "scene": "1.1",
-      "block": 1,
-      "narration_text": "O trecho EXATO da narração falado durante esta cena",
-      "type": "imagem IA 2k",
-      "duration": "3 a 5 segundos",
-      "prompt": "Prompt cinematográfico completo em inglês para gerador de imagens",
-      "editor_notes": "Instruções de edição",
-      "stock_query": "Termo curto em inglês para busca no Pexels"
-    }
-  ],
-  "bgm_recommendations": [
-    {
-      "block": 1,
-      "recommendation": "Tipo de trilha sonora ideal"
-    }
-  ],
-  "checklist": {
-    "click_potential": 9,
-    "retention_potential": 8,
-    "comments_potential": 9,
-    "feedback": "Avaliação rápida de qualidade"
-  },
-  "technical_config": {
-    "script": "Texto da narração dividido em parágrafos separados por quebra de linha",
-    "block_phrases": [{"block": 1, "phrase": "Frase inicial do bloco para sincronizar"}],
-    "impact_texts": [{"block": 1, "start_offset": 0.0, "end_offset": 4.5, "text": "TEXTO IMPACTO"}],
-    "highlight_keywords": ["palavra1", "palavra2"],
-    "bgm_mappings": [{"block": 1, "file": "Persian Mystical Oasis.mp3"}]
-  }
-}
-
-Regras:
-- O array visual_prompts deve conter pelo menos 10 objetos sequenciais cobrindo toda a narração.
-- Em bgm_mappings, use apenas arquivos disponíveis do projeto (ex: Persian Mystical Oasis.mp3, Arabian Caravan Cinematic.mp3, Historical Tension Strings.mp3, Cinematic Duduk Sadness.mp3, Ancient Desert Cinematic .mp3).
-- Todos os campos textuais de narração e títulos devem estar em PORTUGUÊS DO BRASIL (exceto prompts visuais e stock_query, que devem ser em INGLÊS).`;
+    setShowNarrationReview(false);
 
     try {
-      const data = await callAIEngine(
-        '/api/ai/creator/script',
-        { niche, format, idea, project: safeProjectName, expectJson: true },
-        fallbackPrompt
-      );
-
-      let finalData = data;
-      if (!data.savedOnServer) {
-        const saveRes = await fetch(getProjectUrl('/api/ai/creator/save-script', safeProjectName), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scriptData: data })
-        });
-        if (saveRes.ok) {
-          finalData = await saveRes.json();
-        } else {
-          console.warn("Could not save client-side generated script to backend disk.");
-        }
+      const { ok, data } = await postAi('/api/ai/creator/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildCreatorScriptPayload('narration')),
+      });
+      if (ok && !data.needs_browser) {
+        setNarrationDraft(data.narrative_script || '');
+        setNarrationTaggedDraft(data.narrative_script_tagged || '');
+        setNarrationStrategy(data.strategy || null);
+        setNarrationBlockPhrases(data.technical_config?.block_phrases || []);
+        const scriptBlocks = data.technical_config?.script;
+        setNarrationBlockScript(
+          typeof scriptBlocks === 'string' ? scriptBlocks : Array.isArray(scriptBlocks) ? scriptBlocks.join('\n\n') : '',
+        );
+        setNarrationNotebooklmEnriched(Boolean(data.notebooklm_enriched));
+        setNarrationProjectName(safeProjectName);
+        setShowNarrationReview(true);
+        await fetchProjects();
+        setActiveProject(safeProjectName);
+        toast.success(
+          data.notebooklm_enriched
+            ? 'Narração gerada e enriquecida com NotebookLM — revise antes de montar o roteiro.'
+            : 'Narração gerada — revise e edite antes de montar o roteiro.',
+        );
+      } else {
+        toast.error(data.error || data.details || 'Erro ao gerar narração.');
       }
-
-      setGeneratedScriptData(finalData);
-      setCreatorScript(finalData.narrative_script || finalData.script || '');
-      setCreatorStep(2);
-      
-      await fetchProjects();
-      setActiveProject(safeProjectName);
-      fetchData();
-      toast.success('Roteiro e storyboard salvos com sucesso!');
     } catch (err: any) {
-      toast.error('Erro ao gerar roteiro: ' + err.message);
+      toast.error(err.message || 'Falha na geração da narração.');
     } finally {
       setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
+  const handleApproveNarrationAndGenerateScript = async () => {
+    const approved = narrationDraft.trim();
+    if (!approved) {
+      toast.error('A narração não pode estar vazia.');
+      return;
+    }
+    if (!narrationProjectName.trim()) {
+      toast.error('Projeto não definido — gere a narração novamente.');
+      return;
+    }
+
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildCreatorScriptPayload('full', {
+          approvedNarration: approved,
+          approvedNarrationTagged: narrationTaggedDraft.trim() || undefined,
+        })),
+      });
+      if (ok && !data.needs_browser) {
+        setGeneratedScriptData(data);
+        setCreatorScript(data.narrative_script || approved);
+        setShowNarrationReview(false);
+        setCreatorStep(2);
+        await fetchProjects();
+        setActiveProject(narrationProjectName);
+        fetchData();
+        const listicleMsg = ideationTab === 'listicle'
+          ? ` com ${data.list_items?.length || rankCount} itens`
+          : '';
+        toast.success(`Roteiro completo gerado${listicleMsg}.`);
+      } else {
+        const detail = data.details ? `: ${data.details}` : '';
+        const hint = data.hint ? ` ${data.hint}` : '';
+        toast.error(`${data.error || 'Erro ao gerar roteiro completo'}${detail}${hint}`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Conexão falhou ao gerar roteiro.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
+  const handleGenerateListicleScript = handleGenerateNarration;
+
+  const handleGenerateFullScript = handleGenerateNarration;
+
+  const creatorScenesNeedRepair = useMemo(() => {
+    const vps = generatedScriptData?.visual_prompts || [];
+    if (!vps.length) return false;
+    return vps.some((vp: any) => !String(vp?.narration_text || vp?.narration_excerpt || '').trim()
+      || !String(vp?.prompt || '').trim());
+  }, [generatedScriptData?.visual_prompts]);
+
+  const handleEvaluateScriptChecklist = async () => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/evaluate-checklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      if (ok && !data.needs_browser) {
+        setGeneratedScriptData(data);
+        await saveCreatorStoryboard(data);
+        toast.success('Checklist de qualidade atualizado.');
+      } else {
+        toast.error(data.error || data.details || 'Erro ao avaliar checklist.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao avaliar checklist.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
+  const handleRepairCreatorVisualPrompts = async () => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/repair-visual-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      if (ok && !data.needs_browser) {
+        setGeneratedScriptData(data);
+        setCreatorScript(data.narrative_script || creatorScript);
+        await saveCreatorStoryboard(data);
+        toast.success(`Cenas reparadas — ${data.visual_prompts?.length || 0} prompts com narração e imagem.`);
+      } else {
+        toast.error(data.error || data.details || 'Erro ao reparar cenas.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao reparar cenas.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
     }
   };
 
@@ -2937,8 +6423,6 @@ Regras:
 
     setLogs([]);
 
-    
-
     const eventSource = new EventSource(getProjectUrl('/api/sync-timings'));
 
     eventSource.onmessage = (event) => {
@@ -2957,6 +6441,7 @@ Regras:
 
         setSyncingTimings(false);
 
+        setShouldAutoAlign(true);
         setCreatorStep(4);
 
         fetchData();
@@ -3024,11 +6509,28 @@ Regras:
       if (res.ok) {
 
         setTimelineAssets(data.timeline_assets);
+        setConfig((prev) => {
+          if (!prev) return prev;
+          return enrichTimelineAudioStarts(
+            { ...prev, timeline_assets: data.timeline_assets },
+            { force: true },
+          );
+        });
 
-        toast.success('Assets associados inteligentemente aos blocos com sucesso!');
+        if (data.warnings && data.warnings.length > 0) {
+
+          toast.success(`Linha do tempo sincronizada com ${data.warnings.length} aviso(s).`);
+
+          console.warn('Avisos da sincronização de assets:', data.warnings);
+
+        } else {
+
+          toast.success('Linha do tempo sincronizada com o roteiro!');
+
+        }
 
         setCreatorStep(5);
-
+        leaveGlobalViewForProject('status');
         fetchData();
 
       } else {
@@ -3059,7 +6561,11 @@ Regras:
 
     }
 
-  }, [creatorStep]);
+    if (creatorStep === 5 || creatorStep === 6) {
+      fetchYoutubeMetadataCache();
+    }
+
+  }, [creatorStep, activeProject]);
 
   // Parse suggested config block from AI content
 
@@ -3105,6 +6611,30 @@ Regras:
 
     toast.success('Configuração recomendada pela IA aplicada com sucesso!');
 
+  };
+
+  const normalizeYoutubeMetadataDisplay = (text: string) => {
+    const plainHeaders = [
+      'TÍTULOS', 'DESCRIÇÃO', 'HASHTAGS PRINCIPAIS', 'HASHTAGS', 'TAGS',
+      'COMENTÁRIO PINADO', 'CAPÍTULOS', 'THUMBNAILS A/B', 'THUMBNAILS AB', 'THUMBNAILS',
+      'GANCHO DE RETENÇÃO', 'GANCHO PARA THUMBNAIL', 'CTA DE MEIO DE VÍDEO',
+    ];
+    const headerKeys = new Set(
+      plainHeaders.map((h) => h.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()),
+    );
+    return String(text)
+      .replace(/\r\n/g, '\n')
+      .replace(/^\s*\*\*(##\s+[^*\n]+)\*\*\s*$/gm, '$1')
+      .split('\n')
+      .map((line) => {
+        const trimmed = line.trim().replace(/:+$/, '');
+        if (!trimmed || /^##\s+/i.test(trimmed)) return line;
+        const key = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+        if (headerKeys.has(key)) return `## ${trimmed}`;
+        return line;
+      })
+      .join('\n')
+      .trim();
   };
 
   const copyToClipboard = (text: string, section: string) => {
@@ -3177,13 +6707,13 @@ Regras:
 
     const cleanKw = newKeyword.trim().toLowerCase();
 
-    if (config.highlight_keywords.includes(cleanKw)) return;
+    if ((config.highlight_keywords || []).includes(cleanKw)) return;
 
     const updated = {
 
       ...config,
 
-      highlight_keywords: [...config.highlight_keywords, cleanKw]
+      highlight_keywords: [...(config.highlight_keywords || []), cleanKw]
 
     };
 
@@ -3201,7 +6731,7 @@ Regras:
 
       ...config,
 
-      highlight_keywords: config.highlight_keywords.filter(k => k !== kw)
+      highlight_keywords: (config.highlight_keywords || []).filter(k => k !== kw)
 
     };
 
@@ -3215,7 +6745,7 @@ Regras:
 
     if (!config || !editingImpact) return;
 
-    const updatedImpacts = [...config.impact_texts];
+    const updatedImpacts = [...(config.impact_texts || [])];
 
     updatedImpacts[index] = {
 
@@ -3239,21 +6769,99 @@ Regras:
 
     if (!config) return;
 
-    const updatedBgm = config.bgm_mappings.map(mapping => {
+    const withoutBlock = (config.bgm_mappings || []).filter(mapping => mapping.block !== blockNum);
 
-      if (mapping.block === blockNum) {
+    const updatedBgm = fileName
 
-        return { ...mapping, file: fileName };
+      ? [...withoutBlock, { block: blockNum, file: fileName }].sort((a, b) => a.block - b.block)
 
-      }
-
-      return mapping;
-
-    });
+      : withoutBlock;
 
     const updated = { ...config, bgm_mappings: updatedBgm };
 
     saveConfig(updated);
+
+  };
+
+  const handleDeleteMusic = async (fileName: string) => {
+
+    const file = musicFiles.find(item => item.name === fileName);
+
+    setPendingMusicDelete(file || { name: fileName, sizeBytes: 0 });
+
+  };
+
+  const handleDeleteAllMusic = async () => {
+
+    if (!musicFiles.length) return;
+
+    setPendingMusicDelete({
+
+      name: "__all__",
+
+      sizeBytes: musicFiles.reduce((sum, file) => sum + file.sizeBytes, 0)
+
+    });
+
+  };
+
+  const handleConfirmDeleteMusic = async () => {
+
+    if (!pendingMusicDelete) return;
+
+    const deletingAll = pendingMusicDelete.name === "__all__";
+
+    if (audioPlayerRef.current) {
+
+      audioPlayerRef.current.pause();
+
+      audioPlayerRef.current.src = "";
+
+      audioPlayerRef.current.load();
+
+    }
+
+    setPlayingMusic(null);
+
+    setDeletingMusic(true);
+
+    try {
+
+      const res = await fetch(getProjectUrl(deletingAll ? '/api/music/delete-all' : '/api/music/delete'), {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: deletingAll ? JSON.stringify({}) : JSON.stringify({ filename: pendingMusicDelete.name })
+
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+
+        toast.success(deletingAll ? `${data.deleted?.length || 0} trilhas excluídas.` : `Trilha ${pendingMusicDelete.name} excluída.`);
+
+        setPendingMusicDelete(null);
+
+        fetchData();
+
+      } else {
+
+        toast.error(data.error || 'Erro ao excluir trilha.');
+
+      }
+
+    } catch (err) {
+
+      toast.error('Falha de conexão ao excluir trilha.');
+
+    } finally {
+
+      setDeletingMusic(false);
+
+    }
 
   };
 
@@ -3297,23 +6905,193 @@ Regras:
 
   };
 
+  const confirmPendingRender = () => {
+    if (!pendingRender) return;
+    const job = pendingRender;
+    setPreRenderModalOpen(false);
+    setPendingRender(null);
+    void triggerRender(
+      job.mode,
+      job.fromWizard,
+      job.withoutImpactTitles,
+      job.useHyperframes,
+      job.isProres,
+      job.previewSeconds,
+      job.resolution,
+      true,
+    );
+  };
+
   // SSE video rendering
 
-  const triggerRender = (mode: 'standard' | 'highlighted', fromWizard = false) => {
-
+  const triggerRender = async (
+    mode: 'standard' | 'highlighted' | 'remotion' | 'remotion-pro',
+    fromWizard = false,
+    withoutImpactTitles = false,
+    useHyperframes = false,
+    isProres = false,
+    previewSeconds = 0,
+    resolution: '1080p' | '2k' = effectiveRenderResolution,
+    skipAdviceCheck = false,
+  ) => {
     if (rendering) return;
 
+    if (!skipAdviceCheck) {
+      try {
+        const res = await fetch(getProjectUrl('/api/projects/video-quality'));
+        if (res.ok) {
+          const report: VideoQualityReport = await res.json();
+          setVideoQuality(report);
+          if (report.workshop?.staged) {
+            toast(
+              `Workshop: proposta para skill "${report.workshop.record?.skill || 'estúdio'}" — revise em Studio Agents`,
+              { duration: 6000 },
+            );
+          }
+          if (report.preRenderAdvice) {
+            setPendingRender({
+              mode,
+              fromWizard,
+              withoutImpactTitles,
+              useHyperframes,
+              isProres,
+              previewSeconds,
+              resolution,
+            });
+            setPreRenderModalOpen(true);
+            return;
+          }
+        }
+      } catch {
+        /* proceed if quality check unavailable */
+      }
+    }
+
+    const needsOverlayPlan = mode === 'remotion' || mode === 'remotion-pro';
+    let effectiveGeminiChrome = geminiBrowserMode && aiProvider === 'gemini';
+    let overlayPlanSucceeded = !needsOverlayPlan;
+    let overlayPlanToken = '';
+
     setRendering(true);
-
     setRenderProgress({ percent: 0, phase: 'Inicializando...' });
-
     if (!fromWizard) setActiveTab('terminal');
-
     setLogs([]);
 
-    
+    if (needsOverlayPlan) {
+      try {
+        const settingsRes = await fetch(getProjectUrl('/api/ai/settings'));
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json();
+          effectiveGeminiChrome = settings.ai_provider === 'gemini' && !!settings.gemini_browser_mode;
+        }
+      } catch {
+        /* usa estado local */
+      }
 
-    const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}`));
+      const overlayPlanLabel = useHyperframes ? 'HyperFrames AI' : 'Remotion PRO';
+      setRenderProgress({ percent: 0, phase: `Gemini: planejando overlays ${overlayPlanLabel}…` });
+      setLogs([
+        `[Dashboard] Planejamento obrigatório antes do render (${overlayPlanLabel}).`,
+        effectiveGeminiChrome
+          ? '[Dashboard] Aguardando resposta do Gemini no Chrome…'
+          : '[Dashboard] Consultando IA para overlays (API)…',
+      ]);
+      let overlayWaitSec = 0;
+      const overlayProgressTimer = window.setInterval(() => {
+        overlayWaitSec += 5;
+        setRenderProgress({ percent: 0, phase: `Gemini: planejando overlays (${overlayWaitSec}s)…` });
+        setLogs((prev) => [...prev, `[Dashboard] Aguardando overlays (${overlayWaitSec}s) — render bloqueado até concluir.`]);
+      }, 5000);
+      try {
+        const { ok, data } = await postAi('/api/render/plan-overlays', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hyperframes: useHyperframes === true,
+            require_browser: effectiveGeminiChrome,
+          }),
+        });
+        if (!ok || data.needs_browser) {
+          setRendering(false);
+          setRenderProgress(null);
+          const stale = (data as { staleResponse?: boolean }).staleResponse;
+          toast.error(
+            data.error
+            || (stale
+              ? 'Gemini ainda está gerando — resposta antiga ignorada. Aguarde na aba gemini.google.com e clique Render de novo.'
+              : effectiveGeminiChrome
+                ? 'Gemini no Chrome não respondeu. Deixe gemini.google.com aberto e tente de novo.'
+                : 'Falha ao planejar overlays. Ative Gemini no Chrome ou configure a API.'),
+          );
+          return;
+        }
+        if (!data.overlayCount || data.overlayCount < 1) {
+          setRendering(false);
+          setRenderProgress(null);
+          toast.error(data.error || 'Gemini não gerou overlays válidos. Reabra o Chrome e tente o render novamente.');
+          return;
+        }
+        overlayPlanToken = String((data as { planToken?: string }).planToken || '').trim();
+        if (!overlayPlanToken) {
+          setRendering(false);
+          setRenderProgress(null);
+          toast.error('Planejamento sem token de sessão — Gemini não concluiu. Tente novamente.');
+          return;
+        }
+        overlayPlanSucceeded = true;
+        setLogs((prev) => [
+          ...prev,
+          `[Dashboard] ${data.overlayCount} overlays via ${(data as { source?: string }).source || 'IA'} — token OK, iniciando render.`,
+        ]);
+      } catch (err: any) {
+        setRendering(false);
+        setRenderProgress(null);
+        toast.error(err?.message || 'Conexão falhou ao planejar overlays.');
+        return;
+      } finally {
+        window.clearInterval(overlayProgressTimer);
+      }
+    }
+
+    if (needsOverlayPlan && !overlayPlanSucceeded) {
+      setRendering(false);
+      setRenderProgress(null);
+      toast.error('Render cancelado: planejamento de overlays não concluído.');
+      return;
+    }
+
+    if (fromWizard) {
+      if (effectiveGeminiChrome) {
+        setRenderProgress({ percent: 0, phase: 'Gemini: metadados do vídeo…' });
+        setLogs((prev) => [...prev, '[Dashboard] Consultando Gemini no Chrome para metadados…']);
+        const metaOk = await generateYoutubeMetadata({ silent: true, keepExistingOnError: true });
+        if (metaOk) {
+          setLogs((prev) => [...prev, '[Dashboard] Metadados YouTube gerados via Gemini no Chrome.']);
+        } else {
+          setLogs((prev) => [...prev, '[Dashboard] Metadados não concluídos — render segue; gere metadados manualmente depois.']);
+        }
+      } else {
+        void generateYoutubeMetadata({ silent: true, keepExistingOnError: true }).then((ok) => {
+          if (ok) toast.success('Metadados (título, descrição, tags) gerados em paralelo ao render.');
+        });
+      }
+    }
+
+    setRenderProgress({ percent: 0, phase: 'Inicializando render…' });
+
+    let queryParams = [];
+    if (withoutImpactTitles) queryParams.push("withoutImpactTitles=1");
+    queryParams.push(useHyperframes ? "hyperframes=1" : "hyperframes=0");
+    if (needsOverlayPlan) {
+      queryParams.push('require_overlay_plan=1');
+      if (overlayPlanToken) queryParams.push(`overlay_plan_token=${encodeURIComponent(overlayPlanToken)}`);
+    }
+    if (isProres) queryParams.push("prores=1");
+    if (previewSeconds > 0) queryParams.push(`preview=${previewSeconds}`);
+    if (resolution === '2k') queryParams.push('resolution=2k');
+    const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
+
+    const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${queryString}`));
 
     eventSource.onmessage = (event) => {
 
@@ -3324,15 +7102,23 @@ Regras:
         setLogs(prev => [...prev, data.text]);
 
         if (data.text.startsWith('[PROGRESSO]')) {
+
           const matchPhase = data.text.match(/\[PROGRESSO\] (FASE \d+\/\d+ - .+)/);
+
           const matchPct = data.text.match(/\[PROGRESSO\] (\d+)%/);
 
           setRenderProgress(prev => {
+
             const current = prev || { percent: 0, phase: 'Processando...' };
+
             if (matchPhase) return { ...current, phase: matchPhase[1] };
+
             if (matchPct) return { ...current, percent: parseInt(matchPct[1], 10) };
+
             return current;
+
           });
+
         }
 
       } else if (data.type === 'complete') {
@@ -3348,6 +7134,11 @@ Regras:
         setTimeout(() => setRenderProgress(null), 4000);
 
         fetchData();
+
+        if (fromWizard) {
+          void fetchYoutubeMetadataCache();
+          toast.success('Render concluído! Revise títulos e descrição no passo 6.');
+        }
 
       } else if (data.type === 'failed') {
 
@@ -3367,13 +7158,23 @@ Regras:
 
     };
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = () => {
 
-      setLogs(prev => [...prev, `[Erro Conexão] SSE encerrado inesperadamente.`]);
+      setLogs((prev) => {
+        const last = prev[prev.length - 1] || '';
+        if (last.includes('Planejamento de overlays') || last.includes('Token de planejamento')) {
+          return [...prev, '[Dashboard] Render bloqueado — veja as linhas acima (overlays/Gemini).'];
+        }
+        return [...prev, '[Erro Conexão] SSE encerrado inesperadamente.'];
+      });
 
       eventSource.close();
 
       setRendering(false);
+
+      setRenderProgress((prev) => (prev ? { ...prev, phase: 'Render interrompido' } : null));
+
+      setTimeout(() => setRenderProgress(null), 5000);
 
     };
 
@@ -3393,19 +7194,888 @@ Regras:
 
   };
 
+  const renderRichTimelineEditor = () => {
+    if (!config) return null;
+    return (
+      <div className="space-y-6">
+
+                  {(timelineNeedsWhisperSync || timelineScenesNeedRepair) && (
+                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3 font-sans">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1.5 text-[11px] text-amber-100/90 leading-relaxed">
+                          <p className="font-bold text-amber-200">Narração TTS ≠ texto em todos os blocos automaticamente</p>
+                          <p>
+                            O TTS só grava o MP3. Para ver <strong className="font-semibold text-amber-100">Narração Dinâmica</strong> (timestamps verdes e play por cena), rode a sincronização Whisper.
+                            O texto por asset vem do <code className="text-amber-200/90">storyboard.json</code> — se o wizard foi interrompido (F5), algumas cenas podem estar vazias.
+                          </p>
+                          {timelineNeedsWhisperSync && (
+                            <p className="text-amber-300/80">
+                              Áudio detectado, mas faltam transcrição/timings — use <strong>Workflow → Sincronizar timings</strong> ou o botão abaixo.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {timelineNeedsWhisperSync && (
+                          <button
+                            type="button"
+                            onClick={() => handleSyncTimings()}
+                            disabled={syncingTimings}
+                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gold-500/40 bg-gold-500/15 hover:bg-gold-500/25 text-gold-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {syncingTimings ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                            Sincronizar Whisper agora
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={distributeAllBlockNarrations}
+                          className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-200 transition flex items-center gap-1.5"
+                        >
+                          <Layers className="w-3 h-3" /> Distribuir narração em todos os blocos
+                        </button>
+                        {timelineScenesNeedRepair && (
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={handleRepairProjectVisualPrompts}
+                            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-200 transition disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {creatorLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Bot className="w-3 h-3" />}
+                            Reparar cenas do roteiro (IA)
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons row at the top */}
+
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
+
+                    <div className="flex-1 min-w-[280px]">
+
+                      <SectionHeader
+                        title="Arquivos de Mídia por Bloco"
+                        helpId="timeline-media-blocks"
+                        size="sm"
+                        titleClassName="tracking-wider uppercase text-xs"
+                        subtitle="Adicione, ordene, exclua e configure mídias que constituem o vídeo em cada bloco."
+                      />
+
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto lg:justify-end">
+
+                      <div className="flex items-center gap-2">
+
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Formato:</span>
+
+                        <select
+
+                          value={config.aspect_ratio || '16:9'}
+
+                          onChange={(e) => {
+
+                            const newRatio = e.target.value as '16:9' | '9:16';
+
+                            setConfig({ ...config, aspect_ratio: newRatio });
+
+                          }}
+
+                          className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-2.5 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
+
+                        >
+
+                          <option value="16:9">16:9 (Horizontal)</option>
+
+                          <option value="9:16">9:16 (Vertical)</option>
+
+                        </select>
+
+                      </div>
+
+                                            <button
+                        disabled={creatorLoading}
+                        onClick={handleAutoMapAssets}
+                        className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-gold-500 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                        title="Mapear arquivos locais na pasta ASSETS para as cenas automaticamente com Inteligência Artificial"
+                      >
+                        {creatorLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-gold-500" />}
+                        <span>Associar Mídias com IA</span>
+                      </button>
+
+<button
+
+                        onClick={() => handleSaveConfig()}
+
+                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+
+                      >
+
+                        <Save className="w-3.5 h-3.5" /> Salvar Linha do Tempo
+
+                      </button>
+
+                      <button
+                        onClick={distributeAllBlockNarrations}
+                        className="bg-violet-950 border border-violet-900/50 hover:bg-violet-900 text-violet-300 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                        title="Divide o texto de cada bloco entre os assets proporcionalmente"
+                      >
+                        <Layers className="w-3.5 h-3.5" /> Distribuir Narração
+                      </button>
+
+                      {status?.has_narration && (
+
+                        <button
+
+                          onClick={() => alignAllBlocksToSpeech()}
+
+                          disabled={!wordTranscripts?.length}
+
+                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 disabled:opacity-40 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+
+                          title={wordTranscripts?.length ? 'Sincronizar TODOS os blocos com o tempo da voz' : 'Rode Sincronizar Whisper antes (Workflow)'}
+
+                        >
+
+                          <Sparkles className="w-3.5 h-3.5" /> Sincronizar Todos com a Voz
+
+                        </button>
+
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {(() => {
+
+                    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
+
+                    const blockNums = Array.from({ length: maxBlocks }, (_, i) => i + 1);
+
+                    return blockNums.map((blockNum) => {
+
+                        const blockKey = String(blockNum);
+
+                        const blockNarrationDur = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
+
+                        // Calculate actual total from asset durations
+
+                        const blockAssets = config.timeline_assets?.[blockKey] || [];
+
+                        const actualBlockTotal = blockAssets.reduce((_sum: number, _: any, i: number) => _sum + getAssetDuration(blockKey, i), 0);
+
+                        return (
+
+                          <div key={blockKey} className="glass-panel p-6 rounded-3xl space-y-4">
+
+                            <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
+
+                              <div>
+
+                                <h4 className="font-cinzel text-md font-bold text-gold-500">Bloco {blockKey}</h4>
+
+                                <span className="text-[10px] text-zinc-500 font-mono">
+
+                                  Duração Total: {actualBlockTotal.toFixed(1)}s
+
+                                  <span className={`ml-2 ${Math.abs(actualBlockTotal - blockNarrationDur) < 0.3 ? 'text-emerald-500' : 'text-amber-500'}`}>
+
+                                    (Narração: {blockNarrationDur.toFixed(1)}s)
+
+                                  </span>
+
+                                </span>
+
+                              </div>
+
+                              <div className="flex items-center gap-4">
+
+                                {/* Audio Upload for this block */}
+
+                                <div className="flex items-center gap-2">
+
+                                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider">BGM:</span>
+
+                                  {(() => {
+
+                                    const mappedFile = config?.bgm_mappings?.find((m: any) => m.block === blockNum)?.file;
+
+                                    return mappedFile ? (
+
+                                      <div className="flex items-center gap-1.5 min-w-0">
+
+                                        <span className="text-[10px] text-gold-400 font-mono max-w-[100px] truncate" title={mappedFile}>
+
+                                          🎵 {mappedFile}
+
+                                        </span>
+
+                                        <button
+
+                                          onClick={() => togglePlayMusic(mappedFile)}
+
+                                          className="text-gold-500 hover:text-gold-400 hover:bg-zinc-900 p-0.5 rounded cursor-pointer shrink-0 transition"
+
+                                          title="Ouvir trilha"
+
+                                        >
+
+                                          {playingMusic === mappedFile ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+
+                                        </button>
+
+                                      </div>
+
+                                    ) : (
+
+                                      <span className="text-[10px] text-zinc-650 italic">Padrão</span>
+
+                                    );
+
+                                  })()}
+
+                                  <input type="file" accept="audio/mpeg,audio/mp3,audio/wav" className="hidden" id={`bgm-upload-${blockKey}`}
+
+                                         onChange={async (e) => {
+
+                                           if (e.target.files && e.target.files[0]) {
+
+                                              const file = e.target.files[0];
+
+                                              try {
+
+                                                const res = await fetch(getProjectUrl(`/api/upload-bgm?block=${blockKey}&filename=${encodeURIComponent(file.name)}`), {
+
+                                                  method: 'POST', 
+
+                                                  headers: { 'Content-Type': file.type || 'audio/mpeg' },
+
+                                                  body: file
+
+                                                });
+
+                                                if (res.ok) {
+
+                                                  toast.success(`Trilha do Bloco ${blockKey} atualizada!`);
+
+                                                  fetchData();
+
+                                                } else {
+
+                                                  toast.error('Erro ao enviar trilha sonora.');
+
+                                                }
+
+                                              } catch(err) {
+
+                                                toast.error('Falha de conexão.');
+
+                                              }
+
+                                           }
+
+                                         }} />
+
+                                  <label htmlFor={`bgm-upload-${blockKey}`} className="bg-zinc-900 border border-zinc-800 text-white text-[10px] px-3 py-1.5 rounded-lg hover:bg-zinc-800 cursor-pointer flex items-center gap-1.5 transition">
+
+                                    <Upload className="w-3 h-3" /> Upload Trilha
+
+                                  </label>
+
+                                </div>
+
+                                {/* Speech sync button */}
+
+                                {status?.has_narration && (
+                                  <button
+                                    onClick={() => splitBlockNarrationAmongAssets(blockKey)}
+                                    className="bg-violet-950 border border-violet-900/50 hover:bg-violet-900 hover:border-violet-800 text-violet-300 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                                    title="Divide o texto do bloco proporcionalmente entre os assets (não altera arquivos nem ordem)"
+                                  >
+                                    <Layers className="w-3.5 h-3.5" /> Dividir narração
+                                  </button>
+                                )}
+                                {status?.has_narration && (
+                                  <button
+                                    onClick={() => alignBlockAssetsToSpeech(blockKey)}
+
+                                    className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+
+                                    title="Sincronizar a duração das imagens com a fala da narração"
+
+                                  >
+
+                                    <Sparkles className="w-3.5 h-3.5" /> Sincronizar com a Voz
+
+                                  </button>
+
+                                )}
+
+                                {/* Add asset button */}
+
+                                <button
+
+                                  onClick={() => addTimelineAsset(blockKey)}
+
+                                  className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+
+                                >
+
+                                  <Plus className="w-3.5 h-3.5" /> Add Asset
+
+                                </button>
+
+                              </div>
+
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => (
+
+                                <div key={idx} className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex flex-col justify-between space-y-3 hover:border-zinc-855 transition">
+
+                                  {/* Visual Preview */}
+
+                                  <div 
+
+                                    className={`bg-zinc-950 rounded-lg overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview mx-auto ${
+
+                                      config.aspect_ratio === '9:16' ? 'h-64' : 'w-full'
+
+                                    }`}
+
+                                    style={{ aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9' }}
+
+                                  >
+
+                                    {asset.type === 'video' ? (
+
+                                      <video 
+
+                                        key={asset.asset}
+
+                                        src={getAssetUrl(asset.asset)} 
+
+                                        className="w-full h-full object-cover" 
+
+                                        controls={false} 
+
+                                        muted 
+
+                                        loop 
+
+                                        autoPlay 
+
+                                        playsInline 
+
+                                        onLoadedMetadata={(e) => {
+
+                                          const dur = e.currentTarget.duration;
+
+                                          if (dur && !isNaN(dur)) {
+
+                                            setVideoFileDurations(prev => {
+
+                                              if (prev[asset.asset] === dur) return prev;
+
+                                              return { ...prev, [asset.asset]: dur };
+
+                                            });
+
+                                          }
+
+                                        }}
+
+                                        onLoadedData={(e) => {
+
+                                          e.currentTarget.style.display = 'block';
+
+                                        }}
+
+                                        onError={(e) => {
+
+                                          e.currentTarget.style.display = 'none';
+
+                                        }}
+
+                                      />
+
+                                    ) : (
+
+                                      <img 
+
+                                        key={asset.asset}
+
+                                        src={getAssetUrl(asset.asset)} 
+
+                                        className="w-full h-full object-cover" 
+
+                                        alt="Preview" 
+
+                                        onLoad={(e) => {
+
+                                          e.currentTarget.style.display = 'block';
+
+                                        }}
+
+                                        onError={(e) => {
+
+                                          e.currentTarget.style.display = 'none';
+
+                                        }}
+
+                                      />
+
+                                    )}
+
+                                    {/* Overlay duration */}
+
+                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
+
+                                      ⏱️ {getAssetDuration(blockKey, idx).toFixed(1)}s
+
+                                      {asset.type === 'video' && videoFileDurations[asset.asset] !== undefined && (
+
+                                        <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
+
+                                          / {videoFileDurations[asset.asset].toFixed(1)}s
+
+                                        </span>
+
+                                      )}
+
+                                    </div>
+
+                                  </div>
+
+                                  {/* Dynamic narration - words redistribute based on asset duration */}
+
+                                  {(() => {
+
+                                    const dynamicResult = getDynamicAssetWords(blockKey, idx);
+
+                                    const staticNarration = getAssetNarration(blockKey, idx);
+
+                                    if (!dynamicResult && !staticNarration) return null;
+
+                                    const actualDuration = getAssetDuration(blockKey, idx);
+
+                                    const scenePlayKey = `scene-${blockKey}-${idx}`;
+
+                                    const isPlaying = playingNarration === scenePlayKey;
+
+                                    // Use dynamic words if available
+
+                                    const displayWords = dynamicResult ? dynamicResult.words : [];
+
+                                    const hasDynamic = dynamicResult !== null && dynamicResult.totalBlockWords > 0;
+
+                                    // Coverage info for the whole block (show only on last asset)
+
+                                    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
+
+                                    const isLastAsset = idx === totalAssets - 1;
+
+                                    const coveragePercent = dynamicResult ? Math.round((dynamicResult.coveredWords / dynamicResult.totalBlockWords) * 100) : 0;
+
+                                    const allWordsCovered = dynamicResult ? dynamicResult.coveredWords >= dynamicResult.totalBlockWords : false;
+
+                                    return (
+
+                                      <div className={`bg-zinc-900/50 p-2.5 rounded-lg border ${
+
+                                        hasDynamic && displayWords.length > 0
+
+                                          ? 'border-emerald-900/30'
+
+                                          : hasDynamic && displayWords.length === 0
+
+                                            ? 'border-zinc-900/30'
+
+                                            : 'border-zinc-850/50'
+
+                                      } flex flex-col gap-1.5 select-text`}>
+
+                                        <div className="flex items-start gap-2.5">
+
+                                          <Bot className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
+
+                                          <div className="flex-1 min-w-0">
+
+                                            <div className="flex justify-between items-center mb-1">
+
+                                              <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">
+
+                                                {hasDynamic ? 'Narração Dinâmica' : 'Narração Recomendada'}
+
+                                              </span>
+
+                                              {status?.has_narration && dynamicResult && (
+
+                                                <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-400">
+
+                                                  <span className="text-emerald-400 font-bold" title="Janela de tempo deste asset na narração">
+
+                                                    🟢 {formatTime(dynamicResult.assetAudioStart)} - {formatTime(dynamicResult.assetAudioEnd)} ({actualDuration.toFixed(1)}s)
+
+                                                  </span>
+
+                                                  <span className="text-zinc-600 text-[8px]">
+
+                                                    {displayWords.length} palavras
+
+                                                  </span>
+
+                                                  <button
+
+                                                    onClick={() => togglePlaySceneNarration(blockKey, idx)}
+
+                                                    className={`p-0.5 rounded cursor-pointer transition shrink-0 ${
+
+                                                      isPlaying
+
+                                                        ? 'bg-gold-500 text-zinc-950 hover:bg-gold-600 animate-pulse'
+
+                                                        : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-gold-500'
+
+                                                    }`}
+
+                                                    title={isPlaying ? "Pausar" : "Ouvir este trecho"}
+
+                                                  >
+
+                                                    {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 text-gold-500" />}
+
+                                                  </button>
+
+                                                </div>
+
+                                              )}
+
+                                            </div>
+
+                                            <p className="text-[10px] italic leading-relaxed select-text flex flex-wrap" title={displayWords.length > 0 ? dynamicResult?.text : staticNarration}>
+
+                                              <span className="text-zinc-500 mr-1">"</span>
+
+                                              {hasDynamic && displayWords.length > 0 ? (
+
+                                                displayWords.map((part: any, pIdx: number) => (
+
+                                                  <span
+
+                                                    key={pIdx}
+
+                                                    className="text-zinc-100 font-medium mr-1"
+
+                                                    title={`Fala em ${formatTime(part.start)}`}
+
+                                                  >
+
+                                                    {part.word}
+
+                                                  </span>
+
+                                                ))
+
+                                              ) : hasDynamic && displayWords.length === 0 ? (
+
+                                                <span className="text-zinc-600 italic text-[9px]">
+
+                                                  (sem palavras nesta janela de tempo — ajuste a duração dos assets anteriores)
+
+                                                </span>
+
+                                              ) : (
+
+                                                <span className="text-zinc-300">{staticNarration}</span>
+
+                                              )}
+
+                                              <span className="text-zinc-500">"</span>
+
+                                            </p>
+
+                                          </div>
+
+                                        </div>
+
+                                        {/* Coverage indicator on last asset of block */}
+
+                                        {isLastAsset && hasDynamic && (
+
+                                          <div className="flex items-center gap-2 mt-1 pl-6">
+
+                                            <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+
+                                              <div
+
+                                                className={`h-full rounded-full transition-all duration-300 ${
+
+                                                  allWordsCovered ? 'bg-emerald-500' : coveragePercent >= 80 ? 'bg-amber-500' : 'bg-red-500'
+
+                                                }`}
+
+                                                style={{ width: `${Math.min(coveragePercent, 100)}%` }}
+
+                                              />
+
+                                            </div>
+
+                                            <span className={`text-[8px] font-mono font-bold ${
+
+                                              allWordsCovered ? 'text-emerald-400' : coveragePercent >= 80 ? 'text-amber-400' : 'text-red-400'
+
+                                            }`}>
+
+                                              {allWordsCovered
+
+                                                ? `✅ ${dynamicResult!.totalBlockWords} palavras cobertas`
+
+                                                : `⚠️ ${dynamicResult!.coveredWords}/${dynamicResult!.totalBlockWords} palavras (${coveragePercent}%) — aumente a duração dos assets`
+
+                                              }
+
+                                            </span>
+
+                                          </div>
+
+                                        )}
+
+                                      </div>
+
+                                    );
+
+                                  })()}
+
+                                  {/* Asset info */}
+
+                                  <div className="space-y-1">
+
+                                    <div className="flex justify-between items-center text-[10px] text-zinc-500 font-mono">
+
+                                      <span>Asset #{idx + 1}</span>
+
+                                      <div className="flex items-center gap-1">
+
+                                        <button
+
+                                          disabled={idx === 0}
+
+                                          onClick={() => moveTimelineAsset(blockKey, idx, 'up')}
+
+                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
+
+                                          title="Subir"
+
+                                        >
+
+                                          <ChevronUp className="w-3.5 h-3.5" />
+
+                                        </button>
+
+                                        <button
+
+                                          disabled={idx === (config.timeline_assets?.[blockKey] || []).length - 1}
+
+                                          onClick={() => moveTimelineAsset(blockKey, idx, 'down')}
+
+                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
+
+                                          title="Descer"
+
+                                        >
+
+                                          <ChevronDown className="w-3.5 h-3.5" />
+
+                                        </button>
+
+                                      </div>
+
+                                    </div>
+
+                                    <input
+
+                                      type="text"
+
+                                      value={asset.asset}
+
+                                      onChange={(e) => updateTimelineAssetField(blockKey, idx, 'asset', e.target.value)}
+
+                                      placeholder="Nome do arquivo..."
+
+                                      className="w-full bg-zinc-900 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1 text-xs text-white"
+
+                                    />
+
+                                  </div>
+
+                                  {/* Type and fixed duration */}
+
+                                  <div className="flex justify-between items-center gap-2">
+
+                                    <div className="space-y-0.5 flex-1">
+
+                                      <span className="text-[9px] text-zinc-500 uppercase">Tipo</span>
+
+                                      <select
+
+                                        value={asset.type}
+
+                                        onChange={(e) => updateTimelineAssetField(blockKey, idx, 'type', e.target.value)}
+
+                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full focus:outline-none"
+
+                                      >
+
+                                        <option value="image">Imagem</option>
+
+                                        <option value="video">Vídeo</option>
+
+                                        <option value="svg">SVG</option>
+
+                                      </select>
+
+                                    </div>
+
+                                    <div className="space-y-0.5 w-20">
+
+                                      <span className="text-[9px] text-zinc-500 uppercase">Duração (s)</span>
+
+                                      <input
+
+                                        type="number"
+
+                                        step="0.5"
+
+                                        min="0.5"
+
+                                        value={asset.fixed !== undefined && asset.fixed !== null ? asset.fixed : ''}
+
+                                        placeholder={`Auto (${getAssetDuration(blockKey, idx).toFixed(1)}s)`}
+
+                                        onChange={(e) => {
+
+                                          const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
+
+                                          updateTimelineAssetField(blockKey, idx, 'fixed', val);
+
+                                        }}
+
+                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full text-center focus:outline-none"
+
+                                      />
+
+                                    </div>
+
+                                  </div>
+
+                                  {/* Actions row: Replace/Substituir and Delete */}
+
+                                  <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
+
+                                    <button
+
+                                      onClick={() => deleteTimelineAsset(blockKey, idx)}
+
+                                      className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
+
+                                    >
+
+                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
+
+                                    </button>
+
+                                    <input type="file" accept={asset.type === 'video' ? "video/mp4" : "image/png,image/jpeg"} className="hidden" id={`asset-upload-${blockKey}-${idx}`}
+
+                                       onChange={(e) => {
+
+                                         if (e.target.files && e.target.files[0]) {
+
+                                            handleUploadSceneAsset(parseInt(blockKey), asset.type === 'video' ? 'video' : 'image', e.target.files[0], idx, selectedProject);
+
+                                         }
+
+                                       }} />
+
+                                    <label htmlFor={`asset-upload-${blockKey}-${idx}`} className="text-gold-500 hover:text-gold-400 text-[10px] cursor-pointer hover:underline flex items-center gap-1.5 transition">
+
+                                      <Upload className="w-3.5 h-3.5" /> Substituir
+
+                                    </label>
+
+                                  </div>
+
+                                </div>
+
+                              ))}
+
+                            </div>
+
+                          </div>
+
+                        );
+
+                      });
+
+                  })()}
+
+                  {/* Save button at bottom too */}
+
+                  <div className="flex justify-end pt-4">
+
+                    <button
+
+                      onClick={() => handleSaveConfig()}
+
+                      className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 transition cursor-pointer"
+
+                    >
+
+                      <Save className="w-4 h-4" /> Salvar Linha do Tempo e Configuração
+
+                    </button>
+
+                  </div>
+
+                </div>
+    );
+  };
+
   return (
 
-    <div className="min-h-screen flex flex-col bg-[#070708] text-gray-200">
+    <div className="lumiera-shell">
 
       <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#1c1c24', color: '#fff', border: '1px solid #2d2d3d' } }} />
 
-      
+      {preRenderModalOpen && videoQuality?.preRenderAdvice && pendingRender && (
+        <PreRenderAdviceModal
+          advice={videoQuality.preRenderAdvice}
+          renderLabel={RENDER_MODE_LABELS[pendingRender.mode]}
+          onConfirm={confirmPendingRender}
+          onCancel={() => {
+            setPreRenderModalOpen(false);
+            setPendingRender(null);
+          }}
+          onGoToTab={(tab) => {
+            setPreRenderModalOpen(false);
+            setActiveTab(tab);
+          }}
+          onAutoFix={handlePreRenderAutoFix}
+          fixingFixId={preRenderFixingId}
+        />
+      )}
 
       {/* Header */}
 
-      <header className="border-b border-gray-800 bg-[#0c0c0e] py-4 px-8 flex justify-between items-center shrink-0">
+      <header className="lumiera-header">
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
 
           <div className="w-10 h-10 rounded-xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center">
 
@@ -3413,36 +8083,73 @@ Regras:
 
           </div>
 
-          <div>
+          <div className="min-w-0">
 
-            <h1 className="font-cinzel font-bold text-lg text-white tracking-wide">LUMIERA CINEMATIC STUDIO</h1>
+            <h1 className="font-cinzel font-bold text-base sm:text-lg text-white text-balance-safe">LUMIERA CINEMATIC STUDIO</h1>
 
-            <p className="text-xs text-gray-500 font-sans">Painel de Controle e Renderização Automatizada • {activeProject}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-sans text-balance-safe line-clamp-safe-2">Painel de Controle e Renderização Automatizada • {activeProject}</p>
 
           </div>
 
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="lumiera-btn-row shrink-0">
 
-          <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-3.5 py-1.5 rounded-lg text-xs font-sans">
+          <div className="lumiera-status-pill">
 
-            <div className="flex items-center gap-1.5 border-r border-zinc-800 pr-3">
+            <div className="flex items-center gap-2">
+
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span className="text-gray-300 font-medium">Servidor Ativo</span>
+
+              <span className="text-gray-300 font-medium whitespace-nowrap">Servidor Ativo</span>
+
             </div>
 
-            {currentTime && (
-              <span className="text-zinc-500 font-mono border-r border-zinc-800 pr-3">
-                {currentTime}
-              </span>
-            )}
+            <span className="h-4 w-px bg-zinc-700"></span>
 
-            <div className="flex items-center gap-1 text-amber-500 font-semibold font-mono">
-              <span>📍 Porto Alegre:</span>
-              <span className="text-zinc-300">{portoAlegreTemp}</span>
+            <div className="flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
+
+              <CalendarDays className="w-3.5 h-3.5 text-gold-500" />
+
+              <span>{formattedHeaderDate}</span>
+
             </div>
 
+            <div className="flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
+
+              <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+
+              <span>{headerTemperatureLabel}</span>
+
+            </div>
+
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button 
+
+              onClick={() => setActiveTab('settings')}
+
+              className={`p-2 border rounded-lg transition duration-150 cursor-pointer ${
+
+                activeTab === 'settings'
+
+                  ? 'bg-gold-500/10 border-gold-500/30 text-gold-500'
+
+                  : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800 hover:text-white'
+
+              }`}
+
+              title="Configurações"
+
+            >
+
+              <Settings className="w-4 h-4" />
+
+            </button>
+            <SettingHelpTip title={SECTION_HELP['settings-config'].title} align="end">
+              {SECTION_HELP['settings-config'].body}
+            </SettingHelpTip>
           </div>
 
           <button 
@@ -3465,17 +8172,13 @@ Regras:
 
       {/* Main Workspace */}
 
-      <div className="flex-1 flex overflow-hidden">
-
-        
+      <div className="lumiera-workspace">
 
         {/* Sidebar Tabs */}
 
-        <aside className="w-64 border-r border-gray-850 bg-[#0a0a0c] p-6 flex flex-col justify-between shrink-0 select-none">
+        <aside className="lumiera-sidebar">
 
-          <div className="space-y-6">
-
-            
+          <div className="shrink-0 p-4 space-y-3 border-b border-zinc-900/60">
 
             {/* Global AI Project Creator Button */}
 
@@ -3484,22 +8187,14 @@ Regras:
               <button 
 
                 onClick={() => {
-
                   setActiveTab('creator');
-
-                  setCreatorStep(1);
-
-                  setIdeasData(null);
-
-                  setSelectedIdeaIndex(-1);
-
-                  setGeneratedScriptData(null);
-
-                  setCreatorProjectName('');
-
+                  const session = loadWizardSession();
+                  if (session?.creatorStep && session.creatorStep > 1) {
+                    setCreatorStep(session.creatorStep);
+                  }
                 }}
 
-                className={`w-full py-3 px-4 rounded-xl text-xs font-bold font-sans tracking-wide transition flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:scale-[1.02] ${
+                className={`lumiera-sidebar-btn shadow-lg hover:scale-[1.01] ${
 
                   activeTab === 'creator'
 
@@ -3514,409 +8209,145 @@ Regras:
                 <Sparkles className="w-4 h-4 animate-pulse" />
 
                 <span>Novo Projeto com IA</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-creator'].title} align="start">
+                    {SECTION_HELP['tab-creator'].body}
+                  </SettingHelpTip>
+                </span>
 
               </button>
 
-            </div>
-
-            {/* Project List */}
-
-            <div className="space-y-3">
-
-              <div className="flex justify-between items-center px-1">
-
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Projetos</span>
-
-                <button 
-
-                  onClick={() => setShowCreateModal(true)} 
-
-                  className="p-1 bg-zinc-900 border border-zinc-800 rounded hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
-
-                  title="Criar Novo Projeto"
-
+              <button
+                type="button"
+                onClick={() => setActiveTab('agents')}
+                className={`lumiera-sidebar-btn ${
+                  activeTab === 'agents'
+                    ? 'bg-gold-500/15 border border-gold-500/35 text-gold-400'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-gold-400 hover:border-zinc-700'
+                }`}
+              >
+                <Bot className="w-4 h-4" />
+                <span>Studio Agents</span>
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
                 >
-
-                  <Plus className="w-3.5 h-3.5" />
-
-                </button>
-
-              </div>
-
-              <div className="space-y-2">
-
-                {projects.map((proj) => {
-
-                  const isSelected = activeProject === proj.name;
-
-                  return (
-
-                    <div key={proj.name} className="space-y-1 group">
-
-                      {/* Project Header Button Container */}
-
-                      <div className="flex items-center justify-between gap-1">
-
-                        <button
-
-                          onClick={() => {
-
-                            setActiveProject(proj.name);
-
-                            if (activeTab === 'creator') {
-
-                              setActiveTab('status');
-
-                            }
-
-                          }}
-
-                          className={`flex-1 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
-
-                            isSelected 
-
-                              ? 'bg-zinc-900 border border-zinc-800 text-white font-bold' 
-
-                              : 'text-gray-400 border border-transparent hover:bg-zinc-900/30 hover:text-gray-200'
-
-                          }`}
-
-                        >
-
-                          <div className="flex items-center gap-2">
-
-                            <Folder className={`w-4 h-4 ${isSelected ? 'text-gold-500' : 'text-zinc-500'}`} />
-
-                            <span className="truncate max-w-[120px]">{proj.name}</span>
-
-                          </div>
-
-                          {isSelected ? (
-
-                            <ChevronDown className="w-3.5 h-3.5 text-gold-500 shrink-0" />
-
-                          ) : (
-
-                            <ChevronRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-
-                          )}
-
-                        </button>
-
-                        {/* Delete project button */}
-
-                        {proj.name !== "Buracos no Deserto" && (
-
-                          <div className="flex items-center gap-1 shrink-0">
-
-                            {deletingProjectName === proj.name ? (
-
-                              <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-1 animate-fade-in shrink-0">
-
-                                <button
-
-                                  onClick={(e) => {
-
-                                    e.stopPropagation();
-
-                                    handleDeleteProject(proj.name);
-
-                                  }}
-
-                                  className="text-[9px] bg-red-500 hover:bg-red-600 text-white font-bold px-2 py-1 rounded transition cursor-pointer"
-
-                                  title="Confirmar exclusão"
-
-                                >
-
-                                  Sim
-
-                                </button>
-
-                                <button
-
-                                  onClick={(e) => {
-
-                                    e.stopPropagation();
-
-                                    setDeletingProjectName(null);
-
-                                  }}
-
-                                  className="text-[9px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white px-2 py-1 rounded transition cursor-pointer ml-1"
-
-                                >
-
-                                  Não
-
-                                </button>
-
-                              </div>
-
-                            ) : (
-
-                              <button
-
-                                onClick={(e) => {
-
-                                  e.stopPropagation();
-
-                                  setDeletingProjectName(proj.name);
-
-                                }}
-
-                                className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-900/50 rounded-lg transition cursor-pointer shrink-0"
-
-                                title="Excluir Projeto"
-
-                              >
-
-                                <Trash2 className="w-3.5 h-3.5" />
-
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        )}
-
-                      </div>
-
-                      {/* Submenu for active project */}
-
-                      {isSelected && (
-
-                        <div className="pl-3 ml-2 border-l border-zinc-800 space-y-1 mt-1 font-sans">
-
-                          <button 
-
-                            onClick={() => setActiveTab('status')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'status' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Tv className="w-3.5 h-3.5 shrink-0" />
-
-                            <span>Geral e Render</span>
-
-                          </button>
-
-                          <button 
-
-                            onClick={() => setActiveTab('timeline')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'timeline' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Layers className="w-3.5 h-3.5 shrink-0" />
-
-                            <span>Roteiro e Tags</span>
-
-                          </button>
-
-                          <button 
-
-                            onClick={() => setActiveTab('music')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'music' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Music className="w-3.5 h-3.5 shrink-0" />
-
-                            <span>Trilha BGM</span>
-
-                          </button>
-
-                           <button 
-
-                            onClick={() => setActiveTab('ai')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'ai' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Sparkles className="w-3.5 h-3.5 shrink-0" />
-
-                            <span>Agente IA & Metadados</span>
-
-                          </button>
-
-                          <button 
-
-                            onClick={() => setActiveTab('editor')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'editor' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Settings className="w-3.5 h-3.5 shrink-0" />
-
-                            <span>Editor de Projeto</span>
-
-                          </button>
-
-                          <button 
-
-                            onClick={() => setActiveTab('terminal')}
-
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-
-                              activeTab === 'terminal' 
-
-                                ? 'text-gold-500 bg-gold-500/5 font-bold' 
-
-                                : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-
-                            }`}
-
-                          >
-
-                            <Terminal className="w-3.5 h-3.5 shrink-0" />
-
-                            <span>Terminal</span>
-
-                          </button>
-
-                          {/* Verificações Ativas inside submenu */}
-                          {status && (
-                            <div className="mt-3 p-3 bg-zinc-950/60 border border-zinc-900/60 rounded-xl space-y-2 text-left">
-                              <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest block">Verificações Ativas</span>
-                              <div className="space-y-1.5 text-[10px]">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Narração Master</span>
-                                  {status.has_narration ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Trilha Sonora BGM</span>
-                                  {status.has_soundtrack ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Clipe Infográfico</span>
-                                  {status.has_highlight_clip ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-400 font-sans">Assets de B-roll</span>
-                                  <span className="font-mono text-white text-[9px] bg-zinc-900 px-1 py-0.5 rounded">{status.assets_count} arqs</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-                  );
-
-                })}
-
-              </div>
-
-              {/* Global Tools Section */}
-              <div className="space-y-2 mt-4 pt-4 border-t border-zinc-900/50">
-                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest block px-1 text-left">Ferramentas de Canal</span>
-                <div className="space-y-1 font-sans">
-                  <button
-                    onClick={() => setActiveTab('title-optimizer')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                      activeTab === 'title-optimizer'
-                        ? 'text-gold-500 bg-gold-500/5 font-bold'
-                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                    }`}
+                  <SettingHelpTip title={SECTION_HELP['tab-agents'].title} align="start">
+                    {SECTION_HELP['tab-agents'].body}
+                  </SettingHelpTip>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('youtube-studio')}
+                className={`lumiera-sidebar-btn ${
+                  activeTab === 'youtube-studio'
+                    ? 'bg-red-500/10 border border-red-500/30 text-red-300'
+                    : 'bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 hover:text-red-300 hover:border-zinc-700'
+                }`}
+              >
+                <Youtube className="w-4 h-4" />
+                <span>Canal YouTube</span>
+                {(youtubeChannelAlerts?.badgeCount ?? 0) > 0 && (
+                  <span
+                    className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center tabular-nums"
+                    title="Alertas do canal (comentários ou views 48h)"
                   >
-                    <Sparkles className="w-3.5 h-3.5 shrink-0 text-gold-500" />
-                    <span>Title Optimizer</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('packaging-assistant')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                      activeTab === 'packaging-assistant'
-                        ? 'text-gold-500 bg-gold-500/5 font-bold'
-                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                    }`}
-                  >
-                    <Sliders className="w-3.5 h-3.5 shrink-0 text-gold-500" />
-                    <span>Packaging Assistant</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('year-in-review')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                      activeTab === 'year-in-review'
-                        ? 'text-gold-500 bg-gold-500/5 font-bold'
-                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                    }`}
-                  >
-                    <TrendingUp className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-                    <span>Retrospectiva 2025</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('ai')}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium transition flex items-center gap-2 cursor-pointer ${
-                      activeTab === 'ai'
-                        ? 'text-gold-500 bg-gold-500/5 font-bold'
-                        : 'text-gray-400 hover:bg-zinc-900/40 hover:text-gray-200'
-                    }`}
-                  >
-                    <Settings className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
-                    <span>Configurações da API</span>
-                  </button>
-                </div>
-              </div>
+                    {(youtubeChannelAlerts?.badgeCount ?? 0) > 99 ? '99+' : youtubeChannelAlerts?.badgeCount}
+                  </span>
+                )}
+                <span
+                  className="inline-flex"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <SettingHelpTip title={SECTION_HELP['tab-youtube-studio'].title} align="start">
+                    {SECTION_HELP['tab-youtube-studio'].body}
+                  </SettingHelpTip>
+                </span>
+              </button>
 
             </div>
 
           </div>
 
-          <div className="text-[10px] text-gray-500 leading-normal border-t border-gray-850 pt-4 font-sans">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 font-sans min-h-0">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600 pointer-events-none" />
+              <input
+                type="search"
+                value={projectSearchQuery}
+                onChange={(e) => setProjectSearchQuery(e.target.value)}
+                placeholder="Buscar projeto..."
+                className="w-full pl-8 pr-3 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-gold-500/40 font-sans"
+              />
+            </div>
+
+            {projectSearchQuery.trim() ? (
+              <div className="space-y-0.5">
+                {projects.filter((p) => matchesProjectSearch(p, projectSearchQuery)).length === 0 ? (
+                  <p className="text-[10px] text-zinc-600 italic px-1">Nenhum projeto encontrado</p>
+                ) : (
+                  projects
+                    .filter((p) => matchesProjectSearch(p, projectSearchQuery))
+                    .map((proj) => renderSidebarProjectItem(proj))
+                )}
+              </div>
+            ) : (
+              <>
+                {recentProjects.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="lumiera-section-label px-1 block">Recentes</span>
+                    {recentProjects
+                      .map((name) => projects.find((p) => p.name === name))
+                      .filter((proj): proj is ProjectListItem => Boolean(proj))
+                      .map((proj) => renderSidebarProjectItem(proj))}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="lumiera-section-label">Longos (16:9)</span>
+                    <button
+                      type="button"
+                      onClick={() => { setNewProjectFormat('LONGO'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
+                      className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
+                      title="Criar Novo Projeto Longo"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">{renderProjectNicheGroups('LONGO')}</div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-zinc-900/60">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="lumiera-section-label">Shorts (9:16)</span>
+                    <button
+                      type="button"
+                      onClick={() => { setNewProjectFormat('SHORTS'); setNewProjectNiche('Geral'); setShowCreateModal(true); }}
+                      className="p-1 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 text-gold-500 transition cursor-pointer"
+                      title="Criar Novo Projeto Curto"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">{renderProjectNicheGroups('SHORTS')}</div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="shrink-0 px-4 py-3 text-[9px] text-gray-500 leading-relaxed border-t border-zinc-800 font-sans text-balance-safe break-words">
 
             Desenvolvido por Antigravity Studio. Versão 1.2.0 • Remotion e Hyperframe Engine.
 
@@ -3926,147 +8357,344 @@ Regras:
 
         {/* Tab Content Panel */}
 
-        <main className="flex-1 overflow-y-auto p-8 bg-[#09090b]">
+        <main className="lumiera-main">
+          {activeTab !== 'creator' && activeTab !== 'settings' && activeTab !== 'agents' && activeTab !== 'youtube-studio' && (
+            <div className="lumiera-project-bar">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="lumiera-section-label">Projeto ativo</p>
+                  <p className="text-sm font-bold text-white font-cinzel text-balance-safe break-words">{activeProject}</p>
+                </div>
+                <nav className="lumiera-tab-nav">
+                  {PROJECT_WORKSPACE_TABS.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    const help = tab.helpId ? SECTION_HELP[tab.helpId] : null;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`lumiera-tab-btn ${
+                          isActive
+                            ? 'bg-gold-500/15 text-gold-400 border border-gold-500/30'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="leading-snug">{tab.label}</span>
+                        {help && (
+                          <span
+                            className="inline-flex"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            role="presentation"
+                          >
+                            <SettingHelpTip title={help.title} align="start">
+                              {help.body}
+                            </SettingHelpTip>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </div>
+          )}
 
-          
+          <div className="lumiera-content text-balance-safe">
 
-          {/* TAB 1: STATUS & RENDER */}
+          {/* TAB: RENDER */}
 
           {activeTab === 'status' && (
 
-            <div className="space-y-8 animate-fade-in">
+            <div className="lumiera-panel-stack animate-fade-in">
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                
-
-                {/* Compiler Card */}
-
-                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
-
-                  <div>
-
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                      <Tv className="w-4 h-4 text-gold-500" /> RENDERIZADOR PADRÃO
-
-                    </h3>
-
-                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-
-                      Gera o documentário cinematográfico padrão com as legendas animadas em Gold/Water Blue e efeitos de zoom Ken Burns anti-jitter.
-
-                    </p>
-
-                  </div>
-
-                  
-
-                  <button 
-
-                    disabled={rendering || !status?.has_narration}
-
-                    onClick={() => triggerRender('standard')}
-
-                    className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-gold-500/10 cursor-pointer w-full"
-
-                  >
-
-                    <Play className="w-4 h-4 fill-current" />
-
-                    <span>Iniciar Compilação Padrão</span>
-
-                  </button>
-
-                </div>
-
-                {/* Highlight Compiler Card */}
-
-                <div className="glass-panel-glow p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
-
-                  <div>
-
-                    <div className="flex justify-between items-start">
-
-                      <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                        <Sparkles className="w-4 h-4 text-gold-500" /> VERSÃO DESTACADA
-
-                      </h3>
-
-                      <span className="bg-gold-500/15 text-gold-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
-
+              {videoQuality && (
+                <div className="glass-panel p-5 rounded-2xl font-sans">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <SectionHeader
+                      title="Qualidade Pré-Render"
+                      helpId="quality-pre-render"
+                      icon={<CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />}
+                    />
+                    <div className="flex items-center gap-3">
+                      {videoQuality.preset && (
+                        <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Preset: {videoQuality.preset}</span>
+                      )}
+                      {videoQuality.epidemicMood && (
+                        <span className="text-[10px] text-zinc-500">BGM: {videoQuality.epidemicMood}</span>
+                      )}
+                      <span className={`text-lg font-bold tabular-nums ${videoQuality.score >= 80 ? 'text-emerald-400' : videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                        {videoQuality.score}/100
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => fetchVideoQuality()}
+                        className="text-[10px] text-zinc-400 hover:text-gold-400 transition flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Atualizar
+                      </button>
                     </div>
-
-                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-
-                      Substitui o B-roll de imagem 32 pelo clipe infográfico dinâmico com overlay de scanner green-radar e fluxo hidráulico animado.
-
-                    </p>
-
                   </div>
+                  {videoQuality.preRenderAdvice ? (
+                    <div className="mt-3">
+                      <PreRenderAdvicePanel
+                        advice={videoQuality.preRenderAdvice}
+                        compact
+                        onRefresh={() => fetchVideoQuality()}
+                        onGoToTab={(tab) => setActiveTab(tab)}
+                        onAutoFix={handlePreRenderAutoFix}
+                        fixingFixId={preRenderFixingId}
+                      />
+                    </div>
+                  ) : videoQuality.issues.length > 0 ? (
+                    <ul className="mt-3 space-y-1.5 max-h-28 overflow-y-auto">
+                      {videoQuality.issues.slice(0, 6).map((issue, idx) => (
+                        <li
+                          key={`${issue.code}-${idx}`}
+                          className={`text-[11px] leading-snug flex gap-2 ${
+                            issue.severity === 'error' ? 'text-red-300' : issue.severity === 'warning' ? 'text-amber-300/90' : 'text-zinc-500'
+                          }`}
+                        >
+                          <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5 opacity-70" />
+                          <span>{issue.message}</span>
+                        </li>
+                      ))}
+                      {videoQuality.issues.length > 6 && (
+                        <li className="text-[10px] text-zinc-500 pl-5">+{videoQuality.issues.length - 6} observação(ões)</li>
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
+                  )}
+                  {videoQuality.overlay_timing && (
+                    <div className="mt-4 pt-3 border-t border-zinc-800/80">
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <SectionLabel helpId="overlay-timing" className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                          Timing overlays IA
+                        </SectionLabel>
+                        {videoQuality.overlay_timing.source === 'planned' && (
+                          <span className="text-zinc-500 font-normal normal-case ml-1">(pré-render)</span>
+                        )}
+                        {videoQuality.overlay_timing.repaired ? (
+                          <span className="text-amber-400/90 font-normal normal-case ml-1">
+                            · {videoQuality.overlay_timing.repaired} reparo(s)
+                          </span>
+                        ) : null}
+                      </p>
+                      {(videoQuality.overlay_timing.entries || []).length > 0 ? (
+                        <ul className="space-y-1 max-h-32 overflow-y-auto">
+                          {videoQuality.overlay_timing.entries!.map((entry) => (
+                            <li
+                              key={entry.id}
+                              className={`text-[10px] font-mono flex gap-2 ${
+                                entry.status === 'ok'
+                                  ? 'text-emerald-400/90'
+                                  : entry.status === 'repaired'
+                                    ? 'text-cyan-400/90'
+                                    : entry.status === 'error'
+                                      ? 'text-red-300'
+                                      : 'text-amber-300/90'
+                              }`}
+                            >
+                              <span className="shrink-0 w-3 text-center">
+                                {entry.status === 'ok' ? '✓' : entry.status === 'repaired' ? '↻' : '!'}
+                              </span>
+                              <span>
+                                {entry.id} @ {entry.startSec?.toFixed(1)}s
+                                {entry.plannedScene ? ` · cena ${entry.plannedScene}` : ''}
+                                {entry.message ? ` — ${entry.message}` : ''}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[10px] text-zinc-500">
+                          {videoQuality.overlay_timing.plannedCount
+                            ? `${videoQuality.overlay_timing.plannedCount} overlay(s) planejado(s), mas ainda sem timing verificável — gere block_timings (narração) e clique Atualizar de novo.`
+                            : 'Nenhum overlay da IA ainda. O planejamento ocorre automaticamente antes do render Remotion PRO.'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
-                  <button 
-
-                    disabled={rendering || !status?.has_narration || !status?.has_highlight_clip}
-
-                    onClick={() => triggerRender('highlighted')}
-
-                    className="bg-zinc-100 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-xl cursor-pointer w-full"
-
+              {config && !status?.has_narration && (
+                <div className="glass-panel px-4 py-3 rounded-xl border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[11px] text-amber-200/90">
+                    Projeto ainda sem narração ou preparação completa. Use Workflow e Tarefas antes de renderizar.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('workflow')}
+                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-3 py-1.5 rounded-lg transition"
                   >
-
-                    <Video className="w-4 h-4" />
-
-                    <span>Renderizar Versão Destacada</span>
-
+                    Ir para Workflow →
                   </button>
+                </div>
+              )}
 
+              <div className="flex flex-wrap items-center justify-between gap-2 glass-panel px-4 py-2.5 rounded-xl border border-zinc-800/80">
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <Tv className="w-3.5 h-3.5 text-gold-500" />
+                  <span>Resolução ativa: <strong className="text-gold-400">{renderResolutionLabel}</strong></span>
+                  {config?.render_resolution ? (
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">· projeto</span>
+                  ) : (
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">· global</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('settings')}
+                  className="text-[10px] text-zinc-500 hover:text-gold-400 transition"
+                >
+                  Alterar em Configurações →
+                </button>
+              </div>
+
+              <div className="lumiera-card-grid">
+                
+                {/* Compiler Card */}
+                <div className="glass-panel lumiera-render-card">
+                  <div>
+                    <SectionHeader
+                      title="RENDERIZADOR PADRÃO"
+                      helpId="render-standard"
+                      icon={<Tv className="w-4 h-4 text-gold-500" />}
+                    />
+                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      Gera o documentário cinematográfico padrão com as legendas animadas em Gold/Water Blue e efeitos de zoom Ken Burns anti-jitter.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full">
+                    <button 
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('standard')}
+                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-gold-500/10 cursor-pointer w-full"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Iniciar Compilação Padrão</span>
+                    </button>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('standard', false, true)}
+                      className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-gold-500 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
+                      title="Renderiza mantendo as legendas normais, mas removendo os textos grandes de impacto no centro da tela."
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      <span>Render sem Titulos Grandes</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Remotion Quick info */}
-
-                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-between h-56 font-sans">
-
+                <div className="glass-panel lumiera-render-card">
                   <div>
-
-                    <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                      <ExternalLink className="w-4 h-4 text-water-300" /> REMOTION ENGINE
-
-                    </h3>
-
+                    <SectionHeader
+                      title="REMOTION ENGINE"
+                      helpId="render-remotion"
+                      icon={<ExternalLink className="w-4 h-4 text-water-300" />}
+                    />
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-
-                      Preview em tempo real e linha do tempo de frames via React. Use o comando terminal local para abrir a GUI.
-
+                      Monta o vídeo pela linha do tempo mapeada, narração sincronizada e legendas geradas a partir da transcrição.
                     </p>
-
-                    <div className="mt-3 bg-zinc-950 p-2 rounded-lg border border-zinc-900">
-
-                      <code className="text-[10px] text-emerald-400 font-mono">npx remotion preview</code>
-
-                    </div>
-
                   </div>
-
-                  <div className="text-[10px] text-gray-500">
-
-                    Remotion local workspace montado e componentizado em React/TS.
-
+                  <div className="flex flex-col gap-2 w-full">
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('remotion')}
+                      className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Renderizar via Remotion</span>
+                    </button>
                   </div>
-
                 </div>
 
+                {/* Remotion PRO Card */}
+                <div className="glass-panel-glow border border-amber-500/30 lumiera-render-card">
+                  <div>
+                    <div className="flex flex-wrap justify-between items-start gap-2">
+                      <SectionHeader
+                        title="REMOTION PRO"
+                        helpId="render-remotion-pro"
+                        icon={<Sparkles className="w-4 h-4 text-amber-500" />}
+                      />
+                      <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Premium</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      Gera a versão premium contendo infográficos animados automáticos (Lower Thirds, textos cinéticos de impacto e contadores numéricos).
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full">
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('remotion-pro')}
+                      className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-amber-500/10 cursor-pointer w-full"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Renderizar via Remotion PRO</span>
+                    </button>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => triggerRender('remotion-pro', false, false, false, false, 30)}
+                      className="bg-zinc-900 border border-amber-500/30 hover:border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed text-amber-300 font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 text-[11px] cursor-pointer w-full"
+                      title="Renderiza só os primeiros 30 segundos para validar gancho e ritmo"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      <span>Preview 30s (PRO)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remotion PRO + HyperFrames AI Card */}
+                <div className="glass-panel-glow border border-emerald-500/30 lumiera-render-card">
+                  <div>
+                    <div className="flex flex-wrap justify-between items-start gap-2">
+                      <SectionHeader
+                        title="HYPERFRAMES AI"
+                        helpId="render-hyperframes"
+                        icon={<Sparkles className="w-4 h-4 text-emerald-400" />}
+                      />
+                      <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Orquestrado</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 leading-normal">
+                      Orquestração visual por IA baseada no catálogo HyperFrames. Suporta transparência (ProRes) e mola física.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <label className="flex items-center gap-1.5 text-[9px] text-zinc-400 cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        id="prores-alpha-checkbox" 
+                        className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-3 h-3" 
+                      />
+                      <span>Fundo Transparente (ProRes Alpha)</span>
+                    </label>
+                    <button
+                      disabled={rendering || !status?.has_narration}
+                      onClick={() => {
+                        const proresCheck = document.getElementById('prores-alpha-checkbox') as HTMLInputElement;
+                        triggerRender('remotion-pro', false, false, true, proresCheck?.checked);
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-emerald-500/10 cursor-pointer w-full"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Render HyperFrames AI</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Rendered Videos List */}
 
               <div className="glass-panel p-6 rounded-3xl space-y-4">
 
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide">VÍDEOS RENDERIZADOS NA SAÍDA (OUTPUT)</h3>
-
-                
+                <SectionHeader title="VÍDEOS RENDERIZADOS NA SAÍDA (OUTPUT)" helpId="render-output" />
 
                 {outputs.length === 0 ? (
 
@@ -4090,7 +8718,25 @@ Regras:
 
                           <div>
 
-                            <span className="text-xs font-semibold text-white block">{video.name}</span>
+                            <div className="flex items-center gap-2">
+
+                              <span className="text-xs font-semibold text-white block">{video.name}</span>
+
+                              <span className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+
+                                video.renderEngine === 'remotion'
+
+                                  ? 'text-water-300 bg-water-500/10 border-water-400/20'
+
+                                  : 'text-gold-500 bg-gold-500/10 border-gold-500/20'
+
+                              }`}>
+
+                                {video.renderEngineLabel || (video.name.toLowerCase().startsWith('remotion_') ? 'Remotion' : 'Renderizador Padrão')}
+
+                              </span>
+
+                            </div>
 
                             <span className="text-[10px] text-gray-500">Modificado em {new Date(video.modifiedAt).toLocaleString('pt-BR')}</span>
 
@@ -4128,7 +8774,7 @@ Regras:
 
                           <a 
 
-                            href={`/api/projects-media${activeProject === "Buracos no Deserto" ? "/OUTPUT/qanat_persa_video_final/" + video.name : "/" + activeProject + "/OUTPUT/qanat_persa_video_final/" + video.name}`} 
+                            href={`/api/projects-media${activeProject === "Buracos no Deserto" ? "/OUTPUT/qanat_persa_video_final/" + video.name : "/" + activeProject + "/OUTPUT/qanat_persa_video_final/" + video.name}?download=true`} 
 
                             download 
 
@@ -4143,29 +8789,17 @@ Regras:
                           </a>
 
                           <button
-                            onClick={async () => {
-                              if (!confirm(`Tem certeza que deseja excluir "${video.name}"? Esta ação não pode ser desfeita.`)) return;
-                              try {
-                                const res = await fetch(getProjectUrl('/api/outputs/delete'), {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ filename: video.name })
-                                });
-                                if (res.ok) {
-                                  toast.success(`Vídeo "${video.name}" excluído com sucesso!`);
-                                  setOutputs(prev => prev.filter(v => v.name !== video.name));
-                                } else {
-                                  const err = await res.json();
-                                  toast.error(err.error || 'Erro ao excluir o vídeo.');
-                                }
-                              } catch (err) {
-                                toast.error('Falha de conexão ao excluir.');
-                              }
-                            }}
+
+                            onClick={() => setPendingOutputDelete(video)}
+
                             className="bg-red-950 border border-red-900/50 text-red-400 hover:bg-red-900 hover:text-red-300 px-3 py-1.5 rounded-lg text-[11px] font-medium transition flex items-center gap-1.5 cursor-pointer"
+
                             title={`Excluir ${video.name}`}
+
                           >
+
                             <Trash2 className="w-3.5 h-3.5" />
+
                           </button>
 
                         </div>
@@ -4184,13 +8818,62 @@ Regras:
 
           )}
 
-          {/* TAB 2: TIMELINE & BLOCKS */}
+          {activeTab === 'workflow' && (
+            <div className="lumiera-panel-stack animate-fade-in">
+              <div className="glass-panel p-5 rounded-2xl font-sans">
+                <SectionHeader
+                  title="Workflow e Tarefas"
+                  helpId="workflow-toolkit"
+                  icon={<Wand2 className="w-4 h-4 text-gold-400" />}
+                  subtitle="Narração TTS, ComfyUI + LTX, B-roll, auto-map, trilha, metadados e pipelines automáticos. Prepare o projeto aqui; a aba Render fica só para compilar o vídeo final."
+                />
+              </div>
 
-          {activeTab === 'timeline' && config && (
+              {config ? (
+                <WorkflowToolkit
+                  getProjectUrl={getProjectUrl}
+                  getMediaUrl={getMusicUrl}
+                  postAi={postAi}
+                  toast={(msg) => toast(msg)}
+                  enabled={activeTab === 'workflow'}
+                  hasNarration={!!status?.has_narration}
+                  hasTimings={!!status?.block_timings}
+                  onNarrationReady={() => fetchData()}
+                  onTimelineRefresh={() => fetchData()}
+                  onMetadataReady={() => fetchData({ includeVideoQuality: true })}
+                  onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
+                />
+              ) : (
+                <div className="glass-panel p-8 rounded-2xl text-center text-zinc-500 text-sm">
+                  Selecione um projeto para ver as ferramentas de workflow.
+                </div>
+              )}
+            </div>
+          )}
 
-            <div className="space-y-8 animate-fade-in">
+          {/* TAB: TIMELINE & BLOCKS */}
 
-              
+          {activeTab === 'timeline' && (
+            <TabErrorBoundary label="Roteiro e Tags">
+              {!config ? (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-zinc-400 font-sans">
+                  <RefreshCw className={`w-8 h-8 text-gold-500 ${projectDataLoading ? 'animate-spin' : ''}`} />
+                  <p className="text-sm">
+                    {projectDataLoading ? 'Carregando roteiro e tags do projeto...' : 'Não foi possível carregar a configuração do projeto.'}
+                  </p>
+                  {!projectDataLoading && (
+                    <button
+                      type="button"
+                      onClick={() => fetchData()}
+                      className="text-xs text-gold-400 hover:text-gold-300 border border-gold-500/30 px-3 py-1.5 rounded-lg cursor-pointer"
+                    >
+                      Tentar novamente
+                    </button>
+                  )}
+                </div>
+              ) : (
+
+            <div className="lumiera-panel-stack animate-fade-in">
 
               {/* Keywords panel */}
 
@@ -4198,15 +8881,17 @@ Regras:
 
                 <div>
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide">PALAVRAS-CHAVE EM DESTAQUE (HIGHLIGHT)</h3>
-
-                  <p className="text-xs text-gray-400 mt-1 font-sans">Palavras nesta lista serão destacadas na cor Ouro/Amarelo no vídeo final.</p>
+                  <SectionHeader
+                    title="PALAVRAS-CHAVE EM DESTAQUE (HIGHLIGHT)"
+                    helpId="timeline-highlights"
+                    subtitle="Palavras nesta lista serão destacadas na cor Ouro/Amarelo no vídeo final."
+                  />
 
                 </div>
 
                 <div className="flex flex-wrap gap-2 p-4 bg-zinc-950 border border-zinc-900 rounded-2xl min-h-[80px] font-sans">
 
-                  {config.highlight_keywords.map(kw => (
+                  {(config.highlight_keywords || []).map(kw => (
 
                     <span key={kw} className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
 
@@ -4268,11 +8953,11 @@ Regras:
 
               <div className="glass-panel p-6 rounded-3xl space-y-4">
 
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide">TEXTOS DE IMPACTO DA LINHA DO TEMPO (12 BLOCOS)</h3>
+                <SectionHeader title="TEXTOS DE IMPACTO DA LINHA DO TEMPO (12 BLOCOS)" helpId="timeline-impact" />
 
                 <div className="divide-y divide-zinc-900 border border-zinc-900 rounded-2xl overflow-hidden bg-zinc-950/20 font-sans">
 
-                  {config.impact_texts.map((impact, idx) => (
+                  {(config.impact_texts || []).map((impact, idx) => (
 
                     <div key={idx} className="p-4 hover:bg-zinc-900/10 transition grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
 
@@ -4368,35 +9053,49 @@ Regras:
 
               </div>
 
+              {renderRichTimelineEditor()}
             </div>
 
+              )}
+            </TabErrorBoundary>
           )}
 
           {/* TAB 3: SOUNDTRACK STUDIO */}
 
-          {activeTab === 'music' && config && (
+          {activeTab === 'music' && (
+            <TabErrorBoundary label="Trilha BGM">
+              {!config ? (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-zinc-400 font-sans">
+                  <RefreshCw className={`w-8 h-8 text-gold-500 ${projectDataLoading ? 'animate-spin' : ''}`} />
+                  <p className="text-sm">
+                    {projectDataLoading ? 'Carregando trilhas do projeto...' : 'Não foi possível carregar a configuração do projeto.'}
+                  </p>
+                  {!projectDataLoading && (
+                    <button
+                      type="button"
+                      onClick={() => fetchData()}
+                      className="text-xs text-gold-400 hover:text-gold-300 border border-gold-500/30 px-3 py-1.5 rounded-lg cursor-pointer"
+                    >
+                      Tentar novamente
+                    </button>
+                  )}
+                </div>
+              ) : (
 
             <div className="space-y-8 animate-fade-in font-sans">
 
-              
-
               {/* Mixer Header */}
 
-              <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="glass-panel p-4 sm:p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 min-w-0">
 
                 <div>
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                    <Volume2 className="w-5 h-5 text-gold-500" /> ESTÚDIO DE MIXAGEM DA TRILHA DE FUNDO
-
-                  </h3>
-
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl">
-
-                    Selecione qual das músicas baixadas deve tocar de fundo em cada bloco. As transições com crossfade de 2.0s serão geradas dinamicamente.
-
-                  </p>
+                  <SectionHeader
+                    title="ESTÚDIO DE MIXAGEM DA TRILHA DE FUNDO"
+                    helpId="music-mixer"
+                    icon={<Volume2 className="w-5 h-5 text-gold-500" />}
+                    subtitle="Selecione qual das músicas baixadas deve tocar de fundo em cada bloco. As transições com crossfade de 2.0s serão geradas dinamicamente."
+                  />
 
                 </div>
 
@@ -4422,19 +9121,13 @@ Regras:
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                
-
                 {/* Mappings */}
 
                 <div className="glass-panel p-6 rounded-3xl space-y-4">
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-3 gap-2">
 
-                    <h4 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase">
-
-                      Configuração de Trilha
-
-                    </h4>
+                    <SectionHeader title="Configuração de Trilha" helpId="music-mapping" size="sm" titleClassName="tracking-widest uppercase text-xs" />
 
                     <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 gap-1">
 
@@ -4502,7 +9195,81 @@ Regras:
 
                       </div>
 
-                      
+                      {bgmSuggestions?.recommendation && (
+
+                        <div className="bg-zinc-950 border border-gold-500/30 rounded-xl p-4 space-y-2 animate-fade-in relative group">
+
+                          <div className="flex items-center justify-between">
+
+                            <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider flex items-center gap-1">✨ Sugestão da IA</span>
+
+                            <div className="flex items-center gap-1.5">
+
+                              <button
+
+                                onClick={() => {
+
+                                  navigator.clipboard.writeText(bgmSuggestions.recommendation || '');
+
+                                  toast.success('Ideia copiada!');
+
+                                }}
+
+                                className="text-[10px] text-zinc-400 hover:text-white px-2 py-0.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                                title="Copiar sugestão"
+
+                              >
+
+                                <Copy className="w-3 h-3" /> Copiar Ideia
+
+                              </button>
+
+                              {(bgmSuggestions as any).search_theme && (
+
+                                <button
+
+                                  onClick={() => {
+
+                                    navigator.clipboard.writeText((bgmSuggestions as any).search_theme || '');
+
+                                    toast.success('Termo de busca copiado!');
+
+                                  }}
+
+                                  className="text-[10px] text-gold-500 hover:text-gold-400 px-2 py-0.5 bg-gold-950/20 border border-gold-500/30 hover:border-gold-500/50 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                                  title="Copiar termo de busca"
+
+                                >
+
+                                  <Search className="w-3 h-3" /> Copiar Busca
+
+                                </button>
+
+                              )}
+
+                            </div>
+
+                          </div>
+
+                          <p className="text-[11px] text-zinc-300 leading-relaxed italic">{bgmSuggestions.recommendation}</p>
+
+                          {(bgmSuggestions as any).search_theme && (
+
+                            <div className="text-[10px] text-zinc-400 font-sans border-t border-zinc-900 pt-2 flex items-center gap-1.5">
+
+                              <span className="font-bold text-gold-500">🔍 Buscar por:</span>
+
+                              <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">{(bgmSuggestions as any).search_theme}</code>
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      )}
 
                       <div className="space-y-1.5">
 
@@ -4526,7 +9293,7 @@ Regras:
 
                             <option value="">-- Nenhuma Selecionada --</option>
 
-                            {musicFiles.map(file => (
+                            {safeMusicFiles.map(file => (
 
                               <option key={file.name} value={file.name}>{file.name}</option>
 
@@ -4554,42 +9321,6 @@ Regras:
 
                         </div>
 
-                        {/* Single BGM Suggestion Box */}
-                        {(() => {
-                          const singleSuggestion = aiBgmSuggestions.find(s => s.block === 1);
-                          if (!singleSuggestion) return null;
-                          return (
-                            <div className="bg-gold-500/5 border border-gold-500/10 rounded-xl p-3 flex items-center justify-between gap-3 text-[10px] animate-fade-in mt-2">
-                              <div className="space-y-0.5 flex-1 min-w-0">
-                                <div className="flex items-center gap-1 text-gold-500 font-bold uppercase tracking-wider text-[9px]">
-                                  <Sparkles className="w-3.5 h-3.5 text-gold-500 animate-pulse" />
-                                  <span>Sugestão Única da IA</span>
-                                </div>
-                                <p className="text-gray-300 font-semibold truncate">Trilha: <span className="text-white font-mono">{singleSuggestion.file}</span></p>
-                                <p className="text-zinc-550 italic truncate">"{singleSuggestion.reason}"</p>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <button 
-                                  onClick={() => togglePlayMusic(singleSuggestion.file)}
-                                  className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-900 cursor-pointer transition"
-                                  title="Ouvir trilha sugerida"
-                                >
-                                  {playingMusic === singleSuggestion.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    saveConfig({ ...config, single_bgm: singleSuggestion.file });
-                                    toast.success("Trilha única atualizada!");
-                                  }}
-                                  className="bg-gold-500 hover:bg-gold-600 text-zinc-950 font-bold px-3 py-1 rounded text-[10px] transition cursor-pointer"
-                                >
-                                  Aplicar
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
                       </div>
 
                     </div>
@@ -4598,94 +9329,149 @@ Regras:
 
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
 
-                      {(config.bgm_mappings || []).map(bgm => {
-                        const suggestion = aiBgmSuggestions.find(s => s.block === bgm.block);
-                        return (
+                      {bgmBlockRows.map(bgm => (
 
-                          <div key={bgm.block} className="p-3 bg-zinc-950 border border-zinc-900 rounded-xl space-y-2">
+                        <div key={bgm.block} className="space-y-1">
 
-                            <div className="flex justify-between items-center gap-4">
+                          <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-4">
 
-                              <span className="text-xs font-bold text-white font-mono shrink-0">Bloco {bgm.block}</span>
+                            <span className="text-xs font-bold text-white font-mono shrink-0">Bloco {bgm.block}</span>
 
-                              <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
+                            <div className="flex gap-2 items-center flex-1 justify-end min-w-0">
 
-                                <select 
+                              <select 
 
-                                  value={bgm.file}
+                                value={bgm.file}
 
-                                  onChange={(e) => handleMusicChange(bgm.block, e.target.value)}
+                                onChange={(e) => handleMusicChange(bgm.block, e.target.value)}
 
-                                  className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
+                                className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[200px] truncate"
+
+                              >
+
+                                <option value="">-- Nenhuma --</option>
+
+                                {safeMusicFiles.map(file => (
+
+                                  <option key={file.name} value={file.name}>{file.name}</option>
+
+                                ))}
+
+                              </select>
+
+                              {bgm.file && (
+
+                                <button
+
+                                  onClick={() => togglePlayMusic(bgm.file)}
+
+                                  className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+
+                                  title="Ouvir trilha"
 
                                 >
 
-                                  {musicFiles.map(file => (
+                                  {playingMusic === bgm.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
 
-                                    <option key={file.name} value={file.name}>{file.name}</option>
+                                </button>
 
-                                  ))}
+                              )}
 
-                                </select>
+                            </div>
 
-                                {bgm.file && (
+                          </div>
 
-                                  <button
+                          {(() => {
 
-                                    onClick={() => togglePlayMusic(bgm.file)}
+                            const suggestion = bgmSuggestions?.suggestions?.find((s: any) => s.block === bgm.block);
 
-                                    className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+                            if (!suggestion) return null;
 
-                                    title="Ouvir trilha"
+                            return (
 
-                                  >
+                              <div className="ml-2 px-3 py-2 border-l-2 border-gold-500/40 bg-zinc-950/40 rounded-r space-y-1.5 animate-fade-in">
 
-                                    {playingMusic === bgm.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+                                <div className="flex items-center justify-between gap-2">
 
-                                  </button>
+                                  <span className="text-[9px] text-gold-500 font-bold uppercase tracking-wider">✨ Sugestão da IA (Bloco {bgm.block})</span>
+
+                                  <div className="flex items-center gap-1.5">
+
+                                    <button
+
+                                      onClick={() => {
+
+                                        navigator.clipboard.writeText(suggestion.recommendation || '');
+
+                                        toast.success('Ideia do bloco copiada!');
+
+                                      }}
+
+                                      className="text-[9px] text-zinc-400 hover:text-white px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                                      title="Copiar sugestão"
+
+                                    >
+
+                                      <Copy className="w-2.5 h-2.5" /> Copiar Ideia
+
+                                    </button>
+
+                                    {suggestion.search_theme && (
+
+                                      <button
+
+                                        onClick={() => {
+
+                                          navigator.clipboard.writeText(suggestion.search_theme || '');
+
+                                          toast.success('Busca do bloco copiada!');
+
+                                        }}
+
+                                        className="text-[9px] text-gold-500 hover:text-gold-400 px-1.5 py-0.5 bg-gold-950/20 border border-gold-500/30 rounded transition flex items-center gap-1 font-sans cursor-pointer"
+
+                                        title="Copiar busca"
+
+                                      >
+
+                                        <Search className="w-2.5 h-2.5" /> Copiar Busca
+
+                                      </button>
+
+                                    )}
+
+                                  </div>
+
+                                </div>
+
+                                <p className="text-[10px] text-zinc-300 leading-relaxed italic">
+
+                                  {suggestion.recommendation}
+
+                                </p>
+
+                                {suggestion.search_theme && (
+
+                                  <div className="text-[9px] text-zinc-400 font-sans pt-1.5 border-t border-zinc-900 flex items-center gap-1.5">
+
+                                    <span className="font-bold text-gold-500">🔍 Buscar:</span>
+
+                                    <code className="px-1 py-0.5 bg-zinc-900 border border-zinc-800 rounded font-mono text-zinc-300 select-all">{suggestion.search_theme}</code>
+
+                                  </div>
 
                                 )}
 
                               </div>
 
-                            </div>
+                            );
 
-                            {/* Render AI Suggestion Box */}
-                            {suggestion && (
-                              <div className="bg-gold-500/5 border border-gold-500/10 rounded-lg p-2.5 flex items-center justify-between gap-3 text-[10px] animate-fade-in">
-                                <div className="space-y-0.5 flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 text-gold-500 font-bold uppercase tracking-wider text-[9px]">
-                                    <Sparkles className="w-3 h-3 text-gold-500" />
-                                    <span>Sugestão da IA</span>
-                                  </div>
-                                  <p className="text-gray-300 truncate font-semibold">Trilha: <span className="text-white font-mono">{suggestion.file}</span></p>
-                                  <p className="text-zinc-550 italic truncate">"{suggestion.reason}"</p>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button 
-                                    onClick={() => togglePlayMusic(suggestion.file)}
-                                    className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-900 cursor-pointer transition"
-                                    title="Ouvir trilha sugerida"
-                                  >
-                                    {playingMusic === suggestion.file ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      handleMusicChange(bgm.block, suggestion.file);
-                                      toast.success(`Trilha do Bloco ${bgm.block} atualizada!`);
-                                    }}
-                                    className="bg-gold-500 hover:bg-gold-600 text-zinc-950 font-bold px-2 py-1 rounded text-[9px] transition cursor-pointer"
-                                  >
-                                    Aplicar
-                                  </button>
-                                </div>
-                              </div>
-                            )}
+                          })()}
 
-                          </div>
+                        </div>
 
-                        );
-                      })}
+                      ))}
 
                     </div>
 
@@ -4699,11 +9485,27 @@ Regras:
 
                   <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
 
-                    <h4 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase">Músicas Disponíveis</h4>
+                    <SectionHeader title="Músicas Disponíveis" helpId="music-available" size="sm" titleClassName="tracking-widest uppercase text-xs" />
 
                     <div className="flex items-center gap-3">
 
-                      <span className="text-[10px] text-zinc-500 font-mono">{musicFiles.length} arquivos</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">{safeMusicFiles.length} arquivos</span>
+
+                      <button
+
+                        disabled={!safeMusicFiles.length}
+
+                        onClick={handleDeleteAllMusic}
+
+                        title="Excluir todas as trilhas deste projeto mantendo a narração"
+
+                        className="bg-red-950/40 border border-red-900/60 hover:border-red-500/70 text-red-300 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+
+                      >
+
+                        <Trash2 className="w-3.5 h-3.5" /> Limpar Trilhas
+
+                      </button>
 
                       <input 
 
@@ -4770,12 +9572,21 @@ Regras:
                       </label>
 
                       <button
+
                         disabled={suggestingBGM || !hasApiKey}
+
                         onClick={handleSuggestBGM}
+
+                        title="Gera apenas ideias de trilha. A escolha do arquivo continua manual em Por Bloco ou Trilha Única."
+
                         className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+
                       >
+
                         {suggestingBGM ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                        <span>{suggestingBGM ? 'Analisando...' : 'Sugerir BGM com IA'}</span>
+
+                        <span>{suggestingBGM ? 'Analisando...' : 'Ideias de BGM com IA'}</span>
+
                       </button>
 
                     </div>
@@ -4802,7 +9613,7 @@ Regras:
 
                   </div>
 
-                    {musicFiles
+                    {safeMusicFiles
 
                       .filter(m => m.name.toLowerCase().includes(searchMusic.toLowerCase()))
 
@@ -4830,7 +9641,25 @@ Regras:
 
                           </div>
 
-                          <span className="text-[10px] font-mono text-zinc-500 shrink-0">{getFormatBytes(file.sizeBytes)}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+
+                            <span className="text-[10px] font-mono text-zinc-500">{getFormatBytes(file.sizeBytes)}</span>
+
+                            <button
+
+                              onClick={() => handleDeleteMusic(file.name)}
+
+                              className="text-red-400 hover:text-red-300 p-1.5 rounded-lg bg-red-950/25 border border-red-900/40 hover:bg-red-950/50 cursor-pointer transition"
+
+                              title="Excluir trilha"
+
+                            >
+
+                              <Trash2 className="w-3.5 h-3.5" />
+
+                            </button>
+
+                          </div>
 
                         </div>
 
@@ -4840,27 +9669,343 @@ Regras:
 
               </div>
 
+              {/* Integração Epidemic Sound */}
+
+              <div className="glass-panel p-6 rounded-3xl space-y-6 mt-6 animate-fade-in">
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+
+                  <div>
+
+                    <SectionHeader
+                      title="API EPIDEMIC SOUND (MCP SSE)"
+                      helpId="epidemic-sound"
+                      icon={<Music className="w-5 h-5 text-gold-500" />}
+                      subtitle="Busque faixas e efeitos sonoros livres de copyright diretamente do catálogo da Epidemic Sound ou gere uma trilha sonora inteligente automática baseada no seu roteiro."
+                    />
+
+                  </div>
+
+                  {hasEpidemicKey ? (
+
+                    <button
+
+                      disabled={autoSoundtracking}
+
+                      onClick={handleAutoSoundtrack}
+
+                      className="bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-600 hover:to-amber-600 disabled:opacity-50 text-zinc-950 text-xs font-extrabold px-5 py-2.5 rounded-xl transition shadow-lg shadow-gold-500/10 cursor-pointer flex items-center gap-2"
+
+                    >
+
+                      {autoSoundtracking ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+
+                      <span>{autoSoundtracking ? 'Processando Sonoplastia...' : 'Sonoplastia IA Inteligente (Autodetect & Download)'}</span>
+
+                    </button>
+
+                  ) : (
+
+                    <span className="text-xs bg-red-950/40 border border-red-800 text-red-400 px-3 py-1.5 rounded-xl font-bold font-sans">
+
+                      ⚠️ Configure a Chave da API nas Configurações para habilitar a busca e automação
+
+                    </span>
+
+                  )}
+
+                </div>
+
+                {hasEpidemicKey && (
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    {/* Search and Filters Column */}
+
+                    <div className="lg:col-span-1 space-y-4">
+
+                      <div className="space-y-2">
+
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Tipo de Busca</label>
+
+                        <div className="grid grid-cols-2 gap-2 bg-zinc-950 p-1 rounded-xl border border-zinc-900">
+
+                          <button
+
+                            onClick={() => { setEpidemicSearchType('bgm'); setEpidemicSearchResults([]); }}
+
+                            className={`py-2 text-xs font-bold rounded-lg transition cursor-pointer ${epidemicSearchType === 'bgm' ? 'bg-gold-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+
+                          >
+
+                            Músicas (BGM)
+
+                          </button>
+
+                          <button
+
+                            onClick={() => { setEpidemicSearchType('sfx'); setEpidemicSearchResults([]); }}
+
+                            className={`py-2 text-xs font-bold rounded-lg transition cursor-pointer ${epidemicSearchType === 'sfx' ? 'bg-gold-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+
+                          >
+
+                            Efeitos (SFX)
+
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                      <div className="space-y-2">
+
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Buscar por Termo</label>
+
+                        <div className="flex gap-2">
+
+                          <input
+
+                            type="text"
+
+                            value={epidemicSearchQuery}
+
+                            onChange={(e) => setEpidemicSearchQuery(e.target.value)}
+
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSearchEpidemic(); }}
+
+                            placeholder={epidemicSearchType === 'bgm' ? 'Ex: cinematic ancient tension...' : 'Ex: whoosh, desert wind...'}
+
+                            className="flex-1 bg-zinc-950 border border-zinc-850 focus:outline-none focus:border-gold-500 rounded-xl px-4 py-2.5 text-xs text-white"
+
+                          />
+
+                          <button
+
+                            onClick={handleSearchEpidemic}
+
+                            disabled={searchingEpidemic}
+
+                            className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center"
+
+                          >
+
+                            {searchingEpidemic ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                      <div className="bg-zinc-950/60 border border-zinc-900 rounded-2xl p-4 space-y-3">
+
+                        <h5 className="text-xs font-bold text-white tracking-wide">Como Funciona?</h5>
+
+                        <ul className="text-[10px] text-zinc-400 space-y-2 leading-relaxed list-disc list-inside font-sans">
+
+                          <li><strong>Músicas (BGM)</strong>: Quando baixadas, são salvas no projeto e associadas ao bloco desejado ou como trilha sonora única.</li>
+
+                          <li><strong>Efeitos (SFX)</strong>: São salvos diretamente na pasta <code>ASSETS/</code> como <code>sfx_*.mp3</code> para uso em cortes de vídeo.</li>
+
+                          <li><strong>Sonoplastia IA Inteligente</strong>: Analisa o roteiro do vídeo e temas recomendados para baixar e mapear automaticamente todas as faixas.</li>
+
+                        </ul>
+
+                      </div>
+
+                    </div>
+
+                    {/* Results Column */}
+
+                    <div className="lg:col-span-2 space-y-3">
+
+                      <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+
+                        <label className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Resultados da Busca</label>
+
+                        <span className="text-[10px] text-zinc-500 font-mono">{safeEpidemicResults.length} encontrados</span>
+
+                      </div>
+
+                      <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-2">
+
+                        {safeEpidemicResults.length === 0 ? (
+
+                          <div className="h-[200px] border border-dashed border-zinc-850 rounded-2xl flex flex-col items-center justify-center text-center p-4">
+
+                            <Music className="w-8 h-8 text-zinc-700 mb-2" />
+
+                            <p className="text-xs text-zinc-500">Nenhum resultado para exibir. Faça uma busca no painel ao lado.</p>
+
+                          </div>
+
+                        ) : (
+
+                          safeEpidemicResults.map((track) => (
+
+                            <div key={track.id} className="p-3 bg-zinc-950 border border-zinc-900 hover:border-zinc-800 rounded-xl flex items-center justify-between gap-4 transition group">
+
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+
+                                {track.previewUrl && (
+
+                                  <button
+
+                                    onClick={() => togglePlayMusic(track.previewUrl)}
+
+                                    className="text-gold-500 hover:text-gold-400 p-2 rounded-xl bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+
+                                    title="Ouvir demonstração"
+
+                                  >
+
+                                    {playingMusic === track.previewUrl ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+
+                                  </button>
+
+                                )}
+
+                                <div className="min-w-0">
+
+                                  <p className="text-xs font-semibold text-white truncate">{track.title}</p>
+
+                                  <p className="text-[10px] text-zinc-400 font-sans mt-0.5 truncate">
+
+                                    {track.artist && <span>{track.artist}</span>}
+
+                                    {track.bpm && <span className="ml-2 px-1 py-0.5 bg-zinc-900 rounded text-zinc-500 text-[9px] font-mono">{track.bpm} BPM</span>}
+
+                                    {track.duration && <span className="ml-2 font-mono text-[9px] text-zinc-500">{Math.round(track.duration / 1000)}s</span>}
+
+                                  </p>
+
+                                </div>
+
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+
+                                {epidemicSearchType === 'bgm' ? (
+
+                                  <>
+
+                                    {/* Mapear para bloco específico */}
+
+                                    <div className="hidden group-hover:flex items-center gap-1 animate-fade-in">
+
+                                      <select
+
+                                        onChange={(e) => {
+
+                                          const block = Number(e.target.value);
+
+                                          if (block > 0) {
+
+                                            handleDownloadEpidemic(track, block);
+
+                                            e.target.value = ""; // reset dropdown
+
+                                          }
+
+                                        }}
+
+                                        disabled={downloadingEpidemicId !== null}
+
+                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 hover:border-zinc-700 rounded px-1.5 py-1 cursor-pointer focus:outline-none"
+
+                                      >
+
+                                        <option value="">Map Bloco...</option>
+
+                                        {Array.from({ length: Math.max(1, (config.bgm_mappings || []).length || (storyboardData?.bgm_recommendations || []).length || 10) }, (_, i) => i + 1).map(num => (
+
+                                          <option key={num} value={num}>Bloco {num}</option>
+
+                                        ))}
+
+                                      </select>
+
+                                    </div>
+
+                                    <button
+
+                                      disabled={downloadingEpidemicId !== null}
+
+                                      onClick={() => handleDownloadEpidemic(track)}
+
+                                      className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 hover:bg-gold-500/10 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+
+                                    >
+
+                                      {downloadingEpidemicId === track.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+
+                                      <span>Trilha Única</span>
+
+                                    </button>
+
+                                  </>
+
+                                ) : (
+
+                                  <button
+
+                                    disabled={downloadingEpidemicId !== null}
+
+                                    onClick={() => handleDownloadEpidemic(track)}
+
+                                    className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 hover:bg-gold-500/10 text-gold-500 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+
+                                  >
+
+                                    {downloadingEpidemicId === track.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+
+                                    <span>Baixar SFX</span>
+
+                                  </button>
+
+                                )}
+
+                              </div>
+
+                            </div>
+
+                          ))
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+              </div>
+
             </div>
 
+              )}
+            </TabErrorBoundary>
           )}
 
           {/* TAB 4: COMPILATION TERMINAL */}
 
           {activeTab === 'terminal' && (
 
-            <div className="space-y-4 h-[calc(100vh-180px)] flex flex-col animate-fade-in font-sans">
+            <div className="lumiera-fill-view space-y-4 animate-fade-in">
 
               <div className="flex justify-between items-center border-b border-zinc-900 pb-2 shrink-0">
 
                 <div>
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2">
-
-                    <Terminal className="w-5 h-5 text-gold-500" /> CONSOLE DE COMPILAÇÃO E LOGS
-
-                  </h3>
-
-                  <p className="text-xs text-gray-400 mt-1">Logs em tempo real de execução do compilador Python/FFmpeg.</p>
+                  <SectionHeader
+                    title="CONSOLE DE COMPILAÇÃO E LOGS"
+                    helpId="tab-terminal"
+                    icon={<Terminal className="w-5 h-5 text-gold-500" />}
+                    subtitle="Logs em tempo real de execução do compilador Python/FFmpeg."
+                  />
 
                 </div>
 
@@ -4910,150 +10055,115 @@ Regras:
 
           {activeTab === 'ai' && (
 
-            <div className="space-y-6 animate-fade-in flex flex-col h-[calc(100vh-120px)] overflow-hidden font-sans">
+            <div className="lumiera-fill-view space-y-6 animate-fade-in overflow-hidden">
 
-              
+              <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
 
-              {/* API Key Banner */}
-
-              {/* API Key Banner */}
-              <div className="glass-panel p-5 rounded-2xl flex flex-col gap-4 shrink-0 font-sans">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                      {hasApiKey ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white tracking-wide font-cinzel">CONFIGURAÇÃO DA API DE INTELIGÊNCIA ARTIFICIAL</h4>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {hasApiKey 
-                          ? `Conectado com sucesso via ${apiProvider.toUpperCase()} (${apiModel || 'Modelo Padrão'}).` 
-                          : 'Selecione um provedor e insira sua chave de API para habilitar o Criador e Otimizador de Vídeos.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {hasApiKey && !showKeyInput && (
-                    <button 
-                      onClick={() => {
-                        setShowKeyInput(true);
-                        setApiKeyInput('');
-                      }}
-                      className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
-                    >
-                      Alterar Configuração
-                    </button>
-                  )}
-                </div>
-
-                {(!hasApiKey || showKeyInput) && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 border-t border-zinc-900/60 pt-4 mt-2">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">Provedor API</span>
-                      <select
-                        value={apiProvider}
-                        onChange={(e) => {
-                          const val = e.target.value as 'gemini' | 'groq' | 'openrouter';
-                          setApiProvider(val);
-                          // Auto fill model defaults
-                          if (val === 'gemini') setApiModel('gemini-3.5-flash');
-                          else if (val === 'groq') setApiModel('llama-3.3-70b-versatile');
-                          else if (val === 'openrouter') setApiModel('google/gemini-2.5-flash');
-                        }}
-                        className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
-                      >
-                        <option value="gemini">Google AI Studio (Gemini)</option>
-                        <option value="groq">Groq (Llama 3.3 / Ultra-Rápido)</option>
-                        <option value="openrouter">OpenRouter (20+ Modelos Gratuitos)</option>
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">Modelo da IA</span>
-                      <input 
-                        type="text"
-                        placeholder="Ex: gemini-3.5-flash"
-                        value={apiModel}
-                        onChange={(e) => setApiModel(e.target.value)}
-                        className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">Chave de API (API Key)</span>
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="password"
-                          placeholder="Insira a chave..."
-                          value={apiKeyInput}
-                          onChange={(e) => setApiKeyInput(e.target.value)}
-                          className="bg-zinc-950 border border-zinc-800 text-xs text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-gold-500 flex-1"
-                        />
-                        <button 
-                          onClick={() => handleSaveApiKey(apiProvider, apiModel)}
-                          className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-4 py-1.5 rounded-lg transition cursor-pointer shrink-0"
-                        >
-                          Salvar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* IA Status widget (Puter.js vs Google AI Studio) */}
-              <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-4 flex items-center justify-between gap-4 shrink-0 font-sans text-xs">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center relative">
-                    <Bot className="w-4 h-4 animate-pulse" />
+
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+
+                    {hasApiKey ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+
                   </div>
+
                   <div>
-                    <h4 className="text-xs font-bold text-white tracking-wide uppercase font-cinzel">Status do Motor de Inteligência Artificial</h4>
+
+                    <SectionHeader title="PROVEDOR DE IA" helpId="ai-provider-panel" size="sm" titleClassName="text-xs tracking-wide" />
+
                     <p className="text-[10px] text-gray-400 mt-0.5">
-                      {hasApiKey 
-                        ? 'Servidor prioritário: Google AI Studio (Gemini-3.5-Flash) ativo.' 
-                        : 'Google AI Studio API Key ausente. Utilizando Puter.js (Gemini-2.5-Flash) cliente gratuito de backup.'}
+
+                      {hasApiKey
+                        ? `Conectado via ${aiProviderBadge.short}. ${aiProviderBadge.detail}`
+                        : aiProviderBadge.detail}
+
                     </p>
+
                   </div>
+
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-500 mr-1">Conexão IA:</span>
-                  <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-md">
-                    <span className={`w-1.5 h-1.5 rounded-full ${hasApiKey ? 'bg-emerald-500' : 'bg-amber-500'} animate-ping`}></span>
-                    <span className="text-white text-[9px] font-bold font-mono">
-                      {hasApiKey ? 'STUDIO_ACTIVE' : 'PUTER_FAILOVER'}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+
+                  <button 
+
+                    onClick={() => setActiveTab('settings')}
+
+                    className="border border-zinc-850 hover:bg-zinc-900 text-gray-300 text-[10px] font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5"
+
+                  >
+
+                    <Settings className="w-3.5 h-3.5" />
+
+                    Configurações
+
+                  </button>
+
                 </div>
+
               </div>
 
               {/* Two Column Layout: YouTube Metadata & AI Chat */}
 
-              <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0 overflow-hidden">
-
-                
+              <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 min-w-0 overflow-hidden">
 
                 {/* Column 1: YouTube Metadata */}
 
-                <div className="flex-1 glass-panel p-6 rounded-3xl flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 glass-panel p-4 sm:p-6 rounded-3xl flex flex-col min-h-0 min-w-0 overflow-hidden">
 
                   <div className="flex justify-between items-start border-b border-zinc-900 pb-3 shrink-0">
 
                     <div>
 
-                      <h3 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
-
-                        <Video className="w-4 h-4 text-gold-500" /> Otimizador de Metadados do YouTube
-
-                      </h3>
-
-                      <p className="text-[10px] text-gray-400 mt-1">Gere títulos A/B, descrição SEO, tags e capítulos baseados no roteiro.</p>
+                      <SectionHeader
+                        title="Otimizador de Metadados do YouTube"
+                        helpId="ai-metadata"
+                        icon={<Video className="w-4 h-4 text-gold-500" />}
+                        size="sm"
+                        titleClassName="tracking-widest uppercase text-xs"
+                        subtitle={<>Passo 1: <strong className="text-zinc-300">Gerar Metadados</strong> → Passo 2: <strong className="text-zinc-300">Gerar Thumbnails</strong> (botão verde). Títulos, descrição, tags e 3 capas A/B para upload no YouTube.</>}
+                      />
+                      {(youtubeMetadataFormat || youtubeMetadataStrategy?.profileLabel) && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {youtubeMetadataFormat && (
+                            <span className={`inline-flex text-[9px] font-bold px-2 py-0.5 rounded ${youtubeMetadataFormat === 'SHORT' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-sky-500/10 text-sky-400'}`}>
+                              {youtubeMetadataFormat === 'SHORT' ? 'Shorts · feed + rewatch' : 'Longo · CTR + retenção'}
+                            </span>
+                          )}
+                          {youtubeMetadataStrategy?.profileLabel && (
+                            <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                              Perfil: {youtubeMetadataStrategy.profileLabel}
+                            </span>
+                          )}
+                          {youtubeMetadataStrategy?.rpm && (
+                            <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                              RPM {youtubeMetadataStrategy.rpm}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                     </div>
 
-                    
-
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    <button
+                      disabled={canvaThumbnailsLoading || !uploadStatus.canva?.connected}
+                      onClick={handleGenerateCanvaThumbnails}
+                      title={uploadStatus.canva?.connected ? 'Gera capas A/B/C automaticamente via Canva Connect' : 'Conecte o Canva em Upload → Integrações'}
+                      className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/10"
+                    >
+                      {canvaThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      <span>{canvaThumbnailsLoading ? 'Canva...' : 'Gerar no Canva'}</span>
+                    </button>
+                    <button
+                      disabled={youtubeThumbnailsLoading}
+                      onClick={handleGenerateYoutubeThumbnailImages}
+                      title={youtubeMetadataParsed?.thumbnails?.length ? 'Gera 3 imagens de capa A/B/C' : 'Gere os metadados primeiro (passo 1)'}
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
+                    >
+                      {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                      <span>{youtubeThumbnailsLoading ? 'Gerando...' : 'Gerar Thumbnails'}</span>
+                    </button>
                     <button 
 
                       disabled={youtubeLoading || !hasApiKey}
@@ -5069,6 +10179,7 @@ Regras:
                       <span>{youtubeLoading ? 'Gerando...' : 'Gerar Metadados'}</span>
 
                     </button>
+                    </div>
 
                   </div>
 
@@ -5088,9 +10199,19 @@ Regras:
 
                       <div className="space-y-3">
 
-                        {/* Copiar Tudo */}
+                        {/* Aplicar ao Upload + Copiar Tudo */}
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-between items-center gap-2 flex-wrap">
+                          {youtubeMetadataParsed?.description && (
+                            <button
+                              onClick={applyMetadataToUpload}
+                              className="bg-gold-500/10 border border-gold-500/30 text-gold-400 hover:bg-gold-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              Aplicar ao Upload (completo)
+                            </button>
+                          )}
+                          <div className="flex-1" />
 
                           <button 
 
@@ -5108,11 +10229,146 @@ Regras:
 
                         </div>
 
+                        {(youtubeMetadataParsed?.thumbnails?.length || youtubeMetadataParsed?.titles?.length) && (
+                          <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div>
+                                <SectionHeader title="Thumbnails A/B" helpId="thumbnails-ab" size="sm" titleClassName="text-gold-500 tracking-wide uppercase text-xs" />
+                                <span className="text-[9px] text-zinc-500">
+                                  {uploadStatus.canva?.connected ? 'Canva automático ou local sharp' : 'Conecte o Canva para gerar capas sem abrir o navegador'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  disabled={canvaThumbnailsLoading || !uploadStatus.canva?.connected}
+                                  onClick={handleGenerateCanvaThumbnails}
+                                  className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  {canvaThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                  {canvaThumbnailsLoading ? 'Canva...' : 'Gerar no Canva'}
+                                </button>
+                                <button
+                                  disabled={youtubeThumbnailsLoading}
+                                  onClick={handleGenerateYoutubeThumbnailImages}
+                                  className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                                  {youtubeThumbnailsLoading ? 'Gerando...' : 'Local'}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {(youtubeMetadataParsed.thumbnails?.length
+                                ? youtubeMetadataParsed.thumbnails
+                                : (youtubeMetadataParsed.titles || []).slice(0, 3).map((t, i) => ({
+                                    id: String.fromCharCode(65 + i),
+                                    label: ['Curiosidade', 'Contraste', 'Prova Visual'][i] || 'Variante',
+                                    overlayText: t.text?.split(' ').slice(0, 4).join(' '),
+                                    pairedTitle: `${i + 1}. ${t.text}`,
+                                  }))
+                              ).map((thumb) => {
+                                const generated = youtubeThumbnailsGenerated.find((g) => g.id === thumb.id);
+                                return (
+                                <div key={thumb.id} className={`bg-zinc-900/50 border rounded-lg p-3 space-y-2 ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}>
+                                  {generated?.url && (
+                                    <a href={generated.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border border-zinc-800 hover:border-gold-500/40 transition">
+                                      <img
+                                        src={`${generated.url}?t=${Date.now()}`}
+                                        alt={`Thumbnail variante ${thumb.id}`}
+                                        className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16] max-h-64' : 'aspect-video'}`}
+                                      />
+                                    </a>
+                                  )}
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-white">Variante {thumb.id}</span>
+                                    <span className="text-[9px] text-zinc-500">{thumb.label}</span>
+                                  </div>
+                                  {thumb.overlayText && (
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5">
+                                      <span className="text-[8px] text-zinc-500 uppercase block">Texto na capa</span>
+                                      <span className="text-sm font-black text-gold-400 tracking-wide">{thumb.overlayText}</span>
+                                    </div>
+                                  )}
+                                  {thumb.pairedTitle && (
+                                    <p className="text-[10px] text-zinc-400"><span className="text-zinc-600">Título:</span> {thumb.pairedTitle}</p>
+                                  )}
+                                  {thumb.composition && (
+                                    <p className="text-[10px] text-zinc-400 leading-relaxed">{thumb.composition}</p>
+                                  )}
+                                  {thumb.focalElement && (
+                                    <p className="text-[10px] text-zinc-500"><span className="text-zinc-600">Foco:</span> {thumb.focalElement}</p>
+                                  )}
+                                  {thumb.colors && thumb.colors.length > 0 && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {thumb.colors.map((color, cIdx) => (
+                                        <span
+                                          key={cIdx}
+                                          className="w-4 h-4 rounded-full border border-zinc-700"
+                                          style={{ backgroundColor: color }}
+                                          title={color}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {generated?.url && (
+                                      <button
+                                        onClick={() => selectThumbnailForUpload(generated)}
+                                        className={`text-[9px] font-bold py-1.5 rounded border transition cursor-pointer ${ytThumbnailVariant === thumb.id ? 'bg-gold-500/20 border-gold-500/40 text-gold-300' : 'border-zinc-800 text-zinc-300 hover:border-gold-500/30'}`}
+                                      >
+                                        {ytThumbnailVariant === thumb.id ? '✓ No Upload' : 'Usar no Upload'}
+                                      </button>
+                                    )}
+                                    {generated?.editUrl && (
+                                      <a
+                                        href={generated.editUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-center text-[9px] font-bold text-cyan-400 hover:text-cyan-300 py-1.5 rounded border border-cyan-500/20 hover:border-cyan-500/40 transition"
+                                      >
+                                        Editar no Canva
+                                      </a>
+                                    )}
+                                    <button
+                                      onClick={() => openCanvaThumbnailDesigner(thumb)}
+                                      className="text-[9px] font-bold text-sky-400 hover:text-sky-300 py-1.5 rounded border border-sky-500/20 hover:border-sky-500/40 transition cursor-pointer"
+                                    >
+                                      {copiedSection === `canva-${thumb.id}` ? 'Brief copiado!' : 'Abrir Canva'}
+                                    </button>
+                                    <button
+                                      onClick={() => copyToClipboard(buildThumbnailBrief(thumb), `thumb-${thumb.id}`)}
+                                      className="text-[9px] font-bold text-zinc-400 hover:text-white py-1.5 rounded border border-zinc-800 hover:border-zinc-700 transition cursor-pointer"
+                                    >
+                                      {copiedSection === `thumb-${thumb.id}` ? 'Copiado!' : 'Copiar briefing'}
+                                    </button>
+                                    {generated?.url ? (
+                                      <a
+                                        href={generated.url}
+                                        download
+                                        className="text-center text-[9px] font-bold text-gold-500 hover:text-gold-400 py-1.5 rounded border border-gold-500/20 hover:border-gold-500/40 transition"
+                                      >
+                                        Baixar
+                                      </a>
+                                    ) : (
+                                      <span className="text-[9px] text-zinc-600 text-center py-1.5">Gere imagens</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Render sections with individual copy buttons */}
 
                         {(() => {
 
-                          const sections = youtubeMetadata.split(/^## /m).filter(Boolean);
+                          const sections = normalizeYoutubeMetadataDisplay(youtubeMetadata).split(/^## /m).filter(Boolean).filter((section) => {
+                            const sectionTitle = section.split('\n')[0]?.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                            if (sectionTitle === 'THUMBNAILS A/B' && youtubeMetadataParsed?.thumbnails?.length) return false;
+                            return true;
+                          });
 
                           return sections.map((section, sIdx) => {
 
@@ -5149,8 +10405,198 @@ Regras:
                                 </div>
 
                                 <div className="prose prose-invert max-w-none">
-
-                                  {renderFormattedText(content)}
+                                  {/^T[ÍI]TULOS$/i.test(title) && youtubeMetadataParsed?.titles?.length ? (
+                                    <div className="space-y-3 not-prose">
+                                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 space-y-2">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                          <div>
+                                            <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wide">Teste A/B de Títulos</span>
+                                            <p className="text-[9px] text-zinc-500">Publique o vídeo, cole o videoId e alterne títulos com analytics do YouTube.</p>
+                                          </div>
+                                          <button
+                                            disabled={titleExperimentLoading}
+                                            onClick={fetchTitleExperimentAnalytics}
+                                            className="text-[9px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded border border-violet-500/30 hover:border-violet-500/50 transition cursor-pointer"
+                                          >
+                                            {titleExperimentLoading ? 'Atualizando...' : 'Atualizar Analytics'}
+                                          </button>
+                                        </div>
+                                        <input
+                                          type="text"
+                                          placeholder="videoId do YouTube (ex: dQw4w9WgXcQ)"
+                                          value={titleExperimentVideoId}
+                                          onChange={(e) => setTitleExperimentVideoId(e.target.value)}
+                                          className="w-full bg-black border border-zinc-800 focus:border-violet-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
+                                        />
+                                        {titleExperimentAnalytics?.available && (
+                                          <div className="space-y-2">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Views (28d)</span>
+                                                <span className="text-white font-bold">{titleExperimentAnalytics.metrics?.views ?? 0}</span>
+                                              </div>
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Min. assistidos</span>
+                                                <span className="text-white font-bold">{Math.round(titleExperimentAnalytics.metrics?.estimatedMinutesWatched || 0)}</span>
+                                              </div>
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Retenção média</span>
+                                                <span className="text-white font-bold">{Math.round(titleExperimentAnalytics.metrics?.averageViewDuration || 0)}s</span>
+                                              </div>
+                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
+                                                <span className="text-zinc-500 block">Likes / Coment.</span>
+                                                <span className="text-white font-bold">
+                                                  {titleExperimentAnalytics.metrics?.likes ?? 0} / {titleExperimentAnalytics.metrics?.comments ?? 0}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            {titleExperimentAnalytics.reachNote && (
+                                              <p className="text-[8px] text-zinc-500">{titleExperimentAnalytics.reachNote}</p>
+                                            )}
+                                            {titleExperimentWinner?.variantId && (
+                                              <p className="text-[9px] text-emerald-400 font-bold">
+                                                Líder por views no período: variante {titleExperimentWinner.variantId} ({titleExperimentWinner.views} views)
+                                              </p>
+                                            )}
+                                            {titleRetention?.velocity?.views48h != null && (
+                                              <p className="text-[9px] text-cyan-400">
+                                                Views 48h: {titleRetention.velocity.views48h}
+                                              </p>
+                                            )}
+                                            <div className="flex gap-2 flex-wrap">
+                                              <button
+                                                type="button"
+                                                disabled={titleExperimentLoading || !titleExperimentWinner}
+                                                onClick={async () => {
+                                                  setTitleExperimentLoading(true);
+                                                  try {
+                                                    const res = await fetch(getProjectUrl('/api/youtube/title-experiment/apply-winner'), { method: 'POST' });
+                                                    const data = await res.json();
+                                                    if (res.ok) {
+                                                      toast(`Vencedor ${data.winner?.variantId} aplicado permanentemente.`);
+                                                      fetchTitleExperimentAnalytics();
+                                                    } else toast(data.error || 'Falha ao aplicar vencedor.');
+                                                  } finally { setTitleExperimentLoading(false); }
+                                                }}
+                                                className="text-[8px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded disabled:opacity-50"
+                                              >
+                                                Aplicar vencedor
+                                              </button>
+                                              <button
+                                                type="button"
+                                                disabled={titleExperimentLoading}
+                                                onClick={async () => {
+                                                  await fetch(getProjectUrl('/api/youtube/title-experiment/stop'), { method: 'POST' });
+                                                  toast('Experimento de títulos encerrado.');
+                                                  fetchTitleExperiment();
+                                                }}
+                                                className="text-[8px] font-bold text-zinc-400 border border-zinc-700 px-2 py-1 rounded"
+                                              >
+                                                Parar teste
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {uploadStatus.youtube?.connected && uploadStatus.youtube?.titleTestReady === false && (
+                                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-2 space-y-1.5">
+                                            <p className="text-[9px] text-amber-400 font-bold">Permissões antigas (só upload)</p>
+                                            <p className="text-[9px] text-amber-500/90">
+                                              Faltam: {(uploadStatus.youtube?.missingScopes || []).join(', ') || 'editar títulos e analytics'}.
+                                            </p>
+                                            <button
+                                              type="button"
+                                              onClick={handleRelinkYoutube}
+                                              className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 text-[9px] font-bold py-1.5 rounded-lg transition cursor-pointer"
+                                            >
+                                              Revincular YouTube (obrigatório)
+                                            </button>
+                                          </div>
+                                        )}
+                                        {titleExperimentAnalytics && !titleExperimentAnalytics.available && titleExperimentAnalytics.error && (
+                                          <p className="text-[9px] text-amber-500">{titleExperimentAnalytics.error}</p>
+                                        )}
+                                        <button
+                                          disabled={titleExperimentLoading || !uploadStatus.youtube?.connected}
+                                          onClick={handleStartTitleExperiment}
+                                          className="w-full bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 disabled:opacity-50 text-[10px] font-bold py-1.5 rounded-lg transition cursor-pointer"
+                                        >
+                                          {titleExperimentLoading ? 'Processando...' : 'Iniciar teste A/B (títulos marcados)'}
+                                        </button>
+                                      </div>
+                                      {youtubeMetadataParsed.titles.map((t, tIdx) => {
+                                        const hasHashtag = /#[\wÀ-ÿ]+/i.test(t.text);
+                                        const hasEmoji = /\p{Extended_Pictographic}/u.test(t.text);
+                                        const maxChars = youtubeMetadataFormat === 'SHORT'
+                                          ? (hasHashtag || hasEmoji ? 55 : 40)
+                                          : 50;
+                                        const ok = t.chars <= maxChars;
+                                        const isRecommended = tIdx === 0 || t.text === youtubeMetadataParsed.recommendedTitle;
+                                        const variantId = String.fromCharCode(65 + tIdx);
+                                        const isAbSelected = titleAbSelected[String(tIdx)] !== false;
+                                        const isActiveVariant = titleExperiment?.activeVariantId === variantId;
+                                        const ranking = titleExperimentRankings.find((r) => r.id === variantId);
+                                        return (
+                                          <div key={tIdx} className={`flex items-start justify-between gap-2 bg-zinc-900/50 border rounded-lg px-3 py-2 ${isRecommended ? 'border-gold-500/40 ring-1 ring-gold-500/15' : isActiveVariant ? 'border-violet-500/50 ring-1 ring-violet-500/20' : 'border-zinc-800'}`}>
+                                            <div className="min-w-0 flex items-start gap-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={isAbSelected}
+                                                onChange={(e) => setTitleAbSelected((prev) => ({ ...prev, [String(tIdx)]: e.target.checked }))}
+                                                className="mt-1 accent-violet-500"
+                                                title="Incluir no teste A/B"
+                                              />
+                                              <div>
+                                                <span className="text-[10px] text-zinc-500 mr-2">{tIdx + 1}.</span>
+                                                {isRecommended && (
+                                                  <span className="text-[8px] font-bold text-gold-400 bg-gold-500/10 border border-gold-500/30 px-1.5 py-0.5 rounded mr-1.5 uppercase tracking-wide">
+                                                    Recomendado
+                                                  </span>
+                                                )}
+                                                <span className="text-xs text-zinc-200 break-words whitespace-normal leading-snug">{t.text}</span>
+                                                <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                  {t.chars}/{maxChars}
+                                                </span>
+                                                {typeof t.score === 'number' && (
+                                                  <span className="ml-1 text-[8px] text-zinc-600 font-mono" title="Score de qualidade">
+                                                    · {t.score}pts
+                                                  </span>
+                                                )}
+                                                {isActiveVariant && <span className="ml-2 text-[8px] text-violet-400 font-bold">ATIVO NO YT</span>}
+                                                {typeof ranking?.periodViews === 'number' && (
+                                                  <span className="block text-[8px] text-emerald-500 mt-0.5">
+                                                    {ranking.periodViews} views no período deste título
+                                                    {ranking.periodAvgDuration ? ` · ${ranking.periodAvgDuration}s retenção` : ''}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="flex flex-col gap-1 shrink-0">
+                                              <button
+                                                onClick={() => {
+                                                  setYtTitle(t.text.slice(0, 100));
+                                                  toast(`Título #${tIdx + 1} aplicado na aba Upload.`);
+                                                }}
+                                                className="text-[9px] font-bold text-gold-500 hover:text-gold-400 px-2 py-1 rounded border border-gold-500/20 hover:border-gold-500/40 transition cursor-pointer"
+                                              >
+                                                Usar
+                                              </button>
+                                              {titleExperiment?.videoId && uploadStatus.youtube?.connected && tIdx < 5 && (
+                                                <button
+                                                  disabled={titleExperimentLoading}
+                                                  onClick={() => handleApplyTitleVariant(variantId)}
+                                                  className="text-[9px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded border border-violet-500/20 hover:border-violet-500/40 transition cursor-pointer disabled:opacity-50"
+                                                >
+                                                  Aplicar {variantId}
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    renderFormattedText(content)
+                                  )}
 
                                 </div>
 
@@ -5182,17 +10628,18 @@ Regras:
 
                 {/* Column 2: AI Chat Assistant */}
 
-                <div className="flex-1 glass-panel p-6 rounded-3xl flex flex-col min-h-0 overflow-hidden font-sans">
+                <div className="flex-1 glass-panel p-4 sm:p-6 rounded-3xl flex flex-col min-h-0 min-w-0 overflow-hidden font-sans">
 
                   <div className="border-b border-zinc-900 pb-3 shrink-0">
 
-                    <h3 className="font-cinzel text-xs font-bold text-white tracking-widest uppercase flex items-center gap-2">
-
-                      <Sparkles className="w-4 h-4 text-gold-500" /> Chat de Engenharia e Criação IA
-
-                    </h3>
-
-                    <p className="text-[10px] text-gray-400 mt-1">Peça alterações de BGM, sugestões de palavras-chave ou reescrita de textos de impacto.</p>
+                    <SectionHeader
+                      title="Chat de Engenharia e Criação IA"
+                      helpId="ai-chat"
+                      icon={<Sparkles className="w-4 h-4 text-gold-500" />}
+                      size="sm"
+                      titleClassName="tracking-widest uppercase text-xs"
+                      subtitle="Peça alterações de BGM, sugestões de palavras-chave ou reescrita de textos de impacto."
+                    />
 
                   </div>
 
@@ -5225,8 +10672,6 @@ Regras:
                           }`}>
 
                             <div className="whitespace-pre-wrap">{msg.content}</div>
-
-                            
 
                             {/* Auto apply config suggestions button */}
 
@@ -5372,29 +10817,509 @@ Regras:
 
           )}
 
-          
-
           {/* TAB: PROJECT EDITOR */}
 
-          {activeTab === 'editor' && (
+          {/* TAB: UPLOAD MULTI & DISTRIBUICAO */}
+          {activeTab === 'upload' && (
+            <div className="space-y-6 animate-fade-in font-sans">
+              <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
+                <div>
+                  <SectionHeader
+                    title="Upload & Distribuição Multi-Plataforma"
+                    helpId="upload-platforms"
+                    size="md"
+                    subtitle="Prepare os metadados e publique seus vídeos nas redes sociais de forma automatizada."
+                  />
+                </div>
+              </div>
+
+              {/* Step 1: Select platforms & Edit metadata */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Metadados por Plataforma */}
+                <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* YouTube Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-yt"
+                          checked={selectedPlatforms.youtube}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, youtube: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-yt" className="text-xs font-bold text-zinc-200 cursor-pointer flex items-center gap-1.5">
+                          <span>YouTube (Videos / Shorts)</span>
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.youtube?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.youtube?.connected ? 'Conectado' : 'Não Conectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.youtube && (
+                      <div className="space-y-4 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Título no YouTube</label>
+                          <input
+                            type="text"
+                            maxLength={100}
+                            value={ytTitle}
+                            onChange={(e) => setYtTitle(e.target.value)}
+                            placeholder="Insira o título do vídeo para o YouTube"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs"
+                          />
+                          <span className="text-[9px] text-zinc-600 block text-right">{ytTitle.length}/100</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Descrição do YouTube</label>
+                          <textarea
+                            rows={3}
+                            value={ytDescription}
+                            onChange={(e) => setYtDescription(e.target.value)}
+                            placeholder="Descrição completa para SEO, links e hashtags"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Privacidade</label>
+                          <select
+                            value={ytPrivacy}
+                            onChange={(e) => setYtPrivacy(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white font-sans text-xs"
+                          >
+                            <option value="private">Privado (Recomendado)</option>
+                            <option value="public">Público</option>
+                            <option value="unlisted">Não listado</option>
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Tags (vírgula)</label>
+                          <input
+                            type="text"
+                            value={ytTags}
+                            onChange={(e) => setYtTags(e.target.value)}
+                            placeholder="tag1, tag2, tag3..."
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Capítulos (marcadores)</label>
+                          <textarea
+                            rows={2}
+                            value={ytChapters}
+                            onChange={(e) => setYtChapters(e.target.value)}
+                            placeholder="0:00 Intro&#10;1:30 Tema principal"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none font-mono"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Comentário fixo (pós-upload)</label>
+                          <textarea
+                            rows={2}
+                            value={ytPinnedComment}
+                            onChange={(e) => setYtPinnedComment(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <label className="ui-micro-label text-gray-500 block text-balance-safe">Agendar (ISO)</label>
+                            <input
+                              type="datetime-local"
+                              value={ytPublishAt ? ytPublishAt.slice(0, 16) : ''}
+                              onChange={(e) => setYtPublishAt(e.target.value ? new Date(e.target.value).toISOString() : '')}
+                              className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2 text-white text-xs"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="ui-micro-label text-gray-500 block text-balance-safe">Categoria ID</label>
+                            <input
+                              type="text"
+                              value={ytCategoryId}
+                              onChange={(e) => setYtCategoryId(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2 text-white text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2 border-t border-zinc-900/60">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div>
+                              <label className="ui-micro-label text-gray-500 block text-balance-safe">Thumbnail do YouTube (A/B/C)</label>
+                              <p className="text-[9px] text-zinc-600 mt-0.5">Gera 3 capas com texto overlay a partir dos assets do projeto.</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setActiveTab('ai')}
+                                className="text-[9px] font-bold text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-800 transition cursor-pointer"
+                              >
+                                Agente IA
+                              </button>
+                              <button
+                                type="button"
+                                disabled={youtubeThumbnailsLoading}
+                                onClick={handleGenerateYoutubeThumbnailImages}
+                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
+                              >
+                                {youtubeThumbnailsLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
+                                {youtubeThumbnailsLoading ? 'Gerando...' : 'Gerar Thumbnails'}
+                              </button>
+                            </div>
+                          </div>
+                          {ytThumbnailVariant && (
+                            <p className="text-[9px] text-gold-500/80">
+                              Selecionada para upload: <strong>Variante {ytThumbnailVariant}</strong>
+                            </p>
+                          )}
+                          {youtubeThumbnailsGenerated.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              {youtubeThumbnailsGenerated.map((thumb) => (
+                                <div
+                                  key={thumb.id}
+                                  className={`rounded-lg overflow-hidden border transition ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}
+                                >
+                                  <a href={thumb.url} target="_blank" rel="noreferrer" className="block">
+                                    <img
+                                      src={`${thumb.url}?t=${Date.now()}`}
+                                      alt={`Thumbnail ${thumb.id}`}
+                                      className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16]' : 'aspect-video'}`}
+                                    />
+                                  </a>
+                                  <div className="flex gap-1 p-1 bg-zinc-950/80">
+                                    <button
+                                      type="button"
+                                      onClick={() => selectThumbnailForUpload(thumb)}
+                                      className={`flex-1 text-[8px] font-bold py-1 rounded ${ytThumbnailVariant === thumb.id ? 'bg-gold-500/20 text-gold-300' : 'text-zinc-400 hover:text-white'}`}
+                                    >
+                                      {ytThumbnailVariant === thumb.id ? '✓' : 'Usar'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openCanvaThumbnailDesigner({ id: thumb.id, label: thumb.label, overlayText: thumb.overlayText })}
+                                      className="flex-1 text-[8px] font-bold py-1 rounded text-sky-400 hover:text-sky-300"
+                                    >
+                                      Canva
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[9px] text-zinc-600 italic">
+                              Nenhuma thumbnail gerada ainda. Use &quot;Gerar Metadados&quot; na aba Agente IA, depois clique em &quot;Gerar Thumbnails&quot;.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Instagram Reels Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-ig"
+                          checked={selectedPlatforms.instagram}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, instagram: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-ig" className="text-xs font-bold text-zinc-200 cursor-pointer">
+                          Instagram Reels
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.instagram?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.instagram?.connected ? 'Conectado' : 'Não Conectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.instagram && (
+                      <div className="space-y-3 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do Reels (Caption)</label>
+                          <textarea
+                            rows={3}
+                            value={igCaption}
+                            onChange={(e) => setIgCaption(e.target.value)}
+                            placeholder="Legenda para o Reels com hashtags"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* TikTok Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-tt"
+                          checked={selectedPlatforms.tiktok}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, tiktok: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-tt" className="text-xs font-bold text-zinc-200 cursor-pointer">
+                          TikTok (Playwright Automação)
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.tiktok?.connected ? 'Sessão Ativa' : 'Desconectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.tiktok && (
+                      <div className="space-y-3 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do TikTok</label>
+                          <textarea
+                            rows={3}
+                            value={ttCaption}
+                            onChange={(e) => setTtCaption(e.target.value)}
+                            placeholder="Legenda curta e tags virais"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Kwai Section */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="select-kw"
+                          checked={selectedPlatforms.kwai}
+                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, kwai: e.target.checked }))}
+                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
+                        />
+                        <label htmlFor="select-kw" className="text-xs font-bold text-zinc-200 cursor-pointer">
+                          Kwai (Playwright Automação)
+                        </label>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                        {uploadStatus.kwai?.connected ? 'Sessão Ativa' : 'Desconectado'}
+                      </span>
+                    </div>
+
+                    {selectedPlatforms.kwai && (
+                      <div className="space-y-3 text-xs font-sans">
+                        <div className="space-y-2">
+                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do Kwai</label>
+                          <textarea
+                            rows={3}
+                            value={kwCaption}
+                            onChange={(e) => setKwCaption(e.target.value)}
+                            placeholder="Legenda para o Kwai"
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* Account Auth Connection Panel */}
+                <div className="space-y-6">
+                  
+                  {/* Salvar Metadados GLOBAIS */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Ações Globais</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const upload_metadata = {
+                            youtube: {
+                              title: ytTitle.trim(),
+                              description: ytDescription.trim(),
+                              privacy: ytPrivacy,
+                              tags: ytTags.trim(),
+                              chapters: ytChapters.trim(),
+                              pinned_comment: ytPinnedComment.trim(),
+                              category_id: ytCategoryId.trim() || '27',
+                              publish_at: ytPublishAt.trim() || undefined,
+                              thumbnail: ytThumbnailPath || undefined,
+                              thumbnail_variant: ytThumbnailVariant || undefined,
+                            },
+                            instagram: { title: igCaption.trim() },
+                            tiktok: { title: ttCaption.trim() },
+                            kwai: { title: kwCaption.trim() }
+                          };
+                          const res = await fetch(getProjectUrl('/api/config'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ upload_metadata })
+                          });
+                          if (res.ok) {
+                            toast("Metadados salvos com sucesso!");
+                          }
+                        } catch (e) {
+                          toast("Erro ao salvar metadados.");
+                        }
+                      }}
+                      className="w-full bg-zinc-900 border border-zinc-800 hover:border-gold-500/20 text-gold-500 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                    >
+                      Salvar Metadados do Projeto
+                    </button>
+                    <button
+                      onClick={async () => {
+                        // Generate pipeline execution
+                        setUploading(true);
+                        setUploadLogs([]);
+                        setUploadProgress(0);
+                        const platformList = Object.entries(selectedPlatforms)
+                          .filter(([_, active]) => active)
+                          .map(([key]) => key)
+                          .join(",");
+                        
+                        const eventSource = new EventSource(getProjectUrl(`/api/projects/upload-pipeline?platforms=${platformList}`));
+                        eventSource.onmessage = (event) => {
+                          const data = JSON.parse(event.data);
+                          if (data.type === "log") {
+                            setUploadLogs(prev => [...prev, data.text]);
+                            const progressMatch = data.text.match(/\[PROGRESSO\] (\d+)%/);
+                            if (progressMatch) {
+                              setUploadProgress(parseInt(progressMatch[1]));
+                            }
+                          } else if (data.type === "post_upload") {
+                            if (data.videoId) handlePostUploadComplete(data.videoId);
+                          } else if (data.type === "complete") {
+                            eventSource.close();
+                            setUploading(false);
+                            setUploadProgress(100);
+                            toast("Upload concluído com sucesso!");
+                            if (data.videoId) handlePostUploadComplete(data.videoId);
+                          } else if (data.type === "error") {
+                            eventSource.close();
+                            setUploading(false);
+                            toast("Erro ao executar pipeline: " + data.message);
+                          }
+                        };
+                        eventSource.onerror = () => {
+                          eventSource.close();
+                          setUploading(false);
+                          toast("Falha na conexão SSE.");
+                        };
+                      }}
+                      disabled={uploading}
+                      className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 font-bold py-3 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-gold-500/10"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>{uploading ? "Publicando..." : "Publicar nas Selecionadas"}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPipelineRunning(true);
+                        setUploadLogs([]);
+                        const es = new EventSource(getProjectUrl('/api/pipeline/run?steps=mix,thumbnails,upload'));
+                        es.onmessage = (event) => {
+                          const data = JSON.parse(event.data);
+                          if (data.type === 'log') setUploadLogs((prev) => [...prev, data.text]);
+                          if (data.type === 'complete' || data.type === 'error') {
+                            es.close();
+                            setPipelineRunning(false);
+                            toast(data.type === 'complete' ? 'Pipeline concluído!' : data.message);
+                          }
+                        };
+                        es.onerror = () => { es.close(); setPipelineRunning(false); };
+                      }}
+                      disabled={pipelineRunning || uploading}
+                      className="w-full bg-violet-600/20 border border-violet-500/30 hover:bg-violet-600/30 disabled:opacity-50 text-violet-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+                    >
+                      {pipelineRunning ? 'Pipeline rodando...' : 'Pipeline rápido (mix → thumbs → upload)'}
+                    </button>
+                    {titleExperimentVideoId && youtubeThumbnailsGenerated.length >= 2 && (
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(getProjectUrl('/api/youtube/thumbnail-experiment/start'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              videoId: titleExperimentVideoId,
+                              thumbnails: youtubeThumbnailsGenerated.map((t) => ({ id: t.id, fileName: t.fileName })),
+                            }),
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setThumbnailExperiment(data.experiment);
+                            toast('Teste A/B de thumbnails iniciado.');
+                          } else toast(data.error || 'Falha ao iniciar teste de capas.');
+                        }}
+                        className="w-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold py-2 rounded-xl text-[10px]"
+                      >
+                        Iniciar A/B de Thumbnails
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Auth Configuration */}
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-3">
+                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Integrações</span>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Chaves de API, OAuth e sessões ficam em Configurações → Integrações.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setSettingsSection('integracoes'); setActiveTab('settings'); }}
+                      className="w-full bg-gold-500/10 border border-gold-500/30 text-gold-400 font-bold py-2.5 rounded-xl text-xs hover:bg-gold-500/20 transition"
+                    >
+                      Abrir Configurações → Integrações
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Progress and Live Terminal log view */}
+              {(uploading || uploadLogs.length > 0) && (
+                <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Progresso do Envio</span>
+                    <span className="text-xs font-mono font-bold text-gold-500">{uploadProgress}%</span>
+                  </div>
+
+                  <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800">
+                    <div
+                      className="bg-gold-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+
+                  <div className="bg-black/60 border border-zinc-950 rounded-xl p-4 h-64 overflow-y-auto font-mono text-[10px] text-emerald-400 space-y-1">
+                    {uploadLogs.map((log, idx) => (
+                      <div key={idx} className="leading-relaxed">
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+                    {activeTab === 'editor' && (
 
             <div className="space-y-6 animate-fade-in font-sans">
 
               <div className="glass-panel p-6 rounded-3xl">
 
-                <h3 className="font-cinzel text-lg font-bold text-white flex items-center gap-2">
-
-                  <Settings className="w-6 h-6 text-gold-500" /> EDITOR DE PROJETOS
-
-                </h3>
-
-                <p className="text-sm text-gray-400 mt-2">
-
-                  Selecione um projeto existente para substituir imagens, vídeos ou trilhas sonoras por bloco.
-
-                </p>
-
-                
+                <SectionHeader
+                  title="EDITOR DE PROJETOS"
+                  helpId="editor-project"
+                  icon={<Settings className="w-6 h-6 text-gold-500" />}
+                  size="lg"
+                  subtitle="Selecione um projeto existente para substituir narração, imagens, vídeos ou trilhas sonoras por bloco."
+                />
 
                 <div className="mt-6 flex gap-4">
 
@@ -5462,6 +11387,26 @@ Regras:
 
                   <button
 
+                    onClick={() => setEditorSubTab('json')}
+
+                    className={`font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+
+                      editorSubTab === 'json'
+
+                        ? 'border-gold-500 text-gold-500'
+
+                        : 'border-transparent text-gray-400 hover:text-white'
+
+                    }`}
+
+                  >
+
+                    Estrutura JSON
+
+                  </button>
+
+                  <button
+
                     onClick={() => setEditorSubTab('assets')}
 
                     className={`text-xs font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
@@ -5477,6 +11422,26 @@ Regras:
                   >
 
                     Linha do Tempo (Arquivos Mapeados)
+
+                  </button>
+
+                  <button
+
+                    onClick={() => setEditorSubTab('narration')}
+
+                    className={`text-xs font-bold font-cinzel pb-2 px-1 border-b-2 transition cursor-pointer ${
+
+                      editorSubTab === 'narration'
+
+                        ? 'border-gold-500 text-gold-500'
+
+                        : 'border-transparent text-gray-400 hover:text-white'
+
+                    }`}
+
+                  >
+
+                    Narração (Áudio)
 
                   </button>
 
@@ -5501,683 +11466,32 @@ Regras:
               </div>
 
               {editorSubTab === 'assets' && config && (
-
-                <div className="space-y-6">
-
-                  {/* Action buttons row at the top */}
-
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
-
-                    <div>
-
-                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">Arquivos de Mídia por Bloco</h4>
-
-                      <p className="text-[10px] text-gray-400 mt-0.5">Adicione, ordene, exclua e configure mídias que constituem o vídeo em cada bloco.</p>
-
-                    </div>
-
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-
-                      <div className="flex items-center gap-2">
-
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Formato:</span>
-
-                        <select
-
-                          value={config.aspect_ratio || '16:9'}
-
-                          onChange={(e) => {
-
-                            const newRatio = e.target.value as '16:9' | '9:16';
-
-                            setConfig({ ...config, aspect_ratio: newRatio });
-
-                          }}
-
-                          className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-2.5 py-1.5 focus:outline-none focus:border-gold-500 cursor-pointer"
-
-                        >
-
-                          <option value="16:9">16:9 (Horizontal)</option>
-
-                          <option value="9:16">9:16 (Vertical)</option>
-
-                        </select>
-
-                      </div>
-
-                      <button
-
-                        onClick={() => handleSaveConfig()}
-
-                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
-
-                      >
-
-                        <Save className="w-3.5 h-3.5" /> Salvar Linha do Tempo
-
-                      </button>
-
-                      {status?.has_narration && (
-
-                        <button
-
-                          onClick={() => alignAllBlocksToSpeech()}
-
-                          className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
-
-                          title="Sincronizar TODOS os blocos automaticamente com o tempo da voz da narração"
-
-                        >
-
-                          <Sparkles className="w-3.5 h-3.5" /> Sincronizar Todos com a Voz
-
-                        </button>
-
-                      )}
-
-                    </div>
-
-                  </div>
-
-                  {(() => {
-
-                    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
-
-                    const blockNums = Array.from({ length: maxBlocks }, (_, i) => i + 1);
-
-                    return blockNums.map((blockNum) => {
-
-                        const blockKey = String(blockNum);
-
-                        const blockNarrationDur = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
-
-                        // Calculate actual total from asset durations
-                        const blockAssets = config.timeline_assets?.[blockKey] || [];
-                        const actualBlockTotal = blockAssets.reduce((_sum: number, _: any, i: number) => _sum + getAssetDuration(blockKey, i), 0);
-
-                        return (
-
-                          <div key={blockKey} className="glass-panel p-6 rounded-3xl space-y-4">
-
-                            <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
-
-                              <div>
-
-                                <h4 className="font-cinzel text-md font-bold text-gold-500">Bloco {blockKey}</h4>
-
-                                <span className="text-[10px] text-zinc-500 font-mono">
-                                  Duração Total: {actualBlockTotal.toFixed(1)}s
-                                  <span className={`ml-2 ${Math.abs(actualBlockTotal - blockNarrationDur) < 0.3 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                    (Narração: {blockNarrationDur.toFixed(1)}s)
-                                  </span>
-                                </span>
-
-                              </div>
-
-                              
-
-                              <div className="flex items-center gap-4">
-
-                                {/* Audio Upload for this block */}
-
-                                <div className="flex items-center gap-2">
-
-                                  <span className="text-[10px] text-zinc-400 uppercase tracking-wider">BGM:</span>
-
-                                  {(() => {
-
-                                    const mappedFile = config?.bgm_mappings?.find((m: any) => m.block === blockNum)?.file;
-
-                                    return mappedFile ? (
-
-                                      <div className="flex items-center gap-1.5 min-w-0">
-
-                                        <span className="text-[10px] text-gold-400 font-mono max-w-[100px] truncate" title={mappedFile}>
-
-                                          🎵 {mappedFile}
-
-                                        </span>
-
-                                        <button
-
-                                          onClick={() => togglePlayMusic(mappedFile)}
-
-                                          className="text-gold-500 hover:text-gold-400 hover:bg-zinc-900 p-0.5 rounded cursor-pointer shrink-0 transition"
-
-                                          title="Ouvir trilha"
-
-                                        >
-
-                                          {playingMusic === mappedFile ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
-
-                                        </button>
-
-                                      </div>
-
-                                    ) : (
-
-                                      <span className="text-[10px] text-zinc-650 italic">Padrão</span>
-
-                                    );
-
-                                  })()}
-
-                                  <input type="file" accept="audio/mpeg,audio/mp3,audio/wav" className="hidden" id={`bgm-upload-${blockKey}`}
-
-                                         onChange={async (e) => {
-
-                                           if (e.target.files && e.target.files[0]) {
-
-                                              const file = e.target.files[0];
-
-                                              try {
-
-                                                const res = await fetch(getProjectUrl(`/api/upload-bgm?block=${blockKey}&filename=${encodeURIComponent(file.name)}`), {
-
-                                                  method: 'POST', 
-
-                                                  headers: { 'Content-Type': file.type || 'audio/mpeg' },
-
-                                                  body: file
-
-                                                });
-
-                                                if (res.ok) {
-
-                                                  toast.success(`Trilha do Bloco ${blockKey} atualizada!`);
-
-                                                  fetchData();
-
-                                                } else {
-
-                                                  toast.error('Erro ao enviar trilha sonora.');
-
-                                                }
-
-                                              } catch(err) {
-
-                                                toast.error('Falha de conexão.');
-
-                                              }
-
-                                           }
-
-                                         }} />
-
-                                  <label htmlFor={`bgm-upload-${blockKey}`} className="bg-zinc-900 border border-zinc-800 text-white text-[10px] px-3 py-1.5 rounded-lg hover:bg-zinc-800 cursor-pointer flex items-center gap-1.5 transition">
-
-                                    <Upload className="w-3 h-3" /> Upload Trilha
-
-                                  </label>
-
-                                </div>
-
-                                {/* Speech sync button */}
-
-                                {status?.has_narration && (
-
-                                  <button
-
-                                    onClick={() => alignBlockAssetsToSpeech(blockKey)}
-
-                                    className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-
-                                    title="Sincronizar a duração das imagens com a fala da narração"
-
-                                  >
-
-                                    <Sparkles className="w-3.5 h-3.5" /> Sincronizar com a Voz
-
-                                  </button>
-
-                                )}
-
-                                {/* Add asset button */}
-
-                                <button
-
-                                  onClick={() => addTimelineAsset(blockKey)}
-
-                                  className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-
-                                >
-
-                                  <Plus className="w-3.5 h-3.5" /> Add Asset
-
-                                </button>
-
-                              </div>
-
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-                              {(config.timeline_assets?.[blockKey] || []).map((asset: any, idx: number) => (
-
-                                <div key={idx} className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl flex flex-col justify-between space-y-3 hover:border-zinc-855 transition">
-
-                                  
-
-                                  {/* Visual Preview */}
-
-                                  <div 
-
-                                    className={`bg-zinc-950 rounded-lg overflow-hidden relative flex items-center justify-center border border-zinc-900 group/preview mx-auto ${
-
-                                      config.aspect_ratio === '9:16' ? 'h-64' : 'w-full'
-
-                                    }`}
-
-                                    style={{ aspectRatio: config.aspect_ratio === '9:16' ? '9/16' : '16/9' }}
-
-                                  >
-
-                                    {asset.type === 'video' ? (
-
-                                      <video 
-
-                                        key={asset.asset}
-
-                                        src={getAssetUrl(asset.asset)} 
-
-                                        className="w-full h-full object-cover" 
-
-                                        controls={false} 
-
-                                        muted 
-
-                                        loop 
-
-                                        autoPlay 
-
-                                        playsInline 
-
-                                        onLoadedMetadata={(e) => {
-
-                                          const dur = e.currentTarget.duration;
-
-                                          if (dur && !isNaN(dur)) {
-
-                                            setVideoFileDurations(prev => {
-
-                                              if (prev[asset.asset] === dur) return prev;
-
-                                              return { ...prev, [asset.asset]: dur };
-
-                                            });
-
-                                          }
-
-                                        }}
-
-                                        onLoadedData={(e) => {
-
-                                          e.currentTarget.style.display = 'block';
-
-                                        }}
-
-                                        onError={(e) => {
-
-                                          e.currentTarget.style.display = 'none';
-
-                                        }}
-
-                                      />
-
-                                    ) : (
-
-                                      <img 
-
-                                        key={asset.asset}
-
-                                        src={getAssetUrl(asset.asset)} 
-
-                                        className="w-full h-full object-cover" 
-
-                                        alt="Preview" 
-
-                                        onLoad={(e) => {
-
-                                          e.currentTarget.style.display = 'block';
-
-                                        }}
-
-                                        onError={(e) => {
-
-                                          e.currentTarget.style.display = 'none';
-
-                                        }}
-
-                                      />
-
-                                    )}
-
-                                    {/* Overlay duration */}
-
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
-
-                                      ⏱️ {getAssetDuration(blockKey, idx).toFixed(1)}s
-
-                                      {asset.type === 'video' && videoFileDurations[asset.asset] !== undefined && (
-
-                                        <span className="text-zinc-400 font-normal ml-0.5 border-l border-zinc-700 pl-1">
-
-                                          / {videoFileDurations[asset.asset].toFixed(1)}s
-
-                                        </span>
-
-                                      )}
-
-                                    </div>
-
-                                  </div>
-
-                                  {/* Dynamic narration - words redistribute based on asset duration */}
-
-                                  {(() => {
-                                    const dynamicResult = getDynamicAssetWords(blockKey, idx);
-                                    const staticNarration = getAssetNarration(blockKey, idx);
-
-                                    if (!dynamicResult && !staticNarration) return null;
-
-                                    const actualDuration = getAssetDuration(blockKey, idx);
-                                    const scenePlayKey = `scene-${blockKey}-${idx}`;
-                                    const isPlaying = playingNarration === scenePlayKey;
-
-                                    // Use dynamic words if available
-                                    const displayWords = dynamicResult ? dynamicResult.words : [];
-                                    const hasDynamic = dynamicResult !== null && dynamicResult.totalBlockWords > 0;
-
-                                    // Coverage info for the whole block (show only on last asset)
-                                    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
-                                    const isLastAsset = idx === totalAssets - 1;
-                                    const coveragePercent = dynamicResult ? Math.round((dynamicResult.coveredWords / dynamicResult.totalBlockWords) * 100) : 0;
-                                    const allWordsCovered = dynamicResult ? dynamicResult.coveredWords >= dynamicResult.totalBlockWords : false;
-
-                                    return (
-                                      <div className={`bg-zinc-900/50 p-2.5 rounded-lg border ${
-                                        hasDynamic && displayWords.length > 0
-                                          ? 'border-emerald-900/30'
-                                          : hasDynamic && displayWords.length === 0
-                                            ? 'border-zinc-900/30'
-                                            : 'border-zinc-850/50'
-                                      } flex flex-col gap-1.5 select-text`}>
-                                        <div className="flex items-start gap-2.5">
-                                          <Bot className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-0.5" />
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-center mb-1">
-                                              <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">
-                                                {hasDynamic ? 'Narração Dinâmica' : 'Narração Recomendada'}
-                                              </span>
-                                              {status?.has_narration && dynamicResult && (
-                                                <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-400">
-                                                  <span className="text-emerald-400 font-bold" title="Janela de tempo deste asset na narração">
-                                                    🟢 {formatTime(dynamicResult.assetAudioStart)} - {formatTime(dynamicResult.assetAudioEnd)} ({actualDuration.toFixed(1)}s)
-                                                  </span>
-                                                  <span className="text-zinc-600 text-[8px]">
-                                                    {displayWords.length} palavras
-                                                  </span>
-                                                  <button
-                                                    onClick={() => togglePlaySceneNarration(blockKey, idx)}
-                                                    className={`p-0.5 rounded cursor-pointer transition shrink-0 ${
-                                                      isPlaying
-                                                        ? 'bg-gold-500 text-zinc-950 hover:bg-gold-600 animate-pulse'
-                                                        : 'bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-gold-500'
-                                                    }`}
-                                                    title={isPlaying ? "Pausar" : "Ouvir este trecho"}
-                                                  >
-                                                    {isPlaying ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 text-gold-500" />}
-                                                  </button>
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            <p className="text-[10px] italic leading-relaxed select-text flex flex-wrap" title={displayWords.length > 0 ? dynamicResult?.text : staticNarration}>
-                                              <span className="text-zinc-500 mr-1">"</span>
-                                              {hasDynamic && displayWords.length > 0 ? (
-                                                displayWords.map((part: any, pIdx: number) => (
-                                                  <span
-                                                    key={pIdx}
-                                                    className="text-zinc-100 font-medium mr-1"
-                                                    title={`Fala em ${formatTime(part.start)}`}
-                                                  >
-                                                    {part.word}
-                                                  </span>
-                                                ))
-                                              ) : hasDynamic && displayWords.length === 0 ? (
-                                                <span className="text-zinc-600 italic text-[9px]">
-                                                  (sem palavras nesta janela de tempo — ajuste a duração dos assets anteriores)
-                                                </span>
-                                              ) : (
-                                                <span className="text-zinc-300">{staticNarration}</span>
-                                              )}
-                                              <span className="text-zinc-500">"</span>
-                                            </p>
-                                          </div>
-                                        </div>
-
-                                        {/* Coverage indicator on last asset of block */}
-                                        {isLastAsset && hasDynamic && (
-                                          <div className="flex items-center gap-2 mt-1 pl-6">
-                                            <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                                              <div
-                                                className={`h-full rounded-full transition-all duration-300 ${
-                                                  allWordsCovered ? 'bg-emerald-500' : coveragePercent >= 80 ? 'bg-amber-500' : 'bg-red-500'
-                                                }`}
-                                                style={{ width: `${Math.min(coveragePercent, 100)}%` }}
-                                              />
-                                            </div>
-                                            <span className={`text-[8px] font-mono font-bold ${
-                                              allWordsCovered ? 'text-emerald-400' : coveragePercent >= 80 ? 'text-amber-400' : 'text-red-400'
-                                            }`}>
-                                              {allWordsCovered
-                                                ? `✅ ${dynamicResult!.totalBlockWords} palavras cobertas`
-                                                : `⚠️ ${dynamicResult!.coveredWords}/${dynamicResult!.totalBlockWords} palavras (${coveragePercent}%) — aumente a duração dos assets`
-                                              }
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
-
-                                  {/* Asset info */}
-
-                                  <div className="space-y-1">
-
-                                    <div className="flex justify-between items-center text-[10px] text-zinc-500 font-mono">
-
-                                      <span>Asset #{idx + 1}</span>
-
-                                      <div className="flex items-center gap-1">
-
-                                        <button
-
-                                          disabled={idx === 0}
-
-                                          onClick={() => moveTimelineAsset(blockKey, idx, 'up')}
-
-                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
-
-                                          title="Subir"
-
-                                        >
-
-                                          <ChevronUp className="w-3.5 h-3.5" />
-
-                                        </button>
-
-                                        <button
-
-                                          disabled={idx === (config.timeline_assets?.[blockKey] || []).length - 1}
-
-                                          onClick={() => moveTimelineAsset(blockKey, idx, 'down')}
-
-                                          className="hover:text-white disabled:opacity-30 p-0.5 rounded cursor-pointer"
-
-                                          title="Descer"
-
-                                        >
-
-                                          <ChevronDown className="w-3.5 h-3.5" />
-
-                                        </button>
-
-                                      </div>
-
-                                    </div>
-
-                                    
-
-                                    <input
-
-                                      type="text"
-
-                                      value={asset.asset}
-
-                                      onChange={(e) => updateTimelineAssetField(blockKey, idx, 'asset', e.target.value)}
-
-                                      placeholder="Nome do arquivo..."
-
-                                      className="w-full bg-zinc-900 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-2.5 py-1 text-xs text-white"
-
-                                    />
-
-                                  </div>
-
-                                  {/* Type and fixed duration */}
-
-                                  <div className="flex justify-between items-center gap-2">
-
-                                    <div className="space-y-0.5 flex-1">
-
-                                      <span className="text-[9px] text-zinc-500 uppercase">Tipo</span>
-
-                                      <select
-
-                                        value={asset.type}
-
-                                        onChange={(e) => updateTimelineAssetField(blockKey, idx, 'type', e.target.value)}
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full focus:outline-none"
-
-                                      >
-
-                                        <option value="image">Imagem</option>
-
-                                        <option value="video">Vídeo</option>
-
-                                        <option value="svg">SVG</option>
-
-                                      </select>
-
-                                    </div>
-
-                                    <div className="space-y-0.5 w-20">
-
-                                      <span className="text-[9px] text-zinc-500 uppercase">Duração (s)</span>
-
-                                      <input
-
-                                        type="number"
-
-                                        step="0.5"
-
-                                        min="0.5"
-
-                                        value={asset.fixed !== undefined && asset.fixed !== null ? asset.fixed : ''}
-
-                                        placeholder={`Auto (${getAssetDuration(blockKey, idx).toFixed(1)}s)`}
-
-                                        onChange={(e) => {
-
-                                          const val = e.target.value === '' ? undefined : parseFloat(e.target.value);
-
-                                          updateTimelineAssetField(blockKey, idx, 'fixed', val);
-
-                                        }}
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-1.5 py-1 w-full text-center focus:outline-none"
-
-                                      />
-
-                                    </div>
-
-                                  </div>
-
-                                  {/* Actions row: Replace/Substituir and Delete */}
-
-                                  <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
-
-                                    <button
-
-                                      onClick={() => deleteTimelineAsset(blockKey, idx)}
-
-                                      className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
-
-                                    >
-
-                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
-
-                                    </button>
-
-                                    <input type="file" accept={asset.type === 'video' ? "video/mp4" : "image/png,image/jpeg"} className="hidden" id={`asset-upload-${blockKey}-${idx}`}
-
-                                       onChange={(e) => {
-
-                                         if (e.target.files && e.target.files[0]) {
-
-                                            handleUploadSceneAsset(parseInt(blockKey), asset.type === 'video' ? 'video' : 'image', e.target.files[0], idx, selectedProject);
-
-                                         }
-
-                                       }} />
-
-                                    <label htmlFor={`asset-upload-${blockKey}-${idx}`} className="text-gold-500 hover:text-gold-400 text-[10px] cursor-pointer hover:underline flex items-center gap-1.5 transition">
-
-                                      <Upload className="w-3.5 h-3.5" /> Substituir
-
-                                    </label>
-
-                                  </div>
-
-                                </div>
-
-                              ))}
-
-                            </div>
-
-                          </div>
-
-                        );
-
-                      });
-
-                  })()}
-
-                  
-
-                  {/* Save button at bottom too */}
-
-                  <div className="flex justify-end pt-4">
-
-                    <button
-
-                      onClick={() => handleSaveConfig()}
-
-                      className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 transition cursor-pointer"
-
-                    >
-
-                      <Save className="w-4 h-4" /> Salvar Linha do Tempo e Configuração
-
-                    </button>
-
-                  </div>
-
+                renderRichTimelineEditor()
+              )}
+
+              {editorSubTab === 'narration' && config && (
+                <div className="glass-panel p-6 rounded-3xl max-w-2xl">
+                  <NarrationReplacePanel
+                    getProjectUrl={getProjectUrl}
+                    getMediaUrl={getMusicUrl}
+                    toast={(msg) => toast(msg)}
+                    hasNarration={!!status?.has_narration}
+                    hasTimings={!!status?.block_timings}
+                    onUpdated={() => fetchData()}
+                    narrativeScript={storyboardData?.narrative_script || ''}
+                    onNarrativeChange={(value) => {
+                      if (!storyboardData) return;
+                      const next = { ...storyboardData, narrative_script: value };
+                      setStoryboardData(next);
+                      debounceSaveStoryboard(next);
+                    }}
+                    onSaveScript={() => {
+                      if (storyboardData) saveCreatorStoryboard(storyboardData);
+                      toast.success('Texto da narração salvo no storyboard.');
+                    }}
+                    showScriptEdit={!!storyboardData}
+                  />
                 </div>
-
               )}
 
               {editorSubTab === 'script' && (
@@ -6190,13 +11504,32 @@ Regras:
 
                     <div>
 
-                      <h4 className="font-cinzel text-xs font-bold text-white tracking-wider uppercase">Visualizador e Editor de Roteiro</h4>
-
-                      <p className="text-[10px] text-gray-400 mt-0.5">Altere falas de narração, prompts visuais, reordene cenas ou adicione novas.</p>
+                      <SectionHeader
+                        title="Visualizador e Editor de Roteiro"
+                        helpId="editor-script"
+                        size="sm"
+                        titleClassName="tracking-wider uppercase text-xs"
+                        subtitle="Altere falas de narração, prompts visuais, reordene cenas ou adicione novas."
+                      />
+                      {notebooklmSuggestions && (
+                        <p className="text-[9px] text-indigo-300/80 mt-1 max-w-md line-clamp-2" title={notebooklmSuggestions}>
+                          Última pesquisa NotebookLM aplicada ao roteiro.
+                        </p>
+                      )}
 
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap justify-end">
+                      <button
+                        type="button"
+                        onClick={handleNotebooklmImprove}
+                        disabled={notebooklmImproving || !storyboardData?.narrative_script}
+                        title={notebooklmStatus?.message || 'Enriquecer roteiro com pesquisa NotebookLM'}
+                        className="bg-indigo-600/20 border border-indigo-500/30 hover:bg-indigo-600/30 disabled:opacity-40 text-indigo-200 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        {notebooklmImproving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        Enriquecer com NotebookLM
+                      </button>
 
                       <button
 
@@ -6340,8 +11673,6 @@ Regras:
 
                             const blockKey = String(blockNum);
 
-                            
-
                             // Find the corresponding asset index in this block
 
                             let assetIdx = 0;
@@ -6360,11 +11691,7 @@ Regras:
 
                             }
 
-                            
-
                             const correspondingAsset = config?.timeline_assets?.[blockKey]?.[assetIdx];
-
-                            
 
                             return (
 
@@ -6465,8 +11792,6 @@ Regras:
                                           />
 
                                         )}
-
-                                        
 
                                         {/* Small badge overlay showing duration */}
 
@@ -6581,8 +11906,6 @@ Regras:
                                   </div>
 
                                 </div>
-
-                                
 
                                 {/* Right Column: Narration & Visual Prompt textareas */}
 
@@ -6836,46 +12159,918 @@ Regras:
 
               )}
 
+              {editorSubTab === 'json' && storyboardData && (
+
+                <div className="space-y-6">
+
+                  <div className="flex justify-between items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl">
+
+                    <div>
+
+                      <SectionHeader title="JSON do Roteiro e Storyboard" helpId="editor-json" size="sm" titleClassName="tracking-wider uppercase text-xs" />
+
+                      <p className="text-[10px] text-gray-400 mt-0.5">Explore a estrutura de dados completa do storyboard.json de forma colapsável.</p>
+
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleGenerateAiOverlays}
+                        disabled={generatingOverlays}
+                        className="bg-gold-500 hover:bg-gold-600 disabled:bg-gold-500/50 text-zinc-950 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>{generatingOverlays ? 'Planejando...' : 'Gerar Overlays pela AI'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => copyToClipboard(JSON.stringify(storyboardData, null, 2), 'storyboard-json')}
+                        className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <span>{copiedSection === 'storyboard-json' ? 'Copiado!' : 'Copiar JSON'}</span>
+                      </button>
+                    </div>
+
+                  </div>
+
+                  <div className="glass-panel p-6 rounded-3xl bg-zinc-950/60 max-h-[600px] overflow-y-auto">
+
+                    <JsonTreeView value={storyboardData} />
+
+                  </div>
+
+                </div>
+
+              )}
+
             </div>
 
           )}
 
-          {/* TAB 6: AI VIDEO CREATOR */}
+          {activeTab === 'agents' && (
+            <TabErrorBoundary tabName="Studio Agents">
+              <StudioAgents
+                activeProject={activeProject}
+                projectNiche={config?.niche || 'Geral'}
+                projectVideoFormat={config?.video_format}
+                projectAspectRatio={config?.aspect_ratio}
+                getProjectUrl={getProjectUrl}
+              />
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'youtube-studio' && (
+            <TabErrorBoundary tabName="Canal YouTube">
+              <YoutubeStudioPanel
+                toast={toast}
+                onRelinkYoutube={handleRelinkYoutube}
+                nicheKeyword={config?.niche || ''}
+                alerts={youtubeChannelAlerts}
+                onSelectProject={handleSelectProject}
+                onGoToIntegrations={() => {
+                  setSettingsSection('integracoes');
+                  setActiveTab('settings');
+                }}
+              />
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'settings' && (
+
+            <div className="lumiera-panel-stack animate-fade-in font-sans min-w-0">
+              <SettingsSectionNav active={settingsSection} onChange={setSettingsSection} />
+
+              {settingsSection === 'ia' && (
+              <div className="glass-panel p-6 rounded-3xl space-y-5">
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+
+                  <div>
+
+                    <SectionHeader
+                      title="CONFIGURAÇÕES DE IA"
+                      helpId="settings-ia"
+                      icon={<Settings className="w-4 h-4 text-gold-500" />}
+                      subtitle={<>Provedor e chaves de IA. Use o <span className="text-gold-400/90">?</span> ao lado de cada opção para entender o efeito.</>}
+                    />
+
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+
+                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">Gemini: {geminiKeyCount} chave(s)</span>
+
+                    <span className="px-2.5 py-1 rounded-lg border border-zinc-850 bg-zinc-950">xAI: {hasXaiKey ? 'configurado' : 'vazio'}</span>
+
+                  </div>
+
+                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                  <button onClick={() => setAiProvider('gemini')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'gemini' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        Gemini
+                        <SettingHelpTip title="Gemini" align="start">Google AI Studio (gratuito). Roteiro, overlays, metadados e ideias. Suporta rotação de várias chaves.</SettingHelpTip>
+                      </span>
+
+                      {aiProvider === 'gemini' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Google AI Studio gratuito (ex.: Gemini 2.5 Flash). Chaves em rotação; xAI/Grok como fallback.</p>
+
+                  </button>
+
+                  <button onClick={() => setAiProvider('xai')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'xai' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        Grok / xAI
+                        <SettingHelpTip title="Grok / xAI" align="start">API da xAI como provedor principal. Útil quando preferir Grok ou como fallback após esgotar chaves Gemini.</SettingHelpTip>
+                      </span>
+
+                      {aiProvider === 'xai' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API da xAI como provedor principal para metadados quando selecionado.</p>
+
+                  </button>
+
+                  <button onClick={() => setAiProvider('openrouter')} className={`text-left border rounded-2xl p-4 transition cursor-pointer ${aiProvider === 'openrouter' ? 'border-gold-500/60 bg-gold-500/10' : 'border-zinc-850 bg-zinc-950/40 hover:border-zinc-700'}`}>
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="text-xs font-bold text-white font-cinzel flex items-center gap-1.5">
+                        OpenRouter
+                        <SettingHelpTip title="OpenRouter" align="start">Agregador com modelos free (Gemini, Llama, Qwen). Alternativa quando quiser variar modelos sem múltiplas contas.</SettingHelpTip>
+                      </span>
+
+                      {aiProvider === 'openrouter' && <CheckCircle className="w-4 h-4 text-gold-500" />}
+
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API do OpenRouter com rotação de modelos free do Gemini, Llama e Qwen.</p>
+
+                  </button>
+
+                </div>
+
+                {aiProvider === 'gemini' && (
+                  <div className={`rounded-2xl border p-4 transition ${geminiBrowserMode ? 'border-violet-500/40 bg-violet-500/10' : 'border-zinc-850 bg-zinc-950/40'}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-white font-cinzel flex items-center gap-2">
+                          <Chrome className="w-4 h-4 text-violet-400" />
+                          Gemini no Chrome (extensão)
+                          <SettingHelpTip title="Extensão Chrome" align="start">
+                            Envia prompts pelo gemini.google.com na sua sessão Google, sem API key. Requer a extensão Lumiera Gemini Bridge instalada no Chrome.
+                          </SettingHelpTip>
+                        </p>
+                        <p className="text-[10px] text-zinc-400 leading-relaxed max-w-xl">
+                          Ativa todas as chamadas de IA via Gemini no Chrome, de forma autônoma (sem copiar/colar).
+                          Requer a extensão Lumiera em tools/lumiera-gemini-bridge — ela controla gemini.google.com na sua sessão Google.
+                          Desligado, volta a usar a API do AI Studio normalmente.
+                        </p>
+                        {geminiBrowserMode && (
+                          <div className="space-y-1.5">
+                            <p className={`text-[9px] ${geminiExtensionReady ? 'text-emerald-300/90' : 'text-amber-300/90'}`}>
+                              Extensão: {geminiExtensionReady === null ? 'verificando…' : geminiExtensionReady
+                                ? `ativa — ${geminiExtensionDiag || 'automação OK'}`
+                                : 'não conectada'}
+                            </p>
+                            {geminiExtensionDiag && !geminiExtensionReady && (
+                              <p className="text-[9px] text-amber-200/80 leading-relaxed max-w-xl">{geminiExtensionDiag}</p>
+                            )}
+                            <button
+                              type="button"
+                              disabled={geminiExtensionTesting}
+                              onClick={async () => {
+                                setGeminiExtensionTesting(true);
+                                try {
+                                  const d = await refreshGeminiExtensionStatus();
+                                  if (d.pingOk) toast.success(`Extensão OK ${d.version ? `(v${d.version})` : ''}`);
+                                  else toast.error(d.error || 'Extensão não conectada', { duration: 8000 });
+                                } finally {
+                                  setGeminiExtensionTesting(false);
+                                }
+                              }}
+                              className="text-[9px] text-violet-300 hover:text-violet-100 border border-violet-500/30 px-2 py-1 rounded-lg transition disabled:opacity-50"
+                            >
+                              {geminiExtensionTesting ? 'Testando…' : 'Testar extensão'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                        <span className="text-[10px] text-zinc-400">{geminiBrowserMode ? 'Ativo' : 'Desligado'}</span>
+                        <input
+                          type="checkbox"
+                          checked={geminiBrowserMode}
+                          onChange={(e) => setGeminiBrowserMode(e.target.checked)}
+                          className="accent-violet-500 w-4 h-4"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                  <div className="space-y-4">
+
+                    <div className="space-y-2">
+
+                      <SettingLabel helpTitle="Modelo Gemini" help="Versão do modelo usada nas chamadas de IA. Flash é rápido e econômico; Pro tem mais raciocínio. Afeta roteiro, overlays e metadados." align="start">Modelo Gemini</SettingLabel>
+
+                      <select
+                        value={geminiModel}
+                        onChange={(e) => setGeminiModel(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white"
+                      >
+                        {geminiModelOptions.map((option) => (
+                          <option key={option.id} value={option.id}>{option.label}</option>
+                        ))}
+                      </select>
+
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                        {geminiModelOptions.find((option) => option.id === geminiModel)?.hint || 'Gratuito no Google AI Studio com chave de API.'}
+                        {' '}Recomendado: <span className="text-zinc-300">Gemini 2.5 Flash</span> (rápido, contexto 1M).
+                      </p>
+
+                    </div>
+
+                    <div className="space-y-2">
+
+                      <SettingLabel helpTitle="Chaves Gemini" help="Uma chave por linha. O sistema rotaciona automaticamente quando uma atinge limite de quota. Deixe vazio para manter as chaves já salvas." align="start">Chaves Gemini</SettingLabel>
+
+                      <textarea value={geminiKeysInput} onChange={(e) => setGeminiKeysInput(e.target.value)} placeholder="Cole uma ou várias chaves Gemini, uma por linha. Deixe vazio para manter as atuais." className="w-full h-32 bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white resize-none" />
+
+                    </div>
+
+                  </div>
+
+                  <div className="space-y-4">
+
+                    <div className="space-y-2">
+
+                      <div className="flex items-center justify-between">
+
+                        <SettingLabel helpTitle="Chave OpenRouter" help="Opcional. Chave personalizada do openrouter.ai. Se vazia, usa a chave padrão do sistema para modelos free." align="start">Chave OpenRouter</SettingLabel>
+
+                        {hasOpenRouterKey ? (
+
+                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-800 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Ativa (Personalizada)</span>
+
+                        ) : (
+
+                          <span className="text-[9px] bg-amber-950/80 border border-amber-800 text-amber-400 px-2 py-0.5 rounded-full font-bold">Ativa (Padrão do Sistema)</span>
+
+                        )}
+
+                      </div>
+
+                      <input type="password" value={openrouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder="Deixe vazio para usar a padrão ou cole uma chave personalizada." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">Opcional. Se não fornecida, o sistema usará a chave privada pré-configurada.</p>
+
+                    </div>
+
+                    <div className="space-y-2">
+
+                      <SettingLabel helpTitle="Chave xAI / Grok" help="Chave da API xAI. Usada como provedor principal se Grok estiver selecionado, ou como fallback quando todas as chaves Gemini falharem." align="start">Chave xAI / Grok</SettingLabel>
+
+                      <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="w-full bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white" />
+
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">A xAI será usada como fallback quando o Gemini esgotar todas as chaves ou como principal se você selecionar Grok / xAI.</p>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <div className="flex justify-end">
+
+                  <button onClick={handleSaveAiSettings} disabled={savingAiSettings} className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-2">
+
+                    {savingAiSettings ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+
+                    <span>{savingAiSettings ? 'Salvando...' : 'Salvar Configurações'}</span>
+
+                  </button>
+
+                </div>
+
+              </div>
+
+              )}
+
+              {/* SEÇÃO LOGOTIPO DO VÍDEO */}
+
+              {settingsSection === 'apis' && (
+                <SettingsApiKeys
+                  epidemicKeyInput={epidemicKeyInput}
+                  setEpidemicKeyInput={setEpidemicKeyInput}
+                  hasEpidemicKey={hasEpidemicKey}
+                  pexelsKeyInput={pexelsKeyInput}
+                  setPexelsKeyInput={setPexelsKeyInput}
+                  pixabayKeyInput={pixabayKeyInput}
+                  setPixabayKeyInput={setPixabayKeyInput}
+                  hasPexelsKey={hasPexelsKey}
+                  hasPixabayKey={hasPixabayKey}
+                  saving={savingApiKeys}
+                  onSave={handleSaveApiKeys}
+                />
+              )}
+
+              {/* CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO */}
+
+              {settingsSection === 'render' && (
+              <div className="glass-panel p-6 rounded-3xl space-y-5">
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+
+                  <div>
+
+                    <SectionHeader
+                      title="CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO"
+                      helpId="settings-render"
+                      icon={<Settings className="w-4 h-4 text-gold-500" />}
+                      subtitle={<>Parâmetros de render e áudio. Use o <span className="text-gold-400/90">?</span> em cada campo para detalhes.</>}
+                    />
+
+                  </div>
+
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                  <div className="space-y-4">
+
+                    {/* Volume da Música */}
+
+                    <div className="space-y-2">
+
+                      <div className="flex justify-between items-center">
+
+                        <SettingLabel helpTitle="Volume BGM" help="Volume da música de fundo no mix final. 15% é o padrão recomendado para a trilha não competir com a narração." align="start">Volume da Trilha Sonora (BGM)</SettingLabel>
+
+                        <span className="text-xs text-white font-mono font-bold">{(globalMusicVolume * 100).toFixed(0)}%</span>
+
+                      </div>
+
+                      <input 
+
+                        type="range" 
+
+                        min="0.01" 
+
+                        max="0.5" 
+
+                        step="0.01" 
+
+                        value={globalMusicVolume} 
+
+                        onChange={(e) => setGlobalMusicVolume(parseFloat(e.target.value))} 
+
+                        className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-gold-500" 
+
+                      />
+
+                      <p className="text-[9px] text-zinc-500">Volume atenuado padrão (15% recomendado) para evitar que a música encubra a narração.</p>
+
+                    </div>
+
+                    {/* Espaçamento entre Blocos (Gap) */}
+
+                    <div className="space-y-2">
+
+                      <SettingLabel helpTitle="Gap entre blocos" help="Segundos extras no fim de cada bloco de cenas antes do próximo. Dá respiro à narração e evita cortes abruptos entre capítulos." align="start">Espaçamento entre Blocos (Gap)</SettingLabel>
+
+                      <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-2">
+
+                        <input 
+
+                          type="number" 
+
+                          step="0.5" 
+
+                          min="0"
+
+                          value={globalBlockGap} 
+
+                          onChange={(e) => setGlobalBlockGap(parseFloat(e.target.value) || 0)} 
+
+                          className="bg-transparent text-white text-xs font-mono w-full focus:outline-none" 
+
+                        />
+
+                        <span className="text-xs text-zinc-500 font-mono ml-2">segundos</span>
+
+                      </div>
+
+                      <p className="text-[9px] text-zinc-500">Segundos extras adicionados ao final de cada bloco de cenas (2.0s padrão) para respiro da locução.</p>
+
+                    </div>
+
+                  </div>
+
+                  <div className="space-y-4">
+
+                    {/* Taxa de Quadros (FPS) */}
+
+                    <div className="space-y-2">
+
+                      <SettingLabel helpTitle="FPS" help="Quadros por segundo na renderização Remotion. 30 FPS é padrão web; 24 FPS é mais cinematográfico; 60 FPS é mais fluido porém mais pesado." align="start">Taxa de Quadros (FPS)</SettingLabel>
+
+                      <select 
+
+                        value={globalFps} 
+
+                        onChange={(e) => setGlobalFps(parseInt(e.target.value) || 30)} 
+
+                        className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+
+                      >
+
+                        <option value={24}>24 FPS (Cinematográfico)</option>
+
+                        <option value={30}>30 FPS (Padrão Web)</option>
+
+                        <option value={60}>60 FPS (Super Fluido)</option>
+
+                      </select>
+
+                      <p className="text-[9px] text-zinc-500">Taxa de quadros para renderização Remotion.</p>
+
+                    </div>
+
+                    <div className="space-y-3">
+                      <SettingLabel helpTitle="Resolução" help="1080p para entrega rápida; 2K para mais nitidez. Global vale para todos os projetos; Personalizado sobrescreve só o projeto aberto." align="start">Resolução de Saída</SettingLabel>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setResolutionConfigScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                        <button type="button" onClick={() => setResolutionConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${resolutionConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                      </div>
+                      {resolutionConfigScope === 'global' ? (
+                        <>
+                          <select
+                            value={globalRenderResolution}
+                            onChange={(e) => setGlobalRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                          >
+                            <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
+                            <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
+                          </select>
+                          <p className="text-[9px] text-zinc-500">Salve com o botão abaixo. Vale para todos os projetos sem override.</p>
+                        </>
+                      ) : (
+                        <>
+                          <select
+                            value={projectRenderResolution}
+                            onChange={(e) => setProjectRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
+                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-2xl px-4 py-3 text-xs text-white cursor-pointer"
+                          >
+                            <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
+                            <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
+                          </select>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={handleSaveProjectRenderResolution} disabled={savingProjectResolution} className="flex-1 py-2 rounded-xl bg-gold-500/20 hover:bg-gold-500/30 border border-gold-500/30 text-gold-300 text-[10px] font-bold uppercase tracking-wider transition disabled:opacity-50">
+                              {savingProjectResolution ? 'Salvando...' : 'Salvar do Projeto'}
+                            </button>
+                            {config?.render_resolution && (
+                              <button type="button" onClick={handleClearProjectRenderResolution} disabled={savingProjectResolution} className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-bold uppercase tracking-wider hover:border-zinc-700 transition disabled:opacity-50">
+                                Usar Global
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[9px] text-zinc-500">Sobrescreve a resolução global só neste projeto.</p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Checkboxes for Remotion & Debug */}
+
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+
+                      <div className="flex items-center gap-2">
+
+                        <input 
+
+                          type="checkbox" 
+
+                          id="use-remotion-chk"
+
+                          checked={globalUseRemotion}
+
+                          onChange={(e) => setGlobalUseRemotion(e.target.checked)}
+
+                          className="rounded bg-zinc-950 border-zinc-800 text-gold-500 focus:ring-gold-500 cursor-pointer w-4 h-4"
+
+                        />
+
+                        <label htmlFor="use-remotion-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none flex items-center gap-1.5">
+                          Remotion por Padrão
+                          <SettingHelpTip title="Remotion" align="start">Usa o motor Remotion (React) para compilar vídeos com overlays, legendas e efeitos. Desligado pode usar pipeline legado se disponível.</SettingHelpTip>
+                        </label>
+
+                      </div>
+
+                      <div className="flex items-center gap-2">
+
+                        <input 
+
+                          type="checkbox" 
+
+                          id="debug-overlay-chk"
+
+                          checked={globalDebugOverlay}
+
+                          onChange={(e) => setGlobalDebugOverlay(e.target.checked)}
+
+                          className="rounded bg-zinc-950 border-zinc-800 text-gold-500 focus:ring-gold-500 cursor-pointer w-4 h-4"
+
+                        />
+
+                        <label htmlFor="debug-overlay-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none flex items-center gap-1.5">
+                          Debug Overlay
+                          <SettingHelpTip title="Debug" align="end">Mostra informações técnicas dos overlays na prévia/render para diagnosticar timing e posicionamento. Desligue na entrega final.</SettingHelpTip>
+                        </label>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <div className="flex justify-end border-t border-zinc-900 pt-4">
+
+                  <button 
+
+                    onClick={handleSaveGlobalRenderConfig} 
+
+                    disabled={savingGlobalConfig}
+
+                    className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-2"
+
+                  >
+
+                    <span>{savingGlobalConfig ? 'Salvando...' : 'Salvar Configurações de Renderização'}</span>
+
+                  </button>
+
+                </div>
+
+              </div>
+
+              )}
+
+              {settingsSection === 'visual' && (
+                <VisualSettings
+                  config={config || {}}
+                  projectKey={activeProject}
+                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
+                  isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
+                  saving={savingVisualConfig}
+                  onSave={async (draft) => {
+                    setSavingVisualConfig(true);
+                    try {
+                      const previousVisual = pickVisualConfig(config || {});
+                      const patch = visualDraftToApiPatch(draft, previousVisual);
+                      if (Object.keys(patch).length === 0) {
+                        toast.success('Nenhuma alteração visual para salvar.');
+                        return;
+                      }
+                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
+                      if (!saved) return;
+                      setConfig((prev) => applyVisualPatchToConfig(
+                        (prev || {}) as ConfigData,
+                        draft,
+                        previousVisual,
+                      ));
+                      toast.success('Configurações visuais salvas no projeto.');
+                    } finally {
+                      setSavingVisualConfig(false);
+                    }
+                  }}
+                />
+              )}
+
+              {settingsSection === 'producao' && (
+                <SettingsProduction
+                  config={config || {}}
+                  projectKey={activeProject}
+                  globalMusicVolume={globalMusicVolume}
+                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
+                  saving={savingProductionConfig}
+                  onSave={async (draft) => {
+                    setSavingProductionConfig(true);
+                    try {
+                      const previousProduction = pickProductionConfig(config || {});
+                      const patch = productionDraftToApiPatch(draft, previousProduction);
+                      if (Object.keys(patch).length === 0) {
+                        toast.success('Nenhuma alteração de produção para salvar.');
+                        return;
+                      }
+                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
+                      if (!saved) return;
+                      setConfig((prev) => applyProductionPatchToConfig(
+                        (prev || {}) as ConfigData,
+                        draft,
+                        previousProduction,
+                      ));
+                      toast.success('Configurações de produção salvas no projeto.');
+                    } finally {
+                      setSavingProductionConfig(false);
+                    }
+                  }}
+                />
+              )}
+
+              {settingsSection === 'marca' && (
+                            <div className="glass-panel p-6 rounded-3xl space-y-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-900 pb-4">
+                  <div>
+                    <SectionHeader
+                      title="LOGOTIPO DO FINAL DO VÍDEO"
+                      helpId="settings-marca"
+                      icon={<Image className="w-4 h-4 text-gold-500" />}
+                      subtitle={<>Logos e canal do encerramento. Use o <span className="text-gold-400/90">?</span> em cada seção para entender o escopo global vs. projeto.</>}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Escopo do logo</span>
+                    <SettingHelpTip title="Escopo" align="start">
+                      Global aplica o logo escolhido em todos os projetos. Personalizado permite um logo diferente só neste projeto.
+                    </SettingHelpTip>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setLogoCatalogScope('global')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                    <button type="button" onClick={() => setLogoCatalogScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${logoCatalogScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-950 border border-zinc-850 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden">
+                  {(() => {
+                    const activeId = logoCatalogScope === 'project' ? (projectSelectedLogoId || selectedLogoId) : selectedLogoId;
+                    const activeLogo = brandLogos.find((l) => l.id === activeId) || brandLogos[0];
+                    const previewUrl = logoStatus?.currentLogoUrl || activeLogo?.url;
+                    return previewUrl ? (
+                      <img src={`${previewUrl}${previewUrl.includes('?') ? '&' : '?'}t=${logoTimestamp}`} alt="Logo ativo" className="max-h-24 max-w-full object-contain drop-shadow-lg" />
+                    ) : (
+                      <div className="text-zinc-600 text-xs font-mono">Nenhum logo no catálogo</div>
+                    );
+                  })()}
+                  <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-[9px] text-zinc-500 bg-zinc-950/80 px-2.5 py-1 rounded-lg">
+                    <span>Escopo: {logoCatalogScope === 'project' ? 'Personalizado do Projeto' : 'Padrão Global'}</span>
+                    {logoCatalogScope === 'project' && (projectSelectedLogoId || logoStatus?.hasProjectLogo) && (
+                      <button type="button" onClick={handleResetLogo} className="text-red-400 hover:text-red-300 font-semibold cursor-pointer transition">Usar logo global</button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <SettingLabel helpTitle="Catálogo de logos" help="Biblioteca de PNGs (fundo transparente) exibidos no final do vídeo. Escolha qual está ativo e renomeie para organizar marcas diferentes." align="start" className="mb-0">Catálogo de Logos</SettingLabel>
+                  {brandLogos.length === 0 ? (
+                    <p className="text-xs text-zinc-500">Nenhum logo cadastrado. Envie o primeiro abaixo.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {brandLogos.map((logo) => {
+                        const activeId = logoCatalogScope === 'project' ? (projectSelectedLogoId || selectedLogoId) : selectedLogoId;
+                        const isActive = logo.id === activeId;
+                        return (
+                          <div key={logo.id} className={`relative rounded-2xl border p-3 bg-zinc-950/40 transition ${isActive ? 'border-gold-500/60 ring-1 ring-gold-500/30' : 'border-zinc-800 hover:border-zinc-700'}`}>
+                            <div className="h-20 flex items-center justify-center mb-2 bg-zinc-950 rounded-xl overflow-hidden">
+                              <img src={`${logo.url}${logo.url.includes('?') ? '&' : '?'}t=${logoTimestamp}`} alt={logo.name} className="max-h-16 max-w-full object-contain" />
+                            </div>
+                            <input
+                              type="text"
+                              value={logo.name}
+                              onChange={(e) => setBrandLogos((prev) => prev.map((l) => (l.id === logo.id ? { ...l, name: e.target.value } : l)))}
+                              onBlur={(e) => handleRenameBrandLogo(logo.id, e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-[10px] text-white mb-2 focus:border-gold-500/50 outline-none"
+                              title="Renomear logo"
+                            />
+                            <div className="flex gap-1.5">
+                              <button type="button" onClick={() => handleSelectBrandLogo(logo.id)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition ${isActive ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-gold-500/30 hover:text-gold-400'}`}>
+                                {isActive ? <span className="flex items-center justify-center gap-1"><Check className="w-3 h-3" /> Ativo</span> : 'Usar'}
+                              </button>
+                              <button type="button" onClick={() => handleDeleteBrandLogo(logo.id)} className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-500/30 transition" title="Remover">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 border-t border-zinc-900 pt-5">
+                  <SettingLabel helpTitle="Novo logo" help="Envie um PNG com fundo transparente. O nome ajuda a identificar a marca no catálogo — ex.: canal principal, parceiro, versão branca." align="start" className="mb-0">Adicionar Logo ao Catálogo</SettingLabel>
+                  <input type="text" value={newLogoName} onChange={(e) => setNewLogoName(e.target.value)} placeholder="Nome do logo" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                  <label className="border-2 border-dashed border-zinc-800 hover:border-gold-500/50 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition min-h-[96px] bg-zinc-950/20 hover:bg-zinc-950/40">
+                    <Upload className="w-6 h-6 text-zinc-500 mb-2" />
+                    <span className="text-xs text-gray-400 font-semibold">{uploadingLogo ? 'Enviando imagem...' : 'Escolher imagem PNG'}</span>
+                    <span className="text-[9px] text-zinc-500 mt-1">Recomendado: fundo transparente</span>
+                    <input type="file" accept="image/png" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                  </label>
+                </div>
+
+                <div className="border-t border-zinc-900 pt-5 space-y-4">
+                  <div>
+                    <h4 className="font-cinzel text-xs font-bold text-white tracking-wide flex items-center gap-2">
+                      <Video className="w-4 h-4 text-red-500" /> CANAL DO YOUTUBE (BOTÃO INSCREVER-SE)
+                      <SettingHelpTip title="Botão Inscrever-se" align="start">
+                        Card de encerramento com link do canal, nome e contagem de inscritos. Aparece no outro do vídeo junto com o logo.
+                      </SettingHelpTip>
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Cadastre vários canais e selecione qual usar no encerramento. Escopo global ou por projeto.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setChannelConfigScope('global'); fetchGlobalRenderConfig(); }} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'global' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Padrão Global</button>
+                    <button type="button" onClick={() => setChannelConfigScope('project')} className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition ${channelConfigScope === 'project' ? 'bg-gold-500/20 text-gold-400 border border-gold-500/40' : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-700'}`}>Personalizado do Projeto</button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <SettingLabel helpTitle="Catálogo de canais" help="Cadastre vários canais YouTube e escolha qual usar no encerramento. Útil se você gerencia mais de uma marca no mesmo Lumiera." align="start" className="mb-0">Catálogo de Canais</SettingLabel>
+                    {youtubeChannels.length === 0 ? (
+                      <p className="text-xs text-zinc-500">Nenhum canal cadastrado. Adicione o primeiro abaixo.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {youtubeChannels.map((channel) => {
+                          const activeId = channelConfigScope === 'project' ? (projectSelectedChannelId || selectedChannelId) : selectedChannelId;
+                          const isActive = channel.id === activeId;
+                          return (
+                            <div key={channel.id} className={`rounded-2xl border p-4 space-y-3 transition ${isActive ? 'border-red-500/40 bg-red-500/5' : 'border-zinc-800 bg-zinc-950/30'}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  <input type="text" value={channel.label} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'label', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Rótulo" />
+                                  <input type="text" value={channel.channelUrl} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelUrl', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="URL do canal" />
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <input type="text" value={channel.channelName || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'channelName', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Nome (opcional)" />
+                                    <input type="text" value={channel.subscriberCount || ''} onChange={(e) => handleUpdateYoutubeChannelField(channel.id, 'subscriberCount', e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-gold-500/50 outline-none" placeholder="Inscritos (opcional)" />
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5 shrink-0">
+                                  <button type="button" onClick={() => handleSelectYoutubeChannel(channel.id)} className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition ${isActive ? 'bg-red-500/20 text-red-300 border border-red-500/40' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-red-500/30 hover:text-red-300'}`}>
+                                    {isActive ? 'Ativo' : 'Usar'}
+                                  </button>
+                                  <button type="button" onClick={() => handleDeleteYoutubeChannel(channel.id)} disabled={youtubeChannels.length <= 1} className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 hover:border-red-500/30 transition disabled:opacity-30 disabled:cursor-not-allowed" title="Remover">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 border-t border-zinc-900 pt-4">
+                    <SettingLabel helpTitle="Adicionar canal" help="Cadastre um novo canal YouTube no catálogo global. Depois selecione qual canal aparece no card de inscrição do encerramento — global ou personalizado por projeto." align="start" className="mb-0 [&_span]:text-gold-500 [&_span]:uppercase [&_span]:tracking-wider">Adicionar Canal ao Catálogo</SettingLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input type="text" value={newChannelLabel} onChange={(e) => setNewChannelLabel(e.target.value)} placeholder="Rótulo do canal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      <input type="text" value={newChannelUrl} onChange={(e) => setNewChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@seucanal" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input type="text" value={globalYoutubeChannelName} onChange={(e) => setGlobalYoutubeChannelName(e.target.value)} placeholder="Nome do canal (opcional)" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                      <input type="text" value={globalYoutubeSubscriberCount} onChange={(e) => setGlobalYoutubeSubscriberCount(e.target.value)} placeholder="Inscritos (opcional)" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-gold-500/50 outline-none" />
+                    </div>
+                    <button type="button" onClick={handleAddYoutubeChannel} className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider transition">Adicionar Canal</button>
+                  </div>
+                </div>
+              </div>
+
+              )}
+
+              {settingsSection === 'integracoes' && (
+                <IntegrationSettings
+                  uploadStatus={uploadStatus}
+                  toast={(msg) => toast(msg)}
+                  fetchUploadStatus={fetchUploadStatus}
+                  onRelinkYoutube={handleRelinkYoutube}
+                  canvaClientId={canvaClientId}
+                  setCanvaClientId={setCanvaClientId}
+                  canvaClientSecret={canvaClientSecret}
+                  setCanvaClientSecret={setCanvaClientSecret}
+                  ytClientId={ytClientId}
+                  setYtClientId={setYtClientId}
+                  ytClientSecret={ytClientSecret}
+                  setYtClientSecret={setYtClientSecret}
+                  igAppId={igAppId}
+                  setIgAppId={setIgAppId}
+                  igAppSecret={igAppSecret}
+                  setIgAppSecret={setIgAppSecret}
+                  igAccountId={igAccountId}
+                  setIgAccountId={setIgAccountId}
+                  igAccessToken={igAccessToken}
+                  setIgAccessToken={setIgAccessToken}
+                />
+              )}
+
+            </div>
+
+          )}
+
+                    {/* TAB 6: AI VIDEO CREATOR */}
 
           {activeTab === 'creator' && (
 
-            <div className="space-y-6 animate-fade-in flex flex-col h-[calc(100vh-120px)] overflow-hidden font-sans">
-
-              
+            <div className="lumiera-fill-view space-y-6 animate-fade-in overflow-hidden">
 
               {/* Steps Progress Header */}
 
               <div className="glass-panel p-5 rounded-2xl shrink-0">
 
-                <h3 className="font-cinzel text-sm font-bold text-white tracking-wide flex items-center gap-2 mb-4">
+                <SectionHeader
+                  title="CRIADOR DE VÍDEOS AUTOMATIZADO COM IA"
+                  helpId="creator-wizard"
+                  icon={<Sparkles className="w-5 h-5 text-gold-500 animate-pulse" />}
+                  className="mb-4"
+                />
 
-                  <Sparkles className="w-5 h-5 text-gold-500 animate-pulse" /> CRIADOR DE VÍDEOS AUTOMATIZADO COM IA
-
-                </h3>
+                <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px]">
+                  {wizardSavedAtLabel ? (
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+                      Sessão salva {wizardSavedAtLabel} · passo {creatorStep}/7
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+                      if (!project) {
+                        toast.error('Defina o nome do projeto antes de restaurar.');
+                        return;
+                      }
+                      try {
+                        const res = await fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`);
+                        const data = await res.json();
+                        if (!res.ok || !data.session) {
+                          toast.error('Nenhuma sessão salva no servidor para este projeto.');
+                          return;
+                        }
+                        applyWizardSessionPatch(data.session);
+                        saveWizardSession(data.session);
+                        toast.success(`Wizard restaurado do servidor — passo ${data.session.creatorStep || 1}`);
+                      } catch {
+                        toast.error('Falha ao restaurar sessão do servidor.');
+                      }
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-300 font-bold hover:bg-sky-500/20 transition"
+                  >
+                    Restaurar sessão
+                  </button>
+                </div>
 
                 <button 
 
-                  onClick={() => {
+                  onClick={async () => {
 
-                    localStorage.removeItem('qanat_creator_state');
-
+                    clearWizardSession();
+                    const project = creatorProjectName.trim() || narrationProjectName.trim() || activeProject;
+                    if (project) {
+                      fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`, { method: 'DELETE' }).catch(() => {});
+                    }
                     setCreatorStep(1);
-
                     setNicheInput('');
-
                     setIdeasData(null);
-
                     setSelectedIdeaIndex(-1);
-
                     setGeneratedScriptData(null);
-
                     setFormatSelector('LONGO');
-
+                    setCreatorProjectName('');
+                    
+                    // Reset custom ideas states
+                    setCustomTitle('');
+                    setCustomHooks('');
+                    setCustomOutline('');
+                    setCustomBlocks([
+                      { block: 1, content: '' }
+                    ]);
+                    setIdeationTab('ai');
+                    
+                    // Reset custom strategy fields (generated ideas & manual ideas from zero)
+                    setCustomIdeaTitle("");
+                    setCustomIdeaPromise("");
+                    setCustomIdeaEmotion("");
+                    setCustomIdeaHook("");
+                    setCustomIdeaBlocks("");
+                    
                     toast.success("Progresso limpo! Novo rascunho iniciado.");
 
                   }}
@@ -6888,8 +13083,6 @@ Regras:
 
                 </button>
 
-                
-
                 <div className="flex justify-between items-center relative">
 
                   <div className="absolute left-4 right-4 h-0.5 bg-zinc-800 top-1/2 -translate-y-1/2 -z-10"></div>
@@ -6898,11 +13091,11 @@ Regras:
 
                     className="absolute left-4 h-0.5 bg-gold-500 top-1/2 -translate-y-1/2 -z-10 transition-all duration-300"
 
-                    style={{ width: `${((creatorStep - 1) / 4) * 100}%` }}
+                    style={{ width: `${((creatorStep - 1) / 6) * 100}%` }}
 
                   ></div>
 
-                  {[1, 2, 3, 4, 5].map((step) => (
+                  {[1, 2, 3, 4, 5, 6, 7].map((step) => (
 
                     <button 
 
@@ -6944,7 +13137,9 @@ Regras:
 
                   <span>4. Associar B-roll</span>
 
-                  <span>5. Renderizar</span>
+                  <span>5. Render</span>
+                  <span>6. Metadados</span>
+                  <span>7. Publicar</span>
 
                 </div>
 
@@ -6954,27 +13149,272 @@ Regras:
 
               <div className="flex-1 bg-[#09090b] border border-zinc-900 rounded-3xl p-6 min-h-0 overflow-y-auto">
 
-                
-
                 {/* STEP 1: SCRIPT MASTER Research & Selection */}
 
                 {creatorStep === 1 && (
 
                   <div className="space-y-8 max-w-4xl mx-auto font-sans">
 
-                    {!ideasData ? (
+                    {/* Step 1 Header & Tabs Selector */}
+                    <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
+                      <div>
+                        <SectionHeader
+                          title="Passo 1: Pesquisa e Ideias (Script Master)"
+                          helpId="creator-step-ideas"
+                          subtitle="Defina o assunto e a estrutura do seu vídeo. Primeiro a IA gera a narração para você revisar e editar; depois de aprovar, ela monta blocos, prompts visuais e estratégia completa."
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={useNotebooklm}
+                            onChange={(e) => setUseNotebooklm(e.target.checked)}
+                            className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
+                          />
+                          <span className="text-xs text-zinc-300 font-semibold">Usar NotebookLM na pesquisa de roteiro</span>
+                        </label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {creatorIdeasBundle?.bundleSlug ? (
+                            <span
+                              className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/25 inline-flex items-center gap-1.5"
+                              title={creatorIdeasBundle.skillSlugs.join(' · ')}
+                            >
+                              <Package className="w-3 h-3 opacity-70" />
+                              Bundle ideias:{' '}
+                              <span className="font-mono">{creatorIdeasBundle.bundleSlug}</span>
+                              <span className="text-sky-400/70">
+                                ({creatorIdeasBundle.injectedCount} skills)
+                              </span>
+                            </span>
+                          ) : null}
+                          {notebooklmStatus && (
+                            <span
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+                                notebooklmStatus.authenticated
+                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                              }`}
+                              title={notebooklmStatus.message}
+                            >
+                              {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Execute nlm login'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 border-t border-zinc-900/60 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => setIdeationTab('ai')}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            ideationTab === 'ai'
+                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
+                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
+                          }`}
+                        >
+                          <span>💡 Gerar com IA</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIdeationTab('custom')}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            ideationTab === 'custom'
+                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
+                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
+                          }`}
+                        >
+                          <span>✏️ Ideia Personalizada</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIdeationTab('listicle')}
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                            ideationTab === 'listicle'
+                              ? 'bg-gold-500 text-zinc-950 shadow-lg shadow-gold-500/10'
+                              : 'bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-900'
+                          }`}
+                        >
+                          <span>📊 Top N / Listicle</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {ideationTab === 'custom' ? (
+                      <div className="space-y-6 max-w-2xl mx-auto">
+                        <div className="space-y-4">
+                          {/* Title input */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Título do Vídeo (em Inglês)</label>
+                            <input 
+                              type="text"
+                              placeholder="Ex: The Secrets Behind the Great Wall of China"
+                              value={customTitle}
+                              onChange={(e) => setCustomTitle(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                            />
+                          </div>
+
+                          {/* Hooks input */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Ganchos / Hooks de Retenção (em Inglês)</label>
+                            <textarea 
+                              rows={2}
+                              placeholder="Ex: What if the Great Wall wasn't built to keep humans out, but to lock something else inside?"
+                              value={customHooks}
+                              onChange={(e) => setCustomHooks(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                            />
+                          </div>
+
+                          {/* Outline / Promise input */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Roteiro Base / Promessa Geral (em Inglês)</label>
+                            <textarea 
+                              rows={3}
+                              placeholder="Ex: A historical documentary uncovering unknown architectural elements and defense strategies of the ancient Great Wall..."
+                              value={customOutline}
+                              onChange={(e) => setCustomOutline(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white"
+                            />
+                          </div>
+
+                          {/* Format dropdown */}
+                          <div className="space-y-2 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Formato do Vídeo</label>
+                            <select
+                              value={formatSelector}
+                              onChange={(e) => setFormatSelector(e.target.value as 'LONGO' | 'SHORTS')}
+                              className="w-full bg-zinc-950 border border-zinc-900 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-3 text-xs text-white cursor-pointer font-sans"
+                            >
+                              <option value="LONGO">Vídeo Longo (6 a 12 minutos - Documentário)</option>
+                              <option value="SHORTS">Shorts (30 a 50 segundos - Rápido e Viral)</option>
+                            </select>
+                          </div>
+
+                          {/* Dynamic Blocks */}
+                          <div className="space-y-4 pt-2 font-sans">
+                            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Estrutura de Blocos (em Inglês)</label>
+                              <span className="text-[9px] bg-zinc-900 px-2 py-0.5 rounded text-zinc-400 font-mono font-bold">
+                                {customBlocks.length} {customBlocks.length === 1 ? 'bloco' : 'blocos'}
+                              </span>
+                            </div>
+
+                            <div className="space-y-3">
+                              {customBlocks.map((b, idx) => (
+                                <div key={idx} className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-xl space-y-2 relative">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] text-zinc-500 font-bold uppercase">Bloco {idx + 1}</span>
+                                    {customBlocks.length > 1 && (
+                                      <button 
+                                        type="button"
+                                        onClick={() => {
+                                          const newBlocks = customBlocks.filter((_, i) => i !== idx)
+                                            .map((block, i) => ({ ...block, block: i + 1 }));
+                                          setCustomBlocks(newBlocks);
+                                        }}
+                                        className="text-red-500/70 hover:text-red-400 text-[10px] font-bold cursor-pointer transition"
+                                      >
+                                        Remover
+                                      </button>
+                                    )}
+                                  </div>
+                                  <textarea
+                                    rows={3}
+                                    placeholder={`Descreva o conteúdo do bloco ${idx + 1} em inglês (ex: Explain how the foundation was built...)`}
+                                    value={b.content}
+                                    onChange={(e) => {
+                                      const newBlocks = [...customBlocks];
+                                      newBlocks[idx].content = e.target.value;
+                                      setCustomBlocks(newBlocks);
+                                    }}
+                                    className="w-full bg-zinc-950 border border-zinc-900/60 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomBlocks([...customBlocks, { block: customBlocks.length + 1, content: "" }]);
+                              }}
+                              className="w-full bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>+ Adicionar Bloco</span>
+                            </button>
+                          </div>
+
+                          {/* Folder input */}
+                          <div className="bg-zinc-950/40 border border-zinc-900/60 p-5 rounded-2xl space-y-2 mt-4 font-sans">
+                            <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                              Nome do Novo Projeto (Nome da Pasta)
+                            </label>
+                            <input 
+                              disabled={creatorLoading}
+                              type="text"
+                              placeholder="Ex: Secrets_Roman_Concrete, Great_Wall_Secrets, etc."
+                              value={creatorProjectName}
+                              onChange={(e) => setCreatorProjectName(e.target.value)}
+                              className="w-full bg-white border border-zinc-300 hover:border-zinc-400 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-zinc-900 font-semibold placeholder:text-zinc-400"
+                            />
+                            <span className="text-[9px] text-zinc-500 block leading-normal mt-1">
+                              * A IA traduzirá a narração para Português BR e gerará os ganchos, prompts e assets baseados no seu roteiro personalizado em inglês.
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Submit Button */}
+                        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-900">
+                          <button
+                            disabled={creatorLoading || !customTitle.trim() || !creatorProjectName.trim()}
+                            onClick={handleGenerateFullScript}
+                            className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 w-full justify-center sm:w-auto font-sans"
+                          >
+                            {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            <span>{creatorLoading && creatorLoadingMode === 'narration' ? 'Gerando narração...' : 'Gerar Narração'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : ideationTab === 'listicle' ? (
+                        <ListicleCreatorStep
+                          listNiche={listNiche}
+                          setListNiche={setListNiche}
+                          listTopic={listTopic}
+                          setListTopic={setListTopic}
+                          rankCount={rankCount}
+                          setRankCount={setRankCount}
+                          rankOrder={rankOrder}
+                          setRankOrder={setRankOrder}
+                          formatSelector={formatSelector}
+                          setFormatSelector={setFormatSelector}
+                          creatorProjectName={creatorProjectName}
+                          setCreatorProjectName={setCreatorProjectName}
+                          setNicheInput={setNicheInput}
+                          creatorLoading={creatorLoading}
+                          hasApiKey={hasApiKey}
+                          listicleIdeasData={listicleIdeasData}
+                          selectedListicleIdeaIndex={selectedListicleIdeaIndex}
+                          listicleHudStyle={listicleHudStyle}
+                          setListicleHudStyle={setListicleHudStyle}
+                          listItems={generatedScriptData?.list_items || storyboardData?.list_items}
+                          onSuggestRankings={handleSuggestListicleRankings}
+                          onSelectRankingIdea={(idx) => setSelectedListicleIdeaIndex(idx)}
+                          onGenerateScript={handleGenerateListicleScript}
+                        />
+                    ) : !ideasData ? (
 
                       <div className="space-y-6 max-w-2xl mx-auto">
 
                         <div>
 
-                          <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 1: Pesquisa e Ideias (Script Master)</h4>
-
-                          <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-
-                            Insira seu nicho de atuação e o formato desejado. O gerador irá analisar as dores, medos e ganchos de retenção antes de propor 10 ideias de alto impacto.
-
-                          </p>
+                          <SectionHeader
+                            title="Passo 1: Pesquisa e Ideias (Script Master)"
+                            helpId="creator-step-ideas"
+                            subtitle="Insira seu nicho de atuação e o formato desejado. O gerador irá analisar as dores, medos e ganchos de retenção antes de propor 10 ideias de alto impacto."
+                          />
 
                         </div>
 
@@ -6990,7 +13430,7 @@ Regras:
 
                               type="text"
 
-                              placeholder={hasApiKey ? "Ex: construções históricas, engenharia antiga e curiosidades..." : "Configure a API Key na aba Agente IA primeiro..."}
+                              placeholder={hasApiKey ? "Ex: curiosidades e fatos surpreendentes, finanças, culinária, natureza..." : "Configure um provedor na aba Configurações primeiro..."}
 
                               value={nicheInput}
 
@@ -7028,8 +13468,28 @@ Regras:
 
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-2">
-
+                        <div className="flex justify-end gap-3 pt-2 w-full flex-wrap sm:flex-nowrap">
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={() => {
+                              setIdeasData({
+                                diagnostic: null,
+                                ideas: [],
+                                best_idea_index: -1,
+                                best_idea_reason: ""
+                              });
+                              setSelectedIdeaIndex(999);
+                              setCustomIdeaTitle("");
+                              setCustomIdeaPromise("");
+                              setCustomIdeaEmotion("");
+                              setCustomIdeaHook("");
+                              setCustomIdeaBlocks("");
+                            }}
+                            className="bg-zinc-900 hover:bg-zinc-800 text-gold-500 hover:text-white border border-zinc-800 text-xs font-bold px-6 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg w-full justify-center sm:w-auto"
+                          >
+                            ✍️ Escrever Minha Própria Ideia
+                          </button>
                           <button 
 
                             disabled={creatorLoading || !nicheInput.trim() || !hasApiKey}
@@ -7049,57 +13509,53 @@ Regras:
                         </div>
 
                       </div>
-
                     ) : (
 
-                      <div className="space-y-8 animate-fade-in">
+                      <div className="lumiera-panel-stack animate-fade-in">
 
                         {/* Diagnostic info banner */}
-
-                        <div className="p-5 bg-zinc-950/60 border border-zinc-900 rounded-2xl space-y-4">
-
-                          <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">DIAGNÓSTICO E PESQUISA DO NICHO</h5>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-
-                            <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
-
-                              <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">O que procuram</span>
-
-                              <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.looking_for}</p>
-
+                        {ideasData?.diagnostic && (
+                          <div className="p-5 bg-zinc-950/60 border border-zinc-900 rounded-2xl space-y-4">
+                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">DIAGNÓSTICO E PESQUISA DO NICHO</h5>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                              <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
+                                <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">O que procuram</span>
+                                <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.looking_for}</p>
+                              </div>
+                              <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
+                                <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Dores do público</span>
+                                <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.pain_points}</p>
+                              </div>
+                              <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
+                                <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Ângulo de Retenção</span>
+                                <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.strong_angle}</p>
+                              </div>
                             </div>
-
-                            <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
-
-                              <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Dores do público</span>
-
-                              <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.pain_points}</p>
-
-                            </div>
-
-                            <div className="bg-zinc-900/40 p-3 rounded-xl border border-zinc-900/60">
-
-                              <span className="text-[9px] text-zinc-500 font-bold block uppercase tracking-wider">Ângulo de Retenção</span>
-
-                              <p className="text-gray-300 mt-1 font-medium leading-relaxed">{ideasData?.diagnostic?.strong_angle}</p>
-
-                            </div>
-
                           </div>
-
-                        </div>
+                        )}
 
                         {/* List of 10 ideas */}
 
                         <div className="space-y-4">
 
                           <div className="flex justify-between items-center px-1">
-
-                            <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Selecione uma das 10 Ideias</h4>
-
-                            <span className="text-[10px] bg-gold-500/10 border border-gold-500/20 text-gold-500 px-2 py-0.5 rounded uppercase tracking-wider font-bold">10 Ideias Geradas</span>
-
+                            <SectionHeader title="Selecione uma das 10 Ideias" helpId="creator-step-select-idea" />
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => {
+                                  setSelectedIdeaIndex(999);
+                                  setCustomIdeaTitle("");
+                                  setCustomIdeaPromise("");
+                                  setCustomIdeaEmotion("");
+                                  setCustomIdeaHook("");
+                                  setCustomIdeaBlocks("");
+                                }}
+                                className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/50 text-gold-500 text-[10px] font-bold px-3 py-1.5 rounded-xl transition cursor-pointer"
+                              >
+                                ✍️ Criar do Zero (Manual)
+                              </button>
+                              <span className="text-[10px] bg-gold-500/10 border border-gold-500/20 text-gold-500 px-2 py-0.5 rounded uppercase tracking-wider font-bold">10 Ideias Geradas</span>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -7119,6 +13575,11 @@ Regras:
                                   onClick={() => {
 
                                     setSelectedIdeaIndex(index);
+                                    setCustomIdeaTitle(idea.title || "");
+                                    setCustomIdeaPromise(idea.promise || "");
+                                    setCustomIdeaEmotion(idea.emotion || "");
+                                    setCustomIdeaHook("");
+                                    setCustomIdeaBlocks("");
 
                                     // Auto-fill project name (short 3-word summary)
 
@@ -7178,8 +13639,6 @@ Regras:
 
                                   </div>
 
-                                  
-
                                   <div className="flex justify-between items-center mt-4 border-t border-zinc-900/60 pt-3 text-[9px] uppercase tracking-wider font-bold">
 
                                     <span className="text-zinc-500">Formato: {idea.best_format}</span>
@@ -7212,8 +13671,83 @@ Regras:
 
                         )}
 
-                        {/* New Project Name Input */}
+                        {selectedIdeaIndex !== -1 && (
+                          <div className="bg-zinc-950/60 border border-zinc-900 p-5 rounded-2xl space-y-4 mt-6 text-left">
+                            <h5 className="text-[10px] font-bold text-gold-500 uppercase tracking-widest block font-cinzel">
+                              {selectedIdeaIndex === 999 ? "CRIAR IDEIA MANUAL" : "PERSONALIZAR ESTRATÉGIA DA IDEIA"}
+                            </h5>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Título Principal</label>
+                                <input 
+                                  type="text"
+                                  value={customIdeaTitle}
+                                  onChange={(e) => {
+                                    setCustomIdeaTitle(e.target.value);
+                                    if (selectedIdeaIndex === 999) {
+                                      const stopWords = ['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','no','na','nos','nas','em','por','para','com','e','que','se','ou','ao','à','pelo','pela','pelos','pelas','entre','sobre','sob','até','como','mais','menos','muito','tudo','isso','este','esta','esse','essa','qual','quais'];
+                                      const shortName = e.target.value
+                                        .toLowerCase()
+                                        .replace(/[^a-z0-9\s]/g, "")
+                                        .split(/\s+/)
+                                        .filter((w: string) => w.length > 1 && !stopWords.includes(w.toLowerCase()))
+                                        .slice(0, 3)
+                                        .join('_');
+                                      setCreatorProjectName(shortName);
+                                    }
+                                  }}
+                                  className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                  placeholder="Ex: A bizarra verdade sobre as escadas dos castelos"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Emoção Dominante</label>
+                                <input 
+                                  type="text"
+                                  value={customIdeaEmotion}
+                                  onChange={(e) => setCustomIdeaEmotion(e.target.value)}
+                                  className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                  placeholder="Ex: Curiosidade, Choque, Fascínio"
+                                />
+                              </div>
+                            </div>
 
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Promessa do Vídeo</label>
+                              <input 
+                                type="text"
+                                value={customIdeaPromise}
+                                onChange={(e) => setCustomIdeaPromise(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                placeholder="Ex: Revelar o detalhe sádico das escadas medievais"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Gancho de Retenção (Hook)</label>
+                              <input 
+                                type="text"
+                                value={customIdeaHook}
+                                onChange={(e) => setCustomIdeaHook(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 font-semibold"
+                                placeholder="Ex: Você sabia que as escadas dos castelos eram armas mortais?"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Estrutura / Temas dos Blocos (Ganchos / Roteiro)</label>
+                              <textarea 
+                                value={customIdeaBlocks}
+                                onChange={(e) => setCustomIdeaBlocks(e.target.value)}
+                                className="w-full min-h-[90px] bg-zinc-900 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl p-3.5 text-xs text-white leading-relaxed resize-y placeholder:text-zinc-600 font-medium"
+                                placeholder="Ex: Bloco 1: O mistério do sentido das escadas; Bloco 2: A vantagem tática dos defensores destros; Bloco 3: O tropeço mortal..."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* New Project Name Input */}
                         <div className="bg-zinc-950/40 border border-zinc-900/60 p-5 rounded-2xl space-y-2 mt-4 font-sans">
 
                           <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
@@ -7280,7 +13814,7 @@ Regras:
 
                             {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
 
-                            <span>Gerar Roteiro e Estratégia</span>
+                            <span>{creatorLoading && creatorLoadingMode === 'narration' ? 'Gerando narração...' : 'Gerar Narração'}</span>
 
                           </button>
 
@@ -7288,6 +13822,28 @@ Regras:
 
                       </div>
 
+                    )}
+                    {showNarrationReview && (
+                      <NarrationReviewPanel
+                        narrativeScript={narrationDraft}
+                        narrativeScriptTagged={narrationTaggedDraft}
+                        strategyHook={narrationStrategy?.hook}
+                        strategyTitle={narrationStrategy?.title_main}
+                        blockPhrases={narrationBlockPhrases}
+                        blockScript={narrationBlockScript}
+                        notebooklmEnriched={narrationNotebooklmEnriched}
+                        notebooklmImproving={notebooklmImproving}
+                        notebooklmAvailable={notebooklmStatus?.authenticated ?? false}
+                        loading={creatorLoading}
+                        loadingMode={creatorLoadingMode === 'idle' ? 'idle' : creatorLoadingMode}
+                        onNarrativeChange={(value) => {
+                          setNarrationDraft(value);
+                          if (narrationTaggedDraft) setNarrationTaggedDraft('');
+                        }}
+                        onRegenerate={handleGenerateNarration}
+                        onApprove={handleApproveNarrationAndGenerateScript}
+                        onNotebooklmImprove={handleNotebooklmImproveNarrationDraft}
+                      />
                     )}
 
                   </div>
@@ -7302,7 +13858,7 @@ Regras:
 
                     <div>
 
-                      <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 2: Upload do Áudio de Narração</h4>
+                      <SectionHeader title="Passo 2: Upload do Áudio de Narração" helpId="creator-step-narration" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
 
@@ -7315,100 +13871,64 @@ Regras:
                     {/* Drag and drop zone */}
 
                     <div 
-
                       onDragEnter={handleDrag}
-
                       onDragOver={handleDrag}
-
                       onDragLeave={handleDrag}
-
                       onDrop={handleDrop}
-
                       className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-150 font-sans ${
-
                         dragActive 
-
                           ? 'border-gold-500 bg-gold-500/5' 
-
-                          : uploadSuccess 
-
+                          : (uploadSuccess || status?.has_narration)
                             ? 'border-emerald-500 bg-emerald-500/5' 
-
                             : 'border-zinc-800 bg-zinc-950/20 hover:border-zinc-700'
-
                       }`}
-
                     >
-
                       {uploadingNarration ? (
-
                         <div className="flex flex-col items-center gap-3">
-
                           <RefreshCw className="w-8 h-8 text-gold-500 animate-spin" />
-
                           <span className="text-xs text-gray-300">Enviando e salvando áudio...</span>
-
                         </div>
-
                       ) : uploadSuccess ? (
-
                         <div className="flex flex-col items-center gap-3">
-
                           <CheckCircle className="w-10 h-10 text-emerald-500" />
-
                           <span className="text-xs font-bold text-white">Narração Salva com Sucesso!</span>
-
                           <span className="text-[10px] text-gray-500">narracao_mestra_premium.mp3 atualizado no workspace.</span>
-
                         </div>
-
-                      ) : (
-
+                      ) : status?.has_narration ? (
                         <div className="flex flex-col items-center gap-3">
-
-                          <Volume2 className="w-10 h-10 text-zinc-600 animate-pulse" />
-
-                          <div>
-
-                            <span className="text-xs text-gray-300 block font-bold">Arraste seu arquivo MP3 de narração aqui</span>
-
-                            <span className="text-[10px] text-zinc-500 block mt-1">ou clique para selecionar do computador</span>
-
-                          </div>
-
-                          <input 
-
-                            type="file" 
-
-                            accept="audio/mp3,audio/mpeg" 
-
-                            onChange={handleFileInput}
-
-                            className="hidden" 
-
-                            id="file-upload" 
-
-                          />
-
-                          <label 
-
-                            htmlFor="file-upload" 
-
-                            className="mt-2 bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-zinc-850 transition"
-
-                          >
-
-                            Selecionar Arquivo
-
-                          </label>
-
+                          <CheckCircle className="w-10 h-10 text-emerald-500/80 animate-pulse" />
+                          <span className="text-xs font-bold text-white">Narração Existente no Workspace</span>
+                          <span className="text-[10px] text-gray-400">narracao_mestra_premium.mp3 já está salvo no workspace.</span>
                         </div>
-
+                      ) : (
+                        <div className="flex flex-col items-center gap-3">
+                          <Volume2 className="w-10 h-10 text-zinc-600 animate-pulse" />
+                          <div>
+                            <span className="text-xs text-gray-300 block font-bold">Arraste seu arquivo MP3 de narração aqui</span>
+                            <span className="text-[10px] text-zinc-500 block mt-1">ou clique para selecionar do computador</span>
+                          </div>
+                        </div>
                       )}
+                      
+                      <input 
+                        type="file" 
+                        accept="audio/mp3,audio/mpeg" 
+                        onChange={handleFileInput}
+                        className="hidden" 
+                        id="file-upload" 
+                      />
 
+                      {!uploadSuccess && (
+                        <label 
+                          htmlFor="file-upload" 
+                          className="mt-2 bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-zinc-850 transition"
+                        >
+                          {status?.has_narration ? 'Substituir Narração' : 'Selecionar Arquivo'}
+                        </label>
+                      )}
                     </div>
 
-                    <div className="flex justify-between items-center pt-4 font-sans">
+<div className="flex justify-between items-center pt-4 font-sans">
 
                       <button 
 
@@ -7452,7 +13972,7 @@ Regras:
 
                     <div>
 
-                      <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 3: Sincronização por Transcrição Inteligente</h4>
+                      <SectionHeader title="Passo 3: Sincronização por Transcrição Inteligente" helpId="creator-step-sync" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
 
@@ -7473,8 +13993,6 @@ Regras:
                         Esta etapa executa scripts Python em segundo plano. Os logs detalhados serão transmitidos ao console do terminal de compilação.
 
                       </p>
-
-                      
 
                       <button 
 
@@ -7532,187 +14050,28 @@ Regras:
 
                 {/* STEP 4: Automap assets */}
 
-                {creatorStep === 4 && (
-
-                  <div className="space-y-6 max-w-4xl mx-auto">
-
-                    <div className="flex justify-between items-start border-b border-zinc-900 pb-4">
-
-                      <div>
-
-                        <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Passo 4: Associação Inteligente de B-roll (ASSETS)</h4>
-
-                        <p className="text-xs text-gray-400 mt-1 leading-relaxed font-sans">
-
-                          Abaixo estão listados os arquivos de vídeo e imagem encontrados na sua pasta local `ASSETS/`. Clique no botão para a IA mapear estes arquivos para cada bloco do vídeo com base no roteiro gerado.
-
-                        </p>
-
-                      </div>
-
+                {creatorStep === 4 && config && (
+                  <div className="space-y-6 max-w-4xl mx-auto font-sans">
+                    {renderRichTimelineEditor()}
+                    
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between items-center pt-6 border-t border-zinc-900 font-sans">
                       <button 
-
-                        disabled={creatorLoading || creatorAssets.length === 0}
-
-                        onClick={handleAutoMapAssets}
-
-                        className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-5 py-3 rounded-xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-gold-500/10 font-sans"
-
-                      >
-
-                        {creatorLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-
-                        <span>Associar Mídias com IA</span>
-
-                      </button>
-
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
-
-                      
-
-                      {/* Left: Available Assets */}
-
-                      <div className="md:col-span-1 bg-zinc-950/40 border border-zinc-900 p-5 rounded-2xl flex flex-col h-[350px]">
-
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Mídias Disponíveis</span>
-
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-
-                          {creatorAssets.length === 0 ? (
-
-                            <div className="text-zinc-600 italic text-[11px] py-4">Nenhum arquivo de mídia encontrado na pasta ASSETS.</div>
-
-                          ) : (
-
-                            creatorAssets.map((asset, idx) => (
-
-                              <div key={idx} className="p-2 bg-zinc-950 border border-zinc-900 rounded-lg flex justify-between items-center text-[10px]">
-
-                                <span className="text-gray-300 truncate max-w-[150px]" title={asset.name}>{asset.name}</span>
-
-                                <span className="bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider">{asset.type}</span>
-
-                              </div>
-
-                            ))
-
-                          )}
-
-                        </div>
-
-                      </div>
-
-                      {/* Right: Layout Output Preview */}
-
-                      <div className="md:col-span-2 bg-zinc-950/40 border border-zinc-900 p-5 rounded-2xl flex flex-col h-[350px]">
-
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Layout da Linha do Tempo</span>
-
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-
-                          {timelineAssets ? (
-
-                            Object.keys(timelineAssets).map((blockNum) => (
-
-                              <div key={blockNum} className="p-3 bg-zinc-950 border border-zinc-900 rounded-xl space-y-2">
-
-                                <div className="text-[10px] font-bold text-gold-500 uppercase tracking-wider font-mono">Bloco {blockNum}</div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-
-                                  {timelineAssets[blockNum].map((clip: any, idx: number) => (
-
-                                    <div key={idx} className="p-1.5 bg-zinc-900 rounded border border-zinc-800 flex items-center gap-2 text-[9px]">
-
-                                      {/* Thumbnail preview */}
-                                      <div className="w-10 h-7 rounded overflow-hidden bg-zinc-950 border border-zinc-800 flex-shrink-0">
-                                        {clip.type === 'video' ? (
-                                          <video
-                                            src={getAssetUrl(clip.asset)}
-                                            className="w-full h-full object-cover"
-                                            muted
-                                            loop
-                                            autoPlay
-                                            playsInline
-                                          />
-                                        ) : (
-                                          <img
-                                            src={getAssetUrl(clip.asset)}
-                                            className="w-full h-full object-cover"
-                                            alt=""
-                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                          />
-                                        )}
-                                      </div>
-
-                                      <span className="text-zinc-300 truncate max-w-[120px] flex-1">{clip.asset}</span>
-
-                                      <span className="text-zinc-500 font-mono flex-shrink-0">{clip.type} {clip.fixed ? `(${clip.fixed}s)` : '(flex)'}</span>
-
-                                    </div>
-
-                                  ))}
-
-                                </div>
-
-                              </div>
-
-                            ))
-
-                          ) : (
-
-                            <div className="flex flex-col items-center justify-center h-full text-zinc-600 italic text-xs gap-1.5 py-10">
-
-                              <Sparkles className="w-5 h-5 text-zinc-800" />
-
-                              <span>Clique em "Associar Mídias com IA" para preencher a linha do tempo.</span>
-
-                            </div>
-
-                          )}
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                    <div className="flex justify-between items-center pt-4 border-t border-zinc-900 font-sans">
-
-                      <button 
-
                         onClick={() => setCreatorStep(3)}
-
                         className="text-xs text-zinc-500 hover:text-white font-semibold transition cursor-pointer"
-
                       >
-
                         ← Voltar para Sincronização
-
                       </button>
-
                       <button 
-
                         disabled={!timelineAssets}
-
                         onClick={() => setCreatorStep(5)}
-
                         className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
-
                       >
-
                         <span>Avançar para Renderização</span>
-
                         <span>→</span>
-
                       </button>
-
                     </div>
-
                   </div>
-
                 )}
 
                 {/* STEP 5: Final Render shortcuts */}
@@ -7725,19 +14084,39 @@ Regras:
 
                       <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
 
-                      <h4 className="text-white font-bold text-sm tracking-wide font-cinzel">Tudo Pronto! O Vídeo está configurado para Render</h4>
+                      <SectionHeader title="Tudo Pronto! O Vídeo está configurado para Render" helpId="creator-step-ready" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-lg mx-auto font-sans">
 
-                        O roteiro, a narração, os tempos de blocos e a trilha sonora foram configurados pela IA. Agora você pode gerar a trilha de áudio e compilar o vídeo final.
+                        Roteiro, narração e sincronização prontos. Com Gemini no Chrome, overlays e metadados são consultados antes do render.
 
                       </p>
 
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 font-sans">
+                    {(youtubeLoading || youtubeMetadataParsed?.titles?.length) && (
+                      <div className={`rounded-2xl border px-4 py-3 text-left text-xs ${
+                        youtubeLoading
+                          ? 'border-gold-500/30 bg-gold-500/5 text-gold-200'
+                          : 'border-emerald-500/30 bg-emerald-500/5 text-emerald-200'
+                      }`}>
+                        {youtubeLoading ? (
+                          <span className="flex items-center gap-2">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            IA gerando metadados do vídeo (títulos, descrição, tags, capítulos)…
+                          </span>
+                        ) : (
+                          <span>
+                            Metadados prontos — título sugerido:{' '}
+                            <strong className="text-white">
+                              {youtubeMetadataParsed?.titles?.[0]?.text || 'ver passo 6'}
+                            </strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                      
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pt-4 font-sans">
 
                       {/* Mix audio card */}
 
@@ -7799,56 +14178,164 @@ Regras:
 
                       </div>
 
-                      {/* Render highlighted card */}
-
+                      {/* Render Remotion card */}
                       <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-zinc-800 transition">
-
                         <div>
-
-                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">3. RENDER DESTACADO</h5>
-
-                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera a versão premium destacada contendo infográficos animados adicionais.</p>
-
+                          <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">3. RENDER REMOTION</h5>
+                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera o vídeo com o motor moderno do Remotion, ideal para Shorts com transições fluidas.</p>
                         </div>
-
                         <button 
-
                           disabled={rendering}
-
-                          onClick={() => triggerRender('highlighted', true)}
-
-                          className="bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
-
+                          onClick={() => triggerRender('remotion', true)}
+                          className="bg-water-500/10 border border-water-500/20 hover:bg-water-500/20 text-water-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
                         >
-
-                          <Video className="w-3.5 h-3.5" />
-
-                          <span>Compilar Destacado</span>
-
+                          <span>Compilar Remotion</span>
                         </button>
+                      </div>
 
+                      {/* Render Remotion PRO card */}
+                      <div className="bg-zinc-950 border border-amber-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-amber-500/30 transition">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">4. REMOTION PRO</h5>
+                            <span className="bg-amber-500/15 text-amber-500 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">PRO</span>
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">Gera a versão premium contendo infográficos animados automáticos (Lower Thirds, kinetic text e contadores).</p>
+                        </div>
+                        <button 
+                          disabled={rendering}
+                          onClick={() => triggerRender('remotion-pro', true)}
+                          className="bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Compilar Remotion PRO</span>
+                        </button>
+                      </div>
+
+                      {/* Render Remotion PRO + HyperFrames AI card */}
+                      <div className="bg-zinc-950 border border-emerald-500/20 rounded-2xl p-5 flex flex-col justify-between h-48 hover:border-emerald-500/30 transition">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <h5 className="text-xs font-bold text-white tracking-wider font-cinzel">5. HYPERFRAMES AI</h5>
+                            <span className="bg-emerald-500/15 text-emerald-400 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">AI</span>
+                          </div>
+                          <p className="text-[9px] text-gray-400 mt-1 leading-normal">Orquestração dinâmica via IA do catálogo HyperFrames com suporte a transparência ProRes.</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="flex items-center gap-1 text-[8px] text-zinc-400 cursor-pointer select-none">
+                            <input 
+                              type="checkbox" 
+                              id="wizard-prores-checkbox" 
+                              className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-2.5 h-2.5" 
+                            />
+                            <span>Fundo Transparente (ProRes)</span>
+                          </label>
+                          <button 
+                            disabled={rendering}
+                            onClick={() => {
+                              const proresCheck = document.getElementById('wizard-prores-checkbox') as HTMLInputElement;
+                              triggerRender('remotion-pro', true, false, true, proresCheck?.checked);
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1 transition cursor-pointer w-full"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Compilar HyperFrames AI</span>
+                          </button>
+                        </div>
                       </div>
 
                     </div>
 
-                    <div className="flex justify-start pt-6 border-t border-zinc-900 font-sans">
-
-                      <button 
-
+                    <div className="flex justify-between pt-6 border-t border-zinc-900 font-sans">
+                      <button
                         onClick={() => setCreatorStep(4)}
-
                         className="text-xs text-zinc-500 hover:text-white font-semibold transition cursor-pointer"
-
                       >
-
                         ← Voltar para B-roll
-
                       </button>
+                      <button
+                        onClick={() => setCreatorStep(6)}
+                        className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition"
+                      >
+                        Avançar para Metadados →
+                      </button>
+                    </div>
+                  </div>
+                )}
 
+                {creatorStep === 6 && (
+                  <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
+                    <div>
+                      <SectionHeader title="Passo 6: Metadados e Thumbnails" helpId="creator-step-metadata" />
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        Gerados automaticamente ao renderizar no passo 5 — ou regenere com IA abaixo.
+                      </p>
                     </div>
 
-                  </div>
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                          Informações do vídeo (IA)
+                        </span>
+                        <button
+                          type="button"
+                          disabled={youtubeLoading}
+                          onClick={() => void generateYoutubeMetadata()}
+                          className="text-[10px] font-bold text-gold-400 border border-gold-500/30 hover:border-gold-500/50 px-3 py-1.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {youtubeLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                          {youtubeLoading ? 'Gerando…' : 'Regenerar com IA'}
+                        </button>
+                      </div>
 
+                      {youtubeMetadataParsed?.titles?.length ? (
+                        <ul className="space-y-1.5 text-xs text-zinc-300">
+                          {youtubeMetadataParsed.titles.slice(0, 5).map((t, i) => (
+                            <li key={`wiz-title-${i}`} className="flex gap-2">
+                              <span className="text-gold-500 font-bold shrink-0">{i + 1}.</span>
+                              <span>{t.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : youtubeMetadata && !youtubeMetadata.startsWith('[Erro]') ? (
+                        <p className="text-[10px] text-zinc-400 whitespace-pre-wrap max-h-32 overflow-y-auto">{youtubeMetadata.slice(0, 600)}…</p>
+                      ) : (
+                        <p className="text-[10px] text-zinc-500 italic">
+                          Nenhum metadado ainda — renderize no passo 5 ou clique em Regenerar com IA.
+                        </p>
+                      )}
+
+                      {youtubeMetadataParsed?.description && (
+                        <p className="text-[10px] text-zinc-500 line-clamp-3 border-t border-zinc-800 pt-2">
+                          {youtubeMetadataParsed.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button onClick={() => leaveGlobalViewForProject('ai')} className="bg-gold-500/10 border border-gold-500/30 text-gold-400 py-3 rounded-xl text-xs font-bold">Abrir Metadados</button>
+                      <button onClick={handleGenerateYoutubeThumbnailImages} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-3 rounded-xl text-xs font-bold">Gerar Thumbnails</button>
+                      <button
+                        onClick={applyMetadataToUpload}
+                        disabled={!youtubeMetadataParsed}
+                        className="sm:col-span-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 py-3 rounded-xl text-xs font-bold disabled:opacity-40"
+                      >
+                        Aplicar ao Upload
+                      </button>
+                    </div>
+                    <div className="flex justify-between">
+                      <button onClick={() => setCreatorStep(5)} className="text-xs text-zinc-500">← Render</button>
+                      <button onClick={() => setCreatorStep(7)} className="bg-gold-500 text-zinc-950 text-xs font-bold px-5 py-2 rounded-xl">Publicar →</button>
+                    </div>
+                  </div>
+                )}
+
+                {creatorStep === 7 && (
+                  <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
+                    <SectionHeader title="Passo 7: Publicar" helpId="creator-step-publish" />
+                    <button onClick={() => leaveGlobalViewForProject('upload')} className="w-full bg-gold-500 text-zinc-950 font-bold py-3 rounded-xl text-xs">Abrir Upload</button>
+                    <button onClick={() => setCreatorStep(6)} className="text-xs text-zinc-500">← Metadados</button>
+                  </div>
                 )}
 
               {/* Optional: Script Master Strategy Details Panel */}
@@ -7857,13 +14344,32 @@ Regras:
 
                 <div className="glass-panel p-6 rounded-3xl mt-8 space-y-6 font-sans">
 
-                  <h3 className="font-cinzel text-sm font-bold text-white tracking-wide border-b border-zinc-900 pb-2">
+                  {(() => {
+                    const longTitles = warnLongListicleTitles(
+                      (generatedScriptData.list_items || []).map((it: { title?: string; name?: string }) => String(it.title || it.name || '')),
+                    );
+                    if (!longTitles.length) return null;
+                    return (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4">
+                        <p className="text-[10px] text-amber-300 font-bold uppercase tracking-wide">
+                          Títulos longos para o HUD
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {longTitles.map((entry) => (
+                            <li key={`long-title-${entry.index}`} className="text-[10px] text-amber-200/90 leading-relaxed">
+                              Item {entry.index + 1}: {entry.title.length} caracteres — encurte antes do render
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
 
-                    ESTRATÉGIA DO ROTEIRO (SCRIPT MASTER OUTPUT)
-
-                  </h3>
-
-                  
+                  <SectionHeader
+                    title="ESTRATÉGIA DO ROTEIRO (SCRIPT MASTER OUTPUT)"
+                    helpId="creator-script-strategy"
+                    className="border-b border-zinc-900 pb-2"
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
 
@@ -7872,8 +14378,8 @@ Regras:
                       <div>
 
                         <span className="text-[10px] text-gold-500 font-bold uppercase tracking-wider block">Título Principal</span>
-
                         <p className="text-white font-bold text-sm mt-1">{generatedScriptData.strategy?.title_main || ''}</p>
+                        <p className="text-[9px] text-zinc-500 mt-0.5">Ancorado no roteiro — específico, sem clickbait genérico</p>
 
                       </div>
 
@@ -7903,7 +14409,17 @@ Regras:
 
                       <div>
 
-                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Checklist de Qualidade</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Checklist de Qualidade</span>
+                          <button
+                            type="button"
+                            disabled={creatorLoading}
+                            onClick={handleEvaluateScriptChecklist}
+                            className="text-[9px] font-bold uppercase tracking-wider text-gold-400 border border-gold-500/30 hover:bg-gold-500/10 disabled:opacity-50 px-2 py-1 rounded-lg cursor-pointer"
+                          >
+                            {creatorLoading && creatorLoadingMode === 'full' ? 'Avaliando...' : 'Avaliar'}
+                          </button>
+                        </div>
 
                         <div className="grid grid-cols-3 gap-2 mt-1.5 text-center font-mono">
 
@@ -7939,9 +14455,23 @@ Regras:
 
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Recomendações IA</span>
 
-                        <p className="mt-1 leading-relaxed text-gray-400">{generatedScriptData.checklist?.feedback || ''}</p>
+                        <p className="mt-1 leading-relaxed text-gray-400">
+                          {generatedScriptData.checklist?.feedback
+                            || (generatedScriptData.checklist?.click_potential ? '' : 'Clique em Avaliar para gerar notas e recomendações.')}
+                        </p>
 
                       </div>
+
+                      {Array.isArray(generatedScriptData.checklist?.corrections) && generatedScriptData.checklist.corrections.length > 0 && (
+                        <div>
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Correções</span>
+                          <ul className="mt-1 space-y-1 list-disc pl-4 text-gray-400">
+                            {generatedScriptData.checklist.corrections.map((item: string, i: number) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                     </div>
 
@@ -7951,229 +14481,452 @@ Regras:
 
                     <div className="border-t border-zinc-900 pt-6 space-y-5">
 
-                      {/* Header with count */}
-
                       <div className="flex justify-between items-center">
 
                         <div>
 
-                          <h4 className="text-sm text-white font-bold tracking-wide font-cinzel">ROTEIRO COMPLETO + PROMPTS VISUAIS</h4>
-
-                          <p className="text-[10px] text-zinc-400 mt-1 font-sans">Toda a narração em sequência. Cada trecho tem seu prompt de imagem 2K ou vídeo IA correspondente.</p>
+                          <SectionHeader
+                            title="ROTEIRO COMPLETO POR BLOCOS"
+                            helpId="creator-blocks"
+                            size="sm"
+                            subtitle="Cada cena possui narração, duração e prompt visual editáveis. O roteiro é salvo automaticamente."
+                          />
 
                         </div>
 
-                        <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono shrink-0">
-
-                          {(generatedScriptData?.visual_prompts || []).length} cenas
-
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {creatorScenesNeedRepair && (
+                            <button
+                              type="button"
+                              disabled={creatorLoading}
+                              onClick={handleRepairCreatorVisualPrompts}
+                              className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer"
+                            >
+                              {creatorLoading && creatorLoadingMode === 'full' ? 'Reparando...' : 'Distribuir narração nas cenas'}
+                            </button>
+                          )}
+                          <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">
+                            {(generatedScriptData?.visual_prompts || []).length} cenas
+                          </span>
+                        </div>
 
                       </div>
 
-                      {/* Sequential narration timeline */}
-
-                      <div className="space-y-1">
+                      <div className="space-y-4 font-sans">
 
                         {(() => {
 
-                          let lastBlock = -1;
+                          const promptsByBlock: Record<number, any[]> = {};
 
-                          return (generatedScriptData.visual_prompts || []).map((vp: any, i: number) => {
+                          (generatedScriptData?.visual_prompts || []).forEach((vp: any) => {
 
-                            const isNewBlock = vp?.block !== lastBlock;
+                            const b = vp.block || 1;
 
-                            lastBlock = vp?.block;
+                            if (!promptsByBlock[b]) promptsByBlock[b] = [];
 
-                            const isVideo = vp?.type?.toLowerCase()?.includes("vídeo") || vp?.type?.toLowerCase()?.includes("video") || false;
+                            promptsByBlock[b].push(vp);
 
-                            const searchQuery = vp?.stock_query || 'cinematic';
+                          });
 
-                            const sceneNum = i + 1;
-                            const blockNum = vp?.block || 1;
+                          const sortedBlocks = Object.keys(promptsByBlock).map(Number).sort((a, b) => a - b);
+
+                          return sortedBlocks.map((blockNum) => {
+
+                            const blockPrompts = promptsByBlock[blockNum];
+
+                            const blockTiming = getBlockTimingSummary(generatedScriptData?.visual_prompts || [], blockNum);
+
                             const blockKey = String(blockNum);
-                            let assetIdx = 0;
-                            if (generatedScriptData && generatedScriptData.visual_prompts) {
-                              for (let j = 0; j < i; j++) {
-                                if ((generatedScriptData.visual_prompts[j].block || 1) === blockNum) {
-                                  assetIdx++;
-                                }
-                              }
-                            }
 
-                            const isUploaded = uploadedScenes[sceneNum] || (
-                              config && 
-                              config.timeline_assets && 
-                              config.timeline_assets[blockKey] && 
-                              config.timeline_assets[blockKey][assetIdx] &&
-                              config.timeline_assets[blockKey][assetIdx].asset
-                            );
-
-                            
+                            const isExpanded = !!expandedBlocks[blockNum];
 
                             return (
 
-                              <div key={i}>
+                              <div key={blockNum} className="glass-panel rounded-2xl border border-zinc-900/60 overflow-hidden transition-all duration-300">
 
-                                {/* Block separator header */}
+                                <div 
 
-                                {isNewBlock && (
+                                  onClick={() => setExpandedBlocks(prev => ({ ...prev, [blockNum]: !prev[blockNum] }))}
 
-                                  <div className="flex items-center gap-3 mt-6 mb-3 first:mt-0">
+                                  className="flex justify-between items-center p-4 bg-zinc-950/40 hover:bg-zinc-900/20 cursor-pointer transition select-none border-b border-zinc-900/40"
 
-                                    <div className="bg-gold-500 text-zinc-950 text-[10px] font-bold font-mono px-3 py-1 rounded-lg shrink-0">
+                                >
 
-                                      BLOCO {vp?.block || '?'}
+                                  <div className="flex items-center gap-3">
+
+                                    <span className="bg-gold-500 text-zinc-950 text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-md">
+
+                                      BLOCO {String(blockNum).padStart(2, '0')}
+
+                                    </span>
+
+                                    <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+
+                                      <span className="font-semibold">{blockPrompts.length} cenas</span>
+
+                                      <span>•</span>
+
+                                      <span className="text-gold-400">{blockTiming.sceneSeconds}s (+{blockTiming.gapSeconds}s gap)</span>
+
+                                      <span>=</span>
+
+                                      <span className="text-emerald-400 font-bold">{blockTiming.totalSeconds}s total</span>
 
                                     </div>
 
-                                    <div className="flex-1 h-px bg-zinc-800"></div>
+                                  </div>
+
+                                  <span className="text-zinc-500 text-xs font-mono transition-transform duration-300">
+
+                                    {isExpanded ? '▲ Recolher' : '▼ Expandir'}
+
+                                  </span>
+
+                                </div>
+
+                                {isExpanded && (
+
+                                  <div className="p-4 space-y-5 bg-zinc-950/20 divide-y divide-zinc-900/60">
+
+                                    {blockPrompts.map((vp: any, localIdx: number) => {
+
+                                      const absoluteIndex = (generatedScriptData?.visual_prompts || []).indexOf(vp);
+
+                                      const sceneNum = vp?.scene || (absoluteIndex + 1);
+
+                                      const isVideo = vp?.type?.toLowerCase()?.includes("vídeo") || vp?.type?.toLowerCase()?.includes("video") || false;
+
+                                      const searchQuery = vp?.stock_query || 'cinematic';
+
+                                      const sceneDurationSeconds = getSceneDurationSeconds(vp);
+
+                                      const durationWasEstimated = parseDurationSeconds(vp?.duration ?? vp?.duracaoSegundos ?? vp?.duration_seconds) === null;
+
+                                      const assetIdx = localIdx;
+
+                                      const isUploaded = uploadedScenes[`${blockKey}:${assetIdx}`] || (
+
+                                        config && 
+
+                                        config.timeline_assets && 
+
+                                        config.timeline_assets[blockKey] && 
+
+                                        config.timeline_assets[blockKey][assetIdx] &&
+
+                                        config.timeline_assets[blockKey][assetIdx].asset
+
+                                      ) || vp.asset?.asset;
+
+                                      const currentAsset = vp.asset || config?.timeline_assets?.[blockKey]?.[assetIdx];
+
+                                                                            const assetUsedIn = currentAsset?.asset
+
+                                        ? (generatedScriptData?.visual_prompts || []).reduce((usedIn: string[], item: any, itemIndex: number) => {
+
+                                            const itemBlock = item?.block || 1;
+
+                                            const itemBlockKey = String(itemBlock);
+
+                                            let itemAssetIdx = 0;
+
+                                            for (let prevIdx = 0; prevIdx < itemIndex; prevIdx++) {
+
+                                              if (((generatedScriptData?.visual_prompts || [])[prevIdx]?.block || 1) === itemBlock) {
+
+                                                itemAssetIdx++;
+
+                                              }
+
+                                            }
+
+                                            const itemAsset = item.asset || config?.timeline_assets?.[itemBlockKey]?.[itemAssetIdx];
+
+                                            if (itemAsset?.asset === currentAsset.asset) {
+
+                                              usedIn.push(String(item?.scene || itemIndex + 1));
+
+                                            }
+
+                                            return usedIn;
+
+                                          }, [])
+
+                                        : [];
+
+                                      return (
+
+                                        <div key={absoluteIndex} className={`pt-4 first:pt-0 flex flex-col lg:flex-row gap-4 ${localIdx > 0 ? 'mt-4' : ''}`}>
+
+                                          <div className="flex-1 space-y-3">
+
+                                            <div className="flex items-center justify-between">
+
+                                              <div className="flex items-center gap-2">
+
+                                                <span className={`font-mono text-xs font-bold ${isUploaded ? 'text-green-400' : 'text-zinc-500'}`}>
+
+                                                  Cena {sceneNum}
+
+                                                </span>
+
+                                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+
+                                                  isVideo ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' : 'bg-gold-500/10 border border-gold-500/20 text-gold-500'
+
+                                                }`}>
+
+                                                  {vp?.type || "imagem IA 2k"}
+
+                                                </span>
+
+                                              </div>
+
+                                              <div className="flex items-center gap-1.5">
+
+                                                <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
+
+                                                  durationWasEstimated ? 'text-zinc-400 border-zinc-850 bg-zinc-900/60' : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
+
+                                                }`}>
+
+                                                  {durationWasEstimated ? 'Estimada' : 'Manual'}
+
+                                                </span>
+
+                                                <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-lg px-2 py-0.5">
+
+                                                  <input 
+
+                                                    type="number" 
+
+                                                    step="0.1" 
+
+                                                    min="0.5"
+
+                                                    value={sceneDurationSeconds}
+
+                                                    onChange={(e) => handleUpdateCreatorScene(absoluteIndex, 'duration', parseFloat(e.target.value) || 0)}
+
+                                                    className="bg-transparent text-white text-xs font-mono w-12 text-right focus:outline-none"
+
+                                                  />
+
+                                                  <span className="text-[10px] text-zinc-500 ml-1 font-mono">s</span>
+
+                                                </div>
+
+                                              </div>
+
+                                            </div>
+
+                                            <div className="space-y-1">
+
+                                              <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">NARRACAO DA CENA</label>
+
+                                              <textarea
+
+                                                rows={2}
+
+                                                value={vp?.narration_text || vp?.narration_excerpt || ''}
+
+                                                onChange={(e) => handleUpdateCreatorScene(absoluteIndex, 'narration_text', e.target.value)}
+
+                                                className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-xs text-white p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-relaxed font-sans"
+
+                                                placeholder="Digite a narração da cena..."
+
+                                              />
+
+                                            </div>
+
+                                          </div>
+
+                                          <div className="w-full lg:w-[420px] shrink-0 space-y-3">
+
+                                            <div className="space-y-1">
+
+                                              <div className="flex justify-between items-center">
+
+                                                <label className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">PROMPT VISUAL IA</label>
+
+                                                <button 
+
+                                                  onClick={() => copyToClipboard(vp?.prompt || '', `prompt-${absoluteIndex}`)}
+
+                                                  className="text-[9px] text-zinc-400 hover:text-white flex items-center gap-1 transition"
+
+                                                >
+
+                                                  {copiedSection === `prompt-${absoluteIndex}` ? <span className="text-emerald-500 font-bold">OK</span> : <span>Copiar</span>}
+
+                                                </button>
+
+                                              </div>
+
+                                              <textarea
+
+                                                rows={2}
+
+                                                value={vp?.prompt || ''}
+
+                                                onChange={(e) => handleUpdateCreatorScene(absoluteIndex, 'prompt', e.target.value)}
+
+                                                className="bg-zinc-950/80 border border-zinc-850 rounded-xl text-[11px] text-zinc-300 italic p-2.5 w-full focus:border-gold-500/50 focus:outline-none transition leading-normal font-sans"
+
+                                                placeholder="Descreva o prompt visual..."
+
+                                              />
+
+                                            </div>
+
+                                            {currentAsset?.asset && (
+
+                                              <div className="flex items-center gap-3 rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5">
+
+                                                <div className="w-20 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 shrink-0 flex items-center justify-center">
+
+                                                  {currentAsset.type === 'video' ? (
+
+                                                    <video
+
+                                                      src={getAssetUrl(currentAsset.asset)}
+
+                                                      className="w-full h-full object-cover"
+
+                                                      muted
+
+                                                      playsInline
+
+                                                      preload="metadata"
+
+                                                    />
+
+                                                  ) : (
+
+                                                    <img
+
+                                                      src={getAssetUrl(currentAsset.asset)}
+
+                                                      className="w-full h-full object-cover"
+
+                                                      alt=""
+
+                                                      loading="lazy"
+
+                                                    />
+
+                                                  )}
+
+                                                </div>
+
+                                                <div className="min-w-0 flex-1 space-y-1">
+
+                                                  <div className="flex items-center gap-1.5 min-w-0">
+
+                                                    <span className="text-[10px] text-white font-semibold truncate" title={currentAsset.asset}>{currentAsset.asset}</span>
+
+                                                  </div>
+
+                                                  <div className="flex items-center gap-2 flex-wrap">
+
+                                                    <span className="text-[8px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+
+                                                      Cenas: {assetUsedIn.join(', ') || sceneNum}
+
+                                                    </span>
+
+                                                    <button
+
+                                                      type="button"
+
+                                                      onClick={() => handleRemoveSceneAsset(blockKey, assetIdx)}
+
+                                                      className="text-[9px] text-red-400 hover:text-red-300 font-bold transition"
+
+                                                    >
+
+                                                      Excluir
+
+                                                    </button>
+
+                                                  </div>
+
+                                                </div>
+
+                                              </div>
+
+                                            )}
+
+                                            <div className="flex items-center gap-1.5 pt-1">
+
+                                              <a href={`https://www.pexels.com/search/${isVideo ? "videos/" : ""}${encodeURIComponent(searchQuery)}`} target="_blank" rel="noopener noreferrer"
+
+                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer">
+
+                                                <span>Pexels</span>
+
+                                              </a>
+
+                                              <a href={isVideo ? `https://pixabay.com/videos/search/${encodeURIComponent(searchQuery)}/` : `https://pixabay.com/images/search/${encodeURIComponent(searchQuery)}/`} target="_blank" rel="noopener noreferrer"
+
+                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer">
+
+                                                <span>Pixabay</span>
+
+                                              </a>
+
+                                              <a href={`https://www.canva.com/search?q=${encodeURIComponent(searchQuery)}`} target="_blank" rel="noopener noreferrer"
+
+                                                className="bg-zinc-900 border border-zinc-850 text-[9px] text-zinc-400 hover:text-white px-2 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer">
+
+                                                <span>Canva</span>
+
+                                              </a>
+
+                                              <input 
+
+                                                type="file" 
+
+                                                accept={isVideo ? "video/mp4" : "image/png,image/jpeg,image/jpg"}
+
+                                                onChange={(e) => { if (e.target.files && e.target.files[0]) { handleUploadSceneAsset(blockNum, isVideo ? "video" : "image", e.target.files[0], assetIdx); }}}
+
+                                                className="hidden" 
+
+                                                id={`scene-upload-${absoluteIndex}`}
+
+                                              />
+
+                                              <label 
+
+                                                htmlFor={`scene-upload-${absoluteIndex}`}
+
+                                                className={`border px-2.5 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 transition cursor-pointer ml-auto ${
+
+                                                  isUploaded ? 'bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300' : 'bg-zinc-900 border-zinc-850 text-zinc-400 hover:text-white'
+
+                                                }`}
+
+                                              >
+
+                                                <span>{currentAsset?.asset ? 'Trocar' : isUploaded ? 'Enviado' : 'Upload'}</span>
+
+                                              </label>
+
+                                            </div>
+
+                                          </div>
+
+                                        </div>
+
+                                      );
+
+                                    })}
 
                                   </div>
 
                                 )}
-
-                                {/* Scene row: Narration + Prompt side by side */}
-
-                                <div className={`flex gap-0 rounded-xl overflow-hidden border transition group ${isUploaded ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : 'border-zinc-900 hover:border-zinc-800'}`}>
-
-                                  
-
-                                  {/* LEFT: Scene number + Narration text */}
-
-                                  <div className="flex-1 bg-zinc-950/60 p-4 flex gap-3 min-w-0">
-
-                                    <div className="shrink-0 flex flex-col items-center gap-1">
-
-                                      <span className={`font-mono text-[9px] font-bold ${isUploaded ? 'text-green-400' : 'text-zinc-500'}`}>{vp?.scene || sceneNum}</span>
-
-                                      <div className={`w-2 h-2 rounded-full shrink-0 ${isUploaded ? 'bg-green-500' : isVideo ? 'bg-blue-500' : 'bg-gold-500'}`}></div>
-
-                                      <div className="w-px flex-1 bg-zinc-800 group-last:hidden"></div>
-
-                                    </div>
-
-                                    <div className="min-w-0 flex-1 space-y-2">
-
-                                      {/* Narration text - the main focus */}
-
-                                      <p className="text-white text-xs leading-relaxed select-text font-sans">
-
-                                        {vp?.narration_text || vp?.narration_excerpt || ''}
-
-                                      </p>
-
-                                      {/* Duration + Type badge */}
-
-                                      <div className="flex items-center gap-2 flex-wrap">
-
-                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-
-                                          isVideo
-
-                                            ? 'bg-blue-500/15 border border-blue-500/25 text-blue-400'
-
-                                            : 'bg-gold-500/10 border border-gold-500/20 text-gold-500'
-
-                                        }`}>
-
-                                          {vp?.type || "imagem IA 2k"}
-
-                                        </span>
-
-                                        <span className="text-[9px] text-zinc-500 font-mono">{vp?.duration || ''}</span>
-
-                                      </div>
-
-                                    </div>
-
-                                  </div>
-
-                                  {/* RIGHT: Prompt + Actions */}
-
-                                  <div className="w-[420px] shrink-0 bg-zinc-900/30 border-l border-zinc-900 p-4 flex flex-col gap-2">
-
-                                    {/* Prompt text */}
-
-                                    <p className="text-[10px] text-gray-400 leading-relaxed italic select-text line-clamp-3 font-sans" title={vp?.prompt || ''}>
-
-                                      {vp?.prompt || ''}
-
-                                    </p>
-
-                                    
-
-                                    {vp?.editor_notes && (
-
-                                      <p className="text-[9px] text-zinc-500 leading-normal font-sans">{vp?.editor_notes}</p>
-
-                                    )}
-
-                                    {/* Action buttons row */}
-
-                                    <div className="flex items-center gap-1.5 mt-auto pt-1">
-
-                                      <button 
-
-                                        onClick={() => copyToClipboard(vp?.prompt || '', `prompt-${i}`)}
-
-                                        className="bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white px-2 py-1 rounded text-[8px] flex items-center gap-1 transition cursor-pointer"
-
-                                      >
-
-                                        {copiedSection === `prompt-${i}` ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
-
-                                        <span>{copiedSection === `prompt-${i}` ? 'OK' : 'Copiar'}</span>
-
-                                      </button>
-
-                                      <a href={`https://www.pexels.com/search/${isVideo ? "videos/" : ""}${encodeURIComponent(searchQuery)}`} target="_blank" rel="noopener noreferrer"
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white px-2 py-1 rounded flex items-center gap-1 transition cursor-pointer">
-
-                                        <Search className="w-2.5 h-2.5 text-teal-400" /><span>Pexels</span>
-
-                                      </a>
-
-                                      <a href={isVideo ? `https://pixabay.com/videos/search/${encodeURIComponent(searchQuery)}/` : `https://pixabay.com/images/search/${encodeURIComponent(searchQuery)}/`} target="_blank" rel="noopener noreferrer"
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white px-2 py-1 rounded flex items-center gap-1 transition cursor-pointer">
-
-                                        <Search className="w-2.5 h-2.5 text-green-400" /><span>Pixabay</span>
-
-                                      </a>
-
-                                      <a href={`https://www.canva.com/search?q=${encodeURIComponent(searchQuery)}`} target="_blank" rel="noopener noreferrer"
-
-                                        className="bg-zinc-900 border border-zinc-800 text-[8px] text-zinc-400 hover:text-white px-2 py-1 rounded flex items-center gap-1 transition cursor-pointer">
-
-                                        <Search className="w-2.5 h-2.5 text-purple-400" /><span>Canva</span>
-
-                                      </a>
-
-                                      {/* Upload button */}
-
-                                      <input type="file" accept={isVideo ? "video/mp4" : "image/png,image/jpeg,image/jpg"}
-                                        onChange={(e) => { if (e.target.files && e.target.files[0]) { handleUploadSceneAsset(blockNum, isVideo ? "video" : "image", e.target.files[0], assetIdx); }}}
-                                        className="hidden" id={`scene-upload-${i}`}
-
-                                      />
-
-                                      <label htmlFor={`scene-upload-${i}`}
-
-                                        className={`border px-2 py-1 rounded text-[8px] flex items-center gap-1 transition cursor-pointer ml-auto ${isUploaded ? 'bg-green-500/10 border-green-500/20 text-green-400 hover:text-green-300' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'}`}>
-
-                                        {isUploaded ? <Check className="w-2.5 h-2.5 text-green-400" /> : <Upload className="w-2.5 h-2.5 text-gold-500" />}
-
-                                        <span>{isUploaded ? 'Enviado' : 'Upload'}</span>
-
-                                      </label>
-
-                                    </div>
-
-                                  </div>
-
-                                </div>
 
                               </div>
 
@@ -8189,7 +14942,7 @@ Regras:
 
                   )}
 
-                  <div className="border-t border-zinc-900 pt-4 space-y-4">
+            <div className="border-t border-zinc-900 pt-4 space-y-4">
 
                     <div className="flex justify-between items-center">
 
@@ -8219,45 +14972,97 @@ Regras:
 
                   </div>
 
-                  {generatedScriptData.narrative_script_tagged && (
+                  {(generatedScriptData.narrative_script || '').trim() && (
 
                     <div className="border-t border-zinc-900 pt-4 space-y-4">
 
-                      <div className="flex justify-between items-center">
+                      <div className="flex items-center justify-between gap-4">
 
-                        <span className="text-[10px] text-purple-500 font-bold uppercase tracking-wider font-cinzel flex items-center gap-2">
+                        <div>
 
-                          ROTEIRO COM TAGS VOCAIS (ElevenLabs / Minimax)
+                          <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider font-cinzel flex items-center gap-2">
 
-                        </span>
+                            NARRACAO COM TAGS PARA TTS
 
-                        <button 
+                          </span>
 
-                          onClick={() => copyToClipboard(generatedScriptData.narrative_script_tagged || '', 'narrative_script_tagged')}
-
-                          className="bg-zinc-900 border border-zinc-800 text-gray-400 hover:text-white px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition cursor-pointer"
-
+                          <p className="text-[10px] text-zinc-500 mt-1">Tags por frase com pausas em viradas, numeros e gancho — usa a narracao taggeada do roteiro quando disponivel.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cleanNarration = generatedScriptData?.narrative_script || '';
+                            const taggedScript = generatedScriptData?.narrative_script_tagged || '';
+                            if (!cleanNarration && !taggedScript) {
+                              toast('Gere o roteiro primeiro.');
+                              return;
+                            }
+                            setTaggedNarrations({
+                              fish: buildTaggedNarration(cleanNarration, 'fish', { taggedScript }),
+                              eleven: buildTaggedNarration(cleanNarration, 'eleven', { taggedScript }),
+                              minimax: buildTaggedNarration(cleanNarration, 'minimax', { taggedScript }),
+                            });
+                            toast('Tags TTS regeneradas.');
+                          }}
+                          className="text-[9px] font-bold text-purple-300 border border-purple-500/30 hover:border-purple-500/50 px-2.5 py-1.5 rounded-lg transition cursor-pointer shrink-0"
                         >
-
-                          {copiedSection === 'narrative_script_tagged' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-
-                          <span>{copiedSection === 'narrative_script_tagged' ? 'Copiado!' : 'Copiar Versão com Tags'}</span>
-
+                          Regenerar tags
                         </button>
-
                       </div>
 
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
 
-                        Esta versão contém tags de respiração, pausas e vocalizações geradas de acordo com o peso emocional de cada bloco do vídeo.
+                        {(['fish', 'eleven', 'minimax'] as TaggedNarrationPlatform[]).map((platform) => {
 
-                      </p>
+                          const meta = taggedNarrationMeta[platform];
 
-                      <pre className="bg-zinc-950 border border-zinc-900 p-4 rounded-xl text-[10px] font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap select-text leading-relaxed">
+                          return (
 
-                        {generatedScriptData.narrative_script_tagged}
+                            <div key={platform} className={`rounded-xl border p-3 space-y-3 ${meta.borderClass}`}>
 
-                      </pre>
+                              <div className="flex items-start justify-between gap-3">
+
+                                <div className="min-w-0">
+
+                                  <h5 className={`text-[10px] font-bold uppercase tracking-wider font-cinzel ${meta.accentClass}`}>{meta.title}</h5>
+
+                                  <span className="text-[9px] text-zinc-500">{meta.subtitle}</span>
+
+                                </div>
+
+                                <button
+
+                                  onClick={() => copyToClipboard(taggedNarrations[platform], `tagged-${platform}`)}
+
+                                  className="bg-zinc-950 border border-zinc-800 text-gray-400 hover:text-white px-2.5 py-1 rounded-lg text-[9px] flex items-center gap-1 transition cursor-pointer shrink-0"
+
+                                >
+
+                                  {copiedSection === `tagged-${platform}` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+
+                                  <span>{copiedSection === `tagged-${platform}` ? 'Copiado!' : 'Copiar'}</span>
+
+                                </button>
+
+                              </div>
+
+                              <textarea
+
+                                value={taggedNarrations[platform]}
+
+                                onChange={(e) => setTaggedNarrations(prev => ({ ...prev, [platform]: e.target.value }))}
+
+                                className="w-full min-h-[220px] bg-zinc-950/80 border border-zinc-800 focus:border-gold-500 focus:outline-none rounded-lg p-3 text-[10px] font-mono text-gray-300 leading-relaxed resize-y"
+
+                              />
+
+                            </div>
+
+                          );
+
+                        })}
+
+                      </div>
 
                     </div>
 
@@ -8273,360 +15078,7 @@ Regras:
 
           )}
 
-      {activeTab === 'title-optimizer' && (
-        <div className="space-y-0 animate-fade-in flex flex-col h-[calc(100vh-120px)] overflow-hidden font-sans">
-          {showTitleWizard ? (
-            <TitleStrategyWizard
-              onClose={() => {
-                setShowTitleWizard(false);
-                setWizardStep(1);
-              }}
-              onApply={(configData) => {
-                setShowTitleWizard(false);
-                setSelectedContentType(configData.contentType);
-                setSelectedSubTags(configData.subTags);
-                setSelectedBrandVoice(configData.brandVoice);
-                setAudienceDescription(configData.audienceDescription);
-                setAudienceAgeRange(configData.audienceAgeRange);
-                setAudiencePainPoints(configData.audiencePainPoints);
-                setAudienceAspirations(configData.audienceAspirations);
-                setAudienceCoreValues(configData.audienceCoreValues);
-                setSelectedEvolutionStrategy(configData.evolutionStrategy);
-                setSelectedPsychologicalTriggers(configData.psychologicalTriggers);
-                setSelectedTitleFormulas(configData.titleFormulas);
-                
-                setTimeout(() => {
-                  runTitleOptimizer();
-                }, 100);
-              }}
-              initialConfig={{
-                contentType: selectedContentType,
-                subTags: selectedSubTags,
-                brandVoice: selectedBrandVoice,
-                audienceDescription,
-                audienceAgeRange,
-                audiencePainPoints,
-                audienceAspirations,
-                audienceCoreValues,
-                evolutionStrategy: selectedEvolutionStrategy,
-                psychologicalTriggers: selectedPsychologicalTriggers,
-                titleFormulas: selectedTitleFormulas
-              }}
-            />
-          ) : (
-            <>
-              {/* Header */}
-              <div className="flex justify-between items-start pb-4 shrink-0 text-left">
-                <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2 font-cinzel">
-                    <span className="text-2xl">✨</span> Title Optimizer
-                  </h2>
-                  <p className="text-[11px] text-zinc-400 mt-0.5 font-sans">AI-powered title optimization to expand your video reach to new audiences</p>
-                  {titleOptLastUpdate && titleOptResults && (
-                    <p className="text-[10px] text-zinc-500 mt-1 font-sans">
-                      Analyzed {titleOptResults.optimizations?.length || 0} recent videos from AI Construction Stories
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0 font-sans">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setWizardStep(1);
-                        setShowTitleWizard(true);
-                      }}
-                      disabled={titleOptLoading}
-                      className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 animate-fade-in"
-                    >
-                      <Settings className="w-3.5 h-3.5 text-gold-500" />
-                      Customize
-                    </button>
-                    <button
-                      onClick={runTitleOptimizer}
-                      disabled={titleOptLoading}
-                      className="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${titleOptLoading ? 'animate-spin' : ''}`} />
-                      Reanalyze
-                    </button>
-                  </div>
-                  {titleOptLastUpdate && (
-                    <span className="text-[9px] text-zinc-600 font-mono mt-1">Last updated: {titleOptLastUpdate}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Loading State */}
-              {titleOptLoading && (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="glass-panel p-8 rounded-2xl max-w-lg w-full space-y-6">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center text-lg animate-pulse">✨</div>
-                      <div>
-                        <h3 className="text-white font-bold text-sm font-cinzel">Analyzing Your Video Titles</h3>
-                        <p className="text-amber-400/80 text-[11px] font-sans font-medium">Examining recent videos from AI Construction Stories</p>
-                      </div>
-                    </div>
-                    <div className="w-full h-1 bg-zinc-850 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${titleOptStep * 33}%` }} />
-                    </div>
-                    <div className="space-y-4 text-left">
-                      {[
-                        { step: 1, title: 'Identifying psychological triggers in titles', desc: 'Analyzing title patterns and emotional hooks' },
-                        { step: 2, title: 'Analyzing audience reach potential', desc: 'Evaluating potential viewer segments' },
-                        { step: 3, title: 'Generating optimized title variations', desc: 'Creating title variations for different audiences' }
-                      ].map(s => (
-                        <div key={s.step} className="flex items-start gap-3">
-                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 transition-all ${
-                            titleOptStep > s.step ? 'bg-amber-400' : titleOptStep === s.step ? 'bg-amber-500 animate-pulse' : 'bg-zinc-700'
-                          }`} />
-                          <div className="font-sans text-left">
-                            <p className={`text-xs font-semibold ${titleOptStep >= s.step ? 'text-white' : 'text-zinc-500'}`}>{s.title}</p>
-                            <p className={`text-[10px] ${titleOptStep >= s.step ? 'text-zinc-400' : 'text-zinc-650'}`}>{s.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-center text-[10px] text-zinc-650 font-sans">This typically takes 10-15 seconds</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Results */}
-              {!titleOptLoading && titleOptResults && titleOptResults.optimizations && (
-                <div className="flex gap-0 flex-1 min-h-0 overflow-hidden rounded-2xl border border-zinc-900 font-sans">
-
-                  {/* LEFT: Video List */}
-                  <div className="w-[300px] shrink-0 bg-zinc-950/80 border-r border-zinc-900 flex flex-col text-left">
-                    <div className="p-4 border-b border-zinc-900">
-                      <h3 className="text-white font-bold text-xs font-cinzel">Title Opportunities</h3>
-                      <p className="text-[9px] text-zinc-500 mt-0.5">{titleOptResults.optimizations.length} title improvements • Sorted by views (lowest first)</p>
-                    </div>
-                    <div className="flex-1 overflow-y-auto">
-                      {titleOptResults.optimizations.map((opt: any, idx: number) => (
-                        <button
-                          key={idx}
-                          onClick={() => setTitleOptSelectedIdx(idx)}
-                          className={`w-full text-left p-3 border-b border-zinc-900/50 transition cursor-pointer flex items-start gap-3 ${
-                            titleOptSelectedIdx === idx
-                              ? 'bg-zinc-900/60 border-l-2 border-l-gold-500'
-                              : 'hover:bg-zinc-900/30 border-l-2 border-l-transparent'
-                          }`}
-                        >
-                          <span className={`font-mono text-[10px] font-bold shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                            titleOptSelectedIdx === idx ? 'bg-gold-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
-                          }`}>{idx + 1}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className={`text-[11px] font-semibold truncate ${titleOptSelectedIdx === idx ? 'text-white' : 'text-zinc-300'}`}>
-                              {opt.originalTitle}
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
-                                opt.impact === 'high' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
-                                opt.impact === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
-                                'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                              }`}>
-                                <TrendingUp className="w-2.5 h-2.5" />
-                                {opt.impact === 'high' ? 'High Impact' : opt.impact === 'medium' ? 'Medium Impact' : 'Low Impact'}
-                              </span>
-                              <span className="text-[9px] text-zinc-500 font-mono">{opt.views?.toLocaleString()} views</span>
-                            </div>
-                          </div>
-                          {titleOptSelectedIdx === idx && <ChevronRight className="w-3.5 h-3.5 text-gold-500 shrink-0 mt-1" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* RIGHT: Optimization Details */}
-                  <div className="flex-1 bg-zinc-950/40 overflow-y-auto text-left">
-                    {(() => {
-                      const opt = titleOptResults.optimizations[titleOptSelectedIdx];
-                      if (!opt) return null;
-                      return (
-                        <div className="p-6 space-y-5">
-                          {/* Header */}
-                          <div>
-                            <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-mono">Title Optimization #{titleOptSelectedIdx + 1}</p>
-                            <h3 className="text-white font-bold text-base mt-1 font-sans">{opt.originalTitle}</h3>
-                            <span className={`inline-flex items-center gap-1 mt-2 text-[9px] font-bold px-2 py-0.5 rounded ${
-                              opt.impact === 'high' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
-                              opt.impact === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
-                              'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                            }`}>
-                              <TrendingUp className="w-2.5 h-2.5" />
-                              {opt.impact === 'high' ? 'High Impact Potential' : opt.impact === 'medium' ? 'Medium Impact Potential' : 'Low Impact'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="glass-panel p-5 rounded-xl space-y-1 text-left">
-                              <h4 className="text-zinc-500 text-[9px] font-bold uppercase tracking-wider">Historical Performance</h4>
-                              <div className="text-2xl font-bold text-white flex items-baseline gap-1">
-                                {opt.views?.toLocaleString() || '0'}
-                                <span className="text-[10px] text-zinc-500 font-normal">views</span>
-                              </div>
-                              <p className="text-[9px] text-zinc-500">Performed below channel average, making it a prime candidate for optimization.</p>
-                            </div>
-
-                            <div className="glass-panel p-5 rounded-xl space-y-1 text-left">
-                              <h4 className="text-zinc-500 text-[9px] font-bold uppercase tracking-wider">Audience Strategy</h4>
-                              <p className="text-zinc-300 text-xs font-semibold">{opt.contentType || 'N/A'}</p>
-                              <p className="text-[9px] text-zinc-500">{opt.audienceStrategy || 'By adjusting the cognitive trigger, we can expand demographics.'}</p>
-                            </div>
-                          </div>
-
-                          {/* Options details */}
-                          <div className="glass-panel p-5 rounded-xl space-y-4">
-                            <h4 className="text-white font-bold text-xs flex items-center gap-2 font-cinzel">
-                              <span className="text-base">💡</span> Optimized Title Variations
-                            </h4>
-
-                            {/* Info banner */}
-                            <div className="bg-zinc-900/50 border border-zinc-850 rounded-lg p-3.5 space-y-1">
-                              <p className="text-[10px] text-zinc-400 flex items-center gap-1.5 font-sans">
-                                <span className="text-gold-500">💡</span> {opt.opportunity || 'Title can be improved for better reach and engagement.'}
-                              </p>
-                              {opt.timingStrategy && (
-                                <div className="mt-1">
-                                  <span className="text-[9px] text-zinc-500 font-semibold font-mono">Timing Strategy:</span>
-                                  <p className="text-[10px] text-zinc-400">{opt.timingStrategy}</p>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Current Title */}
-                            <div className="space-y-1 pb-2 border-b border-zinc-900">
-                              <span className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider block font-mono">Current Title</span>
-                              <p className="text-zinc-400 text-sm font-semibold">{opt.originalTitle}</p>
-                            </div>
-
-                            {/* Core Audience Title */}
-                            <div className={`rounded-xl p-4 space-y-2 text-left border ${opt.bestNow === 'core' ? 'border-gold-500/50 bg-gold-500/5' : 'border-zinc-900 bg-zinc-900/20'}`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-white">Core Audience Title</span>
-                                  <span className="bg-zinc-800 text-zinc-300 text-[8px] font-bold px-1.5 py-0.5 rounded">Core (+20%)</span>
-                                  {opt.bestNow === 'core' && <span className="bg-gold-500/20 text-gold-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30 flex items-center gap-0.5 font-mono">⚡ Best Now</span>}
-                                </div>
-                                <button onClick={() => { navigator.clipboard.writeText(opt.coreTitle?.title || ''); toast.success('Título copiado!'); }}
-                                  className="text-zinc-500 hover:text-white text-[9px] flex items-center gap-1 transition cursor-pointer border border-zinc-800 rounded px-2 py-0.5">
-                                  <Copy className="w-3 h-3" /> Copy
-                                </button>
-                              </div>
-                              <p className="text-gold-400 text-sm font-semibold">"{opt.coreTitle?.title || ''}"</p>
-                              <p className="text-[10px] text-zinc-400">{opt.coreTitle?.description || ''}</p>
-                            </div>
-
-                            {/* Expanded Reach Title */}
-                            <div className={`rounded-xl p-4 space-y-2 text-left border ${opt.bestNow === 'expanded' ? 'border-gold-500/50 bg-gold-500/5' : 'border-zinc-900 bg-zinc-900/20'}`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-white">Expanded Reach Title</span>
-                                  <span className="bg-blue-500/15 text-blue-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-500/20">Expanded (5x)</span>
-                                  {opt.bestNow === 'expanded' && <span className="bg-gold-500/20 text-gold-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30 flex items-center gap-0.5 font-mono">⚡ Best Now</span>}
-                                </div>
-                                <button onClick={() => { navigator.clipboard.writeText(opt.expandedTitle?.title || ''); toast.success('Título copiado!'); }}
-                                  className="text-zinc-500 hover:text-white text-[9px] flex items-center gap-1 transition cursor-pointer border border-zinc-800 rounded px-2 py-0.5">
-                                  <Copy className="w-3 h-3" /> Copy
-                                </button>
-                              </div>
-                              <p className="text-white text-sm font-semibold">"{opt.expandedTitle?.title || ''}"</p>
-                              <p className="text-[10px] text-zinc-400">{opt.expandedTitle?.description || ''}</p>
-                            </div>
-
-                            {/* Broad Appeal Title */}
-                            <div className={`rounded-xl p-4 space-y-2 text-left border ${opt.bestNow === 'broad' ? 'border-gold-500/50 bg-gold-500/5' : 'border-zinc-900 bg-zinc-900/20'}`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-white">Broad Appeal Title</span>
-                                  <span className="bg-purple-500/15 text-purple-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-purple-500/20">Broad (10x)</span>
-                                  {opt.bestNow === 'broad' && <span className="bg-gold-500/20 text-gold-400 text-[8px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30 flex items-center gap-0.5 font-mono">⚡ Best Now</span>}
-                                </div>
-                                <button onClick={() => { navigator.clipboard.writeText(opt.broadTitle?.title || ''); toast.success('Título copiado!'); }}
-                                  className="text-zinc-500 hover:text-white text-[9px] flex items-center gap-1 transition cursor-pointer border border-zinc-800 rounded px-2 py-0.5">
-                                  <Copy className="w-3 h-3" /> Copy
-                                </button>
-                              </div>
-                              <p className="text-white text-sm font-semibold">"{opt.broadTitle?.title || ''}"</p>
-                              <p className="text-[10px] text-zinc-400">{opt.broadTitle?.description || ''}</p>
-                            </div>
-                          </div>
-
-                          {/* Extra info cards */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl text-left">
-                              <span className="text-[8px] text-zinc-500 uppercase font-bold font-mono">Selected Formula</span>
-                              <p className="text-white text-xs font-semibold mt-1">{opt.titleFormula || 'N/A'}</p>
-                            </div>
-                            <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl text-left">
-                              <span className="text-[8px] text-zinc-500 uppercase font-bold font-mono">Triggers Identified</span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {(opt.triggers || []).map((t: string) => (
-                                  <span key={t} className="bg-zinc-850 text-zinc-300 text-[8px] font-semibold px-2 py-0.5 rounded border border-zinc-800">
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="bg-zinc-900/30 border border-zinc-850 p-4 rounded-xl text-left font-sans">
-                              <p className="text-zinc-400 text-[10px] flex items-center gap-1.5">
-                                <span className="text-gold-500">📄</span>
-                                <span className="font-semibold text-white">Content Type:</span> {opt.contentType || 'N/A'}
-                              </p>
-                              {opt.audienceStrategy && (
-                                <p className="text-zinc-550 text-[9px] mt-1 italic">{opt.audienceStrategy}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!titleOptLoading && !titleOptResults && (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <div className="text-5xl animate-pulse">✨</div>
-                    <h3 className="text-white font-bold text-sm font-cinzel">Title Optimizer</h3>
-                    <p className="text-zinc-400 text-xs max-w-sm font-sans leading-relaxed">
-                      Analyze recent videos from your channel and generate high-impact title variations tailored to your specific audience targeting strategy.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setWizardStep(1);
-                        setShowTitleWizard(true);
-                      }}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-950 px-5 py-2.5 rounded-xl text-xs font-bold transition hover:scale-105 cursor-pointer shadow-lg shadow-amber-500/20"
-                    >
-                      Set Up Strategy Wizard
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'year-in-review' && (
-        <YearInReview
-          onClose={() => setActiveTab('status')}
-          getProjectUrl={getProjectUrl}
-        />
-      )}
-
-      {activeTab === 'packaging-assistant' && (
-        <PackagingAssistant
-          activeProject={activeProject}
-          getProjectUrl={getProjectUrl}
-          callAIEngine={callAIEngine}
-        />
-      )}
-
+          </div>
         </main>
 
       </div>
@@ -8671,7 +15123,7 @@ Regras:
 
               <div>
 
-                <h4 className="text-xs font-bold text-white font-cinzel tracking-wide">LUMIERA AGENT</h4>
+                <SectionHeader title="LUMIERA AGENT" helpId="lumiera-agent" size="sm" titleClassName="text-xs tracking-wide" />
 
                 <p className="text-[9px] text-zinc-500">Autonomia total sobre o projeto</p>
 
@@ -8681,29 +15133,40 @@ Regras:
 
             <div className="flex items-center gap-2">
 
-              {(!hasApiKey || showKeyInput) ? (
-
                 <div className="flex items-center gap-1">
 
-                  <input 
+                  <span
+                    className={`text-[9px] flex items-center gap-1 ${hasApiKey ? 'text-emerald-500' : 'text-amber-500'}`}
+                    title={aiProviderBadge.detail}
+                  >
 
-                    type="password" placeholder="API Key..."
+                    {hasApiKey ? <CheckCircle className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
 
-                    value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)}
+                    {aiProviderBadge.short}
 
-                    className="bg-zinc-950 border border-zinc-800 text-[10px] text-white rounded px-2 py-1 w-32 focus:outline-none focus:border-gold-500"
+                  </span>
 
-                  />
+                  <button
 
-                  <button onClick={() => handleSaveApiKey()} className="bg-gold-500 text-zinc-950 text-[9px] font-bold px-2 py-1 rounded cursor-pointer">OK</button>
+                    onClick={() => {
+
+                      setChatOpen(false);
+
+                      setActiveTab('settings');
+
+                    }}
+
+                    className="text-zinc-500 hover:text-gold-500 p-1 rounded hover:bg-zinc-900 transition cursor-pointer"
+
+                    title="Trocar chave API"
+
+                  >
+
+                    <Settings className="w-3.5 h-3.5" />
+
+                  </button>
 
                 </div>
-
-              ) : (
-
-                <span className="text-[9px] text-emerald-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />API</span>
-
-              )}
 
               <button onClick={() => setChatOpen(false)} className="text-zinc-500 hover:text-white p-1 rounded hover:bg-zinc-900 transition cursor-pointer">
 
@@ -8815,7 +15278,7 @@ Regras:
 
               type="text"
 
-              placeholder={hasApiKey ? "Peça qualquer coisa ao agente..." : "Configure a API Key primeiro..."}
+              placeholder={hasApiKey ? "Peça qualquer coisa ao agente..." : "Configure um provedor em Configurações primeiro..."}
 
               value={chatInput}
 
@@ -8865,17 +15328,19 @@ Regras:
 
             <div className="space-y-2">
 
+              <label className="ui-micro-label text-gray-500 block text-balance-safe px-1">Nome do Projeto</label>
+
               <input
 
                 type="text"
 
-                placeholder="Ex: Financas, Notre_Dame, etc."
+                placeholder="Ex: Notre_Dame, Concreto_Romano, etc."
 
                 value={newProjectName}
 
                 onChange={(e) => setNewProjectName(e.target.value)}
 
-                className="w-full bg-zinc-950 border border-zinc-855 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white"
+                className="w-full bg-zinc-950 border border-zinc-855 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white font-sans"
 
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateProject()}
 
@@ -8883,6 +15348,71 @@ Regras:
 
               />
 
+            </div>
+
+            <div className="space-y-2 pt-2">
+
+              <label className="ui-micro-label text-gray-500 block text-balance-safe px-1">Formato / Aspect Ratio</label>
+
+              <div className="grid grid-cols-2 gap-2 font-sans text-xs">
+
+                <button
+
+                  type="button"
+
+                  onClick={() => setNewProjectFormat('LONGO')}
+
+                  className={`py-2 rounded-xl border text-center transition cursor-pointer font-semibold ${
+
+                    newProjectFormat === 'LONGO'
+
+                      ? 'bg-gold-500/10 border-gold-500 text-gold-500'
+
+                      : 'bg-zinc-950 border-zinc-850 text-gray-400 hover:text-white'
+
+                  }`}
+
+                >
+
+                  Longo (16:9)
+
+                </button>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => setNewProjectFormat('SHORTS')}
+
+                  className={`py-2 rounded-xl border text-center transition cursor-pointer font-semibold ${
+
+                    newProjectFormat === 'SHORTS'
+
+                      ? 'bg-gold-500/10 border-gold-500 text-gold-500'
+
+                      : 'bg-zinc-950 border-zinc-850 text-gray-400 hover:text-white'
+
+                  }`}
+
+                >
+
+                  Shorts (9:16)
+
+                </button>
+
+              </div>
+
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <label className="ui-micro-label text-gray-500 block text-balance-safe px-1">Nicho do Projeto</label>
+              <input
+                type="text"
+                placeholder="Ex: História, Tecnologia, Geografia, Finanças"
+                value={newProjectNiche}
+                onChange={(e) => setNewProjectNiche(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-855 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white font-sans"
+              />
             </div>
 
             <div className="flex justify-end gap-3 text-xs font-semibold pt-2 font-sans">
@@ -8927,6 +15457,186 @@ Regras:
 
       )}
 
+      {/* Music Delete Confirmation Modal */}
+
+      {pendingMusicDelete && (
+
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in font-sans">
+
+          <div className="bg-[#0c0c0e] border border-red-900/40 rounded-3xl p-6 w-[440px] max-w-[92%] space-y-5 shadow-2xl shadow-red-950/30">
+
+            <div className="flex items-start gap-4">
+
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+
+                <Trash2 className="w-5 h-5 text-red-400" />
+
+              </div>
+
+              <div className="min-w-0">
+
+                <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">
+
+                  {pendingMusicDelete.name === "__all__" ? "Limpar trilhas sonoras?" : "Excluir trilha sonora?"}
+
+                </h3>
+
+                <p className="text-xs text-gray-400 leading-relaxed mt-2">
+
+                  {pendingMusicDelete.name === "__all__"
+
+                    ? "Todas as trilhas e efeitos listados serão removidos deste projeto. A narração será preservada."
+
+                    : "O arquivo será removido deste projeto e também sairá do mapeamento de BGM/SFX. Esta ação não pode ser desfeita."}
+
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-3 flex items-center gap-3">
+
+              <Music className="w-4 h-4 text-gold-500 shrink-0" />
+
+              <div className="min-w-0">
+
+                <p className="text-xs text-white font-semibold truncate">
+
+                  {pendingMusicDelete.name === "__all__" ? `${musicFiles.length} arquivos de áudio` : pendingMusicDelete.name}
+
+                </p>
+
+                <p className="text-[10px] text-zinc-500 font-mono">{getFormatBytes(pendingMusicDelete.sizeBytes)}</p>
+
+              </div>
+
+            </div>
+
+            <div className="flex justify-end gap-3 text-xs font-semibold pt-1">
+
+              <button
+
+                onClick={() => setPendingMusicDelete(null)}
+
+                disabled={deletingMusic}
+
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-gray-400 hover:text-white rounded-xl transition cursor-pointer disabled:opacity-50"
+
+              >
+
+                Cancelar
+
+              </button>
+
+              <button
+
+                onClick={handleConfirmDeleteMusic}
+
+                disabled={deletingMusic}
+
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl transition shadow-lg shadow-red-950/30 cursor-pointer flex items-center gap-2"
+
+              >
+
+                {deletingMusic ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+
+                <span>{deletingMusic ? 'Excluindo...' : pendingMusicDelete.name === "__all__" ? 'Limpar trilhas' : 'Excluir trilha'}</span>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* Output Delete Confirmation Modal */}
+
+      {pendingOutputDelete && (
+
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in font-sans">
+
+          <div className="bg-[#0c0c0e] border border-red-900/40 rounded-3xl p-6 w-[440px] max-w-[92%] space-y-5 shadow-2xl shadow-red-950/30">
+
+            <div className="flex items-start gap-4">
+
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+
+                <Trash2 className="w-5 h-5 text-red-400" />
+
+              </div>
+
+              <div className="min-w-0">
+
+                <h3 className="font-cinzel font-bold text-white text-sm tracking-wide">Excluir vídeo renderizado?</h3>
+
+                <p className="text-xs text-gray-400 leading-relaxed mt-2">
+
+                  O arquivo será removido da pasta OUTPUT. Esta ação não pode ser desfeita.
+
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="bg-zinc-950 border border-zinc-850 rounded-2xl px-4 py-3 flex items-center gap-3">
+
+              <Video className="w-4 h-4 text-gold-500 shrink-0" />
+
+              <div className="min-w-0">
+
+                <p className="text-xs text-white font-semibold truncate">{pendingOutputDelete.name}</p>
+
+                <p className="text-[10px] text-zinc-500 font-mono">{getFormatBytes(pendingOutputDelete.sizeBytes)}</p>
+
+              </div>
+
+            </div>
+
+            <div className="flex justify-end gap-3 text-xs font-semibold pt-1">
+
+              <button
+
+                onClick={() => setPendingOutputDelete(null)}
+
+                disabled={deletingOutput}
+
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-gray-400 hover:text-white rounded-xl transition cursor-pointer disabled:opacity-50"
+
+              >
+
+                Cancelar
+
+              </button>
+
+              <button
+
+                onClick={handleDeleteOutputVideo}
+
+                disabled={deletingOutput}
+
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl transition shadow-lg shadow-red-950/30 cursor-pointer flex items-center gap-2"
+
+              >
+
+                {deletingOutput ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+
+                <span>{deletingOutput ? 'Excluindo...' : 'Excluir vídeo'}</span>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
       {/* Video Preview Modal */}
 
       {previewVideoUrl && (
@@ -8953,8 +15663,6 @@ Regras:
 
             </div>
 
-            
-
             <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-zinc-900 flex items-center justify-center shadow-inner">
 
               <video 
@@ -8971,8 +15679,6 @@ Regras:
 
             </div>
 
-            
-
             <div className="text-[10px] text-zinc-500 text-center font-sans">
 
               Reproduzindo a partir do workspace local via proxy. Caso o player não carregue, certifique-se de que o vídeo foi totalmente renderizado.
@@ -8986,65 +15692,120 @@ Regras:
       )}
 
       {/* WIDGET COMPACTO DE PROGRESSO DA RENDERIZAÇÃO */}
-      {renderProgress && (
-        <div className="fixed bottom-6 right-6 z-[100] w-[340px] font-sans" style={{ animation: 'slideInRight 0.4s ease-out' }}>
-          <div className="bg-zinc-950/95 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  {renderProgress.percent >= 100 ? (
-                    <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-4.5 h-4.5 text-emerald-400" />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 bg-gold-500/15 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-gold-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-white tracking-wide block leading-tight">
-                    {renderProgress.percent >= 100 ? 'Renderização Concluída' : 'Renderizando Vídeo'}
-                  </span>
-                  <span className="text-[9px] text-zinc-500 leading-tight block mt-0.5">{renderProgress.phase}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setRenderProgress(null)}
-                className="text-zinc-600 hover:text-zinc-400 transition cursor-pointer p-1"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            {/* Progress bar */}
-            <div className="px-4 pb-3 pt-1.5">
-              <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ease-out ${
-                    renderProgress.percent >= 100
-                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-400'
-                      : 'bg-gradient-to-r from-gold-600 via-gold-400 to-yellow-300'
-                  }`}
-                  style={{ width: `${Math.min(renderProgress.percent, 100)}%` }}
-                />
-              </div>
-              <div className="flex justify-between mt-1.5">
-                <span className="text-[9px] text-zinc-600 font-mono">PROCESSANDO</span>
-                <span className={`text-[11px] font-mono font-bold ${
-                  renderProgress.percent >= 100 ? 'text-emerald-400' : 'text-gold-400'
-                }`}>{renderProgress.percent}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
+      {renderProgress && (
+
+        <div className="fixed bottom-6 right-6 z-[100] w-[340px] font-sans" style={{ animation: 'slideInRight 0.4s ease-out' }}>
+
+          <div className="bg-zinc-950/95 backdrop-blur-xl border border-zinc-800/80 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+
+            {/* Header */}
+
+            <div className="flex items-center justify-between px-4 pt-3 pb-1">
+
+              <div className="flex items-center gap-2.5">
+
+                <div className="relative">
+
+                  {renderProgress.percent >= 100 ? (
+
+                    <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center">
+
+                      <CheckCircle className="w-4.5 h-4.5 text-emerald-400" />
+
+                    </div>
+
+                  ) : (
+
+                    <div className="w-8 h-8 bg-gold-500/15 rounded-full flex items-center justify-center">
+
+                      <svg className="w-4 h-4 text-gold-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+
+                      </svg>
+
+                    </div>
+
+                  )}
+
+                </div>
+
+                <div>
+
+                  <span className="text-[11px] font-bold text-white tracking-wide block leading-tight">
+
+                    {renderProgress.percent >= 100 ? 'Renderização Concluída' : 'Renderizando Vídeo'}
+
+                  </span>
+
+                  <span className="text-[9px] text-zinc-500 leading-tight block mt-0.5">{renderProgress.phase}</span>
+
+                </div>
+
+              </div>
+
+              <button
+
+                onClick={() => setRenderProgress(null)}
+
+                className="text-zinc-600 hover:text-zinc-400 transition cursor-pointer p-1"
+
+              >
+
+                <X className="w-3.5 h-3.5" />
+
+              </button>
+
+            </div>
+
+            {/* Progress bar */}
+
+            <div className="px-4 pb-3 pt-1.5">
+
+              <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden">
+
+                <div
+
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${
+
+                    renderProgress.percent >= 100
+
+                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-400'
+
+                      : 'bg-gradient-to-r from-gold-600 via-gold-400 to-yellow-300'
+
+                  }`}
+
+                  style={{ width: `${Math.min(renderProgress.percent, 100)}%` }}
+
+                />
+
+              </div>
+
+              <div className="flex justify-between mt-1.5">
+
+                <span className="text-[9px] text-zinc-600 font-mono">PROCESSANDO</span>
+
+                <span className={`text-[11px] font-mono font-bold ${
+
+                  renderProgress.percent >= 100 ? 'text-emerald-400' : 'text-gold-400'
+
+                }`}>{renderProgress.percent}%</span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
     </div>
 
   );
 
 }
+
