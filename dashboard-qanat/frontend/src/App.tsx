@@ -14165,15 +14165,15 @@ export default function App() {
 
                 {creatorStep === 2 && (
 
-                  <div className="space-y-6 max-w-xl mx-auto text-center py-10">
+                  <div className="space-y-6 max-w-4xl mx-auto py-10">
 
-                    <div>
+                    <div className="text-center">
 
-                      <SectionHeader title="Passo 2: Upload do Áudio de Narração" helpId="creator-step-narration" />
+                      <SectionHeader title="Passo 2: Áudio de Narração" helpId="creator-step-narration" />
 
-                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                      <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl mx-auto">
 
-                        Arraste ou selecione o arquivo de voz gravado para a narração. Ele deve corresponder ao roteiro gerado para que a IA faça o alinhamento de forma sincronizada.
+                        Faça upload de um MP3 gravado ou gere a narração com Fish Audio ou Voicebox a partir do roteiro aprovado. Depois sincronize no passo 3.
 
                       </p>
 
@@ -14186,7 +14186,7 @@ export default function App() {
                       onDragOver={handleDrag}
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-150 font-sans ${
+                      className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center justify-center gap-4 transition-all duration-150 font-sans text-center ${
                         dragActive 
                           ? 'border-gold-500 bg-gold-500/5' 
                           : (uploadSuccess || status?.has_narration)
@@ -14238,6 +14238,46 @@ export default function App() {
                         </label>
                       )}
                     </div>
+
+                    <div className="flex items-center gap-3 text-[10px] text-zinc-600 uppercase font-bold tracking-wider">
+                      <span className="flex-1 h-px bg-zinc-800" />
+                      ou gere com TTS
+                      <span className="flex-1 h-px bg-zinc-800" />
+                    </div>
+
+                    <TtsVoiceStudioPanel
+                      getProjectUrl={getProjectUrl}
+                      toast={(msg) => toast(msg)}
+                      narrativeScript={
+                        storyboardData?.narrative_script
+                        || generatedScriptData?.narrative_script
+                        || narrationDraft
+                        || ''
+                      }
+                      taggedScript={
+                        storyboardData?.narrative_script_tagged
+                        || generatedScriptData?.narrative_script_tagged
+                        || narrationTaggedDraft
+                        || ''
+                      }
+                      onUpdated={() => {
+                        setUploadSuccess(true);
+                        fetchData();
+                      }}
+                      onTaggedScriptChange={(value) => {
+                        setNarrationTaggedDraft(value);
+                        const base = storyboardData || generatedScriptData;
+                        if (!base) return;
+                        const next = { ...base, narrative_script_tagged: value };
+                        if (storyboardData) {
+                          setStoryboardData(next);
+                          debounceSaveStoryboard(next);
+                        } else {
+                          setGeneratedScriptData(next);
+                          debounceSaveStoryboard(next);
+                        }
+                      }}
+                    />
 
 <div className="flex justify-between items-center pt-4 font-sans">
 

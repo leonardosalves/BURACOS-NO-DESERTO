@@ -569,7 +569,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Passo 2 — Narração',
     body: (
       <>
-        Upload do áudio de narração gravado ou gerado externamente. Base para sincronização e block_timings.
+        Upload manual do MP3 ou geração com <strong>Fish Audio</strong> (tags, velocidade, voz cloud) ou <strong>Voicebox</strong> (clone local). O arquivo vira <code>narracao_mestra_premium.mp3</code> — base para sincronização Whisper no passo 3.
       </>
     ),
   },

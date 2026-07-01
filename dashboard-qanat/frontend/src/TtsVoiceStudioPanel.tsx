@@ -156,6 +156,7 @@ export function TtsVoiceStudioPanel({
         voice: studioEngine === 'fish' ? fishVoice : vbVoice,
         ttsOptions: {
           useTaggedScript: studioEngine === 'fish' ? fishUseTags : vbUseTags,
+          customPlainText: narrativeScript.trim() || undefined,
           customTaggedText: studioEngine === 'fish' && fishUseTags ? fishTaggedText : undefined,
           fish: studioEngine === 'fish' ? {
             temperature: fishTemperature,
