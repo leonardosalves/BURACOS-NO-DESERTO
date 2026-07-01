@@ -4,6 +4,7 @@ import {
   RefreshCw, Search, Send, ThumbsUp, TrendingUp, Users, Video, Youtube,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import { getYoutubeViewsThreshold, setYoutubeViewsThreshold } from './youtubeStudioPrefs';
 
 type ChannelOverview = {
   connected: boolean;
@@ -154,6 +155,7 @@ type Props = {
   nicheKeyword?: string;
   alerts?: YoutubeChannelAlerts | null;
   onSelectProject?: (projectName: string) => void;
+  onAlertsSync?: (alerts: YoutubeChannelAlerts) => void;
 };
 
 function RetentionSparkline({ points }: { points: Array<{ ratio: number; watchRatio: number }> }) {
@@ -213,6 +215,7 @@ export function YoutubeStudioPanel({
   nicheKeyword = '',
   alerts = null,
   onSelectProject,
+  onAlertsSync,
 }: Props) {
   const [overview, setOverview] = useState<ChannelOverview | null>(null);
   const [videosReport, setVideosReport] = useState<VideosReport | null>(null);
@@ -231,6 +234,8 @@ export function YoutubeStudioPanel({
   const [videoDetailLoading, setVideoDetailLoading] = useState(false);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [viewsThreshold, setViewsThreshold] = useState(() => getYoutubeViewsThreshold());
+  const [fromCache, setFromCache] = useState(false);
 
   useEffect(() => {
     if (nicheKeyword && !appliedKeyword) {
@@ -260,63 +265,52 @@ export function YoutubeStudioPanel({
     }
   }, [toast]);
 
-  const loadOverviewAndVideos = useCallback(async (silent = false) => {
+  const syncAlertsPayload = useCallback((payload: Record<string, unknown>) => {
+    if (!onAlertsSync || !payload) return;
+    onAlertsSync({
+      badgeCount: Number(payload.badgeCount || 0),
+      unansweredComments: Number(payload.unansweredComments || 0),
+      hotVideos: (payload.hotVideos || []) as YoutubeChannelAlerts['hotVideos'],
+      lumieraVideoById: (payload.lumieraVideoById || {}) as YoutubeChannelAlerts['lumieraVideoById'],
+      alerts: (payload.alerts || []) as YoutubeChannelAlerts['alerts'],
+      pollIntervalMinutes: Number(payload.pollIntervalMinutes || 20),
+      views48hThreshold: Number(payload.views48hThreshold || viewsThreshold),
+      fetchedAt: String(payload.fetchedAt || ''),
+    });
+  }, [onAlertsSync, viewsThreshold]);
+
+  const loadChannelSummary = useCallback(async (silent = false, forceRefresh = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
+    setLumieraLoading(true);
     try {
-      const [overviewRes, videosRes] = await Promise.all([
-        fetch('/api/youtube/channel/overview'),
-        fetch(`/api/youtube/channel/videos?days=${periodDays}&limit=25`),
-      ]);
+      const params = new URLSearchParams({
+        days: String(periodDays),
+        limit: '25',
+        viewsThreshold: String(viewsThreshold),
+      });
+      if (forceRefresh) params.set('refresh', '1');
 
-      const overviewData = await overviewRes.json().catch(() => ({}));
-      const videosData = await videosRes.json().catch(() => ({}));
-
-      if (overviewRes.ok || overviewRes.status === 403) {
-        setOverview(overviewData as ChannelOverview);
-      } else {
-        throw new Error(overviewData.details || overviewData.error || 'Falha ao carregar canal');
+      const res = await fetch(`/api/youtube/channel/summary?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 403) {
+        throw new Error(data.details || data.error || 'Falha ao carregar canal');
       }
 
-      if (videosRes.ok || videosRes.status === 403) {
-        setVideosReport(videosData as VideosReport);
-      } else {
-        setVideosReport({
-          periodDays,
-          startDate: '',
-          endDate: '',
-          videos: [],
-          error: videosData.error || 'Falha ao carregar vídeos',
-          details: videosData.details,
-          needsReauth: videosData.needsReauth,
-        });
-        toast(videosData.details || videosData.error || 'Tabela de vídeos indisponível no momento.');
-      }
+      if (data.overview) setOverview(data.overview as ChannelOverview);
+      if (data.videos) setVideosReport(data.videos as VideosReport);
+      if (data.lumiera?.videos) setLumieraVideos(data.lumiera.videos as LumieraVideoRow[]);
+      if (data.alerts) syncAlertsPayload(data.alerts as Record<string, unknown>);
+      setFromCache(Boolean(data.fromCache));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar dados do YouTube';
       toast(message);
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  }, [periodDays, toast]);
-
-  const loadLumieraVideos = useCallback(async () => {
-    setLumieraLoading(true);
-    try {
-      const res = await fetch(`/api/youtube/channel/lumiera-videos?days=${periodDays}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok && res.status !== 403) {
-        throw new Error(data.details || data.error || 'Falha ao carregar vídeos Lumiera');
-      }
-      setLumieraVideos((data.videos || []) as LumieraVideoRow[]);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar vídeos Lumiera';
-      toast(message);
-    } finally {
       setLumieraLoading(false);
     }
-  }, [periodDays, toast]);
+  }, [periodDays, syncAlertsPayload, toast, viewsThreshold]);
 
   const loadVideoDetail = useCallback(async (videoId: string) => {
     setVideoDetailLoading(true);
@@ -364,37 +358,29 @@ export function YoutubeStudioPanel({
   }, [appliedKeyword, commentFilter, loadComments, replyDrafts, toast]);
 
   const refreshAll = useCallback(async () => {
-    setRefreshing(true);
     await Promise.all([
-      loadOverviewAndVideos(true),
+      loadChannelSummary(true, true),
       loadComments(commentFilter, appliedKeyword),
-      loadLumieraVideos(),
     ]);
     if (selectedVideoId) {
       await loadVideoDetail(selectedVideoId);
     }
-    setRefreshing(false);
   }, [
     appliedKeyword,
     commentFilter,
+    loadChannelSummary,
     loadComments,
-    loadLumieraVideos,
-    loadOverviewAndVideos,
     loadVideoDetail,
     selectedVideoId,
   ]);
 
   useEffect(() => {
-    loadOverviewAndVideos();
-  }, [loadOverviewAndVideos]);
+    loadChannelSummary();
+  }, [loadChannelSummary]);
 
   useEffect(() => {
     loadComments(commentFilter, appliedKeyword);
   }, [commentFilter, appliedKeyword, loadComments]);
-
-  useEffect(() => {
-    loadLumieraVideos();
-  }, [loadLumieraVideos]);
 
   useEffect(() => {
     if (!selectedVideoId) {
@@ -434,7 +420,25 @@ export function YoutubeStudioPanel({
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-zinc-500 tabular-nums">
               Atualizado: {formatDateTime(videosReport?.fetchedAt || overview?.fetchedAt)}
+              {fromCache ? ' · cache' : ''}
             </span>
+            <label className="flex items-center gap-1.5 text-[9px] text-zinc-500">
+              Alerta 48h ≥
+              <input
+                type="number"
+                min={1}
+                max={100000}
+                value={viewsThreshold}
+                onChange={(e) => setViewsThreshold(Number(e.target.value) || 100)}
+                onBlur={() => {
+                  const next = setYoutubeViewsThreshold(viewsThreshold);
+                  setViewsThreshold(next);
+                  loadChannelSummary(true, true);
+                }}
+                className="w-16 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-300 text-[10px] tabular-nums"
+              />
+              views
+            </label>
             <button
               type="button"
               onClick={() => refreshAll()}

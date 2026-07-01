@@ -12,6 +12,58 @@ import {
 
 const DEFAULT_VIEWS_48H_THRESHOLD = 100;
 const DEFAULT_POLL_INTERVAL_MINUTES = 20;
+const CACHE_TTL_MS = {
+  overview: 5 * 60 * 1000,
+  videos: 5 * 60 * 1000,
+  lumiera: 5 * 60 * 1000,
+  alerts: 3 * 60 * 1000,
+  videoDetail: 5 * 60 * 1000,
+};
+
+function getCacheFilePath(workspaceDir) {
+  return path.join(workspaceDir, "youtube_channel_cache.json");
+}
+
+function readCacheStore(workspaceDir) {
+  return readJsonSafe(getCacheFilePath(workspaceDir)) || {};
+}
+
+function writeCacheStore(workspaceDir, store) {
+  fs.writeFileSync(getCacheFilePath(workspaceDir), JSON.stringify(store, null, 2), "utf8");
+}
+
+function getCachedPayload(workspaceDir, cacheKey, ttlMs) {
+  const entry = readCacheStore(workspaceDir)[cacheKey];
+  if (!entry?.fetchedAt || !entry?.data) return null;
+  const ageMs = Date.now() - new Date(entry.fetchedAt).getTime();
+  if (ageMs > ttlMs) return null;
+  return {
+    ...entry.data,
+    fromCache: true,
+    cachedAt: entry.fetchedAt,
+  };
+}
+
+function setCachedPayload(workspaceDir, cacheKey, data) {
+  const store = readCacheStore(workspaceDir);
+  store[cacheKey] = {
+    fetchedAt: new Date().toISOString(),
+    data,
+  };
+  writeCacheStore(workspaceDir, store);
+}
+
+async function withChannelCache(workspaceDir, cacheKey, ttlMs, forceRefresh, loader) {
+  if (!forceRefresh) {
+    const cached = getCachedPayload(workspaceDir, cacheKey, ttlMs);
+    if (cached) return cached;
+  }
+  const data = await loader();
+  if (data && data.connected !== false) {
+    setCachedPayload(workspaceDir, cacheKey, data);
+  }
+  return { ...data, fromCache: false };
+}
 
 const VIDEO_METRICS = [
   "views",
@@ -127,7 +179,7 @@ async function fetchVideoMetricsBatched(accessToken, videoIds, startDate, endDat
   return metricsByVideoId;
 }
 
-export async function fetchChannelOverview(workspaceDir) {
+async function fetchChannelOverviewUncached(workspaceDir) {
   const scopeStatus = await getYoutubeTokenScopes(workspaceDir);
 
   if (!scopeStatus.connected) {
@@ -176,7 +228,17 @@ export async function fetchChannelOverview(workspaceDir) {
   };
 }
 
-export async function fetchChannelVideosWithAnalytics(workspaceDir, { days = 28, limit = 25 } = {}) {
+export async function fetchChannelOverview(workspaceDir, { forceRefresh = false } = {}) {
+  return withChannelCache(
+    workspaceDir,
+    "overview",
+    CACHE_TTL_MS.overview,
+    forceRefresh,
+    () => fetchChannelOverviewUncached(workspaceDir),
+  );
+}
+
+async function fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days = 28, limit = 25 } = {}) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const { startDate, endDate } = periodDates(days);
@@ -250,6 +312,20 @@ export async function fetchChannelVideosWithAnalytics(workspaceDir, { days = 28,
     reachNote:
       "Impressões e CTR de thumbnail só existem no YouTube Studio. O Lumiera mostra views, engajamento e minutos assistidos do período.",
   };
+}
+
+export async function fetchChannelVideosWithAnalytics(
+  workspaceDir,
+  { days = 28, limit = 25, forceRefresh = false } = {},
+) {
+  const cacheKey = `videos:${days}:${limit}`;
+  return withChannelCache(
+    workspaceDir,
+    cacheKey,
+    CACHE_TTL_MS.videos,
+    forceRefresh,
+    () => fetchChannelVideosWithAnalyticsUncached(workspaceDir, { days, limit }),
+  );
 }
 
 function normalizeCommentText(value = "") {
@@ -420,7 +496,7 @@ export async function replyToChannelComment(workspaceDir, { parentId, text } = {
   };
 }
 
-export async function fetchVideoStudioDetail(workspaceDir, videoId, { days = 28 } = {}) {
+async function fetchVideoStudioDetailUncached(workspaceDir, videoId, { days = 28 } = {}) {
   const normalizedVideoId = String(videoId || "").trim();
   if (!normalizedVideoId) {
     throw new Error("videoId é obrigatório.");
@@ -455,7 +531,22 @@ export async function fetchVideoStudioDetail(workspaceDir, videoId, { days = 28 
   };
 }
 
-export async function fetchLumieraVideosReport(workspaceDir, projectsRoot, { days = 28 } = {}) {
+export async function fetchVideoStudioDetail(workspaceDir, videoId, { days = 28, forceRefresh = false } = {}) {
+  const normalizedVideoId = String(videoId || "").trim();
+  if (!normalizedVideoId) {
+    throw new Error("videoId é obrigatório.");
+  }
+  const cacheKey = `detail:${normalizedVideoId}:${days}`;
+  return withChannelCache(
+    workspaceDir,
+    cacheKey,
+    CACHE_TTL_MS.videoDetail,
+    forceRefresh,
+    () => fetchVideoStudioDetailUncached(workspaceDir, normalizedVideoId, { days }),
+  );
+}
+
+async function fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { days = 28 } = {}) {
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const { startDate, endDate } = periodDates(days);
@@ -510,6 +601,21 @@ export async function fetchLumieraVideosReport(workspaceDir, projectsRoot, { day
     videos: enriched.sort((a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0)),
     fetchedAt: new Date().toISOString(),
   };
+}
+
+export async function fetchLumieraVideosReport(
+  workspaceDir,
+  projectsRoot,
+  { days = 28, forceRefresh = false } = {},
+) {
+  const cacheKey = `lumiera:${days}`;
+  return withChannelCache(
+    workspaceDir,
+    cacheKey,
+    CACHE_TTL_MS.lumiera,
+    forceRefresh,
+    () => fetchLumieraVideosReportUncached(workspaceDir, projectsRoot, { days }),
+  );
 }
 
 function readJsonSafe(filePath) {
@@ -580,7 +686,7 @@ async function countUnansweredComments(accessToken, channelId, scanLimit = 50) {
   return count;
 }
 
-export async function fetchChannelAlerts(workspaceDir, projectsRoot, {
+async function fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
   views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
   maxProjects = 12,
   commentScanLimit = 50,
@@ -685,5 +791,64 @@ export async function fetchChannelAlerts(workspaceDir, projectsRoot, {
     views48hThreshold,
     pollIntervalMinutes: DEFAULT_POLL_INTERVAL_MINUTES,
     fetchedAt: new Date().toISOString(),
+  };
+}
+
+export async function fetchChannelAlerts(
+  workspaceDir,
+  projectsRoot,
+  {
+    views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
+    maxProjects = 12,
+    commentScanLimit = 50,
+    forceRefresh = false,
+  } = {},
+) {
+  const cacheKey = `alerts:${views48hThreshold}:${maxProjects}`;
+  return withChannelCache(
+    workspaceDir,
+    cacheKey,
+    CACHE_TTL_MS.alerts,
+    forceRefresh,
+    () => fetchChannelAlertsUncached(workspaceDir, projectsRoot, {
+      views48hThreshold,
+      maxProjects,
+      commentScanLimit,
+    }),
+  );
+}
+
+export async function fetchChannelSummary(
+  workspaceDir,
+  projectsRoot,
+  {
+    days = 28,
+    limit = 25,
+    views48hThreshold = DEFAULT_VIEWS_48H_THRESHOLD,
+    maxProjects = 12,
+    forceRefresh = false,
+  } = {},
+) {
+  const [overview, videos, lumiera, alerts] = await Promise.all([
+    fetchChannelOverview(workspaceDir, { forceRefresh }),
+    fetchChannelVideosWithAnalytics(workspaceDir, { days, limit, forceRefresh }),
+    fetchLumieraVideosReport(workspaceDir, projectsRoot, { days, forceRefresh }),
+    fetchChannelAlerts(workspaceDir, projectsRoot, {
+      views48hThreshold,
+      maxProjects,
+      forceRefresh,
+    }),
+  ]);
+
+  return {
+    overview,
+    videos,
+    lumiera,
+    alerts,
+    fetchedAt: new Date().toISOString(),
+    fromCache: Boolean(
+      overview?.fromCache || videos?.fromCache || lumiera?.fromCache || alerts?.fromCache,
+    ),
+    cacheTtlMinutes: Math.round(CACHE_TTL_MS.videos / 60000),
   };
 }

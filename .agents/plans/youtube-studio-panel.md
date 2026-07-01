@@ -3,7 +3,7 @@
 # Painel YouTube Studio no Lumiera
 
 > Branch: `feature/youtube-studio-panel`  
-> Status: Fase 4 concluída (Fases 1–3 concluídas)
+> Status: Fase 5 concluída (Fases 1–4 concluídas)
 
 ## Objetivo
 
@@ -213,3 +213,17 @@ Revincular: **Configurações → Integrações → Revincular YouTube** (ou Upl
 - [x] Clique no vídeo abre detalhe com retenção e velocity 48h
 - [x] Resposta a comentários publicada via API (OAuth force-ssl)
 - [x] Descoberta de videoId também via `youtube_title_experiment.json`
+
+### Fase 5 — Performance e alertas configuráveis (concluída)
+
+- `GET /api/youtube/channel/summary` — overview + vídeos + Lumiera + alertas em uma chamada
+- Cache em `youtube_channel_cache.json` (5 min métricas, 3 min alertas)
+- `?refresh=1` força atualização
+- Threshold de views 48h configurável no painel (localStorage + badge sidebar)
+
+## Critérios de aceite Fase 5
+
+- [x] Carregamento inicial via endpoint único `summary`
+- [x] Cache reduz chamadas repetidas à API do YouTube
+- [x] Botão Atualizar força refresh (`refresh=1`)
+- [x] Threshold de alerta 48h editável e persistido

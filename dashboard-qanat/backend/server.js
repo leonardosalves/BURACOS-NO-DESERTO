@@ -44,6 +44,7 @@ import {
   fetchChannelComments,
   fetchChannelOverview,
   fetchChannelVideosWithAnalytics,
+  fetchChannelSummary,
   fetchLumieraVideosReport,
   fetchVideoStudioDetail,
   replyToChannelComment,
@@ -8045,9 +8046,35 @@ app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
   }
 });
 
+function youtubeChannelForceRefresh(req) {
+  return String(req.query?.refresh || "") === "1" || String(req.query?.force || "") === "1";
+}
+
+app.get("/api/youtube/channel/summary", async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+  const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
+  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const maxProjects = Math.min(Math.max(Number(req.query?.maxProjects) || 12, 1), 20);
+  try {
+    const summary = await fetchChannelSummary(WORKSPACE_DIR, PROJECTS_ROOT, {
+      days,
+      limit,
+      views48hThreshold,
+      maxProjects,
+      forceRefresh: youtubeChannelForceRefresh(req),
+    });
+    res.json(summary);
+  } catch (err) {
+    const payload = youtubeApiErrorPayload(err, "Erro ao buscar resumo do canal");
+    res.status(payload.needsReauth ? 403 : 500).json(payload);
+  }
+});
+
 app.get("/api/youtube/channel/overview", async (req, res) => {
   try {
-    const overview = await fetchChannelOverview(WORKSPACE_DIR);
+    const overview = await fetchChannelOverview(WORKSPACE_DIR, {
+      forceRefresh: youtubeChannelForceRefresh(req),
+    });
     res.json(overview);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar visão geral do canal");
@@ -8059,7 +8086,11 @@ app.get("/api/youtube/channel/videos", async (req, res) => {
   const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
   const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
   try {
-    const report = await fetchChannelVideosWithAnalytics(WORKSPACE_DIR, { days, limit });
+    const report = await fetchChannelVideosWithAnalytics(WORKSPACE_DIR, {
+      days,
+      limit,
+      forceRefresh: youtubeChannelForceRefresh(req),
+    });
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos do canal");
@@ -8074,6 +8105,7 @@ app.get("/api/youtube/channel/alerts", async (req, res) => {
     const report = await fetchChannelAlerts(WORKSPACE_DIR, PROJECTS_ROOT, {
       views48hThreshold,
       maxProjects,
+      forceRefresh: youtubeChannelForceRefresh(req),
     });
     res.json(report);
   } catch (err) {
@@ -8117,7 +8149,10 @@ app.get("/api/youtube/channel/video/:videoId/detail", async (req, res) => {
   const videoId = String(req.params?.videoId || "").trim();
   const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
   try {
-    const detail = await fetchVideoStudioDetail(WORKSPACE_DIR, videoId, { days });
+    const detail = await fetchVideoStudioDetail(WORKSPACE_DIR, videoId, {
+      days,
+      forceRefresh: youtubeChannelForceRefresh(req),
+    });
     res.json(detail);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar detalhe do vídeo");
@@ -8128,7 +8163,10 @@ app.get("/api/youtube/channel/video/:videoId/detail", async (req, res) => {
 app.get("/api/youtube/channel/lumiera-videos", async (req, res) => {
   const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
   try {
-    const report = await fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, { days });
+    const report = await fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, {
+      days,
+      forceRefresh: youtubeChannelForceRefresh(req),
+    });
     res.json(report);
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos Lumiera");
