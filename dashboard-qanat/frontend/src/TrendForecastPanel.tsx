@@ -13,6 +13,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
 
 type TimesfmStatus = {
   timesfmInstalled?: boolean;
@@ -102,7 +103,7 @@ type ForecastResult = {
 
 type TrendForecastPanelProps = {
   niche?: string;
-  onApplyCreatorIdea?: (title: string, hookPt: string, options?: { format?: string }) => void;
+  onApplyCreatorIdea?: (title: string, hookPt: string, options?: CreatorApplyIdeaOptions) => void;
   onGoToIntegrations?: () => void;
   embedded?: boolean;
 };
@@ -498,7 +499,7 @@ function PioneerNicheList({
   onApply,
 }: {
   discovery: PioneerDiscovery | null;
-  onApply?: (title: string, hook: string, options?: { format?: string }) => void;
+  onApply?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
 }) {
   const niches = discovery?.pioneerNiches || [];
   const summary = discovery?.summary;
@@ -568,9 +569,19 @@ function PioneerNicheList({
                 type="button"
                 onClick={() =>
                   onApply(
-                    n.firstVideoIdea || `Pioneiro: ${n.label}`,
-                    n.whyPioneer || '',
-                    { format: n.format },
+                    n.firstVideoIdea || n.label || n.angle || `Pioneiro: ${n.macroNiche}`,
+                    n.angle || n.firstVideoIdea || n.label || '',
+                    {
+                      format: (n.format === 'LONGO' ? 'LONGO' : 'SHORTS') as 'LONGO' | 'SHORTS',
+                      mechanic: 'pioneer-niche',
+                      whyWorks: n.whyPioneer,
+                      pioneerMeta: {
+                        macroNiche: n.macroNiche,
+                        angle: n.angle,
+                        formatPattern: n.formatPattern,
+                        youtubeSearchQuery: n.youtubeSearchQuery,
+                      },
+                    },
                   )
                 }
                 className="text-[10px] text-violet-300 hover:text-violet-200"
@@ -594,7 +605,7 @@ function TrendVideoList({
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   videos: TrendVideo[];
-  onApply?: (title: string, hook: string, options?: { format?: string }) => void;
+  onApply?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
 }) {
   return (
     <div className="glass-panel p-5 rounded-3xl space-y-3">

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
+import type { CreatorApplyIdeaOptions, PioneerNicheMeta } from './creatorEditorialImport';
 import {
   Download, Lightbulb, MessageSquare, Send, Webhook, BarChart3, Target, Radio,
   Search, RefreshCw, ExternalLink, Trophy, Layers,
@@ -14,6 +14,7 @@ type EditorialItem = {
   whyWorks?: string;
   status: 'inbox' | 'script' | 'render' | 'published';
   format?: 'SHORTS' | 'LONGO';
+  pioneerMeta?: PioneerNicheMeta | null;
 };
 
 const STATUS_LABELS: Record<EditorialItem['status'], string> = {
@@ -324,6 +325,7 @@ export function YoutubeStudioTools({ viewsThreshold, nicheKeyword = '', toast, o
                       mechanic: item.mechanic,
                       whyWorks: item.whyWorks,
                       source: item.source,
+                      pioneerMeta: item.pioneerMeta,
                     })}
                     className="text-[var(--dash-primary)] shrink-0"
                   >
