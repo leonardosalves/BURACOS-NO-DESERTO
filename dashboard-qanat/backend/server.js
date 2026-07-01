@@ -5505,6 +5505,13 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         const prompt = prompts[index] || prompts[0] || {};
         const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
 
+        const clipVolume = Number.isFinite(Number(item?.volume))
+          ? Math.min(1, Math.max(0, Number(item.volume)))
+          : 0;
+        const clipRate = Number.isFinite(Number(item?.playback_rate))
+          ? Math.min(2, Math.max(0.25, Number(item.playback_rate)))
+          : 1;
+
         scenes.push({
 
           block,
@@ -5524,6 +5531,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           narrationText: prompt?.narration_text || "",
 
           editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
+
+          volume: clipVolume,
+
+          playback_rate: clipRate,
 
         });
 
@@ -5920,6 +5931,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     shortsPortalTransition: config.shorts_portal_transition !== false,
     shortsPortalEvery: Math.max(3, Math.min(5, Number(config.shorts_portal_every) || 4)),
     bgmDuckPoints,
+    canvasBackground: config.canvas_background || "#050506",
   };
 
   let finalProps = props;
