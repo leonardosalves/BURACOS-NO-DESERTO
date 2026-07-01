@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "1.4.7";
+  const VERSION = "1.4.8";
 
   const SOURCE = "lumiera-gemini-bridge";
   const CONTEXT_INVALIDATED_MSG =
