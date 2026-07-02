@@ -197,6 +197,46 @@ export function getAssetDurationSeconds(
   return Math.max(MIN_SCENE_SECONDS, blockDuration / Math.max(1, assets.length));
 }
 
+/** Limites sequenciais a partir da duração — sem buracos nem audio_start antigo. */
+function buildSequentialSceneBoundaries(
+  assets: TimelineAsset[],
+  narrationStart: number,
+  narrationEnd: number,
+  blockDuration: number,
+): number[] {
+  const starts: number[] = [];
+  let cursor = narrationStart;
+  for (let idx = 0; idx < assets.length; idx++) {
+    starts.push(cursor);
+    cursor += getAssetDurationSeconds(assets, idx, blockDuration);
+  }
+  starts.push(Math.max(cursor, narrationEnd + 0.15));
+  return starts;
+}
+
+function wordMidpoint(w: TranscriptWord): number {
+  const end = Number.isFinite(w.end) ? w.end : w.start;
+  return (w.start + end) / 2;
+}
+
+/** Cada palavra vai para exatamente uma cena (ponto médio dentro do intervalo). */
+function assignWordsToScene(
+  blockWords: TranscriptWord[],
+  sceneStarts: number[],
+  sceneIdx: number,
+): TranscriptWord[] {
+  const start = sceneStarts[sceneIdx];
+  const end = sceneStarts[sceneIdx + 1];
+  const isLast = sceneIdx >= sceneStarts.length - 2;
+
+  return blockWords.filter((w) => {
+    const mid = wordMidpoint(w);
+    if (mid < start - 0.06) return false;
+    if (isLast) return mid < end + 0.06;
+    return mid < end - 0.02;
+  });
+}
+
 export function buildBlockTimingModel(
   blockKey: string,
   assets: TimelineAsset[],
@@ -217,31 +257,18 @@ export function buildBlockTimingModel(
   const blockDuration = Math.max(MIN_SCENE_SECONDS, blockEnd - blockStart);
   const narrationStart = blockWords[0]?.start ?? blockStart;
   const narrationEnd = blockWords[blockWords.length - 1]?.end ?? blockEnd;
+  const sceneStarts = buildSequentialSceneBoundaries(
+    assets,
+    narrationStart,
+    narrationEnd,
+    blockDuration,
+  );
 
   const scenes: SceneTimingRow[] = assets.map((asset, idx) => {
     const duration = getAssetDurationSeconds(assets, idx, blockDuration);
-    const isLast = idx === assets.length - 1;
-
-    let windowStart: number;
-    if (asset.audio_start != null && Number.isFinite(Number(asset.audio_start))) {
-      windowStart = Number(asset.audio_start);
-    } else {
-      windowStart = narrationStart;
-      for (let i = 0; i < idx; i++) {
-        windowStart += getAssetDurationSeconds(assets, i, blockDuration);
-      }
-    }
-
-    const rawEnd = windowStart + duration;
-    const windowEnd = isLast
-      ? Math.max(rawEnd, narrationEnd + 0.15)
-      : rawEnd;
-
-    const sceneWords = isLast
-      ? blockWords.filter((w) => w.start >= windowStart - 0.10)
-      : blockWords.filter(
-        (w) => w.start >= windowStart - 0.10 && w.start < windowEnd - 0.05,
-      );
+    const windowStart = sceneStarts[idx];
+    const windowEnd = sceneStarts[idx + 1];
+    const sceneWords = assignWordsToScene(blockWords, sceneStarts, idx);
 
     const assetPath = String(asset.asset || "").trim();
     return {
