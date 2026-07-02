@@ -35,7 +35,7 @@ import {
   buildVoiceboxVoiceList,
   buildVoiceboxStatusHint,
 } from "./voiceboxTts.js";
-import { flattenWordTranscripts, realignTimelineAssetsToSpeech } from "./timelineSceneSync.js";
+import { flattenWordTranscripts, syncProjectTimelineAfterWhisper } from "./timelineSceneSync.js";
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
@@ -260,19 +260,25 @@ export function registerWorkflowRoutes(app, deps) {
 
     const storyboard = readJsonFile(storyboardPath) || {};
     const timings = readJsonFile(timingsPath) || { starts: [], durations: [] };
-    const flatTranscriptWords = flattenWordTranscripts(readJsonFile(wordsPath) || []);
+    const wordTranscripts = readJsonFile(wordsPath) || [];
+    const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
     if (!flatTranscriptWords.length) return;
 
-    config.timeline_assets = realignTimelineAssetsToSpeech({
+    const synced = syncProjectTimelineAfterWhisper({
       timelineAssets: config.timeline_assets,
       blockTimings: timings,
+      wordTranscripts,
       flatTranscriptWords,
       visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
       blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
       preserveExplicitFixed: true,
     });
+    config.timeline_assets = synced.timelineAssets;
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    log("[Pipeline] Timeline realinhada aos tempos dos blocos (anti-tela-preta).");
+    if (synced.blockTimings?.starts?.length) {
+      fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
+    }
+    log("[Pipeline] Timeline sincronizada por cena (storyboard + segmentos Whisper).");
   }
 
   function buildCreatorPipelineHandlers() {

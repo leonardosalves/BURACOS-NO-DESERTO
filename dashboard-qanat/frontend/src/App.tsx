@@ -171,6 +171,7 @@ import {
   getBlockNarrationText as resolveBlockNarrationText,
   getBlockTimeBounds as resolveBlockTimeBounds,
   getStrictBlockBounds,
+  collectBlockWordsFromTranscriptSegments,
   narrationCacheKey,
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
@@ -4054,22 +4055,32 @@ export default function App() {
       const seenPositions = new Set<string>();
 
       const blockNum = parseInt(blockKey, 10);
-      const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
-      if (blockText) {
-        const bounds = resolveBlockTimeBounds(status, blockNum);
-        const strictBounds = getStrictBlockBounds(status, blockNum);
-        const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
-        if (matched) {
-          const words = getStoryboardWordsWithTiming(blockText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
-          words.forEach((w) => {
-            // Bounds estritos: palavra pertence ao bloco somente se start está no range exato
-            if (w.start < strictBounds.start - 0.05 || w.start >= strictBounds.end) return;
-            const key = `${w.start.toFixed(3)}-${w.word}`;
-            if (!seenPositions.has(key)) {
-              allWords.push(w);
-              seenPositions.add(key);
-            }
-          });
+      const segmentWords = collectBlockWordsFromTranscriptSegments(wordTranscripts, blockNum);
+      if (segmentWords.length > 0) {
+        segmentWords.forEach((w) => {
+          const key = `${w.start.toFixed(3)}-${w.word}`;
+          if (!seenPositions.has(key)) {
+            allWords.push(w);
+            seenPositions.add(key);
+          }
+        });
+      } else {
+        const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
+        if (blockText) {
+          const bounds = resolveBlockTimeBounds(status, blockNum);
+          const strictBounds = getStrictBlockBounds(status, blockNum);
+          const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+          if (matched) {
+            const words = getStoryboardWordsWithTiming(blockText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
+            words.forEach((w) => {
+              if (w.start < strictBounds.start - 0.05 || w.start >= strictBounds.end) return;
+              const key = `${w.start.toFixed(3)}-${w.word}`;
+              if (!seenPositions.has(key)) {
+                allWords.push(w);
+                seenPositions.add(key);
+              }
+            });
+          }
         }
       }
 
@@ -4081,7 +4092,7 @@ export default function App() {
 
     return cache;
 
-  }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, narrationMatchesCache, flatTranscriptWords]);
+  }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, narrationMatchesCache, flatTranscriptWords, wordTranscripts]);
 
   // Get dynamically distributed words for a specific asset based on its time window
   const getDynamicAssetWords = (blockKey: string, assetIdx: number): {
@@ -4117,24 +4128,28 @@ export default function App() {
 
     const assetDuration = getAssetDuration(blockKey, assetIdx);
     const rawAssetAudioEnd = assetAudioStart + assetDuration;
+    const speechEnd = Number(currentAsset?.speech_end);
 
-    // Último asset: estende até o fim da narra\u00e7ão do bloco para cobrir 100%
     const isLastAsset = assetIdx === totalAssets - 1;
-    const assetAudioEnd = isLastAsset
-      ? Math.max(rawAssetAudioEnd, narrationLastEnd + 0.15)
-      : rawAssetAudioEnd;
+    const assetAudioEnd = Number.isFinite(speechEnd) && speechEnd > assetAudioStart
+      ? speechEnd + 0.12
+      : (isLastAsset
+        ? Math.min(narrationLastEnd + 0.15, rawAssetAudioEnd)
+        : rawAssetAudioEnd);
 
-    // Filtrar palavras dentro da janela deste asset
     let assetWords: Array<{ word: string; start: number; end: number }>;
 
-    if (isLastAsset) {
-      // Último asset: pega TODAS as palavras a partir do seu start — nunca deixa sobras
-      assetWords = allBlockWords.filter(w =>
-        w.start >= assetAudioStart - 0.10
+    if (Number.isFinite(speechEnd) && speechEnd > assetAudioStart) {
+      assetWords = allBlockWords.filter((w) =>
+        w.start >= assetAudioStart - 0.10 && w.end <= speechEnd + 0.08,
+      );
+    } else if (isLastAsset) {
+      assetWords = allBlockWords.filter((w) =>
+        w.start >= assetAudioStart - 0.10 && w.start <= narrationLastEnd + 0.08,
       );
     } else {
-      assetWords = allBlockWords.filter(w =>
-        w.start >= assetAudioStart - 0.10 && w.start < assetAudioEnd - 0.05
+      assetWords = allBlockWords.filter((w) =>
+        w.start >= assetAudioStart - 0.10 && w.start < assetAudioEnd - 0.05,
       );
     }
 
@@ -4257,9 +4272,11 @@ export default function App() {
 
       if (matched) {
 
+        asset.speech_end = parseFloat(matched.end.toFixed(3));
+
         if (idx === updatedAssets.length - 1) {
 
-          asset.fixed = parseFloat(Math.max(0.5, blockEnd - matched.start).toFixed(1));
+          asset.fixed = parseFloat(Math.max(0.5, matched.end - matched.start).toFixed(1));
 
         } else {
 

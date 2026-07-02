@@ -8,6 +8,7 @@ import {
   getBlockNarrationText,
   getBlockTimeBounds,
   getStrictBlockBounds,
+  collectBlockWordsFromTranscriptSegments,
   mapStoryboardWordsWithTiming,
   type BlockTimingStatus,
   type NarrationSyncContext,
@@ -145,6 +146,7 @@ export function resolveBlockWords(
   status: BlockTimingStatus | undefined,
   blockNum: number,
   ctx: NarrationSyncContext,
+  wordTranscripts?: any[],
 ): { blockStart: number; blockEnd: number; words: TranscriptWord[]; blockText: string } {
   const strict = getStrictBlockBounds(status, blockNum);
   const blockText = getBlockNarrationTextForTiming(ctx, blockNum);
@@ -152,6 +154,23 @@ export function resolveBlockWords(
 
   let words: TranscriptWord[] = [];
   const seen = new Set<string>();
+
+  const segmentWords = collectBlockWordsFromTranscriptSegments(wordTranscripts || [], blockNum);
+  if (segmentWords.length > 0) {
+    segmentWords.forEach((w) => {
+      const key = `${w.start.toFixed(3)}-${w.word}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      words.push({ word: w.word, start: w.start, end: w.end });
+    });
+    words = words.sort((a, b) => a.start - b.start);
+    return {
+      blockStart: words[0]?.start ?? strict.start,
+      blockEnd: words[words.length - 1]?.end ?? strict.end,
+      words,
+      blockText,
+    };
+  }
 
   if (blockText && flatWords.length) {
     const matched = findBoundedNarrationMatch(blockText, flatWords, bounds);
@@ -265,6 +284,7 @@ export function buildBlockTimingModel(
   flatWords: TranscriptWord[],
   status: BlockTimingStatus | undefined,
   ctx: NarrationSyncContext,
+  wordTranscripts?: any[],
 ): BlockTimingModel | null {
   if (!assets.length) return null;
 
@@ -274,6 +294,7 @@ export function buildBlockTimingModel(
     status,
     blockNum,
     ctx,
+    wordTranscripts,
   );
 
   const blockDuration = Math.max(MIN_SCENE_SECONDS, blockEnd - blockStart);
@@ -381,10 +402,15 @@ export function applyAudioStartsFromScenes(
   return assets.map((asset, idx) => {
     const scene = model.scenes[idx];
     if (!scene) return { ...asset };
+    const lastWord = scene.words[scene.words.length - 1];
+    const speechEnd = lastWord
+      ? parseFloat(Math.max(lastWord.end, scene.audioStart + 0.25).toFixed(3))
+      : undefined;
     return {
       ...asset,
       fixed: scene.duration,
       audio_start: parseFloat(scene.audioStart.toFixed(3)),
+      ...(speechEnd !== undefined ? { speech_end: speechEnd, synced_to_speech: true } : {}),
     };
   });
 }
@@ -419,6 +445,7 @@ export function syncBlockScenesToSpeech(
     const speechDur = Math.max(MIN_SCENE_SECONDS, matched.end - matched.start);
     next[idx].fixed = parseFloat(speechDur.toFixed(1));
     next[idx].audio_start = parseFloat(matched.start.toFixed(3));
+    next[idx].speech_end = parseFloat(matched.end.toFixed(3));
     next[idx].synced_to_speech = true;
     usedRanges.push({ start: matched.start, end: matched.end });
     aligned += 1;
