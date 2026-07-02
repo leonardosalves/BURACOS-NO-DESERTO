@@ -214,13 +214,10 @@ import {
   parseBlockNumber,
   buildVisualPromptsFromNarrationPrompt,
   mergeVisualPromptsRepair,
-  buildBatchScenePromptsAiRequest,
-  applyBatchScenePromptsAiResponse,
   normalizeScriptChecklist,
   isChecklistEmpty,
   buildScriptChecklistEvaluationPrompt,
   buildChecklistSchemaBlock,
-  VISUAL_PROMPT_SPECIFICITY_RULES,
 } from "./scriptQuality.js";
 import {
   applyDocumentaryHistoryPreset,
@@ -12041,18 +12038,15 @@ Regras dos Prompts Visuais:
 
 - CUBRA 100% DA NARRAÇÃO. Cada 1-2 frases da narração = 1 prompt visual. Nenhuma frase fica sem cobertura visual.
 
-${format === "SHORTS"
-    ? `- SHORTS: mínimo 3 cenas com type "vídeo IA (max 10s)" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento ativo. Distribua os vídeos ao longo do Short; não concentre todos no fim.
-- SHORTS: demais cenas = "imagem IA 2k" (photorealistic 2k, Ken Burns).`
-    : `- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
-- 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).`}
+- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
+
+- 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).
 
 - Prompts variados: close-ups, planos abertos, aéreas, texturas, detalhes, paisagens, mapas, infográficos visuais.
 
 - Nunca coloque texto dentro dos prompts visuais.
 
 - Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
-${VISUAL_PROMPT_SPECIFICITY_RULES}
 ${isListicle ? `
 - LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").
 - LISTICLE: gere "list_items" e "listicle" conforme especificado nas regras de listicle acima.` : ""}
@@ -12095,11 +12089,13 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
 
-     "prompt": "Descrição visual em INGLÊS apenas — NUNCA cole narration_text aqui. Traduza a cena: sujeito específico + ação + enquadramento (ex.: macro close-up of triangular beak with fluid streaming along lateral edges). Imagem: photorealistic 2k. Vídeo: cinematic motion, max 10s.",
+     "duration": "3 a 5 segundos",
+
+     "prompt": "Prompt cinematográfico completo em inglês (NUNCA vazio)",
 
      "editor_notes": "Como usar na edição: Ken Burns zoom in, dissolve, corte seco, etc. + justificativa imagem vs vídeo.",
 
-     "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
+     "stock_query": "termo curto em inglês"
 
    }
 
@@ -12166,8 +12162,6 @@ REGRAS FINAIS:
 - O JSON deve ser 100% válido. Escape aspas internas com barra invertida.
 
 - O array visual_prompts deve cobrir TODA a narração sem lacunas.
-
-- NÃO inclua "duration" nos visual_prompts — os segundos de cada cena vêm do Whisper após a narração.
 
 - Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
   }
@@ -12403,22 +12397,7 @@ REGRAS FINAIS:
           ideaTitle: idea.title,
         });
         if (deterministic.length) {
-          // Try AI-based batch prompt generation before using static glossary fallback
-          try {
-            const batchPrompt = buildBatchScenePromptsAiRequest(deterministic, { ideaTitle: idea.title });
-            const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
-              temperature: 0.7,
-              maxRetries: 2,
-              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-            });
-            const batchParsed = await parseAiJsonResponse(batchText, apiKey, "Batch scene prompts");
-            const aiEnhanced = applyBatchScenePromptsAiResponse(deterministic, Array.isArray(batchParsed) ? batchParsed : batchParsed?.scenes || []);
-            parsedData.visual_prompts = aiEnhanced;
-            console.log(`[Creator Script] visual_prompts fallback IA batch (${aiEnhanced.length} cenas com prompts cinematográficos).`);
-          } catch (batchErr) {
-            console.warn("[Creator Script] Fallback IA batch falhou, usando determinístico:", batchErr.message);
-            parsedData.visual_prompts = deterministic;
-          }
+          parsedData.visual_prompts = deterministic;
           parsedData.narrative_script = approvedNarration;
           if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
           if (!parsedData.technical_config?.script) {
@@ -12431,7 +12410,7 @@ REGRAS FINAIS:
               bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
             };
           }
-          console.log(`[Creator Script] visual_prompts fallback final (${parsedData.visual_prompts.length} cenas).`);
+          console.log(`[Creator Script] visual_prompts fallback determinístico (${deterministic.length} cenas).`);
         }
       }
     } else {
