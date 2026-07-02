@@ -1,5 +1,5 @@
 /**
- * HyperFrames caption modes portados para Remotion (Fase 1 + 2).
+ * HyperFrames caption modes portados para Remotion (catálogo completo — 17/17).
  */
 
 export const CAPTION_MODE_IDS = [
@@ -13,6 +13,13 @@ export const CAPTION_MODE_IDS = [
   "caption-matrix-decode",
   "caption-clip-wipe",
   "caption-particle-burst",
+  "caption-neon-accent",
+  "caption-emoji-pop",
+  "caption-editorial-emphasis",
+  "caption-parallax-layers",
+  "caption-texture",
+  "caption-blend-difference",
+  "morph-text",
 ];
 
 const LEGACY_SHORT_MODE = {
@@ -36,7 +43,9 @@ export function isCaptionModeId(raw) {
 }
 
 export function isWordByWordMode(mode) {
-  return mode !== "caption-pill-karaoke" && mode !== "caption-weight-shift";
+  return mode !== "caption-pill-karaoke"
+    && mode !== "caption-weight-shift"
+    && mode !== "caption-editorial-emphasis";
 }
 
 export function resolveCaptionChunkStyle(mode) {

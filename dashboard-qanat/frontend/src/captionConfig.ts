@@ -1,4 +1,4 @@
-/** HyperFrames caption modes portados para Remotion (Fase 1 + 2). */
+/** HyperFrames caption modes portados para Remotion (catálogo completo — 17/17). */
 
 export type CaptionModeId =
   | 'caption-highlight'
@@ -10,7 +10,14 @@ export type CaptionModeId =
   | 'caption-glitch-rgb'
   | 'caption-matrix-decode'
   | 'caption-clip-wipe'
-  | 'caption-particle-burst';
+  | 'caption-particle-burst'
+  | 'caption-neon-accent'
+  | 'caption-emoji-pop'
+  | 'caption-editorial-emphasis'
+  | 'caption-parallax-layers'
+  | 'caption-texture'
+  | 'caption-blend-difference'
+  | 'morph-text';
 
 export const CAPTION_MODE_IDS: CaptionModeId[] = [
   'caption-highlight',
@@ -23,6 +30,13 @@ export const CAPTION_MODE_IDS: CaptionModeId[] = [
   'caption-matrix-decode',
   'caption-clip-wipe',
   'caption-particle-burst',
+  'caption-neon-accent',
+  'caption-emoji-pop',
+  'caption-editorial-emphasis',
+  'caption-parallax-layers',
+  'caption-texture',
+  'caption-blend-difference',
+  'morph-text',
 ];
 
 export type CaptionStyleId = 'shorts-viral' | 'documentary';
@@ -48,6 +62,13 @@ export const SHORT_CAPTION_MODES: {
   { id: 'caption-matrix-decode', label: 'Matrix Decode', hint: 'Scramble de caracteres antes do reveal — caption-matrix-decode.', hyperframesId: 'caption-matrix-decode' },
   { id: 'caption-clip-wipe', label: 'Clip Wipe', hint: 'Revelação esquerda→direita por palavra — caption-clip-wipe.', hyperframesId: 'caption-clip-wipe' },
   { id: 'caption-particle-burst', label: 'Particle Burst', hint: 'Partículas coloridas na palavra ativa — caption-particle-burst.', hyperframesId: 'caption-particle-burst' },
+  { id: 'caption-neon-accent', label: 'Neon Accent', hint: 'Neon multicolor com wiggle — caption-neon-accent.', hyperframesId: 'caption-neon-accent' },
+  { id: 'caption-emoji-pop', label: 'Emoji Pop', hint: 'Emoji gigante com pop acima da palavra — caption-emoji-pop.', hyperframesId: 'caption-emoji-pop' },
+  { id: 'caption-editorial-emphasis', label: 'Editorial', hint: 'Serif + sans com contraste de escala — caption-editorial-emphasis.', hyperframesId: 'caption-editorial-emphasis' },
+  { id: 'caption-parallax-layers', label: 'Parallax Layers', hint: 'Profundidade simulada entre palavras — caption-parallax-layers.', hyperframesId: 'caption-parallax-layers' },
+  { id: 'caption-texture', label: 'Texture Fill', hint: 'Textura animada no preenchimento — caption-texture.', hyperframesId: 'caption-texture' },
+  { id: 'caption-blend-difference', label: 'Blend Difference', hint: 'Inversão automática mix-blend — caption-blend-difference.', hyperframesId: 'caption-blend-difference' },
+  { id: 'morph-text', label: 'Morph Text', hint: 'Transição gooey entre palavras — morph-text.', hyperframesId: 'morph-text' },
 ];
 
 export const LONG_CAPTION_MODES: {
@@ -66,6 +87,13 @@ export const LONG_CAPTION_MODES: {
   { id: 'caption-matrix-decode', label: 'Matrix Decode', hint: 'Texto decodificado letra a letra.', hyperframesId: 'caption-matrix-decode' },
   { id: 'caption-clip-wipe', label: 'Clip Wipe', hint: 'Wipe horizontal na palavra ativa.', hyperframesId: 'caption-clip-wipe' },
   { id: 'caption-particle-burst', label: 'Particle Burst', hint: 'Explosão de partículas no destaque.', hyperframesId: 'caption-particle-burst' },
+  { id: 'caption-neon-accent', label: 'Neon Accent', hint: 'Neon vibrante com drift físico.', hyperframesId: 'caption-neon-accent' },
+  { id: 'caption-editorial-emphasis', label: 'Editorial', hint: 'Tipografia editorial com ênfase dramática.', hyperframesId: 'caption-editorial-emphasis' },
+  { id: 'caption-parallax-layers', label: 'Parallax Layers', hint: 'Camadas com profundidade simulada.', hyperframesId: 'caption-parallax-layers' },
+  { id: 'caption-texture', label: 'Texture Fill', hint: 'Preenchimento com textura animada.', hyperframesId: 'caption-texture' },
+  { id: 'caption-blend-difference', label: 'Blend Difference', hint: 'Texto que inverte conforme o fundo.', hyperframesId: 'caption-blend-difference' },
+  { id: 'morph-text', label: 'Morph Text', hint: 'Morph suave entre palavras.', hyperframesId: 'morph-text' },
+  { id: 'caption-emoji-pop', label: 'Emoji Pop', hint: 'Emoji com pop elástico acima do texto.', hyperframesId: 'caption-emoji-pop' },
 ];
 
 /** Compat: UI antiga style + effect */
@@ -95,7 +123,9 @@ export function isCaptionModeId(raw?: string): raw is CaptionModeId {
 }
 
 export function isWordByWordMode(mode: CaptionModeId): boolean {
-  return mode !== 'caption-pill-karaoke' && mode !== 'caption-weight-shift';
+  return mode !== 'caption-pill-karaoke'
+    && mode !== 'caption-weight-shift'
+    && mode !== 'caption-editorial-emphasis';
 }
 
 export function resolveCaptionChunkStyle(mode: CaptionModeId): CaptionStyleId {
