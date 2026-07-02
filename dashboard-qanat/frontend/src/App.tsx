@@ -5266,13 +5266,14 @@ export default function App() {
 
       } else {
 
-        toast.error(data.error || 'Erro ao salvar configurações.');
+        const detail = data.details ? ` (${data.details})` : '';
+        toast.error((data.error || 'Erro ao salvar configurações.') + detail);
 
       }
 
     } catch (err) {
 
-      toast.error('Falha de conexão ao salvar configurações.');
+      toast.error(err instanceof Error ? err.message : 'Falha de conexão ao salvar configurações.');
 
     } finally {
 

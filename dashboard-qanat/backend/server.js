@@ -7759,94 +7759,68 @@ app.post("/api/ai/settings", (req, res) => {
   } = req.body || {};
 
   try {
+    const applyAiSettings = (config = {}) => {
+      const next = { ...config };
+
+      if (provider === "gemini" || provider === "xai" || provider === "openrouter" || provider === "nvidia") {
+        next.ai_provider = provider;
+      }
+
+      if (typeof gemini_model === "string" && gemini_model.trim()) {
+        const normalizedModel = gemini_model.trim();
+        if (GEMINI_MODEL_FALLBACKS.includes(normalizedModel)) {
+          next.gemini_model = normalizedModel;
+        }
+      }
+
+      const parsedGeminiKeys = normalizeApiKeys(gemini_keys, gemini_key);
+      if (parsedGeminiKeys.length > 0) {
+        next.gemini_api_keys = parsedGeminiKeys;
+        next.gemini_api_key = parsedGeminiKeys[0];
+      }
+
+      if (typeof xai_key === "string" && xai_key.trim()) {
+        const trimmedXaiKey = xai_key.trim();
+        next.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
+      }
+
+      if (typeof openrouter_key === "string" && openrouter_key.trim()) {
+        next.openrouter_api_key = openrouter_key.trim();
+      }
+
+      if (typeof nvidia_key === "string" && nvidia_key.trim()) {
+        next.nvidia_api_key = nvidia_key.trim();
+      }
+
+      if (typeof epidemic_sound_key === "string") {
+        next.epidemic_sound_key = epidemic_sound_key.trim();
+      }
+
+      if (typeof gemini_browser_mode === "boolean") {
+        next.gemini_browser_mode = gemini_browser_mode;
+      }
+
+      return next;
+    };
+
     for (const configPath of configPaths) {
-      if (!fs.existsSync(configPath) && configPath !== path.join(WORKSPACE_DIR, "config_qanat.json")) {
-        continue;
-      }
-      let config = readJsonFile(configPath) || {};
-
-    if (provider === "gemini" || provider === "xai" || provider === "openrouter" || provider === "nvidia") {
-
-      config.ai_provider = provider;
-
-    }
-
-    if (typeof gemini_model === "string" && gemini_model.trim()) {
-
-      const normalizedModel = gemini_model.trim();
-
-      if (GEMINI_MODEL_FALLBACKS.includes(normalizedModel)) {
-
-        config.gemini_model = normalizedModel;
-
-      }
-
-    }
-
-    const parsedGeminiKeys = normalizeApiKeys(gemini_keys, gemini_key);
-
-    if (parsedGeminiKeys.length > 0) {
-
-      config.gemini_api_keys = parsedGeminiKeys;
-
-      config.gemini_api_key = parsedGeminiKeys[0];
-
-    }
-
-    if (typeof xai_key === "string" && xai_key.trim()) {
-
-      const trimmedXaiKey = xai_key.trim();
-
-      config.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
-
-    }
-
-    if (typeof openrouter_key === "string" && openrouter_key.trim()) {
-
-      config.openrouter_api_key = openrouter_key.trim();
-
-    }
-
-    if (typeof nvidia_key === "string" && nvidia_key.trim()) {
-
-      config.nvidia_api_key = nvidia_key.trim();
-
-    }
-
-    if (typeof epidemic_sound_key === "string") {
-
-      config.epidemic_sound_key = epidemic_sound_key.trim();
-
-    }
-
-    if (typeof gemini_browser_mode === "boolean") {
-      config.gemini_browser_mode = gemini_browser_mode;
-    }
-
+      const isWorkspaceConfig = configPath === path.join(WORKSPACE_DIR, "config_qanat.json");
+      if (!fs.existsSync(configPath) && !isWorkspaceConfig) continue;
+      const config = applyAiSettings(readJsonFile(configPath) || {});
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     }
 
     res.json({
-
       success: true,
-
-      provider: config.ai_provider || "gemini",
-
+      provider: getAiProvider(projDir),
       gemini_model: getGeminiModel(projDir),
-
       gemini_model_options: GEMINI_MODEL_OPTIONS,
-
       gemini_key_count: getApiKeys(projDir).length,
-
       has_xai_key: !!getXaiApiKey(projDir),
-
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
       has_nvidia_key: !!getNvidiaApiKey(projDir),
-
       has_epidemic_key: true,
-
-      gemini_browser_mode: getGeminiBrowserMode(config),
-
+      gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
     });
 
   } catch (err) {
