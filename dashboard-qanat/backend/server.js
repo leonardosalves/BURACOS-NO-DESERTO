@@ -298,6 +298,7 @@ import {
   realignTimelineAssetsToSpeech,
   recalculateSequentialAudioStarts,
   syncProjectTimelineAfterWhisper,
+  applyWhisperDurationsToStoryboard,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
 import { hasMojibakeDeep, repairStoryboardEncoding } from "./textEncoding.js";
@@ -13220,9 +13221,9 @@ activeChild = child1;
               : {};
             const wordTranscripts = JSON.parse(fs.readFileSync(wordsPath, "utf8"));
             const flatWords = flattenWordTranscripts(wordTranscripts);
-            if (cfg.timeline_assets && flatWords.length) {
+            if (flatWords.length) {
               const synced = syncProjectTimelineAfterWhisper({
-                timelineAssets: cfg.timeline_assets,
+                timelineAssets: cfg.timeline_assets || {},
                 blockTimings: fs.existsSync(timingsPath)
                   ? JSON.parse(fs.readFileSync(timingsPath, "utf8"))
                   : { starts: [], durations: [] },
@@ -13230,14 +13231,18 @@ activeChild = child1;
                 flatTranscriptWords: flatWords,
                 visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
                 blockPhrases: Array.isArray(cfg.block_phrases) ? cfg.block_phrases : [],
-                preserveExplicitFixed: true,
+                preserveExplicitFixed: false,
               });
               cfg.timeline_assets = synced.timelineAssets;
               fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
               if (synced.blockTimings?.starts?.length) {
                 fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
               }
-              sendLog("[Pipeline] Timeline e block_timings sincronizados com segmentos Whisper.");
+              if (fs.existsSync(storyboardPath)) {
+                const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts);
+                fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
+              }
+              sendLog("[Pipeline] Slots da timeline criados com segundos da voz (Whisper). Coloque os assets manualmente e salve.");
             }
           }
         } catch (syncErr) {
