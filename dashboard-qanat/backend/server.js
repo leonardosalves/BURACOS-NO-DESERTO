@@ -222,6 +222,8 @@ import {
   buildChecklistSchemaBlock,
   VISUAL_PROMPT_SPECIFICITY_RULES,
   buildVisualPromptEngineerRequest,
+  sanitizeVisualPromptDurations,
+  enforceShortsVideoSceneMix,
 } from "./scriptQuality.js";
 import {
   applyDocumentaryHistoryPreset,
@@ -12747,13 +12749,27 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       storyboard._vpe_style_notes = parsed.style_adaptation_notes;
     }
 
-    storyboard = normalizeVisualPromptBlocks(storyboard, {
-      blockCount: isListicle
-        ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-        : (format === "SHORTS" ? 5 : 12),
-      format,
-      ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
+    // VPE PRO: prompts já são de alta qualidade — NÃO passar por enrichVisualPromptsSpecificity
+    // Apenas normalizar blocos/cenas e aplicar mix de vídeo/imagem para Shorts
+    const vps = storyboard.visual_prompts || [];
+    const expectedBlocks = isListicle
+      ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+      : (format === "SHORTS" ? 5 : 12);
+    // Normalize block numbers
+    storyboard.visual_prompts = vps.map((vp, index) => {
+      const block = parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena)
+        ?? Math.min(expectedBlocks, Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1);
+      const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
+      const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
+      return {
+        ...vp,
+        block,
+        scene: sceneInBlock ? sceneStr : `${block}.${index + 1}`,
+      };
     });
+    storyboard.visual_prompts = sanitizeVisualPromptDurations(
+      enforceShortsVideoSceneMix(storyboard.visual_prompts, { format }),
+    );
 
     fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
 

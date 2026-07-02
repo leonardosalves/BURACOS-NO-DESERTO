@@ -255,8 +255,12 @@ function normalizeText(text = "") {
 }
 
 function hasPortugueseInPrompt(prompt = "") {
-  return /[àáâãéêíóôõúç]/i.test(prompt)
-    || /\b(o|a|os|as|que|para|pelo|pela|está|esta|segredo|fluido|bico)\b/i.test(prompt);
+  // Accented characters are a strong Portuguese indicator
+  if (/[àáâãéêíóôõúç]/i.test(prompt)) return true;
+  // Check for distinctly Portuguese words (3+ chars to avoid "a"/"o" false positives with English)
+  // NEVER match single-letter words like "a", "o" — they are also English articles/prepositions
+  const ptWords = /\b(que|para|pelo|pela|está|esta|esse|essa|isso|como|mais|sobre|quando|porque|entre|desde|ainda|muito|cada|outro|outra|mesmo|mesma|segredo|fluido|bico|onde|você|voce|nosso|nossa|então|entao)\b/i;
+  return ptWords.test(prompt);
 }
 
 function findSpeciesInNarration(narration = "") {
