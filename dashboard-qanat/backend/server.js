@@ -221,6 +221,7 @@ import {
   buildScriptChecklistEvaluationPrompt,
   buildChecklistSchemaBlock,
   VISUAL_PROMPT_SPECIFICITY_RULES,
+  buildVisualPromptEngineerRequest,
 } from "./scriptQuality.js";
 import {
   applyDocumentaryHistoryPreset,
@@ -12052,6 +12053,12 @@ ${format === "SHORTS"
 - Nunca coloque texto dentro dos prompts visuais.
 
 - Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
+
+- REGRA INQUEBRÁVEL DE TEXTO PT-BR: Se a cena incluir text_overlay, impact_text, rótulo, número, display ou QUALQUER texto visível na imagem/vídeo, adicione ao final do prompt: "Todo e qualquer texto, rótulo, número, inscrição, legenda, display ou elemento visível e legível na imagem ou vídeo deve estar escrito em português do Brasil. Exemplos: '1,4 VOLTS', '#3 — AÇO DE DAMASCO', 'R$ 47.900'. Nunca gere texto em inglês."
+
+- COMPOSIÇÃO DE ASPECTO: ${format === "SHORTS"
+    ? "Composição vertical 9:16, framing apertado, sujeito centralizado ou em terços superiores/inferiores."
+    : "Composição widescreen 16:9, shots amplos ou pans horizontais quando apropriado, profundidade de campo cinematográfica."}
 ${VISUAL_PROMPT_SPECIFICITY_RULES}
 ${isListicle ? `
 - LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").
@@ -12677,6 +12684,84 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
   } catch (err) {
     console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
     res.status(500).json({ error: "Erro ao reparar cenas do roteiro", details: err.message });
+  }
+});
+
+// --- Visual Prompt Engineer PRO (premium reprocessing) ---
+app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  try {
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const narrative = String(storyboard.narrative_script || "").trim();
+    if (!narrative) {
+      return res.status(400).json({ error: "Não há narrative_script no storyboard." });
+    }
+    if (!Array.isArray(storyboard.visual_prompts) || storyboard.visual_prompts.length === 0) {
+      return res.status(400).json({ error: "Não há visual_prompts no storyboard para reprocessar." });
+    }
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const format = config.video_format || "LONGO";
+    const isListicle = config.content_mode === "LISTICLE" || storyboard.listicle?.content_mode === "LISTICLE";
+    const listicleRank = config.rank_count || storyboard.listicle?.rank_count || 0;
+    const rankOrder = config.rank_order || storyboard.listicle?.rank_order || "desc";
+
+    const { systemPrompt, userPrompt, detectedNiche } = buildVisualPromptEngineerRequest(storyboard, {
+      format,
+      isListicle,
+      listicleRank,
+      rankOrder,
+    });
+
+    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "✨ Engenharia Visual PRO",
+      prompt: fullPrompt,
+      temperature: 0.7,
+    });
+    if (responseText == null) return;
+
+    const isBrowserResponse = !!extractBrowserResponse(req.body);
+    const parsed = normalizeKeys(await parseAiJsonResponse(
+      responseText,
+      isBrowserResponse ? null : (getApiKey(projDir) || getApiKey(settingsDir)),
+      "Visual Prompt Engineer PRO",
+    ));
+
+    if (Array.isArray(parsed.visual_prompts) && parsed.visual_prompts.length > 0) {
+      storyboard.visual_prompts = parsed.visual_prompts;
+    }
+    storyboard.narrative_script = narrative;
+
+    // Persist checklist and style notes
+    if (parsed.checklist) {
+      storyboard._vpe_checklist = parsed.checklist;
+    }
+    if (parsed.style_adaptation_notes) {
+      storyboard._vpe_style_notes = parsed.style_adaptation_notes;
+    }
+
+    storyboard = normalizeVisualPromptBlocks(storyboard, {
+      blockCount: isListicle
+        ? resolveListicleBlockCount({ rankCount: listicleRank, format })
+        : (format === "SHORTS" ? 5 : 12),
+      format,
+      ideaTitle: storyboard.strategy?.title_main || config.niche || "Vídeo",
+    });
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+
+    console.log(`[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`);
+    res.json(storyboard);
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
+    res.status(500).json({ error: "Erro ao aprimorar prompts visuais", details: err.message });
   }
 });
 

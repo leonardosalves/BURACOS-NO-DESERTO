@@ -1,4 +1,12 @@
-- [x] Ajustar `align_transcripts.py` com Levenshtein Fuzzy Matching, Lookahead e Interpolação Monotônica
-- [x] Executar `align_transcripts.py` para gerar novos tempos
-- [/] Executar `build_video.py` para renderizar o vídeo final
-- [ ] Commitar e dar push no Git
+- [x] **1. Fix scenePromptSpecificity.js** — glossários, word boundary, focal description
+  - [x] 1.1 Fix word boundary matching (evitar "ar" dentro de "arrastaram")
+  - [x] 1.2 Expandir glossários com termos de engenharia/construção
+  - [x] 1.3 Melhorar `buildVisualFocalDescription` para não gerar aberrações
+  - [x] 1.4 Tratar nomes próprios corretamente
+- [x] **2. Add batch AI prompt function** em `scriptQuality.js`
+  - [x] 2.1 Criar `buildBatchScenePromptsAiRequest()`
+  - [x] 2.2 Criar `applyBatchScenePromptsAiResponse()`
+- [x] **3. Update server.js** — usar AI fallback antes do determinístico
+  - [x] 3.1 Importar novas funções
+  - [x] 3.2 Modificar fallback no wizard passo 2
+- [x] **4. Commit + restart backend**
