@@ -225,19 +225,20 @@ def main():
             if not seg_words:
                 continue
                 
-            # Guarantee monotonicity without scrambling start/end pairs
-            seg_words.sort(key=lambda w: float(w.get('start', 0)))
+            # Guarantee strict timestamp monotonicity in the exact order of the original script.
+            # DO NOT sort by 'start' as it scrambles the narration sentence words!
             for k in range(len(seg_words)):
-                s = float(seg_words[k].get('start', 0))
-                e = float(seg_words[k].get('end', s + 0.15))
+                s = float(seg_words[k].get('start', 0.0) if seg_words[k].get('start') is not None else 0.0)
+                if k > 0:
+                    prev_end = float(seg_words[k - 1]['end'])
+                    if s < prev_end:
+                        s = prev_end
+                e = float(seg_words[k].get('end', s + 0.15) if seg_words[k].get('end') is not None else s + 0.15)
                 if e <= s:
                     e = s + 0.15
-                if k < len(seg_words) - 1:
-                    next_s = float(seg_words[k + 1].get('start', s + 0.15))
-                    e = min(e, max(s + 0.08, next_s - 0.02))
                 seg_words[k]['start'] = s
                 seg_words[k]['end'] = e
-                
+            
             # The start/end of the segment is defined by its words
             seg_start = seg_words[0]['start']
             seg_end = seg_words[-1]['end']
