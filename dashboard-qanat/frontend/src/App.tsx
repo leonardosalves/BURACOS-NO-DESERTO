@@ -98,6 +98,8 @@ import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { WorkflowToolkit } from './WorkflowToolkit';
 import { useGeminiBrowserBridge } from './GeminiBrowserBridge';
 import { fetchGeminiAi } from './geminiAiFetch';
+import { AiJobProgressBar } from './AiJobProgressBar';
+import { createProgressJobId, startAiJobProgress, stopAiJobProgress } from './aiJobProgressClient';
 import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
 import { captureGeminiNarrationNow, diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
 import { TabErrorBoundary } from './TabErrorBoundary';
@@ -1470,10 +1472,16 @@ export default function App() {
   const postAi = useCallback(async (
     path: string,
     init: RequestInit = { method: 'POST' },
+    progress?: { jobId?: string },
   ) => fetchGeminiAi(
     getProjectUrl(path),
     init,
-    { geminiBrowserMode, aiProvider, resolveBrowserResponse },
+    {
+      geminiBrowserMode,
+      aiProvider,
+      resolveBrowserResponse,
+      progressJobId: progress?.jobId,
+    },
   ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
 
   const aiProviderBadge = useMemo(() => {
@@ -6845,23 +6853,29 @@ export default function App() {
     setCreatorLoadingMode('narration');
     setGeneratedScriptData(null);
     setShowNarrationReview(false);
-    toast.loading('Gerando narração…', { id: toastId });
+    const progressJobId = createProgressJobId();
+    const progressTitle = ideationTab === 'listicle'
+      ? `Narração Top ${rankCount}`
+      : 'Gerar narração';
+    startAiJobProgress(progressJobId, progressTitle);
 
     try {
       const { ok, data } = await postAi('/api/ai/creator/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      }, { jobId: progressJobId });
       if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
         const scriptLen = String(data.narrative_script || '').trim().length;
         if (scriptLen < 80) {
+          stopAiJobProgress(false, 'Resposta incompleta — tente de novo.');
           toast.error(
             'Resposta do Gemini incompleta — o chat não terminou. Veja gemini.google.com, espere o JSON completo e clique em Gerar Narração de novo.',
-            { id: toastId, duration: 10000 },
+            { duration: 10000 },
           );
         } else {
+          stopAiJobProgress(true);
           applyNarrationGenerationResult(
             data,
             projectName,
@@ -6869,18 +6883,18 @@ export default function App() {
             data.notebooklm_enriched
               ? 'Narração pronta (NotebookLM) — revise antes do roteiro.'
               : 'Narração gerada — revise antes do roteiro.',
-            toastId,
           );
           await fetchProjects();
           setActiveProject(projectName);
         }
       } else if (token === creatorGenTokenRef.current) {
         const errMsg = [data.error, data.details].filter(Boolean).join(' — ') || 'Erro ao gerar narração.';
-        toast.error(String(errMsg), { id: toastId, duration: 10000 });
+        stopAiJobProgress(false, String(errMsg));
       }
     } catch (err: unknown) {
       if (token === creatorGenTokenRef.current) {
-        toast.error(err instanceof Error ? err.message : 'Falha na geração da narração.', { id: toastId });
+        const msg = err instanceof Error ? err.message : 'Falha na geração da narração.';
+        stopAiJobProgress(false, msg);
       }
     } finally {
       if (token === creatorGenTokenRef.current) {
@@ -7030,6 +7044,11 @@ export default function App() {
     const token = bumpCreatorGenToken();
     setCreatorLoading(true);
     setCreatorLoadingMode('full');
+    const progressJobId = createProgressJobId();
+    const progressTitle = ideationTab === 'listicle'
+      ? `Roteiro Top ${rankCount}`
+      : 'Roteiro completo';
+    startAiJobProgress(progressJobId, progressTitle);
 
     try {
       const { ok, data } = await postAi('/api/ai/creator/script', {
@@ -7039,9 +7058,10 @@ export default function App() {
           approvedNarration: approved,
           approvedNarrationTagged: narrationTaggedDraft.trim() || undefined,
         })),
-      });
+      }, { jobId: progressJobId });
       if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
+        stopAiJobProgress(true);
         setGeneratedScriptData(data);
         setCreatorScript(data.narrative_script || approved);
         const blockNums = [...new Set(
@@ -7060,10 +7080,11 @@ export default function App() {
       } else if (token === creatorGenTokenRef.current) {
         const detail = data.details ? `: ${data.details}` : '';
         const hint = data.hint ? ` ${data.hint}` : '';
-        toast.error(`${data.error || 'Erro ao gerar roteiro completo'}${detail}${hint}`);
+        stopAiJobProgress(false, `${data.error || 'Erro ao gerar roteiro completo'}${detail}${hint}`);
       }
     } catch (err: unknown) {
       if (token === creatorGenTokenRef.current) {
+        stopAiJobProgress(false, err instanceof Error ? err.message : 'Falha ao gerar roteiro.');
         console.error(err);
         toast.error(err instanceof Error ? err.message : 'Conexão falhou ao gerar roteiro.');
       }
@@ -8915,6 +8936,8 @@ export default function App() {
   return (
 
     <>
+      <AiJobProgressBar />
+
       <Toaster
         position="top-right"
         toastOptions={{

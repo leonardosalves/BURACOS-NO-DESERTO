@@ -74,10 +74,26 @@ export async function fetchGeminiAi(
     aiProvider: string;
     resolveBrowserResponse: GeminiBrowserResolver;
     timeoutMs?: number;
+    progressJobId?: string;
   },
 ): Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest }> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_AI_FETCH_TIMEOUT_MS;
-  const firstRes = await fetchWithTimeout(url, init, timeoutMs);
+  const progressJobId = opts.progressJobId;
+  let requestInit = init;
+  if (progressJobId && typeof init.body === 'string') {
+    try {
+      const parsed = JSON.parse(init.body) as Record<string, unknown>;
+      if (!parsed.progress_job_id) {
+        requestInit = {
+          ...init,
+          body: JSON.stringify({ ...parsed, progress_job_id: progressJobId }),
+        };
+      }
+    } catch {
+      /* keep original body */
+    }
+  }
+  const firstRes = await fetchWithTimeout(url, requestInit, timeoutMs);
   let data: GeminiBrowserRequest = {};
   try {
     data = await firstRes.json();
@@ -89,6 +105,14 @@ export async function fetchGeminiAi(
     if (!opts.geminiBrowserMode) {
       console.warn('[Lumiera] Gemini pediu modo navegador — aguardando extensão.');
     }
+    if (progressJobId) {
+      const { reportClientProgress } = await import('./aiJobProgressClient');
+      await reportClientProgress(progressJobId, {
+        phase: 'browser_gemini',
+        label: 'Consultando gemini.google.com…',
+        percent: 62,
+      });
+    }
     const browserResponse = String(
       await opts.resolveBrowserResponse({
         prompt: data.prompt,
@@ -96,6 +120,14 @@ export async function fetchGeminiAi(
         instructions: data.instructions,
       }) || '',
     ).trim();
+    if (progressJobId) {
+      const { reportClientProgress } = await import('./aiJobProgressClient');
+      await reportClientProgress(progressJobId, {
+        phase: 'browser_apply',
+        label: 'Aplicando resposta do Gemini…',
+        percent: 68,
+      });
+    }
 
     if (!browserResponse) {
       return {
@@ -115,9 +147,9 @@ export async function fetchGeminiAi(
     };
 
     const secondRes = await fetchWithTimeout(url, {
-      ...init,
-      method: init.method || 'POST',
-      headers: jsonRequestHeaders(init),
+      ...requestInit,
+      method: requestInit.method || 'POST',
+      headers: jsonRequestHeaders(requestInit),
       body: JSON.stringify(body),
     }, timeoutMs);
     const secondData: GeminiBrowserRequest = await secondRes.json().catch(() => ({}));

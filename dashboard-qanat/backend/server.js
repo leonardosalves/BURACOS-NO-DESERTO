@@ -287,6 +287,14 @@ import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./forma
 import { buildPreRenderAdvice } from "./preRenderAdvice.js";
 import { resolveObsidianNotesForNiche } from "./obsidianMemoryContext.js";
 import {
+  createProgressReporter,
+  finishJobProgress,
+  failJobProgress,
+  getJobProgress,
+  normalizeJobId,
+  setJobProgress,
+} from "./aiJobProgress.js";
+import {
   getObsidianVaultStatus,
   openInObsidian,
   ensureObsidianVault,
@@ -7589,6 +7597,27 @@ async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
 
 // API: Check if Gemini API key exists
 
+app.get("/api/ai/progress/:jobId", (req, res) => {
+  const job = getJobProgress(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({ error: "Job não encontrado", percent: 0, label: "Aguardando…", phase: "unknown" });
+  }
+  res.json(job);
+});
+
+app.post("/api/ai/progress/:jobId", (req, res) => {
+  const id = normalizeJobId(req.params.jobId);
+  if (!id) return res.status(400).json({ error: "jobId inválido" });
+  const { phase, label, percent, detail } = req.body || {};
+  setJobProgress(id, {
+    phase: phase || "client",
+    label: label || "Processando…",
+    percent: Number(percent) || 0,
+    detail: detail || "",
+  });
+  res.json({ ok: true });
+});
+
 app.get("/api/ai/key-status", (req, res) => {
 
   const projDir = getProjectDir(req);
@@ -11706,9 +11735,13 @@ app.post("/api/ai/creator/script", async (req, res) => {
   const scriptPhase = phase === "narration" ? "narration" : "full";
   const approvedNarration = String(approvedNarrationRaw || "").trim();
   const approvedNarrationTagged = String(approvedNarrationTaggedRaw || "").trim();
+  const progressJobId = normalizeJobId(req.body?.progress_job_id);
+  const report = createProgressReporter(progressJobId);
+  const phaseTitle = scriptPhase === "narration" ? "Narração" : "Roteiro completo";
+  report("prepare", `${phaseTitle}: validando projeto…`, 4);
 
   if (!niche || !format || !idea || !project) {
-
+    failJobProgress(progressJobId, "Dados obrigatórios ausentes.");
     return res.status(400).json({ error: "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios." });
 
   }
@@ -11732,8 +11765,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
   const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json")) ? projDir : settingsDir;
 
   if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(settingsDir) && !getApiKey(projDir) && !getApiKey(settingsDir)) {
+    failJobProgress(progressJobId, "Chave de API não configurada.");
     return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
   }
+
+  report("project", "Preparando pasta do projeto…", 10);
 
   // Automatically create and template project directory on-the-fly if it doesn't exist
 
@@ -11824,6 +11860,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
   let notebooklmContext = "";
   let notebooklmResearch = null;
   if (useNotebooklm !== false && !skipNotebooklmScript) {
+    report("notebooklm", "Consultando NotebookLM…", 18);
     try {
       console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
       notebooklmResearch = await fetchNotebooklmScriptContext({
@@ -11867,7 +11904,8 @@ app.post("/api/ai/creator/script", async (req, res) => {
       "PESQUISA WEB (AGENT REACH — SUA BUSCA)",
     );
     console.log(`[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`);
-  } else {
+  } else if (!webResearchContext) {
+    report("web_research", "Pesquisando fatos na web…", 26);
     try {
       console.log("[WebResearch] Pesquisando fatos com fontes para roteiro...");
       webResearchMeta = await fetchWebResearchForTopic({
@@ -12167,6 +12205,7 @@ REGRAS FINAIS:
 - Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
   }
 
+  report("prompt", "Montando prompt + memória Obsidian…", 34);
   promptSystem = injectStudioAgentsContext(promptSystem, WORKSPACE_DIR, {
     niche,
     task: "script",
@@ -12177,13 +12216,23 @@ REGRAS FINAIS:
   const apiKey = getApiKey(projDir) || getApiKey(settingsDir);
 
   try {
-
+    report(
+      "gemini",
+      scriptPhase === "narration"
+        ? "Gerando narração com IA…"
+        : "Gerando roteiro técnico com IA…",
+      shouldOfferGeminiBrowser(settingsDir) ? 48 : 52,
+    );
     responseText = await callGeminiLlm(req, res, llmDir, {
       title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
       prompt: promptSystem,
       temperature: isListicle ? 0.75 : 0.85,
     });
-    if (responseText == null) return;
+    if (responseText == null) {
+      report("browser_wait", "Aguardando resposta do Gemini no Chrome…", 58);
+      return;
+    }
+    report("parse", "Interpretando resposta da IA…", 64);
 
     const isBrowserResponse = !!extractBrowserResponse(req.body);
     let rawData;
@@ -12254,6 +12303,7 @@ REGRAS FINAIS:
       }
       const narrationLen = String(parsedData.narrative_script || "").trim().length;
       if (isBrowserResponse && narrationLen < 40 && responseText.length < 400) {
+        failJobProgress(progressJobId, "Resposta do Gemini incompleta.");
         return res.status(422).json({
           error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
           details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Use Capturar do Gemini no Lumiera.`,
@@ -12267,6 +12317,7 @@ REGRAS FINAIS:
       }
       try {
         if (skipPostProcess) throw new Error("skip_humanize");
+        report("humanize", "Humanizando narração…", 72);
         const repairPrompt = buildNarrationHumanizeRepairPrompt({
           format,
           ideaTitle: idea.title,
@@ -12302,6 +12353,7 @@ REGRAS FINAIS:
         && String(parsedData.narrative_script || "").trim().length >= 40
       ) {
         try {
+          report("notebooklm_enrich", "Enriquecendo narração com NotebookLM…", 82);
           console.log("[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)...");
           const improveResearch = await fetchNotebooklmScriptImprovements({
             backendDir: __dirname,
@@ -12347,7 +12399,9 @@ REGRAS FINAIS:
         notebooklm_enriched_at: notebooklmEnriched ? new Date().toISOString() : undefined,
         _creator_phase: "narration_pending",
       };
+      report("save", "Salvando narração no projeto…", 94);
       fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
+      finishJobProgress(progressJobId, "Narração pronta para revisão");
 
       return res.json({
         phase: "narration",
@@ -12362,6 +12416,7 @@ REGRAS FINAIS:
     }
 
     if (approvedNarration) {
+      report("visual_prompts", "Montando prompts visuais e list_items…", 70);
       parsedData.narrative_script = approvedNarration;
       if (approvedNarrationTagged) {
         parsedData.narrative_script_tagged = approvedNarrationTagged;
@@ -12583,10 +12638,14 @@ REGRAS FINAIS:
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
+    report("save", "Finalizando roteiro…", 96);
+    finishJobProgress(progressJobId, scriptPhase === "narration" ? "Narração concluída" : "Roteiro completo");
+
     res.json(parsedData);
 
   } catch (err) {
 
+    failJobProgress(progressJobId, err.message);
     console.error("Erro no endpoint /api/ai/creator/script:", err);
 
     if (responseText) {
