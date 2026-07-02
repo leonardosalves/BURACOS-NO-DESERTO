@@ -99,7 +99,11 @@ export function LumieraDubPanel({
       const dubEngines = engList.filter((e) => ['fish', 'voicebox', 'kokoro', 'edge'].includes(e.id));
       setEngines(dubEngines);
       const fish = dubEngines.find((e) => e.id === 'fish');
-      if (fish?.defaultVoice) setVoice(fish.defaultVoice);
+      setVoice((current) => {
+        const voices = fish?.voices || [];
+        if (current && voices.some((v) => v.id === current)) return current;
+        return fish?.defaultVoice || current || '__default__';
+      });
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao carregar fontes de dublagem.');
     } finally {
@@ -113,7 +117,12 @@ export function LumieraDubPanel({
 
   useEffect(() => {
     const eng = engines.find((e) => e.id === engine);
-    if (eng?.defaultVoice) setVoice(eng.defaultVoice);
+    if (!eng) return;
+    setVoice((current) => {
+      const voices = eng.voices || [];
+      if (current && voices.some((v) => v.id === current)) return current;
+      return eng.defaultVoice || current;
+    });
   }, [engine, engines]);
 
   const voiceGroups = useMemo(() => {

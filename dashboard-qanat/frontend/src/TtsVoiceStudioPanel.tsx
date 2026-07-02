@@ -78,6 +78,8 @@ export function TtsVoiceStudioPanel({
 
   const fishPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
   const fishPreviewUrlRef = useRef<string | null>(null);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const [vbVoice, setVbVoice] = useState('');
   const [vbEngine, setVbEngine] = useState('chatterbox');
@@ -88,6 +90,17 @@ export function TtsVoiceStudioPanel({
   const voiceboxEngine = engines.find((e) => e.id === 'voicebox');
   const activeEngine = studioEngine === 'fish' ? fishEngine : voiceboxEngine;
 
+  const pickValidVoice = (
+    current: string,
+    voices: TtsVoiceOption[] = [],
+    fallback = '',
+  ) => {
+    if (current && voices.some((v) => v.id === current)) return current;
+    if (fallback && voices.some((v) => v.id === fallback)) return fallback;
+    const first = voices.find((v) => v.id && v.id !== '__configure__');
+    return first?.id || current || fallback;
+  };
+
   const loadEngines = useCallback(async () => {
     setLoadingEngines(true);
     try {
@@ -97,15 +110,24 @@ export function TtsVoiceStudioPanel({
       setEngines(list);
       const fish = list.find((e) => e.id === 'fish');
       const vb = list.find((e) => e.id === 'voicebox');
-      if (fish?.defaultVoice) setFishVoice(fish.defaultVoice);
-      if (vb?.defaultVoice && vb.defaultVoice !== '__configure__') setVbVoice(vb.defaultVoice);
-      else if (vb?.voices?.[0]?.id && vb.voices[0].id !== '__configure__') setVbVoice(vb.voices[0].id);
+      setFishVoice((current) => pickValidVoice(
+        current,
+        fish?.voices || [],
+        fish?.defaultVoice || '__default__',
+      ));
+      setVbVoice((current) => pickValidVoice(
+        current,
+        vb?.voices || [],
+        vb?.defaultVoice && vb.defaultVoice !== '__configure__'
+          ? vb.defaultVoice
+          : (vb?.voices?.[0]?.id || ''),
+      ));
     } catch {
-      toast('Erro ao carregar motores TTS.');
+      toastRef.current('Erro ao carregar motores TTS.');
     } finally {
       setLoadingEngines(false);
     }
-  }, [getProjectUrl, toast]);
+  }, [getProjectUrl]);
 
   useEffect(() => {
     void loadEngines();
