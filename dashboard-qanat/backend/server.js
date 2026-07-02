@@ -5688,24 +5688,33 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
   if (flatTranscriptWords.length > 0 && config.timeline_assets) {
-    const realigned = realignTimelineAssetsToSpeech({
-      timelineAssets: config.timeline_assets,
-      blockTimings: timings,
-      flatTranscriptWords,
-      visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-      blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
-      preserveExplicitFixed: true,
-    });
-    config.timeline_assets = realigned;
-    try {
-      fs.writeFileSync(
-        path.join(projectDir, "config_qanat.json"),
-        JSON.stringify(config, null, 2),
-        "utf8",
-      );
-      console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
-    } catch (e) {
-      console.warn("[Remotion] Falha ao salvar timeline realinhada:", e.message);
+    // Verificar se o usuario ja sincronizou assets — se sim, respeitar os valores salvos
+    const anyBlockSynced = Object.values(config.timeline_assets).some(
+      assets => Array.isArray(assets) && assets.some(a => a.synced_to_speech)
+    );
+
+    if (!anyBlockSynced) {
+      const realigned = realignTimelineAssetsToSpeech({
+        timelineAssets: config.timeline_assets,
+        blockTimings: timings,
+        flatTranscriptWords,
+        visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+        blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+        preserveExplicitFixed: true,
+      });
+      config.timeline_assets = realigned;
+      try {
+        fs.writeFileSync(
+          path.join(projectDir, "config_qanat.json"),
+          JSON.stringify(config, null, 2),
+          "utf8",
+        );
+        console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
+      } catch (e) {
+        console.warn("[Remotion] Falha ao salvar timeline realinhada:", e.message);
+      }
+    } else {
+      console.log("[Remotion] timeline_assets ja sincronizados pelo usuario — preservando valores salvos.");
     }
   }
 

@@ -582,6 +582,14 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
     const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration));
     let start;
 
+    // Se o asset foi sincronizado pelo usuario, usar valores salvos diretamente
+    if (asset.synced_to_speech && Number.isFinite(Number(asset.audio_start))) {
+      start = Number(asset.audio_start);
+      sequentialCursor = start + duration;
+      timings.push({ index, start, duration, asset });
+      return;
+    }
+
     if (useLockedSequentialLayout) {
       start = index === 0 ? anchor : sequentialCursor;
       sequentialCursor = start + duration;
