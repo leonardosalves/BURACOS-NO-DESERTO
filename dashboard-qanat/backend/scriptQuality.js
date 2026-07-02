@@ -921,6 +921,7 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 - CADA objeto DEVE ter "prompt" em inglês (photorealistic 2k / cinematic motion).
 ${typeMixRule}
 - Nunca deixe narration_text ou prompt vazios.
+- NÃO inclua "duration" nem "duration_seconds" — os segundos de cada cena são calculados pelo Whisper após a narração (100% da voz, sem estimativa).
 - Inclua stock_query em inglês em cada cena.
 ${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}
 ${VISUAL_PROMPT_SPECIFICITY_RULES}`;
@@ -935,7 +936,6 @@ export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = fals
      "block": 1,
      "narration_text": "Trecho EXATO da narração aprovada para esta cena (1-2 frases, NUNCA vazio)",
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
-     "duration": "3 a 5 segundos",
      "prompt": "Prompt em inglês com sujeito ESPECÍFICO da cena (espécie, objeto, lugar nomeado) + ação exata do narration_text — nunca genérico",
      "editor_notes": "Ken Burns zoom in, dissolve, etc.",
      "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
@@ -988,6 +988,20 @@ export function needsVisualPromptsRepair(storyboard = {}, { blockCount = 5, form
   return false;
 }
 
+/** Remove durações inventadas pela IA — só mantém as gravadas pelo Whisper. */
+export function sanitizeVisualPromptDurations(visualPrompts = []) {
+  if (!Array.isArray(visualPrompts)) return [];
+  return visualPrompts.map((vp) => {
+    if (vp?.duration_from_whisper) return { ...vp };
+    const next = { ...vp };
+    delete next.duration;
+    delete next.duration_seconds;
+    delete next.duracao;
+    delete next.duracaoSegundos;
+    return next;
+  });
+}
+
 /**
  * Normaliza block/scene nos visual_prompts e redistribui quando a IA
  * devolveu poucas cenas ou concentrou tudo em um único bloco.
@@ -1033,17 +1047,21 @@ export function normalizeVisualPromptBlocks(
       ideaTitle,
     });
     if (deterministic.length > 0) {
-      result.visual_prompts = enrichVisualPromptsSpecificity(
-        enforceShortsVideoSceneMix(deterministic, { format }),
-        { strategyTitle: ideaTitle },
+      result.visual_prompts = sanitizeVisualPromptDurations(
+        enrichVisualPromptsSpecificity(
+          enforceShortsVideoSceneMix(deterministic, { format }),
+          { strategyTitle: ideaTitle },
+        ),
       );
       return result;
     }
   }
 
-  result.visual_prompts = enrichVisualPromptsSpecificity(
-    enforceShortsVideoSceneMix(normalized, { format }),
-    { strategyTitle: ideaTitle },
+  result.visual_prompts = sanitizeVisualPromptDurations(
+    enrichVisualPromptsSpecificity(
+      enforceShortsVideoSceneMix(normalized, { format }),
+      { strategyTitle: ideaTitle },
+    ),
   );
   return result;
 }
@@ -1065,7 +1083,6 @@ export function buildVisualPromptsFromNarrationPrompt({
         scene: vp.scene,
         block: vp.block,
         type: vp.type || "imagem IA 2k",
-        duration: vp.duration || "5 segundos",
       })),
       null,
       2,
@@ -1092,7 +1109,7 @@ TAREFA: Gere visual_prompts cobrindo 100% da narração + technical_config com:
 
 Responda APENAS JSON:
 {
-  "visual_prompts": [ { "scene", "block", "narration_text", "type", "duration", "prompt", "editor_notes", "stock_query" } ],
+  "visual_prompts": [ { "scene", "block", "narration_text", "type", "prompt", "editor_notes", "stock_query" } ],
   "technical_config": {
     "script": "...",
     "block_phrases": [{"block": 1, "phrase": "..."}],
@@ -1471,7 +1488,6 @@ export function buildDeterministicVisualPromptsFromNarration(
       block: 1,
       narration_text,
       type: "imagem IA 2k",
-      duration: "5 segundos",
       editor_notes: "Ken Burns zoom in",
     };
     const prompt = buildSceneSpecificPrompt(sceneDraft);
@@ -1497,7 +1513,6 @@ export function buildDeterministicVisualPromptsFromNarration(
       block,
       narration_text: chunk,
       type: "imagem IA 2k",
-      duration: "4 segundos",
       editor_notes: "Ken Burns zoom in",
     };
     const prompt = buildSceneSpecificPrompt(sceneDraft);
