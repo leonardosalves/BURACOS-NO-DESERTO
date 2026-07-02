@@ -184,10 +184,12 @@ import {
   type CreatorApplyIdeaOptions,
   type EditorialIdeaImport,
   buildEditorialImportOutline,
+  buildOpenMontageCreatorOutline,
   coerceCreatorTextField,
   isClipFactorySource,
   isPioneerStrategyText,
   parseEditorialSourceProject,
+  resolveOpenMontageConcept,
   resolvePioneerCreatorSeed,
 } from './creatorEditorialImport';
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
@@ -6974,8 +6976,16 @@ export default function App() {
     options?: CreatorApplyIdeaOptions,
   ) => {
     const autoRun = options?.autoRun === true;
-    const safeTitle = coerceCreatorTextField(title, '');
-    const safeHook = coerceCreatorTextField(hookPt, safeTitle);
+    const om = options?.openMontage;
+    const omConcept = om?.brief ? resolveOpenMontageConcept(om.brief, om.conceptId) : undefined;
+    const safeTitle = coerceCreatorTextField(
+      omConcept?.title || title,
+      om?.brief?.creator_title || '',
+    );
+    const safeHook = coerceCreatorTextField(
+      hookPt,
+      om?.brief?.creator_hook || omConcept?.title || safeTitle,
+    );
     const isPioneer = options?.mechanic === 'pioneer-niche' || Boolean(options?.pioneerMeta);
     const pioneerSeed = isPioneer
       ? resolvePioneerCreatorSeed(safeTitle, safeHook, options?.pioneerMeta, options?.whyWorks)
@@ -6983,6 +6993,14 @@ export default function App() {
     const cleaned = pioneerSeed?.title || cleanYoutubeStudioIdeaSeed(safeTitle, safeHook);
     const hook = pioneerSeed?.hook
       || (isPioneerStrategyText(safeHook) ? cleaned : (safeHook || cleaned));
+    const openMontageOutline = om?.brief
+      ? buildOpenMontageCreatorOutline({
+          brief: om.brief,
+          conceptId: om.conceptId,
+          referenceUrl: om.referenceUrl,
+          referenceTitle: om.referenceTitle,
+        })
+      : undefined;
     const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
     const format = options?.format || 'SHORTS';
     const projectSlug = slugCreatorProjectFromTitle(hook || cleaned);
@@ -6993,12 +7011,13 @@ export default function App() {
       hookPt: hook,
       format,
       editorialItemId: options?.editorialItemId,
-      mechanic: options?.mechanic,
+      mechanic: options?.mechanic || (om?.brief ? 'openmontage-reference' : undefined),
       whyWorks: options?.whyWorks,
-      source: options?.source,
+      source: options?.source || (om?.referenceUrl ? `openmontage:${om.referenceUrl}` : undefined),
       sourceProject,
       sourceBlock: options?.sourceBlock ?? (mechanicBlock ? Number(mechanicBlock[1]) : undefined),
       pioneerMeta: options?.pioneerMeta,
+      openMontageOutline,
     };
 
     cancelCreatorGeneration();
@@ -7031,11 +7050,13 @@ export default function App() {
       }).catch(() => {});
     }
 
-    const originLabel = isClipFactorySource(options?.source)
-      ? `Clip Factory · ${sourceProject || 'longo'}`
-      : options?.source
-        ? options.source
-        : 'Fila editorial';
+    const originLabel = om?.brief
+      ? `OpenMontage · ${omConcept?.id || 'ref'}`
+      : isClipFactorySource(options?.source)
+        ? `Clip Factory · ${sourceProject || 'longo'}`
+        : options?.source
+          ? options.source
+          : 'Fila editorial';
     toast.success(`Creator preparado (${originLabel}). Revise os campos e gere a narração.`);
 
     if (!autoRun) return;
@@ -12745,7 +12766,7 @@ export default function App() {
                   postAi={postAi}
                   onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
                   onExecuteCreator={(title, hook, options) =>
-                    handleApplyYoutubeStudioIdea(title, hook, { format: options?.format })
+                    handleApplyYoutubeStudioIdea(title, hook, options)
                   }
                 />
               </DashminPageLayout>

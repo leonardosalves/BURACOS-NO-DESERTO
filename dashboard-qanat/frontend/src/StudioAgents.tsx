@@ -23,6 +23,7 @@ type StudioAgentsSection = 'automacao' | 'qualidade' | 'memoria' | 'skills';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 import { VideoAgentPlanner } from './VideoAgentPlanner';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
+import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
 
 type AgentConfig = {
   autoCaptureOnQualityCheck: boolean;
@@ -168,7 +169,7 @@ type StudioAgentsProps = {
   onExecuteCreator?: (
     title: string,
     hook: string,
-    options?: { format?: 'LONGO' | 'SHORTS' },
+    options?: CreatorApplyIdeaOptions,
   ) => Promise<void>;
   /** Oculta cabeçalho duplicado quando dentro de DashminPageLayout */
   embedded?: boolean;
