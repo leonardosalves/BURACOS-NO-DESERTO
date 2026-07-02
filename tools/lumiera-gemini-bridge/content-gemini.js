@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "2.1.0";
+  const VERSION = "2.1.1";
   if (globalThis.__lumieraGeminiVersion === VERSION) return;
   globalThis.__lumieraGeminiVersion = VERSION;
   if (globalThis.__lumieraGeminiMessageHandler) {
@@ -751,6 +751,10 @@
       return pickScriptResponsePayload(raw);
     }
     if (stableFor >= 700) {
+      if (streaming) {
+        // Se ainda está gerando, só permite retorno precoce se estiver travado/sem alteração por 5 segundos
+        if (stableFor < 5000) return null;
+      }
       return pickScriptResponsePayload(raw);
     }
     return null;

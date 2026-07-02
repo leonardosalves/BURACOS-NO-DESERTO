@@ -6,7 +6,7 @@ const LUMIERA_MATCH = [
   "http://localhost:5173/*",
 ];
 
-const EXT_VERSION = "2.1.0";
+const EXT_VERSION = "2.1.1";
 
 let cachedGeminiTabId = null;
 
