@@ -4,6 +4,14 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { buildTaggedNarration } from './taggedNarration';
+import {
+  createProgressJobId,
+  startAiJobProgress,
+  stopAiJobProgress,
+  subscribeAiJobProgress,
+  waitForAiJobDone,
+  type AiJobProgressState,
+} from './aiJobProgressClient';
 
 type TtsVoiceOption = {
   id: string;
@@ -63,6 +71,7 @@ export function TtsVoiceStudioPanel({
   const [engines, setEngines] = useState<TtsEngineOption[]>([]);
   const [loadingEngines, setLoadingEngines] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [ttsProgress, setTtsProgress] = useState<AiJobProgressState | null>(null);
 
   const [fishVoice, setFishVoice] = useState('__default__');
   const [fishUseTags, setFishUseTags] = useState(true);
@@ -132,6 +141,14 @@ export function TtsVoiceStudioPanel({
   useEffect(() => {
     void loadEngines();
   }, [loadEngines]);
+
+  useEffect(() => {
+    if (!generating) {
+      setTtsProgress(null);
+      return;
+    }
+    return subscribeAiJobProgress(setTtsProgress);
+  }, [generating]);
 
   useEffect(() => {
     if (taggedScript.trim()) {
@@ -269,10 +286,15 @@ export function TtsVoiceStudioPanel({
     }
 
     setGenerating(true);
+    const progressJobId = createProgressJobId();
+    const progressTitle = studioEngine === 'fish' ? 'Fish Audio TTS' : 'Voicebox TTS';
+    startAiJobProgress(progressJobId, progressTitle);
+
     try {
       const body: Record<string, unknown> = {
         engine: studioEngine,
         voice: studioEngine === 'fish' ? fishVoice : vbVoice,
+        progress_job_id: progressJobId,
         ttsOptions: {
           useTaggedScript: studioEngine === 'fish' ? fishUseTags : vbUseTags,
           customPlainText: narrativeScript.trim() || undefined,
@@ -297,15 +319,24 @@ export function TtsVoiceStudioPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(String(data.error || 'Falha na geração'));
-      toast(String(data.message || 'Narração gerada! Rode Sincronizar timings (Whisper) abaixo.'));
+
+      if (data.started && data.jobId) {
+        await waitForAiJobDone(String(data.jobId));
+      } else {
+        stopAiJobProgress(true, String(data.message || 'Narração gerada'));
+      }
+
+      toast('Narração gerada! Rode Sincronizar timings (Whisper) abaixo.');
       if (studioEngine === 'fish' && fishUseTags && onTaggedScriptChange) {
         onTaggedScriptChange(fishTaggedText);
       }
       onUpdated?.();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao gerar narração TTS.');
+      const msg = err instanceof Error ? err.message : 'Erro ao gerar narração TTS.';
+      stopAiJobProgress(false, msg);
+      toast(msg);
     } finally {
       setGenerating(false);
     }
@@ -579,6 +610,21 @@ export function TtsVoiceStudioPanel({
         </div>
       )}
 
+      {generating && ttsProgress?.active && (
+        <div className="rounded-xl border border-violet-500/30 bg-zinc-950/80 overflow-hidden">
+          <div className="px-3 py-2 flex items-center justify-between gap-2 text-[10px]">
+            <span className="font-semibold text-violet-100 truncate">{ttsProgress.label}</span>
+            <span className="font-mono text-violet-300 tabular-nums shrink-0">{ttsProgress.percent}%</span>
+          </div>
+          <div className="h-1.5 bg-zinc-800">
+            <div
+              className="h-full bg-gradient-to-r from-violet-600 to-dash-primary transition-all duration-500 ease-out"
+              style={{ width: `${Math.max(2, ttsProgress.percent)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         disabled={generating || !activeEngine?.available}
@@ -586,7 +632,11 @@ export function TtsVoiceStudioPanel({
         className="w-full inline-flex items-center justify-center gap-2 text-[11px] font-bold py-2.5 px-4 rounded-xl border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 text-violet-100 transition disabled:opacity-40"
       >
         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
-        {generating ? 'Gerando narração...' : `Gerar MP3 com ${studioEngine === 'fish' ? 'Fish Audio' : 'Voicebox'}`}
+        {generating
+          ? (ttsProgress?.active
+            ? `${ttsProgress.percent}% — ${ttsProgress.label}`
+            : 'Gerando narração...')
+          : `Gerar MP3 com ${studioEngine === 'fish' ? 'Fish Audio' : 'Voicebox'}`}
       </button>
 
       <p className="text-[8px] text-zinc-600 flex items-start gap-1">

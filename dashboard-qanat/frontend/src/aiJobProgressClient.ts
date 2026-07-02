@@ -140,3 +140,35 @@ export function injectProgressJobId(body: Record<string, unknown>, jobId?: strin
   if (!jobId) return body;
   return { ...body, progress_job_id: jobId };
 }
+
+/** Aguarda job assíncrono (ex.: TTS Voicebox) terminar via polling. */
+export function waitForAiJobDone(jobId: string, timeoutMs = 960000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    const tick = async () => {
+      if (Date.now() > deadline) {
+        reject(new Error('Tempo esgotado na geração — tente de novo.'));
+        return;
+      }
+      try {
+        const data = await fetchProgress(jobId);
+        if (!data) {
+          setTimeout(tick, POLL_MS);
+          return;
+        }
+        if (data.error) {
+          reject(new Error(String(data.error)));
+          return;
+        }
+        if (data.done) {
+          resolve();
+          return;
+        }
+        setTimeout(tick, POLL_MS);
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('Falha ao consultar progresso'));
+      }
+    };
+    tick();
+  });
+}

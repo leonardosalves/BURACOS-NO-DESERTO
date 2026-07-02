@@ -216,14 +216,31 @@ async function writeAudioBuffer(buffer, outputPath, contentType = "") {
   }
 }
 
-async function waitForGeneration(baseUrl, generationId, { onLog, pollIntervalMs, timeoutMs }) {
+async function waitForGeneration(baseUrl, generationId, {
+  onLog,
+  onProgress,
+  pollIntervalMs,
+  timeoutMs,
+  startPercent = 38,
+  endPercent = 82,
+}) {
   const deadline = Date.now() + timeoutMs;
+  const startedAt = Date.now();
   while (Date.now() < deadline) {
     const gen = await fetchVoiceboxJson(baseUrl, `/history/${generationId}`, {
       signal: AbortSignal.timeout(15000),
     });
     const status = gen.status || "completed";
     onLog(`[Voicebox] geração ${generationId.slice(0, 8)}… status=${status}`);
+    const elapsed = Date.now() - startedAt;
+    const pct = Math.min(
+      endPercent,
+      startPercent + Math.floor((elapsed / Math.max(timeoutMs, 1)) * (endPercent - startPercent)),
+    );
+    const statusLabel = status === "processing" || status === "pending"
+      ? "Sintetizando voz no Voicebox…"
+      : `Voicebox: ${status}…`;
+    onProgress?.(pct, statusLabel);
     if (status === "completed") return gen;
     if (status === "failed") {
       throw new Error(gen.error || "Voicebox falhou na geração");
@@ -238,7 +255,11 @@ export async function synthesizeVoiceboxNarration(text, {
   voice = null,
   config = {},
   onLog = () => {},
+  onProgress = null,
 } = {}) {
+  const report = typeof onProgress === "function"
+    ? (pct, label) => onProgress("voicebox", label, pct)
+    : () => {};
   const plain = String(text || "").trim();
   if (!plain || plain.length < 20) {
     throw new Error("Texto muito curto para Voicebox.");
@@ -248,6 +269,7 @@ export async function synthesizeVoiceboxNarration(text, {
   }
 
   const cfg = resolveVoiceboxConfig(config);
+  report(8, "Conectando ao Voicebox…");
   const probe = await probeVoiceboxServer(config);
   if (!probe.ok) {
     throw new Error(
@@ -267,7 +289,9 @@ export async function synthesizeVoiceboxNarration(text, {
   onLog(
     `[Voicebox] ${plain.length} chars · perfil=${profileLabel} · engine=${cfg.engine} · ${probe.baseUrl}`,
   );
+  report(18, `Perfil «${profileLabel}» · ${plain.length} caracteres`);
 
+  report(28, "Enviando texto ao Voicebox…");
   const generation = await fetchVoiceboxJson(probe.baseUrl, "/generate", {
     method: "POST",
     body: JSON.stringify({
@@ -279,7 +303,7 @@ export async function synthesizeVoiceboxNarration(text, {
       crossfade_ms: cfg.crossfadeMs,
       normalize: true,
     }),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(120000),
   });
 
   const generationId = generation.id;
@@ -287,15 +311,18 @@ export async function synthesizeVoiceboxNarration(text, {
     throw new Error("Voicebox não retornou id de geração");
   }
 
+  report(36, "Gerando áudio (GPU/CPU)…");
   const completed = await waitForGeneration(probe.baseUrl, generationId, {
     onLog,
+    onProgress: (pct, label) => report(pct, label),
     pollIntervalMs: cfg.pollIntervalMs,
     timeoutMs: cfg.timeoutMs,
   });
 
+  report(86, "Exportando áudio do Voicebox…");
   const audioRes = await fetch(`${probe.baseUrl}/history/${generationId}/export-audio`, {
     headers: { "X-Voicebox-Client-Id": "lumiera" },
-    signal: AbortSignal.timeout(120000),
+    signal: AbortSignal.timeout(300000),
   });
   if (!audioRes.ok) {
     const errText = await audioRes.text().catch(() => "");
@@ -308,7 +335,9 @@ export async function synthesizeVoiceboxNarration(text, {
     throw new Error("Voicebox retornou áudio vazio");
   }
 
+  report(93, "Convertendo e salvando MP3…");
   const written = await writeAudioBuffer(buffer, outputPath, contentType);
+  report(98, "Narração Voicebox pronta");
 
   return {
     outputPath,
