@@ -13,6 +13,8 @@ import {
   X,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import { NicheTag } from './NicheTag';
+import { getNicheTagStyle } from './nicheTagStyles';
 
 export type ProjectListItem = {
   name: string;
@@ -140,8 +142,9 @@ function ProjectRow({
             <span className="block text-[11px] font-semibold text-zinc-200 truncate" title={proj.title || proj.name}>
               {proj.title || proj.name}
             </span>
-            <span className="block text-[9px] text-zinc-600 truncate">
-              {proj.niche || 'Geral'} · {proj.name}
+            <span className="flex items-center gap-1.5 min-w-0 mt-0.5">
+              <NicheTag niche={proj.niche} />
+              <span className="text-[9px] text-zinc-600 truncate font-mono">{proj.name}</span>
             </span>
           </span>
           <span className="text-[9px] text-zinc-500 tabular-nums shrink-0 hidden sm:block" title={proj.modifiedAt || ''}>
@@ -285,18 +288,17 @@ function FormatColumn({
           {nicheEntries.map(([nicheName, projList]) => {
             const collapseKey = `${isShort ? 'short' : 'long'}-${nicheName}`;
             const isCollapsed = collapsedNiches[collapseKey] ?? !projList.some((p) => p.name === activeProject);
+            const folderStyle = getNicheTagStyle(nicheName);
             return (
-              <div key={collapseKey} className="rounded-xl border border-zinc-800/60 overflow-hidden">
+              <div key={collapseKey} className={`rounded-xl border overflow-hidden ${folderStyle.border} ${folderStyle.bg}`}>
                 <button
                   type="button"
                   onClick={() => onToggleNiche(collapseKey)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-zinc-900/40 transition"
+                  className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-zinc-900/30 transition"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <Folder className="w-3.5 h-3.5 text-gold-500/70 shrink-0" />
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide truncate">
-                      {nicheName}
-                    </span>
+                    <Folder className={`w-3.5 h-3.5 shrink-0 ${folderStyle.text}`} />
+                    <NicheTag niche={nicheName} size="sm" />
                     <span className="text-[9px] text-zinc-600 tabular-nums">({projList.length})</span>
                   </div>
                   {isCollapsed ? <ChevronRight className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
