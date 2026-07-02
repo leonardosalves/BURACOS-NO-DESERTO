@@ -91,3 +91,32 @@ tools/comfyui/ComfyUI/
 __pycache__/
 *.pyc
 dashboard-qanat/backend/_kokoro_test_proj/
+
+# Agent directories from various IDEs
+.claude/
+.continue/
+.windsurf/
+.augment/
+.codebuddy/
+.commandcode/
+.cortex/
+.factory/
+.hermes/
+.junie/
+.kilocode/
+.lingma/
+.qoder/
+.qwen/
+.tabnine/
+.vibe/
+.agents/pending/
+
+# Local cache & temporary reports
+youtube_channel_cache.json
+youtube_daily_report_latest.txt
+youtube_weekly_report_latest.txt
+youtube_weekly_reports/
+youtube_studio_settings.json
+storyboard.json
+data/
+dashboard-qanat/frontend/NUL.css
