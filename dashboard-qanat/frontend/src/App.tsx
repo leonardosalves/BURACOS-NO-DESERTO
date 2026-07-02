@@ -3102,11 +3102,25 @@ export default function App() {
           resetCreatorWizard({ deleteServerSessionFor: deleted });
         }
 
-        await fetchProjects();
+        const deletedWasActive = deleted === activeProject.trim();
+        let nextList: ProjectListItem[] = projects;
+        try {
+          const listRes = await fetch('/api/projects');
+          if (listRes.ok) {
+            nextList = await listRes.json();
+            setProjects(nextList);
+          } else {
+            await fetchProjects();
+          }
+        } catch {
+          await fetchProjects();
+        }
 
-        setActiveProject('Buracos no Deserto');
-
-        setActiveTab('status');
+        if (deletedWasActive) {
+          const nextActive = nextList.find((p) => p.name.trim() !== deleted)?.name
+            || 'Buracos no Deserto';
+          setActiveProject(nextActive);
+        }
 
       } else {
 
