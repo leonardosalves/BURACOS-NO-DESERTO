@@ -680,7 +680,22 @@ app.get("/api/projects", (req, res) => {
               } catch (e) {}
             }
 
-            projects.push({ name: item, path: fullPath, format, title, niche });
+            let modifiedAtMs = fs.statSync(fullPath).mtimeMs;
+            for (const trackFile of ["storyboard.json", "config_qanat.json", "narracao_mestra_premium.mp3"]) {
+              const trackPath = path.join(fullPath, trackFile);
+              if (fs.existsSync(trackPath)) {
+                modifiedAtMs = Math.max(modifiedAtMs, fs.statSync(trackPath).mtimeMs);
+              }
+            }
+            projects.push({
+              name: item,
+              path: fullPath,
+              format,
+              title,
+              niche,
+              modifiedAtMs,
+              modifiedAt: new Date(modifiedAtMs).toISOString(),
+            });
           }
         }
       }
