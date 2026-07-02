@@ -1,4 +1,4 @@
-﻿import toast, { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
@@ -7138,6 +7138,38 @@ export default function App() {
       }
     } catch (err: any) {
       toast.error(err.message || 'Falha ao reparar cenas.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+    }
+  };
+
+  const handleEnhanceVisualPrompts = async () => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    setCreatorLoading(true);
+    setCreatorLoadingMode('full');
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/enhance-visual-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
+      });
+      if (ok && !data.needs_browser) {
+        setGeneratedScriptData(data);
+        setCreatorScript(data.narrative_script || creatorScript);
+        await saveCreatorStoryboard(data);
+        const score = data._vpe_checklist?.quality_score;
+        const niche = data._vpe_checklist?.nicho_detectado || '';
+        toast.success(`✨ Engenharia Visual PRO concluída — ${data.visual_prompts?.length || 0} cenas${score ? ` · Score: ${score}` : ''}${niche ? ` · Nicho: ${niche}` : ''}`);
+      } else {
+        toast.error(data.error || data.details || 'Erro ao aprimorar prompts visuais.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao aprimorar prompts visuais.');
     } finally {
       setCreatorLoading(false);
       setCreatorLoadingMode('idle');
@@ -15180,6 +15212,17 @@ export default function App() {
                               className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer"
                             >
                               {creatorLoading && creatorLoadingMode === 'full' ? 'Reparando...' : 'Distribuir narração nas cenas'}
+                            </button>
+                          )}
+                          {(generatedScriptData?.visual_prompts || []).length > 0 && (
+                            <button
+                              type="button"
+                              disabled={creatorLoading}
+                              onClick={handleEnhanceVisualPrompts}
+                              className="bg-purple-500/15 hover:bg-purple-500/30 border border-purple-500/30 text-purple-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all"
+                              title="Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
+                            >
+                              {creatorLoading && creatorLoadingMode === 'full' ? '✨ Processando...' : '✨ Engenharia Visual PRO'}
                             </button>
                           )}
                           <span className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider font-mono">

@@ -34,6 +34,7 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/curiosidades]]
 - [[memory/customized]]
 - [[memory/engenharia-antiga]]
+- [[memory/engenharia-curiosidade]]
 - [[memory/engenharia]]
 - [[memory/geral]]
 - [[memory/google-gemini-sdk-reference]]
@@ -44,4 +45,4 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/openmontage-lumiera]]
 - [[memory/videoagent-lumiera]]
 
-atualizado: 2026-07-01T21:09:24.582Z
+atualizado: 2026-07-02T05:24:19.931Z
