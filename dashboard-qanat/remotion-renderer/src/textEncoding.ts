@@ -38,6 +38,10 @@ const PT_WORD_CORRUPTION_FIXES: [string, string][] = [
   ["PROPULSÃƒO", "PROPULSÃO"],
   ["PROPULSÃ£O", "PROPULSÃO"],
   ["PropulsÒo", "Propulsão"],
+  ["COMPARAO", "COMPARAÇÃO"],
+  ["COMPARACAO", "COMPARAÇÃO"],
+  ["Comparao", "Comparação"],
+  ["Comparacao", "Comparação"],
 ];
 
 function countMojibakeMarkers(s: string) {
@@ -55,6 +59,7 @@ function applyPtMojibakeLiterals(text: string) {
 function repairReplacementCharInPortuguese(text: string) {
   if (!text.includes(REPLACEMENT_CHAR)) return text;
   let out = text;
+  out = out.replace(/COMPAR\uFFFDA?\uFFFDO/gi, "COMPARAÇÃO");
   out = out.replace(/([A-Z]{2,})S\uFFFD([O])(?=\b|\s|[^A-Za-z])/g, "$1SÃO");
   out = out.replace(/([A-Z]{2,})\uFFFD([O])(?=\b|\s|[^A-Za-z])/g, "$1ÃO");
   out = out.replace(/([a-z]{2,})s\uFFFD([o])(?=\b|\s|[^a-z])/g, "$1são");

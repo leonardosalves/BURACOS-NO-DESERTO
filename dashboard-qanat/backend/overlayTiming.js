@@ -42,6 +42,7 @@ const PLACEHOLDER_OVERLAY_TITLES = new Set([
   "dado",
   "comparação",
   "comparacao",
+  "comparao",
   "linha do tempo",
 ]);
 
