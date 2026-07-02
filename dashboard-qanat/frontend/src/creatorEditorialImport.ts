@@ -109,6 +109,13 @@ export type CreatorApplyIdeaOptions = {
   };
 };
 
+export type OpenMontageImportPayload = {
+  brief: OpenMontageBrief;
+  conceptId?: string;
+  referenceUrl?: string;
+  referenceTitle?: string;
+};
+
 export type EditorialIdeaImport = {
   title: string;
   hookPt: string;
@@ -122,6 +129,8 @@ export type EditorialIdeaImport = {
   pioneerMeta?: PioneerNicheMeta;
   agentReachResearch?: AgentReachResearchPayload;
   openMontageOutline?: string;
+  /** Brief serializado — permite reidratar outline após F5 / wizard session. */
+  openMontage?: OpenMontageImportPayload;
 };
 
 export function buildPioneerCreatorOutline(
@@ -247,6 +256,35 @@ export function buildOpenMontageCreatorOutline(opts: {
     'Instrução ao roteirista: preserve o pacing e o gancho do referência, mas o assunto e o twist devem ser claramente diferenciados.',
   );
   return lines.join('\n');
+}
+
+/** Monta outline do Creator a partir do import (inclui reidratação OpenMontage). */
+export function resolveEditorialImportOutline(
+  importData: Pick<
+    EditorialIdeaImport,
+    | 'whyWorks'
+    | 'mechanic'
+    | 'sourceProject'
+    | 'sourceBlock'
+    | 'agentReachResearch'
+    | 'pioneerMeta'
+    | 'openMontageOutline'
+    | 'openMontage'
+  >,
+): string {
+  let openMontageOutline = importData.openMontageOutline?.trim() || '';
+  if (!openMontageOutline && importData.openMontage?.brief) {
+    openMontageOutline = buildOpenMontageCreatorOutline({
+      brief: importData.openMontage.brief,
+      conceptId: importData.openMontage.conceptId,
+      referenceUrl: importData.openMontage.referenceUrl,
+      referenceTitle: importData.openMontage.referenceTitle,
+    });
+  }
+  return buildEditorialImportOutline({
+    ...importData,
+    openMontageOutline: openMontageOutline || undefined,
+  });
 }
 
 export function buildEditorialImportOutline(
