@@ -43,6 +43,10 @@ const PT_WORD_CORRUPTION_FIXES = [
   ["PROPULSÃƒO", "PROPULSÃO"],
   ["PROPULSÃ£O", "PROPULSÃO"],
   ["PropulsÒo", "Propulsão"],
+  ["COMPARAO", "COMPARAÇÃO"],
+  ["COMPARACAO", "COMPARAÇÃO"],
+  ["Comparao", "Comparação"],
+  ["Comparacao", "Comparação"],
 ];
 
 const OVERLAY_TEXT_KEYS = new Set([
@@ -75,6 +79,7 @@ function applyPtMojibakeLiterals(text) {
 function repairReplacementCharInPortuguese(text) {
   if (!text || !text.includes(REPLACEMENT_CHAR)) return text;
   let out = text;
+  out = out.replace(/COMPAR\uFFFDA?\uFFFDO/gi, "COMPARAÇÃO");
   out = out.replace(/([A-Z]{2,})S\uFFFD([O])(?=\b|\s|[^A-Za-z])/g, "$1SÃO");
   out = out.replace(/([A-Z]{2,})\uFFFD([O])(?=\b|\s|[^A-Za-z])/g, "$1ÃO");
   out = out.replace(/([a-z]{2,})s\uFFFD([o])(?=\b|\s|[^a-z])/g, "$1são");
