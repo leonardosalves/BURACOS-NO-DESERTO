@@ -3,6 +3,10 @@ import type { VisualConfig } from './VisualSettings';
 export const VISUAL_CONFIG_KEYS = [
   'design_preset',
   'caption_style',
+  'caption_style_short',
+  'caption_style_long',
+  'caption_effect_short',
+  'caption_effect_long',
   'grain_overlay',
   'vignette',
   'progress_bar',
@@ -33,6 +37,13 @@ export function pickVisualConfig(config: VisualConfig = {}): VisualConfig {
     if (value !== undefined) {
       (out as Record<string, unknown>)[key] = value;
     }
+  }
+  const legacy = out.caption_style;
+  if (!out.caption_style_short && legacy === 'shorts-viral') {
+    out.caption_style_short = 'shorts-viral';
+  }
+  if (!out.caption_style_long && legacy === 'documentary') {
+    out.caption_style_long = 'documentary';
   }
   return out;
 }

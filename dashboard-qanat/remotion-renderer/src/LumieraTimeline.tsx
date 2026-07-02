@@ -227,6 +227,7 @@ export type LumieraTimelineProps = {
   transparent?: boolean;
   /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
   captionStyle?: "shorts-viral" | "documentary";
+  captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal";
   designPreset?: string | null;
   grainOverlay?: boolean;
   vignette?: boolean;
@@ -296,6 +297,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   transparent: false,
 
   captionStyle: "shorts-viral",
+
+  captionEffect: "viral-pop",
 
   designPreset: null,
 
@@ -1126,11 +1129,13 @@ interface WordChunk {
 const CaptionLayer: React.FC<{
   captions: Caption[];
   captionStyle?: "shorts-viral" | "documentary";
+  captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal";
   captionBgmPulse?: boolean;
   accentColor?: string;
 }> = ({
   captions,
   captionStyle = "documentary",
+  captionEffect,
   captionBgmPulse = false,
   accentColor = "#D4AF37",
 }) => {
@@ -1147,6 +1152,16 @@ const CaptionLayer: React.FC<{
 
   const currentMs = (frame / fps) * 1000;
   const isViralShorts = captionStyle === "shorts-viral";
+  const resolvedEffect = captionEffect
+    || (isViralShorts
+      ? (captionBgmPulse ? "viral-pulse" : "viral-pop")
+      : "doc-pill");
+  const showDocPill = !isViralShorts && resolvedEffect === "doc-pill";
+  const docGlow = !isViralShorts && resolvedEffect === "doc-glow";
+  const docMinimal = !isViralShorts && resolvedEffect === "doc-minimal";
+  const viralStatic = isViralShorts && resolvedEffect === "viral-static";
+  const viralPulse = isViralShorts && (resolvedEffect === "viral-pulse" || (captionBgmPulse && resolvedEffect !== "viral-static"));
+  const viralPop = isViralShorts && !viralStatic && (resolvedEffect === "viral-pop" || !captionEffect);
   const maxWordsPerChunk = isViralShorts ? 1 : 2;
   const pauseThresholdMs = isViralShorts ? 400 : 600;
   const maxChunkDurationMs = isViralShorts ? 1800 : 2200;
@@ -1390,26 +1405,26 @@ const CaptionLayer: React.FC<{
           columnGap: isViralShorts ? 14 : (isVertical ? 22 : 16),
           rowGap: isViralShorts ? 8 : (isVertical ? 12 : 8),
           maxWidth: isVertical ? (isViralShorts ? 900 : 800) : 1000,
-          background: isViralShorts ? "transparent" : "rgba(10, 10, 15, 0.75)",
-          backdropFilter: isViralShorts ? "none" : "blur(12px)",
-          border: isViralShorts ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+          background: showDocPill ? "rgba(10, 10, 15, 0.75)" : "transparent",
+          backdropFilter: showDocPill ? "blur(12px)" : "none",
+          border: showDocPill ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
           padding: isViralShorts
             ? "0"
-            : (isVertical ? "20px 40px" : "14px 28px"),
-          borderRadius: isViralShorts ? 0 : "99px",
-          boxShadow: isViralShorts ? "none" : "0 16px 40px rgba(0, 0, 0, 0.75)",
+            : (showDocPill ? (isVertical ? "20px 40px" : "14px 28px") : "0"),
+          borderRadius: showDocPill ? "99px" : 0,
+          boxShadow: showDocPill ? "0 16px 40px rgba(0, 0, 0, 0.75)" : "none",
         }}
       >
         {activeChunk.words.map((word, index) => {
           const active = currentMs >= word.startMs && currentMs <= word.endMs;
           const wordFrame = Math.max(0, Math.round(((currentMs - word.startMs) / 1000) * fps));
-          const popScale = isViralShorts && active
+          const popScale = viralPop && active
             ? spring({ fps, frame: wordFrame, config: { damping: 14, stiffness: 220, mass: 0.5 } })
             : 1;
-          const bgmBeat = captionBgmPulse && isViralShorts && active
+          const bgmBeat = viralPulse && active
             ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
             : 1;
-          const pulseGlow = captionBgmPulse && isViralShorts && active
+          const pulseGlow = viralPulse && active
             ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
             : undefined;
           return (
@@ -1419,11 +1434,11 @@ const CaptionLayer: React.FC<{
                 display: "inline-block",
                 color: isViralShorts
                   ? (active ? "#0A0A0A" : "#FFFFFF")
-                  : (active ? "#FACC15" : "#FFFFFF"),
+                  : (active ? accentColor : "#FFFFFF"),
                 fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
                 fontSize: isVertical
-                  ? (isViralShorts ? 64 : 58)
-                  : (isViralShorts ? 44 : 38),
+                  ? (isViralShorts ? 64 : (docMinimal ? 48 : 58))
+                  : (isViralShorts ? 44 : (docMinimal ? 30 : 38)),
                 fontWeight: 900,
                 lineHeight: 1.1,
                 letterSpacing: isViralShorts ? "0.02em" : "0.05em",
@@ -1439,13 +1454,17 @@ const CaptionLayer: React.FC<{
                     ? (pulseGlow || "0 2px 8px rgba(0,0,0,0.35)")
                     : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
                   : (active
-                    ? "0 0 16px rgba(250,204,21,0.5), 0 2px 4px rgba(0,0,0,0.5)"
-                    : "0 2px 4px rgba(0,0,0,0.5)"),
+                    ? (docGlow
+                      ? `0 0 14px ${accentColor}99`
+                      : docMinimal
+                        ? "0 1px 4px rgba(0,0,0,0.45)"
+                        : `0 0 16px ${accentColor}80, 0 2px 4px rgba(0,0,0,0.5)`)
+                    : (docMinimal ? "0 1px 3px rgba(0,0,0,0.4)" : "0 2px 4px rgba(0,0,0,0.5)")),
                 transform: active
                   ? `scale(${(isViralShorts ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
                   : "scale(1.0)",
                 transition: isViralShorts ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
-                opacity: active ? 1 : (isViralShorts ? 0.92 : 0.75),
+                opacity: active ? 1 : (isViralShorts ? 0.92 : (docMinimal ? 0.68 : 0.75)),
               }}
             >
               {word.text}
@@ -1709,6 +1728,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   format = "9:16",
   totalDuration = 30,
   captionStyle = "shorts-viral",
+  captionEffect,
   grainOverlay = false,
   vignette = false,
   bgmDuckPoints = [],
@@ -2015,6 +2035,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
       <CaptionLayer
         captions={captions}
         captionStyle={captionStyle}
+        captionEffect={captionEffect}
         captionBgmPulse={isShort && shortsCaptionBgmPulse}
         accentColor={accentColor}
       />

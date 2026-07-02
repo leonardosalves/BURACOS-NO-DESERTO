@@ -246,6 +246,7 @@ import {
   injectProLayoutOverlays,
   filterOverlaysByVisualConfig,
 } from "./videoProEnhancements.js";
+import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
   extractBlockIndex,
@@ -6278,6 +6279,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   logOverlayTimingAndConflicts(overlays, timings.starts || [], timings.durations || []);
 
   const resolution = options.resolution === "2k" ? "2k" : "1080p";
+  const captionSettings = resolveCaptionRenderSettings(config, format);
 
   const props = {
     projectName: path.basename(projectDir),
@@ -6298,7 +6300,8 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     overlays,
     youtubeChannelInfo,
     transparent: isProres,
-    captionStyle: config.caption_style === "documentary" ? "documentary" : (config.caption_style === "shorts-viral" ? "shorts-viral" : (format === "9:16" ? "shorts-viral" : "documentary")),
+    captionStyle: captionSettings.captionStyle,
+    captionEffect: captionSettings.captionEffect,
     designPreset: config.design_preset || null,
     grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
     vignette: config.vignette !== false,
@@ -6311,7 +6314,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       : "normal",
     shortsHookFlash: config.shorts_hook_flash !== false,
     shortsEdgeGlow: config.shorts_edge_glow === true,
-    shortsCaptionBgmPulse: config.shorts_caption_bgm_pulse !== false,
+    shortsCaptionBgmPulse: captionSettings.shortsCaptionBgmPulse,
     shortsPortalTransition: config.shorts_portal_transition !== false,
     shortsPortalEvery: Math.max(3, Math.min(5, Number(config.shorts_portal_every) || 4)),
     bgmDuckPoints,
