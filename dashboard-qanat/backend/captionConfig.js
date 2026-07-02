@@ -1,5 +1,5 @@
 /**
- * HyperFrames caption modes — Fase 1 (portados para Remotion).
+ * HyperFrames caption modes portados para Remotion (Fase 1 + 2).
  */
 
 export const CAPTION_MODE_IDS = [
@@ -9,6 +9,10 @@ export const CAPTION_MODE_IDS = [
   "caption-neon-glow",
   "caption-weight-shift",
   "caption-gradient-fill",
+  "caption-glitch-rgb",
+  "caption-matrix-decode",
+  "caption-clip-wipe",
+  "caption-particle-burst",
 ];
 
 const LEGACY_SHORT_MODE = {

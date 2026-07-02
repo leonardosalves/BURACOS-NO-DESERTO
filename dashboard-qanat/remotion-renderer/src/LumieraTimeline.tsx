@@ -227,8 +227,8 @@ export type LumieraTimelineProps = {
   transparent?: boolean;
   /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
   captionStyle?: "shorts-viral" | "documentary";
-  /** HyperFrames caption mode (Fase 1) */
-  captionMode?: "caption-highlight" | "caption-kinetic-slam" | "caption-pill-karaoke" | "caption-neon-glow" | "caption-weight-shift" | "caption-gradient-fill";
+  /** HyperFrames caption mode (Fase 1 + 2) */
+  captionMode?: "caption-highlight" | "caption-kinetic-slam" | "caption-pill-karaoke" | "caption-neon-glow" | "caption-weight-shift" | "caption-gradient-fill" | "caption-glitch-rgb" | "caption-matrix-decode" | "caption-clip-wipe" | "caption-particle-burst";
   captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal" | string;
   designPreset?: string | null;
   grainOverlay?: boolean;
@@ -1136,7 +1136,11 @@ type CaptionModeId =
   | "caption-pill-karaoke"
   | "caption-neon-glow"
   | "caption-weight-shift"
-  | "caption-gradient-fill";
+  | "caption-gradient-fill"
+  | "caption-glitch-rgb"
+  | "caption-matrix-decode"
+  | "caption-clip-wipe"
+  | "caption-particle-burst";
 
 const HF_CAPTION_MODES = new Set<CaptionModeId>([
   "caption-highlight",
@@ -1145,7 +1149,37 @@ const HF_CAPTION_MODES = new Set<CaptionModeId>([
   "caption-neon-glow",
   "caption-weight-shift",
   "caption-gradient-fill",
+  "caption-glitch-rgb",
+  "caption-matrix-decode",
+  "caption-clip-wipe",
+  "caption-particle-burst",
 ]);
+
+const MATRIX_SCRAMBLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
+
+function scrambleCaptionText(text: string, progress: number, seed: number): string {
+  if (progress >= 1) return text;
+  return text
+    .split("")
+    .map((ch, i) => {
+      if (ch === " ") return " ";
+      const revealAt = (i + 1) / Math.max(text.length, 1);
+      if (progress >= revealAt) return ch;
+      return MATRIX_SCRAMBLE[(seed + i * 11 + Math.floor(progress * 20)) % MATRIX_SCRAMBLE.length];
+    })
+    .join("");
+}
+
+const BURST_PARTICLES = [
+  { x: -22, y: -16, c: "#FF4D6D" },
+  { x: 20, y: -12, c: "#22D3EE" },
+  { x: -14, y: 18, c: "#FACC15" },
+  { x: 24, y: 10, c: "#A78BFA" },
+  { x: -28, y: 8, c: "#4ADE80" },
+  { x: 10, y: -22, c: "#FB923C" },
+  { x: -6, y: 24, c: "#F472B6" },
+  { x: 18, y: 20, c: "#38BDF8" },
+];
 
 function resolveCaptionMode(
   captionMode?: string,
@@ -1209,6 +1243,10 @@ const CaptionLayer: React.FC<{
   const isWeight = mode === "caption-weight-shift";
   const isGradient = mode === "caption-gradient-fill";
   const isHighlight = mode === "caption-highlight";
+  const isGlitch = mode === "caption-glitch-rgb";
+  const isMatrix = mode === "caption-matrix-decode";
+  const isWipe = mode === "caption-clip-wipe";
+  const isBurst = mode === "caption-particle-burst";
   const viralStatic = isHighlight && captionEffect === "viral-static";
   const viralPulse = isHighlight && (captionBgmPulse || captionEffect === "viral-pulse") && !viralStatic;
   const viralPop = isHighlight && !viralStatic;
@@ -1456,6 +1494,7 @@ const CaptionLayer: React.FC<{
     >
       <div
         style={{
+          position: "relative",
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
@@ -1473,9 +1512,30 @@ const CaptionLayer: React.FC<{
           boxShadow: isPill ? "0 16px 40px rgba(0, 0, 0, 0.75)" : "none",
         }}
       >
+        {isGlitch && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.14) 2px, rgba(0,0,0,0.14) 4px)",
+              mixBlendMode: "overlay",
+              borderRadius: isPill ? "99px" : 0,
+            }}
+          />
+        )}
         {wordsToRender.map((word, index) => {
           const active = currentMs >= word.startMs && currentMs <= word.endMs;
           const wordFrame = Math.max(0, Math.round(((currentMs - word.startMs) / 1000) * fps));
+          const matrixProgress = Math.min(1, wordFrame / 14);
+          const wipeProgress = Math.min(1, wordFrame / 12);
+          const burstFade = active
+            ? interpolate(wordFrame, [0, 18], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+            : 0;
+          const glitchShift = Math.sin((frame + index * 3) / 3) * 3;
+          const displayText = isMatrix && active
+            ? scrambleCaptionText(word.text, matrixProgress, word.startMs)
+            : word.text;
           const popScale = (viralPop || isGradient) && active
             ? spring({ fps, frame: wordFrame, config: { damping: 14, stiffness: 220, mass: 0.5 } })
             : 1;
@@ -1498,6 +1558,8 @@ const CaptionLayer: React.FC<{
 
           let color = "#FFFFFF";
           if (isHighlight && active) color = "#0A0A0A";
+          else if (isGlitch && active) color = "#E2E8F0";
+          else if (isMatrix && active && matrixProgress < 1) color = "#4ADE80";
           else if (isNeon && active) color = "#22D3EE";
           else if (active) color = accentColor;
 
@@ -1515,9 +1577,12 @@ const CaptionLayer: React.FC<{
             <span
               key={`${word.startMs}-${index}`}
               style={{
+                position: "relative",
                 display: "inline-block",
                 color,
-                fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
+                fontFamily: isMatrix && active && matrixProgress < 1
+                  ? "'Courier New', Courier, monospace"
+                  : "'Montserrat', 'Inter', Arial, sans-serif",
                 fontSize: baseFont,
                 fontWeight: isWeight ? (active ? 900 : 300) : 900,
                 lineHeight: 1.1,
@@ -1529,26 +1594,52 @@ const CaptionLayer: React.FC<{
                   : "transparent",
                 padding: isHighlight && active ? "6px 18px" : "0",
                 borderRadius: isHighlight && active ? "12px" : 0,
+                clipPath: isWipe && active
+                  ? `inset(0 ${Math.round((1 - wipeProgress) * 100)}% 0 0)`
+                  : undefined,
                 textShadow: isHighlight
                   ? (active
                     ? (pulseGlow || "0 2px 8px rgba(0,0,0,0.35)")
                     : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
-                  : isNeon && active
-                    ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
-                    : active
-                      ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
-                      : "0 2px 4px rgba(0,0,0,0.5)",
+                  : isGlitch && active
+                    ? `${glitchShift - 3}px 0 #FF4D6D, ${glitchShift + 3}px 0 #22D3EE, 0 0 10px rgba(255,255,255,0.35)`
+                    : isNeon && active
+                      ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
+                      : isMatrix && active && matrixProgress < 1
+                        ? "0 0 12px rgba(74,222,128,0.6)"
+                        : active
+                          ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
+                          : "0 2px 4px rgba(0,0,0,0.5)",
                 transform: active
                   ? isSlam
                     ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
                     : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
                   : "scale(1.0)",
-                transition: isViralShorts || isSlam ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                transition: isViralShorts || isSlam || isWipe || isMatrix ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
                 opacity: active ? 1 : (isWeight ? 0.65 : isViralShorts ? 0.92 : 0.75),
                 ...gradientText,
               }}
             >
-              {word.text}
+              {displayText}
+              {isBurst && active && burstFade > 0 && BURST_PARTICLES.map((p, pi) => (
+                <span
+                  key={pi}
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    width: isVertical ? 8 : 6,
+                    height: isVertical ? 8 : 6,
+                    marginLeft: p.x * burstFade,
+                    marginTop: p.y * burstFade,
+                    borderRadius: "50%",
+                    background: p.c,
+                    opacity: burstFade,
+                    boxShadow: `0 0 10px ${p.c}`,
+                    pointerEvents: "none",
+                  }}
+                />
+              ))}
             </span>
           );
         })}

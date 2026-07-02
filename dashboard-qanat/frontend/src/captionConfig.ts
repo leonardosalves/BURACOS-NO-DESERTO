@@ -1,4 +1,4 @@
-/** HyperFrames caption modes — Fase 1 (portados para Remotion). */
+/** HyperFrames caption modes portados para Remotion (Fase 1 + 2). */
 
 export type CaptionModeId =
   | 'caption-highlight'
@@ -6,7 +6,11 @@ export type CaptionModeId =
   | 'caption-pill-karaoke'
   | 'caption-neon-glow'
   | 'caption-weight-shift'
-  | 'caption-gradient-fill';
+  | 'caption-gradient-fill'
+  | 'caption-glitch-rgb'
+  | 'caption-matrix-decode'
+  | 'caption-clip-wipe'
+  | 'caption-particle-burst';
 
 export const CAPTION_MODE_IDS: CaptionModeId[] = [
   'caption-highlight',
@@ -15,6 +19,10 @@ export const CAPTION_MODE_IDS: CaptionModeId[] = [
   'caption-neon-glow',
   'caption-weight-shift',
   'caption-gradient-fill',
+  'caption-glitch-rgb',
+  'caption-matrix-decode',
+  'caption-clip-wipe',
+  'caption-particle-burst',
 ];
 
 export type CaptionStyleId = 'shorts-viral' | 'documentary';
@@ -36,6 +44,10 @@ export const SHORT_CAPTION_MODES: {
   { id: 'caption-gradient-fill', label: 'Gradient Fill', hint: 'Texto com gradiente e bounce na entrada — caption-gradient-fill.', hyperframesId: 'caption-gradient-fill' },
   { id: 'caption-weight-shift', label: 'Weight Shift', hint: 'Peso da fonte muda na palavra ativa — caption-weight-shift.', hyperframesId: 'caption-weight-shift' },
   { id: 'caption-pill-karaoke', label: 'Pill Karaoke', hint: 'Bloco pill com destaque karaoke — caption-pill-karaoke.', hyperframesId: 'caption-pill-karaoke' },
+  { id: 'caption-glitch-rgb', label: 'Glitch RGB', hint: 'Aberração cromática + scanlines CRT — caption-glitch-rgb.', hyperframesId: 'caption-glitch-rgb' },
+  { id: 'caption-matrix-decode', label: 'Matrix Decode', hint: 'Scramble de caracteres antes do reveal — caption-matrix-decode.', hyperframesId: 'caption-matrix-decode' },
+  { id: 'caption-clip-wipe', label: 'Clip Wipe', hint: 'Revelação esquerda→direita por palavra — caption-clip-wipe.', hyperframesId: 'caption-clip-wipe' },
+  { id: 'caption-particle-burst', label: 'Particle Burst', hint: 'Partículas coloridas na palavra ativa — caption-particle-burst.', hyperframesId: 'caption-particle-burst' },
 ];
 
 export const LONG_CAPTION_MODES: {
@@ -50,6 +62,10 @@ export const LONG_CAPTION_MODES: {
   { id: 'caption-weight-shift', label: 'Weight Shift', hint: 'Contraste de peso tipográfico entre palavras.', hyperframesId: 'caption-weight-shift' },
   { id: 'caption-gradient-fill', label: 'Gradient Fill', hint: 'Gradiente na palavra ativa com entrada suave.', hyperframesId: 'caption-gradient-fill' },
   { id: 'caption-kinetic-slam', label: 'Kinetic Slam', hint: 'Palavra isolada com impacto central.', hyperframesId: 'caption-kinetic-slam' },
+  { id: 'caption-glitch-rgb', label: 'Glitch RGB', hint: 'Aberração cromática estilo cyber/tech.', hyperframesId: 'caption-glitch-rgb' },
+  { id: 'caption-matrix-decode', label: 'Matrix Decode', hint: 'Texto decodificado letra a letra.', hyperframesId: 'caption-matrix-decode' },
+  { id: 'caption-clip-wipe', label: 'Clip Wipe', hint: 'Wipe horizontal na palavra ativa.', hyperframesId: 'caption-clip-wipe' },
+  { id: 'caption-particle-burst', label: 'Particle Burst', hint: 'Explosão de partículas no destaque.', hyperframesId: 'caption-particle-burst' },
 ];
 
 /** Compat: UI antiga style + effect */
