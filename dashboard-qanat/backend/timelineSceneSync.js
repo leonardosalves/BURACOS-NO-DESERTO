@@ -40,11 +40,12 @@ export function flattenWordTranscripts(wordTranscripts) {
 
   for (const segment of wordTranscripts) {
     const segStart = segment.start_time || 0;
+    const segDuration = Number(segment.duration) || Math.max(0.5, (segment.end_time || 0) - segStart);
     if (segment.words && Array.isArray(segment.words) && segment.words.length > 0) {
       for (const w of segment.words) {
         let wStart = w.start;
         let wEnd = w.end;
-        if (wStart < segStart) {
+        if (wStart <= segDuration + 0.5) {
           wStart += segStart;
           wEnd += segStart;
         }

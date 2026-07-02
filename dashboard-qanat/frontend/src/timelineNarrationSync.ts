@@ -180,10 +180,11 @@ export function collectBlockWordsFromTranscriptSegments(
   const out: Array<{ word: string; start: number; end: number }> = [];
   for (const seg of segs) {
     const segStart = Number(seg.start_time) || 0;
+    const segDuration = seg.duration ?? Math.max(0.5, (seg.end_time || 0) - segStart);
     for (const w of seg.words || []) {
       let wStart = Number(w.start);
       let wEnd = Number(w.end);
-      if (wStart < segStart) {
+      if (wStart <= segDuration + 0.5) {
         wStart += segStart;
         wEnd += segStart;
       }
