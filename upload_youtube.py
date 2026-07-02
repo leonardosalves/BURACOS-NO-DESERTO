@@ -417,8 +417,7 @@ def main():
                 set_video_thumbnail(access_token, video_id, thumb_path)
             else:
                 print("[INFO] Nenhuma thumbnail selecionada em upload_metadata.youtube.thumbnail")
-            if pinned_comment:
-                post_pinned_comment(access_token, video_id, pinned_comment)
+            # Comentário fixo: postUploadService (Node) após o pipeline — evita duplicata
             proj_config["upload_metadata"]["youtube"]["status"] = "success"
             proj_config["upload_metadata"]["youtube"]["post_id"] = video_id
             save_json(proj_config_path, proj_config)

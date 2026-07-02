@@ -5893,27 +5893,18 @@ export default function App() {
     }
   };
 
-  const handlePostUploadComplete = async (videoId?: string) => {
+  const handlePostUploadComplete = async (
+    videoId?: string,
+    sseResult?: { titleTestStarted?: boolean; pinnedComment?: { success?: boolean } },
+  ) => {
     if (!videoId) return;
     setTitleExperimentVideoId(videoId);
-    try {
-      const res = await fetch(getProjectUrl('/api/upload/post-upload'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId, autoStartTitleTest: true, postPinned: true }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.titleTestStarted) toast('Teste A/B de títulos iniciado automaticamente.');
-        if (data.pinnedComment?.success) toast('Comentário fixo publicado.');
-        toast('Vídeo no ar! Acompanhe métricas em Canal YouTube na sidebar.');
-        fetchTitleExperiment();
-        fetchTitleExperimentAnalytics();
-        fetchYoutubeChannelAlerts();
-      }
-    } catch {
-      // optional hook
-    }
+    if (sseResult?.titleTestStarted) toast('Teste A/B de títulos iniciado automaticamente.');
+    if (sseResult?.pinnedComment?.success) toast('Comentário fixo publicado.');
+    toast('Vídeo no ar! Acompanhe métricas em Canal YouTube na sidebar.');
+    fetchTitleExperiment();
+    fetchTitleExperimentAnalytics();
+    fetchYoutubeChannelAlerts();
   };
 
   const handleGenerateCanvaThumbnails = async () => {
@@ -11716,14 +11707,14 @@ export default function App() {
                             if (progressMatch) {
                               setUploadProgress(parseInt(progressMatch[1]));
                             }
-                          } else if (data.type === "post_upload") {
-                            if (data.videoId) handlePostUploadComplete(data.videoId);
                           } else if (data.type === "complete") {
                             eventSource.close();
                             setUploading(false);
                             setUploadProgress(100);
                             toast("Upload concluído com sucesso!");
-                            if (data.videoId) handlePostUploadComplete(data.videoId);
+                            if (data.videoId) {
+                              handlePostUploadComplete(data.videoId, data.postUpload);
+                            }
                           } else if (data.type === "error") {
                             eventSource.close();
                             setUploading(false);
