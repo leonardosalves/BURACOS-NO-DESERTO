@@ -6435,6 +6435,16 @@ export default function App() {
     try {
       if (geminiBrowserMode) {
         toast.loading('Sugerindo rankings via Gemini no navegador…', { id: 'gemini-listicle' });
+        const diag = await refreshGeminiExtensionStatus();
+        if (!diag.pingOk) {
+          toast.dismiss('gemini-listicle');
+          const err = diag.error || 'Extensão não respondeu. Recarregue extensão + F5.';
+          toast.error(
+            `${err} Execute tools/lumiera-gemini-bridge/install.bat e abra o dashboard em http://127.0.0.1:5176`,
+            { duration: 10000 },
+          );
+          return;
+        }
       }
 
       const body = JSON.stringify({ niche: listNiche.trim(), format: formatSelector, useNotebooklm });

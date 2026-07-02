@@ -29,7 +29,7 @@ export function isBridgeScriptPresent() {
   return document.documentElement.getAttribute('data-lumiera-gemini-bridge') != null;
 }
 
-export async function waitForBridgeScript(maxMs = 2000): Promise<boolean> {
+export async function waitForBridgeScript(maxMs = 4000): Promise<boolean> {
   if (isBridgeScriptPresent()) return true;
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
@@ -37,6 +37,41 @@ export async function waitForBridgeScript(maxMs = 2000): Promise<boolean> {
     if (isBridgeScriptPresent()) return true;
   }
   return false;
+}
+
+/** Pede ao background da extensão re-injetar content-lumiera.js nas abas do dashboard. */
+export async function requestBridgeReinject(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const requestId = `reinj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener('message', onMessage);
+      resolve(false);
+    }, 6000);
+
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as BridgeMessage;
+      if (!data || data.source !== BRIDGE_SOURCE || data.requestId !== requestId) return;
+      if (data.type !== 'LUMIERA_GEMINI_REINJECT_DONE') return;
+      window.removeEventListener('message', onMessage);
+      window.clearTimeout(timeout);
+      resolve(!!data.ok);
+    };
+
+    window.addEventListener('message', onMessage);
+    window.postMessage({
+      source: APP_SOURCE,
+      type: 'LUMIERA_GEMINI_REINJECT',
+      requestId,
+    }, '*');
+  });
+}
+
+async function recoverBridgeConnection(): Promise<boolean> {
+  await requestBridgeReinject();
+  await sleep(600);
+  if (await waitForBridgeScript(3000)) return true;
+  await sleep(1200);
+  return waitForBridgeScript(3000);
 }
 
 function postToBridge<T extends BridgeMessage>(
@@ -80,29 +115,55 @@ function postToBridge<T extends BridgeMessage>(
 let extensionCached = false;
 
 export async function diagnoseGeminiExtension() {
-  const scriptPresent = await waitForBridgeScript(3000);
+  let scriptPresent = await waitForBridgeScript(4000);
+  if (!scriptPresent) {
+    scriptPresent = await recoverBridgeConnection();
+  }
   if (!scriptPresent) {
     return { scriptPresent: false, pingOk: false, error: 'Extensão não injetou. Recarregue extensão + F5.' };
   }
   try {
-    const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 3000);
+    const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 5000);
     extensionCached = true;
     return { scriptPresent: true, pingOk: true, version: resp.version };
   } catch (err) {
+    const recovered = await recoverBridgeConnection();
+    if (recovered) {
+      try {
+        const resp = await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 5000);
+        extensionCached = true;
+        return { scriptPresent: true, pingOk: true, version: resp.version };
+      } catch {
+        // fall through
+      }
+    }
     return { scriptPresent: true, pingOk: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
 export async function isGeminiExtensionAvailable(force = false): Promise<boolean> {
   if (!force && extensionCached) return true;
-  if (!await waitForBridgeScript(2000)) return false;
+  let scriptOk = await waitForBridgeScript(3000);
+  if (!scriptOk) scriptOk = await recoverBridgeConnection();
+  if (!scriptOk) return false;
   try {
-    await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 3000);
+    await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 5000);
     extensionCached = true;
     return true;
   } catch {
-    extensionCached = false;
-    return false;
+    const recovered = await recoverBridgeConnection();
+    if (!recovered) {
+      extensionCached = false;
+      return false;
+    }
+    try {
+      await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 5000);
+      extensionCached = true;
+      return true;
+    } catch {
+      extensionCached = false;
+      return false;
+    }
   }
 }
 
@@ -111,7 +172,7 @@ export function estimateGeminiQueryTimeoutMs(prompt: string): number {
   if (/LUMIERA_TASK:metadata/i.test(prompt)) return 200000;
   if (/Metadados YouTube|##\s*T[ÍI]TULOS|SEO para YouTube/i.test(prompt)) return 200000;
   if (len > 6000 || /"overlays"\s*:/i.test(prompt) || /LUMIERA_TASK:overlay/i.test(prompt)) return 180000;
-  if (/Ideas Engine|"best_idea_index"|ranking_ideas/i.test(prompt)) return 150000;
+  if (/Ideas Engine|"best_idea_index"|ranking_ideas|listicle|LISTICLE/i.test(prompt)) return 150000;
   if (/Gerar narração|narrative_script|LUMIERA_TASK:script/i.test(prompt)) return 300000;
   if (len > 3000) return 130000;
   return 120000;

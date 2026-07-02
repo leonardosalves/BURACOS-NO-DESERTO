@@ -1,5 +1,5 @@
 @echo off
-title Instalar extensao Lumiera Gemini Bridge v1.1.8
+title Instalar extensao Lumiera Gemini Bridge v2.1.1
 echo.
 echo === Lumiera Gemini Bridge ===
 echo.

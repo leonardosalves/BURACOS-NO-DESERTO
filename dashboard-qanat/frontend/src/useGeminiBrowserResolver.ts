@@ -23,7 +23,8 @@ export function useGeminiBrowserResolver(
       || /"overlays"\s*:\s*\[/i.test(prompt);
     const isIdeas = /ideias/i.test(title)
       || /Ideas Engine/i.test(prompt)
-      || /"best_idea_index"/i.test(prompt);
+      || /"best_idea_index"/i.test(prompt)
+      || /ranking_ideas|listicle/i.test(prompt);
     const isNarration = /narra[cç][aã]o/i.test(title)
       || /Gerar narração/i.test(title)
       || /"narrative_script"/i.test(prompt);
