@@ -85,11 +85,16 @@ export function findNarrationMatch(
   let bestScore = 0;
   let bestFirstMatchIdx = -1;
   let bestLastMatchIdx = -1;
+  let bestMatchedTargetIndices = new Set();
+  let bestFirstMatchedTargetIdx = -1;
+  let bestLastMatchedTargetIdx = -1;
 
   for (let i = 0; i <= eligible.length - Math.min(N, eligible.length); i++) {
     let score = 0;
     let firstMatchIdxInWindow = -1;
     let lastMatchIdxInWindow = -1;
+    let firstMatchedTargetIdx = -1;
+    let lastMatchedTargetIdx = -1;
     const matchedTargetIndices = new Set();
     const windowWords = eligible.slice(i, i + W);
 
@@ -99,8 +104,12 @@ export function findNarrationMatch(
         if (!matchedTargetIndices.has(tIdx) && matchWords(targetWords[tIdx], cleanTw)) {
           score += targetWeights[tIdx];
           matchedTargetIndices.add(tIdx);
-          if (firstMatchIdxInWindow === -1) firstMatchIdxInWindow = twIdx;
+          if (firstMatchIdxInWindow === -1) {
+            firstMatchIdxInWindow = twIdx;
+            firstMatchedTargetIdx = tIdx;
+          }
           lastMatchIdxInWindow = twIdx;
+          lastMatchedTargetIdx = tIdx;
           break;
         }
       }
@@ -121,6 +130,9 @@ export function findNarrationMatch(
       bestScore = score;
       bestFirstMatchIdx = currentFirstAbs;
       bestLastMatchIdx = currentLastAbs;
+      bestMatchedTargetIndices = matchedTargetIndices;
+      bestFirstMatchedTargetIdx = firstMatchedTargetIdx;
+      bestLastMatchedTargetIdx = lastMatchedTargetIdx;
     }
   }
 
@@ -128,7 +140,38 @@ export function findNarrationMatch(
   if (bestScore >= threshold && bestFirstMatchIdx !== -1 && bestLastMatchIdx !== -1) {
     const start = flatTranscriptWords[bestFirstMatchIdx].start;
     const end = flatTranscriptWords[bestLastMatchIdx].end;
-    return { start, end, duration: end - start, bestFirstMatchIdx, bestLastMatchIdx };
+
+    // Calculate dynamic average speaking rate (duration per matched word)
+    const matchedCount = bestMatchedTargetIndices.size;
+    let avgWordDuration = 0.28; // standard fallback
+    if (matchedCount >= 2 && end > start) {
+      avgWordDuration = (end - start) / matchedCount;
+    }
+    // Clamp speaking rate to reasonable human speech bounds (150ms to 450ms per word)
+    avgWordDuration = Math.max(0.15, Math.min(0.45, avgWordDuration));
+
+    // 1. Correct start: if the first matched narration word is at index > 0,
+    // shift start time back to cover the unmatched words spoken at the beginning.
+    let finalStart = start;
+    if (bestFirstMatchedTargetIdx > 0) {
+      finalStart = Math.max(searchAfter, start - (bestFirstMatchedTargetIdx * avgWordDuration));
+    }
+
+    // 2. Correct end: if the last matched narration word is at index < N - 1,
+    // shift end time forward to cover the unmatched words spoken at the end.
+    let finalEnd = end;
+    const unmatchedAtEnd = (N - 1) - bestLastMatchedTargetIdx;
+    if (unmatchedAtEnd > 0) {
+      finalEnd = Math.min(searchBefore, end + (unmatchedAtEnd * avgWordDuration));
+    }
+
+    return { 
+      start: parseFloat(finalStart.toFixed(3)), 
+      end: parseFloat(finalEnd.toFixed(3)), 
+      duration: parseFloat(Math.max(0.5, finalEnd - finalStart).toFixed(3)), 
+      bestFirstMatchIdx, 
+      bestLastMatchIdx 
+    };
   }
   return null;
 }
