@@ -7724,8 +7724,12 @@ app.get("/api/ai/settings", (req, res) => {
 app.post("/api/ai/settings", (req, res) => {
 
   const projDir = getProjectDir(req);
-
-  const configPath = path.join(projDir, "config_qanat.json");
+  
+  // Salva no arquivo global do workspace e opcionalmente no projeto ativo
+  const configPaths = [path.join(WORKSPACE_DIR, "config_qanat.json")];
+  if (projDir !== WORKSPACE_DIR) {
+    configPaths.push(path.join(projDir, "config_qanat.json"));
+  }
 
   const {
     provider,
@@ -7740,8 +7744,11 @@ app.post("/api/ai/settings", (req, res) => {
   } = req.body || {};
 
   try {
-
-    let config = readJsonFile(configPath) || {};
+    for (const configPath of configPaths) {
+      if (!fs.existsSync(configPath) && configPath !== path.join(WORKSPACE_DIR, "config_qanat.json")) {
+        continue;
+      }
+      let config = readJsonFile(configPath) || {};
 
     if (provider === "gemini" || provider === "xai" || provider === "openrouter" || provider === "nvidia") {
 
@@ -7801,7 +7808,8 @@ app.post("/api/ai/settings", (req, res) => {
       config.gemini_browser_mode = gemini_browser_mode;
     }
 
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+    }
 
     res.json({
 
