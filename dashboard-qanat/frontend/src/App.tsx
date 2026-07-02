@@ -7848,6 +7848,12 @@ export default function App() {
     if (resolution === '2k') queryParams.push('resolution=2k');
     const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
 
+    // Salvar config com audio_start atualizado ANTES do render
+    if (config) {
+      const enriched = enrichTimelineAudioStarts(config);
+      await saveConfig(enriched);
+    }
+
     const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${queryString}`));
 
     eventSource.onmessage = (event) => {
@@ -7985,13 +7991,6 @@ export default function App() {
                             Sincronizar Whisper agora
                           </button>
                         )}
-                        <button
-                          type="button"
-                          onClick={distributeAllBlockNarrations}
-                          className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-200 transition flex items-center gap-1.5"
-                        >
-                          <Layers className="w-3 h-3" /> Distribuir narração em todos os blocos
-                        </button>
                         {timelineScenesNeedRepair && (
                           <button
                             type="button"
@@ -8073,14 +8072,6 @@ export default function App() {
 
                         <Save className="w-3.5 h-3.5" /> Salvar Linha do Tempo
 
-                      </button>
-
-                      <button
-                        onClick={distributeAllBlockNarrations}
-                        className="bg-violet-950 border border-violet-900/50 hover:bg-violet-900 text-violet-300 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
-                        title="Divide o texto de cada bloco entre os assets proporcionalmente"
-                      >
-                        <Layers className="w-3.5 h-3.5" /> Distribuir Narração
                       </button>
 
                       {status?.has_narration && (
