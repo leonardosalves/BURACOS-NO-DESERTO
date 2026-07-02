@@ -13034,11 +13034,23 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
     });
     if (responseText == null) return;
 
-    const parsed = normalizeKeys(await parseAiJsonResponse(
-      responseText,
-      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Melhorar narração draft",
-    ));
+    const isBrowserResponse = !!extractBrowserResponse(req.body);
+    let rawData;
+    try {
+      rawData = await parseAiJsonResponse(
+        responseText,
+        isBrowserResponse ? null : getApiKey(projDir),
+        "Melhorar narração draft",
+      );
+    } catch (parseErr) {
+      rawData = salvageScriptJson(responseText) || {};
+      console.warn("[NotebookLM] JSON inválido ao melhorar draft — salvage/fallback:", parseErr.message);
+      if (!Object.keys(rawData).length) {
+        throw parseErr;
+      }
+    }
+
+    const parsed = normalizeKeys(rawData);
 
     console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
 
