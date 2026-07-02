@@ -15,6 +15,7 @@ import { SourceCard, SourceCardProps } from "./SourceCard";
 import { SocialPostCard, SocialPostCardProps } from "./SocialPostCard";
 import { GeoMapOverlay, GeoMapOverlayProps } from "./GeoMapOverlay";
 import { safeCustomStyle } from "./overlayStyleUtils";
+import { repairOverlayPropsEncoding } from "../textEncoding";
 
 // ─────────────────────────────────────────────────────────────────────
 // OverlayLayer — Manages rendering of all overlay elements
@@ -133,7 +134,10 @@ interface OverlayLayerProps {
 }
 
 function sanitizeOverlayProps<T extends Overlay["props"]>(raw: T): T {
-  const props = { ...(raw || {}) } as T & { customStyle?: unknown; style?: unknown };
+  const props = repairOverlayPropsEncoding({ ...(raw || {}) } as Record<string, unknown>) as T & {
+    customStyle?: unknown;
+    style?: unknown;
+  };
   if ("customStyle" in props) {
     const safe = safeCustomStyle(props.customStyle);
     if (safe) props.customStyle = safe as T extends { customStyle?: infer C } ? C : never;

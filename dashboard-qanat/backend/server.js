@@ -318,7 +318,12 @@ import {
   applyWhisperDurationsToStoryboard,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
-import { hasMojibakeDeep, repairStoryboardEncoding } from "./textEncoding.js";
+import {
+  hasMojibakeDeep,
+  repairOverlayPropsEncoding,
+  repairOverlaysEncoding,
+  repairStoryboardEncoding,
+} from "./textEncoding.js";
 import { loadStockUsageRegistry } from "./mediaUsageRegistry.js";
 import {
   needsListItemsRepair,
@@ -4487,7 +4492,7 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
     const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays_ai = JSON.parse(JSON.stringify(cleanedAi));
+    storyboard.overlays_ai = repairOverlaysEncoding(JSON.parse(JSON.stringify(cleanedAi)));
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
@@ -4510,16 +4515,18 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     });
 
     // Align and finalize planned overlays immediately
-    const realigned = normalizeGeminiOverlayPayload(
-      realignPlannedOverlays(
-        cleanedAi,
-        null,
-        storyboard,
-        timingsForPlan.starts || [],
-        timingsForPlan.durations || [],
-        wordTranscriptsPlan,
-        configForPlan,
-      )
+    const realigned = repairOverlaysEncoding(
+      normalizeGeminiOverlayPayload(
+        realignPlannedOverlays(
+          cleanedAi,
+          null,
+          storyboard,
+          timingsForPlan.starts || [],
+          timingsForPlan.durations || [],
+          wordTranscriptsPlan,
+          configForPlan,
+        ),
+      ),
     );
 
     const finalized = finalizeProjectOverlays(
@@ -4549,7 +4556,8 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     });
     storyboard.overlay_timing_report = { ...planTimingReport, source: "planned" };
 
-    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    const cleanSbPlan = repairStoryboardEncoding(storyboard);
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(cleanSbPlan, null, 2), "utf8");
 
     console.log(`[Plan Overlays] Concluído: ${cleanedAi.length} overlays, token=${planToken}`);
 
@@ -6220,16 +6228,18 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     const durations = Array.isArray(timings.durations) ? timings.durations : [];
     
     // Alinha os overlays com os tempos físicos das cenas
-    const realigned = normalizeGeminiOverlayPayload(
-      realignPlannedOverlays(
-        plannedRaw,
-        validScenes,
-        freshSb,
-        starts,
-        durations,
-        wordTranscripts,
-        config,
-      )
+    const realigned = repairOverlaysEncoding(
+      normalizeGeminiOverlayPayload(
+        realignPlannedOverlays(
+          plannedRaw,
+          validScenes,
+          freshSb,
+          starts,
+          durations,
+          wordTranscripts,
+          config,
+        ),
+      ),
     );
 
     const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
@@ -13995,6 +14005,7 @@ function repairOverlayPropsForRemotion(overlay) {
     delete p.style;
   }
 
+  overlay.props = repairOverlayPropsEncoding(p);
   return overlay;
 }
 
@@ -14416,6 +14427,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   }
 
   storyboard.overlay_timing_report = timingVerified.report;
+  result = repairOverlaysEncoding(result);
 
   const quality = validateVideoQuality({
     overlays: result,
@@ -14614,15 +14626,17 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
 
   if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
     console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados${useHyperframes ? " [HyperFrames]" : ""} (re-alinhando com timeline de render).`);
-    let realigned = normalizeGeminiOverlayPayload(
-      realignPlannedOverlays(
-        plannedSource,
-        actualScenes,
-        storyboard,
-        starts,
-        durations,
-        wordTranscripts,
-        config,
+    let realigned = repairOverlaysEncoding(
+      normalizeGeminiOverlayPayload(
+        realignPlannedOverlays(
+          plannedSource,
+          actualScenes,
+          storyboard,
+          starts,
+          durations,
+          wordTranscripts,
+          config,
+        ),
       ),
     );
     const plannedSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
