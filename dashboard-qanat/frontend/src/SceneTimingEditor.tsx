@@ -207,9 +207,8 @@ export function SceneTimingEditor({
 
   const handleDurationChange = (sceneIdx: number, value: number) => {
     const assets = draft[activeBlock];
-    if (!assets || !blockModel) return;
-    const blockDur = blockModel.blockEnd - blockModel.blockStart;
-    updateBlockAssets(activeBlock, setSceneDuration(assets, sceneIdx, value, blockDur));
+    if (!assets) return;
+    updateBlockAssets(activeBlock, setSceneDuration(assets, sceneIdx, value));
   };
 
   const handleDividerDrag = useCallback(
@@ -381,13 +380,14 @@ export function SceneTimingEditor({
         <>
           <div className="ste-summary glass-panel p-4 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Narração do bloco</p>
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Fala do bloco (áudio)</p>
               <p className="font-mono text-cyan-300">
                 {formatTimelineClock(blockModel.narrationStart)} → {formatTimelineClock(blockModel.narrationEnd)}
+                <span className="text-zinc-500 text-[10px] ml-1">({blockModel.speechDuration.toFixed(1)}s)</span>
               </p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Duração das cenas</p>
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Duração visual (cenas)</p>
               <p className="font-mono text-white">{blockModel.totalDuration.toFixed(1)}s</p>
             </div>
             <div>
@@ -503,7 +503,7 @@ export function SceneTimingEditor({
                         <button
                           type="button"
                           onClick={() => {
-                            const { start, end } = getScenePlaybackWindow(scene);
+                            const { start, end } = getScenePlaybackWindow(scene, blockModel.narrationEnd);
                             playScene(activeBlock, scene.idx, start, end);
                           }}
                           className={`ste-play-btn ${isPlaying ? "ste-play-btn--active" : ""}`}
@@ -523,7 +523,7 @@ export function SceneTimingEditor({
                       </span>
                       <span className="font-mono text-[10px] text-zinc-500">
                         {(() => {
-                          const { start, end } = getScenePlaybackWindow(scene);
+                          const { start, end } = getScenePlaybackWindow(scene, blockModel.narrationEnd);
                           return `${formatTimelineClock(start)} – ${formatTimelineClock(end)}`;
                         })()}
                         {" · "}{scene.words.length} palavras
