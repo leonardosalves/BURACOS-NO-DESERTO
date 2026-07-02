@@ -1,5 +1,11 @@
 import os
 import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 import json
 
 from lumiera_workspace import resolve_workspace, resolve_project_dir, resolve_output_video, resolve_platform_caption
