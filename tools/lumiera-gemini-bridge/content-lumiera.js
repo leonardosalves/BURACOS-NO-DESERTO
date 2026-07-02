@@ -55,6 +55,19 @@
     const data = event.data;
     if (!data || data.source !== "lumiera-app") return;
 
+    if (data.type === "LUMIERA_GEMINI_REINJECT") {
+      safeSendMessage({ type: "LUMIERA_REINJECT_LUMIERA" }, (_resp, err) => {
+        announceReady();
+        postBridgeMessage({
+          type: "LUMIERA_GEMINI_REINJECT_DONE",
+          requestId: data.requestId,
+          ok: !err,
+          error: err?.message,
+        });
+      });
+      return;
+    }
+
     if (data.type === "LUMIERA_GEMINI_PING") {
       if (!isExtensionContextValid()) {
         postBridgeMessage({
