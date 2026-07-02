@@ -156,7 +156,7 @@ export function SceneTimingEditor({
   const blockModel = useMemo((): BlockTimingModel | null => {
     const assets = draft[activeBlock];
     if (!assets?.length) return null;
-    return buildBlockTimingModel(activeBlock, assets, flatWords, status, syncCtx);
+    return buildBlockTimingModel(activeBlock, assets, flatWords, status, syncCtx, wordTranscripts);
   }, [activeBlock, draft, flatWords, status, syncCtx]);
 
   const hasTranscript = flatWords.length > 0 && Boolean(status?.block_timings?.starts?.length);
@@ -269,7 +269,7 @@ export function SceneTimingEditor({
       const model = buildBlockTimingModel(activeBlock, synced, flatWords, status, {
         ...syncCtx,
         config: { ...syncCtx.config, timeline_assets: { ...draft, [activeBlock]: synced } },
-      });
+      }, wordTranscripts);
       const withStarts = model ? applyAudioStartsFromScenes(synced, model) : synced;
       updateBlockAssets(activeBlock, withStarts);
       toast(`${aligned} cena(s) sincronizada(s) com a voz.`);
@@ -288,7 +288,7 @@ export function SceneTimingEditor({
         const model = buildBlockTimingModel(blockKey, assets, flatWords, status, {
           ...syncCtx,
           config: { ...syncCtx.config, timeline_assets: enriched },
-        });
+        }, wordTranscripts);
         if (model) {
           enriched[blockKey] = applyAudioStartsFromScenes(assets, model);
         }

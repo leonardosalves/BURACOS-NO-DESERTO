@@ -80,15 +80,15 @@ export function getStrictBlockBounds(status: BlockTimingStatus | undefined, bloc
 }
 
 export function getBlockNarrationText(ctx: NarrationSyncContext, blockNum: number): string {
-  const bp = ctx.config?.block_phrases?.find((x) => Number(x.block) === blockNum);
-  const blockPhrase = repairMojibake(String(bp?.phrase || "").trim());
-  if (blockPhrase) return blockPhrase;
-
   const scenes = (ctx.storyboard?.visual_prompts || []).filter((vp) => Number(vp.block) === blockNum);
   const sceneTexts = scenes
     .map((vp) => repairMojibake(String(vp.narration_text || vp.narration_excerpt || "").trim()))
     .filter(Boolean);
   if (sceneTexts.length > 0) return sceneTexts.join(" ");
+
+  const bp = ctx.config?.block_phrases?.find((x) => Number(x.block) === blockNum);
+  const blockPhrase = repairMojibake(String(bp?.phrase || "").trim());
+  if (blockPhrase) return blockPhrase;
   return "";
 }
 
@@ -132,11 +132,6 @@ export function applySplitNarrationToBlockAssets(
 }
 
 export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: string, assetIdx: number): string {
-  const assets = ctx.config?.timeline_assets?.[blockKey] || [];
-  const asset = assets[assetIdx];
-  const segment = repairMojibake(String(asset?.narration_segment || "").trim());
-  if (segment) return segment;
-
   const blockNum = parseInt(blockKey, 10);
   const scenes = (ctx.storyboard?.visual_prompts || []).filter((vp) => Number(vp.block) === blockNum);
   if (scenes.length > assetIdx) {
@@ -145,6 +140,11 @@ export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: strin
     );
     if (sceneText) return sceneText;
   }
+
+  const assets = ctx.config?.timeline_assets?.[blockKey] || [];
+  const asset = assets[assetIdx];
+  const segment = repairMojibake(String(asset?.narration_segment || "").trim());
+  if (segment) return segment;
 
   const blockText = getBlockNarrationText(ctx, blockNum);
   if (!blockText) return "";
@@ -157,6 +157,45 @@ export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: strin
 
 export function narrationCacheKey(blockNum: number, text: string) {
   return `${blockNum}::${text}`;
+}
+
+type TranscriptSegment = {
+  block?: number;
+  index?: number;
+  start_time?: number;
+  end_time?: number;
+  words?: Array<{ word: string; start: number; end: number }>;
+};
+
+/** Palavras do bloco a partir dos segmentos Whisper (campo block) — evita vazamento por block_timings largo. */
+export function collectBlockWordsFromTranscriptSegments(
+  wordTranscripts: TranscriptSegment[],
+  blockNum: number,
+): Array<{ word: string; start: number; end: number }> {
+  if (!Array.isArray(wordTranscripts)) return [];
+  const segs = wordTranscripts
+    .filter((s) => Number(s.block) === blockNum)
+    .sort((a, b) => Number(a.index) - Number(b.index) || Number(a.start_time) - Number(b.start_time));
+
+  const out: Array<{ word: string; start: number; end: number }> = [];
+  for (const seg of segs) {
+    const segStart = Number(seg.start_time) || 0;
+    for (const w of seg.words || []) {
+      let wStart = Number(w.start);
+      let wEnd = Number(w.end);
+      if (wStart < segStart) {
+        wStart += segStart;
+        wEnd += segStart;
+      }
+      const token = String(w.word || "").trim();
+      out.push({
+        word: repairMojibake(token),
+        start: wStart,
+        end: wEnd,
+      });
+    }
+  }
+  return out.sort((a, b) => a.start - b.start);
 }
 
 /** Alinha palavras do roteiro/storyboard aos timestamps do Whisper (mesma lógica do App.tsx). */

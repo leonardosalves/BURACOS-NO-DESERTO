@@ -297,6 +297,7 @@ import {
   sanitizeFullTimelineAssets,
   realignTimelineAssetsToSpeech,
   recalculateSequentialAudioStarts,
+  syncProjectTimelineAfterWhisper,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
 import { hasMojibakeDeep, repairStoryboardEncoding } from "./textEncoding.js";
@@ -12960,13 +12961,24 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
 
     const existingTimeline = autoConfig.timeline_assets || {};
     const assetFiles = listProjectMediaAssets(projDir);
+    const storyboardForAlign = readProjectJson(projDir, "storyboard.json", {});
+    const visualPromptsForMap = Array.isArray(storyboardForAlign.visual_prompts)
+      ? storyboardForAlign.visual_prompts
+      : [];
     const mergedTimeline = { ...mapped.timelineAssets };
     for (const blockKey of Object.keys(mergedTimeline)) {
+      const blockNum = Number(blockKey);
+      const blockScenes = visualPromptsForMap.filter((vp) => Number(vp?.block) === blockNum);
       mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset, idx) => {
         const prev = (existingTimeline[blockKey] || [])[idx];
         const entry = { ...asset };
         delete entry.audio_start;
+        delete entry.speech_end;
         delete entry.synced_to_speech;
+        const sceneText = String(
+          blockScenes[idx]?.narration_text || blockScenes[idx]?.narration_excerpt || "",
+        ).trim();
+        if (sceneText) entry.narration_segment = sceneText;
         if (!prev) return entry;
         if (prev.user_locked || prev.manual_asset) {
           if (prev.asset) entry.asset = prev.asset;
@@ -12980,7 +12992,6 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
         } else if (prev.fixed !== undefined && prev.fixed !== null) {
           entry.fixed = prev.fixed;
         }
-        if (prev.narration_segment) entry.narration_segment = prev.narration_segment;
         return entry;
       });
     }
@@ -12990,30 +13001,32 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
       mapped.warnings.push(`${sanitized.replaced} duplicata(s) removida(s) após merge.`);
     }
 
-    const flatWords = flattenWordTranscripts(readProjectJson(projDir, "word_transcripts.json", []));
+    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+    const flatWords = flattenWordTranscripts(wordTranscripts);
     const blockTimings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
-    const storyboardForAlign = readProjectJson(projDir, "storyboard.json", {});
     const alignContext = {
-      visualPrompts: Array.isArray(storyboardForAlign.visual_prompts) ? storyboardForAlign.visual_prompts : [],
+      visualPrompts: visualPromptsForMap,
       blockPhrases: Array.isArray(autoConfig.block_phrases) ? autoConfig.block_phrases : [],
     };
 
     if (flatWords.length > 0) {
-      autoConfig.timeline_assets = realignTimelineAssetsToSpeech({
+      const synced = syncProjectTimelineAfterWhisper({
         timelineAssets: autoConfig.timeline_assets,
         blockTimings,
+        wordTranscripts,
         flatTranscriptWords: flatWords,
         ...alignContext,
         preserveExplicitFixed: true,
       });
+      autoConfig.timeline_assets = synced.timelineAssets;
+      if (synced.blockTimings?.starts?.length) {
+        fs.writeFileSync(
+          path.join(projDir, "block_timings.json"),
+          JSON.stringify(synced.blockTimings, null, 2),
+          "utf8",
+        );
+      }
     }
-
-    autoConfig.timeline_assets = recalculateSequentialAudioStarts({
-      timelineAssets: autoConfig.timeline_assets,
-      blockTimings,
-      flatTranscriptWords: flatWords,
-      ...alignContext,
-    });
 
     autoConfig.timeline_map_epoch = mapEpoch + 1;
     autoConfig.timeline_map_epoch_v2 = true;
@@ -13195,6 +13208,41 @@ activeChild = child1;
       activeChild = null;
 
       if (code2 === 0) {
+        try {
+          const configPath = path.join(projDir, "config_qanat.json");
+          const storyboardPath = path.join(projDir, "storyboard.json");
+          const timingsPath = path.join(projDir, "block_timings.json");
+          const wordsPath = path.join(projDir, "word_transcripts.json");
+          if (fs.existsSync(configPath) && fs.existsSync(wordsPath)) {
+            const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+            const storyboard = fs.existsSync(storyboardPath)
+              ? JSON.parse(fs.readFileSync(storyboardPath, "utf8"))
+              : {};
+            const wordTranscripts = JSON.parse(fs.readFileSync(wordsPath, "utf8"));
+            const flatWords = flattenWordTranscripts(wordTranscripts);
+            if (cfg.timeline_assets && flatWords.length) {
+              const synced = syncProjectTimelineAfterWhisper({
+                timelineAssets: cfg.timeline_assets,
+                blockTimings: fs.existsSync(timingsPath)
+                  ? JSON.parse(fs.readFileSync(timingsPath, "utf8"))
+                  : { starts: [], durations: [] },
+                wordTranscripts,
+                flatTranscriptWords: flatWords,
+                visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+                blockPhrases: Array.isArray(cfg.block_phrases) ? cfg.block_phrases : [],
+                preserveExplicitFixed: true,
+              });
+              cfg.timeline_assets = synced.timelineAssets;
+              fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+              if (synced.blockTimings?.starts?.length) {
+                fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
+              }
+              sendLog("[Pipeline] Timeline e block_timings sincronizados com segmentos Whisper.");
+            }
+          }
+        } catch (syncErr) {
+          sendLog(`[AVISO] Falha ao sincronizar timeline pós-Whisper: ${syncErr.message}`);
+        }
 
         res.write(`data: ${JSON.stringify({ type: "complete", code: code2 })}\n\n`);
 
