@@ -13,7 +13,9 @@ export type TimelineAsset = {
   asset?: string;
   fixed?: number;
   audio_start?: number;
+  speech_end?: number;
   narration_segment?: string;
+  synced_to_speech?: boolean;
 };
 
 export type NarrationSyncContext = {
@@ -59,6 +61,20 @@ export function getBlockTimeBounds(status: BlockTimingStatus | undefined, blockN
   return {
     searchAfter: Number.isFinite(blockStart) ? blockStart : 0,
     searchBefore: blockEnd,
+  };
+}
+
+/** Bounds estritos (sem margem fuzzy) — para cache de palavras por bloco, evita vazamento. */
+export function getStrictBlockBounds(status: BlockTimingStatus | undefined, blockNum: number) {
+  const starts = status?.block_timings?.starts;
+  const durations = status?.block_timings?.durations;
+  const blockStart = Number(starts?.[blockNum - 1]);
+  const blockDuration = Number(durations?.[blockNum - 1]);
+  return {
+    start: Number.isFinite(blockStart) ? blockStart : 0,
+    end: Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+      ? blockStart + blockDuration
+      : Infinity,
   };
 }
 
