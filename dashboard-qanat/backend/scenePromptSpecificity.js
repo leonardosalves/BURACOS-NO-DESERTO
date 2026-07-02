@@ -79,17 +79,41 @@ const ACTION_PT_EN = {
   quebra: "breaking apart",
   quebrou: "breaking apart",
   corre: "moving fast",
-  correr: "streaming",
+  correndo: "running",
   nadando: "swimming",
   nada: "swimming",
   ataca: "attacking",
   gira: "spinning",
+  giraram: "rotating",
   oscila: "oscillating wildly",
   balança: "swaying",
   balanca: "swaying",
   acumular: "pooling",
-  correr: "streaming",
   fluir: "flowing",
+  arrastaram: "dragging",
+  arrastou: "dragging",
+  arrastar: "dragging",
+  moveram: "moving",
+  mover: "moving",
+  moveu: "moving",
+  cortaria: "cutting",
+  cortou: "cutting",
+  demolir: "demolishing",
+  demoliu: "demolished",
+  construiu: "building",
+  construir: "constructing",
+  expandir: "expanding",
+  expandiu: "expanding",
+  ergueu: "lifting",
+  erguer: "lifting",
+  levantou: "raising",
+  transportou: "transporting",
+  transportar: "transporting",
+  repetiu: "repeating",
+  manteve: "maintaining",
+  funcionando: "operating",
+  trabalharam: "working",
+  trabalhando: "working",
 };
 
 const OBJECT_PT_EN = {
@@ -116,6 +140,59 @@ const OBJECT_PT_EN = {
   motor: "engine",
   hélice: "propeller",
   helice: "propeller",
+  prédio: "building",
+  predio: "building",
+  edifício: "building",
+  edificio: "building",
+  casa: "house",
+  cidade: "city",
+  rua: "street",
+  estrada: "road",
+  torre: "tower",
+  usina: "power plant",
+  fábrica: "factory",
+  fabrica: "factory",
+  barragem: "dam",
+  túnel: "tunnel",
+  tunel: "tunnel",
+  muro: "wall",
+  pilar: "pillar",
+  coluna: "column",
+  viga: "beam",
+  fundação: "foundation",
+  fundacao: "foundation",
+  trilho: "rail",
+  trilhos: "rails",
+  telefônica: "telephone company building",
+  telefonica: "telephone company building",
+  escola: "school",
+  igreja: "church",
+  palácio: "palace",
+  palacio: "palace",
+  pirâmide: "pyramid",
+  piramide: "pyramid",
+  estátua: "statue",
+  estatua: "statue",
+  monumento: "monument",
+  represa: "dam",
+  rio: "river",
+  montanha: "mountain",
+  deserto: "desert",
+  floresta: "forest",
+  oceano: "ocean",
+  ilha: "island",
+  caverna: "cave",
+  submarino: "submarine",
+  helicóptero: "helicopter",
+  helicoptero: "helicopter",
+  caminhão: "truck",
+  caminhao: "truck",
+  guindaste: "crane",
+  escavadeira: "excavator",
+  máquina: "machine",
+  maquina: "machine",
+  sistema: "system",
+  bloco: "block",
 };
 
 const TERM_PT_EN = {
@@ -124,7 +201,6 @@ const TERM_PT_EN = {
   água: "water flow",
   agua: "water flow",
   vento: "airflow",
-  ar: "airflow",
   lateral: "lateral edge",
   laterais: "lateral edges",
   frente: "front edge",
@@ -138,6 +214,32 @@ const TERM_PT_EN = {
   concreto: "concrete",
   aço: "steel",
   aco: "steel",
+  engenheiros: "engineers",
+  engenheiro: "engineer",
+  funcionários: "workers",
+  funcionarios: "workers",
+  operários: "workers",
+  operarios: "workers",
+  toneladas: "tons",
+  metros: "meters",
+  quilômetros: "kilometers",
+  quilometros: "kilometers",
+  elétrica: "electrical",
+  eletrica: "electrical",
+  eletricidade: "electricity",
+  hidráulico: "hydraulic",
+  hidraulico: "hydraulic",
+  subterrâneo: "underground",
+  subterraneo: "underground",
+  histórica: "historic",
+  historica: "historic",
+  histórico: "historic",
+  historico: "historic",
+  antigo: "old",
+  moderno: "modern",
+  gigante: "massive",
+  enorme: "enormous",
+  inteiro: "entire",
 };
 
 function isVideoSceneType(type = "") {
@@ -176,9 +278,11 @@ function findLongestGlossaryMatches(narration = "", glossary = {}) {
   let scanned = lower;
   for (const pt of keys) {
     const key = normalizeText(pt);
-    if (scanned.includes(key)) {
+    // Use word boundary to avoid matching "ar" inside "arrastaram" etc.
+    const re = new RegExp(`(?:^|[\\s,.;:!?()\\[\\]"'])${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[\\s,.;:!?()\\[\\]"'])`);
+    if (re.test(scanned)) {
       found.push(glossary[pt]);
-      scanned = scanned.replace(key, " ");
+      scanned = scanned.replace(re, " ");
     }
   }
   return found;
@@ -227,7 +331,8 @@ function collectEnglishSubjects(narration = "", anchors = {}) {
   if (anchors.species?.en) subjects.push(anchors.species.en);
   subjects.push(...(anchors.objects || []));
   for (const noun of anchors.properNouns || []) {
-    if (/^[A-Za-z0-9][A-Za-z0-9\s.-]*$/.test(noun) && !subjects.includes(noun)) {
+    // Accept proper nouns with accented characters (Indianápolis, São Paulo, etc.)
+    if (noun.length >= 3 && !subjects.includes(noun)) {
       subjects.push(noun);
     }
   }
@@ -254,11 +359,17 @@ function inferShotType(narration = "", terms = []) {
   if (/\b(bico|macro|close|detalhe|textura)\b/.test(lower) || terms.includes("beak")) {
     return "macro close-up";
   }
-  if (/\b(ponte|city|paisagem|horizon|drone|aerial)\b/.test(lower)) {
+  if (/\b(ponte|cidade|city|paisagem|horizon|drone|aerial|rua|estrada|panorama)\b/.test(lower)) {
     return "wide aerial shot";
   }
-  if (/\b(multidão|crowd|exército|exercito)\b/.test(lower)) {
+  if (/\b(multidao|crowd|exercito|funcionarios|operarios|trabalhadores|pessoas)\b/.test(lower)) {
     return "wide shot";
+  }
+  if (/\b(predio|edificio|torre|fabrica|usina|igreja|palacio|monumento|escola|telefonica)\b/.test(lower)) {
+    return "cinematic wide shot";
+  }
+  if (/\b(interior|dentro|sala|escritorio|laboratorio)\b/.test(lower)) {
+    return "cinematic interior shot";
   }
   return "cinematic medium shot";
 }
@@ -269,19 +380,52 @@ function buildVisualFocalDescription(narration = "", anchors = {}) {
   const action = anchors.action;
   const shot = inferShotType(narration, subjects);
 
-  const primary = subjects[0] || "subject";
-  const modPrefix = modifiers.length ? `${modifiers[0]} ` : "";
+  // Filter out modifiers that are just noise without matching subjects
+  const meaningfulModifiers = modifiers.filter((m) => {
+    // Don't use standalone adjectives like "airflow" or "water flow" without a real subject
+    if (!subjects.length && ["airflow", "water flow", "fluid flow", "air pressure"].includes(m)) return false;
+    return true;
+  });
+
+  const primary = subjects[0] || null;
   const detailParts = [
-    ...modifiers.slice(1),
+    ...meaningfulModifiers,
     ...subjects.slice(1),
   ].filter(Boolean);
-  const actionPart = action ? ` with ${action}` : "";
-  const detailPart = detailParts.length ? `, ${detailParts.join(", ")}` : "";
+  const actionPart = action ? ` ${action}` : "";
 
-  if (subjects.length || modifiers.length || action) {
-    return `${shot} of ${modPrefix}${primary}${actionPart}${detailPart}`;
+  // If we have a proper subject, build a coherent description
+  if (primary) {
+    const details = detailParts.length ? `, ${detailParts.join(", ")}` : "";
+    return `${shot} of ${primary}${actionPart}${details}`;
   }
-  return `${shot} of the exact subject described in this scene`;
+
+  // If we only have action or modifiers but no subject, build with what we have
+  if (action && meaningfulModifiers.length) {
+    return `${shot} of ${meaningfulModifiers[0]} ${action}`;
+  }
+  if (action) {
+    return `${shot}, ${action}`;
+  }
+  if (meaningfulModifiers.length) {
+    return `${shot} of ${meaningfulModifiers.join(", ")}`;
+  }
+
+  // Absolute last resort — extract key nouns from narration directly
+  const keyWords = extractKeyNounsFromNarration(narration);
+  if (keyWords) {
+    return `${shot} of ${keyWords}`;
+  }
+  return `${shot} depicting the scene described in the narration`;
+}
+
+/** Extract meaningful nouns from PT narration as a last-resort EN description. */
+function extractKeyNounsFromNarration(narration = "") {
+  const lower = normalizeText(narration);
+  const words = lower.split(/\s+/).filter((w) => w.length >= 5 && !PT_STOPWORDS.has(w));
+  // Try to find at least 2-3 meaningful words
+  const meaningful = words.slice(0, 4);
+  return meaningful.length >= 1 ? meaningful.join(" ") : null;
 }
 
 export function isPromptTooGeneric(prompt = "", narration = "") {
@@ -311,11 +455,14 @@ export function buildSceneSpecificPrompt(vp = {}) {
   const anchors = extractSceneAnchors(narration);
   const focal = buildVisualFocalDescription(narration, anchors);
   const isVideo = isVideoSceneType(vp.type);
+  // Check if scene has text_overlay or impact_text that should be in Portuguese
+  const hasTextOverlay = !!(vp.text_overlay || vp.impact_text);
+  const langNote = hasTextOverlay ? " Any visible text/words in the image must be in Portuguese (Brazilian)." : "";
 
   if (isVideo) {
-    return `Photorealistic ${focal}. Exact subject and motion from this scene — not a generic substitute. Documentary science style, dramatic lighting, sharp motion detail, no text, max 10 seconds.`;
+    return `Photorealistic ${focal}. Documentary science style, dramatic lighting, sharp motion detail, no text overlay, max 10 seconds.${langNote}`;
   }
-  return `Photorealistic 2k ${focal}. Exact subject from this scene — not a generic alternative. Documentary science style, dramatic lighting, sharp detail, no text.`;
+  return `Photorealistic 2k ${focal}. Documentary science style, dramatic lighting, sharp detail, no text overlay.${langNote}`;
 }
 
 function isStockGeneric(stock = "") {

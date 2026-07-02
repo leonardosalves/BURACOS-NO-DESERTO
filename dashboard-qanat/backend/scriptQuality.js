@@ -904,6 +904,46 @@ export function enforceShortsVideoSceneMix(
   return vps;
 }
 
+export const CINEMATIC_PROMPT_ENGINEERING_RULES = `
+REGRAS DE PROMPT ENGINEERING CINEMATOGRÁFICO (OBRIGATÓRIO):
+
+1. NUNCA SEJA GENÉRICO:
+   - Proibido: "massive building moving", "old city", "heavy machinery", "vintage scene", "the exact subject from this scene", "subject"
+   - Sempre use detalhes reais e específicos do evento histórico/técnico descrito na narração.
+
+2. PESQUISE E USE FATOS REAIS (internamente):
+   - Identifique o mecanismo real usado (ex: macacos hidráulicos manuais + rollers de madeira/aço, pernas robóticas sincronizadas, etc.).
+   - Inclua escala real (toneladas, andares, velocidade do movimento).
+   - Mostre o elemento humano (pessoas trabalhando dentro, engenheiros monitorando, multidão observando).
+   - Diferencie claramente cenas de época (1930, 1950 etc.) de cenas modernas.
+
+3. LINGUAGEM CINEMATOGRÁFICA OBRIGATÓRIA:
+   - Sempre especifique: tipo de câmera/ângulo (low angle, tracking shot, aerial drone, macro, isometric), movimento da câmera, iluminação, profundidade de campo, atmosfera.
+   - Descreva texturas ricas (tijolo gasto, graxa, madeira rachada, poeira no ar, metal brilhante, concreto, etc.).
+   - Para cenas históricas: film grain + tom sépia ou preto e branco archival.
+   - Para cenas modernas: cores limpas, contraste alto, luz do dia nítida.
+   - Para movimento pesado: descreva movimento LENTO e deliberado ("inch by inch", "snail pace").
+
+4. FOCO EM RETENÇÃO E IMPACTO:
+   - Cada prompt deve gerar "uau" visual.
+   - Sempre mostre o "como" da engenharia (o mecanismo visível).
+   - Inclua elemento humano sempre que possível.
+   - Deixe composição limpa para overlays de texto (espaço no topo, centro ou terço inferior).
+
+5. QUALIDADE:
+   - Termine prompts de vídeo com: "photorealistic, highly detailed, 8K".
+   - Termine prompts de imagem com: "photorealistic, 2K resolution, highly detailed".
+   - Se houver texto visível na imagem/vídeo (text_overlay, impact_text), adicione: "Any visible text must be in Portuguese (Brazilian)."
+   - Para China/Moderna: mencione "robotic legs", "synchronized hydraulic", "walking technology".
+   - Mantenha coerência de estilo entre todas as cenas do mesmo roteiro.
+
+6. RACIOCÍNIO INTERNO (faça antes de cada prompt):
+   - Qual é o fato surpreendente deste trecho?
+   - Qual era o mecanismo real usado?
+   - O que uma foto ou filmagem da época mostraria?
+   - Como mostrar escala + detalhe técnico + emoção humana ao mesmo tempo?
+   - Qual ângulo de câmera vai gerar mais impacto?`;
+
 export function buildVisualPromptsRules({ format = "LONGO", isListicle = false, listicleRank = 20 } = {}) {
   const sceneCount = format === "SHORTS"
     ? (isListicle ? `${listicleRank * 2 + 4}-${listicleRank * 3 + 6}` : "5-12")
@@ -918,13 +958,16 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 - CUBRA 100% DA NARRAÇÃO APROVADA. Cada 1-2 frases = 1 objeto em visual_prompts.
 - Gere ${sceneCount} cenas no mínimo.
 - CADA objeto DEVE ter "narration_text" preenchido com o trecho EXATO falado na cena (copiado da narração aprovada).
-- CADA objeto DEVE ter "prompt" em inglês (photorealistic 2k / cinematic motion).
+- CADA objeto DEVE ter "prompt" em inglês — hiper-detalhado e cinematográfico (NÃO genérico).
+- O "prompt" deve descrever VISUALMENTE a cena: sujeito ESPECÍFICO + ação + enquadramento + texturas + iluminação. NUNCA use frases vagas como "the exact subject from this scene" ou "subject".
+- Se a cena incluir text_overlay, impact_text ou qualquer texto visível na imagem/vídeo, adicione ao final do prompt: "Any visible text must be in Portuguese (Brazilian)."
 ${typeMixRule}
 - Nunca deixe narration_text ou prompt vazios.
 - NÃO inclua "duration" nem "duration_seconds" — os segundos de cada cena são calculados pelo Whisper após a narração (100% da voz, sem estimativa).
 - Inclua stock_query em inglês em cada cena.
 ${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}
-${VISUAL_PROMPT_SPECIFICITY_RULES}`;
+${VISUAL_PROMPT_SPECIFICITY_RULES}
+${CINEMATIC_PROMPT_ENGINEERING_RULES}`;
 }
 
 export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = false, listicleRank = 20 } = {}) {
@@ -936,7 +979,7 @@ export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = fals
      "block": 1,
      "narration_text": "Trecho EXATO da narração aprovada para esta cena (1-2 frases, NUNCA vazio)",
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
-     "prompt": "Prompt em inglês com sujeito ESPECÍFICO da cena (espécie, objeto, lugar nomeado) + ação exata do narration_text — nunca genérico",
+     "prompt": "Prompt CINEMATOGRÁFICO em inglês: sujeito ESPECÍFICO + ação + ângulo de câmera + texturas + iluminação. Se tiver texto visível: 'Any visible text must be in Portuguese (Brazilian).'",
      "editor_notes": "Ken Burns zoom in, dissolve, etc.",
      "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
    }
@@ -1089,7 +1132,7 @@ export function buildVisualPromptsFromNarrationPrompt({
     ).slice(0, 6000)}`
     : "";
 
-  return `Você é diretor de vídeo YouTube. A narração já foi aprovada pelo usuário — NÃO altere palavras da narração nos trechos das cenas.
+  return `Você é um Prompt Engineer especialista em criar prompts visuais hiper-detalhados e cinematográficos para YouTube (curiosidades históricas, engenharia, construções, fatos surpreendentes). A narração já foi aprovada pelo usuário — NÃO altere palavras da narração nos trechos das cenas.
 
 TÍTULO: ${ideaTitle}
 FORMATO: ${format}
@@ -1132,6 +1175,62 @@ export function mergeVisualPromptsRepair(original = {}, repaired = {}) {
     };
   }
   return merged;
+}
+
+
+/**
+ * Build a focused AI prompt to translate scene narrations into proper English visual prompts.
+ * Used as intermediate fallback - lighter/faster than the full visual_prompts repair prompt.
+ */
+export function buildBatchScenePromptsAiRequest(scenes = [], { ideaTitle = "" } = {}) {
+  const sceneSummary = scenes.map((s) => ({
+    scene: s.scene,
+    narration: String(s.narration_text || "").slice(0, 300),
+    type: s.type || "imagem IA 2k",
+    has_text_overlay: !!(s.text_overlay || s.impact_text),
+  }));
+
+  return `You are an expert Prompt Engineer specialized in creating hyper-detailed, cinematic visual prompts for YouTube documentary videos about historical curiosities, engineering feats, construction, and surprising facts.
+
+TITLE: ${ideaTitle}
+
+For EACH scene below, generate:
+1. "prompt": A photorealistic visual description in ENGLISH. MANDATORY rules:
+   - NEVER be generic. NO "massive building", "old city", "heavy machinery", "the exact subject from this scene".
+   - Use REAL specific details: real mechanism (hydraulic jacks, steel rollers, robotic legs), real scale (tons, floors), human element.
+   - Specify: camera angle (low angle, tracking, aerial, macro), lighting, textures (worn brick, grease, dust, concrete), atmosphere.
+   - Historical scenes: film grain + sepia/B&W archival. Modern: clean colors, high contrast.
+   - Heavy movement: "slow deliberate motion", "inch by inch".
+   - Image: end with "photorealistic, 2K resolution, highly detailed".
+   - Video: end with "photorealistic, highly detailed, 8K".
+   - If has_text_overlay is true, append: "Any visible text must be in Portuguese (Brazilian)."
+2. "stock_query": 2-5 words in English for stock footage search.
+3. "editor_notes": Editing notes (timing, transitions, text space).
+
+SCENES:
+${JSON.stringify(sceneSummary, null, 2)}
+
+Respond ONLY with a JSON array:
+[{ "scene": "1.1", "prompt": "...", "stock_query": "...", "editor_notes": "..." }]`;
+}
+
+/** Apply batch AI prompt responses back to scenes array. */
+export function applyBatchScenePromptsAiResponse(scenes = [], aiScenes = []) {
+  if (!Array.isArray(aiScenes) || aiScenes.length === 0) return scenes;
+  const map = new Map();
+  for (const ai of aiScenes) {
+    if (ai?.scene && ai?.prompt) map.set(String(ai.scene), ai);
+  }
+  return scenes.map((s) => {
+    const ai = map.get(String(s.scene));
+    if (!ai) return s;
+    return {
+      ...s,
+      prompt: String(ai.prompt || s.prompt || "").trim(),
+      stock_query: String(ai.stock_query || s.stock_query || "").trim(),
+      editor_notes: String(ai.editor_notes || s.editor_notes || "").trim(),
+    };
+  });
 }
 
 export function buildNarrationOnlyPrompt({
