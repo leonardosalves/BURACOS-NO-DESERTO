@@ -203,6 +203,8 @@ import {
   buildCreatorPhase2Prompt,
   salvageScriptJson,
   enrichBrowserNarrationParsed,
+  enrichBrowserVisualPromptsParsed,
+  browserVisualPromptsUsable,
   extractNarrativeScriptFromRaw,
   buildDeterministicVisualPromptsFromNarration,
   buildNarrationHumanizeRepairPrompt,
@@ -12226,6 +12228,20 @@ REGRAS FINAIS:
         format,
       );
     }
+    if (scriptPhase === "full" && isBrowserResponse) {
+      parsedData = applyScriptTextQuality(
+        normalizeKeys(enrichBrowserVisualPromptsParsed(parsedData, responseText)),
+        format,
+      );
+    }
+
+    const vpRepairOpts = { blockCount: listicleBlockCount, format };
+    const preserveBrowserVisualPrompts = scriptPhase === "full"
+      && isBrowserResponse
+      && browserVisualPromptsUsable(parsedData.visual_prompts, vpRepairOpts);
+    if (preserveBrowserVisualPrompts) {
+      console.log("[Creator Script] Modo navegador fase 2 — preservando visual_prompts do Gemini Browser.");
+    }
 
     if (scriptPhase === "full" && approvedNarration && existingStrategy && Object.keys(existingStrategy).length) {
       parsedData.strategy = { ...existingStrategy, ...(parsedData.strategy || {}) };
@@ -12369,9 +12385,7 @@ REGRAS FINAIS:
         parsedData.narrative_script_tagged = approvedNarration;
       }
 
-      const vpRepairOpts = { blockCount: listicleBlockCount, format };
-
-      if (needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
+      if (!preserveBrowserVisualPrompts && needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
         try {
           const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
             approvedNarration,
@@ -12403,9 +12417,10 @@ REGRAS FINAIS:
         blockCount: listicleBlockCount,
         format,
         ideaTitle: idea.title,
+        skipPromptEnrichment: preserveBrowserVisualPrompts,
       });
 
-      if (needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
+      if (!preserveBrowserVisualPrompts && needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
         const deterministic = buildDeterministicVisualPromptsFromNarration(approvedNarration, {
           blockCount: listicleBlockCount,
           format,
@@ -12483,6 +12498,7 @@ REGRAS FINAIS:
       blockCount: listicleBlockCount,
       format,
       ideaTitle: idea.title,
+      skipPromptEnrichment: preserveBrowserVisualPrompts,
     });
 
     if (isListicle) {

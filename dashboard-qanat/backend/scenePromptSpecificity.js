@@ -432,6 +432,12 @@ function extractKeyNounsFromNarration(narration = "") {
   return meaningful.length >= 1 ? meaningful.join(" ") : null;
 }
 
+/** Detecta prompts gerados pelo fallback buildSceneSpecificPrompt (glossário local). */
+export function isSceneSpecificFallbackPrompt(prompt = "") {
+  const p = String(prompt || "").trim();
+  return /Photorealistic (?:2k |cinematic ).*Documentary science style, dramatic lighting/i.test(p);
+}
+
 export function isPromptTooGeneric(prompt = "", narration = "") {
   const p = String(prompt || "").trim();
   const n = String(narration || "").trim();
