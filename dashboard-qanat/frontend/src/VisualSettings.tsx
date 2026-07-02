@@ -277,7 +277,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider flex items-center gap-2">
             <Smartphone className="w-3.5 h-3.5" /> Shorts · 9:16
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_min(200px,42%)] gap-4 items-start">
+          <div className="space-y-4">
             <div className="space-y-3 min-w-0">
               <div className="space-y-2">
                 <SettingLabel helpTitle="Legenda HyperFrames (Short)" help="Estilos do catálogo HeyGen HyperFrames portados para Remotion." align="start">
@@ -311,7 +311,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
               mode={shortCaptionMode}
               bgmPulse={shortBgmPulse}
               accentColor={accent}
-              className="w-full max-w-[200px] mx-auto sm:max-w-none"
+              className="w-full max-w-[min(100%,300px)] mx-auto"
             />
           </div>
 
@@ -388,7 +388,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           <p className="text-[10px] text-sky-400/90 font-bold uppercase tracking-wider flex items-center gap-2">
             <Tv className="w-3.5 h-3.5" /> Longo · 16:9
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_min(240px,48%)] gap-4 items-start">
+          <div className="space-y-4">
             <div className="space-y-3 min-w-0">
               <div className="space-y-2">
                 <SettingLabel helpTitle="Legenda HyperFrames (Longo)" help="Estilos do catálogo HeyGen HyperFrames portados para Remotion." align="start">
