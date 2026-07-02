@@ -15,6 +15,7 @@ import { SectionHeader } from './SectionHeader';
 import { OpenMontageReferencePanel } from './OpenMontageReferencePanel';
 import { DeepResearchPanel } from './DeepResearchPanel';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
+import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
 
 type LumieraAction = {
   step: number;
@@ -77,7 +78,7 @@ type VideoAgentPlannerProps = {
   onExecuteCreator?: (
     title: string,
     hook: string,
-    options?: { format?: 'LONGO' | 'SHORTS' },
+    options?: CreatorApplyIdeaOptions,
   ) => Promise<void>;
 };
 
@@ -335,12 +336,13 @@ export function VideoAgentPlanner({
       onApplyRequirement={(text) => setRequirement(text)}
       onApplyCreator={
         onExecuteCreator
-          ? (title, hook) => {
+          ? (title, hook, options) => {
               setRequirement(
                 `${title}${hook ? ` — gancho: ${hook}` : ''}`,
               );
               void onExecuteCreator(title, hook, {
                 format: projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO',
+                ...options,
               });
             }
           : undefined

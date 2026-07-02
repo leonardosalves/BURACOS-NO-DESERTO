@@ -4,6 +4,7 @@ import { Clapperboard, Link2, Loader2, Sparkles, CheckCircle2, AlertTriangle } f
 import { SectionHeader } from './SectionHeader';
 import { SettingHelpTip } from './SettingHelpTip';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
+import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
 
 type CapabilityItem = {
   id: string;
@@ -52,7 +53,7 @@ type OpenMontageReferencePanelProps = {
   getProjectUrl: (endpoint: string) => string;
   postAi: PostAiFn;
   onApplyRequirement?: (text: string) => void;
-  onApplyCreator?: (title: string, hook: string) => void;
+  onApplyCreator?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
 };
 
 export function OpenMontageReferencePanel({
@@ -76,6 +77,7 @@ export function OpenMontageReferencePanel({
     null,
   );
   const [aiEnhanced, setAiEnhanced] = useState(false);
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
 
   const apiFormat = projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO';
 
@@ -107,6 +109,7 @@ export function OpenMontageReferencePanel({
     setBusy('analyze');
     setBrief(null);
     setMetadata(null);
+    setSelectedConceptId(null);
 
     try {
       const { ok, data } = await postAi('/api/workflow/analyze-reference', {
@@ -123,9 +126,11 @@ export function OpenMontageReferencePanel({
 
       if (!ok) throw new Error(String(data.error || 'Falha na análise'));
 
-      setBrief((data.brief as ReferenceBrief) || null);
+      const nextBrief = (data.brief as ReferenceBrief) || null;
+      setBrief(nextBrief);
       setMetadata((data.metadata as typeof metadata) || null);
       setAiEnhanced(Boolean(data.aiEnhanced));
+      setSelectedConceptId(nextBrief?.recommended_concept || nextBrief?.concepts?.[0]?.id || null);
       toast.success(data.aiEnhanced ? 'Brief completo com IA' : 'Brief heurístico — ative Gemini para mais detalhe');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro ao analisar referência');
@@ -144,14 +149,29 @@ export function OpenMontageReferencePanel({
     toast.success('Pedido copiado para o VideoAgent');
   };
 
+  const activeConcept =
+    brief?.concepts?.find((c) => c.id === selectedConceptId)
+    || brief?.concepts?.find((c) => c.id === brief.recommended_concept)
+    || brief?.concepts?.[0];
+
   const applyToCreator = () => {
-    const title = brief?.creator_title?.trim();
+    const title = activeConcept?.title?.trim() || brief?.creator_title?.trim();
     if (!title) {
-      toast.error('Brief sem creator_title');
+      toast.error('Brief sem título de conceito');
       return;
     }
-    onApplyCreator?.(title, brief?.creator_hook || '');
-    toast.success('Título e gancho enviados ao Creator');
+    const hook = brief?.creator_hook?.trim() || brief?.hook_technique?.trim() || title;
+    onApplyCreator?.(title, hook, {
+      format: projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO',
+      mechanic: 'openmontage-reference',
+      openMontage: {
+        brief: brief!,
+        conceptId: activeConcept?.id || selectedConceptId || undefined,
+        referenceUrl: referenceUrl.trim() || undefined,
+        referenceTitle: metadata?.title,
+      },
+    });
+    toast.success(`Creator preparado — conceito ${activeConcept?.id || 'A'}`);
   };
 
   const recommended =
@@ -303,16 +323,26 @@ export function OpenMontageReferencePanel({
             </div>
           ) : null}
 
-          {(brief.concepts || []).length > 1 ? (
+          {(brief.concepts || []).length > 0 ? (
             <ul className="space-y-1.5 max-h-36 overflow-y-auto">
-              {brief.concepts?.map((c) => (
-                <li
-                  key={c.id}
-                  className="text-[10px] px-2 py-1.5 rounded-lg border border-zinc-800 text-zinc-500"
-                >
-                  <span className="text-cyan-400/70 font-mono">{c.id}</span> {c.title}
-                </li>
-              ))}
+              {brief.concepts?.map((c) => {
+                const selected = (selectedConceptId || recommended?.id) === c.id;
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedConceptId(c.id)}
+                      className={`w-full text-left text-[10px] px-2 py-1.5 rounded-lg border transition ${
+                        selected
+                          ? 'border-cyan-500/40 bg-cyan-500/10 text-zinc-200'
+                          : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                      }`}
+                    >
+                      <span className="text-cyan-400/70 font-mono">{c.id}</span> {c.title}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
 
