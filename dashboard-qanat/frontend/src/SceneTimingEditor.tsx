@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   AlertTriangle,
   Check,
+  Film,
+  Image as ImageIcon,
   Loader2,
   Pause,
   Play,
@@ -20,6 +22,7 @@ import {
   setSceneDuration,
   syncBlockScenesToSpeech,
   type BlockTimingModel,
+  type SceneTimingRow,
 } from "./sceneTimingEngine";
 import type { BlockTimingStatus, NarrationSyncContext, TimelineAsset } from "./timelineNarrationSync";
 
@@ -35,9 +38,57 @@ type Props = {
   storyboard?: { visual_prompts?: Array<{ block?: number; narration_text?: string; narration_excerpt?: string }> };
   wordTranscripts: any[];
   getMediaUrl: (file: string) => string;
+  getAssetUrl: (fileName: string) => string;
   onSave: (timelineAssets: Record<string, TimelineAsset[]>) => Promise<void>;
   toast: (msg: string) => void;
 };
+
+function SceneAssetPreview({
+  scene,
+  getAssetUrl,
+  variant = "card",
+}: {
+  scene: SceneTimingRow;
+  getAssetUrl: (fileName: string) => string;
+  variant?: "card" | "strip";
+}) {
+  const hasAsset = Boolean(scene.assetPath);
+  const url = hasAsset ? getAssetUrl(scene.assetPath) : "";
+
+  if (!hasAsset) {
+    return (
+      <div className={`ste-asset-empty ste-asset-empty--${variant}`}>
+        <ImageIcon className="w-5 h-5 opacity-40" />
+        <span className="text-[9px] text-zinc-600">Sem mídia</span>
+      </div>
+    );
+  }
+
+  if (scene.assetType === "video") {
+    return (
+      <div className={`ste-asset-preview ste-asset-preview--${variant}`}>
+        <video
+          src={url}
+          className="ste-asset-media"
+          muted
+          playsInline
+          loop
+          autoPlay
+          preload="metadata"
+        />
+        <span className="ste-asset-badge">
+          <Film className="w-3 h-3" />
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`ste-asset-preview ste-asset-preview--${variant}`}>
+      <img src={url} alt={scene.assetLabel} className="ste-asset-media" loading="lazy" />
+    </div>
+  );
+}
 
 const SCENE_COLORS = [
   "rgba(56, 189, 248, 0.55)",
@@ -55,6 +106,7 @@ export function SceneTimingEditor({
   storyboard,
   wordTranscripts,
   getMediaUrl,
+  getAssetUrl,
   onSave,
   toast,
 }: Props) {
@@ -360,25 +412,40 @@ export function SceneTimingEditor({
               )}
             </div>
 
-            <div ref={timelineRef} className="ste-timeline-track relative h-14 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800">
+            <div ref={timelineRef} className="ste-timeline-track relative h-28 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800">
               {blockModel.scenes.map((scene, idx) => {
                 const widthPct = blockModel.totalDuration > 0
                   ? (scene.duration / blockModel.totalDuration) * 100
                   : 100 / blockModel.scenes.length;
+                const leftPct = blockModel.scenes
+                  .slice(0, idx)
+                  .reduce((a, s) => a + (s.duration / blockModel.totalDuration) * 100, 0);
                 return (
                   <div
                     key={scene.idx}
-                    className="ste-timeline-seg absolute top-0 bottom-0 flex items-center justify-center overflow-hidden"
+                    className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden"
                     style={{
-                      left: `${blockModel.scenes.slice(0, idx).reduce((a, s) => a + (s.duration / blockModel.totalDuration) * 100, 0)}%`,
+                      left: `${leftPct}%`,
                       width: `${widthPct}%`,
-                      background: SCENE_COLORS[idx % SCENE_COLORS.length],
-                      borderRight: idx < blockModel.scenes.length - 1 ? "2px solid rgba(0,0,0,0.35)" : undefined,
+                      borderRight: idx < blockModel.scenes.length - 1 ? "2px solid rgba(0,0,0,0.5)" : undefined,
                     }}
+                    title={scene.assetLabel}
                   >
-                    <span className="text-[10px] font-mono font-bold text-white/90 drop-shadow px-1 truncate">
-                      {scene.duration.toFixed(1)}s
-                    </span>
+                    <div
+                      className="ste-timeline-seg-tint absolute inset-0 z-[1]"
+                      style={{ background: SCENE_COLORS[idx % SCENE_COLORS.length] }}
+                    />
+                    <div className="ste-timeline-seg-media absolute inset-0 z-0">
+                      <SceneAssetPreview scene={scene} getAssetUrl={getAssetUrl} variant="strip" />
+                    </div>
+                    <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-1 bg-gradient-to-t from-black/85 to-transparent">
+                      <span className="text-[9px] text-zinc-300 truncate max-w-[70%]" title={scene.assetLabel}>
+                        {scene.assetLabel}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-white shrink-0">
+                        {scene.duration.toFixed(1)}s
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -407,8 +474,10 @@ export function SceneTimingEditor({
               const isPlaying = playingKey === playId;
               return (
                 <article key={scene.idx} className="ste-scene glass-panel p-4 rounded-xl border border-zinc-800/80">
-                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                    <div>
+                  <div className="flex flex-wrap items-start gap-4 mb-3">
+                    <SceneAssetPreview scene={scene} getAssetUrl={getAssetUrl} variant="card" />
+                    <div className="flex-1 min-w-0 flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">
                         Cena {scene.idx + 1}
                       </p>
@@ -439,6 +508,7 @@ export function SceneTimingEditor({
                           {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </button>
                       )}
+                    </div>
                     </div>
                   </div>
 

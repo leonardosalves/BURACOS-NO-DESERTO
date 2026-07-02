@@ -11,6 +11,7 @@ export type BlockTimingStatus = {
 
 export type TimelineAsset = {
   asset?: string;
+  type?: string;
   fixed?: number;
   audio_start?: number;
   speech_end?: number;

@@ -29,8 +29,17 @@ export type SceneTimingRow = {
   words: TranscriptWord[];
   narrationText: string;
   assetLabel: string;
+  assetPath: string;
+  assetType: "image" | "video" | "none";
   audioStart: number;
 };
+
+function inferAssetType(asset: TimelineAsset): "image" | "video" | "none" {
+  const path = String(asset.asset || "").trim();
+  if (!path) return "none";
+  if (asset.type === "video" || /\.(mp4|mov|webm|m4v)$/i.test(path)) return "video";
+  return "image";
+}
 
 export type BlockTimingModel = {
   blockKey: string;
@@ -200,6 +209,7 @@ export function buildBlockTimingModel(
 
     cursor = isLast ? windowEnd : rawEnd;
 
+    const assetPath = String(asset.asset || "").trim();
     return {
       idx,
       duration,
@@ -207,7 +217,9 @@ export function buildBlockTimingModel(
       windowEnd,
       words: sceneWords,
       narrationText: sceneWords.map((w) => repairMojibake(w.word)).join(" "),
-      assetLabel: String(asset.asset || "").split(/[/\\]/).pop() || `Cena ${idx + 1}`,
+      assetLabel: assetPath.split(/[/\\]/).pop() || `Cena ${idx + 1}`,
+      assetPath,
+      assetType: inferAssetType(asset),
       audioStart: windowStart,
     };
   });
