@@ -1187,43 +1187,44 @@
 
     if (el.isContentEditable) {
       try {
+        if (el.classList.contains("ql-editor")) {
+          el.innerHTML = "<p><br></p>";
+        } else {
+          el.textContent = "";
+        }
         document.execCommand("selectAll", false, null);
         document.execCommand("delete", false, null);
-      } catch {
+      } catch (err) {
         // ignore
       }
 
-      if (el.classList.contains("ql-editor")) {
-        el.innerHTML = `<p>${value.replace(/</g, "&lt;")}</p>`;
-      } else {
-        el.textContent = "";
-      }
-      el.dispatchEvent(new InputEvent("beforeinput", {
-        bubbles: true,
-        cancelable: true,
-        inputType: "insertFromPaste",
-        data: value,
-      }));
-      el.dispatchEvent(new InputEvent("input", {
-        bubbles: true,
-        inputType: "insertFromPaste",
-        data: value,
-      }));
+      let filled = await pasteText(el, value);
 
-      if (!inputHasText(el, value)) {
-        await pasteText(el, value);
-      }
-      if (!inputHasText(el, value)) {
+      if (!filled && !inputHasText(el, value)) {
         await insertTextInChunks(el, value);
       }
+
       if (!inputHasText(el, value)) {
         if (el.classList.contains("ql-editor")) {
           el.innerHTML = `<p>${value.replace(/</g, "&lt;")}</p>`;
         } else {
           el.textContent = value;
         }
-        el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: value }));
+        el.dispatchEvent(new InputEvent("beforeinput", {
+          bubbles: true,
+          cancelable: true,
+          inputType: "insertFromPaste",
+          data: value,
+        }));
+        el.dispatchEvent(new InputEvent("input", {
+          bubbles: true,
+          inputType: "insertFromPaste",
+          data: value,
+        }));
       }
+
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
     } else {
       const proto = Object.getPrototypeOf(el);
       const desc = Object.getOwnPropertyDescriptor(proto, "value");
@@ -1235,6 +1236,7 @@
 
     await sleep(450);
   }
+
 
   async function ensureInputFilled(el, text, attempts = 4) {
     for (let i = 0; i < attempts; i += 1) {
