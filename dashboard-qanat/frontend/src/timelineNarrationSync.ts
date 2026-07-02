@@ -159,6 +159,62 @@ export function narrationCacheKey(blockNum: number, text: string) {
   return `${blockNum}::${text}`;
 }
 
+/** Alinha palavras do roteiro/storyboard aos timestamps do Whisper (mesma lógica do App.tsx). */
+export function mapStoryboardWordsWithTiming(
+  narrationText: string,
+  flatTranscriptWords: Array<{ word: string; clean?: string; start: number; end: number }>,
+  bestFirstMatchIdx: number,
+  bestLastMatchIdx: number,
+): Array<{ word: string; start: number; end: number }> {
+  const rawWords = narrationText.split(/\s+/).filter(Boolean);
+  if (
+    bestFirstMatchIdx < 0
+    || bestLastMatchIdx < 0
+    || !flatTranscriptWords?.length
+  ) {
+    return rawWords.map((w) => ({ word: repairMojibake(w), start: 0, end: 999999 }));
+  }
+
+  let transcriptIdx = bestFirstMatchIdx;
+  const result: Array<{ word: string; start: number; end: number }> = [];
+
+  for (let i = 0; i < rawWords.length; i++) {
+    const part = rawWords[i];
+    const cleanedPart = cleanText(part)[0] || "";
+    let matched = false;
+    const searchLimit = Math.min(transcriptIdx + 12, flatTranscriptWords.length);
+
+    for (let tIdx = transcriptIdx; tIdx < searchLimit; tIdx++) {
+      const tw = flatTranscriptWords[tIdx];
+      const cleanTw = tw.clean || cleanText(tw.word).pop() || "";
+      if (cleanedPart === cleanTw || matchWords(cleanedPart, cleanTw)) {
+        result.push({
+          word: repairMojibake(String(tw.word || "").trim()) || part,
+          start: tw.start,
+          end: tw.end,
+        });
+        transcriptIdx = tIdx + 1;
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      const prevWord = result[result.length - 1];
+      const fallbackStart = prevWord
+        ? prevWord.end
+        : (flatTranscriptWords[Math.min(transcriptIdx, flatTranscriptWords.length - 1)]?.start || 0);
+      result.push({
+        word: repairMojibake(part),
+        start: fallbackStart,
+        end: fallbackStart + 0.3,
+      });
+    }
+  }
+
+  return result;
+}
+
 export function findBoundedNarrationMatch(
   narrationText: string,
   flatTranscriptWords: Array<{ word: string; clean?: string; start: number; end: number }>,

@@ -6,12 +6,24 @@
 import {
   findBoundedNarrationMatch,
   getBlockNarrationText,
+  getBlockTimeBounds,
   getStrictBlockBounds,
+  mapStoryboardWordsWithTiming,
   type BlockTimingStatus,
   type NarrationSyncContext,
   type TimelineAsset,
 } from "./timelineNarrationSync";
 import { repairMojibake } from "./textEncoding";
+
+function cleanWordToken(word: string): string {
+  return String(word || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)[0] || "";
+}
 
 export type TranscriptWord = {
   word: string;
@@ -77,8 +89,10 @@ export function flattenTranscriptWords(wordTranscripts: any[]): TranscriptWord[]
           wStart += segStart;
           wEnd += segStart;
         }
+        const token = String(w.word || "").trim();
         flat.push({
-          word: String(w.word || "").trim(),
+          word: token,
+          clean: cleanWordToken(token),
           start: wStart,
           end: wEnd,
           segmentIndex: segIdx,
@@ -90,6 +104,7 @@ export function flattenTranscriptWords(wordTranscripts: any[]): TranscriptWord[]
       rawWords.forEach((word, wIdx) => {
         flat.push({
           word,
+          clean: cleanWordToken(word),
           start: segStart + wIdx * wordDur,
           end: segStart + (wIdx + 1) * wordDur,
           segmentIndex: segIdx,
@@ -123,19 +138,27 @@ export function resolveBlockWords(
 ): { blockStart: number; blockEnd: number; words: TranscriptWord[]; blockText: string } {
   const strict = getStrictBlockBounds(status, blockNum);
   const blockText = getBlockNarrationText(ctx, blockNum);
-  const bounds = {
-    searchAfter: strict.start,
-    searchBefore: strict.end,
-  };
+  const bounds = getBlockTimeBounds(status, blockNum);
 
   let words: TranscriptWord[] = [];
+  const seen = new Set<string>();
 
   if (blockText && flatWords.length) {
     const matched = findBoundedNarrationMatch(blockText, flatWords, bounds);
     if (matched) {
-      words = flatWords
-        .slice(matched.bestFirstMatchIdx, matched.bestLastMatchIdx + 1)
-        .filter((w) => w.start >= strict.start - 0.05 && w.start < strict.end + 0.05);
+      const mapped = mapStoryboardWordsWithTiming(
+        blockText,
+        flatWords,
+        matched.bestFirstMatchIdx,
+        matched.bestLastMatchIdx,
+      );
+      mapped.forEach((w) => {
+        if (w.start < strict.start - 0.05 || w.start >= strict.end) return;
+        const key = `${w.start.toFixed(3)}-${w.word}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        words.push(w);
+      });
     }
   }
 
@@ -144,6 +167,8 @@ export function resolveBlockWords(
       (w) => w.start >= strict.start - 0.05 && w.start < strict.end + 0.05,
     );
   }
+
+  words.sort((a, b) => a.start - b.start);
 
   return {
     blockStart: strict.start,
@@ -193,21 +218,30 @@ export function buildBlockTimingModel(
   const narrationStart = blockWords[0]?.start ?? blockStart;
   const narrationEnd = blockWords[blockWords.length - 1]?.end ?? blockEnd;
 
-  let cursor = narrationStart;
   const scenes: SceneTimingRow[] = assets.map((asset, idx) => {
     const duration = getAssetDurationSeconds(assets, idx, blockDuration);
     const isLast = idx === assets.length - 1;
-    const windowStart = cursor;
+
+    let windowStart: number;
+    if (asset.audio_start != null && Number.isFinite(Number(asset.audio_start))) {
+      windowStart = Number(asset.audio_start);
+    } else {
+      windowStart = narrationStart;
+      for (let i = 0; i < idx; i++) {
+        windowStart += getAssetDurationSeconds(assets, i, blockDuration);
+      }
+    }
+
     const rawEnd = windowStart + duration;
-    const windowEnd = isLast ? Math.max(rawEnd, narrationEnd + 0.12) : rawEnd;
+    const windowEnd = isLast
+      ? Math.max(rawEnd, narrationEnd + 0.15)
+      : rawEnd;
 
     const sceneWords = isLast
-      ? blockWords.filter((w) => w.start >= windowStart - 0.08)
+      ? blockWords.filter((w) => w.start >= windowStart - 0.10)
       : blockWords.filter(
-        (w) => w.start >= windowStart - 0.08 && w.start < windowEnd - 0.05,
+        (w) => w.start >= windowStart - 0.10 && w.start < windowEnd - 0.05,
       );
-
-    cursor = isLast ? windowEnd : rawEnd;
 
     const assetPath = String(asset.asset || "").trim();
     return {
@@ -225,11 +259,12 @@ export function buildBlockTimingModel(
   });
 
   const totalDuration = scenes.reduce((acc, s) => acc + s.duration, 0);
-  let coveredWords = 0;
-  if (scenes.length > 0) {
-    const last = scenes[scenes.length - 1];
-    coveredWords = blockWords.filter((w) => w.start < last.windowEnd - 0.05).length;
+  let totalEndTime = narrationStart;
+  for (let i = 0; i < assets.length; i++) {
+    totalEndTime += getAssetDurationSeconds(assets, i, blockDuration);
   }
+  const effectiveEnd = Math.max(totalEndTime, narrationEnd + 0.15);
+  const coveredWords = blockWords.filter((w) => w.start < effectiveEnd - 0.05).length;
   const totalWords = blockWords.length;
 
   return {
