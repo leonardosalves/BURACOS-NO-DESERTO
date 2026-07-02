@@ -1099,7 +1099,7 @@
       if (metadataCandidate) return metadataCandidate;
     }
 
-    return pickBestFreshCandidate(beforeTexts) || last.text;
+    return pickBestFreshCandidate(beforeTexts) || "";
   }
 
   function findOverlayJsonResponse(beforeTexts, knownJsonSet = new Set(), planSession = null) {
