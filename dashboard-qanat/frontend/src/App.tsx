@@ -7114,35 +7114,6 @@ export default function App() {
     }
   };
 
-  const handleRepairCreatorVisualPrompts = async () => {
-    const projectName = narrationProjectName || creatorProjectName || activeProject;
-    if (!projectName?.trim()) {
-      toast.error('Projeto não identificado.');
-      return;
-    }
-    setCreatorLoading(true);
-    setCreatorLoadingMode('full');
-    try {
-      const { ok, data } = await postAi('/api/ai/creator/repair-visual-prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
-      });
-      if (ok && !data.needs_browser) {
-        setGeneratedScriptData(data);
-        setCreatorScript(data.narrative_script || creatorScript);
-        await saveCreatorStoryboard(data);
-        toast.success(`Cenas reparadas — ${data.visual_prompts?.length || 0} prompts com narração e imagem.`);
-      } else {
-        toast.error(data.error || data.details || 'Erro ao reparar cenas.');
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao reparar cenas.');
-    } finally {
-      setCreatorLoading(false);
-      setCreatorLoadingMode('idle');
-    }
-  };
 
   const handleEnhanceVisualPrompts = async () => {
     const projectName = narrationProjectName || creatorProjectName || activeProject;
@@ -15204,23 +15175,19 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {creatorScenesNeedRepair && (
-                            <button
-                              type="button"
-                              disabled={creatorLoading}
-                              onClick={handleRepairCreatorVisualPrompts}
-                              className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer"
-                            >
-                              {creatorLoading && creatorLoadingMode === 'full' ? 'Reparando...' : 'Distribuir narração nas cenas'}
-                            </button>
-                          )}
                           {(generatedScriptData?.visual_prompts || []).length > 0 && (
                             <button
                               type="button"
                               disabled={creatorLoading}
                               onClick={handleEnhanceVisualPrompts}
-                              className="bg-purple-500/15 hover:bg-purple-500/30 border border-purple-500/30 text-purple-200 disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all"
-                              title="Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
+                              className={`bg-purple-500/15 hover:bg-purple-500/30 border ${
+                                creatorScenesNeedRepair ? 'border-amber-500/50 text-amber-200' : 'border-purple-500/30 text-purple-200'
+                              } disabled:opacity-50 text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider cursor-pointer transition-all`}
+                              title={
+                                creatorScenesNeedRepair
+                                  ? "Aviso: Suas cenas precisam ser alinhadas/reparadas. Use a Engenharia Visual PRO para corrigir e aprimorar tudo."
+                                  : "Reprocessa todos os prompts visuais com engenharia de nível profissional: detecção de nicho, texto PT-BR, aspect ratio, chain of thought"
+                              }
                             >
                               {creatorLoading && creatorLoadingMode === 'full' ? '✨ Processando...' : '✨ Engenharia Visual PRO'}
                             </button>
