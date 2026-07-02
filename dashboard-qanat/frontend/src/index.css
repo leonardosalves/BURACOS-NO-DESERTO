@@ -2177,3 +2177,41 @@
 .animate-fade-in {
   animation: fadeIn 0.35s ease-out;
 }
+
+/* Scene Timing Editor */
+.ste-btn {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.ste-btn-sync {
+  @apply bg-violet-600/20 text-violet-200 border border-violet-500/35 hover:bg-violet-600/30;
+}
+.ste-btn-save {
+  @apply bg-emerald-600/20 text-emerald-200 border border-emerald-500/35 hover:bg-emerald-600/30;
+}
+.ste-block-tab {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-700 transition cursor-pointer;
+}
+.ste-block-tab--active {
+  @apply border-cyan-500/50 bg-cyan-950/30 text-cyan-100;
+}
+.ste-block-tab-count {
+  @apply text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-zinc-500;
+}
+.ste-block-tab--active .ste-block-tab-count {
+  @apply text-cyan-300/80;
+}
+.ste-timeline-divider {
+  @apply absolute top-0 bottom-0 w-3 cursor-col-resize z-10 bg-white/0 hover:bg-white/20 border-x border-white/30 transition;
+}
+.ste-duration-input {
+  @apply w-16 bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1 text-white font-mono text-sm text-right focus:outline-none focus:border-cyan-500/60;
+}
+.ste-play-btn {
+  @apply p-2 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-cyan-300 hover:border-cyan-600/40 transition cursor-pointer;
+}
+.ste-play-btn--active {
+  @apply text-cyan-300 border-cyan-500/50 bg-cyan-950/40;
+}
+.ste-narration-box {
+  @apply p-3 rounded-lg bg-zinc-950/70 border border-emerald-900/25;
+}

@@ -1,10 +1,11 @@
 import type { ElementType } from 'react';
-import { Layers, Music, Settings, Share2, Sparkles, Terminal, Tv, Wand2 } from 'lucide-react';
+import { Clock, Layers, Music, Settings, Share2, Sparkles, Terminal, Tv, Wand2 } from 'lucide-react';
 
 export type DashProjectTabId =
   | 'status'
   | 'workflow'
   | 'timeline'
+  | 'scene-timing'
   | 'music'
   | 'ai'
   | 'upload'
@@ -36,6 +37,12 @@ export const DASH_PROJECT_TAB_META: Record<DashProjectTabId, DashProjectTabMeta>
     title: 'Roteiro e Tags',
     subtitle: 'Blocos, assets, legendas Gold/Water e sincronização com a narração.',
     icon: Layers,
+  },
+  'scene-timing': {
+    id: 'scene-timing',
+    title: 'Editor de Timing',
+    subtitle: 'Duração das cenas sincronizada com a narração — por bloco, sem confusão.',
+    icon: Clock,
   },
   music: {
     id: 'music',

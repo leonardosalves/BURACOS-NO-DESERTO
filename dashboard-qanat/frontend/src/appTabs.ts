@@ -4,6 +4,7 @@ export type AppTab =
   | 'status'
   | 'workflow'
   | 'timeline'
+  | 'scene-timing'
   | 'music'
   | 'terminal'
   | 'ai'
@@ -23,6 +24,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   'status',
   'workflow',
   'timeline',
+  'scene-timing',
   'music',
   'terminal',
   'ai',
