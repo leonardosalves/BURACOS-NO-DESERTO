@@ -331,8 +331,10 @@
 
   function isScriptPrompt(prompt) {
     const task = extractTaskType(prompt);
+    if (task === "vpe") return false;
     if (task === "script") return true;
     const text = String(prompt || "");
+    if (/LUMIERA_TASK:vpe/i.test(text)) return false;
     return /Gerar narração|narrative_script|Script Master|roteiro creator/i.test(text)
       || /"narrative_script"\s*:/i.test(text)
       || /"visual_prompts"\s*:/i.test(text);
