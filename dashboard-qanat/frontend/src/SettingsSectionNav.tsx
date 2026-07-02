@@ -1,9 +1,9 @@
 import React from 'react';
-import { Brain, KeyRound, Sliders, Image, Plug, Palette, Clapperboard } from 'lucide-react';
+import { Brain, KeyRound, Sliders, Plug, Palette, Clapperboard } from 'lucide-react';
 import { SettingHelpTip } from './SettingHelpTip';
 import { SECTION_HELP } from './sectionHelpContent';
 
-export type SettingsSection = 'ia' | 'apis' | 'render' | 'visual' | 'producao' | 'marca' | 'integracoes';
+export type SettingsSection = 'ia' | 'apis' | 'render' | 'visual' | 'producao' | 'integracoes';
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode; helpId: string }[] = [
   { id: 'ia', label: 'IA', icon: <Brain className="w-3.5 h-3.5" />, helpId: 'settings-ia' },
@@ -11,7 +11,6 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode; hel
   { id: 'render', label: 'Render', icon: <Sliders className="w-3.5 h-3.5" />, helpId: 'settings-render' },
   { id: 'visual', label: 'Visual', icon: <Palette className="w-3.5 h-3.5" />, helpId: 'settings-visual' },
   { id: 'producao', label: 'Produção', icon: <Clapperboard className="w-3.5 h-3.5" />, helpId: 'settings-producao' },
-  { id: 'marca', label: 'Marca', icon: <Image className="w-3.5 h-3.5" />, helpId: 'settings-marca' },
   { id: 'integracoes', label: 'Integrações', icon: <Plug className="w-3.5 h-3.5" />, helpId: 'settings-integracoes' },
 ];
 
@@ -26,7 +25,7 @@ export function SettingsSectionNav({ active, onChange }: Props) {
       <p className="lumiera-section-label mb-2 px-1 flex flex-wrap items-center gap-1.5">
         Seções de configuração
         <SettingHelpTip title="Configurações" align="start">
-          Navegue entre IA, APIs, render global, visual do projeto, produção, marca e integrações de publicação.
+          Navegue entre IA, APIs, render global, visual do projeto, produção e integrações de publicação. Marca (logo/canal) fica na aba Render.
         </SettingHelpTip>
       </p>
       <div className="flex flex-wrap gap-2 min-w-0">
