@@ -254,13 +254,13 @@ export async function githubSearch(query, { limit = 8 } = {}) {
   try {
     const stdout = await runCli("gh", [
       "search", "repos", q, "--sort", "stars", "--limit", String(Math.min(limit, 15)),
-      "--json", "name,description,url,stargazerCount,primaryLanguage",
+      "--json", "name,description,url,stargazersCount,primaryLanguage",
     ], { timeout: 45000, maxBuffer: 2 * 1024 * 1024 });
     const rows = JSON.parse(stdout || "[]");
     const items = (Array.isArray(rows) ? rows : []).map((r) => ({
       title: r.name,
       url: r.url,
-      snippet: `${r.description || ""} · ⭐ ${r.stargazerCount || 0}${r.primaryLanguage?.name ? ` · ${r.primaryLanguage.name}` : ""}`.trim(),
+      snippet: `${r.description || ""} · ⭐ ${r.stargazersCount || 0}${r.primaryLanguage?.name ? ` · ${r.primaryLanguage.name}` : ""}`.trim(),
     }));
     const summary = items.map((it, i) => `${i + 1}. ${it.title} — ${it.snippet}\n${it.url}`).join("\n\n");
     return {
