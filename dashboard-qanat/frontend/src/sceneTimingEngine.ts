@@ -67,6 +67,7 @@ export type BlockTimingModel = {
   coveredWords: number;
   totalWords: number;
   coveragePercent: number;
+  speechDuration: number;
 };
 
 const MIN_SCENE_SECONDS = 0.5;
@@ -130,6 +131,15 @@ export function getSceneNarrationText(
   return "";
 }
 
+function getBlockNarrationTextForTiming(ctx: NarrationSyncContext, blockNum: number): string {
+  const scenes = (ctx.storyboard?.visual_prompts || []).filter((vp) => Number(vp.block) === blockNum);
+  const sceneTexts = scenes
+    .map((vp) => repairMojibake(String(vp.narration_text || vp.narration_excerpt || "").trim()))
+    .filter(Boolean);
+  if (sceneTexts.length > 0) return sceneTexts.join(" ");
+  return getBlockNarrationText(ctx, blockNum);
+}
+
 export function resolveBlockWords(
   flatWords: TranscriptWord[],
   status: BlockTimingStatus | undefined,
@@ -137,7 +147,7 @@ export function resolveBlockWords(
   ctx: NarrationSyncContext,
 ): { blockStart: number; blockEnd: number; words: TranscriptWord[]; blockText: string } {
   const strict = getStrictBlockBounds(status, blockNum);
-  const blockText = getBlockNarrationText(ctx, blockNum);
+  const blockText = getBlockNarrationTextForTiming(ctx, blockNum);
   const bounds = getBlockTimeBounds(status, blockNum);
 
   let words: TranscriptWord[] = [];
@@ -154,6 +164,7 @@ export function resolveBlockWords(
       );
       mapped.forEach((w) => {
         if (w.start < strict.start - 0.05 || w.start >= strict.end) return;
+        if (w.end > strict.end + 0.08 && w.start >= strict.end - 0.15) return;
         const key = `${w.start.toFixed(3)}-${w.word}`;
         if (seen.has(key)) return;
         seen.add(key);
@@ -164,11 +175,13 @@ export function resolveBlockWords(
 
   if (!words.length) {
     words = flatWords.filter(
-      (w) => w.start >= strict.start - 0.05 && w.start < strict.end + 0.05,
+      (w) => w.start >= strict.start - 0.05 && w.start < strict.end,
     );
   }
 
-  words.sort((a, b) => a.start - b.start);
+  words = words
+    .filter((w) => w.start < strict.end)
+    .sort((a, b) => a.start - b.start);
 
   return {
     blockStart: strict.start,
@@ -197,23 +210,29 @@ export function getAssetDurationSeconds(
   return Math.max(MIN_SCENE_SECONDS, blockDuration / Math.max(1, assets.length));
 }
 
-/** Limites sequenciais a partir da duração — sem buracos nem audio_start antigo. */
-function buildSequentialSceneBoundaries(
+/**
+ * Divide o intervalo de FALA do bloco [narrationStart, narrationEnd] proporcional
+ * à duração visual de cada cena — aumentar duração puxa mais palavras para a cena.
+ */
+function buildSpeechWeightedSceneBoundaries(
   assets: TimelineAsset[],
   narrationStart: number,
   narrationEnd: number,
-  blockDuration: number,
 ): number[] {
-  const starts: number[] = [];
-  let cursor = narrationStart;
-  for (let idx = 0; idx < assets.length; idx++) {
-    starts.push(cursor);
-    cursor += getAssetDurationSeconds(assets, idx, blockDuration);
+  const speechSpan = Math.max(0.1, narrationEnd - narrationStart);
+  const weights = assets.map((asset) => {
+    const fixed = Number(asset?.fixed);
+    return Number.isFinite(fixed) && fixed > 0 ? fixed : MIN_SCENE_SECONDS;
+  });
+  const totalWeight = weights.reduce((a, b) => a + b, 0) || assets.length;
+
+  const starts: number[] = [narrationStart];
+  let accumulated = 0;
+  for (let i = 0; i < assets.length - 1; i++) {
+    accumulated += (weights[i] / totalWeight) * speechSpan;
+    starts.push(narrationStart + accumulated);
   }
-  // Teto = fim da fala do bloco (evita janela visual invadir o áudio do bloco seguinte)
-  const visualEnd = cursor;
-  const speechCap = narrationEnd + 0.15;
-  starts.push(Math.max(narrationStart + MIN_SCENE_SECONDS, Math.min(visualEnd, speechCap)));
+  starts.push(narrationEnd);
   return starts;
 }
 
@@ -234,9 +253,9 @@ function assignWordsToScene(
 
   return blockWords.filter((w) => {
     const mid = wordMidpoint(w);
-    if (mid < start - 0.06) return false;
-    if (isLast) return mid < end + 0.06;
-    return mid < end - 0.02;
+    if (mid < start - 0.04) return false;
+    if (isLast) return mid <= end + 0.04;
+    return mid < end - 0.001;
   });
 }
 
@@ -259,12 +278,13 @@ export function buildBlockTimingModel(
 
   const blockDuration = Math.max(MIN_SCENE_SECONDS, blockEnd - blockStart);
   const narrationStart = blockWords[0]?.start ?? blockStart;
-  const narrationEnd = blockWords[blockWords.length - 1]?.end ?? blockEnd;
-  const sceneStarts = buildSequentialSceneBoundaries(
+  const rawNarrationEnd = blockWords[blockWords.length - 1]?.end ?? blockEnd;
+  const narrationEnd = Math.min(rawNarrationEnd, blockEnd);
+  const speechDuration = Math.max(0, narrationEnd - narrationStart);
+  const sceneStarts = buildSpeechWeightedSceneBoundaries(
     assets,
     narrationStart,
     narrationEnd,
-    blockDuration,
   );
 
   const scenes: SceneTimingRow[] = assets.map((asset, idx) => {
@@ -289,13 +309,8 @@ export function buildBlockTimingModel(
   });
 
   const totalDuration = scenes.reduce((acc, s) => acc + s.duration, 0);
-  let totalEndTime = narrationStart;
-  for (let i = 0; i < assets.length; i++) {
-    totalEndTime += getAssetDurationSeconds(assets, i, blockDuration);
-  }
-  const effectiveEnd = Math.max(totalEndTime, narrationEnd + 0.15);
-  const coveredWords = blockWords.filter((w) => w.start < effectiveEnd - 0.05).length;
   const totalWords = blockWords.length;
+  const coveredWords = scenes.reduce((acc, s) => acc + s.words.length, 0);
 
   return {
     blockKey,
@@ -311,6 +326,7 @@ export function buildBlockTimingModel(
     coveredWords,
     totalWords,
     coveragePercent: totalWords > 0 ? Math.round((coveredWords / totalWords) * 100) : 0,
+    speechDuration,
   };
 }
 
@@ -318,12 +334,11 @@ export function setSceneDuration(
   assets: TimelineAsset[],
   sceneIdx: number,
   newDuration: number,
-  blockDuration: number,
 ): TimelineAsset[] {
   const next = assets.map((a) => ({ ...a }));
   const clamped = Math.max(MIN_SCENE_SECONDS, Number(newDuration.toFixed(1)));
   next[sceneIdx] = { ...next[sceneIdx], fixed: clamped };
-  return rebalanceBlockDurations(next, blockDuration);
+  return next;
 }
 
 /** Ajusta divisor entre duas cenas mantendo a soma das duas. */
@@ -419,13 +434,17 @@ export function formatTimelineClock(seconds: number): string {
   return `${m}:${r.toFixed(1).padStart(m > 0 ? 4 : 3, "0")}`;
 }
 
-/** Play para na última palavra da cena — não no fim visual (duração do asset). */
-export function getScenePlaybackWindow(scene: SceneTimingRow): { start: number; end: number } {
+/** Play para na última palavra da cena, sem invadir o bloco seguinte. */
+export function getScenePlaybackWindow(
+  scene: SceneTimingRow,
+  blockNarrationEnd: number,
+): { start: number; end: number } {
   const first = scene.words[0];
   const last = scene.words[scene.words.length - 1];
   const start = first ? first.start : scene.windowStart;
-  const end = last
+  const speechEnd = last
     ? Math.max(last.end + 0.12, start + 0.35)
     : scene.windowEnd;
-  return { start, end };
+  const end = Math.min(speechEnd, blockNarrationEnd + 0.05, scene.windowEnd + 0.06);
+  return { start, end: Math.max(end, start + 0.35) };
 }
