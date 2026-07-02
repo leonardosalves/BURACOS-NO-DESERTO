@@ -237,6 +237,10 @@ interface ConfigData {
   render_resolution?: '1080p' | '2k';
   design_preset?: string;
   caption_style?: string;
+  caption_style_short?: 'shorts-viral' | 'documentary';
+  caption_style_long?: 'shorts-viral' | 'documentary';
+  caption_effect_short?: 'viral-pop' | 'viral-pulse' | 'viral-static';
+  caption_effect_long?: 'doc-pill' | 'doc-glow' | 'doc-minimal';
   grain_overlay?: boolean;
   vignette?: boolean;
   progress_bar?: boolean;

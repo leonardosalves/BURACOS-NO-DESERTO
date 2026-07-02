@@ -872,6 +872,15 @@
     border-color: rgba(130, 128, 253, 0.35);
   }
 
+  @keyframes caption-preview-pulse-keyframes {
+    0%, 100% { transform: scale(1.08); filter: brightness(1); }
+    50% { transform: scale(1.14); filter: brightness(1.15); }
+  }
+
+  .caption-preview-pulse {
+    animation: caption-preview-pulse-keyframes 0.55s ease-in-out infinite;
+  }
+
   .dash-effect-panel {
     @apply rounded-xl border p-5 space-y-4;
     background: rgba(130, 128, 253, 0.04);

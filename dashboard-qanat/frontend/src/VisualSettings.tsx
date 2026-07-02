@@ -1,12 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Palette, Save, Sparkles } from 'lucide-react';
+import { Palette, Save, Smartphone, Tv } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { SectionHeader } from './SectionHeader';
+import { CaptionPreview } from './CaptionPreview';
+import {
+  LONG_CAPTION_EFFECTS,
+  LONG_CAPTION_STYLES,
+  SHORT_CAPTION_EFFECTS,
+  SHORT_CAPTION_STYLES,
+  resolveLongCaptionEffect,
+  resolveLongCaptionStyle,
+  resolveShortCaptionEffect,
+  resolveShortCaptionStyle,
+  type LongCaptionEffectId,
+  type ShortCaptionEffectId,
+} from './captionConfig';
 
 export type VisualConfig = {
   design_preset?: string;
   caption_style?: string;
+  caption_style_short?: 'shorts-viral' | 'documentary';
+  caption_style_long?: 'shorts-viral' | 'documentary';
+  caption_effect_short?: ShortCaptionEffectId;
+  caption_effect_long?: LongCaptionEffectId;
   grain_overlay?: boolean;
   vignette?: boolean;
   progress_bar?: boolean;
@@ -44,12 +61,6 @@ const PRESET_OPTIONS = [
   { id: 'documentary-geography', label: 'Explorador Geográfico', hint: 'Azul-água + verde, mapas e timeline.' },
   { id: 'documentary-data', label: 'Jornalismo de Dados', hint: 'Limpo, counters e gráficos.' },
   { id: 'documentary-finance', label: 'Finanças Premium', hint: 'Dourado + verde neon, sem grain.' },
-];
-
-const CAPTION_OPTIONS = [
-  { id: 'auto', label: 'Automático', hint: 'Shorts → viral palavra-a-palavra; Longos → documentário.' },
-  { id: 'shorts-viral', label: 'Shorts Viral', hint: '1 palavra por vez, destaque amarelo.' },
-  { id: 'documentary', label: 'Documentário', hint: '2 palavras, estilo longo.' },
 ];
 
 const ZOOM_OPTIONS: { id: 'normal' | 'aggressive' | 'cinematic'; label: string; hint: string }[] = [
@@ -174,11 +185,22 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
   };
 
   const preset = draft.design_preset || 'auto';
-  const caption = draft.caption_style || 'auto';
+  const shortCaptionStyle = resolveShortCaptionStyle(draft.caption_style_short || draft.caption_style);
+  const longCaptionStyle = resolveLongCaptionStyle(draft.caption_style_long || draft.caption_style);
+  const shortCaptionEffect = resolveShortCaptionEffect(draft.caption_effect_short, draft.shorts_caption_bgm_pulse);
+  const longCaptionEffect = resolveLongCaptionEffect(draft.caption_effect_long);
   const zoom = draft.shorts_zoom_intensity || 'normal';
   const longZoom = draft.long_zoom_intensity || 'normal';
   const portalEvery = draft.shorts_portal_every || 4;
   const hudTheme = draft.listicle_hud_theme || 'auto';
+  const accent = draft.accent_color || '#FACC15';
+
+  const syncShortCaptionEffect = (effect: ShortCaptionEffectId) => {
+    patchDraft({
+      caption_effect_short: effect,
+      shorts_caption_bgm_pulse: effect === 'viral-pulse' ? true : effect === 'viral-static' ? false : undefined,
+    });
+  };
 
   return (
     <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
@@ -195,75 +217,250 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <SettingLabel
-              helpTitle="Preset visual"
-              help="Define paleta, tipografia e atmosfera do vídeo (grain, vinheta, fontes). Automático escolhe conforme o nicho: história, mistério, geografia, dados ou finanças."
-              align="start"
-            >
-              Preset visual
-            </SettingLabel>
-            <select
-              value={preset}
-              onChange={(e) => patchDraft({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
-              className="dash-select"
-            >
-              {PRESET_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>{o.label}</option>
-              ))}
-            </select>
-            <p className="text-[9px] text-[var(--dash-muted)]">{PRESET_OPTIONS.find((o) => o.id === preset)?.hint}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2 border-b border-[var(--dash-border)]">
+        <div className="space-y-2">
+          <SettingLabel
+            helpTitle="Preset visual"
+            help="Define paleta, tipografia e atmosfera do vídeo (grain, vinheta, fontes). Automático escolhe conforme o nicho."
+            align="start"
+          >
+            Preset visual (global)
+          </SettingLabel>
+          <select
+            value={preset}
+            onChange={(e) => patchDraft({ design_preset: e.target.value === 'auto' ? undefined : e.target.value })}
+            className="dash-select"
+          >
+            {PRESET_OPTIONS.map((o) => (
+              <option key={o.id} value={o.id}>{o.label}</option>
+            ))}
+          </select>
+          <p className="text-[9px] text-[var(--dash-muted)]">{PRESET_OPTIONS.find((o) => o.id === preset)?.hint}</p>
+        </div>
+        <div className="space-y-2">
+          <SettingLabel
+            helpTitle="Cor de acento"
+            help="Cor de destaque em overlays, portal e legendas. Usada no preview ao lado."
+            align="start"
+          >
+            Cor de acento (legendas + overlays)
+          </SettingLabel>
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={draft.accent_color || '#C5A880'}
+              onChange={(e) => patchDraft({ accent_color: e.target.value })}
+              className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
+              style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
+            />
+            <input
+              type="text"
+              value={draft.accent_color || ''}
+              placeholder="#C5A880 (automático)"
+              onChange={(e) => patchDraft({ accent_color: e.target.value.trim() || undefined })}
+              className="dash-input flex-1 font-mono"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="dash-effect-panel space-y-4">
+          <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5" /> Shorts · 9:16
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_min(200px,42%)] gap-4 items-start">
+            <div className="space-y-3 min-w-0">
+              <div className="space-y-2">
+                <SettingLabel helpTitle="Estilo de legenda (Short)" help="Como o texto da narração aparece em vídeos verticais." align="start">
+                  Estilo de legenda
+                </SettingLabel>
+                <select
+                  value={shortCaptionStyle}
+                  onChange={(e) => patchDraft({
+                    caption_style_short: e.target.value as VisualConfig['caption_style_short'],
+                    caption_style: undefined,
+                  })}
+                  className="dash-select"
+                >
+                  {SHORT_CAPTION_STYLES.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-[var(--dash-muted)]">
+                  {SHORT_CAPTION_STYLES.find((o) => o.id === shortCaptionStyle)?.hint}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <SettingLabel helpTitle="Efeito na legenda (Short)" help="Animação e destaque da palavra ativa." align="start">
+                  Efeito na legenda
+                </SettingLabel>
+                <select
+                  value={shortCaptionEffect}
+                  onChange={(e) => syncShortCaptionEffect(e.target.value as ShortCaptionEffectId)}
+                  className="dash-select"
+                >
+                  {SHORT_CAPTION_EFFECTS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-[var(--dash-muted)]">
+                  {SHORT_CAPTION_EFFECTS.find((o) => o.id === shortCaptionEffect)?.hint}
+                </p>
+              </div>
+            </div>
+            <CaptionPreview
+              format="short"
+              style={shortCaptionStyle}
+              effect={shortCaptionEffect}
+              accentColor={accent}
+              className="w-full max-w-[200px] mx-auto sm:max-w-none"
+            />
           </div>
 
-          <div className="space-y-2">
-            <SettingLabel
-              helpTitle="Estilo de legenda"
-              help="Controla como o texto da narração aparece na tela. Shorts Viral destaca 1 palavra por vez; Documentário usa blocos de 2 palavras, mais calmo para vídeos longos."
-              align="start"
-            >
-              Estilo de legenda
+          <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
+            <SettingLabel helpTitle="Zoom Ken Burns (Short)" help="Intensidade do zoom em imagens 9:16." align="start" className="[&_span]:text-zinc-400">
+              Zoom Ken Burns
             </SettingLabel>
-            <select
-              value={caption}
-              onChange={(e) => patchDraft({ caption_style: e.target.value === 'auto' ? undefined : e.target.value })}
-              className="dash-select"
-            >
-              {CAPTION_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>{o.label}</option>
+            <div className="flex flex-wrap gap-2">
+              {ZOOM_OPTIONS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => patchDraft({ shorts_zoom_intensity: o.id })}
+                  className={`dash-option-btn ${zoom === o.id ? 'dash-option-btn-active' : ''}`}
+                >
+                  {o.label}
+                </button>
               ))}
-            </select>
-            <p className="text-[9px] text-[var(--dash-muted)]">{CAPTION_OPTIONS.find((o) => o.id === caption)?.hint}</p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <SettingLabel
-              helpTitle="Cor de acento"
-              help="Cor principal de overlays, bordas do HUD, lower-thirds, portal e destaques das legendas. Deixe vazio para usar a cor do preset automático."
-              align="start"
-            >
-              Cor de acento
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <ToggleCard
+              label="Flash no gancho"
+              description="Burst nos primeiros 0,3s."
+              help="Flash branco sutil no início do Short."
+              checked={draft.shorts_hook_flash !== false}
+              onChange={(v) => patchDraft({ shorts_hook_flash: v })}
+            />
+            <ToggleCard
+              label="Glow inferior"
+              description="Brilho na safe zone."
+              help="Brilho na base, longe dos botões do YouTube."
+              checked={draft.shorts_edge_glow === true}
+              defaultChecked={false}
+              onChange={(v) => patchDraft({ shorts_edge_glow: v })}
+            />
+            <ToggleCard
+              label="Transição portal"
+              description="Wipe circular entre cenas."
+              help="Transição com anel na cor de acento."
+              checked={draft.shorts_portal_transition !== false}
+              onChange={(v) => patchDraft({ shorts_portal_transition: v })}
+            />
+          </div>
+
+          {draft.shorts_portal_transition !== false && (
+            <div className="space-y-2">
+              <SettingLabel
+                helpTitle="Frequência portal"
+                help="Define a cada quantas trocas de cena a transição portal aparece."
+                align="start"
+                className="[&_span]:text-[var(--dash-muted)]"
+              >
+                Frequência portal
+              </SettingLabel>
+              <div className="flex flex-wrap gap-2">
+                {PORTAL_EVERY_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => patchDraft({ shorts_portal_every: o.value })}
+                    className={`dash-option-btn px-3 py-1.5 text-[10px] ${portalEvery === o.value ? 'dash-option-btn-active' : ''}`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="dash-effect-panel space-y-4">
+          <p className="text-[10px] text-sky-400/90 font-bold uppercase tracking-wider flex items-center gap-2">
+            <Tv className="w-3.5 h-3.5" /> Longo · 16:9
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_min(240px,48%)] gap-4 items-start">
+            <div className="space-y-3 min-w-0">
+              <div className="space-y-2">
+                <SettingLabel helpTitle="Estilo de legenda (Longo)" help="Como o texto aparece em vídeos horizontais." align="start">
+                  Estilo de legenda
+                </SettingLabel>
+                <select
+                  value={longCaptionStyle}
+                  onChange={(e) => patchDraft({
+                    caption_style_long: e.target.value as VisualConfig['caption_style_long'],
+                    caption_style: undefined,
+                  })}
+                  className="dash-select"
+                >
+                  {LONG_CAPTION_STYLES.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-[var(--dash-muted)]">
+                  {LONG_CAPTION_STYLES.find((o) => o.id === longCaptionStyle)?.hint}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <SettingLabel helpTitle="Efeito na legenda (Longo)" help="Tratamento visual do bloco de palavras." align="start">
+                  Efeito na legenda
+                </SettingLabel>
+                <select
+                  value={longCaptionEffect}
+                  onChange={(e) => patchDraft({ caption_effect_long: e.target.value as LongCaptionEffectId })}
+                  className="dash-select"
+                >
+                  {LONG_CAPTION_EFFECTS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <p className="text-[9px] text-[var(--dash-muted)]">
+                  {LONG_CAPTION_EFFECTS.find((o) => o.id === longCaptionEffect)?.hint}
+                </p>
+              </div>
+            </div>
+            <CaptionPreview
+              format="long"
+              style={longCaptionStyle}
+              effect={longCaptionEffect}
+              accentColor={accent}
+              className="w-full"
+            />
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
+            <SettingLabel helpTitle="Zoom Ken Burns (Longo)" help="Zoom sutil em B-roll 16:9." align="start" className="[&_span]:text-zinc-400">
+              Zoom Ken Burns
             </SettingLabel>
-            <div className="flex gap-2 items-center">
-              <input
-                type="color"
-                value={draft.accent_color || '#C5A880'}
-                onChange={(e) => patchDraft({ accent_color: e.target.value })}
-                className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
-                style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
-              />
-              <input
-                type="text"
-                value={draft.accent_color || ''}
-                placeholder="#C5A880 (automático)"
-                onChange={(e) => patchDraft({ accent_color: e.target.value.trim() || undefined })}
-                className="dash-input flex-1 font-mono"
-              />
+            <div className="flex flex-wrap gap-2">
+              {LONG_ZOOM_OPTIONS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => patchDraft({ long_zoom_intensity: o.id })}
+                  className={`dash-option-btn ${longZoom === o.id ? 'dash-option-btn-active' : ''}`}
+                >
+                  {o.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="space-y-3">
           <SettingLabel
             helpTitle="Camadas & overlays"
@@ -276,13 +473,13 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           {[
             { key: 'grain_overlay' as const, label: 'Grain (filme)', defaultOn: isShortFormat },
             { key: 'vignette' as const, label: 'Vinheta escura', defaultOn: true },
-            { key: 'progress_bar' as const, label: 'Barra de progresso', defaultOn: true, longOnly: true },
-            { key: 'chapter_stingers' as const, label: 'Chapter stingers', defaultOn: true, longOnly: true },
+            { key: 'progress_bar' as const, label: 'Barra de progresso (longo)', defaultOn: true },
+            { key: 'chapter_stingers' as const, label: 'Chapter stingers (longo)', defaultOn: true },
             { key: 'source_cards' as const, label: 'Cards de fonte', defaultOn: true },
             { key: 'social_proof_cards' as const, label: 'Cards Reddit / X', defaultOn: true },
             { key: 'geo_map_overlays' as const, label: 'Mapas geográficos', defaultOn: true },
             { key: 'overlay_sfx_sync' as const, label: 'SFX nos overlays', defaultOn: true },
-          ].filter((item) => !item.longOnly || !isShortFormat).map((item) => {
+          ].map((item) => {
             const help = LAYER_HELP[item.key];
             return (
               <div key={item.key} className="flex items-center justify-between gap-3 py-0.5">
@@ -379,126 +576,6 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           )}
         </div>
       </div>
-
-      {!isShortFormat && (
-        <div className="dash-effect-panel">
-          <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider">Zoom Ken Burns (16:9)</p>
-          <SettingLabel
-            helpTitle="Zoom em vídeos longos"
-            help="Intensidade do zoom lento em imagens e vídeos no formato 16:9. Mais sutil que Shorts para manter tom documentário."
-            align="start"
-            className="[&_span]:text-zinc-400"
-          >
-            Intensidade do zoom
-          </SettingLabel>
-          <div className="flex flex-wrap gap-2">
-            {LONG_ZOOM_OPTIONS.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => patchDraft({ long_zoom_intensity: o.id })}
-                className={`dash-option-btn ${longZoom === o.id ? 'dash-option-btn-active' : ''}`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-[9px] text-[var(--dash-muted)]">{LONG_ZOOM_OPTIONS.find((o) => o.id === longZoom)?.hint}</p>
-        </div>
-      )}
-
-      {isShortFormat && (
-        <div className="dash-effect-panel">
-          <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5" /> Efeitos Shorts / Reels
-          </p>
-
-          <div className="space-y-2">
-            <SettingLabel
-              helpTitle="Zoom Ken Burns"
-              help="Intensidade do zoom lento em cada imagem. Normal equilibra movimento e qualidade; Agressivo maximiza retenção; Cine é mais sutil e premium."
-              align="start"
-              className="[&_span]:text-zinc-400"
-            >
-              Intensidade do zoom Ken Burns
-            </SettingLabel>
-            <div className="flex flex-wrap gap-2">
-              {ZOOM_OPTIONS.map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => patchDraft({ shorts_zoom_intensity: o.id })}
-                  className={`dash-option-btn ${zoom === o.id ? 'dash-option-btn-active' : ''}`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-[9px] text-[var(--dash-muted)]">{ZOOM_OPTIONS.find((o) => o.id === zoom)?.hint}</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <ToggleCard
-              label="Flash no gancho (0–0,3s)"
-              description="Flash branco sutil no início — prende atenção imediata."
-              help="Burst de luz branca nos primeiros 0,3 segundos do vídeo. Técnica clássica de Shorts para parar o scroll e segurar o viewer."
-              checked={draft.shorts_hook_flash !== false}
-              onChange={(v) => patchDraft({ shorts_hook_flash: v })}
-            />
-            <ToggleCard
-              label="Glow inferior (safe zone)"
-              description="Brilho na base da tela — legendas fora dos botões do YouTube."
-              help="Brilho suave na faixa inferior onde ficam as legendas, longe dos botões de like/comentário do YouTube. Desligado por padrão."
-              checked={draft.shorts_edge_glow === true}
-              defaultChecked={false}
-              onChange={(v) => patchDraft({ shorts_edge_glow: v })}
-            />
-            <ToggleCard
-              label="Pulso legenda + BGM"
-              description="Palavra ativa pulsa no ritmo da trilha (~120 BPM)."
-              help="A palavra destacada da legenda pulsa no ritmo da trilha (~120 BPM), sincronizando texto e música para sensação mais dinâmica."
-              checked={draft.shorts_caption_bgm_pulse !== false}
-              onChange={(v) => patchDraft({ shorts_caption_bgm_pulse: v })}
-            />
-            <ToggleCard
-              label="Transição portal"
-              description="Wipe circular com anel de acento entre cenas."
-              help="Transição em wipe circular com anel na cor de acento entre uma cena e outra. Quebra monotonia sem cortes secos."
-              checked={draft.shorts_portal_transition !== false}
-              onChange={(v) => patchDraft({ shorts_portal_transition: v })}
-            />
-          </div>
-
-          {draft.shorts_portal_transition !== false && (
-            <div className="space-y-2">
-              <SettingLabel
-                helpTitle="Frequência portal"
-                help="Define a cada quantas trocas de cena a transição portal aparece. Valores menores = mais frequente e mais energético."
-                align="start"
-                className="[&_span]:text-[var(--dash-muted)]"
-              >
-                Frequência portal
-              </SettingLabel>
-              <div className="flex flex-wrap gap-2">
-                {PORTAL_EVERY_OPTIONS.map((o) => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => patchDraft({ shorts_portal_every: o.value })}
-                    className={`dash-option-btn px-3 py-1.5 text-[10px] ${portalEvery === o.value ? 'dash-option-btn-active' : ''}`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p className="text-[9px] text-[var(--dash-muted)] border-t border-[var(--dash-border)] pt-3">
-            Padrão Shorts: flash + pulso + portal ligados; glow desligado. Grain e vinheta na seção acima.
-          </p>
-        </div>
-      )}
 
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
         <button
