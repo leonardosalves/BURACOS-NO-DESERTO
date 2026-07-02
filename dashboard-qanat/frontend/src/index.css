@@ -886,6 +886,21 @@
     width: 100%;
   }
 
+  .overlay-preview-frame {
+    container-type: inline-size;
+    width: 100%;
+  }
+
+  .overlay-filmstrip-cell {
+    @apply relative shrink-0 overflow-hidden border-r border-zinc-800/80;
+    min-width: 48px;
+  }
+
+  .overlay-filmstrip-cell img,
+  .overlay-filmstrip-cell video {
+    @apply w-full h-full object-cover;
+  }
+
   .caption-preview-scanlines::after {
     content: '';
     position: absolute;

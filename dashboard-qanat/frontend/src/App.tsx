@@ -8379,6 +8379,10 @@ export default function App() {
                     <OverlayTimelineEditor
                       storyboard={storyboardData}
                       blockTimings={status?.block_timings}
+                      timelineAssets={config.timeline_assets}
+                      aspectRatio={config.aspect_ratio || '16:9'}
+                      accentColor={config.accent_color || '#D4AF37'}
+                      getAssetUrl={getAssetUrl}
                       generating={generatingOverlays}
                       onGenerate={handleGenerateAiOverlays}
                       onChange={(nextOverlays) => {
