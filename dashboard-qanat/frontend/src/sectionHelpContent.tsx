@@ -560,6 +560,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'timeline-overlays': {
+    title: 'Overlays informativos (IA)',
+    body: (
+      <>
+        Edite overlays gerados pela IA: posição no quadro, segundo de entrada, duração, texto, design (variante/tema) e ícone Lottie.
+        Use a cena do roteiro para ancorar o timing ao bloco narrativo. Salva automaticamente em storyboard.json.
+      </>
+    ),
+  },
   'creator-step-ideas': {
     title: 'Passo 1 — Ideias',
     body: (

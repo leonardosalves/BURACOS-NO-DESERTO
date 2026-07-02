@@ -106,6 +106,7 @@ import { TabErrorBoundary } from './TabErrorBoundary';
 import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { BrandSettingsPanel } from './BrandSettingsPanel';
 import { VisualSettings } from './VisualSettings';
+import { OverlayTimelineEditor } from './OverlayTimelineEditor';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 import { SECTION_HELP } from './sectionHelpContent';
@@ -8373,6 +8374,20 @@ export default function App() {
                     }}
                     toast={(msg) => toast(msg)}
                   />
+
+                  {storyboardData && (
+                    <OverlayTimelineEditor
+                      storyboard={storyboardData}
+                      blockTimings={status?.block_timings}
+                      generating={generatingOverlays}
+                      onGenerate={handleGenerateAiOverlays}
+                      onChange={(nextOverlays) => {
+                        const next = { ...storyboardData, overlays_ai: nextOverlays };
+                        setStoryboardData(next);
+                        debounceSaveStoryboard(next);
+                      }}
+                    />
+                  )}
 
                   {(() => {
 
