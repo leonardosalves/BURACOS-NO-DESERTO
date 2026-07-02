@@ -907,6 +907,42 @@
     border-color: rgba(130, 128, 253, 0.2);
   }
 
+  .dash-layer-card {
+    @apply rounded-xl border p-3.5 flex flex-col;
+    background: var(--dash-bg);
+    border-color: var(--dash-border);
+    transition: border-color 0.15s ease;
+  }
+
+  .dash-layer-card:hover {
+    border-color: rgba(130, 128, 253, 0.28);
+  }
+
+  .dash-layer-tri-btn {
+    @apply flex-1 px-2 py-1.5 rounded-lg text-[9px] font-semibold border transition cursor-pointer;
+    background: transparent;
+    color: var(--dash-muted);
+    border-color: var(--dash-border);
+  }
+
+  .dash-layer-tri-btn:hover {
+    color: #fff;
+    border-color: rgba(130, 128, 253, 0.35);
+  }
+
+  .dash-layer-tri-btn-active {
+    background: rgba(130, 128, 253, 0.14) !important;
+    color: var(--dash-primary-light) !important;
+    border-color: rgba(130, 128, 253, 0.45) !important;
+  }
+
+  .dash-format-badge {
+    @apply px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wide;
+    background: rgba(8, 184, 196, 0.12);
+    color: rgba(8, 184, 196, 0.95);
+    border: 1px solid rgba(8, 184, 196, 0.28);
+  }
+
   /* ── YouTube Studio panels ── */
   .dash-studio-stat {
     @apply p-3 rounded-xl;

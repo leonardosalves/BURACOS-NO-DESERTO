@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Palette, Save, Smartphone, Tv } from 'lucide-react';
+import { Layers, Palette, Save, Smartphone, Tv } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { SectionHeader } from './SectionHeader';
@@ -125,8 +125,123 @@ const LAYER_HELP: Record<string, { title: string; body: string }> = {
 };
 
 function triBool(value: boolean | undefined, defaultOn: boolean) {
-  if (value === undefined) return defaultOn ? 'default-on' : 'default-off';
+  if (value === undefined) return 'default';
   return value ? 'on' : 'off';
+}
+
+type LayerToggleKey =
+  | 'grain_overlay'
+  | 'vignette'
+  | 'progress_bar'
+  | 'chapter_stingers'
+  | 'source_cards'
+  | 'social_proof_cards'
+  | 'geo_map_overlays'
+  | 'overlay_sfx_sync';
+
+type LayerToggleItem = {
+  key: LayerToggleKey;
+  label: string;
+  defaultOn: boolean;
+  format?: 'long';
+};
+
+function buildOverlayGroups(isShortFormat: boolean): {
+  id: string;
+  title: string;
+  hint: string;
+  items: LayerToggleItem[];
+}[] {
+  return [
+    {
+      id: 'atmosphere',
+      title: 'Atmosfera',
+      hint: 'Textura e enquadramento sobre todo o quadro',
+      items: [
+        { key: 'grain_overlay', label: 'Grain (filme)', defaultOn: isShortFormat },
+        { key: 'vignette', label: 'Vinheta escura', defaultOn: true },
+      ],
+    },
+    {
+      id: 'long-form',
+      title: 'Vídeo longo',
+      hint: 'Elementos pensados para retenção em 16:9',
+      items: [
+        { key: 'progress_bar', label: 'Barra de progresso', defaultOn: true, format: 'long' },
+        { key: 'chapter_stingers', label: 'Chapter stingers', defaultOn: true, format: 'long' },
+      ],
+    },
+    {
+      id: 'ai-overlays',
+      title: 'Overlays da IA',
+      hint: 'Cards e mapas inseridos pelo roteiro',
+      items: [
+        { key: 'source_cards', label: 'Cards de fonte', defaultOn: true },
+        { key: 'social_proof_cards', label: 'Cards Reddit / X', defaultOn: true },
+        { key: 'geo_map_overlays', label: 'Mapas geográficos', defaultOn: true },
+      ],
+    },
+    {
+      id: 'audio',
+      title: 'Áudio',
+      hint: 'Sincronização sonora com entradas visuais',
+      items: [
+        { key: 'overlay_sfx_sync', label: 'SFX nos overlays', defaultOn: true },
+      ],
+    },
+  ];
+}
+
+function LayerTriCard({
+  item,
+  value,
+  onChange,
+}: {
+  item: LayerToggleItem;
+  value: boolean | undefined;
+  onChange: (next: boolean | undefined) => void;
+}) {
+  const help = LAYER_HELP[item.key];
+  const state = triBool(value, item.defaultOn);
+  const triOptions = [
+    { id: 'default' as const, label: 'Padrão' },
+    { id: 'on' as const, label: 'Ligado' },
+    { id: 'off' as const, label: 'Desligado' },
+  ];
+
+  return (
+    <div className="dash-layer-card">
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-semibold text-zinc-200">{item.label}</span>
+          {item.format === 'long' && (
+            <span className="dash-format-badge">16:9</span>
+          )}
+          <SettingHelpTip title={help.title} align="start">{help.body}</SettingHelpTip>
+        </div>
+        <p className="text-[9px] text-[var(--dash-muted)] mt-1 leading-relaxed line-clamp-2">
+          {help.body}
+        </p>
+      </div>
+      <div className="flex gap-1 mt-2.5" role="group" aria-label={`${item.label}: estado`}>
+        {triOptions.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(parseTriBool(opt.id, item.defaultOn))}
+            className={`dash-layer-tri-btn ${state === opt.id ? 'dash-layer-tri-btn-active' : ''}`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      {state === 'default' && (
+        <p className="text-[8px] text-[var(--dash-muted)] mt-1.5">
+          Automático: {item.defaultOn ? 'ligado' : 'desligado'}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function parseTriBool(raw: string, defaultValue: boolean): boolean | undefined {
@@ -436,55 +551,66 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="space-y-3">
-          <SettingLabel
-            helpTitle="Camadas & overlays"
-            help="Liga ou desliga tipos de elementos visuais que a IA pode inserir no vídeo. Padrão = o sistema decide conforme formato e nicho; Ligado/Desligado força sua escolha."
-            align="start"
-          >
-            Camadas & overlays
-          </SettingLabel>
+      <div className="dash-effect-panel space-y-5">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[10px] text-[var(--dash-primary-light)] font-bold uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-3.5 h-3.5" /> Camadas & overlays
+            </p>
+            <SettingHelpTip
+              title="Camadas & overlays"
+              align="start"
+            >
+              Liga ou desliga tipos de elementos visuais que a IA pode inserir no vídeo.
+              Padrão deixa o sistema decidir conforme formato e nicho; Ligado/Desligado força sua escolha.
+            </SettingHelpTip>
+          </div>
+          <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed max-w-2xl">
+            Atmosfera, overlays gerados pela IA e elementos de retenção no vídeo longo.
+          </p>
+        </div>
 
-          {[
-            { key: 'grain_overlay' as const, label: 'Grain (filme)', defaultOn: isShortFormat },
-            { key: 'vignette' as const, label: 'Vinheta escura', defaultOn: true },
-            { key: 'progress_bar' as const, label: 'Barra de progresso (longo)', defaultOn: true },
-            { key: 'chapter_stingers' as const, label: 'Chapter stingers (longo)', defaultOn: true },
-            { key: 'source_cards' as const, label: 'Cards de fonte', defaultOn: true },
-            { key: 'social_proof_cards' as const, label: 'Cards Reddit / X', defaultOn: true },
-            { key: 'geo_map_overlays' as const, label: 'Mapas geográficos', defaultOn: true },
-            { key: 'overlay_sfx_sync' as const, label: 'SFX nos overlays', defaultOn: true },
-          ].map((item) => {
-            const help = LAYER_HELP[item.key];
-            return (
-              <div key={item.key} className="flex items-center justify-between gap-3 py-0.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-xs text-zinc-300 truncate">{item.label}</span>
-                  <SettingHelpTip title={help.title} align="start">{help.body}</SettingHelpTip>
-                </div>
-                <select
-                  value={triBool(draft[item.key], item.defaultOn)}
-                  onChange={(e) => patchDraft({ [item.key]: parseTriBool(e.target.value, item.defaultOn) })}
-                  className="dash-select w-auto shrink-0 px-3 py-1.5 text-[10px]"
-                >
-                  <option value="default">Padrão</option>
-                  <option value="on">Ligado</option>
-                  <option value="off">Desligado</option>
-                </select>
-              </div>
-            );
-          })}
+        {buildOverlayGroups(isShortFormat).map((group) => (
+          <div key={group.id} className="space-y-2.5">
+            <div className="flex items-baseline justify-between gap-3 border-b border-[var(--dash-border)] pb-1.5">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+                {group.title}
+              </span>
+              <span className="text-[8px] text-[var(--dash-muted)] hidden sm:inline">
+                {group.hint}
+              </span>
+            </div>
+            <div className={`grid gap-3 ${group.items.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {group.items.map((item) => (
+                <LayerTriCard
+                  key={item.key}
+                  item={item}
+                  value={draft[item.key]}
+                  onChange={(next) => patchDraft({ [item.key]: next })}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
 
-          {isListicle && (
-            <div className="space-y-4 pt-2 border-t border-[var(--dash-border)]">
+        {isListicle && (
+          <div className="space-y-4 pt-4 border-t border-[var(--dash-border)]">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+                HUD listicle
+              </span>
+              <span className="text-[8px] text-[var(--dash-muted)] hidden sm:inline">
+                Badge #N e barra de progresso em rankings
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <SettingLabel
                   helpTitle="HUD listicle"
                   help="Badge #N fixa no topo durante cada item do ranking. Completo mostra título + ícone; Compacto usa barra de progresso em listas com mais de 8 itens."
                   align="start"
                 >
-                  HUD listicle (layout)
+                  Layout do HUD
                 </SettingLabel>
                 <select
                   value={draft.listicle_hud_style || 'auto'}
@@ -505,7 +631,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                   help="Paleta e estilo do badge #N, ícones Lottie e barra de progresso. Automático segue o preset do nicho; os temas fixos forçam uma identidade visual específica."
                   align="start"
                 >
-                  Tema visual do HUD
+                  Tema visual
                 </SettingLabel>
                 <select
                   value={hudTheme}
@@ -522,35 +648,35 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
                 </select>
                 <p className="text-[9px] text-[var(--dash-muted)]">{HUD_THEME_OPTIONS.find((o) => o.id === hudTheme)?.hint}</p>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <SettingLabel
-                  helpTitle="Cor de clímax (#1)"
-                  help="Cor usada no item #1 do ranking (clímax). Destaca o momento mais importante com tom diferente da cor de acento principal."
-                  align="start"
-                >
-                  Cor de clímax (#1)
-                </SettingLabel>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="color"
-                    value={draft.secondary_color || '#D4AF37'}
-                    onChange={(e) => patchDraft({ secondary_color: e.target.value })}
-                    className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
-                    style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
-                  />
-                  <input
-                    type="text"
-                    value={draft.secondary_color || ''}
-                    placeholder="Automático (preset)"
-                    onChange={(e) => patchDraft({ secondary_color: e.target.value.trim() || undefined })}
-                    className="dash-input flex-1 font-mono"
-                  />
-                </div>
+            <div className="space-y-2 max-w-md">
+              <SettingLabel
+                helpTitle="Cor de clímax (#1)"
+                help="Cor usada no item #1 do ranking (clímax). Destaca o momento mais importante com tom diferente da cor de acento principal."
+                align="start"
+              >
+                Cor de clímax (#1)
+              </SettingLabel>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={draft.secondary_color || '#D4AF37'}
+                  onChange={(e) => patchDraft({ secondary_color: e.target.value })}
+                  className="w-10 h-10 rounded-lg border cursor-pointer shrink-0"
+                  style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
+                />
+                <input
+                  type="text"
+                  value={draft.secondary_color || ''}
+                  placeholder="Automático (preset)"
+                  onChange={(e) => patchDraft({ secondary_color: e.target.value.trim() || undefined })}
+                  className="dash-input flex-1 font-mono"
+                />
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
