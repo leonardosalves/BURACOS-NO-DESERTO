@@ -4,6 +4,7 @@ import { resolveStockSearchQuery } from "./stockSearchQuery.js";
 import {
   enrichVisualPromptsSpecificity,
   buildSceneSpecificPrompt,
+  isSceneSpecificFallbackPrompt,
   VISUAL_PROMPT_SPECIFICITY_RULES,
 } from "./scenePromptSpecificity.js";
 
@@ -1016,6 +1017,26 @@ export function countUniqueVisualBlocks(visualPrompts = []) {
   return blocks.size;
 }
 
+/** Prompts vindos do Gemini Browser Bridge — não sobrescrever com glossário local. */
+export function browserVisualPromptsUsable(visualPrompts = [], { format = "LONGO" } = {}) {
+  const vps = Array.isArray(visualPrompts) ? visualPrompts : [];
+  if (!vps.length) return false;
+
+  const withPrompt = vps.filter((vp) => {
+    const p = String(vp.prompt || vp.visual_prompt || "").trim();
+    return p.length >= 40 && !isSceneSpecificFallbackPrompt(p);
+  });
+  const minGood = format === "SHORTS"
+    ? Math.max(3, Math.min(5, vps.length))
+    : Math.max(8, Math.min(12, vps.length));
+  if (withPrompt.length < Math.min(minGood, vps.length)) return false;
+
+  const emptyNarr = vps.filter((vp) => !String(vp.narration_text || vp.narracao || "").trim()).length;
+  if (emptyNarr > Math.floor(vps.length * 0.25)) return false;
+
+  return true;
+}
+
 export function needsVisualPromptsRepair(storyboard = {}, { blockCount = 5, format = "LONGO" } = {}) {
   const vps = storyboard.visual_prompts || [];
   if (!Array.isArray(vps) || vps.length === 0) return true;
@@ -1056,7 +1077,7 @@ export function sanitizeVisualPromptDurations(visualPrompts = []) {
  */
 export function normalizeVisualPromptBlocks(
   parsedData = {},
-  { blockCount = 5, format = "LONGO", ideaTitle = "" } = {},
+  { blockCount = 5, format = "LONGO", ideaTitle = "", skipPromptEnrichment = false } = {},
 ) {
   const result = { ...parsedData };
   const vps = Array.isArray(result.visual_prompts) ? [...result.visual_prompts] : [];
@@ -1088,7 +1109,11 @@ export function normalizeVisualPromptBlocks(
       const sceneInBlock = (index % perBlock) + 1;
       return { ...vp, block, scene: `${block}.${sceneInBlock}` };
     });
-  } else if ((blocksCollapsed || tooFewScenes) && String(result.narrative_script || "").trim()) {
+  } else if (
+    !skipPromptEnrichment
+    && (blocksCollapsed || tooFewScenes)
+    && String(result.narrative_script || "").trim()
+  ) {
     const deterministic = buildDeterministicVisualPromptsFromNarration(result.narrative_script, {
       blockCount: expectedBlocks,
       format,
@@ -1105,11 +1130,11 @@ export function normalizeVisualPromptBlocks(
     }
   }
 
+  const mixed = enforceShortsVideoSceneMix(normalized, { format });
   result.visual_prompts = sanitizeVisualPromptDurations(
-    enrichVisualPromptsSpecificity(
-      enforceShortsVideoSceneMix(normalized, { format }),
-      { strategyTitle: ideaTitle },
-    ),
+    skipPromptEnrichment
+      ? mixed
+      : enrichVisualPromptsSpecificity(mixed, { strategyTitle: ideaTitle }),
   );
   return result;
 }
@@ -1481,6 +1506,24 @@ export function extractNarrativeScriptFromRaw(responseText = "") {
     if (decoded.length >= 40) return decoded;
   }
   return "";
+}
+
+export function enrichBrowserVisualPromptsParsed(parsed = {}, responseText = "") {
+  const out = { ...parsed };
+  const current = Array.isArray(out.visual_prompts) ? out.visual_prompts : [];
+  const salvaged = salvageScriptJson(responseText) || {};
+  const salvagedVps = Array.isArray(salvaged.visual_prompts) ? salvaged.visual_prompts : [];
+
+  const pickBetter = (a, b) => {
+    if (browserVisualPromptsUsable(a)) return a;
+    if (browserVisualPromptsUsable(b)) return b;
+    return b.length >= a.length ? b : a;
+  };
+
+  const best = pickBetter(current, salvagedVps);
+  if (best.length) out.visual_prompts = best;
+
+  return out;
 }
 
 export function enrichBrowserNarrationParsed(parsed = {}, responseText = "") {
