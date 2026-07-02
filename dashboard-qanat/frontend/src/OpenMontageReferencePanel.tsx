@@ -109,7 +109,7 @@ export function OpenMontageReferencePanel({
     setMetadata(null);
 
     try {
-      const { ok, data } = await postAi(getProjectUrl('/api/workflow/analyze-reference'), {
+      const { ok, data } = await postAi('/api/workflow/analyze-reference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -434,11 +434,14 @@ app.use((err, req, res, next) => {
 function resolveProjectDirFromName(rawProjName) {
   if (!rawProjName) return null;
 
-  const decoded = decodeURIComponent(String(rawProjName));
+  const projName = Array.isArray(rawProjName) ? rawProjName[0] : rawProjName;
+  if (!projName) return null;
+
+  const decoded = decodeURIComponent(String(projName));
   const candidates = [
-    rawProjName,
+    projName,
     decoded,
-    String(rawProjName).replace(/ /g, "_"),
+    String(projName).replace(/ /g, "_"),
     decoded.replace(/ /g, "_"),
   ];
   const unique = [...new Set(candidates.filter(Boolean))];
@@ -549,7 +552,8 @@ app.use("/api/projects-media", (req, res, next) => {
 // Helper: Resolve active project directory dynamically based on request parameters
 
 function getProjectDir(req) {
-  const rawProjName = req.query?.project || req.body?.project;
+  let rawProjName = req.query?.project || req.body?.project;
+  if (Array.isArray(rawProjName)) rawProjName = rawProjName[0];
   if (!rawProjName) {
     return WORKSPACE_DIR;
   }

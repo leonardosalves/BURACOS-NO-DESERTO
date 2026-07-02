@@ -227,7 +227,7 @@ export function VideoAgentPlanner({
     try {
       toast.loading('VideoAgent executando cadeia…', { id: toastId });
 
-      const { ok, data } = await postAi(getProjectUrl('/api/ai/video-agent/execute'), {
+      const { ok, data } = await postAi('/api/ai/video-agent/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -278,7 +278,7 @@ export function VideoAgentPlanner({
 
       for (const item of deferred) {
         if (item.step === 'overlay_plan') {
-          const overlayRes = await postAi(getProjectUrl('/api/studio-agents/plan-overlays'), {
+          const overlayRes = await postAi('/api/studio-agents/plan-overlays', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ hyperframes: true }),
