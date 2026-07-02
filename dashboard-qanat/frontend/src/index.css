@@ -2215,3 +2215,35 @@
 .ste-narration-box {
   @apply p-3 rounded-lg bg-zinc-950/70 border border-emerald-900/25;
 }
+.ste-asset-preview {
+  @apply relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 shrink-0;
+}
+.ste-asset-preview--card {
+  @apply w-28 h-20;
+}
+.ste-asset-preview--strip {
+  @apply w-full h-full rounded-none border-0;
+}
+.ste-asset-media {
+  @apply w-full h-full object-cover;
+}
+.ste-asset-empty {
+  @apply flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-800 bg-zinc-950/80 text-zinc-600 shrink-0;
+}
+.ste-asset-empty--card {
+  @apply w-28 h-20;
+}
+.ste-asset-empty--strip {
+  @apply w-full h-full rounded-none border-0;
+}
+.ste-asset-badge {
+  @apply absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white/90;
+}
+.ste-timeline-seg-tint {
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.ste-timeline-seg-label {
+  pointer-events: none;
+}

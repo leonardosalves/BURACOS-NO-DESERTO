@@ -1,4 +1,4 @@
-import toast, { Toaster } from 'react-hot-toast';
+﻿import toast, { Toaster } from 'react-hot-toast';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
@@ -8272,15 +8272,6 @@ export default function App() {
 
                                 {status?.has_narration && (
                                   <button
-                                    onClick={() => splitBlockNarrationAmongAssets(blockKey)}
-                                    className="bg-violet-950 border border-violet-900/50 hover:bg-violet-900 hover:border-violet-800 text-violet-300 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-                                    title="Divide o texto do bloco proporcionalmente entre os assets (não altera arquivos nem ordem)"
-                                  >
-                                    <Layers className="w-3.5 h-3.5" /> Dividir narração
-                                  </button>
-                                )}
-                                {status?.has_narration && (
-                                  <button
                                     onClick={() => alignBlockAssetsToSpeech(blockKey)}
 
                                     className="bg-emerald-950 border border-emerald-900/50 hover:bg-emerald-900 hover:border-emerald-800 text-emerald-400 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
@@ -9301,6 +9292,7 @@ export default function App() {
                 storyboard={storyboardData}
                 wordTranscripts={wordTranscripts}
                 getMediaUrl={getMusicUrl}
+                getAssetUrl={getAssetUrl}
                 onSave={async (timelineAssets) => {
                   if (!config) return;
                   await saveConfig({ ...config, timeline_assets: timelineAssets });
