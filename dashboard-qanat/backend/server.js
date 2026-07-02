@@ -14592,9 +14592,12 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 4. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
    - Se o nicho do vídeo atual for diferente de "Tecnologia" ou "Programação" (como é o caso de "História", "Geografia", "Finanças", "Curiosidades", etc. e o atual é "${niche}"), VOCÊ É TERMINANTEMENTE PROIBIDO de gerar qualquer overlay que contenha códigos de programação, código fonte, terminais de comando, imports de bibliotecas (como 'geo-eng' ou '.js'), mockups do VS Code, syntax highlighting ou o tipo "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep". Esses layouts de código e programação irritam o usuário e quebram a imersão em vídeos comuns! Use apenas layouts de postagens comuns (Reddit, TikTok bubble, Instagram comment), pílulas, infográficos, fatos-chave, etc.
 5. TEXTOS CURTOS E NÃO REPETITIVOS (SÍNTESE INTELIGENTE):
-   - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades surpreendentes de leitura ultra-rápida (no máximo 5 a 12 palavras). Nunca cole parágrafos inteiros de texto falado nos cards ou lower-thirds!
-6. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
-   - ${isListicleOverlay ? "Em LISTICLE: topo reservado para badge #N — counters só em bottom-left ou bottom-right." : "Busque equilíbrio alternando posições superiores e inferiores. Não repita o mesmo canto em sequência."}
+    - Os overlays NÃO devem transcrever a narração falada longa. Eles devem exibir dados complementares novos, definições curtas ou curiosidades de leitura ultra-rápida.
+    - Se for um Short (9:16): O TEXTO DEVE TER NO MÁXIMO 3 A 5 PALAVRAS. O espaço vertical é extremamente estreito; textos longos poluem e arruínam a retenção!
+    - Se for um vídeo Longo (16:9): No máximo 5 a 10 palavras. Nunca cole parágrafos inteiros.
+    - Proibido gerar múltiplos overlays na mesma cena ou para o mesmo bloco de narração. Deve haver estrita ordem cronológica crescente de "start" baseada no scene_id (ex: cena 1.1 depois 1.2 depois 2.1).
+ 6. DIVERSIFICAÇÃO E PLANEJAMENTO DE POSIÇÕES:
+    - ${isListicleOverlay ? "Em LISTICLE: topo reservado para badge #N — counters e outros overlays só em bottom-left ou bottom-right." : "Busque equilíbrio alternando posições superiores e inferiores. Não repita o mesmo canto em sequência."}
 7. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
    - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
 8. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
