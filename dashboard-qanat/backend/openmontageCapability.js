@@ -9,6 +9,7 @@ import { getWorkflowApiKeys } from "./workflowTools.js";
 import { loadFishSpeechConfig, probeFishSpeechServer } from "./fishSpeechTts.js";
 import { probeChatterbox } from "./chatterboxTts.js";
 import { loadVoiceboxConfig, probeVoiceboxServer } from "./voiceboxTts.js";
+import { loadGptSovitsConfig, probeGptSovitsServer } from "./gptSovitsTts.js";
 import { getComfyuiStatus } from "./comfyuiService.js";
 import { getNotebooklmStatus } from "./notebooklmService.js";
 
@@ -65,6 +66,8 @@ export async function buildCapabilityMenu(ctx) {
   const chatterboxProbe = await probeChatterbox();
   const voiceboxConfig = loadVoiceboxConfig({ workspaceDir });
   const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
+  const gptSovitsConfig = loadGptSovitsConfig({ workspaceDir });
+  const gptSovitsProbe = await probeGptSovitsServer(gptSovitsConfig);
 
   let comfyStatus = { installed: false, running: false };
   try {
@@ -101,6 +104,11 @@ export async function buildCapabilityMenu(ctx) {
           hint: voiceboxProbe.ok
             ? `Clone local · ${voiceboxProbe.profiles?.length || 0} perfil(is)`
             : voiceboxProbe.error || ".\\scripts\\setup-voicebox.ps1",
+        }),
+        statusRow("gptsovits", "GPT-SoVITS", gptSovitsProbe.ok, {
+          hint: gptSovitsProbe.ok
+            ? `Clone few-shot · ${gptSovitsProbe.voiceCount || 0} voz(es)`
+            : gptSovitsProbe.error || ".\\scripts\\start-gpt-sovits.ps1",
         }),
       ],
     },

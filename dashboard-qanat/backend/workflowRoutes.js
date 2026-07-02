@@ -36,6 +36,14 @@ import {
   buildVoiceboxStatusHint,
 } from "./voiceboxTts.js";
 import {
+  loadGptSovitsConfig,
+  probeGptSovitsServer,
+  buildGptSovitsVoiceList,
+  buildGptSovitsStatusHint,
+  previewGptSovitsVoice,
+  GPT_SOVITS_DEFAULT_VOICE,
+} from "./gptSovitsTts.js";
+import {
   createProgressReporter,
   normalizeJobId,
   finishJobProgress,
@@ -493,6 +501,9 @@ export function registerWorkflowRoutes(app, deps) {
       const voiceboxConfig = loadVoiceboxConfig({ workspaceDir: WORKSPACE_DIR });
       const voiceboxProbe = await probeVoiceboxServer(voiceboxConfig);
       const voiceboxVoices = buildVoiceboxVoiceList(voiceboxProbe);
+      const gptSovitsConfig = loadGptSovitsConfig({ workspaceDir: WORKSPACE_DIR });
+      const gptSovitsProbe = await probeGptSovitsServer(gptSovitsConfig);
+      const gptSovitsVoices = buildGptSovitsVoiceList(gptSovitsProbe, gptSovitsConfig);
 
       res.json({
         engines: [
@@ -526,6 +537,17 @@ export function registerWorkflowRoutes(app, deps) {
             hint: buildVoiceboxStatusHint(voiceboxProbe, voiceboxVoices),
           },
           {
+            id: "gptsovits",
+            label: "GPT-SoVITS (clone few-shot)",
+            defaultVoice: gptSovitsProbe.ok
+              ? (gptSovitsVoices.find((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE)?.id || GPT_SOVITS_DEFAULT_VOICE)
+              : GPT_SOVITS_DEFAULT_VOICE,
+            voices: gptSovitsVoices,
+            available: gptSovitsProbe.ok && gptSovitsVoices.some((v) => v.id !== GPT_SOVITS_DEFAULT_VOICE),
+            serverUrl: gptSovitsProbe.baseUrl,
+            hint: buildGptSovitsStatusHint(gptSovitsProbe, gptSovitsVoices),
+          },
+          {
             id: "fish",
             label: "Fish Speech S2",
             defaultVoice: fishProbe.defaultReferenceId || FISH_SPEECH_DEFAULT_VOICE,
@@ -554,6 +576,27 @@ export function registerWorkflowRoutes(app, deps) {
           },
         ],
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/tts/gpt-sovits-preview", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const { voice, sampleText, narrativeScript, gptSovits } = req.body || {};
+      const gsConfig = loadGptSovitsConfig({ workspaceDir: WORKSPACE_DIR, projectDir: projDir });
+      const result = await previewGptSovitsVoice({
+        voice,
+        sampleText,
+        narrativeScript,
+        config: gsConfig,
+        options: gptSovits && typeof gptSovits === "object" ? gptSovits : {},
+      });
+      res.setHeader("Content-Type", "audio/wav");
+      res.setHeader("X-Gpt-Sovits-Sample-Text", encodeURIComponent(result.sampleText || ""));
+      res.setHeader("X-Gpt-Sovits-Voice-Id", String(result.voiceId || voice || ""));
+      res.send(result.buffer);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
