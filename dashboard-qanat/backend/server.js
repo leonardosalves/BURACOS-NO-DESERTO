@@ -1496,20 +1496,25 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
         }
       } catch (e) { /* ignore */ }
 
+      let postUpload = null;
       if (videoId) {
         try {
-          const postResult = await runPostUploadHooks(WORKSPACE_DIR, projDir, {
+          postUpload = await runPostUploadHooks(WORKSPACE_DIR, projDir, {
             videoId,
             autoStartTitleTest: true,
             postPinned: true,
           });
-          res.write(`data: ${JSON.stringify({ type: "post_upload", ...postResult })}\n\n`);
         } catch (err) {
           sendLog(`[PostUpload] ${err.message}`);
         }
       }
 
-      res.write(`data: ${JSON.stringify({ type: "complete", message: "Processo de upload concluído!", videoId })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        type: "complete",
+        message: "Processo de upload concluído!",
+        videoId,
+        postUpload,
+      })}\n\n`);
     } else {
       const hint = lastPipelineError
         || (code === 1 ? "Verifique: vídeo renderizado em OUTPUT/, OAuth YouTube em Configurações e metadados salvos." : "");

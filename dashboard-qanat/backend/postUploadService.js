@@ -85,12 +85,21 @@ export async function runPostUploadHooks(workspaceDir, projectDir, {
 
   if (postPinned) {
     const pinned = ytMeta.pinned_comment || ytMeta.pinnedComment;
-    if (pinned) {
+    const pinnedKey = String(pinned || "").trim();
+    const alreadyPosted = pinnedKey
+      && config.upload_metadata.youtube.pinned_comment_posted === pinnedKey
+      && config.upload_metadata.youtube.pinned_comment_video_id === resolvedVideoId;
+    if (pinnedKey && !alreadyPosted) {
       try {
-        result.pinnedComment = await postPinnedComment(workspaceDir, resolvedVideoId, pinned);
+        result.pinnedComment = await postPinnedComment(workspaceDir, resolvedVideoId, pinnedKey);
+        config.upload_metadata.youtube.pinned_comment_posted = pinnedKey;
+        config.upload_metadata.youtube.pinned_comment_video_id = resolvedVideoId;
+        writeJson(configPath, config);
       } catch (err) {
         result.pinnedComment = { error: err.message };
       }
+    } else if (alreadyPosted) {
+      result.pinnedComment = { skipped: true, reason: "already_posted" };
     }
   }
 
