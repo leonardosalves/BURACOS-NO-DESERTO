@@ -287,6 +287,7 @@ import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./forma
 import { buildPreRenderAdvice } from "./preRenderAdvice.js";
 import { resolveObsidianNotesForNiche } from "./obsidianMemoryContext.js";
 import {
+  createProgressJobResponse,
   createProgressReporter,
   finishJobProgress,
   failJobProgress,
@@ -11784,6 +11785,12 @@ app.post("/api/ai/creator/script", async (req, res) => {
     return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
   }
 
+  let activeRes = res;
+  if (progressJobId) {
+    res.json({ started: true, jobId: progressJobId });
+    activeRes = createProgressJobResponse(progressJobId);
+  }
+
   report("project", "Preparando pasta do projeto…", 10);
 
   // Automatically create and template project directory on-the-fly if it doesn't exist
@@ -11863,7 +11870,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
     } catch (err) {
 
-      return res.status(500).json({ error: "Erro ao criar pasta do novo projeto", details: err.message });
+      return activeRes.status(500).json({ error: "Erro ao criar pasta do novo projeto", details: err.message });
 
     }
 
@@ -12238,7 +12245,7 @@ REGRAS FINAIS:
         : "Gerando roteiro técnico com IA…",
       shouldOfferGeminiBrowser(settingsDir) ? 48 : 52,
     );
-    responseText = await callGeminiLlm(req, res, llmDir, {
+    responseText = await callGeminiLlm(req, activeRes, llmDir, {
       title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
       prompt: promptSystem,
       temperature: isListicle ? 0.75 : 0.85,
@@ -12319,7 +12326,7 @@ REGRAS FINAIS:
       const narrationLen = String(parsedData.narrative_script || "").trim().length;
       if (isBrowserResponse && narrationLen < 40 && responseText.length < 400) {
         failJobProgress(progressJobId, "Resposta do Gemini incompleta.");
-        return res.status(422).json({
+        return activeRes.status(422).json({
           error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
           details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Use Capturar do Gemini no Lumiera.`,
           hint: "Recarregue a extensão Lumiera Gemini Bridge (v2.0.0+) com gemini.google.com aberto.",
@@ -12416,9 +12423,7 @@ REGRAS FINAIS:
       };
       report("save", "Salvando narração no projeto…", 94);
       fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
-      finishJobProgress(progressJobId, "Narração pronta para revisão");
-
-      return res.json({
+      return activeRes.json({
         phase: "narration",
         project: safeProjectName,
         strategy: partialStoryboard.strategy,
@@ -12654,9 +12659,8 @@ REGRAS FINAIS:
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
     report("save", "Finalizando roteiro…", 96);
-    finishJobProgress(progressJobId, scriptPhase === "narration" ? "Narração concluída" : "Roteiro completo");
 
-    res.json(parsedData);
+    activeRes.json(parsedData);
 
   } catch (err) {
 
@@ -12669,13 +12673,24 @@ REGRAS FINAIS:
 
     }
 
-    res.status(500).json({
-      error: "Erro ao gerar roteiro e estratégia",
-      details: err.message,
-      hint: /json|JSON|válido/i.test(String(err.message || ""))
-        ? "A resposta do Gemini pode ter vindo truncada. Tente de novo ou desative o modo navegador."
-        : undefined,
-    });
+    if (!progressJobId || activeRes === res) {
+      activeRes.status(500).json({
+        error: "Erro ao gerar roteiro e estratégia",
+        details: err.message,
+        hint: /json|JSON|válido/i.test(String(err.message || ""))
+          ? "A resposta do Gemini pode ter vindo truncada. Tente de novo ou desative o modo navegador."
+          : undefined,
+      });
+    } else {
+      setJobProgress(progressJobId, {
+        result: {
+          error: "Erro ao gerar roteiro e estratégia",
+          details: err.message,
+        },
+        done: true,
+        awaitingBrowser: false,
+      });
+    }
 
   }
 

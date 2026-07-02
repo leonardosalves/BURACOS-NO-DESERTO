@@ -1,5 +1,7 @@
 export type GeminiBrowserRequest = {
   needs_browser?: boolean;
+  started?: boolean;
+  jobId?: string;
   prompt?: string;
   title?: string;
   instructions?: string[];
@@ -7,8 +9,11 @@ export type GeminiBrowserRequest = {
   metadata_session_id?: string;
   text?: string;
   error?: string;
+  details?: string;
   staleResponse?: boolean;
   fallback?: boolean;
+  narrative_script?: string;
+  [key: string]: unknown;
 };
 
 export type OpenGeminiBridge = (opts: {
@@ -168,5 +173,95 @@ export async function fetchGeminiAi(
     return { ok: secondRes.ok, status: secondRes.status, data: secondData };
   }
 
+  if (firstRes.ok && data.started && data.jobId) {
+    return { ok: true, status: firstRes.status, data };
+  }
+
   return { ok: firstRes.ok, status: firstRes.status, data };
+}
+
+/** POST Creator script com job assíncrono + retry do modo navegador. */
+export async function fetchCreatorScriptAi(
+  url: string,
+  init: RequestInit,
+  opts: {
+    geminiBrowserMode: boolean;
+    aiProvider: string;
+    resolveBrowserResponse: GeminiBrowserResolver;
+    timeoutMs?: number;
+    progressJobId?: string;
+  },
+): Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest }> {
+  let requestInit = init;
+  let body = parseRequestBody(init);
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const res = await fetchGeminiAi(url, requestInit, {
+      ...opts,
+      progressJobId: opts.progressJobId,
+    });
+
+    if (res.data.started && res.data.jobId) {
+      const { waitForAiJobDone } = await import('./aiJobProgressClient');
+      const jobResult = await waitForAiJobDone(String(res.data.jobId));
+
+      if (jobResult.needs_browser && jobResult.prompt) {
+        if (opts.progressJobId) {
+          const { reportClientProgress } = await import('./aiJobProgressClient');
+          await reportClientProgress(opts.progressJobId, {
+            phase: 'browser_gemini',
+            label: 'Consultando gemini.google.com…',
+            percent: 62,
+          });
+        }
+        const browserResponse = String(
+          await opts.resolveBrowserResponse({
+            prompt: String(jobResult.prompt),
+            title: typeof jobResult.title === 'string' ? jobResult.title : undefined,
+            instructions: Array.isArray(jobResult.instructions)
+              ? jobResult.instructions.map(String)
+              : undefined,
+          }) || '',
+        ).trim();
+        if (!browserResponse) {
+          return {
+            ok: false,
+            status: 400,
+            data: {
+              error: 'A extensão não capturou a resposta do Gemini. Verifique gemini.google.com e tente de novo.',
+            },
+          };
+        }
+        body = {
+          ...body,
+          browser_response: browserResponse,
+        };
+        requestInit = {
+          ...init,
+          method: init.method || 'POST',
+          headers: jsonRequestHeaders(init),
+          body: JSON.stringify({
+            ...body,
+            ...(opts.progressJobId ? { progress_job_id: opts.progressJobId } : {}),
+          }),
+        };
+        continue;
+      }
+
+      const hasError = Boolean(jobResult.error);
+      return {
+        ok: !hasError,
+        status: hasError ? 500 : 200,
+        data: jobResult as GeminiBrowserRequest,
+      };
+    }
+
+    return res;
+  }
+
+  return {
+    ok: false,
+    status: 400,
+    data: { error: 'Limite de tentativas no modo navegador — tente de novo.' },
+  };
 }
