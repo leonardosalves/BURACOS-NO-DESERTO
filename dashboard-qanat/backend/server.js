@@ -1612,8 +1612,6 @@ app.get("/api/projects/storyboard", (req, res) => {
 
             type: "imagem IA 2k",
 
-            duration: "5 segundos",
-
             prompt: `Cinematic photorealistic image, 2k resolution, high detail, cinematic lighting, portraying: ${bp.phrase}`,
 
             editor_notes: "Ken Burns zoom in",
@@ -11592,7 +11590,13 @@ function normalizeKeys(data) {
 
     function: vp.function || vp.funcao || "",
 
-    duration: vp.duration || vp.duracao || "até 10 segundos",
+    duration: vp.duration_from_whisper
+      ? (vp.duration || (vp.duration_seconds != null ? `${vp.duration_seconds} segundos` : undefined))
+      : undefined,
+
+    duration_seconds: vp.duration_from_whisper ? vp.duration_seconds : undefined,
+
+    duration_from_whisper: vp.duration_from_whisper === true,
 
     type: vp.type || vp.tipo || "imagem IA 2k",
 
@@ -12079,8 +12083,6 @@ FORMATO DE RESPOSTA - JSON válido com estas propriedades:
 
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
 
-     "duration": "3 a 5 segundos",
-
      "prompt": "Descrição visual em INGLÊS apenas — NUNCA cole narration_text aqui. Traduza a cena: sujeito específico + ação + enquadramento (ex.: macro close-up of triangular beak with fluid streaming along lateral edges). Imagem: photorealistic 2k. Vídeo: cinematic motion, max 10s.",
 
      "editor_notes": "Como usar na edição: Ken Burns zoom in, dissolve, corte seco, etc. + justificativa imagem vs vídeo.",
@@ -12152,6 +12154,8 @@ REGRAS FINAIS:
 - O JSON deve ser 100% válido. Escape aspas internas com barra invertida.
 
 - O array visual_prompts deve cobrir TODA a narração sem lacunas.
+
+- NÃO inclua "duration" nos visual_prompts — os segundos de cada cena vêm do Whisper após a narração.
 
 - Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
   }
@@ -13239,7 +13243,10 @@ activeChild = child1;
                 fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
               }
               if (fs.existsSync(storyboardPath)) {
-                const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts);
+                const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts, {
+                  flatTranscriptWords: flatWords,
+                  blockTimings: synced.blockTimings,
+                });
                 fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
               }
               sendLog("[Pipeline] Slots da timeline criados com segundos da voz (Whisper). Coloque os assets manualmente e salve.");

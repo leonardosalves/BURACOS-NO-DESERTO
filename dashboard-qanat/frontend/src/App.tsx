@@ -429,20 +429,95 @@ const parseDurationSeconds = (duration: unknown) => {
 
 };
 
-const estimateNarrationDurationSeconds = (text: string) => {
+function flattenWordsForSceneDuration(wordTranscripts: any[]) {
+  const flat: Array<{ word: string; clean: string; start: number; end: number }> = [];
+  if (!Array.isArray(wordTranscripts)) return flat;
+  for (const segment of wordTranscripts) {
+    const segStart = Number(segment.start_time) || 0;
+    for (const w of segment.words || []) {
+      let wStart = Number(w.start);
+      let wEnd = Number(w.end);
+      if (wStart < segStart) {
+        wStart += segStart;
+        wEnd += segStart;
+      }
+      const token = String(w.word || '').trim();
+      const clean = token
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .pop() || '';
+      flat.push({ word: token, clean, start: wStart, end: wEnd });
+    }
+  }
+  return flat;
+}
 
-  const words = (text || '').trim().split(/\s+/).filter(Boolean).length;
+function getSceneSpeechDurationSeconds(
+  scene: any,
+  wordTranscripts: any[],
+  blockNum: number,
+  sceneIdxInBlock: number,
+  status?: { block_timings?: { starts?: number[]; durations?: number[] } },
+  scenesInBlock?: any[],
+): number | null {
+  if (scene?.duration_from_whisper) {
+    if (scene?.duration_seconds != null && Number.isFinite(Number(scene.duration_seconds))) {
+      return Number(scene.duration_seconds);
+    }
+    const parsed = parseDurationSeconds(scene?.duration ?? scene?.duracaoSegundos);
+    if (parsed != null) return parsed;
+  }
 
-  return Math.max(3, Math.ceil(words / 2.8));
+  const narrationText = String(scene?.narration_text || scene?.narration_excerpt || '').trim();
+  if (!narrationText || !wordTranscripts?.length || !status?.block_timings?.starts?.length) return null;
 
-};
+  const flat = flattenWordsForSceneDuration(wordTranscripts);
+  if (!flat.length) return null;
 
-const getSceneDurationSeconds = (scene: any) => {
+  const bounds = resolveBlockTimeBounds(status, blockNum);
+  let searchAfter = bounds.searchAfter;
+  if (scenesInBlock) {
+    for (let i = 0; i < sceneIdxInBlock; i++) {
+      const prevText = String(scenesInBlock[i]?.narration_text || scenesInBlock[i]?.narration_excerpt || '').trim();
+      if (!prevText) continue;
+      const prev = findBoundedNarrationMatch(prevText, flat, { searchAfter, searchBefore: bounds.searchBefore });
+      if (prev) searchAfter = prev.end;
+    }
+  }
 
-  return parseDurationSeconds(scene?.duration ?? scene?.duracaoSegundos ?? scene?.duration_seconds)
+  const matched = findBoundedNarrationMatch(narrationText, flat, { searchAfter, searchBefore: bounds.searchBefore });
+  if (matched?.duration > 0) return parseFloat(matched.duration.toFixed(1));
+  return null;
+}
 
-    ?? estimateNarrationDurationSeconds(scene?.narration_text || scene?.narration_excerpt || scene?.narracao || '');
+const isWhisperTimelineReady = (wordTranscripts: any[], status?: { block_timings?: { starts?: number[] } }) =>
+  Array.isArray(wordTranscripts)
+  && wordTranscripts.length > 0
+  && (status?.block_timings?.starts?.length ?? 0) > 0;
 
+const getSceneDurationSeconds = (
+  scene: any,
+  wordTranscripts?: any[],
+  blockNum?: number,
+  sceneIdxInBlock?: number,
+  status?: { block_timings?: { starts?: number[]; durations?: number[] } },
+  scenesInBlock?: any[],
+) => {
+  if (wordTranscripts && blockNum != null && sceneIdxInBlock != null) {
+    return getSceneSpeechDurationSeconds(
+      scene,
+      wordTranscripts,
+      blockNum,
+      sceneIdxInBlock,
+      status,
+      scenesInBlock,
+    );
+  }
+  return null;
 };
 
 const parseCreatorBlockNumber = (raw: unknown, sceneRaw?: unknown): number => {
@@ -468,41 +543,34 @@ const countCreatorUniqueBlocks = (visualPrompts: any[]) => {
   return blocks.size;
 };
 
-const getBlockTimingSummary = (visualPrompts: any[], blockNum: number, gapSeconds = 2) => {
+const getBlockTimingSummary = (
+  visualPrompts: any[],
+  blockNum: number,
+  gapSeconds = 2,
+  wordTranscripts?: any[],
+  status?: { block_timings?: { starts?: number[] } },
+) => {
+  const scenes = (visualPrompts || []).filter(
+    (scene: any) => parseCreatorBlockNumber(scene?.block ?? scene?.bloco, scene?.scene ?? scene?.cena) === blockNum,
+  );
+  const whisperReady = isWhisperTimelineReady(wordTranscripts || [], status);
+  let sceneSeconds = 0;
+  let complete = whisperReady && scenes.length > 0;
 
-  const scenes = (visualPrompts || []).filter((scene: any) => parseCreatorBlockNumber(scene?.block ?? scene?.bloco, scene?.scene ?? scene?.cena) === blockNum);
-
-  const sceneSeconds = scenes.reduce((total: number, scene: any) => total + getSceneDurationSeconds(scene), 0);
+  scenes.forEach((scene, localIdx) => {
+    const d = getSceneDurationSeconds(scene, wordTranscripts, blockNum, localIdx, status, scenes);
+    if (d == null) complete = false;
+    else sceneSeconds += d;
+  });
 
   return {
-
     sceneCount: scenes.length,
-
-    sceneSeconds,
-
-    gapSeconds,
-
-    totalSeconds: sceneSeconds + gapSeconds
-
+    sceneSeconds: complete ? parseFloat(sceneSeconds.toFixed(1)) : null,
+    gapSeconds: complete ? gapSeconds : null,
+    totalSeconds: complete ? parseFloat((sceneSeconds + gapSeconds).toFixed(1)) : null,
+    whisperReady,
   };
-
 };
-
-const getWhisperSceneDuration = (wordTranscripts: any[], blockNum: number, sceneIdxInBlock: number): number | null => {
-  if (!Array.isArray(wordTranscripts) || wordTranscripts.length === 0) return null;
-  const segs = wordTranscripts
-    .filter((s) => Number(s?.block) === blockNum)
-    .sort((a, b) => Number(a?.index) - Number(b?.index) || Number(a?.start_time) - Number(b?.start_time));
-  const seg = segs[sceneIdxInBlock];
-  if (!seg) return null;
-  const dur = Number(seg.end_time) - Number(seg.start_time);
-  return Number.isFinite(dur) && dur > 0 ? parseFloat(dur.toFixed(1)) : null;
-};
-
-const isWhisperTimelineReady = (wordTranscripts: any[], status?: { block_timings?: { starts?: number[] } }) =>
-  Array.isArray(wordTranscripts)
-  && wordTranscripts.length > 0
-  && (status?.block_timings?.starts?.length ?? 0) > 0;
 
 // Premium custom collapsible JSON Tree View
 
@@ -1311,39 +1379,17 @@ export default function App() {
     const nextPrompts = [...(generatedScriptData.visual_prompts || [])];
 
     if (field === 'duration') {
-
-      nextPrompts[index] = { 
-
-        ...nextPrompts[index], 
-
-        duration: `${value} segundos`,
-
-        duration_seconds: value
-
-      };
-
+      return;
     } else if (field === 'narration_text') {
-
-      const wasEstimated = parseDurationSeconds(nextPrompts[index].duration) === null || nextPrompts[index].duration_seconds === undefined;
-
       const nextText = value;
-
-      nextPrompts[index] = { 
-
-        ...nextPrompts[index], 
-
-        narration_text: nextText 
-
+      nextPrompts[index] = {
+        ...nextPrompts[index],
+        narration_text: nextText,
       };
-
-      if (wasEstimated) {
-
-        const est = estimateNarrationDurationSeconds(nextText);
-
-        nextPrompts[index].duration = `${est} segundos`;
-
+      if (!nextPrompts[index].duration_from_whisper) {
+        delete nextPrompts[index].duration;
+        delete nextPrompts[index].duration_seconds;
       }
-
     } else {
 
       nextPrompts[index] = { 
@@ -1917,6 +1963,16 @@ export default function App() {
       }, 200);
     }
   }, [wordTranscripts, shouldAutoAlign, config, status]);
+
+  useEffect(() => {
+    if (!isWhisperTimelineReady(wordTranscripts, status)) return;
+    const prompts = storyboardData?.visual_prompts;
+    if (!Array.isArray(prompts) || prompts.length === 0) return;
+    setGeneratedScriptData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, visual_prompts: prompts };
+    });
+  }, [wordTranscripts, status?.block_timings?.starts, storyboardData?.visual_prompts]);
 
   // Fetch valid projects list
 
@@ -2769,6 +2825,7 @@ export default function App() {
   const updateSceneField = (index: number, field: string, value: any) => {
 
     if (!storyboardData) return;
+    if (field === 'duration') return;
 
     const newPrompts = [...storyboardData.visual_prompts];
 
@@ -2830,8 +2887,6 @@ export default function App() {
 
       type: "imagem IA 2k",
 
-      duration: "5 segundos",
-
       prompt: "Cinematic photorealistic image, 2k resolution",
 
       editor_notes: "",
@@ -2863,8 +2918,6 @@ export default function App() {
       narration_text: "",
 
       type: "imagem IA 2k",
-
-      duration: "5 segundos",
 
       prompt: "Cinematic photorealistic image, 2k resolution",
 
@@ -12025,8 +12078,6 @@ export default function App() {
 
                                   type: "imagem IA 2k",
 
-                                  duration: "5 segundos",
-
                                   prompt: "Cinematic photorealistic image, 2k resolution",
 
                                   editor_notes: "",
@@ -12328,21 +12379,44 @@ export default function App() {
 
                             <div className="space-y-0.5">
 
-                              <span className="text-[9px] text-zinc-500 block uppercase tracking-wider">Duração Estimada</span>
+                              <span className="text-[9px] text-zinc-500 block uppercase tracking-wider">Duração (Voz)</span>
 
-                              <input
-
-                                type="text"
-
-                                value={vp.duration || "5 segundos"}
-
-                                onChange={(e) => updateSceneField(idx, 'duration', e.target.value)}
-
-                                placeholder="Duração (ex: 5 segundos)"
-
-                                className="bg-zinc-900 border border-zinc-800 text-[10px] text-white rounded px-2 py-1 w-full focus:outline-none"
-
-                              />
+                              {(() => {
+                                const blockNum = vp.block || 1;
+                                let localIdx = 0;
+                                for (let i = 0; i < idx; i++) {
+                                  if ((storyboardData.visual_prompts[i].block || 1) === blockNum) localIdx++;
+                                }
+                                const blockScenes = storyboardData.visual_prompts.filter(
+                                  (s: any) => (s.block || 1) === blockNum,
+                                );
+                                const dur = getSceneDurationSeconds(
+                                  vp,
+                                  wordTranscripts,
+                                  blockNum,
+                                  localIdx,
+                                  status,
+                                  blockScenes,
+                                );
+                                return (
+                                  <div
+                                    className={`flex items-center border rounded px-2 py-1 min-h-[26px] ${
+                                      dur != null
+                                        ? 'bg-emerald-500/5 border-emerald-500/25'
+                                        : 'bg-zinc-900 border-zinc-800'
+                                    }`}
+                                    title={
+                                      dur != null
+                                        ? 'Segundos reais desta frase na narração (Whisper)'
+                                        : 'Rode narração + Whisper para calcular os segundos'
+                                    }
+                                  >
+                                    <span className={`text-[10px] font-mono tabular-nums ${dur != null ? 'text-emerald-300' : 'text-zinc-600'}`}>
+                                      {dur != null ? `${dur}s` : '—'}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
 
                             </div>
 
@@ -15092,7 +15166,7 @@ export default function App() {
                             title="ROTEIRO COMPLETO POR BLOCOS"
                             helpId="creator-blocks"
                             size="sm"
-                            subtitle="Narração e prompt visual editáveis aqui. Os segundos de cada cena são estimados até você gerar a narração (passo 2) e rodar o Whisper (passo 3) — aí passam a ser os tempos reais da voz."
+                            subtitle="Narração e prompt visual editáveis. A duração (segundos) de cada cena só aparece após narração (passo 2) + Whisper (passo 3) — calculada 100% da voz, sem estimativa."
                           />
 
                         </div>
@@ -15145,7 +15219,13 @@ export default function App() {
 
                             const blockPrompts = promptsByBlock[blockNum];
 
-                            const blockTiming = getBlockTimingSummary(generatedScriptData?.visual_prompts || [], blockNum);
+                            const blockTiming = getBlockTimingSummary(
+                              generatedScriptData?.visual_prompts || [],
+                              blockNum,
+                              2,
+                              wordTranscripts,
+                              status,
+                            );
 
                             const blockKey = String(blockNum);
 
@@ -15177,11 +15257,15 @@ export default function App() {
 
                                       <span>•</span>
 
-                                      <span className="text-gold-400">{blockTiming.sceneSeconds}s (+{blockTiming.gapSeconds}s gap)</span>
-
-                                      <span>=</span>
-
-                                      <span className="text-emerald-400 font-bold">{blockTiming.totalSeconds}s total</span>
+                                      {blockTiming.sceneSeconds != null ? (
+                                        <>
+                                          <span className="text-emerald-400">{blockTiming.sceneSeconds}s (+{blockTiming.gapSeconds}s gap)</span>
+                                          <span>=</span>
+                                          <span className="text-emerald-400 font-bold">{blockTiming.totalSeconds}s total</span>
+                                        </>
+                                      ) : (
+                                        <span className="text-zinc-500 italic">duração após Whisper (passo 3)</span>
+                                      )}
 
                                     </div>
 
@@ -15212,13 +15296,15 @@ export default function App() {
                                         projectTitle: customTitle?.trim() || '',
                                       });
 
-                                      const whisperDuration = getWhisperSceneDuration(wordTranscripts, blockNum, localIdx);
-                                      const whisperReady = isWhisperTimelineReady(wordTranscripts, status);
-                                      const sceneDurationSeconds = whisperDuration ?? getSceneDurationSeconds(vp);
-
-                                      const durationFromWhisper = whisperReady && (whisperDuration != null || vp?.duration_from_whisper);
-                                      const durationWasEstimated = !durationFromWhisper
-                                        && parseDurationSeconds(vp?.duration ?? vp?.duracaoSegundos ?? vp?.duration_seconds) === null;
+                                      const sceneDurationSeconds = getSceneDurationSeconds(
+                                        vp,
+                                        wordTranscripts,
+                                        blockNum,
+                                        localIdx,
+                                        status,
+                                        blockPrompts,
+                                      );
+                                      const durationFromWhisper = sceneDurationSeconds != null;
 
                                       const assetIdx = localIdx;
 
@@ -15303,56 +15389,31 @@ export default function App() {
                                               <div className="flex items-center gap-1.5">
 
                                                 <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
-
                                                   durationFromWhisper
                                                     ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
-                                                    : durationWasEstimated
-                                                      ? 'text-amber-400/90 border-amber-500/20 bg-amber-500/10'
-                                                      : 'text-zinc-400 border-zinc-850 bg-zinc-900/60'
-
+                                                    : 'text-zinc-500 border-zinc-800 bg-zinc-900/60'
                                                 }`}>
-
-                                                  {durationFromWhisper ? 'Voz (Whisper)' : durationWasEstimated ? 'Estimada' : 'Manual'}
-
+                                                  {durationFromWhisper ? 'Voz (Whisper)' : 'Whisper'}
                                                 </span>
 
                                                 <div
-                                                  className={`flex items-center border rounded-lg px-2 py-0.5 ${
+                                                  className={`flex items-center border rounded-lg px-2 py-0.5 min-w-[3.5rem] justify-end ${
                                                     durationFromWhisper
                                                       ? 'bg-emerald-500/5 border-emerald-500/25'
                                                       : 'bg-zinc-950 border-zinc-850'
                                                   }`}
                                                   title={
                                                     durationFromWhisper
-                                                      ? 'Duração real da narração (Whisper)'
-                                                      : 'Será substituída pelos segundos da voz após o passo 3 (Whisper)'
+                                                      ? 'Segundos reais desta frase na narração (Whisper)'
+                                                      : 'Rode narração (passo 2) e Whisper (passo 3) para calcular os segundos'
                                                   }
                                                 >
-
-                                                  <input 
-
-                                                    type="number" 
-
-                                                    step="0.1" 
-
-                                                    min="0.5"
-
-                                                    value={sceneDurationSeconds}
-
-                                                    readOnly={durationFromWhisper}
-
-                                                    disabled={durationFromWhisper}
-
-                                                    onChange={(e) => handleUpdateCreatorScene(absoluteIndex, 'duration', parseFloat(e.target.value) || 0)}
-
-                                                    className={`bg-transparent text-xs font-mono w-12 text-right focus:outline-none ${
-                                                      durationFromWhisper ? 'text-emerald-300 cursor-default' : 'text-white'
-                                                    }`}
-
-                                                  />
-
+                                                  <span className={`text-xs font-mono tabular-nums ${
+                                                    durationFromWhisper ? 'text-emerald-300' : 'text-zinc-600'
+                                                  }`}>
+                                                    {durationFromWhisper ? sceneDurationSeconds : '—'}
+                                                  </span>
                                                   <span className="text-[10px] text-zinc-500 ml-1 font-mono">s</span>
-
                                                 </div>
 
                                               </div>
