@@ -4,7 +4,11 @@
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $VendorDir = Join-Path $RepoRoot ".vendor\GPT-SoVITS"
-$Port = if ($env:GPT_SOVITS_PORT) { $env:GPT_SOVITS_PORT } else { "9880" }
+if ($env:GPT_SOVITS_PORT) {
+    $Port = $env:GPT_SOVITS_PORT
+} else {
+    $Port = "9880"
+}
 
 if (-not (Test-Path $VendorDir)) {
     Write-Host "Clone GPT-SoVITS em .vendor/GPT-SoVITS ..." -ForegroundColor Yellow
@@ -15,22 +19,36 @@ if (-not (Test-Path $VendorDir)) {
 Set-Location $VendorDir
 
 $python = $null
-if (Get-Command conda -ErrorAction SilentlyContinue) {
-    $condaEnv = if ($env:GPT_SOVITS_CONDA_ENV) { $env:GPT_SOVITS_CONDA_ENV } else { "GPTSoVits" }
+if ($env:GPT_SOVITS_PYTHON -and (Test-Path $env:GPT_SOVITS_PYTHON)) {
+    $python = $env:GPT_SOVITS_PYTHON
+}
+
+if (-not $python -and (Get-Command conda -ErrorAction SilentlyContinue)) {
+    if ($env:GPT_SOVITS_CONDA_ENV) {
+        $condaEnv = $env:GPT_SOVITS_CONDA_ENV
+    } else {
+        $condaEnv = "GPTSoVits"
+    }
     $condaPy = Join-Path $env:USERPROFILE "miniconda3\envs\$condaEnv\python.exe"
     if (-not (Test-Path $condaPy)) {
         $condaPy = Join-Path $env:USERPROFILE "anaconda3\envs\$condaEnv\python.exe"
     }
-    if (Test-Path $condaPy) { $python = $condaPy }
+    if (Test-Path $condaPy) {
+        $python = $condaPy
+    }
 }
+
 if (-not $python) {
-    $python = (Get-Command python -ErrorAction SilentlyContinue)?.Source
+    $pyCmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($pyCmd) {
+        $python = $pyCmd.Source
+    }
 }
+
 if (-not $python) {
     Write-Host "Python nao encontrado. Instale GPT-SoVITS (conda env GPTSoVits) ou defina GPT_SOVITS_PYTHON." -ForegroundColor Red
     exit 1
 }
-if ($env:GPT_SOVITS_PYTHON) { $python = $env:GPT_SOVITS_PYTHON }
 
 Write-Host "Iniciando GPT-SoVITS API v2 em http://127.0.0.1:$Port ..." -ForegroundColor Cyan
 Write-Host "Configure no Lumiera (config_qanat.json):" -ForegroundColor DarkGray
@@ -45,13 +63,24 @@ if (-not (Test-Path $apiScript)) {
 Start-Process -FilePath $python -ArgumentList @($apiScript, "-a", "127.0.0.1", "-p", $Port) -WorkingDirectory $VendorDir
 Start-Sleep -Seconds 4
 
+$apiOk = $false
 try {
-    Invoke-WebRequest -Uri "http://127.0.0.1:$Port/tts" -Method GET -TimeoutSec 10 | Out-Null
-    Write-Host "GPT-SoVITS API ativa: http://127.0.0.1:$Port" -ForegroundColor Green
-} catch {
-    if ($_.Exception.Response.StatusCode.value__ -eq 400) {
-        Write-Host "GPT-SoVITS API ativa: http://127.0.0.1:$Port" -ForegroundColor Green
-    } else {
-        Write-Host "Servidor iniciando — aguarde o carregamento dos modelos e teste no Lumiera." -ForegroundColor Yellow
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/tts" -Method GET -TimeoutSec 10 -UseBasicParsing
+    if ($response.StatusCode -eq 200) {
+        $apiOk = $true
     }
+} catch {
+    $statusCode = $null
+    if ($_.Exception.Response) {
+        $statusCode = [int]$_.Exception.Response.StatusCode
+    }
+    if ($statusCode -eq 400) {
+        $apiOk = $true
+    }
+}
+
+if ($apiOk) {
+    Write-Host "GPT-SoVITS API ativa: http://127.0.0.1:$Port" -ForegroundColor Green
+} else {
+    Write-Host "Servidor iniciando - aguarde o carregamento dos modelos e teste no Lumiera." -ForegroundColor Yellow
 }
