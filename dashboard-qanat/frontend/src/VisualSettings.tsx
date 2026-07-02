@@ -167,7 +167,7 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
 
   useEffect(() => {
     setDraft(pickVisualConfig(config));
-  }, [projectKey]);
+  }, [config, projectKey]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));
