@@ -285,6 +285,7 @@ import {
 } from "./studioAgents.js";
 import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./formatResolver.js";
 import { buildPreRenderAdvice } from "./preRenderAdvice.js";
+import { resolveObsidianNotesForNiche } from "./obsidianMemoryContext.js";
 import {
   getObsidianVaultStatus,
   openInObsidian,
@@ -1999,11 +2000,20 @@ app.get("/api/studio-agents/learnings", (req, res) => {
     const task = String(req.query.task || "overlay");
     const format = String(req.query.format || "").toUpperCase() || null;
     const resolvedFormat = format === "LONG" || format === "LONGO" ? "LONG" : format === "SHORT" || format === "SHORTS" ? "SHORT" : null;
+    const obsidian = resolveObsidianNotesForNiche(WORKSPACE_DIR, niche, {
+      task,
+      format: resolvedFormat || "SHORT",
+    });
     res.json({
       niche,
       task,
       format: resolvedFormat,
       learnings: getNicheLearnings(WORKSPACE_DIR, niche, task, resolvedFormat),
+      obsidian_notes: {
+        files: obsidian.filesUsed,
+        global_rules: obsidian.globalBullets,
+        snippets: obsidian.snippets,
+      },
     });
   } catch (err) {
     res.status(500).json({ error: "Erro ao carregar aprendizados", details: err.message });
