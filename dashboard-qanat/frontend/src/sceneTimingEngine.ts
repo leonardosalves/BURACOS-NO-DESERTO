@@ -210,7 +210,10 @@ function buildSequentialSceneBoundaries(
     starts.push(cursor);
     cursor += getAssetDurationSeconds(assets, idx, blockDuration);
   }
-  starts.push(Math.max(cursor, narrationEnd + 0.15));
+  // Teto = fim da fala do bloco (evita janela visual invadir o áudio do bloco seguinte)
+  const visualEnd = cursor;
+  const speechCap = narrationEnd + 0.15;
+  starts.push(Math.max(narrationStart + MIN_SCENE_SECONDS, Math.min(visualEnd, speechCap)));
   return starts;
 }
 
@@ -414,4 +417,15 @@ export function formatTimelineClock(seconds: number): string {
   const m = Math.floor(s / 60);
   const r = s - m * 60;
   return `${m}:${r.toFixed(1).padStart(m > 0 ? 4 : 3, "0")}`;
+}
+
+/** Play para na última palavra da cena — não no fim visual (duração do asset). */
+export function getScenePlaybackWindow(scene: SceneTimingRow): { start: number; end: number } {
+  const first = scene.words[0];
+  const last = scene.words[scene.words.length - 1];
+  const start = first ? first.start : scene.windowStart;
+  const end = last
+    ? Math.max(last.end + 0.12, start + 0.35)
+    : scene.windowEnd;
+  return { start, end };
 }

@@ -18,6 +18,7 @@ import {
   flattenTranscriptWords,
   formatTimelineClock,
   getAssetDurationSeconds,
+  getScenePlaybackWindow,
   resizeScenePair,
   setSceneDuration,
   syncBlockScenesToSpeech,
@@ -501,7 +502,10 @@ export function SceneTimingEditor({
                       {hasNarration && (
                         <button
                           type="button"
-                          onClick={() => playScene(activeBlock, scene.idx, scene.windowStart, scene.windowEnd)}
+                          onClick={() => {
+                            const { start, end } = getScenePlaybackWindow(scene);
+                            playScene(activeBlock, scene.idx, start, end);
+                          }}
                           className={`ste-play-btn ${isPlaying ? "ste-play-btn--active" : ""}`}
                           title="Ouvir narração desta cena"
                         >
@@ -518,8 +522,14 @@ export function SceneTimingEditor({
                         Narração nesta janela
                       </span>
                       <span className="font-mono text-[10px] text-zinc-500">
-                        {formatTimelineClock(scene.windowStart)} – {formatTimelineClock(scene.windowEnd)}
+                        {(() => {
+                          const { start, end } = getScenePlaybackWindow(scene);
+                          return `${formatTimelineClock(start)} – ${formatTimelineClock(end)}`;
+                        })()}
                         {" · "}{scene.words.length} palavras
+                        <span className="text-zinc-600 ml-1" title="Duração visual do asset">
+                          (asset {scene.duration.toFixed(1)}s)
+                        </span>
                       </span>
                     </div>
                     <p className={`text-sm leading-relaxed ${scene.narrationText ? "text-zinc-200" : "text-zinc-600 italic"}`}>
