@@ -35,7 +35,11 @@ import {
   buildVoiceboxVoiceList,
   buildVoiceboxStatusHint,
 } from "./voiceboxTts.js";
-import { flattenWordTranscripts, syncProjectTimelineAfterWhisper } from "./timelineSceneSync.js";
+import {
+  flattenWordTranscripts,
+  syncProjectTimelineAfterWhisper,
+  applyWhisperDurationsToStoryboard,
+} from "./timelineSceneSync.js";
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
@@ -265,20 +269,24 @@ export function registerWorkflowRoutes(app, deps) {
     if (!flatTranscriptWords.length) return;
 
     const synced = syncProjectTimelineAfterWhisper({
-      timelineAssets: config.timeline_assets,
+      timelineAssets: config.timeline_assets || {},
       blockTimings: timings,
       wordTranscripts,
       flatTranscriptWords,
       visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
       blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
-      preserveExplicitFixed: true,
+      preserveExplicitFixed: false,
     });
     config.timeline_assets = synced.timelineAssets;
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     if (synced.blockTimings?.starts?.length) {
       fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
     }
-    log("[Pipeline] Timeline sincronizada por cena (storyboard + segmentos Whisper).");
+    if (fs.existsSync(storyboardPath)) {
+      const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts);
+      fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
+    }
+    log("[Pipeline] Timeline com segundos da voz (Whisper). Mídia: manual ou auto-map no Workflow.");
   }
 
   function buildCreatorPipelineHandlers() {

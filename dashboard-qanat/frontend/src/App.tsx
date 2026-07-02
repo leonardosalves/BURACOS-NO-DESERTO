@@ -488,6 +488,22 @@ const getBlockTimingSummary = (visualPrompts: any[], blockNum: number, gapSecond
 
 };
 
+const getWhisperSceneDuration = (wordTranscripts: any[], blockNum: number, sceneIdxInBlock: number): number | null => {
+  if (!Array.isArray(wordTranscripts) || wordTranscripts.length === 0) return null;
+  const segs = wordTranscripts
+    .filter((s) => Number(s?.block) === blockNum)
+    .sort((a, b) => Number(a?.index) - Number(b?.index) || Number(a?.start_time) - Number(b?.start_time));
+  const seg = segs[sceneIdxInBlock];
+  if (!seg) return null;
+  const dur = Number(seg.end_time) - Number(seg.start_time);
+  return Number.isFinite(dur) && dur > 0 ? parseFloat(dur.toFixed(1)) : null;
+};
+
+const isWhisperTimelineReady = (wordTranscripts: any[], status?: { block_timings?: { starts?: number[] } }) =>
+  Array.isArray(wordTranscripts)
+  && wordTranscripts.length > 0
+  && (status?.block_timings?.starts?.length ?? 0) > 0;
+
 // Premium custom collapsible JSON Tree View
 
 const JsonTreeNode: React.FC<{ label?: string; value: any; depth?: number }> = ({ label, value, depth = 0 }) => {
@@ -7201,6 +7217,10 @@ export default function App() {
 
         setShouldAutoAlign(true);
         setCreatorStep(4);
+        toast.success(
+          'Whisper concluído. Cada cena já tem os segundos da voz. No passo 4, coloque os assets manualmente e clique em Salvar Linha do Tempo.',
+          { duration: 7000 },
+        );
 
         fetchData();
 
@@ -7974,10 +7994,23 @@ export default function App() {
 
   };
 
-  const renderRichTimelineEditor = () => {
+  const renderRichTimelineEditor = (options?: { hideAutoMap?: boolean; wizardManualMode?: boolean }) => {
     if (!config) return null;
+    const hideAutoMap = options?.hideAutoMap === true;
+    const wizardManualMode = options?.wizardManualMode === true;
     return (
       <div className="space-y-6">
+
+                  {wizardManualMode && (
+                    <div className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4 text-[11px] text-sky-100/90 leading-relaxed">
+                      <p className="font-bold text-sky-200 mb-1">Montagem manual de B-roll (wizard)</p>
+                      <p>
+                        Os segundos de cada slot já vêm do Whisper (passo 3). Arraste ou escolha os arquivos em cada cena,
+                        ajuste se precisar e confirme com <strong className="text-sky-100">Salvar Linha do Tempo</strong>.
+                        A distribuição automática por IA fica só no <strong className="text-sky-100">Workflow → Automação</strong>.
+                      </p>
+                    </div>
+                  )}
 
                   {(timelineNeedsWhisperSync || timelineScenesNeedRepair) && (
                     <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3 font-sans">
@@ -8069,15 +8102,17 @@ export default function App() {
 
                       </div>
 
-                                            <button
-                        disabled={creatorLoading}
-                        onClick={handleAutoMapAssets}
-                        className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-gold-500 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
-                        title="Mapear arquivos locais na pasta ASSETS para as cenas automaticamente com Inteligência Artificial"
-                      >
-                        {creatorLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-gold-500" />}
-                        <span>Associar Mídias com IA</span>
-                      </button>
+                      {!hideAutoMap && (
+                        <button
+                          disabled={creatorLoading}
+                          onClick={handleAutoMapAssets}
+                          className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 text-gold-500 text-[10px] font-bold px-4 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+                          title="Mapear arquivos locais na pasta ASSETS para as cenas automaticamente com Inteligência Artificial"
+                        >
+                          {creatorLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-gold-500" />}
+                          <span>Associar Mídias com IA</span>
+                        </button>
+                      )}
 
 <button
 
@@ -13583,7 +13618,7 @@ export default function App() {
 
                   <span>3. Sincronizar</span>
 
-                  <span>4. Associar B-roll</span>
+                  <span>4. Montar B-roll</span>
 
                   <span>5. Render</span>
                   <span>6. Metadados</span>
@@ -14384,7 +14419,7 @@ export default function App() {
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl mx-auto">
 
-                        Faça upload de um MP3 gravado ou gere a narração com Fish Audio ou Voicebox a partir do roteiro aprovado. Depois sincronize no passo 3.
+                        Obrigatório antes do Whisper: faça upload do MP3 ou gere a narração com TTS a partir do roteiro aprovado. Sem este áudio, o passo 3 não consegue definir os segundos corretos de cada cena.
 
                       </p>
 
@@ -14538,7 +14573,7 @@ export default function App() {
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
 
-                        A IA vai transcrever o arquivo de áudio utilizando o modelo Whisper local e correlacionar os tempos exatos com cada bloco de texto. Isso criará o banco de dados de palavras (`word_transcripts.json`) e tempos (`block_timings.json`).
+                        Obrigatório após a narração (passo 2). O Whisper transcreve o MP3 e define os <strong className="text-gray-300">segundos reais de cada cena</strong> — substituindo as durações estimadas do roteiro. Isso gera `word_transcripts.json`, `block_timings.json` e os slots da timeline prontos para você colocar os assets manualmente no passo 4.
 
                       </p>
 
@@ -14590,11 +14625,13 @@ export default function App() {
 
                       <button 
 
-                        disabled={syncingTimings}
+                        disabled={syncingTimings || !isWhisperTimelineReady(wordTranscripts, status)}
 
                         onClick={() => setCreatorStep(4)}
 
-                        className="text-xs text-zinc-500 hover:text-white font-semibold transition flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-zinc-500 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed font-semibold transition flex items-center gap-1 cursor-pointer"
+
+                        title={isWhisperTimelineReady(wordTranscripts, status) ? 'Ir para montagem manual de B-roll' : 'Conclua a sincronização Whisper antes'}
 
                       >
 
@@ -14614,7 +14651,7 @@ export default function App() {
 
                 {creatorStep === 4 && config && (
                   <div className="space-y-6 max-w-4xl mx-auto font-sans">
-                    {renderRichTimelineEditor()}
+                    {renderRichTimelineEditor({ hideAutoMap: true, wizardManualMode: true })}
                     
                     {/* Navigation Buttons */}
                     <div className="flex justify-between items-center pt-6 border-t border-zinc-900 font-sans">
@@ -14625,11 +14662,15 @@ export default function App() {
                         ← Voltar para Sincronização
                       </button>
                       <button 
-                        disabled={!timelineAssets}
-                        onClick={() => setCreatorStep(5)}
+                        disabled={!timelineAssets || !isWhisperTimelineReady(wordTranscripts, status)}
+                        onClick={() => {
+                          void handleSaveConfig();
+                          setCreatorStep(5);
+                        }}
                         className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-xs font-bold px-6 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg"
+                        title="Salva a timeline e avança — confirme que cada cena tem mídia e segundos da voz"
                       >
-                        <span>Avançar para Renderização</span>
+                        <span>Salvar timeline e Render</span>
                         <span>→</span>
                       </button>
                     </div>
@@ -15051,7 +15092,7 @@ export default function App() {
                             title="ROTEIRO COMPLETO POR BLOCOS"
                             helpId="creator-blocks"
                             size="sm"
-                            subtitle="Cada cena possui narração, duração e prompt visual editáveis. O roteiro é salvo automaticamente."
+                            subtitle="Narração e prompt visual editáveis aqui. Os segundos de cada cena são estimados até você gerar a narração (passo 2) e rodar o Whisper (passo 3) — aí passam a ser os tempos reais da voz."
                           />
 
                         </div>
@@ -15171,9 +15212,13 @@ export default function App() {
                                         projectTitle: customTitle?.trim() || '',
                                       });
 
-                                      const sceneDurationSeconds = getSceneDurationSeconds(vp);
+                                      const whisperDuration = getWhisperSceneDuration(wordTranscripts, blockNum, localIdx);
+                                      const whisperReady = isWhisperTimelineReady(wordTranscripts, status);
+                                      const sceneDurationSeconds = whisperDuration ?? getSceneDurationSeconds(vp);
 
-                                      const durationWasEstimated = parseDurationSeconds(vp?.duration ?? vp?.duracaoSegundos ?? vp?.duration_seconds) === null;
+                                      const durationFromWhisper = whisperReady && (whisperDuration != null || vp?.duration_from_whisper);
+                                      const durationWasEstimated = !durationFromWhisper
+                                        && parseDurationSeconds(vp?.duration ?? vp?.duracaoSegundos ?? vp?.duration_seconds) === null;
 
                                       const assetIdx = localIdx;
 
@@ -15259,15 +15304,30 @@ export default function App() {
 
                                                 <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
 
-                                                  durationWasEstimated ? 'text-zinc-400 border-zinc-850 bg-zinc-900/60' : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
+                                                  durationFromWhisper
+                                                    ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
+                                                    : durationWasEstimated
+                                                      ? 'text-amber-400/90 border-amber-500/20 bg-amber-500/10'
+                                                      : 'text-zinc-400 border-zinc-850 bg-zinc-900/60'
 
                                                 }`}>
 
-                                                  {durationWasEstimated ? 'Estimada' : 'Manual'}
+                                                  {durationFromWhisper ? 'Voz (Whisper)' : durationWasEstimated ? 'Estimada' : 'Manual'}
 
                                                 </span>
 
-                                                <div className="flex items-center bg-zinc-950 border border-zinc-850 rounded-lg px-2 py-0.5">
+                                                <div
+                                                  className={`flex items-center border rounded-lg px-2 py-0.5 ${
+                                                    durationFromWhisper
+                                                      ? 'bg-emerald-500/5 border-emerald-500/25'
+                                                      : 'bg-zinc-950 border-zinc-850'
+                                                  }`}
+                                                  title={
+                                                    durationFromWhisper
+                                                      ? 'Duração real da narração (Whisper)'
+                                                      : 'Será substituída pelos segundos da voz após o passo 3 (Whisper)'
+                                                  }
+                                                >
 
                                                   <input 
 
@@ -15279,9 +15339,15 @@ export default function App() {
 
                                                     value={sceneDurationSeconds}
 
+                                                    readOnly={durationFromWhisper}
+
+                                                    disabled={durationFromWhisper}
+
                                                     onChange={(e) => handleUpdateCreatorScene(absoluteIndex, 'duration', parseFloat(e.target.value) || 0)}
 
-                                                    className="bg-transparent text-white text-xs font-mono w-12 text-right focus:outline-none"
+                                                    className={`bg-transparent text-xs font-mono w-12 text-right focus:outline-none ${
+                                                      durationFromWhisper ? 'text-emerald-300 cursor-default' : 'text-white'
+                                                    }`}
 
                                                   />
 

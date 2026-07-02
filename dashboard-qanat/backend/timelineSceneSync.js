@@ -855,7 +855,138 @@ export function realignTimelineAssetsToSpeech({
   return out;
 }
 
-/** Pós-Whisper: reconstrói block_timings e sincroniza timeline_assets com os segmentos. */
+function groupVisualPromptsByBlock(visualPrompts = []) {
+  const byBlock = new Map();
+  for (const vp of visualPrompts) {
+    const block = Number(vp?.block || 1);
+    if (!byBlock.has(block)) byBlock.set(block, []);
+    byBlock.get(block).push(vp);
+  }
+  for (const scenes of byBlock.values()) {
+    scenes.sort((a, b) => String(a?.scene || "").localeCompare(String(b?.scene || "")));
+  }
+  return byBlock;
+}
+
+/**
+ * Cria/atualiza slots da timeline a partir dos segmentos Whisper — sem distribuir mídia (wizard manual).
+ */
+export function bootstrapTimelineSlotsFromWhisper({
+  timelineAssets = {},
+  wordTranscripts = [],
+  visualPrompts = [],
+  blockPhrases = [],
+} = {}) {
+  if (!Array.isArray(wordTranscripts) || wordTranscripts.length === 0) {
+    return { ...timelineAssets };
+  }
+
+  const promptsByBlock = groupVisualPromptsByBlock(visualPrompts);
+  const segmentBlocks = [...groupTranscriptSegmentsByBlock(wordTranscripts).keys()];
+  const promptBlocks = [...promptsByBlock.keys()];
+  const blockNums = [...new Set([...segmentBlocks, ...promptBlocks])].sort((a, b) => a - b);
+  const out = { ...timelineAssets };
+
+  for (const blockNum of blockNums) {
+    const blockKey = String(blockNum);
+    const segments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
+    const scenes = promptsByBlock.get(blockNum) || [];
+    const existing = Array.isArray(out[blockKey]) ? out[blockKey] : [];
+    const slotCount = Math.max(segments.length, scenes.length, existing.length, 1);
+    const blockAssets = [];
+
+    for (let idx = 0; idx < slotCount; idx++) {
+      const prev = existing[idx] || {};
+      const seg = segments[idx];
+      const scene = scenes[idx];
+      const narrationText = scene
+        ? String(scene.narration_text || scene.narration_excerpt || "").trim()
+        : getAssetNarrationText(blockNum, idx, {
+          visualPrompts,
+          blockPhrases,
+          timelineAssets: out,
+        });
+
+      const entry = {
+        asset: String(prev.asset || "").trim(),
+        type: prev.type || "image",
+        narration_segment: narrationText || prev.narration_segment || "",
+      };
+
+      if (prev.user_locked || prev.manual_asset) {
+        entry.user_locked = true;
+        entry.manual_asset = true;
+        if (prev.asset) entry.asset = prev.asset;
+        if (prev.type) entry.type = prev.type;
+      }
+
+      if (seg) {
+        const segStart = Number(seg.start_time);
+        const segEnd = Number(seg.end_time);
+        if (Number.isFinite(segStart) && Number.isFinite(segEnd) && segEnd > segStart) {
+          const speechDur = Math.max(0.5, segEnd - segStart);
+          entry.audio_start = parseFloat(segStart.toFixed(3));
+          entry.speech_end = parseFloat(segEnd.toFixed(3));
+          entry.fixed = parseFloat(speechDur.toFixed(1));
+          entry.synced_to_speech = true;
+          entry.duration_from_whisper = true;
+        }
+      } else if (prev.fixed !== undefined && prev.fixed !== null && prev.fixed_locked) {
+        entry.fixed = Number(prev.fixed);
+        entry.fixed_locked = true;
+      } else if (prev.fixed !== undefined && prev.fixed !== null) {
+        entry.fixed = Number(prev.fixed);
+      }
+
+      if (prev.fixed_locked && !entry.fixed_locked) {
+        entry.fixed_locked = true;
+        if (prev.fixed !== undefined) entry.fixed = Number(prev.fixed);
+      }
+
+      blockAssets.push(entry);
+    }
+
+    if (blockAssets.length) out[blockKey] = blockAssets;
+  }
+
+  return out;
+}
+
+/** Atualiza duração de cada cena no storyboard com os tempos reais do Whisper. */
+export function applyWhisperDurationsToStoryboard(storyboard = {}, wordTranscripts = []) {
+  const prompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  if (!prompts.length || !wordTranscripts.length) return storyboard;
+
+  const scenesByBlock = new Map();
+  prompts.forEach((vp, idx) => {
+    const block = Number(vp?.block || 1);
+    if (!scenesByBlock.has(block)) scenesByBlock.set(block, []);
+    scenesByBlock.get(block).push({ vp, idx });
+  });
+
+  const nextPrompts = [...prompts];
+  for (const [blockNum, entries] of scenesByBlock) {
+    const segments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
+    entries.forEach((entry, localIdx) => {
+      const seg = segments[localIdx];
+      if (!seg) return;
+      const segStart = Number(seg.start_time);
+      const segEnd = Number(seg.end_time);
+      if (!Number.isFinite(segStart) || !Number.isFinite(segEnd) || segEnd <= segStart) return;
+      const dur = parseFloat(Math.max(0.5, segEnd - segStart).toFixed(1));
+      nextPrompts[entry.idx] = {
+        ...entry.vp,
+        duration: `${dur} segundos`,
+        duration_seconds: dur,
+        duration_from_whisper: true,
+      };
+    });
+  }
+
+  return { ...storyboard, visual_prompts: nextPrompts };
+}
+
+/** Pós-Whisper: block_timings + slots com segundos da voz (sem auto-map de mídia). */
 export function syncProjectTimelineAfterWhisper({
   timelineAssets = {},
   blockTimings = { starts: [], durations: [] },
@@ -867,8 +998,16 @@ export function syncProjectTimelineAfterWhisper({
 } = {}) {
   const rebuilt = rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
   const timings = rebuilt || blockTimings;
-  const timelineAssetsSynced = realignTimelineAssetsToSpeech({
+
+  let slots = bootstrapTimelineSlotsFromWhisper({
     timelineAssets,
+    wordTranscripts,
+    visualPrompts,
+    blockPhrases,
+  });
+
+  const timelineAssetsSynced = realignTimelineAssetsToSpeech({
+    timelineAssets: slots,
     blockTimings: timings,
     flatTranscriptWords,
     wordTranscripts,
@@ -876,6 +1015,7 @@ export function syncProjectTimelineAfterWhisper({
     blockPhrases,
     preserveExplicitFixed,
   });
+
   return { timelineAssets: timelineAssetsSynced, blockTimings: timings };
 }
 
