@@ -881,6 +881,11 @@
     animation: caption-preview-pulse-keyframes 0.55s ease-in-out infinite;
   }
 
+  .caption-preview-frame {
+    container-type: inline-size;
+    width: 100%;
+  }
+
   .caption-preview-scanlines::after {
     content: '';
     position: absolute;
