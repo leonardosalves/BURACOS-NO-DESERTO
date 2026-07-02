@@ -439,6 +439,7 @@ export async function generateNarrationTts(projDir, {
   platform = "kokoro",
   workspaceDir = null,
   onLog = () => {},
+  onProgress = () => {},
   ttsOptions = {},
 } = {}) {
   const storyboard = readJson(path.join(projDir, "storyboard.json"), {});
@@ -455,6 +456,16 @@ export async function generateNarrationTts(projDir, {
   const useTaggedOverride = ttsOptions.useTaggedScript;
 
   const engine = String(platform || "kokoro").toLowerCase();
+  const engineLabel = engine === "voicebox"
+    ? "Voicebox"
+    : (engine === "fish" || engine === "fish-speech" || engine === "fish_speech")
+      ? "Fish Audio"
+      : engine === "kokoro"
+        ? "Kokoro"
+        : engine === "edge"
+          ? "Edge TTS"
+          : "TTS";
+  onProgress("prepare", `${engineLabel}: preparando narração…`, 4);
   const dest = path.join(projDir, NARRATION_FILENAME);
 
   const invalidateNarrationTimings = () => {
@@ -571,6 +582,7 @@ export async function generateNarrationTts(projDir, {
       outputPath: dest,
       config: vbConfig,
       onLog,
+      onProgress,
     });
     invalidateNarrationTimings();
 
@@ -617,6 +629,7 @@ export async function generateNarrationTts(projDir, {
       referenceId: fishVoice,
       config: fishConfig,
       onLog,
+      onProgress,
     });
     invalidateNarrationTimings();
 

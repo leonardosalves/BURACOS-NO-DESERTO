@@ -36,6 +36,12 @@ import {
   buildVoiceboxStatusHint,
 } from "./voiceboxTts.js";
 import {
+  createProgressReporter,
+  normalizeJobId,
+  finishJobProgress,
+  failJobProgress,
+} from "./aiJobProgress.js";
+import {
   flattenWordTranscripts,
   syncProjectTimelineAfterWhisper,
   applyWhisperDurationsToStoryboard,
@@ -575,20 +581,43 @@ export function registerWorkflowRoutes(app, deps) {
   });
 
   app.post("/api/tts/generate-narration", async (req, res) => {
+    const projDir = getProjectDir(req);
+    const { voice, rate, pitch, speed, engine, ttsOptions, progress_job_id: progressJobIdRaw } = req.body || {};
+    const progressJobId = normalizeJobId(progressJobIdRaw);
+    const report = createProgressReporter(progressJobId);
+    const ttsParams = {
+      voice,
+      rate: rate || "+0%",
+      pitch: pitch || "+0Hz",
+      speed,
+      platform: engine || "kokoro",
+      workspaceDir: WORKSPACE_DIR,
+      ttsOptions: ttsOptions && typeof ttsOptions === "object" ? ttsOptions : {},
+      onLog: (msg) => console.log(msg),
+      onProgress: report,
+    };
+
+    const runGeneration = async () => {
+      const result = await generateNarrationTts(projDir, ttsParams);
+      if (progressJobId) {
+        finishJobProgress(progressJobId, result.message || "Narração TTS gerada");
+      }
+      return result;
+    };
+
     try {
-      const projDir = getProjectDir(req);
-      const { voice, rate, pitch, speed, engine, ttsOptions } = req.body || {};
-      const result = await generateNarrationTts(projDir, {
-        voice,
-        rate: rate || "+0%",
-        pitch: pitch || "+0Hz",
-        speed,
-        platform: engine || "kokoro",
-        workspaceDir: WORKSPACE_DIR,
-        ttsOptions: ttsOptions && typeof ttsOptions === "object" ? ttsOptions : {},
-      });
+      if (progressJobId) {
+        res.json({ started: true, jobId: progressJobId });
+        runGeneration().catch((err) => {
+          console.error("[TTS] Falha na geração assíncrona:", err);
+          failJobProgress(progressJobId, err.message);
+        });
+        return;
+      }
+      const result = await runGeneration();
       res.json(result);
     } catch (err) {
+      if (progressJobId) failJobProgress(progressJobId, err.message);
       res.status(500).json({ error: err.message });
     }
   });

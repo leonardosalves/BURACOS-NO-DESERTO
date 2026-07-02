@@ -313,20 +313,26 @@ export async function fetchFishSpeechAudio(text, {
   referenceId = null,
   config = {},
   onLog = () => {},
+  onProgress = null,
   timeoutMs = 900000,
 } = {}) {
+  const report = typeof onProgress === "function"
+    ? (pct, label) => onProgress("fish", label, pct)
+    : () => {};
   const cfg = resolveFishSpeechConfig(config);
   const plain = String(text || "").trim();
   if (!plain || plain.length < 20) {
     throw new Error("Texto muito curto para Fish Speech.");
   }
 
+  report(10, "Conectando ao Fish Audio…");
   const probe = await probeFishSpeechServer(config);
   if (!probe.ok) {
     throw new Error(`Fish Speech indisponível. ${probe.error || ""}`.trim());
   }
 
   const mode = probe.mode || "local";
+  report(18, mode === "cloud" ? "Fish Audio cloud · preparando síntese…" : "Fish Audio local · preparando síntese…");
   const baseUrl = mode === "cloud" ? cfg.cloudBaseUrl : cfg.baseUrl;
 
   const refId = referenceId && referenceId !== FISH_SPEECH_DEFAULT_VOICE
@@ -360,6 +366,7 @@ export async function fetchFishSpeechAudio(text, {
   }
 
   onLog(`[Fish Speech] ${plain.length} chars · ref=${refId || "padrão"} · ${mode} · ${baseUrl}`);
+  report(28, `Sintetizando ${plain.length} caracteres…`);
 
   const headers = authHeaders(cfg.apiKey, {
     "Content-Type": "application/json",
@@ -369,22 +376,36 @@ export async function fetchFishSpeechAudio(text, {
     headers.model = cfg.cloudModel;
   }
 
-  const res = await fetch(`${baseUrl}/v1/tts`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const synthStarted = Date.now();
+  const progressTicker = setInterval(() => {
+    const elapsed = Date.now() - synthStarted;
+    const pct = Math.min(88, 32 + Math.floor((elapsed / Math.max(timeoutMs, 1)) * 56));
+    report(pct, mode === "cloud" ? "Fish Audio cloud processando…" : "Fish Audio sintetizando voz…");
+  }, 2500);
+
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/v1/tts`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } finally {
+    clearInterval(progressTicker);
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     throw new Error(`Fish Speech HTTP ${res.status}: ${errText.slice(0, 400)}`);
   }
 
+  report(92, "Recebendo áudio do Fish Audio…");
   const buffer = Buffer.from(await res.arrayBuffer());
   if (!buffer.length) {
     throw new Error("Fish Speech retornou áudio vazio.");
   }
+  report(97, "Áudio Fish Audio recebido");
 
   return {
     buffer,
@@ -422,12 +443,16 @@ export async function synthesizeFishSpeech(text, {
   referenceId = null,
   config = {},
   onLog = () => {},
+  onProgress = null,
 } = {}) {
   if (!outputPath) {
     throw new Error("Caminho de saída ausente para Fish Speech.");
   }
 
-  const result = await fetchFishSpeechAudio(text, { referenceId, config, onLog });
+  const result = await fetchFishSpeechAudio(text, { referenceId, config, onLog, onProgress });
+  if (typeof onProgress === "function") {
+    onProgress("fish", "Salvando narracao_mestra_premium.mp3…", 99);
+  }
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, result.buffer);
 
