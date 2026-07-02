@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Clock,
+  Film,
   Layers,
   MapPin,
   Palette,
@@ -10,6 +11,8 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { SettingLabel } from './SettingHelpTip';
+import { OverlayPreview } from './OverlayPreview';
+import { buildFilmstripSegments, resolveTotalDuration } from './overlayFilmstrip';
 import {
   INFORMATIVE_OVERLAY_TYPES,
   LOTTIE_ICON_OPTIONS,
@@ -41,6 +44,10 @@ type BlockTimings = {
 type Props = {
   storyboard: Record<string, unknown> | null;
   blockTimings?: BlockTimings | null;
+  timelineAssets?: Record<string, Array<Record<string, unknown>>>;
+  aspectRatio?: string;
+  accentColor?: string;
+  getAssetUrl?: (path: string) => string;
   generating?: boolean;
   onChange: (nextOverlays: OverlayDraft[]) => void;
   onGenerate: () => void;
@@ -58,22 +65,36 @@ function numericStart(overlay: OverlayDraft, starts: number[]): number {
   return 0;
 }
 
+function sceneNarrationFor(
+  overlay: OverlayDraft,
+  visualPrompts: Array<{ scene?: string; block?: number; narration_text?: string }>,
+): string | undefined {
+  const sceneId = String(overlay.scene_ref || (isSceneId(overlay.start) ? overlay.start : '') || '').trim();
+  if (!sceneId) return undefined;
+  const match = visualPrompts.find((vp) => String(vp.scene || '') === sceneId);
+  return match?.narration_text?.replace(/\s+/g, ' ').trim();
+}
+
 export function OverlayTimelineEditor({
   storyboard,
   blockTimings,
+  timelineAssets = {},
+  aspectRatio = '16:9',
+  accentColor = '#D4AF37',
+  getAssetUrl,
   generating = false,
   onChange,
   onGenerate,
 }: Props) {
   const starts = blockTimings?.starts || [];
-  const totalDuration = useMemo(() => {
-    if (blockTimings?.total_duration && blockTimings.total_duration > 0) {
-      return blockTimings.total_duration;
-    }
-    const durations = blockTimings?.durations || [];
-    const sum = durations.reduce((acc, d) => acc + (Number(d) || 0), 0);
-    return sum > 0 ? sum : 60;
-  }, [blockTimings]);
+  const filmstrip = useMemo(
+    () => buildFilmstripSegments(timelineAssets, blockTimings),
+    [timelineAssets, blockTimings],
+  );
+  const totalDuration = useMemo(
+    () => resolveTotalDuration(blockTimings, filmstrip),
+    [blockTimings, filmstrip],
+  );
 
   const rawOverlays = (storyboard?.overlays_ai || storyboard?.overlays || []) as OverlayDraft[];
   const overlays = useMemo(() => normalizeOverlayList(rawOverlays), [rawOverlays]);
@@ -142,6 +163,7 @@ export function OverlayTimelineEditor({
         position: 'bottom-left',
         variant: 'glass',
         theme: 'classic',
+        accentColor,
       },
     };
     onChange([...overlays, next]);
@@ -167,40 +189,120 @@ export function OverlayTimelineEditor({
     patchOverlay(id, { props: nextProps });
   };
 
-  const renderTimelineBar = () => (
-    <div className="relative h-10 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] overflow-hidden">
-      <div className="absolute inset-0 opacity-30" style={{
-        backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 9.5%, rgba(130,128,253,0.15) 10%)',
-      }} />
-      {overlays.map((overlay) => {
-        const start = numericStart(overlay, starts);
-        const duration = Number(overlay.duration) || 4;
-        const left = Math.min(98, (start / totalDuration) * 100);
-        const width = Math.max(2, Math.min(100 - left, (duration / totalDuration) * 100));
-        const isHud = SYSTEM_OVERLAY_TYPES.includes(overlay.type as never);
-        const active = selected?.id === overlay.id;
-        return (
-          <button
-            key={overlay.id}
-            type="button"
-            title={`${OVERLAY_TYPE_LABELS[overlay.type] || overlay.type} · ${formatOverlayTime(start)}`}
-            onClick={() => setSelectedId(overlay.id)}
-            className={`absolute top-1 bottom-1 rounded-md border text-[7px] font-bold uppercase tracking-wide px-1 truncate transition ${
-              active
-                ? 'border-[var(--dash-primary-light)] bg-[rgba(130,128,253,0.35)] text-white z-10'
-                : isHud
-                  ? 'border-zinc-600 bg-zinc-800/80 text-zinc-400'
-                  : 'border-[rgba(130,128,253,0.35)] bg-[rgba(130,128,253,0.18)] text-[var(--dash-primary-light)] hover:bg-[rgba(130,128,253,0.28)]'
-            }`}
-            style={{ left: `${left}%`, width: `${width}%` }}
-          >
-            {OVERLAY_TYPE_LABELS[overlay.type]?.split(' ')[0] || overlay.type}
-          </button>
-        );
-      })}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-mono text-[var(--dash-muted)] pointer-events-none">
-        {formatOverlayTime(totalDuration)}
+  const renderFilmstripTimeline = () => (
+    <div className="space-y-2">
+      <div className="relative rounded-xl border border-[var(--dash-border)] overflow-hidden bg-zinc-950">
+        {/* Faixa de assets */}
+        <div className="relative h-20 flex overflow-x-auto">
+          {filmstrip.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center gap-2 text-[10px] text-zinc-500 px-4">
+              <Film className="w-3.5 h-3.5 shrink-0" />
+              Mapeie assets nos blocos abaixo para ver o preview em linha aqui
+            </div>
+          ) : (
+            filmstrip.map((seg) => {
+              const widthPct = Math.max(4, (seg.duration / totalDuration) * 100);
+              const hasMedia = Boolean(seg.asset && getAssetUrl);
+              const url = seg.asset && getAssetUrl ? getAssetUrl(seg.asset) : '';
+              const isVideo = seg.assetType === 'video';
+              return (
+                <div
+                  key={seg.id}
+                  className="overlay-filmstrip-cell h-full"
+                  style={{ width: `${widthPct}%` }}
+                  title={`${seg.blockLabel} · ${formatOverlayTime(seg.start)} · ${seg.duration.toFixed(1)}s`}
+                >
+                  {hasMedia ? (
+                    isVideo ? (
+                      <video
+                        src={url}
+                        className="pointer-events-none"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img src={url} alt="" className="pointer-events-none" loading="lazy" />
+                    )
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center">
+                      <span className="text-[8px] text-zinc-600 font-mono">{seg.blockLabel}</span>
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 inset-x-0 bg-black/65 px-1 py-0.5">
+                    <p className="text-[7px] font-mono text-zinc-400 truncate">{formatOverlayTime(seg.start)}</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Faixa de overlays */}
+        <div className="relative h-12 border-t border-[var(--dash-border)] bg-[rgba(130,128,253,0.04)]">
+          <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
+            backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 9.5%, rgba(130,128,253,0.2) 10%)',
+          }} />
+          {overlays.map((overlay) => {
+            const start = numericStart(overlay, starts);
+            const duration = Number(overlay.duration) || 4;
+            const left = Math.min(97, (start / totalDuration) * 100);
+            const width = Math.max(3, Math.min(100 - left, (duration / totalDuration) * 100));
+            const isHud = SYSTEM_OVERLAY_TYPES.includes(overlay.type as never);
+            const active = selected?.id === overlay.id;
+            const summary = overlaySummary(overlay);
+            return (
+              <button
+                key={overlay.id}
+                type="button"
+                onClick={() => setSelectedId(overlay.id)}
+                className={`absolute top-1 bottom-1 rounded-md border px-1 flex flex-col justify-center overflow-hidden transition text-left ${
+                  active
+                    ? 'border-[var(--dash-primary-light)] bg-[rgba(130,128,253,0.4)] z-10 shadow-lg'
+                    : isHud
+                      ? 'border-zinc-600 bg-zinc-800/90 text-zinc-400'
+                      : 'border-[rgba(130,128,253,0.45)] bg-[rgba(130,128,253,0.22)] hover:bg-[rgba(130,128,253,0.32)]'
+                }`}
+                style={{ left: `${left}%`, width: `${width}%` }}
+                title={`${OVERLAY_TYPE_LABELS[overlay.type]} · ${summary} · ${formatOverlayTime(start)}`}
+              >
+                <span className="text-[7px] font-bold uppercase tracking-wide text-white/90 truncate leading-tight">
+                  {OVERLAY_TYPE_LABELS[overlay.type]?.split(' ')[0]}
+                </span>
+                <span className="text-[6px] text-zinc-300 truncate leading-tight">{summary}</span>
+                <span className="text-[6px] font-mono text-zinc-500">{formatOverlayTime(start)}</span>
+              </button>
+            );
+          })}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-mono text-[var(--dash-muted)] pointer-events-none">
+            {formatOverlayTime(totalDuration)}
+          </div>
+        </div>
       </div>
+
+      {selected && (
+        <div className="rounded-xl border border-[rgba(130,128,253,0.25)] bg-[rgba(130,128,253,0.06)] px-3 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px]">
+          <span className="font-bold text-[var(--dash-primary-light)]">{OVERLAY_TYPE_LABELS[selected.type]}</span>
+          <span className="text-zinc-300 truncate max-w-[200px]">{overlaySummary(selected)}</span>
+          <span className="text-[var(--dash-muted)] font-mono">
+            {formatOverlayTime(numericStart(selected, starts))} → {selected.duration}s
+          </span>
+          {selected.scene_ref && (
+            <span className="text-zinc-500">cena {String(selected.scene_ref)}</span>
+          )}
+          {selected.props?.position && (
+            <span className="text-zinc-500">
+              {OVERLAY_POSITIONS[selected.type]?.find((p) => p.id === selected.props?.position)?.label
+                || String(selected.props.position)}
+            </span>
+          )}
+          {selected.props?.iconType && (
+            <span className="text-cyan-400/80">
+              Lottie: {LOTTIE_ICON_OPTIONS.find((i) => i.id === selected.props?.iconType)?.label}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -212,234 +314,239 @@ export function OverlayTimelineEditor({
     const variants = OVERLAY_VARIANTS[overlay.type] || [];
     const hasLottie = overlaySupportsLottie(overlay.type);
     const lottieOn = Boolean(props.iconType);
+    const narration = sceneNarrationFor(overlay, visualPrompts);
 
     return (
-      <div className="dash-layer-card space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold text-zinc-200">
-              {OVERLAY_TYPE_LABELS[overlay.type] || overlay.type}
-            </p>
-            <p className="text-[9px] text-[var(--dash-muted)] mt-0.5 truncate max-w-[240px]">
-              {overlaySummary(overlay)}
-            </p>
+      <div className="space-y-4">
+        <OverlayPreview
+          overlay={overlay}
+          aspectRatio={aspectRatio}
+          accentColor={String(props.accentColor || accentColor)}
+          sceneNarration={narration}
+        />
+
+        <div className="dash-layer-card space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-zinc-200">
+                {OVERLAY_TYPE_LABELS[overlay.type] || overlay.type}
+              </p>
+              <p className="text-[9px] text-[var(--dash-muted)] mt-0.5">
+                Editar tempo, posição, conteúdo e design
+              </p>
+            </div>
+            {!isSystem && (
+              <button
+                type="button"
+                onClick={() => removeOverlay(overlay.id)}
+                className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
+                title="Remover overlay"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          {!isSystem && (
-            <button
-              type="button"
-              onClick={() => removeOverlay(overlay.id)}
-              className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
-              title="Remover overlay"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+
+          {isSystem && (
+            <p className="text-[9px] text-amber-300/90 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2">
+              Overlay de sistema (HUD / capítulo). Posição e conteúdo são definidos automaticamente no render.
+            </p>
           )}
-        </div>
 
-        {isSystem && (
-          <p className="text-[9px] text-amber-300/90 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2">
-            Overlay de sistema (HUD / capítulo). Posição e conteúdo são definidos automaticamente no render.
-          </p>
-        )}
-
-        {/* Tempo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <SettingLabel helpTitle="Cena âncora" help="Associa o overlay à cena do roteiro. O início em segundos segue o bloco narrativo." align="start">
-              Cena no roteiro
-            </SettingLabel>
-            <select
-              value={String(overlay.scene_ref || (isSceneId(overlay.start) ? overlay.start : '') || '')}
-              onChange={(e) => anchorToScene(overlay.id, e.target.value)}
-              disabled={isSystem}
-              className="dash-select text-[10px]"
-            >
-              <option value="">— Manual (segundos) —</option>
-              {sceneOptions.map((s) => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <SettingLabel helpTitle="Início" help="Segundo absoluto no vídeo onde o overlay entra." align="start">
-              Início (s)
-            </SettingLabel>
-            <input
-              type="number"
-              min={0}
-              max={totalDuration}
-              step={0.1}
-              disabled={isSystem}
-              value={Number.isFinite(numericStart(overlay, starts)) ? numericStart(overlay, starts) : 0}
-              onChange={(e) => patchOverlay(overlay.id, { start: Number(e.target.value) })}
-              className="dash-input font-mono text-[10px]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <SettingLabel helpTitle="Duração" help="Quanto tempo o overlay permanece visível." align="start">
-              Duração (s)
-            </SettingLabel>
-            <input
-              type="number"
-              min={1}
-              max={30}
-              step={0.5}
-              disabled={isSystem}
-              value={overlay.duration}
-              onChange={(e) => patchOverlay(overlay.id, { duration: Number(e.target.value) })}
-              className="dash-input font-mono text-[10px]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <SettingLabel helpTitle="Tipo" help="Formato visual do informativo." align="start">
-              Tipo de overlay
-            </SettingLabel>
-            <select
-              value={overlay.type}
-              disabled={isSystem}
-              onChange={(e) => patchOverlay(overlay.id, { type: e.target.value })}
-              className="dash-select text-[10px]"
-            >
-              {INFORMATIVE_OVERLAY_TYPES.map((t) => (
-                <option key={t} value={t}>{OVERLAY_TYPE_LABELS[t]}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Posição */}
-        {overlaySupportsPosition(overlay.type) && !isSystem && (
-          <div className="space-y-1.5">
-            <SettingLabel helpTitle="Posição" help="Onde o overlay aparece no quadro 16:9 ou 9:16." align="start">
-              <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> Posição no quadro</span>
-            </SettingLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {positions.map((pos) => (
-                <button
-                  key={pos.id}
-                  type="button"
-                  onClick={() => patchProp(overlay.id, 'position', pos.id)}
-                  className={`dash-layer-tri-btn !flex-none px-2.5 ${
-                    props.position === pos.id ? 'dash-layer-tri-btn-active' : ''
-                  }`}
-                >
-                  {pos.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Design */}
-        {!isSystem && (overlaySupportsVariant(overlay.type) || overlaySupportsTheme(overlay.type)) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {overlaySupportsVariant(overlay.type) && (
-              <div className="space-y-1.5">
-                <SettingLabel helpTitle="Design" help="Variante visual HyperFrames / Remotion." align="start">
-                  <span className="inline-flex items-center gap-1"><Palette className="w-3 h-3" /> Design</span>
-                </SettingLabel>
-                <select
-                  value={String(props.variant || variants[0]?.id || '')}
-                  onChange={(e) => patchProp(overlay.id, 'variant', e.target.value)}
-                  className="dash-select text-[10px]"
-                >
-                  {variants.map((v) => (
-                    <option key={v.id} value={v.id}>{v.label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {overlaySupportsTheme(overlay.type) && (
-              <div className="space-y-1.5">
-                <SettingLabel helpTitle="Tema" help="Paleta e ornamentos do overlay." align="start">
-                  Tema visual
-                </SettingLabel>
-                <select
-                  value={String(props.theme || 'classic')}
-                  onChange={(e) => patchProp(overlay.id, 'theme', e.target.value)}
-                  className="dash-select text-[10px]"
-                >
-                  {OVERLAY_THEMES.map((t) => (
-                    <option key={t.id} value={t.id}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Lottie */}
-        {hasLottie && !isSystem && (
-          <div className="space-y-2 pt-1 border-t border-[var(--dash-border)]">
-            <div className="flex items-center justify-between gap-3">
-              <SettingLabel helpTitle="Ícone Lottie" help="Animação LottieFiles ao lado do texto." align="start">
-                Ícone Lottie
+            <div className="space-y-1.5">
+              <SettingLabel helpTitle="Cena âncora" help="Associa o overlay à cena do roteiro." align="start">
+                Cena no roteiro
               </SettingLabel>
-              <label className="flex items-center gap-2 cursor-pointer text-[10px] text-zinc-300">
-                <input
-                  type="checkbox"
-                  checked={lottieOn}
-                  onChange={(e) => setLottieEnabled(overlay.id, e.target.checked, overlay)}
-                  className="dash-checkbox"
-                />
-                {lottieOn ? 'Ligado' : 'Desligado'}
-              </label>
-            </div>
-            {lottieOn && (
               <select
-                value={String(props.iconType || 'sparkles')}
-                onChange={(e) => patchProp(overlay.id, 'iconType', e.target.value)}
+                value={String(overlay.scene_ref || (isSceneId(overlay.start) ? overlay.start : '') || '')}
+                onChange={(e) => anchorToScene(overlay.id, e.target.value)}
+                disabled={isSystem}
                 className="dash-select text-[10px]"
               >
-                {LOTTIE_ICON_OPTIONS.map((icon) => (
-                  <option key={icon.id} value={icon.id}>{icon.label}</option>
+                <option value="">— Manual (segundos) —</option>
+                {sceneOptions.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
-            )}
+            </div>
+            <div className="space-y-1.5">
+              <SettingLabel helpTitle="Início" help="Segundo absoluto no vídeo." align="start">
+                Início (s)
+              </SettingLabel>
+              <input
+                type="number"
+                min={0}
+                max={totalDuration}
+                step={0.1}
+                disabled={isSystem}
+                value={numericStart(overlay, starts)}
+                onChange={(e) => patchOverlay(overlay.id, { start: Number(e.target.value) })}
+                className="dash-input font-mono text-[10px]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <SettingLabel helpTitle="Duração" help="Tempo visível no vídeo." align="start">
+                Duração (s)
+              </SettingLabel>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                step={0.5}
+                disabled={isSystem}
+                value={overlay.duration}
+                onChange={(e) => patchOverlay(overlay.id, { duration: Number(e.target.value) })}
+                className="dash-input font-mono text-[10px]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <SettingLabel helpTitle="Tipo" help="Formato visual." align="start">
+                Tipo de overlay
+              </SettingLabel>
+              <select
+                value={overlay.type}
+                disabled={isSystem}
+                onChange={(e) => patchOverlay(overlay.id, { type: e.target.value })}
+                className="dash-select text-[10px]"
+              >
+                {INFORMATIVE_OVERLAY_TYPES.map((t) => (
+                  <option key={t} value={t}>{OVERLAY_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        )}
 
-        {/* Conteúdo */}
-        {contentFields.length > 0 && !isSystem && (
-          <div className="space-y-3 pt-1 border-t border-[var(--dash-border)]">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Conteúdo</p>
-            {contentFields.map((field) => (
-              <div key={field.key} className="space-y-1">
-                <label className="text-[10px] text-zinc-400">{field.label}</label>
-                {field.kind === 'textarea' ? (
-                  <textarea
-                    value={String(props[field.key] ?? '')}
-                    onChange={(e) => patchProp(overlay.id, field.key, e.target.value)}
-                    rows={3}
-                    className="dash-input text-[10px] min-h-[72px] resize-y"
-                  />
-                ) : field.kind === 'select' ? (
+          {overlaySupportsPosition(overlay.type) && !isSystem && (
+            <div className="space-y-1.5">
+              <SettingLabel helpTitle="Posição" help="Onde aparece no quadro." align="start">
+                <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> Posição no quadro</span>
+              </SettingLabel>
+              <div className="flex flex-wrap gap-1.5">
+                {positions.map((pos) => (
+                  <button
+                    key={pos.id}
+                    type="button"
+                    onClick={() => patchProp(overlay.id, 'position', pos.id)}
+                    className={`dash-layer-tri-btn !flex-none px-2.5 ${
+                      props.position === pos.id ? 'dash-layer-tri-btn-active' : ''
+                    }`}
+                  >
+                    {pos.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isSystem && (overlaySupportsVariant(overlay.type) || overlaySupportsTheme(overlay.type)) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {overlaySupportsVariant(overlay.type) && (
+                <div className="space-y-1.5">
+                  <SettingLabel helpTitle="Design" help="Variante visual." align="start">
+                    <span className="inline-flex items-center gap-1"><Palette className="w-3 h-3" /> Design</span>
+                  </SettingLabel>
                   <select
-                    value={String(props[field.key] ?? field.options?.[0]?.id ?? '')}
-                    onChange={(e) => patchProp(overlay.id, field.key, e.target.value)}
+                    value={String(props.variant || variants[0]?.id || '')}
+                    onChange={(e) => patchProp(overlay.id, 'variant', e.target.value)}
                     className="dash-select text-[10px]"
                   >
-                    {(field.options || []).map((opt) => (
-                      <option key={opt.id} value={opt.id}>{opt.label}</option>
+                    {variants.map((v) => (
+                      <option key={v.id} value={v.id}>{v.label}</option>
                     ))}
                   </select>
-                ) : (
+                </div>
+              )}
+              {overlaySupportsTheme(overlay.type) && (
+                <div className="space-y-1.5">
+                  <SettingLabel helpTitle="Tema" help="Paleta do overlay." align="start">
+                    Tema visual
+                  </SettingLabel>
+                  <select
+                    value={String(props.theme || 'classic')}
+                    onChange={(e) => patchProp(overlay.id, 'theme', e.target.value)}
+                    className="dash-select text-[10px]"
+                  >
+                    {OVERLAY_THEMES.map((t) => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {hasLottie && !isSystem && (
+            <div className="space-y-2 pt-1 border-t border-[var(--dash-border)]">
+              <div className="flex items-center justify-between gap-3">
+                <SettingLabel helpTitle="Ícone Lottie" help="Animação ao lado do texto." align="start">
+                  Ícone Lottie
+                </SettingLabel>
+                <label className="flex items-center gap-2 cursor-pointer text-[10px] text-zinc-300">
                   <input
-                    type={field.kind === 'number' ? 'number' : 'text'}
-                    value={String(props[field.key] ?? '')}
-                    placeholder={field.placeholder}
-                    onChange={(e) => patchProp(
-                      overlay.id,
-                      field.key,
-                      field.kind === 'number' ? Number(e.target.value) : e.target.value,
-                    )}
-                    className="dash-input text-[10px]"
+                    type="checkbox"
+                    checked={lottieOn}
+                    onChange={(e) => setLottieEnabled(overlay.id, e.target.checked, overlay)}
+                    className="dash-checkbox"
                   />
-                )}
+                  {lottieOn ? 'Ligado' : 'Desligado'}
+                </label>
               </div>
-            ))}
-          </div>
-        )}
+              {lottieOn && (
+                <select
+                  value={String(props.iconType || 'sparkles')}
+                  onChange={(e) => patchProp(overlay.id, 'iconType', e.target.value)}
+                  className="dash-select text-[10px]"
+                >
+                  {LOTTIE_ICON_OPTIONS.map((icon) => (
+                    <option key={icon.id} value={icon.id}>{icon.label}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {contentFields.length > 0 && !isSystem && (
+            <div className="space-y-3 pt-1 border-t border-[var(--dash-border)]">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Conteúdo</p>
+              {contentFields.map((field) => (
+                <div key={field.key} className="space-y-1">
+                  <label className="text-[10px] text-zinc-400">{field.label}</label>
+                  {field.kind === 'textarea' ? (
+                    <textarea
+                      value={String(props[field.key] ?? '')}
+                      onChange={(e) => patchProp(overlay.id, field.key, e.target.value)}
+                      rows={3}
+                      className="dash-input text-[10px] min-h-[72px] resize-y"
+                    />
+                  ) : field.kind === 'select' ? (
+                    <select
+                      value={String(props[field.key] ?? field.options?.[0]?.id ?? '')}
+                      onChange={(e) => patchProp(overlay.id, field.key, e.target.value)}
+                      className="dash-select text-[10px]"
+                    >
+                      {(field.options || []).map((opt) => (
+                        <option key={opt.id} value={opt.id}>{opt.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.kind === 'number' ? 'number' : 'text'}
+                      value={String(props[field.key] ?? '')}
+                      placeholder={field.placeholder}
+                      onChange={(e) => patchProp(
+                        overlay.id,
+                        field.key,
+                        field.kind === 'number' ? Number(e.target.value) : e.target.value,
+                      )}
+                      className="dash-input text-[10px]"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -450,7 +557,6 @@ export function OverlayTimelineEditor({
         <SectionHeader
           title="Overlays informativos (IA)"
           helpId="timeline-overlays"
-          help="Ajuste posição, tempo, conteúdo, design e ícone Lottie de cada overlay gerado pela IA. As mudanças são salvas no storyboard.json."
           size="sm"
           titleClassName="tracking-wider uppercase text-xs"
           icon={<Layers className="w-4 h-4 text-[var(--dash-primary)]" />}
@@ -488,8 +594,7 @@ export function OverlayTimelineEditor({
       {overlays.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--dash-border)] p-8 text-center space-y-3">
           <p className="text-[11px] text-[var(--dash-muted)]">
-            Nenhum overlay planejado ainda. Use <strong className="text-zinc-300">Gerar com IA</strong> para criar
-            informativos (lower thirds, cards, mapas, posts) sincronizados ao roteiro.
+            Nenhum overlay planejado. Gere com IA ou adicione manualmente — o preview dos assets aparece na faixa acima dos blocos.
           </p>
           <button
             type="button"
@@ -504,13 +609,15 @@ export function OverlayTimelineEditor({
       ) : (
         <>
           <div className="space-y-1.5">
-            <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold">Linha do tempo</p>
-            {renderTimelineBar()}
+            <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-1.5">
+              <Film className="w-3 h-3" /> Linha do tempo · assets + overlays
+            </p>
+            {renderFilmstripTimeline()}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-4">
-            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-              <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold sticky top-0 bg-transparent z-[1]">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
+            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+              <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold sticky top-0 z-[1]">
                 Lista ({overlays.length})
               </p>
               {overlays.map((overlay) => {
@@ -536,27 +643,34 @@ export function OverlayTimelineEditor({
                         {formatOverlayTime(start)} · {overlay.duration}s
                       </span>
                     </div>
-                    <p className="text-[9px] text-[var(--dash-muted)] mt-1 truncate">
+                    <p className="text-[9px] text-[var(--dash-muted)] mt-1 line-clamp-2">
                       {overlaySummary(overlay)}
                     </p>
-                    {isHud && (
-                      <span className="inline-block mt-1 text-[7px] uppercase tracking-wide text-zinc-500 border border-zinc-700 rounded px-1.5 py-0.5">
-                        sistema
-                      </span>
-                    )}
-                    {String(propsHasLottie(overlay)) && !isHud && (
-                      <span className="inline-block mt-1 ml-1 text-[7px] uppercase tracking-wide text-cyan-400/80 border border-cyan-500/30 rounded px-1.5 py-0.5">
-                        lottie
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {isHud && (
+                        <span className="text-[7px] uppercase tracking-wide text-zinc-500 border border-zinc-700 rounded px-1.5 py-0.5">
+                          sistema
+                        </span>
+                      )}
+                      {propsHasLottie(overlay) && !isHud && (
+                        <span className="text-[7px] uppercase tracking-wide text-cyan-400/80 border border-cyan-500/30 rounded px-1.5 py-0.5">
+                          lottie
+                        </span>
+                      )}
+                      {overlay.props?.position && (
+                        <span className="text-[7px] text-zinc-500 border border-zinc-800 rounded px-1.5 py-0.5">
+                          {String(overlay.props.position)}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 max-h-[520px] overflow-y-auto">
               {selected ? renderInspector(selected) : (
-                <p className="text-[10px] text-[var(--dash-muted)]">Selecione um overlay na lista.</p>
+                <p className="text-[10px] text-[var(--dash-muted)]">Selecione um overlay na lista ou na faixa.</p>
               )}
             </div>
           </div>
