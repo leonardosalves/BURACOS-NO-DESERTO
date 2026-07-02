@@ -1,5 +1,14 @@
 /** Regras e pós-processamento para roteiros naturais, coerentes e com mensagem clara. */
 
+import { resolveStockSearchQuery } from "./stockSearchQuery.js";
+import {
+  enrichVisualPromptsSpecificity,
+  buildSceneSpecificPrompt,
+  VISUAL_PROMPT_SPECIFICITY_RULES,
+} from "./scenePromptSpecificity.js";
+
+export { VISUAL_PROMPT_SPECIFICITY_RULES } from "./scenePromptSpecificity.js";
+
 export const ROBOTIC_PHRASE_PATTERNS = [
   /neste vídeo vamos/gi,
   /sem mais delongas/gi,
@@ -813,10 +822,132 @@ BLOCOS TOTAIS: ${listicleBlockCount} (intro + ${listicleRank} itens + outro)`;
   return header;
 }
 
+export const SHORTS_MIN_VIDEO_SCENES = 3;
+export const SHORTS_VIDEO_SCENE_TYPE = "vídeo IA (max 10s)";
+
+const MOTION_PROMPT_RE = /\b(motion|moving|drone|aerial|crowd|water|waves|fire|explosion|walking|running|traffic|timelapse|slow motion|camera pan|fly through|flowing|storm|wind|spinning|rotating|collapse|falling|crashing|surge|ripple)\b/i;
+
+export function isVideoSceneType(type = "") {
+  const t = String(type || "").toLowerCase();
+  return t.includes("vídeo") || t.includes("video") || t.includes("mp4");
+}
+
+function adaptPromptForVideoScene(prompt = "") {
+  const p = String(prompt || "").trim();
+  if (!p) return "Cinematic motion, photorealistic, dramatic lighting, no text, max 10 seconds";
+  if (/cinematic motion|max 10/i.test(p)) return p;
+  return `${p.replace(/\.\s*$/, "")}. Cinematic motion, max 10 seconds, no text.`;
+}
+
+function pickEvenlyDistributedIndices(total, count) {
+  if (count <= 0 || total <= 0) return [];
+  if (count >= total) return Array.from({ length: total }, (_, i) => i);
+  if (count === 1) return [0];
+  const indices = [];
+  for (let i = 0; i < count; i++) {
+    indices.push(Math.round((i * (total - 1)) / (count - 1)));
+  }
+  return [...new Set(indices)];
+}
+
+/** Garante pelo menos N cenas de vídeo IA em Shorts (gancho, meio e payoff). */
+export function enforceShortsVideoSceneMix(
+  visualPrompts = [],
+  { format = "LONGO", minVideos = SHORTS_MIN_VIDEO_SCENES } = {},
+) {
+  if (format !== "SHORTS" || !Array.isArray(visualPrompts) || visualPrompts.length === 0) {
+    return visualPrompts;
+  }
+
+  const vps = visualPrompts.map((vp) => ({ ...vp }));
+  const effectiveMin = Math.min(minVideos, vps.length);
+  const currentVideos = vps.filter((vp) => isVideoSceneType(vp.type)).length;
+  if (currentVideos >= effectiveMin) return vps;
+
+  const need = effectiveMin - currentVideos;
+  const preferred = pickEvenlyDistributedIndices(vps.length, effectiveMin)
+    .filter((index) => !isVideoSceneType(vps[index].type));
+
+  const scored = vps
+    .map((vp, index) => ({ index, vp, isVideo: isVideoSceneType(vp.type) }))
+    .filter((entry) => !entry.isVideo)
+    .map((entry) => {
+      let score = 0;
+      const prompt = String(entry.vp.prompt || entry.vp.visual_prompt || "");
+      if (MOTION_PROMPT_RE.test(prompt)) score += 12;
+      if (entry.index === 0) score += 10;
+      if (entry.index === vps.length - 1) score += 6;
+      if (entry.index === Math.floor(vps.length / 2)) score += 4;
+      return { ...entry, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const toConvert = new Set(preferred.slice(0, need));
+  for (const entry of scored) {
+    if (toConvert.size >= need) break;
+    toConvert.add(entry.index);
+  }
+
+  for (const index of toConvert) {
+    const vp = vps[index];
+    const notes = String(vp.editor_notes || "").trim();
+    vps[index] = {
+      ...vp,
+      type: SHORTS_VIDEO_SCENE_TYPE,
+      prompt: adaptPromptForVideoScene(vp.prompt || vp.visual_prompt || ""),
+      editor_notes: notes && /vídeo|video/i.test(notes)
+        ? notes
+        : `${notes || "Ken Burns zoom in"} — vídeo IA para movimento ativo (Shorts)`.trim(),
+    };
+  }
+
+  return vps;
+}
+
+export const CINEMATIC_PROMPT_ENGINEERING_RULES = `
+REGRAS DE PROMPT ENGINEERING CINEMATOGRÁFICO (OBRIGATÓRIO):
+
+1. TRADUÇÃO VISUAL UNIVERSAL (ASSUNTOS INFINITOS):
+   - A narração pode falar sobre QUALQUER assunto (história, filosofia, ciência, finanças, cotidiano, memes, mecânica, psicologia, etc.).
+   - Seu papel é traduzir ideias abstratas em imagens/vídeos CONCRETOS. O que o espectador deve ver fisicamente na tela?
+   - Proibido usar descrições abstratas ou genéricas: "a generic person", "some object", "illustrating the scene", "the exact subject from this scene", "subject".
+   - Sempre identifique o objeto físico central, pessoa, cenário, textura ou conceito visual que representa o texto da narração e descreva-o com máxima precisão física.
+
+2. ESPECIFICIDADE E DETALHAMENTO DO TEMA:
+   - Se a narração cita algo histórico, use a estética visual, arquitetura, vestimentas e texturas exatas daquele período histórico específico.
+   - Se cita biologia, anatomia ou natureza, use termos reais de biomas, espécies, reações biológicas e closes microscópicos/macroscópicos realistas.
+   - Se cita finanças, negócios ou dados, crie cenas com infográficos dinâmicos integrados ao cenário, displays numéricos, salas de decisão ou layouts modernos limpos.
+   - Se cita qualquer outro assunto (espiritualidade, culinária, esportes, etc.), descreva os elementos táteis, as ferramentas reais utilizadas, os ambientes característicos e a iluminação que define a atmosfera do tema.
+
+3. LINGUAGEM CINEMATOGRÁFICA OBRIGATÓRIA:
+   - Sempre especifique: tipo de câmera/ângulo (low angle, tracking shot, aerial drone, macro, isometric), movimento de câmera (slow panning, tilt, steadycam), iluminação (cinematic backlighting, golden hour, moody shadows), profundidade de campo, atmosfera.
+   - Descreva texturas físicas táteis (metal escovado, tijolo rústico, poeira no ar, pele humana detalhada, superfícies brilhantes, etc.).
+   - Estilo de época: film grain, lentes antigas correspondentes, iluminação clássica.
+   - Estilo contemporâneo/futurista: cores nítidas e limpas, contraste balanceado, iluminação volumétrica profissional.
+   - Movimento: Para cenas que sugerem peso ou calma, descreva movimento extremamente lento e deliberado ("slow deliberate motion", "inch by inch").
+
+4. FOCO EM RETENÇÃO E IMPACTO:
+   - Crie imagens com forte apelo estético ("uau" visual), usando cores complementares ou contrastes de luz marcantes.
+   - Mostre o elemento humano (pessoas trabalhando, observando, expressando emoção) sempre que possível para criar conexão psicológica.
+   - Organize a composição da cena de forma limpa para acomodar overlays de texto e legendas (deixando espaço livre no topo, centro ou terço inferior conforme a cena).
+
+5. CONFIGURAÇÃO DE QUALIDADE FINA:
+   - Termine prompts de vídeo com: "photorealistic, highly detailed, 8K".
+   - Termine prompts de imagem com: "photorealistic, 2K resolution, highly detailed".
+6. RACIOCÍNIO INTERNO (faça antes de cada prompt):
+   - Qual é o fato surpreendente deste trecho?
+   - Qual era o mecanismo real usado?
+   - O que uma foto ou filmagem da época mostraria?
+   - Como mostrar escala + detalhe técnico + emoção humana ao mesmo tempo?
+   - Qual ângulo de câmera vai gerar mais impacto?`;
+
 export function buildVisualPromptsRules({ format = "LONGO", isListicle = false, listicleRank = 20 } = {}) {
   const sceneCount = format === "SHORTS"
     ? (isListicle ? `${listicleRank * 2 + 4}-${listicleRank * 3 + 6}` : "5-12")
     : (isListicle ? `${listicleRank * 3}+` : "40-80+");
+  const typeMixRule = format === "SHORTS"
+    ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho, virada e payoff devem ter movimento; distribua vídeos ao longo do Short (não concentre no final). Demais cenas: imagem IA 2k.`
+    : `- 80-90% "imagem IA 2k"; 10-20% "${SHORTS_VIDEO_SCENE_TYPE}" para movimento ativo.`;
 
   return `
 REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizável):
@@ -824,11 +955,16 @@ REGRAS DOS PROMPTS VISUAIS (OBRIGATÓRIO — sem isso o roteiro fica inutilizáv
 - CUBRA 100% DA NARRAÇÃO APROVADA. Cada 1-2 frases = 1 objeto em visual_prompts.
 - Gere ${sceneCount} cenas no mínimo.
 - CADA objeto DEVE ter "narration_text" preenchido com o trecho EXATO falado na cena (copiado da narração aprovada).
-- CADA objeto DEVE ter "prompt" em inglês (photorealistic 2k / cinematic motion).
-- 80-90% "imagem IA 2k"; 10-20% "vídeo IA (max 10s)" para movimento ativo.
+- CADA objeto DEVE ter "prompt" em inglês — hiper-detalhado e cinematográfico (NÃO genérico).
+- O "prompt" deve descrever VISUALMENTE a cena: sujeito ESPECÍFICO + ação + enquadramento + texturas + iluminação. NUNCA use frases vagas como "the exact subject from this scene" ou "subject".
+- Se a cena incluir text_overlay, impact_text ou qualquer texto visível na imagem/vídeo, adicione ao final do prompt: "Any visible text must be in Portuguese (Brazilian)."
+${typeMixRule}
 - Nunca deixe narration_text ou prompt vazios.
+- NÃO inclua "duration" nem "duration_seconds" — os segundos de cada cena são calculados pelo Whisper após a narração (100% da voz, sem estimativa).
 - Inclua stock_query em inglês em cada cena.
-${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}`;
+${isListicle ? `- LISTICLE: text_overlay na primeira cena de cada item (#N — NOME).` : ""}
+${VISUAL_PROMPT_SPECIFICITY_RULES}
+${CINEMATIC_PROMPT_ENGINEERING_RULES}`;
 }
 
 export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = false, listicleRank = 20 } = {}) {
@@ -840,10 +976,9 @@ export function buildVisualPromptsJsonSchema({ blockCount = 5, isListicle = fals
      "block": 1,
      "narration_text": "Trecho EXATO da narração aprovada para esta cena (1-2 frases, NUNCA vazio)",
      "type": "imagem IA 2k" ou "vídeo IA (max 10s)",
-     "duration": "3 a 5 segundos",
-     "prompt": "Prompt cinematográfico completo em inglês (NUNCA vazio)",
+     "prompt": "Prompt CINEMATOGRÁFICO em inglês: sujeito ESPECÍFICO + ação + ângulo de câmera + texturas + iluminação. Se tiver texto visível: 'Any visible text must be in Portuguese (Brazilian).'",
      "editor_notes": "Ken Burns zoom in, dissolve, etc.",
-     "stock_query": "termo curto em inglês"
+     "stock_query": "2-5 palavras em inglês: sujeito específico + ação (ex.: gannet plunge dive)"
    }
 ]`;
 }
@@ -952,12 +1087,22 @@ export function normalizeVisualPromptBlocks(
       ideaTitle,
     });
     if (deterministic.length > 0) {
-      result.visual_prompts = sanitizeVisualPromptDurations(deterministic);
+      result.visual_prompts = sanitizeVisualPromptDurations(
+        enrichVisualPromptsSpecificity(
+          enforceShortsVideoSceneMix(deterministic, { format }),
+          { strategyTitle: ideaTitle },
+        ),
+      );
       return result;
     }
   }
 
-  result.visual_prompts = sanitizeVisualPromptDurations(normalized);
+  result.visual_prompts = sanitizeVisualPromptDurations(
+    enrichVisualPromptsSpecificity(
+      enforceShortsVideoSceneMix(normalized, { format }),
+      { strategyTitle: ideaTitle },
+    ),
+  );
   return result;
 }
 
@@ -978,14 +1123,13 @@ export function buildVisualPromptsFromNarrationPrompt({
         scene: vp.scene,
         block: vp.block,
         type: vp.type || "imagem IA 2k",
-        duration: vp.duration || "5 segundos",
       })),
       null,
       2,
     ).slice(0, 6000)}`
     : "";
 
-  return `Você é diretor de vídeo YouTube. A narração já foi aprovada pelo usuário — NÃO altere palavras da narração nos trechos das cenas.
+  return `Você é um Prompt Engineer especialista em criar prompts visuais hiper-detalhados e cinematográficos para YouTube (curiosidades históricas, engenharia, construções, fatos surpreendentes). A narração já foi aprovada pelo usuário — NÃO altere palavras da narração nos trechos das cenas.
 
 TÍTULO: ${ideaTitle}
 FORMATO: ${format}
@@ -1005,7 +1149,7 @@ TAREFA: Gere visual_prompts cobrindo 100% da narração + technical_config com:
 
 Responda APENAS JSON:
 {
-  "visual_prompts": [ { "scene", "block", "narration_text", "type", "duration", "prompt", "editor_notes", "stock_query" } ],
+  "visual_prompts": [ { "scene", "block", "narration_text", "type", "prompt", "editor_notes", "stock_query" } ],
   "technical_config": {
     "script": "...",
     "block_phrases": [{"block": 1, "phrase": "..."}],
@@ -1028,6 +1172,64 @@ export function mergeVisualPromptsRepair(original = {}, repaired = {}) {
     };
   }
   return merged;
+}
+
+
+/**
+ * Build a focused AI prompt to translate scene narrations into proper English visual prompts.
+ * Used as intermediate fallback - lighter/faster than the full visual_prompts repair prompt.
+ */
+export function buildBatchScenePromptsAiRequest(scenes = [], { ideaTitle = "" } = {}) {
+  const sceneSummary = scenes.map((s) => ({
+    scene: s.scene,
+    narration: String(s.narration_text || "").slice(0, 300),
+    type: s.type || "imagem IA 2k",
+    has_text_overlay: !!(s.text_overlay || s.impact_text),
+  }));
+
+  return `You are an expert Prompt Engineer specialized in creating hyper-detailed, cinematic visual prompts for YouTube documentary videos. The niche/subject of the video can be anything (history, science, space, nature, technology, finance, philosophy, pop culture, life hacks, mystery, and infinite other subjects).
+
+TITLE: ${ideaTitle}
+
+Your goal is to translate abstract narration blocks into CONCRETE visual descriptions. What should the viewer physically see?
+
+For EACH scene below, generate:
+1. "prompt": A photorealistic visual description in ENGLISH following these MANDATORY rules:
+   - NEVER be generic. NO placeholders ("a person", "an object", "illustrating this", "the subject").
+   - Extract the core physical reality of the narration: describe specific items, models, settings, climates, periods, or entities related to it.
+   - Specify: camera type/angle (low angle, tracking, aerial drone, macro, isometric), camera movement, lighting (golden hour, volumetric light, volumetric shadows, neon glow), textures (worn brick, rust, dust under light beams, skin pores, reflective glass), and atmosphere.
+   - Esthetic: match the epoch or theme. Use film grain & classic lenses for old/period scenes. Use sharp, high-contrast, clean looks for modern, scientific, or tech scenes.
+   - Slow down motion for heavy things: use "slow deliberate motion", "inch by inch" or "snail pace" to depict scale/weight.
+   - Image: end with "photorealistic, 2K resolution, highly detailed".
+   - Video: end with "photorealistic, highly detailed, 8K".
+   - If has_text_overlay is true, append: "Any visible text must be in Portuguese (Brazilian)."
+2. "stock_query": 2-5 words in English for stock footage search (e.g. "quantum computing server room", "1930s style vintage phone", "deep forest sunlight").
+3. "editor_notes": Editing instructions (timing, transitions, text layout spacing).
+
+SCENES:
+${JSON.stringify(sceneSummary, null, 2)}
+
+Respond ONLY with a JSON array:
+[{ "scene": "1.1", "prompt": "...", "stock_query": "...", "editor_notes": "..." }]`;
+}
+
+/** Apply batch AI prompt responses back to scenes array. */
+export function applyBatchScenePromptsAiResponse(scenes = [], aiScenes = []) {
+  if (!Array.isArray(aiScenes) || aiScenes.length === 0) return scenes;
+  const map = new Map();
+  for (const ai of aiScenes) {
+    if (ai?.scene && ai?.prompt) map.set(String(ai.scene), ai);
+  }
+  return scenes.map((s) => {
+    const ai = map.get(String(s.scene));
+    if (!ai) return s;
+    return {
+      ...s,
+      prompt: String(ai.prompt || s.prompt || "").trim(),
+      stock_query: String(ai.stock_query || s.stock_query || "").trim(),
+      editor_notes: String(ai.editor_notes || s.editor_notes || "").trim(),
+    };
+  });
 }
 
 export function buildNarrationOnlyPrompt({
@@ -1376,17 +1578,26 @@ export function buildDeterministicVisualPromptsFromNarration(
   const text = String(approvedNarration || "").trim();
   if (!text) return [];
   const sentences = text.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter((s) => s.length > 8);
+  const resolveSceneStockQuery = (scene) => resolveStockSearchQuery(scene, { strategyTitle: ideaTitle });
   if (!sentences.length) {
-    return sanitizeVisualPromptDurations([{
+    const narration_text = text.slice(0, 280);
+    const sceneDraft = {
       scene: "1.1",
       block: 1,
-      narration_text: text.slice(0, 280),
+      narration_text,
       type: "imagem IA 2k",
-      duration: "5 segundos",
-      prompt: `Photorealistic 2k cinematic documentary scene related to ${ideaTitle || "the topic"}. Dramatic lighting, sharp detail, no text.`,
       editor_notes: "Ken Burns zoom in",
-      stock_query: ideaTitle || "documentary",
-    }]);
+    };
+    const prompt = buildSceneSpecificPrompt(sceneDraft);
+    const singleScene = [{
+      ...sceneDraft,
+      prompt,
+      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }, { strategyTitle: ideaTitle }),
+    }];
+    return enrichVisualPromptsSpecificity(
+      enforceShortsVideoSceneMix(singleScene, { format }),
+      { strategyTitle: ideaTitle },
+    );
   }
   const targetScenes = format === "SHORTS" ? Math.min(12, Math.max(5, sentences.length)) : Math.min(50, Math.max(20, sentences.length));
   const perScene = Math.max(1, Math.ceil(sentences.length / targetScenes));
@@ -1395,15 +1606,18 @@ export function buildDeterministicVisualPromptsFromNarration(
   let sceneInBlock = 1;
   for (let i = 0; i < sentences.length; i += perScene) {
     const chunk = sentences.slice(i, i + perScene).join(" ");
-    vps.push({
+    const sceneDraft = {
       scene: `${block}.${sceneInBlock}`,
       block,
       narration_text: chunk,
       type: "imagem IA 2k",
-      duration: "4 segundos",
-      prompt: `Photorealistic 2k cinematic scene illustrating: ${chunk.slice(0, 160)}. Documentary style, dramatic lighting, no text.`,
       editor_notes: "Ken Burns zoom in",
-      stock_query: ideaTitle || "documentary scene",
+    };
+    const prompt = buildSceneSpecificPrompt(sceneDraft);
+    vps.push({
+      ...sceneDraft,
+      prompt,
+      stock_query: resolveSceneStockQuery({ ...sceneDraft, prompt }, { strategyTitle: ideaTitle }),
     });
     sceneInBlock += 1;
     if (sceneInBlock > Math.max(2, Math.ceil(blockCount / 4))) {
@@ -1411,7 +1625,10 @@ export function buildDeterministicVisualPromptsFromNarration(
       sceneInBlock = 1;
     }
   }
-  return sanitizeVisualPromptDurations(vps);
+  return enrichVisualPromptsSpecificity(
+    enforceShortsVideoSceneMix(vps, { format }),
+    { strategyTitle: ideaTitle },
+  );
 }
 
 export function buildNarrationHumanizeRepairPrompt({
