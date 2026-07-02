@@ -876,6 +876,7 @@ export function bootstrapTimelineSlotsFromWhisper({
   wordTranscripts = [],
   visualPrompts = [],
   blockPhrases = [],
+  flatTranscriptWords = [],
 } = {}) {
   if (!Array.isArray(wordTranscripts) || wordTranscripts.length === 0) {
     return { ...timelineAssets };
@@ -920,7 +921,33 @@ export function bootstrapTimelineSlotsFromWhisper({
         if (prev.type) entry.type = prev.type;
       }
 
-      if (seg) {
+      const flatWords = flatTranscriptWords;
+      const blockStart = Number(segments[0]?.start_time);
+      const blockEnd = segments.length
+        ? Math.max(...segments.map((s) => Number(s.end_time)))
+        : NaN;
+      const searchAfter = idx > 0 && blockAssets[idx - 1]?.speech_end != null
+        ? Number(blockAssets[idx - 1].speech_end)
+        : blockStart;
+
+      const speechMatch = flatWords?.length && narrationText
+        ? resolveSceneSpeechMatch({
+          narrationText,
+          flatTranscriptWords: flatWords,
+          transcriptSegment: seg,
+          searchAfter: Number.isFinite(searchAfter) ? searchAfter : 0,
+          searchBefore: Number.isFinite(blockEnd) ? blockEnd : Infinity,
+        })
+        : null;
+
+      if (speechMatch) {
+        const speechDur = Math.max(0.5, speechMatch.end - speechMatch.start);
+        entry.audio_start = parseFloat(speechMatch.start.toFixed(3));
+        entry.speech_end = parseFloat(speechMatch.end.toFixed(3));
+        entry.fixed = parseFloat(speechDur.toFixed(1));
+        entry.synced_to_speech = true;
+        entry.duration_from_whisper = true;
+      } else if (seg) {
         const segStart = Number(seg.start_time);
         const segEnd = Number(seg.end_time);
         if (Number.isFinite(segStart) && Number.isFinite(segEnd) && segEnd > segStart) {
@@ -952,34 +979,67 @@ export function bootstrapTimelineSlotsFromWhisper({
   return out;
 }
 
-/** Atualiza duração de cada cena no storyboard com os tempos reais do Whisper. */
-export function applyWhisperDurationsToStoryboard(storyboard = {}, wordTranscripts = []) {
+/** Atualiza duração de cada cena no storyboard — 100% da voz, frase a frase (sem estimativa). */
+export function applyWhisperDurationsToStoryboard(
+  storyboard = {},
+  wordTranscripts = [],
+  { flatTranscriptWords = null, blockTimings = null } = {},
+) {
   const prompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
   if (!prompts.length || !wordTranscripts.length) return storyboard;
 
-  const scenesByBlock = new Map();
-  prompts.forEach((vp, idx) => {
-    const block = Number(vp?.block || 1);
-    if (!scenesByBlock.has(block)) scenesByBlock.set(block, []);
-    scenesByBlock.get(block).push({ vp, idx });
-  });
+  const flat = flatTranscriptWords || flattenWordTranscripts(wordTranscripts);
+  if (!flat.length) return storyboard;
+
+  const timings = blockTimings || rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
+  const starts = timings?.starts || [];
+  const durations = timings?.durations || [];
+
+  const scenesByBlock = groupVisualPromptsByBlock(prompts);
+  const indexByVp = new Map();
+  prompts.forEach((vp, idx) => indexByVp.set(vp, idx));
 
   const nextPrompts = [...prompts];
-  for (const [blockNum, entries] of scenesByBlock) {
-    const segments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
-    entries.forEach((entry, localIdx) => {
-      const seg = segments[localIdx];
-      if (!seg) return;
-      const segStart = Number(seg.start_time);
-      const segEnd = Number(seg.end_time);
-      if (!Number.isFinite(segStart) || !Number.isFinite(segEnd) || segEnd <= segStart) return;
-      const dur = parseFloat(Math.max(0.5, segEnd - segStart).toFixed(1));
-      nextPrompts[entry.idx] = {
-        ...entry.vp,
+  for (const [blockNum, scenes] of scenesByBlock) {
+    const transcriptSegments = getTranscriptSegmentsForBlock(wordTranscripts, blockNum);
+    const blockStart = Number(transcriptSegments[0]?.start_time ?? starts[blockNum - 1]);
+    const segmentBlockEnd = transcriptSegments.length
+      ? Math.max(...transcriptSegments.map((s) => Number(s.end_time)))
+      : NaN;
+    const timingBlockEnd = Number.isFinite(blockStart) && Number.isFinite(Number(durations[blockNum - 1]))
+      ? blockStart + Number(durations[blockNum - 1])
+      : NaN;
+    const blockEnd = Number.isFinite(segmentBlockEnd)
+      ? segmentBlockEnd
+      : timingBlockEnd;
+
+    if (!Number.isFinite(blockStart) || !Number.isFinite(blockEnd) || blockEnd <= blockStart) continue;
+
+    let searchAfter = blockStart;
+    scenes.forEach((vp, localIdx) => {
+      const idx = indexByVp.get(vp);
+      if (idx == null) return;
+
+      const narrationText = String(vp?.narration_text || vp?.narration_excerpt || "").trim();
+      const matched = resolveSceneSpeechMatch({
+        narrationText,
+        flatTranscriptWords: flat,
+        transcriptSegment: transcriptSegments[localIdx],
+        searchAfter,
+        searchBefore: blockEnd,
+      });
+      if (!matched) return;
+
+      const dur = parseFloat(Math.max(0.5, matched.end - matched.start).toFixed(1));
+      nextPrompts[idx] = {
+        ...vp,
         duration: `${dur} segundos`,
         duration_seconds: dur,
         duration_from_whisper: true,
+        speech_start: parseFloat(matched.start.toFixed(3)),
+        speech_end: parseFloat(matched.end.toFixed(3)),
       };
+      searchAfter = matched.end;
     });
   }
 
@@ -1004,6 +1064,7 @@ export function syncProjectTimelineAfterWhisper({
     wordTranscripts,
     visualPrompts,
     blockPhrases,
+    flatTranscriptWords,
   });
 
   const timelineAssetsSynced = realignTimelineAssetsToSpeech({

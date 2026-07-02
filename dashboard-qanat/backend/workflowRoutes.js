@@ -283,7 +283,10 @@ export function registerWorkflowRoutes(app, deps) {
       fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
     }
     if (fs.existsSync(storyboardPath)) {
-      const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts);
+      const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts, {
+        flatTranscriptWords,
+        blockTimings: synced.blockTimings,
+      });
       fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
     }
     log("[Pipeline] Timeline com segundos da voz (Whisper). Mídia: manual ou auto-map no Workflow.");
