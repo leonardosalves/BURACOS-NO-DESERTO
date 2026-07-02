@@ -29,6 +29,12 @@ import {
   synthesizeVoiceboxNarration,
 } from "./voiceboxTts.js";
 import {
+  loadGptSovitsConfig,
+  synthesizeGptSovitsNarration,
+  applyGptSovitsOptionOverrides,
+  GPT_SOVITS_DEFAULT_VOICE,
+} from "./gptSovitsTts.js";
+import {
   loadStockUsageRegistry,
   registerStockUsage,
 } from "./mediaUsageRegistry.js";
@@ -458,13 +464,15 @@ export async function generateNarrationTts(projDir, {
   const engine = String(platform || "kokoro").toLowerCase();
   const engineLabel = engine === "voicebox"
     ? "Voicebox"
-    : (engine === "fish" || engine === "fish-speech" || engine === "fish_speech")
-      ? "Fish Audio"
-      : engine === "kokoro"
-        ? "Kokoro"
-        : engine === "edge"
-          ? "Edge TTS"
-          : "TTS";
+    : (engine === "gptsovits" || engine === "gpt_sovits" || engine === "gpt-sovits")
+      ? "GPT-SoVITS"
+      : (engine === "fish" || engine === "fish-speech" || engine === "fish_speech")
+        ? "Fish Audio"
+        : engine === "kokoro"
+          ? "Kokoro"
+          : engine === "edge"
+            ? "Edge TTS"
+            : "TTS";
   onProgress("prepare", `${engineLabel}: preparando narração…`, 4);
   const dest = path.join(projDir, NARRATION_FILENAME);
 
@@ -598,6 +606,35 @@ export async function generateNarrationTts(projDir, {
     };
   }
 
+  if (engine === "gptsovits" || engine === "gpt_sovits" || engine === "gpt-sovits") {
+    const gsConfig = applyGptSovitsOptionOverrides(
+      loadGptSovitsConfig({ workspaceDir, projectDir: projDir }),
+      ttsOptions.gptSovits || ttsOptions.gpt_sovits || {},
+    );
+    const gsVoice = voice || gsConfig.gpt_sovits?.default_voice_id || GPT_SOVITS_DEFAULT_VOICE;
+    const textForTts = plain;
+
+    const result = await synthesizeGptSovitsNarration(textForTts, {
+      voice: gsVoice,
+      outputPath: dest,
+      config: gsConfig,
+      onLog,
+      onProgress: (phase, label, percent) => onProgress(phase, label, percent),
+      options: ttsOptions.gptSovits || ttsOptions.gpt_sovits || {},
+    });
+    invalidateNarrationTimings();
+
+    return {
+      success: true,
+      file: NARRATION_FILENAME,
+      chars: result.chars,
+      voice: result.voiceLabel || gsVoice,
+      engine: "gptsovits",
+      format: result.format,
+      message: `Narração GPT-SoVITS gerada (${result.voiceLabel || gsVoice}, clone few-shot). Rode sync Whisper para timings.`,
+    };
+  }
+
   if (engine === "fish" || engine === "fish-speech" || engine === "fish_speech") {
     const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
     const fishCfg = fishConfig.fish_speech || {};
@@ -646,7 +683,7 @@ export async function generateNarrationTts(projDir, {
   }
 
   const textForTts = convertCinematicMarkersForTts(tagged, engine);
-  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, voicebox, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`);
+  throw new Error(`Engine TTS "${engine}" não suportado. Use kokoro, voicebox, gptsovits, chatterbox, fish ou edge. Texto: ${textForTts.slice(0, 80)}...`);
 }
 
 export function applyListiclePreset(preset = {}, { format = "SHORTS" } = {}) {

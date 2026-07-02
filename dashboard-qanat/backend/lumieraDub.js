@@ -11,6 +11,7 @@ import { buildPythonSpawnEnv, getFfmpegStatus } from "./pythonEnv.js";
 import { runPythonScript } from "./workflowTools.js";
 import { fetchFishSpeechAudio, loadFishSpeechConfig, applyFishOptionOverrides } from "./fishSpeechTts.js";
 import { loadVoiceboxConfig, synthesizeVoiceboxNarration } from "./voiceboxTts.js";
+import { loadGptSovitsConfig, synthesizeGptSovitsNarration } from "./gptSovitsTts.js";
 import { synthesizeKokoroNarration, KOKORO_DEFAULT_VOICE } from "./kokoroTts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -262,6 +263,16 @@ async function synthesizeDubBlock(text, {
       voice,
       outputPath: tmpMp3,
       config: vbConfig,
+      onLog,
+    });
+    await runFfmpeg(["-y", "-i", tmpMp3, "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", rawOut], onLog);
+  } else if (engine === "gptsovits" || engine === "gpt_sovits") {
+    const gsConfig = loadGptSovitsConfig({ workspaceDir, projectDir: projDir });
+    const tmpMp3 = path.join(workDir, `block_${index}_gs.mp3`);
+    await synthesizeGptSovitsNarration(plain, {
+      voice,
+      outputPath: tmpMp3,
+      config: gsConfig,
       onLog,
     });
     await runFfmpeg(["-y", "-i", tmpMp3, "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", rawOut], onLog);

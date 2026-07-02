@@ -50,6 +50,17 @@ const VOICEBOX_ENGINES = [
   { id: 'luxtts', label: 'LuxTTS (EN)' },
 ];
 
+const GPT_SOVITS_TEXT_LANGS = [
+  { id: 'en', label: 'English (cross-lingual PT-BR)' },
+  { id: 'zh', label: '中文 Chinese' },
+  { id: 'ja', label: '日本語 Japanese' },
+  { id: 'ko', label: '한국어 Korean' },
+  { id: 'yue', label: '粤语 Cantonese' },
+];
+
+const GPT_SOVITS_PREVIEW_FALLBACK =
+  'Esta é uma amostra da voz clonada com GPT-SoVITS. Tom natural em português brasileiro.';
+
 type Props = {
   getProjectUrl: (path: string) => string;
   toast: (msg: string) => void;
@@ -67,7 +78,7 @@ export function TtsVoiceStudioPanel({
   onUpdated,
   onTaggedScriptChange,
 }: Props) {
-  const [studioEngine, setStudioEngine] = useState<'fish' | 'voicebox'>('fish');
+  const [studioEngine, setStudioEngine] = useState<'fish' | 'voicebox' | 'gptsovits'>('fish');
   const [engines, setEngines] = useState<TtsEngineOption[]>([]);
   const [loadingEngines, setLoadingEngines] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -95,9 +106,27 @@ export function TtsVoiceStudioPanel({
   const [vbLanguage, setVbLanguage] = useState('pt');
   const [vbUseTags, setVbUseTags] = useState(false);
 
+  const [gsVoice, setGsVoice] = useState('');
+  const [gsTextLang, setGsTextLang] = useState('en');
+  const [gsSpeed, setGsSpeed] = useState(1);
+  const [gsTemperature, setGsTemperature] = useState(1);
+  const [gsTopP, setGsTopP] = useState(1);
+  const [gsRepPenalty, setGsRepPenalty] = useState(1.35);
+  const [gsPreviewing, setGsPreviewing] = useState(false);
+  const [gsPreviewPlaying, setGsPreviewPlaying] = useState(false);
+  const [gsPreviewSample, setGsPreviewSample] = useState('');
+
+  const gsPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const gsPreviewUrlRef = useRef<string | null>(null);
+
   const fishEngine = engines.find((e) => e.id === 'fish');
   const voiceboxEngine = engines.find((e) => e.id === 'voicebox');
-  const activeEngine = studioEngine === 'fish' ? fishEngine : voiceboxEngine;
+  const gptsovitsEngine = engines.find((e) => e.id === 'gptsovits');
+  const activeEngine = studioEngine === 'fish'
+    ? fishEngine
+    : studioEngine === 'voicebox'
+      ? voiceboxEngine
+      : gptsovitsEngine;
 
   const pickValidVoice = (
     current: string,
@@ -130,6 +159,14 @@ export function TtsVoiceStudioPanel({
         vb?.defaultVoice && vb.defaultVoice !== '__configure__'
           ? vb.defaultVoice
           : (vb?.voices?.[0]?.id || ''),
+      ));
+      const gs = list.find((e) => e.id === 'gptsovits');
+      setGsVoice((current) => pickValidVoice(
+        current,
+        gs?.voices || [],
+        gs?.defaultVoice && gs.defaultVoice !== '__configure__'
+          ? gs.defaultVoice
+          : (gs?.voices?.find((v) => v.id !== '__configure__')?.id || ''),
       ));
     } catch {
       toastRef.current('Erro ao carregar motores TTS.');
@@ -271,6 +308,85 @@ export function TtsVoiceStudioPanel({
     toast('Tags Fish geradas a partir do roteiro.');
   };
 
+  const gsPreviewText = useMemo(() => {
+    const plain = narrativeScript.replace(/\[[^\]]+\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (plain.length >= 20) {
+      const sentence = plain.match(/[^.!?]+[.!?]?/)?.[0]?.trim() || plain;
+      return sentence.slice(0, 180).trim();
+    }
+    return GPT_SOVITS_PREVIEW_FALLBACK;
+  }, [narrativeScript]);
+
+  const stopGsPreview = useCallback(() => {
+    if (gsPreviewAudioRef.current) {
+      gsPreviewAudioRef.current.pause();
+      gsPreviewAudioRef.current.currentTime = 0;
+    }
+    setGsPreviewPlaying(false);
+  }, []);
+
+  const revokeGsPreviewUrl = useCallback(() => {
+    if (gsPreviewUrlRef.current) {
+      URL.revokeObjectURL(gsPreviewUrlRef.current);
+      gsPreviewUrlRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => {
+    stopGsPreview();
+    revokeGsPreviewUrl();
+  }, [stopGsPreview, revokeGsPreviewUrl]);
+
+  const handleGsPreview = async () => {
+    if (!gptsovitsEngine?.available) {
+      toast('GPT-SoVITS offline — rode .\\scripts\\start-gpt-sovits.ps1');
+      return;
+    }
+    if (!gsVoice || gsVoice === '__configure__') {
+      toast('Configure gpt_sovits.voices no config_qanat.json');
+      return;
+    }
+    setGsPreviewing(true);
+    stopGsPreview();
+    revokeGsPreviewUrl();
+    try {
+      const res = await fetch(getProjectUrl('/api/tts/gpt-sovits-preview'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voice: gsVoice,
+          narrativeScript,
+          sampleText: gsPreviewText,
+          gptSovits: {
+            textLang: gsTextLang,
+            speedFactor: gsSpeed,
+            temperature: gsTemperature,
+            topP: gsTopP,
+            repetitionPenalty: gsRepPenalty,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(String(err.error || 'Falha na amostra GPT-SoVITS'));
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      gsPreviewUrlRef.current = url;
+      const sampleHeader = res.headers.get('X-Gpt-Sovits-Sample-Text');
+      setGsPreviewSample(sampleHeader ? decodeURIComponent(sampleHeader) : gsPreviewText);
+      const audio = new Audio(url);
+      gsPreviewAudioRef.current = audio;
+      audio.onended = () => setGsPreviewPlaying(false);
+      await audio.play();
+      setGsPreviewPlaying(true);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao gerar amostra GPT-SoVITS.');
+    } finally {
+      setGsPreviewing(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!narrativeScript.trim() || narrativeScript.trim().length < 40) {
       toast('Texto da narração muito curto — edite o storyboard acima.');
@@ -280,6 +396,10 @@ export function TtsVoiceStudioPanel({
       toast('Voicebox offline ou sem perfil — abra o app e crie um perfil de voz.');
       return;
     }
+    if (studioEngine === 'gptsovits' && (!gptsovitsEngine?.available || !gsVoice || gsVoice === '__configure__')) {
+      toast('GPT-SoVITS offline ou sem voz — configure gpt_sovits.voices no config.');
+      return;
+    }
     if (studioEngine === 'fish' && !fishEngine?.available) {
       toast('Fish Audio indisponível — verifique API key ou servidor local.');
       return;
@@ -287,13 +407,21 @@ export function TtsVoiceStudioPanel({
 
     setGenerating(true);
     const progressJobId = createProgressJobId();
-    const progressTitle = studioEngine === 'fish' ? 'Fish Audio TTS' : 'Voicebox TTS';
+    const progressTitle = studioEngine === 'fish'
+      ? 'Fish Audio TTS'
+      : studioEngine === 'gptsovits'
+        ? 'GPT-SoVITS TTS'
+        : 'Voicebox TTS';
     startAiJobProgress(progressJobId, progressTitle);
 
     try {
       const body: Record<string, unknown> = {
         engine: studioEngine,
-        voice: studioEngine === 'fish' ? fishVoice : vbVoice,
+        voice: studioEngine === 'fish'
+          ? fishVoice
+          : studioEngine === 'gptsovits'
+            ? gsVoice
+            : vbVoice,
         progress_job_id: progressJobId,
         ttsOptions: {
           useTaggedScript: studioEngine === 'fish' ? fishUseTags : vbUseTags,
@@ -310,6 +438,13 @@ export function TtsVoiceStudioPanel({
           voicebox: studioEngine === 'voicebox' ? {
             engine: vbEngine,
             language: vbLanguage,
+          } : undefined,
+          gptSovits: studioEngine === 'gptsovits' ? {
+            textLang: gsTextLang,
+            speedFactor: gsSpeed,
+            temperature: gsTemperature,
+            topP: gsTopP,
+            repetitionPenalty: gsRepPenalty,
           } : undefined,
         },
       };
@@ -349,7 +484,7 @@ export function TtsVoiceStudioPanel({
         helpId="tts-voice-studio"
         icon={<Volume2 className="w-4 h-4 text-violet-400" />}
         titleClassName="text-sm text-violet-200"
-        subtitle="Gere narracao_mestra_premium.mp3 com Fish Audio (cloud + tags) ou Voicebox (clone local)."
+        subtitle="Gere narracao_mestra_premium.mp3 com Fish Audio, GPT-SoVITS (clone few-shot) ou Voicebox (clone local)."
       />
 
       <div className="flex flex-wrap gap-2">
@@ -363,6 +498,17 @@ export function TtsVoiceStudioPanel({
           }`}
         >
           Fish Audio
+        </button>
+        <button
+          type="button"
+          onClick={() => setStudioEngine('gptsovits')}
+          className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition ${
+            studioEngine === 'gptsovits'
+              ? 'border-fuchsia-500/50 bg-fuchsia-500/15 text-fuchsia-200'
+              : 'border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          GPT-SoVITS
         </button>
         <button
           type="button"
@@ -529,6 +675,115 @@ export function TtsVoiceStudioPanel({
         </div>
       )}
 
+      {studioEngine === 'gptsovits' && (
+        <div className="space-y-3 rounded-lg border border-fuchsia-500/20 bg-zinc-950/50 p-3">
+          <div className="space-y-1">
+            <span className="text-[9px] text-zinc-500 uppercase font-bold">Voz clone (config)</span>
+            <div className="flex gap-2">
+              <select
+                value={gsVoice}
+                onChange={(e) => setGsVoice(e.target.value)}
+                className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] text-zinc-200"
+              >
+                {(gptsovitsEngine?.voices || []).map((v) => (
+                  <option key={v.id} value={v.id} disabled={v.id === '__configure__'}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={gsPreviewing || !gptsovitsEngine?.available}
+                onClick={() => { void handleGsPreview(); }}
+                className="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-2 rounded-lg border border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-200 hover:bg-fuchsia-500/20 transition disabled:opacity-40"
+              >
+                {gsPreviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                Ouvir
+              </button>
+              {gsPreviewPlaying && (
+                <button
+                  type="button"
+                  onClick={stopGsPreview}
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400"
+                >
+                  <Square className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            <p className="text-[8px] text-zinc-600 leading-relaxed">
+              Amostra: {gsPreviewSample || gsPreviewText}
+            </p>
+          </div>
+
+          {!gptsovitsEngine?.available && (
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-2.5 space-y-1.5 text-[9px] text-amber-200/90">
+              <p className="font-bold">GPT-SoVITS offline</p>
+              <p className="text-amber-200/70 leading-relaxed">
+                Instale o repo e rode <code className="text-amber-100">.\scripts\start-gpt-sovits.ps1</code>
+                {' '}(API v2 na porta 9880). Configure vozes em config_qanat.json → gpt_sovits.voices.
+              </p>
+              <a
+                href="https://github.com/RVC-Boss/GPT-SoVITS"
+                target="_blank"
+                rel="noreferrer"
+                className="text-fuchsia-300 inline-flex items-center gap-1 hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Repositório GPT-SoVITS
+              </a>
+            </div>
+          )}
+
+          {gsVoice === '__configure__' && gptsovitsEngine?.available && (
+            <p className="text-[10px] text-amber-300/90">
+              Adicione vozes em config_qanat.json com ref_audio_path (caminho no PC onde roda o GPT-SoVITS).
+            </p>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-1 sm:col-span-2">
+              <span className="text-[9px] text-zinc-500">Idioma do texto (text_lang)</span>
+              <select
+                value={gsTextLang}
+                onChange={(e) => setGsTextLang(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200"
+              >
+                {GPT_SOVITS_TEXT_LANGS.map((l) => (
+                  <option key={l.id} value={l.id}>{l.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-[9px] text-zinc-500">Velocidade ({gsSpeed}x)</span>
+              <input type="range" min={0.75} max={1.35} step={0.05} value={gsSpeed}
+                onChange={(e) => setGsSpeed(Number(e.target.value))}
+                className="w-full accent-fuchsia-500" />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[9px] text-zinc-500">Temperatura ({gsTemperature})</span>
+              <input type="range" min={0.3} max={1.5} step={0.05} value={gsTemperature}
+                onChange={(e) => setGsTemperature(Number(e.target.value))}
+                className="w-full accent-fuchsia-500" />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[9px] text-zinc-500">Top P ({gsTopP})</span>
+              <input type="range" min={0.3} max={1} step={0.05} value={gsTopP}
+                onChange={(e) => setGsTopP(Number(e.target.value))}
+                className="w-full accent-fuchsia-500" />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[9px] text-zinc-500">Repetição ({gsRepPenalty})</span>
+              <input type="range" min={1} max={2} step={0.05} value={gsRepPenalty}
+                onChange={(e) => setGsRepPenalty(Number(e.target.value))}
+                className="w-full accent-fuchsia-500" />
+            </label>
+          </div>
+          <p className="text-[8px] text-zinc-600">
+            Few-shot clone: 5s de amostra bastam. PT-BR costuma funcionar com text_lang=en (cross-lingual).
+          </p>
+        </div>
+      )}
+
       {studioEngine === 'voicebox' && (
         <div className="space-y-3 rounded-lg border border-emerald-500/20 bg-zinc-950/50 p-3">
           <label className="space-y-1 block">
@@ -636,7 +891,13 @@ export function TtsVoiceStudioPanel({
           ? (ttsProgress?.active
             ? `${ttsProgress.percent}% — ${ttsProgress.label}`
             : 'Gerando narração...')
-          : `Gerar MP3 com ${studioEngine === 'fish' ? 'Fish Audio' : 'Voicebox'}`}
+          : `Gerar MP3 com ${
+            studioEngine === 'fish'
+              ? 'Fish Audio'
+              : studioEngine === 'gptsovits'
+                ? 'GPT-SoVITS'
+                : 'Voicebox'
+          }`}
       </button>
 
       <p className="text-[8px] text-zinc-600 flex items-start gap-1">
