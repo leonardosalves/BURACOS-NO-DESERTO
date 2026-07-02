@@ -1,4 +1,4 @@
-/** Repara UTF-8 lido como Latin-1 + U+FFFD (espelha backend/textEncoding.js). */
+/** Repara UTF-8 lido como Latin-1 + U+FFFD em overlays (espelha backend/textEncoding.js). */
 
 const REPLACEMENT_CHAR = "\uFFFD";
 
@@ -64,9 +64,7 @@ function repairReplacementCharInPortuguese(text: string) {
 }
 
 export function repairMojibake(text: string): string {
-  if (!text || (!text.includes("Ã") && !text.includes("Â") && !text.includes(REPLACEMENT_CHAR))) {
-    return text;
-  }
+  if (!text) return text;
   let out = text;
 
   for (let pass = 0; pass < 4; pass += 1) {
@@ -92,15 +90,37 @@ export function repairMojibake(text: string): string {
   return out;
 }
 
-export function repairMojibakeDeep<T>(value: T): T {
-  if (typeof value === "string") return repairMojibake(value) as T;
-  if (Array.isArray(value)) return value.map(repairMojibakeDeep) as T;
-  if (value && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(value)) {
-      out[key] = repairMojibakeDeep(val);
+const OVERLAY_TEXT_KEYS = new Set([
+  "title",
+  "subtitle",
+  "text",
+  "label",
+  "suffix",
+  "description",
+  "source",
+  "location",
+]);
+
+export function repairOverlayPropsEncoding<T extends Record<string, unknown>>(props: T): T {
+  if (!props || typeof props !== "object") return props;
+  const out = { ...props } as T & Record<string, unknown>;
+
+  for (const [key, val] of Object.entries(out)) {
+    if (typeof val === "string" && OVERLAY_TEXT_KEYS.has(key)) {
+      out[key] = repairMojibake(val);
+    } else if (key === "events" && Array.isArray(val)) {
+      out[key] = val.map((ev: Record<string, unknown>) => ({
+        ...ev,
+        year: typeof ev?.year === "string" ? repairMojibake(ev.year) : ev?.year,
+        description: typeof ev?.description === "string" ? repairMojibake(ev.description) : ev?.description,
+      }));
+    } else if (key === "items" && Array.isArray(val)) {
+      out[key] = val.map((it: Record<string, unknown>) => ({
+        ...it,
+        label: typeof it?.label === "string" ? repairMojibake(it.label) : it?.label,
+        displayValue: typeof it?.displayValue === "string" ? repairMojibake(it.displayValue) : it?.displayValue,
+      }));
     }
-    return out as T;
   }
-  return value;
+  return out as T;
 }
