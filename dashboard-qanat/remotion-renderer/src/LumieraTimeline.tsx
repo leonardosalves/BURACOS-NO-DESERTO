@@ -227,8 +227,8 @@ export type LumieraTimelineProps = {
   transparent?: boolean;
   /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
   captionStyle?: "shorts-viral" | "documentary";
-  /** HyperFrames caption mode (Fase 1 + 2) */
-  captionMode?: "caption-highlight" | "caption-kinetic-slam" | "caption-pill-karaoke" | "caption-neon-glow" | "caption-weight-shift" | "caption-gradient-fill" | "caption-glitch-rgb" | "caption-matrix-decode" | "caption-clip-wipe" | "caption-particle-burst";
+  /** HyperFrames caption mode (catálogo completo 17/17) */
+  captionMode?: "caption-highlight" | "caption-kinetic-slam" | "caption-pill-karaoke" | "caption-neon-glow" | "caption-weight-shift" | "caption-gradient-fill" | "caption-glitch-rgb" | "caption-matrix-decode" | "caption-clip-wipe" | "caption-particle-burst" | "caption-neon-accent" | "caption-emoji-pop" | "caption-editorial-emphasis" | "caption-parallax-layers" | "caption-texture" | "caption-blend-difference" | "morph-text";
   captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal" | string;
   designPreset?: string | null;
   grainOverlay?: boolean;
@@ -1140,7 +1140,14 @@ type CaptionModeId =
   | "caption-glitch-rgb"
   | "caption-matrix-decode"
   | "caption-clip-wipe"
-  | "caption-particle-burst";
+  | "caption-particle-burst"
+  | "caption-neon-accent"
+  | "caption-emoji-pop"
+  | "caption-editorial-emphasis"
+  | "caption-parallax-layers"
+  | "caption-texture"
+  | "caption-blend-difference"
+  | "morph-text";
 
 const HF_CAPTION_MODES = new Set<CaptionModeId>([
   "caption-highlight",
@@ -1153,7 +1160,16 @@ const HF_CAPTION_MODES = new Set<CaptionModeId>([
   "caption-matrix-decode",
   "caption-clip-wipe",
   "caption-particle-burst",
+  "caption-neon-accent",
+  "caption-emoji-pop",
+  "caption-editorial-emphasis",
+  "caption-parallax-layers",
+  "caption-texture",
+  "caption-blend-difference",
+  "morph-text",
 ]);
+
+const EMOJI_POP_POOL = ["✨", "🔥", "💡", "⚡", "🎯", "💥"];
 
 const MATRIX_SCRAMBLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&";
 
@@ -1205,7 +1221,9 @@ function resolveCaptionMode(
 }
 
 function isWordByWordCaptionMode(mode: CaptionModeId): boolean {
-  return mode !== "caption-pill-karaoke" && mode !== "caption-weight-shift";
+  return mode !== "caption-pill-karaoke"
+    && mode !== "caption-weight-shift"
+    && mode !== "caption-editorial-emphasis";
 }
 
 const CaptionLayer: React.FC<{
@@ -1247,6 +1265,13 @@ const CaptionLayer: React.FC<{
   const isMatrix = mode === "caption-matrix-decode";
   const isWipe = mode === "caption-clip-wipe";
   const isBurst = mode === "caption-particle-burst";
+  const isNeonAccent = mode === "caption-neon-accent";
+  const isEmojiPop = mode === "caption-emoji-pop";
+  const isEditorial = mode === "caption-editorial-emphasis";
+  const isParallax = mode === "caption-parallax-layers";
+  const isTexture = mode === "caption-texture";
+  const isBlendDiff = mode === "caption-blend-difference";
+  const isMorph = mode === "morph-text";
   const viralStatic = isHighlight && captionEffect === "viral-static";
   const viralPulse = isHighlight && (captionBgmPulse || captionEffect === "viral-pulse") && !viralStatic;
   const viralPop = isHighlight && !viralStatic;
@@ -1552,20 +1577,44 @@ const CaptionLayer: React.FC<{
           const slamOffset = isSlam && active
             ? (1 - slamScale) * slamDir
             : 0;
-          const baseFont = isVertical
+          const morphBlur = isMorph && active
+            ? interpolate(wordFrame, [0, 10], [10, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+            : 0;
+          const morphScale = isMorph && active
+            ? interpolate(wordFrame, [0, 12], [1.25, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+            : 1;
+          const neonAccentHue = (frame * 4 + index * 40) % 360;
+          const neonAccentColor = `hsl(${neonAccentHue}, 95%, 62%)`;
+          const wiggleX = isNeonAccent && active ? Math.sin((frame + index * 5) / 5) * 4 : 0;
+          const wiggleY = isNeonAccent && active ? Math.cos((frame + index * 3) / 6) * 3 : 0;
+          const textureShift = (frame * 2) % 100;
+          const emojiPopScale = isEmojiPop && active
+            ? spring({ fps, frame: wordFrame, config: { damping: 10, stiffness: 200, mass: 0.45 } })
+            : 0;
+          const emojiGlyph = EMOJI_POP_POOL[index % EMOJI_POP_POOL.length];
+
+          let baseFont = isVertical
             ? (isSlam ? 88 : isViralShorts ? 64 : isWeight ? 52 : 58)
             : (isSlam ? 72 : isViralShorts ? 44 : isWeight ? 34 : 38);
+          if (isEditorial && active) baseFont *= 1.35;
+          if (isEditorial && !active) baseFont *= 0.82;
+          if (isParallax && !active) baseFont *= 0.78;
 
           let color = "#FFFFFF";
-          if (isHighlight && active) color = "#0A0A0A";
+          if (isBlendDiff) color = "#FFFFFF";
+          else if (isHighlight && active) color = "#0A0A0A";
           else if (isGlitch && active) color = "#E2E8F0";
           else if (isMatrix && active && matrixProgress < 1) color = "#4ADE80";
+          else if (isNeonAccent && active) color = neonAccentColor;
           else if (isNeon && active) color = "#22D3EE";
           else if (active) color = accentColor;
 
-          const gradientText = isGradient && active
+          const gradientText = (isGradient || isTexture) && active
             ? {
-                backgroundImage: `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                backgroundImage: isTexture
+                  ? `linear-gradient(${textureShift}deg, #F97316, #DC2626, #78350F, #FBBF24, #F97316)`
+                  : `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                backgroundSize: isTexture ? "200% 200%" : undefined,
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -1573,18 +1622,26 @@ const CaptionLayer: React.FC<{
               }
             : {};
 
+          const fontFamily = isEditorial && active
+            ? "'Cinzel', 'Playfair Display', Georgia, serif"
+            : isMatrix && active && matrixProgress < 1
+              ? "'Courier New', Courier, monospace"
+              : "'Montserrat', 'Inter', Arial, sans-serif";
+
           return (
             <span
               key={`${word.startMs}-${index}`}
               style={{
                 position: "relative",
-                display: "inline-block",
+                display: "inline-flex",
+                flexDirection: isEmojiPop ? "column" : "row",
+                alignItems: "center",
                 color,
-                fontFamily: isMatrix && active && matrixProgress < 1
-                  ? "'Courier New', Courier, monospace"
-                  : "'Montserrat', 'Inter', Arial, sans-serif",
+                fontFamily,
                 fontSize: baseFont,
-                fontWeight: isWeight ? (active ? 900 : 300) : 900,
+                fontWeight: isWeight ? (active ? 900 : 300) : isEditorial && !active ? 500 : 900,
+                mixBlendMode: isBlendDiff ? "difference" : undefined,
+                filter: isMorph && active ? `blur(${morphBlur}px)` : undefined,
                 lineHeight: 1.1,
                 letterSpacing: isViralShorts || isSlam ? "0.02em" : "0.05em",
                 textTransform: "uppercase",
@@ -1603,6 +1660,8 @@ const CaptionLayer: React.FC<{
                     : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
                   : isGlitch && active
                     ? `${glitchShift - 3}px 0 #FF4D6D, ${glitchShift + 3}px 0 #22D3EE, 0 0 10px rgba(255,255,255,0.35)`
+                    : isNeonAccent && active
+                    ? `0 0 14px ${neonAccentColor}, 0 0 26px #F472B6`
                     : isNeon && active
                       ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
                       : isMatrix && active && matrixProgress < 1
@@ -1613,13 +1672,35 @@ const CaptionLayer: React.FC<{
                 transform: active
                   ? isSlam
                     ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
-                    : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
-                  : "scale(1.0)",
-                transition: isViralShorts || isSlam || isWipe || isMatrix ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
-                opacity: active ? 1 : (isWeight ? 0.65 : isViralShorts ? 0.92 : 0.75),
+                    : isMorph
+                      ? `scale(${morphScale})`
+                      : isNeonAccent
+                        ? `translate(${wiggleX}px, ${wiggleY}px) scale(1.06)`
+                        : isParallax
+                          ? "scale(1.06) translateY(-4px)"
+                          : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
+                  : isParallax
+                    ? "scale(0.78) translateY(6px)"
+                    : "scale(1.0)",
+                transition: isViralShorts || isSlam || isWipe || isMatrix || isMorph || isNeonAccent ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                opacity: active ? 1 : (isWeight || isParallax ? 0.6 : isViralShorts ? 0.92 : 0.75),
+                zIndex: isParallax && active ? 2 : isParallax ? 1 : undefined,
                 ...gradientText,
               }}
             >
+              {isEmojiPop && active && (
+                <span
+                  style={{
+                    fontSize: isVertical ? 42 : 32,
+                    lineHeight: 1,
+                    transform: `scale(${0.6 + emojiPopScale * 0.5})`,
+                    marginBottom: isVertical ? 6 : 4,
+                    filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
+                  }}
+                >
+                  {emojiGlyph}
+                </span>
+              )}
               {displayText}
               {isBurst && active && burstFade > 0 && BURST_PARTICLES.map((p, pi) => (
                 <span

@@ -55,6 +55,13 @@ export function CaptionPreview({
   const isMatrix = mode === 'caption-matrix-decode';
   const isWipe = mode === 'caption-clip-wipe';
   const isBurst = mode === 'caption-particle-burst';
+  const isNeonAccent = mode === 'caption-neon-accent';
+  const isEmojiPop = mode === 'caption-emoji-pop';
+  const isEditorial = mode === 'caption-editorial-emphasis';
+  const isParallax = mode === 'caption-parallax-layers';
+  const isTexture = mode === 'caption-texture';
+  const isBlendDiff = mode === 'caption-blend-difference';
+  const isMorph = mode === 'morph-text';
   const words = isShort ? SHORT_WORDS : LONG_WORDS;
   const activeIndex = tick % words.length;
   const visibleWords = isSlam ? [words[activeIndex]] : words;
@@ -75,6 +82,9 @@ export function CaptionPreview({
 
   const pulse = isHighlight && bgmPulse;
   const glitchShift = (subTick % 4) - 2;
+  const neonHue = (subTick * 18) % 360;
+  const morphBlur = isMorph ? Math.max(0, 6 - (subTick % 8)) : 0;
+  const EMOJIS = ['✨', '🔥', '💡'];
 
   return (
     <div
@@ -129,27 +139,42 @@ export function CaptionPreview({
                 }
               : {};
 
+            const textureStyle = isTexture && active
+              ? {
+                  background: `linear-gradient(${subTick * 20}deg, #F97316, #DC2626, #FBBF24, #78350F)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }
+              : {};
+
             return (
               <span
                 key={`${word}-${realIndex}`}
-                className={`relative font-black uppercase tracking-wide transition-all duration-200 ${
-                  isSlam ? 'text-2xl sm:text-3xl' : isShort ? 'text-lg sm:text-xl' : isWeight && !active ? 'text-sm font-light' : 'text-base'
+                className={`relative font-black uppercase tracking-wide transition-all duration-200 flex flex-col items-center ${
+                  isSlam ? 'text-2xl sm:text-3xl' : isShort ? 'text-lg sm:text-xl' : isWeight && !active ? 'text-sm font-light' : isEditorial && active ? 'text-xl sm:text-2xl' : 'text-base'
                 } ${pulse && highlightActive ? 'caption-preview-pulse' : ''}`}
                 style={{
-                  transform,
-                  fontWeight: isWeight ? (active ? 900 : 300) : 900,
-                  fontFamily: isMatrix && active && matrixProgress < 1 ? 'monospace' : undefined,
-                  color: highlightActive
-                    ? '#0A0A0A'
-                    : isGlitch && active
-                      ? '#E2E8F0'
-                      : isNeon && active
-                        ? '#22D3EE'
-                        : isGradient && active
-                          ? 'transparent'
-                          : active
-                            ? accentColor
-                            : '#FFFFFF',
+                  transform: isParallax && !active ? 'scale(0.82) translateY(4px)' : isParallax && active ? 'scale(1.05)' : transform,
+                  fontWeight: isWeight ? (active ? 900 : 300) : isEditorial && !active ? 500 : 900,
+                  fontFamily: isEditorial && active ? 'Georgia, serif' : isMatrix && active && matrixProgress < 1 ? 'monospace' : undefined,
+                  mixBlendMode: isBlendDiff ? 'difference' : undefined,
+                  filter: isMorph && active ? `blur(${morphBlur}px)` : undefined,
+                  color: isBlendDiff
+                    ? '#FFFFFF'
+                    : highlightActive
+                      ? '#0A0A0A'
+                      : isGlitch && active
+                        ? '#E2E8F0'
+                        : isNeonAccent && active
+                          ? `hsl(${neonHue}, 95%, 62%)`
+                          : isNeon && active
+                            ? '#22D3EE'
+                            : isGradient && active
+                              ? 'transparent'
+                              : active
+                                ? accentColor
+                                : '#FFFFFF',
                   background: highlightActive
                     ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
                     : 'transparent',
@@ -168,8 +193,14 @@ export function CaptionPreview({
                         : '0 2px 6px rgba(0,0,0,0.65)',
                   boxShadow: pulse && highlightActive ? `0 0 18px ${accentColor}55` : undefined,
                   ...gradientStyle,
+                  ...textureStyle,
                 }}
               >
+                {isEmojiPop && active && (
+                  <span className="text-xl leading-none mb-0.5" style={{ transform: 'scale(1.15)' }}>
+                    {EMOJIS[realIndex % EMOJIS.length]}
+                  </span>
+                )}
                 {displayWord}
                 {isBurst && active && burstFade > 0 && PARTICLE_OFFSETS.map((p, pi) => (
                   <span
@@ -195,7 +226,7 @@ export function CaptionPreview({
       </div>
 
       <div className="absolute top-2 left-2 text-[8px] font-bold uppercase tracking-widest text-zinc-500 bg-black/40 px-2 py-0.5 rounded">
-        {isShort ? '9:16' : '16:9'} · {mode.replace('caption-', '')}
+        {isShort ? '9:16' : '16:9'} · {mode.replace(/^caption-/, '')}
       </div>
     </div>
   );
