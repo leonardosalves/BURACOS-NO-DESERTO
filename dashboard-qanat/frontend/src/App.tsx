@@ -9230,7 +9230,7 @@ export default function App() {
               </div>
               </div>
 
-              <BrandSettingsPanel variant="render" {...brandPanelProps} />
+              <BrandSettingsPanel {...brandPanelProps} />
 
               {config && !status?.has_narration && (
                 <div className="glass-panel px-3 py-2 rounded-lg border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-2">
@@ -12848,7 +12848,7 @@ export default function App() {
 
             <DashminPageLayout
               title="Configurações"
-              subtitle="IA, APIs, render, visual, produção, marca e integrações do estúdio."
+              subtitle="IA, APIs, render global, visual, produção e integrações do estúdio."
               breadcrumb={['Dashboard', 'Configurações']}
               icon={<Settings className="w-5 h-5" />}
             >
@@ -13464,15 +13464,6 @@ export default function App() {
                     }
                   }}
                 />
-              )}
-
-              {settingsSection === 'marca' && (
-                <div className="space-y-3">
-                  <p className="text-[10px] text-zinc-500 px-1">
-                    Dica: na aba <button type="button" onClick={() => setActiveTab('status')} className="text-gold-400 hover:text-gold-300 font-semibold underline-offset-2 hover:underline">Render</button>, as mesmas opções ficam logo abaixo dos botões de compilação.
-                  </p>
-                  <BrandSettingsPanel variant="settings" {...brandPanelProps} />
-                </div>
               )}
 
               {settingsSection === 'integracoes' && (
