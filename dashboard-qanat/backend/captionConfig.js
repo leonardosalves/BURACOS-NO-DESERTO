@@ -1,49 +1,113 @@
 /**
- * Resolve estilo/efeito de legenda por formato (Short 9:16 vs Longo 16:9).
+ * HyperFrames caption modes — Fase 1 (portados para Remotion).
  */
 
-export function resolveCaptionStyleForFormat(config = {}, format = "9:16") {
-  const isShort = format === "9:16";
-  const legacy = config.caption_style;
-  if (isShort) {
-    const raw = config.caption_style_short || legacy;
-    if (raw === "documentary") return "documentary";
-    if (raw === "shorts-viral") return "shorts-viral";
-    return "shorts-viral";
-  }
-  const raw = config.caption_style_long || legacy;
-  if (raw === "shorts-viral") return "shorts-viral";
-  if (raw === "documentary") return "documentary";
-  return "documentary";
+export const CAPTION_MODE_IDS = [
+  "caption-highlight",
+  "caption-kinetic-slam",
+  "caption-pill-karaoke",
+  "caption-neon-glow",
+  "caption-weight-shift",
+  "caption-gradient-fill",
+];
+
+const LEGACY_SHORT_MODE = {
+  "viral-pop": "caption-highlight",
+  "viral-pulse": "caption-highlight",
+  "viral-static": "caption-highlight",
+  "shorts-viral": "caption-highlight",
+  documentary: "caption-pill-karaoke",
+};
+
+const LEGACY_LONG_MODE = {
+  "doc-pill": "caption-pill-karaoke",
+  "doc-glow": "caption-neon-glow",
+  "doc-minimal": "caption-weight-shift",
+  documentary: "caption-pill-karaoke",
+  "shorts-viral": "caption-highlight",
+};
+
+export function isCaptionModeId(raw) {
+  return CAPTION_MODE_IDS.includes(raw);
 }
 
-export function resolveCaptionEffectForFormat(config = {}, format = "9:16") {
-  const isShort = format === "9:16";
-  if (isShort) {
-    const raw = config.caption_effect_short;
-    if (raw === "viral-pulse" || raw === "viral-static" || raw === "viral-pop") return raw;
-    if (config.shorts_caption_bgm_pulse === true) return "viral-pulse";
-    if (config.shorts_caption_bgm_pulse === false) return "viral-static";
-    return "viral-pop";
-  }
-  const raw = config.caption_effect_long;
-  if (raw === "doc-glow" || raw === "doc-minimal" || raw === "doc-pill") return raw;
-  return "doc-pill";
+export function isWordByWordMode(mode) {
+  return mode !== "caption-pill-karaoke" && mode !== "caption-weight-shift";
+}
+
+export function resolveCaptionChunkStyle(mode) {
+  return isWordByWordMode(mode) ? "shorts-viral" : "documentary";
+}
+
+function migrateLegacyShortMode(style, effect, legacyCaption, bgmPulse) {
+  if (isCaptionModeId(effect)) return effect;
+  if (isCaptionModeId(style)) return style;
+  if (effect && LEGACY_SHORT_MODE[effect]) return LEGACY_SHORT_MODE[effect];
+  if (style && LEGACY_SHORT_MODE[style]) return LEGACY_SHORT_MODE[style];
+  if (legacyCaption === "documentary") return "caption-pill-karaoke";
+  return "caption-highlight";
+}
+
+function migrateLegacyLongMode(style, effect, legacyCaption) {
+  if (isCaptionModeId(effect)) return effect;
+  if (isCaptionModeId(style)) return style;
+  if (effect && LEGACY_LONG_MODE[effect]) return LEGACY_LONG_MODE[effect];
+  if (style && LEGACY_LONG_MODE[style]) return LEGACY_LONG_MODE[style];
+  if (legacyCaption === "shorts-viral") return "caption-highlight";
+  return "caption-pill-karaoke";
+}
+
+export function resolveShortCaptionMode(config = {}) {
+  if (isCaptionModeId(config.caption_mode_short)) return config.caption_mode_short;
+  return migrateLegacyShortMode(
+    config.caption_style_short || config.caption_style,
+    config.caption_effect_short,
+    config.caption_style,
+    config.shorts_caption_bgm_pulse,
+  );
+}
+
+export function resolveLongCaptionMode(config = {}) {
+  if (isCaptionModeId(config.caption_mode_long)) return config.caption_mode_long;
+  return migrateLegacyLongMode(
+    config.caption_style_long || config.caption_style,
+    config.caption_effect_long,
+    config.caption_style,
+  );
+}
+
+export function resolveCaptionModeForFormat(config = {}, format = "9:16") {
+  return format === "9:16"
+    ? resolveShortCaptionMode(config)
+    : resolveLongCaptionMode(config);
 }
 
 export function resolveShortsCaptionBgmPulse(config = {}, format = "9:16") {
   if (format !== "9:16") return false;
-  const effect = resolveCaptionEffectForFormat(config, format);
-  if (effect === "viral-pulse") return true;
-  if (effect === "viral-static") return false;
+  const mode = resolveShortCaptionMode(config);
+  if (mode !== "caption-highlight") return false;
+  if (config.caption_effect_short === "viral-static") return false;
+  if (config.caption_effect_short === "viral-pulse") return true;
   if (config.shorts_caption_bgm_pulse === false) return false;
   return config.shorts_caption_bgm_pulse !== false;
 }
 
+/** @deprecated — use resolveCaptionModeForFormat */
+export function resolveCaptionStyleForFormat(config = {}, format = "9:16") {
+  return resolveCaptionChunkStyle(resolveCaptionModeForFormat(config, format));
+}
+
+/** @deprecated */
+export function resolveCaptionEffectForFormat(config = {}, format = "9:16") {
+  return resolveCaptionModeForFormat(config, format);
+}
+
 export function resolveCaptionRenderSettings(config = {}, format = "9:16") {
+  const captionMode = resolveCaptionModeForFormat(config, format);
   return {
-    captionStyle: resolveCaptionStyleForFormat(config, format),
-    captionEffect: resolveCaptionEffectForFormat(config, format),
+    captionMode,
+    captionStyle: resolveCaptionChunkStyle(captionMode),
+    captionEffect: captionMode,
     shortsCaptionBgmPulse: resolveShortsCaptionBgmPulse(config, format),
   };
 }

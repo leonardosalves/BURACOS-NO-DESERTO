@@ -227,7 +227,9 @@ export type LumieraTimelineProps = {
   transparent?: boolean;
   /** Caption rendering style — shorts-viral for 9:16, documentary for 16:9 */
   captionStyle?: "shorts-viral" | "documentary";
-  captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal";
+  /** HyperFrames caption mode (Fase 1) */
+  captionMode?: "caption-highlight" | "caption-kinetic-slam" | "caption-pill-karaoke" | "caption-neon-glow" | "caption-weight-shift" | "caption-gradient-fill";
+  captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal" | string;
   designPreset?: string | null;
   grainOverlay?: boolean;
   vignette?: boolean;
@@ -298,7 +300,9 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
   captionStyle: "shorts-viral",
 
-  captionEffect: "viral-pop",
+  captionMode: "caption-highlight",
+
+  captionEffect: "caption-highlight",
 
   designPreset: null,
 
@@ -1126,15 +1130,61 @@ interface WordChunk {
 
 
 
+type CaptionModeId =
+  | "caption-highlight"
+  | "caption-kinetic-slam"
+  | "caption-pill-karaoke"
+  | "caption-neon-glow"
+  | "caption-weight-shift"
+  | "caption-gradient-fill";
+
+const HF_CAPTION_MODES = new Set<CaptionModeId>([
+  "caption-highlight",
+  "caption-kinetic-slam",
+  "caption-pill-karaoke",
+  "caption-neon-glow",
+  "caption-weight-shift",
+  "caption-gradient-fill",
+]);
+
+function resolveCaptionMode(
+  captionMode?: string,
+  captionEffect?: string,
+  captionStyle: "shorts-viral" | "documentary" = "documentary",
+): CaptionModeId {
+  if (captionMode && HF_CAPTION_MODES.has(captionMode as CaptionModeId)) {
+    return captionMode as CaptionModeId;
+  }
+  if (captionEffect && HF_CAPTION_MODES.has(captionEffect as CaptionModeId)) {
+    return captionEffect as CaptionModeId;
+  }
+  const legacyMap: Record<string, CaptionModeId> = {
+    "viral-pop": "caption-highlight",
+    "viral-pulse": "caption-highlight",
+    "viral-static": "caption-highlight",
+    "doc-pill": "caption-pill-karaoke",
+    "doc-glow": "caption-neon-glow",
+    "doc-minimal": "caption-weight-shift",
+  };
+  if (captionEffect && legacyMap[captionEffect]) return legacyMap[captionEffect];
+  return captionStyle === "shorts-viral" ? "caption-highlight" : "caption-pill-karaoke";
+}
+
+function isWordByWordCaptionMode(mode: CaptionModeId): boolean {
+  return mode !== "caption-pill-karaoke" && mode !== "caption-weight-shift";
+}
+
 const CaptionLayer: React.FC<{
   captions: Caption[];
   captionStyle?: "shorts-viral" | "documentary";
-  captionEffect?: "viral-pop" | "viral-pulse" | "viral-static" | "doc-pill" | "doc-glow" | "doc-minimal";
+  captionMode?: CaptionModeId;
+  captionEffect?: string;
   captionBgmPulse?: boolean;
   accentColor?: string;
 }> = ({
   captions,
   captionStyle = "documentary",
+  captionMode,
   captionEffect,
   captionBgmPulse = false,
   accentColor = "#D4AF37",
@@ -1151,18 +1201,18 @@ const CaptionLayer: React.FC<{
 
 
   const currentMs = (frame / fps) * 1000;
-  const isViralShorts = captionStyle === "shorts-viral";
-  const resolvedEffect = captionEffect
-    || (isViralShorts
-      ? (captionBgmPulse ? "viral-pulse" : "viral-pop")
-      : "doc-pill");
-  const showDocPill = !isViralShorts && resolvedEffect === "doc-pill";
-  const docGlow = !isViralShorts && resolvedEffect === "doc-glow";
-  const docMinimal = !isViralShorts && resolvedEffect === "doc-minimal";
-  const viralStatic = isViralShorts && resolvedEffect === "viral-static";
-  const viralPulse = isViralShorts && (resolvedEffect === "viral-pulse" || (captionBgmPulse && resolvedEffect !== "viral-static"));
-  const viralPop = isViralShorts && !viralStatic && (resolvedEffect === "viral-pop" || !captionEffect);
-  const maxWordsPerChunk = isViralShorts ? 1 : 2;
+  const mode = resolveCaptionMode(captionMode, captionEffect, captionStyle);
+  const isViralShorts = isWordByWordCaptionMode(mode);
+  const isSlam = mode === "caption-kinetic-slam";
+  const isPill = mode === "caption-pill-karaoke";
+  const isNeon = mode === "caption-neon-glow";
+  const isWeight = mode === "caption-weight-shift";
+  const isGradient = mode === "caption-gradient-fill";
+  const isHighlight = mode === "caption-highlight";
+  const viralStatic = isHighlight && captionEffect === "viral-static";
+  const viralPulse = isHighlight && (captionBgmPulse || captionEffect === "viral-pulse") && !viralStatic;
+  const viralPop = isHighlight && !viralStatic;
+  const maxWordsPerChunk = isWordByWordCaptionMode(mode) ? 1 : 2;
   const pauseThresholdMs = isViralShorts ? 400 : 600;
   const maxChunkDurationMs = isViralShorts ? 1800 : 2200;
 
@@ -1340,7 +1390,7 @@ const CaptionLayer: React.FC<{
 
 
 
-  }, [captions]);
+  }, [captions, maxWordsPerChunk, pauseThresholdMs, maxChunkDurationMs]);
 
 
 
@@ -1384,14 +1434,22 @@ const CaptionLayer: React.FC<{
 
 
 
+  const wordsToRender = isSlam
+    ? activeChunk.words.filter((word) => currentMs >= word.startMs && currentMs <= word.endMs)
+    : activeChunk.words;
+
+  if (isSlam && wordsToRender.length === 0) return null;
+
   return (
     <AbsoluteFill
       style={{
-        justifyContent: "flex-end",
+        justifyContent: isSlam ? "center" : "flex-end",
         alignItems: "center",
-        padding: isVertical
-          ? (isViralShorts ? "0 48px 220px" : "0 72px 240px")
-          : "0 180px 70px",
+        padding: isSlam
+          ? (isVertical ? "0 40px" : "0 120px")
+          : isVertical
+            ? (isViralShorts ? "0 48px 220px" : "0 72px 240px")
+            : "0 180px 70px",
         pointerEvents: "none",
         zIndex: 90,
       }}
@@ -1404,22 +1462,25 @@ const CaptionLayer: React.FC<{
           alignItems: "center",
           columnGap: isViralShorts ? 14 : (isVertical ? 22 : 16),
           rowGap: isViralShorts ? 8 : (isVertical ? 12 : 8),
-          maxWidth: isVertical ? (isViralShorts ? 900 : 800) : 1000,
-          background: showDocPill ? "rgba(10, 10, 15, 0.75)" : "transparent",
-          backdropFilter: showDocPill ? "blur(12px)" : "none",
-          border: showDocPill ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
-          padding: isViralShorts
-            ? "0"
-            : (showDocPill ? (isVertical ? "20px 40px" : "14px 28px") : "0"),
-          borderRadius: showDocPill ? "99px" : 0,
-          boxShadow: showDocPill ? "0 16px 40px rgba(0, 0, 0, 0.75)" : "none",
+          maxWidth: isVertical ? (isSlam ? 920 : (isViralShorts ? 900 : 800)) : 1000,
+          background: isPill ? "rgba(10, 10, 15, 0.75)" : "transparent",
+          backdropFilter: isPill ? "blur(12px)" : "none",
+          border: isPill ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
+          padding: isPill
+            ? (isVertical ? "20px 40px" : "14px 28px")
+            : "0",
+          borderRadius: isPill ? "99px" : 0,
+          boxShadow: isPill ? "0 16px 40px rgba(0, 0, 0, 0.75)" : "none",
         }}
       >
-        {activeChunk.words.map((word, index) => {
+        {wordsToRender.map((word, index) => {
           const active = currentMs >= word.startMs && currentMs <= word.endMs;
           const wordFrame = Math.max(0, Math.round(((currentMs - word.startMs) / 1000) * fps));
-          const popScale = viralPop && active
+          const popScale = (viralPop || isGradient) && active
             ? spring({ fps, frame: wordFrame, config: { damping: 14, stiffness: 220, mass: 0.5 } })
+            : 1;
+          const slamScale = isSlam && active
+            ? spring({ fps, frame: wordFrame, config: { damping: 12, stiffness: 180, mass: 0.8 } })
             : 1;
           const bgmBeat = viralPulse && active
             ? 1 + 0.1 * Math.sin((frame / fps) * Math.PI * 4)
@@ -1427,44 +1488,64 @@ const CaptionLayer: React.FC<{
           const pulseGlow = viralPulse && active
             ? `0 0 20px ${accentColor}66, 0 0 40px ${accentColor}33`
             : undefined;
+          const slamDir = index % 2 === 0 ? -48 : 48;
+          const slamOffset = isSlam && active
+            ? (1 - slamScale) * slamDir
+            : 0;
+          const baseFont = isVertical
+            ? (isSlam ? 88 : isViralShorts ? 64 : isWeight ? 52 : 58)
+            : (isSlam ? 72 : isViralShorts ? 44 : isWeight ? 34 : 38);
+
+          let color = "#FFFFFF";
+          if (isHighlight && active) color = "#0A0A0A";
+          else if (isNeon && active) color = "#22D3EE";
+          else if (active) color = accentColor;
+
+          const gradientText = isGradient && active
+            ? {
+                backgroundImage: `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                color: "transparent",
+              }
+            : {};
+
           return (
             <span
               key={`${word.startMs}-${index}`}
               style={{
                 display: "inline-block",
-                color: isViralShorts
-                  ? (active ? "#0A0A0A" : "#FFFFFF")
-                  : (active ? accentColor : "#FFFFFF"),
+                color,
                 fontFamily: "'Montserrat', 'Inter', Arial, sans-serif",
-                fontSize: isVertical
-                  ? (isViralShorts ? 64 : (docMinimal ? 48 : 58))
-                  : (isViralShorts ? 44 : (docMinimal ? 30 : 38)),
-                fontWeight: 900,
+                fontSize: baseFont,
+                fontWeight: isWeight ? (active ? 900 : 300) : 900,
                 lineHeight: 1.1,
-                letterSpacing: isViralShorts ? "0.02em" : "0.05em",
+                letterSpacing: isViralShorts || isSlam ? "0.02em" : "0.05em",
                 textTransform: "uppercase",
                 whiteSpace: "pre",
-                background: isViralShorts && active
-                  ? "linear-gradient(135deg, #FACC15 0%, #FDE047 100%)"
+                background: isHighlight && active
+                  ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
                   : "transparent",
-                padding: isViralShorts && active ? "6px 18px" : "0",
-                borderRadius: isViralShorts ? "12px" : 0,
-                textShadow: isViralShorts
+                padding: isHighlight && active ? "6px 18px" : "0",
+                borderRadius: isHighlight && active ? "12px" : 0,
+                textShadow: isHighlight
                   ? (active
                     ? (pulseGlow || "0 2px 8px rgba(0,0,0,0.35)")
                     : "0 3px 12px rgba(0,0,0,0.85), 0 0 24px rgba(0,0,0,0.5)")
-                  : (active
-                    ? (docGlow
-                      ? `0 0 14px ${accentColor}99`
-                      : docMinimal
-                        ? "0 1px 4px rgba(0,0,0,0.45)"
-                        : `0 0 16px ${accentColor}80, 0 2px 4px rgba(0,0,0,0.5)`)
-                    : (docMinimal ? "0 1px 3px rgba(0,0,0,0.4)" : "0 2px 4px rgba(0,0,0,0.5)")),
+                  : isNeon && active
+                    ? "0 0 16px #22D3EE, 0 0 28px #F472B6"
+                    : active
+                      ? `0 0 14px ${accentColor}88, 0 2px 4px rgba(0,0,0,0.5)`
+                      : "0 2px 4px rgba(0,0,0,0.5)",
                 transform: active
-                  ? `scale(${(isViralShorts ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
+                  ? isSlam
+                    ? `translateX(${slamOffset}px) scale(${0.75 + slamScale * 0.35})`
+                    : `scale(${(isViralShorts || isGradient ? 0.92 + popScale * 0.14 : 1.08) * bgmBeat})`
                   : "scale(1.0)",
-                transition: isViralShorts ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
-                opacity: active ? 1 : (isViralShorts ? 0.92 : (docMinimal ? 0.68 : 0.75)),
+                transition: isViralShorts || isSlam ? "none" : "transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.12s ease",
+                opacity: active ? 1 : (isWeight ? 0.65 : isViralShorts ? 0.92 : 0.75),
+                ...gradientText,
               }}
             >
               {word.text}
@@ -1728,6 +1809,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   format = "9:16",
   totalDuration = 30,
   captionStyle = "shorts-viral",
+  captionMode,
   captionEffect,
   grainOverlay = false,
   vignette = false,
@@ -2035,6 +2117,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
       <CaptionLayer
         captions={captions}
         captionStyle={captionStyle}
+        captionMode={captionMode}
         captionEffect={captionEffect}
         captionBgmPulse={isShort && shortsCaptionBgmPulse}
         accentColor={accentColor}

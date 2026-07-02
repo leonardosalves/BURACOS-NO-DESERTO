@@ -6301,6 +6301,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     youtubeChannelInfo,
     transparent: isProres,
     captionStyle: captionSettings.captionStyle,
+    captionMode: captionSettings.captionMode,
     captionEffect: captionSettings.captionEffect,
     designPreset: config.design_preset || null,
     grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
