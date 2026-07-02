@@ -185,6 +185,7 @@ import {
   type EditorialIdeaImport,
   buildEditorialImportOutline,
   buildOpenMontageCreatorOutline,
+  resolveEditorialImportOutline,
   coerceCreatorTextField,
   isClipFactorySource,
   isPioneerStrategyText,
@@ -2557,7 +2558,16 @@ export default function App() {
     if (patch.useNotebooklm !== undefined) setUseNotebooklm(patch.useNotebooklm);
     if (patch.uploadedScenes) setUploadedScenes(patch.uploadedScenes);
     if (patch.expandedBlocks) setExpandedBlocks(patch.expandedBlocks);
-    if (patch.editorialIdeaImport !== undefined) setEditorialIdeaImport(patch.editorialIdeaImport);
+    if (patch.editorialIdeaImport !== undefined) {
+      setEditorialIdeaImport(patch.editorialIdeaImport);
+      if (patch.editorialIdeaImport.mechanic === 'openmontage-reference') {
+        const restoredOutline = resolveEditorialImportOutline(patch.editorialIdeaImport);
+        if (restoredOutline.trim()) {
+          const patchOutline = String(patch.customOutline || '').trim();
+          if (!patchOutline) setCustomOutline(restoredOutline);
+        }
+      }
+    }
     if (patch.activeProject) setActiveProject(patch.activeProject);
     if (patch.activeTab === 'creator' || shouldRestoreWizardTab(patch)) {
       setActiveTab('creator');
@@ -2612,6 +2622,13 @@ export default function App() {
       }
     })();
   }, [applyWizardSessionPatch]);
+
+  useEffect(() => {
+    if (!editorialIdeaImport || editorialIdeaImport.mechanic !== 'openmontage-reference') return;
+    if (customOutline.trim()) return;
+    const restored = resolveEditorialImportOutline(editorialIdeaImport);
+    if (restored.trim()) setCustomOutline(restored);
+  }, [editorialIdeaImport, customOutline]);
 
   useEffect(() => {
     if (!shouldRestoreWizardTab(initialWizardSession)) return;
@@ -6993,14 +7010,17 @@ export default function App() {
     const cleaned = pioneerSeed?.title || cleanYoutubeStudioIdeaSeed(safeTitle, safeHook);
     const hook = pioneerSeed?.hook
       || (isPioneerStrategyText(safeHook) ? cleaned : (safeHook || cleaned));
-    const openMontageOutline = om?.brief
-      ? buildOpenMontageCreatorOutline({
+    const openMontagePayload = om?.brief
+      ? {
           brief: om.brief,
           conceptId: om.conceptId,
           referenceUrl: om.referenceUrl,
           referenceTitle: om.referenceTitle,
-        })
+        }
       : undefined;
+    const openMontageOutline = openMontagePayload
+      ? buildOpenMontageCreatorOutline(openMontagePayload)
+      : (options?.whyWorks?.trim() || undefined);
     const niche = (config?.niche || nicheInput || 'Geral').trim() || 'Geral';
     const format = options?.format || 'SHORTS';
     const projectSlug = slugCreatorProjectFromTitle(hook || cleaned);
@@ -7018,6 +7038,8 @@ export default function App() {
       sourceBlock: options?.sourceBlock ?? (mechanicBlock ? Number(mechanicBlock[1]) : undefined),
       pioneerMeta: options?.pioneerMeta,
       openMontageOutline,
+      openMontage: openMontagePayload,
+      whyWorks: openMontageOutline ? undefined : options?.whyWorks,
     };
 
     cancelCreatorGeneration();
@@ -7036,7 +7058,7 @@ export default function App() {
     setIdeationTab('custom');
     setCustomTitle(hook || cleaned);
     setCustomHooks(hook);
-    setCustomOutline(buildEditorialImportOutline(importData));
+    setCustomOutline(resolveEditorialImportOutline(importData));
     setNicheInput((prev) => prev || niche);
     setFormatSelector(format);
     setCreatorProjectName(projectSlug);
@@ -13728,7 +13750,9 @@ export default function App() {
                               <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300/90">
                                 {isClipFactorySource(editorialIdeaImport.source)
                                   ? 'Ideia do Clip Factory'
-                                  : 'Ideia da fila editorial'}
+                                  : editorialIdeaImport.mechanic === 'openmontage-reference'
+                                    ? 'Ideia OpenMontage'
+                                    : 'Ideia da fila editorial'}
                               </p>
                               <p className="text-sm font-semibold text-white leading-snug">
                                 {editorialIdeaImport.title}
@@ -13762,9 +13786,11 @@ export default function App() {
                               </span>
                             )}
                           </div>
-                          {editorialIdeaImport.whyWorks && (
-                            <p className="text-[10px] text-zinc-400 leading-relaxed border-t border-zinc-800/80 pt-2">
-                              {editorialIdeaImport.whyWorks}
+                          {(editorialIdeaImport.whyWorks
+                            || editorialIdeaImport.openMontageOutline
+                            || editorialIdeaImport.openMontage) && (
+                            <p className="text-[10px] text-zinc-400 leading-relaxed border-t border-zinc-800/80 pt-2 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                              {resolveEditorialImportOutline(editorialIdeaImport)}
                             </p>
                           )}
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -13781,7 +13807,15 @@ export default function App() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setIdeationTab('custom')}
+                              onClick={() => {
+                                if (
+                                  editorialIdeaImport.mechanic === 'openmontage-reference'
+                                  && !customOutline.trim()
+                                ) {
+                                  setCustomOutline(resolveEditorialImportOutline(editorialIdeaImport));
+                                }
+                                setIdeationTab('custom');
+                              }}
                               className="text-[10px] px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:border-zinc-600"
                             >
                               Editar campos abaixo

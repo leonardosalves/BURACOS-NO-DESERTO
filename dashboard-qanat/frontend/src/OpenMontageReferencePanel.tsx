@@ -4,7 +4,7 @@ import { Clapperboard, Link2, Loader2, Sparkles, CheckCircle2, AlertTriangle } f
 import { SectionHeader } from './SectionHeader';
 import { SettingHelpTip } from './SettingHelpTip';
 import type { GeminiBrowserRequest } from './geminiAiFetch';
-import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
+import { buildOpenMontageCreatorOutline, type CreatorApplyIdeaOptions } from './creatorEditorialImport';
 
 type CapabilityItem = {
   id: string;
@@ -161,15 +161,18 @@ export function OpenMontageReferencePanel({
       return;
     }
     const hook = brief?.creator_hook?.trim() || brief?.hook_technique?.trim() || title;
+    const omPayload = {
+      brief: brief!,
+      conceptId: activeConcept?.id || selectedConceptId || undefined,
+      referenceUrl: referenceUrl.trim() || undefined,
+      referenceTitle: metadata?.title,
+    };
+    const outline = buildOpenMontageCreatorOutline(omPayload);
     onApplyCreator?.(title, hook, {
       format: projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO',
       mechanic: 'openmontage-reference',
-      openMontage: {
-        brief: brief!,
-        conceptId: activeConcept?.id || selectedConceptId || undefined,
-        referenceUrl: referenceUrl.trim() || undefined,
-        referenceTitle: metadata?.title,
-      },
+      whyWorks: outline,
+      openMontage: omPayload,
     });
     toast.success(`Creator preparado — conceito ${activeConcept?.id || 'A'}`);
   };
