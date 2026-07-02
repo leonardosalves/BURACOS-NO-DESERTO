@@ -3,6 +3,8 @@ import type { VisualConfig } from './VisualSettings';
 export const VISUAL_CONFIG_KEYS = [
   'design_preset',
   'caption_style',
+  'caption_mode_short',
+  'caption_mode_long',
   'caption_style_short',
   'caption_style_long',
   'caption_effect_short',
@@ -39,11 +41,13 @@ export function pickVisualConfig(config: VisualConfig = {}): VisualConfig {
     }
   }
   const legacy = out.caption_style;
-  if (!out.caption_style_short && legacy === 'shorts-viral') {
-    out.caption_style_short = 'shorts-viral';
+  if (!out.caption_mode_short && !out.caption_style_short && !out.caption_effect_short) {
+    if (legacy === 'shorts-viral') out.caption_mode_short = 'caption-highlight';
+    else if (legacy === 'documentary') out.caption_mode_short = 'caption-pill-karaoke';
   }
-  if (!out.caption_style_long && legacy === 'documentary') {
-    out.caption_style_long = 'documentary';
+  if (!out.caption_mode_long && !out.caption_style_long && !out.caption_effect_long) {
+    if (legacy === 'documentary') out.caption_mode_long = 'caption-pill-karaoke';
+    else if (legacy === 'shorts-viral') out.caption_mode_long = 'caption-highlight';
   }
   return out;
 }

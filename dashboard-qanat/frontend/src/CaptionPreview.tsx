@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import type { CaptionStyleId, LongCaptionEffectId, ShortCaptionEffectId } from './captionConfig';
+import type { CaptionModeId } from './captionConfig';
 
 type CaptionPreviewProps = {
   format: 'short' | 'long';
-  style: CaptionStyleId;
-  effect: ShortCaptionEffectId | LongCaptionEffectId;
+  mode: CaptionModeId;
   accentColor?: string;
+  bgmPulse?: boolean;
   className?: string;
 };
 
@@ -14,32 +14,30 @@ const LONG_WORDS = ['A', 'física'];
 
 export function CaptionPreview({
   format,
-  style,
-  effect,
+  mode,
   accentColor = '#FACC15',
+  bgmPulse = false,
   className = '',
 }: CaptionPreviewProps) {
   const [tick, setTick] = useState(0);
   const isShort = format === 'short';
-  const isViral = style === 'shorts-viral';
+  const isSlam = mode === 'caption-kinetic-slam';
+  const isPill = mode === 'caption-pill-karaoke';
+  const isNeon = mode === 'caption-neon-glow';
+  const isWeight = mode === 'caption-weight-shift';
+  const isGradient = mode === 'caption-gradient-fill';
+  const isHighlight = mode === 'caption-highlight';
   const words = isShort ? SHORT_WORDS : LONG_WORDS;
   const activeIndex = tick % words.length;
+  const visibleWords = isSlam ? [words[activeIndex]] : words;
 
   useEffect(() => {
-    const ms = isShort ? 900 : 1400;
+    const ms = isSlam ? 1100 : isShort ? 900 : 1400;
     const id = window.setInterval(() => setTick((t) => t + 1), ms);
     return () => window.clearInterval(id);
-  }, [isShort]);
+  }, [isShort, isSlam]);
 
-  const shortEffect = effect as ShortCaptionEffectId;
-  const longEffect = effect as LongCaptionEffectId;
-  const pulse = isShort && shortEffect === 'viral-pulse';
-  const pop = isShort && isViral && shortEffect === 'viral-pop';
-  const staticHighlight = isShort && shortEffect === 'viral-static';
-
-  const showPill = !isShort && isViral === false && longEffect === 'doc-pill';
-  const glowOnly = !isShort && longEffect === 'doc-glow';
-  const minimal = !isShort && longEffect === 'doc-minimal';
+  const pulse = isHighlight && bgmPulse;
 
   return (
     <div
@@ -58,49 +56,68 @@ export function CaptionPreview({
 
       <div
         className={`absolute left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-1.5 px-3 ${
-          isShort ? 'bottom-[28%] max-w-[88%]' : 'bottom-[18%] max-w-[90%]'
+          isSlam
+            ? 'inset-0 items-center max-w-full'
+            : isShort
+              ? 'bottom-[28%] max-w-[88%]'
+              : 'bottom-[18%] max-w-[90%]'
         }`}
       >
         <div
           className={`flex flex-wrap justify-center items-center gap-1.5 ${
-            showPill ? 'rounded-full px-4 py-2 border border-white/10 bg-black/70 backdrop-blur-sm' : ''
+            isPill ? 'rounded-full px-4 py-2 border border-white/10 bg-black/70 backdrop-blur-sm' : ''
           }`}
         >
-          {words.map((word, index) => {
-            const active = index === activeIndex;
-            const viralActive = isViral && active;
-            const docActive = !isViral && active;
+          {visibleWords.map((word, index) => {
+            const realIndex = isSlam ? activeIndex : index;
+            const active = realIndex === activeIndex;
+            const highlightActive = isHighlight && active;
+            const slamActive = isSlam && active;
 
             let transform = 'scale(1)';
-            if (viralActive && pop) transform = 'scale(1.12)';
-            if (viralActive && pulse) transform = 'scale(1.08)';
-            if (viralActive && staticHighlight) transform = 'scale(1)';
+            if (highlightActive) transform = pulse ? 'scale(1.08)' : 'scale(1.1)';
+            if (slamActive) transform = 'scale(1.15)';
+
+            const gradientStyle = isGradient && active
+              ? {
+                  background: `linear-gradient(135deg, ${accentColor}, #F472B6, #22D3EE)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }
+              : {};
 
             return (
               <span
-                key={`${word}-${index}`}
+                key={`${word}-${realIndex}`}
                 className={`font-black uppercase tracking-wide transition-all duration-200 ${
-                  isShort ? 'text-lg sm:text-xl' : minimal ? 'text-sm' : 'text-base'
-                } ${pulse && viralActive ? 'caption-preview-pulse' : ''}`}
+                  isSlam ? 'text-2xl sm:text-3xl' : isShort ? 'text-lg sm:text-xl' : isWeight && !active ? 'text-sm font-light' : 'text-base'
+                } ${pulse && highlightActive ? 'caption-preview-pulse' : ''}`}
                 style={{
                   transform,
-                  color: viralActive
+                  fontWeight: isWeight ? (active ? 900 : 300) : 900,
+                  color: highlightActive
                     ? '#0A0A0A'
-                    : docActive
-                      ? accentColor
-                      : '#FFFFFF',
-                  background: viralActive
+                    : isNeon && active
+                      ? '#22D3EE'
+                      : isGradient && active
+                        ? 'transparent'
+                        : active
+                          ? accentColor
+                          : '#FFFFFF',
+                  background: highlightActive
                     ? `linear-gradient(135deg, ${accentColor} 0%, #FDE047 100%)`
                     : 'transparent',
-                  padding: viralActive ? '2px 10px' : '0',
-                  borderRadius: viralActive ? '8px' : 0,
-                  opacity: active ? 1 : isViral ? 0.88 : 0.72,
-                  textShadow: glowOnly && docActive
-                    ? `0 0 14px ${accentColor}99`
-                    : docActive && !showPill
-                      ? '0 0 10px rgba(250,204,21,0.45)'
+                  padding: highlightActive ? '2px 10px' : '0',
+                  borderRadius: highlightActive ? '8px' : 0,
+                  opacity: active ? 1 : isWeight ? 0.55 : 0.72,
+                  textShadow: isNeon && active
+                    ? '0 0 12px #22D3EE, 0 0 20px #F472B6'
+                    : active && !isHighlight && !isGradient
+                      ? `0 0 10px ${accentColor}88`
                       : '0 2px 6px rgba(0,0,0,0.65)',
-                  boxShadow: pulse && viralActive ? `0 0 18px ${accentColor}55` : undefined,
+                  boxShadow: pulse && highlightActive ? `0 0 18px ${accentColor}55` : undefined,
+                  ...gradientStyle,
                 }}
               >
                 {word}
@@ -111,7 +128,7 @@ export function CaptionPreview({
       </div>
 
       <div className="absolute top-2 left-2 text-[8px] font-bold uppercase tracking-widest text-zinc-500 bg-black/40 px-2 py-0.5 rounded">
-        {isShort ? '9:16' : '16:9'} · preview
+        {isShort ? '9:16' : '16:9'} · {mode.replace('caption-', '')}
       </div>
     </div>
   );

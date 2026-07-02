@@ -5,25 +5,23 @@ import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { SectionHeader } from './SectionHeader';
 import { CaptionPreview } from './CaptionPreview';
 import {
-  LONG_CAPTION_EFFECTS,
-  LONG_CAPTION_STYLES,
-  SHORT_CAPTION_EFFECTS,
-  SHORT_CAPTION_STYLES,
-  resolveLongCaptionEffect,
-  resolveLongCaptionStyle,
-  resolveShortCaptionEffect,
-  resolveShortCaptionStyle,
-  type LongCaptionEffectId,
-  type ShortCaptionEffectId,
+  LONG_CAPTION_MODES,
+  SHORT_CAPTION_MODES,
+  resolveLongCaptionMode,
+  resolveShortCaptionBgmPulse,
+  resolveShortCaptionMode,
+  type CaptionModeId,
 } from './captionConfig';
 
 export type VisualConfig = {
   design_preset?: string;
   caption_style?: string;
+  caption_mode_short?: CaptionModeId;
+  caption_mode_long?: CaptionModeId;
   caption_style_short?: 'shorts-viral' | 'documentary';
   caption_style_long?: 'shorts-viral' | 'documentary';
-  caption_effect_short?: ShortCaptionEffectId;
-  caption_effect_long?: LongCaptionEffectId;
+  caption_effect_short?: string;
+  caption_effect_long?: string;
   grain_overlay?: boolean;
   vignette?: boolean;
   progress_bar?: boolean;
@@ -185,20 +183,30 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
   };
 
   const preset = draft.design_preset || 'auto';
-  const shortCaptionStyle = resolveShortCaptionStyle(draft.caption_style_short || draft.caption_style);
-  const longCaptionStyle = resolveLongCaptionStyle(draft.caption_style_long || draft.caption_style);
-  const shortCaptionEffect = resolveShortCaptionEffect(draft.caption_effect_short, draft.shorts_caption_bgm_pulse);
-  const longCaptionEffect = resolveLongCaptionEffect(draft.caption_effect_long);
+  const shortCaptionMode = resolveShortCaptionMode(draft);
+  const longCaptionMode = resolveLongCaptionMode(draft);
+  const shortBgmPulse = resolveShortCaptionBgmPulse(shortCaptionMode, draft);
   const zoom = draft.shorts_zoom_intensity || 'normal';
   const longZoom = draft.long_zoom_intensity || 'normal';
   const portalEvery = draft.shorts_portal_every || 4;
   const hudTheme = draft.listicle_hud_theme || 'auto';
   const accent = draft.accent_color || '#FACC15';
 
-  const syncShortCaptionEffect = (effect: ShortCaptionEffectId) => {
+  const setShortCaptionMode = (mode: CaptionModeId) => {
     patchDraft({
-      caption_effect_short: effect,
-      shorts_caption_bgm_pulse: effect === 'viral-pulse' ? true : effect === 'viral-static' ? false : undefined,
+      caption_mode_short: mode,
+      caption_style_short: undefined,
+      caption_effect_short: undefined,
+      caption_style: undefined,
+    });
+  };
+
+  const setLongCaptionMode = (mode: CaptionModeId) => {
+    patchDraft({
+      caption_mode_long: mode,
+      caption_style_long: undefined,
+      caption_effect_long: undefined,
+      caption_style: undefined,
     });
   };
 
@@ -272,47 +280,36 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_min(200px,42%)] gap-4 items-start">
             <div className="space-y-3 min-w-0">
               <div className="space-y-2">
-                <SettingLabel helpTitle="Estilo de legenda (Short)" help="Como o texto da narração aparece em vídeos verticais." align="start">
+                <SettingLabel helpTitle="Legenda HyperFrames (Short)" help="Estilos do catálogo HeyGen HyperFrames portados para Remotion." align="start">
                   Estilo de legenda
                 </SettingLabel>
                 <select
-                  value={shortCaptionStyle}
-                  onChange={(e) => patchDraft({
-                    caption_style_short: e.target.value as VisualConfig['caption_style_short'],
-                    caption_style: undefined,
-                  })}
+                  value={shortCaptionMode}
+                  onChange={(e) => setShortCaptionMode(e.target.value as CaptionModeId)}
                   className="dash-select"
                 >
-                  {SHORT_CAPTION_STYLES.map((o) => (
+                  {SHORT_CAPTION_MODES.map((o) => (
                     <option key={o.id} value={o.id}>{o.label}</option>
                   ))}
                 </select>
                 <p className="text-[9px] text-[var(--dash-muted)]">
-                  {SHORT_CAPTION_STYLES.find((o) => o.id === shortCaptionStyle)?.hint}
+                  {SHORT_CAPTION_MODES.find((o) => o.id === shortCaptionMode)?.hint}
                 </p>
               </div>
-              <div className="space-y-2">
-                <SettingLabel helpTitle="Efeito na legenda (Short)" help="Animação e destaque da palavra ativa." align="start">
-                  Efeito na legenda
-                </SettingLabel>
-                <select
-                  value={shortCaptionEffect}
-                  onChange={(e) => syncShortCaptionEffect(e.target.value as ShortCaptionEffectId)}
-                  className="dash-select"
-                >
-                  {SHORT_CAPTION_EFFECTS.map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
-                  ))}
-                </select>
-                <p className="text-[9px] text-[var(--dash-muted)]">
-                  {SHORT_CAPTION_EFFECTS.find((o) => o.id === shortCaptionEffect)?.hint}
-                </p>
-              </div>
+              {shortCaptionMode === 'caption-highlight' && (
+                <ToggleCard
+                  label="Pulso no BGM"
+                  description="Palavra ativa pulsa no ritmo da trilha."
+                  help="Sincroniza o destaque da legenda com o BPM da música (~120 BPM)."
+                  checked={shortBgmPulse}
+                  onChange={(v) => patchDraft({ shorts_caption_bgm_pulse: v })}
+                />
+              )}
             </div>
             <CaptionPreview
               format="short"
-              style={shortCaptionStyle}
-              effect={shortCaptionEffect}
+              mode={shortCaptionMode}
+              bgmPulse={shortBgmPulse}
               accentColor={accent}
               className="w-full max-w-[200px] mx-auto sm:max-w-none"
             />
@@ -394,47 +391,26 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_min(240px,48%)] gap-4 items-start">
             <div className="space-y-3 min-w-0">
               <div className="space-y-2">
-                <SettingLabel helpTitle="Estilo de legenda (Longo)" help="Como o texto aparece em vídeos horizontais." align="start">
+                <SettingLabel helpTitle="Legenda HyperFrames (Longo)" help="Estilos do catálogo HeyGen HyperFrames portados para Remotion." align="start">
                   Estilo de legenda
                 </SettingLabel>
                 <select
-                  value={longCaptionStyle}
-                  onChange={(e) => patchDraft({
-                    caption_style_long: e.target.value as VisualConfig['caption_style_long'],
-                    caption_style: undefined,
-                  })}
+                  value={longCaptionMode}
+                  onChange={(e) => setLongCaptionMode(e.target.value as CaptionModeId)}
                   className="dash-select"
                 >
-                  {LONG_CAPTION_STYLES.map((o) => (
+                  {LONG_CAPTION_MODES.map((o) => (
                     <option key={o.id} value={o.id}>{o.label}</option>
                   ))}
                 </select>
                 <p className="text-[9px] text-[var(--dash-muted)]">
-                  {LONG_CAPTION_STYLES.find((o) => o.id === longCaptionStyle)?.hint}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <SettingLabel helpTitle="Efeito na legenda (Longo)" help="Tratamento visual do bloco de palavras." align="start">
-                  Efeito na legenda
-                </SettingLabel>
-                <select
-                  value={longCaptionEffect}
-                  onChange={(e) => patchDraft({ caption_effect_long: e.target.value as LongCaptionEffectId })}
-                  className="dash-select"
-                >
-                  {LONG_CAPTION_EFFECTS.map((o) => (
-                    <option key={o.id} value={o.id}>{o.label}</option>
-                  ))}
-                </select>
-                <p className="text-[9px] text-[var(--dash-muted)]">
-                  {LONG_CAPTION_EFFECTS.find((o) => o.id === longCaptionEffect)?.hint}
+                  {LONG_CAPTION_MODES.find((o) => o.id === longCaptionMode)?.hint}
                 </p>
               </div>
             </div>
             <CaptionPreview
               format="long"
-              style={longCaptionStyle}
-              effect={longCaptionEffect}
+              mode={longCaptionMode}
               accentColor={accent}
               className="w-full"
             />
