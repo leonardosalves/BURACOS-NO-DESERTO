@@ -214,6 +214,8 @@ import {
   parseBlockNumber,
   buildVisualPromptsFromNarrationPrompt,
   mergeVisualPromptsRepair,
+  buildBatchScenePromptsAiRequest,
+  applyBatchScenePromptsAiResponse,
   normalizeScriptChecklist,
   isChecklistEmpty,
   buildScriptChecklistEvaluationPrompt,
@@ -12391,7 +12393,22 @@ REGRAS FINAIS:
           ideaTitle: idea.title,
         });
         if (deterministic.length) {
-          parsedData.visual_prompts = deterministic;
+          // Try AI-based batch prompt generation before using static glossary fallback
+          try {
+            const batchPrompt = buildBatchScenePromptsAiRequest(deterministic, { ideaTitle: idea.title });
+            const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
+              temperature: 0.7,
+              maxRetries: 2,
+              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+            });
+            const batchParsed = await parseAiJsonResponse(batchText, apiKey, "Batch scene prompts");
+            const aiEnhanced = applyBatchScenePromptsAiResponse(deterministic, Array.isArray(batchParsed) ? batchParsed : batchParsed?.scenes || []);
+            parsedData.visual_prompts = aiEnhanced;
+            console.log(`[Creator Script] visual_prompts fallback IA batch (${aiEnhanced.length} cenas com prompts cinematográficos).`);
+          } catch (batchErr) {
+            console.warn("[Creator Script] Fallback IA batch falhou, usando determinístico:", batchErr.message);
+            parsedData.visual_prompts = deterministic;
+          }
           parsedData.narrative_script = approvedNarration;
           if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
           if (!parsedData.technical_config?.script) {
@@ -12404,7 +12421,7 @@ REGRAS FINAIS:
               bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
             };
           }
-          console.log(`[Creator Script] visual_prompts fallback determinístico (${deterministic.length} cenas).`);
+          console.log(`[Creator Script] visual_prompts fallback final (${parsedData.visual_prompts.length} cenas).`);
         }
       }
     } else {
