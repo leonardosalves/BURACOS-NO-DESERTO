@@ -15,7 +15,9 @@ function sleep(ms) {
 }
 
 function isNarrationPrompt(prompt) {
-  return /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(String(prompt || ""));
+  const p = String(prompt || "");
+  if (/LUMIERA_TASK:vpe/i.test(p)) return false;
+  return /LUMIERA_TASK:script|narrative_script|Gerar narração/i.test(p);
 }
 
 function waitForTabComplete(tabId, timeoutMs = 20000) {

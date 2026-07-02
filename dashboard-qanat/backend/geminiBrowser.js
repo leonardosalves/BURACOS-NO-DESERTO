@@ -250,6 +250,9 @@ export function isMetadataBrowserResponseReady(text) {
 export function resolveBrowserPromptOpts(title = "", prompt = "") {
   const t = String(title || "").toLowerCase();
   const p = String(prompt || "");
+  if (/engenharia visual/i.test(t) || /visual.prompt.engineer/i.test(t) || /VPE/i.test(t)) {
+    return { taskType: "vpe", responseFormat: "json" };
+  }
   if (/metadados youtube/i.test(t) || /especialista em títulos e seo/i.test(p)) {
     return { taskType: "metadata", responseFormat: "markdown" };
   }
