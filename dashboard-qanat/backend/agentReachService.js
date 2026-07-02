@@ -252,15 +252,38 @@ export async function githubSearch(query, { limit = 8 } = {}) {
   if (!q) return { available: false, summary: "", sources: [], message: "Query vazia", source: "github" };
 
   try {
-    const stdout = await runCli("gh", [
-      "search", "repos", q, "--sort", "stars", "--limit", String(Math.min(limit, 15)),
-      "--json", "name,description,url,stargazersCount,primaryLanguage",
-    ], { timeout: 45000, maxBuffer: 2 * 1024 * 1024 });
-    const rows = JSON.parse(stdout || "[]");
+    let rows = [];
+    try {
+      const stdout = await runCli("gh", [
+        "search", "repos", q, "--sort", "stars", "--limit", String(Math.min(limit, 15)),
+        "--json", "name,description,url,stargazersCount,language",
+      ], { timeout: 45000, maxBuffer: 2 * 1024 * 1024 });
+      rows = JSON.parse(stdout || "[]");
+    } catch (cliErr) {
+      console.warn("[agent-reach] gh cli search failed, falling back to public GitHub API:", cliErr.message);
+      
+      const res = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&per_page=${Math.min(limit, 15)}`, {
+        headers: { "User-Agent": "agent-reach/1.0 lumiera" },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) {
+        throw new Error(`GitHub CLI falhou (${cliErr.message}) e a API Pública retornou status ${res.status}`);
+      }
+      const data = await res.json();
+      const rawItems = data?.items || [];
+      rows = rawItems.map((r) => ({
+        name: r.full_name || r.name,
+        url: r.html_url || r.url,
+        description: r.description || "",
+        stargazersCount: r.stargazers_count || 0,
+        language: r.language || null,
+      }));
+    }
+
     const items = (Array.isArray(rows) ? rows : []).map((r) => ({
       title: r.name,
       url: r.url,
-      snippet: `${r.description || ""} · ⭐ ${r.stargazersCount || 0}${r.primaryLanguage?.name ? ` · ${r.primaryLanguage.name}` : ""}`.trim(),
+      snippet: `${r.description || ""} · ⭐ ${(r.stargazersCount || r.stargazers_count || 0)}${r.language ? ` · ${r.language}` : ""}`.trim(),
     }));
     const summary = items.map((it, i) => `${i + 1}. ${it.title} — ${it.snippet}\n${it.url}`).join("\n\n");
     return {
