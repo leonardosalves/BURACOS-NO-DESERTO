@@ -908,34 +908,32 @@ export const CINEMATIC_PROMPT_ENGINEERING_RULES = `
 REGRAS DE PROMPT ENGINEERING CINEMATOGRÁFICO (OBRIGATÓRIO):
 
 1. NUNCA SEJA GENÉRICO:
-   - Proibido: "massive building moving", "old city", "heavy machinery", "vintage scene", "the exact subject from this scene", "subject"
-   - Sempre use detalhes reais e específicos do evento histórico/técnico descrito na narração.
+   - Proibido usar placeholders ou descrições abstratas: "a generic person", "some object", "illustrating the scene", "the exact subject from this scene", "subject".
+   - Sempre use detalhes reais, termos técnicos ou nomes históricos/científicos específicos do assunto descrito na narração.
 
-2. PESQUISE E USE FATOS REAIS (internamente):
-   - Identifique o mecanismo real usado (ex: macacos hidráulicos manuais + rollers de madeira/aço, pernas robóticas sincronizadas, etc.).
-   - Inclua escala real (toneladas, andares, velocidade do movimento).
-   - Mostre o elemento humano (pessoas trabalhando dentro, engenheiros monitorando, multidão observando).
-   - Diferencie claramente cenas de época (1930, 1950 etc.) de cenas modernas.
+2. DETALHE O ASSUNTO CONFORME O NICHO:
+   - História/Mistério: Use o visual da época correta, vestimentas históricas exatas, arquitetura característica, documentos antigos, artefatos e expressões faciais.
+   - Natureza/Geografia: Use nomes comuns ou científicos de espécies, ações biológicas reais (mergulho, caça, camuflagem), biomas e condições de clima.
+   - Tecnologia/Finanças: Use mockups de telas de código, terminais com cores selecionadas, gráficos nítidos, salas de servidores, linhas de produção precisas ou elementos futuristas minimalistas.
+   - Engenharia/Construção: Identifique o mecanismo real usado (ex: macacos hidráulicos manuais, rollers de madeira/aço, guindastes de época), escala e o elemento humano.
 
 3. LINGUAGEM CINEMATOGRÁFICA OBRIGATÓRIA:
-   - Sempre especifique: tipo de câmera/ângulo (low angle, tracking shot, aerial drone, macro, isometric), movimento da câmera, iluminação, profundidade de campo, atmosfera.
-   - Descreva texturas ricas (tijolo gasto, graxa, madeira rachada, poeira no ar, metal brilhante, concreto, etc.).
-   - Para cenas históricas: film grain + tom sépia ou preto e branco archival.
-   - Para cenas modernas: cores limpas, contraste alto, luz do dia nítida.
-   - Para movimento pesado: descreva movimento LENTO e deliberado ("inch by inch", "snail pace").
+   - Sempre especifique: tipo de câmera/ângulo (low angle, tracking shot, aerial drone, macro, isometric), movimento, iluminação, profundidade de campo, atmosfera.
+   - Descreva texturas ricas (tijolo gasto, graxa, pele detalhada, poeira no ar sob feixe de luz, metal polido, vidro reflexivo, etc.).
+   - Estilo Vintage/Histórico: film grain, lentes antigas, iluminação dramática natural, tom archival.
+   - Estilo Moderno/Premium: cores limpas, contraste alto, iluminação volumétrica, luz nítida de dia ou neon moderno (nicho tech/finance).
+   - Movimento pesado/lento: use "slow deliberate motion", "inch by inch", "snail pace" para transmitir peso.
 
 4. FOCO EM RETENÇÃO E IMPACTO:
-   - Cada prompt deve gerar "uau" visual.
-   - Sempre mostre o "como" da engenharia (o mecanismo visível).
-   - Inclua elemento humano sempre que possível.
-   - Deixe composição limpa para overlays de texto (espaço no topo, centro ou terço inferior).
+   - Cada prompt deve gerar "uau" visual. Priorize enquadramentos dinâmicos.
+   - Mostre o elemento humano (pessoas operando, observando ou reagindo) sempre que possível para criar conexão.
+   - Mantenha a composição limpa e organizada para permitir a leitura clara de overlays de texto/legendas (espaço livre no topo, centro ou terço inferior).
 
 5. QUALIDADE:
    - Termine prompts de vídeo com: "photorealistic, highly detailed, 8K".
    - Termine prompts de imagem com: "photorealistic, 2K resolution, highly detailed".
    - Se houver texto visível na imagem/vídeo (text_overlay, impact_text), adicione: "Any visible text must be in Portuguese (Brazilian)."
-   - Para China/Moderna: mencione "robotic legs", "synchronized hydraulic", "walking technology".
-   - Mantenha coerência de estilo entre todas as cenas do mesmo roteiro.
+   - Mantenha coerência de estilo visual entre todas as cenas do mesmo roteiro.
 
 6. RACIOCÍNIO INTERNO (faça antes de cada prompt):
    - Qual é o fato surpreendente deste trecho?
@@ -1190,21 +1188,21 @@ export function buildBatchScenePromptsAiRequest(scenes = [], { ideaTitle = "" } 
     has_text_overlay: !!(s.text_overlay || s.impact_text),
   }));
 
-  return `You are an expert Prompt Engineer specialized in creating hyper-detailed, cinematic visual prompts for YouTube documentary videos about historical curiosities, engineering feats, construction, and surprising facts.
+  return `You are an expert Prompt Engineer specialized in creating hyper-detailed, cinematic visual prompts for YouTube documentary videos across various niches (History, Science, Nature, Technology, Finance, Geography, Mystery, and Surprising Facts).
 
 TITLE: ${ideaTitle}
 
 For EACH scene below, generate:
 1. "prompt": A photorealistic visual description in ENGLISH. MANDATORY rules:
    - NEVER be generic. NO "massive building", "old city", "heavy machinery", "the exact subject from this scene".
-   - Use REAL specific details: real mechanism (hydraulic jacks, steel rollers, robotic legs), real scale (tons, floors), human element.
-   - Specify: camera angle (low angle, tracking, aerial, macro), lighting, textures (worn brick, grease, dust, concrete), atmosphere.
-   - Historical scenes: film grain + sepia/B&W archival. Modern: clean colors, high contrast.
-   - Heavy movement: "slow deliberate motion", "inch by inch".
+   - Use REAL specific details: mention specific models, biological names, historical clothing/architecture, tools, scales or actual machinery depending on the niche.
+   - Specify: camera angle (low angle, tracking, aerial, macro), lighting, textures (worn brick, rust, dust, skin pores, sleek glass), atmosphere.
+   - Historical: film grain + sepia/B&W archival. Modern: clean colors, high contrast, sharp details.
+   - Heavy/massive movement: "slow deliberate motion", "inch by inch".
    - Image: end with "photorealistic, 2K resolution, highly detailed".
    - Video: end with "photorealistic, highly detailed, 8K".
    - If has_text_overlay is true, append: "Any visible text must be in Portuguese (Brazilian)."
-2. "stock_query": 2-5 words in English for stock footage search.
+2. "stock_query": 2-5 words in English for stock footage search (e.g. "wandering albatross flying", "1930s office workers", "retro computers").
 3. "editor_notes": Editing notes (timing, transitions, text space).
 
 SCENES:
