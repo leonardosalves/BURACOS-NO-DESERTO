@@ -2516,7 +2516,8 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     storyboard.overlays_planned_by = "studio-agents";
     delete storyboard.overlays;
 
-    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    const cleanSb = repairStoryboardEncoding(storyboard);
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(cleanSb, null, 2), "utf8");
     console.log(`[Studio Agents] ${cleanedAi.length} overlays planejados com memória do estúdio.`);
 
     res.json({
@@ -2598,7 +2599,8 @@ app.post("/api/projects/storyboard", (req, res) => {
 
   try {
 
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboardData, null, 2), "utf8");
+    const cleanStoryboardData = repairStoryboardEncoding(storyboardData);
+    fs.writeFileSync(storyboardPath, JSON.stringify(cleanStoryboardData, null, 2), "utf8");
 
     const visualPrompts = storyboardData.visual_prompts || [];
 
@@ -14816,8 +14818,8 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
     }
     if (Array.isArray(parsedOverlays)) {
-      parsedOverlays = normalizeGeminiOverlayPayload(parsedOverlays);
-      console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares.`);
+      parsedOverlays = repairStoryboardEncoding(normalizeGeminiOverlayPayload(parsedOverlays));
+      console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares (mojibake reparado).`);
 
       alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts, config);
 
