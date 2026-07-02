@@ -54,6 +54,8 @@ async function fetchProgress(jobId: string) {
     detail?: string;
     done?: boolean;
     error?: string | null;
+    awaitingBrowser?: boolean;
+    result?: Record<string, unknown>;
   }>;
 }
 
@@ -141,8 +143,14 @@ export function injectProgressJobId(body: Record<string, unknown>, jobId?: strin
   return { ...body, progress_job_id: jobId };
 }
 
-/** Aguarda job assíncrono (ex.: TTS Voicebox) terminar via polling. */
-export function waitForAiJobDone(jobId: string, timeoutMs = 960000): Promise<void> {
+export type AiJobDoneResult = Record<string, unknown> & {
+  needs_browser?: boolean;
+  error?: string;
+  details?: string;
+};
+
+/** Aguarda job assíncrono (TTS, narração Creator, etc.) terminar via polling. */
+export function waitForAiJobDone(jobId: string, timeoutMs = 960000): Promise<AiJobDoneResult> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
     const tick = async () => {
@@ -156,12 +164,16 @@ export function waitForAiJobDone(jobId: string, timeoutMs = 960000): Promise<voi
           setTimeout(tick, POLL_MS);
           return;
         }
+        if (data.awaitingBrowser && data.result?.needs_browser) {
+          resolve(data.result as AiJobDoneResult);
+          return;
+        }
         if (data.error) {
           reject(new Error(String(data.error)));
           return;
         }
         if (data.done) {
-          resolve();
+          resolve((data.result || {}) as AiJobDoneResult);
           return;
         }
         setTimeout(tick, POLL_MS);

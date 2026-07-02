@@ -56,6 +56,58 @@ export function finishJobProgress(jobId, label = "Concluído") {
   return setJobProgress(jobId, { phase: "done", label, percent: 100, done: true });
 }
 
+export function finishJobProgressWithResult(jobId, result = {}, label = "Concluído") {
+  return setJobProgress(jobId, {
+    phase: "done",
+    label,
+    percent: 100,
+    done: true,
+    awaitingBrowser: false,
+    result,
+  });
+}
+
+export function setJobAwaitingBrowser(jobId, payload, label = "Aguardando Gemini no Chrome…") {
+  return setJobProgress(jobId, {
+    phase: "needs_browser",
+    label,
+    percent: 58,
+    done: false,
+    awaitingBrowser: true,
+    result: payload,
+  });
+}
+
+/** Captura res.json/status do handler quando o job roda em background. */
+export function createProgressJobResponse(jobId) {
+  let statusCode = 200;
+  return {
+    setHeader() {
+      return this;
+    },
+    status(code) {
+      statusCode = Number(code) || 200;
+      return this;
+    },
+    json(payload) {
+      if (payload?.needs_browser) {
+        setJobAwaitingBrowser(jobId, payload);
+        return;
+      }
+      if (statusCode >= 400 || payload?.error) {
+        const errMsg = String(payload?.error || payload?.details || "Erro");
+        failJobProgress(jobId, errMsg);
+        setJobProgress(jobId, { result: payload, done: true, awaitingBrowser: false });
+        return;
+      }
+      const label = payload?.phase === "narration"
+        ? "Narração pronta para revisão"
+        : "Roteiro completo";
+      finishJobProgressWithResult(jobId, payload, label);
+    },
+  };
+}
+
 export function failJobProgress(jobId, error = "Falha no processamento") {
   return setJobProgress(jobId, {
     phase: "error",

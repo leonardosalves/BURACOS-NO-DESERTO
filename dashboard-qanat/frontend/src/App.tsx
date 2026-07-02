@@ -97,7 +97,7 @@ import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform
 import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { WorkflowToolkit } from './WorkflowToolkit';
 import { useGeminiBrowserBridge } from './GeminiBrowserBridge';
-import { fetchGeminiAi } from './geminiAiFetch';
+import { fetchCreatorScriptAi, fetchGeminiAi } from './geminiAiFetch';
 import { AiJobProgressBar } from './AiJobProgressBar';
 import { createProgressJobId, startAiJobProgress, stopAiJobProgress } from './aiJobProgressClient';
 import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
@@ -1476,6 +1476,20 @@ export default function App() {
     progress?: { jobId?: string },
   ) => fetchGeminiAi(
     getProjectUrl(path),
+    init,
+    {
+      geminiBrowserMode,
+      aiProvider,
+      resolveBrowserResponse,
+      progressJobId: progress?.jobId,
+    },
+  ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
+
+  const postCreatorScriptAi = useCallback(async (
+    init: RequestInit = { method: 'POST' },
+    progress?: { jobId?: string },
+  ) => fetchCreatorScriptAi(
+    getProjectUrl('/api/ai/creator/script'),
     init,
     {
       geminiBrowserMode,
@@ -6919,7 +6933,7 @@ export default function App() {
     startAiJobProgress(progressJobId, progressTitle);
 
     try {
-      const { ok, data } = await postAi('/api/ai/creator/script', {
+      const { ok, data } = await postCreatorScriptAi({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -7110,7 +7124,7 @@ export default function App() {
     startAiJobProgress(progressJobId, progressTitle);
 
     try {
-      const { ok, data } = await postAi('/api/ai/creator/script', {
+      const { ok, data } = await postCreatorScriptAi({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildCreatorScriptPayload('full', {
