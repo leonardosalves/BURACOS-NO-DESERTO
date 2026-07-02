@@ -11,6 +11,10 @@ import {
   patternMatchesFormat,
   VIDEO_FORMAT,
 } from "./formatResolver.js";
+import {
+  buildObsidianNotesPromptAddendum,
+  extractGlobalMemoryBullets,
+} from "./obsidianMemoryContext.js";
 
 export const PROMOTE_THRESHOLD = 3;
 const MAX_PROMOTED = 30;
@@ -501,13 +505,8 @@ export function getLearnings(
 
   if (fs.existsSync(paths.globalMemory)) {
     const global = fs.readFileSync(paths.globalMemory, "utf8");
-    let globalCount = 0;
-    for (const line of global.split("\n")) {
-      if (globalCount >= 4) break;
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("- ")) continue;
-      items.push({ text: trimmed.slice(2), count: 1, promoted: true, global: true });
-      globalCount++;
+    for (const rule of extractGlobalMemoryBullets(global, targetFormat)) {
+      items.push({ text: rule, count: 1, promoted: true, global: true });
     }
   }
 
@@ -528,15 +527,21 @@ export function buildLearningsPromptAddendum(
   if (!config.applyLearningsInAgentMode) return "";
 
   const learnings = getLearnings(workspaceDir, { niche, task, format, limit: 12 });
-  if (!learnings.length) return "";
+  const obsidianNotes = buildObsidianNotesPromptAddendum(workspaceDir, { niche, task, format });
+  if (!learnings.length && !obsidianNotes) return "";
 
   const formatLabel = format || "SHORT";
-  return [
-    "",
-    `## APRENDIZADOS DO ESTÚDIO — formato ${formatLabel} (Studio Agents)`,
-    ...learnings.map((l) => `- ${l.text}`),
-    "",
-  ].join("\n");
+  const parts = [];
+  if (learnings.length) {
+    parts.push(
+      "",
+      `## APRENDIZADOS DO ESTÚDIO — formato ${formatLabel} (Studio Agents)`,
+      ...learnings.map((l) => `- ${l.text}`),
+      "",
+    );
+  }
+  if (obsidianNotes) parts.push(obsidianNotes);
+  return parts.join("\n");
 }
 
 export function listRecentRunLogs(workspaceDir, days = 7) {

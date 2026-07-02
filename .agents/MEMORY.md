@@ -5,7 +5,7 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 ## Regras globais (todos os formatos)
 - Ancorar overlays à `scene_ref` da narração, não a percentuais cegos do vídeo.
 - Variar tipo e posição entre overlays consecutivos.
-- Editar aqui ou na aba Studio Agents — o dashboard lê as primeiras 4 linhas com `-`.
+- Editar aqui ou no Obsidian — o Lumiera lê todas as linhas `-` em **Regras globais** + **Shorts** ou **Longos** (conforme o formato do vídeo).
 
 ## Shorts (9:16)
 - Gancho limpo até **1.5s** — sem overlays informativos no hook.
@@ -24,6 +24,8 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 ## Obsidian
 - Hub: [[MEMORIA-LUMIERA]]
 - Por nicho: `memory/<slug>.md` — categorias `SHORT/` ou `LONG/` indicam escopo do padrão.
+- **Aprendizado manual:** em qualquer `memory/<nicho>.md`, adicione a seção `## Notas do estúdio` com bullets `-`. O wizard e os agentes leem automaticamente.
+- **Referências** (`competitor-intelligence`, etc.) entram nos prompts de **ideias** quando o nicho combina.
 
 ## Índice memória por nicho
 
@@ -45,4 +47,4 @@ Preferências e decisões duráveis do estúdio (carregadas no modo Agentes).
 - [[memory/openmontage-lumiera]]
 - [[memory/videoagent-lumiera]]
 
-atualizado: 2026-07-02T05:24:19.931Z
+atualizado: 2026-07-02T16:44:41.013Z
