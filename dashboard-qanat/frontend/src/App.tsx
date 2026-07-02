@@ -89,6 +89,8 @@ import {
 
   Globe,
 
+  Clock,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -151,6 +153,7 @@ import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
+import { SceneTimingEditor } from './SceneTimingEditor';
 import { clipKey, parseClipKey } from './opencutTimeline';
 
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
@@ -167,6 +170,7 @@ import {
   getAssetNarrationText as resolveAssetNarrationText,
   getBlockNarrationText as resolveBlockNarrationText,
   getBlockTimeBounds as resolveBlockTimeBounds,
+  getStrictBlockBounds,
   narrationCacheKey,
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
@@ -398,6 +402,7 @@ const PROJECT_WORKSPACE_TABS = [
   { id: 'status' as const, label: 'Render', icon: Tv, helpId: 'tab-status' },
   { id: 'workflow' as const, label: 'Workflow e Tarefas', icon: Wand2, helpId: 'tab-workflow' },
   { id: 'timeline' as const, label: 'Roteiro e Tags', icon: Layers, helpId: 'tab-timeline' },
+  { id: 'scene-timing' as const, label: 'Editor de Timing', icon: Clock, helpId: 'tab-scene-timing' },
   { id: 'music' as const, label: 'Trilha BGM', icon: Music, helpId: 'tab-music' },
   { id: 'ai' as const, label: 'IA · Metadados', icon: Sparkles, helpId: 'tab-ai' },
   { id: 'upload' as const, label: 'Upload', icon: Share2, helpId: 'tab-upload' },
@@ -4052,11 +4057,13 @@ export default function App() {
       const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
       if (blockText) {
         const bounds = resolveBlockTimeBounds(status, blockNum);
+        const strictBounds = getStrictBlockBounds(status, blockNum);
         const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
         if (matched) {
           const words = getStoryboardWordsWithTiming(blockText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
           words.forEach((w) => {
-            if (w.start < bounds.searchAfter - 0.2 || w.start > bounds.searchBefore + 0.15) return;
+            // Bounds estritos: palavra pertence ao bloco somente se start está no range exato
+            if (w.start < strictBounds.start - 0.05 || w.start >= strictBounds.end) return;
             const key = `${w.start.toFixed(3)}-${w.word}`;
             if (!seenPositions.has(key)) {
               allWords.push(w);
@@ -4077,43 +4084,25 @@ export default function App() {
   }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, narrationMatchesCache, flatTranscriptWords]);
 
   // Get dynamically distributed words for a specific asset based on its time window
-
   const getDynamicAssetWords = (blockKey: string, assetIdx: number): {
-
     words: Array<{ word: string; start: number; end: number }>;
-
     text: string;
-
     assetAudioStart: number;
-
     assetAudioEnd: number;
-
     blockAudioStart: number;
-
     blockAudioEnd: number;
-
     totalBlockWords: number;
-
     coveredWords: number;
-
   } | null => {
-
     const blockNum = parseInt(blockKey, 10);
-
     const allBlockWords = blockNarrationWordsCache[blockKey] || [];
-
     if (allBlockWords.length === 0) return null;
 
-    // Usar o timestamp da PRIMEIRA PALAVRA real como ponto de partida
-
-    // Isso garante que o asset 1 sempre começa onde a narração realmente está no áudio
-
     const narrationStart = allBlockWords[0].start;
-
     const narrationLastEnd = allBlockWords[allBlockWords.length - 1].end;
+    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
 
-    // Calculate this asset's time window starting from the first narration word
-
+    // Calcular janela de tempo do asset
     const currentAsset = config?.timeline_assets?.[blockKey]?.[assetIdx];
     let assetAudioStart: number;
 
@@ -4121,64 +4110,55 @@ export default function App() {
       assetAudioStart = Number(currentAsset.audio_start);
     } else {
       assetAudioStart = narrationStart;
-
       for (let i = 0; i < assetIdx; i++) {
-
         assetAudioStart += getAssetDuration(blockKey, i);
       }
     }
 
     const assetDuration = getAssetDuration(blockKey, assetIdx);
+    const rawAssetAudioEnd = assetAudioStart + assetDuration;
 
-    const assetAudioEnd = assetAudioStart + assetDuration;
+    // Último asset: estende até o fim da narra\u00e7ão do bloco para cobrir 100%
+    const isLastAsset = assetIdx === totalAssets - 1;
+    const assetAudioEnd = isLastAsset
+      ? Math.max(rawAssetAudioEnd, narrationLastEnd + 0.15)
+      : rawAssetAudioEnd;
 
-    // Filter words that fall within this asset's time window
+    // Filtrar palavras dentro da janela deste asset
+    let assetWords: Array<{ word: string; start: number; end: number }>;
 
-    // Words are bounded by the block's actual narration words (never leaks to next block)
-
-    const assetWords = allBlockWords.filter(w =>
-
-      w.start >= assetAudioStart - 0.15 && w.start < assetAudioEnd - 0.05
-
-    );
-
-    // Count total words covered by ALL assets in the block
-
-    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
-
-    let totalEndTime = narrationStart;
-
-    for (let i = 0; i < totalAssets; i++) {
-
-      totalEndTime += getAssetDuration(blockKey, i);
-
+    if (isLastAsset) {
+      // Último asset: pega TODAS as palavras a partir do seu start — nunca deixa sobras
+      assetWords = allBlockWords.filter(w =>
+        w.start >= assetAudioStart - 0.10
+      );
+    } else {
+      assetWords = allBlockWords.filter(w =>
+        w.start >= assetAudioStart - 0.10 && w.start < assetAudioEnd - 0.05
+      );
     }
 
-    // Coverage: how many of the block's narration words are within the total asset time span
-
-    const coveredWords = allBlockWords.filter(w => w.start < totalEndTime - 0.05).length;
+    // Cobertura: contar palavras cobertas por TODOS os assets do bloco
+    let totalEndTime = narrationStart;
+    for (let i = 0; i < totalAssets; i++) {
+      totalEndTime += getAssetDuration(blockKey, i);
+    }
+    // Se último asset cobre até narrationLastEnd, todas as palavras estão cobertas
+    const effectiveEnd = Math.max(totalEndTime, narrationLastEnd + 0.15);
+    const coveredWords = allBlockWords.filter(w => w.start < effectiveEnd - 0.05).length;
 
     return {
-
       words: assetWords,
-
       text: assetWords.map(w => w.word).join(' '),
-
       assetAudioStart,
-
       assetAudioEnd,
-
       blockAudioStart: narrationStart,
-
       blockAudioEnd: narrationLastEnd,
-
       totalBlockWords: allBlockWords.length,
-
-      coveredWords
-
+      coveredWords,
     };
-
   };
+
 
   const recalculateBlockAudioStarts = (blockKey: string, assets: any[], preserveUntilIndex = -1): any[] => {
     const updated = assets.map((a) => ({ ...a }));
@@ -4329,6 +4309,10 @@ export default function App() {
       }
 
     };
+
+    // Recalcular audio_start sequencial para assets que nao matcharam
+    const finalAssets = recalculateBlockAudioStarts(blockKey, newConfig.timeline_assets[blockKey]);
+    newConfig.timeline_assets[blockKey] = finalAssets;
 
     saveConfig(newConfig);
 
@@ -9305,6 +9289,24 @@ export default function App() {
                 </div>
               )}
             </div>
+            </DashminProjectTabLayout>
+          )}
+
+          {activeTab === 'scene-timing' && (
+            <DashminProjectTabLayout tab="scene-timing" activeProject={activeProject}>
+              <SceneTimingEditor
+                activeProject={activeProject}
+                config={config}
+                status={status}
+                storyboard={storyboardData}
+                wordTranscripts={wordTranscripts}
+                getMediaUrl={getMusicUrl}
+                onSave={async (timelineAssets) => {
+                  if (!config) return;
+                  await saveConfig({ ...config, timeline_assets: timelineAssets });
+                }}
+                toast={(msg) => toast(msg)}
+              />
             </DashminProjectTabLayout>
           )}
 
@@ -16272,7 +16274,8 @@ export default function App() {
         </div>
 
       )}
-    </>
+
+    </>
 
   );
 
