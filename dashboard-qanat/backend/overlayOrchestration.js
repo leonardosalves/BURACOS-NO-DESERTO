@@ -248,10 +248,9 @@ export function buildOverlayOrchestrationPlan({
       ]
       : [
         { act: 1, label: "Gancho Visual", percent: "0-12%", overlays: 0, goal: "1.5s limpos — imagem forte + legenda viral palavra-a-palavra." },
-        { act: 2, label: "Impacto", percent: "12-35%", overlays: 2, goal: "kinetic-text slam + lower-third glass. Parar o scroll." },
-        { act: 3, label: "Prova Rápida", percent: "35-58%", overlays: 2, goal: "counter + bar-chart compacto. Credibilidade em 2s." },
-        { act: 4, label: "Profundidade", percent: "58-82%", overlays: 2, goal: "timeline vertical OU lower-third accent + counter. Manter atenção." },
-        { act: 5, label: "Fechamento", percent: "82-100%", overlays: 1, goal: "1 lower-third ou kinetic-text reveal. Últimos 2s limpos." },
+        { act: 2, label: "Impacto/Prova", percent: "12-45%", overlays: 1, goal: "1 overlay de impacto (kinetic-text slam ou lower-third glass) no momento de pico. Parar o scroll." },
+        { act: 3, label: "Dados Rápidos", percent: "45-75%", overlays: 1, goal: "1 overlay de dados (counter ou bar-chart compacto). Credibilidade instantânea em <1s." },
+        { act: 4, label: "Fechamento", percent: "75-100%", overlays: 1, goal: "1 lower-third ou kinetic-text leve. Sem overlays nos últimos 2s de vídeo." },
       ];
     plan.componentPalette = [
       "kinetic-text",
@@ -278,7 +277,7 @@ export function buildOverlayOrchestrationPlan({
         "Use kinetic-text nos momentos de virada narrativa",
         "Números na narração → counter ou bar-chart obrigatório",
         "Nunca 2 overlays simultâneos na tela",
-        "Textos de 4-10 palavras (leitura em <1.2s)",
+        "Textos ultra-curtos de 3 a 5 palavras apenas (leitura imediata, sem poluição vertical)",
         "Alternar tipo E posição a cada overlay",
         "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
       ];
