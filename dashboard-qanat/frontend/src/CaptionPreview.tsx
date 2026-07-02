@@ -123,14 +123,13 @@ export function CaptionPreview({
         )}
 
         <div
-          className={`absolute left-1/2 -translate-x-1/2 flex flex-wrap justify-center items-center w-full ${
-            isSlam ? 'inset-0 items-center justify-center' : 'justify-end items-end'
+          className={`absolute inset-x-0 flex pointer-events-none ${
+            isSlam ? 'inset-y-0 items-center justify-center' : 'bottom-0 items-end justify-center'
           }`}
           style={{
             paddingBottom: isSlam ? 0 : metrics.paddingBottom,
             paddingLeft: metrics.paddingX,
             paddingRight: metrics.paddingX,
-            maxWidth: '100%',
           }}
         >
           <div
