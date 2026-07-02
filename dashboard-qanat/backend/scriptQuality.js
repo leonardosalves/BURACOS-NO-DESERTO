@@ -584,7 +584,7 @@ VISUAL_PROMPTS (crítico para listicle):
 - Mínimo 3 cenas por item (bloco de item)
 - A PRIMEIRA cena de cada item deve ter "text_overlay": "#N — NOME DO ITEM" (N = rank daquele bloco)
 - Prompts visuais: objeto/invenção em close, contexto histórico, impacto moderno
-- 80-90% imagem 2K, 10-20% vídeo IA
+- ${format === "SHORTS" ? "SHORTS: mínimo 3 cenas com type \"vídeo IA (max 10s)\" distribuídas (gancho, meio, payoff); demais imagem 2K" : "80-90% imagem 2K, 10-20% vídeo IA"}
 
 IMPACT_TEXTS (obrigatório):
 - Um impact_text por bloco de item: {"block": N, "start_offset": 0.0, "end_offset": 4.0, "text": "#20 — NOME"}
