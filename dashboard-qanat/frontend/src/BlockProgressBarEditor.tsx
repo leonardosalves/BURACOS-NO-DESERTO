@@ -112,15 +112,25 @@ export function buildBlockProgressDraftFromProject(
     config,
   });
 
-  const usedIcons = new Set<string>();
+  const usedIconIds = new Set<string>();
+  const usedIconVisuals = new Set<string>();
   const blocks = phrases.map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existing.get(block);
     const phraseStart = String(bp.phrase || bp.text || '').trim();
     const fullNarration = narrations.get(block) || phraseStart;
     const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block, phraseStart);
-    const iconType = saved?.iconType || suggestBlockProgressIcon(fullNarration, niche, usedIcons);
-    if (!saved?.iconType) usedIcons.add(iconType);
+    const iconStyle = (saved?.iconStyle || raw.defaultIconStyle || 'lottie') as 'lottie' | 'svg';
+    const iconType = saved?.iconType || suggestBlockProgressIcon(
+      fullNarration,
+      niche,
+      usedIconIds,
+      usedIconVisuals,
+    );
+    if (!saved?.iconType) {
+      usedIconIds.add(iconType);
+      usedIconVisuals.add(resolveIconVisualKey(iconType, iconStyle));
+    }
     return {
       block,
       start: Number(starts[idx]) || 0,
@@ -128,7 +138,7 @@ export function buildBlockProgressDraftFromProject(
       title,
       label: title,
       iconType,
-      iconStyle: saved?.iconStyle || raw.defaultIconStyle || 'lottie',
+      iconStyle,
       iconSize: saved?.iconSize,
     };
   });

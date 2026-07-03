@@ -202,13 +202,28 @@ export function resolveBlockDisplayTitle(saved, metadataTitle, blockNum, phraseS
   return `Bloco ${blockNum}`;
 }
 
-export function suggestBlockProgressIcon(narration = "", niche = "", exclude = new Set()) {
+function isIconExcluded(iconId, iconStyle, excludeIds, excludeVisuals) {
+  const id = String(iconId || "").toLowerCase();
+  if (excludeIds.has(id)) return true;
+  return excludeVisuals.has(resolveIconVisualKey(id, iconStyle));
+}
+
+export function suggestBlockProgressIcon(
+  narration = "",
+  niche = "",
+  excludeIds = new Set(),
+  excludeVisuals = new Set(),
+) {
   const text = `${niche} ${narration}`.toLowerCase();
   for (const rule of ICON_RULES) {
-    if (rule.re.test(text) && !exclude.has(rule.icon)) return rule.icon;
+    const style = resolveIconStyleForType(rule.icon);
+    if (rule.re.test(text) && !isIconExcluded(rule.icon, style, excludeIds, excludeVisuals)) {
+      return rule.icon;
+    }
   }
   for (const icon of ALLOWED_BLOCK_PROGRESS_ICONS) {
-    if (!exclude.has(icon)) return icon;
+    const style = resolveIconStyleForType(icon);
+    if (!isIconExcluded(icon, style, excludeIds, excludeVisuals)) return icon;
   }
   return "info";
 }
@@ -235,6 +250,8 @@ export function buildDefaultBlockProgressMarkers({
     config,
   });
 
+  const usedIconIds = new Set();
+  const usedIconVisuals = new Set();
   const blocks = (blockPhrases || []).map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existingMap.get(block);
@@ -243,14 +260,25 @@ export function buildDefaultBlockProgressMarkers({
     const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block, phraseStart);
     const start = Number(starts[idx]) || 0;
     const duration = Number(durations[idx]) || 10;
+    const iconStyle = saved?.iconStyle || "lottie";
+    const iconType = saved?.iconType || suggestBlockProgressIcon(
+      fullNarration,
+      niche,
+      usedIconIds,
+      usedIconVisuals,
+    );
+    if (!saved?.iconType) {
+      usedIconIds.add(iconType);
+      usedIconVisuals.add(resolveIconVisualKey(iconType, iconStyle));
+    }
     return {
       block,
       start,
       duration,
       title,
       label: title,
-      iconType: saved?.iconType || suggestBlockProgressIcon(fullNarration, niche),
-      iconStyle: saved?.iconStyle || "lottie",
+      iconType,
+      iconStyle,
       iconSize: saved?.iconSize,
     };
   });
@@ -284,7 +312,7 @@ export const SVG_ONLY_BLOCK_PROGRESS_ICONS = new Set([
 
 /** Lista enviada à IA — sem aliases que repetem a mesma animação. */
 export const BLOCK_PROGRESS_ICONS_FOR_AI = ALLOWED_BLOCK_PROGRESS_ICONS.filter(
-  (id) => id !== "building",
+  (id) => id !== "building" && id !== "globe",
 );
 
 const LOTTIE_FILE_BY_ICON = {
@@ -338,23 +366,25 @@ const LOTTIE_FILE_BY_ICON = {
   bell: "lottie_interact_bell_4.json",
 };
 
-const SVG_VISUAL_GROUP = {
-  earth: "earth-globe",
-  building: "earth-globe",
-  globe: "earth-globe",
+/** Família visual — ids diferentes que renderizam o mesmo ícone na barra. */
+const ICON_VISUAL_FAMILY = {
+  earth: "globe",
+  building: "globe",
+  globe: "globe",
   money: "coin",
   coin: "coin",
+  wallet: "coin",
+  graph: "chart",
+  chart: "chart",
   bolt: "bolt",
   lightning: "bolt",
   history: "hourglass",
   clock: "hourglass",
-  chart: "chart",
-  graph: "chart",
 };
 
 function normalizeAiIconId(raw) {
   const id = String(raw || "").trim().toLowerCase();
-  if (id === "building") return "earth";
+  if (id === "building" || id === "globe") return "earth";
   if (ALLOWED_BLOCK_PROGRESS_ICONS.includes(id)) return id;
   if (id === "atom") return "science";
   if (id === "people" || id === "user") return "users";
@@ -368,11 +398,9 @@ function resolveIconStyleForType(iconType, preferred) {
 
 function resolveIconVisualKey(iconType, iconStyle = "lottie") {
   const id = String(iconType || "info").toLowerCase();
-  if (iconStyle === "svg") {
-    return `svg:${SVG_VISUAL_GROUP[id] || id}`;
-  }
-  const file = LOTTIE_FILE_BY_ICON[id];
-  return file ? `lottie:${file}` : `lottie:id:${id}`;
+  const style = iconStyle === "svg" ? "svg" : "lottie";
+  const family = ICON_VISUAL_FAMILY[id] || id;
+  return `${style}:${family}`;
 }
 
 function isIconSlotAvailable(iconType, iconStyle, usedIds, usedVisuals) {
@@ -501,8 +529,9 @@ ${blockLines}
 Regras OBRIGATÓRIAS (violação = resposta inválida):
 - Liste exatamente ${blocks.length} blocos no JSON, um por bloco do roteiro
 - iconType ÚNICO em cada bloco — proibido repetir qualquer id
-- Proibido repetir animações parecidas: não use earth+globe juntos; prefira rocket, plane, science, map para espaço
-- Não use "building" (use earth, globe ou map)
+- Proibido repetir animações parecidas: earth, building e globe são o MESMO globo — use no máximo um
+- Também não repita famílias visuais: money/coin/wallet, graph/chart, bolt/lightning, history/clock
+- Não use "building" nem "globe" (use earth, map, compass, plane, rocket para variar)
 - Varie categorias: espaço, energia, história, dados, natureza, tech, negócios, social
 - iconStyle: "lottie" (padrão) ou "svg" para: swords, bolt, rocket, chart, users, clock
 

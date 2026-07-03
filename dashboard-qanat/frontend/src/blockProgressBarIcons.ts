@@ -1,5 +1,4 @@
 import type { BlockProgressMarkerDraft } from './BlockProgressBarEditor';
-import { LOTTIE_FILE_BY_ID } from './overlayIconCatalog';
 
 const ICON_RULES: { re: RegExp; icon: string }[] = [
   { re: /foguete|rocket|propulsão|propulsao|lançamento|lancamento|starship/i, icon: 'rocket' },
@@ -35,23 +34,25 @@ export const ALLOWED_BLOCK_PROGRESS_ICONS = [
   'message', 'mail', 'phone', 'swords', 'users', 'clock', 'bookmark', 'bell',
 ];
 
-const SVG_VISUAL_GROUP: Record<string, string> = {
-  earth: 'earth-globe',
-  building: 'earth-globe',
-  globe: 'earth-globe',
+/** Família visual — ids diferentes que renderizam o mesmo ícone na barra. */
+export const ICON_VISUAL_FAMILY: Record<string, string> = {
+  earth: 'globe',
+  building: 'globe',
+  globe: 'globe',
   money: 'coin',
   coin: 'coin',
+  wallet: 'coin',
+  graph: 'chart',
+  chart: 'chart',
   bolt: 'bolt',
   lightning: 'bolt',
   history: 'hourglass',
   clock: 'hourglass',
-  chart: 'chart',
-  graph: 'chart',
 };
 
 function normalizeAiIconId(raw: unknown): string | null {
   const id = String(raw || '').trim().toLowerCase();
-  if (id === 'building') return 'earth';
+  if (id === 'building' || id === 'globe') return 'earth';
   if (ALLOWED_BLOCK_PROGRESS_ICONS.includes(id)) return id;
   if (id === 'atom') return 'science';
   if (id === 'people' || id === 'user') return 'users';
@@ -65,11 +66,9 @@ function resolveIconStyleForType(iconType: string, preferred?: string): 'lottie'
 
 export function resolveIconVisualKey(iconType: string, iconStyle: 'lottie' | 'svg' = 'lottie'): string {
   const id = String(iconType || 'info').toLowerCase();
-  if (iconStyle === 'svg') {
-    return `svg:${SVG_VISUAL_GROUP[id] || id}`;
-  }
-  const file = LOTTIE_FILE_BY_ID[id];
-  return file ? `lottie:${file}` : `lottie:id:${id}`;
+  const style = iconStyle === 'svg' ? 'svg' : 'lottie';
+  const family = ICON_VISUAL_FAMILY[id] || id;
+  return `${style}:${family}`;
 }
 
 function isIconSlotAvailable(
@@ -136,13 +135,33 @@ function pickUniqueIconForMarker(
   return { iconType: 'info', iconStyle: 'lottie' as const, adjusted: preferred !== 'info' };
 }
 
-export function suggestBlockProgressIcon(narration = '', niche = '', exclude = new Set<string>()): string {
+function isIconExcluded(
+  iconId: string,
+  iconStyle: 'lottie' | 'svg',
+  excludeIds: Set<string>,
+  excludeVisuals: Set<string>,
+): boolean {
+  const id = String(iconId || '').toLowerCase();
+  if (excludeIds.has(id)) return true;
+  return excludeVisuals.has(resolveIconVisualKey(id, iconStyle));
+}
+
+export function suggestBlockProgressIcon(
+  narration = '',
+  niche = '',
+  excludeIds = new Set<string>(),
+  excludeVisuals = new Set<string>(),
+): string {
   const text = `${niche} ${narration}`.toLowerCase();
   for (const rule of ICON_RULES) {
-    if (rule.re.test(text) && !exclude.has(rule.icon)) return rule.icon;
+    const style = resolveIconStyleForType(rule.icon);
+    if (rule.re.test(text) && !isIconExcluded(rule.icon, style, excludeIds, excludeVisuals)) {
+      return rule.icon;
+    }
   }
   for (const icon of ALLOWED_BLOCK_PROGRESS_ICONS) {
-    if (!exclude.has(icon)) return icon;
+    const style = resolveIconStyleForType(icon);
+    if (!isIconExcluded(icon, style, excludeIds, excludeVisuals)) return icon;
   }
   return 'info';
 }
