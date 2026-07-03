@@ -13,7 +13,9 @@ import {
   type BlockProgressTitleFontId,
 } from './blockProgressBarTitles';
 import {
+  collectUsedIconVisualKeys,
   dedupeBlockProgressIcons,
+  resolveIconVisualKey,
   suggestBlockProgressIcon,
   swapBlockProgressIcons,
 } from './blockProgressBarIcons';
@@ -465,9 +467,7 @@ export function BlockProgressBarEditor({
                 const size = marker.iconSize || draft.iconSize;
                 const prevBlock = previewBlocks[idx - 1]?.block;
                 const nextBlock = previewBlocks[idx + 1]?.block;
-                const usedElsewhere = previewBlocks
-                  .filter((m) => m.block !== marker.block)
-                  .map((m) => m.iconType);
+                const usedElsewhere = collectUsedIconVisualKeys(previewBlocks, marker.block);
                 return (
                   <div
                     key={marker.block}
@@ -551,6 +551,7 @@ export function BlockProgressBarEditor({
                           iconStyle={marker.iconStyle || draft.defaultIconStyle}
                           accentColor={accentColor}
                           usedIconIds={usedElsewhere}
+                          resolveUsedVisualKey={resolveIconVisualKey}
                           onChange={(id, style) => patchBlock(marker.block, {
                             iconType: id || marker.iconType,
                             iconStyle: style,
