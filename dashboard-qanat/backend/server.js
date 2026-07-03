@@ -6268,6 +6268,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
       if (copied && range) {
 
+        const blockSonoplastia = sonoplastiaPlan.get(block);
         let startFrom = 0;
 
         try {
@@ -6276,7 +6277,6 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
           const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
 
-          const blockSonoplastia = sonoplastiaPlan.get(block);
           const climaxMode = blockSonoplastia?.climaxMode || "peak";
           const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${range.duration} ${climaxMode}`;
 
