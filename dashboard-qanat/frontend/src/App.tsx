@@ -136,6 +136,7 @@ import {
   stripConfigApiMetadata,
   type BgmProductionHints,
 } from './productionConfig';
+import { NarrationChunksPanel } from './NarrationChunksPanel';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
@@ -302,6 +303,8 @@ interface ConfigData {
   single_bgm?: string;
 
   bgm_mode?: 'emotion' | 'block';
+
+  narration_mode?: 'chunked' | 'master';
 
   bgm_emotion_mappings?: BgmEmotionMapping[];
   _bgm_production_hints?: BgmProductionHints;
@@ -12580,6 +12583,23 @@ export default function App() {
                       Projeto no seletor ({selectedProject}) difere do ativo ({activeProject}). Clique <strong>Carregar Projeto</strong> antes de ouvir ou editar.
                     </div>
                   )}
+                  <NarrationChunksPanel
+                    getProjectUrl={getProjectUrl}
+                    getMediaUrl={(file) => getMusicUrl(file, activeProject)}
+                    toast={(msg) => toast(msg)}
+                    hasApiKey={hasApiKey}
+                    narrationMode={config.narration_mode || 'master'}
+                    plan={storyboardData?.narration_chunk_plan || null}
+                    onModeChange={(mode) => {
+                      void saveConfigPatch({ narration_mode: mode }, { skipRefresh: true });
+                      setConfig((prev) => (prev ? { ...prev, narration_mode: mode } : prev));
+                    }}
+                    onPlanChange={(plan) => {
+                      if (!storyboardData) return;
+                      setStoryboardData({ ...storyboardData, narration_chunk_plan: plan });
+                    }}
+                    onUpdated={() => fetchData()}
+                  />
                   <NarrationReplacePanel
                     getProjectUrl={getProjectUrl}
                     getMediaUrl={(file) => getMusicUrl(file, activeProject)}
@@ -12600,6 +12620,7 @@ export default function App() {
                     }}
                     showScriptEdit={!!storyboardData}
                   />
+                  {config.narration_mode !== 'chunked' && (
                   <TtsVoiceStudioPanel
                     getProjectUrl={getProjectUrl}
                     toast={(msg) => toast(msg)}
@@ -12613,6 +12634,13 @@ export default function App() {
                       debounceSaveStoryboard(next);
                     }}
                   />
+                  )}
+                  {config.narration_mode === 'chunked' && (
+                    <p className="text-[10px] text-zinc-500 border border-zinc-800 rounded-xl p-3">
+                      Modo por trechos ativo — use o painel acima para planejar, ajustar pausas/narrador e gerar cada parte.
+                      O MP3 master é montado automaticamente com os silêncios entre trechos.
+                    </p>
+                  )}
                 </div>
               )}
 
