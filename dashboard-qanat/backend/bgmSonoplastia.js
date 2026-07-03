@@ -179,8 +179,59 @@ export function formatSonoplastiaLog(plan) {
     lines.push(
       `[Sonoplastia] Bloco ${entry.block}: mood=${entry.mood} pace=${entry.pace}`
       + ` → entrada=${entry.climaxMode} duck=${entry.duckStrength}`
+      + ` | busca="${entry.searchTheme}"`
       + ` | "${entry.phrasePreview}${entry.phrasePreview.length >= 80 ? "…" : ""}"`,
     );
   }
   return lines;
+}
+
+export function collectProjectBlockNumbers(config = {}, storyboard = {}, timings = {}) {
+  const timelineAssets = config.timeline_assets || {};
+  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const fromTimings = Array.isArray(timings.durations)
+    ? timings.durations.map((_, index) => index + 1)
+    : [];
+
+  return [...new Set([
+    ...Object.keys(timelineAssets).map(Number).filter(Boolean),
+    ...visualPrompts.map((prompt) => Number(prompt?.block || 0)).filter(Boolean),
+    ...(Array.isArray(config.block_phrases)
+      ? config.block_phrases.map((item) => Number(item?.block || 0)).filter(Boolean)
+      : []),
+    ...fromTimings,
+  ])].sort((a, b) => a - b);
+}
+
+export function buildProjectBlockRanges(blockNumbers = [], timings = {}, fallbackDuration = 8) {
+  return blockNumbers.map((block) => {
+    const blockIndex = Math.max(0, block - 1);
+    const start = Number(timings.starts?.[blockIndex]);
+    const duration = Number(timings.durations?.[blockIndex]);
+    return {
+      block,
+      start: Number.isFinite(start) ? start : 0,
+      duration: Number.isFinite(duration) && duration > 0 ? duration : fallbackDuration,
+    };
+  });
+}
+
+/** Blocos sem arquivo mapeado ou com arquivo ausente no disco. */
+export function blocksNeedingBgmDownload(blockNumbers, mappings = [], fileExists = () => false) {
+  const byBlock = new Map((mappings || []).map((m) => [Number(m.block), m]));
+  return blockNumbers.filter((block) => {
+    const mapping = byBlock.get(block);
+    if (!mapping?.file) return true;
+    return !fileExists(mapping.file);
+  });
+}
+
+export function resolveBlockSearchTheme(block, sonoplastiaPlan, suggestion = null, nicheMood = null) {
+  const fromStory = String(
+    suggestion?.search_theme || suggestion?.searchTheme || suggestion?.recommendation || suggestion?.recomendacao || "",
+  ).trim();
+  if (fromStory) return fromStory;
+  const plan = sonoplastiaPlan.get(block);
+  if (plan?.searchTheme) return plan.searchTheme;
+  return moodToSearchTheme("neutral", nicheMood);
 }
