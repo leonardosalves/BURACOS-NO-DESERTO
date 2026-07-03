@@ -13,7 +13,7 @@ import { SectionHeader } from './SectionHeader';
 import { SettingLabel } from './SettingHelpTip';
 import { OverlayAiBriefing } from './OverlayAiBriefing';
 import { OverlayPreview } from './OverlayPreview';
-import type { OverlayResearchSnapshot } from './overlayAiBriefing';
+import type { OverlayResearchSnapshot } from './overlayBriefingLogic';
 import { buildFilmstripSegments, resolveTotalDuration } from './overlayFilmstrip';
 import { OverlayIconPicker } from './OverlayIconPicker';
 import { OverlayVariantPicker } from './OverlayVariantPicker';

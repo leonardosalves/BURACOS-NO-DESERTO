@@ -13,7 +13,7 @@ import {
   type OverlayResearchSnapshot,
   type VisualPromptScene,
   type OverlayAiMeta,
-} from './overlayAiBriefing';
+} from './overlayBriefingLogic';
 import type { OverlayDraft } from './overlayEditorConfig';
 
 type Props = {
