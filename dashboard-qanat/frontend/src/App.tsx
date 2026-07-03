@@ -133,6 +133,8 @@ import {
   applyProductionPatchToConfig,
   pickProductionConfig,
   productionDraftToApiPatch,
+  stripConfigApiMetadata,
+  type BgmProductionHints,
 } from './productionConfig';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
@@ -302,6 +304,7 @@ interface ConfigData {
   bgm_mode?: 'emotion' | 'block';
 
   bgm_emotion_mappings?: BgmEmotionMapping[];
+  _bgm_production_hints?: BgmProductionHints;
   upload_metadata?: any;
   youtube_channel?: {
     channel_url?: string;
@@ -3665,7 +3668,7 @@ export default function App() {
       const res = await fetch(getProjectUrl('/api/config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
+        body: JSON.stringify(stripConfigApiMetadata(patch)),
       });
       if (!res.ok) {
         toast.error('Erro ao salvar configuração.');
@@ -3735,7 +3738,9 @@ export default function App() {
       toast.info(`Removidos ${dupesRemoved} asset(s) repetido(s) consecutivos na timeline.`);
       setConfig(baseConfig);
     }
-    const configToSave = preserveUploadMetadataChapters(enrichTimelineAudioStarts(baseConfig));
+    const configToSave = stripConfigApiMetadata(
+      preserveUploadMetadataChapters(enrichTimelineAudioStarts(baseConfig)),
+    );
 
     try {
 
@@ -10223,6 +10228,22 @@ export default function App() {
               }
             >
             <div className="lumiera-panel-stack font-sans">
+
+              {config._bgm_production_hints && (
+                <div className="glass-panel p-4 rounded-xl border border-gold-500/20 bg-gold-500/5 space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gold-400">
+                    Padrão Lumiera · {config._bgm_production_hints.mode}
+                    {config._bgm_production_hints.segments ? ` · ${config._bgm_production_hints.segments} segmentos` : ''}
+                    {' · '}volume {Math.round(config._bgm_production_hints.volume * 100)}%
+                  </p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    {config._bgm_production_hints.tip}
+                    {activeBgmMode === 'emotion' && !isShortVideo
+                      ? ' Fluxo: planejar emoções → mapear faixas → Regenerar Trilha → Render.'
+                      : ''}
+                  </p>
+                </div>
+              )}
 
               {/* Music mappings grid */}
 

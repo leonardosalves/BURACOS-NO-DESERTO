@@ -278,6 +278,12 @@ import {
   stitchEmotionSegmentsContinuous,
   syncEmotionMappingsToPlan,
 } from "./bgmEmotionPlan.js";
+import {
+  applyBgmProductionDefaults,
+  getBgmProductionHints,
+  harmonizeEmotionSegments,
+  resolveMusicVolumeForRender,
+} from "./bgmProductionDefaults.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -863,18 +869,21 @@ app.post("/api/projects/create", (req, res) => {
 
         if (cfg.gemini_api_key) delete cfg.gemini_api_key;
 
-        fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
+        const defaultDuration = isShort ? 40 : 120;
+        const cfgWithDefaults = applyBgmProductionDefaults(cfg, defaultDuration);
+        fs.writeFileSync(defaultConfigDest, JSON.stringify(cfgWithDefaults, null, 2), "utf8");
 
       } catch (e) {}
 
     } else {
 
-      const cfg = {
+      const defaultDuration = isShort ? 40 : 120;
+      const cfg = applyBgmProductionDefaults({
         aspect_ratio: isShort ? "9:16" : "16:9",
         video_format: isShort ? "SHORTS" : "LONGO",
         caption_style: isShort ? "shorts-viral" : "documentary",
         niche: niche || "Geral",
-      };
+      }, defaultDuration);
 
       fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
 
@@ -1086,8 +1095,14 @@ app.get("/api/config", (req, res) => {
   try {
 
     const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+    const normalized = applyBgmProductionDefaults(data, Number(timings.total_duration) || 0);
+    const format = detectVideoFormat(normalized, Number(timings.total_duration) || 0);
 
-    res.json(data);
+    res.json({
+      ...normalized,
+      _bgm_production_hints: getBgmProductionHints(format),
+    });
 
   } catch (err) {
 
@@ -1121,6 +1136,7 @@ app.post("/api/config", (req, res) => {
 
     const mergedConfig = { ...existingConfig };
     for (const [key, value] of Object.entries(req.body || {})) {
+      if (key.startsWith("_")) continue;
       if (value === null) {
         delete mergedConfig[key];
       } else if (key === "upload_metadata" && value && typeof value === "object" && !Array.isArray(value)) {
@@ -1144,12 +1160,15 @@ app.post("/api/config", (req, res) => {
       }
     }
 
-    fs.writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), "utf8");
+    const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+    const finalConfig = applyBgmProductionDefaults(mergedConfig, Number(timings.total_duration) || 0);
+
+    fs.writeFileSync(configPath, JSON.stringify(finalConfig, null, 2), "utf8");
 
     res.json({
       success: true,
       message: "config_qanat.json salvo com sucesso",
-      config: mergedConfig,
+      config: finalConfig,
     });
 
   } catch (err) {
@@ -3228,10 +3247,11 @@ function refreshEmotionPlanTimings(projDir) {
   const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
   const total = Number(timings.total_duration) || Number(plan.total_duration) || 0;
   const stitched = stitchEmotionSegmentsContinuous(plan.segments, total);
+  const harmonized = harmonizeEmotionSegments(stitched, config.niche || "", config);
   storyboard.bgm_emotion_plan = {
     ...plan,
-    segments: stitched,
-    segment_count: stitched.length,
+    segments: harmonized,
+    segment_count: harmonized.length,
     total_duration: total || plan.total_duration,
   };
   const synced = syncEmotionMappingsToPlan(storyboard.bgm_emotion_plan, config.bgm_emotion_mappings || []);
@@ -3241,8 +3261,8 @@ function refreshEmotionPlanTimings(projDir) {
   }
   fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-  logs.push(`Trilha emocional costurada: ${stitched.length} segmento(s) com crossfade contínuo (sem silêncio).`);
-  for (const seg of stitched) {
+  logs.push(`Trilha emocional costurada: ${harmonized.length} segmento(s) com crossfade contínuo (sem silêncio).`);
+  for (const seg of harmonized) {
     logs.push(`  ${seg.id} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s (${seg.emotion}) fade ${seg.fade_in_s}/${seg.fade_out_s}s`);
   }
   return { config, storyboard, logs };
@@ -6752,7 +6772,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         start,
         duration,
         startFrom,
-        duckStrength: emotion === "tension" ? "normal" : (duckStrength === "strong" ? "normal" : duckStrength),
+        duckStrength: duckStrength === "strong" ? "normal" : duckStrength,
         mood: emotion,
         climaxMode,
         fadeInS: Number(mapping?.fade_in_s ?? segMeta.fade_in_s) || 2.5,
@@ -6869,13 +6889,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     bgmTracks,
     sfxTracks,
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
-    musicVolume: (() => {
-      const base = Number.isFinite(Number(config.project_music_volume))
-        ? Number(config.project_music_volume)
-        : globalConfig.musicVolume;
-      const emotionLong = format === "16:9" && resolveBgmMode(config, storyboard, "LONG") === "emotion";
-      return emotionLong ? Math.max(base, 0.16) : base;
-    })(),
+    musicVolume: resolveMusicVolumeForRender(config, format, globalConfig.musicVolume),
     debugOverlay: globalConfig.debugOverlay,
     overlays,
     youtubeChannelInfo,
