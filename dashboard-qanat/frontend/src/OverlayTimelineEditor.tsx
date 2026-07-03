@@ -28,6 +28,8 @@ import {
   formatOverlayTime,
   isSceneId,
   normalizeOverlayList,
+  overlaySceneLabel,
+  overlaySceneRef,
   overlaySummary,
   overlaySupportsLottie,
   overlaySupportsPosition,
@@ -71,10 +73,21 @@ function sceneNarrationFor(
   overlay: OverlayDraft,
   visualPrompts: Array<{ scene?: string; block?: number; narration_text?: string }>,
 ): string | undefined {
-  const sceneId = String(overlay.scene_ref || (isSceneId(overlay.start) ? overlay.start : '') || '').trim();
+  const sceneId = overlaySceneRef(overlay);
   if (!sceneId) return undefined;
   const match = visualPrompts.find((vp) => String(vp.scene || '') === sceneId);
   return match?.narration_text?.replace(/\s+/g, ' ').trim();
+}
+
+function sceneDisplayFor(
+  overlay: OverlayDraft,
+  sceneOptions: { id: string; label: string }[],
+  starts: number[],
+): string {
+  const label = overlaySceneLabel(overlay, sceneOptions);
+  if (label) return label;
+  const start = numericStart(overlay, starts);
+  return `Manual · ${formatOverlayTime(start)}`;
 }
 
 export function OverlayTimelineEditor({
@@ -263,13 +276,15 @@ export function OverlayTimelineEditor({
                       : 'border-[rgba(130,128,253,0.45)] bg-[rgba(130,128,253,0.22)] hover:bg-[rgba(130,128,253,0.32)]'
                 }`}
                 style={{ left: `${left}%`, width: `${width}%` }}
-                title={`${OVERLAY_TYPE_LABELS[overlay.type]} · ${summary} · ${formatOverlayTime(start)}`}
+                title={`${OVERLAY_TYPE_LABELS[overlay.type]} · ${summary} · ${sceneDisplayFor(overlay, sceneOptions, starts)} · ${formatOverlayTime(start)}`}
               >
                 <span className="text-[7px] font-bold uppercase tracking-wide text-white/90 truncate leading-tight">
                   {OVERLAY_TYPE_LABELS[overlay.type]?.split(' ')[0]}
                 </span>
+                <span className="text-[6px] text-violet-300/90 truncate leading-tight">
+                  {overlaySceneRef(overlay) ? `Cena ${overlaySceneRef(overlay)}` : formatOverlayTime(start)}
+                </span>
                 <span className="text-[6px] text-zinc-300 truncate leading-tight">{summary}</span>
-                <span className="text-[6px] font-mono text-zinc-500">{formatOverlayTime(start)}</span>
               </button>
             );
           })}
@@ -286,9 +301,9 @@ export function OverlayTimelineEditor({
           <span className="text-[var(--dash-muted)] font-mono">
             {formatOverlayTime(numericStart(selected, starts))} → {selected.duration}s
           </span>
-          {selected.scene_ref && (
-            <span className="text-zinc-500">cena {String(selected.scene_ref)}</span>
-          )}
+          <span className="text-[var(--dash-primary-light)] font-medium truncate max-w-[240px]" title={sceneDisplayFor(selected, sceneOptions, starts)}>
+            {sceneDisplayFor(selected, sceneOptions, starts)}
+          </span>
           {selected.props?.position && (
             <span className="text-zinc-500">
               {OVERLAY_POSITIONS[selected.type]?.find((p) => p.id === selected.props?.position)?.label
@@ -314,6 +329,7 @@ export function OverlayTimelineEditor({
     const hasIcon = overlaySupportsLottie(overlay.type);
     const iconStyle = resolveIconStyle(props);
     const narration = sceneNarrationFor(overlay, visualPrompts);
+    const sceneLabel = sceneDisplayFor(overlay, sceneOptions, starts);
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,200px)_minmax(0,1fr)] gap-3 items-start">
@@ -322,6 +338,7 @@ export function OverlayTimelineEditor({
             overlay={overlay}
             aspectRatio={aspectRatio}
             accentColor={String(props.accentColor || accentColor)}
+            sceneLabel={sceneLabel}
             sceneNarration={narration}
             compact
           />
@@ -336,8 +353,11 @@ export function OverlayTimelineEditor({
               <p className="text-[9px] text-[var(--dash-muted)] mt-0.5 truncate">
                 {overlaySummary(overlay)}
               </p>
+              <p className="text-[8px] text-[var(--dash-primary-light)] mt-1 truncate font-medium" title={sceneLabel}>
+                {sceneLabel}
+              </p>
               {narration && (
-                <p className="text-[8px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                <p className="text-[8px] text-zinc-500 mt-0.5 line-clamp-2 leading-relaxed">
                   {narration}
                 </p>
               )}
@@ -630,6 +650,9 @@ export function OverlayTimelineEditor({
                     </div>
                     <p className="text-[9px] text-[var(--dash-muted)] mt-1 line-clamp-2">
                       {overlaySummary(overlay)}
+                    </p>
+                    <p className="text-[8px] text-[var(--dash-primary-light)]/90 mt-1 truncate font-medium">
+                      {sceneDisplayFor(overlay, sceneOptions, starts)}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {isHud && (

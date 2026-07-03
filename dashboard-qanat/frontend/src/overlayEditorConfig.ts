@@ -262,6 +262,23 @@ export function normalizeOverlayList(raw: unknown[]): OverlayDraft[] {
   });
 }
 
+export function overlaySceneRef(overlay: OverlayDraft): string | undefined {
+  const sceneId = String(
+    overlay.scene_ref || (isSceneId(overlay.start) ? overlay.start : '') || '',
+  ).trim();
+  return sceneId || undefined;
+}
+
+export function overlaySceneLabel(
+  overlay: OverlayDraft,
+  sceneOptions: { id: string; label: string }[] = [],
+): string | undefined {
+  const ref = overlaySceneRef(overlay);
+  if (!ref) return undefined;
+  const opt = sceneOptions.find((s) => s.id === ref);
+  return opt?.label || `Cena ${ref}`;
+}
+
 export function overlaySummary(overlay: OverlayDraft): string {
   const p = overlay.props || {};
   const pick = (...keys: string[]) => keys.map((k) => p[k]).find((v) => typeof v === 'string' && v.trim());

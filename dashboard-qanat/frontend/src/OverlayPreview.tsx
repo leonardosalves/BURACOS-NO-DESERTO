@@ -18,6 +18,7 @@ type Props = {
   overlay: OverlayDraft;
   aspectRatio?: '16:9' | '9:16' | string;
   accentColor?: string;
+  sceneLabel?: string;
   sceneNarration?: string;
   compact?: boolean;
   className?: string;
@@ -61,6 +62,7 @@ export function OverlayPreview({
   overlay,
   aspectRatio = '16:9',
   accentColor = '#D4AF37',
+  sceneLabel,
   sceneNarration,
   compact = false,
   className = '',
@@ -235,6 +237,7 @@ export function OverlayPreview({
 
   const posLabel = OVERLAY_POSITIONS[overlay.type]?.find((p) => p.id === position)?.label || position;
   const metaParts = [
+    sceneLabel,
     posLabel,
     iconKey ? `${iconStyle === 'svg' ? 'SVG' : 'Lottie'} · ${iconLabel(iconKey, iconStyle)}` : null,
   ].filter(Boolean);
@@ -263,7 +266,16 @@ export function OverlayPreview({
       </div>
       {metaParts.length > 0 && (
         <p className="text-[7px] text-zinc-500 truncate leading-tight" title={metaParts.join(' · ')}>
-          {metaParts.join(' · ')}
+          {sceneLabel && (
+            <span className="text-[var(--dash-primary-light)] font-semibold">{sceneLabel}</span>
+          )}
+          {sceneLabel && metaParts.length > 1 && <span className="text-zinc-600"> · </span>}
+          {metaParts.filter((p) => p !== sceneLabel).join(' · ')}
+        </p>
+      )}
+      {compact && sceneNarration && (
+        <p className="text-[7px] text-zinc-600 line-clamp-2 leading-snug" title={sceneNarration}>
+          {sceneNarration}
         </p>
       )}
       {!compact && (
