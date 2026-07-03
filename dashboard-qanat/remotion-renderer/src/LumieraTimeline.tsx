@@ -1935,10 +1935,18 @@ const CaptionLayer: React.FC<{
 
 
 
-const BGM_DUCK_PROFILES = {
+/** Shorts: duck agressivo para punch viral. */
+const BGM_DUCK_PROFILES_SHORT = {
   light: { speaking: [0.032, 0.055], near: [0.045, 0.095], idle: 0.105 },
   normal: { speaking: [0.024, 0.045], near: [0.035, 0.08], idle: 0.09 },
   strong: { speaking: [0.014, 0.03], near: [0.022, 0.055], idle: 0.065 },
+} as const;
+
+/** Longos: trilha audível sob narração contínua (documentário). */
+const BGM_DUCK_PROFILES_LONG = {
+  light: { speaking: [0.14, 0.2], near: [0.16, 0.22], idle: 0.28 },
+  normal: { speaking: [0.11, 0.17], near: [0.14, 0.2], idle: 0.24 },
+  strong: { speaking: [0.08, 0.13], near: [0.11, 0.16], idle: 0.2 },
 } as const;
 
 const BgmAudio: React.FC<{
@@ -1948,6 +1956,7 @@ const BgmAudio: React.FC<{
   musicVolume?: number;
   bgmDuckPoints?: number[];
   bgmDuckStrength?: "light" | "normal" | "strong";
+  format?: string;
 }> = ({
   track,
   captions,
@@ -1955,8 +1964,14 @@ const BgmAudio: React.FC<{
   musicVolume = 0.15,
   bgmDuckPoints = [],
   bgmDuckStrength = "normal",
+  format = "9:16",
 }) => {
-  const duck = BGM_DUCK_PROFILES[bgmDuckStrength] || BGM_DUCK_PROFILES.normal;
+  const isLongForm = format === "16:9";
+  const profiles = isLongForm ? BGM_DUCK_PROFILES_LONG : BGM_DUCK_PROFILES_SHORT;
+  const duck = profiles[bgmDuckStrength] || profiles.normal;
+  const minSpeakingVol = isLongForm ? 0.06 : 0.012;
+  const minNearVol = isLongForm ? 0.08 : 0.015;
+  const minIdleVol = isLongForm ? 0.1 : 0.02;
   const { fps, durationInFrames } = useVideoConfig();
   const totalDurationMs = (durationInFrames / fps) * 1000;
   const startFrame = Math.round(track.start * fps);
@@ -2032,15 +2047,15 @@ const BgmAudio: React.FC<{
 
           if (isSpeaking) {
             const breath = (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
-            return Math.max(0.012, interpolate(breath, [0, 1], duck.speaking) * envelope - duckBoost);
+            return Math.max(minSpeakingVol, interpolate(breath, [0, 1], duck.speaking) * envelope - duckBoost);
           }
 
           // Smooth transition over 600ms before/after narration starts/stops
           if (minDistance < 900) {
-            return Math.max(0.015, interpolate(minDistance, [0, 900], duck.near) * envelope - duckBoost);
+            return Math.max(minNearVol, interpolate(minDistance, [0, 900], duck.near) * envelope - duckBoost);
           }
 
-          return Math.max(0.02, duck.idle * envelope - duckBoost);
+          return Math.max(minIdleVol, duck.idle * envelope - duckBoost);
         };
 
         return getBaseVolume() * volScale;
@@ -2351,6 +2366,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
             musicVolume={musicVolume}
             bgmDuckPoints={bgmDuckPoints}
             bgmDuckStrength={track.duckStrength || bgmDuckStrength}
+            format={format}
           />
 
 
