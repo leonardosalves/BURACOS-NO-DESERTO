@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { blockProgressDesignTokens, markerCenterPercent } from './blockProgressBarDesign';
+import {
+  resolveBlockProgressTitleFontStack,
+  truncateBlockDisplayTitle,
+  type BlockProgressTitleFontId,
+} from './blockProgressBarTitles';
 import type { BlockProgressMarkerDraft, BlockProgressBarDraft } from './BlockProgressBarEditor';
 
 type Props = {
@@ -10,14 +15,16 @@ type Props = {
   iconSize: number;
   defaultIconStyle: BlockProgressBarDraft['defaultIconStyle'];
   showBlockTitles?: boolean;
+  titleFont?: BlockProgressTitleFontId;
+  titleFontSize?: number;
+  titleColor?: string;
   accentColor?: string;
   isShortFormat: boolean;
   totalDuration?: number;
 };
 
 function blockTitleLabel(marker: BlockProgressMarkerDraft) {
-  const text = String(marker.label || `Bloco ${marker.block}`).trim();
-  return text.length > 22 ? `${text.slice(0, 20)}…` : text;
+  return truncateBlockDisplayTitle(marker.title || marker.label || `Bloco ${marker.block}`, 22);
 }
 
 const LOOP_MS = 9000;
@@ -28,10 +35,15 @@ export function BlockProgressBarPreview({
   iconSize,
   defaultIconStyle,
   showBlockTitles = false,
+  titleFont = 'inter',
+  titleFontSize,
+  titleColor = '#FFFFFF',
   accentColor = '#D4AF37',
   isShortFormat,
   totalDuration: totalDurationProp,
 }: Props) {
+  const resolvedTitleSize = titleFontSize || (isShortFormat ? 9 : 10);
+  const titleFontStack = resolveBlockProgressTitleFontStack(titleFont);
   const [playing, setPlaying] = useState(true);
   const [activeBlock, setActiveBlock] = useState<number | null>(blocks[0]?.block ?? null);
   const progressFillRef = useRef<HTMLDivElement>(null);
@@ -152,10 +164,13 @@ export function BlockProgressBarPreview({
                   </div>
                   {showBlockTitles && (
                     <span
-                      className={`truncate leading-tight drop-shadow-sm ${
-                        active ? 'text-[7px] font-bold text-white' : 'text-[6px] font-medium text-white/50'
-                      }`}
-                      style={{ maxWidth: 72 }}
+                      className="truncate leading-tight drop-shadow-sm font-semibold"
+                      style={{
+                        fontFamily: titleFontStack,
+                        fontSize: active ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
+                        color: active ? titleColor : `${titleColor}88`,
+                        maxWidth: 72,
+                      }}
                     >
                       {blockTitleLabel(marker)}
                     </span>
@@ -222,10 +237,13 @@ export function BlockProgressBarPreview({
                   </div>
                   {showBlockTitles && (
                     <span
-                      className={`truncate leading-tight drop-shadow-sm ${
-                        active ? 'text-[7px] font-bold text-white' : 'text-[6px] font-medium text-white/45'
-                      }`}
-                      style={{ maxWidth: 72 }}
+                      className="truncate leading-tight drop-shadow-sm font-semibold"
+                      style={{
+                        fontFamily: titleFontStack,
+                        fontSize: active ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
+                        color: active ? titleColor : `${titleColor}88`,
+                        maxWidth: 72,
+                      }}
                     >
                       {blockTitleLabel(marker)}
                     </span>

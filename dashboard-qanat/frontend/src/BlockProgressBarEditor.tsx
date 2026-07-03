@@ -5,11 +5,19 @@ import { OverlayIconPicker } from './OverlayIconPicker';
 import { BlockProgressBarPreview } from './BlockProgressBarPreview';
 import { iconLabel, resolveIconStyle, type OverlayIconStyle } from './overlayIconCatalog';
 import { SettingLabel } from './SettingHelpTip';
+import {
+  BLOCK_PROGRESS_TITLE_FONTS,
+  collectBlockNarrationsByBlock,
+  resolveBlockDisplayTitle,
+  type BlockProgressTitleFontId,
+} from './blockProgressBarTitles';
 
 export type BlockProgressMarkerDraft = {
   block: number;
   start: number;
   duration: number;
+  /** Resumo/título exibido na barra (editável). */
+  title?: string;
   label?: string;
   iconType: string;
   iconStyle?: OverlayIconStyle;
@@ -22,8 +30,10 @@ export type BlockProgressBarDraft = {
   design: 'cinematic' | 'neon' | 'minimal' | 'documentary' | 'tech';
   iconSize: number;
   defaultIconStyle: OverlayIconStyle;
-  /** Exibe o título do bloco ao lado de cada ícone na barra. */
   showBlockTitles?: boolean;
+  titleFont?: BlockProgressTitleFontId;
+  titleFontSize?: number;
+  titleColor?: string;
   blocks: BlockProgressMarkerDraft[];
 };
 
@@ -37,17 +47,23 @@ const DESIGN_OPTIONS: { id: BlockProgressBarDraft['design']; label: string; hint
 
 type BlockPhrase = { block?: number; phrase?: string; text?: string };
 
+type StoryboardLike = {
+  visual_prompts?: Array<{ block?: number; narration_text?: string }>;
+};
+
 type Props = {
   draft: BlockProgressBarDraft;
   blockPhrases?: BlockPhrase[];
   blockStarts?: number[];
   blockDurations?: number[];
+  storyboard?: StoryboardLike | null;
   isShortFormat: boolean;
   accentColor?: string;
   niche?: string;
   totalDuration?: number;
   onChange: (next: BlockProgressBarDraft) => void;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
+  onSuggestTitlesWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
 };
 
 function suggestIcon(narration: string, niche: string): string {
@@ -66,35 +82,49 @@ function suggestIcon(narration: string, niche: string): string {
 export function buildBlockProgressDraftFromProject(
   config: Record<string, unknown> = {},
   timings: { starts?: number[]; durations?: number[] } = {},
+  storyboard?: StoryboardLike | null,
 ): BlockProgressBarDraft {
   const raw = (config.block_progress_bar || {}) as Partial<BlockProgressBarDraft>;
   const phrases = Array.isArray(config.block_phrases) ? config.block_phrases as BlockPhrase[] : [];
+  const visualPrompts = storyboard?.visual_prompts || [];
+  const narrations = collectBlockNarrationsByBlock(visualPrompts, phrases);
   const starts = timings.starts || [];
   const durations = timings.durations || [];
   const niche = String(config.niche || 'Geral');
   const existing = new Map((raw.blocks || []).map((b) => [b.block, b]));
+  const isShort = config.aspect_ratio === '9:16';
 
   const blocks = phrases.map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existing.get(block);
-    const narration = String(bp.phrase || bp.text || '').trim();
+    const phraseStart = String(bp.phrase || bp.text || '').trim();
+    const fullNarration = narrations.get(block) || phraseStart;
+    const title = resolveBlockDisplayTitle(saved, phraseStart, fullNarration, block);
     return {
       block,
       start: Number(starts[idx]) || 0,
       duration: Number(durations[idx]) || 10,
-      label: narration.slice(0, 56) || `Bloco ${block}`,
-      iconType: saved?.iconType || suggestIcon(narration, niche),
+      title,
+      label: title,
+      iconType: saved?.iconType || suggestIcon(fullNarration, niche),
       iconStyle: saved?.iconStyle || raw.defaultIconStyle || 'lottie',
       iconSize: saved?.iconSize,
     };
   });
 
+  const titleFont = BLOCK_PROGRESS_TITLE_FONTS.some((f) => f.id === raw.titleFont)
+    ? raw.titleFont
+    : 'inter';
+
   return {
     enabled: raw.enabled === true,
     design: raw.design || 'cinematic',
-    iconSize: Number(raw.iconSize) || (config.aspect_ratio === '9:16' ? 16 : 22),
+    iconSize: Number(raw.iconSize) || (isShort ? 16 : 22),
     defaultIconStyle: raw.defaultIconStyle === 'svg' ? 'svg' : 'lottie',
     showBlockTitles: raw.showBlockTitles === true,
+    titleFont: titleFont as BlockProgressTitleFontId,
+    titleFontSize: Number(raw.titleFontSize) || (isShort ? 9 : 10),
+    titleColor: String(raw.titleColor || '#FFFFFF'),
     blocks,
   };
 }
@@ -110,10 +140,13 @@ export function BlockProgressBarEditor({
   totalDuration,
   onChange,
   onSuggestIconsWithAi,
+  onSuggestTitlesWithAi,
 }: Props) {
   const [expandedBlock, setExpandedBlock] = useState<number | null>(draft.blocks[0]?.block ?? null);
   const [suggesting, setSuggesting] = useState(false);
+  const [suggestingTitles, setSuggestingTitles] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [suggestTitlesError, setSuggestTitlesError] = useState<string | null>(null);
 
   const markers = useMemo(() => {
     if (draft.blocks.length) return draft.blocks;
@@ -137,7 +170,14 @@ export function BlockProgressBarEditor({
     const base = draft.blocks.length ? draft.blocks : markers;
     onChange({
       ...draft,
-      blocks: base.map((b) => (b.block === block ? { ...b, ...partial } : b)),
+      blocks: base.map((b) => {
+        if (b.block !== block) return b;
+        const next = { ...b, ...partial };
+        if (partial.title !== undefined) {
+          next.label = partial.title;
+        }
+        return next;
+      }),
     });
   };
 
@@ -170,6 +210,36 @@ export function BlockProgressBarEditor({
       setSuggesting(false);
     }
   };
+
+  const handleSuggestTitlesAi = async () => {
+    if (!onSuggestTitlesWithAi) return;
+    setSuggestingTitles(true);
+    setSuggestTitlesError(null);
+    try {
+      const suggested = await onSuggestTitlesWithAi();
+      if (!suggested?.length) {
+        setSuggestTitlesError('A IA não retornou títulos válidos.');
+        return;
+      }
+      const byBlock = new Map(suggested.map((b) => [b.block, b]));
+      const base = draft.blocks.length ? draft.blocks : markers;
+      onChange({
+        ...draft,
+        blocks: base.map((b) => {
+          const ai = byBlock.get(b.block);
+          if (!ai?.title) return b;
+          return { ...b, title: ai.title, label: ai.title };
+        }),
+      });
+    } catch (err) {
+      setSuggestTitlesError(err instanceof Error ? err.message : 'Falha ao resumir títulos.');
+    } finally {
+      setSuggestingTitles(false);
+    }
+  };
+
+  const displayTitle = (marker: BlockProgressMarkerDraft) =>
+    marker.title || marker.label || `Bloco ${marker.block}`;
 
   return (
     <div className="dash-layer-card space-y-4">
@@ -259,10 +329,63 @@ export function BlockProgressBarEditor({
             <div className="min-w-0">
               <span className="text-[10px] font-semibold text-zinc-200 block">Exibir título do bloco</span>
               <span className="text-[8px] text-zinc-500 leading-relaxed block mt-0.5">
-                Mostra o texto do roteiro ao lado de cada ícone na barra (truncado se for longo).
+                Resumo temático de cada bloco (não o início da narração). Edite abaixo ou use IA.
               </span>
             </div>
           </label>
+
+          {draft.showBlockTitles && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
+              <div className="space-y-1">
+                <SettingLabel helpTitle="Fonte" help="Família tipográfica dos títulos na barra." align="start">
+                  Fonte
+                </SettingLabel>
+                <select
+                  value={draft.titleFont || 'inter'}
+                  onChange={(e) => patch({ titleFont: e.target.value as BlockProgressTitleFontId })}
+                  className="dash-select text-[10px]"
+                >
+                  {BLOCK_PROGRESS_TITLE_FONTS.map((f) => (
+                    <option key={f.id} value={f.id}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <SettingLabel helpTitle="Tamanho" help="Tamanho da fonte em pixels." align="start">
+                  Tamanho ({draft.titleFontSize || (isShortFormat ? 9 : 10)}px)
+                </SettingLabel>
+                <input
+                  type="range"
+                  min={7}
+                  max={16}
+                  step={1}
+                  value={draft.titleFontSize || (isShortFormat ? 9 : 10)}
+                  onChange={(e) => patch({ titleFontSize: Number(e.target.value) })}
+                  className="w-full accent-[var(--dash-primary)]"
+                />
+              </div>
+              <div className="space-y-1">
+                <SettingLabel helpTitle="Cor" help="Cor do texto dos títulos." align="start">
+                  Cor do texto
+                </SettingLabel>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={draft.titleColor || '#FFFFFF'}
+                    onChange={(e) => patch({ titleColor: e.target.value })}
+                    className="w-9 h-9 rounded border cursor-pointer shrink-0"
+                    style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-bg)' }}
+                  />
+                  <input
+                    type="text"
+                    value={draft.titleColor || '#FFFFFF'}
+                    onChange={(e) => patch({ titleColor: e.target.value.trim() || '#FFFFFF' })}
+                    className="dash-input flex-1 font-mono text-[10px]"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <BlockProgressBarPreview
             blocks={previewBlocks}
@@ -270,6 +393,9 @@ export function BlockProgressBarEditor({
             iconSize={draft.iconSize}
             defaultIconStyle={draft.defaultIconStyle}
             showBlockTitles={draft.showBlockTitles === true}
+            titleFont={draft.titleFont}
+            titleFontSize={draft.titleFontSize}
+            titleColor={draft.titleColor}
             accentColor={accentColor}
             isShortFormat={isShortFormat}
             totalDuration={resolvedTotalDuration}
@@ -280,20 +406,36 @@ export function BlockProgressBarEditor({
               <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> Ícones por bloco ({previewBlocks.length})
               </p>
-              {onSuggestIconsWithAi && (
-                <button
-                  type="button"
-                  onClick={handleSuggestAi}
-                  disabled={suggesting}
-                  className="bg-gold-500/90 hover:bg-gold-500 disabled:opacity-50 text-zinc-950 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
-                >
-                  {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                  {suggesting ? 'Analisando roteiro…' : 'Sugerir com IA'}
-                </button>
-              )}
+              <div className="flex gap-1.5 flex-wrap">
+                {onSuggestTitlesWithAi && (
+                  <button
+                    type="button"
+                    onClick={handleSuggestTitlesAi}
+                    disabled={suggestingTitles}
+                    className="border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 disabled:opacity-50 text-violet-100 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                  >
+                    {suggestingTitles ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                    {suggestingTitles ? 'Resumindo…' : 'Resumir títulos (IA)'}
+                  </button>
+                )}
+                {onSuggestIconsWithAi && (
+                  <button
+                    type="button"
+                    onClick={handleSuggestAi}
+                    disabled={suggesting}
+                    className="bg-gold-500/90 hover:bg-gold-500 disabled:opacity-50 text-zinc-950 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                  >
+                    {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                    {suggesting ? 'Analisando…' : 'Sugerir ícones (IA)'}
+                  </button>
+                )}
+              </div>
             </div>
             {suggestError && (
               <p className="text-[8px] text-red-400/90">{suggestError}</p>
+            )}
+            {suggestTitlesError && (
+              <p className="text-[8px] text-red-400/90">{suggestTitlesError}</p>
             )}
             <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
               {previewBlocks.map((marker) => {
@@ -323,7 +465,7 @@ export function BlockProgressBarEditor({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-bold text-zinc-200">Bloco {marker.block}</p>
-                        <p className="text-[8px] text-zinc-500 truncate">{marker.label}</p>
+                        <p className="text-[8px] text-zinc-500 truncate">{displayTitle(marker)}</p>
                       </div>
                       <span className="text-[8px] text-zinc-600 font-mono shrink-0">
                         {marker.start.toFixed(0)}s · {size}px
@@ -331,6 +473,17 @@ export function BlockProgressBarEditor({
                     </button>
                     {expanded && (
                       <div className="px-2 pb-2 space-y-2 border-t border-[var(--dash-border)]/60 pt-2">
+                        <div className="space-y-1">
+                          <span className="text-[9px] text-zinc-400">Título (resumo do bloco)</span>
+                          <input
+                            type="text"
+                            value={displayTitle(marker)}
+                            maxLength={48}
+                            onChange={(e) => patchBlock(marker.block, { title: e.target.value })}
+                            className="dash-input text-[10px] w-full"
+                            placeholder="Ex: Cura química do concreto"
+                          />
+                        </div>
                         <div className="space-y-1">
                           <span className="text-[9px] text-zinc-400">Tamanho deste bloco ({size}px)</span>
                           <input
