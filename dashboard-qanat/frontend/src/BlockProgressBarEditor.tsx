@@ -46,6 +46,9 @@ export type BlockProgressBarDraft = {
   titleFont?: BlockProgressTitleFontId;
   titleFontSize?: number;
   titleColor?: string;
+  /** Logo do canal na ponta da linha de progressão (marca). */
+  showChannelLogo?: boolean;
+  channelLogoSize?: number;
   blocks: BlockProgressMarkerDraft[];
 };
 
@@ -85,6 +88,7 @@ type Props = {
   accentColor?: string;
   niche?: string;
   totalDuration?: number;
+  channelLogoUrl?: string | null;
   onChange: (next: BlockProgressBarDraft) => void;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
   chaptersText?: string;
@@ -157,6 +161,8 @@ export function buildBlockProgressDraftFromProject(
     titleFont: titleFont as BlockProgressTitleFontId,
     titleFontSize: Number(raw.titleFontSize) || (isShort ? 9 : 10),
     titleColor: String(raw.titleColor || '#FFFFFF'),
+    showChannelLogo: raw.showChannelLogo !== false,
+    channelLogoSize: Number(raw.channelLogoSize) || (isShort ? 22 : 28),
     blocks: dedupedBlocks,
   };
 }
@@ -172,6 +178,7 @@ export function BlockProgressBarEditor({
   accentColor = '#D4AF37',
   niche = 'Geral',
   totalDuration,
+  channelLogoUrl = null,
   onChange,
   onSuggestIconsWithAi,
   chaptersText = '',
@@ -375,6 +382,52 @@ export function BlockProgressBarEditor({
             </div>
           </label>
 
+          <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3 space-y-2">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={draft.showChannelLogo !== false}
+                onChange={(e) => patch({ showChannelLogo: e.target.checked })}
+                className="rounded border-[var(--dash-border)] mt-0.5 shrink-0"
+                disabled={!channelLogoUrl}
+              />
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-zinc-200 block">Logo do canal na ponta da progressão</span>
+                <span className="text-[8px] text-zinc-500 leading-relaxed block mt-0.5">
+                  Usa o logo ativo em Marca · Logos. Acompanha o avanço da barra.
+                </span>
+              </div>
+              {channelLogoUrl && (
+                <img
+                  src={channelLogoUrl}
+                  alt=""
+                  className="w-8 h-8 rounded-full object-contain bg-zinc-900 border border-zinc-800 shrink-0"
+                />
+              )}
+            </label>
+            {draft.showChannelLogo !== false && channelLogoUrl && (
+              <div className="space-y-1 pl-6">
+                <SettingLabel helpTitle="Tamanho do logo" help="Diâmetro do logo na ponta da barra (px)." align="start">
+                  Tamanho do logo ({draft.channelLogoSize || (isShortFormat ? 22 : 28)}px)
+                </SettingLabel>
+                <input
+                  type="range"
+                  min={14}
+                  max={56}
+                  step={1}
+                  value={draft.channelLogoSize || (isShortFormat ? 22 : 28)}
+                  onChange={(e) => patch({ channelLogoSize: Number(e.target.value) })}
+                  className="w-full accent-[var(--dash-primary)]"
+                />
+              </div>
+            )}
+            {draft.showChannelLogo !== false && !channelLogoUrl && (
+              <p className="text-[8px] text-amber-400/90 pl-6">
+                Nenhum logo configurado — vá em Configurações → Marca e selecione um logo do canal.
+              </p>
+            )}
+          </div>
+
           {draft.showBlockTitles && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
               <div className="space-y-1">
@@ -440,6 +493,9 @@ export function BlockProgressBarEditor({
             accentColor={accentColor}
             isShortFormat={isShortFormat}
             totalDuration={resolvedTotalDuration}
+            showChannelLogo={draft.showChannelLogo !== false}
+            channelLogoSize={draft.channelLogoSize}
+            channelLogoUrl={channelLogoUrl}
           />
 
           <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3 space-y-2">

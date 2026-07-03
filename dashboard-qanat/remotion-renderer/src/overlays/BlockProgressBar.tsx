@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { OverlayIconSlot } from "./overlayIconSlot";
 
 export type BlockProgressMarker = {
@@ -40,6 +40,9 @@ export interface BlockProgressBarProps {
   titleColor?: string;
   accentColor?: string;
   orientation?: "horizontal" | "vertical";
+  showChannelLogo?: boolean;
+  channelLogoSize?: number;
+  channelLogoSrc?: string | null;
 }
 
 const TITLE_FONT_STACKS: Record<string, string> = {
@@ -272,6 +275,9 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
   titleColor = "#FFFFFF",
   accentColor = "#C5A880",
   orientation = "horizontal",
+  showChannelLogo = true,
+  channelLogoSize,
+  channelLogoSrc = null,
 }) => {
   const resolvedTitleSize = titleFontSize || (orientation === "vertical" ? 9 : 10);
   const titleFontFamily = TITLE_FONT_STACKS[titleFont] || TITLE_FONT_STACKS.inter;
@@ -296,6 +302,28 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
   const baseIcon = Math.max(12, Math.min(36, iconSize));
   const scale = isVertical ? 0.85 : 1;
   const slotWidth = Math.max(56, Math.floor((width - 48) / Math.max(1, safeBlocks.length)));
+  const logoPx = Math.max(14, Math.min(56, channelLogoSize || (isVertical ? 22 : 28)));
+  const showLogo = showChannelLogo !== false && Boolean(channelLogoSrc);
+
+  const progressTipLogo = (left: number | string, top: number | string) => (
+    <div
+      style={{
+        position: "absolute",
+        left,
+        top,
+        width: logoPx,
+        height: logoPx,
+        transform: "translate(-50%, -50%)",
+        filter: `drop-shadow(0 0 8px ${accentColor}88)`,
+        pointerEvents: "none",
+      }}
+    >
+      <Img
+        src={staticFile(String(channelLogoSrc).replace(/\\/g, "/"))}
+        style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "50%" }}
+      />
+    </div>
+  );
 
   if (isVertical) {
     const barLeft = 10;
@@ -335,6 +363,10 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
             }}
           />
         </div>
+        {showLogo && progressTipLogo(
+          barLeft + barWidth / 2,
+          barTop + barHeight * (1 - progress / 100),
+        )}
         {safeBlocks.map((marker) => {
           const pct = markerCenter(marker, totalDuration);
           const size = Math.round((marker.iconSize || baseIcon) * scale);
@@ -419,6 +451,10 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
             background: tokens.extraLine.background,
           }}
         />
+      )}
+      {showLogo && progressTipLogo(
+        `calc(24px + (100% - 48px) * ${progress / 100})`,
+        barTop + tokens.trackH / 2,
       )}
       {safeBlocks.map((marker) => {
         const pct = markerCenter(marker, totalDuration);
