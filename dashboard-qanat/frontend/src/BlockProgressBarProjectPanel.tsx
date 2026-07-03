@@ -1,25 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FolderOpen, Save } from 'lucide-react';
+import { FolderOpen, Lock, Save, Sparkles } from 'lucide-react';
 import {
   BlockProgressBarEditor,
   buildBlockProgressDraftFromProject,
   type BlockProgressBarDraft,
   type BlockProgressMarkerDraft,
 } from './BlockProgressBarEditor';
+import { isListicleProject } from './blockProgressBarTitles';
 
 type BlockTimingsLike = { starts?: number[]; durations?: number[] };
+
+type StoryboardLike = {
+  visual_prompts?: Array<{ block?: number; narration_text?: string }>;
+  list_items?: Array<{ block?: number; rank?: number; title?: string; name?: string }>;
+  listicle?: { content_mode?: string; rank_count?: number; rank_order?: string };
+};
 
 type Props = {
   projectKey: string;
   config: Record<string, unknown>;
+  storyboard?: StoryboardLike | null;
   blockTimings?: BlockTimingsLike;
+  chaptersText?: string;
+  metadataReady?: boolean;
   isShortFormat: boolean;
   accentColor?: string;
   saving?: boolean;
+  onGoToMetadata?: () => void;
   onSave: (draft: BlockProgressBarDraft) => void | Promise<void>;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
-  onSuggestTitlesWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
-  storyboard?: { visual_prompts?: Array<{ block?: number; narration_text?: string }> } | null;
 };
 
 function blockTimingsKey(timings?: BlockTimingsLike): string {
@@ -45,29 +54,37 @@ function mergeBlockTimingsIntoDraft(
 export function BlockProgressBarProjectPanel({
   projectKey,
   config,
+  storyboard,
   blockTimings,
+  chaptersText = '',
+  metadataReady = false,
   isShortFormat,
   accentColor = '#D4AF37',
   saving = false,
+  onGoToMetadata,
   onSave,
   onSuggestIconsWithAi,
-  onSuggestTitlesWithAi,
-  storyboard,
 }: Props) {
   const [draft, setDraft] = useState<BlockProgressBarDraft>(() =>
-    buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard),
+    buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard, chaptersText),
   );
 
   const timingsKey = blockTimingsKey(blockTimings);
   const prevProjectKey = useRef<string | null>(null);
   const prevTimingsKey = useRef<string | null>(null);
+  const prevChaptersKey = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!metadataReady) return;
+
     const projectChanged = prevProjectKey.current !== projectKey;
-    if (projectChanged) {
+    const chaptersChanged = prevChaptersKey.current !== chaptersText;
+
+    if (projectChanged || chaptersChanged) {
       prevProjectKey.current = projectKey;
       prevTimingsKey.current = timingsKey;
-      setDraft(buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard));
+      prevChaptersKey.current = chaptersText;
+      setDraft(buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard, chaptersText));
       return;
     }
 
@@ -75,7 +92,7 @@ export function BlockProgressBarProjectPanel({
       prevTimingsKey.current = timingsKey;
       setDraft((prev) => mergeBlockTimingsIntoDraft(prev, blockTimings || {}));
     }
-  }, [projectKey, timingsKey, config, blockTimings, storyboard]);
+  }, [projectKey, timingsKey, config, blockTimings, storyboard, chaptersText, metadataReady]);
 
   const totalDuration = Number(
     blockTimings?.starts?.length && blockTimings?.durations?.length
@@ -83,6 +100,36 @@ export function BlockProgressBarProjectPanel({
         + (blockTimings.durations[blockTimings.durations.length - 1] || 0)
       : 0,
   ) || undefined;
+
+  const listicle = isListicleProject(config, storyboard);
+
+  if (!metadataReady) {
+    return (
+      <div className="dash-layer-card space-y-3 border border-amber-500/25 bg-amber-500/5">
+        <div className="flex items-start gap-3">
+          <Lock className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+          <div className="space-y-2 min-w-0">
+            <p className="text-xs font-bold text-zinc-200">Barra de progresso por blocos</p>
+            <p className="text-[9px] text-zinc-400 leading-relaxed">
+              Disponível após gerar os metadados em <strong className="text-zinc-200">IA · Metadados</strong>.
+              Os títulos vêm da seção <strong className="text-zinc-200">CAPÍTULOS</strong>
+              {listicle ? ' ou dos nomes dos itens do Top no caso de listicles.' : '.'}
+            </p>
+            {onGoToMetadata && (
+              <button
+                type="button"
+                onClick={onGoToMetadata}
+                className="dash-btn-primary text-[10px] px-3 py-1.5 inline-flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3 h-3" />
+                Ir para IA · Metadados
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -92,7 +139,8 @@ export function BlockProgressBarProjectPanel({
           <span>
             Configuração exclusiva do projeto{' '}
             <span className="text-zinc-300 font-semibold">{projectKey}</span>
-            {' '}— salva em <code className="text-violet-300/90">config_qanat.json</code>
+            {' '}— títulos dos capítulos dos metadados
+            {listicle ? ' / itens do Top' : ''}
           </span>
         </p>
         <button
@@ -111,14 +159,15 @@ export function BlockProgressBarProjectPanel({
         blockPhrases={(config.block_phrases || []) as Array<{ block?: number; phrase?: string; text?: string }>}
         blockStarts={blockTimings?.starts || []}
         blockDurations={blockTimings?.durations || []}
+        storyboard={storyboard}
+        projectConfig={config}
         isShortFormat={isShortFormat}
         accentColor={accentColor}
         niche={String(config.niche || 'Geral')}
         totalDuration={totalDuration}
-        storyboard={storyboard}
+        chaptersText={chaptersText}
         onChange={setDraft}
         onSuggestIconsWithAi={onSuggestIconsWithAi}
-        onSuggestTitlesWithAi={onSuggestTitlesWithAi}
       />
     </div>
   );

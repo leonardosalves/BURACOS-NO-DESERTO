@@ -2,6 +2,8 @@
  * Barra de progresso por blocos — ícones temáticos + timings.
  */
 
+import { isListicleProject } from "./videoProEnhancements.js";
+
 const ICON_RULES = [
   { re: /espaço|espacial|foguete|nasa|órbita|orbita|satélite|satelite|lua|marte/i, icon: "science" },
   { re: /inteligência artificial|\bia\b|machine learning|algoritmo|software|tech|digital|cyber/i, icon: "gear" },
@@ -47,38 +49,137 @@ export function collectBlockNarrationsByBlock({ visualPrompts = [], blockPhrases
   return map;
 }
 
-export function suggestBlockTitleHeuristic(narration = "") {
-  const text = String(narration).replace(/\s+/g, " ").trim();
-  if (!text) return "";
-  const masParts = text.split(/\s+mas\s+/i);
-  const focus = (masParts.length > 1 ? masParts[masParts.length - 1] : text).trim();
-  const sentence = focus.split(/[.!?]/)[0].trim();
-  const words = sentence
-    .replace(/^(o|a|os|as|um|uma|esse|essa|este|esta|o nosso|a nossa)\s+/i, "")
-    .split(/\s+/)
+function parseChapterTimestampSeconds(ts = "") {
+  const parts = String(ts).trim().split(":").map((p) => Number(p));
+  if (parts.some((n) => !Number.isFinite(n))) return 0;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return 0;
+}
+
+function cleanChapterTitle(title = "") {
+  return String(title)
+    .trim()
+    .replace(/^#\d+\s+/, "")
+    .replace(/^introdução$/i, "Introdução")
+    .replace(/^recap\s*\+\s*cta$/i, "Recap + CTA");
+}
+
+export function parseYoutubeChaptersText(chaptersText = "") {
+  return String(chaptersText)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
     .filter(Boolean)
-    .slice(0, 5);
-  let title = words.join(" ");
-  if (title.length > 38) {
-    title = `${title.slice(0, 36).replace(/\s+\S*$/, "")}…`;
+    .map((line) => {
+      const match = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]?\s*(.+)$/);
+      if (!match) return null;
+      const time = match[1];
+      const title = cleanChapterTitle(match[2]);
+      return title ? { time, title, seconds: parseChapterTimestampSeconds(time) } : null;
+    })
+    .filter(Boolean);
+}
+
+export function resolveListicleTitlesByBlock(storyboard = {}, config = {}) {
+  const map = new Map();
+  const items = Array.isArray(storyboard.list_items) ? storyboard.list_items : [];
+  const rankCount = Number(config.rank_count || storyboard.listicle?.rank_count || items.length || 0);
+  const rankOrder = config.rank_order || storyboard.listicle?.rank_order || "desc";
+
+  for (const item of items) {
+    const block = Number(item.block);
+    const title = String(item.title || item.name || "").trim();
+    if (block > 0 && title) map.set(block, title);
   }
-  return title || "Bloco";
+
+  if (map.size < rankCount && items.length) {
+    const sorted = [...items].sort((a, b) => Number(a.rank) - Number(b.rank));
+    sorted.forEach((item, idx) => {
+      const title = String(item.title || item.name || "").trim();
+      if (!title) return;
+      let block = Number(item.block);
+      if (!block) {
+        const rank = Number(item.rank);
+        if (rankOrder === "desc" && rankCount > 0) {
+          block = rankCount - rank + 2;
+        } else {
+          block = (rank || idx + 1) + 1;
+        }
+      }
+      if (block > 1 && !map.has(block)) map.set(block, title);
+    });
+  }
+
+  return map;
 }
 
-function phraseMatchesLabel(label, phrase) {
-  const a = String(label || "").toLowerCase().trim().slice(0, 24);
-  const b = String(phrase || "").toLowerCase().trim().slice(0, 24);
-  if (!a || !b) return false;
-  return a.startsWith(b) || b.startsWith(a);
+export function resolveBlockTitlesFromChapters(chaptersText = "", blockStarts = []) {
+  const chapters = parseYoutubeChaptersText(chaptersText);
+  if (!chapters.length || !blockStarts.length) return [];
+
+  return blockStarts.map((start, idx) => {
+    const exact = chapters.find((c) => Math.abs(c.seconds - start) < 1.5);
+    if (exact?.title) return exact.title;
+    if (chapters.length === blockStarts.length && chapters[idx]?.title) {
+      return chapters[idx].title;
+    }
+    let best = chapters[0];
+    let bestDiff = Infinity;
+    for (const chapter of chapters) {
+      const diff = Math.abs(chapter.seconds - start);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = chapter;
+      }
+    }
+    if (bestDiff <= 4 && best?.title) return best.title;
+    return `Bloco ${idx + 1}`;
+  });
 }
 
-export function resolveBlockDisplayTitle(saved, phraseStart, fullNarration, blockNum) {
+export function buildBlockTitlesForProgressBar({
+  chaptersText = "",
+  blockStarts = [],
+  storyboard = {},
+  config = {},
+} = {}) {
+  const result = new Map();
+  const listicle = isListicleProject(config, storyboard);
+
+  if (listicle) {
+    const listicleTitles = resolveListicleTitlesByBlock(storyboard, config);
+    listicleTitles.forEach((title, block) => result.set(block, title));
+  }
+
+  if (String(chaptersText).trim()) {
+    const fromChapters = resolveBlockTitlesFromChapters(chaptersText, blockStarts);
+    blockStarts.forEach((_, idx) => {
+      const block = idx + 1;
+      const chapterTitle = fromChapters[idx];
+      if (!chapterTitle) return;
+      if (listicle && result.has(block)) return;
+      result.set(block, chapterTitle);
+    });
+  }
+
+  return result;
+}
+
+export function resolveChaptersTextForProject(projectDir, readProjectJson) {
+  const config = readProjectJson(projectDir, "config_qanat.json", {});
+  const fromUpload = config.upload_metadata?.youtube?.chapters;
+  if (String(fromUpload || "").trim()) return String(fromUpload).trim();
+
+  const cache = readProjectJson(projectDir, "youtube_metadata_cache.json", {});
+  if (String(cache?.parsed?.chapters || "").trim()) return String(cache.parsed.chapters).trim();
+
+  return "";
+}
+
+export function resolveBlockDisplayTitle(saved, metadataTitle, blockNum) {
   if (saved?.title?.trim()) return saved.title.trim();
-  if (saved?.label?.trim() && !phraseMatchesLabel(saved.label, phraseStart)) {
-    return saved.label.trim();
-  }
-  const fromNarration = suggestBlockTitleHeuristic(fullNarration);
-  if (fromNarration && fromNarration !== "Bloco") return fromNarration;
+  if (String(metadataTitle || "").trim()) return String(metadataTitle).trim();
+  if (saved?.label?.trim()) return saved.label.trim();
   return `Bloco ${blockNum}`;
 }
 
@@ -97,18 +198,27 @@ export function buildDefaultBlockProgressMarkers({
   durations = [],
   niche = "Geral",
   existingBlocks = [],
+  chaptersText = "",
+  storyboard = {},
+  config = {},
 } = {}) {
   const existingMap = new Map(
     (existingBlocks || []).map((b) => [Number(b.block), b]),
   );
   const narrationsByBlock = collectBlockNarrationsByBlock({ visualPrompts, blockPhrases });
+  const metadataTitles = buildBlockTitlesForProgressBar({
+    chaptersText,
+    blockStarts: starts,
+    storyboard,
+    config,
+  });
 
   return (blockPhrases || []).map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existingMap.get(block);
     const phraseStart = String(bp.phrase || bp.text || "").trim();
     const fullNarration = narrationsByBlock.get(block) || phraseStart;
-    const title = resolveBlockDisplayTitle(saved, phraseStart, fullNarration, block);
+    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block);
     const start = Number(starts[idx]) || 0;
     const duration = Number(durations[idx]) || 10;
     return {
@@ -237,6 +347,8 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
     return null;
   }
 
+  const chaptersText = resolveChaptersTextForProject(projectDir, readProjectJson);
+
   const markers = buildDefaultBlockProgressMarkers({
     blockPhrases,
     visualPrompts,
@@ -244,6 +356,9 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
     durations: timings.durations || [],
     niche: config.niche || "Geral",
     existingBlocks: raw.blocks || [],
+    chaptersText,
+    storyboard,
+    config,
   });
 
   const titleFont = BLOCK_PROGRESS_TITLE_FONTS[raw.titleFont]

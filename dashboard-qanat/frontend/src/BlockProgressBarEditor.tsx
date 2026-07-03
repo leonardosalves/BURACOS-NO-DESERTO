@@ -7,6 +7,7 @@ import { iconLabel, resolveIconStyle, type OverlayIconStyle } from './overlayIco
 import { SettingLabel } from './SettingHelpTip';
 import {
   BLOCK_PROGRESS_TITLE_FONTS,
+  buildBlockTitlesForProgressBar,
   collectBlockNarrationsByBlock,
   resolveBlockDisplayTitle,
   type BlockProgressTitleFontId,
@@ -49,6 +50,8 @@ type BlockPhrase = { block?: number; phrase?: string; text?: string };
 
 type StoryboardLike = {
   visual_prompts?: Array<{ block?: number; narration_text?: string }>;
+  list_items?: Array<{ block?: number; rank?: number; title?: string; name?: string }>;
+  listicle?: { content_mode?: string; rank_count?: number; rank_order?: string };
 };
 
 type Props = {
@@ -57,13 +60,14 @@ type Props = {
   blockStarts?: number[];
   blockDurations?: number[];
   storyboard?: StoryboardLike | null;
+  projectConfig?: Record<string, unknown>;
   isShortFormat: boolean;
   accentColor?: string;
   niche?: string;
   totalDuration?: number;
   onChange: (next: BlockProgressBarDraft) => void;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
-  onSuggestTitlesWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
+  chaptersText?: string;
 };
 
 function suggestIcon(narration: string, niche: string): string {
@@ -83,6 +87,7 @@ export function buildBlockProgressDraftFromProject(
   config: Record<string, unknown> = {},
   timings: { starts?: number[]; durations?: number[] } = {},
   storyboard?: StoryboardLike | null,
+  chaptersText = '',
 ): BlockProgressBarDraft {
   const raw = (config.block_progress_bar || {}) as Partial<BlockProgressBarDraft>;
   const phrases = Array.isArray(config.block_phrases) ? config.block_phrases as BlockPhrase[] : [];
@@ -93,13 +98,19 @@ export function buildBlockProgressDraftFromProject(
   const niche = String(config.niche || 'Geral');
   const existing = new Map((raw.blocks || []).map((b) => [b.block, b]));
   const isShort = config.aspect_ratio === '9:16';
+  const metadataTitles = buildBlockTitlesForProgressBar({
+    chaptersText,
+    blockStarts: starts,
+    storyboard,
+    config,
+  });
 
   const blocks = phrases.map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existing.get(block);
     const phraseStart = String(bp.phrase || bp.text || '').trim();
     const fullNarration = narrations.get(block) || phraseStart;
-    const title = resolveBlockDisplayTitle(saved, phraseStart, fullNarration, block);
+    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block);
     return {
       block,
       start: Number(starts[idx]) || 0,
@@ -134,19 +145,19 @@ export function BlockProgressBarEditor({
   blockPhrases = [],
   blockStarts = [],
   blockDurations = [],
+  storyboard,
+  projectConfig = {},
   isShortFormat,
   accentColor = '#D4AF37',
   niche = 'Geral',
   totalDuration,
   onChange,
   onSuggestIconsWithAi,
-  onSuggestTitlesWithAi,
+  chaptersText = '',
 }: Props) {
   const [expandedBlock, setExpandedBlock] = useState<number | null>(draft.blocks[0]?.block ?? null);
   const [suggesting, setSuggesting] = useState(false);
-  const [suggestingTitles, setSuggestingTitles] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
-  const [suggestTitlesError, setSuggestTitlesError] = useState<string | null>(null);
 
   const markers = useMemo(() => {
     if (draft.blocks.length) return draft.blocks;
@@ -211,31 +222,22 @@ export function BlockProgressBarEditor({
     }
   };
 
-  const handleSuggestTitlesAi = async () => {
-    if (!onSuggestTitlesWithAi) return;
-    setSuggestingTitles(true);
-    setSuggestTitlesError(null);
-    try {
-      const suggested = await onSuggestTitlesWithAi();
-      if (!suggested?.length) {
-        setSuggestTitlesError('A IA não retornou títulos válidos.');
-        return;
-      }
-      const byBlock = new Map(suggested.map((b) => [b.block, b]));
-      const base = draft.blocks.length ? draft.blocks : markers;
-      onChange({
-        ...draft,
-        blocks: base.map((b) => {
-          const ai = byBlock.get(b.block);
-          if (!ai?.title) return b;
-          return { ...b, title: ai.title, label: ai.title };
-        }),
-      });
-    } catch (err) {
-      setSuggestTitlesError(err instanceof Error ? err.message : 'Falha ao resumir títulos.');
-    } finally {
-      setSuggestingTitles(false);
-    }
+  const syncTitlesFromMetadata = () => {
+    const metadataTitles = buildBlockTitlesForProgressBar({
+      chaptersText,
+      blockStarts,
+      storyboard,
+      config: projectConfig,
+    });
+    const base = draft.blocks.length ? draft.blocks : markers;
+    onChange({
+      ...draft,
+      blocks: base.map((b) => {
+        const metaTitle = metadataTitles.get(b.block);
+        if (!metaTitle) return b;
+        return { ...b, title: metaTitle, label: metaTitle };
+      }),
+    });
   };
 
   const displayTitle = (marker: BlockProgressMarkerDraft) =>
@@ -329,7 +331,7 @@ export function BlockProgressBarEditor({
             <div className="min-w-0">
               <span className="text-[10px] font-semibold text-zinc-200 block">Exibir título do bloco</span>
               <span className="text-[8px] text-zinc-500 leading-relaxed block mt-0.5">
-                Resumo temático de cada bloco (não o início da narração). Edite abaixo ou use IA.
+                Usa os capítulos gerados em IA · Metadados. Em listicles Top 3/5, os itens do ranking.
               </span>
             </div>
           </label>
@@ -407,15 +409,14 @@ export function BlockProgressBarEditor({
                 <Sparkles className="w-3 h-3" /> Ícones por bloco ({previewBlocks.length})
               </p>
               <div className="flex gap-1.5 flex-wrap">
-                {onSuggestTitlesWithAi && (
+                {chaptersText.trim() && (
                   <button
                     type="button"
-                    onClick={handleSuggestTitlesAi}
-                    disabled={suggestingTitles}
-                    className="border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 disabled:opacity-50 text-violet-100 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                    onClick={syncTitlesFromMetadata}
+                    className="border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 text-violet-100 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
                   >
-                    {suggestingTitles ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                    {suggestingTitles ? 'Resumindo…' : 'Resumir títulos (IA)'}
+                    <Sparkles className="w-3 h-3" />
+                    Sincronizar capítulos
                   </button>
                 )}
                 {onSuggestIconsWithAi && (
@@ -433,9 +434,6 @@ export function BlockProgressBarEditor({
             </div>
             {suggestError && (
               <p className="text-[8px] text-red-400/90">{suggestError}</p>
-            )}
-            {suggestTitlesError && (
-              <p className="text-[8px] text-red-400/90">{suggestTitlesError}</p>
             )}
             <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
               {previewBlocks.map((marker) => {
@@ -474,7 +472,7 @@ export function BlockProgressBarEditor({
                     {expanded && (
                       <div className="px-2 pb-2 space-y-2 border-t border-[var(--dash-border)]/60 pt-2">
                         <div className="space-y-1">
-                          <span className="text-[9px] text-zinc-400">Título (resumo do bloco)</span>
+                          <span className="text-[9px] text-zinc-400">Título do capítulo</span>
                           <input
                             type="text"
                             value={displayTitle(marker)}
