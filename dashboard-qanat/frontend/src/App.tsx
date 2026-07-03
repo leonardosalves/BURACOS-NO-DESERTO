@@ -91,6 +91,8 @@ import {
 
   Clock,
 
+  Zap,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -140,6 +142,7 @@ import { NarrationChunksPanel } from './NarrationChunksPanel';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
+import { VideoResurrectorPanel } from './VideoResurrectorPanel';
 import { ComfyMcpPage } from './ComfyMcpPage';
 import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
@@ -13408,6 +13411,19 @@ export default function App() {
                     setActiveTab('settings');
                   }}
                 />
+              </DashminPageLayout>
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'video-resurrector' && (
+            <TabErrorBoundary tabName="Ressuscitador">
+              <DashminPageLayout
+                title="Ressuscitador de vídeos"
+                subtitle="Reformula metadados SEO de vídeos antigos — batch diário de 10."
+                breadcrumb={['Dashboard', 'Estúdio', 'Ressuscitador']}
+                icon={<Zap className="w-5 h-5 text-amber-400" />}
+              >
+                <VideoResurrectorPanel toast={toast} />
               </DashminPageLayout>
             </TabErrorBoundary>
           )}

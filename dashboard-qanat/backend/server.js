@@ -140,6 +140,7 @@ import {
 } from "./thumbnailExperiment.js";
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
+import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
@@ -14516,6 +14517,13 @@ workflowApi = registerWorkflowRoutes(app, {
   generateYoutubeThumbnailImages,
   runAutoSoundtrackLogic,
   readJsonFile,
+});
+
+registerVideoResurrectorRoutes(app, {
+  WORKSPACE_DIR,
+  PROJECTS_ROOT,
+  getApiKey,
+  callGeminiWithRetry,
 });
 
 registerResearchRoutes(app, {
