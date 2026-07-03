@@ -1055,7 +1055,7 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
   const normalizedSlot = normalizeResurrectorSlot(slot);
   const normalizedTrigger = normalizeResurrectorTrigger(trigger);
 
-  const state = loadResurrectorState(workspaceDir);
+  let state = loadResurrectorState(workspaceDir);
   const settings = state.settings;
   if (!settings.enabled) {
     return { skipped: true, reason: "Ressuscitador desativado.", state, slot: normalizedSlot };
