@@ -3903,8 +3903,11 @@ export default function App() {
 
     if (config) {
 
-      const saved = await saveTimelinePatch(config);
-      if (saved) toast.success("Linha do tempo salva com sucesso!");
+      const saved = await saveTimelinePatch(config, { skipRefresh: true });
+      if (saved) {
+        void fetchStatusAndOutputs();
+        toast.success("Linha do tempo salva com sucesso!");
+      }
 
     }
 
@@ -5784,6 +5787,10 @@ export default function App() {
       const fmt: 'SHORT' | 'LONG' | '' = data.format === 'SHORT' ? 'SHORT' : data.format === 'LONG' ? 'LONG' : '';
       setYoutubeMetadataFormat(fmt);
       setYoutubeMetadataParsed(data.parsed || null);
+      const cachedChapters = String(data.parsed?.chapters || '').trim();
+      if (cachedChapters) {
+        setYtChapters((prev) => prev.trim() || cachedChapters);
+      }
       setYoutubeMetadataStrategy({
         profileLabel: data.profile?.label,
         rpm: data.rpm,

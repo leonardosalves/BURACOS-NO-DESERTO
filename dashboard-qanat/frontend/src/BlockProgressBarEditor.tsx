@@ -246,10 +246,13 @@ export function BlockProgressBarEditor({
     const base = draft.blocks.length ? draft.blocks : markers;
     onChange({
       ...draft,
-      blocks: base.map((b) => {
+      blocks: base.map((b, idx) => {
+        const bp = blockPhrases.find((p) => Number(p.block) === b.block) || blockPhrases[idx];
+        const phraseStart = String(bp?.phrase || bp?.text || '').trim();
         const metaTitle = metadataTitles.get(b.block);
-        if (!metaTitle) return b;
-        return { ...b, title: metaTitle, label: metaTitle };
+        const title = resolveBlockDisplayTitle(b, metaTitle, b.block, phraseStart);
+        if (title === String(b.title || b.label || '').trim()) return b;
+        return { ...b, title, label: title };
       }),
     });
   };
