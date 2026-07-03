@@ -2144,8 +2144,48 @@
     @apply border-b border-zinc-800/60 text-zinc-300;
   }
 
+  .lumiera-collapsible-section[open] > summary .lumiera-collapse-chevron {
+    transform: rotate(90deg);
+  }
+
+  .lumiera-collapse-chevron {
+    transition: transform 0.15s ease;
+  }
+
   .lumiera-collapsible-body {
     @apply p-3 space-y-3;
+  }
+
+  .editor-subtab-bar {
+    @apply flex flex-wrap gap-1.5 p-1 rounded-xl border border-zinc-800/80 bg-zinc-950/50;
+  }
+
+  .editor-subtab-pill {
+    @apply text-[10px] font-bold px-3 py-1.5 rounded-lg transition cursor-pointer whitespace-nowrap;
+  }
+
+  .editor-subtab-pill--active {
+    @apply bg-gold-500/15 text-gold-400 border border-gold-500/35;
+  }
+
+  .editor-subtab-pill--idle {
+    @apply text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900/60 border border-transparent;
+  }
+
+  .timeline-block-nav {
+    @apply flex flex-wrap gap-1.5 p-2 rounded-xl border border-zinc-800/60 bg-zinc-950/40;
+  }
+
+  .timeline-block-pill {
+    @apply text-[9px] font-bold font-mono px-2 py-1 rounded-md border transition cursor-pointer;
+  }
+
+  .timeline-block-pill--active {
+    @apply border-gold-500/40 bg-gold-500/10 text-gold-400;
+  }
+
+  .timeline-block-pill--idle {
+    @apply border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700;
   }
 
   .lumiera-fill-view {
