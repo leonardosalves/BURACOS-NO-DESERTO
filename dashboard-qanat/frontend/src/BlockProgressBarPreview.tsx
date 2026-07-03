@@ -4,7 +4,6 @@ import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { blockProgressDesignTokens, markerCenterPercent } from './blockProgressBarDesign';
 import {
   resolveBlockProgressTitleFontStack,
-  truncateBlockDisplayTitle,
   type BlockProgressTitleFontId,
 } from './blockProgressBarTitles';
 import type { BlockProgressMarkerDraft, BlockProgressBarDraft } from './BlockProgressBarEditor';
@@ -24,7 +23,7 @@ type Props = {
 };
 
 function blockTitleLabel(marker: BlockProgressMarkerDraft) {
-  return truncateBlockDisplayTitle(marker.title || marker.label || `Bloco ${marker.block}`, 22);
+  return String(marker.title || marker.label || `Bloco ${marker.block}`).trim();
 }
 
 const LOOP_MS = 9000;
@@ -44,6 +43,7 @@ export function BlockProgressBarPreview({
 }: Props) {
   const resolvedTitleSize = titleFontSize || (isShortFormat ? 9 : 10);
   const titleFontStack = resolveBlockProgressTitleFontStack(titleFont);
+  const slotWidthPct = Math.max(56, Math.floor((100 - 4) / Math.max(1, blocks.length)));
   const [playing, setPlaying] = useState(true);
   const [activeBlock, setActiveBlock] = useState<number | null>(blocks[0]?.block ?? null);
   const progressFillRef = useRef<HTMLDivElement>(null);
@@ -145,11 +145,12 @@ export function BlockProgressBarPreview({
               return (
                 <div
                   key={marker.block}
-                  className="absolute flex items-center gap-1 transition-transform duration-200 max-w-[calc(100%-36px)]"
+                  className="absolute flex flex-col items-start gap-0.5 transition-transform duration-200 max-w-[calc(100%-36px)]"
                   style={{
                     left: 10 + tokens.trackH + tokens.iconGap + 4,
                     top: `calc(40px + (100% - 100px) * ${pct / 100})`,
                     transform: `translateY(-50%) scale(${active ? 1.08 : 0.9})`,
+                    transformOrigin: 'top left',
                     opacity: active ? 1 : 0.4,
                     filter: active ? `drop-shadow(0 0 6px ${accentColor}99)` : 'none',
                   }}
@@ -164,12 +165,12 @@ export function BlockProgressBarPreview({
                   </div>
                   {showBlockTitles && (
                     <span
-                      className="truncate leading-tight drop-shadow-sm font-semibold"
+                      className="leading-snug drop-shadow-sm font-semibold text-left break-words"
                       style={{
                         fontFamily: titleFontStack,
                         fontSize: active ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
                         color: active ? titleColor : `${titleColor}88`,
-                        maxWidth: 72,
+                        maxWidth: 'calc(100% - 8px)',
                       }}
                     >
                       {blockTitleLabel(marker)}
@@ -217,14 +218,16 @@ export function BlockProgressBarPreview({
               return (
                 <div
                   key={marker.block}
-                  className="absolute flex items-center gap-1 transition-transform duration-200"
+                  className="absolute flex flex-col items-center gap-0.5 transition-transform duration-200"
                   style={{
                     left: `calc(16px + (100% - 32px) * ${pct / 100})`,
                     top: 10 + tokens.trackH + tokens.iconGap,
                     transform: `translateX(-50%) scale(${active ? 1.08 : 0.88})`,
+                    transformOrigin: 'top center',
                     opacity: active ? 1 : 0.4,
                     filter: active ? `drop-shadow(0 0 8px ${accentColor}99)` : 'none',
-                    maxWidth: 110,
+                    width: `${slotWidthPct}%`,
+                    maxWidth: 140,
                   }}
                 >
                   <div className="shrink-0" style={{ width: size, height: size }}>
@@ -237,12 +240,11 @@ export function BlockProgressBarPreview({
                   </div>
                   {showBlockTitles && (
                     <span
-                      className="truncate leading-tight drop-shadow-sm font-semibold"
+                      className="leading-snug drop-shadow-sm font-semibold text-center break-words w-full"
                       style={{
                         fontFamily: titleFontStack,
                         fontSize: active ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
                         color: active ? titleColor : `${titleColor}88`,
-                        maxWidth: 72,
                       }}
                     >
                       {blockTitleLabel(marker)}
