@@ -588,8 +588,10 @@ const SceneMedia: React.FC<{
       portalFilterBoost = ` saturate(1.25) drop-shadow(0 0 18px ${accentColor}88)`;
     } else {
 
-    const transitionMod = isShort ? 6 : 3;
+    const transitionMod = isShort ? 12 : 9;
     const transitionType = index % transitionMod;
+    let transitionBlur = 0;
+    let transitionRotate = 0;
 
 
 
@@ -637,7 +639,7 @@ const SceneMedia: React.FC<{
 
 
 
-    } else if (isShort && transitionType === 3) {
+    } else if (transitionType === 3) {
 
 
 
@@ -661,7 +663,7 @@ const SceneMedia: React.FC<{
 
 
 
-    } else if (isShort && transitionType === 4) {
+    } else if (transitionType === 4) {
 
 
 
@@ -681,7 +683,7 @@ const SceneMedia: React.FC<{
 
 
 
-    } else if (isShort && transitionType === 5) {
+    } else if (transitionType === 5) {
 
 
 
@@ -702,6 +704,198 @@ const SceneMedia: React.FC<{
 
 
       clipPath = `circle(${circleSize}% at 50% 50%)`;
+
+
+
+    } else if (transitionType === 6) {
+
+
+
+      const wipeRight = interpolate(frame, [0, transFrames], [100, 0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+      clipPath = `inset(0 ${wipeRight}% 0 0)`;
+
+
+
+    } else if (transitionType === 7) {
+
+
+
+      const wipeBottom = interpolate(frame, [0, transFrames], [100, 0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+      clipPath = `inset(0 0 ${wipeBottom}% 0)`;
+
+
+
+    } else if (transitionType === 8) {
+
+
+
+      transitionRotate = interpolate(frame, [0, transFrames], [isShort ? -4 : -2.5, 0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+      transitionScale = interpolate(frame, [0, transFrames], [0.92, 1.0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+    } else if (transitionType === 9) {
+
+
+
+      transitionBlur = interpolate(frame, [0, transFrames], [isShort ? 14 : 10, 0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+    } else if (transitionType === 10) {
+
+
+
+      const diag = interpolate(frame, [0, transFrames], [0, 100], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+      clipPath = `polygon(0 0, ${diag}% 0, 0 ${diag}%)`;
+
+
+
+    } else if (transitionType === 11) {
+
+
+
+      const gridStep = Math.floor(interpolate(frame, [0, transFrames], [8, 0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      }));
+
+
+
+      const cell = Math.max(0, gridStep) * 12.5;
+
+
+
+      clipPath = `inset(${cell}% ${cell}% ${cell}% ${cell}%)`;
+
+
+
+      transitionScale = interpolate(frame, [0, transFrames], [1.06, 1.0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
+
+
+
+    } else if (transitionType === 12) {
+
+
+
+      transitionScale = interpolate(frame, [0, transFrames], [isShort ? 1.35 : 1.22, 1.0], {
+
+
+
+        extrapolateLeft: "clamp",
+
+
+
+        extrapolateRight: "clamp",
+
+
+
+      });
 
 
 
@@ -815,6 +1009,10 @@ const SceneMedia: React.FC<{
     filter = `${filter}${portalFilterBoost}`;
   }
 
+  if (transitionBlur > 0) {
+    filter = filter && filter !== "none" ? `${filter} blur(${transitionBlur}px)` : `blur(${transitionBlur}px)`;
+  }
+
   // 5. Professional Depth-of-Field Blur Entry (Focus Effect)
 
 
@@ -887,7 +1085,9 @@ const SceneMedia: React.FC<{
 
     visibility: opacity < 0.02 ? "hidden" : "visible",
 
-    transform: isLogo && youtubeChannelInfo ? `scale(${zoomScale * transitionScale}) translateY(-100px)` : `scale(${zoomScale * transitionScale})`,
+    transform: isLogo && youtubeChannelInfo
+      ? `scale(${zoomScale * transitionScale}) rotate(${transitionRotate}deg) translateY(-100px)`
+      : `scale(${zoomScale * transitionScale}) rotate(${transitionRotate}deg)`,
 
 
 
