@@ -193,7 +193,7 @@ export function buildBlockTitlesForProgressBar({
   return result;
 }
 
-function isGenericBlockTitle(
+export function isGenericBlockTitle(
   title: string,
   blockNum: number,
   phraseStart = '',
@@ -226,12 +226,16 @@ export function applyMetadataTitlesToProgressBlocks(
   blocks: Array<{ block: number; title?: string; label?: string; [key: string]: unknown }>,
   metadataTitles: Map<number, string>,
   chaptersText = '',
+  phraseByBlock: Map<number, string> = new Map(),
 ): typeof blocks {
   if (!chaptersText.trim() || !metadataTitles.size) return blocks;
   return blocks.map((b) => {
     const metaTitle = metadataTitles.get(b.block);
-    if (!metaTitle) return b;
-    return { ...b, title: metaTitle, label: metaTitle };
+    if (!metaTitle || isGenericBlockTitle(metaTitle, b.block)) return b;
+    const phraseStart = phraseByBlock.get(b.block) || '';
+    const title = resolveBlockDisplayTitle(b, metaTitle, b.block, phraseStart);
+    if (title === String(b.title || b.label || '').trim()) return b;
+    return { ...b, title, label: title };
   });
 }
 

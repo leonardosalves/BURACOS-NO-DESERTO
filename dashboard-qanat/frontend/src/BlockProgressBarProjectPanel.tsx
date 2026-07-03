@@ -7,9 +7,9 @@ import {
   type BlockProgressMarkerDraft,
 } from './BlockProgressBarEditor';
 import {
-  applyMetadataTitlesToProgressBlocks,
   buildBlockTitlesForProgressBar,
   isListicleProject,
+  resolveBlockDisplayTitle,
 } from './blockProgressBarTitles';
 
 type BlockTimingsLike = { starts?: number[]; durations?: number[] };
@@ -58,15 +58,27 @@ function mergeBlockTimingsAndChapterTitles(
     config,
   });
 
-  const blocks = applyMetadataTitlesToProgressBlocks(
-    prev.blocks.map((b, idx) => ({
+  const phrases = Array.isArray(config.block_phrases)
+    ? config.block_phrases as Array<{ block?: number; phrase?: string; text?: string }>
+    : [];
+
+  const blocks = prev.blocks.map((b, idx) => {
+    const bp = phrases.find((p) => Number(p.block) === b.block) || phrases[idx];
+    const phraseStart = String(bp?.phrase || bp?.text || '').trim();
+    const title = resolveBlockDisplayTitle(
+      b,
+      metadataTitles.get(b.block),
+      b.block,
+      phraseStart,
+    );
+    return {
       ...b,
       start: starts[idx] !== undefined ? Number(starts[idx]) : b.start,
       duration: durations[idx] !== undefined ? Number(durations[idx]) : b.duration,
-    })),
-    metadataTitles,
-    chaptersText,
-  );
+      title,
+      label: title,
+    };
+  });
 
   return { ...prev, blocks };
 }
