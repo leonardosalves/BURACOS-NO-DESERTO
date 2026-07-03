@@ -15007,13 +15007,54 @@ export default function App() {
                       <SectionHeader title="Passo 2: Áudio de Narração" helpId="creator-step-narration" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-2xl mx-auto">
-
-                        Obrigatório antes do Whisper: faça upload do MP3 ou gere a narração com TTS a partir do roteiro aprovado. Sem este áudio, o passo 3 não consegue definir os segundos corretos de cada cena.
-
+                        {config?.narration_mode === 'chunked'
+                          ? 'Modo por trechos: planeje blocos/cenas com pausas (IA), gere TTS por parte e monte o MP3 master automaticamente — timings incluídos.'
+                          : 'Faça upload do MP3 ou gere a narração com TTS a partir do roteiro aprovado. Sem este áudio, o passo 3 não define os segundos de cada cena.'}
                       </p>
 
                     </div>
 
+                    {config && (
+                      <NarrationChunksPanel
+                        getProjectUrl={getProjectUrl}
+                        getMediaUrl={(file) => getMusicUrl(file, activeProject)}
+                        toast={(msg) => toast(msg)}
+                        hasApiKey={hasApiKey}
+                        narrationMode={config.narration_mode || 'master'}
+                        plan={
+                          storyboardData?.narration_chunk_plan
+                          || generatedScriptData?.narration_chunk_plan
+                          || null
+                        }
+                        onModeChange={(mode) => {
+                          void saveConfigPatch({ narration_mode: mode }, { skipRefresh: true });
+                          setConfig((prev) => (prev ? { ...prev, narration_mode: mode } : prev));
+                        }}
+                        onPlanChange={(plan) => {
+                          const base = storyboardData || generatedScriptData;
+                          if (!base) return;
+                          const next = { ...base, narration_chunk_plan: plan };
+                          if (storyboardData) {
+                            setStoryboardData(next);
+                            debounceSaveStoryboard(next);
+                          } else {
+                            setGeneratedScriptData(next);
+                            debounceSaveStoryboard(next);
+                          }
+                        }}
+                        onUpdated={() => {
+                          setUploadSuccess(true);
+                          fetchData();
+                        }}
+                      />
+                    )}
+
+                    {config?.narration_mode === 'chunked' ? (
+                      <p className="text-[10px] text-zinc-500 text-center border border-zinc-800 rounded-xl p-3 max-w-2xl mx-auto">
+                        Com trechos gerados, o passo 3 pode ser pulado se os timings já aparecerem — Whisper fica opcional para refinamento de legendas.
+                      </p>
+                    ) : (
+                    <>
                     {/* Drag and drop zone */}
 
                     <div 
@@ -15113,6 +15154,8 @@ export default function App() {
                         }
                       }}
                     />
+                    </>
+                    )}
 
 <div className="flex justify-between items-center pt-4 font-sans">
 
@@ -15161,9 +15204,15 @@ export default function App() {
                       <SectionHeader title="Passo 3: Sincronização por Transcrição Inteligente" helpId="creator-step-sync" />
 
                       <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-
-                        Obrigatório após a narração (passo 2). O Whisper transcreve o MP3 e define os <strong className="text-gray-300">segundos reais de cada cena</strong> — substituindo as durações estimadas do roteiro. Isso gera `word_transcripts.json`, `block_timings.json` e os slots da timeline prontos para você colocar os assets manualmente no passo 4.
-
+                        {config?.narration_mode === 'chunked'
+                          ? 'Narração por trechos já grava timings e timeline. Rode Whisper só se quiser refinamento palavra a palavra nas legendas — caso contrário, avance quando os timings estiverem prontos.'
+                          : (
+                            <>
+                              Obrigatório após a narração (passo 2). O Whisper transcreve o MP3 e define os{' '}
+                              <strong className="text-gray-300">segundos reais de cada cena</strong>
+                              {' '}— substituindo as durações estimadas do roteiro. Isso gera `word_transcripts.json`, `block_timings.json` e os slots da timeline.
+                            </>
+                          )}
                       </p>
 
                     </div>
