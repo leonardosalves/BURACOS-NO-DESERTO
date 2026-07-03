@@ -331,9 +331,13 @@ export function OverlayTimelineEditor({
     const narration = sceneNarrationFor(overlay, visualPrompts);
     const sceneLabel = sceneDisplayFor(overlay, sceneOptions, starts);
 
+    const previewWrapClass = aspectRatio === '9:16'
+      ? 'w-full max-w-[min(100%,300px)]'
+      : 'w-full';
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,200px)_minmax(0,1fr)] gap-3 items-start">
-        <div className="md:sticky md:top-2 shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-4 items-start">
+        <div className={`lg:sticky lg:top-2 shrink-0 min-w-0 ${previewWrapClass}`}>
           <OverlayPreview
             overlay={overlay}
             aspectRatio={aspectRatio}
