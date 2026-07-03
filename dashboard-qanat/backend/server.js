@@ -3701,12 +3701,27 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
 
   if (bgmMode === "emotion") {
-    const emotionMappings = Array.isArray(config?.bgm_emotion_mappings)
-      ? config.bgm_emotion_mappings.filter((m) => m?.file && findProjectFile(projectDir, m.file))
+    const fileExists = (fileName) => Boolean(findProjectFile(projectDir, fileName));
+    let emotionMappings = Array.isArray(config?.bgm_emotion_mappings)
+      ? config.bgm_emotion_mappings.filter((m) => m?.file && fileExists(m.file))
       : [];
+
+    if (emotionMappings.length === 0) {
+      const segments = storyboard?.bgm_emotion_plan?.segments || [];
+      const built = buildEmotionMappingsFromLocalFiles(segments, listProjectMusicFiles(projectDir))
+        .filter((m) => m?.file && fileExists(m.file));
+      if (built.length > 0) {
+        emotionMappings = built;
+        console.log(`[Remotion BGM] Emoção: ${built.length} trilha(s) resolvidas a partir de arquivos locais.`);
+      }
+    }
+
     if (emotionMappings.length > 0) {
       return { mode: "emotion", mappings: emotionMappings, source: "emotion_mappings" };
     }
+
+    console.warn("[Remotion BGM] Modo emoção ativo mas sem trilhas válidas — não usar fallback 1.mp3/trilha_documentario.");
+    return { mode: "none", mappings: [], source: "emotion_unmapped" };
   }
 
   if (bgmMode === "block") {
@@ -5059,7 +5074,12 @@ app.get("/api/render/:mode", async (req, res) => {
 
   try {
 
+    const mixPrepLogs = await prepareBgmBeforeMix(projDir);
+    for (const line of mixPrepLogs || []) sendLog(`[BGM Prep] ${line}`);
+
     sendLog("[Dashboard] Iniciando mixagem da trilha sonora (mix_bgm.py)...");
+
+    ensureFileExists("mix_bgm.py", projDir);
 
     await new Promise((resolve) => {
 
@@ -5205,7 +5225,15 @@ app.get("/api/render/:mode", async (req, res) => {
 
       sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
 
-      sendLog(`[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM (${renderPlan.bgmSource || "none"}).`);
+      sendLog(`[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM — modo ${renderPlan.bgmMode || "none"} (${renderPlan.bgmSource || "none"}).`);
+      if (Array.isArray(renderPlan.bgmTrackSummary)) {
+        for (const line of renderPlan.bgmTrackSummary) {
+          sendLog(`[Remotion BGM] ${line}`);
+        }
+      }
+      if (renderPlan.bgmMode === "emotion" && (renderPlan.bgmTrackCount || 0) === 0) {
+        sendLog("[Remotion BGM] AVISO: modo emoção sem faixas no render — verifique mapeamentos na aba Trilha BGM.");
+      }
       if (Array.isArray(renderPlan.sonoplastiaLog)) {
         for (const line of renderPlan.sonoplastiaLog) {
           sendLog(line);
@@ -6142,6 +6170,15 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   let storyboard = readProjectJson(projectDir, "storyboard.json", {});
 
+  try {
+    const prepLogs = await prepareBgmBeforeMix(projectDir);
+    for (const line of prepLogs || []) console.log(`[Remotion BGM Prep] ${line}`);
+    config = readProjectJson(projectDir, "config_qanat.json", {});
+    storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  } catch (prepErr) {
+    console.warn("[Remotion BGM Prep] Falha ao preparar trilhas emocionais:", prepErr.message);
+  }
+
   const presetResult = applyDocumentaryHistoryPreset(config, storyboard, config.niche);
   if (presetResult.applied) {
     config = presetResult.config;
@@ -6883,6 +6920,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     overlayTimingReport: freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
     bgmTrackCount: bgmTracks.length,
     bgmSource: bgmPlan.source,
+    bgmMode: bgmPlan.mode,
+    bgmTrackSummary: bgmTracks.map((track) => (
+      `${track.segmentId || `bloco-${track.block}`}: ${path.basename(track.file)} @${Number(track.start).toFixed(1)}s (${Number(track.duration).toFixed(1)}s)`
+    )),
     sonoplastiaLog: formatSonoplastiaLog(sonoplastiaPlan),
   };
 

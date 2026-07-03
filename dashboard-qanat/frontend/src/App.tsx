@@ -8021,7 +8021,7 @@ export default function App() {
 
   };
 
-  const handleEmotionMusicChange = (segmentId: string, fileName: string, segMeta: any) => {
+  const handleEmotionMusicChange = async (segmentId: string, fileName: string, segMeta: any) => {
 
     if (!config) return;
 
@@ -8042,13 +8042,17 @@ export default function App() {
 
       : withoutSegment;
 
-    saveConfig({
+    await saveConfig({
       ...config,
       bgm_emotion_mappings: updatedMappings,
       bgm_mode: 'emotion',
       use_single_bgm: false,
       single_bgm: '',
-    });
+    }, { skipRefresh: true });
+
+    if (fileName) {
+      toast.success(`${segmentId}: ${fileName} mapeada. Regenerar trilha antes do render.`, { duration: 2500 });
+    }
 
   };
 
@@ -8162,7 +8166,13 @@ export default function App() {
 
         if (!fromWizard) setActiveTab('terminal');
 
-        toast.success('Trilha sonora regenerada com sucesso!', { id: toastId });
+        const emotionCount = config?.bgm_emotion_mappings?.filter((m) => m.file)?.length || 0;
+        toast.success(
+          activeBgmMode === 'emotion' && emotionCount > 0
+            ? `Trilha regenerada com ${emotionCount} segmento(s): ${config?.bgm_emotion_mappings?.map((m) => m.file).join(', ')}`
+            : 'Trilha sonora regenerada com sucesso!',
+          { id: toastId, duration: 5000 },
+        );
 
         fetchData();
 
