@@ -6483,7 +6483,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     showProgressBar: format === "16:9" && config.progress_bar !== false,
     blockProgressBar: (() => {
       const bar = resolveBlockProgressBarForRender(projectDir, readProjectJson);
-      if (!bar || bar.showChannelLogo === false) return bar;
+      if (!bar || bar.showChannelLogo !== true) return bar;
       const logoSource = resolveLogoFilePath(WORKSPACE_DIR, projectDir, globalConfigForLogo, projectConfigForLogo)
         || findProjectFile(projectDir, "logo.png");
       if (!logoSource) return bar;
