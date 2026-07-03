@@ -3,16 +3,17 @@ import flameLottie from './lottie_assets/flame.json';
 import globeLottie from './lottie_assets/globe.json';
 import infoLottie from './lottie_assets/info.json';
 import gearLottie from './lottie_assets/lottie_ui_gear_1.json';
-import lockLottie from './lottie_assets/lottie_ui_lock_3.json';
+import pillarLottie from './lottie_assets/lottie_edu_pillar_1.json';
+import shieldLottie from './lottie_assets/lottie_edu_shield_1.json';
 import crownLottie from './lottie_assets/lottie_biz_crown_1.json';
 import apiLottie from './lottie_assets/lottie_tech_api_1.json';
-import boltLottie from './lottie_assets/lottie_tech_bolt_1.json';
-import timeLottie from './lottie_assets/lottie_ui_time_1.json';
-import windLottie from './lottie_assets/weather_wind.json';
+import dnaLottie from './lottie_assets/lottie_tech_dna_1.json';
+import scrollLottie from './lottie_assets/lottie_edu_scroll_1.json';
+import leafLottie from './lottie_assets/lottie_nature_leaf_1.json';
 import moneyLottie from './lottie_assets/lottie_biz_money_1.json';
 import warningLottie from './lottie_assets/lottie_ui_warning_1.json';
 import locationLottie from './lottie_assets/lottie_life_location_1.json';
-import docLottie from './lottie_assets/lottie_tech_document_1.json';
+import bookLottie from './lottie_assets/lottie_edu_book_1.json';
 import heartLottie from './lottie_assets/lottie_interact_heart_1.json';
 import ideaLottie from './lottie_assets/lottie_life_idea_1.json';
 import graphLottie from './lottie_assets/lottie_biz_graph_1.json';
@@ -22,7 +23,7 @@ import giftLottie from './lottie_assets/lottie_biz_gift_1.json';
 import coinLottie from './lottie_assets/lottie_biz_coin_1.json';
 import walletLottie from './lottie_assets/lottie_biz_wallet_1.json';
 import shopLottie from './lottie_assets/lottie_biz_shop_1.json';
-import deliveryLottie from './lottie_assets/lottie_biz_delivery_1.json';
+import truckLottie from './lottie_assets/lottie_biz_truck_1.json';
 import wifiLottie from './lottie_assets/lottie_tech_wifi_1.json';
 import mobileLottie from './lottie_assets/lottie_tech_mobile_1.json';
 import videoLottie from './lottie_assets/lottie_tech_video_1.json';
@@ -50,19 +51,19 @@ export const overlayLottieMap: Record<string, object> = {
   sparkles: sparklesLottie,
   flame: flameLottie,
   earth: globeLottie,
-  building: globeLottie,
+  building: pillarLottie,
   globe: lifeGlobeLottie,
   info: infoLottie,
   gear: gearLottie,
-  shield: lockLottie,
+  shield: shieldLottie,
   crown: crownLottie,
-  science: boltLottie,
-  history: timeLottie,
-  nature: windLottie,
+  science: dnaLottie,
+  history: scrollLottie,
+  nature: leafLottie,
   money: moneyLottie,
   warning: warningLottie,
   compass: locationLottie,
-  book: docLottie,
+  book: bookLottie,
   heart: heartLottie,
   lightbulb: ideaLottie,
   graph: graphLottie,
@@ -72,7 +73,7 @@ export const overlayLottieMap: Record<string, object> = {
   coin: coinLottie,
   wallet: walletLottie,
   shop: shopLottie,
-  delivery: deliveryLottie,
+  delivery: truckLottie,
   api: apiLottie,
   wifi: wifiLottie,
   mobile: mobileLottie,
