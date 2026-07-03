@@ -144,6 +144,49 @@ const BoltSVG: React.FC<SvgProps> = ({ size, color }) => (
   </svg>
 );
 
+const RocketSVG: React.FC<SvgProps> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5">
+    <style>{`@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}.r{animation:float 2s infinite ease-in-out;transform-origin:12px 12px}`}</style>
+    <g className="r">
+      <path d="M12 2c2 4 2 8 0 12-2-1-4-3-4-6s2-5 4-6z" fill={`${color}33`} />
+      <path d="M8 14l-2 4 4-1M16 14l2 4-4-1" />
+      <circle cx="12" cy="8" r="1.5" fill={color} />
+    </g>
+  </svg>
+);
+
+const ChartSVG: React.FC<SvgProps> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <rect x="3" y="12" width="4" height="8" fill={`${color}44`} />
+    <rect x="10" y="8" width="4" height="12" fill={`${color}66`} />
+    <rect x="17" y="4" width="4" height="16" fill={color} />
+  </svg>
+);
+
+const UsersSVG: React.FC<SvgProps> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" />
+    <path d="M2 20c0-3 3-5 7-5s7 2 7 5M14 20c0-2 2-3.5 5-3.5" />
+  </svg>
+);
+
+const BookmarkSVG: React.FC<SvgProps> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <style>{`@keyframes pulse{0%,100%{transform:scale(.95)}50%{transform:scale(1.05)}}.p{animation:pulse 2s infinite ease-in-out;transform-origin:12px 12px}`}</style>
+    <path className="p" d="M6 2h12v20l-6-4-6 4V2z" fill={`${color}22`} />
+  </svg>
+);
+
+const BellSVG: React.FC<SvgProps> = ({ size, color }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+    <style>{`@keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(8deg)}75%{transform:rotate(-8deg)}}.b{animation:ring 1.5s infinite ease-in-out;transform-origin:12px 4px}`}</style>
+    <g className="b">
+      <path d="M18 16H6l1.5-2V9a5.5 5.5 0 0 1 11 0v5l1.5 2z" fill={`${color}15`} />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </g>
+  </svg>
+);
+
 const ShieldSVG: React.FC<SvgProps> = ({ size, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
     <style>{`@keyframes shine{0%{stroke-dashoffset:60}100%{stroke-dashoffset:-60}}.sh{stroke-dasharray:20 40;animation:shine 3s infinite linear}`}</style>
@@ -177,6 +220,12 @@ function renderOverlaySvg(iconType: string, size: number, color: string): React.
     case "star": return <StarSVG size={size} color={color} />;
     case "bolt":
     case "lightning": return <BoltSVG size={size} color={color} />;
+    case "rocket": return <RocketSVG size={size} color={color} />;
+    case "chart":
+    case "graph": return <ChartSVG size={size} color={color} />;
+    case "users": return <UsersSVG size={size} color={color} />;
+    case "bookmark": return <BookmarkSVG size={size} color={color} />;
+    case "bell": return <BellSVG size={size} color={color} />;
     case "info":
     default: return <InfoSVG size={size} color={color} />;
   }

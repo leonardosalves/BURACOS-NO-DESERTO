@@ -42,6 +42,9 @@ import shareLottie from './lottie_assets/lottie_interact_share_1.json';
 import messageLottie from './lottie_assets/lottie_interact_message_1.json';
 import mailLottie from './lottie_assets/lottie_interact_mail_1.json';
 import phoneLottie from './lottie_assets/lottie_interact_phone_1.json';
+import rocketLottie from './lottie_assets/lottie_nature_rocket_1.json';
+import bookmarkLottie from './lottie_assets/lottie_interact_bookmark_1.json';
+import bellLottie from './lottie_assets/lottie_interact_bell_4.json';
 
 export const overlayLottieMap: Record<string, object> = {
   sparkles: sparklesLottie,
@@ -89,6 +92,9 @@ export const overlayLottieMap: Record<string, object> = {
   message: messageLottie,
   mail: mailLottie,
   phone: phoneLottie,
+  rocket: rocketLottie,
+  bookmark: bookmarkLottie,
+  bell: bellLottie,
 };
 
 export function resolveOverlayIconStyle(props: { iconStyle?: string; iconRender?: string } = {}): 'lottie' | 'svg' {

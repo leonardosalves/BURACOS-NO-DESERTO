@@ -49,6 +49,8 @@ export function OverlaySvgIcon({
     case 'chart':
     case 'graph': return <ChartIcon {...props} />;
     case 'users': return <UsersIcon {...props} />;
+    case 'bookmark': return <BookmarkIcon {...props} />;
+    case 'bell': return <BellIcon {...props} />;
     case 'info':
     default: return <InfoIcon {...props} />;
   }
@@ -237,6 +239,23 @@ function UsersIcon({ size, color, className }: IconProps) {
     <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="2">
       <circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" />
       <path d="M2 20c0-3 3-5 7-5s7 2 7 5M14 20c0-2 2-3.5 5-3.5" />
+    </svg>
+  );
+}
+
+function BookmarkIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill={`${color}22`} stroke={color} strokeWidth="2" className="overlay-svg-pulse">
+      <path d="M6 2h12v20l-6-4-6 4V2z" />
+    </svg>
+  );
+}
+
+function BellIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="2" className="overlay-svg-wiggle">
+      <path d="M18 16H6l1.5-2V9a5.5 5.5 0 0 1 11 0v5l1.5 2z" fill={`${color}15`} />
+      <path d="M10 18a2 2 0 0 0 4 0" />
     </svg>
   );
 }

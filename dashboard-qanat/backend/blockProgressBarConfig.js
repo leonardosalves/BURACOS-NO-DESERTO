@@ -5,10 +5,12 @@
 import { isListicleProject } from "./videoProEnhancements.js";
 
 const ICON_RULES = [
-  { re: /espaço|espacial|foguete|nasa|órbita|orbita|satélite|satelite|lua|marte/i, icon: "science" },
+  { re: /foguete|rocket|propulsão|propulsao|lançamento|lancamento|starship/i, icon: "rocket" },
+  { re: /espaço|espacial|nasa|órbita|orbita|satélite|satelite|lua|marte|cosmos/i, icon: "science" },
   { re: /inteligência artificial|\bia\b|machine learning|algoritmo|software|tech|digital|cyber/i, icon: "gear" },
   { re: /dinheiro|economia|invest|financ|dólar|dolar|mercado|bilhão|bilhao|milhão|milhao/i, icon: "money" },
-  { re: /históri|histori|antig|século|seculo|império|imperio|guerra|batalha/i, icon: "history" },
+  { re: /históri|histori|antig|século|seculo|império|imperio|guerra|batalha|espada|conflito/i, icon: "history" },
+  { re: /combate|luta|duelo|medieval/i, icon: "swords" },
   { re: /natureza|floresta|oceano|animal|planeta|terra|clima/i, icon: "nature" },
   { re: /geograf|mapa|país|pais|cidade|continente|viagem/i, icon: "compass" },
   { re: /militar|defesa|tanque|míssil|missil|exército|exercito/i, icon: "shield" },
@@ -16,7 +18,11 @@ const ICON_RULES = [
   { re: /avião|aviao|aéreo|aereo|transporte|carro|veículo|veiculo/i, icon: "plane" },
   { re: /mistério|misterio|segredo|conspira|desaparec/i, icon: "warning" },
   { re: /livro|educa|estudo|universidade|ciência|ciencia/i, icon: "book" },
-  { re: /social|viral|internet|rede|comunidade/i, icon: "sparkles" },
+  { re: /social|viral|internet|rede|comunidade|público|publico|audiência|audiencia/i, icon: "users" },
+  { re: /dado|estatíst|estatist|gráfico|grafico|percentual|tendência|tendencia/i, icon: "chart" },
+  { re: /tempo|cronolog|relógio|relogio|prazo|deadline/i, icon: "clock" },
+  { re: /notifica|alerta sonoro|campainha/i, icon: "bell" },
+  { re: /favorito|salvar|marcador/i, icon: "bookmark" },
 ];
 
 export const BLOCK_PROGRESS_TITLE_FONTS = {
@@ -183,10 +189,13 @@ export function resolveBlockDisplayTitle(saved, metadataTitle, blockNum) {
   return `Bloco ${blockNum}`;
 }
 
-export function suggestBlockProgressIcon(narration = "", niche = "") {
+export function suggestBlockProgressIcon(narration = "", niche = "", exclude = new Set()) {
   const text = `${niche} ${narration}`.toLowerCase();
   for (const rule of ICON_RULES) {
-    if (rule.re.test(text)) return rule.icon;
+    if (rule.re.test(text) && !exclude.has(rule.icon)) return rule.icon;
+  }
+  for (const icon of ALLOWED_BLOCK_PROGRESS_ICONS) {
+    if (!exclude.has(icon)) return icon;
   }
   return "info";
 }
@@ -213,7 +222,7 @@ export function buildDefaultBlockProgressMarkers({
     config,
   });
 
-  return (blockPhrases || []).map((bp, idx) => {
+  const blocks = (blockPhrases || []).map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existingMap.get(block);
     const phraseStart = String(bp.phrase || bp.text || "").trim();
@@ -232,24 +241,69 @@ export function buildDefaultBlockProgressMarkers({
       iconSize: saved?.iconSize,
     };
   });
+
+  return dedupeBlockProgressIcons(blocks, { niche });
 }
 
 export const ALLOWED_BLOCK_PROGRESS_ICONS = [
   "sparkles", "flame", "earth", "building", "globe", "info", "gear", "shield", "crown",
   "science", "history", "nature", "money", "warning", "compass", "book", "heart",
-  "lightbulb", "graph", "trophy", "target", "gift", "coin", "wallet", "shop",
-  "delivery", "api", "wifi", "mobile", "video", "server", "lightning", "map",
-  "plane", "skull", "sun", "rain", "snow", "storm", "like", "star", "share",
-  "message", "mail", "phone",
+  "lightbulb", "graph", "chart", "trophy", "target", "gift", "coin", "wallet", "shop",
+  "delivery", "api", "wifi", "mobile", "video", "server", "lightning", "bolt", "map",
+  "plane", "rocket", "skull", "sun", "rain", "snow", "storm", "like", "star", "share",
+  "message", "mail", "phone", "swords", "users", "clock", "bookmark", "bell",
 ];
+
+/** Ícones disponíveis só como SVG animado (sem Lottie dedicado). */
+export const SVG_ONLY_BLOCK_PROGRESS_ICONS = new Set([
+  "swords", "bolt", "rocket", "chart", "users", "clock",
+]);
 
 function normalizeAiIconId(raw) {
   const id = String(raw || "").trim().toLowerCase();
   if (ALLOWED_BLOCK_PROGRESS_ICONS.includes(id)) return id;
-  if (id === "rocket") return "science";
   if (id === "atom") return "science";
-  if (id === "bolt") return "lightning";
+  if (id === "people" || id === "user") return "users";
   return null;
+}
+
+function pickUnusedIconForMarker(marker, used, niche, idx) {
+  const text = `${niche} ${marker.title || marker.label || ""}`.toLowerCase();
+  for (const rule of ICON_RULES) {
+    if (rule.re.test(text) && !used.has(rule.icon)) return rule.icon;
+  }
+  const pool = ALLOWED_BLOCK_PROGRESS_ICONS.filter((icon) => !used.has(icon));
+  if (!pool.length) return marker.iconType || "info";
+  return pool[idx % pool.length];
+}
+
+export function dedupeBlockProgressIcons(markers = [], { niche = "Geral" } = {}) {
+  const used = new Set();
+  return (markers || []).map((marker, idx) => {
+    let iconType = normalizeAiIconId(marker.iconType) || String(marker.iconType || "info").toLowerCase();
+    if (!ALLOWED_BLOCK_PROGRESS_ICONS.includes(iconType)) iconType = "info";
+
+    let adjusted = false;
+    if (used.has(iconType)) {
+      const alt = pickUnusedIconForMarker(marker, used, niche, idx);
+      if (alt && alt !== iconType) {
+        iconType = alt;
+        adjusted = true;
+      }
+    }
+    used.add(iconType);
+
+    let iconStyle = marker.iconStyle === "svg" ? "svg" : "lottie";
+    if (SVG_ONLY_BLOCK_PROGRESS_ICONS.has(iconType)) iconStyle = "svg";
+
+    const next = { ...marker, iconType, iconStyle };
+    if (adjusted) {
+      next.aiReason = marker.aiReason
+        ? `${marker.aiReason} · ícone alternado (sem repetir na barra)`
+        : "Ícone alternado para evitar repetição na barra";
+    }
+    return next;
+  });
 }
 
 export function buildBlockProgressTitleAiPrompt({ niche = "Geral", blocks = [] } = {}) {
@@ -303,10 +357,11 @@ ${ALLOWED_BLOCK_PROGRESS_ICONS.join(", ")}
 ROTEIRO POR BLOCO:
 ${blockLines}
 
-Regras:
-- 1 ícone diferente por bloco quando possível (evite repetir em sequência)
+Regras OBRIGATÓRIAS:
+- Cada bloco deve ter iconType ÚNICO — NENHUM ícone pode se repetir na barra inteira
 - Prefira ícones que representem o TEMA do bloco, não palavras genéricas
-- iconStyle: "lottie" (padrão) ou "svg" para ícones simples
+- iconStyle: "lottie" (padrão animado) ou "svg" para: swords, bolt, rocket, chart, users, clock
+- Diversifique categorias (espaço→rocket/science, guerra→swords/shield, dados→chart/graph)
 
 Retorne APENAS JSON válido:
 {
@@ -316,15 +371,16 @@ Retorne APENAS JSON válido:
 }`;
 }
 
-export function mergeAiBlockProgressIcons(markers = [], aiBlocks = []) {
+export function mergeAiBlockProgressIcons(markers = [], aiBlocks = [], { niche = "Geral" } = {}) {
   const aiMap = new Map(
     (aiBlocks || []).map((b) => [Number(b.block), b]),
   );
-  return (markers || []).map((marker) => {
+  const merged = (markers || []).map((marker) => {
     const ai = aiMap.get(Number(marker.block));
     if (!ai) return marker;
     const iconType = normalizeAiIconId(ai.iconType) || marker.iconType;
-    const iconStyle = ai.iconStyle === "svg" ? "svg" : "lottie";
+    let iconStyle = ai.iconStyle === "svg" ? "svg" : "lottie";
+    if (SVG_ONLY_BLOCK_PROGRESS_ICONS.has(iconType)) iconStyle = "svg";
     return {
       ...marker,
       iconType,
@@ -332,6 +388,7 @@ export function mergeAiBlockProgressIcons(markers = [], aiBlocks = []) {
       aiReason: ai.reason || null,
     };
   });
+  return dedupeBlockProgressIcons(merged, { niche });
 }
 
 export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {

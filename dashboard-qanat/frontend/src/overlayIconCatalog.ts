@@ -55,6 +55,9 @@ export const LOTTIE_ICON_CATALOG: OverlayIconDef[] = [
   { id: 'message', label: 'Mensagem', category: 'Social', lottieFile: 'lottie_interact_message_1.json' },
   { id: 'mail', label: 'E-mail', category: 'Social', lottieFile: 'lottie_interact_mail_1.json' },
   { id: 'phone', label: 'Telefone', category: 'Social', lottieFile: 'lottie_interact_phone_1.json' },
+  { id: 'rocket', label: 'Foguete', category: 'Espaço', lottieFile: 'lottie_nature_rocket_1.json' },
+  { id: 'bookmark', label: 'Marcador', category: 'Social', lottieFile: 'lottie_interact_bookmark_1.json' },
+  { id: 'bell', label: 'Sino', category: 'Social', lottieFile: 'lottie_interact_bell_4.json' },
 ];
 
 /** Ícones SVG animados (leves, sempre disponíveis no preview e render) */
@@ -83,6 +86,8 @@ export const SVG_ICON_CATALOG: OverlayIconDef[] = [
   { id: 'chart', label: 'Gráfico', category: 'Negócios', svgOnly: true },
   { id: 'users', label: 'Pessoas', category: 'Social', svgOnly: true },
   { id: 'clock', label: 'Relógio', category: 'Geral', svgOnly: true },
+  { id: 'bookmark', label: 'Marcador', category: 'Social', svgOnly: true },
+  { id: 'bell', label: 'Sino', category: 'Social', svgOnly: true },
 ];
 
 export const LOTTIE_FILE_BY_ID = Object.fromEntries(

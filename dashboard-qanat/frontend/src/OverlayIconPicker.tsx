@@ -10,6 +10,8 @@ type Props = {
   iconId?: string;
   iconStyle?: OverlayIconStyle;
   accentColor?: string;
+  /** Ícones já usados em outros blocos (destacados no grid). */
+  usedIconIds?: string[];
   onChange: (iconId: string | undefined, style: OverlayIconStyle) => void;
 };
 
@@ -17,8 +19,10 @@ export function OverlayIconPicker({
   iconId,
   iconStyle = 'lottie',
   accentColor = '#D4AF37',
+  usedIconIds = [],
   onChange,
 }: Props) {
+  const usedSet = useMemo(() => new Set(usedIconIds), [usedIconIds]);
   const [tab, setTab] = useState<OverlayIconStyle>(iconStyle);
   const [filter, setFilter] = useState('');
 
@@ -67,23 +71,26 @@ export function OverlayIconPicker({
         className="dash-input text-[10px] py-1.5"
       />
 
-      <div className="max-h-[160px] overflow-y-auto space-y-2 pr-0.5">
+      <div className="max-h-[200px] overflow-y-auto space-y-2 pr-0.5">
         {categories.map(([category, items]) => (
           <div key={category}>
             <p className="text-[8px] uppercase tracking-wider text-zinc-500 mb-1">{category}</p>
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-1">
               {items.map((item) => {
                 const active = iconId === item.id && iconStyle === tab;
+                const usedElsewhere = usedSet.has(item.id) && !active;
                 return (
                   <button
                     key={`${tab}-${item.id}`}
                     type="button"
-                    title={item.label}
+                    title={usedElsewhere ? `${item.label} (já usado em outro bloco)` : item.label}
                     onClick={() => onChange(item.id, tab)}
-                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border transition ${
+                    className={`relative flex flex-col items-center gap-0.5 p-1.5 rounded-lg border transition ${
                       active
                         ? 'border-[var(--dash-primary-light)] bg-[rgba(130,128,253,0.15)]'
-                        : 'border-[var(--dash-border)] hover:border-[rgba(130,128,253,0.35)] bg-[var(--dash-bg)]'
+                        : usedElsewhere
+                          ? 'border-amber-500/35 bg-amber-500/5 hover:border-amber-500/55'
+                          : 'border-[var(--dash-border)] hover:border-[rgba(130,128,253,0.35)] bg-[var(--dash-bg)]'
                     }`}
                   >
                     <OverlayAnimatedIcon
