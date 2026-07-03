@@ -331,7 +331,7 @@ export function BlockProgressBarEditor({
             <div className="min-w-0">
               <span className="text-[10px] font-semibold text-zinc-200 block">Exibir título do bloco</span>
               <span className="text-[8px] text-zinc-500 leading-relaxed block mt-0.5">
-                Usa os capítulos gerados em IA · Metadados. Em listicles Top 3/5, os itens do ranking.
+                Exibe o capítulo inteiro abaixo do ícone. Fonte: IA · Metadados; em listicles Top 3/5, os itens do ranking.
               </span>
             </div>
           </label>

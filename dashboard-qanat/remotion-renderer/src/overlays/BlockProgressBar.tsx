@@ -45,8 +45,29 @@ const TITLE_FONT_STACKS: Record<string, string> = {
 };
 
 function blockTitleLabel(marker: BlockProgressMarker) {
-  const text = String(marker.title || marker.label || `Bloco ${marker.block}`).trim();
-  return text.length > 28 ? `${text.slice(0, 26).replace(/\s+\S*$/, "")}…` : text;
+  return String(marker.title || marker.label || `Bloco ${marker.block}`).trim();
+}
+
+function titleStyle(
+  isActive: boolean,
+  titleFontFamily: string,
+  resolvedTitleSize: number,
+  titleColor: string,
+  maxWidth: number,
+  textAlign: "left" | "center" = "center",
+) {
+  return {
+    fontFamily: titleFontFamily,
+    fontSize: isActive ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
+    fontWeight: isActive ? 700 : 500,
+    color: isActive ? titleColor : `${titleColor}88`,
+    lineHeight: 1.2,
+    textAlign,
+    whiteSpace: "normal" as const,
+    wordBreak: "break-word" as const,
+    maxWidth,
+    textShadow: isActive ? "0 1px 4px rgba(0,0,0,0.85)" : "0 1px 3px rgba(0,0,0,0.7)",
+  };
 }
 
 type DesignTokens = {
@@ -147,6 +168,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
 
   const baseIcon = Math.max(12, Math.min(36, iconSize));
   const scale = isVertical ? 0.85 : 1;
+  const slotWidth = Math.max(56, Math.floor((width - 48) / Math.max(1, safeBlocks.length)));
 
   if (isVertical) {
     const barLeft = 10;
@@ -187,6 +209,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
           const size = Math.round((marker.iconSize || baseIcon) * scale);
           const isActive = marker.block === activeBlock;
           const markerY = barTop + (pct / 100) * barHeight;
+          const titleMaxW = Math.max(64, width - iconLeft - 10);
           return (
             <div
               key={`bp-${marker.block}`}
@@ -195,12 +218,14 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
                 left: iconLeft,
                 top: markerY,
                 transform: `translateY(-50%) scale(${isActive ? 1.08 : 0.92})`,
+                transformOrigin: "top left",
                 opacity: isActive ? 1 : 0.45,
                 filter: isActive ? `drop-shadow(0 0 6px ${accentColor}88)` : "none",
                 display: "flex",
-                alignItems: "center",
-                gap: 5,
-                maxWidth: Math.max(72, width - iconLeft - 8),
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 3,
+                maxWidth: titleMaxW,
               }}
             >
               <OverlayIconSlot
@@ -210,20 +235,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
                 accentColor={isActive ? accentColor : `${accentColor}99`}
               />
               {showBlockTitles && (
-                <span
-                  style={{
-                    fontFamily: titleFontFamily,
-                    fontSize: isActive ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
-                    fontWeight: isActive ? 700 : 500,
-                    color: isActive ? titleColor : `${titleColor}88`,
-                    lineHeight: 1.15,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    maxWidth: Math.max(48, width - iconLeft - size - 16),
-                    textShadow: isActive ? "0 1px 4px rgba(0,0,0,0.85)" : "0 1px 3px rgba(0,0,0,0.7)",
-                  }}
-                >
+                <span style={titleStyle(isActive, titleFontFamily, resolvedTitleSize, titleColor, titleMaxW, "left")}>
                   {blockTitleLabel(marker)}
                 </span>
               )}
@@ -266,6 +278,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
         const pct = markerCenter(marker, totalDuration);
         const size = Math.round(marker.iconSize || baseIcon);
         const isActive = marker.block === activeBlock;
+        const titleMaxW = showBlockTitles ? Math.max(size, slotWidth - 4) : size;
         return (
           <div
             key={`bp-${marker.block}`}
@@ -274,12 +287,14 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               left: `calc(24px + (100% - 48px) * ${pct / 100})`,
               top: iconTop,
               transform: `translateX(-50%) scale(${isActive ? 1.08 : 0.9})`,
+              transformOrigin: "top center",
               opacity: isActive ? 1 : 0.42,
               filter: isActive ? `drop-shadow(0 0 8px ${accentColor}99)` : "none",
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              gap: 5,
-              maxWidth: showBlockTitles ? 140 : size,
+              gap: 3,
+              width: titleMaxW,
             }}
           >
             <OverlayIconSlot
@@ -289,20 +304,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               accentColor={isActive ? accentColor : `${accentColor}88`}
             />
             {showBlockTitles && (
-              <span
-                style={{
-                  fontFamily: titleFontFamily,
-                  fontSize: isActive ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
-                  fontWeight: isActive ? 700 : 500,
-                  color: isActive ? titleColor : `${titleColor}88`,
-                  lineHeight: 1.15,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: 96,
-                  textShadow: isActive ? "0 1px 4px rgba(0,0,0,0.85)" : "0 1px 3px rgba(0,0,0,0.7)",
-                }}
-              >
+              <span style={titleStyle(isActive, titleFontFamily, resolvedTitleSize, titleColor, titleMaxW)}>
                 {blockTitleLabel(marker)}
               </span>
             )}
