@@ -68,10 +68,33 @@ type CycleProgress = {
   order: string;
 };
 
+type ScanDiagnostics = {
+  publishedOnDisk: number;
+  minAgeDays: number;
+  eligibleCount: number;
+  tooYoungCount: number;
+  tooYoung?: Array<{
+    title: string;
+    projectName: string;
+    ageDays: number;
+    daysUntilEligible: number;
+    eligibleOn?: string;
+  }>;
+  nextToQualify?: {
+    title: string;
+    projectName: string;
+    ageDays: number;
+    daysUntilEligible: number;
+    eligibleOn?: string;
+  } | null;
+  scannedAt?: string;
+};
+
 type Dashboard = {
   settings: ResurrectorSettings;
   cycle?: { number: number; startedAt?: string };
   cycleProgress?: CycleProgress | null;
+  scanDiagnostics?: ScanDiagnostics | null;
   lastDailyRunAt?: string | null;
   lastDailyRunDate?: string | null;
   dailyRuns?: {
@@ -192,7 +215,9 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       applyDashboard(data.dashboard);
-      toast(`${data.added} vídeo(s) adicionados à fila (${data.eligible} elegíveis).`);
+      toast(data.message || `${data.added} vídeo(s) adicionados à fila (${data.eligible} elegíveis).`, {
+        duration: data.eligible === 0 ? 8000 : 4000,
+      });
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Scan falhou.');
     } finally {
@@ -334,6 +359,40 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
               Ciclo concluído — o próximo batch recomeça do vídeo mais antigo.
             </p>
           )}
+        </div>
+      )}
+
+      {dashboard?.scanDiagnostics && dashboard.scanDiagnostics.publishedOnDisk > 0
+        && dashboard.scanDiagnostics.eligibleCount === 0 && (
+        <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 space-y-2 text-[11px] text-sky-100">
+          <p className="font-bold">
+            {dashboard.scanDiagnostics.publishedOnDisk} vídeo(s) publicado(s) — nenhum elegível ainda
+          </p>
+          <p className="opacity-90">
+            Regra atual: só entram vídeos com +{dashboard.scanDiagnostics.minAgeDays} dias no ar.
+            {dashboard.scanDiagnostics.nextToQualify && (
+              <>
+                {' '}O mais antigo é <strong>{dashboard.scanDiagnostics.nextToQualify.title}</strong>
+                {' '}({dashboard.scanDiagnostics.nextToQualify.ageDays}d) — elegível em ~
+                {dashboard.scanDiagnostics.nextToQualify.daysUntilEligible}d
+                {dashboard.scanDiagnostics.nextToQualify.eligibleOn && (
+                  <> ({new Date(dashboard.scanDiagnostics.nextToQualify.eligibleOn).toLocaleDateString('pt-BR')})</>
+                )}.
+              </>
+            )}
+          </p>
+          {(dashboard.scanDiagnostics.tooYoung?.length ?? 0) > 0 && (
+            <ul className="text-[10px] text-sky-200/80 space-y-0.5 max-h-24 overflow-y-auto">
+              {dashboard.scanDiagnostics.tooYoung!.map((v) => (
+                <li key={`${v.projectName}-${v.ageDays}`} className="truncate">
+                  {v.title} · {v.ageDays}d · faltam {v.daysUntilEligible}d
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[10px] text-sky-200/70">
+            Pode reduzir &quot;Idade mín. (dias)&quot; abaixo se quiser ressuscitar vídeos mais recentes.
+          </p>
         </div>
       )}
 
