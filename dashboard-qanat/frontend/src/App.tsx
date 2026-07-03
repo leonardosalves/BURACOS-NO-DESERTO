@@ -13496,12 +13496,19 @@ export default function App() {
                   projectKey={activeProject}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
+                  blockTimings={status?.block_timings || config?.block_timings || undefined}
                   saving={savingVisualConfig}
                   onSave={async (draft) => {
                     setSavingVisualConfig(true);
                     try {
                       const previousVisual = pickVisualConfig(config || {});
                       const patch = visualDraftToApiPatch(draft, previousVisual);
+                      if (draft.block_progress_bar !== undefined) {
+                        const prevBp = (config as Record<string, unknown>)?.block_progress_bar;
+                        if (JSON.stringify(draft.block_progress_bar) !== JSON.stringify(prevBp)) {
+                          patch.block_progress_bar = draft.block_progress_bar;
+                        }
+                      }
                       if (Object.keys(patch).length === 0) {
                         toast.success('Nenhuma alteração visual para salvar.');
                         return;

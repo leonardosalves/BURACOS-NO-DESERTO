@@ -12,6 +12,11 @@ import {
   resolveShortCaptionMode,
   type CaptionModeId,
 } from './captionConfig';
+import {
+  BlockProgressBarEditor,
+  buildBlockProgressDraftFromProject,
+  type BlockProgressBarDraft,
+} from './BlockProgressBarEditor';
 
 export type VisualConfig = {
   design_preset?: string;
@@ -41,13 +46,15 @@ export type VisualConfig = {
   secondary_color?: string;
   listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
   long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
+  block_progress_bar?: BlockProgressBarDraft;
 };
 
 type Props = {
-  config: VisualConfig;
+  config: VisualConfig & Record<string, unknown>;
   projectKey: string;
   isShortFormat: boolean;
   isListicle: boolean;
+  blockTimings?: { starts?: number[]; durations?: number[] };
   saving?: boolean;
   onSave: (draft: VisualConfig) => void | Promise<void>;
 };
@@ -100,7 +107,7 @@ const LAYER_HELP: Record<string, { title: string; body: string }> = {
   },
   progress_bar: {
     title: 'Barra de progresso',
-    body: 'Barra fina no topo do vídeo mostrando quanto falta para terminar. Recomendado em vídeos longos para retenção.',
+    body: 'Barra fina clássica no topo (longos). Para barra com ícones por bloco, use o editor abaixo.',
   },
   chapter_stingers: {
     title: 'Chapter stingers',
@@ -286,12 +293,24 @@ function ToggleCard({
   );
 }
 
-export function VisualSettings({ config, projectKey, isShortFormat, isListicle, saving, onSave }: Props) {
+export function VisualSettings({
+  config,
+  projectKey,
+  isShortFormat,
+  isListicle,
+  blockTimings,
+  saving,
+  onSave,
+}: Props) {
   const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
+  const [blockProgress, setBlockProgress] = useState<BlockProgressBarDraft>(() =>
+    buildBlockProgressDraftFromProject(config, blockTimings || {}),
+  );
 
   useEffect(() => {
     setDraft(pickVisualConfig(config));
-  }, [config, projectKey]);
+    setBlockProgress(buildBlockProgressDraftFromProject(config, blockTimings || {}));
+  }, [config, projectKey, blockTimings]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));
@@ -679,10 +698,21 @@ export function VisualSettings({ config, projectKey, isShortFormat, isListicle, 
         )}
       </div>
 
+      <BlockProgressBarEditor
+        draft={blockProgress}
+        blockPhrases={(config.block_phrases || []) as Array<{ block?: number; phrase?: string; text?: string }>}
+        blockStarts={blockTimings?.starts || []}
+        blockDurations={blockTimings?.durations || []}
+        isShortFormat={isShortFormat}
+        accentColor={draft.accent_color || '#D4AF37'}
+        niche={String(config.niche || 'Geral')}
+        onChange={setBlockProgress}
+      />
+
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
         <button
           type="button"
-          onClick={() => onSave(draft)}
+          onClick={() => onSave({ ...draft, block_progress_bar: blockProgress })}
           disabled={saving}
           className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
