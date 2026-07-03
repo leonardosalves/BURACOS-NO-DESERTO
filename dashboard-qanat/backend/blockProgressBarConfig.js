@@ -124,11 +124,11 @@ export function resolveBlockTitlesFromChapters(chaptersText = "", blockStarts = 
   if (!chapters.length || !blockStarts.length) return [];
 
   return blockStarts.map((start, idx) => {
-    const exact = chapters.find((c) => Math.abs(c.seconds - start) < 1.5);
-    if (exact?.title) return exact.title;
     if (chapters.length === blockStarts.length && chapters[idx]?.title) {
       return chapters[idx].title;
     }
+    const exact = chapters.find((c) => Math.abs(c.seconds - start) < 1.5);
+    if (exact?.title) return exact.title;
     let best = chapters[0];
     let bestDiff = Infinity;
     for (const chapter of chapters) {

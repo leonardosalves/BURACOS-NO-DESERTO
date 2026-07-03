@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, ChevronLeft, ChevronRight, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { BarChart3, Check, ChevronLeft, ChevronRight, Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { OverlayIconPicker } from './OverlayIconPicker';
 import { BlockProgressBarPreview } from './BlockProgressBarPreview';
@@ -9,6 +10,7 @@ import {
   BLOCK_PROGRESS_TITLE_FONTS,
   buildBlockTitlesForProgressBar,
   collectBlockNarrationsByBlock,
+  forceApplyChapterTitlesFromMetadata,
   resolveBlockDisplayTitle,
   type BlockProgressTitleFontId,
 } from './blockProgressBarTitles';
@@ -91,6 +93,10 @@ type Props = {
   channelLogoUrl?: string | null;
   onChange: (next: BlockProgressBarDraft) => void;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
+  onSyncTitlesFromChapters?: () => Promise<{
+    blocks: BlockProgressMarkerDraft[];
+    updatedCount: number;
+  } | null>;
   chaptersText?: string;
 };
 
@@ -181,11 +187,24 @@ export function BlockProgressBarEditor({
   channelLogoUrl = null,
   onChange,
   onSuggestIconsWithAi,
+  onSyncTitlesFromChapters,
   chaptersText = '',
 }: Props) {
   const [expandedBlock, setExpandedBlock] = useState<number | null>(draft.blocks[0]?.block ?? null);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [syncingTitles, setSyncingTitles] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncCount, setLastSyncCount] = useState<number | null>(null);
+
+  const metadataTitles = useMemo(() => buildBlockTitlesForProgressBar({
+    chaptersText,
+    blockStarts,
+    storyboard,
+    config: projectConfig,
+  }), [chaptersText, blockStarts, storyboard, projectConfig]);
+
+  const hasMetadataTitles = metadataTitles.size > 0;
 
   const markers = useMemo(() => {
     if (draft.blocks.length) return draft.blocks;
@@ -253,25 +272,53 @@ export function BlockProgressBarEditor({
     }
   };
 
-  const syncTitlesFromMetadata = () => {
-    const metadataTitles = buildBlockTitlesForProgressBar({
-      chaptersText,
-      blockStarts,
-      storyboard,
-      config: projectConfig,
-    });
-    const base = draft.blocks.length ? draft.blocks : markers;
-    onChange({
-      ...draft,
-      blocks: base.map((b, idx) => {
-        const bp = blockPhrases.find((p) => Number(p.block) === b.block) || blockPhrases[idx];
-        const phraseStart = String(bp?.phrase || bp?.text || '').trim();
-        const metaTitle = metadataTitles.get(b.block);
-        const title = resolveBlockDisplayTitle(b, metaTitle, b.block, phraseStart);
-        if (title === String(b.title || b.label || '').trim()) return b;
-        return { ...b, title, label: title };
-      }),
-    });
+  const handleSyncTitlesFromMetadata = async () => {
+    if (!hasMetadataTitles) {
+      const msg = 'Nenhum capítulo encontrado nos metadados.';
+      setSyncError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    setSyncingTitles(true);
+    setSyncError(null);
+    setLastSyncCount(null);
+
+    try {
+      if (onSyncTitlesFromChapters) {
+        const result = await onSyncTitlesFromChapters();
+        if (!result?.blocks?.length) return;
+
+        onChange({
+          ...draft,
+          blocks: result.blocks.map((b) => ({
+            ...b,
+            iconStyle: b.iconStyle || draft.defaultIconStyle,
+          })),
+        });
+        setLastSyncCount(result.updatedCount);
+        return;
+      }
+
+      const base = draft.blocks.length ? draft.blocks : markers;
+      const { blocks: nextBlocks, updatedCount } = forceApplyChapterTitlesFromMetadata(
+        base,
+        metadataTitles,
+      );
+      onChange({ ...draft, blocks: nextBlocks });
+      setLastSyncCount(updatedCount);
+      if (updatedCount > 0) {
+        toast.success(`${updatedCount} título(s) sincronizado(s) dos capítulos.`);
+      } else {
+        toast.success('Títulos já estavam sincronizados com os capítulos.');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Falha ao sincronizar títulos.';
+      setSyncError(msg);
+      toast.error(msg);
+    } finally {
+      setSyncingTitles(false);
+    }
   };
 
   const displayTitle = (marker: BlockProgressMarkerDraft) =>
@@ -517,14 +564,25 @@ export function BlockProgressBarEditor({
                 <Sparkles className="w-3 h-3" /> Ícones por bloco ({previewBlocks.length})
               </p>
               <div className="flex gap-1.5 flex-wrap">
-                {chaptersText.trim() && (
+                {hasMetadataTitles && (
                   <button
                     type="button"
-                    onClick={syncTitlesFromMetadata}
-                    className="border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 text-violet-100 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                    onClick={handleSyncTitlesFromMetadata}
+                    disabled={syncingTitles}
+                    className="border border-violet-500/40 bg-violet-500/15 hover:bg-violet-500/25 disabled:opacity-50 text-violet-100 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
                   >
-                    <Sparkles className="w-3 h-3" />
-                    Sincronizar capítulos
+                    {syncingTitles ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : lastSyncCount !== null ? (
+                      <Check className="w-3 h-3 text-emerald-300" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    {syncingTitles
+                      ? 'Sincronizando…'
+                      : lastSyncCount !== null
+                        ? `Sincronizado (${lastSyncCount})`
+                        : 'Sincronizar capítulos'}
                   </button>
                 )}
                 {onSuggestIconsWithAi && (
@@ -540,8 +598,16 @@ export function BlockProgressBarEditor({
                 )}
               </div>
             </div>
-            {suggestError && (
-              <p className="text-[8px] text-red-400/90">{suggestError}</p>
+            {(suggestError || syncError) && (
+              <p className="text-[8px] text-red-400/90">{suggestError || syncError}</p>
+            )}
+            {lastSyncCount !== null && !syncError && !syncingTitles && (
+              <p className="text-[8px] text-emerald-400/90 flex items-center gap-1">
+                <Check className="w-3 h-3 shrink-0" />
+                {lastSyncCount > 0
+                  ? `${lastSyncCount} título(s) atualizado(s) a partir dos capítulos dos metadados.`
+                  : 'Títulos já coincidiam com os capítulos dos metadados.'}
+              </p>
             )}
             <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
               {previewBlocks.map((marker, idx) => {
