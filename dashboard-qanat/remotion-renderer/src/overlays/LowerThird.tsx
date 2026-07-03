@@ -2,6 +2,7 @@ import React from "react";
 import {
   AbsoluteFill,
   interpolate,
+  spring,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
@@ -14,7 +15,21 @@ export interface LowerThirdProps {
   accentColor?: string;
   position?: "bottom-left" | "bottom-center" | "bottom-right" | "top-left" | "top-right";
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
-  variant?: "glass" | "bild" | "accent-underline" | "bold-block" | "clean-bar" | "soft-pill";
+  variant?:
+    | "glass"
+    | "bild"
+    | "accent-underline"
+    | "bold-block"
+    | "clean-bar"
+    | "soft-pill"
+    | "color-block"
+    | "dark-card"
+    | "kicker-name"
+    | "mask-reveal"
+    | "side-rule"
+    | "stack-bars"
+    | "youtube-bar"
+    | "news-ticker";
   iconType?: string;
   iconStyle?: "lottie" | "svg";
   customStyle?: {
@@ -61,7 +76,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
   customStyle,
 }) => {
   const frame = useCurrentFrame();
-  const { durationInFrames, width, height } = useVideoConfig();
+  const { durationInFrames, width, height, fps } = useVideoConfig();
 
   const iconSlot = (px: number) =>
     iconType ? (
@@ -594,7 +609,146 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
     );
   }
 
-  // 5. Classic Fallback (Default)
+  const titleSize = isVertical ? 34 : 24;
+  const subtitleSize = isVertical ? 22 : 15;
+  const wrapperBase: React.CSSProperties = {
+    position: "absolute",
+    ...positionStyle,
+    transform: transformStyle,
+    opacity,
+    pointerEvents: "none",
+    zIndex: 50,
+  };
+
+  if (variant === "color-block") {
+    const elastic = spring({ fps, frame, config: { damping: 14, stiffness: 160 } });
+    return (
+      <div style={{ ...wrapperBase, transform: `${transformStyle} scaleX(${0.2 + elastic * 0.8})`, transformOrigin: "left center" }}>
+        <div style={{ background: accentColor, padding: isVertical ? "14px 24px" : "10px 18px", display: "flex", alignItems: "center", gap: 12, borderRadius: 4 }}>
+          {iconSlot(isVertical ? 40 : 30)}
+          <div>
+            <div style={{ color: "#0a0a0a", fontSize: titleSize, fontWeight: 900, textTransform: "uppercase", fontFamily: "'Montserrat', sans-serif" }}>{title}</div>
+            {subtitle && <div style={{ color: "rgba(0,0,0,0.72)", fontSize: subtitleSize, fontWeight: 600, marginTop: 4 }} dangerouslySetInnerHTML={{ __html: subtitle }} />}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "dark-card") {
+    return (
+      <div style={wrapperBase}>
+        <div style={{ background: "rgba(14,14,18,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: isVertical ? "16px 22px" : "12px 18px", maxWidth: isVertical ? 520 : 480, boxShadow: "0 12px 36px rgba(0,0,0,0.55)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {iconSlot(isVertical ? 44 : 32)}
+            <div>
+              <div style={{ color: "#fff", fontSize: titleSize, fontWeight: 800, fontFamily: "'Inter', sans-serif" }}>{title}</div>
+              {subtitle && <div style={{ color: "#a1a1aa", fontSize: subtitleSize, marginTop: 4, fontFamily: "'Inter', sans-serif" }} dangerouslySetInnerHTML={{ __html: subtitle }} />}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "kicker-name") {
+    return (
+      <div style={wrapperBase}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "6px 4px" }}>
+          {subtitle && (
+            <span style={{ color: accentColor, fontSize: isVertical ? 16 : 12, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", fontFamily: "'Inter', sans-serif" }} dangerouslySetInnerHTML={{ __html: subtitle }} />
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {iconSlot(isVertical ? 42 : 30)}
+            <span style={{ color: "#fff", fontSize: isVertical ? 40 : 30, fontWeight: 900, fontFamily: "'Montserrat', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.7)" }}>{title}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "mask-reveal") {
+    const maskWipe = interpolate(frame, [0, ANIM_IN_FRAMES], [100, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    return (
+      <div style={wrapperBase}>
+        <div style={{ position: "relative", overflow: "hidden", borderRadius: 6, background: "rgba(8,8,12,0.88)", padding: isVertical ? "14px 20px" : "10px 16px" }}>
+          <div style={{ position: "absolute", inset: 0, background: accentColor, clipPath: `inset(0 ${maskWipe}% 0 0)`, opacity: 0.22 }} />
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, clipPath: `inset(0 ${maskWipe}% 0 0)` }}>
+            {iconSlot(isVertical ? 40 : 30)}
+            <div>
+              <div style={{ color: "#fff", fontSize: titleSize, fontWeight: 800, textTransform: "uppercase" }}>{title}</div>
+              {subtitle && <div style={{ color: "rgba(255,255,255,0.78)", fontSize: subtitleSize, marginTop: 4 }} dangerouslySetInnerHTML={{ __html: subtitle }} />}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "side-rule") {
+    return (
+      <div style={{ ...wrapperBase, display: "flex", alignItems: "stretch", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 4, paddingRight: 14, borderRight: `2px solid ${accentColor}` }}>
+          {iconSlot(isVertical ? 36 : 28)}
+          <span style={{ color: "#fff", fontSize: titleSize, fontWeight: 800, fontFamily: "'Montserrat', sans-serif", whiteSpace: "nowrap" }}>{title}</span>
+        </div>
+        {subtitle && (
+          <div style={{ display: "flex", alignItems: "center", maxWidth: isVertical ? 280 : 220 }}>
+            <span style={{ color: accentColor, fontSize: subtitleSize, fontWeight: 600, fontFamily: "'Inter', sans-serif", lineHeight: 1.35 }} dangerouslySetInnerHTML={{ __html: subtitle }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (variant === "stack-bars") {
+    const leftBar = interpolate(frame, [0, ANIM_IN_FRAMES], [-120, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    const rightBar = interpolate(frame, [ANIM_IN_FRAMES * 0.2, ANIM_IN_FRAMES * 1.1], [120, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    return (
+      <div style={wrapperBase}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: isVertical ? 320 : 280 }}>
+          <div style={{ background: accentColor, color: "#0a0a0a", fontSize: titleSize, fontWeight: 900, textTransform: "uppercase", padding: isVertical ? "10px 18px" : "8px 14px", transform: `translateX(${leftBar}px)`, fontFamily: "'Montserrat', sans-serif" }}>{title}</div>
+          {subtitle && (
+            <div style={{ background: "rgba(255,255,255,0.14)", color: "#fff", fontSize: subtitleSize, padding: isVertical ? "8px 18px" : "6px 14px", transform: `translateX(${rightBar}px)`, fontFamily: "'Inter', sans-serif" }} dangerouslySetInnerHTML={{ __html: subtitle }} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "youtube-bar") {
+    return (
+      <div style={wrapperBase}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(18,18,18,0.94)", borderRadius: 10, padding: isVertical ? "12px 16px" : "10px 14px", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 28px rgba(0,0,0,0.55)" }}>
+          <div style={{ width: isVertical ? 44 : 36, height: isVertical ? 44 : 36, borderRadius: "50%", background: `linear-gradient(135deg, ${accentColor}, #ff0000)` }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontSize: isVertical ? 18 : 14, fontWeight: 700, fontFamily: "'Roboto', sans-serif" }}>{title}</div>
+            {subtitle && <div style={{ color: "#aaa", fontSize: isVertical ? 14 : 11, marginTop: 2 }} dangerouslySetInnerHTML={{ __html: subtitle }} />}
+          </div>
+          <div style={{ background: "#ff0000", color: "#fff", fontWeight: 700, fontSize: isVertical ? 13 : 11, padding: "8px 14px", borderRadius: 999, textTransform: "uppercase", letterSpacing: "0.04em" }}>Inscrever</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "news-ticker") {
+    const tickerText = subtitle || title;
+    const scrollX = interpolate(frame % 180, [0, 180], [40, -280], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    return (
+      <div style={{ ...wrapperBase, left: isVertical ? 24 : 48, right: isVertical ? 24 : 48, bottom: isVertical ? 120 : 48, transform: "none" }}>
+        <div style={{ background: "rgba(180,0,0,0.94)", borderTop: "3px solid #fff", overflow: "hidden", padding: "8px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 12 }}>
+            <span style={{ background: "#fff", color: "#b40000", fontWeight: 900, fontSize: isVertical ? 12 : 10, padding: "4px 8px", textTransform: "uppercase", flexShrink: 0 }}>{title}</span>
+            <div style={{ overflow: "hidden", flex: 1 }}>
+              <div style={{ color: "#fff", fontSize: isVertical ? 16 : 13, fontWeight: 600, whiteSpace: "nowrap", transform: `translateX(${scrollX}px)`, fontFamily: "'Inter', sans-serif" }}>{tickerText}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Classic Fallback (Default)
   return (
     <div
       style={{

@@ -17,7 +17,16 @@ export interface KineticTextProps {
   /** The text to display */
   text: string;
   /** Animation style */
-  style?: "slam" | "typewriter" | "reveal" | "glitch" | "fade-up";
+  style?:
+    | "slam"
+    | "typewriter"
+    | "reveal"
+    | "glitch"
+    | "fade-up"
+    | "blend-difference"
+    | "morph-text"
+    | "texture-mask"
+    | "mask-reveal";
   /** Accent color */
   accentColor?: string;
   /** Font size override */
@@ -163,7 +172,65 @@ export const KineticText: React.FC<KineticTextProps> = ({
     };
   };
 
-  let animProps: Record<string, any> = {};
+  const renderBlendDifferenceStyle = () => {
+    const fadeIn = interpolate(frame, [0, 10], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    return {
+      color: "#ffffff",
+      mixBlendMode: "difference" as const,
+      opacity: fadeIn * fadeOut,
+      letterSpacing: "0.08em",
+    };
+  };
+
+  const renderMorphTextStyle = () => {
+    const pulse = interpolate(frame, [0, 14, 28], [0.88, 1.08, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    const blur = interpolate(frame, [0, 10, 20], [6, 1, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    return {
+      transform: `scale(${pulse})`,
+      filter: `blur(${blur}px)`,
+      opacity: fadeOut,
+      color: accentColor,
+    };
+  };
+
+  const renderTextureMaskStyle = () => {
+    const shift = interpolate(frame, [0, 30], [0, 100], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    return {
+      backgroundImage: `linear-gradient(120deg, ${accentColor}, #ffffff, ${accentColor}, #f59e0b)`,
+      backgroundSize: "200% 200%",
+      backgroundPosition: `${shift}% 50%`,
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      color: "transparent",
+      opacity: fadeOut,
+    };
+  };
+
+  const renderMaskRevealStyle = () => {
+    const wipe = interpolate(frame, [0, 18], [100, 0], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
+    return {
+      clipPath: `inset(0 ${wipe}% 0 0)`,
+      opacity: fadeOut,
+      color: accentColor,
+    };
+  };
+
+  let animProps: Record<string, unknown> = {};
   let displayText = text;
 
   switch (animStyle) {
@@ -183,6 +250,18 @@ export const KineticText: React.FC<KineticTextProps> = ({
       break;
     case "fade-up":
       animProps = renderFadeUpStyle();
+      break;
+    case "blend-difference":
+      animProps = renderBlendDifferenceStyle();
+      break;
+    case "morph-text":
+      animProps = renderMorphTextStyle();
+      break;
+    case "texture-mask":
+      animProps = renderTextureMaskStyle();
+      break;
+    case "mask-reveal":
+      animProps = renderMaskRevealStyle();
       break;
   }
 

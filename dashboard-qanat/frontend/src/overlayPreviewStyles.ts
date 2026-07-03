@@ -138,6 +138,103 @@ export function lowerThirdVariantShell(
         title: { color: '#fff', fontWeight: 800, letterSpacing: '0.04em' },
         subtitle: { color: accent, fontWeight: 600, fontSize: '0.82em' },
       };
+    case 'color-block':
+      return {
+        container: {
+          background: accent,
+          padding: '0.4em 0.65em',
+          borderRadius: '0.2em',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4em',
+        },
+        title: { color: '#0a0a0a', fontWeight: 900, textTransform: 'uppercase' as const },
+        subtitle: { color: 'rgba(0,0,0,0.75)', fontWeight: 600, fontSize: '0.82em' },
+      };
+    case 'dark-card':
+      return {
+        container: {
+          background: 'rgba(12,12,16,0.94)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '0.55em',
+          padding: '0.45em 0.6em',
+        },
+        title: { color: '#fff', fontWeight: 800 },
+        subtitle: { color: '#a1a1aa', fontSize: '0.82em', marginTop: '0.12em' },
+      };
+    case 'kicker-name':
+      return {
+        container: { display: 'flex', flexDirection: 'column', gap: '0.1em' },
+        title: { color: '#fff', fontWeight: 900, fontSize: '1.05em' },
+        subtitle: {
+          color: accent,
+          fontWeight: 700,
+          fontSize: '0.65em',
+          textTransform: 'uppercase' as const,
+          letterSpacing: '0.14em',
+        },
+      };
+    case 'mask-reveal':
+      return {
+        container: {
+          background: 'rgba(8,8,12,0.9)',
+          borderLeft: `4px solid ${accent}`,
+          padding: '0.35em 0.55em',
+        },
+        title: { color: '#fff', fontWeight: 800 },
+        subtitle: { color: '#d4d4d8', fontSize: '0.82em' },
+      };
+    case 'side-rule':
+      return {
+        container: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45em',
+          padding: '0.3em 0',
+        },
+        title: { color: '#fff', fontWeight: 800 },
+        subtitle: { color: accent, fontWeight: 600, fontSize: '0.82em' },
+      };
+    case 'stack-bars':
+      return {
+        container: { display: 'flex', flexDirection: 'column', gap: '0.15em' },
+        title: {
+          background: accent,
+          color: '#0a0a0a',
+          fontWeight: 900,
+          padding: '0.25em 0.5em',
+          textTransform: 'uppercase' as const,
+        },
+        subtitle: {
+          background: 'rgba(255,255,255,0.12)',
+          color: '#fff',
+          padding: '0.2em 0.5em',
+          fontSize: '0.82em',
+        },
+      };
+    case 'youtube-bar':
+      return {
+        container: {
+          background: 'rgba(18,18,18,0.92)',
+          borderRadius: '0.35em',
+          padding: '0.35em 0.5em',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4em',
+        },
+        title: { color: '#fff', fontWeight: 700, fontSize: '0.9em' },
+        subtitle: { color: '#aaa', fontSize: '0.72em' },
+      };
+    case 'news-ticker':
+      return {
+        container: {
+          background: 'rgba(180,0,0,0.92)',
+          padding: '0.3em 0.5em',
+          width: '100%',
+        },
+        title: { color: '#fff', fontWeight: 800, fontSize: '0.75em', textTransform: 'uppercase' as const },
+        subtitle: { color: '#ffe4e4', fontSize: '0.72em' },
+      };
     case 'glass':
     default:
       return {
@@ -165,12 +262,43 @@ export function kineticStyleProps(style: string, accent: string): CSSProperties 
       letterSpacing: '0.08em',
     };
   }
-  if (style === 'reveal') {
+  if (style === 'reveal' || style === 'mask-reveal') {
     return {
       color: accent,
       borderBottom: `2px solid ${accent}`,
       letterSpacing: '0.12em',
+      clipPath: 'inset(0 15% 0 0)',
     };
+  }
+  if (style === 'blend-difference') {
+    return {
+      color: '#fff',
+      mixBlendMode: 'difference',
+      letterSpacing: '0.1em',
+    };
+  }
+  if (style === 'morph-text') {
+    return {
+      color: accent,
+      filter: 'blur(0.3px)',
+      transform: 'scale(1.04)',
+      letterSpacing: '0.06em',
+    };
+  }
+  if (style === 'texture-mask') {
+    return {
+      background: `linear-gradient(120deg, ${accent}, #fff, ${accent})`,
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      color: 'transparent',
+      fontWeight: 900,
+    };
+  }
+  if (style === 'typewriter') {
+    return { color: accent, fontFamily: 'monospace', letterSpacing: '0.05em' };
+  }
+  if (style === 'fade-up') {
+    return { color: accent, opacity: 0.85, transform: 'translateY(-2px)' };
   }
   return {
     color: accent,
