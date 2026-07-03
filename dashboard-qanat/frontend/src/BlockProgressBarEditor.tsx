@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { BarChart3, Sparkles } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { BarChart3, Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { OverlayIconPicker } from './OverlayIconPicker';
+import { BlockProgressBarPreview } from './BlockProgressBarPreview';
 import { iconLabel, resolveIconStyle, type OverlayIconStyle } from './overlayIconCatalog';
 import { SettingLabel } from './SettingHelpTip';
 
@@ -13,6 +14,7 @@ export type BlockProgressMarkerDraft = {
   iconType: string;
   iconStyle?: OverlayIconStyle;
   iconSize?: number;
+  aiReason?: string | null;
 };
 
 export type BlockProgressBarDraft = {
@@ -41,7 +43,9 @@ type Props = {
   isShortFormat: boolean;
   accentColor?: string;
   niche?: string;
+  totalDuration?: number;
   onChange: (next: BlockProgressBarDraft) => void;
+  onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
 };
 
 function suggestIcon(narration: string, niche: string): string {
@@ -100,9 +104,13 @@ export function BlockProgressBarEditor({
   isShortFormat,
   accentColor = '#D4AF37',
   niche = 'Geral',
+  totalDuration,
   onChange,
+  onSuggestIconsWithAi,
 }: Props) {
-  const [expandedBlock, setExpandedBlock] = React.useState<number | null>(draft.blocks[0]?.block ?? null);
+  const [expandedBlock, setExpandedBlock] = useState<number | null>(draft.blocks[0]?.block ?? null);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
 
   const markers = useMemo(() => {
     if (draft.blocks.length) return draft.blocks;
@@ -132,6 +140,33 @@ export function BlockProgressBarEditor({
 
   const previewBlocks = draft.blocks.length ? draft.blocks : markers;
   const orientation = isShortFormat ? 'vertical (Shorts)' : 'horizontal (16:9)';
+  const resolvedTotalDuration = totalDuration
+    || previewBlocks.reduce((max, b) => Math.max(max, b.start + b.duration), 0)
+    || 120;
+
+  const handleSuggestAi = async () => {
+    if (!onSuggestIconsWithAi) return;
+    setSuggesting(true);
+    setSuggestError(null);
+    try {
+      const suggested = await onSuggestIconsWithAi();
+      if (!suggested?.length) {
+        setSuggestError('A IA não retornou sugestões válidas.');
+        return;
+      }
+      onChange({
+        ...draft,
+        blocks: suggested.map((b) => ({
+          ...b,
+          iconStyle: b.iconStyle || draft.defaultIconStyle,
+        })),
+      });
+    } catch (err) {
+      setSuggestError(err instanceof Error ? err.message : 'Falha ao sugerir ícones.');
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   return (
     <div className="dash-layer-card space-y-4">
@@ -211,10 +246,36 @@ export function BlockProgressBarEditor({
             </div>
           </div>
 
+          <BlockProgressBarPreview
+            blocks={previewBlocks}
+            design={draft.design}
+            iconSize={draft.iconSize}
+            defaultIconStyle={draft.defaultIconStyle}
+            accentColor={accentColor}
+            isShortFormat={isShortFormat}
+            totalDuration={resolvedTotalDuration}
+          />
+
           <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3 space-y-2">
-            <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Ícones por bloco ({previewBlocks.length})
-            </p>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Ícones por bloco ({previewBlocks.length})
+              </p>
+              {onSuggestIconsWithAi && (
+                <button
+                  type="button"
+                  onClick={handleSuggestAi}
+                  disabled={suggesting}
+                  className="bg-gold-500/90 hover:bg-gold-500 disabled:opacity-50 text-zinc-950 text-[9px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition"
+                >
+                  {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                  {suggesting ? 'Analisando roteiro…' : 'Sugerir com IA'}
+                </button>
+              )}
+            </div>
+            {suggestError && (
+              <p className="text-[8px] text-red-400/90">{suggestError}</p>
+            )}
             <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
               {previewBlocks.map((marker) => {
                 const expanded = expandedBlock === marker.block;
@@ -276,6 +337,11 @@ export function BlockProgressBarEditor({
                           {' · '}
                           {marker.iconStyle || draft.defaultIconStyle}
                         </p>
+                        {marker.aiReason && (
+                          <p className="text-[8px] text-violet-400/80 italic leading-snug">
+                            IA: {marker.aiReason}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -284,44 +350,6 @@ export function BlockProgressBarEditor({
             </div>
           </div>
 
-          <div
-            className={`relative rounded-xl border border-[var(--dash-border)] overflow-hidden bg-zinc-950 ${
-              isShortFormat ? 'aspect-[9/16] max-w-[140px]' : 'aspect-video max-w-full'
-            }`}
-          >
-            <div className="absolute inset-0 opacity-80 bg-gradient-to-b from-zinc-900 to-black" />
-            {isShortFormat ? (
-              <>
-                <div className="absolute left-2 top-8 bottom-16 w-0.5 bg-white/10 rounded" />
-                <div className="absolute left-2 top-8 h-1/3 w-0.5 bg-[var(--dash-primary)] rounded" />
-                {previewBlocks.slice(0, 6).map((m, i) => (
-                  <div
-                    key={m.block}
-                    className="absolute left-5"
-                    style={{ top: `${12 + i * 14}%` }}
-                  >
-                    <OverlayAnimatedIcon iconId={m.iconType} iconStyle={m.iconStyle || draft.defaultIconStyle} color={accentColor} />
-                  </div>
-                ))}
-              </>
-            ) : (
-              <>
-                <div className="absolute top-2 left-3 right-3 h-0.5 bg-white/10 rounded" />
-                <div className="absolute top-2 left-3 w-1/3 h-0.5 bg-[var(--dash-primary)] rounded" />
-                <div className="absolute top-4 left-0 right-0 flex justify-between px-4">
-                  {previewBlocks.slice(0, 8).map((m) => (
-                    <OverlayAnimatedIcon
-                      key={m.block}
-                      iconId={m.iconType}
-                      iconStyle={m.iconStyle || draft.defaultIconStyle}
-                      color={accentColor}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-            <span className="absolute bottom-1 right-2 text-[7px] text-zinc-600 uppercase">{draft.design}</span>
-          </div>
         </>
       )}
     </div>

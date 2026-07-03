@@ -16,6 +16,7 @@ import {
   BlockProgressBarEditor,
   buildBlockProgressDraftFromProject,
   type BlockProgressBarDraft,
+  type BlockProgressMarkerDraft,
 } from './BlockProgressBarEditor';
 
 export type VisualConfig = {
@@ -57,6 +58,7 @@ type Props = {
   blockTimings?: { starts?: number[]; durations?: number[] };
   saving?: boolean;
   onSave: (draft: VisualConfig) => void | Promise<void>;
+  onSuggestBlockProgressIcons?: () => Promise<BlockProgressMarkerDraft[] | null>;
 };
 
 const PRESET_OPTIONS = [
@@ -301,6 +303,7 @@ export function VisualSettings({
   blockTimings,
   saving,
   onSave,
+  onSuggestBlockProgressIcons,
 }: Props) {
   const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
   const [blockProgress, setBlockProgress] = useState<BlockProgressBarDraft>(() =>
@@ -706,7 +709,14 @@ export function VisualSettings({
         isShortFormat={isShortFormat}
         accentColor={draft.accent_color || '#D4AF37'}
         niche={String(config.niche || 'Geral')}
+        totalDuration={
+          Number(blockTimings?.starts?.length && blockTimings?.durations?.length
+            ? (blockTimings.starts[blockTimings.starts.length - 1] || 0)
+              + (blockTimings.durations[blockTimings.durations.length - 1] || 0)
+            : 0) || undefined
+        }
         onChange={setBlockProgress}
+        onSuggestIconsWithAi={onSuggestBlockProgressIcons}
       />
 
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">

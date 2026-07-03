@@ -1495,6 +1495,33 @@ export default function App() {
     },
   ), [getProjectUrl, geminiBrowserMode, aiProvider, resolveBrowserResponse]);
 
+  const suggestBlockProgressIcons = useCallback(async () => {
+    const effectiveGeminiChrome = config?.use_gemini_chrome === true || geminiBrowserMode;
+    const { ok, data } = await postAi('/api/ai/suggest-block-progress-icons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ require_browser: effectiveGeminiChrome }),
+    });
+    if (!ok || (data as { needs_browser?: boolean })?.needs_browser) {
+      toast.error('Sugestão cancelada ou pendente no Gemini Chrome.');
+      return null;
+    }
+    const blocks = (data as { blocks?: unknown[] })?.blocks;
+    if (!Array.isArray(blocks) || blocks.length < 1) {
+      toast.error((data as { error?: string })?.error || 'IA não retornou ícones válidos.');
+      return null;
+    }
+    toast.success(`Ícones sugeridos para ${blocks.length} bloco(s).`);
+    setConfig((prev) => ({
+      ...(prev || {}),
+      block_progress_bar: {
+        ...((prev as Record<string, unknown>)?.block_progress_bar as object || {}),
+        blocks,
+      },
+    }));
+    return blocks as import('./BlockProgressBarEditor').BlockProgressMarkerDraft[];
+  }, [postAi, config?.use_gemini_chrome, geminiBrowserMode]);
+
   const postCreatorScriptAi = useCallback(async (
     init: RequestInit = { method: 'POST' },
     progress?: { jobId?: string },
@@ -13498,6 +13525,7 @@ export default function App() {
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
                   blockTimings={status?.block_timings || config?.block_timings || undefined}
                   saving={savingVisualConfig}
+                  onSuggestBlockProgressIcons={suggestBlockProgressIcons}
                   onSave={async (draft) => {
                     setSavingVisualConfig(true);
                     try {

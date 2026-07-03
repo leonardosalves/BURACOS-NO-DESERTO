@@ -12,7 +12,12 @@ import {
   buildOverlayResearchPromptBlock,
   resolveOverlayResearchForPlanning,
 } from "./overlayResearchService.js";
-import { resolveBlockProgressBarForRender } from "./blockProgressBarConfig.js";
+import {
+  buildBlockProgressIconAiPrompt,
+  buildDefaultBlockProgressMarkers,
+  mergeAiBlockProgressIcons,
+  resolveBlockProgressBarForRender,
+} from "./blockProgressBarConfig.js";
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
@@ -10395,6 +10400,81 @@ app.get("/api/upload/instagram/callback", async (req, res) => {
 });
 
 // API: AI-powered BGM suggestion per block
+
+app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    if (!blockPhrases.length) {
+      return res.status(400).json({ error: "Projeto sem blocos de narração." });
+    }
+
+    const raw = config.block_progress_bar || {};
+    const markers = buildDefaultBlockProgressMarkers({
+      blockPhrases,
+      starts: timings.starts || [],
+      durations: timings.durations || [],
+      niche: config.niche || "Geral",
+      existingBlocks: raw.blocks || [],
+    });
+
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw) : null;
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+
+    let llmText = browserText;
+    if (!llmText) {
+      const prompt = buildBlockProgressIconAiPrompt({
+        niche: config.niche || "Geral",
+        blocks: markers,
+      });
+
+      if (forceBrowser) {
+        const title = "Sugerir ícones da barra de progresso";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "json", responseFormat: "json" });
+        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+      }
+
+      const apiKey = getApiKey(projDir);
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "Sem chave API. Ative Gemini no Chrome ou configure uma chave.",
+        });
+      }
+      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.25, projectDir: projDir });
+    }
+
+    const parsed = await parseAiJsonResponse(llmText, getApiKey(projDir), "ícones barra de progresso");
+    const aiBlocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
+    const merged = mergeAiBlockProgressIcons(markers, aiBlocks);
+
+    const nextConfig = {
+      ...raw,
+      enabled: raw.enabled === true,
+      design: raw.design || "cinematic",
+      iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
+      defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
+      blocks: merged,
+      icons_suggested_at: new Date().toISOString(),
+      icons_suggested_via: browserText ? "gemini_chrome" : "gemini_api",
+    };
+
+    config.block_progress_bar = nextConfig;
+    fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+
+    console.log(`[Block Progress] IA sugeriu ícones para ${merged.length} bloco(s).`);
+    res.json({
+      success: true,
+      blocks: merged,
+      source: browserText ? "gemini_chrome" : "gemini_api",
+    });
+  } catch (err) {
+    console.error("[Block Progress Icons]", err);
+    res.status(500).json({ error: err.message || "Falha ao sugerir ícones." });
+  }
+});
 
 app.post("/api/ai/suggest-bgm", async (req, res) => {
 

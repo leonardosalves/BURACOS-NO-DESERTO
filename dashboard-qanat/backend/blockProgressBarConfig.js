@@ -54,6 +54,70 @@ export function buildDefaultBlockProgressMarkers({
   });
 }
 
+export const ALLOWED_BLOCK_PROGRESS_ICONS = [
+  "sparkles", "flame", "earth", "building", "globe", "info", "gear", "shield", "crown",
+  "science", "history", "nature", "money", "warning", "compass", "book", "heart",
+  "lightbulb", "graph", "trophy", "target", "gift", "coin", "wallet", "shop",
+  "delivery", "api", "wifi", "mobile", "video", "server", "lightning", "map",
+  "plane", "skull", "sun", "rain", "snow", "storm", "like", "star", "share",
+  "message", "mail", "phone",
+];
+
+function normalizeAiIconId(raw) {
+  const id = String(raw || "").trim().toLowerCase();
+  if (ALLOWED_BLOCK_PROGRESS_ICONS.includes(id)) return id;
+  if (id === "rocket") return "science";
+  if (id === "atom") return "science";
+  if (id === "bolt") return "lightning";
+  return null;
+}
+
+export function buildBlockProgressIconAiPrompt({ niche = "Geral", blocks = [] } = {}) {
+  const blockLines = (blocks || []).map((b) => (
+    `Bloco ${b.block}: "${String(b.label || "").slice(0, 220)}"`
+  )).join("\n");
+
+  return `Você é designer de motion graphics para barra de progresso de vídeo documental.
+Para CADA bloco do roteiro abaixo, escolha o ícone MAIS adequado ao assunto narrado.
+Nicho: "${niche}"
+
+ÍCONES PERMITIDOS (use exatamente estes ids):
+${ALLOWED_BLOCK_PROGRESS_ICONS.join(", ")}
+
+ROTEIRO POR BLOCO:
+${blockLines}
+
+Regras:
+- 1 ícone diferente por bloco quando possível (evite repetir em sequência)
+- Prefira ícones que representem o TEMA do bloco, não palavras genéricas
+- iconStyle: "lottie" (padrão) ou "svg" para ícones simples
+
+Retorne APENAS JSON válido:
+{
+  "blocks": [
+    { "block": 1, "iconType": "science", "iconStyle": "lottie", "reason": "breve justificativa" }
+  ]
+}`;
+}
+
+export function mergeAiBlockProgressIcons(markers = [], aiBlocks = []) {
+  const aiMap = new Map(
+    (aiBlocks || []).map((b) => [Number(b.block), b]),
+  );
+  return (markers || []).map((marker) => {
+    const ai = aiMap.get(Number(marker.block));
+    if (!ai) return marker;
+    const iconType = normalizeAiIconId(ai.iconType) || marker.iconType;
+    const iconStyle = ai.iconStyle === "svg" ? "svg" : "lottie";
+    return {
+      ...marker,
+      iconType,
+      iconStyle: ai.iconStyle ? iconStyle : marker.iconStyle,
+      aiReason: ai.reason || null,
+    };
+  });
+}
+
 export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [], total_duration: 0 });
