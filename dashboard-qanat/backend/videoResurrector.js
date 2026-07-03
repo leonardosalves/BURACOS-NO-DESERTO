@@ -1,7 +1,7 @@
 /**
  * Ressuscitador de vídeos — reformula metadados SEO de vídeos do canal YouTube (+N dias).
  * Varre uploads do canal (não só pastas Lumiera). Projeto local é usado quando existir (roteiro).
- * Dois batches diários (manhã 11h + tarde 16h, 5 vídeos cada). Auto só com app aberto.
+ * Dois batches diários (manhã 11h + tarde 18h, 5 vídeos cada). Auto só com app aberto.
  */
 
 import fs from "fs";
@@ -47,7 +47,7 @@ const DEFAULT_SETTINGS = {
   morningBatchSize: 5,
   afternoonBatchSize: 5,
   morningHour: 11,
-  afternoonHour: 16,
+  afternoonHour: 18,
   cooldownDays: 45,
 };
 

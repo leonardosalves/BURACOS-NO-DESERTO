@@ -13425,7 +13425,7 @@ export default function App() {
             <TabErrorBoundary tabName="Ressuscitador">
               <DashminPageLayout
                 title="Ressuscitador de vídeos"
-                subtitle="Do mais antigo ao mais novo — ciclo contínuo com batches às 11h e 16h."
+                subtitle="Do mais antigo ao mais novo — ciclo contínuo com batches às 11h e 18h."
                 breadcrumb={['Dashboard', 'Estúdio', 'Ressuscitador']}
                 icon={<Zap className="w-5 h-5 text-amber-400" />}
               >

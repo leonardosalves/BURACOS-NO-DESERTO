@@ -472,7 +472,7 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
   const counts = dashboard?.counts || {};
   const schedule = dashboard?.schedule;
   const morningHour = schedule?.morningHour ?? dashboard?.settings?.morningHour ?? 11;
-  const afternoonHour = schedule?.afternoonHour ?? dashboard?.settings?.afternoonHour ?? 16;
+  const afternoonHour = schedule?.afternoonHour ?? dashboard?.settings?.afternoonHour ?? 18;
   const morningSize = dashboard?.settings?.morningBatchSize ?? 5;
   const afternoonSize = dashboard?.settings?.afternoonBatchSize ?? 5;
 
@@ -644,7 +644,7 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
               checked={dashboard?.settings?.autoRunWhenAppOpen ?? true}
               onChange={(e) => void saveSettings({ autoRunWhenAppOpen: e.target.checked }).catch((err) => toast(String(err.message)))}
             />
-            Auto com app aberto (11h e 16h)
+            Auto com app aberto (11h e 18h)
           </label>
           <label className="flex items-center gap-2 text-[11px] text-zinc-300">
             <input
