@@ -559,6 +559,8 @@ export async function generateNarrationChunksTts(projDir, {
 
   if (!targets.length) throw new Error("Nenhum trecho selecionado para TTS.");
 
+  onProgress("prepare", `Gerando ${targets.length} trecho(s) de narração…`, 8);
+
   for (let i = 0; i < targets.length; i += 1) {
     const { c, idx } = targets[i];
     const pct = Math.round(((i + 1) / targets.length) * 85);

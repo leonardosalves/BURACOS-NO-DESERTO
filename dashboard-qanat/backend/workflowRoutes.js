@@ -48,6 +48,7 @@ import {
   normalizeJobId,
   finishJobProgress,
   failJobProgress,
+  setJobProgress,
 } from "./aiJobProgress.js";
 import {
   flattenWordTranscripts,
@@ -645,12 +646,22 @@ export function registerWorkflowRoutes(app, deps) {
     const report = createProgressReporter(progressJobId);
 
     const runGeneration = async () => {
+      if (progressJobId) {
+        setJobProgress(progressJobId, {
+          phase: "start",
+          label: "Preparando narração por trechos…",
+          percent: 2,
+        });
+      }
+
       const storyboard = JSON.parse(fs.readFileSync(path.join(projDir, "storyboard.json"), "utf8"));
       const config = JSON.parse(fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8"));
       const plan = storyboard.narration_chunk_plan;
       if (!plan?.chunks?.length) {
         throw new Error("Plano de trechos ausente — use 'Planejar trechos (IA)' antes.");
       }
+
+      report("prepare", `Plano com ${plan.chunks.length} trecho(s) — iniciando TTS…`, 5);
 
       const voiceRef = defaultVoice && typeof defaultVoice === "object"
         ? defaultVoice
@@ -697,10 +708,17 @@ export function registerWorkflowRoutes(app, deps) {
 
     try {
       if (progressJobId) {
+        setJobProgress(progressJobId, {
+          phase: "queued",
+          label: "Iniciando geração por trechos…",
+          percent: 1,
+          done: false,
+          error: null,
+        });
         res.json({ started: true, jobId: progressJobId });
         runGeneration().catch((err) => {
           console.error("[TTS Chunks] Falha:", err);
-          failJobProgress(progressJobId, err.message);
+          failJobProgress(progressJobId, err?.message || String(err));
         });
         return;
       }

@@ -5,6 +5,7 @@ import {
 import { SectionHeader } from './SectionHeader';
 import {
   createProgressJobId,
+  getAiJobProgressState,
   startAiJobProgress,
   stopAiJobProgress,
   subscribeAiJobProgress,
@@ -108,6 +109,12 @@ export function NarrationChunksPanel({
       .catch(() => {});
   }, [getProjectUrl]);
 
+  useEffect(() => {
+    return subscribeAiJobProgress((state) => {
+      if (state?.active) setTtsProgress(state);
+    });
+  }, []);
+
   const engineOptions = useMemo(
     () => engines.filter((e) => e.available !== false),
     [engines],
@@ -196,12 +203,33 @@ export function NarrationChunksPanel({
     }
   };
 
+  const persistPlanBeforeTts = async (): Promise<boolean> => {
+    if (!localPlan?.chunks?.length) {
+      toast('Nenhum trecho no plano — planeje antes de gerar.');
+      return false;
+    }
+    const res = await fetch(getProjectUrl('/api/narration/chunks'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: localPlan, mode: 'chunked' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast(String(data.error || 'Falha ao salvar plano antes do TTS.'));
+      return false;
+    }
+    if (data.plan) updatePlan(data.plan);
+    return true;
+  };
+
   const runChunkTts = async (chunkIds: string[] | null) => {
-    const jobId = createProgressJobId();
+    if (!(await persistPlanBeforeTts())) return;
+
+    const progressJobId = createProgressJobId();
     setGenerating(true);
     setTtsProgress(null);
-    startAiJobProgress(jobId);
-    const unsub = subscribeAiJobProgress(jobId, setTtsProgress);
+    startAiJobProgress(progressJobId, 'Narração por trechos');
+
     try {
       const res = await fetch(getProjectUrl('/api/tts/generate-narration-chunks'), {
         method: 'POST',
@@ -209,30 +237,37 @@ export function NarrationChunksPanel({
         body: JSON.stringify({
           chunk_ids: chunkIds,
           default_voice: { engine: defaultEngine, voice: defaultVoice },
-          progress_job_id: jobId,
+          progress_job_id: progressJobId,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(String(data.error || 'Falha no TTS por trechos'));
-      if (!data.started) {
+
+      const jobId = String(data.jobId || progressJobId);
+
+      if (data.started && jobId) {
+        await waitForAiJobDone(jobId);
+      } else {
+        stopAiJobProgress(true, String(data.message || 'Trechos gerados.'));
         if (data.plan) updatePlan(data.plan);
         toast(data.message || 'Trechos gerados.');
         onUpdated?.();
         return;
       }
-      await waitForAiJobDone(jobId);
+
       const refresh = await fetch(getProjectUrl('/api/narration/chunks'));
       if (refresh.ok) {
         const payload = await refresh.json();
         if (payload.plan) updatePlan(payload.plan);
       }
+      stopAiJobProgress(true, 'Narração por trechos montada.');
       toast('Narração por trechos montada.');
       onUpdated?.();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro na geração TTS.');
+      const msg = err instanceof Error ? err.message : 'Erro na geração TTS.';
+      stopAiJobProgress(false, msg);
+      toast(msg);
     } finally {
-      unsub();
-      stopAiJobProgress(jobId);
       setGenerating(false);
       setGeneratingChunkId(null);
       setTtsProgress(null);
@@ -353,9 +388,11 @@ export function NarrationChunksPanel({
             </button>
           </div>
 
-          {ttsProgress && (
+          {(generating || ttsProgress?.active) && (
             <p className="text-[10px] text-zinc-400">
-              {ttsProgress.label || ttsProgress.stage} — {ttsProgress.percent ?? 0}%
+              {(ttsProgress || getAiJobProgressState())?.label || 'Gerando trechos…'}
+              {' — '}
+              {(ttsProgress || getAiJobProgressState())?.percent ?? 0}%
             </p>
           )}
 
