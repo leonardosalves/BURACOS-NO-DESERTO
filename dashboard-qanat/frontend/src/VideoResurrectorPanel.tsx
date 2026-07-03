@@ -58,8 +58,20 @@ type ResurrectorItem = {
   appliedAt?: string | null;
 };
 
+type CycleProgress = {
+  number: number;
+  total: number;
+  batched: number;
+  pending: number;
+  complete: boolean;
+  nextVideoTitle?: string | null;
+  order: string;
+};
+
 type Dashboard = {
   settings: ResurrectorSettings;
+  cycle?: { number: number; startedAt?: string };
+  cycleProgress?: CycleProgress | null;
   lastDailyRunAt?: string | null;
   lastDailyRunDate?: string | null;
   dailyRuns?: {
@@ -291,8 +303,39 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
         helpId="video-resurrector"
         size="md"
         icon={<Zap className="w-5 h-5 text-amber-400" />}
-        subtitle={`Reformula metadados de vídeos com +10 dias. Batch ${morningSize} às ${morningHour}h + ${afternoonSize} às ${afternoonHour}h. Com o app aberto, dispara automaticamente nos horários de pico.`}
+        subtitle={`Do mais antigo ao mais novo até o último postado — depois recomeça o ciclo. Batch ${morningSize} às ${morningHour}h + ${afternoonSize} às ${afternoonHour}h.`}
       />
+
+      {dashboard?.cycleProgress && dashboard.cycleProgress.total > 0 && (
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+              Ciclo {dashboard.cycleProgress.number} · mais antigo → mais novo
+            </p>
+            <p className="text-[10px] text-zinc-500">
+              {dashboard.cycleProgress.batched}/{dashboard.cycleProgress.total} processados
+            </p>
+          </div>
+          <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+            <div
+              className="h-full bg-amber-500 transition-all"
+              style={{
+                width: `${Math.min(100, Math.round((dashboard.cycleProgress.batched / dashboard.cycleProgress.total) * 100))}%`,
+              }}
+            />
+          </div>
+          {dashboard.cycleProgress.nextVideoTitle && !dashboard.cycleProgress.complete && (
+            <p className="text-[10px] text-zinc-500 truncate">
+              Próximo na fila: {dashboard.cycleProgress.nextVideoTitle}
+            </p>
+          )}
+          {dashboard.cycleProgress.complete && (
+            <p className="text-[10px] text-emerald-400">
+              Ciclo concluído — o próximo batch recomeça do vídeo mais antigo.
+            </p>
+          )}
+        </div>
+      )}
 
       {alerts.length > 0 && (
         <div className="space-y-2">

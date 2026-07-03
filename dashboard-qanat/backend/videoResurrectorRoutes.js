@@ -6,9 +6,12 @@ import fs from "fs";
 import path from "path";
 import {
   applyResurrectorItem,
+  computeResurrectorCycleProgress,
   enqueueResurrectorCandidates,
   getResurrectorDashboard,
+  isVideoBatchedInCurrentCycle,
   loadResurrectorState,
+  maybeCompleteResurrectorCycle,
   normalizeResurrectorSlot,
   normalizeResurrectorTrigger,
   runResurrectorBatch,
@@ -67,8 +70,16 @@ export function registerVideoResurrectorRoutes(app, deps) {
   app.post("/api/youtube/resurrector/scan", async (_req, res) => {
     try {
       const state = loadResurrectorState(WORKSPACE_DIR);
-      const { eligible } = await scanEligibleResurrectorVideos(WORKSPACE_DIR, PROJECTS_ROOT, state.settings);
-      const { state: next, added } = enqueueResurrectorCandidates(state, eligible);
+      const { eligible, allEligible } = await scanEligibleResurrectorVideos(WORKSPACE_DIR, PROJECTS_ROOT, state.settings);
+      const catalog = allEligible || eligible;
+      const completion = maybeCompleteResurrectorCycle(state, catalog);
+      let next = completion.state;
+      const pending = completion.advanced
+        ? catalog
+        : catalog.filter((row) => !isVideoBatchedInCurrentCycle(next, row.videoId));
+      const { state: enqueued, added } = enqueueResurrectorCandidates(next, pending);
+      next = enqueued;
+      next.cycleProgress = computeResurrectorCycleProgress(next, allEligible || eligible);
       saveResurrectorState(WORKSPACE_DIR, next);
       res.json({
         eligible: eligible.length,
