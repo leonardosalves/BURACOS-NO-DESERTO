@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { blockProgressDesignTokens, markerCenterPercent } from './blockProgressBarDesign';
@@ -26,8 +26,9 @@ export function BlockProgressBarPreview({
   totalDuration: totalDurationProp,
 }: Props) {
   const [playing, setPlaying] = useState(true);
-  const [progressPct, setProgressPct] = useState(0);
   const [activeBlock, setActiveBlock] = useState<number | null>(blocks[0]?.block ?? null);
+  const progressFillRef = useRef<HTMLDivElement>(null);
+  const activeBlockRef = useRef<number | null>(blocks[0]?.block ?? null);
 
   const totalDuration = totalDurationProp
     || blocks.reduce((max, b) => Math.max(max, b.start + b.duration), 0)
@@ -43,14 +44,25 @@ export function BlockProgressBarPreview({
       const elapsed = (now - started) % LOOP_MS;
       const pct = elapsed / LOOP_MS;
       const currentSec = pct * totalDuration;
-      setProgressPct(pct * 100);
+      const fill = progressFillRef.current;
+      if (fill) {
+        if (isShortFormat) {
+          fill.style.height = `${pct * 100}%`;
+        } else {
+          fill.style.width = `calc((100% - 32px) * ${pct})`;
+        }
+      }
       const active = blocks.find((b) => currentSec >= b.start && currentSec < b.start + b.duration);
-      setActiveBlock(active?.block ?? null);
+      const nextActive = active?.block ?? null;
+      if (nextActive !== activeBlockRef.current) {
+        activeBlockRef.current = nextActive;
+        setActiveBlock(nextActive);
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, blocks, totalDuration]);
+  }, [playing, blocks, totalDuration, isShortFormat]);
 
   const iconPx = (marker: BlockProgressMarkerDraft) => Math.round(marker.iconSize || iconSize);
 
@@ -97,9 +109,10 @@ export function BlockProgressBarPreview({
               }}
             >
               <div
+                ref={progressFillRef}
                 className="absolute bottom-0 left-0 w-full rounded-full"
                 style={{
-                  height: `${progressPct}%`,
+                  height: '0%',
                   background: tokens.fill,
                   boxShadow: tokens.fillGlow,
                   transition: playing ? 'none' : 'height 0.2s',
@@ -147,11 +160,12 @@ export function BlockProgressBarPreview({
               }}
             />
             <div
+              ref={progressFillRef}
               className="absolute rounded-full"
               style={{
                 top: 10,
                 left: 16,
-                width: `calc((100% - 32px) * ${progressPct / 100})`,
+                width: '0%',
                 height: tokens.trackH,
                 background: tokens.fill,
                 boxShadow: tokens.fillGlow,
