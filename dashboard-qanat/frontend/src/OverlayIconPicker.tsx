@@ -10,8 +10,9 @@ type Props = {
   iconId?: string;
   iconStyle?: OverlayIconStyle;
   accentColor?: string;
-  /** Ícones já usados em outros blocos (destacados no grid). */
+  /** Chaves visuais já usadas em outros blocos (destacados no grid). */
   usedIconIds?: string[];
+  resolveUsedVisualKey?: (iconId: string, style: OverlayIconStyle) => string;
   onChange: (iconId: string | undefined, style: OverlayIconStyle) => void;
 };
 
@@ -20,6 +21,7 @@ export function OverlayIconPicker({
   iconStyle = 'lottie',
   accentColor = '#D4AF37',
   usedIconIds = [],
+  resolveUsedVisualKey,
   onChange,
 }: Props) {
   const usedSet = useMemo(() => new Set(usedIconIds), [usedIconIds]);
@@ -78,7 +80,10 @@ export function OverlayIconPicker({
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-1">
               {items.map((item) => {
                 const active = iconId === item.id && iconStyle === tab;
-                const usedElsewhere = usedSet.has(item.id) && !active;
+                const visualKey = resolveUsedVisualKey
+                  ? resolveUsedVisualKey(item.id, tab)
+                  : item.id;
+                const usedElsewhere = usedSet.has(visualKey) && !active;
                 return (
                   <button
                     key={`${tab}-${item.id}`}
