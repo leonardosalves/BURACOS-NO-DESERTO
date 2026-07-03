@@ -101,7 +101,7 @@ export function OverlayIconPicker({
                     <div className="w-4 h-4 flex items-center justify-center overflow-hidden shrink-0">
                       <OverlayAnimatedIcon
                         iconId={item.id}
-                        iconStyle={tab}
+                        iconStyle="svg"
                         size={16}
                         color={accentColor}
                       />

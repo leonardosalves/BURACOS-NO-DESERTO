@@ -24,21 +24,23 @@ export function OverlaySvgIcon({
   switch (id) {
     case 'sparkles': return <SparklesIcon {...props} />;
     case 'flame': return <FlameIcon {...props} />;
-    case 'earth':
-    case 'globe':
-    case 'map':
-    case 'plane': return <EarthIcon {...props} />;
-    case 'building':
-    case 'shop': return <BuildingIcon {...props} />;
+    case 'info': return <InfoIcon {...props} />;
+    case 'earth': return <EarthIcon {...props} />;
+    case 'globe': return <GlobeIcon {...props} />;
+    case 'map': return <MapIcon {...props} />;
+    case 'plane': return <PlaneIcon {...props} />;
+    case 'building': return <BuildingIcon {...props} />;
+    case 'shop': return <ShopIcon {...props} />;
     case 'gear': return <GearIcon {...props} />;
     case 'shield': return <ShieldIcon {...props} />;
     case 'crown': return <CrownIcon {...props} />;
     case 'science': return <AtomIcon {...props} />;
-    case 'history':
+    case 'history': return <ScrollIcon {...props} />;
     case 'clock': return <HourglassIcon {...props} />;
     case 'nature': return <LeafIcon {...props} />;
-    case 'money':
+    case 'money': return <MoneyIcon {...props} />;
     case 'coin': return <CoinIcon {...props} />;
+    case 'wallet': return <WalletIcon {...props} />;
     case 'warning': return <AlertIcon {...props} />;
     case 'compass': return <CompassIcon {...props} />;
     case 'book': return <BookIcon {...props} />;
@@ -54,27 +56,25 @@ export function OverlaySvgIcon({
     case 'users': return <UsersIcon {...props} />;
     case 'bookmark': return <BookmarkIcon {...props} />;
     case 'bell': return <BellIcon {...props} />;
-    case 'trophy':
-    case 'sun': return <StarIcon {...props} />;
-    case 'target': return <CompassIcon {...props} />;
-    case 'gift': return <BookmarkIcon {...props} />;
-    case 'wallet': return <CoinIcon {...props} />;
-    case 'delivery': return <RocketIcon {...props} />;
-    case 'api':
-    case 'server': return <GearIcon {...props} />;
-    case 'wifi':
-    case 'mobile': return <BoltIcon {...props} />;
+    case 'trophy': return <TrophyIcon {...props} />;
+    case 'target': return <TargetIcon {...props} />;
+    case 'gift': return <GiftIcon {...props} />;
+    case 'delivery': return <TruckIcon {...props} />;
+    case 'api': return <ApiIcon {...props} />;
+    case 'server': return <ServerIcon {...props} />;
+    case 'wifi': return <WifiIcon {...props} />;
+    case 'mobile': return <MobileIcon {...props} />;
     case 'video': return <PlayIcon {...props} />;
-    case 'skull': return <AlertIcon {...props} />;
-    case 'rain':
-    case 'snow':
-    case 'storm': return <CloudIcon {...props} />;
-    case 'like': return <HeartIcon {...props} />;
-    case 'share': return <SparklesIcon {...props} />;
-    case 'message':
-    case 'mail':
-    case 'phone': return <BellIcon {...props} />;
-    case 'info':
+    case 'skull': return <SkullIcon {...props} />;
+    case 'sun': return <SunIcon {...props} />;
+    case 'rain': return <RainIcon {...props} />;
+    case 'snow': return <SnowIcon {...props} />;
+    case 'storm': return <StormIcon {...props} />;
+    case 'like': return <LikeIcon {...props} />;
+    case 'share': return <ShareIcon {...props} />;
+    case 'message': return <MessageIcon {...props} />;
+    case 'mail': return <MailIcon {...props} />;
+    case 'phone': return <PhoneIcon {...props} />;
     default: return <InfoIcon {...props} />;
   }
 }
@@ -310,10 +310,231 @@ function PlayIcon({ size, color, className }: IconProps) {
   );
 }
 
-function CloudIcon({ size, color, className }: IconProps) {
+function GlobeIcon({ size, color, className }: IconProps) {
   return (
-    <svg {...base(size, className)} fill={`${color}33`} stroke={color} strokeWidth="1.8" className="overlay-svg-pulse">
-      <path d="M7 18h11a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.6 1.8A3.5 3.5 0 0 0 7 18z" />
+    <svg {...base(size, className)} fill={`${color}18`} stroke={color} strokeWidth="1.6">
+      <circle cx="12" cy="12" r="9" />
+      <ellipse cx="12" cy="12" rx="4" ry="9" />
+    </svg>
+  );
+}
+
+function MapIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M4 6l6-2 6 2 4-1v14l-6 2-6-2-4 1V6z" fill={`${color}22`} />
+      <path d="M10 4v16M16 6v14" />
+    </svg>
+  );
+}
+
+function PlaneIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill={color} stroke={color} strokeWidth="0.5" className="overlay-svg-float">
+      <path d="M2 12h6l8-8 2 2-5 7 5 1-2 2-5-3-3 5H2z" />
+    </svg>
+  );
+}
+
+function ShopIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M4 10h16l-2-6H6L4 10z" fill={`${color}22`} />
+      <path d="M6 10v10h12V10" />
+      <path d="M10 14h4" />
+    </svg>
+  );
+}
+
+function ScrollIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M6 4h9a3 3 0 0 1 3 3v13H9a3 3 0 0 1-3-3V4z" fill={`${color}15`} />
+      <path d="M9 4v13a3 3 0 0 0 3 3" />
+      <path d="M9 9h6M9 13h5" />
+    </svg>
+  );
+}
+
+function MoneyIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <rect x="3" y="6" width="18" height="12" rx="2" fill={`${color}22`} />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function WalletIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z" fill={`${color}18`} />
+      <circle cx="17" cy="13" r="1.5" fill={color} />
+      <path d="M4 11h16" />
+    </svg>
+  );
+}
+
+function GiftIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <rect x="4" y="10" width="16" height="11" rx="1" fill={`${color}22`} />
+      <path d="M12 10v11M4 14h16" />
+      <path d="M12 10c-3-3-6-2-6 0s3 2 6 0 6-3 6 0-3-3-6 0" />
+    </svg>
+  );
+}
+
+function TrophyIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M8 4h8v5a4 4 0 0 1-8 0V4z" fill={`${color}22`} />
+      <path d="M8 4H6a2 2 0 0 0 2 3M16 4h2a2 2 0 0 1-2 3" />
+      <path d="M10 14h4v3H8v2h8v-2h-2v-3" />
+    </svg>
+  );
+}
+
+function TargetIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.6">
+      <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" fill={color} />
+    </svg>
+  );
+}
+
+function TruckIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M3 7h11v9H3z" fill={`${color}18`} />
+      <path d="M14 10h4l3 3v3h-7V10z" fill={`${color}22`} />
+      <circle cx="7" cy="18" r="2" /><circle cx="18" cy="18" r="2" />
+    </svg>
+  );
+}
+
+function ApiIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="2" fontSize="8" fontFamily="monospace">
+      <text x="5" y="16" fill={color} stroke="none">&lt;/&gt;</text>
+    </svg>
+  );
+}
+
+function ServerIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.6">
+      <rect x="4" y="4" width="16" height="5" rx="1" fill={`${color}18`} />
+      <rect x="4" y="11" width="16" height="5" rx="1" fill={`${color}22`} />
+      <circle cx="7" cy="6.5" r="0.8" fill={color} /><circle cx="7" cy="13.5" r="0.8" fill={color} />
+    </svg>
+  );
+}
+
+function WifiIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round">
+      <path d="M2 8a16 16 0 0 1 20 0" /><path d="M6 12a10 10 0 0 1 12 0" /><path d="M10 16a4 4 0 0 1 4 0" />
+      <circle cx="12" cy="19" r="1" fill={color} />
+    </svg>
+  );
+}
+
+function MobileIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <rect x="7" y="3" width="10" height="18" rx="2" fill={`${color}15`} />
+      <circle cx="12" cy="17" r="1" fill={color} />
+    </svg>
+  );
+}
+
+function SkullIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <circle cx="12" cy="11" r="7" fill={`${color}15`} />
+      <circle cx="9" cy="10" r="1.2" fill={color} /><circle cx="15" cy="10" r="1.2" fill={color} />
+      <path d="M9 15h6M10 18v2M14 18v2" />
+    </svg>
+  );
+}
+
+function SunIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.6" className="overlay-svg-spin-slow">
+      <circle cx="12" cy="12" r="4" fill={`${color}44`} />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+  );
+}
+
+function RainIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.6">
+      <path d="M7 14h10a3 3 0 0 0 .4-6A4.5 4.5 0 0 0 7.5 6 4 4 0 0 0 7 14z" fill={`${color}22`} />
+      <path d="M9 17l-1 3M13 17l-1 3M17 17l-1 3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SnowIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.4">
+      <path d="M12 3v18M5 7l14 10M19 7L5 17M5 12h14" />
+    </svg>
+  );
+}
+
+function StormIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.6">
+      <path d="M7 13h10a3 3 0 0 0 .4-6A4.5 4.5 0 0 0 7.5 5 4 4 0 0 0 7 13z" fill={`${color}22`} />
+      <path d="M13 15l-3 5h3l-2 4" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+function LikeIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M7 11v8H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h3z" fill={`${color}22`} />
+      <path d="M7 11l4-7 3 3 5-1-2 12H7z" fill={`${color}33`} />
+    </svg>
+  );
+}
+
+function ShareIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <circle cx="18" cy="6" r="2" fill={`${color}33`} /><circle cx="6" cy="12" r="2" fill={`${color}33`} />
+      <circle cx="18" cy="18" r="2" fill={`${color}33`} />
+      <path d="M8 11l8-4M8 13l8 4" />
+    </svg>
+  );
+}
+
+function MessageIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M4 5h16v11H8l-4 4V5z" fill={`${color}18`} />
+      <path d="M8 10h8M8 13h5" />
+    </svg>
+  );
+}
+
+function MailIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <rect x="3" y="6" width="18" height="13" rx="1" fill={`${color}15`} />
+      <path d="M3 8l9 6 9-6" />
+    </svg>
+  );
+}
+
+function PhoneIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="1.8">
+      <path d="M8 3h8l2 4-3 2a11 11 0 0 0 5 5l2-3 4 2v8l-4 2C9.5 21.5 2.5 14.5 4 7l4-4z" fill={`${color}15`} />
     </svg>
   );
 }
