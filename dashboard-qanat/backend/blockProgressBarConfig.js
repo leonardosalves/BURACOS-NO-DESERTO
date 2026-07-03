@@ -182,9 +182,22 @@ export function resolveChaptersTextForProject(projectDir, readProjectJson) {
   return "";
 }
 
-export function resolveBlockDisplayTitle(saved, metadataTitle, blockNum) {
+function isGenericBlockTitle(title, blockNum, phraseStart = "") {
+  const t = String(title || "").trim();
+  if (!t) return true;
+  if (t === `Bloco ${blockNum}`) return true;
+  const phrase = String(phraseStart || "").trim();
+  if (phrase && t === phrase) return true;
+  if (phrase && phrase.startsWith(t) && t.length <= 56) return true;
+  return false;
+}
+
+export function resolveBlockDisplayTitle(saved, metadataTitle, blockNum, phraseStart = "") {
+  const meta = String(metadataTitle || "").trim();
+  const savedTitle = String(saved?.title || saved?.label || "").trim();
+  if (meta && isGenericBlockTitle(savedTitle, blockNum, phraseStart)) return meta;
   if (saved?.title?.trim()) return saved.title.trim();
-  if (String(metadataTitle || "").trim()) return String(metadataTitle).trim();
+  if (meta) return meta;
   if (saved?.label?.trim()) return saved.label.trim();
   return `Bloco ${blockNum}`;
 }
@@ -227,7 +240,7 @@ export function buildDefaultBlockProgressMarkers({
     const saved = existingMap.get(block);
     const phraseStart = String(bp.phrase || bp.text || "").trim();
     const fullNarration = narrationsByBlock.get(block) || phraseStart;
-    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block);
+    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block, phraseStart);
     const start = Number(starts[idx]) || 0;
     const duration = Number(durations[idx]) || 10;
     return {

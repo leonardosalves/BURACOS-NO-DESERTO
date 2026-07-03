@@ -3619,6 +3619,42 @@ export default function App() {
     }
   };
 
+  const preserveUploadMetadataChapters = (cfg: ConfigData): ConfigData => {
+    const chapters = ytChapters.trim()
+      || youtubeMetadataParsed?.chapters?.trim()
+      || String(cfg.upload_metadata?.youtube?.chapters || '').trim();
+    if (!chapters) return cfg;
+    return {
+      ...cfg,
+      upload_metadata: {
+        ...cfg.upload_metadata,
+        youtube: {
+          ...(cfg.upload_metadata?.youtube || {}),
+          chapters,
+        },
+      },
+    };
+  };
+
+  const saveTimelinePatch = async (
+    cfg: ConfigData,
+    opts?: { skipRefresh?: boolean },
+  ): Promise<ConfigData | null> => {
+    const enriched = enrichTimelineAudioStarts(cfg);
+    const saved = await saveConfigPatch(
+      {
+        timeline_assets: enriched.timeline_assets,
+        aspect_ratio: enriched.aspect_ratio,
+        canvas_background: enriched.canvas_background,
+      },
+      opts,
+    );
+    if (saved) {
+      setConfig((prev) => (prev ? { ...prev, ...saved } : saved));
+    }
+    return saved;
+  };
+
   const saveConfig = async (
     updatedConfig: ConfigData,
     opts?: { skipRefresh?: boolean },
@@ -3631,7 +3667,7 @@ export default function App() {
       toast.info(`Removidos ${dupesRemoved} asset(s) repetido(s) consecutivos na timeline.`);
       setConfig(baseConfig);
     }
-    const configToSave = enrichTimelineAudioStarts(baseConfig);
+    const configToSave = preserveUploadMetadataChapters(enrichTimelineAudioStarts(baseConfig));
 
     try {
 
@@ -3725,7 +3761,7 @@ export default function App() {
 
     timelineSaveTimer.current = setTimeout(() => {
 
-      saveConfig(updatedConfig);
+      void saveTimelinePatch(updatedConfig, { skipRefresh: true });
 
     }, 800);
 
@@ -3776,7 +3812,7 @@ export default function App() {
 
     const updatedConfig = { ...config, timeline_assets: newTimelineAssets };
     setConfig(updatedConfig);
-    saveConfig(updatedConfig);
+    void saveTimelinePatch(updatedConfig, { skipRefresh: true });
 
   };
 
@@ -3796,7 +3832,7 @@ export default function App() {
 
     setConfig(updatedConfig);
 
-    saveConfig(updatedConfig);
+    void saveTimelinePatch(updatedConfig, { skipRefresh: true });
 
     toast.success("Asset removido da linha do tempo!");
 
@@ -3830,7 +3866,7 @@ export default function App() {
     });
     const updatedConfig = { ...config, timeline_assets: timelineAssets };
     setConfig(updatedConfig);
-    saveConfig(updatedConfig);
+    void saveTimelinePatch(updatedConfig, { skipRefresh: true });
     setTimelineSelectedClips(new Set());
     toast.success(`${timelineSelectedClips.size} clip(s) removido(s)`);
   };
@@ -3859,7 +3895,7 @@ export default function App() {
 
     setConfig(updatedConfig);
 
-    saveConfig(updatedConfig);
+    void saveTimelinePatch(updatedConfig, { skipRefresh: true });
 
   };
 
@@ -3867,9 +3903,8 @@ export default function App() {
 
     if (config) {
 
-      await saveConfig(config);
-
-      toast.success("Linha do tempo salva com sucesso!");
+      const saved = await saveTimelinePatch(config);
+      if (saved) toast.success("Linha do tempo salva com sucesso!");
 
     }
 
@@ -8149,8 +8184,7 @@ export default function App() {
 
     // Salvar config com audio_start atualizado ANTES do render
     if (config) {
-      const enriched = enrichTimelineAudioStarts(config);
-      await saveConfig(enriched);
+      await saveTimelinePatch(config, { skipRefresh: true });
     }
 
     const eventSource = new EventSource(getProjectUrl(`/api/render/${mode}${queryString}`));
@@ -8419,7 +8453,7 @@ export default function App() {
                     onCanvasBackgroundChange={(color) => {
                       const updated = { ...config, canvas_background: color };
                       setConfig(updated);
-                      saveConfig(updated);
+                      void saveConfigPatch({ canvas_background: color }, { skipRefresh: true });
                     }}
                     selectedCount={timelineSelectedClips.size}
                     onBulkDelete={bulkDeleteTimelineClips}
@@ -9653,7 +9687,7 @@ export default function App() {
                 getAssetUrl={getAssetUrl}
                 onSave={async (timelineAssets) => {
                   if (!config) return;
-                  await saveConfig({ ...config, timeline_assets: timelineAssets });
+                  await saveTimelinePatch({ ...config, timeline_assets: timelineAssets });
                 }}
                 toast={(msg) => toast(msg)}
               />
