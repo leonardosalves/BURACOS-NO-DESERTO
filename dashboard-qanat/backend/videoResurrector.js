@@ -26,6 +26,7 @@ import {
 import { injectStudioAgentsContext } from "./studioAgents.js";
 
 export const RESURRECTOR_FILE = "youtube_video_resurrector.json";
+const MAX_ACTIVITY_LOG = 250;
 
 export const RESURRECTOR_STATUSES = [
   "queued",
@@ -119,12 +120,48 @@ export function getResurrectorCycleNumber(state) {
   return Math.max(1, Number(state?.cycle?.number) || 1);
 }
 
-export function isVideoBatchedInCurrentCycle(state, videoId) {
+export function isVideoAttemptedInCurrentCycle(state, videoId) {
   const cycleNum = getResurrectorCycleNumber(state);
   const item = (state.items || []).find((i) => i.videoId === videoId);
   if (!item) return false;
   if (item.cycleNumber !== cycleNum) return false;
   return item.status !== "queued";
+}
+
+export function isVideoBatchedInCurrentCycle(state, videoId) {
+  if (!isVideoAttemptedInCurrentCycle(state, videoId)) return false;
+  const item = (state.items || []).find((i) => i.videoId === videoId);
+  return item?.status !== "failed";
+}
+
+export function appendResurrectorLog(state, level, message, meta = {}) {
+  const entry = {
+    at: new Date().toISOString(),
+    level,
+    message: String(message || ""),
+    ...meta,
+  };
+  state.activityLog = [entry, ...(state.activityLog || [])].slice(0, MAX_ACTIVITY_LOG);
+  return entry;
+}
+
+export function resetResurrectorFailedItems(state) {
+  const cycleNum = getResurrectorCycleNumber(state);
+  let count = 0;
+  for (let i = 0; i < (state.items || []).length; i += 1) {
+    const item = state.items[i];
+    if (item.status !== "failed") continue;
+    if (item.cycleNumber != null && item.cycleNumber !== cycleNum) continue;
+    state.items[i] = {
+      ...resetItemForNewCycle(item),
+      lastError: item.error || item.lastError || null,
+    };
+    count += 1;
+  }
+  if (count > 0) {
+    appendResurrectorLog(state, "info", `${count} vídeo(s) com falha recolocados na fila.`);
+  }
+  return count;
 }
 
 export function resetItemForNewCycle(item) {
@@ -171,9 +208,9 @@ export function advanceResurrectorCycle(state) {
 export function computeResurrectorCycleProgress(state, eligible = []) {
   const total = eligible.length;
   const cycleNum = getResurrectorCycleNumber(state);
-  const batched = eligible.filter((row) => isVideoBatchedInCurrentCycle(state, row.videoId)).length;
+  const batched = eligible.filter((row) => isVideoAttemptedInCurrentCycle(state, row.videoId)).length;
   const pending = Math.max(0, total - batched);
-  const nextVideo = eligible.find((row) => !isVideoBatchedInCurrentCycle(state, row.videoId)) || null;
+  const nextVideo = eligible.find((row) => !isVideoAttemptedInCurrentCycle(state, row.videoId)) || null;
 
   return {
     number: cycleNum,
@@ -256,6 +293,7 @@ export function loadResurrectorState(workspaceDir) {
     lastDailyRunDate: stored.lastDailyRunDate || null,
     items: Array.isArray(stored.items) ? stored.items : [],
     history: Array.isArray(stored.history) ? stored.history.slice(0, 200) : [],
+    activityLog: Array.isArray(stored.activityLog) ? stored.activityLog.slice(0, MAX_ACTIVITY_LOG) : [],
     updatedAt: stored.updatedAt || null,
   };
 }
@@ -803,10 +841,11 @@ export function pickResurrectorBatch(state, batchSize = 10, options = {}) {
   const exclude = new Set((options.excludeVideoIds || []).map(String).filter(Boolean));
   const queued = (state.items || [])
     .filter((i) => {
-      if (i.status !== "queued") return false;
       if (exclude.has(String(i.videoId))) return false;
       if (hasBlockingResurrectorItem(state, i.videoId)) return false;
       if (i.cycleNumber != null && i.cycleNumber !== cycleNum) return false;
+      if (i.status === "failed" && i.cycleNumber === cycleNum) return true;
+      if (i.status !== "queued") return false;
       return !isVideoBatchedInCurrentCycle(state, i.videoId);
     })
     .sort(comparePublishedAtAsc);
@@ -860,25 +899,39 @@ export async function generateResurrectorMetadata(item, deps = {}) {
     format,
   });
 
+  const fallbackText = () => buildFallbackYoutubeMetadata({
+    transcript,
+    chaptersText: metadataCtx.chaptersText,
+    storyboard,
+    config,
+    format,
+    niche: metadataCtx.niche,
+    category: metadataCtx.category,
+    profile: metadataCtx.profile,
+    rpmHint: metadataCtx.rpmHint,
+  });
+
   let text = "";
+  let usedFallback = false;
   const geminiDir = projectPath || workspaceDir;
   const apiKey = typeof getApiKey === "function" ? getApiKey(geminiDir) : null;
-  if (typeof callGemini === "function" && apiKey) {
-    text = await callGemini(prompt, { temperature: 0.55, projectDir: geminiDir });
-  } else if (apiKey && deps.callGeminiWithRetry) {
-    text = await deps.callGeminiWithRetry(apiKey, prompt, { temperature: 0.55, projectDir: geminiDir });
-  } else {
-    text = buildFallbackYoutubeMetadata({
-      transcript,
-      chaptersText: metadataCtx.chaptersText,
-      storyboard,
-      config,
-      format,
-      niche: metadataCtx.niche,
-      category: metadataCtx.category,
-      profile: metadataCtx.profile,
-      rpmHint: metadataCtx.rpmHint,
-    });
+  try {
+    if (typeof callGemini === "function" && apiKey) {
+      text = await callGemini(prompt, { temperature: 0.55, projectDir: geminiDir });
+    } else if (apiKey && deps.callGeminiWithRetry) {
+      text = await deps.callGeminiWithRetry(apiKey, prompt, {
+        temperature: 0.55,
+        projectDir: geminiDir,
+        maxRetries: 5,
+      });
+    } else {
+      text = fallbackText();
+      usedFallback = true;
+    }
+  } catch (geminiErr) {
+    text = fallbackText();
+    if (!text || text.length < 20) throw geminiErr;
+    usedFallback = true;
   }
 
   const parsed = parseYoutubeMetadataMarkdown(text);
@@ -903,6 +956,7 @@ export async function generateResurrectorMetadata(item, deps = {}) {
     },
     format,
     niche: metadataCtx.niche,
+    usedFallback,
   };
 }
 
@@ -995,6 +1049,8 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     slot = "morning",
     trigger = "manual",
     autoScanAttempted = false,
+    limit = null,
+    finalizeSlot = null,
   } = options;
   const normalizedSlot = normalizeResurrectorSlot(slot);
   const normalizedTrigger = normalizeResurrectorTrigger(trigger);
@@ -1004,6 +1060,10 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
   if (!settings.enabled) {
     return { skipped: true, reason: "Ressuscitador desativado.", state, slot: normalizedSlot };
   }
+
+  const batchSize = getSlotBatchSize(settings, normalizedSlot);
+  const processLimit = Math.max(1, Math.min(batchSize, Number(limit) || batchSize));
+  const shouldFinalizeSlot = typeof finalizeSlot === "boolean" ? finalizeSlot : (limit == null);
 
   if (slotAlreadyRanToday(state, normalizedSlot)) {
     return {
@@ -1018,18 +1078,29 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
   state = prepared.state;
   saveResurrectorState(workspaceDir, state);
 
-  const batchSize = getSlotBatchSize(settings, normalizedSlot);
+  const runLog = [];
   const excludeVideoIds = normalizedSlot === "afternoon" ? getMorningVideoIdsToday(state) : [];
-  let batch = pickResurrectorBatch(state, batchSize, { excludeVideoIds });
+  let batch = pickResurrectorBatch(state, processLimit, { excludeVideoIds });
+
+  if (processLimit >= batchSize || limit == null) {
+    appendResurrectorLog(
+      state,
+      "info",
+      `Batch ${normalizedSlot === "morning" ? "manhã" : "tarde"} iniciado (${processLimit} vídeo(s) nesta etapa).`,
+      { slot: normalizedSlot, trigger: normalizedTrigger },
+    );
+  }
 
   if (!batch.length && !autoScanAttempted) {
     prepared = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
     state = prepared.state;
     saveResurrectorState(workspaceDir, state);
-    batch = pickResurrectorBatch(state, batchSize, { excludeVideoIds });
+    batch = pickResurrectorBatch(state, processLimit, { excludeVideoIds });
   }
 
   if (!batch.length) {
+    appendResurrectorLog(state, "warn", "Nenhum vídeo na fila para processar nesta etapa.");
+    saveResurrectorState(workspaceDir, state);
     return {
       processed: 0,
       message: prepared.state.cycleProgress?.complete
@@ -1038,15 +1109,28 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
       state: prepared.state,
       slot: normalizedSlot,
       cycle: prepared.state.cycleProgress,
+      runLog,
     };
   }
 
   const results = [];
-  for (const item of batch) {
+  for (let step = 0; step < batch.length; step += 1) {
+    const item = batch[step];
     const idx = state.items.findIndex((i) => i.id === item.id);
     if (idx < 0) continue;
+    const titlePreview = String(state.items[idx].title || item.title || item.videoId).slice(0, 72);
+    appendResurrectorLog(
+      state,
+      "info",
+      `[${step + 1}/${batch.length}] Gerando metadados: ${titlePreview}`,
+      { videoId: item.videoId, step: step + 1, total: batch.length },
+    );
+    runLog.push({ at: new Date().toISOString(), level: "info", message: `Gerando: ${titlePreview}` });
+    saveResurrectorState(workspaceDir, state);
+
     state.items[idx].status = "generating";
     state.items[idx].cycleNumber = getResurrectorCycleNumber(state);
+    state.items[idx].error = null;
     state.items[idx].updatedAt = new Date().toISOString();
     saveResurrectorState(workspaceDir, state);
 
@@ -1063,32 +1147,62 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
         selectedTitle: generated.proposed.title,
         updatedAt: new Date().toISOString(),
         error: null,
+        usedFallback: generated.usedFallback || false,
       };
-      results.push({ id: item.id, videoId: item.videoId, status: "review" });
+      results.push({ id: item.id, videoId: item.videoId, status: "review", usedFallback: generated.usedFallback });
+      const okMsg = generated.usedFallback
+        ? `OK (fallback local — Gemini indisponível): ${titlePreview}`
+        : `OK: ${titlePreview}`;
+      appendResurrectorLog(state, generated.usedFallback ? "warn" : "success", okMsg, { videoId: item.videoId });
+      runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg });
     } catch (err) {
+      const errMsg = err?.message || String(err);
       state.items[idx] = {
         ...state.items[idx],
         status: "failed",
-        error: err?.message || String(err),
+        error: errMsg,
         updatedAt: new Date().toISOString(),
       };
-      results.push({ id: item.id, videoId: item.videoId, status: "failed", error: err?.message });
+      results.push({ id: item.id, videoId: item.videoId, status: "failed", error: errMsg });
+      appendResurrectorLog(state, "error", `Falhou: ${titlePreview} — ${errMsg}`, { videoId: item.videoId });
+      runLog.push({ at: new Date().toISOString(), level: "error", message: `Falhou: ${errMsg}` });
     }
     saveResurrectorState(workspaceDir, state);
   }
 
+  const successCount = results.filter((r) => r.status === "review").length;
+  const failCount = results.filter((r) => r.status === "failed").length;
   const today = localDateString();
   if (!state.dailyRuns || state.dailyRuns.date !== today) {
     state.dailyRuns = emptyDailyRuns(today);
   }
-  state.dailyRuns[normalizedSlot] = {
-    ranAt: new Date().toISOString(),
-    trigger: normalizedTrigger,
-    videoIds: batch.map((b) => b.videoId),
-    count: results.length,
-  };
-  state.lastDailyRunAt = new Date().toISOString();
-  state.lastDailyRunDate = today;
+
+  if (shouldFinalizeSlot) {
+    if (successCount > 0 || results.length === 0) {
+      state.dailyRuns[normalizedSlot] = {
+        ranAt: new Date().toISOString(),
+        trigger: normalizedTrigger,
+        videoIds: batch.map((b) => b.videoId),
+        count: successCount,
+        failed: failCount,
+      };
+      state.lastDailyRunAt = new Date().toISOString();
+      state.lastDailyRunDate = today;
+    } else {
+      appendResurrectorLog(
+        state,
+        "warn",
+        `Batch ${normalizedSlot === "morning" ? "da manhã" : "da tarde"} não marcado como concluído — todos falharam. Use "Reprocessar falhas".`,
+      );
+    }
+  }
+
+  appendResurrectorLog(
+    state,
+    failCount ? "warn" : "success",
+    `Etapa concluída: ${successCount} OK, ${failCount} falha(s).`,
+    { slot: normalizedSlot, successCount, failCount },
+  );
 
   const postBatch = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
   state = postBatch.state;
@@ -1099,14 +1213,21 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
   const cycleMsg = postBatch.advanced
     ? " Ciclo anterior concluído — recomeçando do mais antigo."
     : "";
+  const summary = failCount && !successCount
+    ? `Batch da ${slotLabel}: ${failCount} falha(s) — Gemini/rede indisponível? Tente "Reprocessar falhas".`
+    : `Batch da ${slotLabel} (${triggerLabel}): ${successCount} prontos para revisão, ${failCount} falha(s).${cycleMsg}`;
+
   return {
     processed: results.length,
+    successCount,
+    failCount,
     results,
     state,
     slot: normalizedSlot,
     trigger: normalizedTrigger,
     cycle: state.cycleProgress,
-    message: `Batch da ${slotLabel} (${triggerLabel}): ${results.filter((r) => r.status === "review").length} vídeo(s) prontos para revisão (ordem: mais antigo → mais novo).${cycleMsg}`,
+    runLog,
+    message: summary,
   };
 }
 
@@ -1234,6 +1355,7 @@ export function getResurrectorDashboard(state) {
     cycle: state.cycle || emptyCycle(1),
     cycleProgress: state.cycleProgress || null,
     scanDiagnostics: state.scanDiagnostics || null,
+    activityLog: state.activityLog || [],
     counts: {
       queued: items.filter((i) => i.status === "queued").length,
       generating: items.filter((i) => i.status === "generating").length,
