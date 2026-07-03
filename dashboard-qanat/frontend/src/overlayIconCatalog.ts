@@ -60,34 +60,23 @@ export const LOTTIE_ICON_CATALOG: OverlayIconDef[] = [
   { id: 'bell', label: 'Sino', category: 'Social', lottieFile: 'lottie_interact_bell_4.json' },
 ];
 
-/** Ícones SVG animados (leves, sempre disponíveis no preview e render) */
-export const SVG_ICON_CATALOG: OverlayIconDef[] = [
-  { id: 'sparkles', label: 'Brilho', category: 'Geral', svgOnly: true },
-  { id: 'flame', label: 'Chama', category: 'Geral', svgOnly: true },
-  { id: 'info', label: 'Info', category: 'Geral', svgOnly: true },
-  { id: 'earth', label: 'Terra', category: 'Geografia', svgOnly: true },
-  { id: 'building', label: 'Edifício', category: 'Geografia', svgOnly: true },
-  { id: 'gear', label: 'Engrenagem', category: 'Tech', svgOnly: true },
-  { id: 'shield', label: 'Escudo', category: 'Geral', svgOnly: true },
-  { id: 'crown', label: 'Coroa', category: 'Negócios', svgOnly: true },
-  { id: 'science', label: 'Átomo', category: 'Tech', svgOnly: true },
-  { id: 'history', label: 'Ampulheta', category: 'História', svgOnly: true },
-  { id: 'nature', label: 'Folha', category: 'Natureza', svgOnly: true },
-  { id: 'money', label: 'Moeda', category: 'Negócios', svgOnly: true },
-  { id: 'warning', label: 'Alerta', category: 'Geral', svgOnly: true },
-  { id: 'compass', label: 'Bússola', category: 'Geografia', svgOnly: true },
-  { id: 'book', label: 'Livro', category: 'História', svgOnly: true },
-  { id: 'heart', label: 'Coração', category: 'Social', svgOnly: true },
-  { id: 'lightbulb', label: 'Lâmpada', category: 'Geral', svgOnly: true },
+/** SVG animado — mesmo catálogo do Lottie + extras só-SVG */
+const SVG_ONLY_EXTRAS: OverlayIconDef[] = [
   { id: 'swords', label: 'Espadas', category: 'História', svgOnly: true },
-  { id: 'star', label: 'Estrela', category: 'Social', svgOnly: true },
-  { id: 'bolt', label: 'Raio', category: 'Tech', svgOnly: true },
-  { id: 'rocket', label: 'Foguete', category: 'Tech', svgOnly: true },
-  { id: 'chart', label: 'Gráfico', category: 'Negócios', svgOnly: true },
+  { id: 'bolt', label: 'Raio (SVG)', category: 'Tech', svgOnly: true },
+  { id: 'chart', label: 'Gráfico (SVG)', category: 'Negócios', svgOnly: true },
   { id: 'users', label: 'Pessoas', category: 'Social', svgOnly: true },
   { id: 'clock', label: 'Relógio', category: 'Geral', svgOnly: true },
-  { id: 'bookmark', label: 'Marcador', category: 'Social', svgOnly: true },
-  { id: 'bell', label: 'Sino', category: 'Social', svgOnly: true },
+];
+
+export const SVG_ICON_CATALOG: OverlayIconDef[] = [
+  ...LOTTIE_ICON_CATALOG.map(({ id, label, category }) => ({
+    id,
+    label,
+    category,
+    svgOnly: true as const,
+  })),
+  ...SVG_ONLY_EXTRAS.filter((extra) => !LOTTIE_ICON_CATALOG.some((i) => i.id === extra.id)),
 ];
 
 export const LOTTIE_FILE_BY_ID = Object.fromEntries(
