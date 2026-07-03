@@ -107,6 +107,7 @@ import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
 import { BrandSettingsPanel } from './BrandSettingsPanel';
 import { VisualSettings } from './VisualSettings';
 import { OverlayTimelineEditor } from './OverlayTimelineEditor';
+import { BlockProgressBarProjectPanel } from './BlockProgressBarProjectPanel';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { SectionHeader, SectionLabel } from './SectionHeader';
 import { SECTION_HELP } from './sectionHelpContent';
@@ -1177,6 +1178,7 @@ export default function App() {
 
   const [savingGlobalConfig, setSavingGlobalConfig] = useState<boolean>(false);
   const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
+  const [savingBlockProgressBar, setSavingBlockProgressBar] = useState<boolean>(false);
   const [savingProductionConfig, setSavingProductionConfig] = useState<boolean>(false);
 
   const fetchGlobalRenderConfig = async () => {
@@ -8433,6 +8435,33 @@ export default function App() {
                     />
                   )}
 
+                  <BlockProgressBarProjectPanel
+                    projectKey={activeProject}
+                    config={(config || {}) as Record<string, unknown>}
+                    blockTimings={visualBlockTimings}
+                    isShortFormat={(config?.aspect_ratio || '16:9') === '9:16'}
+                    accentColor={config?.accent_color || '#D4AF37'}
+                    saving={savingBlockProgressBar}
+                    onSuggestIconsWithAi={suggestBlockProgressIcons}
+                    onSave={async (barDraft) => {
+                      setSavingBlockProgressBar(true);
+                      try {
+                        const saved = await saveConfigPatch(
+                          { block_progress_bar: barDraft },
+                          { skipRefresh: true },
+                        );
+                        if (!saved) return;
+                        setConfig((prev) => ({
+                          ...(prev || {}),
+                          block_progress_bar: barDraft,
+                        }));
+                        toast.success('Barra de progresso salva neste projeto.');
+                      } finally {
+                        setSavingBlockProgressBar(false);
+                      }
+                    }}
+                  />
+
                   {(() => {
 
                     const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
@@ -13537,20 +13566,12 @@ export default function App() {
                   projectKey={activeProject}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
-                  blockTimings={visualBlockTimings}
                   saving={savingVisualConfig}
-                  onSuggestBlockProgressIcons={suggestBlockProgressIcons}
                   onSave={async (draft) => {
                     setSavingVisualConfig(true);
                     try {
                       const previousVisual = pickVisualConfig(config || {});
                       const patch = visualDraftToApiPatch(draft, previousVisual);
-                      if (draft.block_progress_bar !== undefined) {
-                        const prevBp = (config as Record<string, unknown>)?.block_progress_bar;
-                        if (JSON.stringify(draft.block_progress_bar) !== JSON.stringify(prevBp)) {
-                          patch.block_progress_bar = draft.block_progress_bar;
-                        }
-                      }
                       if (Object.keys(patch).length === 0) {
                         toast.success('Nenhuma alteração visual para salvar.');
                         return;

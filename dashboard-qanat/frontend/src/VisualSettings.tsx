@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Layers, Palette, Save, Smartphone, Tv } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
@@ -12,12 +12,7 @@ import {
   resolveShortCaptionMode,
   type CaptionModeId,
 } from './captionConfig';
-import {
-  BlockProgressBarEditor,
-  buildBlockProgressDraftFromProject,
-  type BlockProgressBarDraft,
-  type BlockProgressMarkerDraft,
-} from './BlockProgressBarEditor';
+
 
 export type VisualConfig = {
   design_preset?: string;
@@ -47,7 +42,6 @@ export type VisualConfig = {
   secondary_color?: string;
   listicle_hud_theme?: 'ancient' | 'mysterious' | 'nature' | 'classic' | 'tech' | 'industrial';
   long_zoom_intensity?: 'normal' | 'aggressive' | 'cinematic';
-  block_progress_bar?: BlockProgressBarDraft;
 };
 
 type Props = {
@@ -55,33 +49,9 @@ type Props = {
   projectKey: string;
   isShortFormat: boolean;
   isListicle: boolean;
-  blockTimings?: { starts?: number[]; durations?: number[] };
   saving?: boolean;
   onSave: (draft: VisualConfig) => void | Promise<void>;
-  onSuggestBlockProgressIcons?: () => Promise<BlockProgressMarkerDraft[] | null>;
 };
-
-type BlockTimingsLike = { starts?: number[]; durations?: number[] };
-
-function blockTimingsKey(timings?: BlockTimingsLike): string {
-  if (!timings?.starts?.length && !timings?.durations?.length) return '';
-  return `${(timings.starts || []).join(',')}|${(timings.durations || []).join(',')}`;
-}
-
-function mergeBlockTimingsIntoDraft(
-  prev: BlockProgressBarDraft,
-  timings: BlockTimingsLike,
-): BlockProgressBarDraft {
-  const starts = timings.starts || [];
-  const durations = timings.durations || [];
-  if (!starts.length && !durations.length) return prev;
-  const blocks = prev.blocks.map((b, idx) => ({
-    ...b,
-    start: starts[idx] !== undefined ? Number(starts[idx]) : b.start,
-    duration: durations[idx] !== undefined ? Number(durations[idx]) : b.duration,
-  }));
-  return { ...prev, blocks };
-}
 
 const PRESET_OPTIONS = [
   { id: 'auto', label: 'Automático (por nicho)', hint: 'História, mistério, geografia, dados ou finanças conforme o tema.' },
@@ -322,35 +292,14 @@ export function VisualSettings({
   projectKey,
   isShortFormat,
   isListicle,
-  blockTimings,
   saving,
   onSave,
-  onSuggestBlockProgressIcons,
 }: Props) {
   const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
-  const [blockProgress, setBlockProgress] = useState<BlockProgressBarDraft>(() =>
-    buildBlockProgressDraftFromProject(config, blockTimings || {}),
-  );
-
-  const timingsKey = blockTimingsKey(blockTimings);
-  const prevProjectKey = useRef<string | null>(null);
-  const prevTimingsKey = useRef<string | null>(null);
 
   useEffect(() => {
-    const projectChanged = prevProjectKey.current !== projectKey;
-    if (projectChanged) {
-      prevProjectKey.current = projectKey;
-      prevTimingsKey.current = timingsKey;
-      setDraft(pickVisualConfig(config));
-      setBlockProgress(buildBlockProgressDraftFromProject(config, blockTimings || {}));
-      return;
-    }
-
-    if (timingsKey && timingsKey !== prevTimingsKey.current) {
-      prevTimingsKey.current = timingsKey;
-      setBlockProgress((prev) => mergeBlockTimingsIntoDraft(prev, blockTimings || {}));
-    }
-  }, [projectKey, timingsKey, config, blockTimings]);
+    setDraft(pickVisualConfig(config));
+  }, [projectKey, config]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));
@@ -738,28 +687,16 @@ export function VisualSettings({
         )}
       </div>
 
-      <BlockProgressBarEditor
-        draft={blockProgress}
-        blockPhrases={(config.block_phrases || []) as Array<{ block?: number; phrase?: string; text?: string }>}
-        blockStarts={blockTimings?.starts || []}
-        blockDurations={blockTimings?.durations || []}
-        isShortFormat={isShortFormat}
-        accentColor={draft.accent_color || '#D4AF37'}
-        niche={String(config.niche || 'Geral')}
-        totalDuration={
-          Number(blockTimings?.starts?.length && blockTimings?.durations?.length
-            ? (blockTimings.starts[blockTimings.starts.length - 1] || 0)
-              + (blockTimings.durations[blockTimings.durations.length - 1] || 0)
-            : 0) || undefined
-        }
-        onChange={setBlockProgress}
-        onSuggestIconsWithAi={onSuggestBlockProgressIcons}
-      />
+      <p className="text-[9px] text-zinc-500 border border-[var(--dash-border)] rounded-xl px-3 py-2 bg-[var(--dash-bg)]">
+        A <strong className="text-zinc-300">barra de progresso por blocos</strong> (ícones + design) fica na aba{' '}
+        <strong className="text-zinc-300">Editor</strong> do projeto — cada vídeo tem sua própria configuração em{' '}
+        <code className="text-violet-300/90">config_qanat.json</code>.
+      </p>
 
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
         <button
           type="button"
-          onClick={() => onSave({ ...draft, block_progress_bar: blockProgress })}
+          onClick={() => onSave(draft)}
           disabled={saving}
           className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
