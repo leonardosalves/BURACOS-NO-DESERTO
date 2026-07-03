@@ -114,7 +114,49 @@ export const OVERLAY_POSITIONS: Record<string, { id: string; label: string }[]> 
     { id: 'top-left', label: 'Superior esquerda' },
     { id: 'top-right', label: 'Superior direita' },
   ],
+  'bar-chart': [
+    { id: 'bottom-left', label: 'Inferior esquerda' },
+    { id: 'bottom-center', label: 'Inferior centro' },
+    { id: 'bottom-right', label: 'Inferior direita' },
+    { id: 'top-left', label: 'Superior esquerda' },
+    { id: 'top-center', label: 'Superior centro' },
+    { id: 'top-right', label: 'Superior direita' },
+    { id: 'center', label: 'Centro' },
+  ],
+  timeline: [
+    { id: 'bottom-left', label: 'Inferior esquerda' },
+    { id: 'bottom-center', label: 'Inferior centro' },
+    { id: 'bottom-right', label: 'Inferior direita' },
+    { id: 'top-left', label: 'Superior esquerda' },
+    { id: 'top-center', label: 'Superior centro' },
+    { id: 'top-right', label: 'Superior direita' },
+    { id: 'center', label: 'Centro' },
+  ],
 };
+
+/** Grade 3×3 para o seletor visual de posição (linha × coluna). */
+export const OVERLAY_POSITION_GRID: { id: string; label: string; row: number; col: number }[] = [
+  { id: 'top-left', label: '↖', row: 0, col: 0 },
+  { id: 'top-center', label: '↑', row: 0, col: 1 },
+  { id: 'top-right', label: '↗', row: 0, col: 2 },
+  { id: 'center', label: '●', row: 1, col: 1 },
+  { id: 'bottom-left', label: '↙', row: 2, col: 0 },
+  { id: 'bottom-center', label: '↓', row: 2, col: 1 },
+  { id: 'bottom-right', label: '↘', row: 2, col: 2 },
+];
+
+export function defaultOverlayPosition(type: string): string {
+  const positions = OVERLAY_POSITIONS[type];
+  if (positions?.length) return positions[0].id;
+  return 'bottom-left';
+}
+
+export function isValidOverlayPosition(type: string, position?: string): boolean {
+  const raw = String(position || '').trim();
+  if (!raw) return false;
+  const normalized = raw === 'right' ? 'bottom-right' : raw;
+  return (OVERLAY_POSITIONS[type] || []).some((p) => p.id === normalized);
+}
 
 export const OVERLAY_VARIANTS: Record<string, { id: string; label: string }[]> = {
   'lower-third': [

@@ -508,7 +508,9 @@ export function enforceOverlayOrchestration(overlays, plan, timingCtx = {}) {
       ? listicleBottomPool
       : profile.positions;
     const safePool = positionPool.length ? positionPool : ["bottom-right", "bottom-left"];
-    overlay.props.position = safePool[posIdx % safePool.length];
+    if (!overlay.props.position) {
+      overlay.props.position = safePool[posIdx % safePool.length];
+    }
     posIdx++;
 
     if (["lower-third", "counter", "bar-chart", "info-card"].includes(overlay.type)) {

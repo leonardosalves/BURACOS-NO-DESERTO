@@ -17,12 +17,15 @@ import type { OverlayResearchSnapshot } from './overlayBriefingLogic';
 import { buildFilmstripSegments, resolveTotalDuration } from './overlayFilmstrip';
 import { OverlayIconPicker } from './OverlayIconPicker';
 import { OverlayVariantPicker } from './OverlayVariantPicker';
+import { OverlayPositionPicker } from './OverlayPositionPicker';
 import { iconLabel, resolveIconStyle, type OverlayIconStyle } from './overlayIconCatalog';
 import {
   INFORMATIVE_OVERLAY_TYPES,
   OVERLAY_CONTENT_FIELDS,
   OVERLAY_POSITIONS,
   OVERLAY_THEMES,
+  defaultOverlayPosition,
+  isValidOverlayPosition,
   OVERLAY_TYPE_LABELS,
   OVERLAY_VARIANTS,
   SYSTEM_OVERLAY_TYPES,
@@ -343,7 +346,7 @@ export function OverlayTimelineEditor({
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-4 items-start">
-        <div className={`lg:sticky lg:top-2 shrink-0 min-w-0 ${previewWrapClass}`}>
+        <div className={`lg:sticky lg:top-2 shrink-0 min-w-0 space-y-2 ${previewWrapClass}`}>
           <OverlayPreview
             overlay={overlay}
             aspectRatio={aspectRatio}
@@ -351,7 +354,24 @@ export function OverlayTimelineEditor({
             sceneLabel={sceneLabel}
             sceneNarration={narration}
             compact
+            onPositionSelect={
+              overlaySupportsPosition(overlay.type) && !isSystem
+                ? (pos) => patchProp(overlay.id, 'position', pos)
+                : undefined
+            }
           />
+          {overlaySupportsPosition(overlay.type) && !isSystem && (
+            <div className="flex items-center gap-3 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-2">
+              <OverlayPositionPicker
+                overlayType={overlay.type}
+                value={String(props.position || defaultOverlayPosition(overlay.type))}
+                onChange={(pos) => patchProp(overlay.id, 'position', pos)}
+              />
+              <p className="text-[8px] text-[var(--dash-muted)] leading-snug min-w-0">
+                Clique na grade ou no preview para posicionar o overlay no quadro.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="dash-layer-card space-y-3 min-w-0">
@@ -458,7 +478,16 @@ export function OverlayTimelineEditor({
               <select
                 value={overlay.type}
                 disabled={isSystem}
-                onChange={(e) => patchOverlay(overlay.id, { type: e.target.value })}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  const nextProps: Record<string, unknown> = {};
+                  if (overlaySupportsPosition(newType)) {
+                    nextProps.position = isValidOverlayPosition(newType, String(props.position || ''))
+                      ? props.position
+                      : defaultOverlayPosition(newType);
+                  }
+                  patchOverlay(overlay.id, { type: newType }, nextProps);
+                }}
                 className="dash-select text-[10px]"
               >
                 {INFORMATIVE_OVERLAY_TYPES.map((t) => (
@@ -470,22 +499,29 @@ export function OverlayTimelineEditor({
 
           {overlaySupportsPosition(overlay.type) && !isSystem && (
             <div className="space-y-1.5">
-              <SettingLabel helpTitle="Posição" help="Onde aparece no quadro." align="start">
-                <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> Posição no quadro</span>
+              <SettingLabel helpTitle="Posição" help="Onde aparece no quadro — grade, preview ou botões." align="start">
+                <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> Posição no vídeo</span>
               </SettingLabel>
-              <div className="flex flex-wrap gap-1.5">
-                {positions.map((pos) => (
-                  <button
-                    key={pos.id}
-                    type="button"
-                    onClick={() => patchProp(overlay.id, 'position', pos.id)}
-                    className={`dash-layer-tri-btn !flex-none px-2.5 ${
-                      props.position === pos.id ? 'dash-layer-tri-btn-active' : ''
-                    }`}
-                  >
-                    {pos.label}
-                  </button>
-                ))}
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                <OverlayPositionPicker
+                  overlayType={overlay.type}
+                  value={String(props.position || defaultOverlayPosition(overlay.type))}
+                  onChange={(pos) => patchProp(overlay.id, 'position', pos)}
+                />
+                <div className="flex flex-wrap gap-1.5 flex-1">
+                  {positions.map((pos) => (
+                    <button
+                      key={pos.id}
+                      type="button"
+                      onClick={() => patchProp(overlay.id, 'position', pos.id)}
+                      className={`dash-layer-tri-btn !flex-none px-2.5 ${
+                        props.position === pos.id ? 'dash-layer-tri-btn-active' : ''
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
