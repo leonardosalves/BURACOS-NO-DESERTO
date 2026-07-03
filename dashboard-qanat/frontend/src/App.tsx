@@ -1522,6 +1522,20 @@ export default function App() {
     return blocks as import('./BlockProgressBarEditor').BlockProgressMarkerDraft[];
   }, [postAi, config?.use_gemini_chrome, geminiBrowserMode]);
 
+  const visualBlockTimings = useMemo(() => {
+    const bt = status?.block_timings || config?.block_timings;
+    if (!bt) return undefined;
+    return {
+      starts: bt.starts || [],
+      durations: bt.durations || [],
+    };
+  }, [
+    status?.block_timings?.starts?.join(','),
+    status?.block_timings?.durations?.join(','),
+    config?.block_timings?.starts?.join(','),
+    config?.block_timings?.durations?.join(','),
+  ]);
+
   const postCreatorScriptAi = useCallback(async (
     init: RequestInit = { method: 'POST' },
     progress?: { jobId?: string },
@@ -13523,7 +13537,7 @@ export default function App() {
                   projectKey={activeProject}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
-                  blockTimings={status?.block_timings || config?.block_timings || undefined}
+                  blockTimings={visualBlockTimings}
                   saving={savingVisualConfig}
                   onSuggestBlockProgressIcons={suggestBlockProgressIcons}
                   onSave={async (draft) => {

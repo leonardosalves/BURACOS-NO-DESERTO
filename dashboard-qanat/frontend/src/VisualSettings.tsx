@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Layers, Palette, Save, Smartphone, Tv } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
@@ -60,6 +60,28 @@ type Props = {
   onSave: (draft: VisualConfig) => void | Promise<void>;
   onSuggestBlockProgressIcons?: () => Promise<BlockProgressMarkerDraft[] | null>;
 };
+
+type BlockTimingsLike = { starts?: number[]; durations?: number[] };
+
+function blockTimingsKey(timings?: BlockTimingsLike): string {
+  if (!timings?.starts?.length && !timings?.durations?.length) return '';
+  return `${(timings.starts || []).join(',')}|${(timings.durations || []).join(',')}`;
+}
+
+function mergeBlockTimingsIntoDraft(
+  prev: BlockProgressBarDraft,
+  timings: BlockTimingsLike,
+): BlockProgressBarDraft {
+  const starts = timings.starts || [];
+  const durations = timings.durations || [];
+  if (!starts.length && !durations.length) return prev;
+  const blocks = prev.blocks.map((b, idx) => ({
+    ...b,
+    start: starts[idx] !== undefined ? Number(starts[idx]) : b.start,
+    duration: durations[idx] !== undefined ? Number(durations[idx]) : b.duration,
+  }));
+  return { ...prev, blocks };
+}
 
 const PRESET_OPTIONS = [
   { id: 'auto', label: 'Automático (por nicho)', hint: 'História, mistério, geografia, dados ou finanças conforme o tema.' },
@@ -310,10 +332,25 @@ export function VisualSettings({
     buildBlockProgressDraftFromProject(config, blockTimings || {}),
   );
 
+  const timingsKey = blockTimingsKey(blockTimings);
+  const prevProjectKey = useRef<string | null>(null);
+  const prevTimingsKey = useRef<string | null>(null);
+
   useEffect(() => {
-    setDraft(pickVisualConfig(config));
-    setBlockProgress(buildBlockProgressDraftFromProject(config, blockTimings || {}));
-  }, [config, projectKey, blockTimings]);
+    const projectChanged = prevProjectKey.current !== projectKey;
+    if (projectChanged) {
+      prevProjectKey.current = projectKey;
+      prevTimingsKey.current = timingsKey;
+      setDraft(pickVisualConfig(config));
+      setBlockProgress(buildBlockProgressDraftFromProject(config, blockTimings || {}));
+      return;
+    }
+
+    if (timingsKey && timingsKey !== prevTimingsKey.current) {
+      prevTimingsKey.current = timingsKey;
+      setBlockProgress((prev) => mergeBlockTimingsIntoDraft(prev, blockTimings || {}));
+    }
+  }, [projectKey, timingsKey, config, blockTimings]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));
