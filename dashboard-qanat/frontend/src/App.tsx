@@ -1526,6 +1526,42 @@ export default function App() {
     return blocks as import('./BlockProgressBarEditor').BlockProgressMarkerDraft[];
   }, [postAi, config?.use_gemini_chrome, geminiBrowserMode]);
 
+  const syncBlockProgressTitles = useCallback(async () => {
+    const { ok, data } = await postAi('/api/ai/suggest-block-progress-titles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!ok) {
+      toast.error((data as { error?: string })?.error || 'Falha ao sincronizar títulos dos capítulos.');
+      return null;
+    }
+    const blocks = (data as { blocks?: unknown[] })?.blocks;
+    if (!Array.isArray(blocks) || blocks.length < 1) {
+      toast.error((data as { error?: string })?.error || 'Nenhum capítulo encontrado para sincronizar.');
+      return null;
+    }
+    const updatedCount = Number((data as { updatedCount?: number })?.updatedCount)
+      || blocks.filter((b) => String((b as { title?: string }).title || '').trim()).length;
+    if (updatedCount > 0) {
+      toast.success(`${updatedCount} título(s) sincronizado(s) dos capítulos.`);
+    } else {
+      toast.success('Títulos já estavam sincronizados com os capítulos.');
+    }
+    setConfig((prev) => ({
+      ...(prev || {}),
+      block_progress_bar: {
+        ...((prev as Record<string, unknown>)?.block_progress_bar as object || {}),
+        blocks,
+        titles_synced_at: new Date().toISOString(),
+      },
+    }));
+    return {
+      blocks: blocks as import('./BlockProgressBarEditor').BlockProgressMarkerDraft[],
+      updatedCount,
+    };
+  }, [postAi]);
+
   const visualBlockTimings = useMemo(() => {
     const bt = status?.block_timings || config?.block_timings;
     if (!bt) return undefined;
@@ -8526,6 +8562,7 @@ export default function App() {
                     channelLogoUrl={logoStatus?.currentLogoUrl || null}
                     onGoToMetadata={() => setActiveTab('ai')}
                     onSuggestIconsWithAi={suggestBlockProgressIcons}
+                    onSyncTitlesFromChapters={syncBlockProgressTitles}
                     onSave={async (barDraft) => {
                       setSavingBlockProgressBar(true);
                       try {

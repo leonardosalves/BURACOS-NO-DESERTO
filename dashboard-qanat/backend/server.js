@@ -10530,20 +10530,27 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
       storyboard,
       config,
     });
+    const existingMarkers = buildDefaultBlockProgressMarkers({
+      blockPhrases,
+      visualPrompts,
+      starts: timings.starts || [],
+      durations: timings.durations || [],
+      niche: config.niche || "Geral",
+      existingBlocks: raw.blocks || [],
+      chaptersText,
+      storyboard,
+      config,
+    });
     const merged = mergeAiBlockProgressTitles(
-      buildDefaultBlockProgressMarkers({
-        blockPhrases,
-        visualPrompts,
-        starts: timings.starts || [],
-        durations: timings.durations || [],
-        niche: config.niche || "Geral",
-        existingBlocks: raw.blocks || [],
-        chaptersText,
-        storyboard,
-        config,
-      }),
+      existingMarkers,
       markers.map((m) => ({ block: m.block, title: m.title })),
     );
+    const updatedCount = merged.reduce((count, block, idx) => {
+      const prev = existingMarkers[idx];
+      const prevTitle = String(prev?.title || prev?.label || "").trim();
+      const nextTitle = String(block?.title || block?.label || "").trim();
+      return count + (nextTitle && nextTitle !== prevTitle ? 1 : 0);
+    }, 0);
 
     const nextConfig = {
       ...raw,
@@ -10563,10 +10570,11 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
     config.block_progress_bar = nextConfig;
     fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
 
-    console.log(`[Block Progress] Títulos sincronizados dos capítulos para ${merged.length} bloco(s).`);
+    console.log(`[Block Progress] Títulos sincronizados dos capítulos: ${updatedCount} atualizado(s), ${merged.length} bloco(s).`);
     res.json({
       success: true,
       blocks: merged,
+      updatedCount,
       source: "metadata_chapters",
     });
   } catch (err) {

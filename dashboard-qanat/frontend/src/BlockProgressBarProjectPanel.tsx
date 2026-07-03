@@ -34,6 +34,10 @@ type Props = {
   onGoToMetadata?: () => void;
   onSave: (draft: BlockProgressBarDraft) => void | Promise<void>;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
+  onSyncTitlesFromChapters?: () => Promise<{
+    blocks: BlockProgressMarkerDraft[];
+    updatedCount: number;
+  } | null>;
 };
 
 function blockTimingsKey(timings?: BlockTimingsLike): string {
@@ -98,6 +102,7 @@ export function BlockProgressBarProjectPanel({
   onGoToMetadata,
   onSave,
   onSuggestIconsWithAi,
+  onSyncTitlesFromChapters,
 }: Props) {
   const [draft, setDraft] = useState<BlockProgressBarDraft>(() =>
     buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard, chaptersText),
@@ -209,6 +214,7 @@ export function BlockProgressBarProjectPanel({
         channelLogoUrl={channelLogoUrl}
         onChange={setDraft}
         onSuggestIconsWithAi={onSuggestIconsWithAi}
+        onSyncTitlesFromChapters={onSyncTitlesFromChapters}
       />
     </div>
   );

@@ -141,11 +141,11 @@ export function resolveBlockTitlesFromChapters(
   if (!chapters.length || !blockStarts.length) return [];
 
   return blockStarts.map((start, idx) => {
-    const exact = chapters.find((c) => Math.abs(c.seconds - start) < 1.5);
-    if (exact?.title) return exact.title;
     if (chapters.length === blockStarts.length && chapters[idx]?.title) {
       return chapters[idx].title;
     }
+    const exact = chapters.find((c) => Math.abs(c.seconds - start) < 1.5);
+    if (exact?.title) return exact.title;
     let best = chapters[0];
     let bestDiff = Infinity;
     for (const chapter of chapters) {
@@ -220,6 +220,23 @@ export function resolveBlockDisplayTitle(
   if (meta) return meta;
   if (saved?.label?.trim()) return saved.label.trim();
   return `Bloco ${blockNum}`;
+}
+
+/** Aplica títulos dos capítulos/metadados, sobrescrevendo títulos atuais (ação explícita do usuário). */
+export function forceApplyChapterTitlesFromMetadata(
+  blocks: Array<{ block: number; title?: string; label?: string; [key: string]: unknown }>,
+  metadataTitles: Map<number, string>,
+): { blocks: typeof blocks; updatedCount: number } {
+  let updatedCount = 0;
+  const next = blocks.map((b) => {
+    const meta = String(metadataTitles.get(b.block) || '').trim();
+    if (!meta || isGenericBlockTitle(meta, b.block)) return b;
+    const prev = String(b.title || b.label || '').trim();
+    if (prev === meta) return b;
+    updatedCount += 1;
+    return { ...b, title: meta, label: meta };
+  });
+  return { blocks: next, updatedCount };
 }
 
 export function applyMetadataTitlesToProgressBlocks(
