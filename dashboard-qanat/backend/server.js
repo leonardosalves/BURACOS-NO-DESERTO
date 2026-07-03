@@ -284,6 +284,17 @@ import {
   harmonizeEmotionSegments,
   resolveMusicVolumeForRender,
 } from "./bgmProductionDefaults.js";
+import {
+  buildHeuristicNarrationChunks,
+  buildNarrationChunkPlan,
+  buildNarrationChunkPlanPrompt,
+  formatNarrationChunkPlanLog,
+  normalizeNarrationChunkPlan,
+  parseAiNarrationChunkResponse,
+  persistChunkPlanToProject,
+  NARRATION_MODE_CHUNKED,
+  NARRATION_MODE_MASTER,
+} from "./narrationChunks.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -11245,6 +11256,107 @@ app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
 
   }
 
+});
+
+app.get("/api/narration/chunks", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    res.json({
+      mode: config.narration_mode || NARRATION_MODE_MASTER,
+      plan: storyboard.narration_chunk_plan || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/narration/chunks", (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const { plan, mode } = req.body || {};
+    if (!plan || !Array.isArray(plan.chunks)) {
+      return res.status(400).json({ error: "Plano inválido — chunks[] obrigatório." });
+    }
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const normalized = normalizeNarrationChunkPlan({
+      ...plan,
+      chunks: plan.chunks,
+      default_voice: plan.default_voice,
+      planned_at: plan.planned_at || new Date().toISOString(),
+      source: plan.source || "manual",
+    }, { storyboard, config });
+    const saved = persistChunkPlanToProject(projDir, normalized, {
+      ...config,
+      narration_mode: mode === NARRATION_MODE_MASTER ? NARRATION_MODE_MASTER : NARRATION_MODE_CHUNKED,
+    });
+    res.json({ success: true, plan: normalized, config: saved.config });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/ai/plan-narration-chunks", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const { useHeuristic, defaultVoice } = req.body || {};
+
+    if (useHeuristic) {
+      const plan = buildHeuristicNarrationChunks({
+        storyboard,
+        config,
+        defaultVoice: defaultVoice || {},
+      });
+      persistChunkPlanToProject(projDir, plan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
+      return res.json({ success: true, plan, logs: formatNarrationChunkPlanLog(plan), source: "heuristic" });
+    }
+
+    const blockPhrases = Array.isArray(config.block_phrases)
+      ? config.block_phrases
+      : (storyboard.technical_config?.block_phrases || []);
+
+    const prompt = buildNarrationChunkPlanPrompt({
+      narrativeScript: storyboard.narrative_script || "",
+      narrativeScriptTagged: storyboard.narrative_script_tagged || "",
+      visualPrompts: storyboard.visual_prompts || [],
+      blockPhrases,
+      niche: config.niche || "Geral",
+    });
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Plano de narração por trechos",
+      prompt,
+    });
+    if (responseText == null) return;
+
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Plano de narração por trechos",
+    );
+    const aiChunks = parseAiNarrationChunkResponse(parsed);
+    const plan = buildNarrationChunkPlan({
+      aiChunks,
+      storyboard,
+      config,
+      defaultVoice: defaultVoice || {},
+    });
+    persistChunkPlanToProject(projDir, plan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
+
+    res.json({
+      success: true,
+      plan,
+      logs: formatNarrationChunkPlanLog(plan),
+      source: "ai",
+    });
+  } catch (err) {
+    console.error("[Plan Narration Chunks]", err);
+    res.status(500).json({ error: err.message || "Falha ao planejar narração por trechos." });
+  }
 });
 
 // API: List available assets inside ASSETS/ folder

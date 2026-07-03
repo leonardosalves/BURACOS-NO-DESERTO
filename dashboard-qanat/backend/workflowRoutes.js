@@ -55,6 +55,12 @@ import {
   applyWhisperDurationsToStoryboard,
 } from "./timelineSceneSync.js";
 import {
+  generateNarrationChunksTts,
+  persistChunkPlanToProject,
+  formatNarrationChunkPlanLog,
+  NARRATION_MODE_CHUNKED,
+} from "./narrationChunks.js";
+import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
   resolveYoutubeMetadataContext,
@@ -619,6 +625,89 @@ export function registerWorkflowRoutes(app, deps) {
       res.setHeader("X-Fish-Voice-Id", String(result.referenceId || voice || FISH_SPEECH_DEFAULT_VOICE));
       res.send(result.buffer);
     } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/tts/generate-narration-chunks", async (req, res) => {
+    const projDir = getProjectDir(req);
+    const {
+      chunk_ids: chunkIds,
+      default_voice: defaultVoice,
+      engine,
+      voice,
+      speed,
+      use_tagged: useTagged,
+      assemble_master: assembleMaster,
+      progress_job_id: progressJobIdRaw,
+    } = req.body || {};
+    const progressJobId = normalizeJobId(progressJobIdRaw);
+    const report = createProgressReporter(progressJobId);
+
+    const runGeneration = async () => {
+      const storyboard = JSON.parse(fs.readFileSync(path.join(projDir, "storyboard.json"), "utf8"));
+      const config = JSON.parse(fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8"));
+      const plan = storyboard.narration_chunk_plan;
+      if (!plan?.chunks?.length) {
+        throw new Error("Plano de trechos ausente — use 'Planejar trechos (IA)' antes.");
+      }
+
+      const voiceRef = defaultVoice && typeof defaultVoice === "object"
+        ? defaultVoice
+        : { engine: engine || plan.default_voice?.engine || "kokoro", voice, speed };
+
+      const nextPlan = await generateNarrationChunksTts(projDir, {
+        plan,
+        chunkIds: Array.isArray(chunkIds) ? chunkIds : null,
+        defaultVoice: voiceRef,
+        workspaceDir: WORKSPACE_DIR,
+        useTagged: useTagged !== false,
+        assembleMaster: assembleMaster !== false,
+        onLog: (msg) => console.log(msg),
+        onProgress: report,
+      });
+
+      persistChunkPlanToProject(projDir, nextPlan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
+
+      const timings = JSON.parse(fs.readFileSync(path.join(projDir, "block_timings.json"), "utf8"));
+      const transcripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
+      const synced = syncProjectTimelineAfterWhisper({
+        timelineAssets: config.timeline_assets || {},
+        blockTimings: timings,
+        wordTranscripts: transcripts,
+        flatTranscriptWords: flattenWordTranscripts(transcripts),
+        visualPrompts: storyboard.visual_prompts || [],
+        blockPhrases: config.block_phrases || [],
+      });
+      config.timeline_assets = synced.timelineAssets;
+      fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+      fs.writeFileSync(
+        path.join(projDir, "block_timings.json"),
+        JSON.stringify(synced.blockTimings || timings, null, 2),
+        "utf8",
+      );
+      storyboard.narration_chunk_plan = nextPlan;
+      fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+
+      const logs = formatNarrationChunkPlanLog(nextPlan);
+      const message = `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`;
+      if (progressJobId) finishJobProgress(progressJobId, message);
+      return { success: true, plan: nextPlan, logs, message };
+    };
+
+    try {
+      if (progressJobId) {
+        res.json({ started: true, jobId: progressJobId });
+        runGeneration().catch((err) => {
+          console.error("[TTS Chunks] Falha:", err);
+          failJobProgress(progressJobId, err.message);
+        });
+        return;
+      }
+      const result = await runGeneration();
+      res.json(result);
+    } catch (err) {
+      if (progressJobId) failJobProgress(progressJobId, err.message);
       res.status(500).json({ error: err.message });
     }
   });
