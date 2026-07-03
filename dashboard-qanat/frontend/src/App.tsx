@@ -1372,20 +1372,26 @@ export default function App() {
     setGlobalYoutubeSubscriberCount(config.youtube_channel.subscriber_count || '');
   }, [channelConfigScope, config?.youtube_channel]);
 
-  const debounceSaveStoryboard = (scriptData: any) => {
-
+  const clearPendingStoryboardSave = () => {
     if (saveStoryboardTimeoutRef.current) {
-
       clearTimeout(saveStoryboardTimeoutRef.current);
-
+      saveStoryboardTimeoutRef.current = null;
     }
+  };
 
+  const debounceSaveStoryboard = (scriptData: any) => {
+    clearPendingStoryboardSave();
     saveStoryboardTimeoutRef.current = setTimeout(() => {
-
       saveCreatorStoryboard(scriptData);
-
     }, 600);
+  };
 
+  const applyStoryboardToCreatorState = (data: any) => {
+    if (!data) return;
+    clearPendingStoryboardSave();
+    setGeneratedScriptData(data);
+    setStoryboardData(data);
+    if (data.narrative_script) setCreatorScript(data.narrative_script);
   };
 
   const saveCreatorStoryboard = async (scriptData: any) => {
@@ -2158,11 +2164,30 @@ export default function App() {
 
   useEffect(() => {
     if (!isWhisperTimelineReady(wordTranscripts, status)) return;
-    const prompts = storyboardData?.visual_prompts;
-    if (!Array.isArray(prompts) || prompts.length === 0) return;
+    const sbPrompts = storyboardData?.visual_prompts;
+    if (!Array.isArray(sbPrompts) || sbPrompts.length === 0) return;
     setGeneratedScriptData((prev) => {
-      if (!prev) return prev;
-      return { ...prev, visual_prompts: prompts };
+      if (!prev) return storyboardData;
+      if (!Array.isArray(prev.visual_prompts) || prev.visual_prompts.length === 0) {
+        return { ...prev, visual_prompts: sbPrompts };
+      }
+      const sbByScene = new Map(
+        sbPrompts.map((sb: any) => [String(sb?.scene ?? sb?.cena ?? ''), sb]),
+      );
+      const mergedPrompts = prev.visual_prompts.map((vp: any, idx: number) => {
+        const sceneKey = String(vp?.scene ?? vp?.cena ?? '');
+        const sb = (sceneKey && sbByScene.get(sceneKey)) || sbPrompts[idx];
+        if (!sb) return vp;
+        return {
+          ...vp,
+          duration: sb.duration ?? vp.duration,
+          duration_seconds: sb.duration_seconds ?? vp.duration_seconds,
+          duration_from_whisper: sb.duration_from_whisper ?? vp.duration_from_whisper,
+          narration_text: sb.narration_text ?? vp.narration_text,
+          narration_excerpt: sb.narration_excerpt ?? vp.narration_excerpt,
+        };
+      });
+      return { ...prev, visual_prompts: mergedPrompts };
     });
   }, [wordTranscripts, status?.block_timings?.starts, storyboardData?.visual_prompts]);
 
@@ -7497,7 +7522,7 @@ export default function App() {
         body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
       });
       if (ok && !data.needs_browser) {
-        setGeneratedScriptData(data);
+        applyStoryboardToCreatorState(data);
         await saveCreatorStoryboard(data);
         toast.success('Checklist de qualidade atualizado.');
       } else {
@@ -7527,8 +7552,7 @@ export default function App() {
         body: JSON.stringify({ project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_') }),
       });
       if (ok && !data.needs_browser) {
-        setGeneratedScriptData(data);
-        setCreatorScript(data.narrative_script || creatorScript);
+        applyStoryboardToCreatorState(data);
         await saveCreatorStoryboard(data);
         const score = data._vpe_checklist?.quality_score;
         const niche = data._vpe_checklist?.nicho_detectado || '';
