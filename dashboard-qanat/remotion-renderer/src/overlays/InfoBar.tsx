@@ -32,7 +32,17 @@ export interface InfoBarProps {
   /** Position on screen */
   position?: "center" | "bottom-center" | "right";
   /** Visual Theme */
-  theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
+  theme?:
+    | "ancient"
+    | "tech"
+    | "nature"
+    | "industrial"
+    | "mysterious"
+    | "classic"
+    | "minimal"
+    | "modern"
+    | "futuristic"
+    | "neon";
   /** Actual overlay sequence duration in frames */
   durationInFrames?: number;
   /** Dynamic CSS override styles from Gemini AI */
@@ -208,6 +218,44 @@ export const InfoBar: React.FC<InfoBarProps> = ({
           boxShadow: `0 8px 32px ${accentColor}25, inset 0 0 15px rgba(255,255,255,0.03)`,
         };
         break;
+      case "minimal":
+        base = {
+          background: "linear-gradient(135deg, rgba(12,12,14,0.97) 0%, rgba(22,22,26,0.95) 100%)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: isVertical ? 14 : 10,
+          padding: isVertical ? "24px 32px" : "18px 24px",
+        };
+        break;
+      case "modern":
+        base = {
+          background: "linear-gradient(145deg, rgba(8,8,12,0.92) 0%, rgba(18,18,26,0.9) 100%)",
+          border: `1px solid ${accentColor}30`,
+          borderRadius: isVertical ? 18 : 14,
+          padding: isVertical ? "26px 34px" : "20px 26px",
+          boxShadow: "0 10px 32px rgba(0,0,0,0.45)",
+        };
+        break;
+      case "futuristic":
+        base = {
+          background: "rgba(4, 8, 14, 0.94)",
+          backgroundImage: `radial-gradient(${accentColor}18 1px, transparent 0)`,
+          backgroundSize: "10px 10px",
+          border: `1px solid ${accentColor}44`,
+          borderLeft: `4px solid ${accentColor}`,
+          borderRadius: isVertical ? 12 : 8,
+          padding: isVertical ? "26px 34px" : "20px 26px",
+          boxShadow: `0 0 24px ${accentColor}18`,
+        };
+        break;
+      case "neon":
+        base = {
+          background: "linear-gradient(135deg, rgba(6,4,14,0.96) 0%, rgba(14,8,24,0.94) 100%)",
+          border: `1px solid ${accentColor}55`,
+          borderRadius: isVertical ? 16 : 12,
+          padding: isVertical ? "26px 34px" : "20px 26px",
+          boxShadow: `0 0 28px ${accentColor}30, inset 0 0 12px ${accentColor}10`,
+        };
+        break;
       case "classic":
       default:
         base = {
@@ -329,9 +377,11 @@ export const InfoBar: React.FC<InfoBarProps> = ({
         >
           {/* Theme Corner Decorators */}
           {theme === "tech" && <TechCorners color={accentColor} />}
+          {theme === "futuristic" && <TechCorners color={accentColor} />}
           {theme === "ancient" && <AncientCorners color={accentColor} />}
           {theme === "industrial" && <IndustrialRivets />}
           {theme === "mysterious" && <MysteriousStars color={accentColor} />}
+          {theme === "neon" && <MysteriousStars color={accentColor} />}
 
           {/* Title */}
           <div

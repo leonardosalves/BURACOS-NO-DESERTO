@@ -6,9 +6,11 @@ import {
   overlayPreviewFrameClass,
 } from './overlayPreviewScale';
 import {
+  barChartPreviewShell,
   infoCardVariantStyle,
   kineticStyleProps,
   lowerThirdVariantShell,
+  normalizeBarChartItems,
   themePanelBg,
 } from './overlayPreviewStyles';
 import {
@@ -290,32 +292,49 @@ export function OverlayPreview({
           </p>
         );
 
-      case 'bar-chart':
+      case 'bar-chart': {
+        const chartTheme = String(props.theme || 'classic');
+        const shell = barChartPreviewShell(chartTheme, accentColor);
+        const items = normalizeBarChartItems(props.items, accentColor);
+        const maxValue = Math.max(...items.map((it) => Number(it.value) || 0), 1);
         return (
-          <div
-            style={{
-              ...pos,
-              maxWidth: metrics.maxWidth,
-              background: 'rgba(8,8,12,0.88)',
-              border: `1px solid ${accentColor}33`,
-              padding: metrics.cardPadding,
-              borderRadius: metrics.cardGap,
-            }}
-          >
-            <p className="text-white font-bold mb-1" style={{ fontSize: metrics.fontSizeSubtitle }}>
-              {String(props.title || 'Gráfico')}
-            </p>
-            <div className="flex items-end gap-1" style={{ height: metrics.fontSizeTitle }}>
-              {[0.5, 0.95, 0.4, 0.7].map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-sm"
-                  style={{ height: `${h * 100}%`, background: i === 1 ? accentColor : `${accentColor}55` }}
-                />
-              ))}
+          <div style={{ ...pos, maxWidth: metrics.maxWidth, ...shell.container }}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <div style={shell.accentStripe} />
+              <p style={{ ...shell.title, fontSize: metrics.fontSizeSubtitle, margin: 0 }}>
+                {String(props.title || 'COMPARAÇÃO')}
+              </p>
+            </div>
+            <div className="space-y-1">
+              {items.map((item, index) => {
+                const barColor = item.color || (index === 0 ? accentColor : '#4ECDC4');
+                const widthPct = Math.max(8, ((Number(item.value) || 0) / maxValue) * 100);
+                return (
+                  <div key={`${item.label}-${index}`}>
+                    <div className="flex justify-between items-baseline gap-1 mb-0.5">
+                      <span style={{ ...shell.label, fontSize: metrics.fontSizeDesc }}>{item.label}</span>
+                      <span style={{ color: barColor, fontSize: metrics.fontSizeDesc, fontWeight: 700 }}>
+                        {item.displayValue || item.value}
+                      </span>
+                    </div>
+                    <div style={shell.track}>
+                      <div
+                        style={{
+                          width: `${widthPct}%`,
+                          height: '100%',
+                          background: `linear-gradient(90deg, ${barColor}cc, ${barColor})`,
+                          borderRadius: 'inherit',
+                          boxShadow: chartTheme === 'neon' ? `0 0 0.35em ${barColor}` : undefined,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
+      }
 
       default:
         return (

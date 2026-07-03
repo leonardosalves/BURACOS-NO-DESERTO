@@ -183,10 +183,15 @@ function inferDesignRationale(type: string, theme?: string): string {
     'social-post': 'Depoimentos ou posts simulam prova social no formato da plataforma.',
   };
   const base = map[type] || 'Formato escolhido para complementar a cena sem repetir a narração.';
+  if (theme === 'minimal') return `${base} Tema minimalista — painel limpo para comparações legíveis.`;
+  if (theme === 'modern') return `${base} Tema moderno — glass escuro com contraste suave.`;
+  if (theme === 'futuristic') return `${base} Tema futurista — ideal para espaço, plasma e tech (como no print).`;
+  if (theme === 'neon') return `${base} Tema neon — barras com glow para destaque viral.`;
   if (theme === 'ancient') return `${base} Tema antigo combina com história e arqueologia.`;
   if (theme === 'nature') return `${base} Tema natureza combina com geografia e meio ambiente.`;
   if (theme === 'industrial') return `${base} Tema industrial combina com engenharia e militar.`;
   if (theme === 'mysterious') return `${base} Tema mistério combina com teorias e enigmas.`;
+  if (theme === 'tech') return `${base} Tema tech — barras horizontais dourado/ciano como comparação científica.`;
   return base;
 }
 

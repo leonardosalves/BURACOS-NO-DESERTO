@@ -139,16 +139,30 @@ export const OVERLAY_VARIANTS: Record<string, { id: string; label: string }[]> =
     { id: 'accent', label: 'Acento' },
     { id: 'floating', label: 'Flutuante' },
   ],
+  'bar-chart': [
+    { id: 'comparison', label: 'Comparação' },
+    { id: 'compact', label: 'Compacto' },
+  ],
+  timeline: [
+    { id: 'horizontal', label: 'Horizontal' },
+    { id: 'vertical', label: 'Vertical' },
+  ],
 };
 
 export const OVERLAY_THEMES = [
   { id: 'classic', label: 'Clássico' },
+  { id: 'minimal', label: 'Minimalista' },
+  { id: 'modern', label: 'Moderno' },
+  { id: 'futuristic', label: 'Futurista' },
+  { id: 'neon', label: 'Neon' },
   { id: 'ancient', label: 'Antigo' },
   { id: 'tech', label: 'Tech' },
   { id: 'nature', label: 'Natureza' },
   { id: 'industrial', label: 'Industrial' },
   { id: 'mysterious', label: 'Mistério' },
 ];
+
+export const OVERLAY_THEME_IDS = OVERLAY_THEMES.map((t) => t.id);
 
 export { LOTTIE_ICON_OPTIONS, type OverlayIconStyle } from './overlayIconCatalog';
 
@@ -221,7 +235,7 @@ export const OVERLAY_CONTENT_FIELDS: Record<string, ContentField[]> = {
     },
   ],
   'bar-chart': [
-    { key: 'title', label: 'Título', kind: 'text' },
+    { key: 'title', label: 'Título', kind: 'text', placeholder: 'COMPARAÇÃO' },
   ],
   timeline: [
     { key: 'title', label: 'Título', kind: 'text' },
@@ -245,7 +259,7 @@ export function overlaySupportsVariant(type: string): boolean {
 }
 
 export function overlaySupportsTheme(type: string): boolean {
-  return ['lower-third', 'info-card', 'source-card', 'counter'].includes(type);
+  return ['lower-third', 'info-card', 'source-card', 'counter', 'bar-chart', 'timeline', 'kinetic-text'].includes(type);
 }
 
 export function formatOverlayTime(seconds: number): string {

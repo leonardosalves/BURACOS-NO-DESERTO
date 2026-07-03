@@ -1,5 +1,5 @@
 import React from 'react';
-import { infoCardVariantStyle, lowerThirdVariantShell } from './overlayPreviewStyles';
+import { barChartPreviewShell, infoCardVariantStyle, lowerThirdVariantShell } from './overlayPreviewStyles';
 
 type VariantOption = { id: string; label: string };
 
@@ -29,6 +29,26 @@ function SwatchContent({
       <div className="absolute inset-0 flex items-end p-1">
         <div style={{ ...shell.container, fontSize: '5px', maxWidth: '100%' }}>
           <span style={{ ...shell.title, fontSize: '6px', lineHeight: 1 }}>TÍTULO</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (overlayType === 'bar-chart') {
+    const shell = barChartPreviewShell(theme, accent);
+    return (
+      <div className="absolute inset-0 flex items-end p-1">
+        <div style={{ ...shell.container, fontSize: '4px', width: '92%', padding: '3px 4px' }}>
+          <div style={{ display: 'flex', gap: 2, alignItems: 'center', marginBottom: 2 }}>
+            <div style={{ ...shell.accentStripe, width: 2 }} />
+            <span style={{ ...shell.title, fontSize: '5px' }}>CMP</span>
+          </div>
+          <div style={{ ...shell.track, height: 3 }}>
+            <div style={{ width: '78%', height: '100%', background: accent, borderRadius: 2 }} />
+          </div>
+          <div style={{ ...shell.track, height: 3, marginTop: 2 }}>
+            <div style={{ width: '24%', height: '100%', background: '#4ECDC4', borderRadius: 2 }} />
+          </div>
         </div>
       </div>
     );
