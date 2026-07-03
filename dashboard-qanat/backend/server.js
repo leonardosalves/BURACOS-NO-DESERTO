@@ -14960,7 +14960,7 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
    - Para vídeos LONGOS: Intervalo de pelo menos 18 segundos "limpo" entre overlays. Priorize dados visuais sobre texto.
 3. COMPONENTES DISPONÍVEIS NO REMOTION (use todos conforme o contexto):
    - "kinetic-text": frases de impacto com animação slam/reveal/glitch (ideal para viradas narrativas em Shorts)
-   - "lower-third": nomes, definições, contexto (variantes: glass, bild, accent-underline, bold-block, clean-bar)
+   - "lower-third": nomes, definições, contexto (variantes: glass, bild, accent-underline, bold-block, clean-bar, soft-pill, color-block, dark-card, kicker-name, mask-reveal, side-rule, stack-bars, youtube-bar, news-ticker)
    - "counter": números, estatísticas, datas (com suffix e formatNumber)
    - "bar-chart": comparações visuais (2-4 itens)
    - "timeline": sequências, processos, linha do tempo (horizontal em longos, vertical em shorts)
