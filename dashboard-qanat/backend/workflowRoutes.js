@@ -61,6 +61,7 @@ import {
   formatNarrationChunkPlanLog,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
+import { convertCinematicMarkersForTts } from "./videoProEnhancements.js";
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
@@ -630,6 +631,30 @@ export function registerWorkflowRoutes(app, deps) {
     }
   });
 
+  app.post("/api/tts/preview-tagged-text", (req, res) => {
+    try {
+      const {
+        text_tagged: taggedText = "",
+        engine = "fish",
+        strip_emphasis: stripEmphasis = false,
+      } = req.body || {};
+      const platform = String(engine).toLowerCase().includes("chatterbox")
+        ? "chatterbox"
+        : String(engine).toLowerCase().includes("eleven")
+          ? "eleven"
+          : "fish";
+      const preview = convertCinematicMarkersForTts(String(taggedText || ""), platform, {
+        stripEmphasis: stripEmphasis === true,
+      });
+      const tags = [...String(taggedText || "").matchAll(/\[[^\]]+\]|\([^)]+\)/g)]
+        .map((m) => m[0])
+        .filter((v, i, arr) => arr.indexOf(v) === i);
+      res.json({ preview, tags, platform });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/tts/generate-narration-chunks", async (req, res) => {
     const projDir = getProjectDir(req);
     const {
@@ -639,6 +664,8 @@ export function registerWorkflowRoutes(app, deps) {
       voice,
       speed,
       use_tagged: useTagged,
+      strip_emphasis: stripEmphasis,
+      sync_whisper: syncWhisper,
       assemble_master: assembleMaster,
       progress_job_id: progressJobIdRaw,
     } = req.body || {};
@@ -673,12 +700,26 @@ export function registerWorkflowRoutes(app, deps) {
         defaultVoice: voiceRef,
         workspaceDir: WORKSPACE_DIR,
         useTagged: useTagged !== false,
+        stripEmphasis: stripEmphasis === true,
         assembleMaster: assembleMaster !== false,
         onLog: (msg) => console.log(msg),
         onProgress: report,
       });
 
       persistChunkPlanToProject(projDir, nextPlan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
+
+      const shouldSyncWhisper = syncWhisper !== false;
+      if (shouldSyncWhisper && fs.existsSync(path.join(projDir, "narracao_mestra_premium.mp3"))) {
+        report("whisper", "Sincronizando legendas com Whisper (pode levar alguns minutos)…", 93);
+        try {
+          const handlers = buildCreatorPipelineHandlers();
+          await handlers.sync(projDir, (msg) => console.log(msg));
+          report("whisper", "Legendas alinhadas com Whisper.", 97);
+        } catch (whisperErr) {
+          console.warn("[TTS Chunks] Whisper falhou — legendas estimadas por trecho:", whisperErr?.message || whisperErr);
+          report("whisper-fallback", "Whisper indisponível — usando timings estimados dos trechos.", 95);
+        }
+      }
 
       const timings = JSON.parse(fs.readFileSync(path.join(projDir, "block_timings.json"), "utf8"));
       const transcripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
