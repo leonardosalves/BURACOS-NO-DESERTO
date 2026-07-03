@@ -248,7 +248,11 @@ import {
 } from "./videoProEnhancements.js";
 import {
   buildBlockSonoplastiaPlan,
+  buildProjectBlockRanges,
+  blocksNeedingBgmDownload,
+  collectProjectBlockNumbers,
   formatSonoplastiaLog,
+  resolveBlockSearchTheme,
 } from "./bgmSonoplastia.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
@@ -3785,100 +3789,125 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
 
   } else {
 
-    const suggestions = storyboard.bgm_recommendations || [];
+    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+    const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
+    const blockRanges = buildProjectBlockRanges(blockNumbers, timings);
+    const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+    const sonoplastiaPlan = buildBlockSonoplastiaPlan({
+      config,
+      storyboard,
+      blockNumbers,
+      blockRanges,
+      wordTranscripts,
+      nicheMood,
+    });
 
-    if (suggestions.length === 0) {
+    const suggestions = Array.isArray(storyboard.bgm_recommendations) ? storyboard.bgm_recommendations : [];
+    if (!Array.isArray(config.bgm_mappings)) config.bgm_mappings = [];
 
-      logs.push("bgm_recommendations vazio. Nenhum download automatico feito para evitar trilhas genericas e repetidas.");
+    const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExists);
 
+    if (blocksToFill.length === 0) {
+      logs.push("Todos os blocos já possuem trilha mapeada no disco.");
       return logs;
-
     }
 
-    logs.push(`Processando ${suggestions.length} blocos para download automático...`);
-
-    const removed = deleteGeneratedBgmCycleFiles(projDir);
-
-    if (removed.length > 0) {
-
-      logs.push(`Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher novas trilhas.`);
-
+    const suggestionByBlock = new Map();
+    for (const [sugIndex, sug] of suggestions.entries()) {
+      const block = Number(sug.block || sug.bloco || 0) || (sugIndex + 1);
+      suggestionByBlock.set(block, sug);
     }
 
-    config.bgm_mappings = [];
+    const fullSonoplastiaRun = suggestions.length === 0
+      || suggestions.every((sug) => !String(sug?.search_theme || sug?.searchTheme || "").trim());
+
+    if (fullSonoplastiaRun) {
+      logs.push(`Sonoplastia IA: baixando ${blocksToFill.length} trilha(s) por mood da narração...`);
+      for (const line of formatSonoplastiaLog(sonoplastiaPlan)) logs.push(line);
+    } else {
+      logs.push(`Processando ${blocksToFill.length} bloco(s) com tema Epidemic + sonoplastia...`);
+    }
+
+    if (fullSonoplastiaRun && blocksToFill.length === blockNumbers.length) {
+      const removed = deleteGeneratedBgmCycleFiles(projDir);
+      if (removed.length > 0) {
+        logs.push(`Removendo ${removed.length} BGM automáticas antigas antes de escolher novas trilhas.`);
+      }
+      config.bgm_mappings = [];
+    }
 
     config.use_single_bgm = false;
-
     config.single_bgm = "";
 
     const usedTracks = new Set();
+    if (!Array.isArray(storyboard.bgm_recommendations)) storyboard.bgm_recommendations = [];
 
-    for (const [sugIndex, sug] of suggestions.entries()) {
-
-      const block = Number(sug.block || sug.bloco || 0) || (sugIndex + 1);
-
-      let rawSearchTheme = sug.search_theme || sug.searchTheme || sug.recommendation || sug.recomendacao || "";
-
-      if (!String(rawSearchTheme).trim()) {
-        const mood = getEpidemicMoodForNiche(config.niche, config, storyboard);
-        rawSearchTheme = mood.bgm;
-        logs.push(`[Bloco ${block}] Sem tema BGM no storyboard — usando nicho (${mood.label}): "${rawSearchTheme}"`);
-      }
-
+    for (const block of blocksToFill) {
+      const sug = suggestionByBlock.get(block) || null;
+      const planEntry = sonoplastiaPlan.get(block);
+      const rawSearchTheme = resolveBlockSearchTheme(block, sonoplastiaPlan, sug, nicheMood);
       const searchTheme = translateOrCleanQuery(rawSearchTheme);
 
-      logs.push(`[Bloco ${block}] Buscando por tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
+      logs.push(
+        `[Bloco ${block}] mood=${planEntry?.mood || "neutral"} pace=${planEntry?.pace || "normal"}`
+        + ` → busca Epidemic: "${searchTheme}"`,
+      );
 
       try {
-
-        let tracks = await searchMusic(token, searchTheme);
-
+        const tracks = await searchMusic(token, searchTheme);
         const track = pickFreshTrack(tracks, usedTracks, previousAutoBgmKeys, block);
 
         if (track) {
-
           usedTracks.add(String(track.id || "").toLowerCase());
-
           usedTracks.add(normalizeAudioChoiceKey(track.title));
-
           usedTracks.add(normalizeAudioChoiceKey(makeEpidemicFilename(track.title)));
 
           const filename = makeEpidemicFilename(track.title);
-
           const destPath = path.join(projDir, filename);
 
-          logs.push(`[Bloco ${block}] Baixando: "${track.title}"...`);
+          logs.push(`[Bloco ${block}] Baixando: "${track.title}" → ${filename}`);
 
           await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
 
-          config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== block);
+          config.bgm_mappings = config.bgm_mappings.filter((item) => Number(item.block) !== block);
+          config.bgm_mappings.push({
+            block,
+            file: filename,
+            mood: planEntry?.mood,
+            climaxMode: planEntry?.climaxMode,
+            search_theme: rawSearchTheme,
+          });
 
-          config.bgm_mappings.push({ block, file: filename });
+          const recIdx = storyboard.bgm_recommendations.findIndex((r) => Number(r?.block) === block);
+          const recPayload = {
+            block,
+            scope: "block",
+            recommendation: planEntry?.phrasePreview || sug?.recommendation || "",
+            search_theme: rawSearchTheme,
+            mood: planEntry?.mood,
+            climaxMode: planEntry?.climaxMode,
+          };
+          if (recIdx >= 0) storyboard.bgm_recommendations[recIdx] = { ...storyboard.bgm_recommendations[recIdx], ...recPayload };
+          else storyboard.bgm_recommendations.push(recPayload);
 
-          logs.push(`[Bloco ${block}] Mapeada com sucesso: ${filename}`);
-
+          logs.push(`[Bloco ${block}] Mapeada: ${filename} (entrada ${planEntry?.climaxMode || "peak"})`);
         } else {
-
-          logs.push(`[Bloco ${block}] Nenhuma musica nova encontrada para o tema "${searchTheme}".`);
-
+          logs.push(`[Bloco ${block}] Nenhuma música encontrada para "${searchTheme}".`);
         }
-
       } catch (e) {
-
-        logs.push(`[Bloco ${block}] Erro ao processar: ${e.message}`);
-
+        logs.push(`[Bloco ${block}] Erro: ${e.message}`);
       }
-
     }
 
     config.bgm_mappings.sort((a, b) => a.block - b.block);
-
-    config.use_single_bgm = false;
+    storyboard.bgm_recommendations.sort((a, b) => Number(a.block) - Number(b.block));
 
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+    fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
 
-    logs.push("Download e mapeamento por blocos concluído!");
-
+    logs.push(`Sonoplastia concluída: ${config.bgm_mappings.length} bloco(s) com trilha.`);
   }
 
   return logs;
@@ -3931,26 +3960,28 @@ async function ensureProjectBgmTracks(projDir) {
 
   }
 
-  // Check if BGM mappings are completely empty
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+  const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
+  const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+  const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExists);
 
-  const hasMappings = (config.use_single_bgm && config.single_bgm) || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length > 0);
+  const hasMappings = (config.use_single_bgm && config.single_bgm && fileExists(config.single_bgm))
+    || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.some((m) => m?.file && fileExists(m.file)));
 
-  if (!hasMappings) {
-
-    console.log("[BGM Auto-Fetch] Nenhum mapeamento de trilha sonora encontrado. Executando sonoplastia inteligente automática...");
+  if (!hasMappings || blocksToFill.length > 0) {
+    const reason = !hasMappings
+      ? "sem trilhas mapeadas"
+      : `${blocksToFill.length} bloco(s) sem arquivo`;
+    console.log(`[BGM Auto-Fetch] Sonoplastia automática (${reason})...`);
 
     try {
-
-      await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
-
-      config = JSON.parse(fs.readFileSync(configPath, "utf8")); // reload config
-
+      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
+      for (const line of autoLogs || []) console.log(`[BGM Auto-Fetch] ${line}`);
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     } catch (err) {
-
       console.error("[BGM Auto-Fetch] Falha na sonoplastia automática pré-render:", err.message);
-
     }
-
   }
 
   const filesToDownload = [];
