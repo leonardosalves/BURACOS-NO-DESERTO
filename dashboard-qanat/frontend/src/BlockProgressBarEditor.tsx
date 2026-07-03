@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { OverlayIconPicker } from './OverlayIconPicker';
 import { BlockProgressBarPreview } from './BlockProgressBarPreview';
@@ -12,6 +12,11 @@ import {
   resolveBlockDisplayTitle,
   type BlockProgressTitleFontId,
 } from './blockProgressBarTitles';
+import {
+  dedupeBlockProgressIcons,
+  suggestBlockProgressIcon,
+  swapBlockProgressIcons,
+} from './blockProgressBarIcons';
 
 export type BlockProgressMarkerDraft = {
   block: number;
@@ -70,19 +75,6 @@ type Props = {
   chaptersText?: string;
 };
 
-function suggestIcon(narration: string, niche: string): string {
-  const text = `${niche} ${narration}`.toLowerCase();
-  if (/espaço|espacial|foguete|nasa|órbita|orbita/i.test(text)) return 'science';
-  if (/inteligência artificial|\bia\b|tech|digital/i.test(text)) return 'gear';
-  if (/dinheiro|economia|financ/i.test(text)) return 'money';
-  if (/históri|histori|antig|guerra/i.test(text)) return 'history';
-  if (/natureza|oceano|animal|clima/i.test(text)) return 'nature';
-  if (/geograf|mapa|país|pais/i.test(text)) return 'compass';
-  if (/militar|defesa|tanque/i.test(text)) return 'shield';
-  if (/energia|elétric|eletric|nuclear/i.test(text)) return 'lightning';
-  return 'info';
-}
-
 export function buildBlockProgressDraftFromProject(
   config: Record<string, unknown> = {},
   timings: { starts?: number[]; durations?: number[] } = {},
@@ -105,23 +97,27 @@ export function buildBlockProgressDraftFromProject(
     config,
   });
 
+  const usedIcons = new Set<string>();
   const blocks = phrases.map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existing.get(block);
     const phraseStart = String(bp.phrase || bp.text || '').trim();
     const fullNarration = narrations.get(block) || phraseStart;
     const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block);
+    const iconType = saved?.iconType || suggestBlockProgressIcon(fullNarration, niche, usedIcons);
+    if (!saved?.iconType) usedIcons.add(iconType);
     return {
       block,
       start: Number(starts[idx]) || 0,
       duration: Number(durations[idx]) || 10,
       title,
       label: title,
-      iconType: saved?.iconType || suggestIcon(fullNarration, niche),
+      iconType,
       iconStyle: saved?.iconStyle || raw.defaultIconStyle || 'lottie',
       iconSize: saved?.iconSize,
     };
   });
+  const dedupedBlocks = dedupeBlockProgressIcons(blocks, { niche });
 
   const titleFont = BLOCK_PROGRESS_TITLE_FONTS.some((f) => f.id === raw.titleFont)
     ? raw.titleFont
@@ -136,7 +132,7 @@ export function buildBlockProgressDraftFromProject(
     titleFont: titleFont as BlockProgressTitleFontId,
     titleFontSize: Number(raw.titleFontSize) || (isShort ? 9 : 10),
     titleColor: String(raw.titleColor || '#FFFFFF'),
-    blocks,
+    blocks: dedupedBlocks,
   };
 }
 
@@ -169,7 +165,7 @@ export function BlockProgressBarEditor({
         start: Number(blockStarts[idx]) || 0,
         duration: Number(blockDurations[idx]) || 10,
         label: narration.slice(0, 56),
-        iconType: suggestIcon(narration, niche),
+        iconType: suggestBlockProgressIcon(narration, niche),
         iconStyle: draft.defaultIconStyle,
       };
     });
@@ -210,10 +206,13 @@ export function BlockProgressBarEditor({
       }
       onChange({
         ...draft,
-        blocks: suggested.map((b) => ({
-          ...b,
-          iconStyle: b.iconStyle || draft.defaultIconStyle,
-        })),
+        blocks: dedupeBlockProgressIcons(
+          suggested.map((b) => ({
+            ...b,
+            iconStyle: b.iconStyle || draft.defaultIconStyle,
+          })),
+          { niche },
+        ),
       });
     } catch (err) {
       setSuggestError(err instanceof Error ? err.message : 'Falha ao sugerir ícones.');
@@ -242,6 +241,14 @@ export function BlockProgressBarEditor({
 
   const displayTitle = (marker: BlockProgressMarkerDraft) =>
     marker.title || marker.label || `Bloco ${marker.block}`;
+
+  const swapIconsWith = (block: number, otherBlock: number) => {
+    const base = draft.blocks.length ? draft.blocks : markers;
+    onChange({
+      ...draft,
+      blocks: swapBlockProgressIcons(base, block, otherBlock),
+    });
+  };
 
   return (
     <div className="dash-layer-card space-y-4">
@@ -436,9 +443,14 @@ export function BlockProgressBarEditor({
               <p className="text-[8px] text-red-400/90">{suggestError}</p>
             )}
             <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
-              {previewBlocks.map((marker) => {
+              {previewBlocks.map((marker, idx) => {
                 const expanded = expandedBlock === marker.block;
                 const size = marker.iconSize || draft.iconSize;
+                const prevBlock = previewBlocks[idx - 1]?.block;
+                const nextBlock = previewBlocks[idx + 1]?.block;
+                const usedElsewhere = previewBlocks
+                  .filter((m) => m.block !== marker.block)
+                  .map((m) => m.iconType);
                 return (
                   <div
                     key={marker.block}
@@ -493,10 +505,35 @@ export function BlockProgressBarEditor({
                             className="w-full accent-[var(--dash-primary)]"
                           />
                         </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {prevBlock != null && (
+                            <button
+                              type="button"
+                              onClick={() => swapIconsWith(marker.block, prevBlock)}
+                              className="dash-btn-ghost text-[8px] px-2 py-1 flex items-center gap-1"
+                              title={`Trocar ícone com bloco ${prevBlock}`}
+                            >
+                              <ChevronLeft className="w-3 h-3" />
+                              Trocar c/ {prevBlock}
+                            </button>
+                          )}
+                          {nextBlock != null && (
+                            <button
+                              type="button"
+                              onClick={() => swapIconsWith(marker.block, nextBlock)}
+                              className="dash-btn-ghost text-[8px] px-2 py-1 flex items-center gap-1"
+                              title={`Trocar ícone com bloco ${nextBlock}`}
+                            >
+                              Trocar c/ {nextBlock}
+                              <ChevronRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                         <OverlayIconPicker
                           iconId={marker.iconType}
                           iconStyle={marker.iconStyle || draft.defaultIconStyle}
                           accentColor={accentColor}
+                          usedIconIds={usedElsewhere}
                           onChange={(id, style) => patchBlock(marker.block, {
                             iconType: id || marker.iconType,
                             iconStyle: style,

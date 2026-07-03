@@ -10459,7 +10459,7 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
 
     const parsed = await parseAiJsonResponse(llmText, getApiKey(projDir), "ícones barra de progresso");
     const aiBlocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
-    const merged = mergeAiBlockProgressIcons(markers, aiBlocks);
+    const merged = mergeAiBlockProgressIcons(markers, aiBlocks, { niche: config.niche || "Geral" });
 
     const nextConfig = {
       ...raw,
