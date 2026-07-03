@@ -5,9 +5,10 @@ import lottie, { AnimationItem } from "lottie-web";
 interface SafeLottieProps {
   animationData: any;
   style?: React.CSSProperties;
+  onFailed?: () => void;
 }
 
-export const SafeLottie: React.FC<SafeLottieProps> = ({ animationData, style }) => {
+export const SafeLottie: React.FC<SafeLottieProps> = ({ animationData, style, onFailed }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<AnimationItem | null>(null);
   const { delayRender, continueRender } = useDelayRender();
@@ -19,6 +20,7 @@ export const SafeLottie: React.FC<SafeLottieProps> = ({ animationData, style }) 
     let timeoutId = setTimeout(() => {
       if (active) {
         console.warn("Lottie loading timed out, continuing render anyway.");
+        onFailed?.();
         try {
           continueRender(handle);
         } catch (e) {
@@ -61,6 +63,7 @@ export const SafeLottie: React.FC<SafeLottieProps> = ({ animationData, style }) 
       }
     } catch (err) {
       console.error("Failed to load Lottie animation:", err);
+      onFailed?.();
       clearTimeout(timeoutId);
       try {
         continueRender(handle);
@@ -85,7 +88,7 @@ export const SafeLottie: React.FC<SafeLottieProps> = ({ animationData, style }) 
         // Ignore
       }
     };
-  }, [animationData, handle, continueRender]);
+  }, [animationData, handle, continueRender, onFailed]);
 
   // Sync the animation frame with Remotion's frame
   useEffect(() => {

@@ -218,6 +218,15 @@ export function barIconRowOffset(tokens: DesignTokens): number {
   return tokens.trackH + barStackBelowTrack(tokens) + tokens.iconGap;
 }
 
-export function markerCenterPercent(start: number, duration: number, total: number) {
-  return ((start + duration / 2) / Math.max(1, total)) * 100;
+/** Centro do marcador na barra (%), com margem nas bordas para não cortar ícones. */
+export function markerCenterPercent(
+  start: number,
+  duration: number,
+  total: number,
+  blockCount = 1,
+) {
+  const raw = ((start + duration / 2) / Math.max(1, total)) * 100;
+  if (blockCount <= 1) return 50;
+  const edgePad = Math.min(8, Math.max(2.2, 52 / blockCount));
+  return Math.min(100 - edgePad, Math.max(edgePad, raw));
 }

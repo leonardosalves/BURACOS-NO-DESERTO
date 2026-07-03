@@ -152,7 +152,11 @@ export function buildBlockProgressDraftFromProject(
       iconSize: saved?.iconSize,
     };
   });
-  const dedupedBlocks = dedupeBlockProgressIcons(blocks, { niche });
+  const allSavedIcons = blocks.length > 0 && blocks.every((b) => {
+    const saved = existing.get(b.block);
+    return Boolean(saved?.iconType);
+  });
+  const dedupedBlocks = allSavedIcons ? blocks : dedupeBlockProgressIcons(blocks, { niche });
 
   const titleFont = BLOCK_PROGRESS_TITLE_FONTS.some((f) => f.id === raw.titleFont)
     ? raw.titleFont

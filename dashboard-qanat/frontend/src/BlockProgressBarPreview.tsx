@@ -179,7 +179,7 @@ export function BlockProgressBarPreview({
               />
             )}
             {blocks.map((marker) => {
-              const pct = markerCenterPercent(marker.start, marker.duration, totalDuration);
+              const pct = markerCenterPercent(marker.start, marker.duration, totalDuration, blocks.length);
               const active = marker.block === activeBlock;
               const size = iconPx(marker);
               return (
@@ -272,7 +272,7 @@ export function BlockProgressBarPreview({
               />
             )}
             {blocks.map((marker) => {
-              const pct = markerCenterPercent(marker.start, marker.duration, totalDuration);
+              const pct = markerCenterPercent(marker.start, marker.duration, totalDuration, blocks.length);
               const active = marker.block === activeBlock;
               const size = iconPx(marker);
               return (
