@@ -12,6 +12,7 @@ import {
   buildOverlayResearchPromptBlock,
   resolveOverlayResearchForPlanning,
 } from "./overlayResearchService.js";
+import { resolveBlockProgressBarForRender } from "./blockProgressBarConfig.js";
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
@@ -6466,6 +6467,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
     vignette: config.vignette !== false,
     showProgressBar: format === "16:9" && config.progress_bar !== false,
+    blockProgressBar: resolveBlockProgressBarForRender(projectDir, readProjectJson),
     accentColor: config.accent_color || "#C5A880",
     shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
     longZoomIntensity: config.long_zoom_intensity || "normal",

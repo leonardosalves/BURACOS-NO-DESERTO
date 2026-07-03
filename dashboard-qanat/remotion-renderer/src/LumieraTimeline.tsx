@@ -47,6 +47,7 @@ import { Audio, Video } from "@remotion/media";
 import { OverlayLayer, Overlay } from "./overlays/OverlayLayer";
 import { YoutubeSubOverlay, YoutubeChannelInfo } from "./overlays/YoutubeSubOverlay";
 import { ProgressBar } from "./overlays/ProgressBar";
+import { BlockProgressBar, type BlockProgressBarProps } from "./overlays/BlockProgressBar";
 import { ShortsVisualFx } from "./overlays/ShortsVisualFx";
 
 
@@ -239,6 +240,7 @@ export type LumieraTimelineProps = {
   bgmDuckPoints?: number[];
   previewMode?: boolean;
   showProgressBar?: boolean;
+  blockProgressBar?: BlockProgressBarProps | null;
   accentColor?: string;
   shortsZoomIntensity?: "normal" | "aggressive" | "cinematic";
   longZoomIntensity?: "normal" | "aggressive" | "cinematic";
@@ -314,6 +316,8 @@ export const defaultLumieraProps: LumieraTimelineProps = {
   vignette: false,
 
   showProgressBar: false,
+
+  blockProgressBar: null,
 
   accentColor: "#C5A880",
 
@@ -2176,6 +2180,7 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
   bgmDuckPoints = [],
   previewMode = false,
   showProgressBar = false,
+  blockProgressBar = null,
   accentColor = "#C5A880",
   shortsZoomIntensity = "normal",
   longZoomIntensity = "normal",
@@ -2494,7 +2499,17 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
         accentColor={accentColor}
       />
 
-      {!isShort && showProgressBar ? (
+      {blockProgressBar?.enabled && blockProgressBar.blocks?.length ? (
+        <BlockProgressBar
+          totalDuration={blockProgressBar.totalDuration || totalDuration}
+          blocks={blockProgressBar.blocks}
+          design={blockProgressBar.design}
+          iconSize={blockProgressBar.iconSize}
+          defaultIconStyle={blockProgressBar.defaultIconStyle}
+          accentColor={accentColor}
+          orientation={isShort ? "vertical" : "horizontal"}
+        />
+      ) : !isShort && showProgressBar ? (
         <ProgressBar totalDuration={totalDuration} accentColor={accentColor} />
       ) : null}
 
