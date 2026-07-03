@@ -143,6 +143,7 @@ import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
 import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { VideoResurrectorPanel } from './VideoResurrectorPanel';
+import { useResurrectorScheduler } from './useResurrectorScheduler';
 import { ComfyMcpPage } from './ComfyMcpPage';
 import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
@@ -2245,6 +2246,10 @@ export default function App() {
       fetchYoutubeChannelAlerts();
     }
   }, [activeTab, fetchYoutubeChannelAlerts]);
+
+  const resurrectorScheduler = useResurrectorScheduler((message) => {
+    toast.success(message, { duration: 6000 });
+  });
 
   const fetchProjects = async () => {
 
@@ -9531,6 +9536,7 @@ export default function App() {
         formattedHeaderDate={formattedHeaderDate}
         headerTemperatureLabel={headerTemperatureLabel}
         youtubeAlertCount={youtubeChannelAlerts?.badgeCount ?? 0}
+        resurrectorAlertCount={resurrectorScheduler.badgeCount}
         onRefresh={fetchData}
         projectBar={projectWorkspaceBar}
       >
@@ -13419,11 +13425,11 @@ export default function App() {
             <TabErrorBoundary tabName="Ressuscitador">
               <DashminPageLayout
                 title="Ressuscitador de vídeos"
-                subtitle="Reformula metadados SEO de vídeos antigos — batch diário de 10."
+                subtitle="Reformula metadados SEO — 5 vídeos às 11h + 5 às 16h (horários de pico)."
                 breadcrumb={['Dashboard', 'Estúdio', 'Ressuscitador']}
                 icon={<Zap className="w-5 h-5 text-amber-400" />}
               >
-                <VideoResurrectorPanel toast={toast} />
+                <VideoResurrectorPanel toast={toast} externalAlerts={resurrectorScheduler.alerts} />
               </DashminPageLayout>
             </TabErrorBoundary>
           )}

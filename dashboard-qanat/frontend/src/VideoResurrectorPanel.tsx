@@ -1,17 +1,37 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircle2, ExternalLink, ImagePlus, Loader2, RefreshCw, Sparkles, Upload,
+  AlertTriangle, CheckCircle2, Clock, ExternalLink, ImagePlus, Loader2, RefreshCw, Sun, Sunset, Upload,
   Video, Zap,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 
+type ResurrectorSlot = 'morning' | 'afternoon';
+
 type ResurrectorSettings = {
   enabled: boolean;
-  autoRunDaily: boolean;
+  autoRunWhenAppOpen: boolean;
   minAgeDays: number;
-  dailyBatchSize: number;
+  morningBatchSize: number;
+  afternoonBatchSize: number;
+  morningHour: number;
+  afternoonHour: number;
   cooldownDays: number;
 };
+
+type ResurrectorAlert = {
+  type: 'missed_batch' | 'auto_ran';
+  slot: ResurrectorSlot;
+  severity: 'warning' | 'success';
+  message: string;
+  ranAt?: string;
+};
+
+type DailyRunEntry = {
+  ranAt: string;
+  trigger: 'auto' | 'manual';
+  videoIds: string[];
+  count: number;
+} | null;
 
 type ResurrectorItem = {
   id: string;
@@ -42,6 +62,23 @@ type Dashboard = {
   settings: ResurrectorSettings;
   lastDailyRunAt?: string | null;
   lastDailyRunDate?: string | null;
+  dailyRuns?: {
+    date: string;
+    morning: DailyRunEntry;
+    afternoon: DailyRunEntry;
+  };
+  schedule?: {
+    today: string;
+    morningHour: number;
+    afternoonHour: number;
+    morningRan: boolean;
+    afternoonRan: boolean;
+    nextSlot: ResurrectorSlot | null;
+    inMorningWindow: boolean;
+    inAfternoonWindow: boolean;
+  };
+  alerts?: ResurrectorAlert[];
+  badgeCount?: number;
   counts: Record<string, number>;
   items: ResurrectorItem[];
   history: Array<{ videoId: string; projectName: string; title: string; appliedAt: string }>;
@@ -49,6 +86,8 @@ type Dashboard = {
 
 type Props = {
   toast: (msg: string) => void;
+  externalAlerts?: ResurrectorAlert[];
+  onDashboardChange?: (dashboard: Dashboard | null) => void;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -60,14 +99,31 @@ const STATUS_LABELS: Record<string, string> = {
   failed: 'Falhou',
 };
 
-export function VideoResurrectorPanel({ toast }: Props) {
+function slotLabel(slot: ResurrectorSlot, hour?: number) {
+  if (slot === 'morning') return `Manhã${hour != null ? ` (${hour}h)` : ''}`;
+  return `Tarde${hour != null ? ` (${hour}h)` : ''}`;
+}
+
+function runEntryLabel(entry: DailyRunEntry) {
+  if (!entry?.ranAt) return 'Pendente';
+  const time = new Date(entry.ranAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const mode = entry.trigger === 'auto' ? 'automático' : 'manual';
+  return `${time} · ${mode} · ${entry.count} vídeo(s)`;
+}
+
+export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange }: Props) {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [running, setRunning] = useState(false);
+  const [runningSlot, setRunningSlot] = useState<ResurrectorSlot | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [uploadingThumb, setUploadingThumb] = useState(false);
+
+  const applyDashboard = useCallback((data: Dashboard) => {
+    setDashboard(data);
+    onDashboardChange?.(data);
+  }, [onDashboardChange]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,7 +131,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
       const res = await fetch('/api/youtube/resurrector');
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
-      setDashboard(data);
+      applyDashboard(data);
       if (!selectedId && data.items?.length) {
         const review = data.items.find((i: ResurrectorItem) => i.status === 'review');
         setSelectedId(review?.id || data.items[0].id);
@@ -85,7 +141,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [selectedId, toast]);
+  }, [applyDashboard, selectedId, toast]);
 
   useEffect(() => { void load(); }, []);
 
@@ -93,6 +149,18 @@ export function VideoResurrectorPanel({ toast }: Props) {
     () => dashboard?.items.find((i) => i.id === selectedId) || null,
     [dashboard, selectedId],
   );
+
+  const alerts = useMemo(() => {
+    const local = dashboard?.alerts ?? [];
+    if (!externalAlerts?.length) return local;
+    const seen = new Set(local.map((a) => `${a.type}:${a.slot}`));
+    const merged = [...local];
+    for (const alert of externalAlerts) {
+      const key = `${alert.type}:${alert.slot}`;
+      if (!seen.has(key)) merged.push(alert);
+    }
+    return merged;
+  }, [dashboard?.alerts, externalAlerts]);
 
   const saveSettings = async (patch: Partial<ResurrectorSettings>) => {
     const res = await fetch('/api/youtube/resurrector/settings', {
@@ -102,7 +170,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    setDashboard(data);
+    applyDashboard(data);
   };
 
   const handleScan = async () => {
@@ -111,7 +179,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
       const res = await fetch('/api/youtube/resurrector/scan', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setDashboard(data.dashboard);
+      applyDashboard(data.dashboard);
       toast(`${data.added} vídeo(s) adicionados à fila (${data.eligible} elegíveis).`);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Scan falhou.');
@@ -120,18 +188,26 @@ export function VideoResurrectorPanel({ toast }: Props) {
     }
   };
 
-  const handleRunBatch = async () => {
-    setRunning(true);
+  const handleRunBatch = async (slot: ResurrectorSlot) => {
+    setRunningSlot(slot);
     try {
-      const res = await fetch('/api/youtube/resurrector/run-batch', { method: 'POST' });
+      const res = await fetch('/api/youtube/resurrector/run-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot, trigger: 'manual' }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setDashboard(data.dashboard);
-      toast(data.message || 'Batch concluído.');
+      if (data.skipped) {
+        toast(data.reason || 'Batch já executado hoje.');
+      } else {
+        applyDashboard(data.dashboard);
+        toast(data.message || 'Batch concluído.');
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Batch falhou.');
     } finally {
-      setRunning(false);
+      setRunningSlot(null);
     }
   };
 
@@ -143,7 +219,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    setDashboard(data.dashboard);
+    applyDashboard(data.dashboard);
   };
 
   const handleApply = async () => {
@@ -161,7 +237,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setDashboard(data.dashboard);
+      applyDashboard(data.dashboard);
       toast(data.thumbnailApplied
         ? 'Metadados e thumbnail aplicados no YouTube.'
         : 'Metadados aplicados no YouTube.');
@@ -202,6 +278,11 @@ export function VideoResurrectorPanel({ toast }: Props) {
   };
 
   const counts = dashboard?.counts || {};
+  const schedule = dashboard?.schedule;
+  const morningHour = schedule?.morningHour ?? dashboard?.settings?.morningHour ?? 11;
+  const afternoonHour = schedule?.afternoonHour ?? dashboard?.settings?.afternoonHour ?? 16;
+  const morningSize = dashboard?.settings?.morningBatchSize ?? 5;
+  const afternoonSize = dashboard?.settings?.afternoonBatchSize ?? 5;
 
   return (
     <div className="space-y-6">
@@ -210,8 +291,31 @@ export function VideoResurrectorPanel({ toast }: Props) {
         helpId="video-resurrector"
         size="md"
         icon={<Zap className="w-5 h-5 text-amber-400" />}
-        subtitle="Reformula título, descrição, hashtags e tags de vídeos com +10 dias. Batch de 10 por dia. Thumbnail de longos: upload manual."
+        subtitle={`Reformula metadados de vídeos com +10 dias. Batch ${morningSize} às ${morningHour}h + ${afternoonSize} às ${afternoonHour}h. Com o app aberto, dispara automaticamente nos horários de pico.`}
       />
+
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((alert) => (
+            <div
+              key={`${alert.type}-${alert.slot}`}
+              className={`rounded-xl border px-4 py-3 flex items-start gap-3 text-[11px] ${
+                alert.severity === 'warning'
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+              }`}
+            >
+              {alert.severity === 'warning'
+                ? <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                : <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />}
+              <div className="min-w-0">
+                <p className="font-bold">{slotLabel(alert.slot, alert.slot === 'morning' ? morningHour : afternoonHour)}</p>
+                <p className="opacity-90">{alert.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         {[
@@ -228,6 +332,35 @@ export function VideoResurrectorPanel({ toast }: Props) {
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4 space-y-3">
+        <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Agenda diária</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className={`rounded-xl border p-3 ${schedule?.morningRan ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950/60'}`}>
+            <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-200">
+              <Sun className="w-4 h-4 text-amber-400" />
+              {slotLabel('morning', morningHour)} · {morningSize} vídeos
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {runEntryLabel(dashboard?.dailyRuns?.morning ?? null)}
+            </p>
+          </div>
+          <div className={`rounded-xl border p-3 ${schedule?.afternoonRan ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950/60'}`}>
+            <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-200">
+              <Sunset className="w-4 h-4 text-orange-400" />
+              {slotLabel('afternoon', afternoonHour)} · {afternoonSize} vídeos
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {runEntryLabel(dashboard?.dailyRuns?.afternoon ?? null)}
+            </p>
+          </div>
+        </div>
+        <p className="text-[10px] text-zinc-600">
+          Vídeos processados de manhã não entram no batch da tarde. Fora do horário ou com o app fechado, dispare manualmente.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4 space-y-3">
         <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Configuração</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="flex items-center gap-2 text-[11px] text-zinc-300">
@@ -241,10 +374,10 @@ export function VideoResurrectorPanel({ toast }: Props) {
           <label className="flex items-center gap-2 text-[11px] text-zinc-300">
             <input
               type="checkbox"
-              checked={dashboard?.settings?.autoRunDaily ?? true}
-              onChange={(e) => void saveSettings({ autoRunDaily: e.target.checked }).catch((err) => toast(String(err.message)))}
+              checked={dashboard?.settings?.autoRunWhenAppOpen ?? true}
+              onChange={(e) => void saveSettings({ autoRunWhenAppOpen: e.target.checked }).catch((err) => toast(String(err.message)))}
             />
-            Batch automático diário
+            Auto com app aberto (11h e 16h)
           </label>
           <div>
             <span className="text-[9px] text-zinc-500 uppercase">Idade mín. (dias)</span>
@@ -258,14 +391,25 @@ export function VideoResurrectorPanel({ toast }: Props) {
             />
           </div>
           <div>
-            <span className="text-[9px] text-zinc-500 uppercase">Vídeos por dia</span>
+            <span className="text-[9px] text-zinc-500 uppercase">Manhã (qtd)</span>
             <input
               type="number"
               min={1}
               max={20}
               className="dash-input w-full text-xs mt-0.5"
-              value={dashboard?.settings?.dailyBatchSize ?? 10}
-              onChange={(e) => void saveSettings({ dailyBatchSize: parseInt(e.target.value, 10) || 10 })}
+              value={morningSize}
+              onChange={(e) => void saveSettings({ morningBatchSize: parseInt(e.target.value, 10) || 5 })}
+            />
+          </div>
+          <div>
+            <span className="text-[9px] text-zinc-500 uppercase">Tarde (qtd)</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              className="dash-input w-full text-xs mt-0.5"
+              value={afternoonSize}
+              onChange={(e) => void saveSettings({ afternoonBatchSize: parseInt(e.target.value, 10) || 5 })}
             />
           </div>
         </div>
@@ -286,12 +430,21 @@ export function VideoResurrectorPanel({ toast }: Props) {
           </button>
           <button
             type="button"
-            disabled={running || loading}
-            onClick={() => void handleRunBatch()}
-            className="bg-amber-500 hover:bg-amber-600 text-zinc-950 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5"
+            disabled={runningSlot != null || loading || schedule?.morningRan}
+            onClick={() => void handleRunBatch('morning')}
+            className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-zinc-950 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5"
           >
-            {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Processar batch (IA)
+            {runningSlot === 'morning' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sun className="w-3.5 h-3.5" />}
+            Batch manhã ({morningSize})
+          </button>
+          <button
+            type="button"
+            disabled={runningSlot != null || loading || schedule?.afternoonRan}
+            onClick={() => void handleRunBatch('afternoon')}
+            className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-zinc-950 text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5"
+          >
+            {runningSlot === 'afternoon' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sunset className="w-3.5 h-3.5" />}
+            Batch tarde ({afternoonSize})
           </button>
           <button type="button" onClick={() => void load()} className="text-[10px] text-zinc-500 px-2">
             Atualizar
@@ -447,7 +600,7 @@ export function VideoResurrectorPanel({ toast }: Props) {
               )}
 
               {selected.status === 'queued' && (
-                <p className="text-xs text-zinc-500">Na fila — será processado no próximo batch diário ou clique em Processar batch.</p>
+                <p className="text-xs text-zinc-500">Na fila — será processado no próximo batch (manhã ou tarde) ou dispare manualmente.</p>
               )}
               {selected.status === 'failed' && selected.error && (
                 <p className="text-xs text-red-400">{selected.error}</p>

@@ -54,6 +54,7 @@ type AppShellProps = {
   formattedHeaderDate: string;
   headerTemperatureLabel: string;
   youtubeAlertCount?: number;
+  resurrectorAlertCount?: number;
   onRefresh: () => void;
   projectBar?: React.ReactNode;
   children: React.ReactNode;
@@ -116,6 +117,7 @@ export function AppShell({
   formattedHeaderDate,
   headerTemperatureLabel,
   youtubeAlertCount = 0,
+  resurrectorAlertCount = 0,
   onRefresh,
   projectBar,
   children,
@@ -248,7 +250,13 @@ export function AppShell({
                 icon={item.icon}
                 label={item.label}
                 helpId={item.helpId}
-                badge={item.id === 'youtube-studio' ? youtubeAlertCount : undefined}
+                badge={
+                  item.id === 'youtube-studio'
+                    ? youtubeAlertCount
+                    : item.id === 'video-resurrector'
+                      ? resurrectorAlertCount
+                      : undefined
+                }
               />
             ))}
           </ul>

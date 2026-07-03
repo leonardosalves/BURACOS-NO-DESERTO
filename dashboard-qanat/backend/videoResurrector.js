@@ -1,6 +1,7 @@
 /**
  * Ressuscitador de vídeos — reformula metadados SEO de vídeos Lumiera com +N dias.
- * Batch diário (padrão 10). Thumbnail de longos: upload manual; demais campos via IA.
+ * Dois batches diários (manhã 11h + tarde 16h, 5 vídeos cada). Auto só com app aberto.
+ * Thumbnail de longos: upload manual; demais campos via IA.
  */
 
 import fs from "fs";
@@ -35,13 +36,93 @@ export const RESURRECTOR_STATUSES = [
   "failed",
 ];
 
+export const RESURRECTOR_SLOTS = ["morning", "afternoon"];
+
 const DEFAULT_SETTINGS = {
   enabled: true,
-  autoRunDaily: true,
+  autoRunWhenAppOpen: true,
   minAgeDays: 10,
-  dailyBatchSize: 10,
+  morningBatchSize: 5,
+  afternoonBatchSize: 5,
+  morningHour: 11,
+  afternoonHour: 16,
   cooldownDays: 45,
 };
+
+function localDateString(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatLocalTime(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+export function normalizeResurrectorSlot(slot) {
+  return slot === "afternoon" ? "afternoon" : "morning";
+}
+
+export function normalizeResurrectorTrigger(trigger) {
+  return trigger === "auto" ? "auto" : "manual";
+}
+
+function migrateResurrectorSettings(stored = {}) {
+  const legacyDaily = Number(stored.dailyBatchSize);
+  const half = Number.isFinite(legacyDaily) ? Math.max(1, Math.floor(legacyDaily / 2)) : 5;
+  const morningBatchSize = Number.isFinite(Number(stored.morningBatchSize))
+    ? Number(stored.morningBatchSize)
+    : half;
+  const afternoonBatchSize = Number.isFinite(Number(stored.afternoonBatchSize))
+    ? Number(stored.afternoonBatchSize)
+    : (Number.isFinite(legacyDaily) ? Math.max(1, legacyDaily - half) : 5);
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    autoRunWhenAppOpen: typeof stored.autoRunWhenAppOpen === "boolean"
+      ? stored.autoRunWhenAppOpen
+      : (typeof stored.autoRunDaily === "boolean" ? stored.autoRunDaily : DEFAULT_SETTINGS.autoRunWhenAppOpen),
+    morningBatchSize: Math.max(1, Math.min(20, morningBatchSize)),
+    afternoonBatchSize: Math.max(1, Math.min(20, afternoonBatchSize)),
+    morningHour: Number.isFinite(Number(stored.morningHour)) ? Number(stored.morningHour) : DEFAULT_SETTINGS.morningHour,
+    afternoonHour: Number.isFinite(Number(stored.afternoonHour)) ? Number(stored.afternoonHour) : DEFAULT_SETTINGS.afternoonHour,
+  };
+}
+
+function emptyDailyRuns(date = localDateString()) {
+  return { date, morning: null, afternoon: null };
+}
+
+export function getTodayDailyRuns(state, now = new Date()) {
+  const today = localDateString(now);
+  if (state.dailyRuns?.date === today) return state.dailyRuns;
+  return emptyDailyRuns(today);
+}
+
+export function slotAlreadyRanToday(state, slot, now = new Date()) {
+  const runs = getTodayDailyRuns(state, now);
+  return Boolean(runs[normalizeResurrectorSlot(slot)]?.ranAt);
+}
+
+export function getMorningVideoIdsToday(state, now = new Date()) {
+  const runs = getTodayDailyRuns(state, now);
+  return Array.isArray(runs.morning?.videoIds) ? runs.morning.videoIds : [];
+}
+
+export function getSlotBatchSize(settings = {}, slot = "morning") {
+  const normalized = normalizeResurrectorSlot(slot);
+  if (normalized === "afternoon") {
+    return Math.max(1, Math.min(20, Number(settings.afternoonBatchSize) || DEFAULT_SETTINGS.afternoonBatchSize));
+  }
+  return Math.max(1, Math.min(20, Number(settings.morningBatchSize) || DEFAULT_SETTINGS.morningBatchSize));
+}
 
 function readJsonSafe(filePath) {
   if (!fs.existsSync(filePath)) return null;
@@ -58,9 +139,16 @@ function statePath(workspaceDir) {
 
 export function loadResurrectorState(workspaceDir) {
   const stored = readJsonSafe(statePath(workspaceDir)) || {};
+  const settings = migrateResurrectorSettings(stored.settings || {});
+  const today = localDateString();
+  const dailyRuns = stored.dailyRuns?.date === today
+    ? stored.dailyRuns
+    : emptyDailyRuns(today);
+
   return {
-    version: 1,
-    settings: { ...DEFAULT_SETTINGS, ...(stored.settings || {}) },
+    version: 2,
+    settings,
+    dailyRuns,
     lastDailyRunAt: stored.lastDailyRunAt || null,
     lastDailyRunDate: stored.lastDailyRunDate || null,
     items: Array.isArray(stored.items) ? stored.items : [],
@@ -368,10 +456,11 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
   return { state, added };
 }
 
-export function pickResurrectorBatch(state, batchSize = 10) {
+export function pickResurrectorBatch(state, batchSize = 10, options = {}) {
   const size = Math.max(1, Math.min(20, Number(batchSize) || 10));
+  const exclude = new Set((options.excludeVideoIds || []).map(String).filter(Boolean));
   const queued = (state.items || [])
-    .filter((i) => i.status === "queued")
+    .filter((i) => i.status === "queued" && !exclude.has(String(i.videoId)))
     .sort((a, b) => (b.ageDays || 0) - (a.ageDays || 0));
   return queued.slice(0, size);
 }
@@ -463,22 +552,134 @@ export async function generateResurrectorMetadata(projectPath, item, deps = {}) 
   };
 }
 
-export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {}, autoScanAttempted = false) {
+export function computeResurrectorSchedule(state, now = new Date()) {
+  const settings = state.settings || DEFAULT_SETTINGS;
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const today = localDateString(now);
+  const runs = getTodayDailyRuns(state, now);
+  const morningHour = settings.morningHour ?? DEFAULT_SETTINGS.morningHour;
+  const afternoonHour = settings.afternoonHour ?? DEFAULT_SETTINGS.afternoonHour;
+  const morningRan = Boolean(runs.morning?.ranAt);
+  const afternoonRan = Boolean(runs.afternoon?.ranAt);
+
+  const alerts = [];
+  const morningDeadlinePassed = hour > morningHour || (hour === morningHour && minute >= 30);
+  const afternoonDeadlinePassed = hour > afternoonHour || (hour === afternoonHour && minute >= 30);
+
+  if (morningDeadlinePassed && !morningRan) {
+    alerts.push({
+      type: "missed_batch",
+      slot: "morning",
+      severity: "warning",
+      message: `Batch da manhã (${morningHour}h) não foi executado. Dispare manualmente.`,
+    });
+  }
+  if (afternoonDeadlinePassed && !afternoonRan) {
+    alerts.push({
+      type: "missed_batch",
+      slot: "afternoon",
+      severity: "warning",
+      message: `Batch da tarde (${afternoonHour}h) não foi executado. Dispare manualmente.`,
+    });
+  }
+  if (runs.morning?.trigger === "auto") {
+    alerts.push({
+      type: "auto_ran",
+      slot: "morning",
+      severity: "success",
+      message: `Batch da manhã executado automaticamente às ${formatLocalTime(runs.morning.ranAt)} (${runs.morning.count || 0} vídeos).`,
+      ranAt: runs.morning.ranAt,
+    });
+  }
+  if (runs.afternoon?.trigger === "auto") {
+    alerts.push({
+      type: "auto_ran",
+      slot: "afternoon",
+      severity: "success",
+      message: `Batch da tarde executado automaticamente às ${formatLocalTime(runs.afternoon.ranAt)} (${runs.afternoon.count || 0} vídeos).`,
+      ranAt: runs.afternoon.ranAt,
+    });
+  }
+
+  let nextSlot = null;
+  if (!morningRan && hour < morningHour) nextSlot = "morning";
+  else if (!afternoonRan && (hour < afternoonHour || (morningRan && hour >= morningHour))) nextSlot = "afternoon";
+  else if (!morningRan && hour >= morningHour && hour < afternoonHour) nextSlot = "morning";
+  else if (!afternoonRan && hour >= afternoonHour) nextSlot = "afternoon";
+
+  const inMorningWindow = hour === morningHour && minute < 20 && !morningRan;
+  const inAfternoonWindow = hour === afternoonHour && minute < 20 && !afternoonRan;
+
+  return {
+    today,
+    morningHour,
+    afternoonHour,
+    morningRan,
+    afternoonRan,
+    dailyRuns: runs,
+    alerts,
+    nextSlot,
+    inMorningWindow,
+    inAfternoonWindow,
+    missedCount: alerts.filter((a) => a.type === "missed_batch").length,
+    badgeCount: alerts.filter((a) => a.type === "missed_batch").length,
+  };
+}
+
+export function shouldAutoTriggerResurrectorSlot(schedule, slot, settings = {}) {
+  if (!settings.enabled || !settings.autoRunWhenAppOpen) return false;
+  const normalized = normalizeResurrectorSlot(slot);
+  if (normalized === "morning") {
+    return schedule.inMorningWindow && !schedule.morningRan;
+  }
+  return schedule.inAfternoonWindow && !schedule.afternoonRan;
+}
+
+export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {}, options = {}) {
+  const {
+    slot = "morning",
+    trigger = "manual",
+    autoScanAttempted = false,
+  } = options;
+  const normalizedSlot = normalizeResurrectorSlot(slot);
+  const normalizedTrigger = normalizeResurrectorTrigger(trigger);
+
   const state = loadResurrectorState(workspaceDir);
   const settings = state.settings;
   if (!settings.enabled) {
-    return { skipped: true, reason: "Ressuscitador desativado.", state };
+    return { skipped: true, reason: "Ressuscitador desativado.", state, slot: normalizedSlot };
   }
 
-  const batch = pickResurrectorBatch(state, settings.dailyBatchSize);
+  if (slotAlreadyRanToday(state, normalizedSlot)) {
+    return {
+      skipped: true,
+      reason: `Batch ${normalizedSlot === "morning" ? "da manhã" : "da tarde"} já executado hoje.`,
+      state,
+      slot: normalizedSlot,
+    };
+  }
+
+  const batchSize = getSlotBatchSize(settings, normalizedSlot);
+  const excludeVideoIds = normalizedSlot === "afternoon" ? getMorningVideoIdsToday(state) : [];
+  const batch = pickResurrectorBatch(state, batchSize, { excludeVideoIds });
   if (!batch.length && !autoScanAttempted) {
     const { eligible } = await scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings);
     const enq = enqueueResurrectorCandidates(state, eligible);
     saveResurrectorState(workspaceDir, enq.state);
-    return runResurrectorBatch(workspaceDir, projectsRoot, deps, true);
+    return runResurrectorBatch(workspaceDir, projectsRoot, deps, {
+      slot: normalizedSlot,
+      trigger: normalizedTrigger,
+      autoScanAttempted: true,
+    });
   }
   if (!batch.length) {
-    return { processed: 0, message: "Nenhum vídeo elegível na fila.", state };
+    return {
+      processed: 0,
+      message: "Nenhum vídeo elegível na fila para este slot.",
+      state,
+      slot: normalizedSlot,
+    };
   }
 
   const results = [];
@@ -516,15 +717,29 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     saveResurrectorState(workspaceDir, state);
   }
 
+  const today = localDateString();
+  if (!state.dailyRuns || state.dailyRuns.date !== today) {
+    state.dailyRuns = emptyDailyRuns(today);
+  }
+  state.dailyRuns[normalizedSlot] = {
+    ranAt: new Date().toISOString(),
+    trigger: normalizedTrigger,
+    videoIds: batch.map((b) => b.videoId),
+    count: results.length,
+  };
   state.lastDailyRunAt = new Date().toISOString();
-  state.lastDailyRunDate = new Date().toISOString().slice(0, 10);
+  state.lastDailyRunDate = today;
   saveResurrectorState(workspaceDir, state);
 
+  const slotLabel = normalizedSlot === "morning" ? "manhã" : "tarde";
+  const triggerLabel = normalizedTrigger === "auto" ? "automaticamente" : "manualmente";
   return {
     processed: results.length,
     results,
     state,
-    message: `${results.filter((r) => r.status === "review").length} vídeo(s) prontos para revisão.`,
+    slot: normalizedSlot,
+    trigger: normalizedTrigger,
+    message: `Batch da ${slotLabel} (${triggerLabel}): ${results.filter((r) => r.status === "review").length} vídeo(s) prontos para revisão.`,
   };
 }
 
@@ -616,10 +831,24 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
 
 export function getResurrectorDashboard(state) {
   const items = state.items || [];
+  const schedule = computeResurrectorSchedule(state);
   return {
     settings: state.settings,
     lastDailyRunAt: state.lastDailyRunAt,
     lastDailyRunDate: state.lastDailyRunDate,
+    dailyRuns: schedule.dailyRuns,
+    schedule: {
+      today: schedule.today,
+      morningHour: schedule.morningHour,
+      afternoonHour: schedule.afternoonHour,
+      morningRan: schedule.morningRan,
+      afternoonRan: schedule.afternoonRan,
+      nextSlot: schedule.nextSlot,
+      inMorningWindow: schedule.inMorningWindow,
+      inAfternoonWindow: schedule.inAfternoonWindow,
+    },
+    alerts: schedule.alerts,
+    badgeCount: schedule.badgeCount,
     counts: {
       queued: items.filter((i) => i.status === "queued").length,
       generating: items.filter((i) => i.status === "generating").length,
@@ -631,25 +860,4 @@ export function getResurrectorDashboard(state) {
     items: items.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)),
     history: state.history || [],
   };
-}
-
-export function startResurrectorDailyScheduler(deps) {
-  const { workspaceDir, projectsRoot } = deps;
-  const MS = 24 * 60 * 60 * 1000;
-
-  const tick = async () => {
-    try {
-      const state = loadResurrectorState(workspaceDir);
-      if (!state.settings?.enabled || !state.settings?.autoRunDaily) return;
-      const today = new Date().toISOString().slice(0, 10);
-      if (state.lastDailyRunDate === today) return;
-      console.log("[Resurrector] Iniciando batch diário automático…");
-      await runResurrectorBatch(workspaceDir, projectsRoot, deps);
-    } catch (err) {
-      console.warn("[Resurrector] Batch diário falhou:", err?.message || err);
-    }
-  };
-
-  setTimeout(() => { void tick(); }, 90_000);
-  setInterval(() => { void tick(); }, MS);
 }

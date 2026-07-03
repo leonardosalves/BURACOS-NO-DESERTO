@@ -9,10 +9,11 @@ import {
   enqueueResurrectorCandidates,
   getResurrectorDashboard,
   loadResurrectorState,
+  normalizeResurrectorSlot,
+  normalizeResurrectorTrigger,
   runResurrectorBatch,
   saveResurrectorState,
   scanEligibleResurrectorVideos,
-  startResurrectorDailyScheduler,
 } from "./videoResurrector.js";
 
 export function registerVideoResurrectorRoutes(app, deps) {
@@ -47,9 +48,13 @@ export function registerVideoResurrectorRoutes(app, deps) {
       state.settings = {
         ...state.settings,
         ...(typeof patch.enabled === "boolean" ? { enabled: patch.enabled } : {}),
-        ...(typeof patch.autoRunDaily === "boolean" ? { autoRunDaily: patch.autoRunDaily } : {}),
+        ...(typeof patch.autoRunWhenAppOpen === "boolean" ? { autoRunWhenAppOpen: patch.autoRunWhenAppOpen } : {}),
+        ...(typeof patch.autoRunDaily === "boolean" ? { autoRunWhenAppOpen: patch.autoRunDaily } : {}),
         ...(Number.isFinite(Number(patch.minAgeDays)) ? { minAgeDays: Math.max(1, Math.min(365, Number(patch.minAgeDays))) } : {}),
-        ...(Number.isFinite(Number(patch.dailyBatchSize)) ? { dailyBatchSize: Math.max(1, Math.min(20, Number(patch.dailyBatchSize))) } : {}),
+        ...(Number.isFinite(Number(patch.morningBatchSize)) ? { morningBatchSize: Math.max(1, Math.min(20, Number(patch.morningBatchSize))) } : {}),
+        ...(Number.isFinite(Number(patch.afternoonBatchSize)) ? { afternoonBatchSize: Math.max(1, Math.min(20, Number(patch.afternoonBatchSize))) } : {}),
+        ...(Number.isFinite(Number(patch.morningHour)) ? { morningHour: Math.max(0, Math.min(23, Number(patch.morningHour))) } : {}),
+        ...(Number.isFinite(Number(patch.afternoonHour)) ? { afternoonHour: Math.max(0, Math.min(23, Number(patch.afternoonHour))) } : {}),
         ...(Number.isFinite(Number(patch.cooldownDays)) ? { cooldownDays: Math.max(7, Math.min(180, Number(patch.cooldownDays))) } : {}),
       };
       saveResurrectorState(WORKSPACE_DIR, state);
@@ -75,9 +80,14 @@ export function registerVideoResurrectorRoutes(app, deps) {
     }
   });
 
-  app.post("/api/youtube/resurrector/run-batch", async (_req, res) => {
+  app.post("/api/youtube/resurrector/run-batch", async (req, res) => {
     try {
-      const result = await runResurrectorBatch(WORKSPACE_DIR, PROJECTS_ROOT, resurrectorDeps());
+      const slot = normalizeResurrectorSlot(req.body?.slot || "morning");
+      const trigger = normalizeResurrectorTrigger(req.body?.trigger || "manual");
+      const result = await runResurrectorBatch(WORKSPACE_DIR, PROJECTS_ROOT, resurrectorDeps(), {
+        slot,
+        trigger,
+      });
       res.json({
         ...result,
         dashboard: getResurrectorDashboard(result.state),
@@ -169,11 +179,4 @@ export function registerVideoResurrectorRoutes(app, deps) {
     }
   });
 
-  startResurrectorDailyScheduler({
-    workspaceDir: WORKSPACE_DIR,
-    projectsRoot: PROJECTS_ROOT,
-    getApiKey,
-    callGeminiWithRetry,
-    callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, opts),
-  });
 }
