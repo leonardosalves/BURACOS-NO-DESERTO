@@ -8,6 +8,20 @@ export type FilmstripSegment = {
   blockLabel: string;
 };
 
+/** Paths herdados do config global — não são B-roll do projeto. */
+const GHOST_ASSET_PREFIXES = ['logos/'];
+
+export function isGhostTimelineAssetPath(assetPath?: string): boolean {
+  const normalized = String(assetPath || '').trim().replace(/\\/g, '/').toLowerCase();
+  if (!normalized) return true;
+  return GHOST_ASSET_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
+/** Remove slots herdados (logos/*); mantém blocos vazios para placeholder na faixa. */
+export function filterFilmstripSegmentsForPreview(segments: FilmstripSegment[]): FilmstripSegment[] {
+  return segments.filter((seg) => !isGhostTimelineAssetPath(seg.asset));
+}
+
 export type BlockTimingsLike = {
   starts?: number[];
   durations?: number[];
