@@ -81,7 +81,8 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Editor',
     body: (
       <>
-        Storyboard visual: cenas, prompts, assets por bloco, duração e notas de edição. Alterações gravadas em storyboard.json.
+        Storyboard visual: cenas, prompts, assets por bloco, overlays IA e barra de progresso por blocos (ícones + design).
+        Overlays em storyboard.json; a barra de progresso salva em config_qanat.json — cada projeto tem a sua.
       </>
     ),
   },
