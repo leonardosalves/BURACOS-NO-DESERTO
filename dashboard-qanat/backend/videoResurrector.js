@@ -42,6 +42,7 @@ export const RESURRECTOR_SLOTS = ["morning", "afternoon"];
 const DEFAULT_SETTINGS = {
   enabled: true,
   autoRunWhenAppOpen: true,
+  autoApplyToYoutube: true,
   minAgeDays: 10,
   morningBatchSize: 5,
   afternoonBatchSize: 5,
@@ -94,6 +95,9 @@ function migrateResurrectorSettings(stored = {}) {
     afternoonBatchSize: Math.max(1, Math.min(20, afternoonBatchSize)),
     morningHour: Number.isFinite(Number(stored.morningHour)) ? Number(stored.morningHour) : DEFAULT_SETTINGS.morningHour,
     afternoonHour: Number.isFinite(Number(stored.afternoonHour)) ? Number(stored.afternoonHour) : DEFAULT_SETTINGS.afternoonHour,
+    autoApplyToYoutube: typeof stored.autoApplyToYoutube === "boolean"
+      ? stored.autoApplyToYoutube
+      : DEFAULT_SETTINGS.autoApplyToYoutube,
   };
 }
 
@@ -1149,12 +1153,57 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
         error: null,
         usedFallback: generated.usedFallback || false,
       };
-      results.push({ id: item.id, videoId: item.videoId, status: "review", usedFallback: generated.usedFallback });
-      const okMsg = generated.usedFallback
-        ? `OK (fallback local — Gemini indisponível): ${titlePreview}`
-        : `OK: ${titlePreview}`;
-      appendResurrectorLog(state, generated.usedFallback ? "warn" : "success", okMsg, { videoId: item.videoId });
-      runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg });
+      saveResurrectorState(workspaceDir, state);
+
+      const autoApply = settings.autoApplyToYoutube !== false;
+      if (autoApply) {
+        appendResurrectorLog(state, "info", `Publicando no YouTube: ${titlePreview}`, { videoId: item.videoId });
+        saveResurrectorState(workspaceDir, state);
+        try {
+          const applied = await applyResurrectorItem(workspaceDir, item.id, {
+            title: generated.proposed.title,
+            description: generated.proposed.description,
+            tags: generated.proposed.tags,
+          });
+          state = loadResurrectorState(workspaceDir);
+          const thumbNote = applied.thumbnailApplied ? " (+ thumbnail)" : "";
+          const okMsg = generated.usedFallback
+            ? `Publicado (fallback IA)${thumbNote}: ${titlePreview}`
+            : `Publicado no YouTube${thumbNote}: ${titlePreview}`;
+          appendResurrectorLog(state, "success", okMsg, { videoId: item.videoId });
+          runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg });
+          results.push({
+            id: item.id,
+            videoId: item.videoId,
+            status: "applied",
+            usedFallback: generated.usedFallback,
+            thumbnailApplied: applied.thumbnailApplied,
+          });
+        } catch (applyErr) {
+          const errMsg = applyErr?.message || String(applyErr);
+          state = loadResurrectorState(workspaceDir);
+          const failIdx = state.items.findIndex((i) => i.id === item.id);
+          if (failIdx >= 0) {
+            state.items[failIdx] = {
+              ...state.items[failIdx],
+              status: "failed",
+              error: `YouTube: ${errMsg}`,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          appendResurrectorLog(state, "error", `Falha ao publicar: ${titlePreview} — ${errMsg}`, { videoId: item.videoId });
+          runLog.push({ at: new Date().toISOString(), level: "error", message: `Publicar falhou: ${errMsg}` });
+          results.push({ id: item.id, videoId: item.videoId, status: "failed", error: errMsg });
+          saveResurrectorState(workspaceDir, state);
+        }
+      } else {
+        results.push({ id: item.id, videoId: item.videoId, status: "review", usedFallback: generated.usedFallback });
+        const okMsg = generated.usedFallback
+          ? `OK (fallback local — Gemini indisponível): ${titlePreview}`
+          : `OK (revisar): ${titlePreview}`;
+        appendResurrectorLog(state, generated.usedFallback ? "warn" : "success", okMsg, { videoId: item.videoId });
+        runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg });
+      }
     } catch (err) {
       const errMsg = err?.message || String(err);
       state.items[idx] = {
@@ -1170,7 +1219,9 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     saveResurrectorState(workspaceDir, state);
   }
 
-  const successCount = results.filter((r) => r.status === "review").length;
+  const appliedCount = results.filter((r) => r.status === "applied").length;
+  const reviewCount = results.filter((r) => r.status === "review").length;
+  const successCount = appliedCount + reviewCount;
   const failCount = results.filter((r) => r.status === "failed").length;
   const today = localDateString();
   if (!state.dailyRuns || state.dailyRuns.date !== today) {
@@ -1183,7 +1234,8 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
         ranAt: new Date().toISOString(),
         trigger: normalizedTrigger,
         videoIds: batch.map((b) => b.videoId),
-        count: successCount,
+        count: appliedCount || successCount,
+        applied: appliedCount,
         failed: failCount,
       };
       state.lastDailyRunAt = new Date().toISOString();
@@ -1200,8 +1252,8 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
   appendResurrectorLog(
     state,
     failCount ? "warn" : "success",
-    `Etapa concluída: ${successCount} OK, ${failCount} falha(s).`,
-    { slot: normalizedSlot, successCount, failCount },
+    `Etapa concluída: ${appliedCount} publicado(s), ${reviewCount} revisão, ${failCount} falha(s).`,
+    { slot: normalizedSlot, appliedCount, reviewCount, failCount },
   );
 
   const postBatch = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
@@ -1215,11 +1267,15 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     : "";
   const summary = failCount && !successCount
     ? `Batch da ${slotLabel}: ${failCount} falha(s) — Gemini/rede indisponível? Tente "Reprocessar falhas".`
-    : `Batch da ${slotLabel} (${triggerLabel}): ${successCount} prontos para revisão, ${failCount} falha(s).${cycleMsg}`;
+    : appliedCount > 0
+      ? `Batch da ${slotLabel} (${triggerLabel}): ${appliedCount} aplicado(s) no YouTube${reviewCount ? `, ${reviewCount} para revisar` : ""}${failCount ? `, ${failCount} falha(s)` : ""}.${cycleMsg}`
+      : `Batch da ${slotLabel} (${triggerLabel}): ${reviewCount} para revisão, ${failCount} falha(s).${cycleMsg}`;
 
   return {
     processed: results.length,
     successCount,
+    appliedCount,
+    reviewCount,
     failCount,
     results,
     state,
@@ -1228,6 +1284,106 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     cycle: state.cycleProgress,
     runLog,
     message: summary,
+  };
+}
+
+export async function applyPendingResurrectorReviews(workspaceDir) {
+  let state = loadResurrectorState(workspaceDir);
+  const settings = state.settings || DEFAULT_SETTINGS;
+
+  if (settings.autoApplyToYoutube === false) {
+    return {
+      applied: 0,
+      failed: 0,
+      skipped: state.items.filter((i) => i.status === "review").length,
+      message: "Publicação automática desativada — revise manualmente.",
+      runLog: [],
+      state,
+    };
+  }
+
+  const pending = state.items.filter(
+    (i) => i.status === "review" && i.proposedMetadata?.title,
+  );
+
+  if (!pending.length) {
+    return {
+      applied: 0,
+      failed: 0,
+      skipped: 0,
+      message: "Nenhuma revisão pendente para publicar.",
+      runLog: [],
+      state,
+    };
+  }
+
+  appendResurrectorLog(
+    state,
+    "info",
+    `Publicando ${pending.length} revisão(ões) pendente(s) no YouTube…`,
+  );
+  saveResurrectorState(workspaceDir, state);
+
+  const results = [];
+  const runLog = [];
+
+  for (const item of pending) {
+    const titlePreview = String(item.title || item.videoId).slice(0, 72);
+    appendResurrectorLog(state, "info", `Publicando no YouTube: ${titlePreview}`, { videoId: item.videoId });
+    saveResurrectorState(workspaceDir, state);
+
+    try {
+      const applied = await applyResurrectorItem(workspaceDir, item.id, {
+        title: item.selectedTitle || item.proposedMetadata.title,
+        description: item.proposedMetadata.description,
+        tags: item.proposedMetadata.tags,
+      });
+      state = loadResurrectorState(workspaceDir);
+      const thumbNote = applied.thumbnailApplied ? " (+ thumbnail)" : "";
+      const okMsg = `Publicado no YouTube${thumbNote}: ${titlePreview}`;
+      appendResurrectorLog(state, "success", okMsg, { videoId: item.videoId });
+      runLog.push({ at: new Date().toISOString(), level: "success", message: okMsg, videoId: item.videoId });
+      results.push({ id: item.id, videoId: item.videoId, status: "applied", thumbnailApplied: applied.thumbnailApplied });
+      saveResurrectorState(workspaceDir, state);
+    } catch (err) {
+      const errMsg = err?.message || String(err);
+      state = loadResurrectorState(workspaceDir);
+      const failIdx = state.items.findIndex((i) => i.id === item.id);
+      if (failIdx >= 0) {
+        state.items[failIdx] = {
+          ...state.items[failIdx],
+          status: "failed",
+          error: `YouTube: ${errMsg}`,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      appendResurrectorLog(state, "error", `Falha ao publicar: ${titlePreview} — ${errMsg}`, { videoId: item.videoId });
+      runLog.push({ at: new Date().toISOString(), level: "error", message: `Publicar falhou: ${errMsg}`, videoId: item.videoId });
+      results.push({ id: item.id, videoId: item.videoId, status: "failed", error: errMsg });
+      saveResurrectorState(workspaceDir, state);
+    }
+  }
+
+  state = loadResurrectorState(workspaceDir);
+  const applied = results.filter((r) => r.status === "applied").length;
+  const failed = results.filter((r) => r.status === "failed").length;
+  const message = applied > 0
+    ? `${applied} vídeo(s) publicado(s) no YouTube${failed ? `, ${failed} falha(s)` : ""}.`
+    : failed > 0
+      ? `${failed} falha(s) ao publicar no YouTube.`
+      : "Nenhuma revisão publicada.";
+
+  appendResurrectorLog(state, failed ? "warn" : "success", message);
+  saveResurrectorState(workspaceDir, state);
+
+  return {
+    applied,
+    failed,
+    skipped: 0,
+    results,
+    runLog,
+    message,
+    state,
   };
 }
 

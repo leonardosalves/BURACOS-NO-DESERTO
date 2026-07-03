@@ -11,6 +11,7 @@ type ResurrectorSlot = 'morning' | 'afternoon';
 type ResurrectorSettings = {
   enabled: boolean;
   autoRunWhenAppOpen: boolean;
+  autoApplyToYoutube: boolean;
   minAgeDays: number;
   morningBatchSize: number;
   afternoonBatchSize: number;
@@ -171,6 +172,8 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
   const [uploadingThumb, setUploadingThumb] = useState(false);
   const [liveLog, setLiveLog] = useState<ActivityLogEntry[]>([]);
   const [retrying, setRetrying] = useState(false);
+  const [applyingPending, setApplyingPending] = useState(false);
+  const autoApplyRanRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
   const activityLog = useMemo(() => {
@@ -208,6 +211,61 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
   }, [applyDashboard, selectedId, toast]);
 
   useEffect(() => { void load(); }, []);
+
+  const pushLiveLog = useCallback((entries: ActivityLogEntry[]) => {
+    if (!entries.length) return;
+    setLiveLog((prev) => [...entries, ...prev].slice(0, 80));
+  }, []);
+
+  const applyPendingReviews = useCallback(async (silent = false) => {
+    setApplyingPending(true);
+    try {
+      const res = await fetch('/api/youtube/resurrector/apply-pending', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (data.dashboard) applyDashboard(data.dashboard);
+      const runEntries = (data.runLog || []).map((row: ActivityLogEntry) => ({
+        at: row.at || new Date().toISOString(),
+        level: row.level || 'info',
+        message: row.message,
+        videoId: row.videoId,
+      }));
+      pushLiveLog(runEntries);
+
+      if (!silent && (data.applied || data.failed)) {
+        if (data.applied > 0) {
+          hotToast.success(data.message || `${data.applied} publicado(s) no YouTube.`, { duration: 6000 });
+        } else if (data.failed > 0) {
+          hotToast.error(data.message || `${data.failed} falha(s) ao publicar.`, { duration: 8000 });
+        }
+      }
+      return data;
+    } catch (err) {
+      if (!silent) {
+        hotToast.error(err instanceof Error ? err.message : 'Falha ao publicar revisões.');
+      }
+      throw err;
+    } finally {
+      setApplyingPending(false);
+    }
+  }, [applyDashboard, pushLiveLog]);
+
+  useEffect(() => {
+    if (!dashboard || loading || autoApplyRanRef.current) return;
+    const reviewCount = dashboard.counts?.review ?? 0;
+    const autoApply = dashboard.settings?.autoApplyToYoutube !== false;
+    if (!autoApply || reviewCount === 0) return;
+
+    autoApplyRanRef.current = true;
+    void applyPendingReviews(true).then((data) => {
+      if (data?.applied > 0) {
+        hotToast.success(data.message || `${data.applied} publicado(s) automaticamente no YouTube.`, { duration: 6000 });
+      }
+    }).catch(() => {
+      autoApplyRanRef.current = false;
+    });
+  }, [dashboard, loading, applyPendingReviews]);
 
   const selected = useMemo(
     () => dashboard?.items.find((i) => i.id === selectedId) || null,
@@ -254,11 +312,6 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
     }
   };
 
-  const pushLiveLog = (entries: ActivityLogEntry[]) => {
-    if (!entries.length) return;
-    setLiveLog((prev) => [...entries, ...prev].slice(0, 80));
-  };
-
   const handleRetryFailed = async () => {
     setRetrying(true);
     try {
@@ -278,7 +331,8 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
     const batchTotal = slot === 'morning' ? morningSize : afternoonSize;
     setRunningSlot(slot);
     setLiveLog([]);
-    let totalOk = 0;
+    let totalApplied = 0;
+    let totalReview = 0;
     let totalFail = 0;
 
     try {
@@ -320,17 +374,23 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
         }));
         pushLiveLog(runEntries);
 
-        totalOk += data.successCount ?? 0;
+        totalApplied += data.appliedCount ?? 0;
+        totalReview += data.reviewCount ?? 0;
         totalFail += data.failCount ?? 0;
 
         if (!data.processed) break;
       }
 
       hotToast.dismiss(BATCH_TOAST_ID);
-      if (totalFail && !totalOk) {
+      if (totalFail && !totalApplied && !totalReview) {
         hotToast.error(`${totalFail} falha(s) — rede/Gemini. Use "Reprocessar falhas" e tente de novo.`, { duration: 8000 });
+      } else if (totalApplied > 0) {
+        hotToast.success(
+          `${totalApplied} publicado(s) no YouTube${totalReview ? `, ${totalReview} para revisar` : ''}${totalFail ? `, ${totalFail} falha(s)` : ''}.`,
+          { duration: 6000 },
+        );
       } else {
-        hotToast.success(`${totalOk} pronto(s) para revisão${totalFail ? `, ${totalFail} falha(s)` : ''}.`, { duration: 6000 });
+        hotToast.success(`${totalReview} pronto(s) para revisão${totalFail ? `, ${totalFail} falha(s)` : ''}.`, { duration: 6000 });
       }
     } catch (err) {
       hotToast.dismiss(BATCH_TOAST_ID);
@@ -423,7 +483,7 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
         helpId="video-resurrector"
         size="md"
         icon={<Zap className="w-5 h-5 text-amber-400" />}
-        subtitle={`Do mais antigo ao mais novo até o último postado — depois recomeça o ciclo. Batch ${morningSize} às ${morningHour}h + ${afternoonSize} às ${afternoonHour}h.`}
+        subtitle={`Do mais antigo ao mais novo até o último postado — depois recomeça o ciclo. Batch ${morningSize} às ${morningHour}h + ${afternoonSize} às ${afternoonHour}h. Metadados publicados automaticamente no YouTube.`}
       />
 
       {dashboard?.cycleProgress && dashboard.cycleProgress.total > 0 && (
@@ -586,6 +646,14 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
             />
             Auto com app aberto (11h e 16h)
           </label>
+          <label className="flex items-center gap-2 text-[11px] text-zinc-300">
+            <input
+              type="checkbox"
+              checked={dashboard?.settings?.autoApplyToYoutube !== false}
+              onChange={(e) => void saveSettings({ autoApplyToYoutube: e.target.checked }).catch((err) => toast(String(err.message)))}
+            />
+            Publicar automaticamente no YouTube
+          </label>
           <div>
             <span className="text-[9px] text-zinc-500 uppercase">Idade mín. (dias)</span>
             <input
@@ -653,6 +721,17 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
             {runningSlot === 'afternoon' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sunset className="w-3.5 h-3.5" />}
             Batch tarde ({afternoonSize})
           </button>
+          {(counts.review ?? 0) > 0 && dashboard?.settings?.autoApplyToYoutube === false && (
+            <button
+              type="button"
+              disabled={applyingPending || runningSlot != null}
+              onClick={() => void applyPendingReviews()}
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5"
+            >
+              {applyingPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              Publicar revisões ({counts.review})
+            </button>
+          )}
           {(counts.failed ?? 0) > 0 && (
             <button
               type="button"
@@ -730,13 +809,14 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
                 )}
               </div>
 
-              {selected.status === 'review' && selected.proposedMetadata && (
+              {(selected.status === 'review' || selected.status === 'applied') && selected.proposedMetadata && (
                 <>
                   <div className="space-y-1">
                     <label className="text-[9px] uppercase text-zinc-500 font-bold">Título (SEO)</label>
                     <select
                       className="dash-select w-full text-xs"
                       value={selected.selectedTitle || selected.proposedMetadata.title || ''}
+                      disabled={selected.status === 'applied'}
                       onChange={(e) => void patchItem(selected.id, { selectedTitle: e.target.value })}
                     >
                       {(selected.proposedMetadata.titleVariants || [selected.proposedMetadata.title || '']).map((t) => (
@@ -749,6 +829,7 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
                     <textarea
                       className="dash-input w-full text-[11px] min-h-[120px] font-mono"
                       value={selected.proposedMetadata.description || ''}
+                      readOnly={selected.status === 'applied'}
                       onChange={(e) => void patchItem(selected.id, {
                         proposedMetadata: { ...selected.proposedMetadata, description: e.target.value },
                       })}
@@ -759,6 +840,7 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
                     <input
                       className="dash-input w-full text-xs"
                       value={(selected.proposedMetadata.tags || []).join(', ')}
+                      readOnly={selected.status === 'applied'}
                       onChange={(e) => void patchItem(selected.id, {
                         proposedMetadata: {
                           ...selected.proposedMetadata,
@@ -796,24 +878,41 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={applying}
-                      onClick={() => void handleApply()}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5"
-                    >
-                      {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      Aplicar no YouTube
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void patchItem(selected.id, { status: 'skipped' })}
-                      className="text-[10px] text-zinc-500 px-3 py-2 border border-zinc-800 rounded-lg"
-                    >
-                      Ignorar
-                    </button>
-                  </div>
+                  {selected.status === 'applied' ? (
+                    <p className="text-[10px] text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Publicado no YouTube
+                      {selected.appliedAt && (
+                        <span className="text-zinc-500">
+                          · {new Date(selected.appliedAt).toLocaleString('pt-BR')}
+                        </span>
+                      )}
+                    </p>
+                  ) : dashboard?.settings?.autoApplyToYoutube === false ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={applying}
+                        onClick={() => void handleApply()}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5"
+                      >
+                        {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        Aplicar no YouTube
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void patchItem(selected.id, { status: 'skipped' })}
+                        className="text-[10px] text-zinc-500 px-3 py-2 border border-zinc-800 rounded-lg"
+                      >
+                        Ignorar
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-amber-300/90 flex items-center gap-1.5">
+                      {applyingPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Loader2 className="w-3.5 h-3.5" />}
+                      Publicando automaticamente no YouTube…
+                    </p>
+                  )}
                 </>
               )}
 
