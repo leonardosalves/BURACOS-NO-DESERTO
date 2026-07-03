@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
-import { blockProgressDesignTokens, markerCenterPercent } from './blockProgressBarDesign';
+import {
+  barFillLineStyle,
+  barIconRowOffset,
+  barTrackLineStyle,
+  blockProgressDesignTokens,
+  markerCenterPercent,
+} from './blockProgressBarDesign';
 import {
   resolveBlockProgressTitleFontStack,
   type BlockProgressTitleFontId,
@@ -54,6 +60,9 @@ export function BlockProgressBarPreview({
     || 120;
 
   const tokens = blockProgressDesignTokens(design, accentColor);
+  const trackStyle = barTrackLineStyle(tokens);
+  const fillStyle = barFillLineStyle(tokens);
+  const iconRowTop = 10 + barIconRowOffset(tokens);
 
   useEffect(() => {
     if (!playing || blocks.length === 0) return undefined;
@@ -118,22 +127,28 @@ export function BlockProgressBarPreview({
         {isShortFormat ? (
           <>
             <div
-              className="absolute rounded-full overflow-hidden"
+              className="absolute overflow-hidden"
               style={{
                 left: 10,
                 top: 40,
                 width: tokens.trackH,
                 height: 'calc(100% - 100px)',
-                background: tokens.trackBg,
+                borderRadius: trackStyle.borderRadius ?? tokens.trackH,
+                background: trackStyle.background,
+                border: trackStyle.border,
+                boxShadow: trackStyle.boxShadow,
+                backdropFilter: trackStyle.backdropFilter,
               }}
             >
               <div
                 ref={progressFillRef}
-                className="absolute bottom-0 left-0 w-full rounded-full"
+                className="absolute bottom-0 left-0 w-full"
                 style={{
                   height: '0%',
-                  background: tokens.fill,
-                  boxShadow: tokens.fillGlow,
+                  background: fillStyle.background,
+                  borderRadius: fillStyle.borderRadius ?? tokens.trackH,
+                  border: fillStyle.border,
+                  boxShadow: fillStyle.boxShadow,
                   transition: playing ? 'none' : 'height 0.2s',
                 }}
               />
@@ -183,32 +198,37 @@ export function BlockProgressBarPreview({
         ) : (
           <>
             <div
-              className="absolute rounded-full"
+              className="absolute"
               style={{
                 top: 10,
                 left: 16,
                 right: 16,
                 height: tokens.trackH,
-                background: tokens.trackBg,
+                ...trackStyle,
               }}
             />
             <div
               ref={progressFillRef}
-              className="absolute rounded-full"
+              className="absolute"
               style={{
                 top: 10,
                 left: 16,
                 width: '0%',
                 height: tokens.trackH,
-                background: tokens.fill,
-                boxShadow: tokens.fillGlow,
+                ...fillStyle,
                 transition: playing ? 'none' : 'width 0.2s',
               }}
             />
-            {design === 'documentary' && (
+            {tokens.extraLine && (
               <div
                 className="absolute"
-                style={{ top: 10 + tokens.trackH + 1, left: 16, right: 16, height: 1, background: `${accentColor}33` }}
+                style={{
+                  top: 10 + tokens.trackH + tokens.extraLine.offset,
+                  left: 16,
+                  right: 16,
+                  height: tokens.extraLine.height,
+                  background: tokens.extraLine.background,
+                }}
               />
             )}
             {blocks.map((marker) => {
@@ -221,7 +241,7 @@ export function BlockProgressBarPreview({
                   className="absolute flex flex-col items-center gap-0.5 transition-transform duration-200"
                   style={{
                     left: `calc(16px + (100% - 32px) * ${pct / 100})`,
-                    top: 10 + tokens.trackH + tokens.iconGap,
+                    top: iconRowTop,
                     transform: `translateX(-50%) scale(${active ? 1.08 : 0.88})`,
                     transformOrigin: 'top center',
                     opacity: active ? 1 : 0.4,

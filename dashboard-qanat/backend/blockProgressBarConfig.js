@@ -245,6 +245,16 @@ export function buildDefaultBlockProgressMarkers({
   return dedupeBlockProgressIcons(blocks, { niche });
 }
 
+export const BLOCK_PROGRESS_DESIGNS = [
+  "cinematic", "neon", "minimal", "documentary", "tech",
+  "dashed", "dotted", "bold", "glass", "elegant", "gradient", "glow", "retro", "outline",
+];
+
+export function normalizeBlockProgressDesign(raw) {
+  const id = String(raw || "cinematic").toLowerCase();
+  return BLOCK_PROGRESS_DESIGNS.includes(id) ? id : "cinematic";
+}
+
 export const ALLOWED_BLOCK_PROGRESS_ICONS = [
   "sparkles", "flame", "earth", "building", "globe", "info", "gear", "shield", "crown",
   "science", "history", "nature", "money", "warning", "compass", "book", "heart",
@@ -424,7 +434,7 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
 
   return {
     enabled: true,
-    design: raw.design || "cinematic",
+    design: normalizeBlockProgressDesign(raw.design),
     iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
     defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
     showBlockTitles: raw.showBlockTitles === true,

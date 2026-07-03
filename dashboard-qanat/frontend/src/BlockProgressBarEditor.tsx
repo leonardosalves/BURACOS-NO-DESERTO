@@ -17,6 +17,10 @@ import {
   suggestBlockProgressIcon,
   swapBlockProgressIcons,
 } from './blockProgressBarIcons';
+import {
+  normalizeBlockProgressDesign,
+  type BlockProgressDesign,
+} from './blockProgressBarDesign';
 
 export type BlockProgressMarkerDraft = {
   block: number;
@@ -33,7 +37,7 @@ export type BlockProgressMarkerDraft = {
 
 export type BlockProgressBarDraft = {
   enabled: boolean;
-  design: 'cinematic' | 'neon' | 'minimal' | 'documentary' | 'tech';
+  design: BlockProgressDesign;
   iconSize: number;
   defaultIconStyle: OverlayIconStyle;
   showBlockTitles?: boolean;
@@ -43,12 +47,21 @@ export type BlockProgressBarDraft = {
   blocks: BlockProgressMarkerDraft[];
 };
 
-const DESIGN_OPTIONS: { id: BlockProgressBarDraft['design']; label: string; hint: string }[] = [
-  { id: 'cinematic', label: 'Cinematográfico', hint: 'Dourado com glow suave — documentários premium.' },
-  { id: 'neon', label: 'Neon', hint: 'Ciano + acento neon — tech e futurismo.' },
-  { id: 'minimal', label: 'Minimal', hint: 'Linha fina branca — discreto.' },
-  { id: 'documentary', label: 'Documentário', hint: 'Dupla linha sépia — história e narrativa.' },
-  { id: 'tech', label: 'Tech', hint: 'Trilho pontilhado — engenharia e dados.' },
+const DESIGN_OPTIONS: { id: BlockProgressDesign; label: string; hint: string; group: string }[] = [
+  { id: 'cinematic', label: 'Cinematográfico', hint: 'Gradiente dourado com glow suave.', group: 'Clássico' },
+  { id: 'documentary', label: 'Documentário', hint: 'Dupla linha sépia — narrativa histórica.', group: 'Clássico' },
+  { id: 'minimal', label: 'Minimal', hint: 'Linha fina branca — discreta.', group: 'Clássico' },
+  { id: 'elegant', label: 'Elegante', hint: 'Linha dupla fina e sóbria.', group: 'Clássico' },
+  { id: 'neon', label: 'Neon', hint: 'Ciano + acento — futurismo.', group: 'Moderno' },
+  { id: 'tech', label: 'Tech', hint: 'Trilho segmentado — engenharia.', group: 'Moderno' },
+  { id: 'glass', label: 'Vidro', hint: 'Frosted glass translúcido.', group: 'Moderno' },
+  { id: 'gradient', label: 'Arco-íris', hint: 'Preenchimento multicolor.', group: 'Moderno' },
+  { id: 'glow', label: 'Brilho intenso', hint: 'Tubo luminoso com halo forte.', group: 'Moderno' },
+  { id: 'dashed', label: 'Tracejada', hint: 'Trilho tracejado, fill sólido.', group: 'Linha' },
+  { id: 'dotted', label: 'Pontilhada', hint: 'Trilho em pontos.', group: 'Linha' },
+  { id: 'bold', label: 'Grossa', hint: 'Barra espessa e sólida.', group: 'Linha' },
+  { id: 'outline', label: 'Contorno', hint: 'Só bordas — hollow fill.', group: 'Linha' },
+  { id: 'retro', label: 'Retrô', hint: 'Scanlines e blocos pixelados.', group: 'Linha' },
 ];
 
 type BlockPhrase = { block?: number; phrase?: string; text?: string };
@@ -125,7 +138,7 @@ export function buildBlockProgressDraftFromProject(
 
   return {
     enabled: raw.enabled === true,
-    design: raw.design || 'cinematic',
+    design: normalizeBlockProgressDesign(raw.design),
     iconSize: Number(raw.iconSize) || (isShort ? 16 : 22),
     defaultIconStyle: raw.defaultIconStyle === 'svg' ? 'svg' : 'lottie',
     showBlockTitles: raw.showBlockTitles === true,
@@ -282,11 +295,15 @@ export function BlockProgressBarEditor({
               </SettingLabel>
               <select
                 value={draft.design}
-                onChange={(e) => patch({ design: e.target.value as BlockProgressBarDraft['design'] })}
+                onChange={(e) => patch({ design: normalizeBlockProgressDesign(e.target.value) })}
                 className="dash-select text-[10px]"
               >
-                {DESIGN_OPTIONS.map((d) => (
-                  <option key={d.id} value={d.id}>{d.label}</option>
+                {['Clássico', 'Moderno', 'Linha'].map((group) => (
+                  <optgroup key={group} label={group}>
+                    {DESIGN_OPTIONS.filter((d) => d.group === group).map((d) => (
+                      <option key={d.id} value={d.id}>{d.label}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <p className="text-[8px] text-zinc-500">
