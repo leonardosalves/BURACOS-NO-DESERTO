@@ -161,7 +161,7 @@ export function buildBlockProgressDraftFromProject(
     titleFont: titleFont as BlockProgressTitleFontId,
     titleFontSize: Number(raw.titleFontSize) || (isShort ? 9 : 10),
     titleColor: String(raw.titleColor || '#FFFFFF'),
-    showChannelLogo: raw.showChannelLogo !== false,
+    showChannelLogo: raw.showChannelLogo === true,
     channelLogoSize: Number(raw.channelLogoSize) || (isShort ? 22 : 28),
     blocks: dedupedBlocks,
   };
@@ -383,30 +383,43 @@ export function BlockProgressBarEditor({
           </label>
 
           <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3 space-y-2">
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={draft.showChannelLogo !== false}
-                onChange={(e) => patch({ showChannelLogo: e.target.checked })}
-                className="rounded border-[var(--dash-border)] mt-0.5 shrink-0"
-                disabled={!channelLogoUrl}
-              />
-              <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-semibold text-zinc-200 block">Logo do canal na ponta da progressão</span>
-                <span className="text-[8px] text-zinc-500 leading-relaxed block mt-0.5">
-                  Usa o logo ativo em Marca · Logos. Acompanha o avanço da barra.
-                </span>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-1">
+                <SettingLabel helpTitle="Logo na barra" help="Exibe o logo do canal na ponta da linha de progressão (Marca · Logos)." align="start">
+                  Logo na ponta da barra
+                </SettingLabel>
+                <p className="text-[8px] text-zinc-500 leading-relaxed">
+                  Acompanha o avanço da progressão. Desative se preferir só ícones dos blocos.
+                </p>
               </div>
-              {channelLogoUrl && (
-                <img
-                  src={channelLogoUrl}
-                  alt=""
-                  className="w-8 h-8 rounded-full object-contain bg-zinc-900 border border-zinc-800 shrink-0"
-                />
-              )}
-            </label>
-            {draft.showChannelLogo !== false && channelLogoUrl && (
-              <div className="space-y-1 pl-6">
+              <div className="flex items-center gap-2 shrink-0">
+                {channelLogoUrl && (
+                  <img
+                    src={channelLogoUrl}
+                    alt=""
+                    className="w-7 h-7 rounded-full object-contain bg-zinc-900 border border-zinc-800"
+                  />
+                )}
+                <div className="flex gap-1 p-0.5 rounded-lg border border-[var(--dash-border)]">
+                  {([false, true] as const).map((on) => (
+                    <button
+                      key={on ? 'sim' : 'nao'}
+                      type="button"
+                      onClick={() => patch({ showChannelLogo: on })}
+                      className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase transition ${
+                        (draft.showChannelLogo === true) === on
+                          ? 'bg-[rgba(130,128,253,0.2)] text-[var(--dash-primary-light)]'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {on ? 'Sim' : 'Não'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {draft.showChannelLogo === true && channelLogoUrl && (
+              <div className="space-y-1 pt-1 border-t border-[var(--dash-border)]/60">
                 <SettingLabel helpTitle="Tamanho do logo" help="Diâmetro do logo na ponta da barra (px)." align="start">
                   Tamanho do logo ({draft.channelLogoSize || (isShortFormat ? 22 : 28)}px)
                 </SettingLabel>
@@ -421,9 +434,9 @@ export function BlockProgressBarEditor({
                 />
               </div>
             )}
-            {draft.showChannelLogo !== false && !channelLogoUrl && (
-              <p className="text-[8px] text-amber-400/90 pl-6">
-                Nenhum logo configurado — vá em Configurações → Marca e selecione um logo do canal.
+            {draft.showChannelLogo === true && !channelLogoUrl && (
+              <p className="text-[8px] text-amber-400/90 pt-1 border-t border-[var(--dash-border)]/60">
+                Ative um logo em Configurações → Marca · Logos para exibir na barra.
               </p>
             )}
           </div>
@@ -493,7 +506,7 @@ export function BlockProgressBarEditor({
             accentColor={accentColor}
             isShortFormat={isShortFormat}
             totalDuration={resolvedTotalDuration}
-            showChannelLogo={draft.showChannelLogo !== false}
+            showChannelLogo={draft.showChannelLogo === true}
             channelLogoSize={draft.channelLogoSize}
             channelLogoUrl={channelLogoUrl}
           />

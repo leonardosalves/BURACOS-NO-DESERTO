@@ -275,7 +275,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
   titleColor = "#FFFFFF",
   accentColor = "#C5A880",
   orientation = "horizontal",
-  showChannelLogo = true,
+  showChannelLogo = false,
   channelLogoSize,
   channelLogoSrc = null,
 }) => {
@@ -303,7 +303,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
   const scale = isVertical ? 0.85 : 1;
   const slotWidth = Math.max(56, Math.floor((width - 48) / Math.max(1, safeBlocks.length)));
   const logoPx = Math.max(14, Math.min(56, channelLogoSize || (isVertical ? 22 : 28)));
-  const showLogo = showChannelLogo !== false && Boolean(channelLogoSrc);
+  const showLogo = showChannelLogo === true && Boolean(channelLogoSrc);
 
   const progressTipLogo = (left: number | string, top: number | string) => (
     <div

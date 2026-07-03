@@ -603,7 +603,7 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
     titleFont,
     titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
     titleColor: String(raw.titleColor || "#FFFFFF"),
-    showChannelLogo: raw.showChannelLogo !== false,
+    showChannelLogo: raw.showChannelLogo === true,
     channelLogoSize: Number(raw.channelLogoSize) || (config.aspect_ratio === "9:16" ? 22 : 28),
     blocks: markers,
     totalDuration: Number(timings.total_duration)

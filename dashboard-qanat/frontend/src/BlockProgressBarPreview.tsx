@@ -49,7 +49,7 @@ export function BlockProgressBarPreview({
   accentColor = '#D4AF37',
   isShortFormat,
   totalDuration: totalDurationProp,
-  showChannelLogo = true,
+  showChannelLogo = false,
   channelLogoSize,
   channelLogoUrl = null,
 }: Props) {
@@ -101,7 +101,7 @@ export function BlockProgressBarPreview({
 
   const iconPx = (marker: BlockProgressMarkerDraft) => Math.round(marker.iconSize || iconSize);
   const logoPx = Math.max(14, Math.min(56, channelLogoSize || (isShortFormat ? 22 : 28)));
-  const showLogo = showChannelLogo !== false && Boolean(channelLogoUrl);
+  const showLogo = showChannelLogo === true && Boolean(channelLogoUrl);
   const [progressPct, setProgressPct] = useState(0);
 
   return (
