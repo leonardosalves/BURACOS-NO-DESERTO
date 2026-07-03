@@ -8,6 +8,7 @@ import {
   extractBlockIndex,
   getBlockTiming,
   isHudOverlay,
+  isManualOverlayTiming,
 } from "./overlayTiming.js";
 import { detectVideoFormat } from "./formatResolver.js";
 
@@ -480,20 +481,22 @@ export function enforceOverlayOrchestration(overlays, plan, timingCtx = {}) {
     }
 
     if (!overlay.props) overlay.props = {};
-    const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
-    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
-    if (blockEnd > blockStart) {
-      const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
-      overlay.duration = computeOverlayDisplayDuration(overlay, {
-        overlayStart: overlay.start,
-        blockStart,
-        blockEnd,
-        plan,
-        isListicle: plan.isListicle,
-        totalDuration,
-      });
-    } else {
-      overlay.duration = Math.min(Number(overlay.duration) || 4, plan.limits.maxDurationSeconds);
+    if (!isManualOverlayTiming(overlay)) {
+      const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
+      const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+      if (blockEnd > blockStart) {
+        const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
+        overlay.duration = computeOverlayDisplayDuration(overlay, {
+          overlayStart: overlay.start,
+          blockStart,
+          blockEnd,
+          plan,
+          isListicle: plan.isListicle,
+          totalDuration,
+        });
+      } else {
+        overlay.duration = Math.min(Number(overlay.duration) || 4, plan.limits.maxDurationSeconds);
+      }
     }
 
     if (overlay.type === "lower-third") {
