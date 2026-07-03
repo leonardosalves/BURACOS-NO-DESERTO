@@ -2,13 +2,104 @@ import type { CSSProperties } from 'react';
 
 export function themePanelBg(theme: string, accent: string): string {
   switch (theme) {
-    case 'tech': return 'linear-gradient(135deg, rgba(8,12,16,0.92), rgba(0,229,255,0.14))';
-    case 'ancient': return 'linear-gradient(135deg, rgba(22,16,12,0.94), rgba(197,168,128,0.18))';
-    case 'nature': return 'linear-gradient(135deg, rgba(8,14,10,0.94), rgba(46,125,50,0.2))';
-    case 'mysterious': return 'linear-gradient(135deg, rgba(12,8,16,0.94), rgba(124,77,255,0.2))';
-    case 'industrial': return 'linear-gradient(135deg, rgba(16,16,18,0.94), rgba(255,61,0,0.16))';
-    default: return `linear-gradient(135deg, rgba(10,10,14,0.92), ${accent}18)`;
+    case 'minimal':
+      return 'linear-gradient(135deg, rgba(12,12,14,0.96), rgba(24,24,28,0.94))';
+    case 'modern':
+      return 'linear-gradient(145deg, rgba(8,8,12,0.9), rgba(18,18,26,0.88))';
+    case 'futuristic':
+      return 'linear-gradient(135deg, rgba(4,8,14,0.94), rgba(0,229,255,0.12))';
+    case 'neon':
+      return `linear-gradient(135deg, rgba(6,4,14,0.95), ${accent}22)`;
+    case 'tech':
+      return 'linear-gradient(135deg, rgba(8,12,16,0.92), rgba(0,229,255,0.14))';
+    case 'ancient':
+      return 'linear-gradient(135deg, rgba(22,16,12,0.94), rgba(197,168,128,0.18))';
+    case 'nature':
+      return 'linear-gradient(135deg, rgba(8,14,10,0.94), rgba(46,125,50,0.2))';
+    case 'mysterious':
+      return 'linear-gradient(135deg, rgba(12,8,16,0.94), rgba(124,77,255,0.2))';
+    case 'industrial':
+      return 'linear-gradient(135deg, rgba(16,16,18,0.94), rgba(255,61,0,0.16))';
+    default:
+      return `linear-gradient(145deg, rgba(8,8,12,0.9), rgba(18,18,26,0.87))`;
   }
+}
+
+type BarChartItem = {
+  label?: string;
+  value?: number;
+  displayValue?: string;
+  color?: string;
+};
+
+export function barChartPreviewShell(theme: string, accent: string): {
+  container: CSSProperties;
+  title: CSSProperties;
+  accentStripe: CSSProperties;
+  label: CSSProperties;
+  track: CSSProperties;
+} {
+  const bg = themePanelBg(theme, accent);
+  return {
+    container: {
+      background: bg,
+      backdropFilter: 'blur(8px)',
+      border: theme === 'neon'
+        ? `1px solid ${accent}66`
+        : theme === 'minimal'
+          ? '1px solid rgba(255,255,255,0.08)'
+          : `1px solid ${accent}33`,
+      borderRadius: theme === 'industrial' ? '0.15em' : '0.45em',
+      padding: '0.45em 0.55em',
+      boxShadow: theme === 'neon' ? `0 0 0.6em ${accent}33` : undefined,
+    },
+    title: {
+      color: '#f8fafc',
+      fontWeight: 800,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.06em',
+      fontSize: '0.72em',
+    },
+    accentStripe: {
+      width: '0.18em',
+      alignSelf: 'stretch',
+      background: accent,
+      borderRadius: '0.1em',
+      flexShrink: 0,
+    },
+    label: {
+      color: 'rgba(248,250,252,0.82)',
+      fontSize: '0.62em',
+      fontWeight: 500,
+    },
+    track: {
+      height: '0.35em',
+      background: 'rgba(248,250,252,0.08)',
+      borderRadius: '0.2em',
+      overflow: 'hidden',
+    },
+  };
+}
+
+export function normalizeBarChartItems(
+  raw: unknown,
+  accent: string,
+): BarChartItem[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [
+      { label: 'Foguete Químico', value: 100, displayValue: '100', color: accent },
+      { label: 'Propulsão Plasma', value: 10, displayValue: '90% menos', color: '#4ECDC4' },
+    ];
+  }
+  return raw.slice(0, 4).map((item, index) => {
+    const row = item as BarChartItem;
+    return {
+      label: String(row.label || `Item ${index + 1}`),
+      value: Number(row.value) || 0,
+      displayValue: row.displayValue ? String(row.displayValue) : undefined,
+      color: row.color ? String(row.color) : (index === 0 ? accent : '#4ECDC4'),
+    };
+  });
 }
 
 export function infoCardVariantStyle(variant: string, accent: string, theme: string): CSSProperties {
