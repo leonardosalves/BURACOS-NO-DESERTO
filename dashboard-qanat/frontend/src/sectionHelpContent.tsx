@@ -115,7 +115,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Ressuscitador de vídeos',
     body: (
       <>
-        Varre todos os uploads do canal YouTube conectado (+10 dias), do mais antigo ao mais novo; ao terminar, recomeça o ciclo. Se existir projeto Lumiera com o mesmo post_id, usa o roteiro; senão, usa a descrição do YouTube. Batches 11h e 16h. Thumbnail manual em longos.
+        Varre todos os uploads do canal YouTube conectado (+10 dias), do mais antigo ao mais novo; ao terminar, recomeça o ciclo. Se existir projeto Lumiera com o mesmo post_id, usa o roteiro; senão, usa a descrição do YouTube. Batches 11h e 16h. Metadados publicados automaticamente no YouTube. Thumbnail manual em longos.
       </>
     ),
   },
@@ -125,7 +125,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       <>
         <strong>Escanear elegíveis</strong> — enfileira vídeos com idade mínima configurada.{' '}
         <strong>Batch manhã / tarde</strong> — gera metadados SEO via IA (5+5 por dia).{' '}
-        Com o dashboard aberto, os horários 11h e 16h disparam sozinhos. Revise, escolha o título, faça upload da capa (longos) e <strong>Aplicar no YouTube</strong>.
+        Com o dashboard aberto, os horários 11h e 16h disparam sozinhos. Após gerar metadados, o sistema <strong>publica automaticamente no YouTube</strong> (desative em Configuração se quiser revisar antes). Upload da capa continua manual em vídeos longos.
       </>
     ),
   },

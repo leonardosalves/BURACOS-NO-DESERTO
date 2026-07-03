@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 import {
+  applyPendingResurrectorReviews,
   applyResurrectorItem,
   computeResurrectorCycleProgress,
   enqueueResurrectorCandidates,
@@ -54,6 +55,7 @@ export function registerVideoResurrectorRoutes(app, deps) {
         ...state.settings,
         ...(typeof patch.enabled === "boolean" ? { enabled: patch.enabled } : {}),
         ...(typeof patch.autoRunWhenAppOpen === "boolean" ? { autoRunWhenAppOpen: patch.autoRunWhenAppOpen } : {}),
+        ...(typeof patch.autoApplyToYoutube === "boolean" ? { autoApplyToYoutube: patch.autoApplyToYoutube } : {}),
         ...(typeof patch.autoRunDaily === "boolean" ? { autoRunWhenAppOpen: patch.autoRunDaily } : {}),
         ...(Number.isFinite(Number(patch.minAgeDays)) ? { minAgeDays: Math.max(1, Math.min(365, Number(patch.minAgeDays))) } : {}),
         ...(Number.isFinite(Number(patch.morningBatchSize)) ? { morningBatchSize: Math.max(1, Math.min(20, Number(patch.morningBatchSize))) } : {}),
@@ -112,6 +114,18 @@ export function registerVideoResurrectorRoutes(app, deps) {
         limit,
         finalizeSlot,
       });
+      res.json({
+        ...result,
+        dashboard: getResurrectorDashboard(result.state),
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message, needsReauth: err.needsReauth });
+    }
+  });
+
+  app.post("/api/youtube/resurrector/apply-pending", async (_req, res) => {
+    try {
+      const result = await applyPendingResurrectorReviews(WORKSPACE_DIR);
       res.json({
         ...result,
         dashboard: getResurrectorDashboard(result.state),
