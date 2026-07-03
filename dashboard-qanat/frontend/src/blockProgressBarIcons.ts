@@ -37,7 +37,7 @@ export const ALLOWED_BLOCK_PROGRESS_ICONS = [
 /** Família visual — ids diferentes que renderizam o mesmo ícone na barra. */
 export const ICON_VISUAL_FAMILY: Record<string, string> = {
   earth: 'globe',
-  building: 'globe',
+  building: 'building',
   globe: 'globe',
   money: 'coin',
   coin: 'coin',
@@ -52,7 +52,7 @@ export const ICON_VISUAL_FAMILY: Record<string, string> = {
 
 function normalizeAiIconId(raw: unknown): string | null {
   const id = String(raw || '').trim().toLowerCase();
-  if (id === 'building' || id === 'globe') return 'earth';
+  if (id === 'globe') return 'earth';
   if (ALLOWED_BLOCK_PROGRESS_ICONS.includes(id)) return id;
   if (id === 'atom') return 'science';
   if (id === 'people' || id === 'user') return 'users';

@@ -83,7 +83,7 @@ export function OverlayAnimatedIcon({
     <span ref={boxRef} className={boxClass} style={fill ? undefined : { width: size, height: size }}>
       <div
         ref={hostRef}
-        className="w-full h-full"
+        className="w-full h-full [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:mx-auto"
         style={fill ? undefined : { width: size, height: size }}
       />
     </span>

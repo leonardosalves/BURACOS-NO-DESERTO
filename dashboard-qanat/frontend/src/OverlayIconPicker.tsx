@@ -98,12 +98,14 @@ export function OverlayIconPicker({
                           : 'border-[var(--dash-border)] hover:border-[rgba(130,128,253,0.35)] bg-[var(--dash-bg)]'
                     }`}
                   >
-                    <OverlayAnimatedIcon
-                      iconId={item.id}
-                      iconStyle={tab}
-                      size={18}
-                      color={accentColor}
-                    />
+                    <div className="w-4 h-4 flex items-center justify-center overflow-hidden shrink-0">
+                      <OverlayAnimatedIcon
+                        iconId={item.id}
+                        iconStyle={tab}
+                        size={16}
+                        color={accentColor}
+                      />
+                    </div>
                     <span className="text-[7px] text-zinc-400 truncate w-full text-center">{item.label}</span>
                   </button>
                 );

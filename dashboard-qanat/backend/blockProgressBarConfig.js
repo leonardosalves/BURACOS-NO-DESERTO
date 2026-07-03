@@ -367,9 +367,9 @@ export const SVG_ONLY_BLOCK_PROGRESS_ICONS = new Set([
   "swords", "bolt", "rocket", "chart", "users", "clock",
 ]);
 
-/** Lista enviada à IA — sem aliases que repetem a mesma animação. */
+/** Lista enviada à IA — sem alias earth/globe (mesmo globo). */
 export const BLOCK_PROGRESS_ICONS_FOR_AI = ALLOWED_BLOCK_PROGRESS_ICONS.filter(
-  (id) => id !== "building" && id !== "globe",
+  (id) => id !== "globe",
 );
 
 const LOTTIE_FILE_BY_ICON = {
@@ -377,18 +377,18 @@ const LOTTIE_FILE_BY_ICON = {
   flame: "flame.json",
   info: "info.json",
   earth: "globe.json",
-  building: "globe.json",
+  building: "lottie_edu_pillar_1.json",
   globe: "lottie_life_globe_1.json",
   gear: "lottie_ui_gear_1.json",
-  shield: "lottie_ui_lock_3.json",
+  shield: "lottie_edu_shield_1.json",
   crown: "lottie_biz_crown_1.json",
-  science: "lottie_tech_bolt_1.json",
-  history: "lottie_ui_time_1.json",
-  nature: "weather_wind.json",
+  science: "lottie_tech_dna_1.json",
+  history: "lottie_edu_scroll_1.json",
+  nature: "lottie_nature_leaf_1.json",
   money: "lottie_biz_money_1.json",
   warning: "lottie_ui_warning_1.json",
   compass: "lottie_life_location_1.json",
-  book: "lottie_tech_document_1.json",
+  book: "lottie_edu_book_1.json",
   heart: "lottie_interact_heart_1.json",
   lightbulb: "lottie_life_idea_1.json",
   graph: "lottie_biz_graph_1.json",
@@ -398,7 +398,7 @@ const LOTTIE_FILE_BY_ICON = {
   coin: "lottie_biz_coin_1.json",
   wallet: "lottie_biz_wallet_1.json",
   shop: "lottie_biz_shop_1.json",
-  delivery: "lottie_biz_delivery_1.json",
+  delivery: "lottie_biz_truck_1.json",
   api: "lottie_tech_api_1.json",
   wifi: "lottie_tech_wifi_1.json",
   mobile: "lottie_tech_mobile_1.json",
@@ -426,7 +426,7 @@ const LOTTIE_FILE_BY_ICON = {
 /** Família visual — ids diferentes que renderizam o mesmo ícone na barra. */
 const ICON_VISUAL_FAMILY = {
   earth: "globe",
-  building: "globe",
+  building: "building",
   globe: "globe",
   money: "coin",
   coin: "coin",
@@ -441,7 +441,7 @@ const ICON_VISUAL_FAMILY = {
 
 function normalizeAiIconId(raw) {
   const id = String(raw || "").trim().toLowerCase();
-  if (id === "building" || id === "globe") return "earth";
+  if (id === "globe") return "earth";
   if (ALLOWED_BLOCK_PROGRESS_ICONS.includes(id)) return id;
   if (id === "atom") return "science";
   if (id === "people" || id === "user") return "users";
@@ -586,9 +586,9 @@ ${blockLines}
 Regras OBRIGATÓRIAS (violação = resposta inválida):
 - Liste exatamente ${blocks.length} blocos no JSON, um por bloco do roteiro
 - iconType ÚNICO em cada bloco — proibido repetir qualquer id
-- Proibido repetir animações parecidas: earth, building e globe são o MESMO globo — use no máximo um
+- Proibido repetir animações parecidas: earth e globe são o MESMO globo — use no máximo um
 - Também não repita famílias visuais: money/coin/wallet, graph/chart, bolt/lightning, history/clock
-- Não use "building" nem "globe" (use earth, map, compass, plane, rocket para variar)
+- building (coluna) é distinto de earth/globo — pode usar quando o bloco fala de monumento/arquitetura
 - Varie categorias: espaço, energia, história, dados, natureza, tech, negócios, social
 - iconStyle: "lottie" (padrão) ou "svg" para: swords, bolt, rocket, chart, users, clock
 

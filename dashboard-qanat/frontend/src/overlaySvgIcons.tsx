@@ -25,8 +25,11 @@ export function OverlaySvgIcon({
     case 'sparkles': return <SparklesIcon {...props} />;
     case 'flame': return <FlameIcon {...props} />;
     case 'earth':
+    case 'globe':
+    case 'map':
+    case 'plane': return <EarthIcon {...props} />;
     case 'building':
-    case 'globe': return <EarthIcon {...props} />;
+    case 'shop': return <BuildingIcon {...props} />;
     case 'gear': return <GearIcon {...props} />;
     case 'shield': return <ShieldIcon {...props} />;
     case 'crown': return <CrownIcon {...props} />;
@@ -51,6 +54,26 @@ export function OverlaySvgIcon({
     case 'users': return <UsersIcon {...props} />;
     case 'bookmark': return <BookmarkIcon {...props} />;
     case 'bell': return <BellIcon {...props} />;
+    case 'trophy':
+    case 'sun': return <StarIcon {...props} />;
+    case 'target': return <CompassIcon {...props} />;
+    case 'gift': return <BookmarkIcon {...props} />;
+    case 'wallet': return <CoinIcon {...props} />;
+    case 'delivery': return <RocketIcon {...props} />;
+    case 'api':
+    case 'server': return <GearIcon {...props} />;
+    case 'wifi':
+    case 'mobile': return <BoltIcon {...props} />;
+    case 'video': return <PlayIcon {...props} />;
+    case 'skull': return <AlertIcon {...props} />;
+    case 'rain':
+    case 'snow':
+    case 'storm': return <CloudIcon {...props} />;
+    case 'like': return <HeartIcon {...props} />;
+    case 'share': return <SparklesIcon {...props} />;
+    case 'message':
+    case 'mail':
+    case 'phone': return <BellIcon {...props} />;
     case 'info':
     default: return <InfoIcon {...props} />;
   }
@@ -265,6 +288,32 @@ function InfoIcon({ size, color, className }: IconProps) {
     <svg {...base(size, className)} fill="none" stroke={color} strokeWidth="2" className="overlay-svg-pulse">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+function BuildingIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill={`${color}22`} stroke={color} strokeWidth="1.8">
+      <rect x="5" y="3" width="14" height="18" rx="1" />
+      <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlayIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill={color} stroke={color} strokeWidth="1">
+      <circle cx="12" cy="12" r="10" fill={`${color}22`} />
+      <path d="M10 8l8 4-8 4V8z" />
+    </svg>
+  );
+}
+
+function CloudIcon({ size, color, className }: IconProps) {
+  return (
+    <svg {...base(size, className)} fill={`${color}33`} stroke={color} strokeWidth="1.8" className="overlay-svg-pulse">
+      <path d="M7 18h11a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.6 1.8A3.5 3.5 0 0 0 7 18z" />
     </svg>
   );
 }
