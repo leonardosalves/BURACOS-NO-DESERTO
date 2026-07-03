@@ -5,11 +5,15 @@
 
 import {
   moodToClimaxMode,
-  moodToDuckStrength,
   moodToSearchTheme,
   scoreMoodFromText,
   pickDominantMood,
 } from "./bgmSonoplastia.js";
+import {
+  buildEmotionPlanProductionRules,
+  harmonizeEmotionSegments,
+  resolveEmotionDuckStrength,
+} from "./bgmProductionDefaults.js";
 
 export const EMOTION_TYPES = [
   "intro", "calm", "wonder", "tension", "epic", "climax", "resolve", "neutral",
@@ -49,7 +53,7 @@ function segmentDuration(seg) {
 function enrichSegment(seg, nicheMood = null, pace = "normal") {
   const emotion = normalizeEmotion(seg.emotion);
   const climaxMode = seg.climax_mode || seg.climaxMode || moodToClimaxMode(emotion, pace);
-  const duckStrength = seg.duck_strength || seg.duckStrength || moodToDuckStrength(emotion, pace);
+  const duckStrength = seg.duck_strength || seg.duckStrength || resolveEmotionDuckStrength(emotion);
   const searchTheme = String(seg.search_theme || seg.searchTheme || "").trim()
     || moodToSearchTheme(emotion, nicheMood);
   return {
@@ -136,7 +140,7 @@ export function stitchEmotionSegmentsContinuous(segments = [], totalDuration = 0
   }));
 }
 
-export function normalizeEmotionSegments(rawSegments = [], totalDuration = 0, nicheMood = null) {
+export function normalizeEmotionSegments(rawSegments = [], totalDuration = 0, nicheMood = null, niche = "") {
   const total = Math.max(Number(totalDuration) || 0, 1);
   const parsed = (rawSegments || []).map((seg, idx) => {
     const start = clamp(Number(seg.start) || 0, 0, total);
@@ -163,6 +167,11 @@ export function normalizeEmotionSegments(rawSegments = [], totalDuration = 0, ni
 
   let merged = mergeAdjacentSameEmotionSegments(parsed);
   merged = stitchEmotionSegmentsContinuous(merged, total);
+  merged = harmonizeEmotionSegments(
+    merged,
+    niche || nicheMood?.label || "",
+    { niche: niche || nicheMood?.label },
+  );
   return merged.map((seg, idx) => ({
     ...seg,
     id: seg.id || `seg-${String(idx + 1).padStart(2, "0")}`,
@@ -215,7 +224,7 @@ export function buildHeuristicEmotionSegments({
     };
   });
 
-  return normalizeEmotionSegments(draft, total, nicheMood);
+  return normalizeEmotionSegments(draft, total, nicheMood, config.niche || "");
 }
 
 export function buildBgmEmotionPlanPrompt({
@@ -241,6 +250,7 @@ export function buildBgmEmotionPlanPrompt({
 
 Nicho: "${niche}"
 Duração total: ~${Number(totalDuration).toFixed(1)}s
+${buildEmotionPlanProductionRules(niche)}
 
 REGRAS OBRIGATÓRIAS:
 1. Segmentos temporais com start/end em segundos absolutos no vídeo
@@ -303,7 +313,7 @@ export function buildBgmEmotionPlan({
     || 120;
 
   const segments = aiSegments?.length
-    ? normalizeEmotionSegments(aiSegments, total, nicheMood)
+    ? normalizeEmotionSegments(aiSegments, total, nicheMood, config.niche || "")
     : buildHeuristicEmotionSegments({
       config,
       storyboard,

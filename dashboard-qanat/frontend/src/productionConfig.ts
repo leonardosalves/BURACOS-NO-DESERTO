@@ -2,6 +2,28 @@ export type OverlayIntensity = 'light' | 'normal' | 'rich';
 export type OverlayMinGap = 'tight' | 'normal' | 'relaxed';
 export type BgmDuckStrength = 'light' | 'normal' | 'strong';
 
+/** Padrões globais Lumiera — espelham bgmProductionDefaults.js no backend. */
+export const BGM_PRODUCTION_DEFAULTS = {
+  LONG: {
+    bgm_mode: 'emotion' as const,
+    project_music_volume: 0.16,
+    segment_count: { min: 2, max: 4 },
+    crossfade_s: 4,
+  },
+  SHORT: {
+    bgm_mode: 'block' as const,
+    use_single_bgm: true,
+    project_music_volume: 0.14,
+  },
+} as const;
+
+export type BgmProductionHints = {
+  mode: string;
+  volume: number;
+  segments?: string;
+  tip: string;
+};
+
 export type ProductionConfig = {
   overlay_intensity?: OverlayIntensity;
   project_music_volume?: number;
@@ -76,4 +98,10 @@ export function applyProductionPatchToConfig<T extends Record<string, unknown>>(
     else merged[key] = value;
   }
   return merged as T;
+}
+
+/** Remove metadados somente-leitura retornados pelo GET /api/config. */
+export function stripConfigApiMetadata<T extends Record<string, unknown>>(config: T): T {
+  const { _bgm_production_hints: _hints, ...rest } = config;
+  return rest as T;
 }

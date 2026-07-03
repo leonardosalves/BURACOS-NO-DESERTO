@@ -25,7 +25,9 @@ export const FORMAT_SUCCESS_RULES = {
     { category: "overlay_budget", description: "Longos: 1 overlay/min (normal); até 2/min quando necessário (rich)" },
     { category: "structure", description: "Usar chapter stingers e progress bar em documentários 16:9" },
     { category: "caption", description: "Legendas documentary — frases completas, ritmo mais lento" },
-    { category: "bgm", description: "BGM por bloco (bgm_mappings), não single_bgm" },
+    { category: "bgm", description: "BGM por emoção/temática (bgm_emotion_plan), 2–4 segmentos, crossfade contínuo, família sonora coerente ao nicho" },
+    { category: "bgm", description: "Volume trilha longos: project_music_volume ≥0.16; duck light/normal (evitar strong sob narração contínua)" },
+    { category: "bgm", description: "Fluxo: planejar emoções → mapear/baixar faixas → regenerar trilha → render" },
   ],
 };
 
