@@ -20,6 +20,7 @@ import {
   mergeAiBlockProgressIcons,
   mergeAiBlockProgressTitles,
   resolveBlockProgressBarForRender,
+  resolveChaptersTextForProject,
 } from "./blockProgressBarConfig.js";
 import {
   buildYoutubeMetadataPrompt,
@@ -10416,6 +10417,7 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
 
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+    const chaptersText = resolveChaptersTextForProject(projDir, readProjectJson);
     const raw = config.block_progress_bar || {};
     const markers = buildDefaultBlockProgressMarkers({
       blockPhrases,
@@ -10424,6 +10426,9 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
       durations: timings.durations || [],
       niche: config.niche || "Geral",
       existingBlocks: raw.blocks || [],
+      chaptersText,
+      storyboard,
+      config,
     });
 
     const browserTextRaw = extractBrowserResponse(req.body);
@@ -10498,6 +10503,7 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
       return res.status(400).json({ error: "Projeto sem blocos de narração." });
     }
 
+    const chaptersText = resolveChaptersTextForProject(projDir, readProjectJson);
     const raw = config.block_progress_bar || {};
     const markers = buildDefaultBlockProgressMarkers({
       blockPhrases,
@@ -10505,43 +10511,25 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
       starts: timings.starts || [],
       durations: timings.durations || [],
       niche: config.niche || "Geral",
-      existingBlocks: raw.blocks || [],
+      existingBlocks: [],
+      chaptersText,
+      storyboard,
+      config,
     });
-    const narrations = collectBlockNarrationsByBlock({ visualPrompts, blockPhrases });
-    const blocksForAi = markers.map((m) => ({
-      ...m,
-      narration: narrations.get(m.block) || m.title || m.label || "",
-    }));
-
-    const browserTextRaw = extractBrowserResponse(req.body);
-    const browserText = browserTextRaw ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw) : null;
-    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
-
-    let llmText = browserText;
-    if (!llmText) {
-      const prompt = buildBlockProgressTitleAiPrompt({
+    const merged = mergeAiBlockProgressTitles(
+      buildDefaultBlockProgressMarkers({
+        blockPhrases,
+        visualPrompts,
+        starts: timings.starts || [],
+        durations: timings.durations || [],
         niche: config.niche || "Geral",
-        blocks: blocksForAi,
-      });
-
-      if (forceBrowser) {
-        const title = "Resumir títulos da barra de progresso";
-        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "json", responseFormat: "json" });
-        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
-      }
-
-      const apiKey = getApiKey(projDir);
-      if (!apiKey) {
-        return res.status(401).json({
-          error: "Sem chave API. Ative Gemini no Chrome ou configure uma chave.",
-        });
-      }
-      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
-    }
-
-    const parsed = await parseAiJsonResponse(llmText, getApiKey(projDir), "títulos barra de progresso");
-    const aiBlocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
-    const merged = mergeAiBlockProgressTitles(markers, aiBlocks);
+        existingBlocks: raw.blocks || [],
+        chaptersText,
+        storyboard,
+        config,
+      }),
+      markers.map((m) => ({ block: m.block, title: m.title })),
+    );
 
     const nextConfig = {
       ...raw,

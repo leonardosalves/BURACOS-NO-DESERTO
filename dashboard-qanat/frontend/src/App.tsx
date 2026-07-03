@@ -1524,34 +1524,6 @@ export default function App() {
     return blocks as import('./BlockProgressBarEditor').BlockProgressMarkerDraft[];
   }, [postAi, config?.use_gemini_chrome, geminiBrowserMode]);
 
-  const suggestBlockProgressTitles = useCallback(async () => {
-    const effectiveGeminiChrome = config?.use_gemini_chrome === true || geminiBrowserMode;
-    const { ok, data } = await postAi('/api/ai/suggest-block-progress-titles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ require_browser: effectiveGeminiChrome }),
-    });
-    if (!ok || (data as { needs_browser?: boolean })?.needs_browser) {
-      toast.error('Resumo cancelado ou pendente no Gemini Chrome.');
-      return null;
-    }
-    const blocks = (data as { blocks?: unknown[] })?.blocks;
-    if (!Array.isArray(blocks) || blocks.length < 1) {
-      toast.error((data as { error?: string })?.error || 'IA não retornou títulos válidos.');
-      return null;
-    }
-    toast.success(`Títulos resumidos para ${blocks.length} bloco(s).`);
-    setConfig((prev) => ({
-      ...(prev || {}),
-      block_progress_bar: {
-        ...((prev as Record<string, unknown>)?.block_progress_bar as object || {}),
-        showBlockTitles: true,
-        blocks,
-      },
-    }));
-    return blocks as import('./BlockProgressBarEditor').BlockProgressMarkerDraft[];
-  }, [postAi, config?.use_gemini_chrome, geminiBrowserMode]);
-
   const visualBlockTimings = useMemo(() => {
     const bt = status?.block_timings || config?.block_timings;
     if (!bt) return undefined;
@@ -7618,15 +7590,33 @@ export default function App() {
   }, [creatorStep, activeProject]);
 
   useEffect(() => {
-    if (activeTab !== 'upload' || !activeProject) return;
+    if ((activeTab !== 'upload' && activeTab !== 'editor') || !activeProject) return;
     void loadYoutubeMetadataFromCache();
-    void fetchYoutubeThumbnailImages();
+    if (activeTab === 'upload') void fetchYoutubeThumbnailImages();
   }, [activeTab, activeProject]);
 
   const uploadMetadataReady = Boolean(
     youtubeMetadataParsed?.titles?.length
     || youtubeMetadataParsed?.description
     || youtubeMetadataParsed?.tags,
+  );
+
+  const progressBarChaptersText = useMemo(() => (
+    ytChapters.trim()
+    || youtubeMetadataParsed?.chapters?.trim()
+    || String(config?.upload_metadata?.youtube?.chapters || '').trim()
+    || ''
+  ), [ytChapters, youtubeMetadataParsed?.chapters, config?.upload_metadata?.youtube?.chapters]);
+
+  const progressBarMetadataReady = Boolean(
+    uploadMetadataReady && (
+      progressBarChaptersText.length > 0
+      || (
+        (config?.content_mode === 'LISTICLE' || Number(config?.rank_count) >= 3
+          || (storyboardData?.list_items?.length ?? 0) >= 3)
+        && (storyboardData?.list_items?.length ?? 0) >= 3
+      )
+    ),
   );
 
   // Parse suggested config block from AI content
@@ -8468,11 +8458,13 @@ export default function App() {
                     config={(config || {}) as Record<string, unknown>}
                     storyboard={storyboardData}
                     blockTimings={visualBlockTimings}
+                    chaptersText={progressBarChaptersText}
+                    metadataReady={progressBarMetadataReady}
                     isShortFormat={(config?.aspect_ratio || '16:9') === '9:16'}
                     accentColor={config?.accent_color || '#D4AF37'}
                     saving={savingBlockProgressBar}
+                    onGoToMetadata={() => setActiveTab('ai')}
                     onSuggestIconsWithAi={suggestBlockProgressIcons}
-                    onSuggestTitlesWithAi={suggestBlockProgressTitles}
                     onSave={async (barDraft) => {
                       setSavingBlockProgressBar(true);
                       try {
