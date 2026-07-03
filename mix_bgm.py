@@ -264,11 +264,85 @@ def main():
 
     single_bgm = config_data.get('single_bgm', '')
 
+    bgm_mode = str(config_data.get('bgm_mode', '') or '').lower()
+
+    emotion_mappings = config_data.get('bgm_emotion_mappings', []) or []
+
     total_samples = int((total_duration + 5.0) * SR)
 
     bgm_audio = np.zeros((total_samples, 2), dtype=np.float32)
 
-    if use_single_bgm and single_bgm and os.path.exists(single_bgm):
+    if bgm_mode == 'emotion' and emotion_mappings:
+
+        print("Emotion-based Soundtrack Mode active.")
+
+        ordered = sorted(
+            emotion_mappings,
+            key=lambda m: float(m.get('start', 0) or 0),
+        )
+
+        for m in ordered:
+
+            filename = m.get('file', '')
+
+            if not filename or not os.path.exists(filename):
+
+                print(f"Skipping emotion segment '{m.get('segment_id', '')}': missing file '{filename}'")
+
+                continue
+
+            start_s = float(m.get('start', 0) or 0)
+
+            duration_s = float(m.get('duration', max(0.5, total_duration - start_s)) or 0.5)
+
+            climax_mode = m.get('climax_mode', 'rise')
+
+            print(
+                f"Processing emotion segment {m.get('segment_id', '')}: "
+                f"file='{filename}' | start={start_s:.2f}s | dur={duration_s:.2f}s | mode={climax_mode}"
+            )
+
+            start_offset_s = find_best_climax_start(filename, duration_s, mood=climax_mode)
+
+            block_data = load_pcm_wrapped(filename, start_offset_s, duration_s).astype(np.float32)
+
+            fade_in_len = min(int(2.0 * SR), len(block_data))
+
+            if fade_in_len > 0:
+
+                fade_in_curve = (np.sin(np.linspace(-np.pi/2, np.pi/2, fade_in_len)) + 1) / 2
+
+                block_data[:fade_in_len] *= fade_in_curve[:, np.newaxis]
+
+            fade_out_len = min(int(2.5 * SR), len(block_data))
+
+            if fade_out_len > 0:
+
+                fade_out_start = len(block_data) - fade_out_len
+
+                fade_out_curve = (np.cos(np.linspace(0, np.pi, fade_out_len)) + 1) / 2
+
+                block_data[fade_out_start:] *= fade_out_curve[:, np.newaxis]
+
+            current_start_sample = int(start_s * SR)
+
+            mix_end = current_start_sample + len(block_data)
+
+            if mix_end > len(bgm_audio):
+
+                pad_len = mix_end - len(bgm_audio)
+
+                bgm_audio = np.concatenate([bgm_audio, np.zeros((pad_len, 2), dtype=np.float32)], axis=0)
+
+            end_sample = min(mix_end, len(bgm_audio))
+
+            actual_len = max(0, end_sample - current_start_sample)
+
+            if actual_len > 0:
+
+                bgm_audio[current_start_sample:end_sample] += block_data[:actual_len]
+
+    elif use_single_bgm and single_bgm and os.path.exists(single_bgm):
 
         print(f"Single Soundtrack Mode active. Loading: {single_bgm}")
 

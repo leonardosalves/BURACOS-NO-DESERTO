@@ -211,6 +211,26 @@ interface BGM {
 
 }
 
+interface BgmEmotionMapping {
+
+  segment_id: string;
+
+  file: string;
+
+  start: number;
+
+  duration: number;
+
+  emotion?: string;
+
+  climax_mode?: string;
+
+  duck_strength?: string;
+
+  search_theme?: string;
+
+}
+
 interface ImpactText {
 
   block: number;
@@ -278,6 +298,10 @@ interface ConfigData {
   use_single_bgm?: boolean;
 
   single_bgm?: string;
+
+  bgm_mode?: 'emotion' | 'block';
+
+  bgm_emotion_mappings?: BgmEmotionMapping[];
   upload_metadata?: any;
   youtube_channel?: {
     channel_url?: string;
@@ -2349,6 +2373,7 @@ export default function App() {
         if (!Array.isArray(loadedConfig.highlight_keywords)) loadedConfig.highlight_keywords = [];
         if (!Array.isArray(loadedConfig.impact_texts)) loadedConfig.impact_texts = [];
         if (!Array.isArray(loadedConfig.bgm_mappings)) loadedConfig.bgm_mappings = [];
+        if (!Array.isArray(loadedConfig.bgm_emotion_mappings)) loadedConfig.bgm_emotion_mappings = [];
 
         // Auto-set aspect_ratio if not defined, based on format
 
@@ -2356,6 +2381,11 @@ export default function App() {
 
           loadedConfig.aspect_ratio = formatSelector === 'SHORTS' ? '9:16' : '16:9';
 
+        }
+
+        const isShortProject = loadedConfig.aspect_ratio === '9:16' || formatSelector === 'SHORTS';
+        if (!loadedConfig.use_single_bgm && !loadedConfig.bgm_mode && !isShortProject) {
+          loadedConfig.bgm_mode = 'emotion';
         }
 
         setConfig(loadedConfig);
@@ -4145,6 +4175,28 @@ export default function App() {
     status?.block_timings?.durations
 
   ]);
+
+  const isShortVideo = config?.aspect_ratio === '9:16' || formatSelector === 'SHORTS';
+
+  const activeBgmMode = config?.use_single_bgm
+    ? 'single'
+    : (config?.bgm_mode || (isShortVideo ? 'single' : 'emotion'));
+
+  const bgmEmotionRows = useMemo(() => {
+
+    const segments = storyboardData?.bgm_emotion_plan?.segments || [];
+
+    const mappings = config?.bgm_emotion_mappings || [];
+
+    return segments.map((seg: any) => ({
+
+      ...seg,
+
+      file: mappings.find((mapping: BgmEmotionMapping) => mapping.segment_id === seg.id)?.file || '',
+
+    }));
+
+  }, [storyboardData?.bgm_emotion_plan?.segments, config?.bgm_emotion_mappings]);
 
   const safeMusicFiles = useMemo(
     () => (Array.isArray(musicFiles) ? musicFiles.filter((f) => f && typeof f.name === 'string') : []),
@@ -6332,7 +6384,57 @@ export default function App() {
 
   const [suggestingBGM, setSuggestingBGM] = useState<boolean>(false);
 
+  const [planningBgmEmotions, setPlanningBgmEmotions] = useState<boolean>(false);
+
   const [bgmSuggestions, setBgmSuggestions] = useState<{ mode?: string; recommendation?: string; search_theme?: string; suggestions?: { block: number; recommendation: string; reason?: string; search_theme?: string }[]; manual_note?: string } | null>(null);
+
+  const handlePlanBgmEmotions = async () => {
+
+    if (!hasApiKey || !config) return;
+
+    setPlanningBgmEmotions(true);
+
+    try {
+
+      const { ok, data } = await postAi('/api/ai/plan-bgm-emotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (ok && !data.needs_browser) {
+
+        if (data.plan) {
+
+          setStoryboardData((prev: any) => ({ ...(prev || {}), bgm_emotion_plan: data.plan }));
+
+        }
+
+        saveConfig({ ...config, bgm_mode: 'emotion', use_single_bgm: false, single_bgm: '' });
+
+        const count = data.plan?.segment_count || data.plan?.segments?.length || 0;
+
+        toast.success(`Plano emocional gerado: ${count} segmento(s).`);
+
+        fetchData();
+
+      } else {
+
+        toast.error(data.error || 'Erro ao planejar trilhas por emoção.');
+
+      }
+
+    } catch {
+
+      toast.error('Falha na conexão ao planejar trilhas por emoção.');
+
+    } finally {
+
+      setPlanningBgmEmotions(false);
+
+    }
+
+  };
 
   const handleSuggestBGM = async () => {
 
@@ -7913,9 +8015,40 @@ export default function App() {
 
       : withoutBlock;
 
-    const updated = { ...config, bgm_mappings: updatedBgm };
+    const updated = { ...config, bgm_mappings: updatedBgm, bgm_mode: 'block', use_single_bgm: false };
 
     saveConfig(updated);
+
+  };
+
+  const handleEmotionMusicChange = (segmentId: string, fileName: string, segMeta: any) => {
+
+    if (!config) return;
+
+    const withoutSegment = (config.bgm_emotion_mappings || []).filter(mapping => mapping.segment_id !== segmentId);
+
+    const updatedMappings = fileName
+
+      ? [...withoutSegment, {
+          segment_id: segmentId,
+          file: fileName,
+          start: Number(segMeta.start) || 0,
+          duration: Math.max(0.5, Number(segMeta.duration ?? (segMeta.end - segMeta.start)) || 0.5),
+          emotion: segMeta.emotion,
+          climax_mode: segMeta.climax_mode,
+          duck_strength: segMeta.duck_strength,
+          search_theme: segMeta.search_theme,
+        }].sort((a, b) => a.start - b.start)
+
+      : withoutSegment;
+
+    saveConfig({
+      ...config,
+      bgm_emotion_mappings: updatedMappings,
+      bgm_mode: 'emotion',
+      use_single_bgm: false,
+      single_bgm: '',
+    });
 
   };
 
@@ -10072,35 +10205,63 @@ export default function App() {
 
                     <SectionHeader title="Configuração de Trilha" helpId="music-mapping" size="sm" titleClassName="tracking-widest uppercase text-xs" />
 
-                    <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 gap-1">
+                    <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 gap-1 flex-wrap">
+
+                      {!isShortVideo && (
+
+                        <button
+
+                          onClick={() => saveConfig({ ...config, bgm_mode: 'emotion', use_single_bgm: false, single_bgm: '' })}
+
+                          className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
+
+                            activeBgmMode === 'emotion'
+
+                              ? 'bg-gold-500 text-zinc-950 font-bold'
+
+                              : 'text-zinc-400 hover:text-white'
+
+                          }`}
+
+                        >
+
+                          Por Emoção (IA)
+
+                        </button>
+
+                      )}
+
+                      {!isShortVideo && (
+
+                        <button
+
+                          onClick={() => saveConfig({ ...config, bgm_mode: 'block', use_single_bgm: false, single_bgm: '' })}
+
+                          className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
+
+                            activeBgmMode === 'block'
+
+                              ? 'bg-gold-500 text-zinc-950 font-bold'
+
+                              : 'text-zinc-400 hover:text-white'
+
+                          }`}
+
+                        >
+
+                          Por Bloco
+
+                        </button>
+
+                      )}
 
                       <button
 
-                        onClick={() => saveConfig({ ...config, use_single_bgm: false })}
+                        onClick={() => saveConfig({ ...config, use_single_bgm: true, bgm_mode: 'block' })}
 
                         className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
 
-                          !config.use_single_bgm
-
-                            ? 'bg-gold-500 text-zinc-950 font-bold'
-
-                            : 'text-zinc-400 hover:text-white'
-
-                        }`}
-
-                      >
-
-                        Por Bloco
-
-                      </button>
-
-                      <button
-
-                        onClick={() => saveConfig({ ...config, use_single_bgm: true })}
-
-                        className={`text-[9px] font-bold px-2 py-1 rounded transition cursor-pointer ${
-
-                          config.use_single_bgm
+                          activeBgmMode === 'single'
 
                             ? 'bg-gold-500 text-zinc-950 font-bold'
 
@@ -10118,7 +10279,135 @@ export default function App() {
 
                   </div>
 
-                  {config.use_single_bgm ? (
+                  {activeBgmMode === 'emotion' ? (
+
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 animate-fade-in">
+
+                      <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-2">
+
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">
+
+                          Trilha por emoção/temática
+
+                        </span>
+
+                        <p className="text-[11px] text-gray-500 leading-normal">
+
+                          A IA planeja segmentos temporais pela narração — emoções iguais adjacentes são fundidas automaticamente. Cada segmento pode cobrir vários blocos.
+
+                        </p>
+
+                        <button
+
+                          disabled={planningBgmEmotions || !hasApiKey}
+
+                          onClick={handlePlanBgmEmotions}
+
+                          className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 text-[10px] font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+
+                        >
+
+                          {planningBgmEmotions ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+
+                          <span>{planningBgmEmotions ? 'Planejando...' : 'Planejar trilhas por emoção (IA)'}</span>
+
+                        </button>
+
+                      </div>
+
+                      {bgmEmotionRows.length === 0 ? (
+
+                        <p className="text-[11px] text-zinc-500 italic px-1">
+
+                          Nenhum segmento planejado. Clique no botão acima para gerar o plano emocional.
+
+                        </p>
+
+                      ) : bgmEmotionRows.map((seg: any) => (
+
+                        <div key={seg.id} className="space-y-1">
+
+                          <div className="flex justify-between items-center p-3 bg-zinc-950 border border-zinc-900 rounded-xl gap-3">
+
+                            <div className="min-w-0 flex-1">
+
+                              <span className="text-xs font-bold text-white font-mono block truncate">
+
+                                {seg.id} · {seg.emotion}
+
+                              </span>
+
+                              <span className="text-[10px] text-zinc-500 block">
+
+                                {Number(seg.start).toFixed(1)}s → {Number(seg.end).toFixed(1)}s
+
+                                {seg.mood_label ? ` · ${seg.mood_label}` : ''}
+
+                              </span>
+
+                            </div>
+
+                            <div className="flex gap-2 items-center shrink-0">
+
+                              <select
+
+                                value={seg.file}
+
+                                onChange={(e) => handleEmotionMusicChange(seg.id, e.target.value, seg)}
+
+                                className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-lg px-2 py-1.5 text-xs cursor-pointer max-w-[180px] truncate"
+
+                              >
+
+                                <option value="">-- Nenhuma --</option>
+
+                                {safeMusicFiles.map(file => (
+
+                                  <option key={file.name} value={file.name}>{file.name}</option>
+
+                                ))}
+
+                              </select>
+
+                              {seg.file && (
+
+                                <button
+
+                                  onClick={() => togglePlayMusic(seg.file)}
+
+                                  className="text-gold-500 hover:text-gold-400 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 cursor-pointer shrink-0 transition"
+
+                                  title="Ouvir trilha"
+
+                                >
+
+                                  {playingMusic === seg.file ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 text-gold-500" />}
+
+                                </button>
+
+                              )}
+
+                            </div>
+
+                          </div>
+
+                          {seg.search_theme && (
+
+                            <div className="ml-2 px-3 py-1.5 text-[9px] text-zinc-500 border-l-2 border-gold-500/30">
+
+                              🔍 {seg.search_theme}
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      ))}
+
+                    </div>
+
+                  ) : activeBgmMode === 'single' ? (
 
                     <div className="space-y-4 py-2 animate-fade-in">
 

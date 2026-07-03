@@ -138,6 +138,7 @@ type BgmTrack = {
   start: number;
   duration: number;
   startFrom?: number;
+  segmentId?: string;
   duckStrength?: "light" | "normal" | "strong";
   mood?: string;
   climaxMode?: string;

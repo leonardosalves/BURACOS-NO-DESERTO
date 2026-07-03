@@ -265,6 +265,16 @@ import {
   formatSonoplastiaLog,
   resolveBlockSearchTheme,
 } from "./bgmSonoplastia.js";
+import {
+  buildBgmEmotionPlan,
+  buildBgmEmotionPlanPrompt,
+  buildHeuristicEmotionSegments,
+  formatEmotionPlanLog,
+  normalizeEmotionSegments,
+  parseAiEmotionPlanResponse,
+  resolveBgmMode,
+  segmentsNeedingBgmDownload,
+} from "./bgmEmotionPlan.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -3571,9 +3581,26 @@ function makeEpidemicFilename(title) {
 }
 
 /** Resolve BGM for Remotion when config.bgm_mappings is empty but audio files exist on disk. */
-function resolveBgmMappingsForRender(projectDir, config, blockNumbers) {
+function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboard = {}) {
   if (config?.use_single_bgm && config?.single_bgm && findProjectFile(projectDir, config.single_bgm)) {
     return { mode: "single", single_bgm: config.single_bgm, mappings: [], source: "config_single" };
+  }
+
+  const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
+  const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
+
+  if (bgmMode === "emotion") {
+    const emotionMappings = Array.isArray(config?.bgm_emotion_mappings)
+      ? config.bgm_emotion_mappings.filter((m) => m?.file && findProjectFile(projectDir, m.file))
+      : [];
+    if (emotionMappings.length > 0) {
+      return { mode: "emotion", mappings: emotionMappings, source: "emotion_mappings" };
+    }
+  }
+
+  if (bgmMode === "block") {
+    // fall through to block resolution below
   }
 
   const configured = Array.isArray(config?.bgm_mappings)
@@ -3650,6 +3677,16 @@ function collectExistingAutoBgmKeys(projDir, config) {
   if (Array.isArray(config?.bgm_mappings)) {
 
     for (const mapping of config.bgm_mappings) {
+
+      if (mapping?.file) keys.add(normalizeAudioChoiceKey(mapping.file));
+
+    }
+
+  }
+
+  if (Array.isArray(config?.bgm_emotion_mappings)) {
+
+    for (const mapping of config.bgm_emotion_mappings) {
 
       if (mapping?.file) keys.add(normalizeAudioChoiceKey(mapping.file));
 
@@ -3814,12 +3851,101 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
     }
 
   } else {
-
     const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
     const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
     const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
     const blockRanges = buildProjectBlockRanges(blockNumbers, timings);
     const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+    const totalDuration = Number(timings.total_duration)
+      || blockRanges.reduce((max, r) => Math.max(max, r.start + r.duration), 0);
+    const videoFormat = detectVideoFormat(config, totalDuration);
+    const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
+
+    if (bgmMode === "emotion") {
+      config.bgm_mode = "emotion";
+      config.use_single_bgm = false;
+      config.single_bgm = "";
+      if (!Array.isArray(config.bgm_emotion_mappings)) config.bgm_emotion_mappings = [];
+
+      let plan = storyboard.bgm_emotion_plan;
+      if (!plan?.segments?.length) {
+        const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
+        plan = buildBgmEmotionPlan({
+          config,
+          storyboard,
+          blockRanges,
+          wordTranscripts,
+          totalDuration,
+          nicheMood,
+        });
+        storyboard.bgm_emotion_plan = plan;
+        logs.push(`Plano emocional heurístico: ${plan.segments.length} segmento(s).`);
+      }
+
+      const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+      const segmentsToFill = segmentsNeedingBgmDownload(plan.segments, config.bgm_emotion_mappings, fileExists);
+
+      if (segmentsToFill.length === 0) {
+        logs.push("Todos os segmentos emocionais já possuem trilha no disco.");
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+        fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
+        return logs;
+      }
+
+      if (segmentsToFill.length === plan.segments.length) {
+        const removed = deleteGeneratedBgmCycleFiles(projDir);
+        if (removed.length > 0) {
+          logs.push(`Removendo ${removed.length} BGM antigas antes do plano emocional.`);
+        }
+        config.bgm_emotion_mappings = [];
+      }
+
+      for (const line of formatEmotionPlanLog(plan)) logs.push(line);
+
+      const usedTracks = new Set();
+
+      for (const seg of segmentsToFill) {
+        const searchTheme = translateOrCleanQuery(seg.search_theme || nicheMood?.bgm || "cinematic documentary");
+        logs.push(`[${seg.id}] ${seg.emotion} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s → "${searchTheme}"`);
+
+        try {
+          const tracks = await searchMusic(token, searchTheme);
+          const track = pickFreshTrack(tracks, usedTracks, previousAutoBgmKeys, seg.id);
+          if (track) {
+            usedTracks.add(String(track.id || "").toLowerCase());
+            usedTracks.add(normalizeAudioChoiceKey(track.title));
+            const filename = makeEpidemicFilename(track.title);
+            const destPath = path.join(projDir, filename);
+            logs.push(`[${seg.id}] Baixando: "${track.title}" → ${filename}`);
+            await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
+
+            config.bgm_emotion_mappings = config.bgm_emotion_mappings.filter((m) => m.segment_id !== seg.id);
+            config.bgm_emotion_mappings.push({
+              segment_id: seg.id,
+              file: filename,
+              start: seg.start,
+              duration: seg.end - seg.start,
+              emotion: seg.emotion,
+              climax_mode: seg.climax_mode,
+              duck_strength: seg.duck_strength,
+              search_theme: seg.search_theme,
+            });
+            logs.push(`[${seg.id}] Mapeada: ${filename} (entrada ${seg.climax_mode})`);
+          } else {
+            logs.push(`[${seg.id}] Nenhuma música para "${searchTheme}".`);
+          }
+        } catch (e) {
+          logs.push(`[${seg.id}] Erro: ${e.message}`);
+        }
+      }
+
+      config.bgm_emotion_mappings.sort((a, b) => Number(a.start) - Number(b.start));
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
+      logs.push(`Sonoplastia emocional: ${config.bgm_emotion_mappings.length} segmento(s) com trilha.`);
+      return logs;
+    }
+
     const sonoplastiaPlan = buildBlockSonoplastiaPlan({
       config,
       storyboard,
@@ -3990,16 +4116,38 @@ async function ensureProjectBgmTracks(projDir) {
   const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
   const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
   const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
-  const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExists);
+  const totalDuration = Number(timings.total_duration) || 0;
+  const videoFormat = detectVideoFormat(config, totalDuration);
+  const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
 
-  const hasMappings = (config.use_single_bgm && config.single_bgm && fileExists(config.single_bgm))
-    || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.some((m) => m?.file && fileExists(m.file)));
+  let needsAutoFetch = false;
+  let autoFetchReason = "";
 
-  if (!hasMappings || blocksToFill.length > 0) {
-    const reason = !hasMappings
+  if (bgmMode === "emotion") {
+    const segments = storyboard?.bgm_emotion_plan?.segments || [];
+    const segmentsToFill = segmentsNeedingBgmDownload(
+      segments,
+      config.bgm_emotion_mappings || [],
+      fileExists,
+    );
+    const hasMappings = Array.isArray(config.bgm_emotion_mappings)
+      && config.bgm_emotion_mappings.some((m) => m?.file && fileExists(m.file));
+    needsAutoFetch = !hasMappings || segmentsToFill.length > 0;
+    autoFetchReason = !hasMappings
+      ? "sem trilhas emocionais mapeadas"
+      : `${segmentsToFill.length} segmento(s) sem arquivo`;
+  } else {
+    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExists);
+    const hasMappings = (config.use_single_bgm && config.single_bgm && fileExists(config.single_bgm))
+      || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.some((m) => m?.file && fileExists(m.file)));
+    needsAutoFetch = !hasMappings || blocksToFill.length > 0;
+    autoFetchReason = !hasMappings
       ? "sem trilhas mapeadas"
       : `${blocksToFill.length} bloco(s) sem arquivo`;
-    console.log(`[BGM Auto-Fetch] Sonoplastia automática (${reason})...`);
+  }
+
+  if (needsAutoFetch) {
+    console.log(`[BGM Auto-Fetch] Sonoplastia automática (${autoFetchReason})...`);
 
     try {
       const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
@@ -4015,6 +4163,14 @@ async function ensureProjectBgmTracks(projDir) {
   if (config.use_single_bgm && config.single_bgm) {
 
     filesToDownload.push(config.single_bgm);
+
+  } else if (bgmMode === "emotion" && Array.isArray(config.bgm_emotion_mappings)) {
+
+    for (const m of config.bgm_emotion_mappings) {
+
+      if (m.file) filesToDownload.push(m.file);
+
+    }
 
   } else if (Array.isArray(config.bgm_mappings)) {
 
@@ -6246,7 +6402,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     console.log(line);
   }
 
-  const bgmPlan = resolveBgmMappingsForRender(projectDir, config, blockNumbers);
+  const bgmPlan = resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboard);
   const bgmTracks = [];
 
   if (bgmPlan.mode === "single" && bgmPlan.single_bgm) {
@@ -6357,6 +6513,58 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
       }
 
+    }
+
+  } else if (bgmPlan.mode === "emotion" && Array.isArray(bgmPlan.mappings)) {
+
+    const emotionSegments = storyboard?.bgm_emotion_plan?.segments || [];
+    const segmentById = new Map(emotionSegments.map((seg) => [String(seg.id), seg]));
+
+    for (const mapping of bgmPlan.mappings) {
+      const segmentId = String(mapping?.segment_id || mapping?.id || "");
+      const segMeta = segmentById.get(segmentId) || {};
+      const start = Number(mapping?.start ?? segMeta.start ?? 0);
+      const duration = Number(
+        mapping?.duration
+        ?? (Number.isFinite(segMeta.end) && Number.isFinite(segMeta.start) ? segMeta.end - segMeta.start : 0)
+        ?? Math.max(0, totalDuration - start),
+      );
+      const source = findProjectFile(projectDir, mapping?.file);
+      const copied = copyRemotionAsset(source, publicProjectDir, `bgm_${segmentId || "seg"}_`);
+      if (!copied || duration <= 0) continue;
+
+      const climaxMode = mapping?.climax_mode || segMeta.climax_mode || "rise";
+      const duckStrength = mapping?.duck_strength || segMeta.duck_strength || "normal";
+      const emotion = mapping?.emotion || segMeta.emotion || "neutral";
+      let startFrom = 0;
+
+      try {
+        const pythonPath = PYTHON_PATH || "python";
+        const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
+        const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${duration} ${climaxMode}`;
+        const output = execSync(detectCmd, { encoding: "utf8" }).trim();
+        const lines = output.split(/\r?\n/);
+        const lastLine = lines[lines.length - 1].trim();
+        const parsed = parseFloat(lastLine);
+        if (Number.isFinite(parsed)) {
+          startFrom = parsed;
+          console.log(`[Remotion] BGM emoção ${segmentId}: offset ${startFrom}s (modo ${climaxMode}, ${emotion})`);
+        }
+      } catch (e) {
+        console.error(`Error detecting climax for emotion segment ${segmentId}:`, e);
+      }
+
+      bgmTracks.push({
+        block: 0,
+        segmentId,
+        file: `projects/${projectSlug}/${copied}`,
+        start,
+        duration,
+        startFrom,
+        duckStrength,
+        mood: emotion,
+        climaxMode,
+      });
     }
 
   }
@@ -10741,6 +10949,79 @@ Responda APENAS com um JSON valido no formato:
   } catch (err) {
 
     res.status(500).json({ error: "Erro ao sugerir BGM", details: err.message });
+
+  }
+
+});
+
+app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
+
+  const projDir = getProjectDir(req);
+
+  try {
+
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+    const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
+    const blockRanges = buildProjectBlockRanges(blockNumbers, timings);
+    const totalDuration = Number(timings.total_duration)
+      || blockRanges.reduce((max, range) => Math.max(max, range.start + range.duration), 0)
+      || 120;
+    const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+    const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
+
+    const prompt = buildBgmEmotionPlanPrompt({
+      narrativeScript: storyboard.narrative_script || "",
+      visualPrompts: storyboard.visual_prompts || [],
+      blockRanges,
+      totalDuration,
+      niche: config.niche || "Geral",
+      sceneTiming: sceneMaps,
+    });
+
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "Plano BGM por emoção",
+      prompt,
+    });
+    if (responseText == null) return;
+
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Plano BGM por emoção",
+    );
+    const aiSegments = parseAiEmotionPlanResponse(parsed);
+    const plan = buildBgmEmotionPlan({
+      aiSegments,
+      config,
+      storyboard,
+      blockRanges,
+      wordTranscripts,
+      totalDuration,
+      nicheMood,
+    });
+
+    storyboard.bgm_emotion_plan = plan;
+    config.bgm_mode = "emotion";
+    config.use_single_bgm = false;
+    config.single_bgm = "";
+    if (!Array.isArray(config.bgm_emotion_mappings)) config.bgm_emotion_mappings = [];
+
+    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+
+    res.json({
+      success: true,
+      plan,
+      logs: formatEmotionPlanLog(plan),
+    });
+
+  } catch (err) {
+
+    console.error("[Plan BGM Emotions]", err);
+    res.status(500).json({ error: err.message || "Falha ao planejar trilhas por emoção." });
 
   }
 
