@@ -193,15 +193,46 @@ export function buildBlockTitlesForProgressBar({
   return result;
 }
 
+function isGenericBlockTitle(
+  title: string,
+  blockNum: number,
+  phraseStart = '',
+): boolean {
+  const t = String(title || '').trim();
+  if (!t) return true;
+  if (t === `Bloco ${blockNum}`) return true;
+  const phrase = String(phraseStart || '').trim();
+  if (phrase && t === phrase) return true;
+  if (phrase && phrase.startsWith(t) && t.length <= 56) return true;
+  return false;
+}
+
 export function resolveBlockDisplayTitle(
   saved: { title?: string; label?: string } | undefined,
   metadataTitle: string | undefined,
   blockNum: number,
+  phraseStart = '',
 ): string {
+  const meta = String(metadataTitle || '').trim();
+  const savedTitle = String(saved?.title || saved?.label || '').trim();
+  if (meta && isGenericBlockTitle(savedTitle, blockNum, phraseStart)) return meta;
   if (saved?.title?.trim()) return saved.title.trim();
-  if (metadataTitle?.trim()) return metadataTitle.trim();
+  if (meta) return meta;
   if (saved?.label?.trim()) return saved.label.trim();
   return `Bloco ${blockNum}`;
+}
+
+export function applyMetadataTitlesToProgressBlocks(
+  blocks: Array<{ block: number; title?: string; label?: string; [key: string]: unknown }>,
+  metadataTitles: Map<number, string>,
+  chaptersText = '',
+): typeof blocks {
+  if (!chaptersText.trim() || !metadataTitles.size) return blocks;
+  return blocks.map((b) => {
+    const metaTitle = metadataTitles.get(b.block);
+    if (!metaTitle) return b;
+    return { ...b, title: metaTitle, label: metaTitle };
+  });
 }
 
 export function truncateBlockDisplayTitle(text: string, max = 28): string {

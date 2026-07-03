@@ -118,7 +118,7 @@ export function buildBlockProgressDraftFromProject(
     const saved = existing.get(block);
     const phraseStart = String(bp.phrase || bp.text || '').trim();
     const fullNarration = narrations.get(block) || phraseStart;
-    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block);
+    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block, phraseStart);
     const iconType = saved?.iconType || suggestBlockProgressIcon(fullNarration, niche, usedIcons);
     if (!saved?.iconType) usedIcons.add(iconType);
     return {

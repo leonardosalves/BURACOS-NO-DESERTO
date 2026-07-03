@@ -6,7 +6,11 @@ import {
   type BlockProgressBarDraft,
   type BlockProgressMarkerDraft,
 } from './BlockProgressBarEditor';
-import { isListicleProject } from './blockProgressBarTitles';
+import {
+  applyMetadataTitlesToProgressBlocks,
+  buildBlockTitlesForProgressBar,
+  isListicleProject,
+} from './blockProgressBarTitles';
 
 type BlockTimingsLike = { starts?: number[]; durations?: number[] };
 
@@ -36,18 +40,34 @@ function blockTimingsKey(timings?: BlockTimingsLike): string {
   return `${(timings.starts || []).join(',')}|${(timings.durations || []).join(',')}`;
 }
 
-function mergeBlockTimingsIntoDraft(
+function mergeBlockTimingsAndChapterTitles(
   prev: BlockProgressBarDraft,
   timings: BlockTimingsLike,
+  chaptersText: string,
+  storyboard?: StoryboardLike | null,
+  config: Record<string, unknown> = {},
 ): BlockProgressBarDraft {
   const starts = timings.starts || [];
   const durations = timings.durations || [];
   if (!starts.length && !durations.length) return prev;
-  const blocks = prev.blocks.map((b, idx) => ({
-    ...b,
-    start: starts[idx] !== undefined ? Number(starts[idx]) : b.start,
-    duration: durations[idx] !== undefined ? Number(durations[idx]) : b.duration,
-  }));
+
+  const metadataTitles = buildBlockTitlesForProgressBar({
+    chaptersText,
+    blockStarts: starts,
+    storyboard,
+    config,
+  });
+
+  const blocks = applyMetadataTitlesToProgressBlocks(
+    prev.blocks.map((b, idx) => ({
+      ...b,
+      start: starts[idx] !== undefined ? Number(starts[idx]) : b.start,
+      duration: durations[idx] !== undefined ? Number(durations[idx]) : b.duration,
+    })),
+    metadataTitles,
+    chaptersText,
+  );
+
   return { ...prev, blocks };
 }
 
@@ -90,7 +110,13 @@ export function BlockProgressBarProjectPanel({
 
     if (timingsKey && timingsKey !== prevTimingsKey.current) {
       prevTimingsKey.current = timingsKey;
-      setDraft((prev) => mergeBlockTimingsIntoDraft(prev, blockTimings || {}));
+      setDraft((prev) => mergeBlockTimingsAndChapterTitles(
+        prev,
+        blockTimings || {},
+        chaptersText,
+        storyboard,
+        config,
+      ));
     }
   }, [projectKey, timingsKey, config, blockTimings, storyboard, chaptersText, metadataReady]);
 

@@ -1113,10 +1113,14 @@ app.post("/api/config", (req, res) => {
         const prevMeta = existingConfig.upload_metadata && typeof existingConfig.upload_metadata === "object"
           ? existingConfig.upload_metadata
           : {};
+        const nextYoutube = { ...(prevMeta.youtube || {}), ...(value.youtube || {}) };
+        if (!String(nextYoutube.chapters || "").trim() && String(prevMeta.youtube?.chapters || "").trim()) {
+          nextYoutube.chapters = prevMeta.youtube.chapters;
+        }
         mergedConfig.upload_metadata = {
           ...prevMeta,
           ...value,
-          youtube: { ...(prevMeta.youtube || {}), ...(value.youtube || {}) },
+          youtube: nextYoutube,
           instagram: { ...(prevMeta.instagram || {}), ...(value.instagram || {}) },
           tiktok: { ...(prevMeta.tiktok || {}), ...(value.tiktok || {}) },
           kwai: { ...(prevMeta.kwai || {}), ...(value.kwai || {}) },
