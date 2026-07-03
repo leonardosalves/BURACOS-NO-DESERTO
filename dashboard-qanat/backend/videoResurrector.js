@@ -100,6 +100,108 @@ function emptyDailyRuns(date = localDateString()) {
   return { date, morning: null, afternoon: null };
 }
 
+function emptyCycle(number = 1) {
+  return {
+    number,
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+  };
+}
+
+function comparePublishedAtAsc(a, b) {
+  const ta = new Date(a?.publishedAt || 0).getTime();
+  const tb = new Date(b?.publishedAt || 0).getTime();
+  if (ta !== tb) return ta - tb;
+  return String(a?.videoId || "").localeCompare(String(b?.videoId || ""));
+}
+
+export function getResurrectorCycleNumber(state) {
+  return Math.max(1, Number(state?.cycle?.number) || 1);
+}
+
+export function isVideoBatchedInCurrentCycle(state, videoId) {
+  const cycleNum = getResurrectorCycleNumber(state);
+  const item = (state.items || []).find((i) => i.videoId === videoId);
+  if (!item) return false;
+  if (item.cycleNumber !== cycleNum) return false;
+  return item.status !== "queued";
+}
+
+export function resetItemForNewCycle(item) {
+  const now = new Date().toISOString();
+  return {
+    ...item,
+    status: "queued",
+    cycleNumber: undefined,
+    proposedMetadata: null,
+    selectedTitle: null,
+    metadataRaw: null,
+    error: null,
+    appliedAt: null,
+    thumbnailApplied: false,
+    thumbnailLocalPath: null,
+    thumbnailStatus: item.format === "LONG" ? "awaiting_manual" : "n/a",
+    thumbnailError: null,
+    updatedAt: now,
+  };
+}
+
+export function advanceResurrectorCycle(state) {
+  const prev = getResurrectorCycleNumber(state);
+  const now = new Date().toISOString();
+  state.cycle = {
+    number: prev + 1,
+    startedAt: now,
+    completedAt: null,
+    previousCycleNumber: prev,
+    previousCompletedAt: now,
+  };
+
+  for (let i = 0; i < (state.items || []).length; i += 1) {
+    const item = state.items[i];
+    if (item.status === "review" || item.status === "generating") continue;
+    if (["applied", "skipped", "failed"].includes(item.status)) {
+      state.items[i] = resetItemForNewCycle(item);
+    }
+  }
+
+  return state;
+}
+
+export function computeResurrectorCycleProgress(state, eligible = []) {
+  const total = eligible.length;
+  const cycleNum = getResurrectorCycleNumber(state);
+  const batched = eligible.filter((row) => isVideoBatchedInCurrentCycle(state, row.videoId)).length;
+  const pending = Math.max(0, total - batched);
+  const nextVideo = eligible.find((row) => !isVideoBatchedInCurrentCycle(state, row.videoId)) || null;
+
+  return {
+    number: cycleNum,
+    startedAt: state.cycle?.startedAt || null,
+    completedAt: state.cycle?.completedAt || null,
+    total,
+    batched,
+    pending,
+    complete: total > 0 && batched >= total,
+    nextVideoId: nextVideo?.videoId || null,
+    nextVideoTitle: nextVideo?.title || null,
+    order: "oldest_first",
+  };
+}
+
+export function maybeCompleteResurrectorCycle(state, eligible = []) {
+  const progress = computeResurrectorCycleProgress(state, eligible);
+  const cycleNum = getResurrectorCycleNumber(state);
+  const pendingWork = (state.items || []).some(
+    (i) => i.cycleNumber === cycleNum && ["review", "generating"].includes(i.status),
+  );
+  if (!progress.complete || pendingWork) return { state, advanced: false, progress };
+
+  const advancedState = advanceResurrectorCycle({ ...state });
+  const nextProgress = computeResurrectorCycleProgress(advancedState, eligible);
+  return { state: advancedState, advanced: true, progress: nextProgress };
+}
+
 export function getTodayDailyRuns(state, now = new Date()) {
   const today = localDateString(now);
   if (state.dailyRuns?.date === today) return state.dailyRuns;
@@ -146,8 +248,9 @@ export function loadResurrectorState(workspaceDir) {
     : emptyDailyRuns(today);
 
   return {
-    version: 2,
+    version: 3,
     settings,
+    cycle: stored.cycle?.number ? stored.cycle : emptyCycle(1),
     dailyRuns,
     lastDailyRunAt: stored.lastDailyRunAt || null,
     lastDailyRunDate: stored.lastDailyRunDate || null,
@@ -360,30 +463,29 @@ export async function uploadYoutubeVideoThumbnail(accessToken, videoId, imagePat
   return true;
 }
 
-function wasRecentlyProcessed(state, videoId, cooldownDays) {
-  const cutoff = Date.now() - cooldownDays * 24 * 60 * 60 * 1000;
-  for (const item of state.items || []) {
-    if (item.videoId !== videoId) continue;
-    if (item.status === "skipped") continue;
-    const applied = item.appliedAt ? new Date(item.appliedAt).getTime() : 0;
-    const updated = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-    if (item.status === "applied" && applied > cutoff) return true;
-    if (["review", "generating", "queued"].includes(item.status)) return true;
-    if (updated > cutoff && item.status === "failed") return false;
-  }
-  for (const h of state.history || []) {
-    if (h.videoId === videoId && h.appliedAt) {
-      if (new Date(h.appliedAt).getTime() > cutoff) return true;
-    }
-  }
+function findResurrectorItem(state, videoId) {
+  return (state.items || []).find((i) => i.videoId === videoId) || null;
+}
+
+function hasBlockingResurrectorItem(state, videoId) {
+  const item = findResurrectorItem(state, videoId);
+  if (!item) return false;
+  return ["review", "generating"].includes(item.status);
+}
+
+function hasActiveQueueItem(state, videoId) {
+  const cycleNum = getResurrectorCycleNumber(state);
+  const item = findResurrectorItem(state, videoId);
+  if (!item) return false;
+  if (hasBlockingResurrectorItem(state, videoId)) return true;
+  if (item.cycleNumber === cycleNum && item.status === "queued") return true;
   return false;
 }
 
-export async function scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings = {}) {
+async function buildResurrectorEligibleRows(workspaceDir, projectsRoot, settings = {}) {
   const merged = { ...DEFAULT_SETTINGS, ...settings };
-  const state = loadResurrectorState(workspaceDir);
   const published = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
-  if (!published.length) return { eligible: [], state };
+  if (!published.length) return [];
 
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
@@ -395,7 +497,6 @@ export async function scanEligibleResurrectorVideos(workspaceDir, projectsRoot, 
     if (!sn?.publishedAt) continue;
     const ageDays = daysSince(sn.publishedAt);
     if (ageDays < merged.minAgeDays) continue;
-    if (wasRecentlyProcessed(state, entry.videoId, merged.cooldownDays)) continue;
 
     eligible.push({
       videoId: entry.videoId,
@@ -416,17 +517,53 @@ export async function scanEligibleResurrectorVideos(workspaceDir, projectsRoot, 
     });
   }
 
-  eligible.sort((a, b) => b.ageDays - a.ageDays || (a.viewCount || 0) - (b.viewCount || 0));
-  return { eligible, state };
+  eligible.sort(comparePublishedAtAsc);
+  return eligible;
+}
+
+export async function scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings = {}) {
+  const state = loadResurrectorState(workspaceDir);
+  const allEligible = await buildResurrectorEligibleRows(workspaceDir, projectsRoot, settings);
+  const eligible = allEligible.filter((row) => !isVideoBatchedInCurrentCycle(state, row.videoId));
+  return { eligible, allEligible, state };
+}
+
+export async function prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings = {}) {
+  let next = { ...state };
+  const { allEligible } = await scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings);
+
+  const completion = maybeCompleteResurrectorCycle(next, allEligible);
+  next = completion.state;
+  if (completion.advanced) {
+    const enq = enqueueResurrectorCandidates(next, allEligible);
+    next = enq.state;
+  } else {
+    const pending = allEligible.filter((row) => !isVideoBatchedInCurrentCycle(next, row.videoId));
+    const enq = enqueueResurrectorCandidates(next, pending);
+    next = enq.state;
+  }
+
+  next.cycleProgress = computeResurrectorCycleProgress(next, allEligible);
+  return { state: next, allEligible, advanced: completion.advanced };
 }
 
 export function enqueueResurrectorCandidates(state, eligible = []) {
   const existingIds = new Set((state.items || []).map((i) => i.videoId));
   const now = new Date().toISOString();
   let added = 0;
+  const sorted = [...eligible].sort(comparePublishedAtAsc);
 
-  for (const row of eligible) {
-    if (existingIds.has(row.videoId)) continue;
+  for (const row of sorted) {
+    if (hasActiveQueueItem(state, row.videoId)) continue;
+    if (existingIds.has(row.videoId)) {
+      const idx = state.items.findIndex((i) => i.videoId === row.videoId);
+      const item = state.items[idx];
+      if (item && ["applied", "skipped", "failed"].includes(item.status) && !isVideoBatchedInCurrentCycle(state, row.videoId)) {
+        state.items[idx] = resetItemForNewCycle(item);
+        added += 1;
+      }
+      continue;
+    }
     state.items.push({
       id: randomUUID(),
       videoId: row.videoId,
@@ -458,10 +595,17 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
 
 export function pickResurrectorBatch(state, batchSize = 10, options = {}) {
   const size = Math.max(1, Math.min(20, Number(batchSize) || 10));
+  const cycleNum = getResurrectorCycleNumber(state);
   const exclude = new Set((options.excludeVideoIds || []).map(String).filter(Boolean));
   const queued = (state.items || [])
-    .filter((i) => i.status === "queued" && !exclude.has(String(i.videoId)))
-    .sort((a, b) => (b.ageDays || 0) - (a.ageDays || 0));
+    .filter((i) => {
+      if (i.status !== "queued") return false;
+      if (exclude.has(String(i.videoId))) return false;
+      if (hasBlockingResurrectorItem(state, i.videoId)) return false;
+      if (i.cycleNumber != null && i.cycleNumber !== cycleNum) return false;
+      return !isVideoBatchedInCurrentCycle(state, i.videoId);
+    })
+    .sort(comparePublishedAtAsc);
   return queued.slice(0, size);
 }
 
@@ -660,25 +804,30 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     };
   }
 
+  let prepared = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
+  state = prepared.state;
+  saveResurrectorState(workspaceDir, state);
+
   const batchSize = getSlotBatchSize(settings, normalizedSlot);
   const excludeVideoIds = normalizedSlot === "afternoon" ? getMorningVideoIdsToday(state) : [];
-  const batch = pickResurrectorBatch(state, batchSize, { excludeVideoIds });
+  let batch = pickResurrectorBatch(state, batchSize, { excludeVideoIds });
+
   if (!batch.length && !autoScanAttempted) {
-    const { eligible } = await scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings);
-    const enq = enqueueResurrectorCandidates(state, eligible);
-    saveResurrectorState(workspaceDir, enq.state);
-    return runResurrectorBatch(workspaceDir, projectsRoot, deps, {
-      slot: normalizedSlot,
-      trigger: normalizedTrigger,
-      autoScanAttempted: true,
-    });
+    prepared = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
+    state = prepared.state;
+    saveResurrectorState(workspaceDir, state);
+    batch = pickResurrectorBatch(state, batchSize, { excludeVideoIds });
   }
+
   if (!batch.length) {
     return {
       processed: 0,
-      message: "Nenhum vídeo elegível na fila para este slot.",
-      state,
+      message: prepared.state.cycleProgress?.complete
+        ? "Ciclo concluído — próximo batch inicia do vídeo mais antigo novamente."
+        : "Nenhum vídeo elegível na fila para este slot.",
+      state: prepared.state,
       slot: normalizedSlot,
+      cycle: prepared.state.cycleProgress,
     };
   }
 
@@ -687,6 +836,7 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     const idx = state.items.findIndex((i) => i.id === item.id);
     if (idx < 0) continue;
     state.items[idx].status = "generating";
+    state.items[idx].cycleNumber = getResurrectorCycleNumber(state);
     state.items[idx].updatedAt = new Date().toISOString();
     saveResurrectorState(workspaceDir, state);
 
@@ -729,17 +879,24 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
   };
   state.lastDailyRunAt = new Date().toISOString();
   state.lastDailyRunDate = today;
+
+  const postBatch = await prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings);
+  state = postBatch.state;
   saveResurrectorState(workspaceDir, state);
 
   const slotLabel = normalizedSlot === "morning" ? "manhã" : "tarde";
   const triggerLabel = normalizedTrigger === "auto" ? "automaticamente" : "manualmente";
+  const cycleMsg = postBatch.advanced
+    ? " Ciclo anterior concluído — recomeçando do mais antigo."
+    : "";
   return {
     processed: results.length,
     results,
     state,
     slot: normalizedSlot,
     trigger: normalizedTrigger,
-    message: `Batch da ${slotLabel} (${triggerLabel}): ${results.filter((r) => r.status === "review").length} vídeo(s) prontos para revisão.`,
+    cycle: state.cycleProgress,
+    message: `Batch da ${slotLabel} (${triggerLabel}): ${results.filter((r) => r.status === "review").length} vídeo(s) prontos para revisão (ordem: mais antigo → mais novo).${cycleMsg}`,
   };
 }
 
@@ -849,6 +1006,8 @@ export function getResurrectorDashboard(state) {
     },
     alerts: schedule.alerts,
     badgeCount: schedule.badgeCount,
+    cycle: state.cycle || emptyCycle(1),
+    cycleProgress: state.cycleProgress || null,
     counts: {
       queued: items.filter((i) => i.status === "queued").length,
       generating: items.filter((i) => i.status === "generating").length,
@@ -857,7 +1016,7 @@ export function getResurrectorDashboard(state) {
       failed: items.filter((i) => i.status === "failed").length,
       skipped: items.filter((i) => i.status === "skipped").length,
     },
-    items: items.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)),
+    items: items.sort((a, b) => comparePublishedAtAsc(a, b) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))),
     history: state.history || [],
   };
 }

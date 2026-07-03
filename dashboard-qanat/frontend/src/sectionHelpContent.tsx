@@ -115,7 +115,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Ressuscitador de vídeos',
     body: (
       <>
-        Reformula título, descrição, hashtags e tags de vídeos Lumiera publicados há mais de 10 dias. Dois batches diários nos horários de pico: 5 às 11h e 5 às 16h. Com o app aberto, dispara automaticamente; fechado, dispare manualmente (aviso se perdeu o horário). Vídeos da manhã não repetem à tarde. A IA usa o roteiro do projeto. Vídeos longos: thumbnail manual.
+        Reformula metadados de vídeos com +10 dias na ordem do mais antigo ao mais novo, até o último postado; ao terminar, recomeça o mesmo ciclo. Dois batches diários (11h e 16h). Com o app aberto dispara sozinho; fechado, manual. Vídeos da manhã não repetem à tarde. Thumbnail manual em longos.
       </>
     ),
   },
