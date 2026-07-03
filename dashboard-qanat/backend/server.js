@@ -2510,13 +2510,23 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     let llmText = browserText;
     if (!llmText) {
       const planSessionId = createOverlayPlanSessionId();
-      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR);
+      const orchestrationForResearch = buildOverlayOrchestrationPlan({
+        config,
+        niche: config.niche || "Geral",
+        totalDuration: Number(timings.total_duration) || 0,
+        projectName: path.basename(projDir),
+        blockCount: Array.isArray(config.block_phrases) ? config.block_phrases.length : 0,
+      });
+      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR, {
+        orchestrationPlan: orchestrationForResearch,
+      });
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
       const prompt = buildCompactOverlayPlanningPrompt(
         projDir,
         useHyperframes,
         planSessionId,
         `${learningsAddendum || ""}${researchAddendum}`,
+        overlayResearch,
       );
       if (!prompt) {
         return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
@@ -4516,9 +4526,21 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     let llmText = browserText;
     if (!llmText) {
       const planSessionId = createOverlayPlanSessionId();
-      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR);
+      const configForResearch = readProjectJson(projDir, "config_qanat.json", {});
+      const timingsForResearch = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+      const orchestrationForResearch = buildOverlayOrchestrationPlan({
+        config: configForResearch,
+        niche: configForResearch.niche || "Geral",
+        totalDuration: Number(timingsForResearch.total_duration) || 0,
+        projectName: path.basename(projDir),
+        blockCount: Array.isArray(configForResearch.block_phrases) ? configForResearch.block_phrases.length : 0,
+      });
+      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR, {
+        forceRefresh: forceRegenerate,
+        orchestrationPlan: orchestrationForResearch,
+      });
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
-      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId, researchAddendum);
+      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId, researchAddendum, overlayResearch);
       if (!prompt) {
         return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
       }
@@ -4661,6 +4683,8 @@ app.post("/api/render/plan-overlays", async (req, res) => {
             facts: overlayResearchMeta.facts?.length || 0,
             sources: overlayResearchMeta.sources?.length || 0,
             topic: overlayResearchMeta.topic,
+            selectedBlocks: overlayResearchMeta.selectedBlocks || [],
+            budget: overlayResearchMeta.budget,
             via: overlayResearchMeta.via,
           }
         : null,
@@ -14760,7 +14784,13 @@ function readHyperframesSkillExcerpt(maxChars = 2800) {
 }
 
 /** Prompt compacto para planejar overlays via Gemini no Chrome (extensão). */
-function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true, planSessionId = null, agentLearningsAddendum = "") {
+function buildCompactOverlayPlanningPrompt(
+  projectDir,
+  useHyperframes = true,
+  planSessionId = null,
+  agentLearningsAddendum = "",
+  overlayResearch = null,
+) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
@@ -14790,7 +14820,22 @@ function buildCompactOverlayPlanningPrompt(projectDir, useHyperframes = true, pl
     ? orchestrationPlan.hyperframesRefs.map((r) => `- ${r}`).join("\n")
     : "";
 
-  const maxOverlays = orchestrationPlan.limits?.maxTotal || (isListicle && isShort ? 2 : isShort ? 6 : 10);
+  const maxOverlays = orchestrationPlan.limits?.maxTotal || (isListicle && isShort ? 2 : isShort ? 2 : 10);
+  const minGap = orchestrationPlan.limits?.minGapSeconds || (isShort ? 12 : 55);
+  const selectedBlockNums = overlayResearch?.selectedBlocks?.length
+    ? overlayResearch.selectedBlocks
+    : (overlayResearch?.blocks || []).map((b) => b.block).filter(Boolean);
+  const blockTopicLines = (overlayResearch?.blockTopics || blockPhrases.map((bp) => ({
+    block: bp.block,
+    primaryTopic: String(bp.phrase || "").slice(0, 80),
+    suggestedType: "lower-third",
+    overlayScore: 0,
+  })))
+    .map((bt) => {
+      const selected = selectedBlockNums.includes(bt.block);
+      return `- Bloco ${bt.block}${selected ? " [SELECIONADO PARA OVERLAY]" : ""}: assunto="${bt.primaryTopic}" | tipo sugerido=${bt.suggestedType} | score=${bt.overlayScore}`;
+    })
+    .join("\n");
   const listicleRules = isListicle && isShort
     ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
     : "";
@@ -14819,9 +14864,13 @@ Exemplo timeline:
       : "",
     `Retorne APENAS JSON válido: {"plan_session":"...","planejamento":["3 observações"],"overlays":[...]}`,
     'Cada overlay DEVE ter "ai_meta": {scene_rationale, content_summary, design_rationale, research_fact, narration_relation}.',
-    `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
+    `Máximo ${maxOverlays} overlays. Gap mínimo ${minGap}s entre cada overlay.`,
+    selectedBlockNums.length
+      ? `Gere 1 overlay para CADA bloco selecionado: [${selectedBlockNums.join(", ")}]. Use os fatos da pesquisa web.`
+      : "Escolha os blocos com maior potencial de dado visual (números, comparações, datas).",
+    'Campo "start" = scene_id do bloco (ex: bloco 3 → "3.1") — NUNCA segundos.',
     "Tipos obrigatórios a variar: counter, bar-chart, timeline, lower-third, kinetic-text.",
-    "PROIBIDO: copiar frases dos blocos de narração; lower-third por bloco; texto >12 palavras; código/terminal.",
+    "PROIBIDO: copiar frases dos blocos de narração; 1 overlay por bloco não selecionado; texto >12 palavras; código/terminal.",
     hyperframesSchema,
     hfRefs ? `CATÁLOGO HYPERFRAMES (refs para este nicho):\n${hfRefs}` : "",
     "",
@@ -14830,6 +14879,9 @@ Exemplo timeline:
     "",
     "CENAS (use scene_id no campo start):",
     JSON.stringify(scenes, null, 2),
+    "",
+    "ASSUNTOS POR BLOCO (extraídos do roteiro — pesquisa web já feita nos [SELECIONADO]):",
+    blockTopicLines || "(sem blocos)",
     "",
     "BLOCOS (contexto apenas — NÃO copie estas frases nos overlays):",
     JSON.stringify(
@@ -15273,7 +15325,9 @@ Estrutura JSON Exigida:
     }
   }
 
-  const overlayResearch = await resolveOverlayResearchForPlanning(projectDir, WORKSPACE_DIR);
+  const overlayResearch = await resolveOverlayResearchForPlanning(projectDir, WORKSPACE_DIR, {
+    orchestrationPlan,
+  });
   const overlayResearchBlock = buildOverlayResearchPromptBlock(overlayResearch);
   if (overlayResearchBlock) {
     systemPrompt += overlayResearchBlock;

@@ -2184,7 +2184,7 @@ export default function App() {
       return;
     }
     setGeneratingOverlays(true);
-    const toastId = toast.loading('IA planejando overlays para o vídeo...');
+    const toastId = toast.loading('Pesquisando assuntos do roteiro e planejando overlays...');
     try {
       const effectiveGeminiChrome = config?.use_gemini_chrome === true;
       const useHyperframes = config?.use_hyperframes !== false;

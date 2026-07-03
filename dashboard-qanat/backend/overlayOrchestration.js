@@ -88,6 +88,10 @@ function hashString(str) {
   return Math.abs(hash);
 }
 
+function countDataRichBlocks(blockCount = 0, sceneCount = 0) {
+  return Math.max(Number(blockCount) || 0, Math.ceil((Number(sceneCount) || 0) / 3));
+}
+
 export function detectNicheCategory(niche = "") {
   const n = niche.toLowerCase();
   if (/finan|negoc|dinheiro|invest|economia/.test(n)) return "finance";
@@ -220,16 +224,17 @@ export function buildOverlayOrchestrationPlan({
   };
 
   if (isShort) {
-    const shortMax = isListicle ? 5 : 3;
-    const aiBudget = isListicle ? 2 : 3;
+    const shortMax = isListicle ? 5 : 2;
+    const aiBudget = 2;
+    const shortMinGap = config.overlay_min_gap === "relaxed" ? 15 : 12;
     plan.limits = {
       maxTotal: aiBudget,
       finalMaxTotal: shortMax,
-      maxData: isListicle ? 2 : 3,
-      maxLowerThird: isListicle ? 0 : 3,
-      maxKinetic: isListicle ? 0 : 2,
-      maxTimeline: isListicle ? 0 : 2,
-      minGapSeconds: isListicle ? 10 : 5,
+      maxData: isListicle ? 2 : 2,
+      maxLowerThird: isListicle ? 0 : 2,
+      maxKinetic: isListicle ? 0 : 1,
+      maxTimeline: isListicle ? 0 : 1,
+      minGapSeconds: isListicle ? 12 : shortMinGap,
       maxDurationSeconds: isListicle ? 4 : 6,
     };
     plan.rhythm = {
@@ -248,9 +253,9 @@ export function buildOverlayOrchestrationPlan({
       ]
       : [
         { act: 1, label: "Gancho Visual", percent: "0-12%", overlays: 0, goal: "1.5s limpos — imagem forte + legenda viral palavra-a-palavra." },
-        { act: 2, label: "Impacto/Prova", percent: "12-45%", overlays: 1, goal: "1 overlay de impacto (kinetic-text slam ou lower-third glass) no momento de pico. Parar o scroll." },
-        { act: 3, label: "Dados Rápidos", percent: "45-75%", overlays: 1, goal: "1 overlay de dados (counter ou bar-chart compacto). Credibilidade instantânea em <1s." },
-        { act: 4, label: "Fechamento", percent: "75-100%", overlays: 1, goal: "1 lower-third ou kinetic-text leve. Sem overlays nos últimos 2s de vídeo." },
+        { act: 2, label: "Impacto/Prova", percent: "12-55%", overlays: 1, goal: "1 overlay de impacto (kinetic-text slam ou lower-third glass) no momento de pico. Parar o scroll." },
+        { act: 3, label: "Dados Rápidos", percent: "55-85%", overlays: 1, goal: "1 overlay de dados (counter ou bar-chart compacto). Credibilidade instantânea em <1s." },
+        { act: 4, label: "Fechamento", percent: "85-100%", overlays: 0, goal: "Sem overlays nos últimos 2s de vídeo — saída limpa." },
       ];
     plan.componentPalette = [
       "kinetic-text",
@@ -273,7 +278,7 @@ export function buildOverlayOrchestrationPlan({
         "Gap mínimo de 10s entre overlays da IA",
       ]
       : [
-        `Até ${shortMax} overlays distribuídos com gap mínimo de 5s`,
+        `Máximo ${aiBudget} overlays IA no Short inteiro (gap mínimo ${shortMinGap}s entre cada um)`,
         "Use kinetic-text nos momentos de virada narrativa",
         "Números na narração → counter ou bar-chart obrigatório",
         "Nunca 2 overlays simultâneos na tela",
@@ -282,17 +287,23 @@ export function buildOverlayOrchestrationPlan({
         "Assets com efeitos cinematográficos já ativos — overlays complementam, não competem",
       ];
   } else {
-    const minutes = Math.max(1, Math.floor(duration / 60));
+    const minutes = Math.max(1, duration / 60);
+    const baseBudget = Math.max(1, Math.round(minutes));
+    const ceilingBudget = Math.max(baseBudget, Math.round(minutes * 2));
+    const needsRich = config.overlay_intensity === "rich"
+      || countDataRichBlocks(blockCount, sceneCount) >= Math.ceil(minutes);
     const maxOverlays = isListicle
-      ? Math.min(minutes * 2, Math.max(3, Math.floor(duration / 40)))
-      : Math.min(minutes * 2, Math.max(3, minutes));
+      ? Math.min(ceilingBudget, Math.max(3, Math.floor(duration / 40)))
+      : (needsRich ? ceilingBudget : baseBudget);
     plan.limits = {
       maxTotal: maxOverlays,
-      maxData: Math.ceil(maxOverlays * 0.35),
+      maxData: Math.ceil(maxOverlays * 0.4),
       maxLowerThird: Math.ceil(maxOverlays * 0.5),
       maxKinetic: 2,
-      minGapSeconds: isListicle ? 12 : 18,
+      minGapSeconds: isListicle ? 12 : (needsRich ? 30 : 55),
       maxDurationSeconds: isListicle ? 6.5 : 7,
+      budgetMode: needsRich ? "rich" : "normal",
+      budgetPerMinute: needsRich ? 2 : 1,
     };
     plan.rhythm = {
       hookCleanSeconds: 5,
@@ -312,12 +323,13 @@ export function buildOverlayOrchestrationPlan({
       { start: duration - 15, end: duration, reason: "Outro limpo — sem overlay nos últimos 15s" },
     ];
     plan.retentionGoals = [
-      `Máximo ${maxOverlays} overlays em ${Math.round(duration / 60)} minutos`,
-      "Intervalo mínimo de 18s entre overlays",
+      `Orçamento: ${needsRich ? "até 2" : "1"} overlay por minuto (${maxOverlays} total em ~${Math.round(duration / 60)} min)`,
+      `Intervalo mínimo de ${needsRich ? "~30s" : "~55s"} entre overlays`,
       "Nunca repetir o mesmo tipo de componente 2x seguidas",
       "Números na narração → counter ou bar-chart obrigatório",
       "Processos/sequências → timeline horizontal",
       "Definições/nomes → lower-third (nunca info-card no centro)",
+      "1 overlay por bloco selecionado — dados da pesquisa web, não repetir narração",
     ];
     scaleLongOverlayBudget(plan, overlayIntensityMultiplier(config), duration);
   }
