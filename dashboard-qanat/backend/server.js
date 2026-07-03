@@ -285,6 +285,10 @@ import {
   resolveMusicVolumeForRender,
 } from "./bgmProductionDefaults.js";
 import {
+  bootstrapNewProjectConfig,
+  sanitizeTimelineAssetsForProject,
+} from "./projectConfigBootstrap.js";
+import {
   isBgmMusicCandidate,
   listBgmMusicCandidates,
 } from "./bgmMusicFiles.js";
@@ -876,16 +880,12 @@ app.post("/api/projects/create", (req, res) => {
       try {
 
         const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
-
-        cfg.aspect_ratio = isShort ? "9:16" : "16:9";
-        cfg.video_format = isShort ? "SHORTS" : "LONGO";
-        cfg.caption_style = isShort ? "shorts-viral" : "documentary";
-        cfg.niche = niche || "Geral";
-
-        if (cfg.gemini_api_key) delete cfg.gemini_api_key;
-
         const defaultDuration = isShort ? 40 : 120;
-        const cfgWithDefaults = applyBgmProductionDefaults(cfg, defaultDuration);
+        const cfgWithDefaults = bootstrapNewProjectConfig(cfg, {
+          isShort,
+          niche: niche || "Geral",
+          defaultDuration,
+        });
         fs.writeFileSync(defaultConfigDest, JSON.stringify(cfgWithDefaults, null, 2), "utf8");
 
       } catch (e) {}
@@ -893,12 +893,11 @@ app.post("/api/projects/create", (req, res) => {
     } else {
 
       const defaultDuration = isShort ? 40 : 120;
-      const cfg = applyBgmProductionDefaults({
-        aspect_ratio: isShort ? "9:16" : "16:9",
-        video_format: isShort ? "SHORTS" : "LONGO",
-        caption_style: isShort ? "shorts-viral" : "documentary",
+      const cfg = bootstrapNewProjectConfig({}, {
+        isShort,
         niche: niche || "Geral",
-      }, defaultDuration);
+        defaultDuration,
+      });
 
       fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
 
@@ -1111,7 +1110,15 @@ app.get("/api/config", (req, res) => {
 
     const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
     const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-    const normalized = applyBgmProductionDefaults(data, Number(timings.total_duration) || 0);
+    let normalized = applyBgmProductionDefaults(data, Number(timings.total_duration) || 0);
+    const assetFiles = listProjectMediaAssets(projDir);
+    const { timeline, stripped } = sanitizeTimelineAssetsForProject(normalized.timeline_assets, { assetFiles });
+    if (stripped > 0) {
+      normalized = { ...normalized, timeline_assets: timeline };
+      try {
+        fs.writeFileSync(configPath, JSON.stringify(normalized, null, 2), "utf8");
+      } catch { /* leitura segue com timeline saneada */ }
+    }
     const format = detectVideoFormat(normalized, Number(timings.total_duration) || 0);
     const globalRender = loadRenderConfig(__dirname);
 
@@ -12829,14 +12836,12 @@ app.post("/api/ai/creator/script", async (req, res) => {
         try {
 
           const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
-
-          if (cfg.gemini_api_key) {
-
-            delete cfg.gemini_api_key;
-
-            fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
-
-          }
+          const boot = bootstrapNewProjectConfig(cfg, {
+            isShort: format === "SHORTS" || format === "SHORT",
+            niche: niche || "Geral",
+            defaultDuration: isListicle ? listicleBlockCount * 50 : (format === "SHORTS" ? 40 : 120),
+          });
+          fs.writeFileSync(defaultConfigDest, JSON.stringify(boot, null, 2), "utf8");
 
         } catch (e) {}
 
@@ -13613,8 +13618,8 @@ REGRAS FINAIS:
 
     }
 
-    // Wizard: não pré-preenche timeline_assets — o usuário associa mídias manualmente no passo B-roll.
-    const timelineAssets = currentConfig.timeline_assets || {};
+    // Wizard: timeline vazia — B-roll só após o usuário mapear no passo manual ou Workflow → auto-map.
+    const timelineAssets = {};
 
     let newConfig = {
       niche: niche || currentConfig.niche || "Geral",

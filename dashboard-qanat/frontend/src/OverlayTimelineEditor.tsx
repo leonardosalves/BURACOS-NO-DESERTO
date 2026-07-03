@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   Clock,
-  Film,
   Layers,
   MapPin,
   Palette,
@@ -225,57 +224,36 @@ export function OverlayTimelineEditor({
     patchOverlay(id, {}, { iconType: iconId, iconStyle: style });
   };
 
-  const renderFilmstripTimeline = () => (
+  const timeRulerTicks = useMemo(() => {
+    const ticks: number[] = [0];
+    const step = totalDuration > 120 ? 30 : totalDuration > 60 ? 15 : 10;
+    for (let t = step; t < totalDuration; t += step) ticks.push(t);
+    ticks.push(totalDuration);
+    return [...new Set(ticks)].sort((a, b) => a - b);
+  }, [totalDuration]);
+
+  const renderOverlayTimeline = () => (
     <div className="space-y-2">
       <div className="relative rounded-xl border border-[var(--dash-border)] overflow-hidden bg-zinc-950">
-        {/* Faixa de assets */}
-        <div className="relative h-20 flex overflow-x-auto">
-          {filmstrip.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center gap-2 text-[10px] text-zinc-500 px-4">
-              <Film className="w-3.5 h-3.5 shrink-0" />
-              Mapeie assets nos blocos abaixo para ver o preview em linha aqui
-            </div>
-          ) : (
-            filmstrip.map((seg) => {
-              const widthPct = Math.max(4, (seg.duration / totalDuration) * 100);
-              const hasMedia = Boolean(seg.asset && getAssetUrl);
-              const url = seg.asset && getAssetUrl ? getAssetUrl(seg.asset) : '';
-              const isVideo = seg.assetType === 'video';
-              return (
-                <div
-                  key={seg.id}
-                  className="overlay-filmstrip-cell h-full"
-                  style={{ width: `${widthPct}%` }}
-                  title={`${seg.blockLabel} · ${formatOverlayTime(seg.start)} · ${seg.duration.toFixed(1)}s`}
-                >
-                  {hasMedia ? (
-                    isVideo ? (
-                      <video
-                        src={url}
-                        className="pointer-events-none"
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
-                    ) : (
-                      <img src={url} alt="" className="pointer-events-none" loading="lazy" />
-                    )
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center">
-                      <span className="text-[8px] text-zinc-600 font-mono">{seg.blockLabel}</span>
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 inset-x-0 bg-black/65 px-1 py-0.5">
-                    <p className="text-[7px] font-mono text-zinc-400 truncate">{formatOverlayTime(seg.start)}</p>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        <div className="relative h-5 border-b border-[var(--dash-border)] bg-zinc-950/90">
+          {timeRulerTicks.map((tick) => {
+            const left = totalDuration > 0 ? (tick / totalDuration) * 100 : 0;
+            return (
+              <span
+                key={`tick-${tick}`}
+                className="absolute top-0 bottom-0 flex flex-col justify-end pointer-events-none"
+                style={{ left: `${left}%`, transform: 'translateX(-50%)' }}
+              >
+                <span className="text-[7px] font-mono text-zinc-500 px-0.5 pb-0.5 whitespace-nowrap">
+                  {formatOverlayTime(tick)}
+                </span>
+              </span>
+            );
+          })}
         </div>
 
-        {/* Faixa de overlays */}
-        <div className="relative h-12 border-t border-[var(--dash-border)] bg-[rgba(130,128,253,0.04)]">
+        {/* Faixa de overlays (sem B-roll — mídia fica em Mídia por bloco) */}
+        <div className="relative h-14 bg-[rgba(130,128,253,0.04)]">
           <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
             backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 9.5%, rgba(130,128,253,0.2) 10%)',
           }} />
@@ -692,7 +670,7 @@ export function OverlayTimelineEditor({
       {overlays.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--dash-border)] p-8 text-center space-y-3">
           <p className="text-[11px] text-[var(--dash-muted)]">
-            Nenhum overlay planejado. Gere com IA ou adicione manualmente — o preview dos assets aparece na faixa acima dos blocos.
+            Nenhum overlay planejado. Gere com IA ou adicione manualmente — o B-roll é mapeado em Mídia por bloco, não aqui.
           </p>
           <button
             type="button"
@@ -708,9 +686,9 @@ export function OverlayTimelineEditor({
         <>
           <div className="space-y-1.5">
             <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-1.5">
-              <Film className="w-3 h-3" /> Linha do tempo · assets + overlays
+              <Clock className="w-3 h-3" /> Linha do tempo · overlays
             </p>
-            {renderFilmstripTimeline()}
+            {renderOverlayTimeline()}
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.32fr)_minmax(0,1.68fr)] gap-4">
