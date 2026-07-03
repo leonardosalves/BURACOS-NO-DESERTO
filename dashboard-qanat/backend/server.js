@@ -19,6 +19,7 @@ import {
   collectBlockNarrationsByBlock,
   mergeAiBlockProgressIcons,
   mergeAiBlockProgressTitles,
+  normalizeBlockProgressDesign,
   resolveBlockProgressBarForRender,
   resolveChaptersTextForProject,
 } from "./blockProgressBarConfig.js";
@@ -10464,7 +10465,7 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
     const nextConfig = {
       ...raw,
       enabled: raw.enabled === true,
-      design: raw.design || "cinematic",
+      design: normalizeBlockProgressDesign(raw.design),
       iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
       defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
       showBlockTitles: raw.showBlockTitles === true,
@@ -10534,7 +10535,7 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
     const nextConfig = {
       ...raw,
       enabled: raw.enabled === true,
-      design: raw.design || "cinematic",
+      design: normalizeBlockProgressDesign(raw.design),
       iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
       defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
       showBlockTitles: raw.showBlockTitles !== false,
