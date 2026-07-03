@@ -8523,6 +8523,7 @@ export default function App() {
                     isShortFormat={(config?.aspect_ratio || '16:9') === '9:16'}
                     accentColor={config?.accent_color || '#D4AF37'}
                     saving={savingBlockProgressBar}
+                    channelLogoUrl={logoStatus?.currentLogoUrl || null}
                     onGoToMetadata={() => setActiveTab('ai')}
                     onSuggestIconsWithAi={suggestBlockProgressIcons}
                     onSave={async (barDraft) => {

@@ -2512,6 +2512,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
           titleColor={blockProgressBar.titleColor}
           accentColor={accentColor}
           orientation={isShort ? "vertical" : "horizontal"}
+          showChannelLogo={blockProgressBar.showChannelLogo}
+          channelLogoSize={blockProgressBar.channelLogoSize}
+          channelLogoSrc={blockProgressBar.channelLogoSrc}
         />
       ) : !isShort && showProgressBar ? (
         <ProgressBar totalDuration={totalDuration} accentColor={accentColor} />

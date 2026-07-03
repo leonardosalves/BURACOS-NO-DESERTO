@@ -6481,7 +6481,16 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
     vignette: config.vignette !== false,
     showProgressBar: format === "16:9" && config.progress_bar !== false,
-    blockProgressBar: resolveBlockProgressBarForRender(projectDir, readProjectJson),
+    blockProgressBar: (() => {
+      const bar = resolveBlockProgressBarForRender(projectDir, readProjectJson);
+      if (!bar || bar.showChannelLogo === false) return bar;
+      const logoSource = resolveLogoFilePath(WORKSPACE_DIR, projectDir, globalConfigForLogo, projectConfigForLogo)
+        || findProjectFile(projectDir, "logo.png");
+      if (!logoSource) return bar;
+      const copied = copyRemotionAsset(logoSource, publicProjectDir, "bar_logo_");
+      if (!copied) return bar;
+      return { ...bar, channelLogoSrc: `projects/${projectSlug}/${copied}` };
+    })(),
     accentColor: config.accent_color || "#C5A880",
     shortsZoomIntensity: config.shorts_zoom_intensity || "normal",
     longZoomIntensity: config.long_zoom_intensity || "normal",

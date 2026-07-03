@@ -30,6 +30,7 @@ type Props = {
   isShortFormat: boolean;
   accentColor?: string;
   saving?: boolean;
+  channelLogoUrl?: string | null;
   onGoToMetadata?: () => void;
   onSave: (draft: BlockProgressBarDraft) => void | Promise<void>;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
@@ -93,6 +94,7 @@ export function BlockProgressBarProjectPanel({
   isShortFormat,
   accentColor = '#D4AF37',
   saving = false,
+  channelLogoUrl = null,
   onGoToMetadata,
   onSave,
   onSuggestIconsWithAi,
@@ -204,6 +206,7 @@ export function BlockProgressBarProjectPanel({
         niche={String(config.niche || 'Geral')}
         totalDuration={totalDuration}
         chaptersText={chaptersText}
+        channelLogoUrl={channelLogoUrl}
         onChange={setDraft}
         onSuggestIconsWithAi={onSuggestIconsWithAi}
       />

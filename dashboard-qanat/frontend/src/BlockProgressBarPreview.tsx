@@ -26,6 +26,9 @@ type Props = {
   accentColor?: string;
   isShortFormat: boolean;
   totalDuration?: number;
+  showChannelLogo?: boolean;
+  channelLogoSize?: number;
+  channelLogoUrl?: string | null;
 };
 
 function blockTitleLabel(marker: BlockProgressMarkerDraft) {
@@ -46,6 +49,9 @@ export function BlockProgressBarPreview({
   accentColor = '#D4AF37',
   isShortFormat,
   totalDuration: totalDurationProp,
+  showChannelLogo = true,
+  channelLogoSize,
+  channelLogoUrl = null,
 }: Props) {
   const resolvedTitleSize = titleFontSize || (isShortFormat ? 9 : 10);
   const titleFontStack = resolveBlockProgressTitleFontStack(titleFont);
@@ -80,6 +86,7 @@ export function BlockProgressBarPreview({
           fill.style.width = `calc((100% - 32px) * ${pct})`;
         }
       }
+      setProgressPct(pct * 100);
       const active = blocks.find((b) => currentSec >= b.start && currentSec < b.start + b.duration);
       const nextActive = active?.block ?? null;
       if (nextActive !== activeBlockRef.current) {
@@ -93,6 +100,9 @@ export function BlockProgressBarPreview({
   }, [playing, blocks, totalDuration, isShortFormat]);
 
   const iconPx = (marker: BlockProgressMarkerDraft) => Math.round(marker.iconSize || iconSize);
+  const logoPx = Math.max(14, Math.min(56, channelLogoSize || (isShortFormat ? 22 : 28)));
+  const showLogo = showChannelLogo !== false && Boolean(channelLogoUrl);
+  const [progressPct, setProgressPct] = useState(0);
 
   return (
     <div className="space-y-1.5">
@@ -153,6 +163,21 @@ export function BlockProgressBarPreview({
                 }}
               />
             </div>
+            {showLogo && (
+              <img
+                src={channelLogoUrl!}
+                alt=""
+                className="absolute object-contain rounded-full pointer-events-none"
+                style={{
+                  left: 10 + tokens.trackH / 2,
+                  top: `calc(40px + (100% - 100px) * ${(100 - progressPct) / 100})`,
+                  width: logoPx,
+                  height: logoPx,
+                  transform: 'translate(-50%, -50%)',
+                  filter: `drop-shadow(0 0 6px ${accentColor}66)`,
+                }}
+              />
+            )}
             {blocks.map((marker) => {
               const pct = markerCenterPercent(marker.start, marker.duration, totalDuration);
               const active = marker.block === activeBlock;
@@ -228,6 +253,21 @@ export function BlockProgressBarPreview({
                   right: 16,
                   height: tokens.extraLine.height,
                   background: tokens.extraLine.background,
+                }}
+              />
+            )}
+            {showLogo && (
+              <img
+                src={channelLogoUrl!}
+                alt=""
+                className="absolute object-contain rounded-full pointer-events-none"
+                style={{
+                  left: `calc(16px + (100% - 32px) * ${progressPct / 100})`,
+                  top: 10 + tokens.trackH / 2,
+                  width: logoPx,
+                  height: logoPx,
+                  transform: 'translate(-50%, -50%)',
+                  filter: `drop-shadow(0 0 8px ${accentColor}88)`,
                 }}
               />
             )}
