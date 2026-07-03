@@ -111,6 +111,24 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-video-resurrector': {
+    title: 'Ressuscitador de vídeos',
+    body: (
+      <>
+        Reformula título, descrição, hashtags e tags de vídeos Lumiera publicados há mais de 10 dias. Processa até 10 por dia (batch automático ou manual). A IA usa o roteiro do projeto — metadados genéricos são evitados. Vídeos longos: envie a thumbnail manualmente antes de aplicar.
+      </>
+    ),
+  },
+  'video-resurrector': {
+    title: 'Ressuscitador',
+    body: (
+      <>
+        <strong>Escanear elegíveis</strong> — enfileira vídeos com idade mínima configurada.{' '}
+        <strong>Processar batch</strong> — gera novos metadados SEO via IA.{' '}
+        Revise, escolha o título, faça upload da capa (longos) e <strong>Aplicar no YouTube</strong>.
+      </>
+    ),
+  },
   'tab-home': {
     title: 'Início',
     body: (
