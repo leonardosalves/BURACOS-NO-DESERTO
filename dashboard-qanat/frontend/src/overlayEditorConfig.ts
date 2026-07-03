@@ -13,6 +13,21 @@ export type OverlayEditorType =
   | 'rank-progress'
   | 'chapter-stinger';
 
+export type OverlayAiMeta = {
+  scene_rationale?: string;
+  content_summary?: string;
+  design_rationale?: string;
+  research_fact?: string;
+  research_query?: string;
+  research_source?: string;
+  narration_relation?: string;
+  suggested_type?: string;
+  suggested_variant?: string;
+  suggested_theme?: string;
+  suggested_icon?: string;
+  suggested_position?: string;
+};
+
 export type OverlayDraft = {
   id: string;
   type: string;
@@ -21,6 +36,7 @@ export type OverlayDraft = {
   scene_ref?: string;
   block_ref?: number;
   props?: Record<string, unknown>;
+  ai_meta?: OverlayAiMeta;
 };
 
 export const INFORMATIVE_OVERLAY_TYPES: OverlayEditorType[] = [
@@ -250,14 +266,16 @@ export function normalizeOverlayList(raw: unknown[]): OverlayDraft[] {
   return (raw || []).map((item, index) => {
     const o = item as OverlayDraft;
     const props = { ...(o.props || {}) };
+    const raw = o as OverlayDraft;
     return {
-      id: o.id || `overlay-${index + 1}`,
-      type: o.type || 'lower-third',
-      start: o.start ?? 0,
-      duration: Number(o.duration) > 0 ? Number(o.duration) : 4,
-      scene_ref: o.scene_ref,
-      block_ref: o.block_ref,
+      id: raw.id || `overlay-${index + 1}`,
+      type: raw.type || 'lower-third',
+      start: raw.start ?? 0,
+      duration: Number(raw.duration) > 0 ? Number(raw.duration) : 4,
+      scene_ref: raw.scene_ref,
+      block_ref: raw.block_ref,
       props,
+      ai_meta: raw.ai_meta,
     };
   });
 }

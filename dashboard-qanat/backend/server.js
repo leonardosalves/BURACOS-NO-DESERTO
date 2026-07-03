@@ -14013,11 +14013,146 @@ function repairOverlayPropsForRemotion(overlay) {
   return overlay;
 }
 
+function tokenizeOverlayBriefingText(text = "") {
+  return new Set(
+    String(text)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3),
+  );
+}
+
+function overlayBriefingTokenOverlap(a, b) {
+  if (!a?.size || !b?.size) return 0;
+  let hits = 0;
+  for (const token of a) {
+    if (b.has(token)) hits += 1;
+  }
+  return hits / Math.max(a.size, b.size);
+}
+
+function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
+  const facts = overlayResearch.facts || [];
+  if (!facts.length || !String(overlayText).trim()) return {};
+  const overlayTokens = tokenizeOverlayBriefingText(overlayText);
+  let bestFact = "";
+  let bestScore = 0;
+  for (const fact of facts) {
+    const score = overlayBriefingTokenOverlap(overlayTokens, tokenizeOverlayBriefingText(fact));
+    if (score > bestScore) {
+      bestScore = score;
+      bestFact = fact;
+    }
+  }
+  if (!bestFact || bestScore < 0.12) {
+    const numeric = String(overlayText).match(/\d[\d.,]*/);
+    if (numeric) {
+      const byNumber = facts.find((f) => String(f).includes(numeric[0]));
+      if (byNumber) bestFact = byNumber;
+    }
+  }
+  if (!bestFact) return {};
+  let source;
+  const sources = overlayResearch.sources || [];
+  if (sources.length) {
+    const factTokens = tokenizeOverlayBriefingText(bestFact);
+    let bestSrc = sources[0];
+    let bestSrcScore = 0;
+    for (const src of sources) {
+      const title = String(src.title || src.url || "");
+      const score = overlayBriefingTokenOverlap(factTokens, tokenizeOverlayBriefingText(title));
+      if (score > bestSrcScore) {
+        bestSrcScore = score;
+        bestSrc = src;
+      }
+    }
+    source = bestSrc.title || bestSrc.url;
+  }
+  return { fact: bestFact, source };
+}
+
+function overlayTextBlobForBriefing(overlay = {}) {
+  const p = overlay.props || {};
+  return [
+    p.title,
+    p.subtitle,
+    p.description,
+    p.label,
+    p.value,
+    p.text,
+    p.source,
+    p.location,
+  ]
+    .filter((v) => v != null && String(v).trim())
+    .join(" ");
+}
+
+function ensureOverlayAiMeta(overlay, overlayResearch = {}, sceneContext = null) {
+  if (!overlay.ai_meta || typeof overlay.ai_meta !== "object") {
+    overlay.ai_meta = {};
+  }
+  const meta = overlay.ai_meta;
+  const props = overlay.props || {};
+  const sceneId = String(overlay.scene_ref || overlay.start || "").trim();
+
+  if (!meta.suggested_type) meta.suggested_type = overlay.type;
+  if (!meta.suggested_variant && props.variant) meta.suggested_variant = props.variant;
+  if (!meta.suggested_theme && props.theme) meta.suggested_theme = props.theme;
+  if (!meta.suggested_icon && props.iconType) meta.suggested_icon = props.iconType;
+  if (!meta.suggested_position && props.position) meta.suggested_position = props.position;
+
+  if (!meta.research_query && overlayResearch.query) {
+    meta.research_query = overlayResearch.query;
+  }
+  if (!meta.research_fact && overlayResearch.facts?.length) {
+    const match = matchOverlayResearchFact(overlayTextBlobForBriefing(overlay), overlayResearch);
+    if (match.fact) {
+      meta.research_fact = match.fact;
+      if (match.source) meta.research_source = match.source;
+    }
+  }
+  if (!meta.scene_rationale && sceneId && isLikelySceneId(sceneId)) {
+    const hint = sceneContext?.context_hint || sceneContext?.visual_hint || "";
+    meta.scene_rationale = hint
+      ? `Informação na cena ${sceneId} — contexto visual: ${String(hint).slice(0, 140)}`
+      : `Informação complementar exibida na cena ${sceneId} do roteiro.`;
+  }
+  if (!meta.content_summary) {
+    const parts = [];
+    if (props.title) parts.push(`título "${props.title}"`);
+    if (props.subtitle) parts.push(`subtítulo "${props.subtitle}"`);
+    if (props.label) parts.push(`rótulo "${props.label}"`);
+    if (props.value != null) parts.push(`valor ${props.value}${props.suffix ? ` ${props.suffix}` : ""}`);
+    if (parts.length) {
+      meta.content_summary = `Overlay informativo com ${parts.join(", ")}.`;
+    }
+  }
+  return overlay;
+}
+
+function persistOverlayPlanejamento(projectDir, planejamento = []) {
+  if (!projectDir || !Array.isArray(planejamento) || !planejamento.length) return;
+  try {
+    const sbPath = path.join(projectDir, "storyboard.json");
+    const sb = readProjectJson(projectDir, "storyboard.json", {});
+    sb.overlays_planejamento = planejamento;
+    fs.writeFileSync(sbPath, JSON.stringify(sb, null, 2), "utf8");
+  } catch (err) {
+    console.warn("[Overlays] Falha ao salvar overlays_planejamento:", err.message);
+  }
+}
+
 function normalizeGeminiOverlayPayload(overlays = []) {
   if (!Array.isArray(overlays)) return [];
 
   return overlays.map((raw, index) => {
     const overlay = { ...(raw || {}) };
+    if (raw?.ai_meta && typeof raw.ai_meta === "object") {
+      overlay.ai_meta = { ...raw.ai_meta };
+    }
     if (!overlay.id) overlay.id = `ai-overlay-${index + 1}`;
     if (!overlay.type && overlay.overlay_type) overlay.type = overlay.overlay_type;
     if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
@@ -14539,6 +14674,7 @@ Exemplo timeline:
       ? `SESSÃO OBRIGATÓRIA: inclua "plan_session":"${planSessionId}" na raiz do JSON (campo obrigatório para validar esta requisição).`
       : "",
     `Retorne APENAS JSON válido: {"plan_session":"...","planejamento":["3 observações"],"overlays":[...]}`,
+    'Cada overlay DEVE ter "ai_meta": {scene_rationale, content_summary, design_rationale, research_fact, narration_relation}.',
     `Máximo ${maxOverlays} overlays. Campo "start" = scene_id (ex: "1.1") — NUNCA segundos.`,
     "Tipos obrigatórios a variar: counter, bar-chart, timeline, lower-third, kinetic-text.",
     "PROIBIDO: copiar frases dos blocos de narração; lower-third por bloco; texto >12 palavras; código/terminal.",
@@ -14839,7 +14975,14 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
     - ${isListicleOverlay ? "Em LISTICLE: topo reservado para badge #N — counters e outros overlays só em bottom-left ou bottom-right." : "Busque equilíbrio alternando posições superiores e inferiores. Não repita o mesmo canto em sequência."}
 7. INTEGRAÇÃO RICA DE LOTTIE FILES NOS CARDS E LOWER THIRDS:
    - Certifique-se de associar animações Lottie variadas e temáticas a cada card moderno E a cada lower-third usando a propriedade "iconType". Use ícones adequados de forma diversificada (ex: "warning" para alertas, "compass" para geografia/localização, "history" para datas históricas, "earth" para assuntos mundiais, "shield" para proteção/guerras, "sparkles" para curiosidades, "money" para finanças/riqueza). Não repita o mesmo ícone!
-8. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
+8. METADADOS OBRIGATÓRIOS POR OVERLAY ("ai_meta"):
+   - Cada overlay DEVE incluir "ai_meta" com: scene_rationale, content_summary, design_rationale, research_fact (fato da pesquisa usado ou null), narration_relation.
+   - scene_rationale: explique POR QUE na cena X (scene_id) e não em outra.
+   - content_summary: o que o overlay comunica de forma independente da narração.
+   - design_rationale: justifique type, variant, theme, iconType e position escolhidos.
+   - research_fact: cite o fato/número da seção "DADOS REAIS DA INTERNET" que originou o conteúdo; se não houver, null.
+   - narration_relation: como complementa (não repete) o trecho falado da cena.
+9. VARIANTES DE LOWER-THIRD DO CATÁLOGO HYPERFRAMES:
    - Para o tipo "lower-third", você DEVE definir a propriedade "variant" escolhendo o estilo visual mais adequado ao trecho do vídeo:
      - "bild": Estilo jornalístico clássico com blocos de fundo sólidos e sombras coloridas projetadas.
      - "bold-block": Estilo podcast retangular sólido com título grosso e subtítulo em caixa menor em amarelo/accent.
@@ -14858,6 +15001,13 @@ Estrutura JSON Exigida:
       "type": "lower-third",
       "start": "1.1",
       "duration": 3.5,
+      "ai_meta": {
+        "scene_rationale": "Por que este overlay aparece nesta cena específica",
+        "content_summary": "O que o espectador aprende de novo ao ler o overlay",
+        "design_rationale": "Por que lower-third/glass/tema classic e ícone sparkles",
+        "research_fact": "Fato da pesquisa web usado (ou null se veio só do roteiro)",
+        "narration_relation": "Complementa a narração com X sem repetir o que foi dito"
+      },
       "props": {
         "title": "TECNOLOGIA PREMIUM",
         "subtitle": "Concreto romano com autocura inteligente.",
@@ -15014,6 +15164,7 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
     }
 
     let parsedOverlays = [];
+    let overlayPlanejamento = [];
     try {
       const resultObj = JSON.parse(cleaned);
       if (Array.isArray(resultObj)) {
@@ -15021,8 +15172,10 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       } else if (resultObj && Array.isArray(resultObj.overlays)) {
         parsedOverlays = resultObj.overlays;
         if (resultObj.planejamento) {
+          overlayPlanejamento = resultObj.planejamento;
           console.log("[Overlays Planning] Plano detalhado executado pela IA para este vídeo:");
           resultObj.planejamento.forEach(p => console.log(`  - ${p}`));
+          persistOverlayPlanejamento(projectDir, overlayPlanejamento);
         }
       } else if (resultObj?.data && Array.isArray(resultObj.data.overlays)) {
         parsedOverlays = resultObj.data.overlays;
@@ -15050,6 +15203,10 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         parsedOverlays = resultObj;
       } else if (Array.isArray(resultObj?.overlays)) {
         parsedOverlays = resultObj.overlays;
+        if (resultObj.planejamento) {
+          overlayPlanejamento = resultObj.planejamento;
+          persistOverlayPlanejamento(projectDir, overlayPlanejamento);
+        }
       } else {
         throw parseErr;
       }
@@ -15074,6 +15231,9 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       for (let i = 0; i < parsedOverlays.length; i++) {
         const overlay = parsedOverlays[i];
         if (!overlay.props) overlay.props = {};
+        const sceneId = String(overlay.scene_ref || overlay.start || "").trim();
+        const sceneCtx = scenesContext.find((s) => String(s.scene_id || s.scene) === sceneId) || null;
+        ensureOverlayAiMeta(overlay, overlayResearch, sceneCtx);
 
         // 0. Converte info-cards temáticos para lower-thirds (Tirar cards temáticos e colocar lower thirds)
         if (overlay.type === "info-card") {
