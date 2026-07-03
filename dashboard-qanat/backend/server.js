@@ -246,6 +246,10 @@ import {
   injectProLayoutOverlays,
   filterOverlaysByVisualConfig,
 } from "./videoProEnhancements.js";
+import {
+  buildBlockSonoplastiaPlan,
+  formatSonoplastiaLog,
+} from "./bgmSonoplastia.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
   computeOverlayDisplayDuration,
@@ -4865,6 +4869,11 @@ app.get("/api/render/:mode", async (req, res) => {
       sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
 
       sendLog(`[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM (${renderPlan.bgmSource || "none"}).`);
+      if (Array.isArray(renderPlan.sonoplastiaLog)) {
+        for (const line of renderPlan.sonoplastiaLog) {
+          sendLog(line);
+        }
+      }
 
       sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
 
@@ -6153,6 +6162,19 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   });
 
+  const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+  const sonoplastiaPlan = buildBlockSonoplastiaPlan({
+    config,
+    storyboard,
+    blockNumbers,
+    blockRanges,
+    wordTranscripts,
+    nicheMood,
+  });
+  for (const line of formatSonoplastiaLog(sonoplastiaPlan)) {
+    console.log(line);
+  }
+
   const bgmPlan = resolveBgmMappingsForRender(projectDir, config, blockNumbers);
   const bgmTracks = [];
 
@@ -6172,7 +6194,8 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
         const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
 
-        const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${totalDuration}`;
+        const singleClimaxMode = sonoplastiaPlan.get(blockNumbers[0])?.climaxMode || "rise";
+        const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${totalDuration} ${singleClimaxMode}`;
 
         const output = execSync(detectCmd, { encoding: "utf8" }).trim();
 
@@ -6186,7 +6209,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
           startFrom = parsed;
 
-          console.log(`[Remotion] Detected best BGM start offset: ${startFrom}s`);
+          console.log(`[Remotion] BGM única: offset ${startFrom}s (modo ${singleClimaxMode})`);
 
         }
 
@@ -6222,7 +6245,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
           const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
 
-          const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${range.duration}`;
+          const blockSonoplastia = sonoplastiaPlan.get(block);
+          const climaxMode = blockSonoplastia?.climaxMode || "peak";
+          const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${range.duration} ${climaxMode}`;
 
           const output = execSync(detectCmd, { encoding: "utf8" }).trim();
 
@@ -6236,7 +6261,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
             startFrom = parsed;
 
-            console.log(`[Remotion] Detected best BGM block ${block} start offset: ${startFrom}s`);
+            console.log(
+              `[Remotion] BGM bloco ${block}: offset ${startFrom}s (modo ${climaxMode}, mood ${blockSonoplastia?.mood || "neutral"})`,
+            );
 
           }
 
@@ -6246,7 +6273,16 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
         }
 
-        bgmTracks.push({ block, file: `projects/${projectSlug}/${copied}`, start: range.start, duration: range.duration, startFrom });
+        bgmTracks.push({
+          block,
+          file: `projects/${projectSlug}/${copied}`,
+          start: range.start,
+          duration: range.duration,
+          startFrom,
+          duckStrength: blockSonoplastia?.duckStrength || "normal",
+          mood: blockSonoplastia?.mood || "neutral",
+          climaxMode: blockSonoplastia?.climaxMode || "peak",
+        });
 
       }
 
@@ -6448,6 +6484,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     overlayTimingReport: freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
     bgmTrackCount: bgmTracks.length,
     bgmSource: bgmPlan.source,
+    sonoplastiaLog: formatSonoplastiaLog(sonoplastiaPlan),
   };
 
 }
