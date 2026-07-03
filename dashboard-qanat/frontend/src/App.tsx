@@ -8466,11 +8466,13 @@ export default function App() {
                   <BlockProgressBarProjectPanel
                     projectKey={activeProject}
                     config={(config || {}) as Record<string, unknown>}
+                    storyboard={storyboardData}
                     blockTimings={visualBlockTimings}
                     isShortFormat={(config?.aspect_ratio || '16:9') === '9:16'}
                     accentColor={config?.accent_color || '#D4AF37'}
                     saving={savingBlockProgressBar}
                     onSuggestIconsWithAi={suggestBlockProgressIcons}
+                    onSuggestTitlesWithAi={suggestBlockProgressTitles}
                     onSave={async (barDraft) => {
                       setSavingBlockProgressBar(true);
                       try {

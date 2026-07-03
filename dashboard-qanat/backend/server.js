@@ -10414,9 +10414,12 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
       return res.status(400).json({ error: "Projeto sem blocos de narração." });
     }
 
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
     const raw = config.block_progress_bar || {};
     const markers = buildDefaultBlockProgressMarkers({
       blockPhrases,
+      visualPrompts,
       starts: timings.starts || [],
       durations: timings.durations || [],
       niche: config.niche || "Geral",
@@ -10460,6 +10463,9 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
       iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
       defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
       showBlockTitles: raw.showBlockTitles === true,
+      titleFont: raw.titleFont || "inter",
+      titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
+      titleColor: String(raw.titleColor || "#FFFFFF"),
       blocks: merged,
       icons_suggested_at: new Date().toISOString(),
       icons_suggested_via: browserText ? "gemini_chrome" : "gemini_api",
@@ -10477,6 +10483,93 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
   } catch (err) {
     console.error("[Block Progress Icons]", err);
     res.status(500).json({ error: err.message || "Falha ao sugerir ícones." });
+  }
+});
+
+app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
+  const projDir = getProjectDir(req);
+  try {
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    if (!blockPhrases.length) {
+      return res.status(400).json({ error: "Projeto sem blocos de narração." });
+    }
+
+    const raw = config.block_progress_bar || {};
+    const markers = buildDefaultBlockProgressMarkers({
+      blockPhrases,
+      visualPrompts,
+      starts: timings.starts || [],
+      durations: timings.durations || [],
+      niche: config.niche || "Geral",
+      existingBlocks: raw.blocks || [],
+    });
+    const narrations = collectBlockNarrationsByBlock({ visualPrompts, blockPhrases });
+    const blocksForAi = markers.map((m) => ({
+      ...m,
+      narration: narrations.get(m.block) || m.title || m.label || "",
+    }));
+
+    const browserTextRaw = extractBrowserResponse(req.body);
+    const browserText = browserTextRaw ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw) : null;
+    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+
+    let llmText = browserText;
+    if (!llmText) {
+      const prompt = buildBlockProgressTitleAiPrompt({
+        niche: config.niche || "Geral",
+        blocks: blocksForAi,
+      });
+
+      if (forceBrowser) {
+        const title = "Resumir títulos da barra de progresso";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "json", responseFormat: "json" });
+        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+      }
+
+      const apiKey = getApiKey(projDir);
+      if (!apiKey) {
+        return res.status(401).json({
+          error: "Sem chave API. Ative Gemini no Chrome ou configure uma chave.",
+        });
+      }
+      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+    }
+
+    const parsed = await parseAiJsonResponse(llmText, getApiKey(projDir), "títulos barra de progresso");
+    const aiBlocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
+    const merged = mergeAiBlockProgressTitles(markers, aiBlocks);
+
+    const nextConfig = {
+      ...raw,
+      enabled: raw.enabled === true,
+      design: raw.design || "cinematic",
+      iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
+      defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
+      showBlockTitles: raw.showBlockTitles !== false,
+      titleFont: raw.titleFont || "inter",
+      titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
+      titleColor: String(raw.titleColor || "#FFFFFF"),
+      blocks: merged,
+      titles_suggested_at: new Date().toISOString(),
+      titles_suggested_via: browserText ? "gemini_chrome" : "gemini_api",
+    };
+
+    config.block_progress_bar = nextConfig;
+    fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+
+    console.log(`[Block Progress] IA sugeriu títulos para ${merged.length} bloco(s).`);
+    res.json({
+      success: true,
+      blocks: merged,
+      source: browserText ? "gemini_chrome" : "gemini_api",
+    });
+  } catch (err) {
+    console.error("[Block Progress Titles]", err);
+    res.status(500).json({ error: err.message || "Falha ao resumir títulos." });
   }
 });
 
