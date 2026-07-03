@@ -2,13 +2,16 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { GeminiBrowserProvider } from './GeminiBrowserBridge.tsx'
+import { TabErrorBoundary } from './TabErrorBoundary.tsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <GeminiBrowserProvider>
-      <App />
-    </GeminiBrowserProvider>
+    <TabErrorBoundary label="Lumiera">
+      <GeminiBrowserProvider>
+        <App />
+      </GeminiBrowserProvider>
+    </TabErrorBoundary>
   </React.StrictMode>,
 )
 

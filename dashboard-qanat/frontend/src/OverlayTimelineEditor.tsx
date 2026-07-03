@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { SettingLabel } from './SettingHelpTip';
-import { OverlayAiBriefing } from './OverlayAiBriefing';
+import { OverlayAiBriefing } from './OverlayAiBriefing.tsx';
 import { OverlayPreview } from './OverlayPreview';
 import type { OverlayResearchSnapshot } from './overlayBriefingLogic';
 import { buildFilmstripSegments, resolveTotalDuration } from './overlayFilmstrip';
