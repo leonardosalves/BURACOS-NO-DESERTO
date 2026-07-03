@@ -2327,3 +2327,85 @@
 .ste-timeline-seg-label {
   pointer-events: none;
 }
+
+/* Overlay preview — animated SVG icons */
+@keyframes overlay-svg-spin-keyframes {
+  to { transform: rotate(360deg); }
+}
+@keyframes overlay-svg-pulse-keyframes {
+  0%, 100% { transform: scale(0.92); opacity: 0.85; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+@keyframes overlay-svg-flicker-keyframes {
+  0%, 100% { transform: scale(0.95); opacity: 0.9; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+@keyframes overlay-svg-orbit-keyframes {
+  to { transform: rotate(360deg); }
+}
+@keyframes overlay-svg-flip-keyframes {
+  0%, 88% { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+@keyframes overlay-svg-sway-keyframes {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes overlay-svg-blink-keyframes {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@keyframes overlay-svg-wiggle-keyframes {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(12deg); }
+}
+@keyframes overlay-svg-glow-keyframes {
+  0%, 100% { opacity: 0.45; filter: drop-shadow(0 0 0 transparent); }
+  50% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); }
+}
+@keyframes overlay-svg-float-keyframes {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes overlay-svg-flip-y-keyframes {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+@keyframes overlay-svg-cross-keyframes {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08) rotate(3deg); }
+}
+@keyframes overlay-svg-bar-keyframes {
+  0%, 100% { transform: scaleY(0.85); }
+  50% { transform: scaleY(1.1); }
+}
+
+.overlay-svg-spin { animation: overlay-svg-spin-keyframes 4s linear infinite; transform-origin: center; }
+.overlay-svg-spin-slow { animation: overlay-svg-spin-keyframes 10s linear infinite; transform-origin: center; }
+.overlay-svg-pulse { animation: overlay-svg-pulse-keyframes 2s ease-in-out infinite; transform-origin: center; }
+.overlay-svg-flicker { animation: overlay-svg-flicker-keyframes 1.2s ease-in-out infinite; transform-origin: center bottom; }
+.overlay-svg-orbit { animation: overlay-svg-orbit-keyframes 4s linear infinite; transform-origin: center; }
+.overlay-svg-flip { animation: overlay-svg-flip-keyframes 4s ease-in-out infinite; transform-origin: center; }
+.overlay-svg-sway { animation: overlay-svg-sway-keyframes 3s ease-in-out infinite; transform-origin: left bottom; }
+.overlay-svg-blink { animation: overlay-svg-blink-keyframes 1.2s ease-in-out infinite; }
+.overlay-svg-wiggle { animation: overlay-svg-wiggle-keyframes 2.5s ease-in-out infinite; transform-origin: center; }
+.overlay-svg-glow { animation: overlay-svg-glow-keyframes 2s ease-in-out infinite; }
+.overlay-svg-float { animation: overlay-svg-float-keyframes 2.2s ease-in-out infinite; transform-origin: center; }
+.overlay-svg-flip-y { animation: overlay-svg-flip-y-keyframes 3s linear infinite; transform-origin: center; }
+.overlay-svg-cross { animation: overlay-svg-cross-keyframes 1s ease-in-out infinite; transform-origin: center; }
+.overlay-svg-bar1 { animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite; transform-origin: bottom; }
+.overlay-svg-bar2 { animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite 0.2s; transform-origin: bottom; }
+.overlay-svg-bar3 { animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite 0.4s; transform-origin: bottom; }
+
+.overlay-variant-swatch {
+  @apply relative shrink-0 overflow-hidden rounded-lg border cursor-pointer transition;
+  width: 72px;
+  height: 44px;
+}
+.overlay-variant-swatch--active {
+  border-color: var(--dash-primary-light);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dash-primary-light) 40%, transparent);
+}
+.overlay-variant-swatch--idle {
+  @apply border-[var(--dash-border)] hover:border-[rgba(130,128,253,0.35)];
+}
