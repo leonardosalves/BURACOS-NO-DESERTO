@@ -180,7 +180,9 @@ export function registerVideoResurrectorRoutes(app, deps) {
       const ext = String(fileName || "").toLowerCase().endsWith(".png") || mimeType === "image/png"
         ? ".png"
         : ".jpg";
-      const dir = path.join(item.projectPath, "ASSETS", "resurrector_thumbnails");
+      const dir = item.projectPath && fs.existsSync(item.projectPath)
+        ? path.join(item.projectPath, "ASSETS", "resurrector_thumbnails")
+        : path.join(WORKSPACE_DIR, "ASSETS", "resurrector_thumbnails");
       fs.mkdirSync(dir, { recursive: true });
       const outPath = path.join(dir, `thumb_${item.videoId}${ext}`);
       fs.writeFileSync(outPath, buffer);

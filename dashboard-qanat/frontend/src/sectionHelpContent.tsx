@@ -115,7 +115,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Ressuscitador de vídeos',
     body: (
       <>
-        Reformula metadados de vídeos com +10 dias na ordem do mais antigo ao mais novo, até o último postado; ao terminar, recomeça o mesmo ciclo. Dois batches diários (11h e 16h). Com o app aberto dispara sozinho; fechado, manual. Vídeos da manhã não repetem à tarde. Thumbnail manual em longos.
+        Varre todos os uploads do canal YouTube conectado (+10 dias), do mais antigo ao mais novo; ao terminar, recomeça o ciclo. Se existir projeto Lumiera com o mesmo post_id, usa o roteiro; senão, usa a descrição do YouTube. Batches 11h e 16h. Thumbnail manual em longos.
       </>
     ),
   },
