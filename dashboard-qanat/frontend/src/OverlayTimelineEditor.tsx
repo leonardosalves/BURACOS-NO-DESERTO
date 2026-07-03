@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { SettingLabel } from './SettingHelpTip';
+import { OverlayAiBriefing } from './OverlayAiBriefing';
 import { OverlayPreview } from './OverlayPreview';
+import type { OverlayResearchSnapshot } from './overlayAiBriefing';
 import { buildFilmstripSegments, resolveTotalDuration } from './overlayFilmstrip';
 import { OverlayIconPicker } from './OverlayIconPicker';
 import { OverlayVariantPicker } from './OverlayVariantPicker';
@@ -117,7 +119,11 @@ export function OverlayTimelineEditor({
     scene?: string;
     block?: number;
     narration_text?: string;
+    prompt?: string;
+    visual_description?: string;
   }>;
+  const overlayResearch = (storyboard?.overlays_research || null) as OverlayResearchSnapshot | null;
+  const globalPlanning = (storyboard?.overlays_planejamento || []) as string[];
 
   const sceneOptions = useMemo(() => {
     const base = buildSceneOptions(visualPrompts);
@@ -349,6 +355,20 @@ export function OverlayTimelineEditor({
         </div>
 
         <div className="dash-layer-card space-y-3 min-w-0">
+          {!isSystem && (
+            <OverlayAiBriefing
+              overlay={overlay}
+              visualPrompts={visualPrompts}
+              overlayResearch={overlayResearch}
+              globalPlanning={globalPlanning}
+              onApplySuggestions={(patch) => {
+                patchOverlay(overlay.id, {
+                  ...(patch.type ? { type: patch.type } : {}),
+                }, patch.props);
+              }}
+            />
+          )}
+
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-bold text-zinc-200">
