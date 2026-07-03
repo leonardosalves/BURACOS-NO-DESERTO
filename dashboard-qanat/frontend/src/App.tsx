@@ -8140,7 +8140,7 @@ export default function App() {
 
     setMixing(true);
 
-    if (!fromWizard) setActiveTab('terminal');
+    const toastId = toast.loading('Regenerando trilha sonora...');
 
     setLogs(prev => [...prev, "[Mixer] Iniciando mixagem das trilhas sonoras..."]);
 
@@ -8148,23 +8148,44 @@ export default function App() {
 
       const res = await fetch(getProjectUrl('/api/music/mix'), { method: 'POST' });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+
+      if (Array.isArray(data.prepLogs)) {
+        for (const line of data.prepLogs) {
+          setLogs(prev => [...prev, `[Mixer] ${line}`]);
+        }
+      }
 
       if (res.ok) {
 
-        setLogs(prev => [...prev, data.log, "[Mixer] Sucesso! Trilha trilha_documentario.mp3 gerada."]);
+        setLogs(prev => [...prev, data.log || '', "[Mixer] Sucesso! trilha_documentario.mp3 gerada."]);
+
+        if (!fromWizard) setActiveTab('terminal');
+
+        toast.success('Trilha sonora regenerada com sucesso!', { id: toastId });
 
         fetchData();
 
       } else {
 
-        setLogs(prev => [...prev, `[ERRO Mixer] Falha: ${data.error}`, data.log]);
+        const detail = data.details || data.log || '';
+
+        setLogs(prev => [...prev, `[ERRO Mixer] ${data.error || 'Falha na mixagem'}`, detail]);
+
+        toast.error(
+          data.error
+            ? `${data.error}${detail ? ` — veja o Terminal para detalhes.` : ''}`
+            : 'Erro ao regenerar trilha sonora.',
+          { id: toastId, duration: 6000 },
+        );
 
       }
 
     } catch (err) {
 
       setLogs(prev => [...prev, `[ERRO Mixer] Conexão falhou: ${err}`]);
+
+      toast.error('Falha de conexão ao regenerar trilha sonora.', { id: toastId });
 
     } finally {
 
