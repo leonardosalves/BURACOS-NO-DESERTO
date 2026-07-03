@@ -317,23 +317,31 @@ export function OverlayTimelineEditor({
     const narration = sceneNarrationFor(overlay, visualPrompts);
 
     return (
-      <div className="space-y-4">
-        <OverlayPreview
-          overlay={overlay}
-          aspectRatio={aspectRatio}
-          accentColor={String(props.accentColor || accentColor)}
-          sceneNarration={narration}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,200px)_minmax(0,1fr)] gap-3 items-start">
+        <div className="md:sticky md:top-2 shrink-0">
+          <OverlayPreview
+            overlay={overlay}
+            aspectRatio={aspectRatio}
+            accentColor={String(props.accentColor || accentColor)}
+            sceneNarration={narration}
+            compact
+          />
+        </div>
 
-        <div className="dash-layer-card space-y-4">
+        <div className="dash-layer-card space-y-3 min-w-0">
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-bold text-zinc-200">
                 {OVERLAY_TYPE_LABELS[overlay.type] || overlay.type}
               </p>
-              <p className="text-[9px] text-[var(--dash-muted)] mt-0.5">
-                Editar tempo, posição, conteúdo e design
+              <p className="text-[9px] text-[var(--dash-muted)] mt-0.5 truncate">
+                {overlaySummary(overlay)}
               </p>
+              {narration && (
+                <p className="text-[8px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                  {narration}
+                </p>
+              )}
             </div>
             {!isSystem && (
               <button
@@ -615,8 +623,8 @@ export function OverlayTimelineEditor({
             {renderFilmstripTimeline()}
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
-            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.32fr)_minmax(0,1.68fr)] gap-4">
+            <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
               <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold sticky top-0 z-[1]">
                 Lista ({overlays.length})
               </p>
@@ -668,7 +676,7 @@ export function OverlayTimelineEditor({
               })}
             </div>
 
-            <div className="min-w-0 max-h-[520px] overflow-y-auto">
+            <div className="min-w-0 max-h-[480px] overflow-y-auto">
               {selected ? renderInspector(selected) : (
                 <p className="text-[10px] text-[var(--dash-muted)]">Selecione um overlay na lista ou na faixa.</p>
               )}
