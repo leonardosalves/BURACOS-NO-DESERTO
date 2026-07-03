@@ -115,7 +115,7 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     title: 'Ressuscitador de vídeos',
     body: (
       <>
-        Reformula título, descrição, hashtags e tags de vídeos Lumiera publicados há mais de 10 dias. Processa até 10 por dia (batch automático ou manual). A IA usa o roteiro do projeto — metadados genéricos são evitados. Vídeos longos: envie a thumbnail manualmente antes de aplicar.
+        Reformula título, descrição, hashtags e tags de vídeos Lumiera publicados há mais de 10 dias. Dois batches diários nos horários de pico: 5 às 11h e 5 às 16h. Com o app aberto, dispara automaticamente; fechado, dispare manualmente (aviso se perdeu o horário). Vídeos da manhã não repetem à tarde. A IA usa o roteiro do projeto. Vídeos longos: thumbnail manual.
       </>
     ),
   },
@@ -124,8 +124,8 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
     body: (
       <>
         <strong>Escanear elegíveis</strong> — enfileira vídeos com idade mínima configurada.{' '}
-        <strong>Processar batch</strong> — gera novos metadados SEO via IA.{' '}
-        Revise, escolha o título, faça upload da capa (longos) e <strong>Aplicar no YouTube</strong>.
+        <strong>Batch manhã / tarde</strong> — gera metadados SEO via IA (5+5 por dia).{' '}
+        Com o dashboard aberto, os horários 11h e 16h disparam sozinhos. Revise, escolha o título, faça upload da capa (longos) e <strong>Aplicar no YouTube</strong>.
       </>
     ),
   },
