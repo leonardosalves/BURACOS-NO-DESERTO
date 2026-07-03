@@ -4,48 +4,9 @@ import {
   interpolate,
   useCurrentFrame,
   useVideoConfig,
-  spring,
 } from "remotion";
-import { SafeLottie } from "./SafeLottie";
 import { mergeCustomStyle } from "./overlayStyleUtils";
-
-import sparklesLottie from "./lottie_assets/sparkles.json";
-import flameLottie from "./lottie_assets/flame.json";
-import globeLottie from "./lottie_assets/globe.json";
-import infoLottie from "./lottie_assets/info.json";
-import gearLottie from "./lottie_assets/lottie_ui_gear_1.json";
-import lockLottie from "./lottie_assets/lottie_ui_lock_3.json";
-import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
-import apiLottie from "./lottie_assets/lottie_tech_api_1.json";
-import boltLottie from "./lottie_assets/lottie_tech_bolt_1.json";
-import timeLottie from "./lottie_assets/lottie_ui_time_1.json";
-import windLottie from "./lottie_assets/weather_wind.json";
-import moneyLottie from "./lottie_assets/lottie_biz_money_1.json";
-import warningLottie from "./lottie_assets/lottie_ui_warning_1.json";
-import locationLottie from "./lottie_assets/lottie_life_location_1.json";
-import docLottie from "./lottie_assets/lottie_tech_document_1.json";
-import heartLottie from "./lottie_assets/lottie_interact_heart_1.json";
-import ideaLottie from "./lottie_assets/lottie_life_idea_1.json";
-
-const lottieMap: Record<string, any> = {
-  sparkles: sparklesLottie,
-  flame: flameLottie,
-  earth: globeLottie,
-  building: globeLottie,
-  info: infoLottie,
-  gear: gearLottie,
-  shield: lockLottie,
-  crown: crownLottie,
-  science: boltLottie,
-  history: timeLottie,
-  nature: windLottie,
-  money: moneyLottie,
-  warning: warningLottie,
-  compass: locationLottie,
-  book: docLottie,
-  heart: heartLottie,
-  lightbulb: ideaLottie,
-};
+import { OverlayIconSlot } from "./overlayIconSlot";
 
 export interface LowerThirdProps {
   title: string;
@@ -55,6 +16,7 @@ export interface LowerThirdProps {
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
   variant?: "glass" | "bild" | "accent-underline" | "bold-block" | "clean-bar" | "soft-pill";
   iconType?: string;
+  iconStyle?: "lottie" | "svg";
   customStyle?: {
     background?: string;
     border?: string;
@@ -95,10 +57,18 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
   theme = "classic",
   variant,
   iconType,
+  iconStyle,
   customStyle,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames, width, height } = useVideoConfig();
+  const { durationInFrames, width, height } = useVideoConfig();
+
+  const iconSlot = (px: number) =>
+    iconType ? (
+      <div style={{ flexShrink: 0, width: px, height: px, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <OverlayIconSlot iconType={iconType} iconStyle={iconStyle} size={px} accentColor={accentColor} />
+      </div>
+    ) : null;
   const isVertical = height > width;
 
   // Slide-in from left
@@ -327,11 +297,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
             gap: 12,
           }}
         >
-          {iconType && lottieMap[iconType] && (
-            <div style={{ width: isVertical ? 50 : 36, height: isVertical ? 50 : 36 }}>
-              <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
-            </div>
-          )}
+          {iconSlot(isVertical ? 50 : 36)}
           <span
             style={{
               color: "#111111",
@@ -398,11 +364,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
           }}
         >
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 12 }}>
-            {iconType && lottieMap[iconType] && (
-              <div style={{ width: isVertical ? 46 : 32, height: isVertical ? 46 : 32 }}>
-                <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
-              </div>
-            )}
+            {iconSlot(isVertical ? 46 : 32)}
             <span
               style={{
                 color: "#FFFFFF",
@@ -476,11 +438,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
               paddingBottom: 6,
             }}
           >
-            {iconType && lottieMap[iconType] && (
-              <div style={{ width: isVertical ? 46 : 32, height: isVertical ? 46 : 32 }}>
-                <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
-              </div>
-            )}
+            {iconSlot(isVertical ? 46 : 32)}
             <span
               style={{
                 color: "#FFFFFF",
@@ -540,11 +498,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
             boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px ${accentColor}22 inset`,
           }}
         >
-          {iconType && lottieMap[iconType] && (
-            <div style={{ width: isVertical ? 40 : 30, height: isVertical ? 40 : 30 }}>
-              <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
-            </div>
-          )}
+          {iconSlot(isVertical ? 40 : 30)}
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span
               style={{
@@ -611,11 +565,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
             gap: 16,
           }}
         >
-          {iconType && lottieMap[iconType] && (
-            <div style={{ width: isVertical ? 50 : 36, height: isVertical ? 50 : 36 }}>
-              <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
-            </div>
-          )}
+          {iconSlot(isVertical ? 50 : 36)}
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span
               style={{
@@ -700,11 +650,7 @@ export const LowerThird: React.FC<LowerThirdProps> = ({
         )}
 
         {/* Lottie Icon */}
-        {iconType && lottieMap[iconType] && (
-          <div style={{ flexShrink: 0, width: isVertical ? 48 : 36, height: isVertical ? 48 : 36 }}>
-            <SafeLottie animationData={lottieMap[iconType]} style={{ width: "100%", height: "100%" }} />
-          </div>
-        )}
+        {iconSlot(isVertical ? 48 : 36)}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
           {/* Title */}

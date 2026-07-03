@@ -126,24 +126,7 @@ export const OVERLAY_THEMES = [
   { id: 'mysterious', label: 'Mistério' },
 ];
 
-export const LOTTIE_ICON_OPTIONS = [
-  { id: 'sparkles', label: 'Brilho' },
-  { id: 'flame', label: 'Chama' },
-  { id: 'earth', label: 'Terra' },
-  { id: 'info', label: 'Info' },
-  { id: 'gear', label: 'Engrenagem' },
-  { id: 'shield', label: 'Escudo' },
-  { id: 'crown', label: 'Coroa' },
-  { id: 'science', label: 'Ciência' },
-  { id: 'history', label: 'História' },
-  { id: 'nature', label: 'Natureza' },
-  { id: 'money', label: 'Dinheiro' },
-  { id: 'warning', label: 'Alerta' },
-  { id: 'compass', label: 'Bússola' },
-  { id: 'book', label: 'Livro' },
-  { id: 'heart', label: 'Coração' },
-  { id: 'lightbulb', label: 'Ideia' },
-];
+export { LOTTIE_ICON_OPTIONS, type OverlayIconStyle } from './overlayIconCatalog';
 
 export type ContentField = {
   key: string;

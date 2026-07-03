@@ -13,9 +13,11 @@ import { SectionHeader } from './SectionHeader';
 import { SettingLabel } from './SettingHelpTip';
 import { OverlayPreview } from './OverlayPreview';
 import { buildFilmstripSegments, resolveTotalDuration } from './overlayFilmstrip';
+import { OverlayIconPicker } from './OverlayIconPicker';
+import { OverlayVariantPicker } from './OverlayVariantPicker';
+import { iconLabel, resolveIconStyle, type OverlayIconStyle } from './overlayIconCatalog';
 import {
   INFORMATIVE_OVERLAY_TYPES,
-  LOTTIE_ICON_OPTIONS,
   OVERLAY_CONTENT_FIELDS,
   OVERLAY_POSITIONS,
   OVERLAY_THEMES,
@@ -178,15 +180,12 @@ export function OverlayTimelineEditor({
     });
   };
 
-  const setLottieEnabled = (id: string, enabled: boolean, current?: OverlayDraft) => {
-    const overlay = current || overlays.find((o) => o.id === id);
-    if (!overlay) return;
-    if (enabled) {
-      patchProp(id, 'iconType', overlay.props?.iconType || 'sparkles');
+  const setIcon = (id: string, iconId: string | undefined, style: OverlayIconStyle) => {
+    if (!iconId) {
+      patchOverlay(id, { props: { ...(overlays.find((o) => o.id === id)?.props || {}), iconType: undefined, iconStyle: undefined } });
       return;
     }
-    const nextProps = { ...(overlay.props || {}), iconType: undefined };
-    patchOverlay(id, { props: nextProps });
+    patchOverlay(id, {}, { iconType: iconId, iconStyle: style });
   };
 
   const renderFilmstripTimeline = () => (
@@ -298,7 +297,7 @@ export function OverlayTimelineEditor({
           )}
           {selected.props?.iconType && (
             <span className="text-cyan-400/80">
-              Lottie: {LOTTIE_ICON_OPTIONS.find((i) => i.id === selected.props?.iconType)?.label}
+              {resolveIconStyle(selected.props || {}) === 'svg' ? 'SVG' : 'Lottie'}: {iconLabel(String(selected.props.iconType), resolveIconStyle(selected.props || {}))}
             </span>
           )}
         </div>
@@ -312,8 +311,8 @@ export function OverlayTimelineEditor({
     const contentFields = OVERLAY_CONTENT_FIELDS[overlay.type] || [];
     const positions = OVERLAY_POSITIONS[overlay.type] || [];
     const variants = OVERLAY_VARIANTS[overlay.type] || [];
-    const hasLottie = overlaySupportsLottie(overlay.type);
-    const lottieOn = Boolean(props.iconType);
+    const hasIcon = overlaySupportsLottie(overlay.type);
+    const iconStyle = resolveIconStyle(props);
     const narration = sceneNarrationFor(overlay, visualPrompts);
 
     return (
@@ -450,19 +449,18 @@ export function OverlayTimelineEditor({
           {!isSystem && (overlaySupportsVariant(overlay.type) || overlaySupportsTheme(overlay.type)) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {overlaySupportsVariant(overlay.type) && (
-                <div className="space-y-1.5">
-                  <SettingLabel helpTitle="Design" help="Variante visual." align="start">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <SettingLabel helpTitle="Design" help="Variante visual — clique no preview." align="start">
                     <span className="inline-flex items-center gap-1"><Palette className="w-3 h-3" /> Design</span>
                   </SettingLabel>
-                  <select
+                  <OverlayVariantPicker
+                    overlayType={overlay.type}
+                    variants={variants}
                     value={String(props.variant || variants[0]?.id || '')}
-                    onChange={(e) => patchProp(overlay.id, 'variant', e.target.value)}
-                    className="dash-select text-[10px]"
-                  >
-                    {variants.map((v) => (
-                      <option key={v.id} value={v.id}>{v.label}</option>
-                    ))}
-                  </select>
+                    accentColor={String(props.accentColor || accentColor)}
+                    theme={String(props.theme || 'classic')}
+                    onChange={(id) => patchProp(overlay.id, 'variant', id)}
+                  />
                 </div>
               )}
               {overlaySupportsTheme(overlay.type) && (
@@ -484,34 +482,13 @@ export function OverlayTimelineEditor({
             </div>
           )}
 
-          {hasLottie && !isSystem && (
-            <div className="space-y-2 pt-1 border-t border-[var(--dash-border)]">
-              <div className="flex items-center justify-between gap-3">
-                <SettingLabel helpTitle="Ícone Lottie" help="Animação ao lado do texto." align="start">
-                  Ícone Lottie
-                </SettingLabel>
-                <label className="flex items-center gap-2 cursor-pointer text-[10px] text-zinc-300">
-                  <input
-                    type="checkbox"
-                    checked={lottieOn}
-                    onChange={(e) => setLottieEnabled(overlay.id, e.target.checked, overlay)}
-                    className="dash-checkbox"
-                  />
-                  {lottieOn ? 'Ligado' : 'Desligado'}
-                </label>
-              </div>
-              {lottieOn && (
-                <select
-                  value={String(props.iconType || 'sparkles')}
-                  onChange={(e) => patchProp(overlay.id, 'iconType', e.target.value)}
-                  className="dash-select text-[10px]"
-                >
-                  {LOTTIE_ICON_OPTIONS.map((icon) => (
-                    <option key={icon.id} value={icon.id}>{icon.label}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+          {hasIcon && !isSystem && (
+            <OverlayIconPicker
+              iconId={props.iconType ? String(props.iconType) : undefined}
+              iconStyle={iconStyle}
+              accentColor={String(props.accentColor || accentColor)}
+              onChange={(iconId, style) => setIcon(overlay.id, iconId, style)}
+            />
           )}
 
           {contentFields.length > 0 && !isSystem && (
@@ -660,9 +637,9 @@ export function OverlayTimelineEditor({
                           sistema
                         </span>
                       )}
-                      {propsHasLottie(overlay) && !isHud && (
+                      {propsHasIcon(overlay) && !isHud && (
                         <span className="text-[7px] uppercase tracking-wide text-cyan-400/80 border border-cyan-500/30 rounded px-1.5 py-0.5">
-                          lottie
+                          {resolveIconStyle(overlay.props || {}) === 'svg' ? 'svg' : 'lottie'}
                         </span>
                       )}
                       {overlay.props?.position && (
@@ -688,6 +665,6 @@ export function OverlayTimelineEditor({
   );
 }
 
-function propsHasLottie(overlay: OverlayDraft): boolean {
+function propsHasIcon(overlay: OverlayDraft): boolean {
   return Boolean(overlay.props?.iconType);
 }
