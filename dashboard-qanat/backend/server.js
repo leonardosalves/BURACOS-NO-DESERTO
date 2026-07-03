@@ -4815,6 +4815,9 @@ app.get("/api/render/:mode", async (req, res) => {
 
       sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
 
+      const remotionTimeoutMs = 180000;
+      const heavyRender = resolution === "2k" || (renderPlan.totalDuration || 0) > 60;
+
       const remotionArgs = [
         "remotion",
         "render",
@@ -4825,7 +4828,16 @@ app.get("/api/render/:mode", async (req, res) => {
         `"${renderPlan.propsPath}"`,
         "--codec",
         isProres ? "prores" : "h264",
+        "--timeout",
+        String(remotionTimeoutMs),
       ];
+
+      if (heavyRender) {
+        remotionArgs.push("--concurrency", "4");
+        sendLog(`[Remotion] Timeout ${remotionTimeoutMs / 1000}s, concurrency=4 (render pesado).`);
+      } else {
+        sendLog(`[Remotion] Timeout ${remotionTimeoutMs / 1000}s.`);
+      }
 
       if (previewSecs > 0) {
         remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
