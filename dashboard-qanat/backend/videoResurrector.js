@@ -482,50 +482,133 @@ function hasActiveQueueItem(state, videoId) {
   return false;
 }
 
-async function buildResurrectorEligibleRows(workspaceDir, projectsRoot, settings = {}) {
+function buildResurrectorRow(entry, sn, merged) {
+  const ageDays = daysSince(sn.publishedAt);
+  const minAgeDays = merged.minAgeDays;
+  const daysUntilEligible = Math.max(0, minAgeDays - ageDays);
+  const eligibleOn = daysUntilEligible > 0
+    ? new Date(new Date(sn.publishedAt).getTime() + minAgeDays * 24 * 60 * 60 * 1000).toISOString()
+    : sn.publishedAt;
+
+  return {
+    videoId: entry.videoId,
+    projectName: entry.projectName,
+    projectPath: entry.projectPath,
+    format: normalizeFormat(entry.format),
+    niche: entry.niche || "",
+    title: sn.title || entry.title || "",
+    publishedAt: sn.publishedAt,
+    ageDays,
+    daysUntilEligible,
+    eligibleOn,
+    thumbnailUrl: sn.thumbnailUrl,
+    viewCount: sn.viewCount,
+    currentMetadata: {
+      title: sn.title,
+      description: sn.description,
+      tags: sn.tags,
+    },
+  };
+}
+
+export function buildResurrectorScanDiagnostics(rows = [], settings = {}) {
+  const minAgeDays = settings.minAgeDays ?? DEFAULT_SETTINGS.minAgeDays;
+  const tooYoung = rows
+    .filter((row) => row.ageDays < minAgeDays)
+    .sort((a, b) => (b.ageDays || 0) - (a.ageDays || 0));
+  const eligibleNow = rows.filter((row) => row.ageDays >= minAgeDays);
+  const nextToQualify = tooYoung[0] || null;
+
+  return {
+    publishedOnDisk: rows.length,
+    minAgeDays,
+    eligibleCount: eligibleNow.length,
+    tooYoungCount: tooYoung.length,
+    tooYoung: tooYoung.slice(0, 12).map((row) => ({
+      videoId: row.videoId,
+      title: row.title,
+      projectName: row.projectName,
+      ageDays: row.ageDays,
+      daysUntilEligible: row.daysUntilEligible,
+      eligibleOn: row.eligibleOn,
+    })),
+    nextToQualify: nextToQualify
+      ? {
+          title: nextToQualify.title,
+          projectName: nextToQualify.projectName,
+          ageDays: nextToQualify.ageDays,
+          daysUntilEligible: nextToQualify.daysUntilEligible,
+          eligibleOn: nextToQualify.eligibleOn,
+        }
+      : null,
+    scannedAt: new Date().toISOString(),
+  };
+}
+
+export function formatResurrectorScanMessage(diagnostics, { eligible = 0, added = 0 } = {}) {
+  if (!diagnostics?.publishedOnDisk) {
+    return "Nenhum vídeo Lumiera publicado encontrado (precisa de post_id no config e pasta no Desktop/Lumiera Videos).";
+  }
+  if (eligible > 0) {
+    return `${added} vídeo(s) adicionados à fila (${eligible} elegíveis de ${diagnostics.publishedOnDisk} publicados).`;
+  }
+  if (diagnostics.tooYoungCount > 0 && diagnostics.nextToQualify) {
+    const next = diagnostics.nextToQualify;
+    const days = next.daysUntilEligible ?? Math.max(0, diagnostics.minAgeDays - (next.ageDays || 0));
+    return `0 elegíveis agora: ${diagnostics.publishedOnDisk} publicado(s), mas nenhum com +${diagnostics.minAgeDays} dias. O mais antigo (“${next.title}”) tem ${next.ageDays}d — elegível em ~${days}d.`;
+  }
+  return `0 elegíveis de ${diagnostics.publishedOnDisk} vídeo(s) publicado(s).`;
+}
+
+async function buildResurrectorCatalog(workspaceDir, projectsRoot, settings = {}) {
   const merged = { ...DEFAULT_SETTINGS, ...settings };
   const published = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
-  if (!published.length) return [];
+  if (!published.length) {
+    return {
+      allEligible: [],
+      rows: [],
+      diagnostics: buildResurrectorScanDiagnostics([], merged),
+    };
+  }
 
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
   const snippetMap = await fetchYoutubeVideosSnippet(accessToken, published.map((p) => p.videoId));
 
-  const eligible = [];
+  const rows = [];
+  const missingYoutube = [];
   for (const entry of published) {
     const sn = snippetMap.get(entry.videoId);
-    if (!sn?.publishedAt) continue;
-    const ageDays = daysSince(sn.publishedAt);
-    if (ageDays < merged.minAgeDays) continue;
-
-    eligible.push({
-      videoId: entry.videoId,
-      projectName: entry.projectName,
-      projectPath: entry.projectPath,
-      format: normalizeFormat(entry.format),
-      niche: entry.niche || "",
-      title: sn.title || entry.title || "",
-      publishedAt: sn.publishedAt,
-      ageDays,
-      thumbnailUrl: sn.thumbnailUrl,
-      viewCount: sn.viewCount,
-      currentMetadata: {
-        title: sn.title,
-        description: sn.description,
-        tags: sn.tags,
-      },
-    });
+    if (!sn?.publishedAt) {
+      missingYoutube.push({
+        videoId: entry.videoId,
+        projectName: entry.projectName,
+        title: entry.title || entry.projectName,
+      });
+      continue;
+    }
+    rows.push(buildResurrectorRow(entry, sn, merged));
   }
 
-  eligible.sort(comparePublishedAtAsc);
-  return eligible;
+  rows.sort(comparePublishedAtAsc);
+  const diagnostics = buildResurrectorScanDiagnostics(rows, merged);
+  diagnostics.missingYoutubeCount = missingYoutube.length;
+  diagnostics.missingYoutube = missingYoutube.slice(0, 8);
+  const allEligible = rows.filter((row) => row.ageDays >= merged.minAgeDays);
+
+  return { allEligible, rows, diagnostics };
+}
+
+export async function buildResurrectorEligibleRows(workspaceDir, projectsRoot, settings = {}) {
+  const { allEligible } = await buildResurrectorCatalog(workspaceDir, projectsRoot, settings);
+  return allEligible;
 }
 
 export async function scanEligibleResurrectorVideos(workspaceDir, projectsRoot, settings = {}) {
   const state = loadResurrectorState(workspaceDir);
-  const allEligible = await buildResurrectorEligibleRows(workspaceDir, projectsRoot, settings);
+  const { allEligible, diagnostics } = await buildResurrectorCatalog(workspaceDir, projectsRoot, settings);
   const eligible = allEligible.filter((row) => !isVideoBatchedInCurrentCycle(state, row.videoId));
-  return { eligible, allEligible, state };
+  return { eligible, allEligible, diagnostics, state };
 }
 
 export async function prepareResurrectorBatchState(workspaceDir, projectsRoot, state, settings = {}) {
@@ -1008,6 +1091,7 @@ export function getResurrectorDashboard(state) {
     badgeCount: schedule.badgeCount,
     cycle: state.cycle || emptyCycle(1),
     cycleProgress: state.cycleProgress || null,
+    scanDiagnostics: state.scanDiagnostics || null,
     counts: {
       queued: items.filter((i) => i.status === "queued").length,
       generating: items.filter((i) => i.status === "generating").length,
