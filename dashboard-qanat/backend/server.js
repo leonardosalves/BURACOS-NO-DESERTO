@@ -3536,6 +3536,59 @@ function makeEpidemicFilename(title) {
 
 }
 
+/** Resolve BGM for Remotion when config.bgm_mappings is empty but audio files exist on disk. */
+function resolveBgmMappingsForRender(projectDir, config, blockNumbers) {
+  if (config?.use_single_bgm && config?.single_bgm && findProjectFile(projectDir, config.single_bgm)) {
+    return { mode: "single", single_bgm: config.single_bgm, mappings: [], source: "config_single" };
+  }
+
+  const configured = Array.isArray(config?.bgm_mappings)
+    ? config.bgm_mappings.filter((mapping) => mapping?.file && findProjectFile(projectDir, mapping.file))
+    : [];
+
+  if (configured.length > 0) {
+    return { mode: "blocks", mappings: configured, source: "config_mappings" };
+  }
+
+  const numberedMappings = [];
+  for (const block of blockNumbers) {
+    const numberedFile = `${block}.mp3`;
+    if (findProjectFile(projectDir, numberedFile)) {
+      numberedMappings.push({ block, file: numberedFile });
+    }
+  }
+  if (numberedMappings.length > 0) {
+    console.log(`[Remotion BGM] Auto-mapeadas ${numberedMappings.length} trilhas numeradas (N.mp3) por bloco.`);
+    return { mode: "blocks", mappings: numberedMappings, source: "numbered_files" };
+  }
+
+  let esFiles = [];
+  try {
+    esFiles = fs.readdirSync(projectDir)
+      .filter((fileName) => /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName))
+      .sort();
+  } catch (err) {
+    esFiles = [];
+  }
+
+  if (esFiles.length > 0 && blockNumbers.length > 0) {
+    const distributed = blockNumbers.map((block, index) => ({
+      block,
+      file: esFiles[Math.min(index, esFiles.length - 1)],
+    }));
+    console.log(`[Remotion BGM] Auto-distribuídas ${esFiles.length} faixas ES_* em ${blockNumbers.length} blocos.`);
+    return { mode: "blocks", mappings: distributed, source: "es_files" };
+  }
+
+  if (findProjectFile(projectDir, "trilha_documentario.mp3")) {
+    console.log("[Remotion BGM] Usando trilha_documentario.mp3 como trilha única (mix_bgm.py).");
+    return { mode: "single", single_bgm: "trilha_documentario.mp3", mappings: [], source: "mixed_master" };
+  }
+
+  console.warn("[Remotion BGM] Nenhuma trilha encontrada — render sairá sem BGM.");
+  return { mode: "none", mappings: [], source: "none" };
+}
+
 function collectExistingAutoBgmKeys(projDir, config) {
 
   const keys = new Set();
@@ -3756,18 +3809,16 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
 
     const usedTracks = new Set();
 
-    for (const sug of suggestions) {
+    for (const [sugIndex, sug] of suggestions.entries()) {
 
-      const block = Number(sug.block || 1);
+      const block = Number(sug.block || sug.bloco || 0) || (sugIndex + 1);
 
-      const rawSearchTheme = sug.search_theme || sug.recommendation || "";
+      let rawSearchTheme = sug.search_theme || sug.searchTheme || sug.recommendation || sug.recomendacao || "";
 
       if (!String(rawSearchTheme).trim()) {
-
-        logs.push(`[Bloco ${block}] Sem tema/recomendacao de BGM. Ignorado.`);
-
-        continue;
-
+        const mood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+        rawSearchTheme = mood.bgm;
+        logs.push(`[Bloco ${block}] Sem tema BGM no storyboard — usando nicho (${mood.label}): "${rawSearchTheme}"`);
       }
 
       const searchTheme = translateOrCleanQuery(rawSearchTheme);
@@ -4812,6 +4863,8 @@ app.get("/api/render/:mode", async (req, res) => {
       }
 
       sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
+
+      sendLog(`[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM (${renderPlan.bgmSource || "none"}).`);
 
       sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
 
@@ -6100,9 +6153,12 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   });
 
-  const bgmTracks = [];  if (config.use_single_bgm && config.single_bgm) {
+  const bgmPlan = resolveBgmMappingsForRender(projectDir, config, blockNumbers);
+  const bgmTracks = [];
 
-    const source = findProjectFile(projectDir, config.single_bgm);
+  if (bgmPlan.mode === "single" && bgmPlan.single_bgm) {
+
+    const source = findProjectFile(projectDir, bgmPlan.single_bgm);
 
     const copied = copyRemotionAsset(source, publicProjectDir, "bgm_single_");
 
@@ -6144,9 +6200,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     }
 
-  } else if (Array.isArray(config.bgm_mappings)) {
+  } else if (bgmPlan.mode === "blocks" && Array.isArray(bgmPlan.mappings)) {
 
-    for (const mapping of config.bgm_mappings) {
+    for (const mapping of bgmPlan.mappings) {
 
       const block = Number(mapping?.block || 0);
 
@@ -6390,6 +6446,8 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       ? overlays.filter(isInformativeOverlay).length
       : 0,
     overlayTimingReport: freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
+    bgmTrackCount: bgmTracks.length,
+    bgmSource: bgmPlan.source,
   };
 
 }
@@ -11711,17 +11769,23 @@ function normalizeKeys(data) {
 
   if (bgmRecKey && Array.isArray(data[bgmRecKey])) {
 
-    normalized.bgm_recommendations = data[bgmRecKey].map(r => ({
+    normalized.bgm_recommendations = data[bgmRecKey].map((r, index) => {
 
-      block: r.block || r.bloco || 0,
+      const blockNum = Number(r.block || r.bloco || 0) || (index + 1);
 
-      scope: r.scope || r.escopo || (r.block || r.bloco ? "block" : "video"),
+      return {
 
-      recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || "",
+        block: blockNum,
 
-      search_theme: r.search_theme || r.searchTheme || r.tema_busca || ""
+        scope: r.scope || r.escopo || "block",
 
-    }));
+        recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || "",
+
+        search_theme: r.search_theme || r.searchTheme || r.tema_busca || "",
+
+      };
+
+    });
 
   } else {
 
