@@ -47,6 +47,7 @@ import {
   createProgressReporter,
   normalizeJobId,
   finishJobProgress,
+  finishJobProgressWithResult,
   failJobProgress,
   setJobProgress,
 } from "./aiJobProgress.js";
@@ -57,6 +58,7 @@ import {
 } from "./timelineSceneSync.js";
 import {
   generateNarrationChunksTts,
+  isFullNarrationChunkBatch,
   persistChunkPlanToProject,
   formatNarrationChunkPlanLog,
   NARRATION_MODE_CHUNKED,
@@ -708,16 +710,33 @@ export function registerWorkflowRoutes(app, deps) {
 
       persistChunkPlanToProject(projDir, nextPlan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
 
-      const shouldSyncWhisper = syncWhisper !== false;
-      if (shouldSyncWhisper && fs.existsSync(path.join(projDir, "narracao_mestra_premium.mp3"))) {
-        report("whisper", "Sincronizando legendas com Whisper (pode levar alguns minutos)…", 93);
-        try {
-          const handlers = buildCreatorPipelineHandlers();
-          await handlers.sync(projDir, (msg) => console.log(msg));
-          report("whisper", "Legendas alinhadas com Whisper.", 97);
-        } catch (whisperErr) {
-          console.warn("[TTS Chunks] Whisper falhou — legendas estimadas por trecho:", whisperErr?.message || whisperErr);
-          report("whisper-fallback", "Whisper indisponível — usando timings estimados dos trechos.", 95);
+      const fullBatch = isFullNarrationChunkBatch(chunkIds, plan);
+      const shouldSyncWhisper = fullBatch && syncWhisper !== false;
+      let whisperSynced = false;
+      let whisperError = null;
+
+      if (shouldSyncWhisper) {
+        const masterPath = path.join(projDir, "narracao_mestra_premium.mp3");
+        if (!fs.existsSync(masterPath)) {
+          whisperError = "narracao_mestra_premium.mp3 não encontrado após montagem.";
+          console.warn(`[TTS Chunks] Whisper ignorado: ${whisperError}`);
+        } else {
+          report("whisper", "Sincronizando legendas com Whisper (pode levar alguns minutos)…", 88);
+          try {
+            const handlers = buildCreatorPipelineHandlers();
+            await handlers.sync(projDir, (msg) => {
+              console.log(msg);
+              if (String(msg).includes("Whisper") || String(msg).includes("align")) {
+                report("whisper", "Whisper em execução…", 92);
+              }
+            });
+            whisperSynced = true;
+            report("whisper", "Legendas alinhadas com Whisper.", 97);
+          } catch (whisperErr) {
+            whisperError = whisperErr?.message || String(whisperErr);
+            console.warn("[TTS Chunks] Whisper falhou — legendas estimadas por trecho:", whisperError);
+            report("whisper-fallback", `Whisper falhou: ${whisperError}`, 95);
+          }
         }
       }
 
@@ -742,9 +761,31 @@ export function registerWorkflowRoutes(app, deps) {
       fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
-      const message = `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`;
-      if (progressJobId) finishJobProgress(progressJobId, message);
-      return { success: true, plan: nextPlan, logs, message };
+      let message = `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`;
+      if (whisperSynced) {
+        message += " Legendas sincronizadas com Whisper.";
+      } else if (shouldSyncWhisper && whisperError) {
+        message += ` Whisper não concluiu: ${whisperError}`;
+      } else if (!fullBatch) {
+        message += " Rode «Gerar todos os trechos» para sincronizar legendas (Whisper).";
+      }
+      if (progressJobId) {
+        finishJobProgressWithResult(progressJobId, {
+          message,
+          plan: nextPlan,
+          whisper_synced: whisperSynced,
+          whisper_error: whisperError,
+          full_batch: fullBatch,
+        }, message);
+      }
+      return {
+        success: true,
+        plan: nextPlan,
+        logs,
+        message,
+        whisper_synced: whisperSynced,
+        whisper_error: whisperError,
+      };
     };
 
     try {
