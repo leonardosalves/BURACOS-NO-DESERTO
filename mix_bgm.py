@@ -145,23 +145,27 @@ def find_best_climax_start(filename, duration_s, target_sr=SR, mood='peak'):
 
         best_start = 0
         best_score = -1e18
+        track_len = len(rms)
 
-        for i in range(len(rms) - dur_sec):
+        for i in range(track_len - dur_sec):
             window = rms[i:i + dur_sec]
             total = sum(window)
+            mean_e = total / max(1, len(window))
             start_e = window[0]
             end_e = window[-1]
             mid_e = window[len(window) // 2]
             variance = float(np.var(window)) if len(window) > 1 else 0.0
+            late_penalty = max(0.0, (i / max(1, track_len)) - 0.55) * 2.5
+            quiet_penalty = max(0.0, 0.012 - mean_e) * 120.0
 
             if mode == 'soft':
-                score = -(start_e * 1.4 + mid_e * 0.4) + end_e * 0.25
+                score = mean_e * 2.4 - variance * 1.2 - late_penalty * 0.6
             elif mode == 'rise':
-                score = (end_e - start_e) * 2.2 + end_e * 0.6 + total * 0.15
+                score = (end_e - start_e) * 2.0 + mean_e * 1.8 + end_e * 0.35 - late_penalty - quiet_penalty
             elif mode == 'neutral':
-                score = -(variance * 3.0) + total * 0.35
+                score = -(variance * 3.0) + mean_e * 2.2 - late_penalty * 0.4
             else:  # peak
-                score = total
+                score = total + mean_e * 1.2 - late_penalty
 
             if score > best_score:
                 best_score = score

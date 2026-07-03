@@ -6823,9 +6823,13 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     bgmTracks,
     sfxTracks,
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
-    musicVolume: Number.isFinite(Number(config.project_music_volume))
-      ? Number(config.project_music_volume)
-      : globalConfig.musicVolume,
+    musicVolume: (() => {
+      const base = Number.isFinite(Number(config.project_music_volume))
+        ? Number(config.project_music_volume)
+        : globalConfig.musicVolume;
+      const emotionLong = format === "16:9" && resolveBgmMode(config, storyboard, "LONG") === "emotion";
+      return emotionLong ? Math.max(base, 0.16) : base;
+    })(),
     debugOverlay: globalConfig.debugOverlay,
     overlays,
     youtubeChannelInfo,
