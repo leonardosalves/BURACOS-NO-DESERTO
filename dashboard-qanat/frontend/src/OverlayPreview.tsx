@@ -12,6 +12,8 @@ type Props = {
   aspectRatio?: '16:9' | '9:16' | string;
   accentColor?: string;
   sceneNarration?: string;
+  /** Preview pequeno ao lado dos controles */
+  compact?: boolean;
   className?: string;
 };
 
@@ -69,6 +71,7 @@ export function OverlayPreview({
   aspectRatio = '16:9',
   accentColor = '#D4AF37',
   sceneNarration,
+  compact = false,
   className = '',
 }: Props) {
   const isShort = aspectRatio === '9:16';
@@ -270,14 +273,21 @@ export function OverlayPreview({
 
   const posLabel = OVERLAY_POSITIONS[overlay.type]?.find((p) => p.id === position)?.label || position;
 
+  const frameMaxW = compact
+    ? (isShort ? 'max-w-[108px]' : 'max-w-[200px]')
+    : (isShort ? 'max-w-[min(100%,300px)] mx-auto' : 'w-full');
+
   return (
-    <div className={`space-y-1.5 min-w-0 ${className}`.trim()}>
-      <p className="text-[9px] text-[var(--dash-muted)] uppercase tracking-wider">
-        Preview · {isShort ? '9:16' : '16:9'} · {OVERLAY_TYPE_LABELS[overlay.type]}
+    <div className={`space-y-1 min-w-0 ${className}`.trim()}>
+      <p className="text-[8px] text-[var(--dash-muted)] uppercase tracking-wider">
+        Preview · {isShort ? '9:16' : '16:9'}
       </p>
       <div
-        className="overlay-preview-frame relative overflow-hidden rounded-2xl border border-[var(--dash-border)] bg-zinc-950"
-        style={{ aspectRatio: isShort ? '9 / 16' : '16 / 9', maxHeight: isShort ? '280px' : undefined }}
+        className={`overlay-preview-frame relative overflow-hidden rounded-xl border border-[var(--dash-border)] bg-zinc-950 w-full ${frameMaxW}`}
+        style={{
+          aspectRatio: isShort ? '9 / 16' : '16 / 9',
+          maxHeight: compact ? (isShort ? 140 : 120) : (isShort ? 280 : undefined),
+        }}
       >
         <div
           className="absolute inset-0 opacity-90"
@@ -308,14 +318,16 @@ export function OverlayPreview({
         </div>
       </div>
 
-      <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-2 space-y-1">
-        <p className="text-[10px] font-semibold text-zinc-200 truncate">{overlaySummary(overlay)}</p>
-        {sceneNarration && (
-          <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed line-clamp-2">
-            <span className="text-zinc-500">Narração na cena: </span>{sceneNarration}
-          </p>
-        )}
-      </div>
+      {!compact && (
+        <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] px-2 py-1.5">
+          <p className="text-[9px] font-semibold text-zinc-200 truncate">{overlaySummary(overlay)}</p>
+          {sceneNarration && (
+            <p className="text-[8px] text-[var(--dash-muted)] leading-relaxed line-clamp-2 mt-0.5">
+              {sceneNarration}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
