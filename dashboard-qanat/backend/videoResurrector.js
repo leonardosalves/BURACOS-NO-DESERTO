@@ -1,7 +1,7 @@
 /**
- * Ressuscitador de vídeos — reformula metadados SEO de vídeos Lumiera com +N dias.
+ * Ressuscitador de vídeos — reformula metadados SEO de vídeos do canal YouTube (+N dias).
+ * Varre uploads do canal (não só pastas Lumiera). Projeto local é usado quando existir (roteiro).
  * Dois batches diários (manhã 11h + tarde 16h, 5 vídeos cada). Auto só com app aberto.
- * Thumbnail de longos: upload manual; demais campos via IA.
  */
 
 import fs from "fs";
@@ -280,6 +280,69 @@ function normalizeFormat(format) {
   return f === "SHORTS" || f === "SHORT" ? "SHORT" : "LONG";
 }
 
+async function youtubeDataGet(accessToken, apiPath, params = {}) {
+  const url = new URL(`https://www.googleapis.com/youtube/v3/${apiPath}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throwIfInsufficientScope(data?.error?.message || `Falha na API YouTube (${apiPath}).`);
+    throw new Error(data?.error?.message || `Falha na API YouTube (${apiPath}).`);
+  }
+  return data;
+}
+
+export async function fetchAllChannelUploadVideoIds(accessToken, { maxVideos = 500 } = {}) {
+  const channelData = await youtubeDataGet(accessToken, "channels", {
+    part: "contentDetails,snippet",
+    mine: "true",
+  });
+  const channelItem = channelData?.items?.[0];
+  const uploadsPlaylistId = channelItem?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploadsPlaylistId) {
+    throw new Error("Playlist de uploads do canal não encontrada.");
+  }
+
+  const videoIds = [];
+  let pageToken = "";
+  const cap = Math.max(1, Math.min(2000, Number(maxVideos) || 500));
+
+  while (videoIds.length < cap) {
+    const playlistData = await youtubeDataGet(accessToken, "playlistItems", {
+      part: "contentDetails",
+      playlistId: uploadsPlaylistId,
+      maxResults: Math.min(50, cap - videoIds.length),
+      ...(pageToken ? { pageToken } : {}),
+    });
+    for (const entry of playlistData?.items || []) {
+      const videoId = entry?.contentDetails?.videoId;
+      if (videoId) videoIds.push(videoId);
+    }
+    pageToken = playlistData?.nextPageToken || "";
+    if (!pageToken) break;
+  }
+
+  return {
+    channelId: channelItem?.id || null,
+    channelTitle: channelItem?.snippet?.title || "",
+    videoIds,
+  };
+}
+
+function buildLumieraProjectByVideoId(projectsRoot) {
+  const map = new Map();
+  for (const row of filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot))) {
+    if (row.videoId) map.set(row.videoId, row);
+  }
+  return map;
+}
+
 function readProjectTranscript(projectPath) {
   const storyboardPath = path.join(projectPath, "storyboard.json");
   const transcriptPath = path.join(projectPath, "transcripts_readable.txt");
@@ -303,6 +366,17 @@ function readProjectTranscript(projectPath) {
     if (joined.length > 40) return joined;
   }
   return String(config.upload_metadata?.youtube?.description || "").trim();
+}
+
+function readResurrectorTranscript(item = {}) {
+  if (item.projectPath && fs.existsSync(item.projectPath)) {
+    const fromProject = readProjectTranscript(item.projectPath);
+    if (fromProject && fromProject.length >= 40) return fromProject;
+  }
+  const title = String(item.currentMetadata?.title || item.title || "").trim();
+  const description = String(item.currentMetadata?.description || "").trim();
+  const fallback = [title, description].filter(Boolean).join("\n\n").trim();
+  return fallback.length >= 40 ? fallback : "";
 }
 
 function parseTagsRaw(raw) {
@@ -482,7 +556,7 @@ function hasActiveQueueItem(state, videoId) {
   return false;
 }
 
-function buildResurrectorRow(entry, sn, merged) {
+function buildResurrectorRow(base, sn, merged, extras = {}) {
   const ageDays = daysSince(sn.publishedAt);
   const minAgeDays = merged.minAgeDays;
   const daysUntilEligible = Math.max(0, minAgeDays - ageDays);
@@ -491,18 +565,20 @@ function buildResurrectorRow(entry, sn, merged) {
     : sn.publishedAt;
 
   return {
-    videoId: entry.videoId,
-    projectName: entry.projectName,
-    projectPath: entry.projectPath,
-    format: normalizeFormat(entry.format),
-    niche: entry.niche || "",
-    title: sn.title || entry.title || "",
+    videoId: base.videoId,
+    projectName: base.projectName,
+    projectPath: base.projectPath || null,
+    format: normalizeFormat(base.format),
+    niche: base.niche || "",
+    title: sn.title || base.title || "",
     publishedAt: sn.publishedAt,
     ageDays,
     daysUntilEligible,
     eligibleOn,
     thumbnailUrl: sn.thumbnailUrl,
     viewCount: sn.viewCount,
+    hasLumieraProject: Boolean(extras.hasLumieraProject),
+    source: extras.source || "channel",
     currentMetadata: {
       title: sn.title,
       description: sn.description,
@@ -511,16 +587,21 @@ function buildResurrectorRow(entry, sn, merged) {
   };
 }
 
-export function buildResurrectorScanDiagnostics(rows = [], settings = {}) {
+export function buildResurrectorScanDiagnostics(rows = [], settings = {}, meta = {}) {
   const minAgeDays = settings.minAgeDays ?? DEFAULT_SETTINGS.minAgeDays;
   const tooYoung = rows
     .filter((row) => row.ageDays < minAgeDays)
     .sort((a, b) => (b.ageDays || 0) - (a.ageDays || 0));
   const eligibleNow = rows.filter((row) => row.ageDays >= minAgeDays);
   const nextToQualify = tooYoung[0] || null;
+  const channelTotal = meta.channelTotal ?? rows.length;
 
   return {
-    publishedOnDisk: rows.length,
+    channelTitle: meta.channelTitle || null,
+    channelTotal,
+    withLumieraProject: rows.filter((row) => row.hasLumieraProject).length,
+    channelOnlyCount: rows.filter((row) => !row.hasLumieraProject).length,
+    publishedOnDisk: channelTotal,
     minAgeDays,
     eligibleCount: eligibleNow.length,
     tooYoungCount: tooYoung.length,
@@ -531,6 +612,7 @@ export function buildResurrectorScanDiagnostics(rows = [], settings = {}) {
       ageDays: row.ageDays,
       daysUntilEligible: row.daysUntilEligible,
       eligibleOn: row.eligibleOn,
+      hasLumieraProject: row.hasLumieraProject,
     })),
     nextToQualify: nextToQualify
       ? {
@@ -539,6 +621,7 @@ export function buildResurrectorScanDiagnostics(rows = [], settings = {}) {
           ageDays: nextToQualify.ageDays,
           daysUntilEligible: nextToQualify.daysUntilEligible,
           eligibleOn: nextToQualify.eligibleOn,
+          hasLumieraProject: nextToQualify.hasLumieraProject,
         }
       : null,
     scannedAt: new Date().toISOString(),
@@ -546,52 +629,88 @@ export function buildResurrectorScanDiagnostics(rows = [], settings = {}) {
 }
 
 export function formatResurrectorScanMessage(diagnostics, { eligible = 0, added = 0 } = {}) {
-  if (!diagnostics?.publishedOnDisk) {
-    return "Nenhum vídeo Lumiera publicado encontrado (precisa de post_id no config e pasta no Desktop/Lumiera Videos).";
+  const total = diagnostics?.channelTotal ?? diagnostics?.publishedOnDisk ?? 0;
+  const channelLabel = diagnostics?.channelTitle ? `canal “${diagnostics.channelTitle}”` : "canal YouTube";
+
+  if (!total) {
+    return `Nenhum vídeo encontrado no ${channelLabel} conectado.`;
   }
   if (eligible > 0) {
-    return `${added} vídeo(s) adicionados à fila (${eligible} elegíveis de ${diagnostics.publishedOnDisk} publicados).`;
+    const lumiera = diagnostics.withLumieraProject ? `, ${diagnostics.withLumieraProject} com projeto Lumiera` : "";
+    return `${added} vídeo(s) na fila (${eligible} elegíveis de ${total} no ${channelLabel}${lumiera}).`;
   }
   if (diagnostics.tooYoungCount > 0 && diagnostics.nextToQualify) {
     const next = diagnostics.nextToQualify;
     const days = next.daysUntilEligible ?? Math.max(0, diagnostics.minAgeDays - (next.ageDays || 0));
-    return `0 elegíveis agora: ${diagnostics.publishedOnDisk} publicado(s), mas nenhum com +${diagnostics.minAgeDays} dias. O mais antigo (“${next.title}”) tem ${next.ageDays}d — elegível em ~${days}d.`;
+    return `0 elegíveis: ${total} vídeo(s) no ${channelLabel}, mas nenhum com +${diagnostics.minAgeDays} dias. O mais antigo (“${next.title}”) tem ${next.ageDays}d — elegível em ~${days}d.`;
   }
-  return `0 elegíveis de ${diagnostics.publishedOnDisk} vídeo(s) publicado(s).`;
+  return `0 elegíveis de ${total} vídeo(s) no ${channelLabel}.`;
 }
 
 async function buildResurrectorCatalog(workspaceDir, projectsRoot, settings = {}) {
   const merged = { ...DEFAULT_SETTINGS, ...settings };
-  const published = filterExistingLumieraVideos(collectLumieraPublishedVideos(projectsRoot));
-  if (!published.length) {
-    return {
-      allEligible: [],
-      rows: [],
-      diagnostics: buildResurrectorScanDiagnostics([], merged),
-    };
-  }
 
   await assertTitleTestScopes(workspaceDir);
   const accessToken = await getYoutubeAccessToken(workspaceDir);
-  const snippetMap = await fetchYoutubeVideosSnippet(accessToken, published.map((p) => p.videoId));
+  const { channelTitle, videoIds } = await fetchAllChannelUploadVideoIds(accessToken);
+
+  if (!videoIds.length) {
+    return {
+      allEligible: [],
+      rows: [],
+      diagnostics: buildResurrectorScanDiagnostics([], merged, { channelTitle, channelTotal: 0 }),
+    };
+  }
+
+  const lumieraByVideoId = buildLumieraProjectByVideoId(projectsRoot);
+  const lumieraFormatById = {};
+  for (const [videoId, row] of lumieraByVideoId.entries()) {
+    lumieraFormatById[videoId] = row.format;
+  }
+
+  const snippetMap = await fetchYoutubeVideosSnippet(accessToken, videoIds);
+  let formatByVideoId = new Map();
+  try {
+    const { tagVideosShortsLong } = await import("./youtubeStudioAdvanced.js");
+    formatByVideoId = await tagVideosShortsLong(accessToken, videoIds, { lumieraFormatById });
+  } catch {
+    formatByVideoId = new Map();
+  }
 
   const rows = [];
   const missingYoutube = [];
-  for (const entry of published) {
-    const sn = snippetMap.get(entry.videoId);
+  for (const videoId of videoIds) {
+    const sn = snippetMap.get(videoId);
     if (!sn?.publishedAt) {
+      const lumiera = lumieraByVideoId.get(videoId);
       missingYoutube.push({
-        videoId: entry.videoId,
-        projectName: entry.projectName,
-        title: entry.title || entry.projectName,
+        videoId,
+        projectName: lumiera?.projectName || videoId,
+        title: lumiera?.title || videoId,
       });
       continue;
     }
-    rows.push(buildResurrectorRow(entry, sn, merged));
+
+    const lumiera = lumieraByVideoId.get(videoId);
+    const format = formatByVideoId.get(videoId) || lumiera?.format || "LONG";
+    rows.push(buildResurrectorRow({
+      videoId,
+      projectName: lumiera?.projectName || sn.title || videoId,
+      projectPath: lumiera?.projectPath || null,
+      format,
+      niche: lumiera?.niche || "",
+      title: lumiera?.title || sn.title || "",
+    }, sn, merged, {
+      hasLumieraProject: Boolean(lumiera?.projectPath),
+      source: lumiera?.projectPath ? "lumiera" : "channel",
+    }));
   }
 
   rows.sort(comparePublishedAtAsc);
-  const diagnostics = buildResurrectorScanDiagnostics(rows, merged);
+  const diagnostics = buildResurrectorScanDiagnostics(rows, merged, {
+    channelTitle,
+    channelTotal: rows.length,
+  });
   diagnostics.missingYoutubeCount = missingYoutube.length;
   diagnostics.missingYoutube = missingYoutube.slice(0, 8);
   const allEligible = rows.filter((row) => row.ageDays >= merged.minAgeDays);
@@ -651,7 +770,7 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
       id: randomUUID(),
       videoId: row.videoId,
       projectName: row.projectName,
-      projectPath: row.projectPath,
+      projectPath: row.projectPath || null,
       format: row.format,
       niche: row.niche,
       title: row.title,
@@ -659,6 +778,8 @@ export function enqueueResurrectorCandidates(state, eligible = []) {
       ageDays: row.ageDays,
       viewCount: row.viewCount,
       thumbnailUrl: row.thumbnailUrl,
+      hasLumieraProject: Boolean(row.hasLumieraProject),
+      source: row.source || "channel",
       status: "queued",
       currentMetadata: row.currentMetadata,
       proposedMetadata: null,
@@ -692,17 +813,22 @@ export function pickResurrectorBatch(state, batchSize = 10, options = {}) {
   return queued.slice(0, size);
 }
 
-export async function generateResurrectorMetadata(projectPath, item, deps = {}) {
+export async function generateResurrectorMetadata(item, deps = {}) {
   const { workspaceDir, callGemini, getApiKey } = deps;
-  const configPath = path.join(projectPath, "config_qanat.json");
-  const storyboardPath = path.join(projectPath, "storyboard.json");
-  const timingsPath = path.join(projectPath, "block_timings.json");
-  const config = readJsonSafe(configPath) || {};
-  const storyboard = readJsonSafe(storyboardPath) || {};
-  const timings = readJsonSafe(timingsPath) || { starts: [] };
-  const transcript = readProjectTranscript(projectPath);
+  const projectPath = item.projectPath && fs.existsSync(item.projectPath) ? item.projectPath : null;
+  const configPath = projectPath ? path.join(projectPath, "config_qanat.json") : null;
+  const storyboardPath = projectPath ? path.join(projectPath, "storyboard.json") : null;
+  const timingsPath = projectPath ? path.join(projectPath, "block_timings.json") : null;
+  const config = configPath ? (readJsonSafe(configPath) || {}) : {};
+  const storyboard = storyboardPath ? (readJsonSafe(storyboardPath) || {}) : {};
+  const timings = timingsPath ? (readJsonSafe(timingsPath) || { starts: [] }) : { starts: [] };
+  const transcript = readResurrectorTranscript(item);
   if (!transcript || transcript.length < 40) {
-    throw new Error("Roteiro/transcrição insuficiente para gerar metadados específicos.");
+    throw new Error(
+      projectPath
+        ? "Roteiro/transcrição insuficiente para gerar metadados específicos."
+        : "Descrição do YouTube insuficiente — vincule um projeto Lumiera ou enriqueça a descrição no canal.",
+    );
   }
 
   const format = normalizeFormat(item.format);
@@ -710,7 +836,7 @@ export async function generateResurrectorMetadata(projectPath, item, deps = {}) 
     config,
     timings,
     storyboard,
-    projectName: path.basename(projectPath),
+    projectName: projectPath ? path.basename(projectPath) : (item.projectName || item.title || "canal"),
   });
 
   let prompt = buildResurrectorRefreshPrompt({
@@ -735,11 +861,12 @@ export async function generateResurrectorMetadata(projectPath, item, deps = {}) 
   });
 
   let text = "";
-  const apiKey = typeof getApiKey === "function" ? getApiKey(projectPath) : null;
+  const geminiDir = projectPath || workspaceDir;
+  const apiKey = typeof getApiKey === "function" ? getApiKey(geminiDir) : null;
   if (typeof callGemini === "function" && apiKey) {
-    text = await callGemini(prompt, { temperature: 0.55, projectDir: projectPath });
+    text = await callGemini(prompt, { temperature: 0.55, projectDir: geminiDir });
   } else if (apiKey && deps.callGeminiWithRetry) {
-    text = await deps.callGeminiWithRetry(apiKey, prompt, { temperature: 0.55, projectDir: projectPath });
+    text = await deps.callGeminiWithRetry(apiKey, prompt, { temperature: 0.55, projectDir: geminiDir });
   } else {
     text = buildFallbackYoutubeMetadata({
       transcript,
@@ -924,7 +1051,7 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
     saveResurrectorState(workspaceDir, state);
 
     try {
-      const generated = await generateResurrectorMetadata(item.projectPath, state.items[idx], {
+      const generated = await generateResurrectorMetadata(state.items[idx], {
         ...deps,
         workspaceDir,
       });
@@ -1019,24 +1146,39 @@ export async function applyResurrectorItem(workspaceDir, itemId, options = {}) {
     }
   }
 
-  const configPath = path.join(item.projectPath, "config_qanat.json");
-  if (fs.existsSync(configPath)) {
-    const config = readJsonSafe(configPath) || {};
-    if (!config.upload_metadata) config.upload_metadata = {};
-    config.upload_metadata.youtube = {
-      ...(config.upload_metadata.youtube || {}),
-      title,
-      description,
-      tags: Array.isArray(tags) ? tags.join(", ") : String(tags),
-      post_id: item.videoId,
-      resurrected_at: new Date().toISOString(),
-    };
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  if (item.projectPath && fs.existsSync(item.projectPath)) {
+    const configPath = path.join(item.projectPath, "config_qanat.json");
+    if (fs.existsSync(configPath)) {
+      const config = readJsonSafe(configPath) || {};
+      if (!config.upload_metadata) config.upload_metadata = {};
+      config.upload_metadata.youtube = {
+        ...(config.upload_metadata.youtube || {}),
+        title,
+        description,
+        tags: Array.isArray(tags) ? tags.join(", ") : String(tags),
+        post_id: item.videoId,
+        resurrected_at: new Date().toISOString(),
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+    }
+
+    const cachePath = path.join(item.projectPath, "youtube_metadata_cache.json");
+    if (item.metadataRaw) {
+      fs.writeFileSync(cachePath, JSON.stringify({
+        generatedAt: new Date().toISOString(),
+        pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+        format: item.format === "SHORT" ? "SHORT" : "LONG",
+        source: "video_resurrector",
+        parsed: item.proposedMetadata,
+        text: item.metadataRaw,
+      }, null, 2), "utf8");
+    }
   }
 
-  const cachePath = path.join(item.projectPath, "youtube_metadata_cache.json");
+  const workspaceCachePath = path.join(workspaceDir, "resurrector_metadata_cache", `${item.videoId}.json`);
   if (item.metadataRaw) {
-    fs.writeFileSync(cachePath, JSON.stringify({
+    fs.mkdirSync(path.dirname(workspaceCachePath), { recursive: true });
+    fs.writeFileSync(workspaceCachePath, JSON.stringify({
       generatedAt: new Date().toISOString(),
       pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
       format: item.format === "SHORT" ? "SHORT" : "LONG",

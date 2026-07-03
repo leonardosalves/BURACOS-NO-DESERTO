@@ -69,6 +69,10 @@ type CycleProgress = {
 };
 
 type ScanDiagnostics = {
+  channelTitle?: string | null;
+  channelTotal?: number;
+  withLumieraProject?: number;
+  channelOnlyCount?: number;
   publishedOnDisk: number;
   minAgeDays: number;
   eligibleCount: number;
@@ -362,12 +366,22 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
         </div>
       )}
 
-      {dashboard?.scanDiagnostics && dashboard.scanDiagnostics.publishedOnDisk > 0
+      {dashboard?.scanDiagnostics && (dashboard.scanDiagnostics.channelTotal ?? dashboard.scanDiagnostics.publishedOnDisk) > 0
         && dashboard.scanDiagnostics.eligibleCount === 0 && (
         <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 space-y-2 text-[11px] text-sky-100">
           <p className="font-bold">
-            {dashboard.scanDiagnostics.publishedOnDisk} vídeo(s) publicado(s) — nenhum elegível ainda
+            {dashboard.scanDiagnostics.channelTotal ?? dashboard.scanDiagnostics.publishedOnDisk} vídeo(s) no canal
+            {dashboard.scanDiagnostics.channelTitle ? ` “${dashboard.scanDiagnostics.channelTitle}”` : ''}
+            {' '}— nenhum elegível ainda
           </p>
+          {(dashboard.scanDiagnostics.withLumieraProject ?? 0) > 0 && (
+            <p className="text-[10px] opacity-80">
+              {dashboard.scanDiagnostics.withLumieraProject} com projeto Lumiera vinculado
+              {(dashboard.scanDiagnostics.channelOnlyCount ?? 0) > 0
+                ? ` · ${dashboard.scanDiagnostics.channelOnlyCount} só no canal`
+                : ''}
+            </p>
+          )}
           <p className="opacity-90">
             Regra atual: só entram vídeos com +{dashboard.scanDiagnostics.minAgeDays} dias no ar.
             {dashboard.scanDiagnostics.nextToQualify && (
