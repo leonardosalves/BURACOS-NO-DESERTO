@@ -538,6 +538,15 @@ export function writeTimingsFromChunkPlan(projDir, plan) {
   return { timings, transcripts };
 }
 
+/** true quando o pedido cobre todos os trechos do plano (ex.: "Gerar todos"). */
+export function isFullNarrationChunkBatch(chunkIds, plan) {
+  const all = (plan?.chunks || []).map((c) => String(c.id));
+  if (!all.length) return false;
+  if (!Array.isArray(chunkIds) || chunkIds.length === 0) return true;
+  const requested = new Set(chunkIds.map(String));
+  return all.every((id) => requested.has(id));
+}
+
 export async function generateNarrationChunksTts(projDir, {
   plan,
   chunkIds = null,

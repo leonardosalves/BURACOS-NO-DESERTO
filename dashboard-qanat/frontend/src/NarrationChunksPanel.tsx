@@ -267,10 +267,14 @@ export function NarrationChunksPanel({
   const runChunkTts = async (chunkIds: string[] | null) => {
     if (!(await persistPlanBeforeTts())) return;
 
+    const isFullBatch = chunkIds === null;
     const progressJobId = createProgressJobId();
     setGenerating(true);
     setTtsProgress(null);
-    startAiJobProgress(progressJobId, 'Narração por trechos');
+    startAiJobProgress(
+      progressJobId,
+      isFullBatch ? 'Narração por trechos + Whisper' : 'Narração por trechos',
+    );
 
     try {
       const res = await fetch(getProjectUrl('/api/tts/generate-narration-chunks'), {
@@ -281,7 +285,7 @@ export function NarrationChunksPanel({
           default_voice: { engine: defaultEngine, voice: defaultVoice },
           use_tagged: useTagged,
           strip_emphasis: stripEmphasis,
-          sync_whisper: true,
+          sync_whisper: isFullBatch,
           progress_job_id: progressJobId,
         }),
       });
@@ -291,11 +295,23 @@ export function NarrationChunksPanel({
       const jobId = String(data.jobId || progressJobId);
 
       if (data.started && jobId) {
-        await waitForAiJobDone(jobId);
+        const result = await waitForAiJobDone(jobId);
+        const doneMsg = String(
+          (result as { message?: string }).message
+          || (result.whisper_synced ? 'Trechos montados · legendas sincronizadas (Whisper).' : 'Trechos gerados.'),
+        );
+        if ((result as { whisper_error?: string }).whisper_error && isFullBatch) {
+          toast(`Whisper: ${(result as { whisper_error?: string }).whisper_error}`, { icon: '⚠️' });
+        }
+        stopAiJobProgress(true, doneMsg);
+        toast(doneMsg);
       } else {
         stopAiJobProgress(true, String(data.message || 'Trechos gerados.'));
         if (data.plan) updatePlan(data.plan);
         toast(data.message || 'Trechos gerados.');
+        if (data.whisper_error && isFullBatch) {
+          toast(`Whisper: ${data.whisper_error}`, { icon: '⚠️' });
+        }
         onUpdated?.();
         return;
       }
@@ -305,8 +321,6 @@ export function NarrationChunksPanel({
         const payload = await refresh.json();
         if (payload.plan) updatePlan(payload.plan);
       }
-      stopAiJobProgress(true, 'Narração por trechos montada.');
-      toast('Narração por trechos montada.');
       onUpdated?.();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro na geração TTS.';
@@ -416,7 +430,7 @@ export function NarrationChunksPanel({
               Remover [ênfase] (evita repetição)
             </label>
             <span className="text-[9px] text-zinc-600">
-              Após gerar, Whisper alinha legendas automaticamente.
+              «Gerar todos os trechos» monta o MP3 master e roda Whisper automaticamente nas legendas.
             </span>
           </div>
 
@@ -454,7 +468,7 @@ export function NarrationChunksPanel({
               className="text-[10px] font-bold px-3 py-2 rounded-lg bg-zinc-800 text-white flex items-center gap-1"
             >
               {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Volume2 className="w-3.5 h-3.5" />}
-              Gerar todos os trechos
+              Gerar todos os trechos + Whisper
             </button>
           </div>
 
