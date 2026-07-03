@@ -2507,6 +2507,9 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
           iconSize={blockProgressBar.iconSize}
           defaultIconStyle={blockProgressBar.defaultIconStyle}
           showBlockTitles={blockProgressBar.showBlockTitles === true}
+          titleFont={blockProgressBar.titleFont}
+          titleFontSize={blockProgressBar.titleFontSize}
+          titleColor={blockProgressBar.titleColor}
           accentColor={accentColor}
           orientation={isShort ? "vertical" : "horizontal"}
         />

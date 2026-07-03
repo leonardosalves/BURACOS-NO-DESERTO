@@ -6,6 +6,7 @@ export type BlockProgressMarker = {
   block: number;
   start: number;
   duration: number;
+  title?: string;
   label?: string;
   iconType: string;
   iconStyle?: "lottie" | "svg";
@@ -27,13 +28,25 @@ export interface BlockProgressBarProps {
   iconSize?: number;
   defaultIconStyle?: "lottie" | "svg";
   showBlockTitles?: boolean;
+  titleFont?: string;
+  titleFontSize?: number;
+  titleColor?: string;
   accentColor?: string;
   orientation?: "horizontal" | "vertical";
 }
 
+const TITLE_FONT_STACKS: Record<string, string> = {
+  inter: "Inter, sans-serif",
+  oswald: "Oswald, sans-serif",
+  playfair: "Playfair Display, serif",
+  cinzel: "Cinzel, serif",
+  bebas: "Bebas Neue, sans-serif",
+  jetbrains: "JetBrains Mono, monospace",
+};
+
 function blockTitleLabel(marker: BlockProgressMarker) {
-  const text = String(marker.label || `Bloco ${marker.block}`).trim();
-  return text.length > 28 ? `${text.slice(0, 26)}…` : text;
+  const text = String(marker.title || marker.label || `Bloco ${marker.block}`).trim();
+  return text.length > 28 ? `${text.slice(0, 26).replace(/\s+\S*$/, "")}…` : text;
 }
 
 type DesignTokens = {
@@ -107,9 +120,14 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
   iconSize = 22,
   defaultIconStyle = "lottie",
   showBlockTitles = false,
+  titleFont = "inter",
+  titleFontSize,
+  titleColor = "#FFFFFF",
   accentColor = "#C5A880",
   orientation = "horizontal",
 }) => {
+  const resolvedTitleSize = titleFontSize || (orientation === "vertical" ? 9 : 10);
+  const titleFontFamily = TITLE_FONT_STACKS[titleFont] || TITLE_FONT_STACKS.inter;
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const isVertical = orientation === "vertical" || height > width;
@@ -194,9 +212,10 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               {showBlockTitles && (
                 <span
                   style={{
-                    fontSize: isActive ? 9 : 8,
+                    fontFamily: titleFontFamily,
+                    fontSize: isActive ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? "#fff" : "rgba(255,255,255,0.55)",
+                    color: isActive ? titleColor : `${titleColor}88`,
                     lineHeight: 1.15,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
@@ -272,9 +291,10 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
             {showBlockTitles && (
               <span
                 style={{
-                  fontSize: isActive ? 10 : 8,
+                  fontFamily: titleFontFamily,
+                  fontSize: isActive ? resolvedTitleSize : Math.max(7, resolvedTitleSize - 1),
                   fontWeight: isActive ? 700 : 500,
-                  color: isActive ? "#fff" : "rgba(255,255,255,0.5)",
+                  color: isActive ? titleColor : `${titleColor}88`,
                   lineHeight: 1.15,
                   whiteSpace: "nowrap",
                   overflow: "hidden",

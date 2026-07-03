@@ -18,6 +18,8 @@ type Props = {
   saving?: boolean;
   onSave: (draft: BlockProgressBarDraft) => void | Promise<void>;
   onSuggestIconsWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
+  onSuggestTitlesWithAi?: () => Promise<BlockProgressMarkerDraft[] | null>;
+  storyboard?: { visual_prompts?: Array<{ block?: number; narration_text?: string }> } | null;
 };
 
 function blockTimingsKey(timings?: BlockTimingsLike): string {
@@ -49,9 +51,11 @@ export function BlockProgressBarProjectPanel({
   saving = false,
   onSave,
   onSuggestIconsWithAi,
+  onSuggestTitlesWithAi,
+  storyboard,
 }: Props) {
   const [draft, setDraft] = useState<BlockProgressBarDraft>(() =>
-    buildBlockProgressDraftFromProject(config, blockTimings || {}),
+    buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard),
   );
 
   const timingsKey = blockTimingsKey(blockTimings);
@@ -63,7 +67,7 @@ export function BlockProgressBarProjectPanel({
     if (projectChanged) {
       prevProjectKey.current = projectKey;
       prevTimingsKey.current = timingsKey;
-      setDraft(buildBlockProgressDraftFromProject(config, blockTimings || {}));
+      setDraft(buildBlockProgressDraftFromProject(config, blockTimings || {}, storyboard));
       return;
     }
 
@@ -71,7 +75,7 @@ export function BlockProgressBarProjectPanel({
       prevTimingsKey.current = timingsKey;
       setDraft((prev) => mergeBlockTimingsIntoDraft(prev, blockTimings || {}));
     }
-  }, [projectKey, timingsKey, config, blockTimings]);
+  }, [projectKey, timingsKey, config, blockTimings, storyboard]);
 
   const totalDuration = Number(
     blockTimings?.starts?.length && blockTimings?.durations?.length
@@ -111,8 +115,10 @@ export function BlockProgressBarProjectPanel({
         accentColor={accentColor}
         niche={String(config.niche || 'Geral')}
         totalDuration={totalDuration}
+        storyboard={storyboard}
         onChange={setDraft}
         onSuggestIconsWithAi={onSuggestIconsWithAi}
+        onSuggestTitlesWithAi={onSuggestTitlesWithAi}
       />
     </div>
   );

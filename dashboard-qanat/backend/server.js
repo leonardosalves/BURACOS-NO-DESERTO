@@ -14,8 +14,11 @@ import {
 } from "./overlayResearchService.js";
 import {
   buildBlockProgressIconAiPrompt,
+  buildBlockProgressTitleAiPrompt,
   buildDefaultBlockProgressMarkers,
+  collectBlockNarrationsByBlock,
   mergeAiBlockProgressIcons,
+  mergeAiBlockProgressTitles,
   resolveBlockProgressBarForRender,
 } from "./blockProgressBarConfig.js";
 import {

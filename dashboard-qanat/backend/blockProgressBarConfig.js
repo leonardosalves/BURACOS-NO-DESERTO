@@ -17,6 +17,71 @@ const ICON_RULES = [
   { re: /social|viral|internet|rede|comunidade/i, icon: "sparkles" },
 ];
 
+export const BLOCK_PROGRESS_TITLE_FONTS = {
+  inter: "Inter, sans-serif",
+  oswald: "Oswald, sans-serif",
+  playfair: "Playfair Display, serif",
+  cinzel: "Cinzel, serif",
+  bebas: "Bebas Neue, sans-serif",
+  jetbrains: "JetBrains Mono, monospace",
+};
+
+export function resolveBlockProgressTitleFontStack(fontId) {
+  return BLOCK_PROGRESS_TITLE_FONTS[fontId] || BLOCK_PROGRESS_TITLE_FONTS.inter;
+}
+
+export function collectBlockNarrationsByBlock({ visualPrompts = [], blockPhrases = [] } = {}) {
+  const map = new Map();
+  for (const vp of visualPrompts) {
+    const block = Number(vp.block);
+    const chunk = String(vp.narration_text || "").trim();
+    if (!block || !chunk) continue;
+    map.set(block, map.has(block) ? `${map.get(block)} ${chunk}` : chunk);
+  }
+  for (const bp of blockPhrases) {
+    const block = Number(bp.block || 0);
+    if (!block || map.has(block)) continue;
+    const phrase = String(bp.phrase || bp.text || "").trim();
+    if (phrase) map.set(block, phrase);
+  }
+  return map;
+}
+
+export function suggestBlockTitleHeuristic(narration = "") {
+  const text = String(narration).replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const masParts = text.split(/\s+mas\s+/i);
+  const focus = (masParts.length > 1 ? masParts[masParts.length - 1] : text).trim();
+  const sentence = focus.split(/[.!?]/)[0].trim();
+  const words = sentence
+    .replace(/^(o|a|os|as|um|uma|esse|essa|este|esta|o nosso|a nossa)\s+/i, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 5);
+  let title = words.join(" ");
+  if (title.length > 38) {
+    title = `${title.slice(0, 36).replace(/\s+\S*$/, "")}…`;
+  }
+  return title || "Bloco";
+}
+
+function phraseMatchesLabel(label, phrase) {
+  const a = String(label || "").toLowerCase().trim().slice(0, 24);
+  const b = String(phrase || "").toLowerCase().trim().slice(0, 24);
+  if (!a || !b) return false;
+  return a.startsWith(b) || b.startsWith(a);
+}
+
+export function resolveBlockDisplayTitle(saved, phraseStart, fullNarration, blockNum) {
+  if (saved?.title?.trim()) return saved.title.trim();
+  if (saved?.label?.trim() && !phraseMatchesLabel(saved.label, phraseStart)) {
+    return saved.label.trim();
+  }
+  const fromNarration = suggestBlockTitleHeuristic(fullNarration);
+  if (fromNarration && fromNarration !== "Bloco") return fromNarration;
+  return `Bloco ${blockNum}`;
+}
+
 export function suggestBlockProgressIcon(narration = "", niche = "") {
   const text = `${niche} ${narration}`.toLowerCase();
   for (const rule of ICON_RULES) {
@@ -27,6 +92,7 @@ export function suggestBlockProgressIcon(narration = "", niche = "") {
 
 export function buildDefaultBlockProgressMarkers({
   blockPhrases = [],
+  visualPrompts = [],
   starts = [],
   durations = [],
   niche = "Geral",
@@ -35,19 +101,23 @@ export function buildDefaultBlockProgressMarkers({
   const existingMap = new Map(
     (existingBlocks || []).map((b) => [Number(b.block), b]),
   );
+  const narrationsByBlock = collectBlockNarrationsByBlock({ visualPrompts, blockPhrases });
 
   return (blockPhrases || []).map((bp, idx) => {
     const block = Number(bp.block || idx + 1);
     const saved = existingMap.get(block);
-    const narration = String(bp.phrase || bp.text || "").trim();
+    const phraseStart = String(bp.phrase || bp.text || "").trim();
+    const fullNarration = narrationsByBlock.get(block) || phraseStart;
+    const title = resolveBlockDisplayTitle(saved, phraseStart, fullNarration, block);
     const start = Number(starts[idx]) || 0;
     const duration = Number(durations[idx]) || 10;
     return {
       block,
       start,
       duration,
-      label: narration.slice(0, 48) || `Bloco ${block}`,
-      iconType: saved?.iconType || suggestBlockProgressIcon(narration, niche),
+      title,
+      label: title,
+      iconType: saved?.iconType || suggestBlockProgressIcon(fullNarration, niche),
       iconStyle: saved?.iconStyle || "lottie",
       iconSize: saved?.iconSize,
     };
@@ -72,9 +142,45 @@ function normalizeAiIconId(raw) {
   return null;
 }
 
+export function buildBlockProgressTitleAiPrompt({ niche = "Geral", blocks = [] } = {}) {
+  const blockLines = (blocks || []).map((b) => (
+    `Bloco ${b.block} — narração completa:\n"${String(b.narration || b.label || "").slice(0, 480)}"`
+  )).join("\n\n");
+
+  return `Você cria títulos curtos para barra de progresso de vídeo documental em PT-BR.
+Para CADA bloco, escreva um RESUMO temático (3 a 6 palavras) — NÃO copie o início da frase.
+Nicho: "${niche}"
+
+BLOCOS:
+${blockLines}
+
+Regras:
+- Título = assunto do bloco (ex: "Cura química do concreto", "Descoberta do MIT")
+- Máximo 6 palavras, sem ponto final
+- Não repita o mesmo padrão em todos
+
+Retorne APENAS JSON:
+{
+  "blocks": [
+    { "block": 1, "title": "Resumo curto", "reason": "opcional" }
+  ]
+}`;
+}
+
+export function mergeAiBlockProgressTitles(markers = [], aiBlocks = []) {
+  const aiMap = new Map((aiBlocks || []).map((b) => [Number(b.block), b]));
+  return (markers || []).map((marker) => {
+    const ai = aiMap.get(Number(marker.block));
+    if (!ai?.title) return marker;
+    const title = String(ai.title || "").trim().slice(0, 48);
+    if (!title) return marker;
+    return { ...marker, title, label: title };
+  });
+}
+
 export function buildBlockProgressIconAiPrompt({ niche = "Geral", blocks = [] } = {}) {
   const blockLines = (blocks || []).map((b) => (
-    `Bloco ${b.block}: "${String(b.label || "").slice(0, 220)}"`
+    `Bloco ${b.block}: "${String(b.title || b.label || "").slice(0, 220)}"`
   )).join("\n");
 
   return `Você é designer de motion graphics para barra de progresso de vídeo documental.
@@ -122,6 +228,8 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [], total_duration: 0 });
   const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const storyboard = readProjectJson(projectDir, "storyboard.json", {});
+  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
   const raw = config.block_progress_bar || {};
   const enabled = raw.enabled === true;
 
@@ -131,11 +239,16 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
 
   const markers = buildDefaultBlockProgressMarkers({
     blockPhrases,
+    visualPrompts,
     starts: timings.starts || [],
     durations: timings.durations || [],
     niche: config.niche || "Geral",
     existingBlocks: raw.blocks || [],
   });
+
+  const titleFont = BLOCK_PROGRESS_TITLE_FONTS[raw.titleFont]
+    ? raw.titleFont
+    : "inter";
 
   return {
     enabled: true,
@@ -143,6 +256,9 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
     iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
     defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
     showBlockTitles: raw.showBlockTitles === true,
+    titleFont,
+    titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
+    titleColor: String(raw.titleColor || "#FFFFFF"),
     blocks: markers,
     totalDuration: Number(timings.total_duration)
       || markers.reduce((max, m) => Math.max(max, m.start + m.duration), 0)
