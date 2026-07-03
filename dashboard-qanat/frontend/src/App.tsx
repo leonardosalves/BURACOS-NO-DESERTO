@@ -10234,7 +10234,8 @@ export default function App() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gold-400">
                     Padrão Lumiera · {config._bgm_production_hints.mode}
                     {config._bgm_production_hints.segments ? ` · ${config._bgm_production_hints.segments} segmentos` : ''}
-                    {' · '}volume {Math.round(config._bgm_production_hints.volume * 100)}%
+                    {' · '}volume {Math.round((config.project_music_volume ?? globalMusicVolume) * 100)}%
+                    ({config.project_music_volume != null ? 'projeto' : 'global'})
                   </p>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
                     {config._bgm_production_hints.tip}

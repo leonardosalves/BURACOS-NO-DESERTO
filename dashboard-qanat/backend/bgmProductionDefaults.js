@@ -10,18 +10,14 @@ export const BGM_PRODUCTION_DEFAULTS = {
   LONG: {
     bgm_mode: "emotion",
     use_single_bgm: false,
-    project_music_volume: 0.16,
     bgm_duck_strength: "normal",
     segment_count: { min: 2, max: 4 },
     crossfade_s: 4,
-    min_music_volume_render: 0.16,
   },
   SHORT: {
     bgm_mode: "block",
     use_single_bgm: true,
-    project_music_volume: 0.14,
     bgm_duck_strength: "normal",
-    min_music_volume_render: 0.14,
   },
 };
 
@@ -73,10 +69,6 @@ export function applyBgmProductionDefaults(config = {}, totalDuration = 0) {
       out.use_single_bgm = false;
       if (!out.bgm_mode) out.bgm_mode = "emotion";
     }
-    const vol = Number(out.project_music_volume);
-    if (!Number.isFinite(vol) || vol < 0.14) {
-      out.project_music_volume = defs.project_music_volume;
-    }
   } else if (out.use_single_bgm === undefined && out.bgm_mode !== "emotion") {
     out.use_single_bgm = defs.use_single_bgm;
   }
@@ -86,16 +78,12 @@ export function applyBgmProductionDefaults(config = {}, totalDuration = 0) {
   return out;
 }
 
-export function resolveMusicVolumeForRender(config = {}, format = "16:9", globalVolume = 0.15) {
-  const longEmotion = format === "16:9"
-    && (config.bgm_mode === "emotion" || (config.use_single_bgm === false && config.bgm_mode !== "block"));
-  const base = Number.isFinite(Number(config.project_music_volume))
-    ? Number(config.project_music_volume)
-    : globalVolume;
-  if (longEmotion) {
-    return Math.max(base, BGM_PRODUCTION_DEFAULTS.LONG.min_music_volume_render);
-  }
-  return base;
+/** Volume do render: só o que o usuário definiu (projeto ou global). Sem piso fixo. */
+export function resolveMusicVolumeForRender(config = {}, _format = "16:9", globalVolume = 0.15) {
+  const projectVol = Number(config.project_music_volume);
+  if (Number.isFinite(projectVol)) return projectVol;
+  const global = Number(globalVolume);
+  return Number.isFinite(global) ? global : 0.15;
 }
 
 /** Harmoniza duck e search_theme dos segmentos para família sonora do nicho. */
@@ -134,18 +122,24 @@ PADRÕES LUMIERA (programa — qualquer nicho):
 - Prefira faixas ambient/orchestral/documentary; evite EDM agressivo ou vocal`;
 }
 
-export function getBgmProductionHints(format = VIDEO_FORMAT.LONG) {
+export function getBgmProductionHints(format = VIDEO_FORMAT.LONG, config = {}, globalVolume = 0.15) {
+  const volume = resolveMusicVolumeForRender(config, format === VIDEO_FORMAT.SHORT ? "9:16" : "16:9", globalVolume);
+  const volumeSource = Number.isFinite(Number(config.project_music_volume))
+    ? "projeto"
+    : "global";
   if (format === VIDEO_FORMAT.SHORT) {
     return {
       mode: "Trilha única",
-      volume: BGM_PRODUCTION_DEFAULTS.SHORT.project_music_volume,
-      tip: "Shorts: uma faixa energética do início ao fim.",
+      volume,
+      volumeSource,
+      tip: "Shorts: uma faixa energética do início ao fim. Volume em Produção do Projeto ou Configurações globais.",
     };
   }
   return {
     mode: "Por emoção (IA)",
-    volume: BGM_PRODUCTION_DEFAULTS.LONG.project_music_volume,
+    volume,
+    volumeSource,
     segments: `${BGM_PRODUCTION_DEFAULTS.LONG.segment_count.min}–${BGM_PRODUCTION_DEFAULTS.LONG.segment_count.max}`,
-    tip: "Longos: 2–4 trilhas com crossfade contínuo, mesma família sonora do nicho.",
+    tip: "Longos: 2–4 trilhas com crossfade contínuo, mesma família sonora do nicho. Volume definido por você nas configurações.",
   };
 }

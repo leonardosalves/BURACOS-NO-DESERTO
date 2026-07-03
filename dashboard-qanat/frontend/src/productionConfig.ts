@@ -2,24 +2,23 @@ export type OverlayIntensity = 'light' | 'normal' | 'rich';
 export type OverlayMinGap = 'tight' | 'normal' | 'relaxed';
 export type BgmDuckStrength = 'light' | 'normal' | 'strong';
 
-/** Padrões globais Lumiera — espelham bgmProductionDefaults.js no backend. */
+/** Padrões globais Lumiera — modo/segmentos; volume fica nas configurações do usuário. */
 export const BGM_PRODUCTION_DEFAULTS = {
   LONG: {
     bgm_mode: 'emotion' as const,
-    project_music_volume: 0.16,
     segment_count: { min: 2, max: 4 },
     crossfade_s: 4,
   },
   SHORT: {
     bgm_mode: 'block' as const,
     use_single_bgm: true,
-    project_music_volume: 0.14,
   },
 } as const;
 
 export type BgmProductionHints = {
   mode: string;
   volume: number;
+  volumeSource?: 'projeto' | 'global';
   segments?: string;
   tip: string;
 };

@@ -1098,10 +1098,15 @@ app.get("/api/config", (req, res) => {
     const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
     const normalized = applyBgmProductionDefaults(data, Number(timings.total_duration) || 0);
     const format = detectVideoFormat(normalized, Number(timings.total_duration) || 0);
+    const globalRender = loadRenderConfig(__dirname);
 
     res.json({
       ...normalized,
-      _bgm_production_hints: getBgmProductionHints(format),
+      _bgm_production_hints: getBgmProductionHints(
+        format,
+        normalized,
+        Number(globalRender?.musicVolume) || 0.15,
+      ),
     });
 
   } catch (err) {
