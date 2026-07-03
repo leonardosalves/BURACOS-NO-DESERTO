@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { buildPythonSpawnEnv, getFfmpegStatus } from "./pythonEnv.js";
-import { convertCinematicMarkersForTts } from "./videoProEnhancements.js";
+import { convertCinematicMarkersForTts, stripTtsMarkersForPlainText } from "./videoProEnhancements.js";
 import { synthesizeKokoroNarration, KOKORO_DEFAULT_VOICE, KOKORO_DEFAULT_SPEED } from "./kokoroTts.js";
 import { fetchFishSpeechAudio, loadFishSpeechConfig, applyFishOptionOverrides } from "./fishSpeechTts.js";
 import { loadVoiceboxConfig, synthesizeVoiceboxNarration } from "./voiceboxTts.js";
@@ -131,7 +131,7 @@ ${JSON.stringify(blockPhrases || [], null, 2)}
 REGRAS:
 - Um trecho = uma cena OU um bloco inteiro se a cena for muito curta (< 8 palavras); prefira 1 trecho por cena quando houver narration_text.
 - "text" = exatamente o que será falado em PT-BR (pode condensar levemente, sem mudar o sentido).
-- "text_tagged" = mesmo texto com tags TTS moderadas: [pausa], (breath), [ênfase] onde fizer sentido.
+- "text_tagged" = mesmo texto com tags TTS moderadas: [pausa], (breath). Use [ênfase] só imediatamente antes da palavra (ex.: "[ênfase] mil" — nunca repita a palavra depois da tag).
 - "pause_after_ms": silêncio APÓS o trecho antes do próximo (0–3000). Virada de bloco: 600–1200ms; mesma cena/bloco: 200–500ms; clímax→resolução: até 1500ms.
 - "pause_reason": frase curta explicando a pausa.
 - Cobrir 100% da narração sem repetir trechos.
@@ -275,13 +275,17 @@ export function buildWordTranscriptsFromChunks(chunks = []) {
     const start = Number(chunk.start_s) || 0;
     const duration = Math.max(0.05, (Number(chunk.end_s) || start) - start);
     const end = start + duration;
-    const words = String(chunk.text || "").split(/\s+/).filter(Boolean);
-    const wordDur = words.length ? duration / words.length : duration;
-    let t = start;
-    const wordEntries = words.map((word) => {
-      const wStart = t;
-      const wEnd = t + wordDur;
-      t = wEnd;
+    const plain = stripTtsMarkersForPlainText(chunk.text || chunk.text_tagged || "");
+    const words = plain.split(/\s+/).filter(Boolean);
+    const weights = words.map((w) => Math.max(1, w.replace(/[^\wáéíóúâêîôûãõç]/gi, "").length));
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0) || words.length || 1;
+    // Tempos relativos ao start_time do segmento (mesmo formato do align_transcripts.py / Whisper).
+    let relT = 0;
+    const wordEntries = words.map((word, wi) => {
+      const wordDur = duration * (weights[wi] / totalWeight);
+      const wStart = relT;
+      const wEnd = relT + wordDur;
+      relT = wEnd;
       return { word: ` ${word}`, start: Number(wStart.toFixed(3)), end: Number(wEnd.toFixed(3)) };
     });
     return {
@@ -294,7 +298,7 @@ export function buildWordTranscriptsFromChunks(chunks = []) {
       duration: Number(duration.toFixed(3)),
       end_time: Number(end.toFixed(3)),
       words: wordEntries,
-      text: ` ${chunk.text}`,
+      text: ` ${plain}`,
     };
   });
 }
@@ -382,6 +386,7 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
   projDir,
   useTagged = true,
   taggedText = "",
+  stripEmphasis = false,
   onLog = () => {},
 } = {}) {
   const voice = normalizeVoiceRef(voiceRef);
@@ -419,7 +424,7 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
     const tagPlatform = String(voice.voice).includes("turbo") ? "turbo" : "chatterbox";
     const tagged = String(taggedText || "").trim();
     const textForTts = useTagged && tagged.length > 2
-      ? convertCinematicMarkersForTts(tagged, tagPlatform)
+      ? convertCinematicMarkersForTts(tagged, tagPlatform, { stripEmphasis })
       : plain;
     const result = await synthesizeChatterboxNarration(textForTts, {
       voice: voice.voice || CHATTERBOX_DEFAULT_VOICE,
@@ -435,7 +440,7 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
     const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
     const tagged = String(taggedText || "").trim();
     const textForTts = useTagged && tagged.length > 2
-      ? convertCinematicMarkersForTts(tagged, "fish")
+      ? convertCinematicMarkersForTts(tagged, "fish", { stripEmphasis })
       : plain;
     const result = await fetchFishSpeechAudio(textForTts, {
       referenceId: voice.voice,
@@ -539,6 +544,7 @@ export async function generateNarrationChunksTts(projDir, {
   defaultVoice = {},
   workspaceDir = null,
   useTagged = true,
+  stripEmphasis = false,
   assembleMaster = true,
   onLog = () => {},
   onProgress = () => {},
@@ -578,6 +584,7 @@ export async function generateNarrationChunksTts(projDir, {
       projDir,
       useTagged,
       taggedText: c.text_tagged,
+      stripEmphasis,
       onLog,
     });
 

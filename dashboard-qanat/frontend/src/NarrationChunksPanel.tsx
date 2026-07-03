@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Loader2, Mic, Play, RefreshCw, Save, Sparkles, Volume2,
+  Eye, Loader2, Mic, Play, RefreshCw, Save, Sparkles, Tag, Volume2,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import {
@@ -91,6 +91,10 @@ export function NarrationChunksPanel({
   const [ttsProgress, setTtsProgress] = useState<AiJobProgressState | null>(null);
   const [defaultEngine, setDefaultEngine] = useState('kokoro');
   const [defaultVoice, setDefaultVoice] = useState('pm_alex');
+  const [useTagged, setUseTagged] = useState(true);
+  const [stripEmphasis, setStripEmphasis] = useState(false);
+  const [expandedTagsChunkId, setExpandedTagsChunkId] = useState<string | null>(null);
+  const [tagPreviews, setTagPreviews] = useState<Record<string, { preview: string; tags: string[] }>>({});
 
   useEffect(() => {
     setLocalPlan(externalPlan || null);
@@ -203,6 +207,44 @@ export function NarrationChunksPanel({
     }
   };
 
+  const fetchTagPreview = useCallback(async (chunkId: string, tagged: string, engine: string) => {
+    if (!tagged.trim()) {
+      setTagPreviews((prev) => {
+        const next = { ...prev };
+        delete next[chunkId];
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await fetch(getProjectUrl('/api/tts/preview-tagged-text'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text_tagged: tagged,
+          engine,
+          strip_emphasis: stripEmphasis,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      setTagPreviews((prev) => ({
+        ...prev,
+        [chunkId]: { preview: String(data.preview || ''), tags: Array.isArray(data.tags) ? data.tags : [] },
+      }));
+    } catch { /* ignore */ }
+  }, [getProjectUrl, stripEmphasis]);
+
+  useEffect(() => {
+    if (!expandedTagsChunkId || !useTagged) return;
+    const chunk = (localPlan?.chunks || []).find((c) => c.id === expandedTagsChunkId);
+    if (!chunk) return;
+    const timer = window.setTimeout(() => {
+      void fetchTagPreview(chunk.id, chunk.text_tagged || chunk.text, chunk.voice?.engine || defaultEngine);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [expandedTagsChunkId, localPlan?.chunks, useTagged, stripEmphasis, defaultEngine, fetchTagPreview]);
+
   const persistPlanBeforeTts = async (): Promise<boolean> => {
     if (!localPlan?.chunks?.length) {
       toast('Nenhum trecho no plano — planeje antes de gerar.');
@@ -237,6 +279,9 @@ export function NarrationChunksPanel({
         body: JSON.stringify({
           chunk_ids: chunkIds,
           default_voice: { engine: defaultEngine, voice: defaultVoice },
+          use_tagged: useTagged,
+          strip_emphasis: stripEmphasis,
+          sync_whisper: true,
           progress_job_id: progressJobId,
         }),
       });
@@ -350,6 +395,31 @@ export function NarrationChunksPanel({
             </button>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2">
+            <label className="flex items-center gap-1.5 text-[10px] text-zinc-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useTagged}
+                onChange={(e) => setUseTagged(e.target.checked)}
+                className="rounded border-zinc-600"
+              />
+              Usar tags TTS na geração
+            </label>
+            <label className="flex items-center gap-1.5 text-[10px] text-zinc-400 cursor-pointer" title="Remove [ênfase] do texto enviado ao Fish/Chatterbox">
+              <input
+                type="checkbox"
+                checked={stripEmphasis}
+                onChange={(e) => setStripEmphasis(e.target.checked)}
+                disabled={!useTagged}
+                className="rounded border-zinc-600"
+              />
+              Remover [ênfase] (evita repetição)
+            </label>
+            <span className="text-[9px] text-zinc-600">
+              Após gerar, Whisper alinha legendas automaticamente.
+            </span>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -414,12 +484,56 @@ export function NarrationChunksPanel({
                       {chunk.status || 'planned'}
                     </span>
                   </div>
+                  <label className="text-[8px] text-zinc-500 uppercase font-bold">Texto falado</label>
                   <textarea
                     value={chunk.text}
-                    onChange={(e) => patchChunk(chunk.id, { text: e.target.value, text_tagged: e.target.value })}
+                    onChange={(e) => patchChunk(chunk.id, { text: e.target.value })}
                     rows={2}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-zinc-200"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setExpandedTagsChunkId((prev) => (prev === chunk.id ? null : chunk.id))}
+                    className="text-[9px] text-cyan-400/90 flex items-center gap-1 hover:text-cyan-300"
+                  >
+                    <Tag className="w-3 h-3" />
+                    {expandedTagsChunkId === chunk.id ? 'Ocultar tags TTS' : 'Ver / editar tags TTS'}
+                    {(chunk.text_tagged || '').match(/\[[^\]]+\]|\([^)]+\)/g)?.length
+                      ? ` (${(chunk.text_tagged || '').match(/\[[^\]]+\]|\([^)]+\)/g)?.length} tags)`
+                      : ''}
+                  </button>
+                  {expandedTagsChunkId === chunk.id && (
+                    <div className="space-y-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-2">
+                      <label className="text-[8px] text-cyan-300/80 uppercase font-bold flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Texto com tags (enviado ao TTS se ativo)
+                      </label>
+                      <textarea
+                        value={chunk.text_tagged ?? chunk.text}
+                        onChange={(e) => patchChunk(chunk.id, { text_tagged: e.target.value })}
+                        rows={3}
+                        placeholder="[pausa] Texto com [ênfase] palavra-chave…"
+                        className="w-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-zinc-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => patchChunk(chunk.id, { text_tagged: chunk.text })}
+                        className="text-[8px] text-zinc-500 hover:text-zinc-300"
+                      >
+                        Copiar texto limpo → tags
+                      </button>
+                      {useTagged && tagPreviews[chunk.id]?.preview && (
+                        <div className="text-[9px] text-zinc-500 space-y-1">
+                          <p className="text-cyan-400/70 uppercase text-[7px] font-bold">Preview enviado ao motor</p>
+                          <p className="font-mono text-zinc-400 leading-relaxed break-words">{tagPreviews[chunk.id].preview}</p>
+                          {tagPreviews[chunk.id].tags.length > 0 && (
+                            <p className="text-zinc-600">
+                              Tags: {tagPreviews[chunk.id].tags.join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div>
                       <label className="text-[8px] text-zinc-500 uppercase">Pausa depois (ms)</label>

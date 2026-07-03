@@ -300,23 +300,33 @@ NARRAÇÃO CINEMATOGRÁFICA (obrigatório em "narrative_script_tagged"):
 - Em listicles: [ênfase] no número do ranking ("Número três...") e [pausa] antes do impacto do #1.`;
 }
 
-export function convertCinematicMarkersForTts(taggedScript = "", platform = "fish") {
+/** Remove marcadores TTS — texto limpo para legendas e contagem de palavras. */
+export function stripTtsMarkersForPlainText(text = "") {
+  return String(text)
+    .replace(/\[tom[^\]]*\]/gi, " ")
+    .replace(/\[[^\]]+\]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/<break[^>]*\/?>/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function convertCinematicMarkersForTts(taggedScript = "", platform = "fish", options = {}) {
+  const stripEmphasis = options.stripEmphasis === true;
   let text = String(taggedScript);
-  const emphasisNext = (match, word) => {
-    const w = String(word || "").trim();
-    if (!w) return match;
-    if (platform === "fish") return `[ênfase] ${w}`;
-    if (platform === "eleven") return `[emphasis] ${w}`;
-    if (platform === "chatterbox" || platform === "turbo") return w;
-    return `[ênfase] ${w}`;
-  };
+
+  if (stripEmphasis) {
+    text = text.replace(/\[ênfase\]\s*/gi, "");
+  } else {
+    // Fish/Eleven: [ênfase] já aponta para a palavra seguinte — não reinserir (evita duplicação no áudio).
+    text = text.replace(/\[ênfase\]\s*/gi, () => {
+      if (platform === "eleven") return "[emphasis] ";
+      if (platform === "chatterbox" || platform === "turbo") return "";
+      return "[ênfase] ";
+    });
+  }
 
   text = text
-    .replace(/\[ênfase\]\s*/gi, (m, offset, str) => {
-      const rest = str.slice(offset + m.length).trim();
-      const word = rest.split(/\s+/)[0] || "";
-      return emphasisNext(m, word);
-    })
     .replace(/\[rápido\]/gi, platform === "eleven" ? "[fast]" : platform === "chatterbox" || platform === "turbo" ? "" : "[rápido]")
     .replace(/\[lento\]/gi, platform === "eleven" ? "[slowly]" : platform === "chatterbox" || platform === "turbo" ? "" : "[lento]")
     .replace(/\[pausa\]|\[pause\]/gi, platform === "fish"
