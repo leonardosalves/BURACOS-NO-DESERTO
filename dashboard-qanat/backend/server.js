@@ -268,6 +268,7 @@ import {
 import {
   buildBgmEmotionPlan,
   buildBgmEmotionPlanPrompt,
+  buildEmotionMappingsFromLocalFiles,
   buildHeuristicEmotionSegments,
   formatEmotionPlanLog,
   normalizeEmotionSegments,
@@ -3204,9 +3205,103 @@ app.post("/api/music/delete-all", (req, res) => {
 
 });
 
+function listProjectMusicFiles(projDir) {
+  try {
+    return fs.readdirSync(projDir).filter((fileName) => /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName));
+  } catch (err) {
+    return [];
+  }
+}
+
+async function prepareBgmBeforeMix(projDir) {
+  const logs = [];
+  const configPath = path.join(projDir, "config_qanat.json");
+  let config = readProjectJson(projDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+  const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
+  const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+
+  if (bgmMode !== "emotion") return logs;
+
+  const plan = storyboard?.bgm_emotion_plan;
+  const segments = plan?.segments || [];
+  let mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
+  const missing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
+
+  if (segments.length === 0) {
+    logs.push("AVISO: Plano emocional ausente — use 'Planejar trilhas por emoção (IA)' antes de regenerar.");
+    return logs;
+  }
+
+  if (missing.length > 0) {
+    logs.push(`Preparando ${missing.length} segmento(s) emocional(is) sem trilha...`);
+    try {
+      const token = getEpidemicSoundKey(projDir) || "";
+      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
+      for (const line of autoLogs || []) logs.push(line);
+      config = readProjectJson(projDir, "config_qanat.json", {});
+      mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
+    } catch (err) {
+      logs.push(`Sonoplastia automática falhou: ${err.message}`);
+    }
+  }
+
+  const stillMissing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
+  if (stillMissing.length > 0) {
+    const localMappings = buildEmotionMappingsFromLocalFiles(segments, listProjectMusicFiles(projDir));
+    if (localMappings.length > 0) {
+      config.bgm_emotion_mappings = localMappings;
+      config.bgm_mode = "emotion";
+      config.use_single_bgm = false;
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      logs.push(`Mapeadas ${localMappings.length} trilha(s) local(is) aos segmentos emocionais.`);
+    } else {
+      logs.push("AVISO: Nenhum arquivo de trilha encontrado no projeto para os segmentos emocionais.");
+    }
+  }
+
+  return logs;
+}
+
+function validateBgmReadyForMix(projDir, config, storyboard) {
+  const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+  const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
+  const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+
+  if (bgmMode === "emotion") {
+    const segments = storyboard?.bgm_emotion_plan?.segments || [];
+    const mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
+    const missing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
+    if (!segments.length) {
+      return "Planeje as trilhas por emoção (IA) antes de regenerar, ou selecione arquivos em cada segmento.";
+    }
+    if (missing.length === segments.length) {
+      return "Nenhuma trilha mapeada para os segmentos emocionais. Use Sonoplastia IA, selecione arquivos manualmente ou adicione músicas ao projeto.";
+    }
+    return null;
+  }
+
+  if (config.use_single_bgm) {
+    if (!config.single_bgm || !fileExists(config.single_bgm)) {
+      return "Selecione uma trilha única antes de regenerar.";
+    }
+    return null;
+  }
+
+  const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
+  const missingBlocks = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings || [], fileExists);
+  if (missingBlocks.length === blockNumbers.length) {
+    return "Nenhuma trilha mapeada por bloco. Selecione arquivos ou use Sonoplastia IA.";
+  }
+  return null;
+}
+
 // API: Mix soundtrack (runs mix_bgm.py)
 
-app.post("/api/music/mix", (req, res) => {
+app.post("/api/music/mix", async (req, res) => {
 
   const projDir = getProjectDir(req);
 
@@ -3220,45 +3315,60 @@ app.post("/api/music/mix", (req, res) => {
 
   }
 
-  const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-
-    cwd: projDir,
-
-    shell: true,
-
-    env: { ...process.env, PYTHONUNBUFFERED: "1" }
-
-  });
-
-  let stdout = "";
-
-  let stderr = "";
-
-  child.stdout.on("data", (data) => {
-
-    stdout += data.toString();
-
-  });
-
-  child.stderr.on("data", (data) => {
-
-    stderr += data.toString();
-
-  });
-
-  child.on("close", (code) => {
-
-    if (code === 0) {
-
-      res.json({ success: true, log: stdout });
-
-    } else {
-
-      res.status(500).json({ error: "Erro na mixagem", log: stdout, details: stderr });
-
+  try {
+    const prepLogs = await prepareBgmBeforeMix(projDir);
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const storyboard = readProjectJson(projDir, "storyboard.json", {});
+    const validationError = validateBgmReadyForMix(projDir, config, storyboard);
+    if (validationError) {
+      return res.status(400).json({
+        error: validationError,
+        prepLogs,
+      });
     }
 
-  });
+    const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+
+      cwd: projDir,
+
+      shell: true,
+
+      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+
+    });
+
+    let stdout = "";
+
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+
+      stdout += data.toString();
+
+    });
+
+    child.stderr.on("data", (data) => {
+
+      stderr += data.toString();
+
+    });
+
+    child.on("close", (code) => {
+
+      if (code === 0) {
+
+        res.json({ success: true, log: stdout, prepLogs });
+
+      } else {
+
+        res.status(500).json({ error: "Erro na mixagem da trilha", log: stdout, details: stderr, prepLogs });
+
+      }
+
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Falha ao preparar mixagem", details: err.message });
+  }
 
 });
 

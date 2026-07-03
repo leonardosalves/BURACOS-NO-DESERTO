@@ -324,3 +324,33 @@ export function formatEmotionPlanLog(plan) {
   }
   return lines;
 }
+
+/** Mapeia arquivos locais numerados (1.mp3…) ou ES_* aos segmentos do plano emocional. */
+export function buildEmotionMappingsFromLocalFiles(segments = [], availableFiles = []) {
+  const excluded = new Set([
+    "narracao_mestra_premium.mp3",
+    "trilha_documentario.mp3",
+  ]);
+  const musicFiles = (availableFiles || [])
+    .filter((fileName) => fileName && !excluded.has(String(fileName).toLowerCase()))
+    .filter((fileName) => /^(\d+)\.mp3$/i.test(fileName) || /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName))
+    .sort((a, b) => {
+      const blockA = /^(\d+)\.mp3$/i.exec(a);
+      const blockB = /^(\d+)\.mp3$/i.exec(b);
+      if (blockA && blockB) return Number(blockA[1]) - Number(blockB[1]);
+      return String(a).localeCompare(String(b));
+    });
+
+  if (!musicFiles.length || !segments.length) return [];
+
+  return segments.map((seg, idx) => ({
+    segment_id: seg.id,
+    file: musicFiles[Math.min(idx, musicFiles.length - 1)],
+    start: Number(seg.start) || 0,
+    duration: Math.max(0.5, Number(seg.duration ?? (seg.end - seg.start)) || 0.5),
+    emotion: seg.emotion,
+    climax_mode: seg.climax_mode,
+    duck_strength: seg.duck_strength,
+    search_theme: seg.search_theme,
+  }));
+}
