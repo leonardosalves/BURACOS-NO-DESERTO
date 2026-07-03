@@ -4,7 +4,6 @@ import { SettingLabel } from './SettingHelpTip';
 import { SectionHeader } from './SectionHeader';
 import {
   applyProductionPatch,
-  BGM_PRODUCTION_DEFAULTS,
   pickProductionConfig,
   type BgmDuckStrength,
   type OverlayIntensity,
@@ -191,11 +190,9 @@ export function SettingsProduction({
             >
               Usar global ({Math.round(globalMusicVolume * 100)}%)
             </button>
-            {!isShortFormat && (
-              <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed">
-                Longos: recomendado ≥{Math.round(BGM_PRODUCTION_DEFAULTS.LONG.project_music_volume * 100)}% para trilha emocional audível sob narração contínua.
-              </p>
-            )}
+            <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed">
+              Este slider define o volume da trilha no render deste projeto. Sem valor aqui, usa o global ({Math.round(globalMusicVolume * 100)}%).
+            </p>
           </div>
 
           <div className="space-y-2 pt-2 border-t border-[var(--dash-border)]">
