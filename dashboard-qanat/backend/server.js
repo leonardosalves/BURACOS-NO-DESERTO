@@ -10542,22 +10542,22 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
       titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
       titleColor: String(raw.titleColor || "#FFFFFF"),
       blocks: merged,
-      titles_suggested_at: new Date().toISOString(),
-      titles_suggested_via: browserText ? "gemini_chrome" : "gemini_api",
+      titles_synced_at: new Date().toISOString(),
+      titles_synced_via: "metadata_chapters",
     };
 
     config.block_progress_bar = nextConfig;
     fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
 
-    console.log(`[Block Progress] IA sugeriu títulos para ${merged.length} bloco(s).`);
+    console.log(`[Block Progress] Títulos sincronizados dos capítulos para ${merged.length} bloco(s).`);
     res.json({
       success: true,
       blocks: merged,
-      source: browserText ? "gemini_chrome" : "gemini_api",
+      source: "metadata_chapters",
     });
   } catch (err) {
     console.error("[Block Progress Titles]", err);
-    res.status(500).json({ error: err.message || "Falha ao resumir títulos." });
+    res.status(500).json({ error: err.message || "Falha ao sincronizar títulos dos capítulos." });
   }
 });
 
