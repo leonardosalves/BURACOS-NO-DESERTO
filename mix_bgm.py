@@ -109,11 +109,14 @@ def write_pcm_to_mp3(data, output_filename, sr=SR):
 # Dynamic Ducking Helper using narration envelope
 
 
-def find_best_climax_start(filename, duration_s, target_sr=SR):
+def find_best_climax_start(filename, duration_s, target_sr=SR, mood='peak'):
+    """
+    Escolhe o offset de entrada na faixa conforme a sonoplastia do bloco.
+    mood: peak (máxima energia), rise (crescendo), soft (entrada suave), neutral (meio estável).
+    """
     try:
         if not filename or not os.path.exists(filename):
             return 0.0
-        # Load audio at low sample rate for fast analysis (11025Hz, mono)
         cmd = [
             'ffmpeg', '-y', '-i', filename,
             '-ar', '11025', '-ac', '1', '-f', 'f32le', '-'
@@ -123,29 +126,48 @@ def find_best_climax_start(filename, duration_s, target_sr=SR):
         data = np.frombuffer(raw_bytes, dtype=np.float32)
         if len(data) == 0:
             return 0.0
-        
-        # Compute RMS in 1-second chunks
+
         win_size = 11025
         rms = []
         for i in range(0, len(data) - win_size, win_size):
             rms.append(np.sqrt(np.mean(data[i:i+win_size]**2) + 1e-9))
-        
+
         if not rms:
             return 0.0
-            
-        dur_sec = int(duration_s)
+
+        dur_sec = max(1, int(duration_s))
         if len(rms) <= dur_sec:
             return 0.0
-            
-        max_energy = -1.0
+
+        mode = str(mood or 'peak').lower()
+        if mode in ('epic', 'tension', 'climax', 'action'):
+            mode = 'peak'
+
         best_start = 0
+        best_score = -1e18
+
         for i in range(len(rms) - dur_sec):
-            energy = sum(rms[i:i+dur_sec])
-            if energy > max_energy:
-                max_energy = energy
+            window = rms[i:i + dur_sec]
+            total = sum(window)
+            start_e = window[0]
+            end_e = window[-1]
+            mid_e = window[len(window) // 2]
+            variance = float(np.var(window)) if len(window) > 1 else 0.0
+
+            if mode == 'soft':
+                score = -(start_e * 1.4 + mid_e * 0.4) + end_e * 0.25
+            elif mode == 'rise':
+                score = (end_e - start_e) * 2.2 + end_e * 0.6 + total * 0.15
+            elif mode == 'neutral':
+                score = -(variance * 3.0) + total * 0.35
+            else:  # peak
+                score = total
+
+            if score > best_score:
+                best_score = score
                 best_start = i
-                
-        print(f"Climax detection: best start offset is {best_start} seconds (energy={max_energy:.4f})")
+
+        print(f"Climax detection ({mode}): best start offset is {best_start}s (score={best_score:.4f})")
         return float(best_start)
     except Exception as e:
         print(f"Error detecting climax: {e}")
@@ -542,7 +564,8 @@ if __name__ == '__main__':
             sys.exit(0)
         filename = sys.argv[2]
         duration = float(sys.argv[3])
+        mood = sys.argv[4] if len(sys.argv) > 4 else 'peak'
         import numpy as np
-        print(find_best_climax_start(filename, duration))
+        print(find_best_climax_start(filename, duration, mood=mood))
         sys.exit(0)
     main()

@@ -137,6 +137,9 @@ type BgmTrack = {
   start: number;
   duration: number;
   startFrom?: number;
+  duckStrength?: "light" | "normal" | "strong";
+  mood?: string;
+  climaxMode?: string;
 };
 
 
@@ -2335,7 +2338,14 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-          <BgmAudio track={track} captions={captions} narrationDuration={narrationDuration} musicVolume={musicVolume} bgmDuckPoints={bgmDuckPoints} bgmDuckStrength={bgmDuckStrength} />
+          <BgmAudio
+            track={track}
+            captions={captions}
+            narrationDuration={narrationDuration}
+            musicVolume={musicVolume}
+            bgmDuckPoints={bgmDuckPoints}
+            bgmDuckStrength={track.duckStrength || bgmDuckStrength}
+          />
 
 
 
