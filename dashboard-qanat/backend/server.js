@@ -274,6 +274,7 @@ import {
   isHudOverlay,
   hasAiPlannedOverlays,
   isPlaceholderInformativeOverlay,
+  isManualOverlayTiming,
   redistributeInformativeOverlayStarts,
   verifyAndRepairAiOverlayTiming,
   overlayTimingIssuesFromReport,
@@ -14567,6 +14568,9 @@ function stripSystemInjectedOverlays(overlays = []) {
 }
 
 function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts, durations, config = {}, storyboard = {}) {
+  if (isManualOverlayTiming(overlay)) {
+    return Math.max(1, Number(overlay.duration) || 4);
+  }
   const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
   const isListicle = config?.content_mode === "LISTICLE"
     || storyboard?.listicle?.content_mode === "LISTICLE";
@@ -14587,6 +14591,13 @@ function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts,
 function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = [], config = {}, storyboard = {}) {
   for (let i = 0; i < parsedOverlays.length; i++) {
     const overlay = parsedOverlays[i];
+    if (isManualOverlayTiming(overlay)) {
+      if (Number.isFinite(Number(overlay.start))) overlay.start = Number(overlay.start);
+      if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+        overlay.duration = 4;
+      }
+      continue;
+    }
     const raw = overlay.start ?? overlay.scene;
     const rawStr = String(raw ?? "").trim();
 
@@ -14641,6 +14652,15 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 
   for (let i = 0; i < parsedOverlays.length; i++) {
     const overlay = parsedOverlays[i];
+    if (isManualOverlayTiming(overlay)) {
+      const rawNum = Number(overlay.start);
+      if (Number.isFinite(rawNum) && rawNum >= 0) overlay.start = rawNum;
+      if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+        overlay.duration = 4;
+      }
+      console.log(`[Overlays Post-Process] Overlay ${overlay.id} timing manual: start=${overlay.start}s, duration=${overlay.duration}s`);
+      continue;
+    }
     const rawSceneRef = String(overlay.start ?? overlay.scene ?? "").trim();
     const resolvedSceneId = resolveOverlaySceneId(overlay, sceneStarts, sceneDurations);
 
@@ -14790,6 +14810,13 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
     let start = Number(overlay.start);
     let duration = Number(overlay.duration) || 4;
     const currentSceneRef = overlay.scene_ref ? String(overlay.scene_ref).trim() : null;
+
+    if (isManualOverlayTiming(overlay)) {
+      resolved.push(overlay);
+      lastEnd = start + duration;
+      lastSceneRef = currentSceneRef;
+      continue;
+    }
 
     // Rule: NEVER show two overlays on the same scene (scene_ref match check)
     if (currentSceneRef && lastSceneRef === currentSceneRef) {

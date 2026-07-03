@@ -31,6 +31,7 @@ import {
   SYSTEM_OVERLAY_TYPES,
   buildSceneOptions,
   formatOverlayTime,
+  parseOverlaySeconds,
   isSceneId,
   normalizeOverlayList,
   overlaySceneLabel,
@@ -195,11 +196,25 @@ export function OverlayTimelineEditor({
   };
 
   const anchorToScene = (id: string, sceneId: string) => {
+    const current = overlays.find((o) => o.id === id);
+    if (!sceneId) {
+      patchOverlay(id, {
+        scene_ref: undefined,
+        start: current ? numericStart(current, starts) : 0,
+        timing_manual: true,
+      });
+      return;
+    }
     const seconds = resolveSceneSeconds(sceneId, starts);
     patchOverlay(id, {
       scene_ref: sceneId,
       start: seconds ?? sceneId,
+      timing_manual: false,
     });
+  };
+
+  const setManualTiming = (id: string, patch: Partial<OverlayDraft>) => {
+    patchOverlay(id, { ...patch, timing_manual: true });
   };
 
   const setIcon = (id: string, iconId: string | undefined, style: OverlayIconStyle) => {
@@ -449,10 +464,17 @@ export function OverlayTimelineEditor({
                 type="number"
                 min={0}
                 max={totalDuration}
-                step={0.1}
+                step={0.01}
+                inputMode="decimal"
                 disabled={isSystem}
                 value={numericStart(overlay, starts)}
-                onChange={(e) => patchOverlay(overlay.id, { start: Number(e.target.value) })}
+                onChange={(e) => {
+                  const v = parseOverlaySeconds(e.target.value);
+                  if (!Number.isFinite(v)) return;
+                  setManualTiming(overlay.id, {
+                    start: Math.max(0, Math.min(totalDuration, v)),
+                  });
+                }}
                 className="dash-input font-mono text-[10px]"
               />
             </div>
@@ -463,14 +485,25 @@ export function OverlayTimelineEditor({
               <input
                 type="number"
                 min={1}
-                max={30}
-                step={0.5}
+                max={120}
+                step={0.1}
+                inputMode="decimal"
                 disabled={isSystem}
                 value={overlay.duration}
-                onChange={(e) => patchOverlay(overlay.id, { duration: Number(e.target.value) })}
+                onChange={(e) => {
+                  const v = parseOverlaySeconds(e.target.value);
+                  if (!Number.isFinite(v) || v <= 0) return;
+                  setManualTiming(overlay.id, { duration: Math.min(120, v) });
+                }}
                 className="dash-input font-mono text-[10px]"
               />
             </div>
+            {overlay.timing_manual && !isSystem && (
+              <p className="sm:col-span-2 text-[8px] text-emerald-400/90 flex items-center gap-1">
+                <Clock className="w-3 h-3 shrink-0" />
+                Timing manual — o render usa exatamente este início e duração.
+              </p>
+            )}
             <div className="space-y-1.5">
               <SettingLabel helpTitle="Tipo" help="Formato visual." align="start">
                 Tipo de overlay

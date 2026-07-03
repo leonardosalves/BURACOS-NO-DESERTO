@@ -30,6 +30,11 @@ export function isHudOverlay(overlay = {}) {
   return id.startsWith("listicle-") || id === "retention-hook" || id === "mid-video-cta";
 }
 
+/** Overlay com início/duração editados manualmente no Editor — não reautoajustar no render. */
+export function isManualOverlayTiming(overlay = {}) {
+  return overlay?.timing_manual === true;
+}
+
 /** Storyboard com overlays planejados pela IA (Studio Agents / Gemini) — sem HUD listicle automático. */
 export function hasAiPlannedOverlays(storyboard = {}) {
   return Array.isArray(storyboard?.overlays_ai) && storyboard.overlays_ai.length > 0;
@@ -191,6 +196,14 @@ export function stabilizeOverlayTimings(overlays = [], {
   for (const overlay of overlays) {
     if (!overlay || isHudOverlay(overlay)) continue;
 
+    if (isManualOverlayTiming(overlay)) {
+      const start = Number(overlay.start);
+      if (Number.isFinite(start)) overlay.start = Math.max(0, start);
+      const dur = Number(overlay.duration);
+      if (!Number.isFinite(dur) || dur <= 0) overlay.duration = 4;
+      continue;
+    }
+
     const narrativeIdx = resolveNarrativeBlockIndex(overlay, overlay.scene_ref);
     const timeIdx = getBlockIndexForTime(overlay.start, starts, durations);
     const blockIdx = narrativeIdx >= 0 ? narrativeIdx : timeIdx;
@@ -286,6 +299,14 @@ export function redistributeInformativeOverlayStarts(overlays = [], plan = {}, t
 
   for (let i = 0; i < sorted.length; i++) {
     const overlay = sorted[i];
+    if (isManualOverlayTiming(overlay)) {
+      const manualStart = Number(overlay.start);
+      const manualDur = Number(overlay.duration) || 4;
+      if (Number.isFinite(manualStart)) {
+        lastStart = manualStart + manualDur;
+      }
+      continue;
+    }
     const sceneRef = String(overlay.scene_ref || "").trim();
     const blockIdx = extractBlockIndex(overlay, sceneRef);
     const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
@@ -402,6 +423,27 @@ export function verifyAndRepairAiOverlayTiming(overlays = [], {
 
   for (const overlay of overlays) {
     if (!isInformativeOverlay(overlay)) continue;
+
+    if (isManualOverlayTiming(overlay)) {
+      const start = Number(overlay.start);
+      const dur = Number(overlay.duration) || 4;
+      entries.push({
+        id: overlay.id,
+        type: overlay.type,
+        plannedScene: String(overlay.scene_ref || "").trim() || null,
+        block: extractBlockIndex(overlay, overlay.scene_ref) >= 0
+          ? extractBlockIndex(overlay, overlay.scene_ref) + 1
+          : null,
+        startSec: Number.isFinite(start) ? start : null,
+        endSec: Number.isFinite(start) ? start + dur : null,
+        blockRange: null,
+        sceneRange: null,
+        keywordMatchSec: null,
+        status: Number.isFinite(start) ? "ok" : "error",
+        message: Number.isFinite(start) ? "timing manual (editor)" : "start inválido — timing manual",
+      });
+      continue;
+    }
 
     if (!overlay.scene_ref && isLikelySceneId(overlay.start)) {
       overlay.scene_ref = String(overlay.start).trim();
@@ -602,6 +644,16 @@ export function assignPlannedOverlayNumericStarts(overlays = [], starts = [], du
   for (let i = 0; i < cloned.length; i++) {
     const overlay = cloned[i];
     const rawStart = String(overlay.start ?? overlay.scene ?? "").trim();
+
+    if (isManualOverlayTiming(overlay)) {
+      if (Number.isFinite(Number(overlay.start))) {
+        overlay.start = Number(overlay.start);
+      }
+      if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+        overlay.duration = 4;
+      }
+      continue;
+    }
 
     if (Number.isFinite(Number(overlay.start)) && !isLikelySceneId(rawStart)) {
       if (!overlay.scene_ref && isLikelySceneId(rawStart)) overlay.scene_ref = rawStart;

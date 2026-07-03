@@ -35,6 +35,8 @@ export type OverlayDraft = {
   duration: number;
   scene_ref?: string;
   block_ref?: number;
+  /** Início/duração definidos no editor — o render não reautoajusta. */
+  timing_manual?: boolean;
   props?: Record<string, unknown>;
   ai_meta?: OverlayAiMeta;
 };
@@ -311,6 +313,14 @@ export function formatOverlayTime(seconds: number): string {
   return `${m}:${rem.toFixed(1).padStart(4, '0')}`;
 }
 
+/** Aceita vírgula ou ponto decimal (locale PT-BR). */
+export function parseOverlaySeconds(raw: string | number): number {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : NaN;
+  const normalized = String(raw).trim().replace(',', '.');
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 export function resolveSceneSeconds(
   sceneId: string,
   starts: number[] = [],
@@ -348,6 +358,7 @@ export function normalizeOverlayList(raw: unknown[]): OverlayDraft[] {
       duration: Number(raw.duration) > 0 ? Number(raw.duration) : 4,
       scene_ref: raw.scene_ref,
       block_ref: raw.block_ref,
+      timing_manual: raw.timing_manual === true,
       props,
       ai_meta: raw.ai_meta,
     };
