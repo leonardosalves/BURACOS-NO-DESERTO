@@ -310,7 +310,10 @@ def main():
 
             block_data = load_pcm_wrapped(filename, start_offset_s, duration_s).astype(np.float32)
 
-            fade_in_len = min(int(2.0 * SR), len(block_data))
+            fade_in_s = float(m.get('fade_in_s', 2.5) or 2.5)
+            fade_out_s = float(m.get('fade_out_s', 4.0) or 4.0)
+
+            fade_in_len = min(int(fade_in_s * SR), len(block_data))
 
             if fade_in_len > 0:
 
@@ -318,7 +321,7 @@ def main():
 
                 block_data[:fade_in_len] *= fade_in_curve[:, np.newaxis]
 
-            fade_out_len = min(int(2.5 * SR), len(block_data))
+            fade_out_len = min(int(fade_out_s * SR), len(block_data))
 
             if fade_out_len > 0:
 
