@@ -295,13 +295,17 @@ export function NarrationChunksPanel({
       const jobId = String(data.jobId || progressJobId);
 
       if (data.started && jobId) {
-        const result = await waitForAiJobDone(jobId);
-        const doneMsg = String(
-          (result as { message?: string }).message
-          || (result.whisper_synced ? 'Trechos montados · legendas sincronizadas (Whisper).' : 'Trechos gerados.'),
-        );
-        if ((result as { whisper_error?: string }).whisper_error && isFullBatch) {
-          toast(`Whisper: ${(result as { whisper_error?: string }).whisper_error}`, { icon: '⚠️' });
+        const result = await waitForAiJobDone(jobId) as {
+          message?: string;
+          whisper_synced?: boolean;
+          whisper_error?: string | null;
+        };
+        const doneMsg = result.message
+          || (result.whisper_synced
+            ? 'Trechos montados · legendas sincronizadas (Whisper).'
+            : 'Trechos montados.');
+        if (result.whisper_error && isFullBatch) {
+          toast(`Whisper: ${result.whisper_error}`, { icon: '⚠️' });
         }
         stopAiJobProgress(true, doneMsg);
         toast(doneMsg);
