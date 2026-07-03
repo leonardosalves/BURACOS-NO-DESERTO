@@ -342,6 +342,9 @@ export const defaultLumieraProps: LumieraTimelineProps = {
 
 const assetUrl = (file: string) => staticFile(file.replace(/\\/g, "/"));
 
+const MEDIA_DELAY_RENDER_TIMEOUT_MS = 180_000;
+const MEDIA_DELAY_RENDER_RETRIES = 2;
+
 
 
 
@@ -1137,29 +1140,13 @@ const SceneMedia: React.FC<{
 
 
         <Video
-
-
-
           src={assetUrl(scene.asset)}
-
-
-
           muted={clipVolume <= 0}
-
-
-
           loop={false}
-
-
-
           volume={clipVolume}
-
-
-
           playbackRate={clipRate}
-
-
-
+          delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
+          delayRenderRetries={MEDIA_DELAY_RENDER_RETRIES}
           style={commonStyle}
 
 
@@ -1973,6 +1960,7 @@ const BgmAudio: React.FC<{
       src={assetUrl(track.file)}
       trimBefore={track.startFrom ? Math.round(track.startFrom * fps) : 0}
       loop
+      delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
       volume={(localFrame) => {
         const volScale = musicVolume / 0.15;
         const absoluteFrame = startFrame + localFrame;
@@ -2078,13 +2066,8 @@ const SfxAudio: React.FC<{ track: SfxTrack }> = ({ track }) => {
 
 
     <Audio
-
-
-
       src={assetUrl(track.file)}
-
-
-
+      delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
       volume={(localFrame) => {
 
 
@@ -2416,7 +2399,11 @@ export const LumieraTimeline: React.FC<LumieraTimelineProps> = ({
 
 
 
-        <Audio src={assetUrl(narration)} volume={1} />
+        <Audio
+          src={assetUrl(narration)}
+          volume={1}
+          delayRenderTimeoutInMilliseconds={MEDIA_DELAY_RENDER_TIMEOUT_MS}
+        />
 
 
 
