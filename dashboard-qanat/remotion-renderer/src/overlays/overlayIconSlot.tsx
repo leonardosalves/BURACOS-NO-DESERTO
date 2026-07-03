@@ -236,6 +236,8 @@ export type OverlayIconSlotProps = {
   iconStyle?: "lottie" | "svg";
   size: number;
   accentColor?: string;
+  /** Se o Lottie falhar ou expirar, usa SVG colorido (evita ícone preto/vazio). */
+  preferSvgOnLottieFail?: boolean;
 };
 
 export function OverlayIconSlot({
@@ -243,12 +245,20 @@ export function OverlayIconSlot({
   iconStyle,
   size,
   accentColor = "#D4AF37",
+  preferSvgOnLottieFail = false,
 }: OverlayIconSlotProps): React.ReactNode {
+  const [lottieFailed, setLottieFailed] = React.useState(false);
   if (!iconType) return null;
   const resolved = resolveOverlayIconStyle({ iconStyle });
   const lottieData = pickLottieData(iconType, resolved);
-  if (lottieData) {
-    return <SafeLottie animationData={lottieData} style={{ width: size, height: size }} />;
+  if (lottieData && !(preferSvgOnLottieFail && lottieFailed)) {
+    return (
+      <SafeLottie
+        animationData={lottieData}
+        style={{ width: size, height: size }}
+        onFailed={preferSvgOnLottieFail ? () => setLottieFailed(true) : undefined}
+      />
+    );
   }
   return renderOverlaySvg(iconType, size, accentColor);
 }

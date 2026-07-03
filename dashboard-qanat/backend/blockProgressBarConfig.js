@@ -286,6 +286,63 @@ export function buildDefaultBlockProgressMarkers({
   return dedupeBlockProgressIcons(blocks, { niche });
 }
 
+/** Usa ícones/títulos salvos no config — só atualiza start/duration dos timings. */
+export function mergeSavedBlockProgressMarkers(
+  rawBlocks = [],
+  {
+    blockPhrases = [],
+    visualPrompts = [],
+    starts = [],
+    durations = [],
+    chaptersText = "",
+    storyboard = {},
+    config = {},
+  } = {},
+) {
+  const savedMap = new Map(
+    (rawBlocks || []).map((b) => [Number(b.block), b]),
+  );
+  const metadataTitles = buildBlockTitlesForProgressBar({
+    chaptersText,
+    blockStarts: starts,
+    storyboard,
+    config,
+  });
+  const narrationsByBlock = collectBlockNarrationsByBlock({ visualPrompts, blockPhrases });
+
+  return (blockPhrases || []).map((bp, idx) => {
+    const block = Number(bp.block || idx + 1);
+    const saved = savedMap.get(block) || {};
+    const phraseStart = String(bp.phrase || bp.text || "").trim();
+    const title = resolveBlockDisplayTitle(saved, metadataTitles.get(block), block, phraseStart);
+    const iconType = String(saved.iconType || "info").toLowerCase();
+    const iconStyle = saved.iconStyle === "svg" || SVG_ONLY_BLOCK_PROGRESS_ICONS.has(iconType)
+      ? "svg"
+      : "lottie";
+
+    return {
+      block,
+      start: Number(starts[idx]) || Number(saved.start) || 0,
+      duration: Number(durations[idx]) || Number(saved.duration) || 10,
+      title,
+      label: title,
+      iconType: ALLOWED_BLOCK_PROGRESS_ICONS.includes(iconType) ? iconType : "info",
+      iconStyle,
+      iconSize: saved.iconSize,
+    };
+  });
+}
+
+function hasCompleteSavedBlockIcons(rawBlocks = [], blockPhrases = []) {
+  if (!Array.isArray(rawBlocks) || !rawBlocks.length || !blockPhrases.length) return false;
+  const savedMap = new Map(rawBlocks.map((b) => [Number(b.block), b]));
+  return blockPhrases.every((bp, idx) => {
+    const block = Number(bp.block || idx + 1);
+    const saved = savedMap.get(block);
+    return Boolean(saved?.iconType);
+  });
+}
+
 export const BLOCK_PROGRESS_DESIGNS = [
   "cinematic", "neon", "minimal", "documentary", "tech",
   "dashed", "dotted", "bold", "glass", "elegant", "gradient", "glow", "retro", "outline",
@@ -577,18 +634,31 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
   }
 
   const chaptersText = resolveChaptersTextForProject(projectDir, readProjectJson);
+  const rawBlocks = Array.isArray(raw.blocks) ? raw.blocks : [];
+  const starts = timings.starts || [];
+  const durations = timings.durations || [];
 
-  const markers = buildDefaultBlockProgressMarkers({
-    blockPhrases,
-    visualPrompts,
-    starts: timings.starts || [],
-    durations: timings.durations || [],
-    niche: config.niche || "Geral",
-    existingBlocks: raw.blocks || [],
-    chaptersText,
-    storyboard,
-    config,
-  });
+  const markers = hasCompleteSavedBlockIcons(rawBlocks, blockPhrases)
+    ? mergeSavedBlockProgressMarkers(rawBlocks, {
+      blockPhrases,
+      visualPrompts,
+      starts,
+      durations,
+      chaptersText,
+      storyboard,
+      config,
+    })
+    : buildDefaultBlockProgressMarkers({
+      blockPhrases,
+      visualPrompts,
+      starts,
+      durations,
+      niche: config.niche || "Geral",
+      existingBlocks: rawBlocks,
+      chaptersText,
+      storyboard,
+      config,
+    });
 
   const titleFont = BLOCK_PROGRESS_TITLE_FONTS[raw.titleFont]
     ? raw.titleFont

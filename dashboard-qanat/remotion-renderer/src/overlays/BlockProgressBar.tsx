@@ -259,8 +259,46 @@ function barIconRowOffset(tokens: DesignTokens) {
   return tokens.trackH + barStackBelowTrack(tokens) + tokens.iconGap;
 }
 
-function markerCenter(marker: BlockProgressMarker, total: number) {
-  return ((marker.start + marker.duration / 2) / Math.max(1, total)) * 100;
+function markerCenter(marker: BlockProgressMarker, total: number, blockCount: number) {
+  const raw = ((marker.start + marker.duration / 2) / Math.max(1, total)) * 100;
+  if (blockCount <= 1) return 50;
+  const edgePad = Math.min(8, Math.max(2.2, 52 / blockCount));
+  return Math.min(100 - edgePad, Math.max(edgePad, raw));
+}
+
+function BlockProgressIcon({
+  marker,
+  defaultIconStyle,
+  baseIcon,
+  isActive,
+  accentColor,
+}: {
+  marker: BlockProgressMarker;
+  defaultIconStyle: "lottie" | "svg";
+  baseIcon: number;
+  isActive: boolean;
+  accentColor: string;
+}) {
+  const size = Math.round(marker.iconSize || baseIcon);
+  const color = isActive ? accentColor : `${accentColor}99`;
+  const style = marker.iconStyle || defaultIconStyle;
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        filter: `drop-shadow(0 0 3px ${color}) drop-shadow(0 0 6px rgba(255,255,255,0.28))`,
+      }}
+    >
+      <OverlayIconSlot
+        iconType={marker.iconType}
+        iconStyle={style}
+        size={size}
+        accentColor={color}
+        preferSvgOnLottieFail
+      />
+    </div>
+  );
 }
 
 export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
@@ -368,7 +406,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
           barTop + barHeight * (1 - progress / 100),
         )}
         {safeBlocks.map((marker) => {
-          const pct = markerCenter(marker, totalDuration);
+          const pct = markerCenter(marker, totalDuration, safeBlocks.length);
           const size = Math.round((marker.iconSize || baseIcon) * scale);
           const isActive = marker.block === activeBlock;
           const markerY = barTop + (pct / 100) * barHeight;
@@ -391,11 +429,12 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
                 maxWidth: titleMaxW,
               }}
             >
-              <OverlayIconSlot
-                iconType={marker.iconType}
-                iconStyle={marker.iconStyle || defaultIconStyle}
-                size={size}
-                accentColor={isActive ? accentColor : `${accentColor}99`}
+              <BlockProgressIcon
+                marker={marker}
+                defaultIconStyle={defaultIconStyle}
+                baseIcon={baseIcon * scale}
+                isActive={isActive}
+                accentColor={accentColor}
               />
               {showBlockTitles && (
                 <span style={titleStyle(isActive, titleFontFamily, resolvedTitleSize, titleColor, titleMaxW, "left")}>
@@ -457,7 +496,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
         barTop + tokens.trackH / 2,
       )}
       {safeBlocks.map((marker) => {
-        const pct = markerCenter(marker, totalDuration);
+        const pct = markerCenter(marker, totalDuration, safeBlocks.length);
         const size = Math.round(marker.iconSize || baseIcon);
         const isActive = marker.block === activeBlock;
         const titleMaxW = showBlockTitles ? Math.max(size, slotWidth - 4) : size;
@@ -470,7 +509,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               top: iconTop,
               transform: `translateX(-50%) scale(${isActive ? 1.08 : 0.9})`,
               transformOrigin: "top center",
-              opacity: isActive ? 1 : 0.42,
+              opacity: isActive ? 1 : 0.55,
               filter: isActive ? `drop-shadow(0 0 8px ${accentColor}99)` : "none",
               display: "flex",
               flexDirection: "column",
@@ -479,11 +518,12 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               width: titleMaxW,
             }}
           >
-            <OverlayIconSlot
-              iconType={marker.iconType}
-              iconStyle={marker.iconStyle || defaultIconStyle}
-              size={size}
-              accentColor={isActive ? accentColor : `${accentColor}88`}
+            <BlockProgressIcon
+              marker={marker}
+              defaultIconStyle={defaultIconStyle}
+              baseIcon={baseIcon}
+              isActive={isActive}
+              accentColor={accentColor}
             />
             {showBlockTitles && (
               <span style={titleStyle(isActive, titleFontFamily, resolvedTitleSize, titleColor, titleMaxW)}>
