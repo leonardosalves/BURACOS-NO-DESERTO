@@ -275,6 +275,8 @@ import {
   parseAiEmotionPlanResponse,
   resolveBgmMode,
   segmentsNeedingBgmDownload,
+  stitchEmotionSegmentsContinuous,
+  syncEmotionMappingsToPlan,
 } from "./bgmEmotionPlan.js";
 import { resolveCaptionRenderSettings } from "./captionConfig.js";
 import {
@@ -3213,6 +3215,39 @@ function listProjectMusicFiles(projDir) {
   }
 }
 
+/** Re-costura segmentos emocionais (crossfade contínuo) e sincroniza mappings no config. */
+function refreshEmotionPlanTimings(projDir) {
+  const logs = [];
+  const configPath = path.join(projDir, "config_qanat.json");
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  let config = readProjectJson(projDir, "config_qanat.json", {});
+  const storyboard = readProjectJson(projDir, "storyboard.json", {});
+  const plan = storyboard?.bgm_emotion_plan;
+  if (!plan?.segments?.length) return { config, storyboard, logs };
+
+  const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+  const total = Number(timings.total_duration) || Number(plan.total_duration) || 0;
+  const stitched = stitchEmotionSegmentsContinuous(plan.segments, total);
+  storyboard.bgm_emotion_plan = {
+    ...plan,
+    segments: stitched,
+    segment_count: stitched.length,
+    total_duration: total || plan.total_duration,
+  };
+  const synced = syncEmotionMappingsToPlan(storyboard.bgm_emotion_plan, config.bgm_emotion_mappings || []);
+  if (synced.length > 0) {
+    config.bgm_emotion_mappings = synced;
+    config.bgm_mode = "emotion";
+  }
+  fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  logs.push(`Trilha emocional costurada: ${stitched.length} segmento(s) com crossfade contínuo (sem silêncio).`);
+  for (const seg of stitched) {
+    logs.push(`  ${seg.id} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s (${seg.emotion}) fade ${seg.fade_in_s}/${seg.fade_out_s}s`);
+  }
+  return { config, storyboard, logs };
+}
+
 async function prepareBgmBeforeMix(projDir) {
   const logs = [];
   const configPath = path.join(projDir, "config_qanat.json");
@@ -3225,7 +3260,12 @@ async function prepareBgmBeforeMix(projDir) {
 
   if (bgmMode !== "emotion") return logs;
 
-  const plan = storyboard?.bgm_emotion_plan;
+  const refreshed = refreshEmotionPlanTimings(projDir);
+  logs.push(...(refreshed.logs || []));
+  config = refreshed.config;
+  const storyboardRefreshed = refreshed.storyboard;
+
+  const plan = storyboardRefreshed?.bgm_emotion_plan;
   const segments = plan?.segments || [];
   let mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
   const missing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
@@ -6171,6 +6211,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   let storyboard = readProjectJson(projectDir, "storyboard.json", {});
 
   try {
+    const refreshed = refreshEmotionPlanTimings(projectDir);
+    for (const line of refreshed.logs || []) console.log(`[Remotion BGM Prep] ${line}`);
+    config = refreshed.config;
+    storyboard = refreshed.storyboard;
     const prepLogs = await prepareBgmBeforeMix(projectDir);
     for (const line of prepLogs || []) console.log(`[Remotion BGM Prep] ${line}`);
     config = readProjectJson(projectDir, "config_qanat.json", {});
@@ -6708,9 +6752,11 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         start,
         duration,
         startFrom,
-        duckStrength,
+        duckStrength: emotion === "tension" ? "normal" : (duckStrength === "strong" ? "normal" : duckStrength),
         mood: emotion,
         climaxMode,
+        fadeInS: Number(mapping?.fade_in_s ?? segMeta.fade_in_s) || 2.5,
+        fadeOutS: Number(mapping?.fade_out_s ?? segMeta.fade_out_s) || 4,
       });
     }
 

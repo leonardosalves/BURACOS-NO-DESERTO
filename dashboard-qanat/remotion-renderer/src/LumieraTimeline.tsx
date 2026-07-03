@@ -139,6 +139,8 @@ type BgmTrack = {
   duration: number;
   startFrom?: number;
   segmentId?: string;
+  fadeInS?: number;
+  fadeOutS?: number;
   duckStrength?: "light" | "normal" | "strong";
   mood?: string;
   climaxMode?: string;
@@ -1942,11 +1944,11 @@ const BGM_DUCK_PROFILES_SHORT = {
   strong: { speaking: [0.014, 0.03], near: [0.022, 0.055], idle: 0.065 },
 } as const;
 
-/** Longos: trilha audível sob narração contínua (documentário). */
+/** Longos: nível estável sob narração — sem “pump” de volume. */
 const BGM_DUCK_PROFILES_LONG = {
-  light: { speaking: [0.14, 0.2], near: [0.16, 0.22], idle: 0.28 },
-  normal: { speaking: [0.11, 0.17], near: [0.14, 0.2], idle: 0.24 },
-  strong: { speaking: [0.08, 0.13], near: [0.11, 0.16], idle: 0.2 },
+  light: { speaking: 0.15, near: 0.17, idle: 0.22 },
+  normal: { speaking: 0.12, near: 0.15, idle: 0.19 },
+  strong: { speaking: 0.1, near: 0.13, idle: 0.16 },
 } as const;
 
 const BgmAudio: React.FC<{
@@ -1967,16 +1969,18 @@ const BgmAudio: React.FC<{
   format = "9:16",
 }) => {
   const isLongForm = format === "16:9";
-  const profiles = isLongForm ? BGM_DUCK_PROFILES_LONG : BGM_DUCK_PROFILES_SHORT;
-  const duck = profiles[bgmDuckStrength] || profiles.normal;
-  const minSpeakingVol = isLongForm ? 0.06 : 0.012;
-  const minNearVol = isLongForm ? 0.08 : 0.015;
+  const duckShort = BGM_DUCK_PROFILES_SHORT[bgmDuckStrength] || BGM_DUCK_PROFILES_SHORT.normal;
+  const duckLong = BGM_DUCK_PROFILES_LONG[bgmDuckStrength] || BGM_DUCK_PROFILES_LONG.normal;
+  const minSpeakingVol = isLongForm ? 0.08 : 0.012;
+  const minNearVol = isLongForm ? 0.09 : 0.015;
   const minIdleVol = isLongForm ? 0.1 : 0.02;
   const { fps, durationInFrames } = useVideoConfig();
   const totalDurationMs = (durationInFrames / fps) * 1000;
   const startFrame = Math.round(track.start * fps);
   const trackDurationMs = Math.max(500, track.duration * 1000);
   const narrationDurationMs = Math.max(0, narrationDuration * 1000);
+  const fadeInMs = Math.max(800, (track.fadeInS ?? (isLongForm ? 2.5 : 1.8)) * 1000);
+  const fadeOutMs = Math.max(1000, (track.fadeOutS ?? (isLongForm ? 4 : 2.2)) * 1000);
 
   return (
     <Audio
@@ -1990,11 +1994,11 @@ const BgmAudio: React.FC<{
         const currentMs = (absoluteFrame / fps) * 1000;
         const localMs = (localFrame / fps) * 1000;
 
-        const fadeIn = interpolate(localMs, [0, 1800], [0, 1], {
+        const fadeIn = interpolate(localMs, [0, fadeInMs], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
-        const fadeOut = interpolate(trackDurationMs - localMs, [0, 2200], [0, 1], {
+        const fadeOut = interpolate(trackDurationMs - localMs, [0, fadeOutMs], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         });
@@ -2045,17 +2049,23 @@ const BgmAudio: React.FC<{
             }
           }
 
+          if (isLongForm) {
+            const stable = isSpeaking
+              ? duckLong.speaking
+              : (minDistance < 1200 ? duckLong.near : duckLong.idle);
+            return Math.max(minSpeakingVol, stable * envelope - duckBoost);
+          }
+
           if (isSpeaking) {
             const breath = (Math.sin((currentMs / 1000) * Math.PI * 0.42) + 1) / 2;
-            return Math.max(minSpeakingVol, interpolate(breath, [0, 1], duck.speaking) * envelope - duckBoost);
+            return Math.max(minSpeakingVol, interpolate(breath, [0, 1], duckShort.speaking) * envelope - duckBoost);
           }
 
-          // Smooth transition over 600ms before/after narration starts/stops
           if (minDistance < 900) {
-            return Math.max(minNearVol, interpolate(minDistance, [0, 900], duck.near) * envelope - duckBoost);
+            return Math.max(minNearVol, interpolate(minDistance, [0, 900], duckShort.near) * envelope - duckBoost);
           }
 
-          return Math.max(minIdleVol, duck.idle * envelope - duckBoost);
+          return Math.max(minIdleVol, duckShort.idle * envelope - duckBoost);
         };
 
         return getBaseVolume() * volScale;

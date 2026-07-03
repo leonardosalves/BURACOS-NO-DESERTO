@@ -16,9 +16,9 @@ export const EMOTION_TYPES = [
 ];
 
 const MIN_SEGMENT_DURATION = 8;
-const MIN_GAP_BETWEEN_DIFFERENT_EMOTIONS = 12;
-const DEFAULT_FADE_IN = 2;
-const DEFAULT_FADE_OUT = 2.5;
+const EMOTION_CROSSFADE_S = 4;
+const DEFAULT_FADE_IN = 2.5;
+const DEFAULT_FADE_OUT = 4;
 
 export function resolveBgmMode(config = {}, storyboard = {}, format = "LONG") {
   if (format === "SHORT" || config.use_single_bgm === true) return "single";
@@ -95,25 +95,45 @@ export function mergeAdjacentSameEmotionSegments(segments = []) {
   }));
 }
 
-/** Garante gap mínimo entre emoções diferentes (estende fade do anterior). */
-export function enforceMinGapBetweenEmotions(segments = [], minGap = MIN_GAP_BETWEEN_DIFFERENT_EMOTIONS) {
-  if (segments.length <= 1) return segments;
-  const out = [{ ...segments[0] }];
-  for (let i = 1; i < segments.length; i++) {
-    const prev = out[out.length - 1];
-    const cur = { ...segments[i] };
-    const gap = cur.start - prev.end;
-    if (gap < minGap && normalizeEmotion(prev.emotion) !== normalizeEmotion(cur.emotion)) {
-      const shift = minGap - gap;
-      cur.start = prev.end + minGap;
-      if (cur.end <= cur.start + MIN_SEGMENT_DURATION) {
-        cur.end = cur.start + MIN_SEGMENT_DURATION;
-      }
-      prev.fade_out_s = Math.max(prev.fade_out_s || DEFAULT_FADE_OUT, DEFAULT_FADE_OUT + shift * 0.15);
-    }
-    out.push(cur);
+/**
+ * Costura segmentos emocionais sem silêncio: crossfade sobreposto entre faixas.
+ * Transição no ponto médio entre fim do segmento anterior e início do próximo.
+ */
+export function stitchEmotionSegmentsContinuous(segments = [], totalDuration = 0, crossfadeS = EMOTION_CROSSFADE_S) {
+  if (!segments.length) return [];
+  const total = Math.max(
+    Number(totalDuration) || 0,
+    ...segments.map((seg) => Number(seg.end) || 0),
+  );
+  const xfade = Math.max(2, Number(crossfadeS) || EMOTION_CROSSFADE_S);
+  const sorted = [...segments].sort((a, b) => a.start - b.start).map((seg) => ({ ...seg }));
+
+  sorted[0].start = 0;
+  sorted[0].fade_in_s = Number(sorted[0].fade_in_s ?? sorted[0].fadeInS) || DEFAULT_FADE_IN;
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const cur = sorted[i];
+    const next = sorted[i + 1];
+    const curEnd = Number(cur.end) || 0;
+    const nextStart = Number(next.start) || curEnd;
+    const boundary = (curEnd + nextStart) / 2;
+
+    cur.end = boundary + xfade / 2;
+    next.start = Math.max(0, boundary - xfade / 2);
+    cur.fade_out_s = xfade;
+    next.fade_in_s = xfade;
   }
-  return out;
+
+  sorted[sorted.length - 1].end = total;
+  sorted[sorted.length - 1].fade_out_s = Number(
+    sorted[sorted.length - 1].fade_out_s ?? sorted[sorted.length - 1].fadeOutS,
+  ) || DEFAULT_FADE_OUT;
+
+  return sorted.map((seg, idx) => ({
+    ...seg,
+    id: seg.id || `seg-${String(idx + 1).padStart(2, "0")}`,
+    duration: Math.max(0.5, Number(seg.end) - Number(seg.start)),
+  }));
 }
 
 export function normalizeEmotionSegments(rawSegments = [], totalDuration = 0, nicheMood = null) {
@@ -142,7 +162,7 @@ export function normalizeEmotionSegments(rawSegments = [], totalDuration = 0, ni
   }).filter((s) => segmentDuration(s) >= MIN_SEGMENT_DURATION * 0.5);
 
   let merged = mergeAdjacentSameEmotionSegments(parsed);
-  merged = enforceMinGapBetweenEmotions(merged);
+  merged = stitchEmotionSegmentsContinuous(merged, total);
   return merged.map((seg, idx) => ({
     ...seg,
     id: seg.id || `seg-${String(idx + 1).padStart(2, "0")}`,
@@ -227,12 +247,12 @@ REGRAS OBRIGATÓRIAS:
 2. emotion: intro | calm | wonder | tension | epic | climax | resolve | neutral
 3. Fundir trechos vizinhos com a MESMA emoção (retorne já fundido)
 4. Evite trocar trilha a cada bloco — um segmento pode cobrir vários blocos
-5. Gap mínimo ~12s entre emoções DIFERENTES
-6. climax_mode: soft (entrada suave) | rise (crescendo) | peak (clímax da faixa)
-7. duck_strength: light | normal | strong — sempre priorize a locução (strong em tension/epic)
-8. search_theme: query em inglês para Epidemic Sound (ex: "epic cinematic documentary orchestral")
-9. Não cortar no meio de frase — alinhe start/end a pausas naturais
-10. Quantos segmentos forem necessários (tipicamente 2–6 em vídeos de 5–15 min)
+5. Cobertura CONTÍNUA do vídeo — segmentos podem se sobrepor ~4s em crossfade; NUNCA deixe silêncio entre trilhas
+6. Transição suave: a próxima faixa entra enquanto a anterior sai (como documentário profissional)
+7. climax_mode: soft | rise | peak — prefira rise para transições narrativas graduais
+8. duck_strength: light ou normal na maioria; strong só em clímax breve
+9. search_theme: query em inglês para Epidemic Sound
+10. Alinhe mudanças de emoção a viradas narrativas (2–5 segmentos em vídeos de 2–15 min)
 
 BLOCOS (referência temporal):
 ${blockLines || "(sem timings)"}
@@ -352,5 +372,30 @@ export function buildEmotionMappingsFromLocalFiles(segments = [], availableFiles
     climax_mode: seg.climax_mode,
     duck_strength: seg.duck_strength,
     search_theme: seg.search_theme,
+    fade_in_s: seg.fade_in_s,
+    fade_out_s: seg.fade_out_s,
   }));
+}
+
+/** Atualiza bgm_emotion_mappings com timings costurados do plano (preserva arquivos escolhidos). */
+export function syncEmotionMappingsToPlan(plan = {}, mappings = []) {
+  const segments = plan?.segments || [];
+  const byId = new Map((mappings || []).map((m) => [String(m.segment_id || m.id), m]));
+  return segments.map((seg) => {
+    const prev = byId.get(seg.id) || {};
+    const start = Number(seg.start) || 0;
+    const duration = Math.max(0.5, Number(seg.duration ?? (seg.end - seg.start)) || 0.5);
+    return {
+      segment_id: seg.id,
+      file: prev.file || "",
+      start,
+      duration,
+      emotion: seg.emotion,
+      climax_mode: seg.climax_mode || prev.climax_mode,
+      duck_strength: seg.duck_strength || prev.duck_strength,
+      search_theme: seg.search_theme || prev.search_theme,
+      fade_in_s: seg.fade_in_s,
+      fade_out_s: seg.fade_out_s,
+    };
+  }).filter((m) => m.file);
 }
