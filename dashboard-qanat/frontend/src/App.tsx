@@ -7039,7 +7039,6 @@ export default function App() {
       format,
       editorialItemId: options?.editorialItemId,
       mechanic: options?.mechanic || (om?.brief ? 'openmontage-reference' : undefined),
-      whyWorks: options?.whyWorks,
       source: options?.source || (om?.referenceUrl ? `openmontage:${om.referenceUrl}` : undefined),
       sourceProject,
       sourceBlock: options?.sourceBlock ?? (mechanicBlock ? Number(mechanicBlock[1]) : undefined),
