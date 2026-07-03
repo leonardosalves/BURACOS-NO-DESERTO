@@ -159,6 +159,7 @@ import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
 import { SceneTimingEditor } from './SceneTimingEditor';
+import { EditorCollapsibleSection } from './EditorCollapsibleSection';
 import { clipKey, parseClipKey } from './opencutTimeline';
 
 import { ProjectYoutubeCard } from './ProjectYoutubeCard';
@@ -1443,6 +1444,7 @@ export default function App() {
   const [generatingOverlays, setGeneratingOverlays] = useState<boolean>(false);
 
   const [editorSubTab, setEditorSubTab] = useState<'script' | 'assets' | 'json' | 'narration' | 'dub'>('script');
+  const [timelineOpenBlocks, setTimelineOpenBlocks] = useState<Record<number, boolean>>({ 1: true });
 
   // Form fields
 
@@ -7637,6 +7639,10 @@ export default function App() {
     if (activeTab === 'upload') void fetchYoutubeThumbnailImages();
   }, [activeTab, activeProject]);
 
+  useEffect(() => {
+    setTimelineOpenBlocks({ 1: true });
+  }, [activeProject]);
+
   const uploadMetadataReady = Boolean(
     youtubeMetadataParsed?.titles?.length
     || youtubeMetadataParsed?.description
@@ -8301,8 +8307,12 @@ export default function App() {
     if (!config) return null;
     const hideAutoMap = options?.hideAutoMap === true;
     const wizardManualMode = options?.wizardManualMode === true;
+    const timelineBlockCount = config.block_phrases
+      ? config.block_phrases.length
+      : (status?.block_timings?.durations?.length || 12);
+
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
 
                   {wizardManualMode && (
                     <div className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4 text-[11px] text-sky-100/90 leading-relaxed">
@@ -8316,7 +8326,8 @@ export default function App() {
                   )}
 
                   {(timelineNeedsWhisperSync || timelineScenesNeedRepair) && (
-                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3 font-sans">
+                    <EditorCollapsibleSection title="Alertas da timeline" defaultOpen>
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3 font-sans">
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1.5 text-[11px] text-amber-100/90 leading-relaxed">
@@ -8357,11 +8368,10 @@ export default function App() {
                         )}
                       </div>
                     </div>
+                    </EditorCollapsibleSection>
                   )}
 
-                  {/* Action buttons row at the top */}
-
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-zinc-950/40 p-4 border border-zinc-900 rounded-2xl gap-4">
+                  <div className="sticky top-2 z-20 flex flex-col lg:flex-row justify-between items-start lg:items-center bg-zinc-950/90 backdrop-blur-sm p-3 border border-zinc-900 rounded-2xl gap-3 shadow-lg shadow-black/20">
 
                     <div className="flex-1 min-w-[280px]">
 
@@ -8453,30 +8463,33 @@ export default function App() {
 
                   </div>
 
-                  <TimelineOpenCutBar
-                    previewZoom={timelinePreviewZoom}
-                    onPreviewZoomChange={setTimelinePreviewZoom}
-                    canvasBackground={config.canvas_background || '#050506'}
-                    onCanvasBackgroundChange={(color) => {
-                      const updated = { ...config, canvas_background: color };
-                      setConfig(updated);
-                      void saveConfigPatch({ canvas_background: color }, { skipRefresh: true });
-                    }}
-                    selectedCount={timelineSelectedClips.size}
-                    onBulkDelete={bulkDeleteTimelineClips}
-                    onClearSelection={() => setTimelineSelectedClips(new Set())}
-                    getProjectUrl={getProjectUrl}
-                    onTranscriptImported={async () => {
-                      try {
-                        const transRes = await fetch(getMusicUrl('word_transcripts.json'));
-                        if (transRes.ok) setWordTranscripts(await transRes.json());
-                      } catch { /* ignore */ }
-                      fetchStatus();
-                    }}
-                    toast={(msg) => toast(msg)}
-                  />
+                  <EditorCollapsibleSection title="Ferramentas OpenCut" subtitle="zoom, fundo, seleção em lote" defaultOpen>
+                    <TimelineOpenCutBar
+                      previewZoom={timelinePreviewZoom}
+                      onPreviewZoomChange={setTimelinePreviewZoom}
+                      canvasBackground={config.canvas_background || '#050506'}
+                      onCanvasBackgroundChange={(color) => {
+                        const updated = { ...config, canvas_background: color };
+                        setConfig(updated);
+                        void saveConfigPatch({ canvas_background: color }, { skipRefresh: true });
+                      }}
+                      selectedCount={timelineSelectedClips.size}
+                      onBulkDelete={bulkDeleteTimelineClips}
+                      onClearSelection={() => setTimelineSelectedClips(new Set())}
+                      getProjectUrl={getProjectUrl}
+                      onTranscriptImported={async () => {
+                        try {
+                          const transRes = await fetch(getMusicUrl('word_transcripts.json'));
+                          if (transRes.ok) setWordTranscripts(await transRes.json());
+                        } catch { /* ignore */ }
+                        fetchStatus();
+                      }}
+                      toast={(msg) => toast(msg)}
+                    />
+                  </EditorCollapsibleSection>
 
                   {storyboardData && (
+                    <EditorCollapsibleSection title="Overlays com IA" subtitle="motion graphics por bloco">
                     <OverlayTimelineEditor
                       storyboard={storyboardData}
                       blockTimings={status?.block_timings}
@@ -8492,8 +8505,14 @@ export default function App() {
                         debounceSaveStoryboard(next);
                       }}
                     />
+                    </EditorCollapsibleSection>
                   )}
 
+                  <EditorCollapsibleSection
+                    title="Barra de progresso"
+                    subtitle="ícones e capítulos por bloco"
+                    badge={progressBarMetadataReady ? 'pronto' : 'metadados'}
+                  >
                   <BlockProgressBarProjectPanel
                     projectKey={activeProject}
                     config={(config || {}) as Record<string, unknown>}
@@ -8524,10 +8543,54 @@ export default function App() {
                       }
                     }}
                   />
+                  </EditorCollapsibleSection>
 
+                  <EditorCollapsibleSection
+                    title="Mídia por bloco"
+                    subtitle="arraste assets em cada bloco do roteiro"
+                    badge={timelineBlockCount}
+                    defaultOpen
+                  >
+                  <div className="timeline-block-nav">
+                    {Array.from({ length: timelineBlockCount }, (_, i) => i + 1).map((blockNum) => (
+                      <button
+                        key={`nav-${blockNum}`}
+                        type="button"
+                        className={`timeline-block-pill ${
+                          timelineOpenBlocks[blockNum] ? 'timeline-block-pill--active' : 'timeline-block-pill--idle'
+                        }`}
+                        onClick={() => {
+                          setTimelineOpenBlocks((prev) => ({ ...prev, [blockNum]: true }));
+                          document.getElementById(`timeline-block-${blockNum}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                      >
+                        B{blockNum}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="timeline-block-pill timeline-block-pill--idle text-[8px] uppercase tracking-wide"
+                      onClick={() => {
+                        const all: Record<number, boolean> = {};
+                        for (let i = 1; i <= timelineBlockCount; i += 1) all[i] = true;
+                        setTimelineOpenBlocks(all);
+                      }}
+                    >
+                      Expandir
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-block-pill timeline-block-pill--idle text-[8px] uppercase tracking-wide"
+                      onClick={() => setTimelineOpenBlocks({})}
+                    >
+                      Recolher
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
                   {(() => {
 
-                    const maxBlocks = config.block_phrases ? config.block_phrases.length : (status?.block_timings?.durations?.length || 12);
+                    const maxBlocks = timelineBlockCount;
 
                     const blockNums = Array.from({ length: maxBlocks }, (_, i) => i + 1);
 
@@ -8537,37 +8600,39 @@ export default function App() {
 
                         const blockNarrationDur = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
 
-                        // Calculate actual total from asset durations
-
                         const blockAssets = config.timeline_assets?.[blockKey] || [];
 
                         const actualBlockTotal = blockAssets.reduce((_sum: number, _: any, i: number) => _sum + getAssetDuration(blockKey, i), 0);
 
+                        const durationOk = Math.abs(actualBlockTotal - blockNarrationDur) < 0.3;
+
                         return (
 
-                          <div key={blockKey} className="glass-panel p-6 rounded-3xl space-y-4">
-
-                            <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
-
-                              <div>
-
-                                <h4 className="font-sans text-md font-bold text-gold-500">Bloco {blockKey}</h4>
-
-                                <span className="text-[10px] text-zinc-500 font-mono">
-
-                                  Duração Total: {actualBlockTotal.toFixed(1)}s
-
-                                  <span className={`ml-2 ${Math.abs(actualBlockTotal - blockNarrationDur) < 0.3 ? 'text-emerald-500' : 'text-amber-500'}`}>
-
-                                    (Narração: {blockNarrationDur.toFixed(1)}s)
-
+                          <details
+                            key={blockKey}
+                            id={`timeline-block-${blockNum}`}
+                            className="lumiera-collapsible-section glass-panel rounded-2xl scroll-mt-24"
+                            open={timelineOpenBlocks[blockNum] || undefined}
+                            onToggle={(e) => {
+                              const open = (e.currentTarget as HTMLDetailsElement).open;
+                              setTimelineOpenBlocks((prev) => ({ ...prev, [blockNum]: open }));
+                            }}
+                          >
+                            <summary>
+                              <span className="flex items-center gap-2 min-w-0 normal-case tracking-normal font-semibold text-[11px]">
+                                <span className="text-gold-500">Bloco {blockKey}</span>
+                                <span className="text-zinc-500 font-mono text-[9px]">
+                                  {blockAssets.length} asset{blockAssets.length === 1 ? '' : 's'} · {actualBlockTotal.toFixed(1)}s
+                                  <span className={`ml-1 ${durationOk ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                    / narração {blockNarrationDur.toFixed(1)}s
                                   </span>
-
                                 </span>
+                              </span>
+                            </summary>
 
-                              </div>
+                            <div className="lumiera-collapsible-body space-y-4">
 
-                              <div className="flex items-center gap-4">
+                              <div className="flex flex-wrap items-center justify-end gap-2 pb-1 border-b border-zinc-900/60">
 
                                 {/* Audio Upload for this block */}
 
@@ -8696,8 +8761,6 @@ export default function App() {
                                 </button>
 
                               </div>
-
-                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
@@ -9117,13 +9180,17 @@ export default function App() {
 
                             </div>
 
-                          </div>
+                            </div>
+
+                          </details>
 
                         );
 
                       });
 
                   })()}
+                  </div>
+                  </EditorCollapsibleSection>
 
                   {/* Save button at bottom too */}
 
@@ -12040,186 +12107,75 @@ export default function App() {
             <DashminProjectTabLayout tab="editor" activeProject={activeProject}>
             <div className="lumiera-panel-stack font-sans">
 
-              <div className="glass-panel p-4 rounded-xl">
+              <div className="glass-panel p-3 rounded-xl space-y-3">
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                    className="bg-zinc-900 border border-zinc-800 text-white text-xs px-3 py-2 rounded-xl focus:outline-none focus:border-gold-500 min-w-[200px] flex-1 max-w-xs"
+                  >
+                    <option value="">Selecione um projeto...</option>
+                    {projects.map((p) => (
+                      <option key={p.name} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={loadEditorProject}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs px-4 py-2 rounded-xl cursor-pointer"
+                  >
+                    Carregar
+                  </button>
+                  {config && (
+                    <span className="text-[10px] text-zinc-500 font-mono ml-auto flex items-center gap-1.5 bg-zinc-950/40 px-2.5 py-1.5 rounded-lg border border-zinc-900">
+                      <span className="uppercase font-bold tracking-wider">Duração</span>
+                      <span className="text-gold-500 font-bold">{getTotalVideoDuration().toFixed(1)}s</span>
+                    </span>
+                  )}
+                </div>
 
                 {titleExperimentVideoId && selectedProject && (
-                  <div className="mt-4 space-y-3">
-                    <ProjectYoutubeCard
-                      projectName={selectedProject}
-                      videoId={titleExperimentVideoId}
-                      toast={toast}
-                      onOpenYoutubePanel={() => setActiveTab('youtube-studio')}
-                    />
-                    <PostPublishChecklist
-                      projectName={selectedProject}
-                      videoId={titleExperimentVideoId}
-                      toast={toast}
-                    />
-                  </div>
+                  <details className="lumiera-collapsible-section rounded-xl">
+                    <summary>YouTube pós-publicação</summary>
+                    <div className="lumiera-collapsible-body space-y-3">
+                      <ProjectYoutubeCard
+                        projectName={selectedProject}
+                        videoId={titleExperimentVideoId}
+                        toast={toast}
+                        onOpenYoutubePanel={() => setActiveTab('youtube-studio')}
+                      />
+                      <PostPublishChecklist
+                        projectName={selectedProject}
+                        videoId={titleExperimentVideoId}
+                        toast={toast}
+                      />
+                    </div>
+                  </details>
                 )}
-
-                <div className="mt-6 flex gap-4">
-
-                  <select 
-
-                    value={selectedProject}
-
-                    onChange={(e) => setSelectedProject(e.target.value)}
-
-                    className="bg-zinc-900 border border-zinc-800 text-white px-4 py-2 rounded-xl focus:outline-none focus:border-gold-500 w-64"
-
-                  >
-
-                    <option value="">Selecione um projeto...</option>
-
-                    {projects.map(p => (
-
-                      <option key={p.name} value={p.name}>{p.name}</option>
-
-                    ))}
-
-                  </select>
-
-                  <button 
-
-                    onClick={loadEditorProject}
-
-                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-xl cursor-pointer"
-
-                  >
-
-                    Carregar Projeto
-
-                  </button>
-
-                </div>
 
               </div>
 
-              {/* Sub-tabs selection */}
-
-              <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-
-                <div className="flex gap-4">
-
-                  <button
-
-                    onClick={() => setEditorSubTab('script')}
-
-                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
-
-                      editorSubTab === 'script'
-
-                        ? 'border-gold-500 text-gold-500'
-
-                        : 'border-transparent text-gray-400 hover:text-white'
-
-                    }`}
-
-                  >
-
-                    Roteiro e Storyboard (JSON)
-
-                  </button>
-
-                  <button
-
-                    onClick={() => setEditorSubTab('json')}
-
-                    className={`font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
-
-                      editorSubTab === 'json'
-
-                        ? 'border-gold-500 text-gold-500'
-
-                        : 'border-transparent text-gray-400 hover:text-white'
-
-                    }`}
-
-                  >
-
-                    Estrutura JSON
-
-                  </button>
-
-                  <button
-
-                    onClick={() => setEditorSubTab('assets')}
-
-                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
-
-                      editorSubTab === 'assets'
-
-                        ? 'border-gold-500 text-gold-500'
-
-                        : 'border-transparent text-gray-400 hover:text-white'
-
-                    }`}
-
-                  >
-
-                    Linha do Tempo (Arquivos Mapeados)
-
-                  </button>
-
-                  <button
-
-                    onClick={() => setEditorSubTab('narration')}
-
-                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
-
-                      editorSubTab === 'narration'
-
-                        ? 'border-gold-500 text-gold-500'
-
-                        : 'border-transparent text-gray-400 hover:text-white'
-
-                    }`}
-
-                  >
-
-                    Narração (Áudio)
-
-                  </button>
-
-                  <button
-
-                    onClick={() => setEditorSubTab('dub')}
-
-                    className={`text-xs font-bold font-sans pb-2 px-1 border-b-2 transition cursor-pointer ${
-
-                      editorSubTab === 'dub'
-
-                        ? 'border-gold-500 text-gold-500'
-
-                        : 'border-transparent text-gray-400 hover:text-white'
-
-                    }`}
-
-                  >
-
-                    Dublagem (MP4)
-
-                  </button>
-
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="editor-subtab-bar">
+                  {([
+                    ['script', 'Roteiro'],
+                    ['json', 'JSON'],
+                    ['assets', 'Timeline'],
+                    ['narration', 'Narração'],
+                    ['dub', 'Dublagem'],
+                  ] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setEditorSubTab(id)}
+                      className={`editor-subtab-pill ${
+                        editorSubTab === id ? 'editor-subtab-pill--active' : 'editor-subtab-pill--idle'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
-
-                {config && (
-
-                  <div className="text-xs text-zinc-400 font-mono flex items-center gap-1.5 bg-zinc-950/40 px-3 py-1.5 rounded-lg border border-zinc-900">
-
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Duração Total do Vídeo:</span>
-
-                    <span className="text-gold-500 font-bold text-sm">
-
-                      {getTotalVideoDuration().toFixed(1)}s
-
-                    </span>
-
-                  </div>
-
-                )}
-
               </div>
 
               {editorSubTab === 'assets' && config && (
