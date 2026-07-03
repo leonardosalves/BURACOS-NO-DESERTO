@@ -7,6 +7,7 @@ import {
   spring,
 } from "remotion";
 import { mergeCustomStyle } from "./overlayStyleUtils";
+import { normalizeOverlayPosition, overlayFlexPositionStyle } from "./overlayPositionUtils";
 
 // ─────────────────────────────────────────────────────────────────────
 // InfoBar — Animated comparison bar chart
@@ -30,7 +31,15 @@ export interface InfoBarProps {
   /** Accent color for main highlights */
   accentColor?: string;
   /** Position on screen */
-  position?: "center" | "bottom-center" | "right";
+  position?:
+    | "center"
+    | "bottom-center"
+    | "bottom-left"
+    | "bottom-right"
+    | "top-left"
+    | "top-center"
+    | "top-right"
+    | "right";
   /** Visual Theme */
   theme?:
     | "ancient"
@@ -144,24 +153,12 @@ export const InfoBar: React.FC<InfoBarProps> = ({
     durationInFrames: 18,
   });
 
-  // Position styles
-  const positionStyle: React.CSSProperties =
-    position === "bottom-center"
-      ? {
-          justifyContent: "flex-end",
-          alignItems: "center",
-          padding: isVertical ? "0 48px 640px" : "0 80px 220px",
-        }
-      : position === "right"
-      ? {
-          justifyContent: "center",
-          alignItems: "flex-end",
-          padding: isVertical ? "0 48px" : "0 80px",
-        }
-      : {
-          justifyContent: "center",
-          alignItems: "center",
-        };
+  const resolvedPosition = normalizeOverlayPosition(position, "center");
+  const positionStyle: React.CSSProperties = overlayFlexPositionStyle(
+    resolvedPosition,
+    isVertical,
+    "center",
+  );
 
   const barMaxWidth = isVertical ? 720 : 520;
 

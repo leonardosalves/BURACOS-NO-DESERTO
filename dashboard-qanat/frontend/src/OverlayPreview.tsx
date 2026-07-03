@@ -14,6 +14,7 @@ import {
   themePanelBg,
 } from './overlayPreviewStyles';
 import {
+  OVERLAY_POSITION_GRID,
   OVERLAY_POSITIONS,
   OVERLAY_TYPE_LABELS,
   overlaySummary,
@@ -29,6 +30,8 @@ type Props = {
   sceneNarration?: string;
   compact?: boolean;
   className?: string;
+  /** Clique no preview para escolher posição (grade 3×3). */
+  onPositionSelect?: (positionId: string) => void;
 };
 
 function positionStyle(
@@ -40,10 +43,13 @@ function positionStyle(
     'bottom-right': { bottom: pad.bottom, right: pad.right },
     'bottom-center': { bottom: pad.bottom, left: '50%', transform: 'translateX(-50%)' },
     'top-left': { top: pad.top, left: pad.left },
+    'top-center': { top: pad.top, left: '50%', transform: 'translateX(-50%)' },
     'top-right': { top: pad.top, right: pad.right },
     center: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+    right: { bottom: pad.bottom, right: pad.right },
   };
-  return { position: 'absolute', ...(base[position] || base['bottom-left']) };
+  const key = position === 'right' ? 'bottom-right' : position;
+  return { position: 'absolute', ...(base[key] || base['bottom-left']) };
 }
 
 function IconSlot({
@@ -77,6 +83,7 @@ export function OverlayPreview({
   sceneNarration,
   compact = false,
   className = '',
+  onPositionSelect,
 }: Props) {
   const isShort = aspectRatio === '9:16';
   const format = isShort ? 'short' : 'long';
@@ -388,6 +395,29 @@ export function OverlayPreview({
         <div className="absolute inset-0 z-10 pointer-events-none">
           {renderOverlayContent()}
         </div>
+        {onPositionSelect && (
+          <div className="absolute inset-0 z-20 grid grid-cols-3 grid-rows-3 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            {OVERLAY_POSITION_GRID.map((cell) => {
+              const allowed = new Set((OVERLAY_POSITIONS[overlay.type] || []).map((p) => p.id));
+              if (!allowed.has(cell.id)) return null;
+              const isActive = position === cell.id || (position === 'right' && cell.id === 'bottom-right');
+              return (
+                <button
+                  key={cell.id}
+                  type="button"
+                  title={OVERLAY_POSITIONS[overlay.type]?.find((p) => p.id === cell.id)?.label || cell.id}
+                  onClick={() => onPositionSelect(cell.id)}
+                  className={`border border-dashed transition ${
+                    isActive
+                      ? 'border-violet-400/80 bg-violet-500/20'
+                      : 'border-white/10 bg-black/20 hover:border-violet-400/50 hover:bg-violet-500/10'
+                  }`}
+                  style={{ gridRow: cell.row + 1, gridColumn: cell.col + 1 }}
+                />
+              );
+            })}
+          </div>
+        )}
         <div className="absolute top-[0.6em] right-[0.6em] z-[1] text-[max(7px,1.1cqw)] font-bold uppercase tracking-widest text-zinc-500 bg-black/40 px-[0.5em] py-[0.25em] rounded pointer-events-none">
           {isShort ? '9:16' : '16:9'}
         </div>

@@ -7,6 +7,7 @@ import {
   spring,
 } from "remotion";
 import { safeCustomStyle } from "./overlayStyleUtils";
+import { normalizeOverlayPosition, overlayFlexPositionStyle } from "./overlayPositionUtils";
 
 // ─────────────────────────────────────────────────────────────────────
 // InfoTimeline — Animated historical timeline
@@ -33,6 +34,15 @@ export interface InfoTimelineProps {
   accentColor?: string;
   /** Orientation */
   orientation?: "horizontal" | "vertical";
+  /** Position on screen */
+  position?:
+    | "center"
+    | "bottom-center"
+    | "bottom-left"
+    | "bottom-right"
+    | "top-left"
+    | "top-center"
+    | "top-right";
   /** Visual Theme */
   theme?: "ancient" | "tech" | "nature" | "industrial" | "mysterious" | "classic";
   /** Dynamic CSS overrides */
@@ -96,6 +106,7 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
   events = [],
   accentColor = "#D4AF37",
   orientation = "horizontal",
+  position = "bottom-right",
   theme = "classic",
   customStyle: customStyleRaw,
 }) => {
@@ -293,15 +304,13 @@ export const InfoTimeline: React.FC<InfoTimelineProps> = ({
 
   const legibilityShadow = "0 1px 3px rgba(0,0,0,0.9), 0 2px 12px rgba(0,0,0,0.65)";
   const titleStyle = getThemeStyle();
+  const resolvedPosition = normalizeOverlayPosition(position, "bottom-right");
+  const screenPosition = overlayFlexPositionStyle(resolvedPosition, isVertical, "bottom-right");
 
   return (
     <AbsoluteFill
       style={{
-        justifyContent: isHorizontal ? "center" : "flex-start",
-        alignItems: isHorizontal ? "center" : "flex-end",
-        paddingTop: isHorizontal ? 0 : (isVertical ? 52 : 40),
-        paddingRight: isHorizontal ? 0 : (isVertical ? 40 : 56),
-        paddingLeft: isHorizontal ? 0 : 40,
+        ...screenPosition,
         pointerEvents: "none",
         opacity,
       }}
