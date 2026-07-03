@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import hotToast from 'react-hot-toast';
 import {
-  AlertTriangle, CheckCircle2, Clock, ExternalLink, ImagePlus, Loader2, RefreshCw, Sun, Sunset, Upload,
+  AlertTriangle, CheckCircle2, Clock, ExternalLink, ImagePlus, Loader2, RefreshCw, Sun, Sunset, Terminal, Upload,
   Video, Zap,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
@@ -121,7 +122,17 @@ type Dashboard = {
   counts: Record<string, number>;
   items: ResurrectorItem[];
   history: Array<{ videoId: string; projectName: string; title: string; appliedAt: string }>;
+  activityLog?: ActivityLogEntry[];
 };
+
+type ActivityLogEntry = {
+  at: string;
+  level: 'info' | 'success' | 'warn' | 'error' | string;
+  message: string;
+  videoId?: string;
+};
+
+const BATCH_TOAST_ID = 'resurrector-batch-progress';
 
 type Props = {
   toast: (msg: string) => void;
@@ -158,6 +169,20 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [uploadingThumb, setUploadingThumb] = useState(false);
+  const [liveLog, setLiveLog] = useState<ActivityLogEntry[]>([]);
+  const [retrying, setRetrying] = useState(false);
+  const logEndRef = useRef<HTMLDivElement | null>(null);
+
+  const activityLog = useMemo(() => {
+    const persisted = dashboard?.activityLog ?? [];
+    return [...liveLog, ...persisted].slice(0, 120);
+  }, [dashboard?.activityLog, liveLog]);
+
+  useEffect(() => {
+    if (runningSlot && logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [activityLog.length, runningSlot]);
 
   const applyDashboard = useCallback((data: Dashboard) => {
     setDashboard(data);
@@ -229,26 +254,92 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
     }
   };
 
-  const handleRunBatch = async (slot: ResurrectorSlot) => {
-    setRunningSlot(slot);
+  const pushLiveLog = (entries: ActivityLogEntry[]) => {
+    if (!entries.length) return;
+    setLiveLog((prev) => [...entries, ...prev].slice(0, 80));
+  };
+
+  const handleRetryFailed = async () => {
+    setRetrying(true);
     try {
-      const res = await fetch('/api/youtube/resurrector/run-batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slot, trigger: 'manual' }),
-      });
+      const res = await fetch('/api/youtube/resurrector/retry-failed', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      if (data.skipped) {
-        toast(data.reason || 'Batch já executado hoje.');
+      applyDashboard(data.dashboard);
+      toast(data.message || 'Falhas recolocadas na fila.');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Falha ao reprocessar.');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleRunBatch = async (slot: ResurrectorSlot) => {
+    const batchTotal = slot === 'morning' ? morningSize : afternoonSize;
+    setRunningSlot(slot);
+    setLiveLog([]);
+    let totalOk = 0;
+    let totalFail = 0;
+
+    try {
+      for (let step = 0; step < batchTotal; step += 1) {
+        const label = slot === 'morning' ? 'manhã' : 'tarde';
+        hotToast.loading(`Ressuscitador (${label}): vídeo ${step + 1}/${batchTotal}…`, { id: BATCH_TOAST_ID });
+        pushLiveLog([{
+          at: new Date().toISOString(),
+          level: 'info',
+          message: `▶ Etapa ${step + 1}/${batchTotal} — chamando IA…`,
+        }]);
+
+        const res = await fetch('/api/youtube/resurrector/run-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slot,
+            trigger: 'manual',
+            limit: 1,
+            finalizeSlot: step === batchTotal - 1,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        if (data.skipped) {
+          hotToast.dismiss(BATCH_TOAST_ID);
+          toast(data.reason || 'Batch já executado hoje.');
+          if (data.dashboard) applyDashboard(data.dashboard);
+          return;
+        }
+
+        if (data.dashboard) applyDashboard(data.dashboard);
+        const runEntries = (data.runLog || []).map((row: ActivityLogEntry) => ({
+          at: row.at || new Date().toISOString(),
+          level: row.level || 'info',
+          message: row.message,
+          videoId: row.videoId,
+        }));
+        pushLiveLog(runEntries);
+
+        totalOk += data.successCount ?? 0;
+        totalFail += data.failCount ?? 0;
+
+        if (!data.processed) break;
+      }
+
+      hotToast.dismiss(BATCH_TOAST_ID);
+      if (totalFail && !totalOk) {
+        hotToast.error(`${totalFail} falha(s) — rede/Gemini. Use "Reprocessar falhas" e tente de novo.`, { duration: 8000 });
       } else {
-        applyDashboard(data.dashboard);
-        toast(data.message || 'Batch concluído.');
+        hotToast.success(`${totalOk} pronto(s) para revisão${totalFail ? `, ${totalFail} falha(s)` : ''}.`, { duration: 6000 });
       }
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Batch falhou.');
+      hotToast.dismiss(BATCH_TOAST_ID);
+      const msg = err instanceof Error ? err.message : 'Batch falhou.';
+      pushLiveLog([{ at: new Date().toISOString(), level: 'error', message: msg }]);
+      hotToast.error(msg);
     } finally {
       setRunningSlot(null);
+      void load();
     }
   };
 
@@ -562,13 +653,24 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
             {runningSlot === 'afternoon' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sunset className="w-3.5 h-3.5" />}
             Batch tarde ({afternoonSize})
           </button>
+          {(counts.failed ?? 0) > 0 && (
+            <button
+              type="button"
+              disabled={retrying || runningSlot != null}
+              onClick={() => void handleRetryFailed()}
+              className="text-[10px] font-bold px-3 py-2 rounded-lg border border-red-500/40 text-red-300 flex items-center gap-1.5"
+            >
+              {retrying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Reprocessar falhas ({counts.failed})
+            </button>
+          )}
           <button type="button" onClick={() => void load()} className="text-[10px] text-zinc-500 px-2">
             Atualizar
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,0.55fr)] gap-4">
         <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
           <p className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold">Fila de monitoração</p>
           {loading && <p className="text-xs text-zinc-500">Carregando…</p>}
@@ -730,6 +832,42 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
               )}
             </div>
           )}
+        </div>
+
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-3 flex flex-col min-h-[320px] max-h-[520px]">
+          <div className="flex items-center gap-2 mb-2 shrink-0">
+            <Terminal className="w-4 h-4 text-emerald-400" />
+            <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Processo</p>
+            {runningSlot && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 ml-auto" />
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto font-mono text-[10px] leading-relaxed space-y-1 pr-1">
+            {activityLog.length === 0 && (
+              <p className="text-zinc-600 italic">Dispare um batch para ver o progresso aqui.</p>
+            )}
+            {[...activityLog].reverse().map((entry, idx) => (
+              <div
+                key={`${entry.at}-${idx}`}
+                className={
+                  entry.level === 'error'
+                    ? 'text-red-400'
+                    : entry.level === 'success'
+                      ? 'text-emerald-400'
+                      : entry.level === 'warn'
+                        ? 'text-amber-300'
+                        : 'text-zinc-400'
+                }
+              >
+                <span className="text-zinc-600">
+                  {new Date(entry.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                {' '}
+                {entry.message}
+              </div>
+            ))}
+            <div ref={logEndRef} />
+          </div>
         </div>
       </div>
 

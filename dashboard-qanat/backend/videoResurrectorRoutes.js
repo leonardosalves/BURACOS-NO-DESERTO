@@ -15,6 +15,7 @@ import {
   maybeCompleteResurrectorCycle,
   normalizeResurrectorSlot,
   normalizeResurrectorTrigger,
+  resetResurrectorFailedItems,
   runResurrectorBatch,
   saveResurrectorState,
   scanEligibleResurrectorVideos,
@@ -103,9 +104,13 @@ export function registerVideoResurrectorRoutes(app, deps) {
     try {
       const slot = normalizeResurrectorSlot(req.body?.slot || "morning");
       const trigger = normalizeResurrectorTrigger(req.body?.trigger || "manual");
+      const limit = Number.isFinite(Number(req.body?.limit)) ? Number(req.body.limit) : null;
+      const finalizeSlot = typeof req.body?.finalizeSlot === "boolean" ? req.body.finalizeSlot : null;
       const result = await runResurrectorBatch(WORKSPACE_DIR, PROJECTS_ROOT, resurrectorDeps(), {
         slot,
         trigger,
+        limit,
+        finalizeSlot,
       });
       res.json({
         ...result,
@@ -113,6 +118,23 @@ export function registerVideoResurrectorRoutes(app, deps) {
       });
     } catch (err) {
       res.status(500).json({ error: err.message, needsReauth: err.needsReauth });
+    }
+  });
+
+  app.post("/api/youtube/resurrector/retry-failed", (_req, res) => {
+    try {
+      const state = loadResurrectorState(WORKSPACE_DIR);
+      const reset = resetResurrectorFailedItems(state);
+      saveResurrectorState(WORKSPACE_DIR, state);
+      res.json({
+        reset,
+        dashboard: getResurrectorDashboard(state),
+        message: reset
+          ? `${reset} vídeo(s) com falha voltaram para a fila.`
+          : "Nenhuma falha pendente para reprocessar.",
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
   });
 
