@@ -72,8 +72,9 @@ export function OverlayPreview({
   const theme = String(props.theme || 'classic');
   const iconKey = props.iconType ? String(props.iconType) : '';
   const iconStyle = resolveIconStyle(props);
-  const fs = isShort ? '0.62em' : '0.72em';
-  const iconSize = isShort ? 16 : 20;
+  const scale = compact ? 0.72 : 1;
+  const fs = isShort ? `${0.62 * scale}em` : `${0.72 * scale}em`;
+  const iconSize = Math.round((isShort ? 16 : 20) * scale);
 
   const renderLowerThird = () => {
     const shell = lowerThirdVariantShell(variant, accentColor, theme);
@@ -233,35 +234,38 @@ export function OverlayPreview({
   };
 
   const posLabel = OVERLAY_POSITIONS[overlay.type]?.find((p) => p.id === position)?.label || position;
+  const metaParts = [
+    posLabel,
+    iconKey ? `${iconStyle === 'svg' ? 'SVG' : 'Lottie'} · ${iconLabel(iconKey, iconStyle)}` : null,
+  ].filter(Boolean);
   const frameMaxW = compact
     ? (isShort ? 'max-w-[108px]' : 'max-w-[200px]')
     : (isShort ? 'max-w-[min(100%,300px)] mx-auto' : 'w-full');
 
   return (
     <div className={`space-y-1 min-w-0 ${className}`.trim()}>
-      <p className="text-[8px] text-[var(--dash-muted)] uppercase tracking-wider">
+      <p className="text-[8px] text-[var(--dash-muted)] uppercase tracking-wider truncate" title={`Preview · ${variant} · ${isShort ? '9:16' : '16:9'}`}>
         Preview · {variant} · {isShort ? '9:16' : '16:9'}
       </p>
       <div
         className={`overlay-preview-frame relative overflow-hidden rounded-xl border border-[var(--dash-border)] bg-zinc-950 w-full ${frameMaxW}`}
         style={{ aspectRatio: isShort ? '9 / 16' : '16 / 9', maxHeight: compact ? (isShort ? 140 : 120) : (isShort ? 280 : undefined) }}
       >
-        <div className="absolute inset-0 opacity-90" style={{
+        <div className="absolute inset-0 z-0 opacity-90" style={{
           background: isShort
             ? 'linear-gradient(160deg, #1a1a2e, #0f0f14 50%, #2d1f3d)'
             : 'linear-gradient(180deg, #1c1917, #0c0a09 55%, #1e293b)',
         }} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.5)_100%)]" />
-        {renderOverlayContent()}
-        <div className="absolute top-[0.45em] left-[0.45em] flex flex-wrap gap-0.5 pointer-events-none">
-          <span className="text-[max(6px,0.85cqw)] font-bold uppercase text-zinc-400 bg-black/50 px-1 py-0.5 rounded">{posLabel}</span>
-          {iconKey && (
-            <span className="text-[max(6px,0.85cqw)] text-cyan-400/90 bg-black/45 px-1 py-0.5 rounded">
-              {iconStyle === 'svg' ? 'SVG' : 'Lottie'} · {iconLabel(iconKey, iconStyle)}
-            </span>
-          )}
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.5)_100%)]" />
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          {renderOverlayContent()}
         </div>
       </div>
+      {metaParts.length > 0 && (
+        <p className="text-[7px] text-zinc-500 truncate leading-tight" title={metaParts.join(' · ')}>
+          {metaParts.join(' · ')}
+        </p>
+      )}
       {!compact && (
         <div className="rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] px-2 py-1.5">
           <p className="text-[9px] font-semibold text-zinc-200 truncate">{overlaySummary(overlay)}</p>
