@@ -559,6 +559,10 @@ const SceneMedia: React.FC<{
 
   let transitionScale = 1;
 
+  let transitionBlur = 0;
+
+  let transitionRotate = 0;
+
   let portalFilterBoost = "";
 
 
@@ -590,8 +594,6 @@ const SceneMedia: React.FC<{
 
     const transitionMod = isShort ? 12 : 9;
     const transitionType = index % transitionMod;
-    let transitionBlur = 0;
-    let transitionRotate = 0;
 
 
 
