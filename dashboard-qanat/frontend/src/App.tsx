@@ -4206,8 +4206,19 @@ export default function App() {
 
   }, [storyboardData?.bgm_emotion_plan?.segments, config?.bgm_emotion_mappings]);
 
+  const isBgmMusicFileName = (name: string) => {
+    const base = String(name || '').trim();
+    if (!/\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(base)) return false;
+    if (/^narracao_mestra_premium\.mp3$/i.test(base)) return false;
+    if (/^trilha_documentario\.mp3$/i.test(base)) return false;
+    if (/^\d+\.mp3$/i.test(base)) return false;
+    return true;
+  };
+
   const safeMusicFiles = useMemo(
-    () => (Array.isArray(musicFiles) ? musicFiles.filter((f) => f && typeof f.name === 'string') : []),
+    () => (Array.isArray(musicFiles)
+      ? musicFiles.filter((f) => f && typeof f.name === 'string' && isBgmMusicFileName(f.name))
+      : []),
     [musicFiles],
   );
   const safeEpidemicResults = useMemo(
@@ -10478,6 +10489,7 @@ export default function App() {
                         <p className="text-[11px] text-gray-500 leading-normal">
 
                           Esta música tocará do início ao fim do vídeo, repetindo se for menor do que a duração total. Recomendado para Shorts e vídeos curtos.
+                          Arquivos <span className="font-mono text-zinc-400">4.mp3</span>, <span className="font-mono text-zinc-400">5.mp3</span>… na pasta do projeto são trechos da <strong className="text-zinc-400">narração</strong>, não BGM — use Epidemic ou «Add Música».
 
                         </p>
 
@@ -10573,7 +10585,12 @@ export default function App() {
 
                             value={config.single_bgm || ''}
 
-                            onChange={(e) => saveConfig({ ...config, single_bgm: e.target.value })}
+                            onChange={(e) => saveConfig({
+                              ...config,
+                              single_bgm: e.target.value,
+                              use_single_bgm: true,
+                              bgm_mode: 'block',
+                            })}
 
                             className="flex-1 bg-zinc-900 border border-zinc-800 text-gray-300 hover:border-zinc-700 focus:outline-none rounded-xl px-3 py-2 text-xs cursor-pointer"
 
@@ -10777,7 +10794,7 @@ export default function App() {
 
                     <div className="flex items-center gap-3">
 
-                      <span className="text-[10px] text-zinc-500 font-mono">{safeMusicFiles.length} arquivos</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">{safeMusicFiles.length} música(s) BGM</span>
 
                       <button
 

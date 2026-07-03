@@ -285,6 +285,10 @@ import {
   resolveMusicVolumeForRender,
 } from "./bgmProductionDefaults.js";
 import {
+  isBgmMusicCandidate,
+  listBgmMusicCandidates,
+} from "./bgmMusicFiles.js";
+import {
   buildHeuristicNarrationChunks,
   buildNarrationChunkPlan,
   buildNarrationChunkPlanPrompt,
@@ -2970,15 +2974,8 @@ app.get("/api/music", (req, res) => {
 
   try {
 
-    const files = fs.readdirSync(projDir)
-
-      .filter(f => {
-
-        const lower = f.toLowerCase();
-
-        return (lower.endsWith(".mp3") || lower.endsWith(".wav")) && lower !== "narracao_mestra_premium.mp3" && !["1.mp3", "2.mp3", "3.mp3"].includes(lower);
-
-      })
+    const files = listBgmMusicCandidates(projDir)
+      .filter((f) => /\.(mp3|wav)$/i.test(f))
 
       .map(f => {
 
@@ -3026,19 +3023,7 @@ function isDeletableBgmFile(fileName) {
 
   const safeName = path.basename(String(fileName || ""));
 
-  const lower = safeName.toLowerCase();
-
-  return (
-
-    safeName &&
-
-    safeName === fileName &&
-
-    AUDIO_TRACK_EXTENSIONS.has(path.extname(lower)) &&
-
-    !PROTECTED_AUDIO_FILES.has(lower)
-
-  );
+  return safeName && safeName === fileName && isBgmMusicCandidate(safeName);
 
 }
 
@@ -3360,9 +3345,17 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
     return null;
   }
 
-  if (config.use_single_bgm) {
-    if (!config.single_bgm || !fileExists(config.single_bgm)) {
-      return "Selecione uma trilha única antes de regenerar.";
+  if (bgmMode === "single") {
+    const singleBgm = String(config.single_bgm || "").trim();
+    if (!singleBgm || !fileExists(singleBgm)) {
+      const candidates = listBgmMusicCandidates(projDir);
+      if (candidates.length === 0) {
+        return "Nenhuma música de fundo no projeto. Use Epidemic Sound ou «Add Música» — arquivos 1.mp3, 4.mp3 etc. são narração, não trilha.";
+      }
+      return `Selecione uma música no dropdown «Selecione a Trilha» (${candidates.length} disponível(is)). Não use arquivos numerados (4.mp3…) — são trechos da voz.`;
+    }
+    if (!isBgmMusicCandidate(singleBgm)) {
+      return `"${singleBgm}" é narração ou áudio interno, não trilha de fundo. Escolha uma música BGM (ex.: ES_…mp3) no dropdown.`;
     }
     return null;
   }
