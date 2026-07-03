@@ -9,10 +9,16 @@ type Props = {
   design: BlockProgressBarDraft['design'];
   iconSize: number;
   defaultIconStyle: BlockProgressBarDraft['defaultIconStyle'];
+  showBlockTitles?: boolean;
   accentColor?: string;
   isShortFormat: boolean;
   totalDuration?: number;
 };
+
+function blockTitleLabel(marker: BlockProgressMarkerDraft) {
+  const text = String(marker.label || `Bloco ${marker.block}`).trim();
+  return text.length > 22 ? `${text.slice(0, 20)}…` : text;
+}
 
 const LOOP_MS = 9000;
 
@@ -21,6 +27,7 @@ export function BlockProgressBarPreview({
   design,
   iconSize,
   defaultIconStyle,
+  showBlockTitles = false,
   accentColor = '#D4AF37',
   isShortFormat,
   totalDuration: totalDurationProp,
@@ -126,23 +133,33 @@ export function BlockProgressBarPreview({
               return (
                 <div
                   key={marker.block}
-                  className="absolute transition-transform duration-200"
+                  className="absolute flex items-center gap-1 transition-transform duration-200 max-w-[calc(100%-36px)]"
                   style={{
                     left: 10 + tokens.trackH + tokens.iconGap + 4,
                     top: `calc(40px + (100% - 100px) * ${pct / 100})`,
-                    transform: `translateY(-50%) scale(${active ? 1.15 : 0.88})`,
+                    transform: `translateY(-50%) scale(${active ? 1.08 : 0.9})`,
                     opacity: active ? 1 : 0.4,
                     filter: active ? `drop-shadow(0 0 6px ${accentColor}99)` : 'none',
-                    width: size,
-                    height: size,
                   }}
                 >
-                  <OverlayAnimatedIcon
-                    iconId={marker.iconType}
-                    iconStyle={marker.iconStyle || defaultIconStyle}
-                    fill
-                    color={active ? accentColor : `${accentColor}88`}
-                  />
+                  <div className="shrink-0" style={{ width: size, height: size }}>
+                    <OverlayAnimatedIcon
+                      iconId={marker.iconType}
+                      iconStyle={marker.iconStyle || defaultIconStyle}
+                      fill
+                      color={active ? accentColor : `${accentColor}88`}
+                    />
+                  </div>
+                  {showBlockTitles && (
+                    <span
+                      className={`truncate leading-tight drop-shadow-sm ${
+                        active ? 'text-[7px] font-bold text-white' : 'text-[6px] font-medium text-white/50'
+                      }`}
+                      style={{ maxWidth: 72 }}
+                    >
+                      {blockTitleLabel(marker)}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -185,23 +202,34 @@ export function BlockProgressBarPreview({
               return (
                 <div
                   key={marker.block}
-                  className="absolute transition-transform duration-200"
+                  className="absolute flex items-center gap-1 transition-transform duration-200"
                   style={{
                     left: `calc(16px + (100% - 32px) * ${pct / 100})`,
                     top: 10 + tokens.trackH + tokens.iconGap,
-                    transform: `translateX(-50%) scale(${active ? 1.12 : 0.86})`,
+                    transform: `translateX(-50%) scale(${active ? 1.08 : 0.88})`,
                     opacity: active ? 1 : 0.4,
                     filter: active ? `drop-shadow(0 0 8px ${accentColor}99)` : 'none',
-                    width: size,
-                    height: size,
+                    maxWidth: 110,
                   }}
                 >
-                  <OverlayAnimatedIcon
-                    iconId={marker.iconType}
-                    iconStyle={marker.iconStyle || defaultIconStyle}
-                    fill
-                    color={active ? accentColor : `${accentColor}88`}
-                  />
+                  <div className="shrink-0" style={{ width: size, height: size }}>
+                    <OverlayAnimatedIcon
+                      iconId={marker.iconType}
+                      iconStyle={marker.iconStyle || defaultIconStyle}
+                      fill
+                      color={active ? accentColor : `${accentColor}88`}
+                    />
+                  </div>
+                  {showBlockTitles && (
+                    <span
+                      className={`truncate leading-tight drop-shadow-sm ${
+                        active ? 'text-[7px] font-bold text-white' : 'text-[6px] font-medium text-white/45'
+                      }`}
+                      style={{ maxWidth: 72 }}
+                    >
+                      {blockTitleLabel(marker)}
+                    </span>
+                  )}
                 </div>
               );
             })}

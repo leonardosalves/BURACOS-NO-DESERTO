@@ -26,8 +26,14 @@ export interface BlockProgressBarProps {
   design?: BlockProgressDesign;
   iconSize?: number;
   defaultIconStyle?: "lottie" | "svg";
+  showBlockTitles?: boolean;
   accentColor?: string;
   orientation?: "horizontal" | "vertical";
+}
+
+function blockTitleLabel(marker: BlockProgressMarker) {
+  const text = String(marker.label || `Bloco ${marker.block}`).trim();
+  return text.length > 28 ? `${text.slice(0, 26)}…` : text;
 }
 
 type DesignTokens = {
@@ -100,6 +106,7 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
   design = "cinematic",
   iconSize = 22,
   defaultIconStyle = "lottie",
+  showBlockTitles = false,
   accentColor = "#C5A880",
   orientation = "horizontal",
 }) => {
@@ -169,9 +176,13 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
                 position: "absolute",
                 left: iconLeft,
                 top: markerY,
-                transform: `translateY(-50%) scale(${isActive ? 1.15 : 0.9})`,
+                transform: `translateY(-50%) scale(${isActive ? 1.08 : 0.92})`,
                 opacity: isActive ? 1 : 0.45,
                 filter: isActive ? `drop-shadow(0 0 6px ${accentColor}88)` : "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                maxWidth: Math.max(72, width - iconLeft - 8),
               }}
             >
               <OverlayIconSlot
@@ -180,6 +191,23 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
                 size={size}
                 accentColor={isActive ? accentColor : `${accentColor}99`}
               />
+              {showBlockTitles && (
+                <span
+                  style={{
+                    fontSize: isActive ? 9 : 8,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "#fff" : "rgba(255,255,255,0.55)",
+                    lineHeight: 1.15,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: Math.max(48, width - iconLeft - size - 16),
+                    textShadow: isActive ? "0 1px 4px rgba(0,0,0,0.85)" : "0 1px 3px rgba(0,0,0,0.7)",
+                  }}
+                >
+                  {blockTitleLabel(marker)}
+                </span>
+              )}
             </div>
           );
         })}
@@ -226,9 +254,13 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               position: "absolute",
               left: `calc(24px + (100% - 48px) * ${pct / 100})`,
               top: iconTop,
-              transform: `translateX(-50%) scale(${isActive ? 1.12 : 0.88})`,
+              transform: `translateX(-50%) scale(${isActive ? 1.08 : 0.9})`,
               opacity: isActive ? 1 : 0.42,
               filter: isActive ? `drop-shadow(0 0 8px ${accentColor}99)` : "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              maxWidth: showBlockTitles ? 140 : size,
             }}
           >
             <OverlayIconSlot
@@ -237,6 +269,23 @@ export const BlockProgressBar: React.FC<BlockProgressBarProps> = ({
               size={size}
               accentColor={isActive ? accentColor : `${accentColor}88`}
             />
+            {showBlockTitles && (
+              <span
+                style={{
+                  fontSize: isActive ? 10 : 8,
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? "#fff" : "rgba(255,255,255,0.5)",
+                  lineHeight: 1.15,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: 96,
+                  textShadow: isActive ? "0 1px 4px rgba(0,0,0,0.85)" : "0 1px 3px rgba(0,0,0,0.7)",
+                }}
+              >
+                {blockTitleLabel(marker)}
+              </span>
+            )}
           </div>
         );
       })}

@@ -10456,6 +10456,7 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
       design: raw.design || "cinematic",
       iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
       defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
+      showBlockTitles: raw.showBlockTitles === true,
       blocks: merged,
       icons_suggested_at: new Date().toISOString(),
       icons_suggested_via: browserText ? "gemini_chrome" : "gemini_api",

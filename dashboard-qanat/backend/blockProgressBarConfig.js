@@ -142,6 +142,7 @@ export function resolveBlockProgressBarForRender(projectDir, readProjectJson) {
     design: raw.design || "cinematic",
     iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
     defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
+    showBlockTitles: raw.showBlockTitles === true,
     blocks: markers,
     totalDuration: Number(timings.total_duration)
       || markers.reduce((max, m) => Math.max(max, m.start + m.duration), 0)

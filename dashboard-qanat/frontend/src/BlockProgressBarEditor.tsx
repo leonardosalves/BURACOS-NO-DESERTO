@@ -22,6 +22,8 @@ export type BlockProgressBarDraft = {
   design: 'cinematic' | 'neon' | 'minimal' | 'documentary' | 'tech';
   iconSize: number;
   defaultIconStyle: OverlayIconStyle;
+  /** Exibe o título do bloco ao lado de cada ícone na barra. */
+  showBlockTitles?: boolean;
   blocks: BlockProgressMarkerDraft[];
 };
 
@@ -92,6 +94,7 @@ export function buildBlockProgressDraftFromProject(
     design: raw.design || 'cinematic',
     iconSize: Number(raw.iconSize) || (config.aspect_ratio === '9:16' ? 16 : 22),
     defaultIconStyle: raw.defaultIconStyle === 'svg' ? 'svg' : 'lottie',
+    showBlockTitles: raw.showBlockTitles === true,
     blocks,
   };
 }
@@ -246,11 +249,27 @@ export function BlockProgressBarEditor({
             </div>
           </div>
 
+          <label className="flex items-start gap-2 cursor-pointer rounded-lg border border-[var(--dash-border)] bg-[var(--dash-bg)] px-3 py-2">
+            <input
+              type="checkbox"
+              checked={draft.showBlockTitles === true}
+              onChange={(e) => patch({ showBlockTitles: e.target.checked })}
+              className="rounded border-[var(--dash-border)] mt-0.5 shrink-0"
+            />
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold text-zinc-200 block">Exibir título do bloco</span>
+              <span className="text-[8px] text-zinc-500 leading-relaxed block mt-0.5">
+                Mostra o texto do roteiro ao lado de cada ícone na barra (truncado se for longo).
+              </span>
+            </div>
+          </label>
+
           <BlockProgressBarPreview
             blocks={previewBlocks}
             design={draft.design}
             iconSize={draft.iconSize}
             defaultIconStyle={draft.defaultIconStyle}
+            showBlockTitles={draft.showBlockTitles === true}
             accentColor={accentColor}
             isShortFormat={isShortFormat}
             totalDuration={resolvedTotalDuration}
