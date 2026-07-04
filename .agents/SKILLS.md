@@ -30,6 +30,7 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/improve-codebase-architecture|improve codebase architecture]] — doc: [[skills/improve-codebase-architecture/SKILL]]
 - [[skills/loop-me|loop me]] — doc: [[skills/loop-me/SKILL]]
 - [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
+- [[skills/lumiera-seedance-directing|lumiera seedance directing]] — doc: [[skills/lumiera-seedance-directing/SKILL]]
 - [[skills/mcp-builder|mcp builder]] — doc: [[skills/mcp-builder/SKILL]]
 - [[skills/migrate-to-shoehorn|migrate to shoehorn]] — doc: [[skills/migrate-to-shoehorn/SKILL]]
 - [[skills/obsidian-vault|obsidian vault]] — doc: [[skills/obsidian-vault/SKILL]]
@@ -70,6 +71,7 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/viral-short-form|Viral Short Form]] — doc: [[skills/viral-short-form/SKILL]]
 - [[skills/viral-short-form-ideas|viral short form ideas]] — doc: [[skills/viral-short-form-ideas/SKILL]]
 - [[skills/viral-youtube-shorts|viral youtube shorts]] — doc: [[skills/viral-youtube-shorts/SKILL]]
+- [[skills/visual-prompt-engineer|visual prompt engineer]] — doc: [[skills/visual-prompt-engineer/SKILL]]
 - [[skills/webapp-testing|webapp testing]] — doc: [[skills/webapp-testing/SKILL]]
 - [[skills/wizard|wizard]] — doc: [[skills/wizard/SKILL]]
 - [[skills/writing-beats|writing beats]] — doc: [[skills/writing-beats/SKILL]]
@@ -80,4 +82,4 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
 ## Por que vários arquivos SKILL?
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-02T05:24:19.964Z
+atualizado: 2026-07-04T04:08:56.151Z

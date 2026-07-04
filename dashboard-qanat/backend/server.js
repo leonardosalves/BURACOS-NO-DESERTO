@@ -241,6 +241,10 @@ import {
   enforceShortsVideoSceneMix,
 } from "./scriptQuality.js";
 import {
+  buildSeedanceDirectingRequest,
+  applySeedanceDirectingResponse,
+} from "./seedanceDirecting.js";
+import {
   applyDocumentaryHistoryPreset,
   injectListicleRankOverlays,
   avoidListicleHudCollisions,
@@ -13697,6 +13701,65 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
   } catch (err) {
     console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
     res.status(500).json({ error: "Erro ao aprimorar prompts visuais", details: err.message });
+  }
+});
+
+// --- Seedance Directing (Fase 1): directing_brief + refs por papel antes do visual_prompt ---
+app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  try {
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const narrative = String(storyboard.narrative_script || "").trim();
+    if (!narrative) {
+      return res.status(400).json({ error: "Não há narrative_script no storyboard." });
+    }
+    if (!Array.isArray(storyboard.visual_prompts) || storyboard.visual_prompts.length === 0) {
+      return res.status(400).json({ error: "Não há visual_prompts no storyboard." });
+    }
+
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const format = config.video_format || "LONGO";
+    const rawIndices = req.body?.scene_indices ?? req.body?.sceneIndices;
+    const sceneIndices = Array.isArray(rawIndices)
+      ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+      : null;
+
+    const { systemPrompt, userPrompt, detectedNiche } = buildSeedanceDirectingRequest(storyboard, {
+      format,
+      sceneIndices,
+    });
+
+    const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+    const responseText = await callGeminiLlm(req, res, projDir, {
+      title: "🎬 Seedance Directing",
+      prompt: fullPrompt,
+      temperature: 0.65,
+    });
+    if (responseText == null) return;
+
+    const isBrowserResponse = !!extractBrowserResponse(req.body);
+    const parsed = normalizeKeys(await parseAiJsonResponse(
+      responseText,
+      isBrowserResponse ? null : (getApiKey(projDir) || getApiKey(settingsDir)),
+      "Seedance Directing",
+    ));
+
+    storyboard = applySeedanceDirectingResponse(storyboard, parsed);
+    storyboard.narrative_script = narrative;
+
+    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+
+    const count = sceneIndices?.length || storyboard.visual_prompts?.length || 0;
+    console.log(`[Seedance Directing] briefs compilados (${count} cenas, nicho: ${detectedNiche}).`);
+    res.json(storyboard);
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/compile-directing-briefs:", err);
+    res.status(500).json({ error: "Erro ao compilar directing briefs", details: err.message });
   }
 });
 
