@@ -1189,6 +1189,9 @@ export default function App() {
   );
 
   const saveStoryboardTimeoutRef = useRef<any | null>(null);
+  const storyboardDirtyRef = useRef(false);
+  const storyboardFetchGenRef = useRef(0);
+  const wizardRestoreCompleteRef = useRef(false);
 
   // Global render configuration states
 
@@ -1381,15 +1384,24 @@ export default function App() {
   };
 
   const debounceSaveStoryboard = (scriptData: any) => {
+    storyboardDirtyRef.current = true;
     clearPendingStoryboardSave();
     saveStoryboardTimeoutRef.current = setTimeout(() => {
       saveCreatorStoryboard(scriptData);
     }, 600);
   };
 
+  const syncCreatorStoryboard = (next: any) => {
+    if (!next) return;
+    setGeneratedScriptData(next);
+    setStoryboardData(next);
+    debounceSaveStoryboard(next);
+  };
+
   const applyStoryboardToCreatorState = (data: any) => {
     if (!data) return;
     clearPendingStoryboardSave();
+    storyboardDirtyRef.current = false;
     setGeneratedScriptData(data);
     setStoryboardData(data);
     if (data.narrative_script) setCreatorScript(data.narrative_script);
@@ -1412,13 +1424,10 @@ export default function App() {
       });
 
       if (res.ok) {
-
+        storyboardDirtyRef.current = false;
         console.log('Storyboard autosaved successfully');
-
       } else {
-
         console.error('Failed to autosave storyboard');
-
       }
 
     } catch (err) {
@@ -1460,11 +1469,7 @@ export default function App() {
     }
 
     const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
-
-    setGeneratedScriptData(nextScriptData);
-
-    debounceSaveStoryboard(nextScriptData);
-
+    syncCreatorStoryboard(nextScriptData);
   };
 
   const [creatorProjectName, setCreatorProjectName] = useState<string>(savedCreatorState.creatorProjectName || '');
@@ -2164,6 +2169,7 @@ export default function App() {
   }, [wordTranscripts, shouldAutoAlign, config, status]);
 
   useEffect(() => {
+    if (activeTab === 'creator' && creatorStep >= 2) return;
     if (!isWhisperTimelineReady(wordTranscripts, status)) return;
     const sbPrompts = storyboardData?.visual_prompts;
     if (!Array.isArray(sbPrompts) || sbPrompts.length === 0) return;
@@ -2190,7 +2196,7 @@ export default function App() {
       });
       return { ...prev, visual_prompts: mergedPrompts };
     });
-  }, [wordTranscripts, status?.block_timings?.starts, storyboardData?.visual_prompts]);
+  }, [wordTranscripts, status?.block_timings?.starts, storyboardData?.visual_prompts, activeTab, creatorStep]);
 
   // Fetch valid projects list
 
@@ -2297,30 +2303,23 @@ export default function App() {
 
   };
 
-  const fetchStoryboard = async (projName = activeProject) => {
-
+  const fetchStoryboard = async (projName = activeProject, opts?: { force?: boolean }) => {
+    const gen = ++storyboardFetchGenRef.current;
     setLoadingStoryboard(true);
-
     try {
-
       const res = await fetch(getProjectUrl('/api/projects/storyboard', projName));
-
       if (res.ok) {
-
-        setStoryboardData(repairMojibakeDeep(await res.json()));
-
+        if (gen !== storyboardFetchGenRef.current) return;
+        if (!opts?.force && storyboardDirtyRef.current) return;
+        applyStoryboardToCreatorState(repairMojibakeDeep(await res.json()));
       }
-
     } catch (err) {
-
       console.error("Error fetching storyboard:", err);
-
     } finally {
-
-      setLoadingStoryboard(false);
-
+      if (gen === storyboardFetchGenRef.current) {
+        setLoadingStoryboard(false);
+      }
     }
-
   };
 
   const handleGenerateAiOverlays = async () => {
@@ -2355,7 +2354,7 @@ export default function App() {
       }
 
       toast.success(`Overlays planejados com sucesso: ${(data as any).overlayCount} overlays gerados!`, { id: toastId });
-      await fetchStoryboard(activeProject);
+      await fetchStoryboard(activeProject, { force: true });
       await fetchVideoQuality(activeProject);
     } catch (err) {
       console.error('Error generating overlays:', err);
@@ -2734,6 +2733,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!wizardRestoreCompleteRef.current) return;
+
     const saved = saveWizardSession(buildWizardSessionPatch());
     setWizardSavedAtLabel(formatWizardSavedAt(saved.savedAt));
 
@@ -2747,6 +2748,11 @@ export default function App() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saved),
+      }).then(async (res) => {
+        if (res.status === 409) {
+          const data = await res.json().catch(() => null);
+          if (data?.session) applyWizardSessionPatch(data.session);
+        }
       }).catch(() => {});
     }, 1500);
 
@@ -2760,10 +2766,10 @@ export default function App() {
     wizardRestoredRef.current = true;
     const local = loadWizardSession();
     const project = resolveWizardActiveProject(local);
-    if (!project) return;
 
     (async () => {
       try {
+        if (!project) return;
         const res = await fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`);
         if (!res.ok) return;
         const data = await res.json();
@@ -2777,6 +2783,8 @@ export default function App() {
         );
       } catch {
         /* ignore */
+      } finally {
+        wizardRestoreCompleteRef.current = true;
       }
     })();
   }, [applyWizardSessionPatch]);
@@ -2896,11 +2904,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setUploadSuccess(false);
+    const inCreatorFlow = activeTab === 'creator' && creatorStep > 1;
+    if (!inCreatorFlow) {
+      setUploadSuccess(false);
+      setUploadedScenes({});
+    }
     setUploadingNarration(false);
     setSyncingTimings(false);
     setDragActive(false);
-    setUploadedScenes({});
     fetchData({ includeVideoQuality: true });
   }, [activeProject]);
 
@@ -3460,9 +3471,7 @@ export default function App() {
 
             const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
 
-            setGeneratedScriptData(nextScriptData);
-
-            saveCreatorStoryboard(nextScriptData);
+            syncCreatorStoryboard(nextScriptData);
 
           }
 
@@ -3636,9 +3645,7 @@ export default function App() {
 
         const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
 
-        setGeneratedScriptData(nextScriptData);
-
-        saveCreatorStoryboard(nextScriptData);
+        syncCreatorStoryboard(nextScriptData);
 
       }
 
@@ -7453,8 +7460,7 @@ export default function App() {
       if (token !== creatorGenTokenRef.current) return;
       if (ok && !data.needs_browser) {
         stopAiJobProgress(true);
-        setGeneratedScriptData(data);
-        setCreatorScript(data.narrative_script || approved);
+        applyStoryboardToCreatorState(data);
         const blockNums = [...new Set(
           (data.visual_prompts || []).map((vp: any) => parseCreatorBlockNumber(vp?.block ?? vp?.bloco, vp?.scene ?? vp?.cena)),
         )].sort((a, b) => a - b);
@@ -8752,9 +8758,8 @@ export default function App() {
                       generating={generatingOverlays}
                       onGenerate={handleGenerateAiOverlays}
                       onChange={(nextOverlays) => {
-                        const next = { ...storyboardData, overlays_ai: nextOverlays };
-                        setStoryboardData(next);
-                        debounceSaveStoryboard(next);
+                        const { overlays: _legacyOverlays, ...rest } = storyboardData || {};
+                        syncCreatorStoryboard({ ...rest, overlays_ai: nextOverlays });
                       }}
                     />
                     </EditorCollapsibleSection>
@@ -15097,14 +15102,7 @@ export default function App() {
                         onPlanChange={(plan) => {
                           const base = storyboardData || generatedScriptData;
                           if (!base) return;
-                          const next = { ...base, narration_chunk_plan: plan };
-                          if (storyboardData) {
-                            setStoryboardData(next);
-                            debounceSaveStoryboard(next);
-                          } else {
-                            setGeneratedScriptData(next);
-                            debounceSaveStoryboard(next);
-                          }
+                          syncCreatorStoryboard({ ...base, narration_chunk_plan: plan });
                         }}
                         onUpdated={() => {
                           setUploadSuccess(true);
@@ -15208,14 +15206,7 @@ export default function App() {
                         setNarrationTaggedDraft(value);
                         const base = storyboardData || generatedScriptData;
                         if (!base) return;
-                        const next = { ...base, narrative_script_tagged: value };
-                        if (storyboardData) {
-                          setStoryboardData(next);
-                          debounceSaveStoryboard(next);
-                        } else {
-                          setGeneratedScriptData(next);
-                          debounceSaveStoryboard(next);
-                        }
+                        syncCreatorStoryboard({ ...base, narrative_script_tagged: value });
                       }}
                     />
                     </>

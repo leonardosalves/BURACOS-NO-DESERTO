@@ -2663,8 +2663,6 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
     storyboard.overlays_planned_by = "studio-agents";
-    delete storyboard.overlays;
-
     const cleanSb = repairStoryboardEncoding(storyboard);
     fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(cleanSb, null, 2), "utf8");
     console.log(`[Studio Agents] ${cleanedAi.length} overlays planejados com memória do estúdio.`);
@@ -2703,12 +2701,28 @@ app.put("/api/projects/wizard-session", (req, res) => {
     if (!session || typeof session !== "object") {
       return res.status(400).json({ error: "Corpo da sessão inválido." });
     }
+    const sessionPath = path.join(projDir, "wizard_session.json");
+    let existing = null;
+    if (fs.existsSync(sessionPath)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+      } catch (e) { /* ignore */ }
+    }
+    const incomingAt = session.savedAt ? new Date(session.savedAt).getTime() : 0;
+    const existingAt = existing?.savedAt ? new Date(existing.savedAt).getTime() : 0;
+    if (existing && incomingAt > 0 && existingAt > incomingAt) {
+      return res.status(409).json({
+        error: "Sessão mais recente já está no servidor.",
+        session: existing,
+        savedAt: existing.savedAt,
+      });
+    }
     const payload = {
       ...session,
       version: session.version || 1,
       savedAt: new Date().toISOString(),
     };
-    fs.writeFileSync(path.join(projDir, "wizard_session.json"), JSON.stringify(payload, null, 2), "utf8");
+    fs.writeFileSync(sessionPath, JSON.stringify(payload, null, 2), "utf8");
     res.json({ ok: true, savedAt: payload.savedAt });
   } catch (err) {
     res.status(500).json({ error: "Erro ao salvar sessão do wizard", details: err.message });
@@ -13405,6 +13419,12 @@ REGRAS FINAIS:
       }
 
       const storyboardPath = path.join(projDir, "storyboard.json");
+      let existingStoryboard = {};
+      if (fs.existsSync(storyboardPath)) {
+        try {
+          existingStoryboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+        } catch (e) { /* ignore corrupt file */ }
+      }
       const partialStoryboard = {
         strategy: parsedData.strategy || {},
         narrative_script: parsedData.narrative_script || "",
@@ -13416,7 +13436,11 @@ REGRAS FINAIS:
         _creator_phase: "narration_pending",
       };
       report("save", "Salvando narração no projeto…", 94);
-      fs.writeFileSync(storyboardPath, JSON.stringify(partialStoryboard, null, 2), "utf8");
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify({ ...existingStoryboard, ...partialStoryboard }, null, 2),
+        "utf8",
+      );
       return activeRes.json({
         phase: "narration",
         project: safeProjectName,
@@ -13624,12 +13648,11 @@ REGRAS FINAIS:
     const timelineAssets = {};
 
     let newConfig = {
+      ...currentConfig,
       niche: niche || currentConfig.niche || "Geral",
-      gemini_api_key: currentConfig.gemini_api_key,
-      highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
-      bgm_mappings: currentConfig.bgm_mappings || [],
-      impact_texts: parsedData.technical_config?.impact_texts || [],
-      block_phrases: parsedData.technical_config?.block_phrases || [],
+      highlight_keywords: parsedData.technical_config?.highlight_keywords || currentConfig.highlight_keywords || [],
+      impact_texts: parsedData.technical_config?.impact_texts || currentConfig.impact_texts || [],
+      block_phrases: parsedData.technical_config?.block_phrases || currentConfig.block_phrases || [],
       timeline_assets: timelineAssets,
       aspect_ratio: isShort ? "9:16" : "16:9",
       video_format: format,
@@ -13649,6 +13672,11 @@ REGRAS FINAIS:
       newConfig = presetApplied.config;
       console.log("[Creator Script] Preset Documentário História aplicado ao config.");
     }
+
+    const estDuration = Number(parsedData?.technical_config?.estimated_duration)
+      || Number(currentConfig?.estimated_duration)
+      || 0;
+    newConfig = applyBgmProductionDefaults(newConfig, estDuration);
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
