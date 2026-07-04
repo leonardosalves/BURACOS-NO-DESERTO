@@ -232,6 +232,7 @@ import type {
 } from './appTypes';
 import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from './appConstants';
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
+import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
 import { JsonTreeView } from './JsonTreeView';
 const AppMusicTab = lazy(() => import('./AppMusicTab').then((m) => ({ default: m.AppMusicTab })));
 const AppCreatorTab = lazy(() => import('./AppCreatorTab').then((m) => ({ default: m.AppCreatorTab })));
