@@ -79,11 +79,28 @@ export function computeOverlayPreviewMotion(
     }
     case 'geo-map':
     case 'chapter-stinger':
+    case 'listicle-recap':
       return {
         opacity,
         scale: 0.92 + enterScale * 0.08,
         slideX: 0,
         slideY: 0,
+        lineProgress,
+      };
+    case 'listicle-stinger':
+      return {
+        opacity: 1,
+        scale: 1,
+        slideX: 0,
+        slideY: 0,
+        lineProgress,
+      };
+    case 'rank-progress':
+      return {
+        opacity: interpolateClamped(frame, [0, 10], [0, 1]) * fadeOut,
+        scale: enterScale,
+        slideX: 0,
+        slideY: interpolateClamped(frame, [0, 12], [10, 0]),
         lineProgress,
       };
     case 'timeline':
