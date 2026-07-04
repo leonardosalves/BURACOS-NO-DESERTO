@@ -19,7 +19,8 @@ if (panelsStart < 0 || panelsEnd < 0) {
 const panelsInner = app
   .slice(panelsStart, panelsEnd)
   .replace('        <div className="text-balance-safe">\n\n', "")
-  .replace(/\n        $/, "");
+  .replace(/\n        $/, "")
+  .replace(/resurrectorScheduler\.alerts/g, "resurrectorAlerts");
 
 const overlaysStart = app.indexOf("      {/* Global Floating Chat Button */}");
 const overlaysEnd = app.indexOf("    </>\n\n  );", overlaysStart);
