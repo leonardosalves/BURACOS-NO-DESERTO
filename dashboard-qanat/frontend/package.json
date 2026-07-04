@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node --max-old-space-size=10240 ./node_modules/vite/bin/vite.js build",
+    "build": "node --max-old-space-size=12288 ./node_modules/vite/bin/vite.js build",
+    "build:lite": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --minify false",
     "typecheck": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit",
     "preview": "vite preview"
   },
