@@ -249,6 +249,7 @@ const AppMusicTab = lazy(() => import('./AppMusicTab').then((m) => ({ default: m
 const AppCreatorTab = lazy(() => import('./AppCreatorTab').then((m) => ({ default: m.AppCreatorTab })));
 const RichTimelineEditor = lazy(() => import('./RichTimelineEditor').then((m) => ({ default: m.RichTimelineEditor })));
 const AppEditorTab = lazy(() => import('./AppEditorTab').then((m) => ({ default: m.AppEditorTab })));
+const AppTimelineTab = lazy(() => import('./AppTimelineTab').then((m) => ({ default: m.AppTimelineTab })));
 
 const initialWizardSession = loadWizardSession();
 
@@ -8195,216 +8196,23 @@ export default function App() {
           {/* TAB: TIMELINE & BLOCKS */}
 
           {activeTab === 'timeline' && (
-            <TabErrorBoundary label="Roteiro e Tags">
-              {!config ? (
-                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-zinc-400 font-sans">
-                  <RefreshCw className={`w-8 h-8 text-gold-500 ${projectDataLoading ? 'animate-spin' : ''}`} />
-                  <p className="text-sm">
-                    {projectDataLoading ? 'Carregando roteiro e tags do projeto...' : 'Não foi possível carregar a configuração do projeto.'}
-                  </p>
-                  {!projectDataLoading && (
-                    <button
-                      type="button"
-                      onClick={() => fetchData()}
-                      className="text-xs text-gold-400 hover:text-gold-300 border border-gold-500/30 px-3 py-1.5 rounded-lg cursor-pointer"
-                    >
-                      Tentar novamente
-                    </button>
-                  )}
-                </div>
-              ) : (
-
-            <DashminProjectTabLayout tab="timeline" activeProject={activeProject}>
-            <div className="lumiera-panel-stack">
-
-              {/* Keywords panel */}
-
-              <details className="lumiera-collapsible-section glass-panel" open>
-                <summary>Palavras-chave em destaque</summary>
-                <div className="lumiera-collapsible-body space-y-3">
-
-                <div>
-
-                  <SectionHeader
-                    title="PALAVRAS-CHAVE EM DESTAQUE (HIGHLIGHT)"
-                    helpId="timeline-highlights"
-                    subtitle="Palavras nesta lista serão destacadas na cor Ouro/Amarelo no vídeo final."
-                  />
-
-                </div>
-
-                <div className="flex flex-wrap gap-2 p-4 bg-zinc-950 border border-zinc-900 rounded-2xl min-h-[80px] font-sans">
-
-                  {(config.highlight_keywords || []).map(kw => (
-
-                    <span key={kw} className="bg-gold-500/10 border border-gold-500/20 text-gold-500 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-
-                      <span>{kw}</span>
-
-                      <button 
-
-                        onClick={() => removeKeyword(kw)} 
-
-                        className="hover:text-red-400 text-gold-500/60 font-bold transition font-mono leading-none cursor-pointer"
-
-                      >
-
-                        ×
-
-                      </button>
-
-                    </span>
-
-                  ))}
-
-                </div>
-
-                <div className="flex gap-3 max-w-md font-sans">
-
-                  <input 
-
-                    type="text" 
-
-                    placeholder="Adicionar nova palavra..." 
-
-                    value={newKeyword}
-
-                    onChange={(e) => setNewKeyword(e.target.value)}
-
-                    onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
-
-                    className="bg-zinc-950 border border-zinc-850 hover:border-zinc-800 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white flex-1"
-
-                  />
-
-                  <button 
-
-                    onClick={addKeyword}
-
-                    className="bg-gold-500 hover:bg-gold-600 text-zinc-950 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer"
-
-                  >
-
-                    Adicionar
-
-                  </button>
-
-                </div>
-                </div>
-              </details>
-
-              {/* Block timings list */}
-
-              <details className="lumiera-collapsible-section glass-panel">
-                <summary>Textos de impacto (12 blocos)</summary>
-                <div className="lumiera-collapsible-body space-y-3">
-
-                <SectionHeader title="TEXTOS DE IMPACTO DA LINHA DO TEMPO (12 BLOCOS)" helpId="timeline-impact" />
-
-                <div className="divide-y divide-zinc-900 border border-zinc-900 rounded-2xl overflow-hidden bg-zinc-950/20 font-sans">
-
-                  {(config.impact_texts || []).map((impact, idx) => (
-
-                    <div key={idx} className="p-4 hover:bg-zinc-900/10 transition grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-
-                      <div className="flex items-center gap-2.5">
-
-                        <span className="font-mono text-zinc-500 text-xs font-bold bg-zinc-950 border border-zinc-900 px-2.5 py-1 rounded-lg">Bloco {impact.block}</span>
-
-                        <span className="text-xs text-gray-400 font-mono">Offset: {impact.start_offset}s → {impact.end_offset}s</span>
-
-                      </div>
-
-                      <div className="col-span-2">
-
-                        {editingImpact?.index === idx ? (
-
-                          <input 
-
-                            type="text"
-
-                            value={editingImpact.text}
-
-                            onChange={(e) => setEditingImpact({ ...editingImpact, text: e.target.value })}
-
-                            onKeyDown={(e) => e.key === 'Enter' && handleSaveImpactText(idx)}
-
-                            className="bg-zinc-950 border border-gold-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-gold-500 font-bold uppercase w-full"
-
-                          />
-
-                        ) : (
-
-                          <span className="text-xs font-bold text-gold-500 tracking-wide uppercase font-sans">{impact.text}</span>
-
-                        )}
-
-                      </div>
-
-                      <div className="flex justify-end gap-2">
-
-                        {editingImpact?.index === idx ? (
-
-                          <>
-
-                            <button 
-
-                              onClick={() => handleSaveImpactText(idx)} 
-
-                              className="text-[11px] font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1 cursor-pointer"
-
-                            >
-
-                              <Save className="w-3.5 h-3.5" /> Salvar
-
-                            </button>
-
-                            <button 
-
-                              onClick={() => setEditingImpact(null)} 
-
-                              className="text-[11px] font-bold text-gray-500 hover:text-gray-400 cursor-pointer"
-
-                            >
-
-                              Cancelar
-
-                            </button>
-
-                          </>
-
-                        ) : (
-
-                          <button 
-
-                            onClick={() => setEditingImpact({ index: idx, text: impact.text })} 
-
-                            className="text-[11px] font-semibold text-gray-400 hover:text-white flex items-center gap-1 cursor-pointer"
-
-                          >
-
-                            <FileText className="w-3.5 h-3.5" /> Editar Texto
-
-                          </button>
-
-                        )}
-
-                      </div>
-
-                    </div>
-
-                  ))}
-
-                </div>
-                </div>
-              </details>
-
-              {renderRichTimelineEditor()}
-            </div>
-
-            </DashminProjectTabLayout>
-
-              )}
+            <TabErrorBoundary tabName="Roteiro e Tags">
+              <Suspense fallback={<TabPanelFallback label="Carregando timeline..." />}>
+                <AppTimelineTab
+                  activeProject={activeProject}
+                  config={config}
+                  projectDataLoading={projectDataLoading}
+                  fetchData={fetchData}
+                  newKeyword={newKeyword}
+                  setNewKeyword={setNewKeyword}
+                  addKeyword={addKeyword}
+                  removeKeyword={removeKeyword}
+                  editingImpact={editingImpact}
+                  setEditingImpact={setEditingImpact}
+                  handleSaveImpactText={handleSaveImpactText}
+                  renderRichTimelineEditor={renderRichTimelineEditor}
+                />
+              </Suspense>
             </TabErrorBoundary>
           )}
 
