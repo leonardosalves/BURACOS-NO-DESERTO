@@ -108,6 +108,9 @@ import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDu
 import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
 import { buildAppTabPropBundles } from './appTabPropBundles';
 import { AppOverlays } from './AppOverlays';
+const RichTimelineEditor = lazy(() =>
+  import('./RichTimelineEditor').then((m) => ({ default: m.RichTimelineEditor })),
+);
 const AppTabPanels = lazy(() => import('./AppTabPanels').then((m) => ({ default: m.AppTabPanels })));
 import { TabPanelFallback } from './appLazyPanels';
 
