@@ -145,6 +145,7 @@ type TranscriptSegment = {
   index?: number;
   start_time?: number;
   end_time?: number;
+  duration?: number;
   words?: Array<{ word: string; start: number; end: number }>;
 };
 
