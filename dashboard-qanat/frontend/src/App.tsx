@@ -104,17 +104,11 @@ import { createProgressJobId, startAiJobProgress, stopAiJobProgress } from './ai
 import { useGeminiBrowserResolver } from './useGeminiBrowserResolver';
 import { captureGeminiNarrationNow, diagnoseGeminiExtension, isGeminiExtensionAvailable, resetGeminiExtensionCache } from './geminiExtensionBridge';
 import { TabErrorBoundary } from './TabErrorBoundary';
-import { SettingsSectionNav, type SettingsSection } from './SettingsSectionNav';
-import { BrandSettingsPanel } from './BrandSettingsPanel';
-import { VisualSettings } from './VisualSettings';
-
-import { BlockProgressBarProjectPanel } from './BlockProgressBarProjectPanel';
-import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
-import { SectionHeader, SectionLabel } from './SectionHeader';
+import type { SettingsSection } from './SettingsSectionNav';
+import { SettingHelpTip } from './SettingHelpTip';
+import { SectionHeader } from './SectionHeader';
 import { SECTION_HELP } from './sectionHelpContent';
 import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
-import { SettingsProduction } from './SettingsProduction';
-
 import {
   loadWizardSession,
   saveWizardSession,
@@ -127,7 +121,6 @@ import {
 } from './wizardSession';
 import {
   PreRenderAdviceModal,
-  PreRenderAdvicePanel,
   type PreRenderAdvice,
 } from './PreRenderAdvice';
 import {
@@ -137,9 +130,6 @@ import {
   stripConfigApiMetadata,
   type BgmProductionHints,
 } from './productionConfig';
-import { NarrationChunksPanel } from './NarrationChunksPanel';
-import { SettingsApiKeys } from './SettingsApiKeys';
-import { IntegrationSettings } from './IntegrationSettings';
 import type { YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { useResurrectorScheduler } from './useResurrectorScheduler';
 
@@ -152,22 +142,8 @@ import { isGlobalViewTab, RESTORABLE_APP_TABS } from './appTabs';
 
 
 import { DashminPageLayout } from './DashminPageLayout';
-
-import { DashminProjectTabLayout } from './DashminProjectTabLayout';
-
-
-import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
-
-
-import { TimelineOpenCutBar } from './TimelineOpenCutBar';
-import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
-import { TimelineClipPreview } from './TimelineClipPreview';
-
-import { EditorCollapsibleSection } from './EditorCollapsibleSection';
+import { DashminAiChat } from './DashminAiChat';
 import { clipKey, parseClipKey } from './opencutTimeline';
-
-import { ProjectYoutubeCard } from './ProjectYoutubeCard';
-import { PostPublishChecklist } from './PostPublishChecklist';
 import {
   getYoutubeNotificationsEnabled,
   getYoutubePollIntervalMs,
@@ -211,10 +187,6 @@ import {
   resolvePioneerCreatorSeed,
 } from './creatorEditorialImport';
 import { sanitizeTimelineAssets } from './timelineAssetSanitize';
-import { NarrationReviewPanel } from './NarrationReviewPanel';
-import { NarrationReplacePanel } from './NarrationReplacePanel';
-import { TtsVoiceStudioPanel } from './TtsVoiceStudioPanel';
-
 import type { ListicleIdeasResponse } from './ListicleRankingIdeas';
 import type {
   BgmEmotionMapping,
@@ -230,26 +202,15 @@ import type {
 import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from './appConstants';
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
-import { JsonTreeView } from './JsonTreeView';
 import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
-import type { AppCreatorTabProps } from './AppCreatorTab';
-import type { AppAiTabProps } from './AppAiTab';
-import type { AppUploadTabProps } from './AppUploadTab';
-import type { AppEditorTabProps } from './AppEditorTab';
-import type { AppSettingsTabProps } from './AppSettingsTab';
-import type { AppStatusTabProps } from './AppStatusTab';
-import type { AppTimelineTabProps } from './AppTimelineTab';
-import type { AppMusicTabPanelProps } from './AppMusicTabPanel';
+import { buildAppTabPropBundles } from './appTabPropBundles';
 import {
   LazyAgentReachPanel,
   LazyComfyMcpPage,
-  LazyLumieraHomePage,
   LazyProjectsLibraryPanel,
-  LazySceneTimingEditor,
   LazyStudioAgents,
   LazyTrendForecastPanel,
   LazyVideoResurrectorPanel,
-  LazyWorkflowToolkit,
   LazyYoutubeStudioPanel,
   TabPanelFallback,
 } from './appLazyPanels';
@@ -7583,10 +7544,44 @@ export default function App() {
       </div>
     ) : null;
 
-  const creatorTabProps: AppCreatorTabProps = {
+  const {
+    creatorTabProps,
+    aiTabProps,
+    uploadTabProps,
+    editorTabProps,
+    settingsTabProps,
+    statusTabProps,
+    timelineTabProps,
+    musicTabPanelProps,
+    homeTabProps,
+    workflowTabProps,
+    sceneTimingTabProps,
+    terminalTabProps,
+  } = buildAppTabPropBundles({
+    activeBgmMode,
     activeProject,
+    activeTab,
+    addKeyword,
+    addSceneAtEnd,
+    aiProvider,
+    aiProviderBadge,
+    applyAiConfig,
     applyMetadataToUpload,
+    applyProductionPatchToConfig,
+    applyVisualPatchToConfig,
     applyWizardSessionPatch,
+    autoSoundtracking,
+    bgmBlockRows,
+    bgmEmotionRows,
+    bgmSuggestions,
+    brandPanelProps,
+    canvaClientId,
+    canvaClientSecret,
+    canvaThumbnailsLoading,
+    chatEndRef,
+    chatInput,
+    chatLoading,
+    chatMessages,
     config,
     copiedSection,
     copyToClipboard,
@@ -7605,47 +7600,124 @@ export default function App() {
     customIdeaTitle,
     customOutline,
     customTitle,
+    debounceSaveStoryboard,
+    deleteScene,
+    downloadingEpidemicId,
     dragActive,
+    editingImpact,
+    editorSubTab,
     editorialIdeaImport,
+    effectiveRenderResolution,
+    epidemicKeyInput,
+    epidemicSearchQuery,
+    epidemicSearchType,
     expandedBlocks,
     fetchData,
+    fetchTitleExperiment,
+    fetchTitleExperimentAnalytics,
+    fetchUploadStatus,
+    fetchVideoQuality,
     formatSelector,
     geminiBrowserMode,
+    geminiExtensionDiag,
+    geminiExtensionReady,
+    geminiExtensionTesting,
+    geminiKeyCount,
+    geminiKeysInput,
+    geminiModel,
+    geminiModelOptions,
     generateYoutubeMetadata,
     generatedScriptData,
+    generatingOverlays,
+    getAssetDuration,
     getAssetUrl,
+    getFormatBytes,
     getMusicUrl,
     getProjectUrl,
+    getTotalVideoDuration,
+    globalBlockGap,
+    globalDebugOverlay,
+    globalFps,
+    globalMusicVolume,
+    globalRenderResolution,
+    globalUseRemotion,
+    handleApplyTitleVariant,
     handleApproveNarrationAndGenerateScript,
+    handleAutoSoundtrack,
     handleCaptureGeminiNarration,
+    handleClearProjectRenderResolution,
+    handleDeleteAllMusic,
+    handleDeleteMusic,
+    handleDownloadEpidemic,
     handleDrag,
     handleDrop,
+    handleEmotionMusicChange,
     handleEnhanceVisualPrompts,
     handleEvaluateScriptChecklist,
     handleFileInput,
+    handleFixYoutubeMetadata,
+    handleGenerateAiOverlays,
+    handleGenerateCanvaThumbnails,
     handleGenerateFullScript,
     handleGenerateIdeas,
     handleGenerateListicleScript,
     handleGenerateNarration,
     handleGenerateNarrationFromImport,
+    handleGenerateYoutubeMetadata,
     handleGenerateYoutubeThumbnailImages,
+    handleMusicChange,
+    handleNotebooklmImprove,
     handleNotebooklmImproveNarrationDraft,
+    handlePlanBgmEmotions,
+    handlePostUploadComplete,
+    handlePreRenderAutoFix,
+    handleRelinkYoutube,
     handleRemoveSceneAsset,
+    handleSaveAiSettings,
+    handleSaveApiKeys,
     handleSaveConfig,
+    handleSaveGlobalRenderConfig,
+    handleSaveImpactText,
+    handleSaveProjectRenderResolution,
+    handleSaveStoryboard,
+    handleSearchEpidemic,
+    handleSendChatMessage,
+    handleStartTitleExperiment,
+    handleSuggestBGM,
     handleSuggestListicleRankings,
     handleSyncTimings,
+    handleTestSupermemory,
     handleUpdateCreatorScene,
     handleUploadSceneAsset,
     hasApiKey,
+    hasEpidemicKey,
+    hasNvidiaKey,
+    hasOpenRouterKey,
+    hasPexelsKey,
+    hasPixabayKey,
+    hasSupermemoryKey,
+    hasXaiKey,
     ideasData,
     ideationTab,
+    igAccessToken,
+    igAccountId,
+    igAppId,
+    igAppSecret,
+    igCaption,
+    insertSceneAfter,
+    isShortVideo,
+    kwCaption,
     leaveGlobalViewForProject,
     listNiche,
     listTopic,
     listicleHudStyle,
     listicleIdeasData,
+    loadEditorProject,
+    loadingStoryboard,
+    logs,
     mixBGM,
     mixing,
+    moveScene,
     narrationBlockPhrases,
     narrationBlockScript,
     narrationDraft,
@@ -7653,18 +7725,68 @@ export default function App() {
     narrationProjectName,
     narrationStrategy,
     narrationTaggedDraft,
+    newKeyword,
     nicheInput,
     notebooklmImproving,
     notebooklmStatus,
+    notebooklmSuggestions,
+    nvidiaKeyInput,
+    openCanvaThumbnailDesigner,
+    openCreatorTab,
+    openrouterKeyInput,
+    outputs,
+    pexelsKeyInput,
+    pickProductionConfig,
+    pickVisualConfig,
+    pipelineRunning,
+    pixabayKeyInput,
+    planningBgmEmotions,
+    playingMusic,
+    postAi,
+    preRenderFixingId,
+    prepareUploadForPublish,
+    productionDraftToApiPatch,
+    projectDataLoading,
+    projectRenderResolution,
+    projects,
     rankCount,
     rankOrder,
+    recentProjects,
+    refreshGeminiExtensionStatus,
+    removeKeyword,
+    renderProgress,
+    renderResolutionLabel,
     renderRichTimelineEditor,
     rendering,
     resetCreatorWizard,
+    resolutionConfigScope,
+    safeEpidemicResults,
+    safeMusicFiles,
+    saveConfig,
     saveConfigPatch,
+    saveCreatorStoryboard,
+    saveTimelinePatch,
+    saveUploadMetadataToProject,
     saveWizardSession,
+    savingAiSettings,
+    savingApiKeys,
+    savingGlobalConfig,
+    savingProductionConfig,
+    savingProjectResolution,
+    savingVisualConfig,
+    searchMusic,
+    searchingEpidemic,
+    selectThumbnailForUpload,
     selectedIdeaIndex,
     selectedListicleIdeaIndex,
+    selectedPlatforms,
+    selectedProject,
+    selectedUploadVideo,
+    setActiveTab,
+    setAiProvider,
+    setCanvaClientId,
+    setCanvaClientSecret,
+    setChatInput,
     setConfig,
     setCreatorProjectName,
     setCreatorStep,
@@ -7677,261 +7799,15 @@ export default function App() {
     setCustomIdeaTitle,
     setCustomOutline,
     setCustomTitle,
+    setEditingImpact,
+    setEditorSubTab,
     setEditorialIdeaImport,
+    setEpidemicKeyInput,
+    setEpidemicSearchQuery,
+    setEpidemicSearchResults,
+    setEpidemicSearchType,
     setExpandedBlocks,
     setFormatSelector,
-    setIdeasData,
-    setIdeationTab,
-    setListNiche,
-    setListTopic,
-    setListicleHudStyle,
-    setNarrationDraft,
-    setNarrationTaggedDraft,
-    setNicheInput,
-    setRankCount,
-    setRankOrder,
-    setSelectedIdeaIndex,
-    setSelectedListicleIdeaIndex,
-    setTaggedNarrations,
-    setUploadSuccess,
-    setUseNotebooklm,
-    showNarrationReview,
-    status,
-    storyboardData,
-    syncCreatorStoryboard,
-    syncingTimings,
-    taggedNarrations,
-    timelineAssets,
-    triggerRender,
-    uploadSuccess,
-    uploadedScenes,
-    uploadingNarration,
-    useNotebooklm,
-    wizardSavedAtLabel,
-    wordTranscripts,
-    youtubeLoading,
-    youtubeMetadata,
-    youtubeMetadataParsed,
-  };
-
-  const aiTabProps: AppAiTabProps = {
-    activeProject,
-    aiProviderBadge,
-    applyAiConfig,
-    applyMetadataToUpload,
-    canvaThumbnailsLoading,
-    chatEndRef,
-    chatInput,
-    setChatInput,
-    chatLoading,
-    chatMessages,
-    copiedSection,
-    copyToClipboard,
-    fetchTitleExperiment,
-    fetchTitleExperimentAnalytics,
-    getProjectUrl,
-    handleApplyTitleVariant,
-    handleGenerateCanvaThumbnails,
-    handleGenerateYoutubeMetadata,
-    handleGenerateYoutubeThumbnailImages,
-    handleRelinkYoutube,
-    handleSendChatMessage,
-    handleStartTitleExperiment,
-    hasApiKey,
-    openCanvaThumbnailDesigner,
-    selectThumbnailForUpload,
-    setActiveTab,
-    setTitleAbSelected,
-    setTitleExperimentLoading,
-    setTitleExperimentVideoId,
-    setYtTitle,
-    titleAbSelected,
-    titleExperiment,
-    titleExperimentAnalytics,
-    titleExperimentLoading,
-    titleExperimentRankings,
-    titleExperimentVideoId,
-    titleExperimentWinner,
-    titleRetention,
-    uploadStatus,
-    youtubeLoading,
-    youtubeMetadata,
-    youtubeMetadataFormat,
-    youtubeMetadataParsed,
-    youtubeMetadataStrategy,
-    youtubeThumbnailsGenerated,
-    youtubeThumbnailsLoading,
-    ytThumbnailVariant,
-  };
-
-  const uploadTabProps: AppUploadTabProps = {
-    activeProject,
-    applyMetadataToUpload,
-    config,
-    getProjectUrl,
-    handleFixYoutubeMetadata,
-    handleGenerateYoutubeThumbnailImages,
-    handlePostUploadComplete,
-    igCaption,
-    setIgCaption,
-    kwCaption,
-    setKwCaption,
-    openCanvaThumbnailDesigner,
-    pipelineRunning,
-    setPipelineRunning,
-    prepareUploadForPublish,
-    saveUploadMetadataToProject,
-    selectThumbnailForUpload,
-    selectedPlatforms,
-    setSelectedPlatforms,
-    selectedUploadVideo,
-    setActiveTab,
-    setSettingsSection,
-    setThumbnailExperiment,
-    setTtCaption,
-    ttCaption,
-    setUploadLogs,
-    uploadLogs,
-    setUploadProgress,
-    uploadProgress,
-    setUploading,
-    uploading,
-    setYtCategoryId,
-    ytCategoryId,
-    setYtChapters,
-    ytChapters,
-    setYtDescription,
-    ytDescription,
-    setYtPinnedComment,
-    ytPinnedComment,
-    setYtPrivacy,
-    ytPrivacy,
-    setYtPublishAt,
-    ytPublishAt,
-    setYtTags,
-    ytTags,
-    setYtTitle,
-    ytTitle,
-    titleExperimentVideoId,
-    uploadMetadataReady,
-    uploadStatus,
-    youtubeMetadataFormat,
-    youtubeThumbnailsGenerated,
-    youtubeThumbnailsLoading,
-    ytThumbnailVariant,
-  };
-
-  const editorTabProps: AppEditorTabProps = {
-    activeProject,
-    addSceneAtEnd,
-    config,
-    copiedSection,
-    copyToClipboard,
-    debounceSaveStoryboard,
-    deleteScene,
-    editorSubTab,
-    fetchData,
-    generatingOverlays,
-    getAssetDuration,
-    getAssetUrl,
-    getMusicUrl,
-    getProjectUrl,
-    getTotalVideoDuration,
-    handleGenerateAiOverlays,
-    handleNotebooklmImprove,
-    handleSaveStoryboard,
-    handleUploadSceneAsset,
-    hasApiKey,
-    insertSceneAfter,
-    loadEditorProject,
-    loadingStoryboard,
-    moveScene,
-    notebooklmImproving,
-    notebooklmStatus,
-    notebooklmSuggestions,
-    projects,
-    renderRichTimelineEditor,
-    saveConfigPatch,
-    saveCreatorStoryboard,
-    selectedProject,
-    setActiveTab,
-    setConfig,
-    setEditorSubTab,
-    setSelectedProject,
-    setStoryboardData,
-    setVideoFileDurations,
-    status,
-    storyboardData,
-    titleExperimentVideoId,
-    updateSceneField,
-    videoFileDurations,
-    wordTranscripts,
-  };
-
-  const settingsTabProps: AppSettingsTabProps = {
-    activeProject,
-    aiProvider,
-    applyProductionPatchToConfig,
-    applyVisualPatchToConfig,
-    canvaClientId,
-    canvaClientSecret,
-    config,
-    epidemicKeyInput,
-    fetchUploadStatus,
-    geminiBrowserMode,
-    geminiExtensionDiag,
-    geminiExtensionReady,
-    geminiExtensionTesting,
-    geminiKeyCount,
-    geminiKeysInput,
-    geminiModel,
-    geminiModelOptions,
-    globalBlockGap,
-    globalDebugOverlay,
-    globalFps,
-    globalMusicVolume,
-    globalRenderResolution,
-    globalUseRemotion,
-    handleClearProjectRenderResolution,
-    handleRelinkYoutube,
-    handleSaveAiSettings,
-    handleSaveApiKeys,
-    handleSaveGlobalRenderConfig,
-    handleSaveProjectRenderResolution,
-    handleTestSupermemory,
-    hasEpidemicKey,
-    hasNvidiaKey,
-    hasOpenRouterKey,
-    hasPexelsKey,
-    hasPixabayKey,
-    hasSupermemoryKey,
-    hasXaiKey,
-    igAccessToken,
-    igAccountId,
-    igAppId,
-    igAppSecret,
-    nvidiaKeyInput,
-    openrouterKeyInput,
-    pexelsKeyInput,
-    pickProductionConfig,
-    pickVisualConfig,
-    pixabayKeyInput,
-    productionDraftToApiPatch,
-    projectRenderResolution,
-    refreshGeminiExtensionStatus,
-    resolutionConfigScope,
-    saveConfigPatch,
-    savingAiSettings,
-    savingApiKeys,
-    savingGlobalConfig,
-    savingProductionConfig,
-    savingProjectResolution,
-    savingVisualConfig,
-    setAiProvider,
-    setCanvaClientId,
-    setCanvaClientSecret,
-    setConfig,
-    setEpidemicKeyInput,
     setGeminiBrowserMode,
     setGeminiExtensionTesting,
     setGeminiKeysInput,
@@ -7942,119 +7818,130 @@ export default function App() {
     setGlobalMusicVolume,
     setGlobalRenderResolution,
     setGlobalUseRemotion,
+    setIdeasData,
+    setIdeationTab,
     setIgAccessToken,
     setIgAccountId,
     setIgAppId,
     setIgAppSecret,
+    setIgCaption,
+    setKwCaption,
+    setListNiche,
+    setListTopic,
+    setListicleHudStyle,
+    setLogs,
+    setNarrationDraft,
+    setNarrationTaggedDraft,
+    setNewKeyword,
+    setNicheInput,
     setNvidiaKeyInput,
     setOpenRouterKeyInput,
+    setPendingOutputDelete,
     setPexelsKeyInput,
+    setPipelineRunning,
     setPixabayKeyInput,
+    setPreviewVideoUrl,
     setProjectRenderResolution,
+    setRankCount,
+    setRankOrder,
     setResolutionConfigScope,
     setSavingProductionConfig,
     setSavingVisualConfig,
+    setSearchMusic,
+    setSelectedIdeaIndex,
+    setSelectedListicleIdeaIndex,
+    setSelectedPlatforms,
+    setSelectedProject,
+    setSelectedUploadVideo,
     setSettingsSection,
+    setStoryboardData,
     setSupermemoryBaseUrlInput,
     setSupermemoryEnabled,
     setSupermemoryKeyInput,
+    setTaggedNarrations,
+    setThumbnailExperiment,
+    setTitleAbSelected,
+    setTitleExperimentLoading,
+    setTitleExperimentVideoId,
+    setTtCaption,
+    setUploadLogs,
+    setUploadProgress,
+    setUploadSuccess,
+    setUploading,
+    setUseNotebooklm,
+    setVideoFileDurations,
     setXaiKeyInput,
+    setYtCategoryId,
+    setYtChapters,
     setYtClientId,
     setYtClientSecret,
+    setYtDescription,
+    setYtPinnedComment,
+    setYtPrivacy,
+    setYtPublishAt,
+    setYtTags,
+    setYtTitle,
     settingsSection,
+    showNarrationReview,
+    status,
+    storyboardData,
+    suggestingBGM,
     supermemoryBaseUrlInput,
     supermemoryEnabled,
     supermemoryKeyInput,
+    syncCreatorStoryboard,
+    syncingTimings,
+    taggedNarrations,
+    terminalEndRef,
     testingSupermemory,
+    timelineAssets,
+    titleAbSelected,
+    titleExperiment,
+    titleExperimentAnalytics,
+    titleExperimentLoading,
+    titleExperimentRankings,
+    titleExperimentVideoId,
+    titleExperimentWinner,
+    titleRetention,
+    togglePlayMusic,
+    triggerRender,
+    ttCaption,
+    updateSceneField,
+    uploadLogs,
+    uploadMetadataReady,
+    uploadProgress,
     uploadStatus,
+    uploadSuccess,
+    uploadedScenes,
+    uploading,
+    uploadingNarration,
+    useNotebooklm,
+    videoFileDurations,
+    videoQuality,
     visualDraftToApiPatch,
+    wizardSavedAtLabel,
+    wordTranscripts,
     xaiKeyInput,
+    youtubeChannelAlerts,
+    youtubeLoading,
+    youtubeMetadata,
+    youtubeMetadataFormat,
+    youtubeMetadataParsed,
+    youtubeMetadataStrategy,
+    youtubeThumbnailsGenerated,
+    youtubeThumbnailsLoading,
+    ytCategoryId,
+    ytChapters,
     ytClientId,
     ytClientSecret,
-  };
-
-  const statusTabProps: AppStatusTabProps = {
-    activeProject,
-    brandPanelProps,
-    config,
-    effectiveRenderResolution,
-    fetchVideoQuality,
-    getFormatBytes,
-    handlePreRenderAutoFix,
-    outputs,
-    preRenderFixingId,
-    renderResolutionLabel,
-    rendering,
-    selectedUploadVideo,
-    setActiveTab,
-    setPendingOutputDelete,
-    setPreviewVideoUrl,
-    setSelectedUploadVideo,
-    status,
-    triggerRender,
-    videoQuality,
-  };
-
-  const timelineTabProps: AppTimelineTabProps = {
-    activeProject,
-    config,
-    projectDataLoading,
-    fetchData,
-    newKeyword,
-    setNewKeyword,
-    addKeyword,
-    removeKeyword,
-    editingImpact,
-    setEditingImpact,
-    handleSaveImpactText,
-    renderRichTimelineEditor,
-  };
-
-  const musicTabPanelProps: AppMusicTabPanelProps = {
-    projectDataLoading,
-    fetchData,
-    config,
-    activeProject,
-    mixing,
-    mixBGM,
-    globalMusicVolume,
-    activeBgmMode,
-    isShortVideo,
-    saveConfig,
-    planningBgmEmotions,
-    hasApiKey,
-    handlePlanBgmEmotions,
-    bgmEmotionRows,
-    safeMusicFiles,
-    handleEmotionMusicChange,
-    playingMusic,
-    togglePlayMusic,
-    bgmSuggestions,
-    bgmBlockRows,
-    handleMusicChange,
-    searchMusic,
-    setSearchMusic,
-    handleDeleteAllMusic,
-    getProjectUrl,
-    suggestingBGM,
-    handleSuggestBGM,
-    handleDeleteMusic,
-    getFormatBytes,
-    hasEpidemicKey,
-    autoSoundtracking,
-    handleAutoSoundtrack,
-    epidemicSearchType,
-    setEpidemicSearchType,
-    setEpidemicSearchResults,
-    epidemicSearchQuery,
-    setEpidemicSearchQuery,
-    handleSearchEpidemic,
-    searchingEpidemic,
-    safeEpidemicResults,
-    downloadingEpidemicId,
-    handleDownloadEpidemic,
-    storyboardData,
-  };
+    ytDescription,
+    ytPinnedComment,
+    ytPrivacy,
+    ytPublishAt,
+    ytTags,
+    ytThumbnailVariant,
+    ytTitle,
+  });
 
   return (
 
@@ -8108,20 +7995,7 @@ export default function App() {
           {activeTab === 'home' && (
             <TabErrorBoundary tabName="Início">
               <Suspense fallback={<TabPanelFallback label="Carregando início..." />}>
-                <AppHomeTab
-                  projects={projects}
-                  activeProject={activeProject}
-                  recentProjects={recentProjects}
-                  status={status}
-                  videoQualityScore={videoQuality?.score}
-                  outputCount={outputs.length}
-                  youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
-                  hotVideos={youtubeChannelAlerts?.hotVideos}
-                  rendering={rendering}
-                  renderPercent={renderProgress?.percent}
-                  openCreatorTab={openCreatorTab}
-                  setActiveTab={setActiveTab}
-                />
+                <AppHomeTab {...homeTabProps} />
               </Suspense>
             </TabErrorBoundary>
           )}
@@ -8141,17 +8015,7 @@ export default function App() {
           {activeTab === 'workflow' && (
             <TabErrorBoundary tabName="Workflow">
               <Suspense fallback={<TabPanelFallback label="Carregando workflow..." />}>
-                <AppWorkflowTab
-                  activeProject={activeProject}
-                  activeTab={activeTab}
-                  config={config}
-                  status={status}
-                  getProjectUrl={getProjectUrl}
-                  getMusicUrl={getMusicUrl}
-                  postAi={postAi}
-                  fetchData={fetchData}
-                  setActiveTab={setActiveTab}
-                />
+                <AppWorkflowTab {...workflowTabProps} />
               </Suspense>
             </TabErrorBoundary>
           )}
@@ -8159,16 +8023,7 @@ export default function App() {
           {activeTab === 'scene-timing' && (
             <TabErrorBoundary tabName="Timing de cenas">
               <Suspense fallback={<TabPanelFallback label="Carregando timing..." />}>
-                <AppSceneTimingTab
-                  activeProject={activeProject}
-                  config={config}
-                  status={status}
-                  storyboardData={storyboardData}
-                  wordTranscripts={wordTranscripts}
-                  getMusicUrl={getMusicUrl}
-                  getAssetUrl={getAssetUrl}
-                  saveTimelinePatch={saveTimelinePatch}
-                />
+                <AppSceneTimingTab {...sceneTimingTabProps} />
               </Suspense>
             </TabErrorBoundary>
           )}
@@ -8196,12 +8051,7 @@ export default function App() {
           {activeTab === 'terminal' && (
             <TabErrorBoundary tabName="Terminal">
               <Suspense fallback={<TabPanelFallback label="Carregando terminal..." />}>
-                <AppTerminalTab
-                  activeProject={activeProject}
-                  logs={logs}
-                  setLogs={setLogs}
-                  terminalEndRef={terminalEndRef}
-                />
+                <AppTerminalTab {...terminalTabProps} />
               </Suspense>
             </TabErrorBoundary>
           )}
@@ -8408,7 +8258,7 @@ export default function App() {
 
                     {/* TAB 6: AI VIDEO CREATOR */}
           {activeTab === 'creator' && (
-            <TabErrorBoundary label="Creator IA">
+            <TabErrorBoundary tabName="Creator IA">
               <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh] text-zinc-400 text-sm">Carregando creator...</div>}>
                 <AppCreatorTab {...creatorTabProps} />
               </Suspense>
