@@ -339,7 +339,7 @@ export function AppTabPanels({
                 icon={<Zap className="w-5 h-5 text-amber-400" />}
               >
                 <Suspense fallback={<TabPanelFallback label="Carregando ressuscitador..." />}>
-                  <LazyVideoResurrectorPanel toast={toast} externalAlerts={resurrectorScheduler.alerts} />
+                  <LazyVideoResurrectorPanel toast={toast} externalAlerts={resurrectorAlerts} />
                 </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>

@@ -23,6 +23,15 @@ export default defineConfig({
       '@lumiera/shared': sharedDir,
     },
   },
+  optimizeDeps: {
+    include: [
+      '@lumiera/shared/narrationMatch.js',
+      '@lumiera/shared/timelineNarration.js',
+      '@lumiera/shared/timelineAudioStarts.js',
+      '@lumiera/shared/wordTranscripts.js',
+      '@lumiera/shared/bgmMode.js',
+    ],
+  },
   server: {
     host: '127.0.0.1',
     port: 5176,
