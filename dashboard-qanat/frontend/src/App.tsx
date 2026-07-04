@@ -190,6 +190,7 @@ import {
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
 } from './timelineNarrationSync';
+import { resolveBgmMode } from '@lumiera/shared/bgmMode.js';
 import { repairMojibake, repairMojibakeDeep } from './textEncoding';
 import {
   type CreatorApplyIdeaOptions,
@@ -4234,9 +4235,11 @@ export default function App() {
 
   const isShortVideo = config?.aspect_ratio === '9:16' || formatSelector === 'SHORTS';
 
-  const activeBgmMode = config?.use_single_bgm
-    ? 'single'
-    : (config?.bgm_mode || (isShortVideo ? 'single' : 'emotion'));
+  const activeBgmMode = resolveBgmMode(
+    config || {},
+    storyboardData || {},
+    isShortVideo ? 'SHORT' : 'LONG',
+  );
 
   const bgmEmotionRows = useMemo(() => {
 

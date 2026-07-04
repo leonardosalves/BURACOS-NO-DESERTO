@@ -24,13 +24,7 @@ const EMOTION_CROSSFADE_S = 4;
 const DEFAULT_FADE_IN = 2.5;
 const DEFAULT_FADE_OUT = 4;
 
-export function resolveBgmMode(config = {}, storyboard = {}, format = "LONG") {
-  if (config.bgm_mode === "block") return "block";
-  if (format === "SHORT" || config.use_single_bgm === true) return "single";
-  if (config.bgm_mode === "emotion") return "emotion";
-  if (storyboard?.bgm_emotion_plan?.segments?.length) return "emotion";
-  return "emotion";
-}
+export { resolveBgmMode } from "../shared/bgmMode.js";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));

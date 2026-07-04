@@ -10,15 +10,13 @@ const sharedDir = path.join(dashboardRoot, 'shared')
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react({
-      // App.tsx is a large single module; avoid Babel's 500KB "deoptimised" console note.
-      babel: {
-        generatorOpts: {
-          compact: false,
-        },
-      },
-    }),
+    // esbuild (default) — Babel estourava heap no App.tsx (~650KB) em produção.
+    react(),
   ],
+  esbuild: {
+    target: 'es2020',
+    legalComments: 'none',
+  },
   resolve: {
     alias: {
       '@lumiera/overlays': path.resolve(__dirname, '../remotion-renderer/src/overlays'),
@@ -40,5 +38,17 @@ export default defineConfig({
         proxyTimeout: 900000,
       },
     }
-  }
+  },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) return 'vendor';
+          if (id.includes('src/App.tsx')) return 'app-shell';
+        },
+      },
+    },
+  },
 })

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { resolveBgmMode } from "../backend/bgmEmotionPlan.js";
+import { resolveBgmMode } from "./bgmMode.js";
+import { NARRATION_MODE_MASTER, NARRATION_MODE_CHUNKED } from "../backend/narrationChunks.js";
 import {
   allNarrationChunksHaveAudio,
   computeChunkTimeline,
@@ -76,6 +77,22 @@ describe("montage pipeline", () => {
       assert.equal(chunks[0].end_s, 2);
       assert.equal(chunks[1].start_s, 2.5);
       assert.equal(chunks[1].end_s, 5.5);
+    });
+
+    it("persistChunkPlan preserva narration_mode master quando informado", async () => {
+      const { persistChunkPlanToProject } = await import("../backend/narrationChunks.js");
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lumiera-plan-"));
+      try {
+        fs.writeFileSync(path.join(tmpDir, "storyboard.json"), "{}");
+        fs.writeFileSync(path.join(tmpDir, "config_qanat.json"), JSON.stringify({ niche: "Test" }));
+        const plan = { chunks: [{ id: "chunk-01", text: "teste", block: 1 }] };
+        const saved = persistChunkPlanToProject(tmpDir, plan, { narration_mode: NARRATION_MODE_MASTER });
+        assert.equal(saved.config.narration_mode, NARRATION_MODE_MASTER);
+        const savedChunked = persistChunkPlanToProject(tmpDir, plan, {});
+        assert.equal(savedChunked.config.narration_mode, NARRATION_MODE_CHUNKED);
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
 
     it("buildBlockTimingsFromChunks agrupa por bloco", () => {
