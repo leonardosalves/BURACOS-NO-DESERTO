@@ -623,6 +623,19 @@ app.use("/api/projects-media", (req, res, next) => {
 
     if (fs.existsSync(fullFilePath)) {
 
+      const ext = path.extname(fullFilePath).toLowerCase();
+      const mediaTypes = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".m4v": "video/mp4",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+      };
+      const mime = mediaTypes[ext];
+      if (mime) res.type(mime);
       return res.sendFile(path.resolve(fullFilePath));
 
     }
@@ -647,6 +660,23 @@ app.use("/api/projects-media", (req, res, next) => {
 
   if (fs.existsSync(fullFilePath)) {
 
+    const ext = path.extname(fullFilePath).toLowerCase();
+    const mediaTypes = {
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".m4v": "video/mp4",
+      ".mkv": "video/x-matroska",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+      ".gif": "image/gif",
+      ".mp3": "audio/mpeg",
+      ".wav": "audio/wav",
+    };
+    const mime = mediaTypes[ext];
+    if (mime) res.type(mime);
     return res.sendFile(path.resolve(fullFilePath));
 
   }
@@ -11720,6 +11750,8 @@ app.post("/api/upload-scene-asset", (req, res) => {
   }
 
   const ext = path.extname(filename).toLowerCase() || (type === "video" ? ".mp4" : ".png");
+  const videoExts = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
+  const resolvedType = videoExts.has(ext) || type === "video" ? "video" : "image";
 
   const assetsDir = path.join(projDir, "ASSETS");
 
@@ -11763,11 +11795,11 @@ app.post("/api/upload-scene-asset", (req, res) => {
 
         asset: destFileName,
 
-        type: type === "video" ? "video" : "image"
+        type: resolvedType,
 
       };
 
-      if (type === "video") {
+      if (resolvedType === "video") {
 
         assetItem.fixed = 8.00;
 
