@@ -4528,7 +4528,14 @@ export default function App() {
 
       if (res.ok) {
 
-        toast.success('Sonoplastia automática concluída com sucesso!');
+        const logs = Array.isArray(data.logs) ? data.logs : [];
+        const highlights = logs.filter((line: string) =>
+          /Baixando|Sucesso|Mapeada|Sonoplastia concluída|segmento\(s\) com trilha/i.test(String(line)),
+        );
+        const summary = highlights.length > 0
+          ? highlights.slice(-2).map((line: string) => String(line).replace(/^\[[^\]]+\]\s*/, '')).join(' · ')
+          : 'Trilhas atualizadas.';
+        toast.success(`Sonoplastia concluída — ${summary}`, { duration: 7000 });
 
         fetchData();
 
