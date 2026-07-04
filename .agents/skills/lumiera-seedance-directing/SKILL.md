@@ -14,7 +14,7 @@ metadata:
   category: creator
 ---
 
-# Lumiera Seedance Directing (Fase 1)
+# Lumiera Seedance Directing (Fase 1 + Fase 2)
 
 Adaptação do [Skill OS seedance-2.0](https://github.com/Emily2040/seedance-2.0) para o pipeline Lumiera.
 
@@ -25,7 +25,7 @@ Complementa [[skills/visual-prompt-engineer]] — ordem recomendada:
 1. Roteiro + visual_prompts base
 2. **Seedance Directing** (esta skill)
 3. Engenharia Visual PRO
-4. (Fase 2) Geração T2V via LTX/Comfy ou API Seedance
+4. **Geração T2V** via LTX/Comfy ou API Seedance (Fase 2 — implementado)
 
 ---
 
@@ -113,8 +113,73 @@ Use notação `@Image1`, `@Video1`, `@Audio1` quando o asset ainda não existir 
 
 ---
 
+---
+
+## Fase 2 — Geração T2V
+
+**Endpoints:**
+- `POST /api/ai/creator/generate-seedance-t2v` — enfileira geração
+- `POST /api/ai/creator/attach-seedance-t2v` — copia output LTX → ASSETS + storyboard
+- `GET /api/ai/creator/seedance-t2v/preview-prompt?scene_index=N` — preview do prompt compilado
+
+**UI Creator:**
+- Botão global **🎥 T2V LTX (N)** — todas as cenas vídeo IA
+- Por cena vídeo IA: **Gerar vídeo LTX** no painel Directing
+
+### Providers
+
+| Provider | Quando usar | Requisito |
+|----------|-------------|-----------|
+| `ltx` (padrão) | RTX local, ComfyUI | ComfyUI online + modelos LTX |
+| `seedance` | API externa multimodal | `seedance_api.enabled` + `api_key` em config_qanat.json |
+
+### Config API Seedance (opcional)
+
+```json
+{
+  "seedance_api": {
+    "enabled": false,
+    "base_url": "https://api.seedance.ai/v1",
+    "api_key": "",
+    "model": "seedance-2.0"
+  }
+}
+```
+
+### Prompt compilado (LTX)
+
+Combina em ordem:
+1. `visual_prompt` (engenharia visual)
+2. `[Directing]` — dramatic_function, camera, lighting, performance, sound
+3. `[Refs]` — slots seedance_refs preenchidos
+4. `[Narration context]` — se não redundante
+
+### Chamada agente (LTX)
+
+```json
+POST /api/ai/creator/generate-seedance-t2v
+{ "project": "meu_projeto", "scene_indices": [2, 5], "provider": "ltx" }
+```
+
+Poll: `GET /api/comfyui/progress/:prompt_id`
+
+Quando `status === "completed"`:
+```json
+POST /api/ai/creator/attach-seedance-t2v
+{ "project": "meu_projeto", "prompt_id": "...", "scene_index": 2 }
+```
+
+O vídeo é copiado para `ASSETS/b{bloco}_{cena}_seedance_*.mp4` e vinculado em `visual_prompts[].asset` + `timeline_assets`.
+
+### Refs com arquivo real
+
+Se `identity`, `first_frame`, `style` ou `environment` apontam para arquivo em `ASSETS/`, o modo LTX usa **i2v** (quando workflow I2V disponível). Caso contrário: **t2v** com refs como texto no prompt.
+
+---
+
 ## Arquivos
 
-- Backend: `dashboard-qanat/backend/seedanceDirecting.js`
+- Backend Fase 1: `seedanceDirecting.js`
+- Backend Fase 2: `seedanceT2v.js`, `seedanceApiProvider.js`
 - Frontend: `SeedanceDirectingPanel.tsx`, `seedanceDirecting.ts`
-- Rota: `server.js` → `/api/ai/creator/compile-directing-briefs`
+- Rotas: `compile-directing-briefs`, `generate-seedance-t2v`, `attach-seedance-t2v`

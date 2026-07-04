@@ -245,6 +245,14 @@ import {
   applySeedanceDirectingResponse,
 } from "./seedanceDirecting.js";
 import {
+  generateSeedanceScenes,
+  attachSeedanceT2vOutput,
+  buildSeedanceT2vPrompt,
+  isVideoIaScene,
+  listVideoIaSceneIndices,
+} from "./seedanceT2v.js";
+import { loadSeedanceApiConfig } from "./seedanceApiProvider.js";
+import {
   applyDocumentaryHistoryPreset,
   injectListicleRankOverlays,
   avoidListicleHudCollisions,
@@ -13760,6 +13768,126 @@ app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
   } catch (err) {
     console.error("Erro em /api/ai/creator/compile-directing-briefs:", err);
     res.status(500).json({ error: "Erro ao compilar directing briefs", details: err.message });
+  }
+});
+
+// --- Seedance T2V (Fase 2): geração vídeo IA com directing + refs → LTX ou API Seedance ---
+app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  try {
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+    const rawIndices = req.body?.scene_indices ?? req.body?.sceneIndices;
+    const sceneIndices = Array.isArray(rawIndices)
+      ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+      : null;
+    const provider = String(req.body?.provider || "ltx").toLowerCase() === "seedance" ? "seedance" : "ltx";
+    const wait = Boolean(req.body?.wait);
+
+    if (provider === "seedance") {
+      const apiCfg = loadSeedanceApiConfig(projDir);
+      if (!apiCfg.enabled) {
+        return res.status(400).json({
+          error: "API Seedance desabilitada. Use provider: 'ltx' ou ative seedance_api.enabled em config_qanat.json.",
+        });
+      }
+    }
+
+    const result = await generateSeedanceScenes({
+      projDir,
+      storyboard,
+      config,
+      sceneIndices,
+      provider,
+      wait,
+    });
+
+    if (wait) {
+      fs.writeFileSync(storyboardPath, JSON.stringify(result.storyboard, null, 2), "utf8");
+    }
+
+    const videoSceneCount = listVideoIaSceneIndices(storyboard.visual_prompts || []).length;
+    console.log(`[Seedance T2V] ${result.jobs.length} job(s) enfileirado(s) — provider: ${provider}, vídeo IA total: ${videoSceneCount}`);
+    res.json({
+      provider,
+      waited: wait,
+      jobs: result.jobs,
+      storyboard: wait ? result.storyboard : undefined,
+      video_ia_scene_count: videoSceneCount,
+    });
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/generate-seedance-t2v:", err);
+    res.status(500).json({ error: "Erro ao gerar vídeo Seedance/LTX", details: err.message });
+  }
+});
+
+app.post("/api/ai/creator/attach-seedance-t2v", async (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+  }
+
+  try {
+    const promptId = String(req.body?.prompt_id || req.body?.promptId || "").trim();
+    const sceneIndex = Number(req.body?.scene_index ?? req.body?.sceneIndex);
+    if (!promptId) return res.status(400).json({ error: "prompt_id obrigatório." });
+    if (!Number.isFinite(sceneIndex) || sceneIndex < 0) {
+      return res.status(400).json({ error: "scene_index inválido." });
+    }
+
+    let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const config = readProjectJson(projDir, "config_qanat.json", {});
+
+    const result = await attachSeedanceT2vOutput(projDir, storyboard, config, sceneIndex, promptId);
+    if (!result.ready) {
+      return res.json({
+        ready: false,
+        status: result.status,
+        progress: result.progress,
+      });
+    }
+
+    res.json({
+      ready: true,
+      asset: result.asset,
+      storyboard: result.storyboard,
+      config: result.config,
+      blockKey: result.blockKey,
+      assetIdx: result.assetIdx,
+      compiled_prompt: buildSeedanceT2vPrompt(result.storyboard.visual_prompts?.[sceneIndex]),
+      is_video_ia: isVideoIaScene(result.storyboard.visual_prompts?.[sceneIndex]),
+    });
+  } catch (err) {
+    console.error("Erro em /api/ai/creator/attach-seedance-t2v:", err);
+    res.status(500).json({ error: "Erro ao vincular vídeo gerado", details: err.message });
+  }
+});
+
+app.get("/api/ai/creator/seedance-t2v/preview-prompt", (req, res) => {
+  const projDir = getProjectDir(req);
+  const storyboardPath = path.join(projDir, "storyboard.json");
+  if (!fs.existsSync(storyboardPath)) {
+    return res.status(404).json({ error: "Storyboard não encontrado." });
+  }
+  try {
+    const sceneIndex = Number(req.query?.scene_index ?? req.query?.sceneIndex);
+    const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    const vp = storyboard.visual_prompts?.[sceneIndex];
+    if (!vp) return res.status(404).json({ error: "Cena não encontrada." });
+    res.json({
+      scene_index: sceneIndex,
+      scene: vp.scene,
+      is_video_ia: isVideoIaScene(vp),
+      compiled_prompt: buildSeedanceT2vPrompt(vp),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
