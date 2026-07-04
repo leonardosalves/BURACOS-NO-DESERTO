@@ -47,6 +47,13 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) return 'vendor';
           if (id.includes('AppMusicTab')) return 'music-tab';
+          if (id.includes('ListicleCreatorStep')) return 'creator-step';
+          if (id.includes('SceneTimingEditor')) return 'scene-timing';
+          if (id.includes('WorkflowToolkit')) return 'workflow';
+          if (id.includes('OverlayTimelineEditor')) return 'overlay-editor';
+          if (id.includes('LumieraHomePage')) return 'home-page';
+          if (id.includes('DashminAiChat')) return 'ai-chat';
+          if (id.includes('creatorEditorialImport')) return 'creator-import';
         },
       },
     },
