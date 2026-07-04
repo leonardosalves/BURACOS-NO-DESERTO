@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 import React, { lazy, Suspense } from 'react';
-import { Check, Chrome, Copy, Play, RefreshCw, Sparkles, Trash2, Volume2, CheckCircle } from 'lucide-react';
+import { Check, CheckCircle, Chrome, Copy, Package, Play, RefreshCw, Sparkles, Trash2, Volume2 } from 'lucide-react';
 import { DashminPageLayout } from './DashminPageLayout';
 import { SectionHeader } from './SectionHeader';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
