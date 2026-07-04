@@ -2682,7 +2682,14 @@ export default function App() {
     if (patch.formatSelector) setFormatSelector(patch.formatSelector);
     if (patch.ideasData !== undefined) setIdeasData(patch.ideasData as typeof ideasData);
     if (patch.selectedIdeaIndex !== undefined) setSelectedIdeaIndex(patch.selectedIdeaIndex);
-    if (patch.generatedScriptData !== undefined) setGeneratedScriptData(patch.generatedScriptData);
+    if (patch.generatedScriptData !== undefined) {
+      if (patch.generatedScriptData) {
+        applyStoryboardToCreatorState(patch.generatedScriptData);
+      } else {
+        setGeneratedScriptData(null);
+        setStoryboardData(null);
+      }
+    }
     if (patch.creatorProjectName !== undefined) setCreatorProjectName(patch.creatorProjectName);
     if (patch.creatorScript !== undefined) setCreatorScript(patch.creatorScript);
     if (patch.ideationTab) setIdeationTab(patch.ideationTab);

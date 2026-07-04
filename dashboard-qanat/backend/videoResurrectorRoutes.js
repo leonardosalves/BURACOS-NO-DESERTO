@@ -20,6 +20,7 @@ import {
   runResurrectorBatch,
   saveResurrectorState,
   scanEligibleResurrectorVideos,
+  withResurrectorMutex,
 } from "./videoResurrector.js";
 
 export function registerVideoResurrectorRoutes(app, deps) {
@@ -47,8 +48,9 @@ export function registerVideoResurrectorRoutes(app, deps) {
     }
   });
 
-  app.put("/api/youtube/resurrector/settings", (req, res) => {
+  app.put("/api/youtube/resurrector/settings", async (req, res) => {
     try {
+      const payload = await withResurrectorMutex(() => {
       const state = loadResurrectorState(WORKSPACE_DIR);
       const patch = req.body?.settings || req.body || {};
       state.settings = {
@@ -65,7 +67,9 @@ export function registerVideoResurrectorRoutes(app, deps) {
         ...(Number.isFinite(Number(patch.cooldownDays)) ? { cooldownDays: Math.max(7, Math.min(180, Number(patch.cooldownDays))) } : {}),
       };
       saveResurrectorState(WORKSPACE_DIR, state);
-      res.json(getResurrectorDashboard(state));
+      return getResurrectorDashboard(state);
+      });
+      res.json(payload);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -73,6 +77,7 @@ export function registerVideoResurrectorRoutes(app, deps) {
 
   app.post("/api/youtube/resurrector/scan", async (_req, res) => {
     try {
+      const payload = await withResurrectorMutex(async () => {
       const state = loadResurrectorState(WORKSPACE_DIR);
       const { eligible, allEligible, diagnostics } = await scanEligibleResurrectorVideos(
         WORKSPACE_DIR,
@@ -90,13 +95,15 @@ export function registerVideoResurrectorRoutes(app, deps) {
       next.cycleProgress = computeResurrectorCycleProgress(next, allEligible || eligible);
       next.scanDiagnostics = diagnostics;
       saveResurrectorState(WORKSPACE_DIR, next);
-      res.json({
+      return {
         eligible: eligible.length,
         added,
         diagnostics,
         message: formatResurrectorScanMessage(diagnostics, { eligible: eligible.length, added }),
         dashboard: getResurrectorDashboard(next),
+      };
       });
+      res.json(payload);
     } catch (err) {
       res.status(500).json({ error: err.message, needsReauth: err.needsReauth });
     }
@@ -135,28 +142,32 @@ export function registerVideoResurrectorRoutes(app, deps) {
     }
   });
 
-  app.post("/api/youtube/resurrector/retry-failed", (_req, res) => {
+  app.post("/api/youtube/resurrector/retry-failed", async (_req, res) => {
     try {
+      const payload = await withResurrectorMutex(() => {
       const state = loadResurrectorState(WORKSPACE_DIR);
       const reset = resetResurrectorFailedItems(state);
       saveResurrectorState(WORKSPACE_DIR, state);
-      res.json({
+      return {
         reset,
         dashboard: getResurrectorDashboard(state),
         message: reset
           ? `${reset} vídeo(s) com falha voltaram para a fila.`
           : "Nenhuma falha pendente para reprocessar.",
+      };
       });
+      res.json(payload);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.patch("/api/youtube/resurrector/items/:id", (req, res) => {
+  app.patch("/api/youtube/resurrector/items/:id", async (req, res) => {
     try {
+      const payload = await withResurrectorMutex(() => {
       const state = loadResurrectorState(WORKSPACE_DIR);
       const idx = state.items.findIndex((i) => i.id === req.params.id);
-      if (idx < 0) return res.status(404).json({ error: "Item não encontrado." });
+      if (idx < 0) return { notFound: true };
 
       const patch = req.body || {};
       const item = state.items[idx];
@@ -178,7 +189,12 @@ export function registerVideoResurrectorRoutes(app, deps) {
       item.updatedAt = new Date().toISOString();
       state.items[idx] = item;
       saveResurrectorState(WORKSPACE_DIR, state);
-      res.json({ item, dashboard: getResurrectorDashboard(state) });
+      return { item, dashboard: getResurrectorDashboard(state) };
+      });
+      if (payload?.notFound) {
+        return res.status(404).json({ error: "Item não encontrado." });
+      }
+      res.json(payload);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

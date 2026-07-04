@@ -28,6 +28,15 @@ import { injectStudioAgentsContext } from "./studioAgents.js";
 export const RESURRECTOR_FILE = "youtube_video_resurrector.json";
 const MAX_ACTIVITY_LOG = 250;
 
+let resurrectorMutex = Promise.resolve();
+
+/** Serializa mutações do estado do ressuscitador (evita last-write-wins entre rotas). */
+export function withResurrectorMutex(fn) {
+  const job = resurrectorMutex.then(() => fn());
+  resurrectorMutex = job.then(() => undefined).catch(() => undefined);
+  return job;
+}
+
 export const RESURRECTOR_STATUSES = [
   "queued",
   "generating",
@@ -1049,6 +1058,10 @@ export function shouldAutoTriggerResurrectorSlot(schedule, slot, settings = {}) 
 }
 
 export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {}, options = {}) {
+  return withResurrectorMutex(() => runResurrectorBatchInner(workspaceDir, projectsRoot, deps, options));
+}
+
+async function runResurrectorBatchInner(workspaceDir, projectsRoot, deps = {}, options = {}) {
   const {
     slot = "morning",
     trigger = "manual",
@@ -1288,6 +1301,10 @@ export async function runResurrectorBatch(workspaceDir, projectsRoot, deps = {},
 }
 
 export async function applyPendingResurrectorReviews(workspaceDir) {
+  return withResurrectorMutex(() => applyPendingResurrectorReviewsInner(workspaceDir));
+}
+
+async function applyPendingResurrectorReviewsInner(workspaceDir) {
   let state = loadResurrectorState(workspaceDir);
   const settings = state.settings || DEFAULT_SETTINGS;
 

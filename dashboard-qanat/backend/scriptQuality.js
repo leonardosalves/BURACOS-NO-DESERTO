@@ -1,6 +1,9 @@
 /** Regras e pós-processamento para roteiros naturais, coerentes e com mensagem clara. */
 
 import { resolveStockSearchQuery } from "./stockSearchQuery.js";
+import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
+import { buildTitleCraftRules } from "./titleGenerator.js";
+import { buildCinematicNarrationRules, buildEpidemicMoodPrompt } from "./videoProEnhancements.js";
 import {
   enrichVisualPromptsSpecificity,
   buildSceneSpecificPrompt,
@@ -1484,6 +1487,161 @@ ${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, lis
 ${buildChecklistSchemaBlock()}
 9. "technical_config"
 ${isListicle ? `10. "listicle" e 11. "list_items" (${listicleRank} itens)` : ""}`;
+}
+
+/** Roteiro completo em uma fase (narração + visual_prompts + technical_config). */
+export function buildCreatorFullScriptPrompt(ctx = {}) {
+  const {
+    niche,
+    format,
+    idea = {},
+    isListicle = false,
+    listicleRank = 20,
+    listicleTopic = "",
+    rankOrder = "desc",
+    listicleBlockCount = 22,
+    notebooklmContext = "",
+    webResearchContext = "",
+    cinematicNarrationRules = "",
+    titleCraftRules = "",
+    epidemicMoodPrompt = "",
+  } = ctx;
+
+  const ideaHeader = buildIdeaContextHeader({
+    niche, format, idea, isListicle, listicleRank, listicleTopic, rankOrder, listicleBlockCount,
+  });
+
+  let customAddendum = "";
+  if (idea.isCustom) {
+    customAddendum += `\n\nATENÇÃO: A ideia original, os ganchos e a estrutura fornecida pelo usuário podem estar em português ou inglês. O roteiro gerado e a narração devem ser obrigatoriamente em Português do Brasil (PT-BR) de forma extremamente natural, humanizada, fluida e cativante — estilo UGC falado (skill ugc-scriptwriter). Fechamento DECLARATIVO; proibido "Você prefere…?" ou perguntas vazias de comentário. No entanto, os ganchos visuais ("visual_prompts") e termos de busca ('prompt' e 'stock_query') devem permanecer em inglês para manter a compatibilidade com a geração de assets.`;
+    const customHookVal = idea.hook || idea.hooks || "";
+    const pioneerMode = idea.pioneerNiche
+      || isPioneerStrategyText(idea.title)
+      || isPioneerStrategyText(idea.promise)
+      || isPioneerStrategyText(customHookVal)
+      || /TEMA DO VÍDEO/i.test(String(idea.promise || ""));
+    if (pioneerMode) {
+      customAddendum += `\n\nMODO NICHO PIONEIRO: O vídeo deve ser SOBRE O TEMA/ÂNGULO descrito na promessa (fatos, história, objeto, fenômeno real). PROIBIDO fazer vídeo sobre "nicho virgem", saturação de mercado, gap de pontos, como encontrar nichos no YouTube, "farsa do mercado saturado" ou estratégia de criador. Se a promessa tiver "Contexto estratégico", use só como nota interna — não vire isso no roteiro.`;
+    }
+    if (webResearchContext) customAddendum += webResearchContext;
+  }
+
+  const formatRules = isListicle
+    ? buildListicleScriptRules({
+      rankCount: listicleRank,
+      rankOrder: rankOrder || "desc",
+      format,
+      listTopic: listicleTopic,
+      blockCount: listicleBlockCount,
+    })
+    : buildFormatScriptRules(format);
+
+  const titleRules = titleCraftRules || buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG");
+  const cinemaRules = cinematicNarrationRules || buildCinematicNarrationRules();
+  const moodPrompt = epidemicMoodPrompt || buildEpidemicMoodPrompt(
+    niche,
+    { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic },
+    { listicle: { topic: listicleTopic } },
+  );
+
+  const blockStructureRule = isListicle
+    ? `MODO LISTICLE ATIVO: use EXATAMENTE ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). Cada item = 1 bloco. Não resuma vários itens no mesmo bloco.`
+    : `Se for uma ideia personalizada (isCustom: true), a 'Estrutura/Ganchos por Bloco' fornecida representa apenas um esboço inicial do usuário. Você DEVE expandi-la e detalhá-la para atingir exatamente 12 blocos lógicos (se o formato for LONGO) ou exatamente 5 blocos (se o formato for SHORTS) na narração completa e em 'technical_config.block_phrases'. Não limite o roteiro nem os blocos de configuração ao número de blocos informados pelo usuário; crie uma estrutura completa e equilibrada para o formato do vídeo.`;
+
+  const durationRule = isListicle
+    ? `LISTICLE: ${listicleBlockCount} blocos obrigatórios. Tempo estimado: ${format === "SHORTS" ? (listicleRank >= 5 ? "45-60 segundos" : "35-50 segundos") : `${Math.round(listicleRank * 0.75)}-${Math.round(listicleRank * 1.2)} minutos`}. Um item por bloco, ordem ${rankOrder === "asc" ? "crescente" : "decrescente"}.`
+    : format === "SHORTS"
+      ? "SHORTS: 30-50 segundos, 5 cenas (gancho, contexto, desenvolvimento, virada, payoff+CTA)."
+      : "LONGO: O roteiro DEVE ser muito profundo, detalhado e extenso. O tempo de vídeo ideal é de 10 a 20 minutos (1500 a 3000 palavras). Explore cada detalhe do assunto ao máximo, traga histórias, metáforas, contexto histórico, dados e crie uma narrativa imersiva. Estruture em pelo menos 12 blocos (cold open, promessa, contexto, desenvolvimento profundo, tensão, valor, resumo, payoff, CTA). NUNCA faça um roteiro superficial ou curto.";
+
+  const visualTypeMix = format === "SHORTS"
+    ? `- SHORTS: mínimo ${SHORTS_MIN_VIDEO_SCENES} cenas com type "${SHORTS_VIDEO_SCENE_TYPE}" — gancho (cena 1), virada (meio) e payoff (final) devem ter movimento ativo. Distribua os vídeos ao longo do Short; não concentre todos no fim.
+- SHORTS: demais cenas = "imagem IA 2k" (photorealistic 2k, Ken Burns).`
+    : `- 80-90% devem ser IMAGEM IA 2K (photorealistic 2k resolution, cinematic, para usar com efeito Ken Burns zoom lento).
+- 10-20% devem ser VÍDEO IA (máximo estrito de 10 segundos, apenas para movimento ativo: água, fogo, multidão, câmera em movimento).`;
+
+  const aspectRule = format === "SHORTS"
+    ? "Composição vertical 9:16, framing apertado, sujeito centralizado ou em terços superiores/inferiores."
+    : "Composição widescreen 16:9, shots amplos ou pans horizontais quando apropriado, profundidade de campo cinematográfica.";
+
+  const listicleJsonTail = isListicle ? `
+10. "listicle": {
+   "content_mode": "LISTICLE",
+   "rank_count": ${listicleRank},
+   "rank_order": "${rankOrder === "asc" ? "asc" : "desc"}",
+   "topic": "${String(listicleTopic).replace(/"/g, '\\"')}"
+}
+11. "list_items": [
+   { "rank": ${listicleRank}, "title": "nome do item", "year": "ano", "origin": "país", "block": 2, "hook_line": "gancho", "visual_hook": "english stock term" }
+]` : "";
+
+  return `Você é o "Lumiera Script Master" (Roteirista Profissional, Estrategista de Retenção, Diretor Criativo e Editor de Vídeos para YouTube).
+
+${ideaHeader}${customAddendum}
+${notebooklmContext}
+
+SUA MISSÃO PRINCIPAL:
+
+Crie um roteiro COMPLETO de narração para o vídeo e DIVIDA TODA a narração em segmentos sequenciais. Para CADA segmento da narração, gere um prompt visual correspondente (imagem 2K ou vídeo IA máx 10s). A narração inteira deve ser coberta — sem lacunas. Se precisar de 50, 80 ou 100 segmentos, gere todos. O array "visual_prompts" É o roteiro do vídeo.
+
+${SCRIPT_CREATIVE_REINFORCEMENT}
+
+${formatRules}
+
+${titleRules}
+
+${cinemaRules}
+
+${moodPrompt}
+
+Reforco especifico para montagem do roteiro:
+
+- A MENSAGEM CENTRAL deve estar clara na promessa da ideia ("${idea.promise || ""}"). Cada bloco aproxima o espectador dessa compreensão.
+- Preserve exatamente o formato JSON solicitado abaixo (com todas as chaves, incluindo 'technical_config').
+- ${blockStructureRule}
+- Nao reduza a cobertura visual: o array visual_prompts continua cobrindo toda a narracao, como o programa ja espera.
+
+Regras do Roteiro:
+
+1. Pesquise internamente o nicho (tendências, dores, desejos, medos, polêmicas, curiosidades).
+2. Não repita temas de vídeos anteriores.
+3. Prenda a atenção nos primeiros 3 segundos.
+4. Use open loop, curiosidade progressiva, microcliffhangers e payoff final.
+5. Narração em português brasileiro: deve ser extremamente humana, fluida, natural, carismática e cheia de vida.
+6. Formato: "${format}"${isListicle ? ` — LISTICLE TOP ${listicleRank}` : ""}.
+   ${durationRule}
+
+${buildVisualPromptsRules({ format, isListicle, listicleRank })}
+
+${visualTypeMix}
+
+- Prompts variados: close-ups, planos abertos, aéreas, texturas, detalhes, paisagens, mapas, infográficos visuais.
+- Nunca coloque texto dentro dos prompts visuais.
+- Cada prompt deve ter um stock_query para busca em Pexels/Pixabay/Canva.
+- REGRA INQUEBRÁVEL DE TEXTO PT-BR: Se a cena incluir text_overlay, impact_text, rótulo, número, display ou QUALQUER texto visível na imagem/vídeo, adicione ao final do prompt: "Todo e qualquer texto, rótulo, número, inscrição, legenda, display ou elemento visível e legível na imagem ou vídeo deve estar escrito em português do Brasil."
+- COMPOSIÇÃO DE ASPECTO: ${aspectRule}
+${isListicle ? `- LISTICLE: inclua "text_overlay" em toda primeira cena de cada item (ex: "#15 — PÓLVORA").` : ""}
+
+FORMATO DE RESPOSTA - JSON válido com estas propriedades:
+
+1. "strategy": { "title_main", "title_variations" (5), "hook", "target_audience", "tone", "pinned_comment", "cta" }
+2. "narrative_script": narração COMPLETA em texto corrido (limpa, sem tags).
+3. "narrative_script_tagged": mesma narração com tags de áudio ([pause], (breath), <break time="1.5s"/>, etc.).
+${buildVisualPromptsJsonSchema({ blockCount: listicleBlockCount, isListicle, listicleRank })}
+5. "bgm_recommendations": [ um objeto por bloco com "block", "recommendation", "search_theme" ]
+6. "editing_map"
+7. "hyperframe_prompt"
+${buildChecklistSchemaBlock()}
+9. "technical_config": { "script", "block_phrases", "impact_texts", "highlight_keywords", "bgm_mappings" }
+${listicleJsonTail}
+
+REGRAS FINAIS:
+
+- Retorne APENAS JSON puro, sem markdown, sem explicações.
+- O JSON deve ser 100% válido. Escape aspas internas com barra invertida.
+- O array visual_prompts deve cobrir TODA a narração sem lacunas.
+- NÃO inclua "duration" nos visual_prompts — os segundos de cada cena vêm do Whisper após a narração.
+- Gere quantas cenas forem necessárias (${isListicle ? `${listicleRank * 3}+ para listicle` : "40-80+ para Longo, 5-10 para Shorts"}).`;
 }
 
 export function extractNarrativeScriptFromRaw(responseText = "") {
