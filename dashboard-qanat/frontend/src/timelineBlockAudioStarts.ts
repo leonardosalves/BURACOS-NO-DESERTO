@@ -13,6 +13,19 @@ import {
   type TimelineAsset,
 } from "./timelineNarrationSync";
 
+export function createBlockAssetDurationResolver(
+  timelineAssets: Record<string, TimelineAsset[]>,
+  blockDurations: number[] | undefined,
+): (blockKey: string, index: number) => number {
+  return (blockKey, index) => {
+    const configs = timelineAssets[blockKey];
+    if (!configs || configs[index] === undefined) return 0;
+    const blockNum = parseInt(blockKey, 10);
+    const blockDuration = blockDurations?.[blockNum - 1] ?? 10.0;
+    return computeAssetDuration(configs[index], configs, blockDuration);
+  };
+}
+
 export function resolveBlockAudioAnchorStart({
   ctx,
   blockNum,

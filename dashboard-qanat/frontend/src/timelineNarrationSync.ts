@@ -1,6 +1,11 @@
 /** Narração por bloco/asset — sem vazamento entre blocos; split só quando o usuário pede. */
 
-import { cleanText, findBoundedNarrationMatch, matchWords } from "@lumiera/shared/narrationMatch.js";
+import {
+  cleanText,
+  findBoundedNarrationMatch,
+  matchWords,
+  type NarrationMatchResult,
+} from "@lumiera/shared/narrationMatch.js";
 import { getBlockNarrationAnchor as getBlockNarrationAnchorCore } from "@lumiera/shared/timelineNarration.js";
 import { repairMojibake } from "./textEncoding";
 
@@ -156,6 +161,64 @@ export function getAssetNarrationText(ctx: NarrationSyncContext, blockKey: strin
 
 export function narrationCacheKey(blockNum: number, text: string) {
   return `${blockNum}::${text}`;
+}
+
+export type NarrationMatchCache = Record<string, NarrationMatchResult>;
+
+export function buildNarrationMatchesCache({
+  timelineAssets,
+  flatTranscriptWords,
+  status,
+  getAssetText,
+  getBlockText,
+}: {
+  timelineAssets: Record<string, TimelineAsset[]>;
+  flatTranscriptWords: Array<{ word: string; clean?: string; start: number; end: number }>;
+  status?: BlockTimingStatus;
+  getAssetText: (blockKey: string, idx: number) => string;
+  getBlockText: (blockNum: number) => string;
+}): NarrationMatchCache {
+  const cache: NarrationMatchCache = {};
+  if (!flatTranscriptWords?.length) return cache;
+
+  Object.keys(timelineAssets).forEach((blockKey) => {
+    const blockNum = parseInt(blockKey, 10);
+    if (!Number.isFinite(blockNum)) return;
+    const bounds = getBlockTimeBounds(status, blockNum);
+    const assets = timelineAssets[blockKey] || [];
+    assets.forEach((_, idx) => {
+      const narrationText = getAssetText(blockKey, idx);
+      if (!narrationText) return;
+      const key = narrationCacheKey(blockNum, narrationText);
+      if (cache[key]) return;
+      const hit = findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
+      if (hit) cache[key] = hit;
+    });
+    const blockText = getBlockText(blockNum);
+    if (blockText) {
+      const key = narrationCacheKey(blockNum, blockText);
+      if (!cache[key]) {
+        const hit = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+        if (hit) cache[key] = hit;
+      }
+    }
+  });
+
+  return cache;
+}
+
+export function lookupNarrationTimestamps(
+  narrationText: string,
+  blockNum: number,
+  cache: NarrationMatchCache,
+  flatTranscriptWords: Array<{ word: string; clean?: string; start: number; end: number }>,
+  status?: BlockTimingStatus,
+): NarrationMatchResult | null {
+  if (!narrationText || !Number.isFinite(blockNum)) return null;
+  const cacheKey = narrationCacheKey(blockNum, narrationText);
+  if (cache[cacheKey]) return cache[cacheKey];
+  const bounds = getBlockTimeBounds(status, blockNum);
+  return findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
 }
 
 type TranscriptSegment = {
