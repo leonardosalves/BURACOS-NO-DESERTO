@@ -375,6 +375,7 @@ import {
   sanitizeFullTimelineAssets,
   realignTimelineAssetsToSpeech,
   recalculateSequentialAudioStarts,
+  bootstrapTimelineSlotsFromWhisper,
   syncProjectTimelineAfterWhisper,
   applyWhisperDurationsToStoryboard,
   fillSceneTimelineGaps,
@@ -4007,7 +4008,16 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
 
   const previousAutoBgmKeys = collectExistingAutoBgmKeys(projDir, config);
 
-  if (mode === "SHORTS" || config.use_single_bgm) {
+  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+  const totalDuration = Number(timings.total_duration)
+    || (timings.durations || []).reduce(
+      (max, d, i) => Math.max(max, (Number(timings.starts?.[i]) || 0) + Number(d)),
+      0,
+    );
+  const videoFormat = mode === "SHORTS" ? "SHORT" : detectVideoFormat(config, totalDuration);
+  const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
+
+  if (bgmMode === "single") {
 
     let rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
 
@@ -4067,18 +4077,16 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
 
     }
 
-  } else {
-    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
-    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
-    const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
-    const blockRanges = buildProjectBlockRanges(blockNumbers, timings);
-    const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
-    const totalDuration = Number(timings.total_duration)
-      || blockRanges.reduce((max, r) => Math.max(max, r.start + r.duration), 0);
-    const videoFormat = detectVideoFormat(config, totalDuration);
-    const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
+    return logs;
 
-    if (bgmMode === "emotion") {
+  }
+
+  const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+  const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
+  const blockRanges = buildProjectBlockRanges(blockNumbers, timings);
+  const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
+
+  if (bgmMode === "emotion") {
       config.bgm_mode = "emotion";
       config.use_single_bgm = false;
       config.single_bgm = "";
@@ -4161,9 +4169,9 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
       fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
       logs.push(`Sonoplastia emocional: ${config.bgm_emotion_mappings.length} segmento(s) com trilha.`);
       return logs;
-    }
+  }
 
-    const sonoplastiaPlan = buildBlockSonoplastiaPlan({
+  const sonoplastiaPlan = buildBlockSonoplastiaPlan({
       config,
       storyboard,
       blockNumbers,
@@ -4276,8 +4284,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
     fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
 
-    logs.push(`Sonoplastia concluída: ${config.bgm_mappings.length} bloco(s) com trilha.`);
-  }
+  logs.push(`Sonoplastia concluída: ${config.bgm_mappings.length} bloco(s) com trilha.`);
 
   return logs;
 
@@ -6292,6 +6299,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
   const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
+  const isChunkedNarration = config.narration_mode === NARRATION_MODE_CHUNKED
+    || timings.source === "narration_chunks"
+    || (Array.isArray(wordTranscripts) && wordTranscripts.some((s) => s.chunk_id));
+
   if (flatTranscriptWords.length > 0 && config.timeline_assets) {
     // Verificar se o usuario ja sincronizou assets — se sim, respeitar os valores salvos
     const anyBlockSynced = Object.values(config.timeline_assets).some(
@@ -6299,22 +6310,44 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     );
 
     if (!anyBlockSynced) {
-      const realigned = realignTimelineAssetsToSpeech({
-        timelineAssets: config.timeline_assets,
-        blockTimings: timings,
-        flatTranscriptWords,
-        visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-        blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
-        preserveExplicitFixed: true,
-      });
-      config.timeline_assets = realigned;
+      let nextTimelineAssets;
+      if (isChunkedNarration) {
+        nextTimelineAssets = bootstrapTimelineSlotsFromWhisper({
+          timelineAssets: config.timeline_assets,
+          wordTranscripts,
+          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          flatTranscriptWords,
+        });
+        nextTimelineAssets = realignTimelineAssetsToSpeech({
+          timelineAssets: nextTimelineAssets,
+          blockTimings: timings,
+          flatTranscriptWords,
+          wordTranscripts,
+          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          preserveExplicitFixed: true,
+        });
+        console.log("[Remotion] timeline_assets ancorados aos segmentos de narração por trechos.");
+      } else {
+        nextTimelineAssets = realignTimelineAssetsToSpeech({
+          timelineAssets: config.timeline_assets,
+          blockTimings: timings,
+          flatTranscriptWords,
+          wordTranscripts,
+          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          preserveExplicitFixed: true,
+        });
+        console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
+      }
+      config.timeline_assets = nextTimelineAssets;
       try {
         fs.writeFileSync(
           path.join(projectDir, "config_qanat.json"),
           JSON.stringify(config, null, 2),
           "utf8",
         );
-        console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
       } catch (e) {
         console.warn("[Remotion] Falha ao salvar timeline realinhada:", e.message);
       }
