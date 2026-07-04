@@ -85,6 +85,7 @@ export type AppCreatorTabProps = {
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
   handleGenerateIdeas: (opts?: { forceVariety?: boolean }) => void | Promise<void>;
+  clearCreatorPhase2Vestiges: () => void;
   handleRunFacelessPipeline90: () => void | Promise<void>;
   handleGenerateListicleScript: () => void | Promise<void>;
   handleGenerateNarration: () => void | Promise<void>;
@@ -229,6 +230,7 @@ export function AppCreatorTab({
   handleFileInput,
   handleGenerateFullScript,
   handleGenerateIdeas,
+  clearCreatorPhase2Vestiges,
   handleRunFacelessPipeline90,
   handleGenerateListicleScript,
   handleGenerateNarration,
@@ -1207,11 +1209,9 @@ export function AppCreatorTab({
                           <button 
 
                             onClick={() => {
-
+                              clearCreatorPhase2Vestiges();
                               setIdeasData(null);
-
                               setSelectedIdeaIndex(-1);
-
                             }}
 
                             className="text-xs text-zinc-500 hover:text-white font-semibold transition cursor-pointer"
@@ -1249,7 +1249,7 @@ export function AppCreatorTab({
                       </div>
 
                     )}
-                    {showNarrationReview && (
+                    {showNarrationReview && (narrationDraft.trim() || narrationTaggedDraft.trim()) && (
                       <NarrationReviewPanel
                         narrativeScript={narrationDraft}
                         narrativeScriptTagged={narrationTaggedDraft}
@@ -1860,7 +1860,7 @@ export function AppCreatorTab({
 
               {/* Optional: Script Master Strategy Details Panel */}
 
-              {generatedScriptData && (
+              {generatedScriptData && creatorStep > 1 && (
 
                 <div className="glass-panel p-6 rounded-3xl mt-8 space-y-6 font-sans">
 

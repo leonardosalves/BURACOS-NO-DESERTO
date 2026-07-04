@@ -110,6 +110,7 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     handleFileInput: ctx.handleFileInput,
     handleGenerateFullScript: ctx.handleGenerateFullScript,
     handleGenerateIdeas: ctx.handleGenerateIdeas,
+    clearCreatorPhase2Vestiges: ctx.clearCreatorPhase2Vestiges,
     handleRunFacelessPipeline90: ctx.handleRunFacelessPipeline90,
     handleGenerateListicleScript: ctx.handleGenerateListicleScript,
     handleGenerateNarration: ctx.handleGenerateNarration,

@@ -5836,6 +5836,7 @@ export default function App() {
       ? (ideasData?.ideas || [])
       : [];
 
+    clearCreatorPhase2Vestiges();
     setCreatorLoading(true);
 
     if (!regen) {
@@ -6200,6 +6201,29 @@ export default function App() {
     setCreatorLoading(false);
     setCreatorLoadingMode('idle');
   };
+
+  /** Remove roteiro/narração de projetos anteriores — passo 1 não deve mostrar fase 2. */
+  const clearCreatorPhase2Vestiges = useCallback(() => {
+    wizardStoryboardSuppressedRef.current = true;
+    clearPendingStoryboardSave();
+    storyboardDirtyRef.current = false;
+    storyboardFetchGenRef.current += 1;
+
+    setGeneratedScriptData(null);
+    setStoryboardData(null);
+    setCreatorScript('');
+    setTaggedNarrations({ fish: '', eleven: '', minimax: '' });
+    setShowNarrationReview(false);
+    setNarrationDraft('');
+    setNarrationTaggedDraft('');
+    setNarrationStrategy(null);
+    setNarrationBlockPhrases([]);
+    setNarrationBlockScript('');
+    setNarrationNotebooklmEnriched(false);
+    setNarrationProjectName('');
+    setDirectingSceneIndex(null);
+    setSeedanceT2vJobs({});
+  }, []);
 
   const resetCreatorWizard = useCallback((opts?: { deleteServerSessionFor?: string }) => {
     wizardResettingRef.current = true;
@@ -7950,6 +7974,7 @@ export default function App() {
     handleGenerateCanvaThumbnails,
     handleGenerateFullScript,
     handleGenerateIdeas,
+    clearCreatorPhase2Vestiges,
     handleRunFacelessPipeline90,
     handleGenerateListicleScript,
     handleGenerateNarration,
