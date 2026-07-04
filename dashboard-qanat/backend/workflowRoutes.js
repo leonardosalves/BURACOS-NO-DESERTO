@@ -701,8 +701,8 @@ export function registerWorkflowRoutes(app, deps) {
         });
       }
 
-      const storyboard = JSON.parse(fs.readFileSync(path.join(projDir, "storyboard.json"), "utf8"));
-      const config = JSON.parse(fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8"));
+      let storyboard = JSON.parse(fs.readFileSync(path.join(projDir, "storyboard.json"), "utf8"));
+      let config = JSON.parse(fs.readFileSync(path.join(projDir, "config_qanat.json"), "utf8"));
       const plan = storyboard.narration_chunk_plan;
       if (!plan?.chunks?.length) {
         throw new Error("Plano de trechos ausente — use 'Planejar trechos (IA)' antes.");
