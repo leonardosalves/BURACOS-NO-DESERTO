@@ -23,6 +23,8 @@ import { FacelessChannelPanel } from './FacelessChannelPanel';
 import { canRunFacelessPipeline90 } from './facelessChannel';
 import { SeedanceDirectingPanel, SeedanceDirectingToolbar } from './SeedanceDirectingPanel';
 import { countScenesWithDirecting, countVideoIaScenes, sceneHasGeneratedVideo } from './seedanceDirecting';
+import { resolveScenePreviewAsset, SCENE_VIDEO_ACCEPT, detectUploadMediaType } from './assetPreviewUtils';
+import { TimelineClipPreview } from './TimelineClipPreview';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
 
 export type AppCreatorTabProps = {
@@ -2185,7 +2187,10 @@ export function AppCreatorTab({
 
                                       ) || vp.asset?.asset;
 
-                                      const currentAsset = vp.asset || config?.timeline_assets?.[blockKey]?.[assetIdx];
+                                      const currentAsset = resolveScenePreviewAsset(
+                                        vp?.asset,
+                                        config?.timeline_assets?.[blockKey]?.[assetIdx],
+                                      );
 
                                                                             const assetUsedIn = currentAsset?.asset
 
@@ -2362,39 +2367,14 @@ export function AppCreatorTab({
 
                                               <div className="flex items-center gap-3 rounded-xl border border-zinc-850 bg-zinc-950/80 p-2.5">
 
-                                                <div className="w-20 h-14 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-850 shrink-0 flex items-center justify-center">
+                                                <div className="w-28 shrink-0">
 
-                                                  {currentAsset.type === 'video' ? (
-
-                                                    <video
-
-                                                      src={getAssetUrl(currentAsset.asset)}
-
-                                                      className="w-full h-full object-cover"
-
-                                                      muted
-
-                                                      playsInline
-
-                                                      preload="metadata"
-
-                                                    />
-
-                                                  ) : (
-
-                                                    <img
-
-                                                      src={getAssetUrl(currentAsset.asset)}
-
-                                                      className="w-full h-full object-cover"
-
-                                                      alt=""
-
-                                                      loading="lazy"
-
-                                                    />
-
-                                                  )}
+                                                  <TimelineClipPreview
+                                                    asset={currentAsset}
+                                                    getAssetUrl={getAssetUrl}
+                                                    clipDuration={durationFromWhisper ? sceneDurationSeconds : 4}
+                                                    compact
+                                                  />
 
                                                 </div>
 
@@ -2473,9 +2453,15 @@ export function AppCreatorTab({
 
                                                 type="file" 
 
-                                                accept={isVideo ? "video/mp4" : "image/png,image/jpeg,image/jpg"}
+                                                accept={isVideo ? SCENE_VIDEO_ACCEPT : "image/png,image/jpeg,image/jpg,image/webp"}
 
-                                                onChange={(e) => { if (e.target.files && e.target.files[0]) { handleUploadSceneAsset(blockNum, isVideo ? "video" : "image", e.target.files[0], assetIdx); }}}
+                                                onChange={(e) => {
+                                                  const file = e.target.files?.[0];
+                                                  if (!file) return;
+                                                  const uploadType = detectUploadMediaType(file, isVideo);
+                                                  handleUploadSceneAsset(blockNum, uploadType, file, assetIdx);
+                                                  e.target.value = '';
+                                                }}
 
                                                 className="hidden" 
 

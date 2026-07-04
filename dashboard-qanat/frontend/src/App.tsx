@@ -3007,7 +3007,7 @@ export default function App() {
 
           for (let j = 0; j < nextPrompts.length; j++) {
 
-            if ((nextPrompts[j].block || 1) === sceneNum) {
+            if (Number(nextPrompts[j].block || 1) === Number(sceneNum)) {
 
               if (currentAssetIdx === assetIdx) {
 
@@ -3034,6 +3034,10 @@ export default function App() {
                 asset: data.asset,
 
                 type,
+
+                user_locked: true,
+
+                manual_asset: true,
 
                 ...(type === 'video' ? { fixed: 8.00 } : {})
 
@@ -3057,7 +3061,7 @@ export default function App() {
 
           for (let j = 0; j < nextPrompts.length; j++) {
 
-            if ((nextPrompts[j].block || 1) === sceneNum) {
+            if (Number(nextPrompts[j].block || 1) === Number(sceneNum)) {
 
               if (currentAssetIdx === assetIdx) {
 
@@ -3084,6 +3088,10 @@ export default function App() {
                 asset: data.asset,
 
                 type,
+
+                user_locked: true,
+
+                manual_asset: true,
 
                 ...(type === 'video' ? { fixed: 8.00 } : {})
 
