@@ -10,6 +10,7 @@ import {
   getStrictBlockBounds,
   collectBlockWordsFromTranscriptSegments,
   mapStoryboardWordsWithTiming,
+  resolveBlockNarrationAnchor,
   type BlockTimingStatus,
   type NarrationSyncContext,
   type TimelineAsset,
@@ -298,7 +299,8 @@ export function buildBlockTimingModel(
   );
 
   const blockDuration = Math.max(MIN_SCENE_SECONDS, blockEnd - blockStart);
-  const narrationStart = blockWords[0]?.start ?? blockStart;
+  const matchedAnchor = resolveBlockNarrationAnchor(ctx, blockNum, assets, flatWords);
+  const narrationStart = matchedAnchor ?? blockWords[0]?.start ?? blockStart;
   const rawNarrationEnd = blockWords[blockWords.length - 1]?.end ?? blockEnd;
   const narrationEnd = Math.min(rawNarrationEnd, blockEnd);
   const speechDuration = Math.max(0, narrationEnd - narrationStart);
