@@ -7370,7 +7370,7 @@ export default function App() {
       saveConfigPatch={saveConfigPatch}
       syncCreatorStoryboard={syncCreatorStoryboard}
       fetchData={fetchData}
-      fetchStatus={fetchStatus}
+      fetchStatus={fetchStatusAndOutputs}
       suggestBlockProgressIcons={suggestBlockProgressIcons}
       syncBlockProgressTitles={syncBlockProgressTitles}
         />
