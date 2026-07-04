@@ -36,3 +36,23 @@ export function listBgmMusicCandidates(projDir) {
     return [];
   }
 }
+
+/** Resolve arquivo apenas dentro da pasta do projeto (sem fallback ao workspace). */
+export function findProjectFileLocal(projDir, fileName = "") {
+  if (!projDir || !fileName) return null;
+  const safeName = path.basename(String(fileName).trim());
+  if (!safeName) return null;
+  const candidates = [
+    path.join(projDir, safeName),
+    path.join(projDir, "ASSETS", safeName),
+    path.join(projDir, "ASSETS", "images", safeName),
+    path.join(projDir, "ASSETS", "videos", safeName),
+    path.join(projDir, "ASSETS", "audio", safeName),
+    path.join(projDir, "MUSICAS", safeName),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+export function projectBgmFileExists(projDir, fileName = "") {
+  return Boolean(findProjectFileLocal(projDir, fileName));
+}

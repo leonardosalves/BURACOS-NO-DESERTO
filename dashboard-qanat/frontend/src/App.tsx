@@ -4516,7 +4516,9 @@ export default function App() {
 
         body: JSON.stringify({
 
-          mode: formatSelector
+          mode: formatSelector,
+
+          force: true,
 
         })
 
