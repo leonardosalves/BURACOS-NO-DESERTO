@@ -1,0 +1,105 @@
+import { findBoundedNarrationMatch, getBlockTimeBounds } from "./timelineNarrationSync";
+
+export const parseDurationSeconds = (duration: unknown) => {
+  if (typeof duration === "number" && Number.isFinite(duration)) return duration;
+  if (typeof duration !== "string") return null;
+  const normalized = duration.replace(",", ".");
+  const match = normalized.match(/(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export function flattenWordsForSceneDuration(wordTranscripts: any[]) {
+  const flat: Array<{ word: string; clean: string; start: number; end: number }> = [];
+  if (!Array.isArray(wordTranscripts)) return flat;
+  for (const segment of wordTranscripts) {
+    const segStart = Number(segment.start_time) || 0;
+    for (const w of segment.words || []) {
+      let wStart = Number(w.start);
+      let wEnd = Number(w.end);
+      if (wStart < segStart) {
+        wStart += segStart;
+        wEnd += segStart;
+      }
+      const token = String(w.word || "").trim();
+      const clean = token
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, "")
+        .split(/\s+/)
+        .filter(Boolean)
+        .pop() || "";
+      flat.push({ word: token, clean, start: wStart, end: wEnd });
+    }
+  }
+  return flat;
+}
+
+export function getSceneSpeechDurationSeconds(
+  scene: any,
+  wordTranscripts: any[],
+  blockNum: number,
+  sceneIdxInBlock: number,
+  status?: { block_timings?: { starts?: number[]; durations?: number[] } },
+  scenesInBlock?: any[],
+): number | null {
+  if (scene?.duration_from_whisper) {
+    if (scene?.duration_seconds != null && Number.isFinite(Number(scene.duration_seconds))) {
+      return Number(scene.duration_seconds);
+    }
+    const parsed = parseDurationSeconds(scene?.duration ?? scene?.duracaoSegundos);
+    if (parsed != null) return parsed;
+  }
+
+  const narrationText = String(scene?.narration_text || scene?.narration_excerpt || "").trim();
+  if (!narrationText || !wordTranscripts?.length || !status?.block_timings?.starts?.length) return null;
+
+  const flat = flattenWordsForSceneDuration(wordTranscripts);
+  if (!flat.length) return null;
+
+  const bounds = getBlockTimeBounds(status, blockNum);
+  let searchAfter = bounds.searchAfter;
+  if (scenesInBlock) {
+    for (let i = 0; i < sceneIdxInBlock; i += 1) {
+      const prevText = String(scenesInBlock[i]?.narration_text || scenesInBlock[i]?.narration_excerpt || "").trim();
+      if (!prevText) continue;
+      const prev = findBoundedNarrationMatch(prevText, flat, { searchAfter, searchBefore: bounds.searchBefore });
+      if (prev) searchAfter = prev.end;
+    }
+  }
+
+  const matched = findBoundedNarrationMatch(narrationText, flat, { searchAfter, searchBefore: bounds.searchBefore });
+  if (matched?.duration > 0) return parseFloat(matched.duration.toFixed(1));
+  return null;
+}
+
+export const isWhisperTimelineReady = (
+  wordTranscripts: any[],
+  status?: { block_timings?: { starts?: number[] } },
+) =>
+  Array.isArray(wordTranscripts)
+  && wordTranscripts.length > 0
+  && (status?.block_timings?.starts?.length ?? 0) > 0;
+
+export const getSceneDurationSeconds = (
+  scene: any,
+  wordTranscripts?: any[],
+  blockNum?: number,
+  sceneIdxInBlock?: number,
+  status?: { block_timings?: { starts?: number[]; durations?: number[] } },
+  scenesInBlock?: any[],
+) => {
+  if (wordTranscripts && blockNum != null && sceneIdxInBlock != null) {
+    return getSceneSpeechDurationSeconds(
+      scene,
+      wordTranscripts,
+      blockNum,
+      sceneIdxInBlock,
+      status,
+      scenesInBlock,
+    );
+  }
+  return null;
+};
