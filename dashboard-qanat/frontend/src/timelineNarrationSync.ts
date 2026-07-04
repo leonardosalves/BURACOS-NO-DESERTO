@@ -1,6 +1,6 @@
 /** Narração por bloco/asset — sem vazamento entre blocos; split só quando o usuário pede. */
 
-import { cleanText, matchWords } from "@lumiera/shared/narrationMatch.js";
+import { cleanText, findBoundedNarrationMatch, matchWords } from "@lumiera/shared/narrationMatch.js";
 import { getBlockNarrationAnchor as getBlockNarrationAnchorCore } from "@lumiera/shared/timelineNarration.js";
 import { repairMojibake } from "./textEncoding";
 
@@ -253,6 +253,69 @@ export function mapStoryboardWordsWithTiming(
   }
 
   return result;
+}
+
+export type BlockNarrationWord = { word: string; start: number; end: number };
+
+/** Palavras com timestamp por bloco — segmentos Whisper ou match no transcript flat. */
+export function buildBlockNarrationWordsCache({
+  timelineAssets,
+  flatTranscriptWords,
+  wordTranscripts,
+  ctx,
+}: {
+  timelineAssets: Record<string, TimelineAsset[]>;
+  flatTranscriptWords: Array<{ word: string; clean?: string; start: number; end: number }>;
+  wordTranscripts: TranscriptSegment[];
+  ctx: NarrationSyncContext;
+}): Record<string, BlockNarrationWord[]> {
+  const cache: Record<string, BlockNarrationWord[]> = {};
+  if (!timelineAssets || !flatTranscriptWords?.length) return cache;
+
+  Object.keys(timelineAssets).forEach((blockKey) => {
+    const allWords: BlockNarrationWord[] = [];
+    const seenPositions = new Set<string>();
+    const blockNum = parseInt(blockKey, 10);
+
+    const segmentWords = collectBlockWordsFromTranscriptSegments(wordTranscripts, blockNum);
+    if (segmentWords.length > 0) {
+      segmentWords.forEach((w) => {
+        const key = `${w.start.toFixed(3)}-${w.word}`;
+        if (!seenPositions.has(key)) {
+          allWords.push(w);
+          seenPositions.add(key);
+        }
+      });
+    } else {
+      const blockText = getBlockNarrationText(ctx, blockNum);
+      if (blockText) {
+        const bounds = getBlockTimeBounds(ctx.status, blockNum);
+        const strictBounds = getStrictBlockBounds(ctx.status, blockNum);
+        const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
+        if (matched) {
+          const words = mapStoryboardWordsWithTiming(
+            blockText,
+            flatTranscriptWords,
+            matched.bestFirstMatchIdx,
+            matched.bestLastMatchIdx,
+          );
+          words.forEach((w) => {
+            if (w.start < strictBounds.start - 0.05 || w.start >= strictBounds.end) return;
+            const key = `${w.start.toFixed(3)}-${w.word}`;
+            if (!seenPositions.has(key)) {
+              allWords.push(w);
+              seenPositions.add(key);
+            }
+          });
+        }
+      }
+    }
+
+    allWords.sort((a, b) => a.start - b.start);
+    cache[blockKey] = allWords;
+  });
+
+  return cache;
 }
 
 export function swapBlockVisualPromptsInStoryboard(

@@ -184,18 +184,17 @@ import {
   getAssetNarrationText as resolveAssetNarrationText,
   getBlockNarrationText as resolveBlockNarrationText,
   getBlockTimeBounds as resolveBlockTimeBounds,
-  resolveBlockNarrationAnchor,
-  getStrictBlockBounds,
-  collectBlockWordsFromTranscriptSegments,
+  buildBlockNarrationWordsCache,
   narrationCacheKey,
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
 } from './timelineNarrationSync';
-import { resolveBgmMode } from '@lumiera/shared/bgmMode.js';
 import {
-  computeAssetDuration,
-  recalculateBlockSequentialAudioStarts,
-} from '@lumiera/shared/timelineAudioStarts.js';
+  recalculateBlockAudioStarts as recalculateBlockAudioStartsCore,
+  enrichTimelineAudioStarts as enrichTimelineAudioStartsCore,
+} from './timelineBlockAudioStarts';
+import { resolveBgmMode } from '@lumiera/shared/bgmMode.js';
+import { computeAssetDuration } from '@lumiera/shared/timelineAudioStarts.js';
 import { flattenWordTranscripts } from '@lumiera/shared/wordTranscripts.js';
 import { repairMojibake, repairMojibakeDeep } from './textEncoding';
 import {
@@ -4022,24 +4021,6 @@ export default function App() {
 
   };
 
-  const cleanText = (text: string): string[] => {
-
-    return text
-
-      .toLowerCase()
-
-      .normalize("NFD")
-
-      .replace(/[\u0300-\u036f]/g, "")
-
-      .replace(/[^a-z0-9\s]/g, "")
-
-      .split(/\s+/)
-
-      .filter(Boolean);
-
-  };
-
   const bgmBlockRows = useMemo(() => {
 
     if (!config) return [];
@@ -4244,163 +4225,15 @@ export default function App() {
     return findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
   };
 
-  const getStoryboardWordsWithTiming = (
-
-    narrationText: string,
-
-    bestFirstMatchIdx: number,
-
-    bestLastMatchIdx: number
-
-  ) => {
-
-    const rawWords = narrationText.split(/\s+/).filter(Boolean);
-
-    if (bestFirstMatchIdx === -1 || bestLastMatchIdx === -1 || !flatTranscriptWords || flatTranscriptWords.length === 0) {
-
-      return rawWords.map(w => ({ word: w, start: 0, end: 999999 }));
-
-    }
-
-    let transcriptIdx = bestFirstMatchIdx;
-
-    const result: Array<{ word: string, start: number, end: number }> = [];
-
-    const matchWords = (w1: string, w2: string): boolean => {
-
-      if (w1 === w2) return true;
-
-      const s1 = w1.endsWith('s') ? w1.slice(0, -1) : w1;
-
-      const s2 = w2.endsWith('s') ? w2.slice(0, -1) : w2;
-
-      if (s1 === s2 && s1.length > 3) return true;
-
-      return false;
-
-    };
-
-    for (let i = 0; i < rawWords.length; i++) {
-
-      const part = rawWords[i];
-
-      const cleanedParts = cleanText(part);
-
-      const cleanedPart = cleanedParts[0] || "";
-
-      let matched = false;
-
-      const searchLimit = Math.min(transcriptIdx + 12, flatTranscriptWords.length);
-
-      for (let tIdx = transcriptIdx; tIdx < searchLimit; tIdx++) {
-
-        const tw = flatTranscriptWords[tIdx];
-
-        if (cleanedPart === tw.clean || matchWords(cleanedPart, tw.clean)) {
-
-          const transcriptWord = repairMojibake(String(tw.word || "").trim());
-
-          result.push({
-
-            word: transcriptWord || part,
-
-            start: tw.start,
-
-            end: tw.end
-
-          });
-
-          transcriptIdx = tIdx + 1;
-
-          matched = true;
-
-          break;
-
-        }
-
-      }
-
-      if (!matched) {
-
-        const prevWord = result[result.length - 1];
-
-        const fallbackStart = prevWord ? prevWord.end : (flatTranscriptWords[Math.min(transcriptIdx, flatTranscriptWords.length - 1)]?.start || 0);
-
-        result.push({
-
-          word: repairMojibake(part),
-
-          start: fallbackStart,
-
-          end: fallbackStart + 0.3
-
-        });
-
-      }
-
-    }
-
-    return result;
-
-  };
-
-  // === DYNAMIC NARRATION: collect all words per block with audio timestamps ===
-
   const blockNarrationWordsCache = useMemo(() => {
-
-    const cache: Record<string, Array<{ word: string; start: number; end: number }>> = {};
-
-    if (!config || !config.timeline_assets || !flatTranscriptWords || flatTranscriptWords.length === 0) return cache;
-
-    const timelineAssets = config.timeline_assets;
-
-    Object.keys(timelineAssets).forEach(blockKey => {
-
-      const assets = timelineAssets[blockKey] || [];
-
-      const allWords: Array<{ word: string; start: number; end: number }> = [];
-
-      const seenPositions = new Set<string>();
-
-      const blockNum = parseInt(blockKey, 10);
-      const segmentWords = collectBlockWordsFromTranscriptSegments(wordTranscripts, blockNum);
-      if (segmentWords.length > 0) {
-        segmentWords.forEach((w) => {
-          const key = `${w.start.toFixed(3)}-${w.word}`;
-          if (!seenPositions.has(key)) {
-            allWords.push(w);
-            seenPositions.add(key);
-          }
-        });
-      } else {
-        const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
-        if (blockText) {
-          const bounds = resolveBlockTimeBounds(status, blockNum);
-          const strictBounds = getStrictBlockBounds(status, blockNum);
-          const matched = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
-          if (matched) {
-            const words = getStoryboardWordsWithTiming(blockText, matched.bestFirstMatchIdx, matched.bestLastMatchIdx);
-            words.forEach((w) => {
-              if (w.start < strictBounds.start - 0.05 || w.start >= strictBounds.end) return;
-              const key = `${w.start.toFixed(3)}-${w.word}`;
-              if (!seenPositions.has(key)) {
-                allWords.push(w);
-                seenPositions.add(key);
-              }
-            });
-          }
-        }
-      }
-
-      allWords.sort((a, b) => a.start - b.start);
-
-      cache[blockKey] = allWords;
-
+    if (!config?.timeline_assets || !flatTranscriptWords?.length) return {};
+    return buildBlockNarrationWordsCache({
+      timelineAssets: config.timeline_assets,
+      flatTranscriptWords,
+      wordTranscripts,
+      ctx: buildNarrationSyncContext(),
     });
-
-    return cache;
-
-  }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, narrationMatchesCache, flatTranscriptWords, wordTranscripts]);
+  }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, flatTranscriptWords, wordTranscripts, status]);
 
   // Get dynamically distributed words for a specific asset based on its time window
   const getDynamicAssetWords = (blockKey: string, assetIdx: number): {
@@ -4485,38 +4318,20 @@ export default function App() {
 
   const recalculateBlockAudioStarts = (blockKey: string, assets: any[], preserveUntilIndex = -1): any[] => {
     const blockNum = parseInt(blockKey, 10);
-    const blockDuration = status?.block_timings?.durations?.[blockNum - 1] ?? 10.0;
-    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
-    const fallbackStart = status?.block_timings?.starts?.[blockNum - 1] ?? 0;
-    const matchedAnchor = resolveBlockNarrationAnchor(
-      buildNarrationSyncContext(),
-      blockNum,
+    return recalculateBlockAudioStartsCore({
+      blockKey,
       assets,
+      blockDuration: status?.block_timings?.durations?.[blockNum - 1] ?? 10.0,
+      ctx: buildNarrationSyncContext(),
       flatTranscriptWords,
-    );
-    const cacheAnchor = allBlockWords.length > 0 ? allBlockWords[0].start : null;
-    const anchorStart = matchedAnchor ?? cacheAnchor ?? fallbackStart;
-    return recalculateBlockSequentialAudioStarts({
-      assets,
-      blockDuration,
-      anchorStart,
+      blockNarrationWordsCache,
+      blockTimingStart: status?.block_timings?.starts?.[blockNum - 1] ?? 0,
       preserveUntilIndex,
-      resolveDuration: (asset, all) => computeAssetDuration(asset, all, blockDuration),
     });
   };
 
-  const enrichTimelineAudioStarts = (cfg: ConfigData, options?: { force?: boolean }): ConfigData => {
-    const timelineAssets = { ...(cfg.timeline_assets || {}) };
-    Object.keys(timelineAssets).forEach((blockKey) => {
-      const assets = timelineAssets[blockKey];
-      if (!assets?.length) return;
-      const speechSynced = assets.some((a: any) => a.synced_to_speech);
-      if (options?.force || !speechSynced) {
-        timelineAssets[blockKey] = recalculateBlockAudioStarts(blockKey, assets);
-      }
-    });
-    return { ...cfg, timeline_assets: timelineAssets };
-  };
+  const enrichTimelineAudioStarts = (cfg: ConfigData, options?: { force?: boolean }): ConfigData =>
+    enrichTimelineAudioStartsCore(cfg, (blockKey, assets) => recalculateBlockAudioStarts(blockKey, assets), options);
 
   const alignBlockAssetsToSpeech = (blockKey: string, cfgOverride?: ConfigData) => {
     const cfg = cfgOverride ?? config;
