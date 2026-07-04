@@ -52,6 +52,7 @@ export default defineConfig({
           if (id.includes('node_modules')) return 'vendor';
           if (id.includes('AppMusicTab')) return 'music-tab';
           if (id.includes('AppCreatorTab')) return 'creator-tab';
+          if (id.includes('AppEditorTab')) return 'editor-tab';
           if (id.includes('RichTimelineEditor')) return 'timeline-editor';
           if (id.includes('ListicleCreatorStep')) return 'creator-step';
           if (id.includes('SceneTimingEditor')) return 'scene-timing';
