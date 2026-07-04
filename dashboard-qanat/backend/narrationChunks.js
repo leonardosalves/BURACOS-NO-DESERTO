@@ -7,7 +7,11 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { buildPythonSpawnEnv, getFfmpegStatus } from "./pythonEnv.js";
-import { convertCinematicMarkersForTts, stripTtsMarkersForPlainText } from "./videoProEnhancements.js";
+import {
+  convertCinematicMarkersForTts,
+  sanitizeNarrationChunkTaggedText,
+  stripTtsMarkersForPlainText,
+} from "./videoProEnhancements.js";
 import { synthesizeKokoroNarration, KOKORO_DEFAULT_VOICE, KOKORO_DEFAULT_SPEED } from "./kokoroTts.js";
 import { fetchFishSpeechAudio, loadFishSpeechConfig, applyFishOptionOverrides } from "./fishSpeechTts.js";
 import { loadVoiceboxConfig, synthesizeVoiceboxNarration } from "./voiceboxTts.js";
@@ -132,7 +136,7 @@ ${JSON.stringify(blockPhrases || [], null, 2)}
 REGRAS:
 - Um trecho = uma cena OU um bloco inteiro se a cena for muito curta (< 8 palavras); prefira 1 trecho por cena quando houver narration_text.
 - "text" = exatamente o que será falado em PT-BR (pode condensar levemente, sem mudar o sentido).
-- "text_tagged" = mesmo texto com tags TTS moderadas: [pausa], (breath). Use [ênfase] só imediatamente antes da palavra (ex.: "[ênfase] mil" — nunca repita a palavra depois da tag).
+- "text_tagged" = igual a "text" (texto limpo, sem tags inline). PROIBIDO: (breath), [ênfase], [emphasis], [ênfase dramática] — pausas entre trechos são só "pause_after_ms".
 - "pause_after_ms": silêncio APÓS o trecho antes do próximo (0–3000). Virada de bloco: 600–1200ms; mesma cena/bloco: 200–500ms; clímax→resolução: até 1500ms.
 - "pause_reason": frase curta explicando a pausa.
 - Cobrir 100% da narração sem repetir trechos.
@@ -162,7 +166,10 @@ export function parseAiNarrationChunkResponse(parsed = {}) {
     block: Number(c.block) || 1,
     scene_ref: String(c.scene_ref || c.scene || c.sceneRef || `${Number(c.block) || 1}.${idx + 1}`),
     text: String(c.text || "").trim(),
-    text_tagged: String(c.text_tagged || c.textTagged || c.text || "").trim(),
+    text_tagged: sanitizeNarrationChunkTaggedText(
+      c.text_tagged || c.textTagged || c.text || "",
+      c.text || "",
+    ),
     pause_after_ms: clampPauseMs(c.pause_after_ms ?? c.pauseAfterMs, DEFAULT_PAUSE_BETWEEN_SCENES_MS),
     pause_reason: String(c.pause_reason || c.pauseReason || "").trim() || undefined,
     voice: c.voice || null,
@@ -208,7 +215,7 @@ export function normalizeNarrationChunkPlan(plan = {}, { storyboard = {}, config
       block: Number(c.block) || 1,
       scene_ref: String(c.scene_ref || c.scene || `${Number(c.block) || 1}.${idx + 1}`),
       text: String(c.text || "").trim(),
-      text_tagged: String(c.text_tagged || c.text || "").trim(),
+      text_tagged: sanitizeNarrationChunkTaggedText(c.text_tagged || c.text || "", c.text || ""),
       pause_after_ms: clampPauseMs(c.pause_after_ms, idx === chunks.length - 1 ? 0 : DEFAULT_PAUSE_BETWEEN_SCENES_MS),
       pause_reason: c.pause_reason || undefined,
       block_phrase: c.block_phrase || undefined,
@@ -577,13 +584,14 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
   projDir,
   useTagged = true,
   taggedText = "",
-  stripEmphasis = false,
+  stripEmphasis = true,
   onLog = () => {},
 } = {}) {
   const voice = normalizeVoiceRef(voiceRef);
   const plain = String(text || "").trim();
   if (plain.length < 2) throw new Error("Trecho vazio.");
   const engine = voice.engine;
+  const sanitizedTagged = sanitizeNarrationChunkTaggedText(taggedText, plain);
 
   if (engine === "kokoro") {
     const result = await synthesizeKokoroNarration(plain, {
@@ -613,9 +621,9 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
   if (engine === "chatterbox" || engine === "chatterbox-tts") {
     const cbConfig = loadChatterboxConfig({ workspaceDir, projectDir: projDir });
     const tagPlatform = String(voice.voice).includes("turbo") ? "turbo" : "chatterbox";
-    const tagged = String(taggedText || "").trim();
+    const tagged = sanitizedTagged;
     const textForTts = useTagged && tagged.length > 2
-      ? convertCinematicMarkersForTts(tagged, tagPlatform, { stripEmphasis })
+      ? convertCinematicMarkersForTts(tagged, tagPlatform, { stripEmphasis: true })
       : plain;
     const result = await synthesizeChatterboxNarration(textForTts, {
       voice: voice.voice || CHATTERBOX_DEFAULT_VOICE,
@@ -629,9 +637,9 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
 
   if (engine === "fish" || engine === "fish-speech") {
     const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
-    const tagged = String(taggedText || "").trim();
+    const tagged = sanitizedTagged;
     const textForTts = useTagged && tagged.length > 2
-      ? convertCinematicMarkersForTts(tagged, "fish", { stripEmphasis })
+      ? convertCinematicMarkersForTts(tagged, "fish", { stripEmphasis: true })
       : plain;
     const result = await fetchFishSpeechAudio(textForTts, {
       referenceId: voice.voice,
@@ -763,7 +771,7 @@ export async function generateNarrationChunksTts(projDir, {
   defaultVoice = {},
   workspaceDir = null,
   useTagged = true,
-  stripEmphasis = false,
+  stripEmphasis = true,
   assembleMaster = true,
   onLog = () => {},
   onProgress = () => {},

@@ -92,7 +92,6 @@ export function NarrationChunksPanel({
   const [defaultEngine, setDefaultEngine] = useState('kokoro');
   const [defaultVoice, setDefaultVoice] = useState('pm_alex');
   const [useTagged, setUseTagged] = useState(true);
-  const [stripEmphasis, setStripEmphasis] = useState(false);
   const [expandedTagsChunkId, setExpandedTagsChunkId] = useState<string | null>(null);
   const [tagPreviews, setTagPreviews] = useState<Record<string, { preview: string; tags: string[] }>>({});
 
@@ -223,7 +222,6 @@ export function NarrationChunksPanel({
         body: JSON.stringify({
           text_tagged: tagged,
           engine,
-          strip_emphasis: stripEmphasis,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -233,7 +231,7 @@ export function NarrationChunksPanel({
         [chunkId]: { preview: String(data.preview || ''), tags: Array.isArray(data.tags) ? data.tags : [] },
       }));
     } catch { /* ignore */ }
-  }, [getProjectUrl, stripEmphasis]);
+  }, [getProjectUrl]);
 
   useEffect(() => {
     if (!expandedTagsChunkId || !useTagged) return;
@@ -243,7 +241,7 @@ export function NarrationChunksPanel({
       void fetchTagPreview(chunk.id, chunk.text_tagged || chunk.text, chunk.voice?.engine || defaultEngine);
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [expandedTagsChunkId, localPlan?.chunks, useTagged, stripEmphasis, defaultEngine, fetchTagPreview]);
+  }, [expandedTagsChunkId, localPlan?.chunks, useTagged, defaultEngine, fetchTagPreview]);
 
   const persistPlanBeforeTts = async (): Promise<boolean> => {
     if (!localPlan?.chunks?.length) {
@@ -284,7 +282,6 @@ export function NarrationChunksPanel({
           chunk_ids: chunkIds,
           default_voice: { engine: defaultEngine, voice: defaultVoice },
           use_tagged: useTagged,
-          strip_emphasis: stripEmphasis,
           sync_whisper: isFullBatch,
           assemble_master: isFullBatch,
           progress_job_id: progressJobId,
@@ -424,16 +421,9 @@ export function NarrationChunksPanel({
               />
               Usar tags TTS na geração
             </label>
-            <label className="flex items-center gap-1.5 text-[10px] text-zinc-400 cursor-pointer" title="Remove [ênfase] do texto enviado ao Fish/Chatterbox">
-              <input
-                type="checkbox"
-                checked={stripEmphasis}
-                onChange={(e) => setStripEmphasis(e.target.checked)}
-                disabled={!useTagged}
-                className="rounded border-zinc-600"
-              />
-              Remover [ênfase] (evita repetição)
-            </label>
+            <span className="text-[9px] text-zinc-600">
+              Pausas entre trechos vêm do plano IA (ms) — sem tags (breath) ou [ênfase] no texto.
+            </span>
             <span className="text-[9px] text-zinc-600">
               «Gerar todos os trechos» monta o MP3 master e roda Whisper automaticamente nas legendas.
             </span>
@@ -530,7 +520,7 @@ export function NarrationChunksPanel({
                         value={chunk.text_tagged ?? chunk.text}
                         onChange={(e) => patchChunk(chunk.id, { text_tagged: e.target.value })}
                         rows={3}
-                        placeholder="[pausa] Texto com [ênfase] palavra-chave…"
+                        placeholder="Texto do trecho (sem breath nem ênfase — pausas no campo ms)"
                         className="w-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-zinc-200"
                       />
                       <button
