@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { READABLE_TEXT_SHADOW, lottieDataForKey, lottieVariantSeed, resolveLottieKey } from "./listicleHudTheme";
+import { READABLE_TEXT_SHADOW, lottieVariantSeed, resolveLottieKey } from "./listicleHudTheme";
+import { lottieDataForKey } from "./lottieHudData.node";
 import { TitleLottieIcon } from "./TitleLottieIcon";
 import crownLottie from "./lottie_assets/lottie_biz_crown_1.json";
 

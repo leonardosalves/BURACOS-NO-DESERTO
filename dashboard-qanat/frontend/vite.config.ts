@@ -37,6 +37,10 @@ export default defineConfig({
         timeout: 900000,
         proxyTimeout: 900000,
       },
+      '/lottie_assets': {
+        target: 'http://127.0.0.1:3005',
+        changeOrigin: true,
+      },
     }
   },
   build: {

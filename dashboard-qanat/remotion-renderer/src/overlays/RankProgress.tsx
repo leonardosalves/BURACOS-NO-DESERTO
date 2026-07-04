@@ -2,12 +2,12 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import {
   hudThemeStyles,
-  lottieDataForKey,
   lottieVariantSeed,
   READABLE_TEXT_SHADOW,
   resolveLottieKey,
   type ListicleHudTheme,
 } from "./listicleHudTheme";
+import { lottieDataForKey } from "./lottieHudData.node";
 import { TitleLottieIcon } from "./TitleLottieIcon";
 
 export interface RankProgressSegment {

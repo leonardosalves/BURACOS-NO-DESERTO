@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-06-28T21:06:06.776Z",
+  "generated_at": "2026-07-04T02:18:33.432Z",
   "file_count": 477,
   "key_count": 156,
   "policy": "append_only_never_delete",
   "scope": "global_all_videos",
+  "load_mode": "runtime_fetch_or_fs",
   "files": [
     {
       "filename": "checkmark_success.json",
