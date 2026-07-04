@@ -141,6 +141,7 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
+import { registerN8nRoutes } from "./n8nRoutes.js";
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
 import { isPioneerStrategyText } from "./pioneerNicheDiscovery.js";
@@ -14524,6 +14525,10 @@ registerVideoResurrectorRoutes(app, {
   PROJECTS_ROOT,
   getApiKey,
   callGeminiWithRetry,
+});
+
+registerN8nRoutes(app, {
+  WORKSPACE_DIR,
 });
 
 registerResearchRoutes(app, {

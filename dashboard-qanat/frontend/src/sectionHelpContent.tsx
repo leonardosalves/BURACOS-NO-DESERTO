@@ -175,6 +175,16 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-n8n-orchestrator': {
+    title: 'n8n Orquestração',
+    body: (
+      <>
+        Integração com <a href="https://github.com/n8n-io/n8n" target="_blank" rel="noreferrer">n8n</a>: mapa visual do pipeline Lumiera (Creator → Render → YouTube → Ressuscitador).
+        <strong> Sync Lumiera → n8n</strong> publica o workflow; <strong>Sync n8n → Lumiera</strong> traz nós ativos/desativados.
+        Webhook <code>POST /api/n8n/inbound</code> executa etapas do programa a partir do n8n.
+      </>
+    ),
+  },
   'tab-creator': {
     title: 'Novo Projeto com IA',
     body: (
