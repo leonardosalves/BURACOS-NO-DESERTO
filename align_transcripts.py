@@ -52,6 +52,7 @@ def main():
     
     # 1. Load correct narration script lines
     correct_lines = None
+    chunk_plan_line_to_block = None
     if os.path.exists('transcripts_readable.txt'):
         try:
             with open('transcripts_readable.txt', 'r', encoding='utf-8') as f:
@@ -65,7 +66,22 @@ def main():
         try:
             with open('storyboard.json', 'r', encoding='utf-8') as f:
                 sb = json.load(f)
-            if 'visual_prompts' in sb:
+            chunk_plan = sb.get('narration_chunk_plan') or {}
+            chunk_rows = chunk_plan.get('chunks') if isinstance(chunk_plan, dict) else None
+            if chunk_rows:
+                correct_lines = []
+                line_to_block = {}
+                for line_idx, chunk in enumerate(chunk_rows):
+                    text = str(chunk.get('text') or chunk.get('text_tagged') or '').strip()
+                    if not text:
+                        continue
+                    correct_lines.append(text)
+                    block_num = int(chunk.get('block') or 1)
+                    line_to_block[line_idx] = block_num
+                if correct_lines:
+                    chunk_plan_line_to_block = dict(line_to_block)
+                    print(f"Loaded {len(correct_lines)} segments from narration_chunk_plan for alignment")
+            elif 'visual_prompts' in sb:
                 correct_lines = []
                 for vp in sb['visual_prompts']:
                     text = vp.get('narration_text', '') or vp.get('text_overlay', '')
@@ -100,7 +116,9 @@ def main():
             block_to_line_idx[b] = b - 1
 
     line_to_block = {}
-    if os.path.exists('storyboard.json'):
+    if chunk_plan_line_to_block is not None:
+        line_to_block = dict(chunk_plan_line_to_block)
+    elif os.path.exists('storyboard.json'):
         try:
             with open('storyboard.json', 'r', encoding='utf-8') as f:
                 sb = json.load(f)

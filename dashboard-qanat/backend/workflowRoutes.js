@@ -63,6 +63,7 @@ import {
   persistChunkPlanToProject,
   writeTimingsFromChunkPlan,
   formatNarrationChunkPlanLog,
+  applyChunkedNarrationSyncToProject,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
 import { convertCinematicMarkersForTts } from "./videoProEnhancements.js";
@@ -745,23 +746,26 @@ export function registerWorkflowRoutes(app, deps) {
 
       const masterReady = allNarrationChunksHaveAudio(nextPlan, projDir);
       if (masterReady) {
-        const timings = JSON.parse(fs.readFileSync(path.join(projDir, "block_timings.json"), "utf8"));
-        const transcripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
-        const synced = syncProjectTimelineAfterWhisper({
-          timelineAssets: config.timeline_assets || {},
-          blockTimings: timings,
-          wordTranscripts: transcripts,
-          flatTranscriptWords: flattenWordTranscripts(transcripts),
-          visualPrompts: storyboard.visual_prompts || [],
-          blockPhrases: config.block_phrases || [],
+        let whisperTranscripts = null;
+        let flatWords = [];
+        if (whisperSynced) {
+          try {
+            whisperTranscripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
+            flatWords = flattenWordTranscripts(whisperTranscripts);
+          } catch {
+            whisperTranscripts = null;
+          }
+        }
+        const applied = applyChunkedNarrationSyncToProject(projDir, {
+          chunkPlan: nextPlan,
+          config,
+          storyboard,
+          whisperTranscripts: whisperSynced ? whisperTranscripts : null,
+          flatWords: whisperSynced ? flatWords : [],
         });
-        config.timeline_assets = synced.timelineAssets;
-        fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
-        fs.writeFileSync(
-          path.join(projDir, "block_timings.json"),
-          JSON.stringify(synced.blockTimings || timings, null, 2),
-          "utf8",
-        );
+        config = applied.config;
+        storyboard = applied.storyboard;
+        console.log("[TTS Chunks] Timeline sincronizada por trecho (1 segmento por cena).");
       } else if (!fullBatch) {
         console.log("[TTS Chunks] Timeline preservada — batch parcial sem master completo.");
       }

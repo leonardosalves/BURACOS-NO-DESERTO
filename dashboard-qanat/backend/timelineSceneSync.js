@@ -650,6 +650,27 @@ export function realignTimelineAssetsToSpeech({
       aligned++;
     }
 
+    for (let idx = 0; idx < assets.length; idx++) {
+      if (assets[idx].synced_to_speech) continue;
+      const seg = transcriptSegments[idx];
+      if (!seg) continue;
+      const segStart = Number(seg.start_time);
+      const segEnd = Number(seg.end_time);
+      if (!Number.isFinite(segStart) || !Number.isFinite(segEnd) || segEnd <= segStart) continue;
+
+      const narrationText = getAssetNarrationText(blockNum, idx, context);
+      assets[idx].audio_start = parseFloat(segStart.toFixed(3));
+      assets[idx].speech_end = parseFloat(segEnd.toFixed(3));
+      assets[idx].synced_to_speech = true;
+      if (narrationText) assets[idx].narration_segment = narrationText;
+      if (seg.chunk_id) assets[idx].chunk_id = seg.chunk_id;
+
+      if (!isAssetDurationLocked(assets[idx]) && !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))) {
+        assets[idx].fixed = parseFloat(Math.max(0.5, segEnd - segStart).toFixed(1));
+      }
+      aligned++;
+    }
+
     if (aligned === 0 && !blockHasLockedDurations(assets)) {
       let cursor = blockStart;
       for (let idx = 0; idx < assets.length; idx++) {
