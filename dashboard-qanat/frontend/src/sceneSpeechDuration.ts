@@ -83,6 +83,35 @@ export const isWhisperTimelineReady = (
   && wordTranscripts.length > 0
   && (status?.block_timings?.starts?.length ?? 0) > 0;
 
+type ChunkPlanLike = {
+  chunks?: Array<{
+    scene_ref?: string;
+    block?: number;
+    duration_s?: number;
+    start_s?: number | null;
+    end_s?: number | null;
+  }>;
+};
+
+export function getSceneDurationFromChunkPlan(
+  scene: any,
+  chunkPlan?: ChunkPlanLike | null,
+): number | null {
+  const sceneRef = String(scene?.scene ?? scene?.scene_ref ?? "").trim();
+  if (!sceneRef || !chunkPlan?.chunks?.length) return null;
+  const chunk = chunkPlan.chunks.find(
+    (c) => String(c.scene_ref || "").trim() === sceneRef,
+  );
+  if (!chunk) return null;
+  const start = Number(chunk.start_s);
+  const end = Number(chunk.end_s);
+  if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+    return parseFloat((end - start).toFixed(1));
+  }
+  const dur = Number(chunk.duration_s);
+  return Number.isFinite(dur) && dur > 0 ? parseFloat(dur.toFixed(1)) : null;
+}
+
 export const getSceneDurationSeconds = (
   scene: any,
   wordTranscripts?: any[],
@@ -90,7 +119,11 @@ export const getSceneDurationSeconds = (
   sceneIdxInBlock?: number,
   status?: { block_timings?: { starts?: number[]; durations?: number[] } },
   scenesInBlock?: any[],
+  chunkPlan?: ChunkPlanLike | null,
 ) => {
+  const fromChunks = getSceneDurationFromChunkPlan(scene, chunkPlan);
+  if (fromChunks != null) return fromChunks;
+
   if (wordTranscripts && blockNum != null && sceneIdxInBlock != null) {
     return getSceneSpeechDurationSeconds(
       scene,

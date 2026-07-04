@@ -431,6 +431,59 @@ export function mergeWhisperTranscriptsWithChunkPlan(chunkPlan = {}, flatWords =
  * Pós-Whisper em modo chunked: restaura block_timings + timeline pelo plano de trechos.
  * Retorna null se não for narração por trechos (caller usa syncProjectTimelineAfterWhisper).
  */
+/** Atualiza visual_prompts com durações do plano de trechos + assets da timeline (preserva uploads). */
+export function applyChunkPlanToVisualPrompts(
+  visualPrompts = [],
+  chunkPlan = {},
+  timelineAssets = {},
+) {
+  const rawChunks = chunkPlan?.chunks || [];
+  const timed = rawChunks.length
+    && rawChunks.every((c) => Number.isFinite(Number(c.start_s)) && Number.isFinite(Number(c.end_s)))
+    ? rawChunks
+    : computeChunkTimeline(rawChunks);
+  const chunkByScene = new Map(
+    timed.map((c) => [String(c.scene_ref || "").trim(), c]),
+  );
+  return (visualPrompts || []).map((vp, idx) => {
+    const sceneRef = String(vp?.scene || vp?.scene_ref || "").trim();
+    const blockNum = Number(vp?.block) || 1;
+    const chunk = sceneRef ? chunkByScene.get(sceneRef) : null;
+
+    const blockKey = String(blockNum);
+    const assets = timelineAssets[blockKey] || [];
+    const assetIdx = chunk
+      ? resolveChunkAssetIndex(chunk, assets, idx)
+      : Math.min(parseSceneRefIndex(sceneRef, idx), Math.max(assets.length - 1, 0));
+    const slot = assets[assetIdx];
+
+    let next = { ...vp };
+    if (chunk && Number.isFinite(Number(chunk.start_s)) && Number.isFinite(Number(chunk.end_s))) {
+      const start = Number(chunk.start_s);
+      const end = Number(chunk.end_s);
+      const dur = parseFloat(Math.max(0.5, end - start).toFixed(1));
+      next = {
+        ...next,
+        duration: `${dur} segundos`,
+        duration_seconds: dur,
+        duration_from_whisper: true,
+        speech_start: parseFloat(start.toFixed(3)),
+        speech_end: parseFloat(end.toFixed(3)),
+        narration_text: String(chunk.text || next.narration_text || "").trim() || next.narration_text,
+      };
+    }
+    if (slot?.asset) {
+      next.asset = {
+        ...(next.asset && typeof next.asset === "object" ? next.asset : {}),
+        asset: slot.asset,
+        type: slot.type || next.asset?.type || "image",
+        ...(slot.fixed != null ? { fixed: slot.fixed } : {}),
+      };
+    }
+    return next;
+  });
+}
+
 export function applyChunkedTimelineAfterWhisper(projDir, {
   config = {},
   storyboard = {},
@@ -492,9 +545,14 @@ export function applyChunkedNarrationSyncToProject(projDir, {
     timeline_assets: synced.timelineAssets,
     narration_mode: NARRATION_MODE_CHUNKED,
   };
+  const visualPrompts = applyChunkPlanToVisualPrompts(
+    synced.visualPrompts,
+    timedPlan,
+    synced.timelineAssets,
+  );
   const nextStoryboard = {
     ...storyboard,
-    visual_prompts: synced.visualPrompts,
+    visual_prompts: visualPrompts,
     narration_chunk_plan: timedPlan,
   };
 

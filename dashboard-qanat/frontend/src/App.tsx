@@ -1792,14 +1792,19 @@ export default function App() {
   }, [wordTranscripts, shouldAutoAlign, config, status]);
 
   useEffect(() => {
-    if (activeTab === 'creator' && creatorStep >= 2) return;
-    if (!isWhisperTimelineReady(wordTranscripts, status)) return;
+    const hasChunkPlan = !!(storyboardData?.narration_chunk_plan?.chunks?.length);
+    if (activeTab === 'creator' && creatorStep >= 2 && !hasChunkPlan) return;
+    if (!hasChunkPlan && !isWhisperTimelineReady(wordTranscripts, status)) return;
     const sbPrompts = storyboardData?.visual_prompts;
     if (!Array.isArray(sbPrompts) || sbPrompts.length === 0) return;
     setGeneratedScriptData((prev) => {
       if (!prev) return storyboardData;
       if (!Array.isArray(prev.visual_prompts) || prev.visual_prompts.length === 0) {
-        return { ...prev, visual_prompts: sbPrompts };
+        return {
+          ...prev,
+          visual_prompts: sbPrompts,
+          narration_chunk_plan: storyboardData?.narration_chunk_plan ?? prev.narration_chunk_plan,
+        };
       }
       const sbByScene = new Map(
         sbPrompts.map((sb: any) => [String(sb?.scene ?? sb?.cena ?? ''), sb]),
@@ -1813,13 +1818,27 @@ export default function App() {
           duration: sb.duration ?? vp.duration,
           duration_seconds: sb.duration_seconds ?? vp.duration_seconds,
           duration_from_whisper: sb.duration_from_whisper ?? vp.duration_from_whisper,
+          speech_start: sb.speech_start ?? vp.speech_start,
+          speech_end: sb.speech_end ?? vp.speech_end,
           narration_text: sb.narration_text ?? vp.narration_text,
           narration_excerpt: sb.narration_excerpt ?? vp.narration_excerpt,
+          asset: sb.asset?.asset ? sb.asset : vp.asset,
         };
       });
-      return { ...prev, visual_prompts: mergedPrompts };
+      return {
+        ...prev,
+        visual_prompts: mergedPrompts,
+        narration_chunk_plan: storyboardData?.narration_chunk_plan ?? prev.narration_chunk_plan,
+      };
     });
-  }, [wordTranscripts, status?.block_timings?.starts, storyboardData?.visual_prompts, activeTab, creatorStep]);
+  }, [
+    wordTranscripts,
+    status?.block_timings?.starts,
+    storyboardData?.visual_prompts,
+    storyboardData?.narration_chunk_plan,
+    activeTab,
+    creatorStep,
+  ]);
 
   // Fetch valid projects list
 
