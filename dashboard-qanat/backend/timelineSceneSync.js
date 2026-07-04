@@ -1,5 +1,10 @@
 import { isFilenameSourceUsedInOtherProject } from "./mediaUsageRegistry.js";
 import { cleanText, findNarrationMatch } from "../shared/narrationMatch.js";
+import {
+  computeAssetDuration,
+  recalculateBlockSequentialAudioStarts,
+} from "../shared/timelineAudioStarts.js";
+import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 
 /**
  * Shared timeline scene timing logic — mirrors the editor preview in App.tsx
@@ -7,34 +12,8 @@ import { cleanText, findNarrationMatch } from "../shared/narrationMatch.js";
  */
 
 export { findNarrationMatch } from "../shared/narrationMatch.js";
-
-export function flattenWordTranscripts(wordTranscripts) {
-  const flatList = [];
-  if (!Array.isArray(wordTranscripts)) return flatList;
-
-  for (const segment of wordTranscripts) {
-    const segStart = segment.start_time || 0;
-    const segDuration = Number(segment.duration) || Math.max(0.5, (segment.end_time || 0) - segStart);
-    if (segment.words && Array.isArray(segment.words) && segment.words.length > 0) {
-      for (const w of segment.words) {
-        let wStart = w.start;
-        let wEnd = w.end;
-        if (wStart <= segDuration + 0.5) {
-          wStart += segStart;
-          wEnd += segStart;
-        }
-        const cleanArr = cleanText(w.word);
-        flatList.push({
-          word: w.word,
-          clean: cleanArr[cleanArr.length - 1] || "",
-          start: wStart,
-          end: wEnd,
-        });
-      }
-    }
-  }
-  return flatList;
-}
+export { flattenWordTranscripts } from "../shared/wordTranscripts.js";
+export { computeAssetDuration, recalculateBlockSequentialAudioStarts } from "../shared/timelineAudioStarts.js";
 
 export function getAssetNarrationText(blockNum, assetIdx, { visualPrompts = [], blockPhrases = [], timelineAssets = {} } = {}) {
   const blockScenes = visualPrompts.filter((vp) => Number(vp?.block) === blockNum);
@@ -74,21 +53,6 @@ export function blockUsesSequentialFixedLayout(assets = []) {
   if (!Array.isArray(assets) || assets.length === 0) return false;
   if (blockHasLockedDurations(assets)) return true;
   return assets.every(assetHasExplicitDuration);
-}
-
-/** Same formula as getAssetDuration() in App.tsx */
-export function computeAssetDuration(asset, allAssets, blockDuration) {
-  if (asset?.fixed !== undefined && asset?.fixed !== null) {
-    return Number(asset.fixed);
-  }
-  const sumFixed = allAssets.reduce((acc, c) => acc + (c?.fixed ? Number(c.fixed) : 0), 0);
-  const flexibleClips = allAssets.filter((c) => c?.fixed === undefined || c?.fixed === null);
-  const nFlex = flexibleClips.length;
-  if (nFlex > 0) {
-    const remaining = Math.max(0.5 * nFlex, blockDuration - sumFixed);
-    return remaining / nFlex;
-  }
-  return 0.5;
 }
 
 /**
@@ -1018,16 +982,12 @@ export function recalculateSequentialAudioStarts({
     };
 
     const anchor = getBlockNarrationAnchor(blockNum, assets, flatTranscriptWords, context);
-    let cursor = anchor ?? (Number.isFinite(blockStart) ? blockStart : 0);
-
-    for (let idx = 0; idx < assets.length; idx++) {
-      const dur = computeAssetDuration(assets[idx], assets, blockDuration);
-      assets[idx].audio_start = parseFloat(cursor.toFixed(3));
-      delete assets[idx].synced_to_speech;
-      cursor += dur;
-    }
-
-    out[blockKey] = assets;
+    out[blockKey] = recalculateBlockSequentialAudioStarts({
+      assets,
+      blockDuration,
+      anchorStart: anchor ?? (Number.isFinite(blockStart) ? blockStart : 0),
+      clearSpeechSync: true,
+    });
   }
 
   return out;
