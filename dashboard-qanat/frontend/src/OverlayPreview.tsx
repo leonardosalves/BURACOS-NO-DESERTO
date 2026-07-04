@@ -1,16 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Pause, Play } from 'lucide-react';
 import { OverlayAnimatedIcon } from './OverlayAnimatedIcon';
 import { iconLabel, resolveIconStyle } from './overlayIconCatalog';
+import { overlayPreviewFlexStyle } from './overlayFlexPosition';
 import {
   getOverlayPreviewMetrics,
   overlayPreviewFrameClass,
 } from './overlayPreviewScale';
 import {
+  overlayMotionTransform,
+  previewSpring,
+  useOverlayPreviewMotion,
+} from './overlayPreviewMotion';
+import {
   barChartPreviewShell,
   infoCardVariantStyle,
+  infoTimelineTitleStyle,
   kineticStyleProps,
   lowerThirdVariantShell,
   normalizeBarChartItems,
+  normalizeTimelineEvents,
   themePanelBg,
 } from './overlayPreviewStyles';
 import {
@@ -30,6 +39,8 @@ type Props = {
   sceneNarration?: string;
   compact?: boolean;
   className?: string;
+  /** Duração do overlay no vídeo — alimenta animação de entrada/saída. */
+  durationSeconds?: number;
   /** Clique no preview para escolher posição (grade 3×3). */
   onPositionSelect?: (positionId: string) => void;
 };
@@ -83,8 +94,10 @@ export function OverlayPreview({
   sceneNarration,
   compact = false,
   className = '',
+  durationSeconds = 6,
   onPositionSelect,
 }: Props) {
+  const [playing, setPlaying] = useState(true);
   const isShort = aspectRatio === '9:16';
   const format = isShort ? 'short' : 'long';
   const metrics = getOverlayPreviewMetrics(format);
@@ -95,13 +108,181 @@ export function OverlayPreview({
   const iconKey = props.iconType ? String(props.iconType) : '';
   const iconStyle = resolveIconStyle(props);
   const pos = positionStyle(position, metrics.positionPad);
+  const motion = useOverlayPreviewMotion(durationSeconds, overlay.type, playing);
+  const motionTransform = overlayMotionTransform(motion);
+  const legibilityShadow = '0 1px 3px rgba(0,0,0,0.9), 0 2px 12px rgba(0,0,0,0.65)';
+
+  const withMotion = (base: React.CSSProperties): React.CSSProperties => ({
+    ...base,
+    opacity: motion.opacity,
+    transform: motionTransform,
+    filter: 'drop-shadow(0 8px 28px rgba(0,0,0,0.75))',
+  });
+
+  const previewMetaLabel = (() => {
+    if (overlay.type === 'timeline') {
+      const orient = String(props.orientation || props.variant || 'horizontal');
+      return `${metrics.refLabel} · ${theme} · ${orient === 'vertical' ? 'vertical' : 'horizontal'}`;
+    }
+    return `${metrics.refLabel} · ${variant}`;
+  })();
+
+  const renderTimeline = () => {
+    const events = normalizeTimelineEvents(props);
+    const orientation = String(props.orientation || props.variant || 'horizontal');
+    const isHorizontal = orientation !== 'vertical';
+    const titleStyle = infoTimelineTitleStyle(theme, accentColor, isShort);
+    const flexPos = overlayPreviewFlexStyle(position, metrics, 'bottom-right');
+
+    return (
+      <div className="absolute inset-0 z-10 pointer-events-none" style={flexPos}>
+        <div
+          style={withMotion({
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: isHorizontal ? 'center' : 'flex-end',
+            gap: isHorizontal ? '1.1em' : '0.8em',
+            maxWidth: isHorizontal ? '92%' : isShort ? '78%' : '72%',
+          })}
+        >
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.55em',
+              alignSelf: isHorizontal ? 'center' : 'flex-end',
+              ...titleStyle,
+            }}
+          >
+            <div
+              style={{
+                width: '0.22em',
+                height: isShort ? '1.2em' : '0.95em',
+                backgroundColor: accentColor,
+                borderRadius: 2,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                color: '#F8FAFC',
+                textTransform: 'uppercase',
+                textShadow: legibilityShadow,
+                fontSize: metrics.fontSizeSubtitle,
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+              }}
+            >
+              {String(props.title || 'CRONOLOGIA')}
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: isHorizontal ? 'row' : 'column',
+              alignItems: isHorizontal ? 'center' : 'flex-end',
+              gap: 0,
+              padding: isHorizontal ? '0.55em 0.75em' : '0.65em 0.85em',
+              background: isHorizontal
+                ? 'linear-gradient(145deg, rgba(6,6,10,0.82) 0%, rgba(14,14,22,0.78) 100%)'
+                : 'linear-gradient(135deg, rgba(6,6,10,0.88) 0%, rgba(12,12,18,0.84) 100%)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: isHorizontal ? 12 : 14,
+              border: `1px solid ${accentColor}44`,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
+            }}
+          >
+            {events.map((event, index) => {
+              const progress = events.length > 1 ? (index / (events.length - 1)) * 100 : 0;
+              const isRevealed = motion.lineProgress >= progress;
+              const dotDelay = 8 + index * 8;
+              const dotScale = previewSpring(Math.max(0, motion.frame - dotDelay), 12);
+              const textOpacity = Math.min(
+                1,
+                Math.max(0, (motion.frame - (dotDelay + 4)) / 10),
+              );
+              const isHighlight = event.highlight || index === events.length - 1;
+
+              return (
+                <React.Fragment key={`${event.year}-${index}`}>
+                  {index > 0 && (
+                    <div
+                      style={{
+                        [isHorizontal ? 'width' : 'height']: isHorizontal ? '2.8em' : '1.4em',
+                        [isHorizontal ? 'height' : 'width']: 2,
+                        background: `linear-gradient(${isHorizontal ? 'to right' : 'to bottom'}, ${accentColor}70, ${accentColor}25)`,
+                        opacity: isRevealed ? 1 : 0.2,
+                        alignSelf: isHorizontal ? 'auto' : 'flex-end',
+                        marginRight: isHorizontal ? 0 : '0.9em',
+                      }}
+                    />
+                  )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: isHorizontal ? 'center' : 'flex-end',
+                      gap: isShort ? '0.35em' : '0.28em',
+                      minWidth: isHorizontal ? '4.5em' : undefined,
+                      width: isHorizontal ? undefined : '100%',
+                      opacity: textOpacity,
+                      textAlign: isHorizontal ? 'center' : 'right',
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: isHighlight ? accentColor : '#F8FAFC',
+                        textShadow: legibilityShadow,
+                        fontSize: metrics.fontSizeDesc,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {event.year}
+                    </span>
+                    <div
+                      style={{
+                        width: isHighlight ? (isShort ? 12 : 10) : (isShort ? 10 : 8),
+                        height: isHighlight ? (isShort ? 12 : 10) : (isShort ? 10 : 8),
+                        borderRadius: '50%',
+                        backgroundColor: isHighlight ? accentColor : 'rgba(248,250,252,0.5)',
+                        transform: `scale(${dotScale})`,
+                        boxShadow: isHighlight ? `0 0 12px ${accentColor}80` : 'none',
+                        border: isHighlight
+                          ? `2px solid ${accentColor}`
+                          : '1px solid rgba(248,250,252,0.3)',
+                        alignSelf: isHorizontal ? 'center' : 'flex-end',
+                        marginRight: isHorizontal ? 0 : '0.75em',
+                      }}
+                    />
+                    <span
+                      style={{
+                        color: 'rgba(248,250,252,0.92)',
+                        maxWidth: isHorizontal ? '7em' : '12em',
+                        lineHeight: 1.4,
+                        textShadow: legibilityShadow,
+                        fontSize: metrics.fontSizeDesc,
+                      }}
+                    >
+                      {event.description}
+                    </span>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderLowerThird = () => {
     const shell = lowerThirdVariantShell(variant, accentColor, theme);
 
     if (variant === 'bild') {
       return (
-        <div style={{ ...pos, maxWidth: metrics.maxWidth }}>
+        <div style={withMotion({ ...pos, maxWidth: metrics.maxWidth })}>
           <div style={{ ...shell.container, gap: metrics.cardGap, padding: metrics.cardPadding }}>
             <IconSlot props={props} accent={accentColor} sizeCss={metrics.iconSize} />
             <span style={{ ...shell.title, fontSize: metrics.fontSizeTitle, whiteSpace: 'nowrap' }}>
@@ -119,7 +300,7 @@ export function OverlayPreview({
 
     if (variant === 'bold-block') {
       return (
-        <div style={{ ...pos, ...shell.container, maxWidth: metrics.maxWidth }}>
+        <div style={withMotion({ ...pos, ...shell.container, maxWidth: metrics.maxWidth })}>
           <div
             style={{
               ...shell.title,
@@ -144,7 +325,7 @@ export function OverlayPreview({
 
     return (
       <div
-        style={{
+        style={withMotion({
           ...pos,
           ...shell.container,
           maxWidth: metrics.maxWidth,
@@ -152,7 +333,7 @@ export function OverlayPreview({
           gap: metrics.cardGap,
           flexDirection: variant === 'clean-bar' ? 'row' : 'column',
           alignItems: variant === 'soft-pill' ? 'center' : 'flex-start',
-        }}
+        })}
       >
         <IconSlot props={props} accent={accentColor} sizeCss={metrics.iconSize} />
         <div className="min-w-0">
@@ -174,17 +355,20 @@ export function OverlayPreview({
       case 'lower-third':
         return renderLowerThird();
 
+      case 'timeline':
+        return renderTimeline();
+
       case 'info-card':
         return (
           <div
             className="flex items-start"
-            style={{
+            style={withMotion({
               ...pos,
               ...infoCardVariantStyle(variant, accentColor, theme),
               padding: metrics.cardPadding,
               gap: metrics.cardGap,
               maxWidth: metrics.maxWidth,
-            }}
+            })}
           >
             <IconSlot props={props} accent={accentColor} sizeCss={metrics.iconSize} />
             <div className="min-w-0">
@@ -201,13 +385,13 @@ export function OverlayPreview({
       case 'source-card':
         return (
           <div
-            style={{
+            style={withMotion({
               ...pos,
               maxWidth: metrics.maxWidth,
               borderLeft: `3px solid ${accentColor}`,
               background: themePanelBg(theme, accentColor),
               padding: metrics.cardPadding,
-            }}
+            })}
           >
             <p style={{ fontSize: metrics.fontSizeDesc }} className="uppercase tracking-wider text-zinc-500">Fonte</p>
             <p className="font-semibold text-white truncate" style={{ fontSize: metrics.fontSizeTitle }}>
@@ -226,14 +410,14 @@ export function OverlayPreview({
         const platformColor = platform === 'x' ? '#1DA1F2' : '#FF4500';
         return (
           <div
-            style={{
+            style={withMotion({
               ...pos,
               maxWidth: metrics.maxWidth,
               background: 'rgba(10,10,14,0.92)',
               border: `1px solid ${platformColor}55`,
               padding: metrics.cardPadding,
               borderRadius: metrics.cardGap,
-            }}
+            })}
           >
             <p className="font-bold" style={{ fontSize: metrics.fontSizeSubtitle, color: platformColor }}>
               {platform === 'x' ? '𝕏' : 'reddit'} · @{String(props.username || 'usuario')}
@@ -248,14 +432,14 @@ export function OverlayPreview({
       case 'geo-map':
         return (
           <div
-            style={{
+            style={withMotion({
               ...pos,
               maxWidth: metrics.maxWidth,
               background: 'rgba(8,14,22,0.9)',
               border: `1px solid ${accentColor}44`,
               borderRadius: metrics.cardGap,
               overflow: 'hidden',
-            }}
+            })}
           >
             <div
               className="bg-gradient-to-br from-cyan-900/50 to-emerald-900/40 flex items-center justify-center"
@@ -273,7 +457,7 @@ export function OverlayPreview({
 
       case 'counter':
         return (
-          <div className="text-center" style={pos}>
+          <div className="text-center" style={withMotion({ ...pos, width: 'auto' })}>
             <p className="font-black leading-none" style={{ fontSize: metrics.fontSizeCounter, color: accentColor }}>
               {String(props.value ?? '0')}{props.suffix ? String(props.suffix) : ''}
             </p>
@@ -287,13 +471,13 @@ export function OverlayPreview({
         return (
           <p
             className="font-black uppercase text-center max-w-full"
-            style={{
+            style={withMotion({
               ...pos,
               fontSize: metrics.fontSizeKinetic,
               paddingLeft: metrics.positionPad.left,
               paddingRight: metrics.positionPad.right,
               ...kineticStyleProps(String(props.style || 'slam'), accentColor),
-            }}
+            })}
           >
             {String(props.text || 'TEXTO')}
           </p>
@@ -305,7 +489,7 @@ export function OverlayPreview({
         const items = normalizeBarChartItems(props.items, accentColor);
         const maxValue = Math.max(...items.map((it) => Number(it.value) || 0), 1);
         return (
-          <div style={{ ...pos, maxWidth: metrics.maxWidth, ...shell.container }}>
+          <div style={withMotion({ ...pos, maxWidth: metrics.maxWidth, ...shell.container })}>
             <div className="flex items-center gap-1 mb-1.5">
               <div style={shell.accentStripe} />
               <p style={{ ...shell.title, fontSize: metrics.fontSizeSubtitle, margin: 0 }}>
@@ -346,14 +530,14 @@ export function OverlayPreview({
       default:
         return (
           <div
-            style={{
+            style={withMotion({
               ...positionStyle('bottom-left', metrics.positionPad),
               background: 'rgba(0,0,0,0.75)',
               fontSize: metrics.fontSizeTitle,
               color: '#fff',
               padding: metrics.cardPadding,
               borderRadius: metrics.cardGap,
-            }}
+            })}
           >
             {OVERLAY_TYPE_LABELS[overlay.type] || overlay.type}
           </div>
@@ -370,9 +554,20 @@ export function OverlayPreview({
 
   return (
     <div className={`space-y-1.5 min-w-0 ${overlayPreviewFrameClass(format)} ${className}`.trim()}>
-      <p className="text-[9px] text-[var(--dash-muted)] uppercase tracking-wider">
-        Preview em escala real · {metrics.refLabel} · {variant}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[9px] text-[var(--dash-muted)] uppercase tracking-wider min-w-0 truncate">
+          Preview em escala real · {previewMetaLabel}
+        </p>
+        <button
+          type="button"
+          onClick={() => setPlaying((p) => !p)}
+          className="dash-btn-ghost text-[8px] px-2 py-0.5 flex items-center gap-1 shrink-0"
+          title="Reproduz animação de entrada e saída"
+        >
+          {playing ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+          {playing ? 'Pausar' : 'Animar'}
+        </button>
+      </div>
       <div
         className="overlay-preview-frame relative overflow-hidden rounded-2xl border border-[var(--dash-border)] bg-zinc-950 w-full"
         style={{ aspectRatio: isShort ? '9 / 16' : '16 / 9' }}
@@ -420,6 +615,17 @@ export function OverlayPreview({
         )}
         <div className="absolute top-[0.6em] right-[0.6em] z-[1] text-[max(7px,1.1cqw)] font-bold uppercase tracking-widest text-zinc-500 bg-black/40 px-[0.5em] py-[0.25em] rounded pointer-events-none">
           {isShort ? '9:16' : '16:9'}
+        </div>
+        <div className="absolute bottom-[0.45em] left-[0.55em] right-[0.55em] z-[1] pointer-events-none">
+          <div className="h-[2px] rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-violet-400/80 transition-none"
+              style={{ width: `${(motion.frame / Math.max(1, motion.totalFrames - 1)) * 100}%` }}
+            />
+          </div>
+          <p className="text-[max(6px,0.95cqw)] text-zinc-500 mt-0.5 uppercase tracking-wider">
+            Entrada · saída · {durationSeconds.toFixed(1)}s
+          </p>
         </div>
       </div>
       {metaParts.length > 0 && (
