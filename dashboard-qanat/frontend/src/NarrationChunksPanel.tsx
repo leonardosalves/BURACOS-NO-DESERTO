@@ -12,6 +12,7 @@ import {
   waitForAiJobDone,
   type AiJobProgressState,
 } from './aiJobProgressClient';
+import { describeFetchError, pingBackendHealth } from './describeFetchError';
 
 type ChunkVoice = {
   engine: string;
@@ -248,18 +249,23 @@ export function NarrationChunksPanel({
       toast('Nenhum trecho no plano — planeje antes de gerar.');
       return false;
     }
-    const res = await fetch(getProjectUrl('/api/narration/chunks'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: localPlan, mode: 'chunked' }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast(String(data.error || 'Falha ao salvar plano antes do TTS.'));
+    try {
+      const res = await fetch(getProjectUrl('/api/narration/chunks'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: localPlan, mode: 'chunked' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(String(data.error || 'Falha ao salvar plano antes do TTS.'));
+        return false;
+      }
+      if (data.plan) updatePlan(data.plan);
+      return true;
+    } catch (err) {
+      toast(describeFetchError(err, 'salvar plano de trechos'));
       return false;
     }
-    if (data.plan) updatePlan(data.plan);
-    return true;
   };
 
   const runChunkTts = async (chunkIds: string[] | null) => {
@@ -269,6 +275,15 @@ export function NarrationChunksPanel({
     const progressJobId = createProgressJobId();
     setGenerating(true);
     setTtsProgress(null);
+
+    const backendOk = await pingBackendHealth();
+    if (!backendOk) {
+      const msg = describeFetchError(new Error('Failed to fetch'), 'iniciar TTS por trechos');
+      setGenerating(false);
+      toast(msg);
+      return;
+    }
+
     startAiJobProgress(
       progressJobId,
       isFullBatch ? 'Narração por trechos + Whisper' : 'Narração por trechos',
@@ -325,9 +340,8 @@ export function NarrationChunksPanel({
       }
       onUpdated?.();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro na geração TTS.';
+      const msg = describeFetchError(err, 'gerar narração por trechos');
       stopAiJobProgress(false, msg);
-      toast(msg);
     } finally {
       setGenerating(false);
       setGeneratingChunkId(null);

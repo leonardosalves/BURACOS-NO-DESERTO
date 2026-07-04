@@ -522,6 +522,10 @@ if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
 
 app.use(express.json());
 
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, service: "lumiera-backend", ts: Date.now() });
+});
+
 // Catch malformed JSON syntax errors to prevent crashing
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
