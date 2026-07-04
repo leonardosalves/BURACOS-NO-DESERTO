@@ -7,8 +7,6 @@ export function buildCompetitorLlmFns(deps, { useAi = true, timeoutMs = 90000 } 
     workspaceDir,
     getAiProvider,
     getApiKey,
-    getApiKeys,
-    getGeminiModel,
     callGeminiWithRetry,
     callNvidiaWithRetry,
     NVIDIA_MODELS = [],
@@ -48,22 +46,9 @@ export function buildCompetitorLlmFns(deps, { useAi = true, timeoutMs = 90000 } 
         } else {
           text = await tryLlm("provider", () => callGeminiWithRetry(getApiKey(workspaceDir), prompt, {
             maxRetries: 1,
-            models: [getGeminiModel(workspaceDir), "gemini-2.5-flash"],
             temperature: 0.2,
             projectDir: workspaceDir,
           }));
-        }
-        if (!text && getAiProvider(workspaceDir) !== "nvidia") {
-          for (const key of getApiKeys(workspaceDir).slice(0, 2)) {
-            text = await tryLlm("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
-              maxRetries: 1,
-              models: ["gemini-2.0-flash"],
-              temperature: 0.2,
-              projectDir: workspaceDir,
-              forceProvider: "gemini",
-            }));
-            if (text) break;
-          }
         }
         return text;
       }
