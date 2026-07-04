@@ -2,6 +2,7 @@ import { isFilenameSourceUsedInOtherProject } from "./mediaUsageRegistry.js";
 import { cleanText, findNarrationMatch } from "../shared/narrationMatch.js";
 import {
   computeAssetDuration,
+  computeChainedSceneDuration,
   recalculateBlockSequentialAudioStarts,
 } from "../shared/timelineAudioStarts.js";
 import {
@@ -364,13 +365,59 @@ export function normalizeBlockSceneTimings(timings, blockEnd = Infinity) {
   const out = [];
   for (let i = 0; i < sorted.length; i++) {
     const t = { ...sorted[i] };
-    const locked = isAssetDurationLocked(t.asset) || assetHasExplicitDuration(t.asset);
+    const hardLocked = isAssetDurationLocked(t.asset);
+    const synced = t.asset?.synced_to_speech === true;
     const nextStart = i < sorted.length - 1 ? sorted[i + 1].start : blockEnd;
-    if (!locked && Number.isFinite(nextStart) && nextStart > t.start) {
-      t.duration = Math.max(0.5, Math.min(t.duration, nextStart - t.start));
+    if (!hardLocked && Number.isFinite(nextStart) && nextStart > t.start) {
+      const chained = Math.max(0.5, nextStart - t.start);
+      if (synced) {
+        t.duration = chained;
+      } else {
+        t.duration = Math.max(0.5, Math.min(t.duration, chained));
+      }
     }
     out.push(t);
   }
+  return out;
+}
+
+/**
+ * Ajusta fixed de cada slot sincronizado para encadear cenas (sem hold após a fala).
+ */
+export function tightenTimelineRetentionDurations(timelineAssets = {}, blockTimings = {}) {
+  const out = { ...timelineAssets };
+  const starts = blockTimings.starts || [];
+  const durations = blockTimings.durations || [];
+  const blockNums = Object.keys(out)
+    .map((k) => Number(k))
+    .filter((n) => Number.isFinite(n) && n >= 1)
+    .sort((a, b) => a - b);
+
+  for (const blockNum of blockNums) {
+    const blockKey = String(blockNum);
+    const assets = (out[blockKey] || []).map((a) => ({ ...a }));
+    if (!assets.length) continue;
+
+    const blockStart = Number(starts[blockNum - 1]);
+    const blockDuration = Number(durations[blockNum - 1]);
+    const nextBlockStart = Number(starts[blockNum]);
+    const blockEnd = Number.isFinite(nextBlockStart)
+      ? nextBlockStart
+      : (Number.isFinite(blockStart) && Number.isFinite(blockDuration)
+        ? blockStart + blockDuration
+        : Infinity);
+
+    assets.forEach((asset, idx) => {
+      if (isAssetDurationLocked(asset) || asset.synced_to_speech !== true) return;
+      const chained = computeChainedSceneDuration(asset, assets, idx, blockEnd);
+      if (chained == null) return;
+      asset.fixed = parseFloat(chained.toFixed(1));
+      asset.duration_from_whisper = true;
+    });
+
+    out[blockKey] = assets;
+  }
+
   return out;
 }
 
@@ -396,7 +443,10 @@ export function buildBlockSceneTimings(blockNum, assets, blockDuration, flatTran
   const useLockedSequentialLayout = blockUsesSequentialFixedLayout(cleanAssets);
 
   cleanAssets.forEach((asset, index) => {
-    const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration));
+    const duration = Math.max(0.5, computeAssetDuration(asset, cleanAssets, blockDuration, {
+      assetIndex: index,
+      blockEnd: safeBlockEnd,
+    }));
     let start;
 
     // Se o asset foi sincronizado pelo usuario, usar valores salvos diretamente
@@ -627,22 +677,12 @@ export function realignTimelineAssetsToSpeech({
         assets[idx].narration_segment = narrationText;
       }
 
-      if (!isAssetDurationLocked(assets[idx])) {
-        if (!(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))) {
-          const nextMatch = idx < assets.length - 1
-            ? resolveSceneSpeechMatch({
-              narrationText: getAssetNarrationText(blockNum, idx + 1, context),
-              flatTranscriptWords,
-              transcriptSegment: transcriptSegments[idx + 1],
-              searchAfter: speechEnd,
-              searchBefore: blockEnd,
-            })
-            : null;
-          if (nextMatch) {
-            assets[idx].fixed = parseFloat(Math.max(0.5, nextMatch.start - speechStart).toFixed(1));
-          } else {
-            assets[idx].fixed = parseFloat(Math.max(0.5, speechEnd - speechStart).toFixed(1));
-          }
+      if (!isAssetDurationLocked(assets[idx]) && !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))) {
+        const chained = computeChainedSceneDuration(assets[idx], assets, idx, blockEnd);
+        if (chained != null) {
+          assets[idx].fixed = parseFloat(chained.toFixed(1));
+        } else {
+          assets[idx].fixed = parseFloat(Math.max(0.5, speechEnd - speechStart).toFixed(1));
         }
       }
 
@@ -666,7 +706,12 @@ export function realignTimelineAssetsToSpeech({
       if (seg.chunk_id) assets[idx].chunk_id = seg.chunk_id;
 
       if (!isAssetDurationLocked(assets[idx]) && !(preserveExplicitFixed && assetHasExplicitDuration(assets[idx]))) {
-        assets[idx].fixed = parseFloat(Math.max(0.5, segEnd - segStart).toFixed(1));
+        const chained = computeChainedSceneDuration(assets[idx], assets, idx, blockEnd);
+        if (chained != null) {
+          assets[idx].fixed = parseFloat(chained.toFixed(1));
+        } else {
+          assets[idx].fixed = parseFloat(Math.max(0.5, segEnd - segStart).toFixed(1));
+        }
       }
       aligned++;
     }
@@ -687,10 +732,13 @@ export function realignTimelineAssetsToSpeech({
       }
     }
 
-    out[blockKey] = assets;
+    out[blockKey] = tightenTimelineRetentionDurations(
+      { [blockKey]: assets },
+      blockTimings,
+    )[blockKey];
   }
 
-  return out;
+  return tightenTimelineRetentionDurations(out, blockTimings);
 }
 
 function groupVisualPromptsByBlock(visualPrompts = []) {
@@ -892,7 +940,7 @@ export function syncProjectTimelineAfterWhisper({
   flatTranscriptWords = [],
   visualPrompts = [],
   blockPhrases = [],
-  preserveExplicitFixed = true,
+  preserveExplicitFixed = false,
 } = {}) {
   const rebuilt = rebuildBlockTimingsFromTranscriptSegments(wordTranscripts);
   const timings = rebuilt || blockTimings;
@@ -915,7 +963,10 @@ export function syncProjectTimelineAfterWhisper({
     preserveExplicitFixed,
   });
 
-  return { timelineAssets: timelineAssetsSynced, blockTimings: timings };
+  return {
+    timelineAssets: tightenTimelineRetentionDurations(timelineAssetsSynced, timings),
+    blockTimings: timings,
+  };
 }
 
 /** Recalcula audio_start em sequência (durações fixas) — usado após auto-map. */

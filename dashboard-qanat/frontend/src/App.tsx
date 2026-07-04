@@ -3604,9 +3604,13 @@ export default function App() {
 
   const resolveAssetDuration = useMemo(
     () => (config?.timeline_assets
-      ? createBlockAssetDurationResolver(config.timeline_assets, status?.block_timings?.durations)
+      ? createBlockAssetDurationResolver(
+        config.timeline_assets,
+        status?.block_timings?.durations,
+        status?.block_timings?.starts,
+      )
       : (_blockKey: string, _index: number) => 0),
-    [config?.timeline_assets, status?.block_timings?.durations],
+    [config?.timeline_assets, status?.block_timings?.durations, status?.block_timings?.starts],
   );
 
   const getAssetDuration = (blockKey: string, index: number) => resolveAssetDuration(blockKey, index);

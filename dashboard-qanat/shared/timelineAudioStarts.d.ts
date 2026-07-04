@@ -1,7 +1,19 @@
+export declare const MAX_RETENTION_POST_SPEECH_HOLD_SEC: number;
+
+export declare function isAssetFixedDurationLocked(asset: { fixed_locked?: boolean }): boolean;
+
+export declare function computeChainedSceneDuration(
+  asset: { audio_start?: number; speech_end?: number; fixed_locked?: boolean },
+  allAssets: Array<{ audio_start?: number }>,
+  assetIndex: number,
+  blockEnd?: number,
+): number | null;
+
 export declare function computeAssetDuration(
-  asset: { fixed?: number | null },
-  allAssets: Array<{ fixed?: number | null }>,
+  asset: { fixed?: number | null; synced_to_speech?: boolean; audio_start?: number; speech_end?: number; fixed_locked?: boolean },
+  allAssets: Array<{ fixed?: number | null; audio_start?: number }>,
   blockDuration: number,
+  options?: { assetIndex?: number; blockEnd?: number },
 ): number;
 
 export declare function recalculateBlockSequentialAudioStarts(options: {

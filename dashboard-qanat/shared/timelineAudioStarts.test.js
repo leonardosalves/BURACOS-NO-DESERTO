@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   computeAssetDuration,
+  computeChainedSceneDuration,
   recalculateBlockSequentialAudioStarts,
 } from "./timelineAudioStarts.js";
 import { flattenWordTranscripts } from "./wordTranscripts.js";
@@ -11,6 +12,33 @@ describe("timelineAudioStarts", () => {
     const assets = [{ fixed: 3 }, {}, {}];
     assert.equal(computeAssetDuration(assets[0], assets, 12), 3);
     assert.equal(computeAssetDuration(assets[1], assets, 12), 4.5);
+  });
+
+  it("computeChainedSceneDuration encadeia até a próxima cena", () => {
+    const assets = [
+      { audio_start: 80.073, speech_end: 83.18, synced_to_speech: true, fixed: 8 },
+      { audio_start: 83.7, speech_end: 89.2, synced_to_speech: true },
+    ];
+    const chained = computeChainedSceneDuration(assets[0], assets, 0, 89.5);
+    assert.ok(Math.abs(chained - 3.627) < 0.05);
+    assert.equal(
+      computeAssetDuration(assets[0], assets, 10, { assetIndex: 0, blockEnd: 89.5 }),
+      chained,
+    );
+  });
+
+  it("fixed_locked preserva duração manual", () => {
+    const assets = [
+      {
+        audio_start: 0,
+        speech_end: 3,
+        synced_to_speech: true,
+        fixed: 8,
+        fixed_locked: true,
+      },
+      { audio_start: 4, speech_end: 7, synced_to_speech: true },
+    ];
+    assert.equal(computeAssetDuration(assets[0], assets, 10, { assetIndex: 0, blockEnd: 10 }), 8);
   });
 
   it("recalculateBlockSequentialAudioStarts ancora e avança cursor", () => {

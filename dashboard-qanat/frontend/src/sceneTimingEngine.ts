@@ -16,6 +16,7 @@ import {
   type TimelineAsset,
 } from "./timelineNarrationSync";
 import { repairMojibake } from "./textEncoding";
+import { computeAssetDuration } from "@lumiera/shared/timelineAudioStarts.js";
 
 function cleanWordToken(word: string): string {
   return String(word || "")
@@ -215,19 +216,15 @@ export function getAssetDurationSeconds(
   assets: TimelineAsset[],
   assetIdx: number,
   blockDuration: number,
+  blockEnd?: number,
 ): number {
-  const asset = assets[assetIdx];
-  if (asset?.fixed != null && Number.isFinite(Number(asset.fixed))) {
-    return Math.max(MIN_SCENE_SECONDS, Number(asset.fixed));
-  }
-
-  const sumFixed = assets.reduce((acc, a) => acc + (a.fixed ? Number(a.fixed) : 0), 0);
-  const flexCount = assets.filter((a) => a.fixed == null).length;
-  if (flexCount > 0) {
-    const remaining = Math.max(MIN_SCENE_SECONDS * flexCount, blockDuration - sumFixed);
-    return remaining / flexCount;
-  }
-  return Math.max(MIN_SCENE_SECONDS, blockDuration / Math.max(1, assets.length));
+  return Math.max(
+    MIN_SCENE_SECONDS,
+    computeAssetDuration(assets[assetIdx], assets, blockDuration, {
+      assetIndex: assetIdx,
+      blockEnd,
+    }),
+  );
 }
 
 /**
