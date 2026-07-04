@@ -3,22 +3,28 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const lines = fs.readFileSync(path.join(__dirname, "..", "src", "App.tsx"), "utf8").split(/\r?\n/);
-const start = lines.findIndex((l) => l.includes("const renderRichTimelineEditor"));
-const end = lines.findIndex((l, i) => i > start && l.trim() === "};" && lines[i - 1]?.includes("</div>"));
-const body = lines.slice(start, end + 1).join("\n");
+const bodyPath = path.join(__dirname, "..", "src", "_timeline_editor_body.txt");
+if (!fs.existsSync(bodyPath)) {
+  console.error("run extract-timeline-editor-body.mjs first");
+  process.exit(1);
+}
+const body = fs.readFileSync(bodyPath, "utf8");
 
 const keywords = new Set([
   "true", "false", "null", "undefined", "return", "const", "let", "if", "else", "for", "while",
   "new", "typeof", "void", "as", "in", "of", "async", "await", "Number", "String", "Math",
-  "Object", "Array", "parseInt", "parseFloat", "String", "Math", "JSON", "document", "alert",
-  "details", "summary", "div", "button", "span", "input", "label", "option", "select", "p",
-  "key", "idx", "i", "blockKey", "asset", "blockNum", "e", "prev", "next", "seg", "mod",
+  "Object", "Array", "parseInt", "parseFloat", "JSON", "document", "fetch", "alert", "open",
+  "prev", "next", "e", "i", "idx", "blockKey", "blockNum", "asset", "res", "file", "err",
+  "all", "open", "color", "val", "field", "value", "msg", "path", "dur", "blockNum",
 ]);
 const components = new Set([
   "EditorCollapsibleSection", "SectionHeader", "AlertTriangle", "RefreshCw", "Sparkles", "Bot",
   "TimelineOpenCutBar", "TimelineClipPreview", "TimelineClipOpenCutControls", "OverlayTimelineEditor",
-  "Trash2", "Upload", "Save", "Play", "Pause", "ChevronDown", "ChevronUp", "Volume2", "Image", "Video",
+  "BlockProgressBarProjectPanel", "Trash2", "Upload", "Save", "Play", "Pause", "ChevronDown",
+  "ChevronUp", "Plus", "SettingHelpTip",
+]);
+const localFns = new Set([
+  "formatTime", "clipKey", "toast", "Array", "Math", "parseFloat", "encodeURIComponent",
 ]);
 
 const ids = new Set();
@@ -27,11 +33,12 @@ for (const p of patterns) {
   let m;
   while ((m = p.exec(body))) {
     const id = m[1];
-    if (keywords.has(id) || components.has(id)) continue;
+    if (keywords.has(id) || components.has(id) || localFns.has(id)) continue;
     if (/^[a-z]/.test(id) && id.length < 3) continue;
     ids.add(id);
   }
 }
 
-console.log([...ids].sort().join("\n"));
-console.log("---", ids.size);
+const props = [...ids].sort();
+console.log(props.join("\n"));
+console.log("---", props.length);
