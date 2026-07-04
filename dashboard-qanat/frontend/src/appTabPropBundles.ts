@@ -60,6 +60,7 @@ export type AppTabPropBundles = {
 export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundles {
   const creatorTabProps: AppCreatorTabProps = {
     activeProject: ctx.activeProject,
+    applyFacelessPreset: ctx.applyFacelessPreset,
     applyMetadataToUpload: ctx.applyMetadataToUpload,
     applyWizardSessionPatch: ctx.applyWizardSessionPatch,
     config: ctx.config,
@@ -83,6 +84,9 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     dragActive: ctx.dragActive,
     editorialIdeaImport: ctx.editorialIdeaImport,
     expandedBlocks: ctx.expandedBlocks,
+    facelessPipelineBusy: ctx.facelessPipelineBusy,
+    facelessPipelineLog: ctx.facelessPipelineLog,
+    facelessPresetId: ctx.facelessPresetId,
     fetchData: ctx.fetchData,
     formatSelector: ctx.formatSelector,
     geminiBrowserMode: ctx.geminiBrowserMode,
@@ -100,6 +104,7 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     handleFileInput: ctx.handleFileInput,
     handleGenerateFullScript: ctx.handleGenerateFullScript,
     handleGenerateIdeas: ctx.handleGenerateIdeas,
+    handleRunFacelessPipeline90: ctx.handleRunFacelessPipeline90,
     handleGenerateListicleScript: ctx.handleGenerateListicleScript,
     handleGenerateNarration: ctx.handleGenerateNarration,
     handleGenerateNarrationFromImport: ctx.handleGenerateNarrationFromImport,
