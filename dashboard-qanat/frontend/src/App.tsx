@@ -48,6 +48,7 @@ import { isGlobalViewTab, RESTORABLE_APP_TABS } from './appTabs';
 
 
 import { clipKey, parseClipKey } from './opencutTimeline';
+import { mergeStoryboardWithTimelineAssets } from './assetPreviewUtils';
 import {
   getYoutubeNotificationsEnabled,
   getYoutubePollIntervalMs,
@@ -788,6 +789,7 @@ export default function App() {
   const applyStoryboardToCreatorState = (
     data: any,
     source: 'fetch' | 'generation' | 'restore' = 'generation',
+    timelineAssets?: Record<string, any[] | undefined> | null,
   ) => {
     if (!data) return;
     if (source === 'fetch' && wizardStoryboardSuppressedRef.current && activeTab === 'creator') {
@@ -798,9 +800,13 @@ export default function App() {
     }
     clearPendingStoryboardSave();
     storyboardDirtyRef.current = false;
-    setGeneratedScriptData(data);
-    setStoryboardData(data);
-    if (data.narrative_script) setCreatorScript(data.narrative_script);
+    const merged = mergeStoryboardWithTimelineAssets(
+      data,
+      timelineAssets ?? config?.timeline_assets,
+    ) ?? data;
+    setGeneratedScriptData(merged);
+    setStoryboardData(merged);
+    if (merged.narrative_script) setCreatorScript(merged.narrative_script);
   };
 
   const saveCreatorStoryboard = async (scriptData: any) => {
@@ -1945,7 +1951,10 @@ export default function App() {
 
   };
 
-  const fetchStoryboard = async (projName = activeProject, opts?: { force?: boolean }) => {
+  const fetchStoryboard = async (
+    projName = activeProject,
+    opts?: { force?: boolean; timelineAssets?: Record<string, any[] | undefined> | null },
+  ) => {
     const gen = ++storyboardFetchGenRef.current;
     setLoadingStoryboard(true);
     try {
@@ -1953,7 +1962,11 @@ export default function App() {
       if (res.ok) {
         if (gen !== storyboardFetchGenRef.current) return;
         if (!opts?.force && storyboardDirtyRef.current) return;
-        applyStoryboardToCreatorState(repairMojibakeDeep(await res.json()), 'fetch');
+        applyStoryboardToCreatorState(
+          repairMojibakeDeep(await res.json()),
+          'fetch',
+          opts?.timelineAssets,
+        );
       }
     } catch (err) {
       console.error("Error fetching storyboard:", err);
@@ -2070,6 +2083,16 @@ export default function App() {
         }
 
         setConfig(loadedConfig);
+        setGeneratedScriptData((prev) => {
+          if (!prev) return prev;
+          const merged = mergeStoryboardWithTimelineAssets(prev, loadedConfig.timeline_assets);
+          if (merged && merged !== prev) {
+            setStoryboardData(merged);
+            return merged;
+          }
+          return prev;
+        });
+        fetchStoryboard(activeProject, { timelineAssets: loadedConfig.timeline_assets });
         if (loadedConfig.render_resolution === '2k' || loadedConfig.render_resolution === '1080p') {
           setProjectRenderResolution(loadedConfig.render_resolution);
           setResolutionConfigScope('project');
@@ -2179,8 +2202,6 @@ export default function App() {
         setWordTranscripts([]);
 
       }
-
-      fetchStoryboard(activeProject);
 
       fetchCreatorAssets();
 
@@ -3047,7 +3068,11 @@ export default function App() {
 
             const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
 
-            syncCreatorStoryboard(nextScriptData);
+            clearPendingStoryboardSave();
+            storyboardDirtyRef.current = true;
+            setGeneratedScriptData(nextScriptData);
+            setStoryboardData(nextScriptData);
+            await saveCreatorStoryboard(nextScriptData);
 
           }
 
@@ -3150,8 +3175,6 @@ export default function App() {
           setConfig({ ...config, timeline_assets: nextTimelineAssets });
 
         }
-
-        fetchData();
 
       } else {
 
