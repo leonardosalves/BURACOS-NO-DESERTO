@@ -185,16 +185,20 @@ import {
   getBlockNarrationText as resolveBlockNarrationText,
   getBlockTimeBounds as resolveBlockTimeBounds,
   buildBlockNarrationWordsCache,
-  narrationCacheKey,
+  buildNarrationMatchesCache,
+  lookupNarrationTimestamps,
   swapBlockVisualPromptsInStoryboard,
   type NarrationSyncContext,
 } from './timelineNarrationSync';
 import {
+  createBlockAssetDurationResolver,
   recalculateBlockAudioStarts as recalculateBlockAudioStartsCore,
   enrichTimelineAudioStarts as enrichTimelineAudioStartsCore,
 } from './timelineBlockAudioStarts';
+import { getDynamicAssetWords as getDynamicAssetWordsCore } from './timelineDynamicAssetWords';
+import { alignBlockAssetsToTranscript } from './timelineSpeechAlign';
 import { resolveBgmMode } from '@lumiera/shared/bgmMode.js';
-import { computeAssetDuration } from '@lumiera/shared/timelineAudioStarts.js';
+
 import { flattenWordTranscripts } from '@lumiera/shared/wordTranscripts.js';
 import { repairMojibake, repairMojibakeDeep } from './textEncoding';
 import {
@@ -3961,14 +3965,14 @@ export default function App() {
 
   };
 
-  const getAssetDuration = (blockKey: string, index: number) => {
-    if (!config?.timeline_assets?.[blockKey]) return 0;
-    const blockNum = parseInt(blockKey, 10);
-    const blockDuration = status?.block_timings?.durations?.[blockNum - 1] ?? 10.0;
-    const configs = config.timeline_assets[blockKey];
-    if (!configs || configs[index] === undefined) return 0;
-    return computeAssetDuration(configs[index], configs, blockDuration);
-  };
+  const resolveAssetDuration = useMemo(
+    () => (config?.timeline_assets
+      ? createBlockAssetDurationResolver(config.timeline_assets, status?.block_timings?.durations)
+      : (_blockKey: string, _index: number) => 0),
+    [config?.timeline_assets, status?.block_timings?.durations],
+  );
+
+  const getAssetDuration = (blockKey: string, index: number) => resolveAssetDuration(blockKey, index);
 
   const getTotalVideoDuration = () => {
 
@@ -4176,53 +4180,26 @@ export default function App() {
   }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts]);
 
   const narrationMatchesCache = useMemo(() => {
-    const cache: Record<string, {
-      start: number;
-      end: number;
-      duration: number;
-      matchedWords: number;
-      totalWords: number;
-      bestFirstMatchIdx: number;
-      bestLastMatchIdx: number;
-    }> = {};
-
-    if (!flatTranscriptWords || flatTranscriptWords.length === 0 || !config) {
-      return cache;
-    }
-
-    const timelineAssets = config.timeline_assets || {};
-    Object.keys(timelineAssets).forEach((blockKey) => {
-      const blockNum = parseInt(blockKey, 10);
-      if (!Number.isFinite(blockNum)) return;
-      const bounds = resolveBlockTimeBounds(status, blockNum);
-      const assets = timelineAssets[blockKey] || [];
-      assets.forEach((_, idx) => {
-        const narrationText = getAssetNarration(blockKey, idx);
-        if (!narrationText) return;
-        const key = narrationCacheKey(blockNum, narrationText);
-        if (cache[key]) return;
-        const hit = findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
-        if (hit) cache[key] = hit;
-      });
-      const blockText = resolveBlockNarrationText(buildNarrationSyncContext(), blockNum);
-      if (blockText) {
-        const key = narrationCacheKey(blockNum, blockText);
-        if (!cache[key]) {
-          const hit = findBoundedNarrationMatch(blockText, flatTranscriptWords, bounds);
-          if (hit) cache[key] = hit;
-        }
-      }
+    if (!flatTranscriptWords?.length || !config?.timeline_assets) return {};
+    const ctx = buildNarrationSyncContext();
+    return buildNarrationMatchesCache({
+      timelineAssets: config.timeline_assets,
+      flatTranscriptWords,
+      status,
+      getAssetText: (blockKey, idx) => resolveAssetNarrationText(ctx, blockKey, idx),
+      getBlockText: (blockNum) => resolveBlockNarrationText(ctx, blockNum),
     });
-
-    return cache;
   }, [flatTranscriptWords, narrationTextsListString, config, status, storyboardData?.visual_prompts]);
 
   const findNarrationTimestamps = (narrationText: string, blockNum?: number) => {
-    if (!narrationText || blockNum === undefined) return null;
-    const cacheKey = narrationCacheKey(blockNum, narrationText);
-    if (narrationMatchesCache[cacheKey]) return narrationMatchesCache[cacheKey];
-    const bounds = resolveBlockTimeBounds(status, blockNum);
-    return findBoundedNarrationMatch(narrationText, flatTranscriptWords, bounds);
+    if (blockNum === undefined) return null;
+    return lookupNarrationTimestamps(
+      narrationText,
+      blockNum,
+      narrationMatchesCache,
+      flatTranscriptWords,
+      status,
+    );
   };
 
   const blockNarrationWordsCache = useMemo(() => {
@@ -4235,85 +4212,14 @@ export default function App() {
     });
   }, [config?.timeline_assets, config?.block_phrases, storyboardData?.visual_prompts, flatTranscriptWords, wordTranscripts, status]);
 
-  // Get dynamically distributed words for a specific asset based on its time window
-  const getDynamicAssetWords = (blockKey: string, assetIdx: number): {
-    words: Array<{ word: string; start: number; end: number }>;
-    text: string;
-    assetAudioStart: number;
-    assetAudioEnd: number;
-    blockAudioStart: number;
-    blockAudioEnd: number;
-    totalBlockWords: number;
-    coveredWords: number;
-  } | null => {
-    const blockNum = parseInt(blockKey, 10);
-    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
-    if (allBlockWords.length === 0) return null;
-
-    const narrationStart = allBlockWords[0].start;
-    const narrationLastEnd = allBlockWords[allBlockWords.length - 1].end;
-    const totalAssets = config?.timeline_assets?.[blockKey]?.length || 0;
-
-    // Calcular janela de tempo do asset
-    const currentAsset = config?.timeline_assets?.[blockKey]?.[assetIdx];
-    let assetAudioStart: number;
-
-    if (currentAsset?.audio_start !== undefined && currentAsset?.audio_start !== null) {
-      assetAudioStart = Number(currentAsset.audio_start);
-    } else {
-      assetAudioStart = narrationStart;
-      for (let i = 0; i < assetIdx; i++) {
-        assetAudioStart += getAssetDuration(blockKey, i);
-      }
-    }
-
-    const assetDuration = getAssetDuration(blockKey, assetIdx);
-    const rawAssetAudioEnd = assetAudioStart + assetDuration;
-    const speechEnd = Number(currentAsset?.speech_end);
-
-    const isLastAsset = assetIdx === totalAssets - 1;
-    const assetAudioEnd = Number.isFinite(speechEnd) && speechEnd > assetAudioStart
-      ? speechEnd + 0.12
-      : (isLastAsset
-        ? Math.min(narrationLastEnd + 0.15, rawAssetAudioEnd)
-        : rawAssetAudioEnd);
-
-    let assetWords: Array<{ word: string; start: number; end: number }>;
-
-    if (Number.isFinite(speechEnd) && speechEnd > assetAudioStart) {
-      assetWords = allBlockWords.filter((w) =>
-        w.start >= assetAudioStart - 0.10 && w.end <= speechEnd + 0.08,
-      );
-    } else if (isLastAsset) {
-      assetWords = allBlockWords.filter((w) =>
-        w.start >= assetAudioStart - 0.10 && w.start <= narrationLastEnd + 0.08,
-      );
-    } else {
-      assetWords = allBlockWords.filter((w) =>
-        w.start >= assetAudioStart - 0.10 && w.start < assetAudioEnd - 0.05,
-      );
-    }
-
-    // Cobertura: contar palavras cobertas por TODOS os assets do bloco
-    let totalEndTime = narrationStart;
-    for (let i = 0; i < totalAssets; i++) {
-      totalEndTime += getAssetDuration(blockKey, i);
-    }
-    // Se último asset cobre até narrationLastEnd, todas as palavras estão cobertas
-    const effectiveEnd = Math.max(totalEndTime, narrationLastEnd + 0.15);
-    const coveredWords = allBlockWords.filter(w => w.start < effectiveEnd - 0.05).length;
-
-    return {
-      words: assetWords,
-      text: assetWords.map(w => w.word).join(' '),
-      assetAudioStart,
-      assetAudioEnd,
-      blockAudioStart: narrationStart,
-      blockAudioEnd: narrationLastEnd,
-      totalBlockWords: allBlockWords.length,
-      coveredWords,
-    };
-  };
+  const getDynamicAssetWords = (blockKey: string, assetIdx: number) =>
+    getDynamicAssetWordsCore({
+      blockKey,
+      assetIdx,
+      blockNarrationWordsCache,
+      timelineAssets: config?.timeline_assets || {},
+      getAssetDuration,
+    });
 
 
   const recalculateBlockAudioStarts = (blockKey: string, assets: any[], preserveUntilIndex = -1): any[] => {
@@ -4346,12 +4252,7 @@ export default function App() {
 
     }
 
-    const updatedAssets = [...cfg.timeline_assets[blockKey]];
-
     const blockNum = Number(blockKey);
-
-    const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
-
     const starts = status?.block_timings?.starts;
 
     if (!starts || starts[blockNum - 1] === undefined) {
@@ -4362,70 +4263,13 @@ export default function App() {
 
     }
 
-    const blockStart = starts[blockNum - 1];
-
-    const blockEnd = blockStart + blockDuration;
-
-    const getNextMatchedStart = (startIdx: number): number | null => {
-
-      for (let i = startIdx; i < updatedAssets.length; i++) {
-
-        const text = getAssetNarration(blockKey, i);
-
-        const match = findNarrationTimestamps(text, blockNum);
-
-        if (match) return match.start;
-
-      }
-
-      return null;
-
-    };
-
-    let alignedCount = 0;
-
-    updatedAssets.forEach((asset, idx) => {
-
-      if (asset.fixed_locked) return;
-
-      const narrationText = getAssetNarration(blockKey, idx);
-
-      const matched = findNarrationTimestamps(narrationText, blockNum);
-
-      if (matched) {
-
-        asset.speech_end = parseFloat(matched.end.toFixed(3));
-
-        if (idx === updatedAssets.length - 1) {
-
-          asset.fixed = parseFloat(Math.max(0.5, matched.end - matched.start).toFixed(1));
-
-        } else {
-
-          const nextStart = getNextMatchedStart(idx + 1);
-
-          if (nextStart !== null) {
-
-            asset.fixed = parseFloat(Math.max(0.5, nextStart - matched.start).toFixed(1));
-
-          } else {
-
-            asset.fixed = parseFloat(matched.duration.toFixed(1));
-
-          }
-
-        }
-
-        delete asset.fixed_locked;
-
-        asset.audio_start = parseFloat(matched.start.toFixed(3));
-        asset.synced_to_speech = true;
-
-        alignedCount++;
-
-      }
-
-    });
+    const { assets: updatedAssets, alignedCount } = alignBlockAssetsToTranscript(
+      cfg.timeline_assets[blockKey],
+      blockNum,
+      (idx) => getAssetNarration(blockKey, idx),
+      (text, bn) => findNarrationTimestamps(text, bn),
+      { setSpeechEnd: true, lastAssetMode: "perSpeech" },
+    );
 
     if (alignedCount === 0) {
 
@@ -4578,75 +4422,21 @@ export default function App() {
 
       if (!newTimelineAssets[blockKey]) continue;
 
-      const updatedAssets = [...newTimelineAssets[blockKey]];
-
-      const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
-
       const starts = status?.block_timings?.starts;
-
       if (!starts || starts[blockNum - 1] === undefined) continue;
 
-      const blockStart = starts[blockNum - 1];
+      const blockDuration = status?.block_timings?.durations?.[blockNum - 1] || 10.0;
+      const blockEnd = starts[blockNum - 1] + blockDuration;
 
-      const blockEnd = blockStart + blockDuration;
+      const { assets: updatedAssets, alignedCount } = alignBlockAssetsToTranscript(
+        newTimelineAssets[blockKey],
+        blockNum,
+        (idx) => getAssetNarration(blockKey, idx),
+        (text, bn) => findNarrationTimestamps(text, bn),
+        { blockEnd, lastAssetMode: "toBlockEnd" },
+      );
 
-      const getNextMatchedStartLocal = (startIdx: number): number | null => {
-
-        for (let i = startIdx; i < updatedAssets.length; i++) {
-
-          const text = getAssetNarration(blockKey, i);
-
-          const match = findNarrationTimestamps(text, blockNum);
-
-          if (match) return match.start;
-
-        }
-
-        return null;
-
-      };
-
-      updatedAssets.forEach((asset, idx) => {
-
-        if (asset.fixed_locked) return;
-
-        const narrationText = getAssetNarration(blockKey, idx);
-
-        const matched = findNarrationTimestamps(narrationText, blockNum);
-
-        if (matched) {
-
-          if (idx === updatedAssets.length - 1) {
-
-            asset.fixed = parseFloat(Math.max(0.5, blockEnd - matched.start).toFixed(1));
-
-          } else {
-
-            const nextStart = getNextMatchedStartLocal(idx + 1);
-
-            if (nextStart !== null) {
-
-              asset.fixed = parseFloat(Math.max(0.5, nextStart - matched.start).toFixed(1));
-
-            } else {
-
-              asset.fixed = parseFloat(matched.duration.toFixed(1));
-
-            }
-
-          }
-
-          delete asset.fixed_locked;
-
-          asset.audio_start = parseFloat(matched.start.toFixed(3));
-          asset.synced_to_speech = true;
-
-          totalAligned++;
-
-        }
-
-      });
-
+      totalAligned += alignedCount;
       newTimelineAssets[blockKey] = updatedAssets;
 
     }

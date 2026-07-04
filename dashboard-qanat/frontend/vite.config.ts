@@ -46,6 +46,13 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) return 'vendor';
+          if (
+            id.includes('timelineNarrationSync')
+            || id.includes('timelineBlockAudioStarts')
+            || id.includes('timelineDynamicAssetWords')
+            || id.includes('timelineSpeechAlign')
+            || id.includes('sceneTimingEngine')
+          ) return 'timeline';
           if (id.includes('src/App.tsx')) return 'app-shell';
         },
       },
