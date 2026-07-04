@@ -174,6 +174,7 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
   const [retrying, setRetrying] = useState(false);
   const [applyingPending, setApplyingPending] = useState(false);
   const autoApplyRanRef = useRef(false);
+  const lastReviewCountRef = useRef(0);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
   const activityLog = useMemo(() => {
@@ -250,6 +251,14 @@ export function VideoResurrectorPanel({ toast, externalAlerts, onDashboardChange
       setApplyingPending(false);
     }
   }, [applyDashboard, pushLiveLog]);
+
+  useEffect(() => {
+    const reviewCount = dashboard?.counts?.review ?? 0;
+    if (reviewCount > lastReviewCountRef.current) {
+      autoApplyRanRef.current = false;
+    }
+    lastReviewCountRef.current = reviewCount;
+  }, [dashboard?.counts?.review]);
 
   useEffect(() => {
     if (!dashboard || loading || autoApplyRanRef.current) return;
