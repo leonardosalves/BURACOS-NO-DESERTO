@@ -33,11 +33,6 @@ export default defineConfig({
         timeout: 900000,
         proxyTimeout: 900000,
       },
-      '/n8n-proxy': {
-        target: 'http://127.0.0.1:5678',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/n8n-proxy/, ''),
-      },
     }
   }
 })
