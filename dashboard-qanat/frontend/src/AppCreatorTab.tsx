@@ -19,10 +19,13 @@ import {
 } from './creatorEditorialImport';
 import { parseCreatorBlockNumber, getBlockTimingSummary } from './creatorTimingUtils';
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
+import { FacelessChannelPanel } from './FacelessChannelPanel';
+import { canRunFacelessPipeline90 } from './facelessChannel';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
 
 export type AppCreatorTabProps = {
   activeProject: string;
+  applyFacelessPreset: (presetId: string) => void;
   applyMetadataToUpload: () => void | Promise<void>;
   applyWizardSessionPatch: (patch: any) => void;
   config: ConfigData | null;
@@ -46,6 +49,9 @@ export type AppCreatorTabProps = {
   dragActive: boolean;
   editorialIdeaImport: any;
   expandedBlocks: Record<number, boolean>;
+  facelessPipelineBusy: boolean;
+  facelessPipelineLog: string[];
+  facelessPresetId: string | null;
   fetchData: () => void | Promise<void>;
   formatSelector: 'LONGO' | 'SHORTS';
   geminiBrowserMode: boolean;
@@ -63,6 +69,7 @@ export type AppCreatorTabProps = {
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
   handleGenerateIdeas: () => void | Promise<void>;
+  handleRunFacelessPipeline90: () => void | Promise<void>;
   handleGenerateListicleScript: () => void | Promise<void>;
   handleGenerateNarration: () => void | Promise<void>;
   handleGenerateNarrationFromImport: () => void | Promise<void>;
@@ -154,6 +161,7 @@ export type AppCreatorTabProps = {
 
 export function AppCreatorTab({
   activeProject,
+  applyFacelessPreset,
   applyMetadataToUpload,
   applyWizardSessionPatch,
   config,
@@ -177,6 +185,9 @@ export function AppCreatorTab({
   dragActive,
   editorialIdeaImport,
   expandedBlocks,
+  facelessPipelineBusy,
+  facelessPipelineLog,
+  facelessPresetId,
   fetchData,
   formatSelector,
   geminiBrowserMode,
@@ -194,6 +205,7 @@ export function AppCreatorTab({
   handleFileInput,
   handleGenerateFullScript,
   handleGenerateIdeas,
+  handleRunFacelessPipeline90,
   handleGenerateListicleScript,
   handleGenerateNarration,
   handleGenerateNarrationFromImport,
@@ -282,6 +294,16 @@ export function AppCreatorTab({
   youtubeMetadata,
   youtubeMetadataParsed,
 }: AppCreatorTabProps) {
+  const facelessComplianceInput = {
+    storyboardData,
+    config,
+    status,
+    wordTranscripts,
+    timelineAssets,
+    nicheInput,
+  };
+  const pipeline90Ready = canRunFacelessPipeline90(wordTranscripts, status);
+
   return (
             <DashminPageLayout
               className="lumiera-fill-view overflow-hidden"
@@ -414,6 +436,12 @@ export function AppCreatorTab({
                 {creatorStep === 1 && (
 
                   <div className="space-y-8 max-w-4xl mx-auto font-sans">
+
+                    <FacelessChannelPanel
+                      variant="preset"
+                      activePresetId={facelessPresetId}
+                      onApplyPreset={applyFacelessPreset}
+                    />
 
                     {/* Step 1 Header & Tabs Selector */}
                     <div className="bg-zinc-950/60 border border-zinc-900/85 rounded-2xl p-5 space-y-4">
@@ -1477,6 +1505,14 @@ export function AppCreatorTab({
 
                 {creatorStep === 4 && config && (
                   <div className="space-y-6 max-w-4xl mx-auto font-sans">
+                    <FacelessChannelPanel
+                      variant="pipeline"
+                      complianceInput={facelessComplianceInput}
+                      pipelineBusy={facelessPipelineBusy}
+                      pipelineLog={facelessPipelineLog}
+                      pipelineReady={pipeline90Ready}
+                      onRunPipeline90={handleRunFacelessPipeline90}
+                    />
                     {renderRichTimelineEditor({ hideAutoMap: true, wizardManualMode: true })}
                     
                     {/* Navigation Buttons */}
@@ -1508,6 +1544,11 @@ export function AppCreatorTab({
                 {creatorStep === 5 && (
 
                   <div className="space-y-6 max-w-2xl mx-auto py-6 font-sans">
+
+                    <FacelessChannelPanel
+                      variant="compliance"
+                      complianceInput={facelessComplianceInput}
+                    />
 
                     <div className="text-center font-sans">
 

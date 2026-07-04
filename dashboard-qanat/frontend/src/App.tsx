@@ -105,6 +105,7 @@ import type {
 import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from './appConstants';
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
+import { FACELESS_NICHE_PRESETS, canRunFacelessPipeline90 } from './facelessChannel';
 import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
 import { buildAppTabPropBundles } from './appTabPropBundles';
 import { AppOverlays } from './AppOverlays';
@@ -464,6 +465,9 @@ export default function App() {
   );
   const [narrationProjectName, setNarrationProjectName] = useState<string>(savedCreatorState.narrationProjectName || '');
   const [useNotebooklm, setUseNotebooklm] = useState<boolean>(savedCreatorState.useNotebooklm !== false);
+  const [facelessPresetId, setFacelessPresetId] = useState<string | null>(null);
+  const [facelessPipelineBusy, setFacelessPipelineBusy] = useState(false);
+  const [facelessPipelineLog, setFacelessPipelineLog] = useState<string[]>([]);
   const [notebooklmStatus, setNotebooklmStatus] = useState<{
     available: boolean;
     authenticated: boolean;
@@ -6605,6 +6609,63 @@ export default function App() {
 
   // Run Gemini mapping of assets to blocks
 
+  const applyFacelessPreset = useCallback((presetId: string) => {
+    const preset = FACELESS_NICHE_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setFacelessPresetId(presetId);
+    setNicheInput(preset.niche);
+    setFormatSelector(preset.format);
+    setIdeationTab('ai');
+    void saveConfigPatch({ narration_mode: 'master' }, { skipRefresh: true });
+    toast.success(`Preset "${preset.label}" — canal sem rosto configurado.`);
+  }, [saveConfigPatch]);
+
+  const handleRunFacelessPipeline90 = useCallback(async () => {
+    if (!canRunFacelessPipeline90(wordTranscripts, status)) {
+      toast.error('Conclua a sincronização Whisper (passo 3) antes do Pipeline 90%.');
+      return;
+    }
+    setFacelessPipelineBusy(true);
+    setFacelessPipelineLog([]);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const steps = 'stock,automap,bgm';
+        const es = new EventSource(
+          getProjectUrl(`/api/creator/run-pipeline?steps=${encodeURIComponent(steps)}`),
+        );
+        es.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data);
+            if (data.type === 'log') {
+              setFacelessPipelineLog((prev) => [...prev.slice(-30), String(data.text || '')]);
+            }
+            if (data.type === 'complete') {
+              es.close();
+              resolve();
+            }
+            if (data.type === 'error') {
+              es.close();
+              reject(new Error(data.message || 'Pipeline falhou'));
+            }
+          } catch {
+            /* ignore malformed SSE */
+          }
+        };
+        es.onerror = () => {
+          es.close();
+          reject(new Error('Conexão com o pipeline foi interrompida.'));
+        };
+      });
+      await fetchData();
+      setCreatorStep(5);
+      toast.success('Pipeline 90% concluído — revise a timeline e avance para o render.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Pipeline 90% falhou.');
+    } finally {
+      setFacelessPipelineBusy(false);
+    }
+  }, [wordTranscripts, status, getProjectUrl, fetchData]);
+
   const handleAutoMapAssets = async () => {
 
     setCreatorLoading(true);
@@ -7451,6 +7512,7 @@ export default function App() {
     aiProvider,
     aiProviderBadge,
     applyAiConfig,
+    applyFacelessPreset,
     applyMetadataToUpload,
     applyProductionPatchToConfig,
     applyVisualPatchToConfig,
@@ -7492,6 +7554,9 @@ export default function App() {
     editingImpact,
     editorSubTab,
     editorialIdeaImport,
+    facelessPipelineBusy,
+    facelessPipelineLog,
+    facelessPresetId,
     effectiveRenderResolution,
     epidemicKeyInput,
     epidemicSearchQuery,
@@ -7545,6 +7610,7 @@ export default function App() {
     handleGenerateCanvaThumbnails,
     handleGenerateFullScript,
     handleGenerateIdeas,
+    handleRunFacelessPipeline90,
     handleGenerateListicleScript,
     handleGenerateNarration,
     handleGenerateNarrationFromImport,
