@@ -310,7 +310,9 @@ import {
   resolveMusicVolumeForRender,
 } from "./bgmProductionDefaults.js";
 import {
+  bindStoryboardAssetsFromTimeline,
   bootstrapNewProjectConfig,
+  mergeTimelineSlotFromStoryboard,
   sanitizeTimelineAssetsForProject,
 } from "./projectConfigBootstrap.js";
 import {
@@ -1859,39 +1861,16 @@ app.get("/api/projects/storyboard", (req, res) => {
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
         if (config.timeline_assets) {
-
-          const blockAssetCounts = {};
-
-          data.visual_prompts.forEach(vp => {
-
-            const blockNum = vp.block || 1;
-
-            const blockKey = String(blockNum);
-
-            if (blockAssetCounts[blockKey] === undefined) {
-
-              blockAssetCounts[blockKey] = 0;
-
+          const bound = bindStoryboardAssetsFromTimeline(data.visual_prompts, config.timeline_assets);
+          if (bound.updated) {
+            data.visual_prompts = bound.visualPrompts;
+            try {
+              fs.writeFileSync(storyboardPath, JSON.stringify(data, null, 2), "utf8");
+              console.log(`[storyboard] Assets da timeline vinculados em ${path.basename(projDir)}`);
+            } catch (writeErr) {
+              console.warn("[storyboard] Falha ao persistir vínculo de assets:", writeErr.message);
             }
-
-            const assetIdx = blockAssetCounts[blockKey];
-
-            blockAssetCounts[blockKey]++;
-
-            if (!vp.asset && config.timeline_assets[blockKey] && config.timeline_assets[blockKey][assetIdx]) {
-
-              const configAsset = config.timeline_assets[blockKey][assetIdx];
-
-              if (configAsset && configAsset.asset) {
-
-                vp.asset = configAsset;
-
-              }
-
-            }
-
-          });
-
+          }
         }
 
       } catch (e) {
@@ -2891,21 +2870,7 @@ app.post("/api/projects/storyboard", (req, res) => {
       const assetIdx = blockCounters[blockKey]++;
       const existing = (existingTimelineAssets[blockKey] || [])[assetIdx];
       const fromStoryboard = vp.asset && vp.asset.asset ? vp.asset : null;
-
-      if (existing && fromStoryboard) {
-        nextTimelineAssets[blockKey][assetIdx] = {
-          ...existing,
-          asset: fromStoryboard.asset || existing.asset,
-          type: fromStoryboard.type || existing.type,
-          ...(fromStoryboard.fixed !== undefined ? { fixed: fromStoryboard.fixed } : {}),
-        };
-      } else if (existing) {
-        nextTimelineAssets[blockKey][assetIdx] = existing;
-      } else if (fromStoryboard) {
-        nextTimelineAssets[blockKey][assetIdx] = fromStoryboard;
-      } else {
-        nextTimelineAssets[blockKey][assetIdx] = {};
-      }
+      nextTimelineAssets[blockKey][assetIdx] = mergeTimelineSlotFromStoryboard(existing, fromStoryboard);
     });
 
     config.timeline_assets = nextTimelineAssets;
@@ -7308,34 +7273,13 @@ function syncStoryboardAssetsFromTimeline(projDir) {
   const storyboard = readProjectJson(projDir, "storyboard.json", {});
   if (!Array.isArray(storyboard.visual_prompts)) return false;
 
-  const timeline = config.timeline_assets || {};
-  const blockCounters = {};
-  let updated = false;
+  const bound = bindStoryboardAssetsFromTimeline(storyboard.visual_prompts, config.timeline_assets || {});
+  if (!bound.updated) return false;
 
-  for (const vp of storyboard.visual_prompts) {
-    const blockKey = String(vp.block || 1);
-    if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
-    const idx = blockCounters[blockKey]++;
-    const tlAsset = timeline[blockKey]?.[idx];
-    if (!tlAsset?.asset) continue;
-
-    const nextAsset = {
-      asset: tlAsset.asset,
-      type: tlAsset.type || "image",
-      ...(tlAsset.fixed !== undefined && tlAsset.fixed !== null ? { fixed: tlAsset.fixed } : {}),
-    };
-    const prevPath = vp.asset?.asset || vp.asset;
-    if (prevPath !== tlAsset.asset) {
-      vp.asset = nextAsset;
-      updated = true;
-    }
-  }
-
-  if (updated) {
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
-    console.log("[Timeline] Storyboard atualizado a partir da timeline_assets.");
-  }
-  return updated;
+  storyboard.visual_prompts = bound.visualPrompts;
+  fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+  console.log("[Timeline] Storyboard atualizado a partir da timeline_assets.");
+  return true;
 }
 
 function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffset = null } = {}) {
@@ -11836,11 +11780,16 @@ app.post("/api/upload-scene-asset", (req, res) => {
 
         }
 
-        config.timeline_assets[blockKey].push(assetItem);
+        config.timeline_assets[blockKey].push({
+          ...assetItem,
+          user_locked: true,
+          manual_asset: true,
+        });
 
       }
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      syncStoryboardAssetsFromTimeline(projDir);
 
       res.json({
 

@@ -46,3 +46,24 @@ export function detectUploadMediaType(file: File, sceneIsVideo: boolean): "video
 }
 
 export const SCENE_VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.m4v";
+
+/** Mescla assets da timeline no storyboard após reload (upload manual tem prioridade). */
+export function mergeStoryboardWithTimelineAssets<T extends { visual_prompts?: any[] }>(
+  storyboard: T | null | undefined,
+  timelineAssets?: Record<string, SceneAssetPreview[] | undefined> | null,
+): T | null | undefined {
+  if (!storyboard?.visual_prompts?.length || !timelineAssets) return storyboard;
+
+  const blockCounters: Record<string, number> = {};
+  const visual_prompts = storyboard.visual_prompts.map((vp) => {
+    const blockKey = String(vp?.block ?? 1);
+    if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
+    const idx = blockCounters[blockKey]++;
+    const tl = timelineAssets[blockKey]?.[idx];
+    const resolved = resolveScenePreviewAsset(vp?.asset, tl);
+    if (!resolved?.asset) return vp;
+    return { ...vp, asset: resolved };
+  });
+
+  return { ...storyboard, visual_prompts };
+}

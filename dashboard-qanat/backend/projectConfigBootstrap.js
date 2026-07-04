@@ -13,6 +13,88 @@ export function isTimelineAssetUserOwned(entry = {}) {
   return entry.user_locked === true || entry.manual_asset === true;
 }
 
+export function storyboardAssetPath(assetRef) {
+  if (!assetRef) return "";
+  if (typeof assetRef === "string") return assetRef.trim();
+  return String(assetRef.asset || "").trim();
+}
+
+/**
+ * Mescla um slot da timeline com o asset do storyboard sem apagar upload manual.
+ */
+export function mergeTimelineSlotFromStoryboard(existing = {}, fromStoryboard = null) {
+  const ex = existing && typeof existing === "object" ? existing : {};
+  const sb = fromStoryboard && storyboardAssetPath(fromStoryboard) ? fromStoryboard : null;
+  const exOwned = isTimelineAssetUserOwned(ex);
+  const sbOwned = sb ? isTimelineAssetUserOwned(sb) : false;
+
+  if (exOwned && (!sb || !sbOwned)) {
+    return { ...ex };
+  }
+
+  if (sbOwned) {
+    return {
+      ...ex,
+      ...sb,
+      asset: sb.asset || ex.asset,
+      type: sb.type || ex.type,
+      user_locked: true,
+      manual_asset: true,
+    };
+  }
+
+  if (ex.asset && sb) {
+    return {
+      ...ex,
+      asset: sb.asset || ex.asset,
+      type: sb.type || ex.type,
+      ...(sb.fixed !== undefined && sb.fixed !== null ? { fixed: sb.fixed } : {}),
+    };
+  }
+
+  if (ex.asset) return { ...ex };
+  if (sb) return { ...sb };
+  return {};
+}
+
+/**
+ * Vincula assets da timeline ao storyboard (upload manual tem prioridade).
+ */
+export function bindStoryboardAssetsFromTimeline(visualPrompts = [], timelineAssets = {}) {
+  if (!Array.isArray(visualPrompts) || !timelineAssets) {
+    return { visualPrompts: visualPrompts || [], updated: false };
+  }
+
+  const blockCounters = {};
+  let updated = false;
+  const nextPrompts = visualPrompts.map((vp) => {
+    const blockKey = String(vp?.block || 1);
+    if (blockCounters[blockKey] === undefined) blockCounters[blockKey] = 0;
+    const idx = blockCounters[blockKey]++;
+    const tlAsset = timelineAssets[blockKey]?.[idx];
+    if (!tlAsset?.asset) return vp;
+
+    const prevPath = storyboardAssetPath(vp?.asset);
+    const tlOwned = isTimelineAssetUserOwned(tlAsset);
+    const shouldBind = !prevPath || (tlOwned && prevPath !== tlAsset.asset);
+
+    if (!shouldBind) return vp;
+
+    updated = true;
+    return {
+      ...vp,
+      asset: {
+        asset: tlAsset.asset,
+        type: tlAsset.type || "image",
+        ...(tlAsset.fixed !== undefined && tlAsset.fixed !== null ? { fixed: tlAsset.fixed } : {}),
+        ...(tlOwned ? { user_locked: true, manual_asset: true } : {}),
+      },
+    };
+  });
+
+  return { visualPrompts: nextPrompts, updated };
+}
+
 /**
  * Remove slots com logos/templates ou arquivos ausentes no ASSETS do projeto.
  * Preserva entradas travadas pelo usuário.
