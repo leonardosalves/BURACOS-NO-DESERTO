@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import lottie from 'lottie-web';
 import {
   hudThemeStyles,
-  lottieDataForKey,
+  lottieFileForKey,
   lottieIconBadgeStyle,
   lottieVariantSeed,
   resolveLottieKey,
   type ListicleHudTheme,
 } from '@lumiera/overlays/listicleHudTheme';
+import { fetchLottieAnimation } from '@lumiera/overlays/lottieAssetLoader.browser';
 import { TITLE_WARN_CHARS } from './listicleTitleUtils';
 
 type HudStyle = 'full' | 'compact' | 'auto';
@@ -106,12 +107,12 @@ function filledProgress(rank: number, rankCount: number, rankOrder: 'desc' | 'as
 }
 
 function HudPreviewLottie({
-  animationData,
+  filename,
   size,
   accentColor,
   isClimax,
 }: {
-  animationData: object;
+  filename: string;
   size: number;
   accentColor: string;
   isClimax: boolean;
@@ -120,18 +121,24 @@ function HudPreviewLottie({
   const badge = lottieIconBadgeStyle(size, accentColor, isClimax);
 
   useEffect(() => {
-    if (!ref.current) return;
-    const anim = lottie.loadAnimation({
-      container: ref.current,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      animationData,
+    if (!ref.current || !filename) return;
+    let anim: ReturnType<typeof lottie.loadAnimation> | null = null;
+    let cancelled = false;
+    void fetchLottieAnimation(filename).then((animationData) => {
+      if (cancelled || !ref.current) return;
+      anim = lottie.loadAnimation({
+        container: ref.current,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData,
+      });
     });
     return () => {
-      anim.destroy();
+      cancelled = true;
+      anim?.destroy();
     };
-  }, [animationData]);
+  }, [filename]);
 
   return (
     <div className="flex items-center justify-center flex-shrink-0" style={badge.shell}>
@@ -171,7 +178,7 @@ export function ListicleHudPreview({
     visualHook: active.visualHook || '',
     videoSeed,
   });
-  const lottieData = lottieDataForKey(
+  const lottieFile = lottieFileForKey(
     lottieKey,
     lottieVariantSeed([videoSeed, active.rank, active.title, active.visualHook || '', lottieKey]),
   );
@@ -265,7 +272,7 @@ export function ListicleHudPreview({
                 style={{ borderTop: `1px solid ${theme.divider}` }}
               >
                 <HudPreviewLottie
-                  animationData={lottieData}
+                  filename={lottieFile}
                   size={lottieSize}
                   accentColor={accentColor}
                   isClimax={isClimax}

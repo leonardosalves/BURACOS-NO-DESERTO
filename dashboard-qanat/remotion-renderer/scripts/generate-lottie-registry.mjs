@@ -1,6 +1,6 @@
 /**
  * Indexa TODOS os JSON em lottie_assets/ — NUNCA apaga arquivos.
- * Gera chunks de imports (evita OOM no TypeScript) + pools com todas as variantes.
+ * Gera apenas metadados (pools + keys). JSONs são carregados em runtime (fetch/fs).
  */
 import fs from "fs";
 import path from "path";
@@ -8,11 +8,9 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS_DIR = path.join(__dirname, "../src/overlays/lottie_assets");
-const OUT_DIR = path.join(__dirname, "../src/overlays/lottie-registry");
 const OUT_INDEX = path.join(__dirname, "../src/overlays/lottieRegistry.generated.ts");
 const OUT_CATALOG = path.join(__dirname, "../src/overlays/lottieCatalog.json");
-
-const CHUNK_SIZE = 48;
+const LEGACY_CHUNK_DIR = path.join(__dirname, "../src/overlays/lottie-registry");
 
 const CATEGORY_PRIORITY = {
   nature: 0, edu: 1, life: 2, tech: 3, biz: 4, sports: 5,
@@ -31,10 +29,6 @@ function parseFilename(filename) {
   return null;
 }
 
-function safeVarName(filename) {
-  return `lf_${filename.replace(/\.json$/i, "").replace(/[^a-zA-Z0-9]/g, "_")}`;
-}
-
 function sortPoolEntries(entries) {
   return [...entries].sort((a, b) => {
     const pa = CATEGORY_PRIORITY[a.category] ?? 99;
@@ -43,8 +37,6 @@ function sortPoolEntries(entries) {
     return a.variant - b.variant;
   });
 }
-
-fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const files = fs.readdirSync(ASSETS_DIR).filter((f) => f.endsWith(".json")).sort();
 const byKey = new Map();
@@ -66,59 +58,21 @@ const poolObj = Object.fromEntries(
   keys.map((k) => [k, sortPoolEntries(byKey.get(k)).map((e) => e.filename)]),
 );
 
-// Remove old chunks
-for (const f of fs.readdirSync(OUT_DIR)) {
-  if (f.startsWith("chunk-") && f.endsWith(".ts")) fs.unlinkSync(path.join(OUT_DIR, f));
-}
-
-const chunkImports = [];
-for (let i = 0; i < files.length; i += CHUNK_SIZE) {
-  const slice = files.slice(i, i + CHUNK_SIZE);
-  const chunkId = Math.floor(i / CHUNK_SIZE);
-  const lines = slice.map((file) => {
-    const varName = safeVarName(file);
-    return `import ${varName} from "../lottie_assets/${file}";\nexport const entries_${chunkId}_${varName} = { ${JSON.stringify(file)}: ${varName} };`;
-  });
-  const chunkFile = path.join(OUT_DIR, `chunk-${chunkId}.ts`);
-  fs.writeFileSync(chunkFile, `/* eslint-disable */\n${lines.join("\n")}\n`, "utf8");
-  chunkImports.push(`import * as chunk${chunkId} from "./lottie-registry/chunk-${chunkId}";`);
-}
-
-const chunkCount = Math.ceil(files.length / CHUNK_SIZE);
-const mergeLines = [];
-for (let c = 0; c < chunkCount; c++) {
-  mergeLines.push(`  ...extractChunkEntries(chunk${c}),`);
+if (fs.existsSync(LEGACY_CHUNK_DIR)) {
+  for (const f of fs.readdirSync(LEGACY_CHUNK_DIR)) {
+    fs.unlinkSync(path.join(LEGACY_CHUNK_DIR, f));
+  }
+  fs.rmdirSync(LEGACY_CHUNK_DIR);
 }
 
 const indexContent = `/* eslint-disable */
-// AUTO-GENERATED — NUNCA apaga lottie_assets. ${files.length} arquivos, ${keys.length} pools.
+// AUTO-GENERATED — metadata only. ${files.length} arquivos, ${keys.length} pools. JSON via runtime loader.
 import { LOTTIE_POOLS } from "./lottiePools.generated";
 
-${chunkImports.join("\n")}
-
-function extractChunkEntries(mod: Record<string, unknown>) {
-  const out: Record<string, object> = {};
-  for (const [k, v] of Object.entries(mod)) {
-    if (!k.startsWith("entries_")) continue;
-    Object.assign(out, v as Record<string, object>);
-  }
-  return out;
-}
-
-const LOTTIE_BY_FILE: Record<string, object> = {
-${mergeLines.join("\n")}
-};
-
-export { LOTTIE_BY_FILE, LOTTIE_POOLS };
-
-export const LOTTIE_REGISTRY: Record<string, object> = {
-${keys.map((key) => {
-  const f = poolObj[key][0];
-  return `  ${JSON.stringify(key)}: LOTTIE_BY_FILE[${JSON.stringify(f)}],`;
-}).join("\n")}
-};
+export { LOTTIE_POOLS };
 
 export const LOTTIE_FILE_COUNT = ${files.length};
+export const LOTTIE_DEFAULT_FILE = ${JSON.stringify(poolObj.award?.[0] || "lottie_biz_award_1.json")};
 export const LOTTIE_KEYS = ${JSON.stringify(keys)} as const;
 export type LottieRegistryKey = typeof LOTTIE_KEYS[number];
 `;
@@ -136,8 +90,9 @@ fs.writeFileSync(OUT_CATALOG, JSON.stringify({
   key_count: keys.length,
   policy: "append_only_never_delete",
   scope: "global_all_videos",
+  load_mode: "runtime_fetch_or_fs",
   files: catalog,
   pools: poolObj,
 }, null, 2), "utf8");
 
-console.log(`[lottie-registry] ${files.length} arquivos · ${keys.length} pools · ${chunkCount} chunks`);
+console.log(`[lottie-registry] ${files.length} arquivos · ${keys.length} pools · metadata-only`);

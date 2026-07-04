@@ -447,6 +447,8 @@ const REMOTION_DIR = path.resolve(__dirname, "../remotion-renderer");
 
 const REMOTION_PUBLIC_DIR = path.join(REMOTION_DIR, "public");
 
+const LOTTIE_ASSETS_DIR = path.join(REMOTION_DIR, "src/overlays/lottie_assets");
+
 const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
 // Desktop projects configuration
@@ -486,6 +488,10 @@ const OPENROUTER_FREE_MODELS = [
 const app = express();
 
 app.use(cors());
+
+if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
+  app.use("/lottie_assets", express.static(LOTTIE_ASSETS_DIR, { maxAge: "7d", fallthrough: true }));
+}
 
 app.use(express.json());
 
