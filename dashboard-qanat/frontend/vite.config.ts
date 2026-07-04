@@ -58,6 +58,11 @@ export default defineConfig({
           if (id.includes('AppAiTab')) return 'ai-tab';
           if (id.includes('AppStatusTab')) return 'status-tab';
           if (id.includes('AppSettingsTab')) return 'settings-tab';
+          if (id.includes('AppHomeTab')) return 'home-tab';
+          if (id.includes('AppWorkflowTab')) return 'workflow-tab';
+          if (id.includes('AppSceneTimingTab')) return 'scene-timing-tab';
+          if (id.includes('AppTerminalTab')) return 'terminal-tab';
+          if (id.includes('AppMusicTabPanel')) return 'music-tab';
           if (id.includes('youtubeMetadataDisplay')) return 'youtube-metadata-ui';
           if (id.includes('RichTimelineEditor')) return 'timeline-editor';
           if (id.includes('ListicleCreatorStep')) return 'creator-step';
