@@ -1,6 +1,7 @@
 /** Narração por bloco/asset — sem vazamento entre blocos; split só quando o usuário pede. */
 
 import { cleanText, matchWords } from "@lumiera/shared/narrationMatch.js";
+import { getBlockNarrationAnchor as getBlockNarrationAnchorCore } from "@lumiera/shared/timelineNarration.js";
 import { repairMojibake } from "./textEncoding";
 
 export { findBoundedNarrationMatch, findBoundedNarrationMatch as findNarrationMatch } from "@lumiera/shared/narrationMatch.js";
@@ -31,6 +32,23 @@ export type NarrationSyncContext = {
   status?: BlockTimingStatus;
   getAssetDuration: (blockKey: string, index: number) => number;
 };
+
+/** Âncora de fala do bloco — mesma lógica do render (shared/timelineNarration). */
+export function resolveBlockNarrationAnchor(
+  ctx: NarrationSyncContext,
+  blockNum: number,
+  assets: TimelineAsset[],
+  flatTranscriptWords: Array<{ word: string; clean?: string; start: number; end: number }>,
+): number | null {
+  const bounds = getBlockTimeBounds(ctx.status, blockNum);
+  return getBlockNarrationAnchorCore(blockNum, assets, flatTranscriptWords, {
+    visualPrompts: ctx.storyboard?.visual_prompts || [],
+    blockPhrases: ctx.config?.block_phrases || [],
+    timelineAssets: ctx.config?.timeline_assets || {},
+    blockStart: bounds.searchAfter,
+    blockEnd: bounds.searchBefore,
+  });
+}
 
 export function getBlockTimeBounds(status: BlockTimingStatus | undefined, blockNum: number) {
   const starts = status?.block_timings?.starts;

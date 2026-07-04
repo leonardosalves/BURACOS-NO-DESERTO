@@ -184,6 +184,7 @@ import {
   getAssetNarrationText as resolveAssetNarrationText,
   getBlockNarrationText as resolveBlockNarrationText,
   getBlockTimeBounds as resolveBlockTimeBounds,
+  resolveBlockNarrationAnchor,
   getStrictBlockBounds,
   collectBlockWordsFromTranscriptSegments,
   narrationCacheKey,
@@ -4487,7 +4488,14 @@ export default function App() {
     const blockDuration = status?.block_timings?.durations?.[blockNum - 1] ?? 10.0;
     const allBlockWords = blockNarrationWordsCache[blockKey] || [];
     const fallbackStart = status?.block_timings?.starts?.[blockNum - 1] ?? 0;
-    const anchorStart = allBlockWords.length > 0 ? allBlockWords[0].start : fallbackStart;
+    const matchedAnchor = resolveBlockNarrationAnchor(
+      buildNarrationSyncContext(),
+      blockNum,
+      assets,
+      flatTranscriptWords,
+    );
+    const cacheAnchor = allBlockWords.length > 0 ? allBlockWords[0].start : null;
+    const anchorStart = matchedAnchor ?? cacheAnchor ?? fallbackStart;
     return recalculateBlockSequentialAudioStarts({
       assets,
       blockDuration,
