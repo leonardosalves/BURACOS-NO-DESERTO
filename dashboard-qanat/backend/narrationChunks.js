@@ -17,6 +17,7 @@ import {
   synthesizeChatterboxNarration,
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
+import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
 
 
 export const NARRATION_CHUNKS_DIR = "narration_chunks";
@@ -268,6 +269,196 @@ export function buildBlockTimingsFromChunks(chunks = []) {
     total_duration: Number(total.toFixed(3)),
     source: "narration_chunks",
   };
+}
+
+function parseSceneRefIndex(sceneRef = "", fallback = 0) {
+  const parts = String(sceneRef || "").trim().split(".");
+  const sub = Number(parts[1]);
+  if (Number.isFinite(sub) && sub >= 1) return sub - 1;
+  return fallback;
+}
+
+/** Índice do asset na timeline para um trecho do plano (scene_ref ou ordem no bloco). */
+export function resolveChunkAssetIndex(chunk, assets = [], ordinalInBlock = 0) {
+  const list = Array.isArray(assets) ? assets : [];
+  if (!list.length) return 0;
+  const byRef = parseSceneRefIndex(chunk?.scene_ref, -1);
+  if (byRef >= 0 && byRef < list.length) return byRef;
+  return Math.min(ordinalInBlock, list.length - 1);
+}
+
+/**
+ * Sincroniza timeline + storyboard a partir dos trechos (start_s/end_s) — fonte de verdade no modo chunked.
+ */
+export function syncTimelineFromChunkPlan({
+  timelineAssets = {},
+  chunkPlan = {},
+  visualPrompts = [],
+} = {}) {
+  const timed = computeChunkTimeline(chunkPlan?.chunks || []);
+  if (!timed.length) {
+    return { timelineAssets: { ...timelineAssets }, visualPrompts: [...(visualPrompts || [])] };
+  }
+
+  const out = { ...timelineAssets };
+  const nextPrompts = [...(visualPrompts || [])];
+  const byBlock = new Map();
+
+  for (const chunk of timed) {
+    const block = Number(chunk.block) || 1;
+    if (!byBlock.has(block)) byBlock.set(block, []);
+    byBlock.get(block).push(chunk);
+  }
+
+  for (const [blockNum, blockChunks] of byBlock) {
+    const blockKey = String(blockNum);
+    const assets = [...(out[blockKey] || [])];
+    const sorted = [...blockChunks].sort(
+      (a, b) => Number(a.start_s) - Number(b.start_s) || String(a.scene_ref).localeCompare(String(b.scene_ref)),
+    );
+
+    while (assets.length < sorted.length) {
+      assets.push({ asset: "", type: "image" });
+    }
+
+    sorted.forEach((chunk, ordinal) => {
+      const start = Number(chunk.start_s);
+      const end = Number(chunk.end_s);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+
+      const text = String(chunk.text || "").trim();
+      const idx = resolveChunkAssetIndex(chunk, assets, ordinal);
+      assets[idx] = {
+        ...assets[idx],
+        narration_segment: text,
+        audio_start: parseFloat(start.toFixed(3)),
+        speech_end: parseFloat(end.toFixed(3)),
+        fixed: parseFloat(Math.max(0.5, end - start).toFixed(1)),
+        synced_to_speech: true,
+        duration_from_whisper: true,
+        chunk_id: chunk.id,
+      };
+
+      const sceneRef = String(chunk.scene_ref || `${blockNum}.${idx + 1}`);
+      const vpIdx = nextPrompts.findIndex((vp) => String(vp?.scene || "").trim() === sceneRef);
+      if (vpIdx >= 0 && text) {
+        nextPrompts[vpIdx] = { ...nextPrompts[vpIdx], narration_text: text };
+      } else if (text) {
+        const blockScenes = nextPrompts
+          .map((vp, i) => ({ vp, i }))
+          .filter(({ vp }) => Number(vp?.block) === blockNum);
+        if (blockScenes[ordinal]) {
+          const { i } = blockScenes[ordinal];
+          nextPrompts[i] = { ...nextPrompts[i], narration_text: text };
+        }
+      }
+    });
+
+    out[blockKey] = assets;
+  }
+
+  return { timelineAssets: out, visualPrompts: nextPrompts };
+}
+
+/**
+ * Reconstrói word_transcripts com 1 segmento por trecho — evita Whisper colapsar várias cenas em 1 bloco.
+ */
+export function mergeWhisperTranscriptsWithChunkPlan(chunkPlan = {}, flatWords = []) {
+  const timed = computeChunkTimeline(chunkPlan?.chunks || []);
+  if (!timed.length) return [];
+
+  return timed.map((chunk, idx) => {
+    const start = Number(chunk.start_s) || 0;
+    const end = Number(chunk.end_s) || start;
+    const duration = Math.max(0.05, end - start);
+    const text = String(chunk.text || "").trim();
+    const plain = stripTtsMarkersForPlainText(text);
+    const wordsInWindow = (flatWords || []).filter(
+      (w) => Number(w.start) >= start - 0.08 && Number(w.start) < end + 0.12,
+    );
+
+    let wordEntries;
+    if (wordsInWindow.length >= 2) {
+      wordEntries = wordsInWindow.map((w) => ({
+        word: String(w.word || "").startsWith(" ") ? String(w.word) : ` ${String(w.word || "").trim()}`,
+        start: Math.max(0, Number(w.start) - start),
+        end: Math.max(0.05, Number(w.end) - start),
+      }));
+    } else {
+      const tokens = plain.split(/\s+/).filter(Boolean);
+      const step = duration / Math.max(tokens.length, 1);
+      wordEntries = tokens.map((word, wi) => ({
+        word: wi === 0 ? word : ` ${word}`,
+        start: Number((wi * step).toFixed(3)),
+        end: Number(((wi + 1) * step).toFixed(3)),
+      }));
+    }
+
+    return {
+      index: idx + 1,
+      block: Number(chunk.block) || 1,
+      scene_ref: chunk.scene_ref,
+      chunk_id: chunk.id,
+      filename: path.basename(chunk.audio_file || `${chunk.id}.mp3`),
+      start_time: Number(start.toFixed(3)),
+      duration: Number(duration.toFixed(3)),
+      end_time: Number(end.toFixed(3)),
+      words: wordEntries,
+      text: ` ${plain}`,
+    };
+  });
+}
+
+export function applyChunkedNarrationSyncToProject(projDir, {
+  chunkPlan,
+  config = {},
+  storyboard = {},
+  whisperTranscripts = null,
+  flatWords = [],
+} = {}) {
+  if (!chunkPlan?.chunks?.length) {
+    return { config, storyboard, timings: null, transcripts: null };
+  }
+
+  const timedPlan = {
+    ...chunkPlan,
+    chunks: computeChunkTimeline(chunkPlan.chunks),
+  };
+
+  const synced = syncTimelineFromChunkPlan({
+    timelineAssets: config.timeline_assets || {},
+    chunkPlan: timedPlan,
+    visualPrompts: storyboard.visual_prompts || [],
+  });
+
+  let transcripts = buildWordTranscriptsFromChunks(timedPlan.chunks);
+  const flat = flatWords?.length
+    ? flatWords
+    : (Array.isArray(whisperTranscripts) && whisperTranscripts.length
+      ? flattenWordTranscripts(whisperTranscripts)
+      : []);
+  if (flat.length) {
+    transcripts = mergeWhisperTranscriptsWithChunkPlan(timedPlan, flat);
+  }
+
+  const timings = buildBlockTimingsFromChunks(timedPlan.chunks);
+  const nextConfig = {
+    ...config,
+    timeline_assets: synced.timelineAssets,
+    narration_mode: NARRATION_MODE_CHUNKED,
+  };
+  const nextStoryboard = {
+    ...storyboard,
+    visual_prompts: synced.visualPrompts,
+    narration_chunk_plan: timedPlan,
+  };
+
+  fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(nextConfig, null, 2), "utf8");
+  fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(nextStoryboard, null, 2), "utf8");
+  fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify(timings, null, 2), "utf8");
+  fs.writeFileSync(path.join(projDir, "word_transcripts.json"), JSON.stringify(transcripts, null, 2), "utf8");
+
+  return { config: nextConfig, storyboard: nextStoryboard, timings, transcripts };
 }
 
 export function buildWordTranscriptsFromChunks(chunks = []) {

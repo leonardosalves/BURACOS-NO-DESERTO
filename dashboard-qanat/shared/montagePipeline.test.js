@@ -95,6 +95,27 @@ describe("montage pipeline", () => {
       }
     });
 
+    it("syncTimelineFromChunkPlan distribui narração por cena no bloco", async () => {
+      const { syncTimelineFromChunkPlan, computeChunkTimeline } = await import("../backend/narrationChunks.js");
+      const chunks = computeChunkTimeline([
+        { id: "c1", block: 2, scene_ref: "2.1", text: "Primeira frase do bloco.", duration_s: 3, pause_after_ms: 300 },
+        { id: "c2", block: 2, scene_ref: "2.2", text: "Segunda frase do bloco.", duration_s: 4, pause_after_ms: 0 },
+      ]);
+      const synced = syncTimelineFromChunkPlan({
+        timelineAssets: {
+          2: [{ asset: "a.mp4", type: "video" }, { asset: "b.jpeg", type: "image" }],
+        },
+        chunkPlan: { chunks },
+        visualPrompts: [
+          { block: 2, scene: "2.1", narration_text: "" },
+          { block: 2, scene: "2.2", narration_text: "" },
+        ],
+      });
+      assert.equal(synced.timelineAssets["2"][0].narration_segment, "Primeira frase do bloco.");
+      assert.equal(synced.timelineAssets["2"][1].narration_segment, "Segunda frase do bloco.");
+      assert.ok(synced.timelineAssets["2"][0].speech_end < synced.timelineAssets["2"][1].audio_start);
+    });
+
     it("buildBlockTimingsFromChunks agrupa por bloco", () => {
       const timings = buildBlockTimingsFromChunks([
         { block: 1, start_s: 0, end_s: 2, pause_after_ms: 200 },

@@ -316,6 +316,8 @@ import {
   normalizeNarrationChunkPlan,
   parseAiNarrationChunkResponse,
   persistChunkPlanToProject,
+  syncTimelineFromChunkPlan,
+  computeChunkTimeline,
   NARRATION_MODE_CHUNKED,
   NARRATION_MODE_MASTER,
 } from "./narrationChunks.js";
@@ -6367,7 +6369,27 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     if (!anyBlockSynced) {
       let nextTimelineAssets;
-      if (isChunkedNarration) {
+      const chunkPlan = storyboard?.narration_chunk_plan;
+      const hasChunkPlan = isChunkedNarration && chunkPlan?.chunks?.length > 0;
+
+      if (hasChunkPlan) {
+        const timedPlan = { ...chunkPlan, chunks: computeChunkTimeline(chunkPlan.chunks) };
+        const synced = syncTimelineFromChunkPlan({
+          timelineAssets: config.timeline_assets,
+          chunkPlan: timedPlan,
+          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+        });
+        nextTimelineAssets = realignTimelineAssetsToSpeech({
+          timelineAssets: synced.timelineAssets,
+          blockTimings: timings,
+          flatTranscriptWords,
+          wordTranscripts,
+          visualPrompts: synced.visualPrompts || storyboard.visual_prompts || [],
+          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          preserveExplicitFixed: true,
+        });
+        console.log("[Remotion] timeline_assets sincronizados pelo plano de trechos (1 cena = 1 trecho).");
+      } else if (isChunkedNarration) {
         nextTimelineAssets = bootstrapTimelineSlotsFromWhisper({
           timelineAssets: config.timeline_assets,
           wordTranscripts,
