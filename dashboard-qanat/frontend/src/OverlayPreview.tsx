@@ -8,10 +8,17 @@ import {
   overlayPreviewFrameClass,
 } from './overlayPreviewScale';
 import {
-  overlayMotionTransform,
+  interpolateClamped,
   previewSpring,
   useOverlayPreviewMotion,
 } from './overlayPreviewMotion';
+import { OverlayPreviewMotionShell } from './OverlayPreviewMotionShell';
+import {
+  renderChapterStingerPreview,
+  renderListicleRecapPreview,
+  renderListicleStingerPreview,
+  renderRankProgressPreview,
+} from './overlaySystemPreviews';
 import {
   barChartPreviewShell,
   infoCardVariantStyle,
@@ -27,9 +34,10 @@ import {
   OVERLAY_POSITIONS,
   OVERLAY_TYPE_LABELS,
   overlaySummary,
+  overlaySupportsTheme,
   type OverlayDraft,
 } from './overlayEditorConfig';
-import type { OverlayPreviewMetrics } from './overlayPreviewScale';
+
 
 type Props = {
   overlay: OverlayDraft;
@@ -44,24 +52,6 @@ type Props = {
   /** Clique no preview para escolher posição (grade 3×3). */
   onPositionSelect?: (positionId: string) => void;
 };
-
-function positionStyle(
-  position: string,
-  pad: OverlayPreviewMetrics['positionPad'],
-): React.CSSProperties {
-  const base: Record<string, React.CSSProperties> = {
-    'bottom-left': { bottom: pad.bottom, left: pad.left },
-    'bottom-right': { bottom: pad.bottom, right: pad.right },
-    'bottom-center': { bottom: pad.bottom, left: '50%', transform: 'translateX(-50%)' },
-    'top-left': { top: pad.top, left: pad.left },
-    'top-center': { top: pad.top, left: '50%', transform: 'translateX(-50%)' },
-    'top-right': { top: pad.top, right: pad.right },
-    center: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
-    right: { bottom: pad.bottom, right: pad.right },
-  };
-  const key = position === 'right' ? 'bottom-right' : position;
-  return { position: 'absolute', ...(base[key] || base['bottom-left']) };
-}
 
 function IconSlot({
   props,
@@ -107,25 +97,66 @@ export function OverlayPreview({
   const theme = String(props.theme || 'classic');
   const iconKey = props.iconType ? String(props.iconType) : '';
   const iconStyle = resolveIconStyle(props);
-  const pos = positionStyle(position, metrics.positionPad);
   const motion = useOverlayPreviewMotion(durationSeconds, overlay.type, playing);
-  const motionTransform = overlayMotionTransform(motion);
   const legibilityShadow = '0 1px 3px rgba(0,0,0,0.9), 0 2px 12px rgba(0,0,0,0.65)';
 
-  const withMotion = (base: React.CSSProperties): React.CSSProperties => ({
-    ...base,
-    opacity: motion.opacity,
-    transform: motionTransform,
-    filter: 'drop-shadow(0 8px 28px rgba(0,0,0,0.75))',
-  });
+  const previewCtx = {
+    props,
+    accentColor,
+    metrics,
+    motion,
+    isShort,
+    position,
+  };
+
+  const motionShell = (
+    children: React.ReactNode,
+    shellPosition = position,
+    contentStyle?: React.CSSProperties,
+  ) => (
+    <OverlayPreviewMotionShell
+      position={shellPosition}
+      pad={metrics.positionPad}
+      motion={motion}
+      contentStyle={contentStyle}
+    >
+      {children}
+    </OverlayPreviewMotionShell>
+  );
 
   const previewMetaLabel = (() => {
     if (overlay.type === 'timeline') {
       const orient = String(props.orientation || props.variant || 'horizontal');
       return `${metrics.refLabel} · ${theme} · ${orient === 'vertical' ? 'vertical' : 'horizontal'}`;
     }
+    if (overlay.type === 'rank-progress') {
+      return `${metrics.refLabel} · HUD · ${String(props.hudTheme || 'ancient')}`;
+    }
+    if (overlay.type === 'listicle-stinger') {
+      return `${metrics.refLabel} · stinger flash`;
+    }
+    if (overlay.type === 'chapter-stinger') {
+      return `${metrics.refLabel} · capítulo`;
+    }
+    if (overlay.type === 'listicle-recap') {
+      return `${metrics.refLabel} · recap`;
+    }
+    if (overlaySupportsTheme(overlay.type)) {
+      return `${metrics.refLabel} · ${theme}${variant && overlay.type !== 'timeline' ? ` · ${variant}` : ''}`;
+    }
     return `${metrics.refLabel} · ${variant}`;
   })();
+
+  const counterDisplayValue = () => {
+    const raw = props.value;
+    const target = typeof raw === 'number' ? raw : Number(String(raw ?? '0').replace(/[^\d.-]/g, ''));
+    const safeTarget = Number.isFinite(target) ? target : 0;
+    const progress = interpolateClamped(motion.frame, [8, 36], [0, 1]);
+    if (!Number.isFinite(safeTarget) || String(raw).includes('%')) {
+      return String(raw ?? '0');
+    }
+    return String(Math.round(safeTarget * progress));
+  };
 
   const renderTimeline = () => {
     const events = normalizeTimelineEvents(props);
@@ -135,16 +166,18 @@ export function OverlayPreview({
     const flexPos = overlayPreviewFlexStyle(position, metrics, 'bottom-right');
 
     return (
-      <div className="absolute inset-0 z-10 pointer-events-none" style={flexPos}>
-        <div
-          style={withMotion({
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: isHorizontal ? 'center' : 'flex-end',
-            gap: isHorizontal ? '1.1em' : '0.8em',
-            maxWidth: isHorizontal ? '92%' : isShort ? '78%' : '72%',
-          })}
-        >
+      <OverlayPreviewMotionShell
+        mode="flex"
+        motion={motion}
+        flexStyle={flexPos}
+        contentStyle={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isHorizontal ? 'center' : 'flex-end',
+          gap: isHorizontal ? '1.1em' : '0.8em',
+          maxWidth: isHorizontal ? '92%' : isShort ? '78%' : '72%',
+        }}
+      >
           <div
             style={{
               position: 'relative',
@@ -272,8 +305,7 @@ export function OverlayPreview({
               );
             })}
           </div>
-        </div>
-      </div>
+      </OverlayPreviewMotionShell>
     );
   };
 
@@ -281,8 +313,8 @@ export function OverlayPreview({
     const shell = lowerThirdVariantShell(variant, accentColor, theme);
 
     if (variant === 'bild') {
-      return (
-        <div style={withMotion({ ...pos, maxWidth: metrics.maxWidth })}>
+      return motionShell(
+        <>
           <div style={{ ...shell.container, gap: metrics.cardGap, padding: metrics.cardPadding }}>
             <IconSlot props={props} accent={accentColor} sizeCss={metrics.iconSize} />
             <span style={{ ...shell.title, fontSize: metrics.fontSizeTitle, whiteSpace: 'nowrap' }}>
@@ -294,13 +326,15 @@ export function OverlayPreview({
               <span style={{ fontSize: metrics.fontSizeSubtitle }}>{String(props.subtitle)}</span>
             </div>
           )}
-        </div>
+        </>,
+        position,
+        { maxWidth: metrics.maxWidth },
       );
     }
 
     if (variant === 'bold-block') {
-      return (
-        <div style={withMotion({ ...pos, ...shell.container, maxWidth: metrics.maxWidth })}>
+      return motionShell(
+        <>
           <div
             style={{
               ...shell.title,
@@ -319,22 +353,14 @@ export function OverlayPreview({
               {String(props.subtitle)}
             </div>
           )}
-        </div>
+        </>,
+        position,
+        { ...shell.container, maxWidth: metrics.maxWidth },
       );
     }
 
-    return (
-      <div
-        style={withMotion({
-          ...pos,
-          ...shell.container,
-          maxWidth: metrics.maxWidth,
-          padding: metrics.cardPadding,
-          gap: metrics.cardGap,
-          flexDirection: variant === 'clean-bar' ? 'row' : 'column',
-          alignItems: variant === 'soft-pill' ? 'center' : 'flex-start',
-        })}
-      >
+    return motionShell(
+      <>
         <IconSlot props={props} accent={accentColor} sizeCss={metrics.iconSize} />
         <div className="min-w-0">
           <p style={{ ...shell.title, fontSize: metrics.fontSizeTitle, margin: 0, whiteSpace: 'nowrap' }}>
@@ -346,7 +372,17 @@ export function OverlayPreview({
             </p>
           )}
         </div>
-      </div>
+      </>,
+      position,
+      {
+        ...shell.container,
+        maxWidth: metrics.maxWidth,
+        padding: metrics.cardPadding,
+        gap: metrics.cardGap,
+        display: 'flex',
+        flexDirection: variant === 'clean-bar' ? 'row' : 'column',
+        alignItems: variant === 'soft-pill' ? 'center' : 'flex-start',
+      },
     );
   };
 
@@ -359,17 +395,8 @@ export function OverlayPreview({
         return renderTimeline();
 
       case 'info-card':
-        return (
-          <div
-            className="flex items-start"
-            style={withMotion({
-              ...pos,
-              ...infoCardVariantStyle(variant, accentColor, theme),
-              padding: metrics.cardPadding,
-              gap: metrics.cardGap,
-              maxWidth: metrics.maxWidth,
-            })}
-          >
+        return motionShell(
+          <>
             <IconSlot props={props} accent={accentColor} sizeCss={metrics.iconSize} />
             <div className="min-w-0">
               <p className="font-bold text-white" style={{ fontSize: metrics.fontSizeTitle }}>
@@ -379,20 +406,21 @@ export function OverlayPreview({
                 {String(props.description || 'Descrição')}
               </p>
             </div>
-          </div>
+          </>,
+          position,
+          {
+            display: 'flex',
+            alignItems: 'flex-start',
+            ...infoCardVariantStyle(variant, accentColor, theme),
+            padding: metrics.cardPadding,
+            gap: metrics.cardGap,
+            maxWidth: metrics.maxWidth,
+          },
         );
 
       case 'source-card':
-        return (
-          <div
-            style={withMotion({
-              ...pos,
-              maxWidth: metrics.maxWidth,
-              borderLeft: `3px solid ${accentColor}`,
-              background: themePanelBg(theme, accentColor),
-              padding: metrics.cardPadding,
-            })}
-          >
+        return motionShell(
+          <>
             <p style={{ fontSize: metrics.fontSizeDesc }} className="uppercase tracking-wider text-zinc-500">Fonte</p>
             <p className="font-semibold text-white truncate" style={{ fontSize: metrics.fontSizeTitle }}>
               {String(props.source || 'Referência')}
@@ -402,45 +430,42 @@ export function OverlayPreview({
                 {String(props.detail)}
               </p>
             )}
-          </div>
+          </>,
+          position,
+          {
+            maxWidth: metrics.maxWidth,
+            borderLeft: `3px solid ${accentColor}`,
+            background: themePanelBg(theme, accentColor),
+            padding: metrics.cardPadding,
+          },
         );
 
       case 'social-post': {
         const platform = String(props.platform || 'reddit');
         const platformColor = platform === 'x' ? '#1DA1F2' : '#FF4500';
-        return (
-          <div
-            style={withMotion({
-              ...pos,
-              maxWidth: metrics.maxWidth,
-              background: 'rgba(10,10,14,0.92)',
-              border: `1px solid ${platformColor}55`,
-              padding: metrics.cardPadding,
-              borderRadius: metrics.cardGap,
-            })}
-          >
+        return motionShell(
+          <>
             <p className="font-bold" style={{ fontSize: metrics.fontSizeSubtitle, color: platformColor }}>
               {platform === 'x' ? '𝕏' : 'reddit'} · @{String(props.username || 'usuario')}
             </p>
             <p className="text-zinc-200 line-clamp-2" style={{ fontSize: metrics.fontSizeTitle }}>
               {String(props.text || 'Texto')}
             </p>
-          </div>
+          </>,
+          position,
+          {
+            maxWidth: metrics.maxWidth,
+            background: 'rgba(10,10,14,0.92)',
+            border: `1px solid ${platformColor}55`,
+            padding: metrics.cardPadding,
+            borderRadius: metrics.cardGap,
+          },
         );
       }
 
       case 'geo-map':
-        return (
-          <div
-            style={withMotion({
-              ...pos,
-              maxWidth: metrics.maxWidth,
-              background: 'rgba(8,14,22,0.9)',
-              border: `1px solid ${accentColor}44`,
-              borderRadius: metrics.cardGap,
-              overflow: 'hidden',
-            })}
-          >
+        return motionShell(
+          <>
             <div
               className="bg-gradient-to-br from-cyan-900/50 to-emerald-900/40 flex items-center justify-center"
               style={{ height: metrics.fontSizeCounter }}
@@ -452,35 +477,43 @@ export function OverlayPreview({
                 {String(props.location || 'Local')}
               </p>
             </div>
-          </div>
+          </>,
+          position,
+          {
+            maxWidth: metrics.maxWidth,
+            background: 'rgba(8,14,22,0.9)',
+            border: `1px solid ${accentColor}44`,
+            borderRadius: metrics.cardGap,
+            overflow: 'hidden',
+          },
         );
 
       case 'counter':
-        return (
-          <div className="text-center" style={withMotion({ ...pos, width: 'auto' })}>
+        return motionShell(
+          <>
             <p className="font-black leading-none" style={{ fontSize: metrics.fontSizeCounter, color: accentColor }}>
-              {String(props.value ?? '0')}{props.suffix ? String(props.suffix) : ''}
+              {counterDisplayValue()}{props.suffix ? String(props.suffix) : ''}
             </p>
             <p className="text-zinc-300 uppercase" style={{ fontSize: metrics.fontSizeSubtitle }}>
               {String(props.label || 'Métrica')}
             </p>
-          </div>
+          </>,
+          position,
+          { textAlign: 'center' as const },
         );
 
       case 'kinetic-text':
-        return (
-          <p
-            className="font-black uppercase text-center max-w-full"
-            style={withMotion({
-              ...pos,
-              fontSize: metrics.fontSizeKinetic,
-              paddingLeft: metrics.positionPad.left,
-              paddingRight: metrics.positionPad.right,
-              ...kineticStyleProps(String(props.style || 'slam'), accentColor),
-            })}
-          >
+        return motionShell(
+          <span className="font-black uppercase text-center max-w-full block">
             {String(props.text || 'TEXTO')}
-          </p>
+          </span>,
+          position,
+          {
+            fontSize: metrics.fontSizeKinetic,
+            paddingLeft: metrics.positionPad.left,
+            paddingRight: metrics.positionPad.right,
+            ...kineticStyleProps(String(props.style || 'slam'), accentColor),
+          },
         );
 
       case 'bar-chart': {
@@ -488,8 +521,8 @@ export function OverlayPreview({
         const shell = barChartPreviewShell(chartTheme, accentColor);
         const items = normalizeBarChartItems(props.items, accentColor);
         const maxValue = Math.max(...items.map((it) => Number(it.value) || 0), 1);
-        return (
-          <div style={withMotion({ ...pos, maxWidth: metrics.maxWidth, ...shell.container })}>
+        return motionShell(
+          <>
             <div className="flex items-center gap-1 mb-1.5">
               <div style={shell.accentStripe} />
               <p style={{ ...shell.title, fontSize: metrics.fontSizeSubtitle, margin: 0 }}>
@@ -499,7 +532,10 @@ export function OverlayPreview({
             <div className="space-y-1">
               {items.map((item, index) => {
                 const barColor = item.color || (index === 0 ? accentColor : '#4ECDC4');
-                const widthPct = Math.max(8, ((Number(item.value) || 0) / maxValue) * 100);
+                const targetPct = Math.max(8, ((Number(item.value) || 0) / maxValue) * 100);
+                const barDelay = 10 + index * 6;
+                const reveal = interpolateClamped(motion.frame, [barDelay, barDelay + 16], [0, 1]);
+                const widthPct = targetPct * reveal;
                 return (
                   <div key={`${item.label}-${index}`}>
                     <div className="flex justify-between items-baseline gap-1 mb-0.5">
@@ -523,24 +559,35 @@ export function OverlayPreview({
                 );
               })}
             </div>
-          </div>
+          </>,
+          position,
+          { maxWidth: metrics.maxWidth, ...shell.container },
         );
       }
 
+      case 'listicle-stinger':
+        return renderListicleStingerPreview(previewCtx);
+
+      case 'chapter-stinger':
+        return renderChapterStingerPreview(previewCtx);
+
+      case 'listicle-recap':
+        return renderListicleRecapPreview(previewCtx);
+
+      case 'rank-progress':
+        return renderRankProgressPreview(previewCtx);
+
       default:
-        return (
-          <div
-            style={withMotion({
-              ...positionStyle('bottom-left', metrics.positionPad),
-              background: 'rgba(0,0,0,0.75)',
-              fontSize: metrics.fontSizeTitle,
-              color: '#fff',
-              padding: metrics.cardPadding,
-              borderRadius: metrics.cardGap,
-            })}
-          >
-            {OVERLAY_TYPE_LABELS[overlay.type] || overlay.type}
-          </div>
+        return motionShell(
+          <span>{OVERLAY_TYPE_LABELS[overlay.type] || overlay.type}</span>,
+          'bottom-left',
+          {
+            background: 'rgba(0,0,0,0.75)',
+            fontSize: metrics.fontSizeTitle,
+            color: '#fff',
+            padding: metrics.cardPadding,
+            borderRadius: metrics.cardGap,
+          },
         );
     }
   };
