@@ -231,6 +231,7 @@ import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from 
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
 import { JsonTreeView } from './JsonTreeView';
+import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
 import {
   LazyAgentReachPanel,
   LazyComfyMcpPage,
@@ -250,6 +251,8 @@ const AppCreatorTab = lazy(() => import('./AppCreatorTab').then((m) => ({ defaul
 const RichTimelineEditor = lazy(() => import('./RichTimelineEditor').then((m) => ({ default: m.RichTimelineEditor })));
 const AppEditorTab = lazy(() => import('./AppEditorTab').then((m) => ({ default: m.AppEditorTab })));
 const AppTimelineTab = lazy(() => import('./AppTimelineTab').then((m) => ({ default: m.AppTimelineTab })));
+const AppUploadTab = lazy(() => import('./AppUploadTab').then((m) => ({ default: m.AppUploadTab })));
+const AppAiTab = lazy(() => import('./AppAiTab').then((m) => ({ default: m.AppAiTab })));
 
 const initialWizardSession = loadWizardSession();
 
@@ -5303,25 +5306,6 @@ export default function App() {
 
 
 
-  const buildThumbnailBrief = (thumb: {
-    id: string;
-    label?: string;
-    overlayText?: string;
-    pairedTitle?: string;
-    composition?: string;
-    focalElement?: string;
-    colors?: string[];
-  }) => [
-    `Variante ${thumb.id} — ${thumb.label || 'Thumbnail YouTube'}`,
-    thumb.overlayText ? `Texto na capa: ${thumb.overlayText}` : '',
-    thumb.pairedTitle ? `Título pareado: ${thumb.pairedTitle}` : '',
-    thumb.composition ? `Composição: ${thumb.composition}` : '',
-    thumb.focalElement ? `Foco visual: ${thumb.focalElement}` : '',
-    thumb.colors?.length ? `Paleta: ${thumb.colors.join(', ')}` : '',
-    youtubeMetadataStrategy?.profileLabel ? `Perfil: ${youtubeMetadataStrategy.profileLabel}` : '',
-    youtubeMetadataFormat ? `Formato: ${youtubeMetadataFormat === 'SHORT' ? '9:16 Shorts' : '16:9 Longo'}` : '',
-  ].filter(Boolean).join('\n');
-
   const resolveCanvaCreateUrl = (format: 'SHORT' | 'LONG' | '' = '') => {
     if (format === 'SHORT') {
       return 'https://www.canva.com/create/instagram-stories/';
@@ -5339,7 +5323,10 @@ export default function App() {
     colors?: string[];
   }) => {
     const brief = thumb
-      ? buildThumbnailBrief(thumb)
+      ? buildThumbnailBrief(thumb, {
+          profileLabel: youtubeMetadataStrategy?.profileLabel,
+          format: youtubeMetadataFormat,
+        })
       : 'YouTube thumbnail — alto CTR, texto curto na capa, contraste forte';
     await copyToClipboard(brief, thumb ? `canva-${thumb.id}` : 'canva-thumb');
     const isShort = youtubeMetadataFormat === 'SHORT';
@@ -6863,30 +6850,6 @@ export default function App() {
     ),
   );
 
-  // Parse suggested config block from AI content
-
-  const detectJsonConfig = (text: string) => {
-
-    const match = text.match(/```json\s*([\s\S]*?)\s*```/);
-
-    if (!match) return null;
-
-    try {
-
-      const parsed = JSON.parse(match[1]);
-
-      if (parsed.highlight_keywords || parsed.bgm_mappings || parsed.impact_texts) {
-
-        return parsed;
-
-      }
-
-    } catch (e) {}
-
-    return null;
-
-  };
-
   const applyAiConfig = (parsedConfig: any) => {
 
     if (!config) return;
@@ -6909,30 +6872,6 @@ export default function App() {
 
   };
 
-  const normalizeYoutubeMetadataDisplay = (text: string) => {
-    const plainHeaders = [
-      'TÍTULOS', 'DESCRIÇÃO', 'HASHTAGS PRINCIPAIS', 'HASHTAGS', 'TAGS',
-      'COMENTÁRIO PINADO', 'CAPÍTULOS', 'THUMBNAILS A/B', 'THUMBNAILS AB', 'THUMBNAILS',
-      'GANCHO DE RETENÇÃO', 'GANCHO PARA THUMBNAIL', 'CTA DE MEIO DE VÍDEO',
-    ];
-    const headerKeys = new Set(
-      plainHeaders.map((h) => h.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()),
-    );
-    return String(text)
-      .replace(/\r\n/g, '\n')
-      .replace(/^\s*\*\*(##\s+[^*\n]+)\*\*\s*$/gm, '$1')
-      .split('\n')
-      .map((line) => {
-        const trimmed = line.trim().replace(/:+$/, '');
-        if (!trimmed || /^##\s+/i.test(trimmed)) return line;
-        const key = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-        if (headerKeys.has(key)) return `## ${trimmed}`;
-        return line;
-      })
-      .join('\n')
-      .trim();
-  };
-
   const copyToClipboard = (text: string, section: string) => {
 
     navigator.clipboard.writeText(text);
@@ -6940,58 +6879,6 @@ export default function App() {
     setCopiedSection(section);
 
     setTimeout(() => setCopiedSection(null), 2000);
-
-  };
-
-  const renderFormattedText = (text: string) => {
-
-    const lines = text.split('\n');
-
-    return lines.map((line, idx) => {
-
-      if (line.startsWith('### ')) {
-
-        return <h4 key={idx} className="text-white font-bold text-sm mt-4 mb-2 tracking-wide font-sans">{line.slice(4)}</h4>;
-
-      }
-
-      if (line.startsWith('## ')) {
-
-        return <h3 key={idx} className="text-gold-500 font-bold text-base mt-5 mb-2.5 tracking-wide font-sans">{line.slice(3)}</h3>;
-
-      }
-
-      if (line.startsWith('# ')) {
-
-        return <h2 key={idx} className="text-white font-black text-lg mt-6 mb-3 tracking-wide font-sans border-b border-zinc-800 pb-1">{line.slice(2)}</h2>;
-
-      }
-
-      if (line.startsWith('- ') || line.startsWith('* ')) {
-
-        return <li key={idx} className="text-xs text-gray-300 ml-4 list-disc my-1 leading-relaxed">{line.slice(2)}</li>;
-
-      }
-
-      const parts = line.split('**');
-
-      if (parts.length > 1) {
-
-        return (
-
-          <p key={idx} className="text-xs text-gray-350 my-1.5 leading-relaxed">
-
-            {parts.map((part, i) => i % 2 === 1 ? <strong key={i} className="text-white font-bold">{part}</strong> : part)}
-
-          </p>
-
-        );
-
-      }
-
-      return <p key={idx} className="text-xs text-gray-350 my-1.5 leading-relaxed min-h-[1em]">{line}</p>;
-
-    });
 
   };
 
@@ -8338,1160 +8225,127 @@ export default function App() {
           )}
 
           {/* TAB 5: AI AGENT */}
-
           {activeTab === 'ai' && (
-
-            <DashminProjectTabLayout tab="ai" activeProject={activeProject} className="lumiera-fill-view overflow-hidden">
-            <div className="lumiera-fill-view space-y-6 overflow-hidden">
-
-              <div className="dash-status-card">
-
-                <div className="flex items-center gap-3">
-
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasApiKey ? 'bg-emerald-500/10 text-emerald-500' : 'bg-dash-primary/10 text-dash-primary'}`}>
-
-                    {hasApiKey ? <CheckCircle className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-
-                  </div>
-
-                  <div>
-
-                    <SectionHeader title="Provedor de IA" helpId="ai-provider-panel" size="sm" titleClassName="text-xs tracking-wide" />
-
-                    <p className="text-[10px] text-dash-muted mt-0.5">
-
-                      {hasApiKey
-                        ? `Conectado via ${aiProviderBadge.short}. ${aiProviderBadge.detail}`
-                        : aiProviderBadge.detail}
-
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-
-                  <button 
-
-                    onClick={() => setActiveTab('settings')}
-
-                    className="dash-btn-ghost-sm"
-
-                  >
-
-                    <Settings className="w-3.5 h-3.5" />
-
-                    Configurações
-
-                  </button>
-
-                </div>
-
-              </div>
-
-              {/* Two Column Layout: YouTube Metadata & AI Chat */}
-
-              <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 min-w-0 overflow-hidden">
-
-                {/* Column 1: YouTube Metadata */}
-
-                <div className="flex-1 dash-chat-panel">
-
-                  <div className="flex justify-between items-start dash-chat-panel-header">
-
-                    <div>
-
-                      <SectionHeader
-                        title="Otimizador de Metadados do YouTube"
-                        helpId="ai-metadata"
-                        icon={<Video className="w-4 h-4 text-dash-primary" />}
-                        size="sm"
-                        titleClassName="tracking-widest uppercase text-xs"
-                        subtitle={<>Passo 1: <strong className="text-zinc-300">Gerar Metadados</strong> → Passo 2: <strong className="text-zinc-300">Gerar Thumbnails</strong> (botão verde). Títulos, descrição, tags e 3 capas A/B para upload no YouTube.</>}
-                      />
-                      {(youtubeMetadataFormat || youtubeMetadataStrategy?.profileLabel) && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {youtubeMetadataFormat && (
-                            <span className={`inline-flex text-[9px] font-bold px-2 py-0.5 rounded ${youtubeMetadataFormat === 'SHORT' ? 'bg-fuchsia-500/10 text-fuchsia-400' : 'bg-sky-500/10 text-sky-400'}`}>
-                              {youtubeMetadataFormat === 'SHORT' ? 'Shorts · feed + rewatch' : 'Longo · CTR + retenção'}
-                            </span>
-                          )}
-                          {youtubeMetadataStrategy?.profileLabel && (
-                            <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
-                              Perfil: {youtubeMetadataStrategy.profileLabel}
-                            </span>
-                          )}
-                          {youtubeMetadataStrategy?.rpm && (
-                            <span className="inline-flex text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
-                              RPM {youtubeMetadataStrategy.rpm}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                    <button
-                      disabled={canvaThumbnailsLoading || !uploadStatus.canva?.connected}
-                      onClick={handleGenerateCanvaThumbnails}
-                      title={uploadStatus.canva?.connected ? 'Gera capas A/B/C automaticamente via Canva Connect' : 'Conecte o Canva em Upload → Integrações'}
-                      className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/10"
-                    >
-                      {canvaThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                      <span>{canvaThumbnailsLoading ? 'Canva...' : 'Gerar no Canva'}</span>
-                    </button>
-                    <button
-                      disabled={youtubeThumbnailsLoading}
-                      onClick={handleGenerateYoutubeThumbnailImages}
-                      title={youtubeMetadataParsed?.thumbnails?.length ? 'Gera 3 imagens de capa A/B/C' : 'Gere os metadados primeiro (passo 1)'}
-                      className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[11px] font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
-                    >
-                      {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
-                      <span>{youtubeThumbnailsLoading ? 'Gerando...' : 'Gerar Thumbnails'}</span>
-                    </button>
-                    <button 
-
-                      disabled={youtubeLoading || !hasApiKey}
-
-                      onClick={handleGenerateYoutubeMetadata}
-
-                      className="dash-btn-primary text-[11px] px-4 py-2 disabled:opacity-50"
-
-                    >
-
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-
-                      <span>{youtubeLoading ? 'Gerando...' : 'Gerar Metadados'}</span>
-
-                    </button>
-                    </div>
-
-                  </div>
-
-                  <div className="flex-1 dash-inset-panel mt-3 relative">
-
-                    {youtubeLoading ? (
-
-                      <div className="flex flex-col items-center justify-center h-full gap-3 text-dash-muted text-xs">
-
-                        <RefreshCw className="w-6 h-6 animate-spin text-dash-primary" />
-
-                        <span>A IA está analisando o roteiro e gerando metadados ideais...</span>
-
-                      </div>
-
-                    ) : youtubeMetadata ? (
-
-                      <div className="space-y-3">
-
-                        {/* Aplicar ao Upload + Copiar Tudo */}
-
-                        <div className="flex justify-between items-center gap-2 flex-wrap">
-                          {youtubeMetadataParsed?.description && (
-                            <button
-                              onClick={applyMetadataToUpload}
-                              className="dash-chat-chip font-bold flex items-center gap-1"
-                            >
-                              <Sparkles className="w-3.5 h-3.5" />
-                              Aplicar ao Upload (completo)
-                            </button>
-                          )}
-                          <div className="flex-1" />
-
-                          <button 
-
-                            onClick={() => copyToClipboard(youtubeMetadata, 'youtube')}
-
-                            className="dash-btn-ghost-sm"
-
-                          >
-
-                            {copiedSection === 'youtube' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-
-                            <span>{copiedSection === 'youtube' ? 'Copiado!' : 'Copiar Tudo'}</span>
-
-                          </button>
-
-                        </div>
-
-                        {(youtubeMetadataParsed?.thumbnails?.length || youtubeMetadataParsed?.titles?.length) && (
-                          <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <div>
-                                <SectionHeader title="Thumbnails A/B" helpId="thumbnails-ab" size="sm" titleClassName="text-gold-500 tracking-wide uppercase text-xs" />
-                                <span className="text-[9px] text-zinc-500">
-                                  {uploadStatus.canva?.connected ? 'Canva automático ou local sharp' : 'Conecte o Canva para gerar capas sem abrir o navegador'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  disabled={canvaThumbnailsLoading || !uploadStatus.canva?.connected}
-                                  onClick={handleGenerateCanvaThumbnails}
-                                  className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
-                                >
-                                  {canvaThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                  {canvaThumbnailsLoading ? 'Canva...' : 'Gerar no Canva'}
-                                </button>
-                                <button
-                                  disabled={youtubeThumbnailsLoading}
-                                  onClick={handleGenerateYoutubeThumbnailImages}
-                                  className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
-                                >
-                                  {youtubeThumbnailsLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
-                                  {youtubeThumbnailsLoading ? 'Gerando...' : 'Local'}
-                                </button>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              {(youtubeMetadataParsed.thumbnails?.length
-                                ? youtubeMetadataParsed.thumbnails
-                                : (youtubeMetadataParsed.titles || []).slice(0, 3).map((t, i) => ({
-                                    id: String.fromCharCode(65 + i),
-                                    label: ['Curiosidade', 'Contraste', 'Prova Visual'][i] || 'Variante',
-                                    overlayText: t.text?.split(' ').slice(0, 4).join(' '),
-                                    pairedTitle: `${i + 1}. ${t.text}`,
-                                  }))
-                              ).map((thumb) => {
-                                const generated = youtubeThumbnailsGenerated.find((g) => g.id === thumb.id);
-                                return (
-                                <div key={thumb.id} className={`bg-zinc-900/50 border rounded-lg p-3 space-y-2 ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}>
-                                  {generated?.url && (
-                                    <a href={generated.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border border-zinc-800 hover:border-gold-500/40 transition">
-                                      <img
-                                        src={`${generated.url}?t=${Date.now()}`}
-                                        alt={`Thumbnail variante ${thumb.id}`}
-                                        className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16] max-h-64' : 'aspect-video'}`}
-                                      />
-                                    </a>
-                                  )}
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-white">Variante {thumb.id}</span>
-                                    <span className="text-[9px] text-zinc-500">{thumb.label}</span>
-                                  </div>
-                                  {thumb.overlayText && (
-                                    <div className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5">
-                                      <span className="text-[8px] text-zinc-500 uppercase block">Texto na capa</span>
-                                      <span className="text-sm font-black text-gold-400 tracking-wide">{thumb.overlayText}</span>
-                                    </div>
-                                  )}
-                                  {thumb.pairedTitle && (
-                                    <p className="text-[10px] text-zinc-400"><span className="text-zinc-600">Título:</span> {thumb.pairedTitle}</p>
-                                  )}
-                                  {thumb.composition && (
-                                    <p className="text-[10px] text-zinc-400 leading-relaxed">{thumb.composition}</p>
-                                  )}
-                                  {thumb.focalElement && (
-                                    <p className="text-[10px] text-zinc-500"><span className="text-zinc-600">Foco:</span> {thumb.focalElement}</p>
-                                  )}
-                                  {thumb.colors && thumb.colors.length > 0 && (
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {thumb.colors.map((color, cIdx) => (
-                                        <span
-                                          key={cIdx}
-                                          className="w-4 h-4 rounded-full border border-zinc-700"
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                        />
-                                      ))}
-                                    </div>
-                                  )}
-                                  <div className="grid grid-cols-2 gap-1.5">
-                                    {generated?.url && (
-                                      <button
-                                        onClick={() => selectThumbnailForUpload(generated)}
-                                        className={`text-[9px] font-bold py-1.5 rounded border transition cursor-pointer ${ytThumbnailVariant === thumb.id ? 'bg-gold-500/20 border-gold-500/40 text-gold-300' : 'border-zinc-800 text-zinc-300 hover:border-gold-500/30'}`}
-                                      >
-                                        {ytThumbnailVariant === thumb.id ? '✓ No Upload' : 'Usar no Upload'}
-                                      </button>
-                                    )}
-                                    {generated?.editUrl && (
-                                      <a
-                                        href={generated.editUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-center text-[9px] font-bold text-cyan-400 hover:text-cyan-300 py-1.5 rounded border border-cyan-500/20 hover:border-cyan-500/40 transition"
-                                      >
-                                        Editar no Canva
-                                      </a>
-                                    )}
-                                    <button
-                                      onClick={() => openCanvaThumbnailDesigner(thumb)}
-                                      className="text-[9px] font-bold text-sky-400 hover:text-sky-300 py-1.5 rounded border border-sky-500/20 hover:border-sky-500/40 transition cursor-pointer"
-                                    >
-                                      {copiedSection === `canva-${thumb.id}` ? 'Brief copiado!' : 'Abrir Canva'}
-                                    </button>
-                                    <button
-                                      onClick={() => copyToClipboard(buildThumbnailBrief(thumb), `thumb-${thumb.id}`)}
-                                      className="text-[9px] font-bold text-zinc-400 hover:text-white py-1.5 rounded border border-zinc-800 hover:border-zinc-700 transition cursor-pointer"
-                                    >
-                                      {copiedSection === `thumb-${thumb.id}` ? 'Copiado!' : 'Copiar briefing'}
-                                    </button>
-                                    {generated?.url ? (
-                                      <a
-                                        href={generated.url}
-                                        download
-                                        className="text-center text-[9px] font-bold text-gold-500 hover:text-gold-400 py-1.5 rounded border border-gold-500/20 hover:border-gold-500/40 transition"
-                                      >
-                                        Baixar
-                                      </a>
-                                    ) : (
-                                      <span className="text-[9px] text-zinc-600 text-center py-1.5">Gere imagens</span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Render sections with individual copy buttons */}
-
-                        {(() => {
-
-                          const sections = normalizeYoutubeMetadataDisplay(youtubeMetadata).split(/^## /m).filter(Boolean).filter((section) => {
-                            const sectionTitle = section.split('\n')[0]?.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                            if (sectionTitle === 'THUMBNAILS A/B' && youtubeMetadataParsed?.thumbnails?.length) return false;
-                            return true;
-                          });
-
-                          return sections.map((section, sIdx) => {
-
-                            const lines = section.split('\n');
-
-                            const title = lines[0]?.trim() || `Seção ${sIdx + 1}`;
-
-                            const content = lines.slice(1).join('\n').trim();
-
-                            const sectionKey = `meta-${sIdx}`;
-
-                            return (
-
-                              <div key={sIdx} className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 relative group">
-
-                                <div className="flex items-center justify-between mb-2">
-
-                                  <h3 className="text-gold-500 font-bold text-xs tracking-wide font-sans uppercase">{title}</h3>
-
-                                  <button
-
-                                    onClick={() => copyToClipboard(content, sectionKey)}
-
-                                    className="bg-zinc-900 border border-zinc-800 text-gray-500 hover:text-white px-2.5 py-1 rounded-lg text-[9px] flex items-center gap-1 transition cursor-pointer opacity-60 group-hover:opacity-100"
-
-                                  >
-
-                                    {copiedSection === sectionKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-
-                                    <span>{copiedSection === sectionKey ? 'Copiado!' : 'Copiar'}</span>
-
-                                  </button>
-
-                                </div>
-
-                                <div className="prose prose-invert max-w-none">
-                                  {/^T[ÍI]TULOS$/i.test(title) && youtubeMetadataParsed?.titles?.length ? (
-                                    <div className="space-y-3 not-prose">
-                                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 space-y-2">
-                                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                                          <div>
-                                            <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wide">Teste A/B de Títulos</span>
-                                            <p className="text-[9px] text-zinc-500">Publique o vídeo, cole o videoId e alterne títulos com analytics do YouTube.</p>
-                                          </div>
-                                          <button
-                                            disabled={titleExperimentLoading}
-                                            onClick={fetchTitleExperimentAnalytics}
-                                            className="text-[9px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded border border-violet-500/30 hover:border-violet-500/50 transition cursor-pointer"
-                                          >
-                                            {titleExperimentLoading ? 'Atualizando...' : 'Atualizar Analytics'}
-                                          </button>
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder="videoId do YouTube (ex: dQw4w9WgXcQ)"
-                                          value={titleExperimentVideoId}
-                                          onChange={(e) => setTitleExperimentVideoId(e.target.value)}
-                                          className="w-full bg-black border border-zinc-800 focus:border-violet-500 focus:outline-none rounded-lg px-2.5 py-1.5 text-[11px] text-white"
-                                        />
-                                        {titleExperimentAnalytics?.available && (
-                                          <div className="space-y-2">
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
-                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
-                                                <span className="text-zinc-500 block">Views (28d)</span>
-                                                <span className="text-white font-bold">{titleExperimentAnalytics.metrics?.views ?? 0}</span>
-                                              </div>
-                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
-                                                <span className="text-zinc-500 block">Min. assistidos</span>
-                                                <span className="text-white font-bold">{Math.round(titleExperimentAnalytics.metrics?.estimatedMinutesWatched || 0)}</span>
-                                              </div>
-                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
-                                                <span className="text-zinc-500 block">Retenção média</span>
-                                                <span className="text-white font-bold">{Math.round(titleExperimentAnalytics.metrics?.averageViewDuration || 0)}s</span>
-                                              </div>
-                                              <div className="bg-zinc-900/60 border border-zinc-800 rounded-lg px-2 py-1.5">
-                                                <span className="text-zinc-500 block">Likes / Coment.</span>
-                                                <span className="text-white font-bold">
-                                                  {titleExperimentAnalytics.metrics?.likes ?? 0} / {titleExperimentAnalytics.metrics?.comments ?? 0}
-                                                </span>
-                                              </div>
-                                            </div>
-                                            {titleExperimentAnalytics.reachNote && (
-                                              <p className="text-[8px] text-zinc-500">{titleExperimentAnalytics.reachNote}</p>
-                                            )}
-                                            {titleExperimentWinner?.variantId && (
-                                              <p className="text-[9px] text-emerald-400 font-bold">
-                                                Líder por views no período: variante {titleExperimentWinner.variantId} ({titleExperimentWinner.views} views)
-                                              </p>
-                                            )}
-                                            {titleRetention?.velocity?.views48h != null && (
-                                              <p className="text-[9px] text-cyan-400">
-                                                Views 48h: {titleRetention.velocity.views48h}
-                                              </p>
-                                            )}
-                                            <div className="flex gap-2 flex-wrap">
-                                              <button
-                                                type="button"
-                                                disabled={titleExperimentLoading || !titleExperimentWinner}
-                                                onClick={async () => {
-                                                  setTitleExperimentLoading(true);
-                                                  try {
-                                                    const res = await fetch(getProjectUrl('/api/youtube/title-experiment/apply-winner'), { method: 'POST' });
-                                                    const data = await res.json();
-                                                    if (res.ok) {
-                                                      toast(`Vencedor ${data.winner?.variantId} aplicado permanentemente.`);
-                                                      fetchTitleExperimentAnalytics();
-                                                    } else toast(data.error || 'Falha ao aplicar vencedor.');
-                                                  } finally { setTitleExperimentLoading(false); }
-                                                }}
-                                                className="text-[8px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded disabled:opacity-50"
-                                              >
-                                                Aplicar vencedor
-                                              </button>
-                                              <button
-                                                type="button"
-                                                disabled={titleExperimentLoading}
-                                                onClick={async () => {
-                                                  await fetch(getProjectUrl('/api/youtube/title-experiment/stop'), { method: 'POST' });
-                                                  toast('Experimento de títulos encerrado.');
-                                                  fetchTitleExperiment();
-                                                }}
-                                                className="text-[8px] font-bold text-zinc-400 border border-zinc-700 px-2 py-1 rounded"
-                                              >
-                                                Parar teste
-                                              </button>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {uploadStatus.youtube?.connected && uploadStatus.youtube?.titleTestReady === false && (
-                                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-2 space-y-1.5">
-                                            <p className="text-[9px] text-amber-400 font-bold">Permissões antigas (só upload)</p>
-                                            <p className="text-[9px] text-amber-500/90">
-                                              Faltam: {(uploadStatus.youtube?.missingScopes || []).join(', ') || 'editar títulos e analytics'}.
-                                            </p>
-                                            <button
-                                              type="button"
-                                              onClick={handleRelinkYoutube}
-                                              className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 text-[9px] font-bold py-1.5 rounded-lg transition cursor-pointer"
-                                            >
-                                              Revincular YouTube (obrigatório)
-                                            </button>
-                                          </div>
-                                        )}
-                                        {titleExperimentAnalytics && !titleExperimentAnalytics.available && titleExperimentAnalytics.error && (
-                                          <p className="text-[9px] text-amber-500">{titleExperimentAnalytics.error}</p>
-                                        )}
-                                        <button
-                                          disabled={titleExperimentLoading || !uploadStatus.youtube?.connected}
-                                          onClick={handleStartTitleExperiment}
-                                          className="w-full bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 disabled:opacity-50 text-[10px] font-bold py-1.5 rounded-lg transition cursor-pointer"
-                                        >
-                                          {titleExperimentLoading ? 'Processando...' : 'Iniciar teste A/B (títulos marcados)'}
-                                        </button>
-                                      </div>
-                                      {youtubeMetadataParsed.titles.map((t, tIdx) => {
-                                        const hasHashtag = /#[\wÀ-ÿ]+/i.test(t.text);
-                                        const hasEmoji = /\p{Extended_Pictographic}/u.test(t.text);
-                                        const maxChars = youtubeMetadataFormat === 'SHORT'
-                                          ? (hasHashtag || hasEmoji ? 55 : 40)
-                                          : 50;
-                                        const ok = t.chars <= maxChars;
-                                        const isRecommended = tIdx === 0 || t.text === youtubeMetadataParsed.recommendedTitle;
-                                        const variantId = String.fromCharCode(65 + tIdx);
-                                        const isAbSelected = titleAbSelected[String(tIdx)] !== false;
-                                        const isActiveVariant = titleExperiment?.activeVariantId === variantId;
-                                        const ranking = titleExperimentRankings.find((r) => r.id === variantId);
-                                        return (
-                                          <div key={tIdx} className={`flex items-start justify-between gap-2 bg-zinc-900/50 border rounded-lg px-3 py-2 ${isRecommended ? 'border-gold-500/40 ring-1 ring-gold-500/15' : isActiveVariant ? 'border-violet-500/50 ring-1 ring-violet-500/20' : 'border-zinc-800'}`}>
-                                            <div className="min-w-0 flex items-start gap-2">
-                                              <input
-                                                type="checkbox"
-                                                checked={isAbSelected}
-                                                onChange={(e) => setTitleAbSelected((prev) => ({ ...prev, [String(tIdx)]: e.target.checked }))}
-                                                className="mt-1 accent-violet-500"
-                                                title="Incluir no teste A/B"
-                                              />
-                                              <div>
-                                                <span className="text-[10px] text-zinc-500 mr-2">{tIdx + 1}.</span>
-                                                {isRecommended && (
-                                                  <span className="text-[8px] font-bold text-gold-400 bg-gold-500/10 border border-gold-500/30 px-1.5 py-0.5 rounded mr-1.5 uppercase tracking-wide">
-                                                    Recomendado
-                                                  </span>
-                                                )}
-                                                <span className="text-xs text-zinc-200 break-words whitespace-normal leading-snug">{t.text}</span>
-                                                <span className={`ml-2 text-[9px] font-mono ${ok ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                  {t.chars}/{maxChars}
-                                                </span>
-                                                {typeof t.score === 'number' && (
-                                                  <span className="ml-1 text-[8px] text-zinc-600 font-mono" title="Score de qualidade">
-                                                    · {t.score}pts
-                                                  </span>
-                                                )}
-                                                {isActiveVariant && <span className="ml-2 text-[8px] text-violet-400 font-bold">ATIVO NO YT</span>}
-                                                {typeof ranking?.periodViews === 'number' && (
-                                                  <span className="block text-[8px] text-emerald-500 mt-0.5">
-                                                    {ranking.periodViews} views no período deste título
-                                                    {ranking.periodAvgDuration ? ` · ${ranking.periodAvgDuration}s retenção` : ''}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            </div>
-                                            <div className="flex flex-col gap-1 shrink-0">
-                                              <button
-                                                onClick={() => {
-                                                  setYtTitle(t.text.slice(0, 100));
-                                                  toast(`Título #${tIdx + 1} aplicado na aba Upload.`);
-                                                }}
-                                                className="text-[9px] font-bold text-gold-500 hover:text-gold-400 px-2 py-1 rounded border border-gold-500/20 hover:border-gold-500/40 transition cursor-pointer"
-                                              >
-                                                Usar
-                                              </button>
-                                              {titleExperiment?.videoId && uploadStatus.youtube?.connected && tIdx < 5 && (
-                                                <button
-                                                  disabled={titleExperimentLoading}
-                                                  onClick={() => handleApplyTitleVariant(variantId)}
-                                                  className="text-[9px] font-bold text-violet-400 hover:text-violet-300 px-2 py-1 rounded border border-violet-500/20 hover:border-violet-500/40 transition cursor-pointer disabled:opacity-50"
-                                                >
-                                                  Aplicar {variantId}
-                                                </button>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    renderFormattedText(content)
-                                  )}
-
-                                </div>
-
-                              </div>
-
-                            );
-
-                          });
-
-                        })()}
-
-                      </div>
-
-                    ) : (
-
-                      <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500 text-xs gap-2">
-
-                        <MessageSquare className="w-8 h-8 text-zinc-700" />
-
-                        <span>Clique em "Gerar Metadados" para criar títulos magnéticos, descrição otimizada, tags e capítulos com carimbo de data/hora reais baseados no roteiro sincronizado.</span>
-
-                      </div>
-
-                    )}
-
-                  </div>
-
-                </div>
-
-                {/* Column 2: AI Chat Assistant */}
-
-                <div className="flex-1 dash-chat-panel font-sans">
-
-                  <div className="dash-chat-panel-header">
-
-                    <SectionHeader
-                      title="Chat de Engenharia e Criação IA"
-                      helpId="ai-chat"
-                      icon={<Sparkles className="w-4 h-4 text-dash-primary" />}
-                      size="sm"
-                      titleClassName="tracking-widest uppercase text-xs"
-                      subtitle="Peça alterações de BGM, sugestões de palavras-chave ou reescrita de textos de impacto."
-                    />
-
-                  </div>
-
-                  <DashminAiChat
-                    messages={chatMessages}
-                    loading={chatLoading}
-                    input={chatInput}
-                    onInputChange={setChatInput}
-                    onSend={handleSendChatMessage}
-                    hasApiKey={hasApiKey}
-                    chatEndRef={chatEndRef}
-                    suggestions={[
-                      { label: '💡 Sugerir Destaques', message: 'Sugerir palavras-chave extras para destacar baseadas no roteiro.' },
-                      { label: '🔥 Impactos Épicos', message: 'Melhorar frases de impacto para deixá-las mais dramáticas e épicas.' },
-                      { label: '🎵 Análise Musical', message: 'Me sugira faixas de trilha sonora ideais para os blocos da metade do vídeo.' },
-                    ]}
-                    renderMessageExtra={(msg) => {
-                      if (msg.role !== 'assistant') return null;
-                      const parsedConfig = detectJsonConfig(msg.content);
-                      return parsedConfig ? (
-                        <DashminChatApplyButton onClick={() => applyAiConfig(parsedConfig)} />
-                      ) : null;
-                    }}
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            </DashminProjectTabLayout>
-
+            <TabErrorBoundary tabName="IA Metadados">
+              <Suspense fallback={<TabPanelFallback label="Carregando ia metadados..." />}>
+                <AppAiTab
+                activeProject={activeProject}
+                aiProviderBadge={aiProviderBadge}
+                applyAiConfig={applyAiConfig}
+                applyMetadataToUpload={applyMetadataToUpload}
+                canvaThumbnailsLoading={canvaThumbnailsLoading}
+                chatEndRef={chatEndRef}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                chatLoading={chatLoading}
+                chatMessages={chatMessages}
+                copiedSection={copiedSection}
+                copyToClipboard={copyToClipboard}
+                fetchTitleExperiment={fetchTitleExperiment}
+                fetchTitleExperimentAnalytics={fetchTitleExperimentAnalytics}
+                getProjectUrl={getProjectUrl}
+                handleApplyTitleVariant={handleApplyTitleVariant}
+                handleGenerateCanvaThumbnails={handleGenerateCanvaThumbnails}
+                handleGenerateYoutubeMetadata={handleGenerateYoutubeMetadata}
+                handleGenerateYoutubeThumbnailImages={handleGenerateYoutubeThumbnailImages}
+                handleRelinkYoutube={handleRelinkYoutube}
+                handleSendChatMessage={handleSendChatMessage}
+                handleStartTitleExperiment={handleStartTitleExperiment}
+                hasApiKey={hasApiKey}
+                openCanvaThumbnailDesigner={openCanvaThumbnailDesigner}
+                selectThumbnailForUpload={selectThumbnailForUpload}
+                setActiveTab={setActiveTab}
+                setTitleAbSelected={setTitleAbSelected}
+                setTitleExperimentLoading={setTitleExperimentLoading}
+                setTitleExperimentVideoId={setTitleExperimentVideoId}
+                setYtTitle={setYtTitle}
+                titleAbSelected={titleAbSelected}
+                titleExperiment={titleExperiment}
+                titleExperimentAnalytics={titleExperimentAnalytics}
+                titleExperimentLoading={titleExperimentLoading}
+                titleExperimentRankings={titleExperimentRankings}
+                titleExperimentVideoId={titleExperimentVideoId}
+                titleExperimentWinner={titleExperimentWinner}
+                titleRetention={titleRetention}
+                uploadStatus={uploadStatus}
+                youtubeLoading={youtubeLoading}
+                youtubeMetadata={youtubeMetadata}
+                youtubeMetadataFormat={youtubeMetadataFormat}
+                youtubeMetadataParsed={youtubeMetadataParsed}
+                youtubeMetadataStrategy={youtubeMetadataStrategy}
+                youtubeThumbnailsGenerated={youtubeThumbnailsGenerated}
+                youtubeThumbnailsLoading={youtubeThumbnailsLoading}
+                ytThumbnailVariant={ytThumbnailVariant}
+                />
+              </Suspense>
+            </TabErrorBoundary>
           )}
 
           {/* TAB: PROJECT EDITOR */}
 
-          {/* TAB: UPLOAD MULTI & DISTRIBUICAO */}
           {activeTab === 'upload' && (
-            <DashminProjectTabLayout tab="upload" activeProject={activeProject}>
-            <div className="space-y-6 font-sans">
-
-              {/* Step 1: Select platforms & Edit metadata */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Metadados por Plataforma */}
-                <div className="lg:col-span-2 space-y-6">
-                  
-                  {/* YouTube Section */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="select-yt"
-                          checked={selectedPlatforms.youtube}
-                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, youtube: e.target.checked }))}
-                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
-                        />
-                        <label htmlFor="select-yt" className="text-xs font-bold text-zinc-200 cursor-pointer flex items-center gap-1.5">
-                          <span>YouTube (Videos / Shorts)</span>
-                        </label>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.youtube?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {uploadStatus.youtube?.connected ? 'Conectado' : 'Não Conectado'}
-                      </span>
-                    </div>
-
-                    {selectedPlatforms.youtube && (
-                      <div className="space-y-4 text-xs font-sans">
-                        <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl border border-violet-500/25 bg-violet-500/5">
-                          <p className="text-[10px] text-zinc-400 leading-relaxed max-w-md">
-                            {uploadMetadataReady
-                              ? 'Metadados da aba IA · Metadados disponíveis — preencha os campos abaixo com um clique.'
-                              : 'Gere títulos, descrição e tags na aba IA · Metadados, depois volte aqui para preencher.'}
-                          </p>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab('ai')}
-                              className="text-[9px] font-bold text-zinc-400 hover:text-white px-2.5 py-1.5 rounded-lg border border-zinc-800 transition cursor-pointer"
-                            >
-                              IA · Metadados
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { void applyMetadataToUpload(); }}
-                              disabled={!uploadMetadataReady}
-                              className="text-[9px] font-bold text-violet-100 bg-violet-600/30 hover:bg-violet-600/45 disabled:opacity-40 border border-violet-500/40 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              Preencher com metadados IA
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Título no YouTube</label>
-                          <input
-                            type="text"
-                            maxLength={100}
-                            value={ytTitle}
-                            onChange={(e) => setYtTitle(e.target.value)}
-                            placeholder="Insira o título do vídeo para o YouTube"
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs"
-                          />
-                          <span className="text-[9px] text-zinc-600 block text-right">{ytTitle.length}/100</span>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Descrição do YouTube</label>
-                          <textarea
-                            rows={3}
-                            value={ytDescription}
-                            onChange={(e) => setYtDescription(e.target.value)}
-                            placeholder="Descrição completa para SEO, links e hashtags"
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Privacidade</label>
-                          <select
-                            value={ytPrivacy}
-                            onChange={(e) => setYtPrivacy(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white font-sans text-xs"
-                          >
-                            <option value="private">Privado (Recomendado)</option>
-                            <option value="public">Público</option>
-                            <option value="unlisted">Não listado</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Tags (vírgula)</label>
-                          <input
-                            type="text"
-                            value={ytTags}
-                            onChange={(e) => setYtTags(e.target.value)}
-                            placeholder="tag1, tag2, tag3..."
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Capítulos (marcadores)</label>
-                          <textarea
-                            rows={2}
-                            value={ytChapters}
-                            onChange={(e) => setYtChapters(e.target.value)}
-                            placeholder="0:00 Intro&#10;1:30 Tema principal"
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none font-mono"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Comentário fixo (pós-upload)</label>
-                          <textarea
-                            rows={2}
-                            value={ytPinnedComment}
-                            onChange={(e) => setYtPinnedComment(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-2">
-                            <label className="ui-micro-label text-gray-500 block text-balance-safe">Agendar (ISO)</label>
-                            <input
-                              type="datetime-local"
-                              value={ytPublishAt ? ytPublishAt.slice(0, 16) : ''}
-                              onChange={(e) => setYtPublishAt(e.target.value ? new Date(e.target.value).toISOString() : '')}
-                              className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2 text-white text-xs"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="ui-micro-label text-gray-500 block text-balance-safe">Categoria ID</label>
-                            <input
-                              type="text"
-                              value={ytCategoryId}
-                              onChange={(e) => setYtCategoryId(e.target.value)}
-                              className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2 text-white text-xs"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 pt-2 border-t border-zinc-900/60">
-                          <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <div>
-                              <label className="ui-micro-label text-gray-500 block text-balance-safe">Thumbnail do YouTube (A/B/C)</label>
-                              <p className="text-[9px] text-zinc-600 mt-0.5">Gera 3 capas com texto overlay a partir dos assets do projeto.</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setActiveTab('ai')}
-                                className="text-[9px] font-bold text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-800 transition cursor-pointer"
-                              >
-                                Agente IA
-                              </button>
-                              <button
-                                type="button"
-                                disabled={youtubeThumbnailsLoading}
-                                onClick={handleGenerateYoutubeThumbnailImages}
-                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                              >
-                                {youtubeThumbnailsLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
-                                {youtubeThumbnailsLoading ? 'Gerando...' : 'Gerar Thumbnails'}
-                              </button>
-                            </div>
-                          </div>
-                          {ytThumbnailVariant && (
-                            <p className="text-[9px] text-gold-500/80">
-                              Selecionada para upload: <strong>Variante {ytThumbnailVariant}</strong>
-                            </p>
-                          )}
-                          {youtubeThumbnailsGenerated.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-2">
-                              {youtubeThumbnailsGenerated.map((thumb) => (
-                                <div
-                                  key={thumb.id}
-                                  className={`rounded-lg overflow-hidden border transition ${ytThumbnailVariant === thumb.id ? 'border-gold-500/60 ring-1 ring-gold-500/20' : 'border-zinc-800'}`}
-                                >
-                                  <a href={thumb.url} target="_blank" rel="noreferrer" className="block">
-                                    <img
-                                      src={`${thumb.url}?t=${Date.now()}`}
-                                      alt={`Thumbnail ${thumb.id}`}
-                                      className={`w-full object-cover ${youtubeMetadataFormat === 'SHORT' ? 'aspect-[9/16]' : 'aspect-video'}`}
-                                    />
-                                  </a>
-                                  <div className="flex gap-1 p-1 bg-zinc-950/80">
-                                    <button
-                                      type="button"
-                                      onClick={() => selectThumbnailForUpload(thumb)}
-                                      className={`flex-1 text-[8px] font-bold py-1 rounded ${ytThumbnailVariant === thumb.id ? 'bg-gold-500/20 text-gold-300' : 'text-zinc-400 hover:text-white'}`}
-                                    >
-                                      {ytThumbnailVariant === thumb.id ? '✓' : 'Usar'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => openCanvaThumbnailDesigner({ id: thumb.id, label: thumb.label, overlayText: thumb.overlayText })}
-                                      className="flex-1 text-[8px] font-bold py-1 rounded text-sky-400 hover:text-sky-300"
-                                    >
-                                      Canva
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-[9px] text-zinc-600 italic">
-                              Nenhuma thumbnail gerada ainda. Use &quot;Gerar Metadados&quot; na aba Agente IA, depois clique em &quot;Gerar Thumbnails&quot;.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Instagram Reels Section */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="select-ig"
-                          checked={selectedPlatforms.instagram}
-                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, instagram: e.target.checked }))}
-                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
-                        />
-                        <label htmlFor="select-ig" className="text-xs font-bold text-zinc-200 cursor-pointer">
-                          Instagram Reels
-                        </label>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.instagram?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {uploadStatus.instagram?.connected ? 'Conectado' : 'Não Conectado'}
-                      </span>
-                    </div>
-
-                    {selectedPlatforms.instagram && (
-                      <div className="space-y-3 text-xs font-sans">
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do Reels (Caption)</label>
-                          <textarea
-                            rows={3}
-                            value={igCaption}
-                            onChange={(e) => setIgCaption(e.target.value)}
-                            placeholder="Legenda para o Reels com hashtags"
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* TikTok Section */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="select-tt"
-                          checked={selectedPlatforms.tiktok}
-                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, tiktok: e.target.checked }))}
-                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
-                        />
-                        <label htmlFor="select-tt" className="text-xs font-bold text-zinc-200 cursor-pointer">
-                          TikTok (Playwright Automação)
-                        </label>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.tiktok?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {uploadStatus.tiktok?.connected ? 'Sessão Ativa' : 'Desconectado'}
-                      </span>
-                    </div>
-
-                    {selectedPlatforms.tiktok && (
-                      <div className="space-y-3 text-xs font-sans">
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do TikTok</label>
-                          <textarea
-                            rows={3}
-                            value={ttCaption}
-                            onChange={(e) => setTtCaption(e.target.value)}
-                            placeholder="Legenda curta e tags virais"
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Kwai Section */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900/40">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="select-kw"
-                          checked={selectedPlatforms.kwai}
-                          onChange={(e) => setSelectedPlatforms(prev => ({ ...prev, kwai: e.target.checked }))}
-                          className="w-4 h-4 accent-gold-500 bg-zinc-950 border-zinc-800 rounded cursor-pointer"
-                        />
-                        <label htmlFor="select-kw" className="text-xs font-bold text-zinc-200 cursor-pointer">
-                          Kwai (Playwright Automação)
-                        </label>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${uploadStatus.kwai?.connected ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {uploadStatus.kwai?.connected ? 'Sessão Ativa' : 'Desconectado'}
-                      </span>
-                    </div>
-
-                    {selectedPlatforms.kwai && (
-                      <div className="space-y-3 text-xs font-sans">
-                        <div className="space-y-2">
-                          <label className="ui-micro-label text-gray-500 block text-balance-safe">Legenda do Kwai</label>
-                          <textarea
-                            rows={3}
-                            value={kwCaption}
-                            onChange={(e) => setKwCaption(e.target.value)}
-                            placeholder="Legenda para o Kwai"
-                            className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2.5 text-white font-sans text-xs resize-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-
-                {/* Account Auth Connection Panel */}
-                <div className="space-y-6">
-                  
-                  {/* Salvar Metadados GLOBAIS */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Ações Globais</span>
-                    {selectedUploadVideo ? (
-                      <div className="text-[10px] text-zinc-400 p-2.5 rounded-lg border border-emerald-500/25 bg-emerald-500/5 leading-relaxed">
-                        Vídeo para publicar: <strong className="text-emerald-300">{selectedUploadVideo}</strong>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('status')}
-                          className="block mt-1 text-[9px] text-zinc-500 hover:text-white transition"
-                        >
-                          Trocar na aba Render →
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-[10px] text-amber-300/90 p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/5">
-                        Nenhum vídeo em OUTPUT. Renderize na aba Render primeiro.
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => { void applyMetadataToUpload(); }}
-                      disabled={!uploadMetadataReady}
-                      className="w-full bg-violet-600/15 hover:bg-violet-600/25 disabled:opacity-40 border border-violet-500/30 text-violet-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Preencher com metadados IA
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const ok = await saveUploadMetadataToProject();
-                        toast(ok ? 'Metadados salvos com sucesso!' : 'Erro ao salvar metadados.');
-                      }}
-                      className="w-full bg-zinc-900 border border-zinc-800 hover:border-gold-500/20 text-gold-500 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
-                    >
-                      Salvar Metadados do Projeto
-                    </button>
-                    {(titleExperimentVideoId || config?.upload_metadata?.youtube?.post_id) && (
-                      <button
-                        type="button"
-                        onClick={() => { void handleFixYoutubeMetadata(); }}
-                        className="w-full bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/30 text-amber-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
-                      >
-                        Corrigir metadados no YouTube (vídeo já enviado)
-                      </button>
-                    )}
-                    <button
-                      onClick={async () => {
-                        const prepared = await prepareUploadForPublish();
-                        if (!prepared.ok) return;
-                        const saved = await saveUploadMetadataToProject(prepared.payload);
-                        if (!saved) {
-                          toast.error('Erro ao salvar metadados antes do upload.');
-                          return;
-                        }
-                        setUploading(true);
-                        setUploadLogs([]);
-                        setUploadProgress(0);
-                        const platformList = Object.entries(selectedPlatforms)
-                          .filter(([_, active]) => active)
-                          .map(([key]) => key)
-                          .join(",");
-                        
-                        const videoParam = selectedUploadVideo ? `&video=${encodeURIComponent(selectedUploadVideo)}` : '';
-                        const eventSource = new EventSource(getProjectUrl(`/api/projects/upload-pipeline?platforms=${platformList}${videoParam}`));
-                        eventSource.onmessage = (event) => {
-                          const data = JSON.parse(event.data);
-                          if (data.type === "log") {
-                            setUploadLogs(prev => [...prev, data.text]);
-                            const progressMatch = data.text.match(/\[PROGRESSO\] (\d+)%/);
-                            if (progressMatch) {
-                              setUploadProgress(parseInt(progressMatch[1]));
-                            }
-                          } else if (data.type === "complete") {
-                            eventSource.close();
-                            setUploading(false);
-                            setUploadProgress(100);
-                            toast("Upload concluído com sucesso!");
-                            if (data.videoId) {
-                              handlePostUploadComplete(data.videoId, data.postUpload);
-                            }
-                          } else if (data.type === "error") {
-                            eventSource.close();
-                            setUploading(false);
-                            const detail = data.detail || data.message || 'Erro desconhecido';
-                            toast.error(`Upload falhou: ${detail}`);
-                          }
-                        };
-                        eventSource.onerror = () => {
-                          eventSource.close();
-                          setUploading(false);
-                          toast("Falha na conexão SSE.");
-                        };
-                      }}
-                      disabled={uploading || !selectedUploadVideo}
-                      className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-zinc-950 font-bold py-3 rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-gold-500/10"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      <span>{uploading ? "Publicando..." : "Publicar nas Selecionadas"}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setPipelineRunning(true);
-                        setUploadLogs([]);
-                        const es = new EventSource(getProjectUrl('/api/pipeline/run?steps=mix,thumbnails,upload'));
-                        es.onmessage = (event) => {
-                          const data = JSON.parse(event.data);
-                          if (data.type === 'log') setUploadLogs((prev) => [...prev, data.text]);
-                          if (data.type === 'complete' || data.type === 'error') {
-                            es.close();
-                            setPipelineRunning(false);
-                            toast(data.type === 'complete' ? 'Pipeline concluído!' : data.message);
-                          }
-                        };
-                        es.onerror = () => { es.close(); setPipelineRunning(false); };
-                      }}
-                      disabled={pipelineRunning || uploading}
-                      className="w-full bg-violet-600/20 border border-violet-500/30 hover:bg-violet-600/30 disabled:opacity-50 text-violet-200 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
-                    >
-                      {pipelineRunning ? 'Pipeline rodando...' : 'Pipeline rápido (mix → thumbs → upload)'}
-                    </button>
-                    {titleExperimentVideoId && youtubeThumbnailsGenerated.length >= 2 && (
-                      <button
-                        onClick={async () => {
-                          const res = await fetch(getProjectUrl('/api/youtube/thumbnail-experiment/start'), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              videoId: titleExperimentVideoId,
-                              thumbnails: youtubeThumbnailsGenerated.map((t) => ({ id: t.id, fileName: t.fileName })),
-                            }),
-                          });
-                          const data = await res.json();
-                          if (res.ok) {
-                            setThumbnailExperiment(data.experiment);
-                            toast('Teste A/B de thumbnails iniciado.');
-                          } else toast(data.error || 'Falha ao iniciar teste de capas.');
-                        }}
-                        className="w-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold py-2 rounded-xl text-[10px]"
-                      >
-                        Iniciar A/B de Thumbnails
-                      </button>
-                    )}
-                  </div>
-
-                  {titleExperimentVideoId && activeProject && (
-                    <ProjectYoutubeCard
-                      projectName={activeProject}
-                      videoId={titleExperimentVideoId}
-                      toast={toast}
-                      onOpenYoutubePanel={() => setActiveTab('youtube-studio')}
-                    />
-                  )}
-
-                  {/* Auth Configuration */}
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl p-5 space-y-3">
-                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Integrações</span>
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      Chaves de API, OAuth e sessões ficam em Configurações → Integrações.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => { setSettingsSection('integracoes'); setActiveTab('settings'); }}
-                      className="w-full bg-gold-500/10 border border-gold-500/30 text-gold-400 font-bold py-2.5 rounded-xl text-xs hover:bg-gold-500/20 transition"
-                    >
-                      Abrir Configurações → Integrações
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Progress and Live Terminal log view */}
-              {(uploading || uploadLogs.length > 0) && (
-                <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="ui-micro-label text-gray-500 block text-balance-safe">Progresso do Envio</span>
-                    <span className="text-xs font-mono font-bold text-gold-500">{uploadProgress}%</span>
-                  </div>
-
-                  <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-zinc-800">
-                    <div
-                      className="bg-gold-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-
-                  <div className="bg-black/60 border border-zinc-950 rounded-xl p-4 h-64 overflow-y-auto font-mono text-[10px] text-emerald-400 space-y-1">
-                    {uploadLogs.map((log, idx) => (
-                      <div key={idx} className="leading-relaxed">
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            </div>
-            </DashminProjectTabLayout>
+            <TabErrorBoundary tabName="Upload">
+              <Suspense fallback={<TabPanelFallback label="Carregando upload..." />}>
+                <AppUploadTab
+                activeProject={activeProject}
+                applyMetadataToUpload={applyMetadataToUpload}
+                config={config}
+                getProjectUrl={getProjectUrl}
+                handleFixYoutubeMetadata={handleFixYoutubeMetadata}
+                handleGenerateYoutubeThumbnailImages={handleGenerateYoutubeThumbnailImages}
+                handlePostUploadComplete={handlePostUploadComplete}
+                igCaption={igCaption}
+                setIgCaption={setIgCaption}
+                kwCaption={kwCaption}
+                setKwCaption={setKwCaption}
+                openCanvaThumbnailDesigner={openCanvaThumbnailDesigner}
+                pipelineRunning={pipelineRunning}
+                setPipelineRunning={setPipelineRunning}
+                prepareUploadForPublish={prepareUploadForPublish}
+                saveUploadMetadataToProject={saveUploadMetadataToProject}
+                selectThumbnailForUpload={selectThumbnailForUpload}
+                selectedPlatforms={selectedPlatforms}
+                setSelectedPlatforms={setSelectedPlatforms}
+                selectedUploadVideo={selectedUploadVideo}
+                setActiveTab={setActiveTab}
+                setSettingsSection={setSettingsSection}
+                setThumbnailExperiment={setThumbnailExperiment}
+                setTtCaption={setTtCaption}
+                ttCaption={ttCaption}
+                setUploadLogs={setUploadLogs}
+                uploadLogs={uploadLogs}
+                setUploadProgress={setUploadProgress}
+                uploadProgress={uploadProgress}
+                setUploading={setUploading}
+                uploading={uploading}
+                setYtCategoryId={setYtCategoryId}
+                ytCategoryId={ytCategoryId}
+                setYtChapters={setYtChapters}
+                ytChapters={ytChapters}
+                setYtDescription={setYtDescription}
+                ytDescription={ytDescription}
+                setYtPinnedComment={setYtPinnedComment}
+                ytPinnedComment={ytPinnedComment}
+                setYtPrivacy={setYtPrivacy}
+                ytPrivacy={ytPrivacy}
+                setYtPublishAt={setYtPublishAt}
+                ytPublishAt={ytPublishAt}
+                setYtTags={setYtTags}
+                ytTags={ytTags}
+                setYtTitle={setYtTitle}
+                ytTitle={ytTitle}
+                titleExperimentVideoId={titleExperimentVideoId}
+                uploadMetadataReady={uploadMetadataReady}
+                uploadStatus={uploadStatus}
+                youtubeMetadataFormat={youtubeMetadataFormat}
+                youtubeThumbnailsGenerated={youtubeThumbnailsGenerated}
+                youtubeThumbnailsLoading={youtubeThumbnailsLoading}
+                ytThumbnailVariant={ytThumbnailVariant}
+                />
+              </Suspense>
+            </TabErrorBoundary>
           )}
+
           {activeTab === 'editor' && (
             <TabErrorBoundary tabName="Editor">
               <Suspense fallback={<TabPanelFallback label="Carregando editor..." />}>
