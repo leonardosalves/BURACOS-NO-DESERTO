@@ -328,6 +328,7 @@ import {
   persistChunkPlanToProject,
   syncTimelineFromChunkPlan,
   computeChunkTimeline,
+  applyChunkedTimelineAfterWhisper,
   NARRATION_MODE_CHUNKED,
   NARRATION_MODE_MASTER,
 } from "./narrationChunks.js";
@@ -14657,30 +14658,40 @@ activeChild = child1;
             const wordTranscripts = JSON.parse(fs.readFileSync(wordsPath, "utf8"));
             const flatWords = flattenWordTranscripts(wordTranscripts);
             if (flatWords.length) {
-              const synced = syncProjectTimelineAfterWhisper({
-                timelineAssets: cfg.timeline_assets || {},
-                blockTimings: fs.existsSync(timingsPath)
-                  ? JSON.parse(fs.readFileSync(timingsPath, "utf8"))
-                  : { starts: [], durations: [] },
+              const chunkedApplied = applyChunkedTimelineAfterWhisper(projDir, {
+                config: cfg,
+                storyboard,
                 wordTranscripts,
-                flatTranscriptWords: flatWords,
-                visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-                blockPhrases: Array.isArray(cfg.block_phrases) ? cfg.block_phrases : [],
-                preserveExplicitFixed: false,
+                flatWords,
               });
-              cfg.timeline_assets = synced.timelineAssets;
-              fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
-              if (synced.blockTimings?.starts?.length) {
-                fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
-              }
-              if (fs.existsSync(storyboardPath)) {
-                const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts, {
+              if (chunkedApplied) {
+                sendLog("[Pipeline] Narração por trechos: timings e timeline restaurados pelo plano de chunks.");
+              } else {
+                const synced = syncProjectTimelineAfterWhisper({
+                  timelineAssets: cfg.timeline_assets || {},
+                  blockTimings: fs.existsSync(timingsPath)
+                    ? JSON.parse(fs.readFileSync(timingsPath, "utf8"))
+                    : { starts: [], durations: [] },
+                  wordTranscripts,
                   flatTranscriptWords: flatWords,
-                  blockTimings: synced.blockTimings,
+                  visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+                  blockPhrases: Array.isArray(cfg.block_phrases) ? cfg.block_phrases : [],
+                  preserveExplicitFixed: false,
                 });
-                fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
+                cfg.timeline_assets = synced.timelineAssets;
+                fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+                if (synced.blockTimings?.starts?.length) {
+                  fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
+                }
+                if (fs.existsSync(storyboardPath)) {
+                  const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts, {
+                    flatTranscriptWords: flatWords,
+                    blockTimings: synced.blockTimings,
+                  });
+                  fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
+                }
+                sendLog("[Pipeline] Slots da timeline criados com segundos da voz (Whisper). Coloque os assets manualmente e salve.");
               }
-              sendLog("[Pipeline] Slots da timeline criados com segundos da voz (Whisper). Coloque os assets manualmente e salve.");
             }
           }
         } catch (syncErr) {

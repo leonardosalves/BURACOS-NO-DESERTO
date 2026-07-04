@@ -321,7 +321,63 @@ def main():
             json.dump(word_transcripts, f, ensure_ascii=False, indent=4)
         print("Successfully wrote raw word_transcripts.json.")
     
-    # 2. Build block starts from aligned flat_correct_words
+    # 2. block_timings — em narração por trechos, o plano de chunks é a fonte de verdade
+    def write_block_timings_from_chunk_plan():
+        if not os.path.exists('storyboard.json'):
+            return False
+        try:
+            with open('storyboard.json', 'r', encoding='utf-8') as f:
+                sb = json.load(f)
+            chunk_plan = sb.get('narration_chunk_plan') or {}
+            chunks = chunk_plan.get('chunks') or []
+            if not chunks:
+                return False
+            cursor = 0.0
+            timed = []
+            for i, c in enumerate(chunks):
+                dur = float(c.get('duration_s') or 0)
+                if dur <= 0:
+                    continue
+                pause_ms = float(c.get('pause_after_ms') or 0) if i < len(chunks) - 1 else 0.0
+                start = float(c['start_s']) if c.get('start_s') is not None else cursor
+                end = float(c['end_s']) if c.get('end_s') is not None else start + dur
+                timed.append({
+                    'block': int(c.get('block') or 1),
+                    'start': start,
+                    'end': end + pause_ms / 1000.0,
+                })
+                cursor = end + pause_ms / 1000.0
+            if not timed:
+                return False
+            by_block = {}
+            for row in timed:
+                b = row['block']
+                if b not in by_block:
+                    by_block[b] = {'start': row['start'], 'end': row['end']}
+                else:
+                    by_block[b]['start'] = min(by_block[b]['start'], row['start'])
+                    by_block[b]['end'] = max(by_block[b]['end'], row['end'])
+            blocks = sorted(by_block.keys())
+            starts = [round(by_block[b]['start'], 3) for b in blocks]
+            durations = [round(max(0.1, by_block[b]['end'] - by_block[b]['start']), 3) for b in blocks]
+            total = round(max(by_block[b]['end'] for b in blocks), 3) if blocks else 0.0
+            with open("block_timings.json", "w", encoding="utf-8") as f:
+                json.dump({
+                    "starts": starts,
+                    "durations": durations,
+                    "total_duration": total,
+                    "source": "narration_chunks",
+                }, f, ensure_ascii=False, indent=4)
+            print("Wrote block_timings.json from narration_chunk_plan (chunked mode).")
+            return True
+        except Exception as e:
+            print("Warning: chunk plan block_timings failed:", e)
+            return False
+
+    if write_block_timings_from_chunk_plan():
+        return
+
+    # Build block starts from aligned flat_correct_words (modo master / sem chunk plan)
     block_starts = {}
     block_starts[1] = 0.0
     
