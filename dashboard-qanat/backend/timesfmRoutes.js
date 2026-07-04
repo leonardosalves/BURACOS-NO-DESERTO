@@ -16,9 +16,7 @@ function buildPioneerLlmFn(deps) {
   const {
     WORKSPACE_DIR,
     getApiKey,
-    getApiKeys,
     getAiProvider,
-    getGeminiModel,
     callGeminiWithRetry,
     callNvidiaWithRetry,
     NVIDIA_MODELS,
@@ -49,25 +47,12 @@ function buildPioneerLlmFn(deps) {
       }
     }
 
-    let text = await tryCall("gemini", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+    const text = await tryCall("gemini", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
       maxRetries: 1,
-      models: [getGeminiModel?.(WORKSPACE_DIR) || "gemini-2.5-flash", "gemini-2.5-flash"],
       temperature: 0.25,
       projectDir: WORKSPACE_DIR,
     }));
-    if (text) return text;
-
-    for (const key of (getApiKeys?.(WORKSPACE_DIR) || []).slice(0, 2)) {
-      text = await tryCall("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
-        maxRetries: 1,
-        models: ["gemini-2.0-flash"],
-        temperature: 0.25,
-        projectDir: WORKSPACE_DIR,
-        forceProvider: "gemini",
-      }));
-      if (text) return text;
-    }
-    return null;
+    return text;
   };
 }
 

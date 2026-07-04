@@ -1,6 +1,7 @@
 import express from "express";
 import https from "https";
 
+import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
 import { searchMusic, downloadMusicTrack, searchSoundEffects, downloadSoundEffect } from "./epidemicService.js";
 import {
   buildOverlayOrchestrationPlan,
@@ -7733,34 +7734,47 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
   if (provider === "xai") {
     return await callXaiWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
   }
-  
-  let lastError = null;
-  const keys = [...new Set([apiKey, ...getApiKeys(projDir)].filter(Boolean))];
-  
-  if (keys.length === 0) {
+
+  const keyPool = buildGeminiKeyPool(apiKey, getApiKeys(projDir));
+
+  if (keyPool.length === 0) {
     throw new Error("Nenhuma chave de API do Gemini configurada.");
   }
 
-  for (const model of modelChain) {
-    for (const currentKey of keys) {
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  console.log(`[Gemini] Pool: ${keyPool.length} chave(s) | modelos: ${modelChain.join(" → ")}`);
+
+  let lastError = null;
+
+  for (let modelIdx = 0; modelIdx < modelChain.length; modelIdx += 1) {
+    const model = modelChain[modelIdx];
+    let keysAttempted = 0;
+
+    for (let keyIdx = 0; keyIdx < keyPool.length; keyIdx += 1) {
+      const currentKey = keyPool[keyIdx];
+      const keyLabel = `${keyIdx + 1}/${keyPool.length}`;
+      keysAttempted += 1;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
         try {
-          const requestBody = bodyOverride || { contents: [{ role: "user", parts: [{ text: promptOrBody }] }], ...(temperature !== null ? { generationConfig: { temperature } } : {}) };
-          console.log(`[Gemini] Tentando modelo: ${model} com chave: ${currentKey.substring(0, 10)}... (Tentativa ${attempt}/${maxRetries})`);
+          const requestBody = bodyOverride || {
+            contents: [{ role: "user", parts: [{ text: promptOrBody }] }],
+            ...(temperature !== null ? { generationConfig: { temperature } } : {}),
+          };
+          console.log(`[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`);
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(requestBody)
-            }
+              body: JSON.stringify(requestBody),
+            },
           );
 
           if (response.ok) {
             const result = await response.json();
             let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
             responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            console.log(`[Gemini] Sucesso com modelo=${model} usando chave=${currentKey.substring(0, 10)}... na tentativa ${attempt}`);
+            console.log(`[Gemini] Sucesso modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}`);
             return responseText;
           }
 
@@ -7768,28 +7782,30 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
           const errMsg = errData.error?.message || response.statusText;
           const status = response.status;
 
-          console.warn(`[Gemini] ${status} de ${model} (tentativa ${attempt}/${maxRetries}) usando chave ${currentKey.substring(0, 10)}...: ${errMsg}`);
+          console.warn(`[Gemini] HTTP ${status} modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...): ${errMsg}`);
           lastError = new Error(`${model}: ${errMsg}`);
 
-          if (status === 429) {
-            console.warn(`[Gemini] Quota/Limite excedido (429) na chave ${currentKey.substring(0, 10)}... pulando imediatamente para a próxima chave.`);
-            break; // Go to next key for this model
+          if (shouldRotateGeminiKey(status)) {
+            console.warn(`[Gemini] ${status} na chave ${keyLabel} — próxima chave antes de trocar modelo`);
+            break;
           }
-
-          if (status === 503) {
-            const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
-            await new Promise(r => setTimeout(r, delay));
-            continue;
-          }
-          break; // Go to next key for this model
+          break;
         } catch (err) {
           lastError = err;
-          console.warn(`[Gemini] Erro na tentativa ${attempt} para ${model} usando chave ${currentKey.substring(0, 10)}...: ${err.message}`);
-          await new Promise(r => setTimeout(r, 1000 * attempt));
+          console.warn(`[Gemini] Erro de rede modelo=${model} chave=${keyLabel} tentativa ${attempt}/${maxRetries}: ${err.message}`);
+          if (attempt >= maxRetries) break;
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
+          continue;
         }
       }
     }
-    console.warn(`[Gemini] Todos os modelos/tentativas falharam para ${model}, tentando próximo modelo...`);
+
+    const nextModel = modelChain[modelIdx + 1];
+    if (nextModel) {
+      console.warn(`[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas → tentando ${nextModel}`);
+    } else {
+      console.warn(`[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas — sem mais modelos na cadeia`);
+    }
   }
   throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
 }
@@ -8234,25 +8250,12 @@ async function callStudioQuickLlm(req, res, projDir, {
         ? null
         : [getGeminiModel(projDir), "gemini-2.5-flash"];
 
-  let text = await run(provider, () => callGeminiWithRetry(getApiKey(projDir), prompt, {
+  const text = await run(provider, () => callGeminiWithRetry(getApiKey(projDir), prompt, {
     maxRetries: 1,
     models: quickModels,
     temperature,
     projectDir: projDir,
   }));
-
-  if (!text) {
-    const geminiKeys = getApiKeys(projDir);
-    if (geminiKeys.length > 0) {
-      text = await run("gemini-fallback", () => callGeminiWithRetry(geminiKeys[0], prompt, {
-        maxRetries: 1,
-        models: [getGeminiModel(projDir), "gemini-2.5-flash", "gemini-2.0-flash"],
-        temperature,
-        projectDir: projDir,
-        forceProvider: "gemini",
-      }));
-    }
-  }
 
   if (!text && isGeminiBrowserModeEnabled(projDir)) {
     const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
@@ -10297,23 +10300,9 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
           } else {
             text = await tryCompetitorLlm("provider", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
               maxRetries: 1,
-              models: [getGeminiModel(WORKSPACE_DIR), "gemini-2.5-flash"],
               temperature: 0.2,
               projectDir: WORKSPACE_DIR,
             }));
-          }
-
-          if (!text && getAiProvider(WORKSPACE_DIR) !== "nvidia") {
-            for (const key of getApiKeys(WORKSPACE_DIR).slice(0, 2)) {
-              text = await tryCompetitorLlm("gemini-fallback", () => callGeminiWithRetry(key, prompt, {
-                maxRetries: 1,
-                models: ["gemini-2.0-flash"],
-                temperature: 0.2,
-                projectDir: WORKSPACE_DIR,
-                forceProvider: "gemini",
-              }));
-              if (text) break;
-            }
           }
 
           return text;
