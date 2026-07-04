@@ -232,6 +232,7 @@ import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummar
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
 import { JsonTreeView } from './JsonTreeView';
 import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
+import type { AppCreatorTabProps } from './AppCreatorTab';
 import {
   LazyAgentReachPanel,
   LazyComfyMcpPage,
@@ -246,7 +247,6 @@ import {
   TabPanelFallback,
 } from './appLazyPanels';
 
-const AppMusicTab = lazy(() => import('./AppMusicTab').then((m) => ({ default: m.AppMusicTab })));
 const AppCreatorTab = lazy(() => import('./AppCreatorTab').then((m) => ({ default: m.AppCreatorTab })));
 const RichTimelineEditor = lazy(() => import('./RichTimelineEditor').then((m) => ({ default: m.RichTimelineEditor })));
 const AppEditorTab = lazy(() => import('./AppEditorTab').then((m) => ({ default: m.AppEditorTab })));
@@ -255,6 +255,11 @@ const AppUploadTab = lazy(() => import('./AppUploadTab').then((m) => ({ default:
 const AppAiTab = lazy(() => import('./AppAiTab').then((m) => ({ default: m.AppAiTab })));
 const AppStatusTab = lazy(() => import('./AppStatusTab').then((m) => ({ default: m.AppStatusTab })));
 const AppSettingsTab = lazy(() => import('./AppSettingsTab').then((m) => ({ default: m.AppSettingsTab })));
+const AppHomeTab = lazy(() => import('./AppHomeTab').then((m) => ({ default: m.AppHomeTab })));
+const AppWorkflowTab = lazy(() => import('./AppWorkflowTab').then((m) => ({ default: m.AppWorkflowTab })));
+const AppSceneTimingTab = lazy(() => import('./AppSceneTimingTab').then((m) => ({ default: m.AppSceneTimingTab })));
+const AppTerminalTab = lazy(() => import('./AppTerminalTab').then((m) => ({ default: m.AppTerminalTab })));
+const AppMusicTabPanel = lazy(() => import('./AppMusicTabPanel').then((m) => ({ default: m.AppMusicTabPanel })));
 
 const initialWizardSession = loadWizardSession();
 
@@ -7571,6 +7576,137 @@ export default function App() {
       </div>
     ) : null;
 
+  const creatorTabProps: AppCreatorTabProps = {
+    activeProject,
+    applyMetadataToUpload,
+    applyWizardSessionPatch,
+    config,
+    copiedSection,
+    copyToClipboard,
+    creatorIdeasBundle,
+    creatorLoading,
+    creatorLoadingMode,
+    creatorProjectName,
+    creatorScenesNeedRepair,
+    creatorStep,
+    customBlocks,
+    customHooks,
+    customIdeaBlocks,
+    customIdeaEmotion,
+    customIdeaHook,
+    customIdeaPromise,
+    customIdeaTitle,
+    customOutline,
+    customTitle,
+    dragActive,
+    editorialIdeaImport,
+    expandedBlocks,
+    fetchData,
+    formatSelector,
+    geminiBrowserMode,
+    generateYoutubeMetadata,
+    generatedScriptData,
+    getAssetUrl,
+    getMusicUrl,
+    getProjectUrl,
+    handleApproveNarrationAndGenerateScript,
+    handleCaptureGeminiNarration,
+    handleDrag,
+    handleDrop,
+    handleEnhanceVisualPrompts,
+    handleEvaluateScriptChecklist,
+    handleFileInput,
+    handleGenerateFullScript,
+    handleGenerateIdeas,
+    handleGenerateListicleScript,
+    handleGenerateNarration,
+    handleGenerateNarrationFromImport,
+    handleGenerateYoutubeThumbnailImages,
+    handleNotebooklmImproveNarrationDraft,
+    handleRemoveSceneAsset,
+    handleSaveConfig,
+    handleSuggestListicleRankings,
+    handleSyncTimings,
+    handleUpdateCreatorScene,
+    handleUploadSceneAsset,
+    hasApiKey,
+    ideasData,
+    ideationTab,
+    leaveGlobalViewForProject,
+    listNiche,
+    listTopic,
+    listicleHudStyle,
+    listicleIdeasData,
+    mixBGM,
+    mixing,
+    narrationBlockPhrases,
+    narrationBlockScript,
+    narrationDraft,
+    narrationNotebooklmEnriched,
+    narrationProjectName,
+    narrationStrategy,
+    narrationTaggedDraft,
+    nicheInput,
+    notebooklmImproving,
+    notebooklmStatus,
+    rankCount,
+    rankOrder,
+    renderRichTimelineEditor,
+    rendering,
+    resetCreatorWizard,
+    saveConfigPatch,
+    saveWizardSession,
+    selectedIdeaIndex,
+    selectedListicleIdeaIndex,
+    setConfig,
+    setCreatorProjectName,
+    setCreatorStep,
+    setCustomBlocks,
+    setCustomHooks,
+    setCustomIdeaBlocks,
+    setCustomIdeaEmotion,
+    setCustomIdeaHook,
+    setCustomIdeaPromise,
+    setCustomIdeaTitle,
+    setCustomOutline,
+    setCustomTitle,
+    setEditorialIdeaImport,
+    setExpandedBlocks,
+    setFormatSelector,
+    setIdeasData,
+    setIdeationTab,
+    setListNiche,
+    setListTopic,
+    setListicleHudStyle,
+    setNarrationDraft,
+    setNarrationTaggedDraft,
+    setNicheInput,
+    setRankCount,
+    setRankOrder,
+    setSelectedIdeaIndex,
+    setSelectedListicleIdeaIndex,
+    setTaggedNarrations,
+    setUploadSuccess,
+    setUseNotebooklm,
+    showNarrationReview,
+    status,
+    storyboardData,
+    syncCreatorStoryboard,
+    syncingTimings,
+    taggedNarrations,
+    timelineAssets,
+    triggerRender,
+    uploadSuccess,
+    uploadedScenes,
+    uploadingNarration,
+    useNotebooklm,
+    wizardSavedAtLabel,
+    wordTranscripts,
+    youtubeLoading,
+    youtubeMetadata,
+    youtubeMetadataParsed,
+  };
+
   return (
 
     <>
@@ -7623,7 +7759,7 @@ export default function App() {
           {activeTab === 'home' && (
             <TabErrorBoundary tabName="Início">
               <Suspense fallback={<TabPanelFallback label="Carregando início..." />}>
-                <LazyLumieraHomePage
+                <AppHomeTab
                   projects={projects}
                   activeProject={activeProject}
                   recentProjects={recentProjects}
@@ -7634,16 +7770,8 @@ export default function App() {
                   hotVideos={youtubeChannelAlerts?.hotVideos}
                   rendering={rendering}
                   renderPercent={renderProgress?.percent}
-                  viewsThreshold={getYoutubeViewsThreshold()}
-                  onOpenCreator={openCreatorTab}
-                  onOpenProjects={() => setActiveTab('projects')}
-                  onOpenWorkflow={() => setActiveTab('workflow')}
-                  onOpenTimeline={() => setActiveTab('timeline')}
-                  onOpenMusic={() => setActiveTab('music')}
-                  onOpenRender={() => setActiveTab('status')}
-                  onOpenUpload={() => setActiveTab('upload')}
-                  onOpenMetadata={() => setActiveTab('ai')}
-                  onOpenYoutube={() => setActiveTab('youtube-studio')}
+                  openCreatorTab={openCreatorTab}
+                  setActiveTab={setActiveTab}
                 />
               </Suspense>
             </TabErrorBoundary>
@@ -7682,52 +7810,38 @@ export default function App() {
 
 
           {activeTab === 'workflow' && (
-            <DashminProjectTabLayout tab="workflow" activeProject={activeProject}>
-            <div className="lumiera-panel-stack">
-              {config ? (
-                <Suspense fallback={<TabPanelFallback label="Carregando workflow..." />}>
-                  <LazyWorkflowToolkit
-                    getProjectUrl={getProjectUrl}
-                    getMediaUrl={getMusicUrl}
-                    postAi={postAi}
-                    toast={(msg) => toast(msg)}
-                    enabled={activeTab === 'workflow'}
-                    hasNarration={!!status?.has_narration}
-                    hasTimings={!!status?.block_timings}
-                    onNarrationReady={() => fetchData()}
-                    onTimelineRefresh={() => fetchData()}
-                    onMetadataReady={() => fetchData({ includeVideoQuality: true })}
-                    onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
-                  />
-                </Suspense>
-              ) : (
-                <div className="glass-panel p-8 rounded-2xl text-center text-zinc-500 text-sm">
-                  Selecione um projeto para ver as ferramentas de workflow.
-                </div>
-              )}
-            </div>
-            </DashminProjectTabLayout>
+            <TabErrorBoundary tabName="Workflow">
+              <Suspense fallback={<TabPanelFallback label="Carregando workflow..." />}>
+                <AppWorkflowTab
+                  activeProject={activeProject}
+                  activeTab={activeTab}
+                  config={config}
+                  status={status}
+                  getProjectUrl={getProjectUrl}
+                  getMusicUrl={getMusicUrl}
+                  postAi={postAi}
+                  fetchData={fetchData}
+                  setActiveTab={setActiveTab}
+                />
+              </Suspense>
+            </TabErrorBoundary>
           )}
 
           {activeTab === 'scene-timing' && (
-            <DashminProjectTabLayout tab="scene-timing" activeProject={activeProject}>
-              <Suspense fallback={<TabPanelFallback label="Carregando timing de cenas..." />}>
-                <LazySceneTimingEditor
+            <TabErrorBoundary tabName="Timing de cenas">
+              <Suspense fallback={<TabPanelFallback label="Carregando timing..." />}>
+                <AppSceneTimingTab
                   activeProject={activeProject}
                   config={config}
                   status={status}
-                  storyboard={storyboardData}
+                  storyboardData={storyboardData}
                   wordTranscripts={wordTranscripts}
-                  getMediaUrl={getMusicUrl}
+                  getMusicUrl={getMusicUrl}
                   getAssetUrl={getAssetUrl}
-                  onSave={async (timelineAssets) => {
-                    if (!config) return;
-                    await saveTimelinePatch({ ...config, timeline_assets: timelineAssets });
-                  }}
-                  toast={(msg) => toast(msg)}
+                  saveTimelinePatch={saveTimelinePatch}
                 />
               </Suspense>
-            </DashminProjectTabLayout>
+            </TabErrorBoundary>
           )}
 
           {/* TAB: TIMELINE & BLOCKS */}
@@ -7756,122 +7870,68 @@ export default function App() {
           {/* TAB 3: SOUNDTRACK STUDIO */}
 
           {activeTab === 'music' && (
-            <TabErrorBoundary label="Trilha BGM">
-              {!config ? (
-                <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-zinc-400 font-sans">
-                  <RefreshCw className={`w-8 h-8 text-gold-500 ${projectDataLoading ? 'animate-spin' : ''}`} />
-                  <p className="text-sm">
-                    {projectDataLoading ? 'Carregando trilhas do projeto...' : 'Não foi possível carregar a configuração do projeto.'}
-                  </p>
-                  {!projectDataLoading && (
-                    <button
-                      type="button"
-                      onClick={() => fetchData()}
-                      className="text-xs text-gold-400 hover:text-gold-300 border border-gold-500/30 px-3 py-1.5 rounded-lg cursor-pointer"
-                    >
-                      Tentar novamente
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh] text-zinc-400 text-sm">Carregando trilhas...</div>}>
-                <AppMusicTab
-                  config={config}
-                  activeProject={activeProject}
-                  mixing={mixing}
-                  mixBGM={mixBGM}
-                  globalMusicVolume={globalMusicVolume}
-                  activeBgmMode={activeBgmMode}
-                  isShortVideo={isShortVideo}
-                  saveConfig={saveConfig}
-                  planningBgmEmotions={planningBgmEmotions}
-                  hasApiKey={hasApiKey}
-                  handlePlanBgmEmotions={handlePlanBgmEmotions}
-                  bgmEmotionRows={bgmEmotionRows}
-                  safeMusicFiles={safeMusicFiles}
-                  handleEmotionMusicChange={handleEmotionMusicChange}
-                  playingMusic={playingMusic}
-                  togglePlayMusic={togglePlayMusic}
-                  bgmSuggestions={bgmSuggestions}
-                  bgmBlockRows={bgmBlockRows}
-                  handleMusicChange={handleMusicChange}
-                  searchMusic={searchMusic}
-                  setSearchMusic={setSearchMusic}
-                  handleDeleteAllMusic={handleDeleteAllMusic}
-                  getProjectUrl={getProjectUrl}
-                  fetchData={fetchData}
-                  suggestingBGM={suggestingBGM}
-                  handleSuggestBGM={handleSuggestBGM}
-                  handleDeleteMusic={handleDeleteMusic}
-                  getFormatBytes={getFormatBytes}
-                  hasEpidemicKey={hasEpidemicKey}
-                  autoSoundtracking={autoSoundtracking}
-                  handleAutoSoundtrack={handleAutoSoundtrack}
-                  epidemicSearchType={epidemicSearchType}
-                  setEpidemicSearchType={setEpidemicSearchType}
-                  setEpidemicSearchResults={setEpidemicSearchResults}
-                  epidemicSearchQuery={epidemicSearchQuery}
-                  setEpidemicSearchQuery={setEpidemicSearchQuery}
-                  handleSearchEpidemic={handleSearchEpidemic}
-                  searchingEpidemic={searchingEpidemic}
-                  safeEpidemicResults={safeEpidemicResults}
-                  downloadingEpidemicId={downloadingEpidemicId}
-                  handleDownloadEpidemic={handleDownloadEpidemic}
-                  storyboardData={storyboardData}
-                />
-                </Suspense>
-              )}
-            </TabErrorBoundary>
+            <Suspense fallback={<TabPanelFallback label="Carregando trilhas..." />}>
+              <AppMusicTabPanel
+                projectDataLoading={projectDataLoading}
+                fetchData={fetchData}
+                config={config}
+                activeProject={activeProject}
+                mixing={mixing}
+                mixBGM={mixBGM}
+                globalMusicVolume={globalMusicVolume}
+                activeBgmMode={activeBgmMode}
+                isShortVideo={isShortVideo}
+                saveConfig={saveConfig}
+                planningBgmEmotions={planningBgmEmotions}
+                hasApiKey={hasApiKey}
+                handlePlanBgmEmotions={handlePlanBgmEmotions}
+                bgmEmotionRows={bgmEmotionRows}
+                safeMusicFiles={safeMusicFiles}
+                handleEmotionMusicChange={handleEmotionMusicChange}
+                playingMusic={playingMusic}
+                togglePlayMusic={togglePlayMusic}
+                bgmSuggestions={bgmSuggestions}
+                bgmBlockRows={bgmBlockRows}
+                handleMusicChange={handleMusicChange}
+                searchMusic={searchMusic}
+                setSearchMusic={setSearchMusic}
+                handleDeleteAllMusic={handleDeleteAllMusic}
+                getProjectUrl={getProjectUrl}
+                suggestingBGM={suggestingBGM}
+                handleSuggestBGM={handleSuggestBGM}
+                handleDeleteMusic={handleDeleteMusic}
+                getFormatBytes={getFormatBytes}
+                hasEpidemicKey={hasEpidemicKey}
+                autoSoundtracking={autoSoundtracking}
+                handleAutoSoundtrack={handleAutoSoundtrack}
+                epidemicSearchType={epidemicSearchType}
+                setEpidemicSearchType={setEpidemicSearchType}
+                setEpidemicSearchResults={setEpidemicSearchResults}
+                epidemicSearchQuery={epidemicSearchQuery}
+                setEpidemicSearchQuery={setEpidemicSearchQuery}
+                handleSearchEpidemic={handleSearchEpidemic}
+                searchingEpidemic={searchingEpidemic}
+                safeEpidemicResults={safeEpidemicResults}
+                downloadingEpidemicId={downloadingEpidemicId}
+                handleDownloadEpidemic={handleDownloadEpidemic}
+                storyboardData={storyboardData}
+              />
+            </Suspense>
           )}
-
 
           {/* TAB 4: COMPILATION TERMINAL */}
 
           {activeTab === 'terminal' && (
-
-            <DashminProjectTabLayout
-              tab="terminal"
-              activeProject={activeProject}
-              className="lumiera-fill-view"
-              actions={
-                <button
-                  onClick={() => setLogs([])}
-                  className="text-xs text-gray-400 hover:text-white font-semibold cursor-pointer border border-zinc-850 px-3 py-1.5 rounded-lg hover:bg-zinc-900 transition"
-                >
-                  Limpar Console
-                </button>
-              }
-            >
-            <div className="lumiera-fill-view space-y-4 min-h-0 flex-1">
-
-              <div className="flex-1 bg-[#040405] border border-zinc-900 rounded-2xl p-5 font-mono text-xs text-emerald-400 overflow-y-auto space-y-1.5 select-text shadow-inner min-h-[50vh]">
-
-                {logs.length === 0 ? (
-
-                  <div className="text-zinc-600 italic">Console ocioso. Inicie uma compilação ou mixagem para exibir os logs em tempo real...</div>
-
-                ) : (
-
-                  logs.map((log, i) => (
-
-                    <div key={i} className={log.startsWith('[ERRO]') ? 'text-red-400' : log.startsWith('[Dashboard]') ? 'text-blue-400 font-bold' : ''}>
-
-                      {log}
-
-                    </div>
-
-                  ))
-
-                )}
-
-                <div ref={terminalEndRef} />
-
-              </div>
-
-            </div>
-
-            </DashminProjectTabLayout>
-
+            <TabErrorBoundary tabName="Terminal">
+              <Suspense fallback={<TabPanelFallback label="Carregando terminal..." />}>
+                <AppTerminalTab
+                  activeProject={activeProject}
+                  logs={logs}
+                  setLogs={setLogs}
+                  terminalEndRef={terminalEndRef}
+                />
+              </Suspense>
+            </TabErrorBoundary>
           )}
 
           {/* TAB 5: AI AGENT */}
@@ -8329,136 +8389,7 @@ export default function App() {
           {activeTab === 'creator' && (
             <TabErrorBoundary label="Creator IA">
               <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh] text-zinc-400 text-sm">Carregando creator...</div>}>
-                <AppCreatorTab
-                  activeProject={activeProject}
-                  applyMetadataToUpload={applyMetadataToUpload}
-                  applyWizardSessionPatch={applyWizardSessionPatch}
-                  config={config}
-                  copiedSection={copiedSection}
-                  copyToClipboard={copyToClipboard}
-                  creatorIdeasBundle={creatorIdeasBundle}
-                  creatorLoading={creatorLoading}
-                  creatorLoadingMode={creatorLoadingMode}
-                  creatorProjectName={creatorProjectName}
-                  creatorScenesNeedRepair={creatorScenesNeedRepair}
-                  creatorStep={creatorStep}
-                  customBlocks={customBlocks}
-                  customHooks={customHooks}
-                  customIdeaBlocks={customIdeaBlocks}
-                  customIdeaEmotion={customIdeaEmotion}
-                  customIdeaHook={customIdeaHook}
-                  customIdeaPromise={customIdeaPromise}
-                  customIdeaTitle={customIdeaTitle}
-                  customOutline={customOutline}
-                  customTitle={customTitle}
-                  dragActive={dragActive}
-                  editorialIdeaImport={editorialIdeaImport}
-                  expandedBlocks={expandedBlocks}
-                  fetchData={fetchData}
-                  formatSelector={formatSelector}
-                  geminiBrowserMode={geminiBrowserMode}
-                  generateYoutubeMetadata={generateYoutubeMetadata}
-                  generatedScriptData={generatedScriptData}
-                  getAssetUrl={getAssetUrl}
-                  getMusicUrl={getMusicUrl}
-                  getProjectUrl={getProjectUrl}
-                  handleApproveNarrationAndGenerateScript={handleApproveNarrationAndGenerateScript}
-                  handleCaptureGeminiNarration={handleCaptureGeminiNarration}
-                  handleDrag={handleDrag}
-                  handleDrop={handleDrop}
-                  handleEnhanceVisualPrompts={handleEnhanceVisualPrompts}
-                  handleEvaluateScriptChecklist={handleEvaluateScriptChecklist}
-                  handleFileInput={handleFileInput}
-                  handleGenerateFullScript={handleGenerateFullScript}
-                  handleGenerateIdeas={handleGenerateIdeas}
-                  handleGenerateListicleScript={handleGenerateListicleScript}
-                  handleGenerateNarration={handleGenerateNarration}
-                  handleGenerateNarrationFromImport={handleGenerateNarrationFromImport}
-                  handleGenerateYoutubeThumbnailImages={handleGenerateYoutubeThumbnailImages}
-                  handleNotebooklmImproveNarrationDraft={handleNotebooklmImproveNarrationDraft}
-                  handleRemoveSceneAsset={handleRemoveSceneAsset}
-                  handleSaveConfig={handleSaveConfig}
-                  handleSuggestListicleRankings={handleSuggestListicleRankings}
-                  handleSyncTimings={handleSyncTimings}
-                  handleUpdateCreatorScene={handleUpdateCreatorScene}
-                  handleUploadSceneAsset={handleUploadSceneAsset}
-                  hasApiKey={hasApiKey}
-                  ideasData={ideasData}
-                  ideationTab={ideationTab}
-                  leaveGlobalViewForProject={leaveGlobalViewForProject}
-                  listNiche={listNiche}
-                  listTopic={listTopic}
-                  listicleHudStyle={listicleHudStyle}
-                  listicleIdeasData={listicleIdeasData}
-                  mixBGM={mixBGM}
-                  mixing={mixing}
-                  narrationBlockPhrases={narrationBlockPhrases}
-                  narrationBlockScript={narrationBlockScript}
-                  narrationDraft={narrationDraft}
-                  narrationNotebooklmEnriched={narrationNotebooklmEnriched}
-                  narrationProjectName={narrationProjectName}
-                  narrationStrategy={narrationStrategy}
-                  narrationTaggedDraft={narrationTaggedDraft}
-                  nicheInput={nicheInput}
-                  notebooklmImproving={notebooklmImproving}
-                  notebooklmStatus={notebooklmStatus}
-                  rankCount={rankCount}
-                  rankOrder={rankOrder}
-                  renderRichTimelineEditor={renderRichTimelineEditor}
-                  rendering={rendering}
-                  resetCreatorWizard={resetCreatorWizard}
-                  saveConfigPatch={saveConfigPatch}
-                  saveWizardSession={saveWizardSession}
-                  selectedIdeaIndex={selectedIdeaIndex}
-                  selectedListicleIdeaIndex={selectedListicleIdeaIndex}
-                  setConfig={setConfig}
-                  setCreatorProjectName={setCreatorProjectName}
-                  setCreatorStep={setCreatorStep}
-                  setCustomBlocks={setCustomBlocks}
-                  setCustomHooks={setCustomHooks}
-                  setCustomIdeaBlocks={setCustomIdeaBlocks}
-                  setCustomIdeaEmotion={setCustomIdeaEmotion}
-                  setCustomIdeaHook={setCustomIdeaHook}
-                  setCustomIdeaPromise={setCustomIdeaPromise}
-                  setCustomIdeaTitle={setCustomIdeaTitle}
-                  setCustomOutline={setCustomOutline}
-                  setCustomTitle={setCustomTitle}
-                  setEditorialIdeaImport={setEditorialIdeaImport}
-                  setExpandedBlocks={setExpandedBlocks}
-                  setFormatSelector={setFormatSelector}
-                  setIdeasData={setIdeasData}
-                  setIdeationTab={setIdeationTab}
-                  setListNiche={setListNiche}
-                  setListTopic={setListTopic}
-                  setListicleHudStyle={setListicleHudStyle}
-                  setNarrationDraft={setNarrationDraft}
-                  setNarrationTaggedDraft={setNarrationTaggedDraft}
-                  setNicheInput={setNicheInput}
-                  setRankCount={setRankCount}
-                  setRankOrder={setRankOrder}
-                  setSelectedIdeaIndex={setSelectedIdeaIndex}
-                  setSelectedListicleIdeaIndex={setSelectedListicleIdeaIndex}
-                  setTaggedNarrations={setTaggedNarrations}
-                  setUploadSuccess={setUploadSuccess}
-                  setUseNotebooklm={setUseNotebooklm}
-                  showNarrationReview={showNarrationReview}
-                  status={status}
-                  storyboardData={storyboardData}
-                  syncCreatorStoryboard={syncCreatorStoryboard}
-                  syncingTimings={syncingTimings}
-                  taggedNarrations={taggedNarrations}
-                  timelineAssets={timelineAssets}
-                  triggerRender={triggerRender}
-                  uploadSuccess={uploadSuccess}
-                  uploadedScenes={uploadedScenes}
-                  uploadingNarration={uploadingNarration}
-                  useNotebooklm={useNotebooklm}
-                  wizardSavedAtLabel={wizardSavedAtLabel}
-                  wordTranscripts={wordTranscripts}
-                  youtubeLoading={youtubeLoading}
-                  youtubeMetadata={youtubeMetadata}
-                  youtubeMetadataParsed={youtubeMetadataParsed}
-                />
+                <AppCreatorTab {...creatorTabProps} />
               </Suspense>
             </TabErrorBoundary>
           )}
