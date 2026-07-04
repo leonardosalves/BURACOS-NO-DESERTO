@@ -531,7 +531,10 @@ export function persistChunkPlanToProject(projDir, plan, config = {}) {
   storyboard.narration_chunk_plan = plan;
   fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
 
-  const cfg = { ...config, narration_mode: NARRATION_MODE_CHUNKED };
+  const narrationMode = config.narration_mode === NARRATION_MODE_MASTER
+    ? NARRATION_MODE_MASTER
+    : (config.narration_mode || NARRATION_MODE_CHUNKED);
+  const cfg = { ...config, narration_mode: narrationMode };
   fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
   return { storyboard, config: cfg };
 }

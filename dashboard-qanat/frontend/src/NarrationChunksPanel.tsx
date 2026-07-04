@@ -286,6 +286,7 @@ export function NarrationChunksPanel({
           use_tagged: useTagged,
           strip_emphasis: stripEmphasis,
           sync_whisper: isFullBatch,
+          assemble_master: isFullBatch,
           progress_job_id: progressJobId,
         }),
       });

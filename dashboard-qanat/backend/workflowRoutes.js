@@ -61,6 +61,7 @@ import {
   isFullNarrationChunkBatch,
   allNarrationChunksHaveAudio,
   persistChunkPlanToProject,
+  writeTimingsFromChunkPlan,
   formatNarrationChunkPlanLog,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
@@ -735,7 +736,8 @@ export function registerWorkflowRoutes(app, deps) {
             report("whisper", "Legendas alinhadas com Whisper.", 97);
           } catch (whisperErr) {
             whisperError = whisperErr?.message || String(whisperErr);
-            console.warn("[TTS Chunks] Whisper falhou — legendas estimadas por trecho:", whisperError);
+            console.warn("[TTS Chunks] Whisper falhou — restaurando timings por trecho:", whisperError);
+            writeTimingsFromChunkPlan(projDir, nextPlan);
             report("whisper-fallback", `Whisper falhou: ${whisperError}`, 95);
           }
         }
