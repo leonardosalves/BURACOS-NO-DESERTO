@@ -155,6 +155,64 @@ export function clearWizardSession(): void {
   localStorage.removeItem(LEGACY_CREATOR_STATE_KEY);
 }
 
+/** Sessão zerada — substitui localStorage por completo (sem merge com estado anterior). */
+export function buildEmptyWizardSession(activeTab = 'creator'): WizardSession {
+  return {
+    version: WIZARD_SESSION_VERSION,
+    savedAt: new Date().toISOString(),
+    wasInWizard: false,
+    activeTab,
+    activeProject: '',
+    creatorStep: 1,
+    nicheInput: '',
+    formatSelector: 'LONGO',
+    ideasData: null,
+    selectedIdeaIndex: -1,
+    generatedScriptData: null,
+    creatorProjectName: '',
+    creatorScript: '',
+    ideationTab: 'ai',
+    customTitle: '',
+    customHooks: '',
+    customOutline: '',
+    customBlocks: EMPTY_BLOCKS,
+    customIdeaTitle: '',
+    customIdeaPromise: '',
+    customIdeaHook: '',
+    customIdeaEmotion: '',
+    customIdeaBlocks: '',
+    listNiche: '',
+    listTopic: '',
+    rankCount: 20,
+    rankOrder: 'desc',
+    listicleHudStyle: 'auto',
+    listicleIdeasData: null,
+    listicleSearchNiche: '',
+    ideasSearchNiche: '',
+    selectedListicleIdeaIndex: -1,
+    showNarrationReview: false,
+    narrationDraft: '',
+    narrationTaggedDraft: '',
+    narrationStrategy: null,
+    narrationBlockPhrases: [],
+    narrationBlockScript: '',
+    narrationNotebooklmEnriched: false,
+    narrationProjectName: '',
+    useNotebooklm: true,
+    uploadedScenes: {},
+    expandedBlocks: { 1: true },
+    editorialIdeaImport: null,
+  };
+}
+
+export function resetWizardSessionStorage(activeTab = 'creator'): WizardSession {
+  const payload = buildEmptyWizardSession(activeTab);
+  const serialized = JSON.stringify(payload);
+  localStorage.setItem(WIZARD_SESSION_KEY, serialized);
+  localStorage.setItem(LEGACY_CREATOR_STATE_KEY, serialized);
+  return payload;
+}
+
 export function isServerSessionNewer(
   localSession: WizardSessionPatch | null,
   serverSavedAt?: string | null,

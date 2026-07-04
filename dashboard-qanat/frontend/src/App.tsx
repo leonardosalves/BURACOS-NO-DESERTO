@@ -18,6 +18,7 @@ import {
   loadWizardSession,
   saveWizardSession,
   clearWizardSession,
+  resetWizardSessionStorage,
   shouldRestoreWizardTab,
   resolveWizardActiveProject,
   isServerSessionNewer,
@@ -575,6 +576,8 @@ export default function App() {
   const storyboardDirtyRef = useRef(false);
   const storyboardFetchGenRef = useRef(0);
   const wizardRestoreCompleteRef = useRef(false);
+  const wizardResettingRef = useRef(false);
+  const wizardStoryboardSuppressedRef = useRef(false);
 
   // Global render configuration states
 
@@ -781,8 +784,17 @@ export default function App() {
     debounceSaveStoryboard(next);
   };
 
-  const applyStoryboardToCreatorState = (data: any) => {
+  const applyStoryboardToCreatorState = (
+    data: any,
+    source: 'fetch' | 'generation' | 'restore' = 'generation',
+  ) => {
     if (!data) return;
+    if (source === 'fetch' && wizardStoryboardSuppressedRef.current && activeTab === 'creator') {
+      return;
+    }
+    if (source !== 'fetch') {
+      wizardStoryboardSuppressedRef.current = false;
+    }
     clearPendingStoryboardSave();
     storyboardDirtyRef.current = false;
     setGeneratedScriptData(data);
@@ -1921,7 +1933,7 @@ export default function App() {
       if (res.ok) {
         if (gen !== storyboardFetchGenRef.current) return;
         if (!opts?.force && storyboardDirtyRef.current) return;
-        applyStoryboardToCreatorState(repairMojibakeDeep(await res.json()));
+        applyStoryboardToCreatorState(repairMojibakeDeep(await res.json()), 'fetch');
       }
     } catch (err) {
       console.error("Error fetching storyboard:", err);
@@ -2294,7 +2306,7 @@ export default function App() {
     if (patch.selectedIdeaIndex !== undefined) setSelectedIdeaIndex(patch.selectedIdeaIndex);
     if (patch.generatedScriptData !== undefined) {
       if (patch.generatedScriptData) {
-        applyStoryboardToCreatorState(patch.generatedScriptData);
+        applyStoryboardToCreatorState(patch.generatedScriptData, 'restore');
       } else {
         setGeneratedScriptData(null);
         setStoryboardData(null);
@@ -2351,6 +2363,7 @@ export default function App() {
 
   useEffect(() => {
     if (!wizardRestoreCompleteRef.current) return;
+    if (wizardResettingRef.current) return;
 
     const saved = saveWizardSession(buildWizardSessionPatch());
     setWizardSavedAtLabel(formatWizardSavedAt(saved.savedAt));
@@ -2368,7 +2381,9 @@ export default function App() {
       }).then(async (res) => {
         if (res.status === 409) {
           const data = await res.json().catch(() => null);
-          if (data?.session) applyWizardSessionPatch(data.session);
+          if (data?.session && !wizardStoryboardSuppressedRef.current) {
+            applyWizardSessionPatch(data.session);
+          }
         }
       }).catch(() => {});
     }, 1500);
@@ -6159,17 +6174,36 @@ export default function App() {
   };
 
   const resetCreatorWizard = useCallback((opts?: { deleteServerSessionFor?: string }) => {
+    wizardResettingRef.current = true;
+    wizardStoryboardSuppressedRef.current = true;
+
+    if (wizardServerSaveTimer.current) {
+      clearTimeout(wizardServerSaveTimer.current);
+      wizardServerSaveTimer.current = null;
+    }
+    clearPendingStoryboardSave();
+    storyboardDirtyRef.current = false;
+    storyboardFetchGenRef.current += 1;
+
+    Object.keys(seedanceT2vPollers.current).forEach((key) => {
+      stopSeedanceT2vPoller(Number(key));
+    });
+
     cancelCreatorGeneration();
     setAutomation({ active: false });
-    clearWizardSession();
+
+    const emptySession = resetWizardSessionStorage('creator');
+    setWizardSavedAtLabel('');
 
     setCreatorStep(1);
     setCreatorLoading(false);
     setCreatorLoadingMode('idle');
+    setCreatorPrompt('');
     setNicheInput('');
     setIdeasData(null);
     setSelectedIdeaIndex(-1);
     setGeneratedScriptData(null);
+    setStoryboardData(null);
     setCreatorScript('');
     setFormatSelector('LONGO');
     setCreatorProjectName('');
@@ -6192,13 +6226,37 @@ export default function App() {
     setCustomIdeaEmotion('');
     setCustomIdeaHook('');
     setCustomIdeaBlocks('');
+    setListNiche('');
+    setListTopic('');
+    setRankCount(20);
+    setRankOrder('desc');
+    setListicleHudStyle('auto');
     setListicleIdeasData(null);
     setSelectedListicleIdeaIndex(-1);
+    setListicleSearchNiche('');
+    setIdeasSearchNiche('');
+    setUseNotebooklm(true);
+    setUploadedScenes({});
+    setExpandedBlocks({ 1: true });
+    setTaggedNarrations({ fish: '', eleven: '', minimax: '' });
+    setDirectingSceneIndex(null);
+    setSeedanceT2vJobs({});
 
     const project = opts?.deleteServerSessionFor?.trim();
     if (project) {
-      fetch(`/api/projects/wizard-session?project=${encodeURIComponent(project)}`, { method: 'DELETE' }).catch(() => {});
+      const projectParam = encodeURIComponent(project);
+      fetch(`/api/projects/wizard-session?project=${projectParam}`, { method: 'DELETE' })
+        .then(() => fetch(`/api/projects/wizard-session?project=${projectParam}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(emptySession),
+        }))
+        .catch(() => {});
     }
+
+    queueMicrotask(() => {
+      wizardResettingRef.current = false;
+    });
   }, [setAutomation]);
 
   const applyNarrationGenerationResult = (
