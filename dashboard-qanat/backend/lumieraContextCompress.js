@@ -83,6 +83,12 @@ export function compressStoryboardForPrompt(storyboard = {}, maxChars = DEFAULT_
           block: vp.block,
           narration_text: vp.narration_text,
           duration: vp.duration,
+          directing_brief: vp.directing_brief
+            ? {
+                dramatic_function: String(vp.directing_brief.dramatic_function || "").slice(0, 120),
+                camera_intent: String(vp.directing_brief.camera_intent || "").slice(0, 80),
+              }
+            : undefined,
         }))
       : undefined,
   };

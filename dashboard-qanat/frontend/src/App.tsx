@@ -451,7 +451,8 @@ export default function App() {
   const [creatorScript, setCreatorScript] = useState<string>(savedCreatorState.creatorScript || '');
 
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
-  const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full'>('idle');
+  const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full' | 'directing' | 'directing-scene'>('idle');
+  const [directingSceneIndex, setDirectingSceneIndex] = useState<number | null>(null);
   const [showNarrationReview, setShowNarrationReview] = useState<boolean>(savedCreatorState.showNarrationReview || false);
   const [narrationDraft, setNarrationDraft] = useState<string>(savedCreatorState.narrationDraft || '');
   const [narrationTaggedDraft, setNarrationTaggedDraft] = useState<string>(savedCreatorState.narrationTaggedDraft || '');
@@ -842,6 +843,66 @@ export default function App() {
 
     const nextScriptData = { ...generatedScriptData, visual_prompts: nextPrompts };
     syncCreatorStoryboard(nextScriptData);
+  };
+
+  const handleUpdateCreatorDirectingBrief = (index: number, field: string, value: string) => {
+    if (!generatedScriptData) return;
+    const nextPrompts = [...(generatedScriptData.visual_prompts || [])];
+    const prev = nextPrompts[index]?.directing_brief || {};
+    nextPrompts[index] = {
+      ...nextPrompts[index],
+      directing_brief: { ...prev, [field]: value },
+    };
+    syncCreatorStoryboard({ ...generatedScriptData, visual_prompts: nextPrompts });
+  };
+
+  const handleUpdateCreatorSeedanceRef = (index: number, slot: string, value: string) => {
+    if (!generatedScriptData) return;
+    const nextPrompts = [...(generatedScriptData.visual_prompts || [])];
+    const prev = nextPrompts[index]?.seedance_refs || {};
+    nextPrompts[index] = {
+      ...nextPrompts[index],
+      seedance_refs: { ...prev, [slot]: value },
+    };
+    syncCreatorStoryboard({ ...generatedScriptData, visual_prompts: nextPrompts });
+  };
+
+  const handleCompileDirectingBriefs = async (sceneIndices?: number[]) => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    const isSingle = Array.isArray(sceneIndices) && sceneIndices.length === 1;
+    setCreatorLoading(true);
+    setCreatorLoadingMode(isSingle ? 'directing-scene' : 'directing');
+    if (isSingle) setDirectingSceneIndex(sceneIndices![0]);
+    try {
+      const body: Record<string, unknown> = {
+        project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_'),
+      };
+      if (sceneIndices?.length) body.scene_indices = sceneIndices;
+
+      const { ok, data } = await postAi('/api/ai/creator/compile-directing-briefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (ok && !data.needs_browser) {
+        applyStoryboardToCreatorState(data);
+        await saveCreatorStoryboard(data);
+        const count = sceneIndices?.length || data.visual_prompts?.length || 0;
+        toast.success(`🎬 Directing compilado — ${count} cena${count === 1 ? '' : 's'}`);
+      } else {
+        toast.error(data.error || data.details || 'Erro ao compilar directing.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao compilar directing.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
+      setDirectingSceneIndex(null);
+    }
   };
 
   const [creatorProjectName, setCreatorProjectName] = useState<string>(savedCreatorState.creatorProjectName || '');
@@ -7603,6 +7664,10 @@ export default function App() {
     handleDrop,
     handleEmotionMusicChange,
     handleEnhanceVisualPrompts,
+    handleCompileDirectingBriefs,
+    handleUpdateCreatorDirectingBrief,
+    handleUpdateCreatorSeedanceRef,
+    directingSceneIndex,
     handleEvaluateScriptChecklist,
     handleFileInput,
     handleFixYoutubeMetadata,

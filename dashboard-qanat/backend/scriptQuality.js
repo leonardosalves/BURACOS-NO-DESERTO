@@ -1185,7 +1185,7 @@ TAREFA: Gere visual_prompts cobrindo 100% da narração + technical_config com:
 
 Responda APENAS JSON:
 {
-  "visual_prompts": [ { "scene", "block", "narration_text", "type", "prompt", "editor_notes", "stock_query" } ],
+  "visual_prompts": [ { "scene", "block", "narration_text", "type", "prompt", "editor_notes", "stock_query", "directing_brief": { "dramatic_function", "camera_intent", "lighting_intent", "performance_intent", "sound_intent" }, "seedance_refs": { "identity", "motion", "camera", "audio", "style", "environment", "first_frame", "last_frame" } } ],
   "technical_config": {
     "script": "...",
     "block_phrases": [{"block": 1, "phrase": "..."}],
@@ -1983,7 +1983,7 @@ const NICHE_STYLE_MAP = {
   default: "Cinematic documentary style, dramatic lighting, sharp detail, photorealistic textures, professional composition",
 };
 
-function detectNicheFromContent(strategy = {}, narrative = "", hyperframe = "") {
+export function detectNicheFromContent(strategy = {}, narrative = "", hyperframe = "") {
   const text = [
     strategy.title_main, strategy.hook, strategy.tone, strategy.target_audience,
     narrative.slice(0, 2000), hyperframe,

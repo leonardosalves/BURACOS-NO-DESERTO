@@ -21,6 +21,8 @@ import { parseCreatorBlockNumber, getBlockTimingSummary } from './creatorTimingU
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
 import { FacelessChannelPanel } from './FacelessChannelPanel';
 import { canRunFacelessPipeline90 } from './facelessChannel';
+import { SeedanceDirectingPanel, SeedanceDirectingToolbar } from './SeedanceDirectingPanel';
+import { countScenesWithDirecting } from './seedanceDirecting';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
 
 export type AppCreatorTabProps = {
@@ -65,6 +67,10 @@ export type AppCreatorTabProps = {
   handleDrag: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   handleEnhanceVisualPrompts: () => void | Promise<void>;
+  handleCompileDirectingBriefs: (sceneIndices?: number[]) => void | Promise<void>;
+  handleUpdateCreatorDirectingBrief: (index: number, field: string, value: string) => void;
+  handleUpdateCreatorSeedanceRef: (index: number, slot: string, value: string) => void;
+  directingSceneIndex: number | null;
   handleEvaluateScriptChecklist: () => void | Promise<void>;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
@@ -201,6 +207,10 @@ export function AppCreatorTab({
   handleDrag,
   handleDrop,
   handleEnhanceVisualPrompts,
+  handleCompileDirectingBriefs,
+  handleUpdateCreatorDirectingBrief,
+  handleUpdateCreatorSeedanceRef,
+  directingSceneIndex,
   handleEvaluateScriptChecklist,
   handleFileInput,
   handleGenerateFullScript,
@@ -1964,7 +1974,15 @@ export function AppCreatorTab({
 
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                          {(generatedScriptData?.visual_prompts || []).length > 0 && (
+                            <SeedanceDirectingToolbar
+                              sceneCount={(generatedScriptData?.visual_prompts || []).length}
+                              filledCount={countScenesWithDirecting(generatedScriptData?.visual_prompts || [])}
+                              loading={creatorLoading && (creatorLoadingMode === 'directing' || creatorLoadingMode === 'directing-scene')}
+                              onCompileAll={() => handleCompileDirectingBriefs()}
+                            />
+                          )}
                           {(generatedScriptData?.visual_prompts || []).length > 0 && (
                             <button
                               type="button"
@@ -2239,6 +2257,18 @@ export function AppCreatorTab({
                                               />
 
                                             </div>
+
+                                            <SeedanceDirectingPanel
+                                              sceneIndex={absoluteIndex}
+                                              sceneNum={sceneNum}
+                                              isVideo={isVideo}
+                                              directingBrief={vp?.directing_brief}
+                                              seedanceRefs={vp?.seedance_refs}
+                                              onUpdateBrief={(field, value) => handleUpdateCreatorDirectingBrief(absoluteIndex, field, value)}
+                                              onUpdateRef={(slot, value) => handleUpdateCreatorSeedanceRef(absoluteIndex, slot, value)}
+                                              onGenerateScene={(idx) => handleCompileDirectingBriefs([idx])}
+                                              generating={creatorLoading && creatorLoadingMode === 'directing-scene' && directingSceneIndex === absoluteIndex}
+                                            />
 
                                           </div>
 
