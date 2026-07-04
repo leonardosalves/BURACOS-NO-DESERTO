@@ -1,0 +1,435 @@
+{
+  "name": "Lumiera — Mapa de Funcionamento",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "lumiera-pipeline",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "44b74e6b-1e12-4b73-9c33-e0f1049cbf61",
+      "name": "Webhook Lumiera",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "4ec637a9-4215-4551-af7d-4eaa2243bac5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/ai/creator/ideas",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "71a02cbb-683f-4871-882a-c6b7889ef903",
+      "name": "Lumiera · Ideias IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/ai/creator/script",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "4889c3e7-af43-473e-8c54-1f47579ce3d3",
+      "name": "Lumiera · Roteiro completo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/ai/creator/enhance-visual-prompts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "1cf23ac5-68aa-49c3-b885-d3fed7e2a233",
+      "name": "Lumiera · Engenharia Visual PRO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/workflow/narration-tts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "7761a6de-7440-4c91-872a-f24d85c495b8",
+      "name": "Lumiera · Narração / TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:3005/api/sync-timings",
+        "options": {}
+      },
+      "id": "48d86b7f-26ef-4881-8897-8f39b6083978",
+      "name": "Lumiera · Whisper / timings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/projects/storyboard",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "024c3f85-a803-4c79-8e07-0bf80516f609",
+      "name": "Lumiera · Alinhar timeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/render",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "07f132cc-d006-43ca-ad53-f1f21fa9ab1e",
+      "name": "Lumiera · Render Remotion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/ai/creator/metadata",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "ffeba172-4b15-4edb-ae19-a669ed10a952",
+      "name": "Lumiera · Metadados YouTube",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/upload/youtube",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "53f6b9ee-5f2c-445c-9acb-edfbfc484877",
+      "name": "Lumiera · Upload YouTube",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/youtube/resurrector/scan",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "8c027cb4-5a62-4569-99f1-a12bb7005227",
+      "name": "Lumiera · Ressuscitador — scan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/youtube/resurrector/run-batch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "350a5cb2-6e87-4fe9-bda0-b4724e9ee642",
+      "name": "Lumiera · Ressuscitador — batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/research/deep",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "02ff1101-7af9-416a-83cf-80da32e7bf9b",
+      "name": "Lumiera · Deep research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3005/api/workflow/clip-factory",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ project: $json.project || $json.body?.project, ...($json.payload || $json.body?.payload || {}) }) }}",
+        "options": {}
+      },
+      "id": "816ca865-228f-49c6-a1ae-c2b57d6c9906",
+      "name": "Lumiera · Clip Factory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:3005/api/workflow/capability-menu",
+        "options": {}
+      },
+      "id": "304278c3-4744-4f83-9cf7-a44c3e79d22d",
+      "name": "Lumiera · Capability menu",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        920
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Lumiera": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Ideias IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Ideias IA": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Roteiro completo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Roteiro completo": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Engenharia Visual PRO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Engenharia Visual PRO": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Narração / TTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Narração / TTS": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Whisper / timings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Whisper / timings": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Alinhar timeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Alinhar timeline": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Render Remotion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Render Remotion": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Metadados YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Metadados YouTube": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Upload YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Upload YouTube": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Ressuscitador — scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Ressuscitador — scan": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Ressuscitador — batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Ressuscitador — batch": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Deep research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Deep research": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Clip Factory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lumiera · Clip Factory": {
+      "main": [
+        [
+          {
+            "node": "Lumiera · Capability menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "lumiera"
+    }
+  ],
+  "meta": {
+    "lumieraMapVersion": 1,
+    "generatedAt": "2026-07-04T00:04:20.391Z",
+    "lumieraBackend": "http://127.0.0.1:3005"
+  }
+}
