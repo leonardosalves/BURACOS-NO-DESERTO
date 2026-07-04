@@ -1,5 +1,5 @@
 /* eslint-disable */
-// AUTO-GENERATED — metadata only. 477 arquivos, 156 pools. JSON via runtime loader.
+// AUTO-GENERATED — metadata only. 477 arquivos, 156 pools. JSON via lottieAssetMap.generated.ts.
 import { LOTTIE_POOLS } from "./lottiePools.generated";
 
 export { LOTTIE_POOLS };

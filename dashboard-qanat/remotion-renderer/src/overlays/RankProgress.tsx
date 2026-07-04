@@ -7,7 +7,7 @@ import {
   resolveLottieKey,
   type ListicleHudTheme,
 } from "./listicleHudTheme";
-import { lottieDataForKey } from "./lottieHudData.node";
+import { lottieDataForKey } from "./lottieHudData";
 import { TitleLottieIcon } from "./TitleLottieIcon";
 
 export interface RankProgressSegment {

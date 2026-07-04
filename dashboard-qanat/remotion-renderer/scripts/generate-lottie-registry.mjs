@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS_DIR = path.join(__dirname, "../src/overlays/lottie_assets");
 const OUT_INDEX = path.join(__dirname, "../src/overlays/lottieRegistry.generated.ts");
+const OUT_ASSET_MAP = path.join(__dirname, "../src/overlays/lottieAssetMap.generated.ts");
 const OUT_CATALOG = path.join(__dirname, "../src/overlays/lottieCatalog.json");
 const LEGACY_CHUNK_DIR = path.join(__dirname, "../src/overlays/lottie-registry");
 
@@ -66,7 +67,7 @@ if (fs.existsSync(LEGACY_CHUNK_DIR)) {
 }
 
 const indexContent = `/* eslint-disable */
-// AUTO-GENERATED — metadata only. ${files.length} arquivos, ${keys.length} pools. JSON via runtime loader.
+// AUTO-GENERATED — metadata only. ${files.length} arquivos, ${keys.length} pools. JSON via lottieAssetMap.generated.ts.
 import { LOTTIE_POOLS } from "./lottiePools.generated";
 
 export { LOTTIE_POOLS };
@@ -82,7 +83,19 @@ const poolsContent = `/* eslint-disable */
 export const LOTTIE_POOLS: Record<string, string[]> = ${JSON.stringify(poolObj, null, 2)};
 `;
 
+const importLines = files.map((file, i) => `import lottieAsset${i} from "./lottie_assets/${file}";`);
+const mapEntries = files.map((file, i) => `  ${JSON.stringify(file)}: lottieAsset${i},`);
+const assetMapContent = `/* eslint-disable */
+// AUTO-GENERATED — webpack-safe static imports for Remotion bundle (${files.length} arquivos).
+${importLines.join("\n")}
+
+export const LOTTIE_ASSET_MAP: Record<string, object> = {
+${mapEntries.join("\n")}
+};
+`;
+
 fs.writeFileSync(OUT_INDEX, indexContent, "utf8");
+fs.writeFileSync(OUT_ASSET_MAP, assetMapContent, "utf8");
 fs.writeFileSync(path.join(__dirname, "../src/overlays/lottiePools.generated.ts"), poolsContent, "utf8");
 fs.writeFileSync(OUT_CATALOG, JSON.stringify({
   generated_at: new Date().toISOString(),
@@ -90,7 +103,7 @@ fs.writeFileSync(OUT_CATALOG, JSON.stringify({
   key_count: keys.length,
   policy: "append_only_never_delete",
   scope: "global_all_videos",
-  load_mode: "runtime_fetch_or_fs",
+  load_mode: "webpack_static_imports",
   files: catalog,
   pools: poolObj,
 }, null, 2), "utf8");
