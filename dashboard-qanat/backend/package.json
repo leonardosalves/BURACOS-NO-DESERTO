@@ -5,7 +5,8 @@
   "description": "Backend API for Qanat video compilation dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test ../shared/narrationMatch.test.js ../shared/montagePipeline.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
