@@ -2164,6 +2164,8 @@ export function AppCreatorTab({
                                         localIdx,
                                         status,
                                         blockPrompts,
+                                        generatedScriptData?.narration_chunk_plan
+                                          || storyboardData?.narration_chunk_plan,
                                       );
                                       const durationFromWhisper = sceneDurationSeconds != null;
 

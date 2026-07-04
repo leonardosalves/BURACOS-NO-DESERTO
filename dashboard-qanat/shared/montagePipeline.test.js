@@ -12,6 +12,7 @@ import {
   isFullNarrationChunkBatch,
   chunkAudioRelativePath,
   parseAiNarrationChunkResponse,
+  applyChunkPlanToVisualPrompts,
 } from "../backend/narrationChunks.js";
 import { sanitizeNarrationChunkTaggedText } from "../backend/videoProEnhancements.js";
 
@@ -137,6 +138,40 @@ describe("montage pipeline", () => {
         }],
       });
       assert.equal(chunks[0].text_tagged, "A torre resistiu.");
+    });
+
+    it("applyChunkPlanToVisualPrompts corrige duration_seconds e asset no storyboard", () => {
+      const prompts = [{
+        scene: "2.2",
+        block: 2,
+        duration_seconds: 40.5,
+        speech_end: 45.85,
+        asset: { asset: "old.jpeg", type: "image" },
+      }];
+      const plan = {
+        chunks: [{
+          id: "chunk-02",
+          block: 2,
+          scene_ref: "2.2",
+          text: "Trecho bloco 2.",
+          duration_s: 7.027,
+          start_s: 5.388,
+          end_s: 12.415,
+          pause_after_ms: 800,
+        }],
+      };
+      const timeline = {
+        2: [{
+          asset: "Futuristic_buildings.jpeg",
+          type: "image",
+          fixed: 7,
+          user_locked: true,
+        }],
+      };
+      const out = applyChunkPlanToVisualPrompts(prompts, plan, timeline);
+      assert.equal(out[0].duration_seconds, 7);
+      assert.equal(out[0].speech_end, 12.415);
+      assert.equal(out[0].asset.asset, "Futuristic_buildings.jpeg");
     });
 
     it("buildBlockTimingsFromChunks usa menor start_s por bloco", () => {
