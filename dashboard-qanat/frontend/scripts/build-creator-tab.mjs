@@ -138,15 +138,18 @@ const PROPS = [
 ];
 
 const header = `import toast from 'react-hot-toast';
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Check, Chrome, Copy, Play, RefreshCw, Sparkles, Trash2, Volume2, CheckCircle } from 'lucide-react';
 import { DashminPageLayout } from './DashminPageLayout';
 import { SectionHeader } from './SectionHeader';
-import { ListicleCreatorStep } from './ListicleCreatorStep';
 import { NarrationReviewPanel } from './NarrationReviewPanel';
 import { NarrationChunksPanel } from './NarrationChunksPanel';
 import { TtsVoiceStudioPanel } from './TtsVoiceStudioPanel';
-import { warnLongListicleTitles } from './ListicleHudPreview';
+import { warnLongListicleTitles } from './listicleTitleUtils';
+
+const LazyListicleCreatorStep = lazy(() =>
+  import('./ListicleCreatorStep').then((m) => ({ default: m.ListicleCreatorStep })),
+);
 import { resolveStockSearchQuery } from './stockSearchQuery';
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
 import {
