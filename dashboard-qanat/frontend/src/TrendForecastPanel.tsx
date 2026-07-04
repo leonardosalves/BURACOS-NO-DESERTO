@@ -2,12 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
+  Bookmark,
   CheckCircle2,
   Compass,
   LineChart,
   Loader2,
   RefreshCw,
+  Save,
   Sparkles,
+  Target,
   TrendingUp,
   Video,
   Youtube,
@@ -15,6 +18,11 @@ import {
 import { SectionHeader } from './SectionHeader';
 import type { CreatorApplyIdeaOptions } from './creatorEditorialImport';
 import { resolvePioneerCreatorSeed } from './creatorEditorialImport';
+import {
+  TrendRadarNicheDetailView,
+  TrendRadarSavedList,
+  type TrendRadarSavedItem,
+} from './TrendRadarNicheDetail';
 
 type TimesfmStatus = {
   timesfmInstalled?: boolean;
@@ -78,6 +86,8 @@ type PioneerNiche = {
 
 type PioneerDiscovery = {
   ok?: boolean;
+  discoveryMode?: 'virgin' | 'chosen';
+  baseNiche?: string | null;
   pioneerNiches?: PioneerNiche[];
   pioneerIdeas?: TrendIdea[];
   summary?: {
@@ -88,6 +98,8 @@ type PioneerDiscovery = {
   };
   exaAvailable?: boolean;
 };
+
+type RadarView = 'radar' | 'saved' | 'detail';
 
 type ForecastResult = {
   ok?: boolean;
@@ -160,8 +172,37 @@ export function TrendForecastPanel({
   const [enqueueIdeas, setEnqueueIdeas] = useState(true);
   const [discoverPioneers, setDiscoverPioneers] = useState(true);
   const [pioneerOnly, setPioneerOnly] = useState(false);
+  const [discoveryMode, setDiscoveryMode] = useState<'virgin' | 'chosen'>('virgin');
+  const [chosenNiche, setChosenNiche] = useState(niche || '');
   const [pioneerResult, setPioneerResult] = useState<PioneerDiscovery | null>(null);
   const [result, setResult] = useState<ForecastResult | null>(null);
+  const [view, setView] = useState<RadarView>('radar');
+  const [savedItems, setSavedItems] = useState<TrendRadarSavedItem[]>([]);
+  const [detailItem, setDetailItem] = useState<TrendRadarSavedItem | null>(null);
+  const [parentScanItem, setParentScanItem] = useState<TrendRadarSavedItem | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (niche && !chosenNiche) setChosenNiche(niche);
+  }, [niche, chosenNiche]);
+
+  const fetchSaved = useCallback(async () => {
+    try {
+      const res = await fetch('/api/trends/saved');
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.items)) {
+        setSavedItems(data.items);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchSaved();
+  }, [fetchSaved]);
+
+  const effectiveNiche = discoveryMode === 'chosen' ? chosenNiche.trim() : '';
 
   const fetchStatus = useCallback(async () => {
     setLoadingStatus(true);
@@ -193,7 +234,8 @@ export function TrendForecastPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           format: format === 'LONGO' ? 'LONGO' : format === 'SHORTS' ? 'SHORTS' : 'SHORTS',
-          niche,
+          niche: effectiveNiche,
+          discoveryMode,
           useAi: true,
         }),
       });
@@ -234,7 +276,8 @@ export function TrendForecastPanel({
           horizon,
           enqueueIdeas,
           discoverPioneers,
-          niche,
+          niche: effectiveNiche,
+          discoveryMode,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -255,7 +298,139 @@ export function TrendForecastPanel({
     }
   };
 
+  const saveScan = async () => {
+    const discovery = pioneerResult || result?.pioneerDiscovery;
+    if (!discovery?.pioneerNiches?.length) {
+      toast.error('Rode uma varredura antes de salvar.');
+      return;
+    }
+    setSavingId('scan');
+    try {
+      const res = await fetch('/api/trends/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'scan',
+          discovery,
+          discoveryMode,
+          nicheFilter: effectiveNiche,
+          format: format === 'LONGO' ? 'LONGO' : format === 'SHORTS' ? 'SHORTS' : 'SHORTS',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao salvar');
+      toast.success('Varredura salva!');
+      await fetchSaved();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const saveNiche = async (n: PioneerNiche) => {
+    const key = `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`;
+    setSavingId(key);
+    try {
+      const res = await fetch('/api/trends/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'niche',
+          niche: n,
+          discoveryMode,
+          nicheFilter: effectiveNiche,
+          format: n.format || (format === 'LONGO' ? 'LONGO' : 'SHORTS'),
+          scanSummary: pioneerResult?.summary || result?.pioneerDiscovery?.summary || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao salvar');
+      toast.success(`Salvo: ${n.label?.slice(0, 40) || 'nicho'}`);
+      await fetchSaved();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const openSavedDetail = async (id: string) => {
+    try {
+      const res = await fetch(`/api/trends/saved/${id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Não encontrado');
+      setDetailItem(data.item as TrendRadarSavedItem);
+      setView('detail');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao abrir');
+    }
+  };
+
+  const deleteSaved = async (id: string) => {
+    try {
+      const res = await fetch(`/api/trends/saved/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha ao excluir');
+      toast.success('Removido dos salvos');
+      if (detailItem?.id === id) {
+        setDetailItem(null);
+        setView('saved');
+      }
+      await fetchSaved();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir');
+    }
+  };
+
   const timesfmReady = status?.timesfmInstalled;
+
+  if (view === 'detail' && detailItem) {
+    return (
+      <TrendRadarNicheDetailView
+        item={detailItem}
+        onBack={() => {
+          if (parentScanItem) {
+            setDetailItem(parentScanItem);
+            setParentScanItem(null);
+            return;
+          }
+          setDetailItem(null);
+          setView('saved');
+        }}
+        onDelete={deleteSaved}
+        onOpenNicheFromScan={(entry) => {
+          setParentScanItem(detailItem);
+          setDetailItem({
+            id: detailItem.id,
+            type: 'niche',
+            label: entry.label,
+            savedAt: detailItem.savedAt,
+            discoveryMode: detailItem.discoveryMode,
+            nicheFilter: detailItem.nicheFilter,
+            format: entry.format || detailItem.format,
+            status: entry.status,
+            pioneerScore: entry.pioneerScore,
+            macroNiche: entry.aspects?.macroNiche?.value,
+            detail: entry,
+            niche: entry.raw,
+          });
+        }}
+        onApplyCreatorIdea={onApplyCreatorIdea}
+      />
+    );
+  }
+
+  if (view === 'saved') {
+    return (
+      <TrendRadarSavedList
+        items={savedItems}
+        onOpen={openSavedDetail}
+        onDelete={deleteSaved}
+        onBack={() => setView('radar')}
+      />
+    );
+  }
 
   return (
     <div className="lumiera-panel-stack animate-fade-in font-sans min-w-0 space-y-4">
@@ -339,15 +514,69 @@ export function TrendForecastPanel({
           </label>
         </div>
 
-        <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 space-y-2">
-          <div className="flex items-center gap-2">
+        <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <Compass className="w-4 h-4 text-violet-300" />
-            <p className="text-[11px] font-bold text-violet-100">Modo Pioneiro — desbravar nichos vazios</p>
+            <p className="text-[11px] font-bold text-violet-100">Modo de descoberta</p>
+            <button
+              type="button"
+              onClick={() => setView('saved')}
+              className="ml-auto text-[10px] text-amber-400/90 hover:text-amber-300 flex items-center gap-1"
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              Salvos ({savedItems.length})
+            </button>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setDiscoveryMode('virgin')}
+              className={`p-3 rounded-xl border text-left transition ${
+                discoveryMode === 'virgin'
+                  ? 'border-violet-500/50 bg-violet-500/15'
+                  : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-700'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-4 h-4 text-violet-300" />
+                <span className="text-[11px] font-bold text-zinc-100">Nicho virgem</span>
+              </div>
+              <p className="text-[9px] text-zinc-500 leading-relaxed">
+                Descobre <strong className="text-zinc-300">qualquer categoria</strong> — finanças, pets, filosofia, viagens… Ignora o nicho do projeto.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDiscoveryMode('chosen')}
+              className={`p-3 rounded-xl border text-left transition ${
+                discoveryMode === 'chosen'
+                  ? 'border-amber-500/40 bg-amber-500/10'
+                  : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-700'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="w-4 h-4 text-amber-300" />
+                <span className="text-[11px] font-bold text-zinc-100">Nicho escolhido</span>
+              </div>
+              <p className="text-[9px] text-zinc-500 leading-relaxed">
+                Explora ângulos pioneiros <strong className="text-zinc-300">dentro de um nicho</strong> que você define abaixo.
+              </p>
+            </button>
+          </div>
+          {discoveryMode === 'chosen' && (
+            <label className="text-[10px] text-zinc-500 space-y-1 block">
+              Nicho para explorar
+              <input
+                type="text"
+                value={chosenNiche}
+                onChange={(e) => setChosenNiche(e.target.value)}
+                placeholder="Ex: gastronomia regional, true crime Brasil, filosofia estoica…"
+                className="w-full text-xs bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200"
+              />
+            </label>
+          )}
           <p className="text-[10px] text-zinc-500 leading-relaxed">
-            Parte de <strong className="text-zinc-300">macro-nichos reais</strong> (finanças, história, documentário…) e busca
-            <strong className="text-violet-300"> ângulos + padrões de vídeo</strong> que quase ninguém faz no YouTube BR.
-            <strong className="text-cyan-300"> Virgem</strong> = poucos canais dedicados naquele ângulo, não “título de blog sem resultados”.
+            <strong className="text-cyan-300">Virgem</strong> = poucos canais dedicados naquele ângulo no YouTube BR.
           </p>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-[10px] text-zinc-400 cursor-pointer">
@@ -392,6 +621,9 @@ export function TrendForecastPanel({
         <PioneerNicheList
           discovery={pioneerResult}
           onApply={onApplyCreatorIdea}
+          onSaveNiche={saveNiche}
+          onSaveScan={saveScan}
+          savingId={savingId}
         />
       )}
 
@@ -498,23 +730,44 @@ export function TrendForecastPanel({
 function PioneerNicheList({
   discovery,
   onApply,
+  onSaveNiche,
+  onSaveScan,
+  savingId,
 }: {
   discovery: PioneerDiscovery | null;
   onApply?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
+  onSaveNiche?: (niche: PioneerNiche) => void | Promise<void>;
+  onSaveScan?: () => void | Promise<void>;
+  savingId?: string | null;
 }) {
   const niches = discovery?.pioneerNiches || [];
   const summary = discovery?.summary;
+  const modeLabel = discovery?.discoveryMode === 'chosen'
+    ? `focado em ${discovery?.baseNiche || 'nicho escolhido'}`
+    : 'descoberta aberta';
 
   return (
     <div className="glass-panel p-5 rounded-3xl space-y-3 border border-violet-500/15">
       <div className="flex items-center gap-2 flex-wrap">
         <Compass className="w-4 h-4 text-violet-300" />
         <p className="text-xs font-bold text-zinc-200">Nichos pioneiros para desbravar</p>
+        <span className="text-[8px] text-violet-400/80 uppercase tracking-wide">{modeLabel}</span>
         {summary && (
           <span className="text-[9px] text-zinc-500 ml-auto">
             {summary.scanned} analisados · {summary.virginCount ?? 0} virgens · {summary.pioneerCount ?? 0} pioneiros
             {discovery?.exaAvailable ? ' · Exa' : ' · heurística'}
           </span>
+        )}
+        {onSaveScan && (
+          <button
+            type="button"
+            disabled={savingId === 'scan'}
+            onClick={() => void onSaveScan()}
+            className="text-[10px] font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 disabled:opacity-50"
+          >
+            {savingId === 'scan' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            Salvar varredura
+          </button>
         )}
       </div>
       <p className="text-[9px] text-zinc-600 leading-relaxed">
@@ -565,38 +818,53 @@ function PioneerNicheList({
             {n.risk && (
               <p className="text-[9px] text-amber-500/80">Risco: {n.risk}</p>
             )}
-            {onApply && (
-              <button
-                type="button"
-                onClick={() => {
-                  const pioneerMeta = {
-                    macroNiche: n.macroNiche,
-                    angle: n.angle,
-                    formatPattern: n.formatPattern,
-                    youtubeSearchQuery: n.youtubeSearchQuery,
-                  };
-                  const seed = resolvePioneerCreatorSeed(
-                    n.firstVideoIdea || n.label || '',
-                    n.angle || n.firstVideoIdea || n.label || '',
-                    pioneerMeta,
-                    n.whyPioneer,
-                  );
-                  onApply(
-                    seed.title || n.label || `Pioneiro: ${n.macroNiche}`,
-                    seed.hook || seed.title,
-                    {
-                      format: (n.format === 'LONGO' ? 'LONGO' : 'SHORTS') as 'LONGO' | 'SHORTS',
-                      mechanic: 'pioneer-niche',
-                      whyWorks: n.whyPioneer,
+            <div className="flex flex-wrap gap-3 pt-1">
+              {onSaveNiche && (
+                <button
+                  type="button"
+                  disabled={savingId === `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`}
+                  onClick={() => void onSaveNiche(n)}
+                  className="text-[10px] text-amber-300 hover:text-amber-200 flex items-center gap-1 disabled:opacity-50"
+                >
+                  {savingId === `${n.macroNiche}-${n.youtubeSearchQuery || n.label}`
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <Bookmark className="w-3 h-3" />}
+                  Salvar
+                </button>
+              )}
+              {onApply && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pioneerMeta = {
+                      macroNiche: n.macroNiche,
+                      angle: n.angle,
+                      formatPattern: n.formatPattern,
+                      youtubeSearchQuery: n.youtubeSearchQuery,
+                    };
+                    const seed = resolvePioneerCreatorSeed(
+                      n.firstVideoIdea || n.label || '',
+                      n.angle || n.firstVideoIdea || n.label || '',
                       pioneerMeta,
-                    },
-                  );
-                }}
-                className="text-[10px] text-violet-300 hover:text-violet-200"
-              >
-                Abrir no Creator
-              </button>
-            )}
+                      n.whyPioneer,
+                    );
+                    onApply(
+                      seed.title || n.label || `Pioneiro: ${n.macroNiche}`,
+                      seed.hook || seed.title,
+                      {
+                        format: (n.format === 'LONGO' ? 'LONGO' : 'SHORTS') as 'LONGO' | 'SHORTS',
+                        mechanic: 'pioneer-niche',
+                        whyWorks: n.whyPioneer,
+                        pioneerMeta,
+                      },
+                    );
+                  }}
+                  className="text-[10px] text-violet-300 hover:text-violet-200"
+                >
+                  Abrir no Creator
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>

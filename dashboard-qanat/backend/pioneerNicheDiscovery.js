@@ -21,6 +21,20 @@ const MACRO_NICHES = [
   { id: "true_crime", label: "True Crime", searchBaseline: "casos reais investigação" },
   { id: "engenharia", label: "Engenharia", searchBaseline: "engenharia curiosidades" },
   { id: "psicologia", label: "Psicologia", searchBaseline: "psicologia comportamento" },
+  { id: "gastronomia", label: "Gastronomia", searchBaseline: "gastronomia história comida" },
+  { id: "viagens", label: "Viagens", searchBaseline: "viagens lugares cultura" },
+  { id: "natureza", label: "Natureza", searchBaseline: "natureza animais documentário" },
+  { id: "esportes", label: "Esportes", searchBaseline: "esportes história curiosidades" },
+  { id: "arte", label: "Arte & Design", searchBaseline: "arte design história" },
+  { id: "saude", label: "Saúde", searchBaseline: "saúde corpo mente" },
+  { id: "games", label: "Games", searchBaseline: "games história cultura" },
+  { id: "automotivo", label: "Automotivo", searchBaseline: "carros história mecânica" },
+  { id: "pets", label: "Pets", searchBaseline: "animais pets comportamento" },
+  { id: "moda", label: "Moda", searchBaseline: "moda estilo história" },
+  { id: "musica", label: "Música", searchBaseline: "música história cultura" },
+  { id: "filosofia", label: "Filosofia", searchBaseline: "filosofia pensamento" },
+  { id: "agronegocio", label: "Agronegócio", searchBaseline: "agricultura campo Brasil" },
+  { id: "arquitetura", label: "Arquitetura", searchBaseline: "arquitetura cidades" },
 ];
 
 /** Padrões de vídeo — estruturas que poucos canais usam */
@@ -163,29 +177,55 @@ function buildContentHook(niche) {
   return `${macro}: ${pattern || angle || idea}`.slice(0, 500);
 }
 
-function buildMatrixCandidates(baseNiche, format) {
+function shuffleArray(items = []) {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function matchMacrosForNiche(baseNiche = "") {
+  const base = String(baseNiche || "").trim().toLowerCase();
+  if (!base) return [];
+
+  const tokens = base.split(/[\s,/|+&-]+/).filter((t) => t.length >= 4);
+  return MACRO_NICHES.filter((m) => {
+    const label = m.label.toLowerCase();
+    const baseline = m.searchBaseline.toLowerCase();
+    const id = m.id.replace(/_/g, " ");
+    return label.includes(base)
+      || base.includes(id)
+      || baseline.includes(base)
+      || tokens.some((token) => label.includes(token) || baseline.includes(token) || id.includes(token));
+  });
+}
+
+function buildMatrixCandidates(baseNiche, format, discoveryMode = "virgin") {
   const fmt = String(format || "SHORTS").toUpperCase();
   const isLong = fmt === "LONG" || fmt === "LONGO";
-  const base = String(baseNiche || "").trim().toLowerCase();
+  const mode = discoveryMode === "chosen" ? "chosen" : "virgin";
+  const base = mode === "chosen" ? String(baseNiche || "").trim().toLowerCase() : "";
 
-  const macros = base
-    ? MACRO_NICHES.filter((m) =>
-        m.label.toLowerCase().includes(base)
-        || base.includes(m.id.replace("_", ""))
-        || m.searchBaseline.toLowerCase().includes(base),
-      )
-    : MACRO_NICHES;
+  let uniqueMacros;
+  if (mode === "virgin") {
+    uniqueMacros = shuffleArray(MACRO_NICHES).slice(0, 10);
+  } else {
+    const matched = matchMacrosForNiche(base);
+    const prioritized = matched.length
+      ? [matched[0], ...shuffleArray(MACRO_NICHES.filter((m) => m.id !== matched[0]?.id)).slice(0, 5)]
+      : shuffleArray(MACRO_NICHES).slice(0, 6);
+    uniqueMacros = [...new Map(prioritized.map((m) => [m.id, m])).values()].slice(0, 6);
+  }
 
-  const selectedMacros = macros.length ? macros : MACRO_NICHES;
-  const prioritized = base
-    ? [selectedMacros[0], ...MACRO_NICHES.filter((m) => m.id !== selectedMacros[0]?.id).slice(0, 4)]
-    : MACRO_NICHES;
-
-  const uniqueMacros = [...new Map(prioritized.map((m) => [m.id, m])).values()].slice(0, 6);
+  const patternPool = mode === "virgin"
+    ? shuffleArray(FORMAT_PATTERNS)
+    : FORMAT_PATTERNS;
   const candidates = [];
 
   for (const macro of uniqueMacros) {
-    for (const pattern of FORMAT_PATTERNS.slice(0, 5)) {
+    for (const pattern of patternPool.slice(0, mode === "virgin" ? 4 : 5)) {
       const angle = `${macro.label} — ${pattern.template}`;
       const searchQuery = buildSearchQuery(macro, pattern, isLong);
       candidates.push({
@@ -258,19 +298,21 @@ function guessMacroFromText(text = "") {
   ) || null;
 }
 
-function buildExaQueries(baseNiche) {
-  const base = String(baseNiche || "").trim();
+function buildExaQueries(baseNiche, discoveryMode = "virgin") {
+  const base = discoveryMode === "chosen" ? String(baseNiche || "").trim() : "";
   const queries = [
     "subculturas e hobbies emergentes Brasil pouco conhecidos",
-    "tendências de interesse documentário história 2026",
+    "nichos YouTube virgens português pouca concorrência 2026",
     "fenômenos sociais novos pouco cobertos mídia",
     "profissões e ofícios esquecidos redescoberta",
+    "temas documentário curiosidades fora do mainstream Brasil",
+    "comunidades de nicho Brasil crescendo pouco exploradas",
   ];
   if (base) {
     queries.unshift(`temas emergentes ${base} documentário curiosidades`);
     queries.unshift(`subtemas ${base} pouco explorados português`);
   }
-  return [...new Set(queries)].slice(0, 4);
+  return [...new Set(queries)].slice(0, 5);
 }
 
 async function measureYoutubeSaturation(accessToken, query, { baselineQuery = null } = {}) {
@@ -479,17 +521,21 @@ function scorePioneerOpportunity(candidate, yt, format) {
   return scored;
 }
 
-async function generateAnglesWithLlm({ llmFn, baseNiche, format }) {
+async function generateAnglesWithLlm({ llmFn, baseNiche, format, discoveryMode = "virgin" }) {
   if (!llmFn) return [];
 
   const macroList = MACRO_NICHES.map((m) => m.label).join(", ");
   const patternList = FORMAT_PATTERNS.map((p) => `${p.label}: ${p.template}`).join("\n");
+  const modeHint = discoveryMode === "chosen"
+    ? `Modo ESCOLHIDO: explore ângulos pioneiros DENTRO do nicho "${baseNiche || "geral"}".`
+    : `Modo VIRGEM: descubra nichos em CATEGORIAS DIFERENTES — varie macro-nichos (finanças, gastronomia, pets, filosofia, viagens…). NÃO repita só engenharia/tecnologia.`;
 
   const prompt = `Você é estrategista YouTube BR especializado em OCEANO AZUL.
 
 O criador quer NICHOS REAIS (finanças, história, documentário…) combinados com ÂNGULOS e PADRÕES DE VÍDEO que quase NÃO EXISTEM no YouTube em português — poucos ou nenhum canal dedicado.
 
-Nicho base do criador (se houver): "${baseNiche || "aberto a qualquer macro-nicho"}"
+${modeHint}
+Nicho base do criador (se houver): "${discoveryMode === "chosen" ? (baseNiche || "geral") : "qualquer macro-nicho — diversifique!"}"
 Formato alvo: ${format}
 
 Macro-nichos válidos: ${macroList}
@@ -632,16 +678,150 @@ function buildPioneerIdea(niche) {
   };
 }
 
+const AUDIENCE_HINTS = {
+  financas: "Adultos 25–45 buscando independência financeira e clareza sem guru.",
+  historia: "Curiosos 18–40 que consomem documentário e fatos surpreendentes.",
+  documentario: "Público de true story e investigação com paciência para narrativa.",
+  curiosidades: "Scrollers 16–35 que querem aprender algo novo em <60s.",
+  ciencia: "Estudantes e autodidatas que gostam de explicação visual.",
+  tecnologia: "Entusiastas de tech e história da inovação.",
+  geografia: "Viajantes mentais e amantes de mapas, lugares e culturas.",
+  true_crime: "Fãs de casos reais, mistério e narrativa investigativa.",
+  engenharia: "Curiosos sobre como as coisas funcionam e falham.",
+  psicologia: "Quem busca entender comportamento humano no dia a dia.",
+  gastronomia: "Foodies e curiosos sobre origem de pratos e tradições.",
+  viagens: "Quem sonha viajar e quer contexto cultural antes de ir.",
+  natureza: "Amantes de animais, ecologia e fenômenos naturais.",
+  esportes: "Fãs de esporte que gostam de história e recordes.",
+  arte: "Criativos e curiosos sobre processo, estética e cultura visual.",
+  saude: "Público wellness buscando ciência acessível.",
+  games: "Gamers e curiosos sobre cultura pop e história dos games.",
+  automotivo: "Entusiastas de carros, mecânica e engenharia automotiva.",
+  pets: "Donos de pets e curiosos sobre comportamento animal.",
+  moda: "Interessados em estilo, tendências e história da moda.",
+  musica: "Ouvintes curiosos sobre origem de gêneros e artistas.",
+  filosofia: "Pensadores que querem ideias complexas em linguagem clara.",
+  agronegocio: "Rural, agronegócio e curiosos sobre campo e alimento.",
+  arquitetura: "Urbanistas amadores e fãs de cidades e espaços.",
+};
+
+export function buildNicheDetailBreakdown(niche = {}, context = {}) {
+  const macroKey = guessMacroFromText(niche.macroNiche || "")?.id || "curiosidades";
+  const yt = niche.youtube || {};
+  const riskText = String(niche.risk || "").trim();
+  const pillars = [
+    niche.formatPattern ? `Formato: ${niche.formatPattern}` : null,
+    niche.angle ? `Ângulo: ${niche.angle}` : null,
+    niche.firstVideoIdea ? `Gancho inicial: ${niche.firstVideoIdea}` : null,
+    yt.sampleVideos?.[0]?.title ? `Referência: ${yt.sampleVideos[0].title}` : null,
+  ].filter(Boolean);
+
+  return {
+    label: niche.label || niche.angle || "Nicho pioneiro",
+    status: niche.status || "emergente",
+    pioneerScore: Number(niche.pioneerScore || 0),
+    format: niche.format || context.format || "SHORTS",
+    discoveryMode: context.discoveryMode || "virgin",
+    nicheFilter: context.nicheFilter || null,
+    savedAt: context.savedAt || null,
+    aspects: {
+      overview: {
+        title: "Visão geral",
+        summary: niche.whyPioneer || "Oportunidade com baixa saturação no YouTube BR.",
+        headline: niche.label || niche.angle,
+      },
+      macroNiche: {
+        title: "Macro-nicho",
+        value: niche.macroNiche || "—",
+        description: "Categoria ampla do YouTube onde este ângulo se encaixa.",
+      },
+      angle: {
+        title: "Ângulo específico",
+        value: niche.angle || "—",
+        description: "Recorte temático que diferencia este canal dos genéricos.",
+      },
+      formatPattern: {
+        title: "Padrão de vídeo",
+        value: niche.formatPattern || "—",
+        description: "Estrutura narrativa/visual sugerida para os primeiros vídeos.",
+      },
+      competition: {
+        title: "Concorrência no YouTube",
+        searchQuery: niche.youtubeSearchQuery || yt.query || "",
+        dedicatedChannels: niche.dedicatedChannels ?? yt.dedicatedChannels ?? 0,
+        channelCount: yt.channelCount ?? 0,
+        videoCount: yt.videoCount ?? 0,
+        saturationPct: niche.saturationPct ?? yt.saturationPct ?? null,
+        macroSaturationPct: niche.macroSaturationPct ?? yt.macroSaturationPct ?? null,
+        gapScore: niche.gapScore ?? yt.gapScore ?? null,
+        avgTopViews: yt.avgTopViews ?? 0,
+        maxTopViews: yt.maxTopViews ?? 0,
+        sampleChannels: yt.sampleChannels || [],
+        sampleVideos: yt.sampleVideos || [],
+      },
+      pioneerAnalysis: {
+        title: "Análise pioneira",
+        pioneerScore: niche.pioneerScore ?? 0,
+        interestScore: niche.interestScore ?? 0,
+        status: niche.status || "emergente",
+        whyPioneer: niche.whyPioneer || "",
+      },
+      firstVideo: {
+        title: "Primeiro vídeo sugerido",
+        idea: buildFirstVideoIdea(niche),
+        hook: buildContentHook(niche),
+      },
+      risks: {
+        title: "Riscos e cuidados",
+        items: riskText
+          ? [riskText]
+          : ["Validar demanda com 2–3 vídeos piloto antes de escalar a série."],
+      },
+      audience: {
+        title: "Público-alvo",
+        description: AUDIENCE_HINTS[macroKey] || "Curiosos 18–40 no YouTube BR buscando conteúdo educativo de nicho.",
+      },
+      contentPillars: {
+        title: "Pilares de conteúdo",
+        items: pillars.length ? pillars : ["Série piloto", "Formato recorrente", "Gancho de curiosidade"],
+      },
+      monetization: {
+        title: "Sinais de monetização",
+        items: [
+          niche.gapScore >= 20 ? "Gap alto — pioneirismo pode gerar RPM acima da média do macro-nicho." : "Gap moderado — monetização depende de retenção e frequência.",
+          (yt.avgTopViews || 0) >= 10000 ? "Vídeos similares já provam demanda de views." : "Demanda ainda a validar — foque em retenção nos primeiros uploads.",
+          niche.status === "virgem" ? "Categoria virgem: menos concorrência por patrocínio de nicho." : "Concorrência crescente — diferencie pelo formato visual.",
+        ],
+      },
+      searchStrategy: {
+        title: "Estratégia de busca",
+        primaryQuery: niche.youtubeSearchQuery || "",
+        format: niche.format || "SHORTS",
+        tips: [
+          "Publique 3 vídeos no mesmo ângulo antes de mudar de tema.",
+          "Use o título do 1º vídeo como âncora de série.",
+          "Monitore canais dedicados listados abaixo como benchmark.",
+        ],
+      },
+    },
+    raw: niche,
+  };
+}
+
 export async function discoverPioneerNiches(workspaceDir, {
   niche = "",
   format = "SHORTS",
+  discoveryMode = "virgin",
   risingNiches = [],
   maxCandidates = 10,
   useAi = true,
   llmFn = null,
 } = {}) {
   const cfg = readJsonSafe(path.join(workspaceDir, "config_qanat.json"));
-  const baseNiche = String(niche || cfg.niche || "").trim();
+  const mode = discoveryMode === "chosen" ? "chosen" : "virgin";
+  const baseNiche = mode === "chosen"
+    ? String(niche || cfg.niche || "").trim()
+    : "";
   const fmt = String(format || "SHORTS").toUpperCase();
 
   let accessToken;
@@ -657,17 +837,17 @@ export async function discoverPioneerNiches(workspaceDir, {
   const candidateMap = new Map();
 
   const llmAngles = useAi && llmFn
-    ? await generateAnglesWithLlm({ llmFn, baseNiche, format: fmt })
+    ? await generateAnglesWithLlm({ llmFn, baseNiche, format: fmt, discoveryMode: mode })
     : [];
   llmAngles.forEach((c) => candidateMap.set(`${c.macroNiche}|${c.youtubeSearchQuery}`, c));
 
-  buildMatrixCandidates(baseNiche, fmt).forEach((c) => {
+  buildMatrixCandidates(baseNiche, fmt, mode).forEach((c) => {
     const key = `${c.macroNiche}|${c.youtubeSearchQuery}`;
     if (!candidateMap.has(key)) candidateMap.set(key, c);
   });
 
   const exaResults = await Promise.all(
-    buildExaQueries(baseNiche).map((q) => exaWebSearch(q, workspaceDir, { numResults: 5 })),
+    buildExaQueries(baseNiche, mode).map((q) => exaWebSearch(q, workspaceDir, { numResults: 5 })),
   );
   const exaAvailable = exaResults.some((r) => r.available);
   for (const exa of exaResults) {
@@ -742,12 +922,15 @@ export async function discoverPioneerNiches(workspaceDir, {
 
   return {
     ok: true,
+    discoveryMode: mode,
     baseNiche: baseNiche || null,
     format: fmt,
     exaAvailable,
     logic: {
-      version: "macro-angle-gap",
-      description: "Macro-nicho real + ângulo/formato medido no YouTube. Virgem = poucos canais dedicados neste ângulo, mesmo que finanças/história existam como categorias.",
+      version: "macro-angle-gap-v2",
+      description: mode === "virgin"
+        ? "Descoberta aberta: varre macro-nichos diversos (não preso ao nicho do projeto). Virgem = poucos canais dedicados no ângulo."
+        : "Exploração focada: ângulos pioneiros dentro do nicho escolhido.",
     },
     pioneerNiches,
     pioneerIdeas,
