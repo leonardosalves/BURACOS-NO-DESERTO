@@ -59,6 +59,7 @@ import {
 import {
   generateNarrationChunksTts,
   isFullNarrationChunkBatch,
+  allNarrationChunksHaveAudio,
   persistChunkPlanToProject,
   formatNarrationChunkPlanLog,
   NARRATION_MODE_CHUNKED,
@@ -740,34 +741,43 @@ export function registerWorkflowRoutes(app, deps) {
         }
       }
 
-      const timings = JSON.parse(fs.readFileSync(path.join(projDir, "block_timings.json"), "utf8"));
-      const transcripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
-      const synced = syncProjectTimelineAfterWhisper({
-        timelineAssets: config.timeline_assets || {},
-        blockTimings: timings,
-        wordTranscripts: transcripts,
-        flatTranscriptWords: flattenWordTranscripts(transcripts),
-        visualPrompts: storyboard.visual_prompts || [],
-        blockPhrases: config.block_phrases || [],
-      });
-      config.timeline_assets = synced.timelineAssets;
-      fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
-      fs.writeFileSync(
-        path.join(projDir, "block_timings.json"),
-        JSON.stringify(synced.blockTimings || timings, null, 2),
-        "utf8",
-      );
+      const masterReady = allNarrationChunksHaveAudio(nextPlan, projDir);
+      if (masterReady) {
+        const timings = JSON.parse(fs.readFileSync(path.join(projDir, "block_timings.json"), "utf8"));
+        const transcripts = JSON.parse(fs.readFileSync(path.join(projDir, "word_transcripts.json"), "utf8"));
+        const synced = syncProjectTimelineAfterWhisper({
+          timelineAssets: config.timeline_assets || {},
+          blockTimings: timings,
+          wordTranscripts: transcripts,
+          flatTranscriptWords: flattenWordTranscripts(transcripts),
+          visualPrompts: storyboard.visual_prompts || [],
+          blockPhrases: config.block_phrases || [],
+        });
+        config.timeline_assets = synced.timelineAssets;
+        fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+        fs.writeFileSync(
+          path.join(projDir, "block_timings.json"),
+          JSON.stringify(synced.blockTimings || timings, null, 2),
+          "utf8",
+        );
+      } else if (!fullBatch) {
+        console.log("[TTS Chunks] Timeline preservada — batch parcial sem master completo.");
+      }
       storyboard.narration_chunk_plan = nextPlan;
       fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
 
       const logs = formatNarrationChunkPlanLog(nextPlan);
-      let message = `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`;
+      let message = masterReady
+        ? `Narração por trechos: ${nextPlan.chunk_count} trecho(s) montados.`
+        : `Trecho(s) gerado(s) — ${nextPlan.chunk_count} no plano; master aguardando trechos faltantes.`;
       if (whisperSynced) {
         message += " Legendas sincronizadas com Whisper.";
       } else if (shouldSyncWhisper && whisperError) {
         message += ` Whisper não concluiu: ${whisperError}`;
       } else if (!fullBatch) {
-        message += " Rode «Gerar todos os trechos» para sincronizar legendas (Whisper).";
+        message += " Gere todos os trechos para montar o master e sincronizar legendas.";
+      } else if (!masterReady) {
+        message += " Gere os trechos restantes para montar o MP3 master.";
       }
       if (progressJobId) {
         finishJobProgressWithResult(progressJobId, {

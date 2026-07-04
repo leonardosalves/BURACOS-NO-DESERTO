@@ -481,7 +481,13 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
 
 export async function assembleNarrationChunksToMaster(projDir, plan, { onLog = () => {} } = {}) {
   const chunks = plan?.chunks || [];
-  const generated = chunks.filter((c) => c.audio_file && fs.existsSync(path.join(projDir, c.audio_file)));
+  if (!allNarrationChunksHaveAudio(plan, projDir)) {
+    throw new Error("Montagem master exige todos os trechos com áudio — gere os trechos faltantes antes.");
+  }
+  const generated = chunks.filter((c) => {
+    const rel = String(c.audio_file || chunkAudioRelativePath(c.id)).replace(/\\/g, "/");
+    return fs.existsSync(path.join(projDir, rel));
+  });
   if (!generated.length) throw new Error("Nenhum trecho com áudio gerado para montar.");
 
   const workDir = path.join(projDir, NARRATION_CHUNKS_DIR, "_assemble");
@@ -547,6 +553,16 @@ export function isFullNarrationChunkBatch(chunkIds, plan) {
   return all.every((id) => requested.has(id));
 }
 
+/** Todos os trechos do plano têm MP3 no disco — pré-requisito para montar o master. */
+export function allNarrationChunksHaveAudio(plan, projDir) {
+  const chunks = plan?.chunks || [];
+  if (!chunks.length) return false;
+  return chunks.every((c) => {
+    const rel = String(c.audio_file || chunkAudioRelativePath(c.id)).replace(/\\/g, "/");
+    return fs.existsSync(path.join(projDir, rel));
+  });
+}
+
 export async function generateNarrationChunksTts(projDir, {
   plan,
   chunkIds = null,
@@ -607,16 +623,24 @@ export async function generateNarrationChunksTts(projDir, {
     };
   }
 
-  let nextPlan = normalizeNarrationChunkPlan({
-    ...plan,
-    chunks: computeChunkTimeline(updatedChunks),
-  }, {});
+  let nextPlan = normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {});
 
-  if (assembleMaster) {
+  const readyForMaster = allNarrationChunksHaveAudio(nextPlan, projDir);
+  if (readyForMaster) {
+    nextPlan = normalizeNarrationChunkPlan({
+      ...nextPlan,
+      chunks: computeChunkTimeline(nextPlan.chunks),
+    }, {});
+  }
+
+  if (assembleMaster && readyForMaster) {
     onProgress("assemble", "Montando narração master com pausas…", 92);
     await assembleNarrationChunksToMaster(projDir, nextPlan, { onLog });
     writeTimingsFromChunkPlan(projDir, nextPlan);
     onProgress("done", "Narração por trechos concluída.", 100);
+  } else if (assembleMaster) {
+    onLog("[Chunks] Montagem master adiada — ainda faltam trechos sem áudio.");
+    onProgress("done", "Trecho(s) gerado(s). Gere todos para montar o master.", 100);
   }
 
   return nextPlan;
