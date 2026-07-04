@@ -48,6 +48,9 @@ Engenheiro de Prompts Visuais Sênior para transformar visual_prompts genéricos
 ### 1. Alinhamento Total com Narração
 Cada prompt deve ilustrar EXATAMENTE o que o `narration_text` diz. O visual reforça a fala.
 
+### 1b. Fidelidade ao Real (não inventar o sujeito)
+Se a narração cita algo que **existe** (monumento, veículo, animal, pessoa histórica, máquina, lugar, artefato), o prompt deve pedir **a coisa real** — foto/filmagem documental, aparência verificável. **Proibido** substituir por versão genérica ou fictícia (“mysterious spacecraft”, “ancient ruins”) quando o objeto é identificável. Metáforas abstratas podem ser simbólicas; fatos concretos não.
+
 ### 2. Texto PT-BR Inquebrável
 Todo prompt deve terminar com a instrução de que qualquer texto visível na imagem/vídeo deve estar em português do Brasil.
 
