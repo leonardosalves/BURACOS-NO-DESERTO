@@ -2066,18 +2066,27 @@ ${format === "SHORTS"
 - Foque em retenção: visuals que prendam atenção nos primeiros segundos.
 - Em Shorts, crie pattern interrupts visuais a cada 7-12 segundos.
 
-**8. Editor Notes**
+**8. Fidelidade ao Real (REGRA INQUEBRÁVEL)**
+- Se a narração cita algo que EXISTE no mundo real (monumento, edifício, veículo, nave, animal, pessoa histórica, obra, máquina, lugar, artefato, evento documentado), o prompt DEVE pedir a COISA REAL — não uma versão inventada, genérica ou fictícia sobre o tema.
+- PROIBIDO: "a mysterious spacecraft", "ancient ruins", "generic Roman building" quando a narração nomeia Mars Climate Orbiter, Panteão, Canal do Panamá, Vasa, Torre Eiffel, etc.
+- OBRIGATÓRIO: nomear o sujeito real + características físicas verificáveis + estilo documental/foto de arquivo/filmagem autêntica.
+- Exemplos de sufixos úteis no prompt (em inglês): "documentary-style photorealistic footage of the actual [subject]", "archival photograph aesthetic", "real-world accurate depiction", "based on known historical appearance".
+- Metáforas e conceitos abstratos (sem objeto real) podem ser visuais simbólicos — mas NUNCA substitua um fato concreto por fantasia.
+- Em vídeo IA: movimento de câmera sobre o objeto REAL (órbita do satélite real, eclusas reais, estrutura real) — não cena sci-fi inventada.
+
+**9. Editor Notes**
 - Melhore editor_notes com sincronia de texto, transições, SFX e pattern interrupts.
 
 ### PROCESSO DE RACIOCÍNIO (CHAIN OF THOUGHT — faça internamente antes de cada prompt)
 
 1. Leia o narration_text.
 2. Identifique o objetivo emocional/visual daquela frase.
-3. Verifique se o prompt atual está alinhado ou precisa de correção.
-4. Escolha o melhor shot + movimento de câmera.
-5. Garanta que segue o estilo do nicho.
-6. Adicione instrução de português brasileiro.
-7. Escreva o prompt mais detalhado e cinematográfico possível.
+3. O sujeito é algo real e identificável? Se sim, descreva O OBJETO/LUGAR/PESSOA REAL — não invente.
+4. Verifique se o prompt atual está alinhado ou precisa de correção.
+5. Escolha o melhor shot + movimento de câmera.
+6. Garanta que segue o estilo do nicho.
+7. Adicione instrução de português brasileiro.
+8. Escreva o prompt mais detalhado e cinematográfico possível.
 
 ### FORMATO DE SAÍDA OBRIGATÓRIO
 

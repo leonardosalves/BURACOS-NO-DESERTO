@@ -13,7 +13,12 @@ ESPECIFICIDADE VISUAL (CRÍTICO — imagem E vídeo):
 - Se a narração cita bico triangular e fluxo de fluido → "macro close-up of triangular beak with fluid streaming along lateral edges".
 - Se cita espécie (albatroz, falcão) → nome comum/científico em inglês + ação.
 - stock_query: 2-5 palavras em inglês com sujeito específico + ação; nunca português.
-- Vídeo IA: mesma regra — sujeito nomeado + movimento; prompt 100% em inglês.`;
+- Vídeo IA: mesma regra — sujeito nomeado + movimento; prompt 100% em inglês.
+
+FIDELIDADE AO REAL (imagem e vídeo):
+- Se o assunto EXISTE na vida real (lugar, máquina, animal, pessoa, monumento, evento), peça representação fiel ao real — estilo documentário/foto de arquivo — NÃO invente cena fictícia sobre o tema.
+- PROIBIDO substituir por "generic spaceship", "mysterious ancient structure" quando a narração nomeia o objeto real.
+- Nomeie o sujeito real + aparência conhecida + "documentary photorealistic" / "archival footage style" quando couber.`;
 
 const PT_STOPWORDS = new Set([
   "sobre", "quando", "porque", "entre", "desde", "ainda", "muito", "pouco", "todo", "toda",
