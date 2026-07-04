@@ -16,13 +16,22 @@ import {
 export function createBlockAssetDurationResolver(
   timelineAssets: Record<string, TimelineAsset[]>,
   blockDurations: number[] | undefined,
+  blockStarts?: number[] | undefined,
 ): (blockKey: string, index: number) => number {
   return (blockKey, index) => {
     const configs = timelineAssets[blockKey];
     if (!configs || configs[index] === undefined) return 0;
     const blockNum = parseInt(blockKey, 10);
     const blockDuration = blockDurations?.[blockNum - 1] ?? 10.0;
-    return computeAssetDuration(configs[index], configs, blockDuration);
+    const blockStart = blockStarts?.[blockNum - 1];
+    const nextBlockStart = blockStarts?.[blockNum];
+    const blockEnd = Number.isFinite(nextBlockStart)
+      ? nextBlockStart
+      : (Number.isFinite(blockStart) ? blockStart + blockDuration : undefined);
+    return computeAssetDuration(configs[index], configs, blockDuration, {
+      assetIndex: index,
+      blockEnd,
+    });
   };
 }
 
@@ -58,6 +67,7 @@ export function recalculateBlockAudioStarts({
   blockNarrationWordsCache,
   blockTimingStart = 0,
   preserveUntilIndex = -1,
+  blockEnd,
 }: {
   blockKey: string;
   assets: TimelineAsset[];
@@ -67,6 +77,7 @@ export function recalculateBlockAudioStarts({
   blockNarrationWordsCache: Record<string, BlockNarrationWord[]>;
   blockTimingStart?: number;
   preserveUntilIndex?: number;
+  blockEnd?: number;
 }): TimelineAsset[] {
   const blockNum = parseInt(blockKey, 10);
   const anchorStart = resolveBlockAudioAnchorStart({
@@ -83,7 +94,10 @@ export function recalculateBlockAudioStarts({
     blockDuration,
     anchorStart,
     preserveUntilIndex,
-    resolveDuration: (asset, all) => computeAssetDuration(asset, all, blockDuration),
+    resolveDuration: (asset, all, bd) => {
+      const idx = all.indexOf(asset);
+      return computeAssetDuration(asset, all, bd, { assetIndex: idx, blockEnd });
+    },
   });
 }
 

@@ -404,6 +404,7 @@ import {
   recalculateSequentialAudioStarts,
   bootstrapTimelineSlotsFromWhisper,
   syncProjectTimelineAfterWhisper,
+  tightenTimelineRetentionDurations,
   applyWhisperDurationsToStoryboard,
   fillSceneTimelineGaps,
 } from "./timelineSceneSync.js";
@@ -6401,7 +6402,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           wordTranscripts,
           visualPrompts: synced.visualPrompts || storyboard.visual_prompts || [],
           blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
-          preserveExplicitFixed: true,
+          preserveExplicitFixed: false,
         });
         console.log("[Remotion] timeline_assets sincronizados pelo plano de trechos (1 cena = 1 trecho).");
       } else if (isChunkedNarration) {
@@ -6419,7 +6420,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           wordTranscripts,
           visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
           blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
-          preserveExplicitFixed: true,
+          preserveExplicitFixed: false,
         });
         console.log("[Remotion] timeline_assets ancorados aos segmentos de narração por trechos.");
       } else {
@@ -6430,11 +6431,11 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           wordTranscripts,
           visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
           blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
-          preserveExplicitFixed: true,
+          preserveExplicitFixed: false,
         });
         console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
       }
-      config.timeline_assets = nextTimelineAssets;
+      config.timeline_assets = tightenTimelineRetentionDurations(nextTimelineAssets, timings);
       try {
         fs.writeFileSync(
           path.join(projectDir, "config_qanat.json"),
@@ -6579,7 +6580,7 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
           duration: sceneDuration,
 
-          durationLocked: isAssetDurationLocked(item) || assetHasExplicitDuration(item),
+          durationLocked: isAssetDurationLocked(item),
 
           narrationText: prompt?.narration_text || "",
 
@@ -14457,7 +14458,7 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
         wordTranscripts,
         flatTranscriptWords: flatWords,
         ...alignContext,
-        preserveExplicitFixed: true,
+        preserveExplicitFixed: false,
       });
       autoConfig.timeline_assets = synced.timelineAssets;
       if (synced.blockTimings?.starts?.length) {
