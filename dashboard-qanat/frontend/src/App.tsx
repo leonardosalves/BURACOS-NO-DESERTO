@@ -96,7 +96,7 @@ import {
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
-import { WorkflowToolkit } from './WorkflowToolkit';
+
 import { useGeminiBrowserBridge } from './GeminiBrowserBridge';
 import { fetchCreatorScriptAi, fetchGeminiAi } from './geminiAiFetch';
 import { AiJobProgressBar } from './AiJobProgressBar';
@@ -114,7 +114,7 @@ import { SectionHeader, SectionLabel } from './SectionHeader';
 import { SECTION_HELP } from './sectionHelpContent';
 import { applyVisualPatchToConfig, pickVisualConfig, visualDraftToApiPatch } from './visualConfig';
 import { SettingsProduction } from './SettingsProduction';
-import { StudioAgents } from './StudioAgents';
+
 import {
   loadWizardSession,
   saveWizardSession,
@@ -140,14 +140,11 @@ import {
 import { NarrationChunksPanel } from './NarrationChunksPanel';
 import { SettingsApiKeys } from './SettingsApiKeys';
 import { IntegrationSettings } from './IntegrationSettings';
-import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPanel';
-import { VideoResurrectorPanel } from './VideoResurrectorPanel';
+import type { YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { useResurrectorScheduler } from './useResurrectorScheduler';
-import { ComfyMcpPage } from './ComfyMcpPage';
 
-import { TrendForecastPanel } from './TrendForecastPanel';
-import { AgentReachPanel } from './AgentReachPanel';
-import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
+
+import type { ProjectListItem } from './ProjectsLibraryPanel';
 import { AppShell } from './AppShell';
 import { resolveStockSearchQuery } from './stockSearchQuery';
 import type { AppTab } from './appTabs';
@@ -155,7 +152,7 @@ import { isGlobalViewTab, RESTORABLE_APP_TABS } from './appTabs';
 
 
 import { DashminPageLayout } from './DashminPageLayout';
-import { LumieraHomePage } from './LumieraHomePage';
+
 import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 
 
@@ -165,7 +162,7 @@ import { DashminAiChat, DashminChatApplyButton } from './DashminAiChat';
 import { TimelineOpenCutBar } from './TimelineOpenCutBar';
 import { TimelineClipOpenCutControls } from './TimelineClipOpenCutControls';
 import { TimelineClipPreview } from './TimelineClipPreview';
-import { SceneTimingEditor } from './SceneTimingEditor';
+
 import { EditorCollapsibleSection } from './EditorCollapsibleSection';
 import { clipKey, parseClipKey } from './opencutTimeline';
 
@@ -234,6 +231,20 @@ import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from 
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
 import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
 import { JsonTreeView } from './JsonTreeView';
+import {
+  LazyAgentReachPanel,
+  LazyComfyMcpPage,
+  LazyLumieraHomePage,
+  LazyProjectsLibraryPanel,
+  LazySceneTimingEditor,
+  LazyStudioAgents,
+  LazyTrendForecastPanel,
+  LazyVideoResurrectorPanel,
+  LazyWorkflowToolkit,
+  LazyYoutubeStudioPanel,
+  TabPanelFallback,
+} from './appLazyPanels';
+
 const AppMusicTab = lazy(() => import('./AppMusicTab').then((m) => ({ default: m.AppMusicTab })));
 const AppCreatorTab = lazy(() => import('./AppCreatorTab').then((m) => ({ default: m.AppCreatorTab })));
 
@@ -8560,28 +8571,30 @@ export default function App() {
 
           {activeTab === 'home' && (
             <TabErrorBoundary tabName="Início">
-              <LumieraHomePage
-                projects={projects}
-                activeProject={activeProject}
-                recentProjects={recentProjects}
-                status={status}
-                videoQualityScore={videoQuality?.score}
-                outputCount={outputs.length}
-                youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
-                hotVideos={youtubeChannelAlerts?.hotVideos}
-                rendering={rendering}
-                renderPercent={renderProgress?.percent}
-                viewsThreshold={getYoutubeViewsThreshold()}
-                onOpenCreator={openCreatorTab}
-                onOpenProjects={() => setActiveTab('projects')}
-                onOpenWorkflow={() => setActiveTab('workflow')}
-                onOpenTimeline={() => setActiveTab('timeline')}
-                onOpenMusic={() => setActiveTab('music')}
-                onOpenRender={() => setActiveTab('status')}
-                onOpenUpload={() => setActiveTab('upload')}
-                onOpenMetadata={() => setActiveTab('ai')}
-                onOpenYoutube={() => setActiveTab('youtube-studio')}
-              />
+              <Suspense fallback={<TabPanelFallback label="Carregando início..." />}>
+                <LazyLumieraHomePage
+                  projects={projects}
+                  activeProject={activeProject}
+                  recentProjects={recentProjects}
+                  status={status}
+                  videoQualityScore={videoQuality?.score}
+                  outputCount={outputs.length}
+                  youtubeAlerts={youtubeChannelAlerts?.badgeCount ?? 0}
+                  hotVideos={youtubeChannelAlerts?.hotVideos}
+                  rendering={rendering}
+                  renderPercent={renderProgress?.percent}
+                  viewsThreshold={getYoutubeViewsThreshold()}
+                  onOpenCreator={openCreatorTab}
+                  onOpenProjects={() => setActiveTab('projects')}
+                  onOpenWorkflow={() => setActiveTab('workflow')}
+                  onOpenTimeline={() => setActiveTab('timeline')}
+                  onOpenMusic={() => setActiveTab('music')}
+                  onOpenRender={() => setActiveTab('status')}
+                  onOpenUpload={() => setActiveTab('upload')}
+                  onOpenMetadata={() => setActiveTab('ai')}
+                  onOpenYoutube={() => setActiveTab('youtube-studio')}
+                />
+              </Suspense>
             </TabErrorBoundary>
           )}
 
@@ -8973,19 +8986,21 @@ export default function App() {
             <DashminProjectTabLayout tab="workflow" activeProject={activeProject}>
             <div className="lumiera-panel-stack">
               {config ? (
-                <WorkflowToolkit
-                  getProjectUrl={getProjectUrl}
-                  getMediaUrl={getMusicUrl}
-                  postAi={postAi}
-                  toast={(msg) => toast(msg)}
-                  enabled={activeTab === 'workflow'}
-                  hasNarration={!!status?.has_narration}
-                  hasTimings={!!status?.block_timings}
-                  onNarrationReady={() => fetchData()}
-                  onTimelineRefresh={() => fetchData()}
-                  onMetadataReady={() => fetchData({ includeVideoQuality: true })}
-                  onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
-                />
+                <Suspense fallback={<TabPanelFallback label="Carregando workflow..." />}>
+                  <LazyWorkflowToolkit
+                    getProjectUrl={getProjectUrl}
+                    getMediaUrl={getMusicUrl}
+                    postAi={postAi}
+                    toast={(msg) => toast(msg)}
+                    enabled={activeTab === 'workflow'}
+                    hasNarration={!!status?.has_narration}
+                    hasTimings={!!status?.block_timings}
+                    onNarrationReady={() => fetchData()}
+                    onTimelineRefresh={() => fetchData()}
+                    onMetadataReady={() => fetchData({ includeVideoQuality: true })}
+                    onNavigateTab={(tab) => setActiveTab(tab as typeof activeTab)}
+                  />
+                </Suspense>
               ) : (
                 <div className="glass-panel p-8 rounded-2xl text-center text-zinc-500 text-sm">
                   Selecione um projeto para ver as ferramentas de workflow.
@@ -8997,20 +9012,22 @@ export default function App() {
 
           {activeTab === 'scene-timing' && (
             <DashminProjectTabLayout tab="scene-timing" activeProject={activeProject}>
-              <SceneTimingEditor
-                activeProject={activeProject}
-                config={config}
-                status={status}
-                storyboard={storyboardData}
-                wordTranscripts={wordTranscripts}
-                getMediaUrl={getMusicUrl}
-                getAssetUrl={getAssetUrl}
-                onSave={async (timelineAssets) => {
-                  if (!config) return;
-                  await saveTimelinePatch({ ...config, timeline_assets: timelineAssets });
-                }}
-                toast={(msg) => toast(msg)}
-              />
+              <Suspense fallback={<TabPanelFallback label="Carregando timing de cenas..." />}>
+                <LazySceneTimingEditor
+                  activeProject={activeProject}
+                  config={config}
+                  status={status}
+                  storyboard={storyboardData}
+                  wordTranscripts={wordTranscripts}
+                  getMediaUrl={getMusicUrl}
+                  getAssetUrl={getAssetUrl}
+                  onSave={async (timelineAssets) => {
+                    if (!config) return;
+                    await saveTimelinePatch({ ...config, timeline_assets: timelineAssets });
+                  }}
+                  toast={(msg) => toast(msg)}
+                />
+              </Suspense>
             </DashminProjectTabLayout>
           )}
 
@@ -11321,19 +11338,21 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Estúdio', 'Studio Agents']}
                 icon={<Bot className="w-5 h-5" />}
               >
-                <StudioAgents
-                  embedded
-                  activeProject={activeProject}
-                  projectNiche={config?.niche || 'Geral'}
-                  projectVideoFormat={config?.video_format}
-                  projectAspectRatio={config?.aspect_ratio}
-                  getProjectUrl={getProjectUrl}
-                  postAi={postAi}
-                  onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
-                  onExecuteCreator={(title, hook, options) =>
-                    handleApplyYoutubeStudioIdea(title, hook, options)
-                  }
-                />
+                <Suspense fallback={<TabPanelFallback label="Carregando Studio Agents..." />}>
+                  <LazyStudioAgents
+                    embedded
+                    activeProject={activeProject}
+                    projectNiche={config?.niche || 'Geral'}
+                    projectVideoFormat={config?.video_format}
+                    projectAspectRatio={config?.aspect_ratio}
+                    getProjectUrl={getProjectUrl}
+                    postAi={postAi}
+                    onNavigateTab={(tab) => setActiveTab(tab as AppTab)}
+                    onExecuteCreator={(title, hook, options) =>
+                      handleApplyYoutubeStudioIdea(title, hook, options)
+                    }
+                  />
+                </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
@@ -11346,7 +11365,9 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Estúdio', 'Comfy MCP']}
                 icon={<Cloud className="w-5 h-5" />}
               >
-                <ComfyMcpPage embedded />
+                <Suspense fallback={<TabPanelFallback label="Carregando Comfy MCP..." />}>
+                  <LazyComfyMcpPage embedded />
+                </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
@@ -11359,18 +11380,20 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Projetos']}
                 icon={<Tv className="w-5 h-5" />}
               >
-              <ProjectsLibraryPanel
-                projects={projects}
-                activeProject={activeProject}
-                recentProjects={recentProjects}
-                onSelectProject={handleSelectProject}
-                onRequestCreate={(format, niche) => {
-                  setNewProjectFormat(format);
-                  setNewProjectNiche(niche || 'Geral');
-                  setShowCreateModal(true);
-                }}
-                onDeleteProject={(name) => void handleDeleteProject(name)}
-              />
+              <Suspense fallback={<TabPanelFallback label="Carregando projetos..." />}>
+                <LazyProjectsLibraryPanel
+                  projects={projects}
+                  activeProject={activeProject}
+                  recentProjects={recentProjects}
+                  onSelectProject={handleSelectProject}
+                  onRequestCreate={(format, niche) => {
+                    setNewProjectFormat(format);
+                    setNewProjectNiche(niche || 'Geral');
+                    setShowCreateModal(true);
+                  }}
+                  onDeleteProject={(name) => void handleDeleteProject(name)}
+                />
+              </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
@@ -11383,13 +11406,15 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Estúdio', 'Pesquisa Web']}
                 icon={<Globe className="w-5 h-5" />}
               >
-                <AgentReachPanel
-                  embedded
-                  niche={config?.niche || ''}
-                  onApplyCreatorIdea={(title, hookPt, options) => {
-                    void handleApplyYoutubeStudioIdea(title, hookPt, options);
-                  }}
-                />
+                <Suspense fallback={<TabPanelFallback label="Carregando pesquisa web..." />}>
+                  <LazyAgentReachPanel
+                    embedded
+                    niche={config?.niche || ''}
+                    onApplyCreatorIdea={(title, hookPt, options) => {
+                      void handleApplyYoutubeStudioIdea(title, hookPt, options);
+                    }}
+                  />
+                </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
@@ -11402,17 +11427,19 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Estúdio', 'Radar Tendências']}
                 icon={<TrendingUp className="w-5 h-5" />}
               >
-                <TrendForecastPanel
-                  embedded
-                  niche={config?.niche || ''}
-                  onApplyCreatorIdea={(title, hookPt, options) => {
-                    void handleApplyYoutubeStudioIdea(title, hookPt, options);
-                  }}
-                  onGoToIntegrations={() => {
-                    setSettingsSection('integracoes');
-                    setActiveTab('settings');
-                  }}
-                />
+                <Suspense fallback={<TabPanelFallback label="Carregando radar de tendências..." />}>
+                  <LazyTrendForecastPanel
+                    embedded
+                    niche={config?.niche || ''}
+                    onApplyCreatorIdea={(title, hookPt, options) => {
+                      void handleApplyYoutubeStudioIdea(title, hookPt, options);
+                    }}
+                    onGoToIntegrations={() => {
+                      setSettingsSection('integracoes');
+                      setActiveTab('settings');
+                    }}
+                  />
+                </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
@@ -11425,7 +11452,9 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Estúdio', 'Ressuscitador']}
                 icon={<Zap className="w-5 h-5 text-amber-400" />}
               >
-                <VideoResurrectorPanel toast={toast} externalAlerts={resurrectorScheduler.alerts} />
+                <Suspense fallback={<TabPanelFallback label="Carregando ressuscitador..." />}>
+                  <LazyVideoResurrectorPanel toast={toast} externalAlerts={resurrectorScheduler.alerts} />
+                </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
@@ -11438,26 +11467,28 @@ export default function App() {
                 breadcrumb={['Dashboard', 'Estúdio', 'Canal YouTube']}
                 icon={<Youtube className="w-5 h-5" />}
               >
-              <YoutubeStudioPanel
-                embedded
-                toast={toast}
-                onRelinkYoutube={handleRelinkYoutube}
-                nicheKeyword={config?.niche || nicheInput || ''}
-                alerts={youtubeChannelAlerts}
-                geminiBrowserMode={geminiBrowserMode}
-                aiProvider={aiProvider}
-                resolveBrowserResponse={resolveBrowserResponse}
-                onSelectProject={handleSelectProject}
-                onAlertsSync={setYoutubeChannelAlerts}
-                onApplyCreatorIdea={(title, hookPt, options) => {
-                  void handleApplyYoutubeStudioIdea(title, hookPt, options);
-                }}
-                onSchedulePublish={handleScheduleFromHeatmap}
-                onGoToIntegrations={() => {
-                  setSettingsSection('integracoes');
-                  setActiveTab('settings');
-                }}
-              />
+              <Suspense fallback={<TabPanelFallback label="Carregando YouTube Studio..." />}>
+                <LazyYoutubeStudioPanel
+                  embedded
+                  toast={toast}
+                  onRelinkYoutube={handleRelinkYoutube}
+                  nicheKeyword={config?.niche || nicheInput || ''}
+                  alerts={youtubeChannelAlerts}
+                  geminiBrowserMode={geminiBrowserMode}
+                  aiProvider={aiProvider}
+                  resolveBrowserResponse={resolveBrowserResponse}
+                  onSelectProject={handleSelectProject}
+                  onAlertsSync={setYoutubeChannelAlerts}
+                  onApplyCreatorIdea={(title, hookPt, options) => {
+                    void handleApplyYoutubeStudioIdea(title, hookPt, options);
+                  }}
+                  onSchedulePublish={handleScheduleFromHeatmap}
+                  onGoToIntegrations={() => {
+                    setSettingsSection('integracoes');
+                    setActiveTab('settings');
+                  }}
+                />
+              </Suspense>
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
