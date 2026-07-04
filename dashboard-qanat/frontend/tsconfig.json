@@ -21,6 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@lumiera/overlays/*": ["../remotion-renderer/src/overlays/*"],
+      "@lumiera/shared": ["../shared"],
       "@lumiera/shared/*": ["../shared/*"]
     }
   },

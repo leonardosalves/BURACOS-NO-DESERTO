@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const dashboardRoot = path.resolve(__dirname, '..')
+const sharedDir = path.join(dashboardRoot, 'shared')
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -20,13 +22,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@lumiera/overlays': path.resolve(__dirname, '../remotion-renderer/src/overlays'),
-      '@lumiera/shared': path.resolve(__dirname, '../shared'),
+      '@lumiera/shared': sharedDir,
     },
   },
   server: {
     host: '127.0.0.1',
     port: 5176,
     strictPort: true,
+    fs: {
+      allow: [dashboardRoot],
+    },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3005',
