@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Check, CheckCircle, Copy, Image, Lock, RefreshCw, Settings, Sparkles, Video,
+  Check, CheckCircle, Copy, Image, Lock, MessageSquare, RefreshCw, Settings, Sparkles, Video,
 } from 'lucide-react';
 import { DashminProjectTabLayout } from './DashminProjectTabLayout';
 import { SectionHeader } from './SectionHeader';
