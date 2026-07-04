@@ -482,7 +482,6 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     editingImpact: ctx.editingImpact,
     setEditingImpact: ctx.setEditingImpact,
     handleSaveImpactText: ctx.handleSaveImpactText,
-    renderRichTimelineEditor: ctx.renderRichTimelineEditor,
   };
 
   const musicTabPanelProps: AppMusicTabPanelProps = {

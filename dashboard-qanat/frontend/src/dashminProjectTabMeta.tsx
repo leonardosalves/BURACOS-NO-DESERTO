@@ -35,7 +35,7 @@ export const DASH_PROJECT_TAB_META: Record<DashProjectTabId, DashProjectTabMeta>
   timeline: {
     id: 'timeline',
     title: 'Roteiro e Tags',
-    subtitle: 'Blocos, assets, legendas Gold/Water e sincronização com a narração.',
+    subtitle: 'Palavras-chave em destaque (Gold) e textos de impacto por bloco.',
     icon: Layers,
   },
   'scene-timing': {

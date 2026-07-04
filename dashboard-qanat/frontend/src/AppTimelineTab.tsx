@@ -16,7 +16,6 @@ export type AppTimelineTabProps = {
   editingImpact: { index: number; text: string } | null;
   setEditingImpact: (v: { index: number; text: string } | null) => void;
   handleSaveImpactText: (idx: number) => void;
-  renderRichTimelineEditor: (opts?: { hideAutoMap?: boolean; wizardManualMode?: boolean }) => React.ReactNode;
 };
 
 export function AppTimelineTab({
@@ -31,7 +30,6 @@ export function AppTimelineTab({
   editingImpact,
   setEditingImpact,
   handleSaveImpactText,
-  renderRichTimelineEditor,
 }: AppTimelineTabProps) {
   if (!config) {
     return (
@@ -165,8 +163,6 @@ export function AppTimelineTab({
             ))}
           </div>
         </div>
-
-        {renderRichTimelineEditor()}
       </div>
     </DashminProjectTabLayout>
   );
