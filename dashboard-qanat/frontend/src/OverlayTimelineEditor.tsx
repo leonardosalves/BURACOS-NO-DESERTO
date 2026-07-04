@@ -401,6 +401,7 @@ export function OverlayTimelineEditor({
             accentColor={String(props.accentColor || accentColor)}
             sceneLabel={sceneLabel}
             sceneNarration={narration}
+            durationSeconds={overlay.duration}
             compact
             onPositionSelect={
               overlaySupportsPosition(overlay.type) && !isSystem

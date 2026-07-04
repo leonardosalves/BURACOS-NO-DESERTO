@@ -397,3 +397,92 @@ export function kineticStyleProps(style: string, accent: string): CSSProperties 
     transform: 'scale(1.02)',
   };
 }
+
+export type TimelineEventDraft = {
+  year: string;
+  description: string;
+  highlight?: boolean;
+};
+
+export function normalizeTimelineEvents(props: Record<string, unknown>): TimelineEventDraft[] {
+  const raw = props.events;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw.map((e, i) => {
+      const item = (e && typeof e === 'object' ? e : {}) as Record<string, unknown>;
+      return {
+        year: String(item.year || `Evento ${i + 1}`),
+        description: String(item.description || item.label || '…'),
+        highlight: item.highlight === true,
+      };
+    });
+  }
+  return [
+    { year: '2008', description: 'Início do projeto' },
+    { year: '2015', description: 'Expansão' },
+    { year: '2024', description: 'Marco atual', highlight: true },
+  ];
+}
+
+export function infoTimelineTitleStyle(
+  theme: string,
+  accent: string,
+  isShort: boolean,
+): CSSProperties {
+  const pad = isShort ? '0.9em 1.4em' : '0.65em 1em';
+  switch (theme) {
+    case 'ancient':
+      return {
+        background: 'linear-gradient(135deg, rgba(20, 16, 12, 0.97) 0%, rgba(32, 24, 18, 0.95) 100%)',
+        border: `3px double ${accent}`,
+        borderRadius: '4px',
+        padding: pad,
+        boxShadow: `0 8px 24px rgba(0,0,0,0.6), inset 0 0 10px ${accent}15`,
+      };
+    case 'tech':
+      return {
+        background: 'rgba(4, 8, 12, 0.93)',
+        backgroundImage: `radial-gradient(${accent}15 1px, transparent 0)`,
+        backgroundSize: '8px 8px',
+        border: `1px solid ${accent}33`,
+        borderRadius: 0,
+        padding: pad,
+        boxShadow: `0 0 20px ${accent}15`,
+      };
+    case 'nature':
+      return {
+        background: 'linear-gradient(135deg, rgba(6, 12, 8, 0.97) 0%, rgba(12, 24, 16, 0.95) 100%)',
+        border: `1px solid ${accent}30`,
+        borderLeft: `4px solid ${accent}`,
+        borderRadius: '24px 6px 24px 6px',
+        padding: pad,
+        boxShadow: `0 8px 32px ${accent}15`,
+      };
+    case 'industrial':
+      return {
+        background: 'linear-gradient(135deg, rgba(14, 14, 16, 0.99) 0%, rgba(24, 24, 28, 0.97) 100%)',
+        border: '2px solid #333336',
+        borderLeft: `6px solid ${accent}`,
+        borderRadius: '2px',
+        padding: pad,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+      };
+    case 'mysterious':
+      return {
+        background: 'linear-gradient(135deg, rgba(10, 6, 14, 0.96) 0%, rgba(20, 12, 28, 0.94) 100%)',
+        border: `1px solid ${accent}40`,
+        borderRadius: '12px',
+        padding: pad,
+        boxShadow: `0 8px 32px ${accent}25, inset 0 0 15px rgba(255,255,255,0.03)`,
+      };
+    case 'classic':
+    default:
+      return {
+        background: 'linear-gradient(145deg, rgba(6,6,10,0.97) 0%, rgba(14,14,22,0.95) 100%)',
+        backdropFilter: 'blur(16px)',
+        borderRadius: isShort ? 16 : 12,
+        padding: pad,
+        border: `1px solid ${accent}55`,
+        boxShadow: '0 12px 40px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.06)',
+      };
+  }
+}
