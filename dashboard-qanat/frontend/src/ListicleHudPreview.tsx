@@ -8,6 +8,7 @@ import {
   resolveLottieKey,
   type ListicleHudTheme,
 } from '@lumiera/overlays/listicleHudTheme';
+import { TITLE_WARN_CHARS } from './listicleTitleUtils';
 
 type HudStyle = 'full' | 'compact' | 'auto';
 
@@ -35,8 +36,6 @@ type Props = {
   hudTheme?: ListicleHudTheme;
   videoSeed?: string;
 };
-
-const TITLE_WARN_CHARS = 60;
 
 export function shortenHudTitle(raw: string, maxLen = TITLE_WARN_CHARS): string {
   if (!raw) return '';
@@ -353,8 +352,4 @@ export function ListicleHudPreview({
   );
 }
 
-export function warnLongListicleTitles(titles: string[], limit = TITLE_WARN_CHARS) {
-  return titles
-    .map((title, index) => ({ title: title.trim(), index }))
-    .filter((entry) => entry.title.length > limit);
-}
+export { warnLongListicleTitles } from './listicleTitleUtils';
