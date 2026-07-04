@@ -191,6 +191,11 @@ import {
   type NarrationSyncContext,
 } from './timelineNarrationSync';
 import { resolveBgmMode } from '@lumiera/shared/bgmMode.js';
+import {
+  computeAssetDuration,
+  recalculateBlockSequentialAudioStarts,
+} from '@lumiera/shared/timelineAudioStarts.js';
+import { flattenWordTranscripts } from '@lumiera/shared/wordTranscripts.js';
 import { repairMojibake, repairMojibakeDeep } from './textEncoding';
 import {
   type CreatorApplyIdeaOptions,
@@ -2984,95 +2989,13 @@ export default function App() {
   }, [activeProject]);
 
   useEffect(() => {
-
     if (!wordTranscripts || wordTranscripts.length === 0) {
-
       setFlatTranscriptWords([]);
-
       return;
-
     }
-
-    const flatList: any[] = [];
-
-    wordTranscripts.forEach((segment: any, segIdx: number) => {
-
-      const segStart = segment.start_time || 0;
-
-      const segDuration = segment.duration || 0;
-
-      const segText = segment.text || "";
-
-      if (segment.words && Array.isArray(segment.words) && segment.words.length > 0) {
-
-        segment.words.forEach((w: any) => {
-
-          let wStart = w.start;
-
-          let wEnd = w.end;
-
-          if (wStart < segStart) {
-
-            wStart += segStart;
-
-            wEnd += segStart;
-
-          }
-
-          const cleanArr = cleanText(w.word);
-
-          flatList.push({
-
-            word: w.word,
-
-            clean: cleanArr[0] || "",
-
-            start: wStart,
-
-            end: wEnd,
-
-            segmentIndex: segIdx
-
-          });
-
-        });
-
-      } else if (segText) {
-
-        const rawWords = segText.split(/\s+/).filter(Boolean);
-
-        if (rawWords.length > 0) {
-
-          const wordDuration = segDuration / rawWords.length;
-
-          rawWords.forEach((word: string, wIdx: number) => {
-
-            const cleanArr = cleanText(word);
-
-            flatList.push({
-
-              word: word,
-
-              clean: cleanArr[0] || "",
-
-              start: segStart + wIdx * wordDuration,
-
-              end: segStart + (wIdx + 1) * wordDuration,
-
-              segmentIndex: segIdx
-
-            });
-
-          });
-
-        }
-
-      }
-
-    });
-
-    setFlatTranscriptWords(flatList);
-
+    setFlatTranscriptWords(
+      flattenWordTranscripts(wordTranscripts, { synthesizeFromText: true }),
+    );
   }, [wordTranscripts]);
 
   const loadEditorProject = () => {
@@ -4039,45 +3962,12 @@ export default function App() {
   };
 
   const getAssetDuration = (blockKey: string, index: number) => {
-
-    if (!config || !config.timeline_assets || !config.timeline_assets[blockKey]) return 0;
-
+    if (!config?.timeline_assets?.[blockKey]) return 0;
     const blockNum = parseInt(blockKey, 10);
-
-    const blockDuration = (status?.block_timings?.durations && status.block_timings.durations[blockNum - 1]) || 10.0;
-
+    const blockDuration = status?.block_timings?.durations?.[blockNum - 1] ?? 10.0;
     const configs = config.timeline_assets[blockKey];
-
     if (!configs || configs[index] === undefined) return 0;
-
-    const current = configs[index];
-
-    // Se o asset tem duração fixa definida pelo usuário, SEMPRE respeitar exatamente
-
-    if (current.fixed !== undefined && current.fixed !== null) {
-
-      return current.fixed;
-
-    }
-
-    // Para assets sem duração fixa, distribuir o tempo restante do bloco
-
-    const sumFixed = configs.reduce((acc: number, c: any) => acc + (c.fixed ? c.fixed : 0), 0);
-
-    const flexibleClips = configs.filter((c: any) => c.fixed === undefined || c.fixed === null);
-
-    const nFlex = flexibleClips.length;
-
-    if (nFlex > 0) {
-
-      const remaining = Math.max(0.5 * nFlex, blockDuration - sumFixed);
-
-      return remaining / nFlex;
-
-    }
-
-    return 0.5; // fallback mínimo
-
+    return computeAssetDuration(configs[index], configs, blockDuration);
   };
 
   const getTotalVideoDuration = () => {
@@ -4593,26 +4483,18 @@ export default function App() {
 
 
   const recalculateBlockAudioStarts = (blockKey: string, assets: any[], preserveUntilIndex = -1): any[] => {
-    const updated = assets.map((a) => ({ ...a }));
-    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
     const blockNum = parseInt(blockKey, 10);
+    const blockDuration = status?.block_timings?.durations?.[blockNum - 1] ?? 10.0;
+    const allBlockWords = blockNarrationWordsCache[blockKey] || [];
     const fallbackStart = status?.block_timings?.starts?.[blockNum - 1] ?? 0;
-    const narrationStart = allBlockWords.length > 0 ? allBlockWords[0].start : fallbackStart;
-
-    let cursor = narrationStart;
-    for (let i = 0; i < updated.length; i++) {
-      if (i <= preserveUntilIndex && updated[i]?.audio_start !== undefined && updated[i]?.audio_start !== null) {
-        cursor = Number(updated[i].audio_start) + getAssetDuration(blockKey, i);
-        continue;
-      }
-      if (i === 0) {
-        updated[i].audio_start = parseFloat(narrationStart.toFixed(3));
-      } else {
-        updated[i].audio_start = parseFloat(cursor.toFixed(3));
-      }
-      cursor = Number(updated[i].audio_start) + getAssetDuration(blockKey, i);
-    }
-    return updated;
+    const anchorStart = allBlockWords.length > 0 ? allBlockWords[0].start : fallbackStart;
+    return recalculateBlockSequentialAudioStarts({
+      assets,
+      blockDuration,
+      anchorStart,
+      preserveUntilIndex,
+      resolveDuration: (asset, all) => computeAssetDuration(asset, all, blockDuration),
+    });
   };
 
   const enrichTimelineAudioStarts = (cfg: ConfigData, options?: { force?: boolean }): ConfigData => {
