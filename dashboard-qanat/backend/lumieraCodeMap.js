@@ -53,6 +53,14 @@ export const LUMIERA_CODE_MAP = {
       files: ["server.js"],
       routes: ["GET editorial-queue", "PATCH editorial-queue/:id"],
     },
+    {
+      prefix: "/api/n8n",
+      files: ["n8nRoutes.js", "lumieraN8nBridge.js"],
+      routes: [
+        "GET status", "GET map", "POST inbound", "POST sync/push", "POST sync/pull",
+      ],
+      note: "Orquestração bidirecional com n8n (github.com/n8n-io/n8n)",
+    },
   ],
   promptInjection: [
     { fn: "injectStudioAgentsContext", file: "skillsRegistry.js", tasks: ["ideas", "script", "metadata", "overlay"] },

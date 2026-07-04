@@ -19,6 +19,7 @@ import {
   Youtube,
   Zap,
   Bell,
+  Workflow,
 } from 'lucide-react';
 import { SettingHelpTip } from './SettingHelpTip';
 import { SECTION_HELP } from './sectionHelpContent';
@@ -41,6 +42,7 @@ const STUDIO_NAV: GlobalNavItem[] = [
   { id: 'agent-reach', label: 'Pesquisa Web', icon: Globe, helpId: 'tab-agent-reach', accent: 'sky' },
   { id: 'trend-forecast', label: 'Radar Tendências', icon: TrendingUp, helpId: 'tab-trend-forecast', accent: 'amber' },
   { id: 'comfy-mcp', label: 'Comfy MCP', icon: Cloud, helpId: 'tab-comfy-mcp', accent: 'sky' },
+  { id: 'n8n-orchestrator', label: 'n8n Orquestração', icon: Workflow, helpId: 'tab-n8n-orchestrator', accent: 'default' },
 ];
 
 type AppShellProps = {

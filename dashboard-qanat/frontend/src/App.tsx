@@ -93,6 +93,8 @@ import {
 
   Zap,
 
+  Workflow,
+
 } from 'lucide-react';
 
 import { buildTaggedNarration, taggedNarrationMeta, type TaggedNarrationPlatform } from './taggedNarration';
@@ -145,6 +147,7 @@ import { YoutubeStudioPanel, type YoutubeChannelAlerts } from './YoutubeStudioPa
 import { VideoResurrectorPanel } from './VideoResurrectorPanel';
 import { useResurrectorScheduler } from './useResurrectorScheduler';
 import { ComfyMcpPage } from './ComfyMcpPage';
+import { N8nOrchestratorPage } from './N8nOrchestratorPage';
 import { TrendForecastPanel } from './TrendForecastPanel';
 import { AgentReachPanel } from './AgentReachPanel';
 import { ProjectsLibraryPanel, type ProjectListItem } from './ProjectsLibraryPanel';
@@ -13375,6 +13378,19 @@ export default function App() {
                 icon={<Cloud className="w-5 h-5" />}
               >
                 <ComfyMcpPage embedded />
+              </DashminPageLayout>
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'n8n-orchestrator' && (
+            <TabErrorBoundary tabName="n8n Orquestração">
+              <DashminPageLayout
+                title="n8n Orquestração"
+                subtitle="Mapa de funcionamento do Lumiera sincronizado com workflows n8n."
+                breadcrumb={['Dashboard', 'Estúdio', 'n8n']}
+                icon={<Workflow className="w-5 h-5" />}
+              >
+                <N8nOrchestratorPage toast={(msg) => toast(msg)} embedded />
               </DashminPageLayout>
             </TabErrorBoundary>
           )}
