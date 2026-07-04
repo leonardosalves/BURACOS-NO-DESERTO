@@ -477,6 +477,7 @@ export default function App() {
   );
   const [narrationProjectName, setNarrationProjectName] = useState<string>(savedCreatorState.narrationProjectName || '');
   const [useNotebooklm, setUseNotebooklm] = useState<boolean>(savedCreatorState.useNotebooklm !== false);
+  const [useDeepResearch, setUseDeepResearch] = useState<boolean>(savedCreatorState.useDeepResearch !== false);
   const [facelessPresetId, setFacelessPresetId] = useState<string | null>(null);
   const [facelessPipelineBusy, setFacelessPipelineBusy] = useState(false);
   const [facelessPipelineLog, setFacelessPipelineLog] = useState<string[]>([]);
@@ -2284,6 +2285,7 @@ export default function App() {
     narrationNotebooklmEnriched,
     narrationProjectName,
     useNotebooklm,
+    useDeepResearch,
     uploadedScenes,
     expandedBlocks,
     editorialIdeaImport,
@@ -2294,7 +2296,7 @@ export default function App() {
     customIdeaBlocks, listNiche, listTopic, rankCount, rankOrder, listicleHudStyle, listicleIdeasData,
     listicleSearchNiche, ideasSearchNiche, selectedListicleIdeaIndex, showNarrationReview, narrationDraft,
     narrationTaggedDraft, narrationStrategy, narrationBlockPhrases, narrationBlockScript,
-    narrationNotebooklmEnriched, narrationProjectName, useNotebooklm, uploadedScenes, expandedBlocks,
+    narrationNotebooklmEnriched, narrationProjectName, useNotebooklm, useDeepResearch, uploadedScenes, expandedBlocks,
     editorialIdeaImport,
   ]);
 
@@ -2342,6 +2344,7 @@ export default function App() {
     if (patch.narrationNotebooklmEnriched !== undefined) setNarrationNotebooklmEnriched(patch.narrationNotebooklmEnriched);
     if (patch.narrationProjectName !== undefined) setNarrationProjectName(patch.narrationProjectName);
     if (patch.useNotebooklm !== undefined) setUseNotebooklm(patch.useNotebooklm);
+    if (patch.useDeepResearch !== undefined) setUseDeepResearch(patch.useDeepResearch);
     if (patch.uploadedScenes) setUploadedScenes(patch.uploadedScenes);
     if (patch.expandedBlocks) setExpandedBlocks(patch.expandedBlocks);
     if (patch.editorialIdeaImport !== undefined) {
@@ -5842,14 +5845,18 @@ export default function App() {
 
     try {
 
-      if (geminiBrowserMode) {
-        toast.loading(regen ? 'Gerando outras 10 ideias…' : 'Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
-      }
+      const loadingMsg = useDeepResearch
+        ? (regen
+          ? 'DeerFlow: nova varredura profunda + 10 ideias…'
+          : 'DeerFlow: pesquisa profunda (web, Exa, YouTube) + 10 ideias…')
+        : (regen ? 'Gerando outras 10 ideias…' : 'Gerando ideias…');
+      toast.loading(loadingMsg, { id: 'gemini-ideas' });
 
       const body = JSON.stringify({
         niche: nicheInput.trim(),
         format: formatSelector,
         useNotebooklm,
+        useDeepResearch,
         forceVariety: regen,
         excludeIdeas: previousIdeas.map((idea: { title?: string }) => ({ title: idea?.title || '' })),
         ...(ideationTab === 'listicle' ? {
@@ -5864,8 +5871,6 @@ export default function App() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
       });
 
-      toast.dismiss('gemini-ideas');
-
       if (ok && data.ideas) {
 
         setIdeasData(data);
@@ -5873,8 +5878,17 @@ export default function App() {
 
         setSelectedIdeaIndex(data.best_idea_index);
 
-        if (regen) {
-          toast.success(`Nova leva de ideias (${data._ideas_meta?.excludedCount ?? 0} assuntos anteriores bloqueados).`);
+        const meta = data._ideas_meta;
+        const deep = meta?.deepResearch;
+        if (meta?.usedDeepResearch && deep) {
+          toast.success(
+            `10 ideias com DeerFlow — ${deep.factCount || 0} fatos · ${deep.outlierCount || 0} outliers YouTube`,
+            { id: 'gemini-ideas', duration: 5000 },
+          );
+        } else if (regen) {
+          toast.success(`Nova leva de ideias (${meta?.excludedCount ?? 0} assuntos anteriores bloqueados).`, { id: 'gemini-ideas' });
+        } else {
+          toast.success('10 ideias geradas.', { id: 'gemini-ideas' });
         }
 
         // Auto-fill project name from best idea title (short 3-word summary)
@@ -5900,6 +5914,7 @@ export default function App() {
         setCreatorProjectName(shortName);
 
       } else {
+        toast.dismiss('gemini-ideas');
         const errMsg = data.error || 'Erro desconhecido';
         toast.error(
           errMsg.includes('extensão') || errMsg.includes('Extensão') || errMsg.includes('Gemini')
@@ -5912,6 +5927,7 @@ export default function App() {
     } catch (err: any) {
 
       console.error(err);
+      toast.dismiss('gemini-ideas');
 
       const msg = err?.message || 'Conexão falhou ao analisar o nicho.';
       toast.error(
@@ -6248,6 +6264,7 @@ export default function App() {
     setListicleSearchNiche('');
     setIdeasSearchNiche('');
     setUseNotebooklm(true);
+    setUseDeepResearch(true);
     setUploadedScenes({});
     setExpandedBlocks({ 1: true });
     setTaggedNarrations({ fish: '', eleven: '', minimax: '' });
@@ -8190,6 +8207,8 @@ export default function App() {
     uploading,
     uploadingNarration,
     useNotebooklm,
+    useDeepResearch,
+    setUseDeepResearch,
     videoFileDurations,
     videoQuality,
     visualDraftToApiPatch,

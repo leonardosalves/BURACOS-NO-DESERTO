@@ -154,7 +154,7 @@ import {
   testSupermemoryConnection,
 } from "./supermemoryClient.js";
 import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
-import { runDeepResearch } from "./deerFlowResearch.js";
+import { runDeepResearch, formatDeepResearchForIdeasPrompt } from "./deerFlowResearch.js";
 import {
   getGeminiBrowserMode,
   buildBrowserChatPrompt,
@@ -12465,6 +12465,7 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
     listTopic,
     excludeIdeas = [],
     forceVariety = false,
+    useDeepResearch = true,
   } = req.body;
 
   if (!niche || !format) {
@@ -12493,38 +12494,101 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   const exclusionAddendum = buildIdeasExclusionAddendum(excludeTopics);
   const diversityHint = explorationAxes.split("\n").filter((l) => /^\d+\./.test(l)).join(" | ");
 
-  let notebooklmContext = "";
-  const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
-  if (useNotebooklm !== false && !skipNotebooklm) {
+  const skipResearch = browserText || shouldOfferGeminiBrowser(projDir);
+  const researchTopic = isListicle ? listicleTopic : nicheClean;
+  const fmtDeep = format === "SHORTS" ? "SHORTS" : "LONGO";
+
+  let deepResearchContext = "";
+  let deepResearchMeta = null;
+
+  if (useDeepResearch !== false && !skipResearch) {
     try {
-      const research = await fetchNotebooklmResearch(niche, format, {
+      const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } = buildCompetitorLlmFns({
+        workspaceDir: WORKSPACE_DIR,
+        getAiProvider,
+        getApiKey,
+        getApiKeys,
+        getGeminiModel,
+        callGeminiWithRetry,
+        callNvidiaWithRetry,
+        NVIDIA_MODELS,
+      }, { useAi: true });
+
+      const deepLegs = useNotebooklm !== false
+        ? ["web", "exa", "competitors", "notebooklm"]
+        : ["web", "exa", "competitors"];
+
+      console.log(`[IDEAS] DeerFlow — nicho="${nicheClean}" legs=${deepLegs.join(",")}`);
+      const deep = await runDeepResearch(WORKSPACE_DIR, {
+        topic: researchTopic,
+        niche: nicheClean,
+        format: fmtDeep,
+        legs: deepLegs,
+        llmFn: competitorLlmFn,
+        repairJsonFn: competitorRepairFn,
+        getApiKeys: () => getApiKeys(projDir),
+        apiKey: getApiKey(projDir),
         backendDir: __dirname,
-        contentMode: isListicle ? "LISTICLE" : undefined,
-        rankCount: listicleRank,
-        listTopic: listicleTopic,
-        rankOrder: rankOrder || "desc",
+        notebooklmDeep: useNotebooklm !== false,
+        enqueueIdeas: false,
+        diversityHint,
+        excludeTopics,
       });
-      notebooklmContext = formatNotebooklmPromptBlock(research, "CONTEXTO DE PESQUISA");
-    } catch (e) {
-      notebooklmContext = "";
+
+      if (deep.ok) {
+        deepResearchContext = formatDeepResearchForIdeasPrompt(deep.report, deep.plan, deep.artifacts);
+        deepResearchMeta = {
+          factCount: deep.report?.factCount || 0,
+          derivedIdeas: deep.report?.derivedIdeas?.length || 0,
+          outlierCount: deep.artifacts?.competitors?.outlierCount || 0,
+          legs: {
+            web: Boolean(deep.artifacts?.web?.available),
+            exa: Boolean(deep.artifacts?.exa?.available),
+            notebooklm: Boolean(deep.artifacts?.notebooklm?.available),
+            competitors: Boolean(deep.artifacts?.competitors),
+          },
+          legErrors: (deep.legErrors || []).length,
+        };
+      }
+    } catch (err) {
+      console.warn("[IDEAS] DeerFlow falhou — fallback pesquisa rápida:", err.message);
     }
   }
 
+  let notebooklmContext = "";
   let webResearchContext = "";
-  try {
-    const webResearch = await fetchWebResearchForTopic({
-      topic: isListicle ? listicleTopic : nicheClean,
-      niche: nicheClean,
-      format,
-      apiKey: getApiKey(projDir),
-      getApiKeys: () => getApiKeys(projDir),
-      workspaceDir: WORKSPACE_DIR,
-      diversityHint,
-      excludeTopics,
-    });
-    webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
-  } catch {
-    webResearchContext = "";
+
+  if (!deepResearchContext && !skipResearch) {
+    if (useNotebooklm !== false) {
+      try {
+        const research = await fetchNotebooklmResearch(niche, format, {
+          backendDir: __dirname,
+          contentMode: isListicle ? "LISTICLE" : undefined,
+          rankCount: listicleRank,
+          listTopic: listicleTopic,
+          rankOrder: rankOrder || "desc",
+        });
+        notebooklmContext = formatNotebooklmPromptBlock(research, "CONTEXTO DE PESQUISA");
+      } catch {
+        notebooklmContext = "";
+      }
+    }
+
+    try {
+      const webResearch = await fetchWebResearchForTopic({
+        topic: researchTopic,
+        niche: nicheClean,
+        format,
+        apiKey: getApiKey(projDir),
+        getApiKeys: () => getApiKeys(projDir),
+        workspaceDir: WORKSPACE_DIR,
+        diversityHint,
+        excludeTopics,
+      });
+      webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
+    } catch {
+      webResearchContext = "";
+    }
   }
 
   let promptSystem = `Você é o "Lumiera Ideas Engine" (Gerador de Roteiros Virais para YouTube + Hyperframe), um estrategista de retenção e pesquisador de tendências do YouTube.
@@ -12543,6 +12607,7 @@ ${explorationAxes}
 
 ${exclusionAddendum}
 
+${deepResearchContext}
 ${notebooklmContext}
 ${webResearchContext}
 
@@ -12662,6 +12727,8 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
       _ideas_meta: {
         generationSeed,
         excludedCount: excludeTopics.length,
+        usedDeepResearch: Boolean(deepResearchContext),
+        deepResearch: deepResearchMeta,
         usedWebResearch: Boolean(webResearchContext),
         usedNotebooklm: Boolean(notebooklmContext),
       },

@@ -46,6 +46,7 @@ export type WizardSession = {
   narrationNotebooklmEnriched: boolean;
   narrationProjectName: string;
   useNotebooklm: boolean;
+  useDeepResearch: boolean;
   uploadedScenes: Record<string, boolean>;
   expandedBlocks: Record<number, boolean>;
   editorialIdeaImport?: EditorialIdeaImport | null;
@@ -138,6 +139,7 @@ export function saveWizardSession(patch: WizardSessionPatch): WizardSession {
     narrationNotebooklmEnriched: patch.narrationNotebooklmEnriched ?? prev.narrationNotebooklmEnriched ?? false,
     narrationProjectName: patch.narrationProjectName ?? prev.narrationProjectName ?? '',
     useNotebooklm: patch.useNotebooklm ?? prev.useNotebooklm ?? true,
+    useDeepResearch: patch.useDeepResearch ?? prev.useDeepResearch ?? true,
     uploadedScenes: patch.uploadedScenes ?? prev.uploadedScenes ?? {},
     expandedBlocks: patch.expandedBlocks ?? prev.expandedBlocks ?? { 1: true },
     editorialIdeaImport: patch.editorialIdeaImport !== undefined
@@ -199,6 +201,7 @@ export function buildEmptyWizardSession(activeTab = 'creator'): WizardSession {
     narrationNotebooklmEnriched: false,
     narrationProjectName: '',
     useNotebooklm: true,
+    useDeepResearch: true,
     uploadedScenes: {},
     expandedBlocks: { 1: true },
     editorialIdeaImport: null,

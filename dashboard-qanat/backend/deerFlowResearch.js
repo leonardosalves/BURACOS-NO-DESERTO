@@ -42,7 +42,15 @@ export function planDeepResearch(topic = "", { niche = "Geral", format = "SHORTS
   };
 }
 
-async function runWebLeg(workspaceDir, { topic, niche, format, getApiKeys, apiKey }) {
+async function runWebLeg(workspaceDir, {
+  topic,
+  niche,
+  format,
+  getApiKeys,
+  apiKey,
+  diversityHint = "",
+  excludeTopics = [],
+}) {
   const fmt = format === "LONGO" ? "LONG" : "SHORT";
   return {
     leg: "web",
@@ -53,6 +61,8 @@ async function runWebLeg(workspaceDir, { topic, niche, format, getApiKeys, apiKe
       apiKey,
       getApiKeys: () => getApiKeys(workspaceDir),
       workspaceDir,
+      diversityHint,
+      excludeTopics,
     })),
   };
 }
@@ -156,6 +166,55 @@ export function buildDeepResearchReport(plan, artifacts = {}) {
   };
 }
 
+/** Bloco compacto para o Script Master (geração de 10 ideias). */
+export function formatDeepResearchForIdeasPrompt(report = {}, plan = {}, artifacts = {}) {
+  const markdown = String(report?.markdown || "").trim();
+  const derived = report?.derivedIdeas
+    || artifacts?.competitors?.derivedIdeas
+    || [];
+  const competitorAnalysis = artifacts?.competitors?.analysis || artifacts?.competitors || {};
+  const outliers = competitorAnalysis.outliers || [];
+
+  if (!markdown && !derived.length && !(report?.factCount > 0)) return "";
+
+  const lines = [
+    "",
+    "## PESQUISA PROFUNDA (DeerFlow → Lumiera)",
+    "Esta varredura rodou ANTES das 10 ideias: web (Gemini grounding), Exa, outliers YouTube e NotebookLM quando disponível.",
+    "Use os fatos e ângulos abaixo como base primária — as ideias devem ser originais, não cópias de títulos de concorrentes.",
+    "",
+    compressTranscriptForPrompt(markdown, { format: plan?.format || "SHORTS", maxChars: 11000 }),
+  ];
+
+  if (outliers.length) {
+    lines.push(
+      "",
+      "### Outliers YouTube (referência de mecânica — não copiar título)",
+      ...outliers.slice(0, 5).map((o) =>
+        `- ${o.title || "Vídeo"} · ${(o.views || 0).toLocaleString("pt-BR")} views · ${o.channelTitle || ""}`,
+      ),
+    );
+  }
+
+  if (derived.length) {
+    lines.push(
+      "",
+      "### Sementes derivadas da pesquisa",
+      ...derived.slice(0, 6).map((idea, i) =>
+        `${i + 1}. **${idea.title || "Ideia"}** — ${idea.hookPt || idea.angle || idea.promise || ""}`,
+      ),
+    );
+  }
+
+  lines.push(
+    "",
+    "INSTRUÇÃO: Transforme fatos verificáveis em 10 ideias DISTINTAS dentro do nicho. Não repita apenas os exemplos do relatório — combine subáreas novas.",
+    "",
+  );
+
+  return lines.join("\n");
+}
+
 export function appendDeepResearchReport(workspaceDir, plan, report) {
   ensureAgentDirs(workspaceDir);
   const memoryPath = path.join(getAgentPaths(workspaceDir).memoryDir, MEMORY_FILE);
@@ -203,6 +262,8 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
 
   const legs = Array.isArray(opts.legs) ? opts.legs : plan.legs;
   const tasks = [];
+  const diversityHint = String(opts.diversityHint || "").trim();
+  const excludeTopics = Array.isArray(opts.excludeTopics) ? opts.excludeTopics : [];
 
   if (legs.includes("web") && opts.getApiKeys) {
     tasks.push(runWebLeg(workspaceDir, {
@@ -211,6 +272,8 @@ export async function runDeepResearch(workspaceDir, opts = {}) {
       format,
       getApiKeys: opts.getApiKeys,
       apiKey: opts.apiKey,
+      diversityHint,
+      excludeTopics,
     }));
   }
 

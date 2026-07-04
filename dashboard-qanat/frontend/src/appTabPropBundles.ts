@@ -193,6 +193,7 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     uploadedScenes: ctx.uploadedScenes,
     uploadingNarration: ctx.uploadingNarration,
     useNotebooklm: ctx.useNotebooklm,
+    useDeepResearch: ctx.useDeepResearch,
     wizardSavedAtLabel: ctx.wizardSavedAtLabel,
     wordTranscripts: ctx.wordTranscripts,
     youtubeLoading: ctx.youtubeLoading,
