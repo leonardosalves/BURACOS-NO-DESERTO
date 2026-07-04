@@ -47,6 +47,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) return 'vendor';
           if (id.includes('AppMusicTab')) return 'music-tab';
+          if (id.includes('AppCreatorTab')) return 'creator-tab';
           if (id.includes('ListicleCreatorStep')) return 'creator-step';
           if (id.includes('SceneTimingEditor')) return 'scene-timing';
           if (id.includes('WorkflowToolkit')) return 'workflow';
