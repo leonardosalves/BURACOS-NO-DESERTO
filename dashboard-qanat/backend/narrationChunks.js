@@ -29,6 +29,16 @@ export const NARRATION_MASTER_FILENAME = "narracao_mestra_premium.mp3";
 export const NARRATION_MODE_CHUNKED = "chunked";
 export const NARRATION_MODE_MASTER = "master";
 
+/** Projeto com plano de trechos gerado — timings vêm do chunk plan, não do agrupamento Whisper por bloco. */
+export function isChunkedNarrationProject(config = {}, storyboard = {}) {
+  const plan = storyboard?.narration_chunk_plan;
+  const chunks = Array.isArray(plan?.chunks) ? plan.chunks : [];
+  return (
+    (config.narration_mode === NARRATION_MODE_CHUNKED || plan?.mode === NARRATION_MODE_CHUNKED)
+    && chunks.some((c) => String(c.text || "").trim().length >= 2)
+  );
+}
+
 const DEFAULT_PAUSE_BETWEEN_SCENES_MS = 350;
 const DEFAULT_PAUSE_BETWEEN_BLOCKS_MS = 750;
 
@@ -263,6 +273,7 @@ export function buildBlockTimingsFromChunks(chunks = []) {
       byBlock.set(block, { block, start, end: blockEnd });
     } else {
       const entry = byBlock.get(block);
+      entry.start = Math.min(entry.start, start);
       entry.end = Math.max(entry.end, blockEnd);
     }
   }
@@ -413,6 +424,33 @@ export function mergeWhisperTranscriptsWithChunkPlan(chunkPlan = {}, flatWords =
       words: wordEntries,
       text: ` ${plain}`,
     };
+  });
+}
+
+/**
+ * Pós-Whisper em modo chunked: restaura block_timings + timeline pelo plano de trechos.
+ * Retorna null se não for narração por trechos (caller usa syncProjectTimelineAfterWhisper).
+ */
+export function applyChunkedTimelineAfterWhisper(projDir, {
+  config = {},
+  storyboard = {},
+  wordTranscripts = [],
+  flatWords = [],
+} = {}) {
+  const chunkPlan = storyboard?.narration_chunk_plan;
+  if (!isChunkedNarrationProject(config, storyboard) || !chunkPlan?.chunks?.length) {
+    return null;
+  }
+  const timedChunks = computeChunkTimeline(chunkPlan.chunks);
+  if (!timedChunks.some((c) => Number(c.duration_s) > 0 && Number.isFinite(Number(c.start_s)))) {
+    return null;
+  }
+  return applyChunkedNarrationSyncToProject(projDir, {
+    chunkPlan: { ...chunkPlan, chunks: timedChunks },
+    config,
+    storyboard,
+    whisperTranscripts: wordTranscripts,
+    flatWords,
   });
 }
 

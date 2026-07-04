@@ -139,6 +139,15 @@ describe("montage pipeline", () => {
       assert.equal(chunks[0].text_tagged, "A torre resistiu.");
     });
 
+    it("buildBlockTimingsFromChunks usa menor start_s por bloco", () => {
+      const timings = buildBlockTimingsFromChunks([
+        { block: 2, start_s: 12, end_s: 15, pause_after_ms: 0 },
+        { block: 2, start_s: 5, end_s: 8, pause_after_ms: 200 },
+      ]);
+      assert.equal(timings.starts[0], 5);
+      assert.equal(timings.durations[0], 10);
+    });
+
     it("buildBlockTimingsFromChunks agrupa por bloco", () => {
       const timings = buildBlockTimingsFromChunks([
         { block: 1, start_s: 0, end_s: 2, pause_after_ms: 200 },

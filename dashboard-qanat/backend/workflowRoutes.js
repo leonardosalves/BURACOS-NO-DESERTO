@@ -64,6 +64,7 @@ import {
   writeTimingsFromChunkPlan,
   formatNarrationChunkPlanLog,
   applyChunkedNarrationSyncToProject,
+  applyChunkedTimelineAfterWhisper,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
 import {
@@ -297,6 +298,17 @@ export function registerWorkflowRoutes(app, deps) {
     const wordTranscripts = readJsonFile(wordsPath) || [];
     const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
     if (!flatTranscriptWords.length) return;
+
+    const chunkedApplied = applyChunkedTimelineAfterWhisper(projDir, {
+      config,
+      storyboard,
+      wordTranscripts,
+      flatWords: flatTranscriptWords,
+    });
+    if (chunkedApplied) {
+      log("[Pipeline] Narração por trechos: block_timings e timeline pelo plano de chunks (Whisper só para palavras).");
+      return;
+    }
 
     const synced = syncProjectTimelineAfterWhisper({
       timelineAssets: config.timeline_assets || {},
