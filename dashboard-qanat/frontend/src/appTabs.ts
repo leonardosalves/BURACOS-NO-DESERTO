@@ -18,7 +18,6 @@ export type AppTab =
   | 'comfy-mcp'
   | 'trend-forecast'
   | 'agent-reach'
-  | 'n8n-orchestrator'
   | 'projects';
 
 export const RESTORABLE_APP_TABS: AppTab[] = [
@@ -40,7 +39,6 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   'comfy-mcp',
   'trend-forecast',
   'agent-reach',
-  'n8n-orchestrator',
   'projects',
 ];
 
@@ -54,7 +52,6 @@ export const GLOBAL_VIEW_TABS: AppTab[] = [
   'comfy-mcp',
   'trend-forecast',
   'agent-reach',
-  'n8n-orchestrator',
   'projects',
 ];
 
