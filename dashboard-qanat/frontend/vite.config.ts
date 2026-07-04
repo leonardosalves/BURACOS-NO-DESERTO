@@ -56,6 +56,8 @@ export default defineConfig({
           if (id.includes('AppTimelineTab')) return 'timeline-tab';
           if (id.includes('AppUploadTab')) return 'upload-tab';
           if (id.includes('AppAiTab')) return 'ai-tab';
+          if (id.includes('AppStatusTab')) return 'status-tab';
+          if (id.includes('AppSettingsTab')) return 'settings-tab';
           if (id.includes('youtubeMetadataDisplay')) return 'youtube-metadata-ui';
           if (id.includes('RichTimelineEditor')) return 'timeline-editor';
           if (id.includes('ListicleCreatorStep')) return 'creator-step';

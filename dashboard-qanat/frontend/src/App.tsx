@@ -253,6 +253,8 @@ const AppEditorTab = lazy(() => import('./AppEditorTab').then((m) => ({ default:
 const AppTimelineTab = lazy(() => import('./AppTimelineTab').then((m) => ({ default: m.AppTimelineTab })));
 const AppUploadTab = lazy(() => import('./AppUploadTab').then((m) => ({ default: m.AppUploadTab })));
 const AppAiTab = lazy(() => import('./AppAiTab').then((m) => ({ default: m.AppAiTab })));
+const AppStatusTab = lazy(() => import('./AppStatusTab').then((m) => ({ default: m.AppStatusTab })));
+const AppSettingsTab = lazy(() => import('./AppSettingsTab').then((m) => ({ default: m.AppSettingsTab })));
 
 const initialWizardSession = loadWizardSession();
 
@@ -7650,386 +7652,34 @@ export default function App() {
           {/* TAB: RENDER */}
 
           {activeTab === 'status' && (
-
-            <DashminProjectTabLayout tab="status" activeProject={activeProject}>
-
-            <div className="lumiera-render-workspace">
-
-              <div className="lumiera-render-hero">
-                <div className="lumiera-render-topbar glass-panel px-3 py-2 rounded-lg border border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-300">
-                    <span className="flex items-center gap-1.5">
-                      <Tv className="w-3.5 h-3.5 text-gold-500" />
-                      <span><strong className="text-gold-400">{renderResolutionLabel}</strong></span>
-                    </span>
-                    {videoQuality && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tabular-nums ${
-                        videoQuality.score >= 80
-                          ? 'text-emerald-400 bg-emerald-500/10'
-                          : videoQuality.score >= 60
-                            ? 'text-amber-400 bg-amber-500/10'
-                            : 'text-red-400 bg-red-500/10'
-                      }`}>
-                        {videoQuality.score}/100
-                      </span>
-                    )}
-                    {outputs.length > 0 && (
-                      <span className="text-[9px] text-zinc-500">{outputs.length} em OUTPUT</span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('settings')}
-                    className="text-[9px] text-zinc-500 hover:text-gold-400 transition shrink-0"
-                  >
-                    Resolução →
-                  </button>
-                </div>
-                <div className="lumiera-render-engines-grid">
-                
-                {/* Compiler Card */}
-                <div className="glass-panel lumiera-render-card">
-                  <div>
-                    <SectionHeader
-                      title="RENDERIZADOR PADRÃO"
-                      helpId="render-standard"
-                      icon={<Tv className="w-4 h-4 text-gold-500" />}
-                      size="sm"
-                      titleClassName="text-[10px]"
-                    />
-                    <p className="text-[10px] text-gray-500 mt-0.5">Legendas Gold/Water e Ken Burns.</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 w-full">
-                    <button 
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('standard')}
-                      className="bg-gold-500 hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-gold-500/10 cursor-pointer w-full"
-                    >
-                      <Play className="w-4 h-4 fill-current" />
-                      <span>Compilação Padrão</span>
-                    </button>
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('standard', false, true)}
-                      className="bg-zinc-900 border border-zinc-800 hover:border-gold-500/40 disabled:opacity-50 disabled:cursor-not-allowed text-gold-500 font-bold py-1.5 rounded-lg transition flex items-center justify-center gap-2 text-[10px] cursor-pointer w-full"
-                      title="Renderiza mantendo as legendas normais, mas removendo os textos grandes de impacto no centro da tela."
-                    >
-                      <Video className="w-3.5 h-3.5" />
-                      <span>Sem títulos grandes</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="glass-panel lumiera-render-card">
-                  <div>
-                    <SectionHeader
-                      title="REMOTION ENGINE"
-                      helpId="render-remotion"
-                      icon={<ExternalLink className="w-4 h-4 text-water-300" />}
-                      size="sm"
-                      titleClassName="text-[10px]"
-                    />
-                    <p className="text-[10px] text-gray-500 mt-0.5">Timeline + narração + legendas.</p>
-                  </div>
-                  <button
-                    disabled={rendering || !status?.has_narration}
-                    onClick={() => triggerRender('remotion')}
-                    className="bg-water-500/15 border border-water-400/30 hover:bg-water-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-water-200 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>Render Remotion</span>
-                  </button>
-                </div>
-
-                <div className="glass-panel-glow border border-amber-500/30 lumiera-render-card">
-                  <div>
-                    <div className="flex flex-wrap justify-between items-start gap-1">
-                      <SectionHeader
-                        title="REMOTION PRO"
-                        helpId="render-remotion-pro"
-                        icon={<Sparkles className="w-4 h-4 text-amber-500" />}
-                        size="sm"
-                        titleClassName="text-[10px]"
-                      />
-                      <span className="bg-amber-500/15 text-amber-500 text-[7px] font-bold px-1.5 py-0.5 rounded uppercase">Premium</span>
-                    </div>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Infográficos e textos de impacto.</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 w-full">
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => triggerRender('remotion-pro')}
-                      className="bg-dash-primary hover:bg-dash-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Render PRO</span>
-                    </button>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        disabled={rendering || !status?.has_narration}
-                        onClick={() => triggerRender('remotion-pro', false, false, false, false, 0, effectiveRenderResolution, false, true)}
-                        className="bg-zinc-900 border border-cyan-500/35 hover:border-cyan-400/50 disabled:opacity-50 text-cyan-300 font-bold py-1.5 rounded-lg text-[9px] cursor-pointer"
-                        title="Amostra 12s"
-                      >
-                        Amostra 12s
-                      </button>
-                      <button
-                        disabled={rendering || !status?.has_narration}
-                        onClick={() => triggerRender('remotion-pro', false, false, false, false, 30)}
-                        className="bg-zinc-900 border border-amber-500/30 hover:border-amber-400/50 disabled:opacity-50 text-amber-300 font-bold py-1.5 rounded-lg text-[9px] cursor-pointer"
-                        title="Preview 30s"
-                      >
-                        Preview 30s
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="glass-panel-glow border border-emerald-500/30 lumiera-render-card">
-                  <div>
-                    <div className="flex flex-wrap justify-between items-start gap-1">
-                      <SectionHeader
-                        title="HYPERFRAMES AI"
-                        helpId="render-hyperframes"
-                        icon={<Sparkles className="w-4 h-4 text-emerald-400" />}
-                        size="sm"
-                        titleClassName="text-[10px]"
-                      />
-                      <span className="bg-emerald-500/15 text-emerald-400 text-[7px] font-bold px-1.5 py-0.5 rounded uppercase">Orq.</span>
-                    </div>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Catálogo HyperFrames · ProRes opcional.</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 w-full">
-                    <label className="flex items-center gap-1.5 text-[9px] text-zinc-400 cursor-pointer select-none">
-                      <input 
-                        type="checkbox" 
-                        id="prores-alpha-checkbox" 
-                        className="rounded bg-zinc-900 border-zinc-700 text-emerald-500 focus:ring-0 cursor-pointer w-3 h-3" 
-                      />
-                      <span>ProRes Alpha</span>
-                    </label>
-                    <button
-                      disabled={rendering || !status?.has_narration}
-                      onClick={() => {
-                        const proresCheck = document.getElementById('prores-alpha-checkbox') as HTMLInputElement;
-                        triggerRender('remotion-pro', false, false, true, proresCheck?.checked);
-                      }}
-                      className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs cursor-pointer w-full"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>HyperFrames AI</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              </div>
-
-              <BrandSettingsPanel {...brandPanelProps} />
-
-              {config && !status?.has_narration && (
-                <div className="glass-panel px-3 py-2 rounded-lg border border-amber-500/25 bg-amber-500/5 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[10px] text-amber-200/90">
-                    Sem narração — use Workflow antes de renderizar.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('workflow')}
-                    className="text-[10px] font-bold text-amber-300 hover:text-amber-100 border border-amber-500/40 px-2.5 py-1 rounded-lg transition"
-                  >
-                    Workflow →
-                  </button>
-                </div>
-              )}
-
-              <div className="lumiera-render-grid">
-                <div className="lumiera-render-primary space-y-3 min-w-0">
-
-              {videoQuality && (!(videoQuality.score >= 80) || !videoQuality.ok || videoQuality.issues.some((i) => i.severity === 'error' || i.severity === 'warning') || Boolean(videoQuality.preRenderAdvice)) && (
-                <details
-                  className="glass-panel rounded-xl font-sans group"
-                  open={videoQuality.score < 70 || !videoQuality.ok || videoQuality.issues.some((i) => i.severity === 'error')}
-                >
-                  <summary className="p-4 cursor-pointer list-none flex flex-wrap items-center justify-between gap-3">
-                    <SectionHeader
-                      title="Ajustes antes do render"
-                      helpId="quality-pre-render"
-                      icon={<CheckCircle className={`w-4 h-4 ${videoQuality.ok ? 'text-emerald-400' : 'text-amber-400'}`} />}
-                    />
-                    <span className={`text-sm font-bold tabular-nums ${videoQuality.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
-                      {videoQuality.score}/100
-                    </span>
-                  </summary>
-                  <div className="px-4 pb-4 pt-0 border-t border-zinc-800/60">
-                  <div className="flex flex-wrap items-center gap-3 mb-3 pt-3">
-                      {videoQuality.preset && (
-                        <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Preset: {videoQuality.preset}</span>
-                      )}
-                      {videoQuality.epidemicMood && (
-                        <span className="text-[10px] text-zinc-500">BGM: {videoQuality.epidemicMood}</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => fetchVideoQuality()}
-                        className="text-[10px] text-zinc-400 hover:text-gold-400 transition flex items-center gap-1"
-                      >
-                        <RefreshCw className="w-3 h-3" /> Atualizar
-                      </button>
-                    </div>
-                  {videoQuality.preRenderAdvice ? (
-                    <div className="mt-3">
-                      <PreRenderAdvicePanel
-                        advice={videoQuality.preRenderAdvice}
-                        compact
-                        onRefresh={() => fetchVideoQuality()}
-                        onGoToTab={(tab) => setActiveTab(tab)}
-                        onAutoFix={handlePreRenderAutoFix}
-                        fixingFixId={preRenderFixingId}
-                      />
-                    </div>
-                  ) : videoQuality.issues.length > 0 ? (
-                    <ul className="mt-3 space-y-1.5 max-h-28 overflow-y-auto">
-                      {videoQuality.issues.slice(0, 6).map((issue, idx) => (
-                        <li
-                          key={`${issue.code}-${idx}`}
-                          className={`text-[11px] leading-snug flex gap-2 ${
-                            issue.severity === 'error' ? 'text-red-300' : issue.severity === 'warning' ? 'text-amber-300/90' : 'text-zinc-500'
-                          }`}
-                        >
-                          <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5 opacity-70" />
-                          <span>{issue.message}</span>
-                        </li>
-                      ))}
-                      {videoQuality.issues.length > 6 && (
-                        <li className="text-[10px] text-zinc-500 pl-5">+{videoQuality.issues.length - 6} observação(ões)</li>
-                      )}
-                    </ul>
-                  ) : (
-                    <p className="text-[11px] text-zinc-500 mt-2">Sem observações — overlays, gancho e orçamento dentro do esperado.</p>
-                  )}
-                  {videoQuality.overlay_timing && (videoQuality.overlay_timing.entries || []).some((e) => e.status === 'error' || e.status === 'warning') && (
-                    <div className="mt-4 pt-3 border-t border-zinc-800/80">
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">
-                        Overlays com problema
-                      </p>
-                      <ul className="space-y-1 max-h-24 overflow-y-auto">
-                        {videoQuality.overlay_timing.entries!
-                          .filter((e) => e.status === 'error' || e.status === 'warning')
-                          .map((entry) => (
-                            <li key={entry.id} className="text-[10px] font-mono text-amber-300/90 flex gap-2">
-                              <span>!</span>
-                              <span>
-                                {entry.id} @ {entry.startSec?.toFixed(1)}s
-                                {entry.message ? ` — ${entry.message}` : ''}
-                              </span>
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
-                  </div>
-                </details>
-              )}
-
-                </div>
-
-                <aside className="lumiera-render-sidebar space-y-4">
-                  <div className="glass-panel p-4 rounded-2xl space-y-3 lumiera-render-output-panel">
-                    <div className="flex items-center justify-between gap-2">
-                      <SectionHeader title="Saída (OUTPUT)" helpId="render-output" />
-                      {selectedUploadVideo && (
-                        <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Para upload</span>
-                      )}
-                    </div>
-
-                    {outputs.length === 0 ? (
-                      <div className="text-center py-8 bg-zinc-950/20 border border-zinc-900 rounded-xl text-gray-500 text-[11px] font-sans">
-                        Nenhum vídeo em OUTPUT. Inicie um render ao lado.
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-zinc-900 border border-zinc-900 rounded-xl overflow-hidden bg-zinc-950/20 font-sans max-h-[min(52vh,28rem)] overflow-y-auto">
-                        {outputs.map((video) => (
-                          <div
-                            key={video.name}
-                            className={`p-3 transition ${selectedUploadVideo === video.name ? 'bg-violet-500/10 border-l-2 border-l-violet-500' : 'hover:bg-zinc-900/10'}`}
-                          >
-                            <div className="flex items-start gap-2">
-                              <input
-                                type="radio"
-                                name="upload-output-video"
-                                checked={selectedUploadVideo === video.name}
-                                onChange={() => setSelectedUploadVideo(video.name)}
-                                className="mt-1 accent-violet-500 cursor-pointer"
-                                title="Usar este vídeo no upload"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="text-[11px] font-semibold text-white truncate max-w-full">{video.name}</span>
-                                  <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
-                                    video.renderEngine === 'remotion'
-                                      ? 'text-water-300 bg-water-500/10 border-water-400/20'
-                                      : 'text-gold-500 bg-gold-500/10 border-gold-500/20'
-                                  }`}>
-                                    {video.renderEngineLabel || (video.name.toLowerCase().startsWith('remotion_') ? 'Remotion' : 'Padrão')}
-                                  </span>
-                                </div>
-                                <span className="text-[9px] text-gray-500 block">
-                                  {getFormatBytes(video.sizeBytes)} · {new Date(video.modifiedAt).toLocaleString('pt-BR')}
-                                </span>
-                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const videoPath = activeProject === 'Buracos no Deserto'
-                                        ? `/OUTPUT/qanat_persa_video_final/${video.name}`
-                                        : `/${activeProject}/OUTPUT/qanat_persa_video_final/${video.name}`;
-                                      setPreviewVideoUrl(`/api/projects-media${videoPath}`);
-                                    }}
-                                    className="bg-gold-500/90 hover:bg-gold-500 text-zinc-950 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Play className="w-3 h-3 fill-current" />
-                                    Ver
-                                  </button>
-                                  <a
-                                    href={`/api/projects-media${activeProject === 'Buracos no Deserto' ? `/OUTPUT/qanat_persa_video_final/${video.name}` : `/${activeProject}/OUTPUT/qanat_persa_video_final/${video.name}`}?download=true`}
-                                    download
-                                    className="bg-zinc-900 border border-zinc-800 text-gray-300 hover:text-white px-2 py-1 rounded-md text-[10px] font-medium flex items-center gap-1"
-                                  >
-                                    <Download className="w-3 h-3" />
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPendingOutputDelete(video)}
-                                    className="bg-red-950/80 border border-red-900/50 text-red-400 hover:text-red-300 px-2 py-1 rounded-md text-[10px] cursor-pointer"
-                                    title={`Excluir ${video.name}`}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {selectedUploadVideo && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('upload')}
-                        className="w-full text-[10px] font-bold text-violet-200 bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 py-2 rounded-lg transition cursor-pointer"
-                      >
-                        Ir para Upload com este vídeo →
-                      </button>
-                    )}
-                  </div>
-
-                </aside>
-              </div>
-            </div>
-
-            </DashminProjectTabLayout>
-
+            <TabErrorBoundary tabName="Render">
+              <Suspense fallback={<TabPanelFallback label="Carregando render..." />}>
+                <AppStatusTab
+                activeProject={activeProject}
+                brandPanelProps={brandPanelProps}
+                config={config}
+                effectiveRenderResolution={effectiveRenderResolution}
+                fetchVideoQuality={fetchVideoQuality}
+                getFormatBytes={getFormatBytes}
+                handlePreRenderAutoFix={handlePreRenderAutoFix}
+                outputs={outputs}
+                preRenderFixingId={preRenderFixingId}
+                renderResolutionLabel={renderResolutionLabel}
+                rendering={rendering}
+                selectedUploadVideo={selectedUploadVideo}
+                setActiveTab={setActiveTab}
+                setPendingOutputDelete={setPendingOutputDelete}
+                setPreviewVideoUrl={setPreviewVideoUrl}
+                setSelectedUploadVideo={setSelectedUploadVideo}
+                status={status}
+                triggerRender={triggerRender}
+                videoQuality={videoQuality}
+                />
+              </Suspense>
+            </TabErrorBoundary>
           )}
+
+
 
           {activeTab === 'workflow' && (
             <DashminProjectTabLayout tab="workflow" activeProject={activeProject}>
@@ -8563,656 +8213,117 @@ export default function App() {
           )}
 
           {activeTab === 'settings' && (
-
-            <DashminPageLayout
-              title="Configurações"
-              subtitle="IA, APIs, render global, visual, produção e integrações do estúdio."
-              breadcrumb={['Dashboard', 'Configurações']}
-              icon={<Settings className="w-5 h-5" />}
-            >
-              <SettingsSectionNav active={settingsSection} onChange={setSettingsSection} />
-              <div className="lumiera-panel-stack font-sans min-w-0">
-
-              {settingsSection === 'ia' && (
-              <div className="glass-panel p-6 rounded-3xl space-y-5">
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--dash-border)] pb-4">
-
-                  <div>
-
-                    <SectionHeader
-                      title="CONFIGURAÇÕES DE IA"
-                      helpId="settings-ia"
-                      icon={<Settings className="w-4 h-4 text-[var(--dash-primary)]" />}
-                      subtitle={<>Provedor e chaves de IA. Use o <span className="text-[var(--dash-primary)]">?</span> ao lado de cada opção para entender o efeito.</>}
-                    />
-
-                  </div>
-
-                  <div className="flex items-center gap-2 text-[10px]">
-
-                    <span className="dash-kpi-pill">Gemini: {geminiKeyCount} chave(s)</span>
-
-                    <span className="dash-kpi-pill">xAI: {hasXaiKey ? 'configurado' : 'vazio'}</span>
-                    <span className="dash-kpi-pill">NVIDIA API: {hasNvidiaKey ? 'configurado' : 'vazio'}</span>
-
-                  </div>
-
-                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                  <button onClick={() => setAiProvider('gemini')} className={`dash-provider-card ${aiProvider === 'gemini' ? 'dash-provider-card-active' : ''}`}>
-
-                    <div className="flex items-center justify-between">
-
-                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
-                        Gemini
-                        <SettingHelpTip title="Gemini" align="start">Google AI Studio (gratuito). Roteiro, overlays, metadados e ideias. Suporta rotação de várias chaves.</SettingHelpTip>
-                      </span>
-
-                      {aiProvider === 'gemini' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
-
-                    </div>
-
-                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Google AI Studio gratuito (ex.: Gemini 2.5 Flash). Chaves em rotação; xAI/Grok como fallback.</p>
-
-                  </button>
-
-                  <button onClick={() => setAiProvider('xai')} className={`dash-provider-card ${aiProvider === 'xai' ? 'dash-provider-card-active' : ''}`}>
-
-                    <div className="flex items-center justify-between">
-
-                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
-                        Grok / xAI
-                        <SettingHelpTip title="Grok / xAI" align="start">API da xAI como provedor principal. Útil quando preferir Grok ou como fallback após esgotar chaves Gemini.</SettingHelpTip>
-                      </span>
-
-                      {aiProvider === 'xai' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
-
-                    </div>
-
-                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API da xAI como provedor principal para metadados quando selecionado.</p>
-
-                  </button>
-
-                  <button onClick={() => setAiProvider('openrouter')} className={`dash-provider-card ${aiProvider === 'openrouter' ? 'dash-provider-card-active' : ''}`}>
-
-                    <div className="flex items-center justify-between">
-
-                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
-                        OpenRouter
-                        <SettingHelpTip title="OpenRouter" align="start">Agregador com modelos free (Gemini, Llama, Qwen). Alternativa quando quiser variar modelos sem múltiplas contas.</SettingHelpTip>
-                      </span>
-
-                      {aiProvider === 'openrouter' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
-
-                    </div>
-
-                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API do OpenRouter com rotação de modelos free do Gemini, Llama e Qwen.</p>
-
-                  </button>
-
-                  <button onClick={() => setAiProvider('nvidia')} className={`dash-provider-card ${aiProvider === 'nvidia' ? 'dash-provider-card-active' : ''}`}>
-
-                    <div className="flex items-center justify-between">
-
-                      <span className="text-xs font-bold text-white font-sans flex items-center gap-1.5">
-                        NVIDIA API
-                        <SettingHelpTip title="NVIDIA API" align="start">Chamadas de IA de alto desempenho via NVIDIA API com múltiplos modelos (Minimax, Qwen, Kimi, GLM, Deepseek).</SettingHelpTip>
-                      </span>
-
-                      {aiProvider === 'nvidia' && <CheckCircle className="w-4 h-4 text-[var(--dash-primary)]" />}
-
-                    </div>
-
-                    <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">Usa a API da NVIDIA com múltiplos modelos integrados e rotação/fallback.</p>
-
-                  </button>
-
-                </div>
-
-                <div className={`dash-settings-card transition ${geminiBrowserMode ? 'border-[rgba(130,128,253,0.4)]' : ''}`} style={geminiBrowserMode ? { background: 'rgba(130, 128, 253, 0.08)' } : undefined}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-white font-sans flex items-center gap-2">
-                          <Chrome className="w-4 h-4 text-violet-400" />
-                          Gemini no Chrome (extensão)
-                          <SettingHelpTip title="Extensão Chrome" align="start">
-                            Envia prompts pelo gemini.google.com na sua sessão Google, sem API key. Requer a extensão Lumiera Gemini Bridge instalada no Chrome.
-                          </SettingHelpTip>
-                        </p>
-                        <p className="text-[10px] text-zinc-400 leading-relaxed max-w-xl">
-                          Ativa todas as chamadas de IA via Gemini no Chrome, de forma autônoma (sem copiar/colar).
-                          Requer a extensão Lumiera em tools/lumiera-gemini-bridge — ela controla gemini.google.com na sua sessão Google.
-                          Quando ativo, tem prioridade sobre NVIDIA/xAI/OpenRouter. Desligado, usa o provedor selecionado acima.
-                        </p>
-                        {geminiBrowserMode && (
-                          <div className="space-y-1.5">
-                            <p className={`text-[9px] ${geminiExtensionReady ? 'text-emerald-300/90' : 'text-amber-300/90'}`}>
-                              Extensão: {geminiExtensionReady === null ? 'verificando…' : geminiExtensionReady
-                                ? `ativa — ${geminiExtensionDiag || 'automação OK'}`
-                                : 'não conectada'}
-                            </p>
-                            {geminiExtensionDiag && !geminiExtensionReady && (
-                              <p className="text-[9px] text-amber-200/80 leading-relaxed max-w-xl">{geminiExtensionDiag}</p>
-                            )}
-                            <button
-                              type="button"
-                              disabled={geminiExtensionTesting}
-                              onClick={async () => {
-                                setGeminiExtensionTesting(true);
-                                try {
-                                  const d = await refreshGeminiExtensionStatus();
-                                  if (d.pingOk) toast.success(`Extensão OK ${d.version ? `(v${d.version})` : ''}`);
-                                  else {
-                                    const err = d.error || 'Extensão não conectada';
-                                    toast.error(
-                                      /recarregada|F5/i.test(err)
-                                        ? `${err} Pressione F5 agora.`
-                                        : err,
-                                      { duration: 10000 },
-                                    );
-                                  }
-                                } finally {
-                                  setGeminiExtensionTesting(false);
-                                }
-                              }}
-                              className="text-[9px] text-violet-300 hover:text-violet-100 border border-violet-500/30 px-2 py-1 rounded-lg transition disabled:opacity-50"
-                            >
-                              {geminiExtensionTesting ? 'Testando…' : 'Testar extensão'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                        <span className="text-[10px] text-zinc-400">{geminiBrowserMode ? 'Ativo' : 'Desligado'}</span>
-                        <input
-                          type="checkbox"
-                          checked={geminiBrowserMode}
-                          onChange={(e) => setGeminiBrowserMode(e.target.checked)}
-                          className="dash-checkbox"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-                  <div className="space-y-4">
-
-                    <div className="space-y-2">
-
-                      <SettingLabel helpTitle="Modelo Gemini" help="Versão do modelo usada nas chamadas de IA. Flash é rápido e econômico; Pro tem mais raciocínio. Afeta roteiro, overlays e metadados." align="start">Modelo Gemini</SettingLabel>
-
-                      <select
-                        value={geminiModel}
-                        onChange={(e) => setGeminiModel(e.target.value)}
-                        className="dash-select"
-                      >
-                        {geminiModelOptions.map((option) => (
-                          <option key={option.id} value={option.id}>{option.label}</option>
-                        ))}
-                      </select>
-
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">
-                        {geminiModelOptions.find((option) => option.id === geminiModel)?.hint || 'Gratuito no Google AI Studio com chave de API.'}
-                        {' '}Recomendado: <span className="text-zinc-300">Gemini 2.5 Flash</span> (rápido, contexto 1M).
-                      </p>
-
-                    </div>
-
-                    <div className="space-y-2">
-
-                      <SettingLabel helpTitle="Chaves Gemini" help="Uma chave por linha. O sistema rotaciona automaticamente quando uma atinge limite de quota. Deixe vazio para manter as chaves já salvas." align="start">Chaves Gemini</SettingLabel>
-
-                      <textarea value={geminiKeysInput} onChange={(e) => setGeminiKeysInput(e.target.value)} placeholder="Cole uma ou várias chaves Gemini, uma por linha. Deixe vazio para manter as atuais." className="dash-textarea h-32" />
-
-                    </div>
-
-                  </div>
-
-                  <div className="space-y-4">
-
-                    <div className="space-y-2">
-
-                      <div className="flex items-center justify-between">
-
-                        <SettingLabel helpTitle="Chave OpenRouter" help="Opcional. Chave personalizada do openrouter.ai. Se vazia, usa a chave padrão do sistema para modelos free." align="start">Chave OpenRouter</SettingLabel>
-
-                        {hasOpenRouterKey ? (
-
-                          <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">Ativa (Personalizada)</span>
-
-                        ) : (
-
-                          <span className="dash-ui-badge dash-ui-badge-warning dash-ui-badge-pill">Ativa (Padrão do Sistema)</span>
-
-                        )}
-
-                      </div>
-
-                      <input type="password" value={openrouterKeyInput} onChange={(e) => setOpenRouterKeyInput(e.target.value)} placeholder="Deixe vazio para usar a padrão ou cole uma chave personalizada." className="dash-input" />
-
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">Opcional. Se não fornecida, o sistema usará a chave privada pré-configurada.</p>
-
-                    </div>
-
-                    <div className="space-y-2">
-
-                      <div className="flex items-center justify-between">
-
-                        <SettingLabel helpTitle="Chave NVIDIA API" help="Chave da API da NVIDIA. Necessária para usar os modelos de IA da NVIDIA." align="start">Chave NVIDIA API</SettingLabel>
-
-                        {hasNvidiaKey ? (
-
-                          <span className="dash-ui-badge dash-ui-badge-success dash-ui-badge-pill">Configurada</span>
-
-                        ) : (
-
-                          <span className="dash-ui-badge dash-ui-badge-danger dash-ui-badge-pill">Não Configurada</span>
-
-                        )}
-
-                      </div>
-
-                      <input type="password" value={nvidiaKeyInput} onChange={(e) => setNvidiaKeyInput(e.target.value)} placeholder="Cole a chave NVIDIA API. Deixe vazio para manter a atual." className="dash-input" />
-
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">A chave da NVIDIA será usada quando você selecionar NVIDIA API como provedor.</p>
-
-                    </div>
-
-                    <div className="space-y-2">
-
-                      <SettingLabel helpTitle="Chave xAI / Grok" help="Chave da API xAI. Usada como provedor principal se Grok estiver selecionado, ou como fallback quando todas as chaves Gemini falharem." align="start">Chave xAI / Grok</SettingLabel>
-
-                      <input type="password" value={xaiKeyInput} onChange={(e) => setXaiKeyInput(e.target.value)} placeholder="Cole a chave xAI. Deixe vazio para manter a atual." className="dash-input" />
-
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">A xAI será usada como fallback quando o Gemini esgotar todas as chaves ou como principal se você selecionar Grok / xAI.</p>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="flex justify-end">
-
-                  <button onClick={handleSaveAiSettings} disabled={savingAiSettings} className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2">
-
-                    {savingAiSettings ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-
-                    <span>{savingAiSettings ? 'Salvando...' : 'Salvar Configurações'}</span>
-
-                  </button>
-
-                </div>
-
-              </div>
-
-              )}
-
-              {/* SEÇÃO LOGOTIPO DO VÍDEO */}
-
-              {settingsSection === 'apis' && (
-                <SettingsApiKeys
-                  epidemicKeyInput={epidemicKeyInput}
-                  setEpidemicKeyInput={setEpidemicKeyInput}
-                  hasEpidemicKey={hasEpidemicKey}
-                  pexelsKeyInput={pexelsKeyInput}
-                  setPexelsKeyInput={setPexelsKeyInput}
-                  pixabayKeyInput={pixabayKeyInput}
-                  setPixabayKeyInput={setPixabayKeyInput}
-                  hasPexelsKey={hasPexelsKey}
-                  hasPixabayKey={hasPixabayKey}
-                  supermemoryKeyInput={supermemoryKeyInput}
-                  setSupermemoryKeyInput={setSupermemoryKeyInput}
-                  hasSupermemoryKey={hasSupermemoryKey}
-                  supermemoryEnabled={supermemoryEnabled}
-                  setSupermemoryEnabled={setSupermemoryEnabled}
-                  supermemoryBaseUrlInput={supermemoryBaseUrlInput}
-                  setSupermemoryBaseUrlInput={setSupermemoryBaseUrlInput}
-                  testingSupermemory={testingSupermemory}
-                  onTestSupermemory={handleTestSupermemory}
-                  saving={savingApiKeys}
-                  onSave={handleSaveApiKeys}
+            <TabErrorBoundary tabName="Configurações">
+              <Suspense fallback={<TabPanelFallback label="Carregando configurações..." />}>
+                <AppSettingsTab
+                activeProject={activeProject}
+                aiProvider={aiProvider}
+                applyProductionPatchToConfig={applyProductionPatchToConfig}
+                applyVisualPatchToConfig={applyVisualPatchToConfig}
+                canvaClientId={canvaClientId}
+                canvaClientSecret={canvaClientSecret}
+                config={config}
+                epidemicKeyInput={epidemicKeyInput}
+                fetchUploadStatus={fetchUploadStatus}
+                geminiBrowserMode={geminiBrowserMode}
+                geminiExtensionDiag={geminiExtensionDiag}
+                geminiExtensionReady={geminiExtensionReady}
+                geminiExtensionTesting={geminiExtensionTesting}
+                geminiKeyCount={geminiKeyCount}
+                geminiKeysInput={geminiKeysInput}
+                geminiModel={geminiModel}
+                geminiModelOptions={geminiModelOptions}
+                globalBlockGap={globalBlockGap}
+                globalDebugOverlay={globalDebugOverlay}
+                globalFps={globalFps}
+                globalMusicVolume={globalMusicVolume}
+                globalRenderResolution={globalRenderResolution}
+                globalUseRemotion={globalUseRemotion}
+                handleClearProjectRenderResolution={handleClearProjectRenderResolution}
+                handleRelinkYoutube={handleRelinkYoutube}
+                handleSaveAiSettings={handleSaveAiSettings}
+                handleSaveApiKeys={handleSaveApiKeys}
+                handleSaveGlobalRenderConfig={handleSaveGlobalRenderConfig}
+                handleSaveProjectRenderResolution={handleSaveProjectRenderResolution}
+                handleTestSupermemory={handleTestSupermemory}
+                hasEpidemicKey={hasEpidemicKey}
+                hasNvidiaKey={hasNvidiaKey}
+                hasOpenRouterKey={hasOpenRouterKey}
+                hasPexelsKey={hasPexelsKey}
+                hasPixabayKey={hasPixabayKey}
+                hasSupermemoryKey={hasSupermemoryKey}
+                hasXaiKey={hasXaiKey}
+                igAccessToken={igAccessToken}
+                igAccountId={igAccountId}
+                igAppId={igAppId}
+                igAppSecret={igAppSecret}
+                nvidiaKeyInput={nvidiaKeyInput}
+                openrouterKeyInput={openrouterKeyInput}
+                pexelsKeyInput={pexelsKeyInput}
+                pickProductionConfig={pickProductionConfig}
+                pickVisualConfig={pickVisualConfig}
+                pixabayKeyInput={pixabayKeyInput}
+                productionDraftToApiPatch={productionDraftToApiPatch}
+                projectRenderResolution={projectRenderResolution}
+                refreshGeminiExtensionStatus={refreshGeminiExtensionStatus}
+                resolutionConfigScope={resolutionConfigScope}
+                saveConfigPatch={saveConfigPatch}
+                savingAiSettings={savingAiSettings}
+                savingApiKeys={savingApiKeys}
+                savingGlobalConfig={savingGlobalConfig}
+                savingProductionConfig={savingProductionConfig}
+                savingProjectResolution={savingProjectResolution}
+                savingVisualConfig={savingVisualConfig}
+                setAiProvider={setAiProvider}
+                setCanvaClientId={setCanvaClientId}
+                setCanvaClientSecret={setCanvaClientSecret}
+                setConfig={setConfig}
+                setEpidemicKeyInput={setEpidemicKeyInput}
+                setGeminiBrowserMode={setGeminiBrowserMode}
+                setGeminiExtensionTesting={setGeminiExtensionTesting}
+                setGeminiKeysInput={setGeminiKeysInput}
+                setGeminiModel={setGeminiModel}
+                setGlobalBlockGap={setGlobalBlockGap}
+                setGlobalDebugOverlay={setGlobalDebugOverlay}
+                setGlobalFps={setGlobalFps}
+                setGlobalMusicVolume={setGlobalMusicVolume}
+                setGlobalRenderResolution={setGlobalRenderResolution}
+                setGlobalUseRemotion={setGlobalUseRemotion}
+                setIgAccessToken={setIgAccessToken}
+                setIgAccountId={setIgAccountId}
+                setIgAppId={setIgAppId}
+                setIgAppSecret={setIgAppSecret}
+                setNvidiaKeyInput={setNvidiaKeyInput}
+                setOpenRouterKeyInput={setOpenRouterKeyInput}
+                setPexelsKeyInput={setPexelsKeyInput}
+                setPixabayKeyInput={setPixabayKeyInput}
+                setProjectRenderResolution={setProjectRenderResolution}
+                setResolutionConfigScope={setResolutionConfigScope}
+                setSavingProductionConfig={setSavingProductionConfig}
+                setSavingVisualConfig={setSavingVisualConfig}
+                setSettingsSection={setSettingsSection}
+                setSupermemoryBaseUrlInput={setSupermemoryBaseUrlInput}
+                setSupermemoryEnabled={setSupermemoryEnabled}
+                setSupermemoryKeyInput={setSupermemoryKeyInput}
+                setXaiKeyInput={setXaiKeyInput}
+                setYtClientId={setYtClientId}
+                setYtClientSecret={setYtClientSecret}
+                settingsSection={settingsSection}
+                supermemoryBaseUrlInput={supermemoryBaseUrlInput}
+                supermemoryEnabled={supermemoryEnabled}
+                supermemoryKeyInput={supermemoryKeyInput}
+                testingSupermemory={testingSupermemory}
+                uploadStatus={uploadStatus}
+                visualDraftToApiPatch={visualDraftToApiPatch}
+                xaiKeyInput={xaiKeyInput}
+                ytClientId={ytClientId}
+                ytClientSecret={ytClientSecret}
                 />
-              )}
-
-              {/* CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO */}
-
-              {settingsSection === 'render' && (
-              <div className="glass-panel p-6 rounded-3xl space-y-5">
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--dash-border)] pb-4">
-
-                  <div>
-
-                    <SectionHeader
-                      title="CONFIGURAÇÕES GLOBAIS DE RENDERIZAÇÃO"
-                      helpId="settings-render"
-                      icon={<Settings className="w-4 h-4 text-[var(--dash-primary)]" />}
-                      subtitle={<>Parâmetros de render e áudio. Use o <span className="text-[var(--dash-primary)]">?</span> em cada campo para detalhes.</>}
-                    />
-
-                  </div>
-
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                  <div className="space-y-4">
-
-                    {/* Volume da Música */}
-
-                    <div className="space-y-2">
-
-                      <div className="flex justify-between items-center">
-
-                        <SettingLabel helpTitle="Volume BGM" help="Volume da música de fundo no mix final. 15% é o padrão recomendado para a trilha não competir com a narração." align="start">Volume da Trilha Sonora (BGM)</SettingLabel>
-
-                        <span className="text-xs text-white font-mono font-bold">{(globalMusicVolume * 100).toFixed(0)}%</span>
-
-                      </div>
-
-                      <input 
-
-                        type="range" 
-
-                        min="0.01" 
-
-                        max="0.5" 
-
-                        step="0.01" 
-
-                        value={globalMusicVolume} 
-
-                        onChange={(e) => setGlobalMusicVolume(parseFloat(e.target.value))} 
-
-                        className="dash-range" 
-
-                      />
-
-                      <p className="text-[9px] text-[var(--dash-muted)]">Volume atenuado padrão (15% recomendado) para evitar que a música encubra a narração.</p>
-
-                    </div>
-
-                    {/* Espaçamento entre Blocos (Gap) */}
-
-                    <div className="space-y-2">
-
-                      <SettingLabel helpTitle="Gap entre blocos" help="Segundos extras no fim de cada bloco de cenas antes do próximo. Dá respiro à narração e evita cortes abruptos entre capítulos." align="start">Espaçamento entre Blocos (Gap)</SettingLabel>
-
-                      <div className="dash-input-group">
-
-                        <input 
-
-                          type="number" 
-
-                          step="0.5" 
-
-                          min="0"
-
-                          value={globalBlockGap} 
-
-                          onChange={(e) => setGlobalBlockGap(parseFloat(e.target.value) || 0)} 
-
-                          className="dash-input text-xs font-mono" 
-
-                        />
-
-                        <span className="dash-input-suffix">segundos</span>
-
-                      </div>
-
-                      <p className="text-[9px] text-zinc-500">Segundos extras adicionados ao final de cada bloco de cenas (2.0s padrão) para respiro da locução.</p>
-
-                    </div>
-
-                  </div>
-
-                  <div className="space-y-4">
-
-                    {/* Taxa de Quadros (FPS) */}
-
-                    <div className="space-y-2">
-
-                      <SettingLabel helpTitle="FPS" help="Quadros por segundo na renderização Remotion. 30 FPS é padrão web; 24 FPS é mais cinematográfico; 60 FPS é mais fluido porém mais pesado." align="start">Taxa de Quadros (FPS)</SettingLabel>
-
-                      <select 
-
-                        value={globalFps} 
-
-                        onChange={(e) => setGlobalFps(parseInt(e.target.value) || 30)} 
-
-                        className="dash-select"
-
-                      >
-
-                        <option value={24}>24 FPS (Cinematográfico)</option>
-
-                        <option value={30}>30 FPS (Padrão Web)</option>
-
-                        <option value={60}>60 FPS (Super Fluido)</option>
-
-                      </select>
-
-                      <p className="text-[9px] text-zinc-500">Taxa de quadros para renderização Remotion.</p>
-
-                    </div>
-
-                    <div className="space-y-3">
-                      <SettingLabel helpTitle="Resolução" help="1080p para entrega rápida; 2K para mais nitidez. Global vale para todos os projetos; Personalizado sobrescreve só o projeto aberto." align="start">Resolução de Saída</SettingLabel>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setResolutionConfigScope('global')} className={`dash-scope-tab ${resolutionConfigScope === 'global' ? 'dash-scope-tab-active' : ''}`}>Padrão Global</button>
-                        <button type="button" onClick={() => setResolutionConfigScope('project')} className={`dash-scope-tab ${resolutionConfigScope === 'project' ? 'dash-scope-tab-active' : ''}`}>Personalizado do Projeto</button>
-                      </div>
-                      {resolutionConfigScope === 'global' ? (
-                        <>
-                          <select
-                            value={globalRenderResolution}
-                            onChange={(e) => setGlobalRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
-                            className="dash-select"
-                          >
-                            <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
-                            <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
-                          </select>
-                          <p className="text-[9px] text-[var(--dash-muted)]">Salve com o botão abaixo. Vale para todos os projetos sem override.</p>
-                        </>
-                      ) : (
-                        <>
-                          <select
-                            value={projectRenderResolution}
-                            onChange={(e) => setProjectRenderResolution(e.target.value === '2k' ? '2k' : '1080p')}
-                            className="dash-select"
-                          >
-                            <option value="1080p">1080p — 1920×1080 (16:9) / 1080×1920 (9:16)</option>
-                            <option value="2k">2K — 2560×1440 (16:9) / 1440×2560 (9:16)</option>
-                          </select>
-                          <div className="flex gap-2">
-                            <button type="button" onClick={handleSaveProjectRenderResolution} disabled={savingProjectResolution} className="dash-scope-tab dash-scope-tab-active flex-1 disabled:opacity-50">
-                              {savingProjectResolution ? 'Salvando...' : 'Salvar do Projeto'}
-                            </button>
-                            {config?.render_resolution && (
-                              <button type="button" onClick={handleClearProjectRenderResolution} disabled={savingProjectResolution} className="dash-scope-tab px-3 disabled:opacity-50">
-                                Usar Global
-                              </button>
-                            )}
-                          </div>
-                          <p className="text-[9px] text-zinc-500">Sobrescreve a resolução global só neste projeto.</p>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Checkboxes for Remotion & Debug */}
-
-                    <div className="grid grid-cols-2 gap-4 pt-2">
-
-                      <div className="flex items-center gap-2">
-
-                        <input 
-
-                          type="checkbox" 
-
-                          id="use-remotion-chk"
-
-                          checked={globalUseRemotion}
-
-                          onChange={(e) => setGlobalUseRemotion(e.target.checked)}
-
-                          className="dash-checkbox"
-
-                        />
-
-                        <label htmlFor="use-remotion-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none flex items-center gap-1.5">
-                          Remotion por Padrão
-                          <SettingHelpTip title="Remotion" align="start">Usa o motor Remotion (React) para compilar vídeos com overlays, legendas e efeitos. Desligado pode usar pipeline legado se disponível.</SettingHelpTip>
-                        </label>
-
-                      </div>
-
-                      <div className="flex items-center gap-2">
-
-                        <input 
-
-                          type="checkbox" 
-
-                          id="debug-overlay-chk"
-
-                          checked={globalDebugOverlay}
-
-                          onChange={(e) => setGlobalDebugOverlay(e.target.checked)}
-
-                          className="dash-checkbox"
-
-                        />
-
-                        <label htmlFor="debug-overlay-chk" className="text-xs text-zinc-300 font-medium cursor-pointer select-none flex items-center gap-1.5">
-                          Debug Overlay
-                          <SettingHelpTip title="Debug" align="end">Mostra informações técnicas dos overlays na prévia/render para diagnosticar timing e posicionamento. Desligue na entrega final.</SettingHelpTip>
-                        </label>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
-
-                  <button 
-
-                    onClick={handleSaveGlobalRenderConfig} 
-
-                    disabled={savingGlobalConfig}
-
-                    className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
-
-                  >
-
-                    <span>{savingGlobalConfig ? 'Salvando...' : 'Salvar Configurações de Renderização'}</span>
-
-                  </button>
-
-                </div>
-
-              </div>
-
-              )}
-
-              {settingsSection === 'visual' && (
-                <VisualSettings
-                  config={config || {}}
-                  projectKey={activeProject}
-                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
-                  isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
-                  saving={savingVisualConfig}
-                  onSave={async (draft) => {
-                    setSavingVisualConfig(true);
-                    try {
-                      const previousVisual = pickVisualConfig(config || {});
-                      const patch = visualDraftToApiPatch(draft, previousVisual);
-                      if (Object.keys(patch).length === 0) {
-                        toast.success('Nenhuma alteração visual para salvar.');
-                        return;
-                      }
-                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
-                      if (!saved) return;
-                      setConfig((prev) => applyVisualPatchToConfig(
-                        (prev || {}) as ConfigData,
-                        draft,
-                        previousVisual,
-                      ));
-                      toast.success('Configurações visuais salvas no projeto.');
-                    } finally {
-                      setSavingVisualConfig(false);
-                    }
-                  }}
-                />
-              )}
-
-              {settingsSection === 'producao' && (
-                <SettingsProduction
-                  config={config || {}}
-                  projectKey={activeProject}
-                  globalMusicVolume={globalMusicVolume}
-                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
-                  saving={savingProductionConfig}
-                  onSave={async (draft) => {
-                    setSavingProductionConfig(true);
-                    try {
-                      const previousProduction = pickProductionConfig(config || {});
-                      const patch = productionDraftToApiPatch(draft, previousProduction);
-                      if (Object.keys(patch).length === 0) {
-                        toast.success('Nenhuma alteração de produção para salvar.');
-                        return;
-                      }
-                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
-                      if (!saved) return;
-                      setConfig((prev) => applyProductionPatchToConfig(
-                        (prev || {}) as ConfigData,
-                        draft,
-                        previousProduction,
-                      ));
-                      toast.success('Configurações de produção salvas no projeto.');
-                    } finally {
-                      setSavingProductionConfig(false);
-                    }
-                  }}
-                />
-              )}
-
-              {settingsSection === 'integracoes' && (
-                <IntegrationSettings
-                  uploadStatus={uploadStatus}
-                  toast={(msg) => toast(msg)}
-                  fetchUploadStatus={fetchUploadStatus}
-                  onRelinkYoutube={handleRelinkYoutube}
-                  canvaClientId={canvaClientId}
-                  setCanvaClientId={setCanvaClientId}
-                  canvaClientSecret={canvaClientSecret}
-                  setCanvaClientSecret={setCanvaClientSecret}
-                  ytClientId={ytClientId}
-                  setYtClientId={setYtClientId}
-                  ytClientSecret={ytClientSecret}
-                  setYtClientSecret={setYtClientSecret}
-                  igAppId={igAppId}
-                  setIgAppId={setIgAppId}
-                  igAppSecret={igAppSecret}
-                  setIgAppSecret={setIgAppSecret}
-                  igAccountId={igAccountId}
-                  setIgAccountId={setIgAccountId}
-                  igAccessToken={igAccessToken}
-                  setIgAccessToken={setIgAccessToken}
-                />
-              )}
-
-            </div>
-            </DashminPageLayout>
-
+              </Suspense>
+            </TabErrorBoundary>
           )}
+
+
 
                     {/* TAB 6: AI VIDEO CREATOR */}
           {activeTab === 'creator' && (
