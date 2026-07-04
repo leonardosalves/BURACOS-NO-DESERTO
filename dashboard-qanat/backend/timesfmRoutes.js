@@ -4,6 +4,13 @@
 
 import { probeTimesfmStatus, runTrendForecast } from "./timesfmForecast.js";
 import { discoverPioneerNiches } from "./pioneerNicheDiscovery.js";
+import {
+  deleteTrendRadarSave,
+  getTrendRadarSave,
+  listTrendRadarSaves,
+  saveTrendRadarNiche,
+  saveTrendRadarScan,
+} from "./trendRadarSaves.js";
 
 function buildPioneerLlmFn(deps) {
   const {
@@ -81,9 +88,11 @@ export function registerTimesfmRoutes(app, deps) {
     try {
       const formatRaw = String(req.body?.format || "SHORTS").toUpperCase();
       const format = ["SHORT", "SHORTS", "LONG", "LONGO"].includes(formatRaw) ? formatRaw : "SHORTS";
+      const discoveryMode = req.body?.discoveryMode === "chosen" ? "chosen" : "virgin";
       const result = await discoverPioneerNiches(WORKSPACE_DIR, {
         niche: String(req.body?.niche || "").trim(),
         format,
+        discoveryMode,
         maxCandidates: Number(req.body?.maxCandidates) || 10,
         useAi: req.body?.useAi !== false,
         llmFn: req.body?.useAi === false ? null : pioneerLlmFn,
@@ -92,6 +101,66 @@ export function registerTimesfmRoutes(app, deps) {
       res.json(result);
     } catch (err) {
       res.status(500).json({ ok: false, error: "Falha na descoberta de nichos pioneiros", details: err.message });
+    }
+  });
+
+  app.get("/api/trends/saved", (_req, res) => {
+    try {
+      res.json(listTrendRadarSaves(WORKSPACE_DIR));
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  app.get("/api/trends/saved/:id", (req, res) => {
+    try {
+      const result = getTrendRadarSave(WORKSPACE_DIR, req.params.id);
+      if (!result.ok) return res.status(404).json(result);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  app.post("/api/trends/saved", (req, res) => {
+    try {
+      const saveType = req.body?.type === "scan" ? "scan" : "niche";
+      const discoveryMode = req.body?.discoveryMode === "chosen" ? "chosen" : "virgin";
+      const nicheFilter = String(req.body?.nicheFilter || req.body?.niche || "").trim();
+      const format = String(req.body?.format || "SHORTS").toUpperCase();
+
+      if (saveType === "scan") {
+        const result = saveTrendRadarScan(WORKSPACE_DIR, {
+          discovery: req.body?.discovery || {},
+          discoveryMode,
+          nicheFilter,
+          format,
+          label: String(req.body?.label || "").trim(),
+        });
+        return res.json(result);
+      }
+
+      const niche = req.body?.niche || req.body?.nicheData || {};
+      const result = saveTrendRadarNiche(WORKSPACE_DIR, {
+        niche,
+        discoveryMode,
+        nicheFilter,
+        format,
+        scanSummary: req.body?.scanSummary || null,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, error: "Falha ao salvar resultado", details: err.message });
+    }
+  });
+
+  app.delete("/api/trends/saved/:id", (req, res) => {
+    try {
+      const result = deleteTrendRadarSave(WORKSPACE_DIR, req.params.id);
+      if (!result.ok) return res.status(404).json(result);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
     }
   });
 
@@ -112,6 +181,7 @@ export function registerTimesfmRoutes(app, deps) {
         enqueueIdeas: req.body?.enqueueIdeas === true,
         niche: String(req.body?.niche || "").trim(),
         discoverPioneers: req.body?.discoverPioneers === true,
+        discoveryMode: req.body?.discoveryMode === "chosen" ? "chosen" : "virgin",
         pioneerLlmFn: req.body?.discoverPioneers === true ? pioneerLlmFn : null,
       });
 

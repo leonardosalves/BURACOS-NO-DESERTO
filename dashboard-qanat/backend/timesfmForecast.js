@@ -267,10 +267,14 @@ export async function runTrendForecast(workspaceDir, {
   enqueueIdeas = false,
   niche = "",
   discoverPioneers = false,
+  discoveryMode = "virgin",
   pioneerLlmFn = null,
 } = {}) {
   const cfg = readJsonSafe(path.join(workspaceDir, "config_qanat.json"));
-  const resolvedNiche = String(niche || cfg.niche || "").trim();
+  const mode = discoveryMode === "chosen" ? "chosen" : "virgin";
+  const resolvedNiche = mode === "chosen"
+    ? String(niche || cfg.niche || "").trim()
+    : "";
 
   const report = await fetchChannelVideosWithAnalytics(workspaceDir, {
     days: 28,
@@ -406,6 +410,7 @@ export async function runTrendForecast(workspaceDir, {
   if (discoverPioneers) {
     pioneerDiscovery = await discoverPioneerNiches(workspaceDir, {
       niche: resolvedNiche,
+      discoveryMode: mode,
       format: fmtFilter === "LONG" || fmtFilter === "LONGO" ? "LONGO" : "SHORTS",
       risingNiches,
       maxCandidates: 10,
