@@ -305,6 +305,8 @@ import {
 import {
   isBgmMusicCandidate,
   listBgmMusicCandidates,
+  findProjectFileLocal,
+  projectBgmFileExists,
 } from "./bgmMusicFiles.js";
 import {
   buildHeuristicNarrationChunks,
@@ -3319,7 +3321,7 @@ async function prepareBgmBeforeMix(projDir) {
   const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
   const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
-  const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
 
   if (bgmMode !== "emotion") return logs;
 
@@ -3331,7 +3333,7 @@ async function prepareBgmBeforeMix(projDir) {
   const plan = storyboardRefreshed?.bgm_emotion_plan;
   const segments = plan?.segments || [];
   let mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
-  const missing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
+  const missing = segmentsNeedingBgmDownload(segments, mappings, fileExistsInProject);
 
   if (segments.length === 0) {
     logs.push("AVISO: Plano emocional ausente — use 'Planejar trilhas por emoção (IA)' antes de regenerar.");
@@ -3342,7 +3344,7 @@ async function prepareBgmBeforeMix(projDir) {
     logs.push(`Preparando ${missing.length} segmento(s) emocional(is) sem trilha...`);
     try {
       const token = getEpidemicSoundKey(projDir) || "";
-      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
+      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO", { force: false });
       for (const line of autoLogs || []) logs.push(line);
       config = readProjectJson(projDir, "config_qanat.json", {});
       mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
@@ -3351,9 +3353,9 @@ async function prepareBgmBeforeMix(projDir) {
     }
   }
 
-  const stillMissing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
+  const stillMissing = segmentsNeedingBgmDownload(segments, mappings, fileExistsInProject);
   if (stillMissing.length > 0) {
-    const localMappings = buildEmotionMappingsFromLocalFiles(segments, listProjectMusicFiles(projDir));
+    const localMappings = buildEmotionMappingsFromLocalFiles(segments, listBgmMusicCandidates(projDir));
     if (localMappings.length > 0) {
       config.bgm_emotion_mappings = localMappings;
       config.bgm_mode = "emotion";
@@ -3372,12 +3374,12 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
   const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
   const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
-  const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
 
   if (bgmMode === "emotion") {
     const segments = storyboard?.bgm_emotion_plan?.segments || [];
     const mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
-    const missing = segmentsNeedingBgmDownload(segments, mappings, fileExists);
+    const missing = segmentsNeedingBgmDownload(segments, mappings, fileExistsInProject);
     if (!segments.length) {
       return "Planeje as trilhas por emoção (IA) antes de regenerar, ou selecione arquivos em cada segmento.";
     }
@@ -3389,7 +3391,7 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
 
   if (bgmMode === "single") {
     const singleBgm = String(config.single_bgm || "").trim();
-    if (!singleBgm || !fileExists(singleBgm)) {
+    if (!singleBgm || !fileExistsInProject(singleBgm)) {
       const candidates = listBgmMusicCandidates(projDir);
       if (candidates.length === 0) {
         return "Nenhuma música de fundo no projeto. Use Epidemic Sound ou «Add Música» — arquivos 1.mp3, 4.mp3 etc. são narração, não trilha.";
@@ -3403,7 +3405,7 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
   }
 
   const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
-  const missingBlocks = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings || [], fileExists);
+  const missingBlocks = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings || [], fileExistsInProject);
   if (missingBlocks.length === blockNumbers.length) {
     return "Nenhuma trilha mapeada por bloco. Selecione arquivos ou use Sonoplastia IA.";
   }
@@ -3803,7 +3805,7 @@ function makeEpidemicFilename(title) {
 
 /** Resolve BGM for Remotion when config.bgm_mappings is empty but audio files exist on disk. */
 function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboard = {}) {
-  if (config?.use_single_bgm && config?.single_bgm && findProjectFile(projectDir, config.single_bgm)) {
+  if (config?.use_single_bgm && config?.single_bgm && findProjectFileLocal(projectDir, config.single_bgm)) {
     return { mode: "single", single_bgm: config.single_bgm, mappings: [], source: "config_single" };
   }
 
@@ -3812,15 +3814,15 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
 
   if (bgmMode === "emotion") {
-    const fileExists = (fileName) => Boolean(findProjectFile(projectDir, fileName));
+    const fileExistsLocal = (fileName) => projectBgmFileExists(projectDir, fileName);
     let emotionMappings = Array.isArray(config?.bgm_emotion_mappings)
-      ? config.bgm_emotion_mappings.filter((m) => m?.file && fileExists(m.file))
+      ? config.bgm_emotion_mappings.filter((m) => m?.file && fileExistsLocal(m.file))
       : [];
 
     if (emotionMappings.length === 0) {
       const segments = storyboard?.bgm_emotion_plan?.segments || [];
-      const built = buildEmotionMappingsFromLocalFiles(segments, listProjectMusicFiles(projectDir))
-        .filter((m) => m?.file && fileExists(m.file));
+      const built = buildEmotionMappingsFromLocalFiles(segments, listBgmMusicCandidates(projectDir))
+        .filter((m) => m?.file && fileExistsLocal(m.file));
       if (built.length > 0) {
         emotionMappings = built;
         console.log(`[Remotion BGM] Emoção: ${built.length} trilha(s) resolvidas a partir de arquivos locais.`);
@@ -3840,7 +3842,7 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
   }
 
   const configured = Array.isArray(config?.bgm_mappings)
-    ? config.bgm_mappings.filter((mapping) => mapping?.file && findProjectFile(projectDir, mapping.file))
+    ? config.bgm_mappings.filter((mapping) => mapping?.file && findProjectFileLocal(projectDir, mapping.file))
     : [];
 
   if (configured.length > 0) {
@@ -3850,7 +3852,7 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
   const numberedMappings = [];
   for (const block of blockNumbers) {
     const numberedFile = `${block}.mp3`;
-    if (findProjectFile(projectDir, numberedFile)) {
+    if (findProjectFileLocal(projectDir, numberedFile)) {
       numberedMappings.push({ block, file: numberedFile });
     }
   }
@@ -3859,14 +3861,9 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
     return { mode: "blocks", mappings: numberedMappings, source: "numbered_files" };
   }
 
-  let esFiles = [];
-  try {
-    esFiles = fs.readdirSync(projectDir)
-      .filter((fileName) => /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName))
-      .sort();
-  } catch (err) {
-    esFiles = [];
-  }
+  const esFiles = listBgmMusicCandidates(projectDir)
+    .filter((fileName) => /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName))
+    .sort();
 
   if (esFiles.length > 0 && blockNumbers.length > 0) {
     const distributed = blockNumbers.map((block, index) => ({
@@ -3877,7 +3874,7 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
     return { mode: "blocks", mappings: distributed, source: "es_files" };
   }
 
-  if (findProjectFile(projectDir, "trilha_documentario.mp3")) {
+  if (findProjectFileLocal(projectDir, "trilha_documentario.mp3")) {
     console.log("[Remotion BGM] Usando trilha_documentario.mp3 como trilha única (mix_bgm.py).");
     return { mode: "single", single_bgm: "trilha_documentario.mp3", mappings: [], source: "mixed_master" };
   }
@@ -4004,7 +4001,10 @@ function pickFreshTrack(tracks, usedKeys, excludedKeys, block) {
 
 // Helper: Run automated soundtrack selection and download logic
 
-async function runAutoSoundtrackLogic(projDir, token, mode) {
+async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
+
+  const { force = false } = options;
+  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
 
   const bgmSuggestionsPath = path.join(projDir, "storyboard.json");
 
@@ -4013,6 +4013,44 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
   let config = readJsonFile(configPath) || {};
 
   const logs = [];
+
+  if (force) {
+    logs.push("Sonoplastia forçada: ignorando trilhas de outros projetos e baixando novas faixas.");
+    const removed = deleteGeneratedBgmCycleFiles(projDir);
+    if (removed.length > 0) {
+      logs.push(`Removidas ${removed.length} BGM antiga(s) deste projeto antes do novo ciclo.`);
+    }
+    config.bgm_mappings = [];
+    config.bgm_emotion_mappings = [];
+    config.use_single_bgm = false;
+    config.single_bgm = "";
+  } else {
+    if (Array.isArray(config.bgm_mappings)) {
+      const before = config.bgm_mappings.length;
+      config.bgm_mappings = config.bgm_mappings.filter(
+        (m) => m?.file && fileExistsInProject(m.file),
+      );
+      const pruned = before - config.bgm_mappings.length;
+      if (pruned > 0) {
+        logs.push(`Removidos ${pruned} mapeamento(s) de bloco sem arquivo neste projeto.`);
+      }
+    }
+    if (Array.isArray(config.bgm_emotion_mappings)) {
+      const before = config.bgm_emotion_mappings.length;
+      config.bgm_emotion_mappings = config.bgm_emotion_mappings.filter(
+        (m) => m?.file && fileExistsInProject(m.file),
+      );
+      const pruned = before - config.bgm_emotion_mappings.length;
+      if (pruned > 0) {
+        logs.push(`Removidos ${pruned} mapeamento(s) emocionais sem arquivo neste projeto.`);
+      }
+    }
+    if (config.single_bgm && !fileExistsInProject(config.single_bgm)) {
+      config.single_bgm = "";
+      config.use_single_bgm = false;
+      logs.push("Trilha única anterior não existe neste projeto — será buscada novamente.");
+    }
+  }
 
   if (!fs.existsSync(bgmSuggestionsPath)) {
 
@@ -4024,7 +4062,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
 
   const storyboard = JSON.parse(fs.readFileSync(bgmSuggestionsPath, "utf8"));
 
-  const previousAutoBgmKeys = collectExistingAutoBgmKeys(projDir, config);
+  const previousAutoBgmKeys = force ? new Set() : collectExistingAutoBgmKeys(projDir, config);
 
   const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
   const totalDuration = Number(timings.total_duration)
@@ -4125,8 +4163,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
         logs.push(`Plano emocional heurístico: ${plan.segments.length} segmento(s).`);
       }
 
-      const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
-      const segmentsToFill = segmentsNeedingBgmDownload(plan.segments, config.bgm_emotion_mappings, fileExists);
+      const segmentsToFill = segmentsNeedingBgmDownload(plan.segments, config.bgm_emotion_mappings, fileExistsInProject);
 
       if (segmentsToFill.length === 0) {
         logs.push("Todos os segmentos emocionais já possuem trilha no disco.");
@@ -4201,8 +4238,7 @@ async function runAutoSoundtrackLogic(projDir, token, mode) {
     const suggestions = Array.isArray(storyboard.bgm_recommendations) ? storyboard.bgm_recommendations : [];
     if (!Array.isArray(config.bgm_mappings)) config.bgm_mappings = [];
 
-    const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
-    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExists);
+    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExistsInProject);
 
     if (blocksToFill.length === 0) {
       logs.push("Todos os blocos já possuem trilha mapeada no disco.");
@@ -4318,9 +4354,11 @@ app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
 
   try {
 
-    const { mode } = req.body;
+    const { mode, force } = req.body;
 
-    const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+    const logs = await runAutoSoundtrackLogic(projDir, token, mode, {
+      force: force !== false,
+    });
 
     res.json({ success: true, logs });
 
@@ -4357,7 +4395,7 @@ async function ensureProjectBgmTracks(projDir) {
   const storyboard = readProjectJson(projDir, "storyboard.json", {});
   const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
   const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
-  const fileExists = (fileName) => Boolean(findProjectFile(projDir, fileName));
+  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
   const totalDuration = Number(timings.total_duration) || 0;
   const videoFormat = detectVideoFormat(config, totalDuration);
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
@@ -4370,18 +4408,18 @@ async function ensureProjectBgmTracks(projDir) {
     const segmentsToFill = segmentsNeedingBgmDownload(
       segments,
       config.bgm_emotion_mappings || [],
-      fileExists,
+      fileExistsInProject,
     );
     const hasMappings = Array.isArray(config.bgm_emotion_mappings)
-      && config.bgm_emotion_mappings.some((m) => m?.file && fileExists(m.file));
+      && config.bgm_emotion_mappings.some((m) => m?.file && fileExistsInProject(m.file));
     needsAutoFetch = !hasMappings || segmentsToFill.length > 0;
     autoFetchReason = !hasMappings
       ? "sem trilhas emocionais mapeadas"
       : `${segmentsToFill.length} segmento(s) sem arquivo`;
   } else {
-    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExists);
-    const hasMappings = (config.use_single_bgm && config.single_bgm && fileExists(config.single_bgm))
-      || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.some((m) => m?.file && fileExists(m.file)));
+    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExistsInProject);
+    const hasMappings = (config.use_single_bgm && config.single_bgm && fileExistsInProject(config.single_bgm))
+      || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.some((m) => m?.file && fileExistsInProject(m.file)));
     needsAutoFetch = !hasMappings || blocksToFill.length > 0;
     autoFetchReason = !hasMappings
       ? "sem trilhas mapeadas"
@@ -4392,7 +4430,7 @@ async function ensureProjectBgmTracks(projDir) {
     console.log(`[BGM Auto-Fetch] Sonoplastia automática (${autoFetchReason})...`);
 
     try {
-      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO");
+      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO", { force: false });
       for (const line of autoLogs || []) console.log(`[BGM Auto-Fetch] ${line}`);
       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     } catch (err) {
