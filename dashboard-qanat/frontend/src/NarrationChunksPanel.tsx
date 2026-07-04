@@ -177,7 +177,7 @@ export function NarrationChunksPanel({
       toast(useHeuristic ? 'Trechos gerados a partir das cenas.' : 'IA planejou trechos e pausas.');
       onUpdated?.();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao planejar trechos.');
+      toast(describeFetchError(err, 'planejar trechos'));
     } finally {
       setPlanning(false);
     }
@@ -201,7 +201,7 @@ export function NarrationChunksPanel({
       toast('Plano de trechos salvo.');
       onUpdated?.();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Erro ao salvar plano.');
+      toast(describeFetchError(err, 'salvar plano de trechos'));
     } finally {
       setSaving(false);
     }
@@ -280,14 +280,12 @@ export function NarrationChunksPanel({
     if (!backendOk) {
       const msg = describeFetchError(new Error('Failed to fetch'), 'iniciar TTS por trechos');
       setGenerating(false);
-      toast(msg);
+      toast(msg, { id: 'narration-chunks-tts-error', duration: 8000 });
       return;
     }
 
-    startAiJobProgress(
-      progressJobId,
-      isFullBatch ? 'Narração por trechos + Whisper' : 'Narração por trechos',
-    );
+    const progressTitle = isFullBatch ? 'Narração por trechos + Whisper' : 'Narração por trechos';
+    let jobStarted = false;
 
     try {
       const res = await fetch(getProjectUrl('/api/tts/generate-narration-chunks'), {
@@ -306,6 +304,8 @@ export function NarrationChunksPanel({
       if (!res.ok) throw new Error(String(data.error || 'Falha no TTS por trechos'));
 
       const jobId = String(data.jobId || progressJobId);
+      startAiJobProgress(jobId, progressTitle);
+      jobStarted = true;
 
       if (data.started && jobId) {
         const result = await waitForAiJobDone(jobId) as {
@@ -321,11 +321,9 @@ export function NarrationChunksPanel({
           toast(`Whisper: ${result.whisper_error}`, { icon: '⚠️' });
         }
         stopAiJobProgress(true, doneMsg);
-        toast(doneMsg);
       } else {
         stopAiJobProgress(true, String(data.message || 'Trechos gerados.'));
         if (data.plan) updatePlan(data.plan);
-        toast(data.message || 'Trechos gerados.');
         if (data.whisper_error && isFullBatch) {
           toast(`Whisper: ${data.whisper_error}`, { icon: '⚠️' });
         }
@@ -341,7 +339,11 @@ export function NarrationChunksPanel({
       onUpdated?.();
     } catch (err) {
       const msg = describeFetchError(err, 'gerar narração por trechos');
-      stopAiJobProgress(false, msg);
+      if (jobStarted) {
+        stopAiJobProgress(false, msg);
+      } else {
+        toast(msg, { id: 'narration-chunks-tts-error', duration: 8000 });
+      }
     } finally {
       setGenerating(false);
       setGeneratingChunkId(null);

@@ -1,4 +1,5 @@
 import toast from 'react-hot-toast';
+import { describeFetchError } from './describeFetchError';
 
 export type AiJobProgressState = {
   jobId: string;
@@ -45,7 +46,12 @@ function updateToast(percent: number, label: string, title?: string) {
 }
 
 async function fetchProgress(jobId: string) {
-  const res = await fetch(`/api/ai/progress/${encodeURIComponent(jobId)}`);
+  let res: Response;
+  try {
+    res = await fetch(`/api/ai/progress/${encodeURIComponent(jobId)}`);
+  } catch (err) {
+    throw new Error(describeFetchError(err, 'consultar progresso do job'));
+  }
   if (!res.ok) return null;
   return res.json() as Promise<{
     phase: string;
@@ -117,7 +123,13 @@ export function startAiJobProgress(jobId: string, title: string) {
 
   pollTimer = setInterval(async () => {
     if (!current?.jobId) return;
-    const data = await fetchProgress(current.jobId);
+    let data;
+    try {
+      data = await fetchProgress(current.jobId);
+    } catch (err) {
+      stopAiJobProgress(false, describeFetchError(err, 'acompanhar geração'));
+      return;
+    }
     if (!data || current.jobId !== jobId) return;
     current = {
       ...current,
