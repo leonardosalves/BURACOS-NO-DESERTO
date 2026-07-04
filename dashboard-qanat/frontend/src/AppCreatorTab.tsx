@@ -168,6 +168,8 @@ export type AppCreatorTabProps = {
   uploadedScenes: Record<string, boolean>;
   uploadingNarration: boolean;
   useNotebooklm: boolean;
+  useDeepResearch: boolean;
+  setUseDeepResearch: (v: boolean) => void;
   wizardSavedAtLabel: string | null;
   wordTranscripts: any;
   youtubeLoading: boolean;
@@ -310,6 +312,8 @@ export function AppCreatorTab({
   uploadedScenes,
   uploadingNarration,
   useNotebooklm,
+  useDeepResearch,
+  setUseDeepResearch,
   wizardSavedAtLabel,
   wordTranscripts,
   youtubeLoading,
@@ -476,15 +480,31 @@ export function AppCreatorTab({
                       </div>
 
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-900/60 pt-3">
-                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={useNotebooklm}
-                            onChange={(e) => setUseNotebooklm(e.target.checked)}
-                            className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
-                          />
-                          <span className="text-xs text-zinc-300 font-semibold">Usar NotebookLM na pesquisa de roteiro</span>
-                        </label>
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={useDeepResearch}
+                              onChange={(e) => setUseDeepResearch(e.target.checked)}
+                              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-violet-400 focus:ring-violet-500/30"
+                            />
+                            <span className="text-xs text-zinc-300 font-semibold">
+                              Pesquisa profunda DeerFlow antes das 10 ideias
+                            </span>
+                          </label>
+                          <p className="text-[10px] text-zinc-500 pl-6 max-w-xl">
+                            Web (Gemini), Exa, outliers YouTube{useNotebooklm ? ' e NotebookLM' : ''} — leva ~30–90s, ideias bem mais variadas.
+                          </p>
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={useNotebooklm}
+                              onChange={(e) => setUseNotebooklm(e.target.checked)}
+                              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-gold-500 focus:ring-gold-500/30"
+                            />
+                            <span className="text-xs text-zinc-300 font-semibold">Incluir NotebookLM na pesquisa</span>
+                          </label>
+                        </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {creatorIdeasBundle?.bundleSlug ? (
                             <span
