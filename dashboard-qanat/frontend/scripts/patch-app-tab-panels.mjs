@@ -11,8 +11,9 @@ if (content.includes("<AppTabPanels")) {
   process.exit(0);
 }
 
+// Remove tab lazy imports only — keep RichTimelineEditor (used by renderRichTimelineEditor in App.tsx)
 content = content.replace(
-  /const AppCreatorTab = lazy\(\(\) => import\('\.\/AppCreatorTab'\)[\s\S]*?const AppMusicTabPanel = lazy\(\(\) => import\('\.\/AppMusicTabPanel'\)\.then\(\(m\) => \(\{ default: m\.AppMusicTabPanel \}\)\)\);\n\n/,
+  /const AppCreatorTab = lazy\(\(\) => import\('\.\/AppCreatorTab'\)[\s\S]*?const AppMusicTabPanel = lazy\(\(\) => import\('\.\/AppMusicTabPanel'\)\.then\(\(m\) => \(\{ default: m\.AppMusicTabPanel \}\)\)\);\n/,
   "",
 );
 
