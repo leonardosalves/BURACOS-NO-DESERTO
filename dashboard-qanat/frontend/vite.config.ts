@@ -20,6 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@lumiera/overlays': path.resolve(__dirname, '../remotion-renderer/src/overlays'),
+      '@lumiera/shared': path.resolve(__dirname, '../shared'),
     },
   },
   server: {

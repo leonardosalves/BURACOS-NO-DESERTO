@@ -20,7 +20,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@lumiera/overlays/*": ["../remotion-renderer/src/overlays/*"]
+      "@lumiera/overlays/*": ["../remotion-renderer/src/overlays/*"],
+      "@lumiera/shared/*": ["../shared/*"]
     }
   },
   "include": ["src"]
