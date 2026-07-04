@@ -451,8 +451,18 @@ export default function App() {
   const [creatorScript, setCreatorScript] = useState<string>(savedCreatorState.creatorScript || '');
 
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
-  const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full' | 'directing' | 'directing-scene'>('idle');
+  const [creatorLoadingMode, setCreatorLoadingMode] = useState<'idle' | 'narration' | 'full' | 'directing' | 'directing-scene' | 'seedance-t2v'>('idle');
   const [directingSceneIndex, setDirectingSceneIndex] = useState<number | null>(null);
+  const [seedanceT2vJobs, setSeedanceT2vJobs] = useState<Record<number, {
+    prompt_id: string;
+    scene_index: number;
+    status: 'queued' | 'running' | 'completed' | 'error' | 'attaching';
+    percent?: number;
+    message?: string;
+    asset?: string;
+    error?: string;
+  }>>({});
+  const seedanceT2vPollers = useRef<Record<number, ReturnType<typeof setInterval>>>({});
   const [showNarrationReview, setShowNarrationReview] = useState<boolean>(savedCreatorState.showNarrationReview || false);
   const [narrationDraft, setNarrationDraft] = useState<string>(savedCreatorState.narrationDraft || '');
   const [narrationTaggedDraft, setNarrationTaggedDraft] = useState<string>(savedCreatorState.narrationTaggedDraft || '');
@@ -902,6 +912,173 @@ export default function App() {
       setCreatorLoading(false);
       setCreatorLoadingMode('idle');
       setDirectingSceneIndex(null);
+    }
+  };
+
+  const stopSeedanceT2vPoller = (sceneIndex: number) => {
+    const poller = seedanceT2vPollers.current[sceneIndex];
+    if (poller) {
+      clearInterval(poller);
+      delete seedanceT2vPollers.current[sceneIndex];
+    }
+  };
+
+  const attachSeedanceT2vWhenReady = async (projectName: string, sceneIndex: number, promptId: string) => {
+    setSeedanceT2vJobs((prev) => ({
+      ...prev,
+      [sceneIndex]: {
+        ...(prev[sceneIndex] || { prompt_id: promptId, scene_index: sceneIndex, status: 'attaching' }),
+        status: 'attaching',
+        message: 'Vinculando vídeo ao projeto…',
+      },
+    }));
+    try {
+      const { ok, data } = await postAi('/api/ai/creator/attach-seedance-t2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_'),
+          prompt_id: promptId,
+          scene_index: sceneIndex,
+        }),
+      });
+      if (ok && data.ready && data.storyboard) {
+        applyStoryboardToCreatorState(data.storyboard);
+        await saveCreatorStoryboard(data.storyboard);
+        if (data.config) setConfig(data.config);
+        fetchData();
+        setSeedanceT2vJobs((prev) => ({
+          ...prev,
+          [sceneIndex]: {
+            prompt_id: promptId,
+            scene_index: sceneIndex,
+            status: 'completed',
+            percent: 100,
+            asset: data.asset,
+            message: 'Vídeo vinculado',
+          },
+        }));
+        toast.success(`🎥 Vídeo LTX vinculado — cena ${sceneIndex + 1}`);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      setSeedanceT2vJobs((prev) => ({
+        ...prev,
+        [sceneIndex]: {
+          ...(prev[sceneIndex] || { prompt_id: promptId, scene_index: sceneIndex, status: 'error' }),
+          status: 'error',
+          error: err.message || 'Falha ao vincular vídeo',
+        },
+      }));
+      toast.error(err.message || 'Falha ao vincular vídeo LTX.');
+      return false;
+    }
+  };
+
+  const startSeedanceT2vPolling = (projectName: string, sceneIndex: number, promptId: string) => {
+    stopSeedanceT2vPoller(sceneIndex);
+    const poll = async () => {
+      try {
+        const res = await fetch(getProjectUrl(`/api/comfyui/progress/${promptId}`));
+        if (!res.ok) return;
+        const data = await res.json();
+        const status = data.status === 'completed'
+          ? 'completed'
+          : data.status === 'error'
+            ? 'error'
+            : data.status === 'queued'
+              ? 'queued'
+              : 'running';
+        setSeedanceT2vJobs((prev) => ({
+          ...prev,
+          [sceneIndex]: {
+            prompt_id: promptId,
+            scene_index: sceneIndex,
+            status,
+            percent: data.percent ?? prev[sceneIndex]?.percent ?? 0,
+            message: data.message || prev[sceneIndex]?.message,
+            error: data.error || undefined,
+          },
+        }));
+        if (status === 'completed') {
+          stopSeedanceT2vPoller(sceneIndex);
+          await attachSeedanceT2vWhenReady(projectName, sceneIndex, promptId);
+        }
+        if (status === 'error') {
+          stopSeedanceT2vPoller(sceneIndex);
+          toast.error(data.error || data.message || 'Erro na geração LTX.');
+        }
+      } catch { /* ignore poll errors */ }
+    };
+    poll();
+    seedanceT2vPollers.current[sceneIndex] = setInterval(poll, 2000);
+  };
+
+  const handleGenerateSeedanceT2v = async (sceneIndices?: number[], provider: 'ltx' | 'seedance' = 'ltx') => {
+    const projectName = narrationProjectName || creatorProjectName || activeProject;
+    if (!projectName?.trim()) {
+      toast.error('Projeto não identificado.');
+      return;
+    }
+    const normalizedProject = projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const isBatch = !sceneIndices || sceneIndices.length !== 1;
+    setCreatorLoading(true);
+    setCreatorLoadingMode('seedance-t2v');
+    try {
+      const body: Record<string, unknown> = { project: normalizedProject, provider };
+      if (sceneIndices?.length) body.scene_indices = sceneIndices;
+
+      const { ok, data } = await postAi('/api/ai/creator/generate-seedance-t2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!ok || data.needs_browser) {
+        toast.error(data.error || data.details || 'Erro ao enfileirar T2V.');
+        return;
+      }
+
+      const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+      if (!jobs.length) {
+        toast.error('Nenhum job T2V criado.');
+        return;
+      }
+
+      for (const job of jobs) {
+        const sceneIndex = Number(job.scene_index);
+        const promptId = String(job.prompt_id || '');
+        if (!Number.isFinite(sceneIndex) || !promptId) continue;
+        setSeedanceT2vJobs((prev) => ({
+          ...prev,
+          [sceneIndex]: {
+            prompt_id: promptId,
+            scene_index: sceneIndex,
+            status: 'queued',
+            percent: 2,
+            message: 'Na fila LTX…',
+          },
+        }));
+        if (provider === 'ltx') {
+          startSeedanceT2vPolling(normalizedProject, sceneIndex, promptId);
+        }
+      }
+
+      if (data.waited && data.storyboard) {
+        applyStoryboardToCreatorState(data.storyboard);
+        await saveCreatorStoryboard(data.storyboard);
+      }
+
+      toast.success(`🎥 ${jobs.length} vídeo(s) enfileirado(s) via ${provider.toUpperCase()}`);
+      if (isBatch) {
+        toast('Cenas processadas em sequência — aguarde cada LTX concluir.', { icon: '⏳' });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao gerar T2V.');
+    } finally {
+      setCreatorLoading(false);
+      setCreatorLoadingMode('idle');
     }
   };
 
@@ -7665,9 +7842,11 @@ export default function App() {
     handleEmotionMusicChange,
     handleEnhanceVisualPrompts,
     handleCompileDirectingBriefs,
+    handleGenerateSeedanceT2v,
     handleUpdateCreatorDirectingBrief,
     handleUpdateCreatorSeedanceRef,
     directingSceneIndex,
+    seedanceT2vJobs,
     handleEvaluateScriptChecklist,
     handleFileInput,
     handleFixYoutubeMetadata,

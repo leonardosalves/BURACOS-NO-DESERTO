@@ -65,3 +65,32 @@ export function sceneHasRefs(vp: { seedance_refs?: SeedanceRefs } | null | undef
 export function countScenesWithDirecting(visualPrompts: Array<{ directing_brief?: DirectingBrief }> = []): number {
   return visualPrompts.filter(sceneHasDirecting).length;
 }
+
+export function isVideoIaScene(vp: { type?: string } | null | undefined): boolean {
+  const type = String(vp?.type || '').toLowerCase();
+  return type.includes('video') || type.includes('vídeo');
+}
+
+export function listVideoIaSceneIndices(visualPrompts: unknown[] = []): number[] {
+  return visualPrompts
+    .map((vp, i) => (isVideoIaScene(vp as { type?: string }) ? i : -1))
+    .filter((i) => i >= 0);
+}
+
+export function countVideoIaScenes(visualPrompts: unknown[] = []): number {
+  return listVideoIaSceneIndices(visualPrompts).length;
+}
+
+export function sceneHasGeneratedVideo(vp: { asset?: { asset?: string; seedance_generated?: boolean }; seedance_t2v?: { asset?: string } } | null | undefined): boolean {
+  return Boolean(vp?.asset?.asset && (vp.asset.seedance_generated || vp.seedance_t2v?.asset));
+}
+
+export type SeedanceT2vJobState = {
+  prompt_id: string;
+  scene_index: number;
+  status: 'queued' | 'running' | 'completed' | 'error' | 'attaching';
+  percent?: number;
+  message?: string;
+  asset?: string;
+  error?: string;
+};

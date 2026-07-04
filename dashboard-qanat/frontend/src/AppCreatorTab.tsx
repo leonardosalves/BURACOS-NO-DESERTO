@@ -22,7 +22,7 @@ import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDu
 import { FacelessChannelPanel } from './FacelessChannelPanel';
 import { canRunFacelessPipeline90 } from './facelessChannel';
 import { SeedanceDirectingPanel, SeedanceDirectingToolbar } from './SeedanceDirectingPanel';
-import { countScenesWithDirecting } from './seedanceDirecting';
+import { countScenesWithDirecting, countVideoIaScenes, sceneHasGeneratedVideo } from './seedanceDirecting';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
 
 export type AppCreatorTabProps = {
@@ -68,9 +68,19 @@ export type AppCreatorTabProps = {
   handleDrop: (e: React.DragEvent) => void;
   handleEnhanceVisualPrompts: () => void | Promise<void>;
   handleCompileDirectingBriefs: (sceneIndices?: number[]) => void | Promise<void>;
+  handleGenerateSeedanceT2v: (sceneIndices?: number[], provider?: 'ltx' | 'seedance') => void | Promise<void>;
   handleUpdateCreatorDirectingBrief: (index: number, field: string, value: string) => void;
   handleUpdateCreatorSeedanceRef: (index: number, slot: string, value: string) => void;
   directingSceneIndex: number | null;
+  seedanceT2vJobs: Record<number, {
+    prompt_id: string;
+    scene_index: number;
+    status: 'queued' | 'running' | 'completed' | 'error' | 'attaching';
+    percent?: number;
+    message?: string;
+    asset?: string;
+    error?: string;
+  }>;
   handleEvaluateScriptChecklist: () => void | Promise<void>;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
@@ -208,9 +218,11 @@ export function AppCreatorTab({
   handleDrop,
   handleEnhanceVisualPrompts,
   handleCompileDirectingBriefs,
+  handleGenerateSeedanceT2v,
   handleUpdateCreatorDirectingBrief,
   handleUpdateCreatorSeedanceRef,
   directingSceneIndex,
+  seedanceT2vJobs,
   handleEvaluateScriptChecklist,
   handleFileInput,
   handleGenerateFullScript,
@@ -1979,8 +1991,11 @@ export function AppCreatorTab({
                             <SeedanceDirectingToolbar
                               sceneCount={(generatedScriptData?.visual_prompts || []).length}
                               filledCount={countScenesWithDirecting(generatedScriptData?.visual_prompts || [])}
+                              videoIaCount={countVideoIaScenes(generatedScriptData?.visual_prompts || [])}
                               loading={creatorLoading && (creatorLoadingMode === 'directing' || creatorLoadingMode === 'directing-scene')}
+                              t2vLoading={creatorLoading && creatorLoadingMode === 'seedance-t2v'}
                               onCompileAll={() => handleCompileDirectingBriefs()}
+                              onGenerateAllT2v={() => handleGenerateSeedanceT2v(undefined, 'ltx')}
                             />
                           )}
                           {(generatedScriptData?.visual_prompts || []).length > 0 && (
@@ -2267,7 +2282,10 @@ export function AppCreatorTab({
                                               onUpdateBrief={(field, value) => handleUpdateCreatorDirectingBrief(absoluteIndex, field, value)}
                                               onUpdateRef={(slot, value) => handleUpdateCreatorSeedanceRef(absoluteIndex, slot, value)}
                                               onGenerateScene={(idx) => handleCompileDirectingBriefs([idx])}
+                                              onGenerateT2v={(idx) => handleGenerateSeedanceT2v([idx], 'ltx')}
                                               generating={creatorLoading && creatorLoadingMode === 'directing-scene' && directingSceneIndex === absoluteIndex}
+                                              t2vJob={seedanceT2vJobs[absoluteIndex] || null}
+                                              hasGeneratedVideo={sceneHasGeneratedVideo(vp)}
                                             />
 
                                           </div>
