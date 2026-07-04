@@ -5824,26 +5824,34 @@ export default function App() {
     }
   };
 
-  const handleGenerateIdeas = async () => {
+  const handleGenerateIdeas = async (opts?: { forceVariety?: boolean }) => {
 
     if (!nicheInput.trim()) return;
 
+    const regen = Boolean(opts?.forceVariety);
+    const previousIdeas = regen && ideasSearchNiche.trim() === nicheInput.trim()
+      ? (ideasData?.ideas || [])
+      : [];
+
     setCreatorLoading(true);
 
-    setIdeasData(null);
-
-    setSelectedIdeaIndex(-1);
+    if (!regen) {
+      setIdeasData(null);
+      setSelectedIdeaIndex(-1);
+    }
 
     try {
 
       if (geminiBrowserMode) {
-        toast.loading('Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
+        toast.loading(regen ? 'Gerando outras 10 ideias…' : 'Gerando ideias via Gemini no navegador…', { id: 'gemini-ideas' });
       }
 
       const body = JSON.stringify({
         niche: nicheInput.trim(),
         format: formatSelector,
         useNotebooklm,
+        forceVariety: regen,
+        excludeIdeas: previousIdeas.map((idea: { title?: string }) => ({ title: idea?.title || '' })),
         ...(ideationTab === 'listicle' ? {
           contentMode: 'LISTICLE',
           rankCount,
@@ -5864,6 +5872,10 @@ export default function App() {
         setIdeasSearchNiche(nicheInput.trim());
 
         setSelectedIdeaIndex(data.best_idea_index);
+
+        if (regen) {
+          toast.success(`Nova leva de ideias (${data._ideas_meta?.excludedCount ?? 0} assuntos anteriores bloqueados).`);
+        }
 
         // Auto-fill project name from best idea title (short 3-word summary)
 

@@ -55,6 +55,8 @@ export async function fetchWebResearchForTopic({
   apiKey = null,
   getApiKeys = () => [],
   workspaceDir = null,
+  diversityHint = "",
+  excludeTopics = [],
 } = {}) {
   const query = String(topic || niche).trim();
   if (!query) {
@@ -91,27 +93,38 @@ export async function fetchWebResearchForTopic({
     };
   }
 
+  const excludeBlock = (excludeTopics || []).length
+    ? `\nNÃO inclua fatos sobre estes assuntos já saturados no canal:\n${excludeTopics.slice(0, 20).map((t) => `- ${t}`).join("\n")}`
+    : "";
+
+  const diversityBlock = diversityHint
+    ? `\nPRIORIZE ângulos desta varredura: ${diversityHint}`
+    : "\nPRIORIZE fatos pouco cobertos em canais de curiosidades BR — evite os mesmos exemplos de sempre.";
+
   const prompt = `Pesquise na web (fontes confiáveis: museus, .edu, imprensa, órgãos oficiais, Wikipedia só como ponto de partida) sobre:
 
 TEMA: ${query}
 NICHO: ${niche || query}
 FORMATO: ${format}
+${diversityBlock}
+${excludeBlock}
 
 Retorne APENAS JSON válido:
 {
   "facts": [
-    "5 a 8 fatos verificáveis com datas, nomes ou números quando possível"
+    "6 a 10 fatos verificáveis com datas, nomes ou números quando possível — prefira histórias OBSCURAS e específicas"
   ],
   "angles": [
-    "2 a 3 ângulos narrativos fortes para um vídeo ${format === "SHORTS" ? "Short" : "documentário"}"
+    "3 a 5 ângulos narrativos fortes e DISTINTOS para um vídeo ${format === "SHORTS" ? "Short" : "documentário"}"
   ],
   "summary": "Parágrafo único em PT-BR sintetizando o que importa para o roteiro"
 }
 
 Regras:
 - Só fatos que você encontrou na pesquisa; não invente URLs nem estatísticas.
-- Priorize detalhes surpreendentes e pouco conhecidos.
-- Evite generalidades tipo "é muito importante" ou "mudou o mundo" sem prova.`;
+- Priorize detalhes surpreendentes e pouco conhecidos no YouTube brasileiro.
+- Evite generalidades tipo "é muito importante" ou "mudou o mundo" sem prova.
+- Não repita os clichês de curiosidades (concreto romano, Torre Eiffel no verão, Vasa, Canal do Panamá, sonda NASA, etc.) a menos que o nicho seja exclusivamente sobre um deles.`;
 
   const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
   let lastErr = null;
@@ -122,7 +135,7 @@ Regras:
         const body = {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           tools: [{ googleSearch: {} }],
-          generationConfig: { temperature: 0.25 },
+          generationConfig: { temperature: 0.65 },
         };
 
         const res = await fetch(
