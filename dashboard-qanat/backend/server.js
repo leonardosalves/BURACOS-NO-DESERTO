@@ -189,6 +189,16 @@ import {
   formatWebResearchPromptBlock,
 } from "./webResearchService.js";
 import {
+  appendIdeasHistory,
+  buildIdeasExclusionAddendum,
+  buildIdeasExplorationAxes,
+  buildIdeasFreshnessInstruction,
+  collectProjectTopics,
+  loadIdeasHistory,
+  makeIdeasGenerationSeed,
+  mergeExclusionTopics,
+} from "./ideasVariety.js";
+import {
   buildInstagramAuthUrl,
   exchangeInstagramCode,
   getInstagramConnectionStatus,
@@ -12445,7 +12455,17 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 
   const browserText = extractBrowserResponse(req.body);
 
-  const { niche, format, useNotebooklm, contentMode, rankCount, rankOrder, listTopic } = req.body;
+  const {
+    niche,
+    format,
+    useNotebooklm,
+    contentMode,
+    rankCount,
+    rankOrder,
+    listTopic,
+    excludeIdeas = [],
+    forceVariety = false,
+  } = req.body;
 
   if (!niche || !format) {
 
@@ -12456,6 +12476,22 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   const isListicle = contentMode === "LISTICLE";
   const listicleRank = clampListicleRankCount(rankCount, format);
   const listicleTopic = String(listTopic || niche).trim();
+  const nicheClean = String(niche).trim();
+  const generationSeed = makeIdeasGenerationSeed();
+
+  const previousIdeas = Array.isArray(excludeIdeas)
+    ? excludeIdeas.map((i) => String(i?.title || i || "").trim()).filter(Boolean)
+    : [];
+  const historyTopics = loadIdeasHistory(WORKSPACE_DIR, nicheClean);
+  const projectTopics = collectProjectTopics(PROJECTS_ROOT);
+  const excludeTopics = mergeExclusionTopics({
+    projectTopics,
+    historyTopics,
+    previousIdeas,
+  });
+  const explorationAxes = buildIdeasExplorationAxes(generationSeed);
+  const exclusionAddendum = buildIdeasExclusionAddendum(excludeTopics);
+  const diversityHint = explorationAxes.split("\n").filter((l) => /^\d+\./.test(l)).join(" | ");
 
   let notebooklmContext = "";
   const skipNotebooklm = browserText || shouldOfferGeminiBrowser(projDir);
@@ -12474,8 +12510,6 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
     }
   }
 
-  const nicheClean = String(niche).trim();
-
   let webResearchContext = "";
   try {
     const webResearch = await fetchWebResearchForTopic({
@@ -12485,6 +12519,8 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
       apiKey: getApiKey(projDir),
       getApiKeys: () => getApiKeys(projDir),
       workspaceDir: WORKSPACE_DIR,
+      diversityHint,
+      excludeTopics,
     });
     webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
   } catch {
@@ -12500,6 +12536,12 @@ Faça uma análise rápida, objetiva e estratégica do nicho e gere exatamente 1
 ${buildNicheIsolationAddendum(nicheClean)}
 
 ${buildNicheVarietyInstruction(nicheClean)}
+
+${buildIdeasFreshnessInstruction()}
+
+${explorationAxes}
+
+${exclusionAddendum}
 
 ${notebooklmContext}
 ${webResearchContext}
@@ -12588,10 +12630,10 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
 
   try {
 
-    const randomSeed = Math.floor(Math.random() * 1000000);
     const fullPrompt = `${promptSystem}
 
-[ID da Geração: ${randomSeed}]
+[ID da Geração: ${generationSeed}]
+${forceVariety || previousIdeas.length ? "MODO: NOVA VARREDURA — obrigatório entregar assuntos distintos dos listados em TÓPICOS JÁ EXPLORADOS." : ""}
 
 ENTRADAS:
 NICHO: ${nicheClean}
@@ -12601,7 +12643,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
     const responseText = await callGeminiLlm(req, res, projDir, {
       title: "Gerar 10 ideias virais",
       prompt: fullPrompt,
-      temperature: 1.15,
+      temperature: 1.2,
     });
     if (responseText == null) return;
 
@@ -12611,7 +12653,19 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
       "Ideias e diagnostico",
     );
 
-    res.json(parsedData);
+    if (Array.isArray(parsedData?.ideas) && parsedData.ideas.length) {
+      appendIdeasHistory(WORKSPACE_DIR, nicheClean, parsedData.ideas);
+    }
+
+    res.json({
+      ...parsedData,
+      _ideas_meta: {
+        generationSeed,
+        excludedCount: excludeTopics.length,
+        usedWebResearch: Boolean(webResearchContext),
+        usedNotebooklm: Boolean(notebooklmContext),
+      },
+    });
 
   } catch (err) {
 

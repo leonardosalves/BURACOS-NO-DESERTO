@@ -467,6 +467,7 @@ export function previewConsolidationAllNiches(workspaceDir, threshold = PROMOTE_
 const TASK_CATEGORY_HINTS = {
   overlay: ["overlay", "orchestration", "lower-third", "bar-chart", "timeline", "kinetic"],
   script: ["script", "checklist", "roteiro", "hook", "retention"],
+  ideas: ["idea", "ideia", "hook", "packaging", "titulo", "title", "outlier", "click", "story", "viral", "retention", "listicle", "ranking"],
   render: ["render", "quality", "timing"],
 };
 

@@ -84,7 +84,7 @@ export type AppCreatorTabProps = {
   handleEvaluateScriptChecklist: () => void | Promise<void>;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGenerateFullScript: () => void | Promise<void>;
-  handleGenerateIdeas: () => void | Promise<void>;
+  handleGenerateIdeas: (opts?: { forceVariety?: boolean }) => void | Promise<void>;
   handleRunFacelessPipeline90: () => void | Promise<void>;
   handleGenerateListicleScript: () => void | Promise<void>;
   handleGenerateNarration: () => void | Promise<void>;
@@ -933,6 +933,14 @@ export function AppCreatorTab({
                           <div className="flex justify-between items-center px-1">
                             <SectionHeader title="Selecione uma das 10 Ideias" helpId="creator-step-select-idea" />
                             <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                disabled={creatorLoading || !hasApiKey}
+                                onClick={() => handleGenerateIdeas({ forceVariety: true })}
+                                className="bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/20 text-violet-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition cursor-pointer disabled:opacity-40"
+                              >
+                                🔄 Outras 10 ideias
+                              </button>
                               <button
                                 onClick={() => {
                                   setSelectedIdeaIndex(999);

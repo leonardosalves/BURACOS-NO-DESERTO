@@ -202,6 +202,9 @@ function extractOutlierSummaries(content = "", max = 4) {
 
 function buildFileSnippet(entry, task = "overlay") {
   const { slug, raw } = entry;
+  if (task === "ideas" && /^(deep-research-reports|lumiera-code-map|google-|mattpocock|agent-frameworks|openmontage-lumiera|videoagent-lumiera)/.test(slug)) {
+    return "";
+  }
   const parts = [];
 
   for (const sec of extractStudioSections(raw)) {
