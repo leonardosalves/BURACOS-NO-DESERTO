@@ -3,6 +3,8 @@
  * ponto de entrada na faixa (climax mode) e intensidade de ducking.
  */
 
+import { resolveEmotionDuckStrength } from "./bgmProductionDefaults.js";
+
 const MOOD_KEYWORDS = {
   tension: [
     /perigo|amea[cç]a|crise|imposs[ií]vel|segredo|mist[eé]rio|medo|urgente|problema|falha|risco|colapso|guerra|choque/i,
@@ -37,7 +39,7 @@ const CLIMAX_MODE_SEARCH = {
   neutral: "cinematic documentary underscore neutral",
 };
 
-function scoreMoodFromText(text = "") {
+export function scoreMoodFromText(text = "") {
   const sample = String(text).toLowerCase();
   const scores = { tension: 0, epic: 0, wonder: 0, calm: 0, resolve: 0 };
   for (const [mood, patterns] of Object.entries(MOOD_KEYWORDS)) {
@@ -49,7 +51,7 @@ function scoreMoodFromText(text = "") {
   return scores;
 }
 
-function pickDominantMood(scores, fallback = "neutral") {
+export function pickDominantMood(scores, fallback = "neutral") {
   const entries = Object.entries(scores).filter(([, v]) => v > 0);
   if (entries.length === 0) return fallback;
   entries.sort((a, b) => b[1] - a[1]);
@@ -151,7 +153,7 @@ export function buildBlockSonoplastiaPlan({
 
     const pace = spoken.wps > 2.6 ? "fast" : spoken.wps < 1.7 && spoken.wordCount > 4 ? "slow" : "normal";
     const climaxMode = moodToClimaxMode(mood, pace);
-    const duckStrength = moodToDuckStrength(mood, pace);
+    const duckStrength = resolveEmotionDuckStrength(mood);
 
     const rec = recommendations.find((r) => Number(r?.block) === Number(block));
     const searchTheme = String(rec?.search_theme || rec?.searchTheme || "").trim()

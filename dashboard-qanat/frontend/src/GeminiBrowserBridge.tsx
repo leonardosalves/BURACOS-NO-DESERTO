@@ -16,9 +16,18 @@ export function useGeminiBrowserBridge() {
 
 export function GeminiBrowserProvider({ children }: { children: React.ReactNode }) {
   const [automation, setAutomationState] = useState<GeminiAutomationState>({ active: false });
+  const activeJobsRef = React.useRef(0);
 
   const setAutomation = useCallback((state: GeminiAutomationState) => {
-    setAutomationState(state);
+    if (state.active) {
+      activeJobsRef.current += 1;
+      setAutomationState(state);
+      return;
+    }
+    activeJobsRef.current = Math.max(0, activeJobsRef.current - 1);
+    if (activeJobsRef.current === 0) {
+      setAutomationState({ active: false });
+    }
   }, []);
 
   return (

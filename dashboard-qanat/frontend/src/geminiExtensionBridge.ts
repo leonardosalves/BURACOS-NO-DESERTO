@@ -113,6 +113,7 @@ function postToBridge<T extends BridgeMessage>(
 }
 
 let extensionCached = false;
+let extensionCheckPromise: Promise<boolean> | null = null;
 
 export async function diagnoseGeminiExtension() {
   let scriptPresent = await waitForBridgeScript(4000);
@@ -143,16 +144,12 @@ export async function diagnoseGeminiExtension() {
 
 export async function isGeminiExtensionAvailable(force = false): Promise<boolean> {
   if (!force && extensionCached) return true;
-  let scriptOk = await waitForBridgeScript(3000);
-  if (!scriptOk) scriptOk = await recoverBridgeConnection();
-  if (!scriptOk) return false;
-  try {
-    await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 5000);
-    extensionCached = true;
-    return true;
-  } catch {
-    const recovered = await recoverBridgeConnection();
-    if (!recovered) {
+  if (extensionCheckPromise) return extensionCheckPromise;
+
+  extensionCheckPromise = (async () => {
+    let scriptOk = await waitForBridgeScript(3000);
+    if (!scriptOk) scriptOk = await recoverBridgeConnection();
+    if (!scriptOk) {
       extensionCached = false;
       return false;
     }
@@ -161,9 +158,26 @@ export async function isGeminiExtensionAvailable(force = false): Promise<boolean
       extensionCached = true;
       return true;
     } catch {
-      extensionCached = false;
-      return false;
+      const recovered = await recoverBridgeConnection();
+      if (!recovered) {
+        extensionCached = false;
+        return false;
+      }
+      try {
+        await postToBridge<BridgeMessage>({ type: 'LUMIERA_GEMINI_PING' }, 5000);
+        extensionCached = true;
+        return true;
+      } catch {
+        extensionCached = false;
+        return false;
+      }
     }
+  })();
+
+  try {
+    return await extensionCheckPromise;
+  } finally {
+    extensionCheckPromise = null;
   }
 }
 
@@ -216,8 +230,10 @@ export async function queryGeminiWithRetry(
       return await queryGeminiViaExtension(prompt);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      extensionCached = false;
-      if (!isRetryableGeminiError(lastErr) || i >= attempts - 1) break;
+      if (!isRetryableGeminiError(lastErr) || i >= attempts - 1) {
+        extensionCached = false;
+        break;
+      }
       if (/extensão recarregada|reconectando|context invalidated/i.test(lastErr.message)) {
         await waitForBridgeScript(4000);
       }
