@@ -300,6 +300,22 @@ NARRAÇÃO CINEMATOGRÁFICA (obrigatório em "narrative_script_tagged"):
 - Em listicles: [ênfase] no número do ranking ("Número três...") e [pausa] antes do impacto do #1.`;
 }
 
+/** Trechos IA: remove (breath) e ênfase — pausas ficam em pause_after_ms, não em tags inline. */
+export function sanitizeNarrationChunkTaggedText(text = "", plainFallback = "") {
+  let t = String(text || "").trim();
+  if (!t) t = String(plainFallback || "").trim();
+  t = t
+    .replace(/\[ênfase\s+dramática\]\s*/gi, "")
+    .replace(/\[ênfase\]\s*/gi, "")
+    .replace(/\[emphasis\]\s*/gi, "")
+    .replace(/\(breath\)/gi, " ")
+    .replace(/\(sigh\)/gi, " ")
+    .replace(/\(laughs?\)/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return t || String(plainFallback || "").trim();
+}
+
 /** Remove marcadores TTS — texto limpo para legendas e contagem de palavras. */
 export function stripTtsMarkersForPlainText(text = "") {
   return String(text)

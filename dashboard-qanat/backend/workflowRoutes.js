@@ -66,7 +66,10 @@ import {
   applyChunkedNarrationSyncToProject,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
-import { convertCinematicMarkersForTts } from "./videoProEnhancements.js";
+import {
+  convertCinematicMarkersForTts,
+  sanitizeNarrationChunkTaggedText,
+} from "./videoProEnhancements.js";
 import {
   buildYoutubeMetadataPrompt,
   buildFallbackYoutubeMetadata,
@@ -641,17 +644,17 @@ export function registerWorkflowRoutes(app, deps) {
       const {
         text_tagged: taggedText = "",
         engine = "fish",
-        strip_emphasis: stripEmphasis = false,
       } = req.body || {};
       const platform = String(engine).toLowerCase().includes("chatterbox")
         ? "chatterbox"
         : String(engine).toLowerCase().includes("eleven")
           ? "eleven"
           : "fish";
-      const preview = convertCinematicMarkersForTts(String(taggedText || ""), platform, {
-        stripEmphasis: stripEmphasis === true,
+      const sanitized = sanitizeNarrationChunkTaggedText(taggedText);
+      const preview = convertCinematicMarkersForTts(sanitized, platform, {
+        stripEmphasis: true,
       });
-      const tags = [...String(taggedText || "").matchAll(/\[[^\]]+\]|\([^)]+\)/g)]
+      const tags = [...sanitized.matchAll(/\[[^\]]+\]|\([^)]+\)/g)]
         .map((m) => m[0])
         .filter((v, i, arr) => arr.indexOf(v) === i);
       res.json({ preview, tags, platform });
@@ -705,7 +708,7 @@ export function registerWorkflowRoutes(app, deps) {
         defaultVoice: voiceRef,
         workspaceDir: WORKSPACE_DIR,
         useTagged: useTagged !== false,
-        stripEmphasis: stripEmphasis === true,
+        stripEmphasis: true,
         assembleMaster: assembleMaster !== false,
         onLog: (msg) => console.log(msg),
         onProgress: report,

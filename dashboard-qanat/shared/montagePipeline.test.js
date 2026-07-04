@@ -11,7 +11,9 @@ import {
   buildBlockTimingsFromChunks,
   isFullNarrationChunkBatch,
   chunkAudioRelativePath,
+  parseAiNarrationChunkResponse,
 } from "../backend/narrationChunks.js";
+import { sanitizeNarrationChunkTaggedText } from "../backend/videoProEnhancements.js";
 
 describe("montage pipeline", () => {
   describe("resolveBgmMode", () => {
@@ -114,6 +116,27 @@ describe("montage pipeline", () => {
       assert.equal(synced.timelineAssets["2"][0].narration_segment, "Primeira frase do bloco.");
       assert.equal(synced.timelineAssets["2"][1].narration_segment, "Segunda frase do bloco.");
       assert.ok(synced.timelineAssets["2"][0].speech_end < synced.timelineAssets["2"][1].audio_start);
+    });
+
+    it("sanitizeNarrationChunkTaggedText remove breath e ênfase", () => {
+      const raw = "[ênfase] Mil (breath) anos depois, [ênfase dramática] tudo mudou.";
+      assert.equal(
+        sanitizeNarrationChunkTaggedText(raw, "Mil anos depois, tudo mudou."),
+        "Mil anos depois, tudo mudou.",
+      );
+    });
+
+    it("parseAiNarrationChunkResponse sanitiza text_tagged da IA", () => {
+      const chunks = parseAiNarrationChunkResponse({
+        chunks: [{
+          id: "chunk-01",
+          block: 1,
+          scene_ref: "1.1",
+          text: "A torre resistiu.",
+          text_tagged: "[ênfase] A torre (breath) resistiu.",
+        }],
+      });
+      assert.equal(chunks[0].text_tagged, "A torre resistiu.");
     });
 
     it("buildBlockTimingsFromChunks agrupa por bloco", () => {
