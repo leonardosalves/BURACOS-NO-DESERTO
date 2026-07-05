@@ -1,14 +1,15 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[skills/deer-flow-research|deer flow research]] · [[SKILLS]]
 
 ---
+
 name: deer-flow-research
 description: |
-  Pesquisa profunda estilo DeerFlow no Lumiera — planner, pesquisadores paralelos, relatório.
-  Use para "pesquisa profunda", "investigar tema", "relatório antes do roteiro", deep research.
-  Triggers: pesquisa profunda, deep research, deerflow, investigar, relatório de pesquisa.
+Pesquisa profunda estilo DeerFlow no Lumiera — planner, pesquisadores paralelos, relatório.
+Use para "pesquisa profunda", "investigar tema", "relatório antes do roteiro", deep research.
+Triggers: pesquisa profunda, deep research, deerflow, investigar, relatório de pesquisa.
 metadata:
-  lumiera: true
-  source: bytedance/deer-flow (padrões adaptados)
+lumiera: true
+source: bytedance/deer-flow (padrões adaptados)
 ---
 
 # DeerFlow → Lumiera (pesquisa profunda)
@@ -18,6 +19,9 @@ Não rode o harness DeerFlow completo (Python/LangGraph). Use a API Lumiera:
 ```http
 POST /api/research/deep
 { "topic": "...", "niche": "...", "format": "SHORTS", "notebooklmDeep": false, "enqueueIdeas": true }
+
+POST /api/research/analyze-reference-video
+{ "url": "https://...", "format": "SHORTS", "persist": true }
 ```
 
 ## Fluxo (espelho DeerFlow 1.x)

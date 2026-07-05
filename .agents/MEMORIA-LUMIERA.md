@@ -9,7 +9,6 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[AGENTS]] — documentação dos agentes
 - [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)
 - [[memory/agent-frameworks-reference]] · [[memory/google-gemini-sdk-reference]] · [[memory/google-research-reference]]
-- [[memory/cocoloop-skills-curated]] · [[memory/cocoloop-skills-rejected]]
 - [[memory/lumiera-code-map]] · [[memory/videoagent-lumiera]]
 - [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]
 
@@ -42,6 +41,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/improve-codebase-architecture|improve codebase architecture]] · [[skills/improve-codebase-architecture/REFERENCES|refs]]
 - [[skills/loop-me|loop me]]
 - [[skills/lumiera-ops|lumiera ops]]
+- [[skills/lumiera-security-review|lumiera security review]]
 - [[skills/lumiera-seedance-directing|lumiera seedance directing]]
 - [[skills/markdown-converter|markdown converter]]
 - [[skills/mcp-builder|mcp builder]] · [[skills/mcp-builder/REFERENCES|refs]]
@@ -100,9 +100,9 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 ## Memória por nicho
 
 - [[memory/agent-frameworks-reference]]
-- [[memory/comparacao-engenharia-moderna-x-antiga-origem]]
 - [[memory/cocoloop-skills-curated]]
 - [[memory/cocoloop-skills-rejected]]
+- [[memory/comparacao-engenharia-moderna-x-antiga-origem]]
 - [[memory/competitor-intelligence]]
 - [[memory/curiosidade-engenharia]]
 - [[memory/curiosidades-e-fatos-surpreendentes]]
@@ -123,6 +123,7 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/lumiera-code-map]]
 - [[memory/mattpocock-skills]]
 - [[memory/openmontage-lumiera]]
+- [[memory/video-reference-analyses]]
 - [[memory/videoagent-lumiera]]
 
 ## Logs recentes
@@ -145,4 +146,4 @@ Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-05T16:37:13.608Z
+atualizado: 2026-07-05T19:11:42.728Z

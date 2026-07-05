@@ -1,16 +1,17 @@
 > 🔗 [[MEMORIA-LUMIERA]] · [[skills/openmontage-reference-video|openmontage reference video]] · [[SKILLS]]
 
 ---
+
 name: openmontage-reference-video
 description: |
-  Análise de vídeo de referência (URL) → brief 5 aspectos + 2–3 conceitos diferenciados.
-  Padrão OpenMontage video-reference-analyst adaptado ao Lumiera.
-  Use quando o usuário cola YouTube/Shorts/TikTok/Reels e quer "algo assim", "inspirado em", "nesse estilo".
-  Triggers: referência, inspirado em, algo como, URL vídeo, analisar concorrente, estilo de vídeo.
+Análise de vídeo de referência (URL) → brief 5 aspectos + 2–3 conceitos diferenciados.
+Padrão OpenMontage video-reference-analyst adaptado ao Lumiera.
+Use quando o usuário cola YouTube/Shorts/TikTok/Reels e quer "algo assim", "inspirado em", "nesse estilo".
+Triggers: referência, inspirado em, algo como, URL vídeo, analisar concorrente, estilo de vídeo.
 license: MIT
 metadata:
-  lumiera: true
-  source: calesthio/OpenMontage/skills/meta/video-reference-analyst.md (padrões, não código)
+lumiera: true
+source: calesthio/OpenMontage/skills/meta/video-reference-analyst.md (padrões, não código)
 tasks: [ideas, script]
 formats: [SHORT, LONG]
 ---
@@ -26,7 +27,7 @@ formats: [SHORT, LONG]
 
 ## Fluxo Lumiera
 
-1. Chamar `POST /api/workflow/analyze-reference` ou painel **Inspirado em vídeo** (Studio Agents)
+1. Chamar `POST /api/research/analyze-reference-video` (multimodal PRO) ou `POST /api/workflow/analyze-reference` (fallback) — painel **Inspirado em vídeo** (Studio Agents)
 2. Apresentar resumo conversacional (não dump JSON):
    - **Conteúdo** · **Estilo** · **Estrutura** · **Motion** · **5 aspectos**
    - **O que funciona** (gancho, pacing, transições)
@@ -57,13 +58,13 @@ Marcar **N/A** explicitamente quando não aplicável.
 
 ## Diferenciação (padrões)
 
-| Padrão | Exemplo |
-|--------|---------|
-| Mesma estrutura, assunto diferente | Referência: buracos negros → Nosso: estrelas de nêutrons |
-| Mesmo assunto, ângulo diferente | Referência: tutorial → Nosso: POV do engenheiro |
-| Mesmo tom, visual diferente | Referência: stock VO → Nosso: motion graphics |
-| Mesmo conteúdo, plataforma | Referência: 10min YouTube → Nosso: Short 60s |
-| Contra-take | Referência: "IA vai substituir" → Nosso: "por que não vai substituir você" |
+| Padrão                             | Exemplo                                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| Mesma estrutura, assunto diferente | Referência: buracos negros → Nosso: estrelas de nêutrons                   |
+| Mesmo assunto, ângulo diferente    | Referência: tutorial → Nosso: POV do engenheiro                            |
+| Mesmo tom, visual diferente        | Referência: stock VO → Nosso: motion graphics                              |
+| Mesmo conteúdo, plataforma         | Referência: 10min YouTube → Nosso: Short 60s                               |
+| Contra-take                        | Referência: "IA vai substituir" → Nosso: "por que não vai substituir você" |
 
 ## Sample-first (recomendado)
 
