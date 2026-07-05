@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { syncTimelineFromChunkPlan, buildBlockTimingsFromChunks } from "../backend/narrationChunks.js";
+import {
+  syncTimelineFromChunkPlan,
+  buildBlockTimingsFromChunks,
+  computeChunkTimeline,
+} from "../backend/narrationChunks.js";
 import { tightenTimelineRetentionDurations } from "../backend/timelineSceneSync.js";
 import { computeAssetDuration } from "./timelineAudioStarts.js";
 
@@ -33,7 +37,7 @@ describe("syncTimelineFromChunkPlan", () => {
       timelineAssets: { 1: [{ asset: "x.mp4" }, { asset: "y.mp4" }] },
       chunkPlan: { chunks },
     });
-    const timings = buildBlockTimingsFromChunks(chunks);
+    const timings = buildBlockTimingsFromChunks(computeChunkTimeline(chunks));
     const tightened = tightenTimelineRetentionDurations(timelineAssets, timings);
     const assets = tightened["1"];
     const blockEnd = timings.starts[1] ?? timings.starts[0] + timings.durations[0];
@@ -49,5 +53,14 @@ describe("syncTimelineFromChunkPlan", () => {
     assert.ok(Math.abs(d1 - 4) < 0.25, `d1=${d1}`);
     assert.ok(d0 + d1 <= timings.durations[0] + 0.2, "soma das cenas não excede o bloco");
     assert.ok(d0 < timings.durations[0] * 0.55, "primeira cena não engole o bloco inteiro");
+  });
+
+  it("buildBlockTimingsFromChunks infere timeline quando só há duration_s", () => {
+    const timings = buildBlockTimingsFromChunks([
+      { block: 1, duration_s: 3, pause_after_ms: 200 },
+      { block: 1, duration_s: 4, pause_after_ms: 0 },
+    ]);
+    assert.equal(timings.durations[0], 7.2);
+    assert.equal(timings.starts[0], 0);
   });
 });
