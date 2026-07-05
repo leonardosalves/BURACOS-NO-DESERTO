@@ -3360,7 +3360,8 @@ export default function App() {
         body: JSON.stringify(stripConfigApiMetadata(patch)),
       });
       if (!res.ok) {
-        toast.error('Erro ao salvar configuração.');
+        const errBody = await res.json().catch(() => ({}));
+        toast.error(errBody?.error || 'Erro ao salvar configuração.');
         return null;
       }
       const data = await res.json().catch(() => ({}));

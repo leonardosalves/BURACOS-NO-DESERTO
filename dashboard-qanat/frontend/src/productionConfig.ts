@@ -41,7 +41,7 @@ export const PRODUCTION_CONFIG_KEYS = [
   'overlay_sfx_volume',
 ] as const;
 
-export function pickProductionConfig(config: ProductionConfig = {}): ProductionConfig {
+export function pickProductionConfigFromDisk(config: ProductionConfig = {}): ProductionConfig {
   const out: ProductionConfig = {};
   for (const key of PRODUCTION_CONFIG_KEYS) {
     const value = config[key];
@@ -50,6 +50,10 @@ export function pickProductionConfig(config: ProductionConfig = {}): ProductionC
     }
   }
   return out;
+}
+
+export function pickProductionConfig(config: ProductionConfig = {}): ProductionConfig {
+  return pickProductionConfigFromDisk(config);
 }
 
 export function applyProductionPatch(base: ProductionConfig, patch: Partial<ProductionConfig>): ProductionConfig {
@@ -70,15 +74,16 @@ export function productionDraftToApiPatch(
   previous: ProductionConfig = {},
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
+  const disk = pickProductionConfigFromDisk(previous);
   for (const key of PRODUCTION_CONFIG_KEYS) {
     const draftHas = Object.prototype.hasOwnProperty.call(draft, key);
-    const prevHas = Object.prototype.hasOwnProperty.call(previous, key);
+    const diskHas = Object.prototype.hasOwnProperty.call(disk, key);
     const nextVal = draft[key];
-    const prevVal = previous[key];
+    const prevVal = disk[key];
 
     if (draftHas && nextVal !== undefined) {
       if (nextVal !== prevVal) patch[key] = nextVal;
-    } else if (prevHas || prevVal !== undefined) {
+    } else if (diskHas) {
       patch[key] = null;
     }
   }

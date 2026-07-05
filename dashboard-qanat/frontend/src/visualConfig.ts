@@ -32,7 +32,8 @@ export const VISUAL_CONFIG_KEYS = [
 
 export type VisualConfigKey = (typeof VISUAL_CONFIG_KEYS)[number];
 
-export function pickVisualConfig(config: VisualConfig = {}): VisualConfig {
+/** Apenas chaves persistidas no disco — sem inferência de legado (usar em save/diff). */
+export function pickVisualConfigFromDisk(config: VisualConfig = {}): VisualConfig {
   const out: VisualConfig = {};
   for (const key of VISUAL_CONFIG_KEYS) {
     const value = config[key];
@@ -40,6 +41,11 @@ export function pickVisualConfig(config: VisualConfig = {}): VisualConfig {
       (out as Record<string, unknown>)[key] = value;
     }
   }
+  return out;
+}
+
+export function pickVisualConfig(config: VisualConfig = {}): VisualConfig {
+  const out = pickVisualConfigFromDisk(config);
   const legacy = out.caption_style;
   if (!out.caption_mode_short && !out.caption_style_short && !out.caption_effect_short) {
     if (legacy === 'shorts-viral') out.caption_mode_short = 'caption-highlight';
@@ -86,15 +92,16 @@ export function mergeVisualIntoConfig<T extends Record<string, unknown>>(
 /** Payload para API: null remove chave no merge do servidor. */
 export function visualDraftToApiPatch(draft: VisualConfig, previous: VisualConfig = {}): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
+  const disk = pickVisualConfigFromDisk(previous);
   for (const key of VISUAL_CONFIG_KEYS) {
     const draftHas = Object.prototype.hasOwnProperty.call(draft, key);
-    const prevHas = Object.prototype.hasOwnProperty.call(previous, key);
+    const diskHas = Object.prototype.hasOwnProperty.call(disk, key);
     const nextVal = draft[key];
-    const prevVal = previous[key];
+    const prevVal = disk[key];
 
     if (draftHas && nextVal !== undefined) {
       if (nextVal !== prevVal) patch[key] = nextVal;
-    } else if (prevHas || prevVal !== undefined) {
+    } else if (diskHas) {
       patch[key] = null;
     }
   }
