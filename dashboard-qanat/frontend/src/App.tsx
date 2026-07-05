@@ -579,6 +579,8 @@ export default function App() {
     percent: number;
     phase: string;
   } | null>(null);
+  const renderJobIdRef = useRef<string | null>(null);
+  const renderPollTimerRef = useRef<number | null>(null);
 
   const [videoQuality, setVideoQuality] = useState<VideoQualityReport | null>(
     null
@@ -3342,6 +3344,80 @@ export default function App() {
       setSelectedProject(activeProject);
     }
   }, [activeProject]);
+
+  useEffect(() => {
+    if (!activeProject || rendering) return;
+    let cancelled = false;
+    let timer: number | null = null;
+
+    const resumeActiveRender = async () => {
+      try {
+        const res = await fetch(
+          `/api/render/active?project=${encodeURIComponent(activeProject)}`
+        );
+        if (!res.ok || cancelled) return;
+        const payload = await res.json();
+        const job = payload?.job;
+        if (!job?.jobId || job.done) return;
+        if (!["preparing", "rendering"].includes(job.status)) return;
+
+        renderJobIdRef.current = String(job.jobId);
+        setRendering(true);
+        setRenderProgress({
+          percent: Number(job.percent) || 0,
+          phase: String(job.phase || "Render em segundo plano…"),
+        });
+        if (Array.isArray(job.logs) && job.logs.length) {
+          setLogs(job.logs.slice(-120));
+        }
+
+        let attempts = 0;
+        const poll = async () => {
+          if (cancelled) return;
+          attempts += 1;
+          try {
+            const pr = await fetch(
+              `/api/render/progress/${encodeURIComponent(job.jobId)}`
+            );
+            if (pr.ok) {
+              const next = await pr.json();
+              setRenderProgress({
+                percent: Number(next.percent) || 0,
+                phase: String(next.phase || "Renderizando…"),
+              });
+              if (next.status === "done" || next.done) {
+                setRendering(false);
+                renderJobIdRef.current = null;
+                setRenderProgress({ percent: 100, phase: "Concluído!" });
+                setTimeout(() => setRenderProgress(null), 4000);
+                fetchData();
+                return;
+              }
+              if (next.status === "failed") {
+                setRendering(false);
+                renderJobIdRef.current = null;
+                return;
+              }
+            }
+          } catch {
+            /* retry */
+          }
+          if (attempts < 400 && !cancelled) {
+            timer = window.setTimeout(poll, 3000);
+          }
+        };
+        void poll();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    void resumeActiveRender();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [activeProject, rendering]);
 
   useEffect(() => {
     if (!wordTranscripts || wordTranscripts.length === 0) {
@@ -8671,6 +8747,12 @@ export default function App() {
     let overlayPlanSucceeded = !needsOverlayPlan;
     let overlayPlanToken = "";
 
+    renderJobIdRef.current = null;
+    if (renderPollTimerRef.current) {
+      window.clearTimeout(renderPollTimerRef.current);
+      renderPollTimerRef.current = null;
+    }
+
     setRendering(true);
     setRenderProgress({ percent: 0, phase: "Inicializando..." });
     if (!fromWizard) setActiveTab("terminal");
@@ -8836,6 +8918,77 @@ export default function App() {
       await saveTimelinePatch(config, { skipRefresh: true });
     }
 
+    const pollRenderJobUntilDone = (jobId: string) => {
+      if (renderPollTimerRef.current) {
+        window.clearTimeout(renderPollTimerRef.current);
+      }
+      let attempts = 0;
+      const poll = async () => {
+        attempts += 1;
+        try {
+          const res = await fetch(
+            `/api/render/progress/${encodeURIComponent(jobId)}`
+          );
+          if (res.ok) {
+            const job = await res.json();
+            setRenderProgress({
+              percent: Number(job.percent) || 0,
+              phase: String(job.phase || "Renderizando…"),
+            });
+            if (Array.isArray(job.logs) && job.logs.length) {
+              setLogs((prev) => {
+                const seen = new Set(prev);
+                const merged = [...prev];
+                for (const line of job.logs) {
+                  const text = String(line || "");
+                  if (text && !seen.has(text)) {
+                    seen.add(text);
+                    merged.push(text);
+                  }
+                }
+                return merged.slice(-400);
+              });
+            }
+            if (job.status === "done" || job.done) {
+              renderJobIdRef.current = null;
+              setLogs((prev) => [
+                ...prev,
+                "\n=== RENDERIZAÇÃO CONCLUÍDA COM SUCESSO (reconectado) ===",
+              ]);
+              setRendering(false);
+              setRenderProgress({ percent: 100, phase: "Concluído!" });
+              setTimeout(() => setRenderProgress(null), 4000);
+              fetchData();
+              return;
+            }
+            if (job.status === "failed") {
+              renderJobIdRef.current = null;
+              setLogs((prev) => [
+                ...prev,
+                `\n=== ERRO NA RENDERIZAÇÃO: ${job.error || "falha"} ===`,
+              ]);
+              setRendering(false);
+              setRenderProgress((prev) =>
+                prev ? { ...prev, phase: "Erro na renderização!" } : null
+              );
+              setTimeout(() => setRenderProgress(null), 5000);
+              fetchData();
+              return;
+            }
+          }
+        } catch {
+          /* retry */
+        }
+        if (attempts < 400) {
+          renderPollTimerRef.current = window.setTimeout(poll, 3000);
+        } else {
+          setRendering(false);
+          renderJobIdRef.current = null;
+        }
+      };
+      void poll();
+    };
+
     const eventSource = new EventSource(
       getProjectUrl(`/api/render/${mode}${queryString}`)
     );
@@ -8843,7 +8996,9 @@ export default function App() {
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
-      if (data.type === "log") {
+      if (data.type === "job" && data.jobId) {
+        renderJobIdRef.current = String(data.jobId);
+      } else if (data.type === "log") {
         setLogs((prev) => [...prev, data.text]);
 
         if (data.text.startsWith("[PROGRESSO]")) {
@@ -8871,6 +9026,11 @@ export default function App() {
         ]);
 
         eventSource.close();
+        renderJobIdRef.current = null;
+        if (renderPollTimerRef.current) {
+          window.clearTimeout(renderPollTimerRef.current);
+          renderPollTimerRef.current = null;
+        }
 
         setRendering(false);
 
@@ -8895,6 +9055,11 @@ export default function App() {
         ]);
 
         eventSource.close();
+        renderJobIdRef.current = null;
+        if (renderPollTimerRef.current) {
+          window.clearTimeout(renderPollTimerRef.current);
+          renderPollTimerRef.current = null;
+        }
 
         setRendering(false);
 
@@ -8909,6 +9074,22 @@ export default function App() {
     };
 
     eventSource.onerror = () => {
+      eventSource.close();
+      const jobId = renderJobIdRef.current;
+      if (jobId) {
+        setLogs((prev) => [
+          ...prev,
+          "[Dashboard] Conexão SSE perdida — o render continua em segundo plano. Reconectando…",
+        ]);
+        setRenderProgress((prev) =>
+          prev
+            ? { ...prev, phase: "Render em segundo plano…" }
+            : { percent: 0, phase: "Render em segundo plano…" }
+        );
+        pollRenderJobUntilDone(jobId);
+        return;
+      }
+
       setLogs((prev) => {
         const last = prev[prev.length - 1] || "";
         if (
@@ -8922,8 +9103,6 @@ export default function App() {
         }
         return [...prev, "[Erro Conexão] SSE encerrado inesperadamente."];
       });
-
-      eventSource.close();
 
       setRendering(false);
 

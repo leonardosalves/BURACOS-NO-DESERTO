@@ -84,6 +84,30 @@ function Clear-BackendRestartLock {
     Remove-Item $script:RestartLockFile -Force -ErrorAction SilentlyContinue
 }
 
+function Test-ActiveLumieraRender {
+    $jobsDir = Join-Path $script:RepoRoot ".lumiera-logs\render-jobs"
+    if (-not (Test-Path $jobsDir)) { return $false }
+    $cutoff = (Get-Date).AddHours(-4)
+    foreach ($file in Get-ChildItem $jobsDir -Filter "*.json" -ErrorAction SilentlyContinue) {
+        try {
+            $job = Get-Content $file.FullName -Raw -ErrorAction Stop | ConvertFrom-Json
+            if ($job.status -notin @("preparing", "rendering")) { continue }
+            $updated = [datetime]::MinValue
+            if ($job.updatedAt) {
+                $updated = [datetimeOffset]::FromUnixTimeMilliseconds([int64]$job.updatedAt).LocalDateTime
+            }
+            if ($updated -lt $cutoff) { continue }
+            if ($job.childPid) {
+                $proc = Get-Process -Id ([int]$job.childPid) -ErrorAction SilentlyContinue
+                if ($proc) { return $true }
+            } else {
+                return $true
+            }
+        } catch { }
+    }
+    return $false
+}
+
 function Write-BackendPidFile([int]$Pid) {
     Ensure-LumieraLogDir
     Set-Content -Path $script:PidFile -Value $Pid -Encoding UTF8
@@ -154,6 +178,12 @@ function Start-LumieraBackendProcess {
 
     $livePid = Get-BackendListenerPid
     $healthy = Test-LumieraBackendHealthy
+
+    if ($ForceRestart -and (Test-ActiveLumieraRender)) {
+        Write-LumieraLog "Render ativo — ForceRestart bloqueado (nao interromper video)" "WARN"
+        if ($livePid) { Write-BackendPidFile $livePid }
+        return $true
+    }
 
     if ($healthy) {
         if (-not $ForceRestart) {
