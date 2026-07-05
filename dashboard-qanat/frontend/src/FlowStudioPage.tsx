@@ -32,7 +32,7 @@ type FilterMode = 'all' | 'pending' | 'done';
 type Props = {
   activeProject: string;
   config: ConfigData | null;
-  storyboardData: { visual_prompts?: any[]; narration_chunk_plan?: unknown } | null;
+  storyboardData: { visual_prompts?: any[]; narration_chunk_plan?: unknown; _vpe_checklist?: { quality_score?: number } } | null;
   status: WorkspaceStatus | null;
   wordTranscripts: unknown[];
   getAssetUrl: (fileName: string) => string;
@@ -354,6 +354,12 @@ export function FlowStudioPage({
 
   return (
     <div className="space-y-6 min-w-0">
+      {storyboardData?._vpe_checklist?.quality_score != null && (
+        <p className="text-[10px] text-violet-300/90 px-3 py-2 rounded-xl border border-violet-500/25 bg-violet-500/10">
+          Prompts refinados pela Engenharia Visual PRO (score {storyboardData._vpe_checklist.quality_score}) — seguros para copiar no Flow.
+        </p>
+      )}
+
       <div className="glass-panel rounded-3xl p-5 sm:p-6 border border-[var(--dash-border)] overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-amber-500/5 pointer-events-none" />
         <div className="relative space-y-4">

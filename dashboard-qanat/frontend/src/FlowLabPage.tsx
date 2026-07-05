@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Clapperboard, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Clapperboard, Loader2, Sparkles, Star, Wand2 } from 'lucide-react';
 import { FlowStudioPage } from './FlowStudioPage';
 import { FLOW_LAB_PROJECT } from './flowLabConstants';
 import {
   fetchFlowLabConfig,
   fetchFlowLabStoryboard,
   generateFlowLabPipeline,
+  runFlowLabVisualPro,
   uploadFlowLabSceneAsset,
   flowLabAssetUrl,
   type FlowLabAiContext,
+  type FlowLabVpeMeta,
 } from './flowLabApi';
 import type { ConfigData } from './appTypes';
 
@@ -28,14 +30,23 @@ export function FlowLabPage({
   const [niche, setNiche] = useState('Geral');
   const [pipelineStep, setPipelineStep] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [storyboard, setStoryboard] = useState<{ visual_prompts?: any[] } | null>(null);
+  const [storyboard, setStoryboard] = useState<{ visual_prompts?: any[]; _vpe_checklist?: { quality_score?: number } } | null>(null);
   const [config, setConfig] = useState<ConfigData | null>(null);
+  const [vpeMeta, setVpeMeta] = useState<FlowLabVpeMeta | null>(null);
 
   const aiCtx: FlowLabAiContext = { geminiBrowserMode, aiProvider, resolveBrowserResponse };
 
   const reloadSandbox = useCallback(async () => {
     const [sb, cfg] = await Promise.all([fetchFlowLabStoryboard(), fetchFlowLabConfig()]);
-    if (sb?.visual_prompts?.length) setStoryboard(sb);
+    if (sb?.visual_prompts?.length) {
+      setStoryboard(sb);
+      const checklist = sb._vpe_checklist as { quality_score?: number; nicho_detectado?: string } | undefined;
+      setVpeMeta(checklist ? {
+        enhanced: true,
+        qualityScore: checklist.quality_score,
+        nicheDetected: checklist.nicho_detectado,
+      } : null);
+    }
     if (cfg) setConfig(cfg);
   }, []);
 
@@ -65,12 +76,43 @@ export function FlowLabPage({
         return;
       }
       setStoryboard(result.storyboard);
+      setVpeMeta(result.vpe || { enhanced: true });
       const cfg = await fetchFlowLabConfig();
       if (cfg) setConfig(cfg);
       const n = (result.storyboard.visual_prompts as unknown[])?.length || 0;
-      toast.success(`Pronto: ${n} cenas geradas. Agora copie no Google Flow e suba os arquivos.`);
+      const score = result.vpe?.qualityScore;
+      toast.success(
+        `Engenharia Visual PRO concluida — ${n} cenas${score != null ? ` · score ${score}` : ''}. Copie no Flow e suba os arquivos.`,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro no pipeline.');
+    } finally {
+      setBusy(false);
+      setPipelineStep(null);
+    }
+  };
+
+  const handleVisualProOnly = async () => {
+    if (!storyboard?.visual_prompts?.length) {
+      toast.error('Gere o roteiro primeiro.');
+      return;
+    }
+    if (!hasApiKey) {
+      toast.error('Configure um provedor de IA em Configuracoes.');
+      return;
+    }
+    setBusy(true);
+    setPipelineStep('Engenharia Visual PRO...');
+    try {
+      const result = await runFlowLabVisualPro(aiCtx);
+      if (!result.ok || !result.storyboard) {
+        toast.error(result.error || 'Engenharia Visual PRO falhou.');
+        return;
+      }
+      setStoryboard(result.storyboard);
+      setVpeMeta(result.meta || { enhanced: true });
+      const score = result.meta?.qualityScore;
+      toast.success(`Engenharia Visual PRO concluida${score != null ? ` · score ${score}` : ''}.`);
     } finally {
       setBusy(false);
       setPipelineStep(null);
@@ -157,12 +199,26 @@ export function FlowLabPage({
           </button>
           <button
             type="button"
+            disabled={busy || !storyboard?.visual_prompts?.length || !hasApiKey}
+            onClick={() => void handleVisualProOnly()}
+            className="dash-btn-secondary text-sm px-4 py-2.5 flex items-center gap-2 border-violet-500/30 text-violet-200"
+          >
+            <Star className="w-4 h-4 text-amber-300" />
+            Engenharia Visual PRO
+          </button>
+          <button
+            type="button"
             disabled={busy}
             onClick={() => void reloadSandbox()}
             className="dash-btn-secondary text-xs px-4 py-2"
           >
             Recarregar sandbox
           </button>
+          {vpeMeta?.enhanced && (
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-200">
+              VPE PRO{vpeMeta.qualityScore != null ? ` · ${vpeMeta.qualityScore}` : ''}
+            </span>
+          )}
           {pipelineStep && (
             <span className="text-[11px] text-violet-300 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
@@ -172,8 +228,8 @@ export function FlowLabPage({
         </div>
 
         <p className="text-[10px] text-[var(--dash-muted)] mt-3 leading-relaxed">
-          O que a IA faz sozinha: narracao, roteiro, cenas e prompts visuais.
-          O que continua manual: gerar no Flow (seus creditos) e enviar o arquivo aprovado.
+          Pipeline automatico: narracao → roteiro → <strong className="text-violet-300">Engenharia Visual PRO</strong> → so entao os prompts aparecem para copiar no Flow.
+          Manual: gerar pixels no Google Flow e enviar o arquivo aprovado.
         </p>
       </div>
 
