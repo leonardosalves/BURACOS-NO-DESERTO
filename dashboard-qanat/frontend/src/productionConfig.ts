@@ -1,16 +1,16 @@
-export type OverlayIntensity = 'light' | 'normal' | 'rich';
-export type OverlayMinGap = 'tight' | 'normal' | 'relaxed';
-export type BgmDuckStrength = 'light' | 'normal' | 'strong';
+export type OverlayIntensity = "light" | "normal" | "rich";
+export type OverlayMinGap = "tight" | "normal" | "relaxed";
+export type BgmDuckStrength = "light" | "normal" | "strong";
 
 /** Padrões globais Lumiera — modo/segmentos; volume fica nas configurações do usuário. */
 export const BGM_PRODUCTION_DEFAULTS = {
   LONG: {
-    bgm_mode: 'emotion' as const,
+    bgm_mode: "emotion" as const,
     segment_count: { min: 2, max: 4 },
     crossfade_s: 4,
   },
   SHORT: {
-    bgm_mode: 'block' as const,
+    bgm_mode: "block" as const,
     use_single_bgm: true,
   },
 } as const;
@@ -18,7 +18,7 @@ export const BGM_PRODUCTION_DEFAULTS = {
 export type BgmProductionHints = {
   mode: string;
   volume: number;
-  volumeSource?: 'projeto' | 'global';
+  volumeSource?: "projeto" | "global";
   segments?: string;
   tip: string;
 };
@@ -30,18 +30,23 @@ export type ProductionConfig = {
   overlay_max_duration?: number;
   bgm_duck_strength?: BgmDuckStrength;
   overlay_sfx_volume?: number;
+  /** false = render sem efeitos sonoros (SFX) */
+  sfx_enabled?: boolean;
 };
 
 export const PRODUCTION_CONFIG_KEYS = [
-  'overlay_intensity',
-  'project_music_volume',
-  'overlay_min_gap',
-  'overlay_max_duration',
-  'bgm_duck_strength',
-  'overlay_sfx_volume',
+  "overlay_intensity",
+  "project_music_volume",
+  "overlay_min_gap",
+  "overlay_max_duration",
+  "bgm_duck_strength",
+  "overlay_sfx_volume",
+  "sfx_enabled",
 ] as const;
 
-export function pickProductionConfigFromDisk(config: ProductionConfig = {}): ProductionConfig {
+export function pickProductionConfigFromDisk(
+  config: ProductionConfig = {}
+): ProductionConfig {
   const out: ProductionConfig = {};
   for (const key of PRODUCTION_CONFIG_KEYS) {
     const value = config[key];
@@ -52,11 +57,16 @@ export function pickProductionConfigFromDisk(config: ProductionConfig = {}): Pro
   return out;
 }
 
-export function pickProductionConfig(config: ProductionConfig = {}): ProductionConfig {
+export function pickProductionConfig(
+  config: ProductionConfig = {}
+): ProductionConfig {
   return pickProductionConfigFromDisk(config);
 }
 
-export function applyProductionPatch(base: ProductionConfig, patch: Partial<ProductionConfig>): ProductionConfig {
+export function applyProductionPatch(
+  base: ProductionConfig,
+  patch: Partial<ProductionConfig>
+): ProductionConfig {
   const next = { ...base };
   for (const [rawKey, value] of Object.entries(patch)) {
     const key = rawKey as keyof ProductionConfig;
@@ -71,7 +81,7 @@ export function applyProductionPatch(base: ProductionConfig, patch: Partial<Prod
 
 export function productionDraftToApiPatch(
   draft: ProductionConfig,
-  previous: ProductionConfig = {},
+  previous: ProductionConfig = {}
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   const disk = pickProductionConfigFromDisk(previous);
@@ -93,7 +103,7 @@ export function productionDraftToApiPatch(
 export function applyProductionPatchToConfig<T extends Record<string, unknown>>(
   base: T,
   draft: ProductionConfig,
-  previous: ProductionConfig = {},
+  previous: ProductionConfig = {}
 ): T {
   const patch = productionDraftToApiPatch(draft, previous);
   const merged = { ...base } as T & Record<string, unknown>;
@@ -105,7 +115,9 @@ export function applyProductionPatchToConfig<T extends Record<string, unknown>>(
 }
 
 /** Remove metadados somente-leitura retornados pelo GET /api/config. */
-export function stripConfigApiMetadata<T extends Record<string, unknown>>(config: T): T {
+export function stripConfigApiMetadata<T extends Record<string, unknown>>(
+  config: T
+): T {
   const { _bgm_production_hints: _hints, ...rest } = config;
   return rest as T;
 }

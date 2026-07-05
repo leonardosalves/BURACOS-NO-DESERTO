@@ -40,9 +40,18 @@ export const PRODUCTION_CONFIG_KEYS = [
   "overlay_max_duration",
   "bgm_duck_strength",
   "overlay_sfx_volume",
+  "sfx_enabled",
 ];
 
-const STUDIO_KEY_SET = new Set([...VISUAL_CONFIG_KEYS, ...PRODUCTION_CONFIG_KEYS]);
+/** false = sem efeitos sonoros no render (whoosh, tick, impacto, etc.). */
+export function isSfxEnabled(config = {}) {
+  return config?.sfx_enabled !== false;
+}
+
+const STUDIO_KEY_SET = new Set([
+  ...VISUAL_CONFIG_KEYS,
+  ...PRODUCTION_CONFIG_KEYS,
+]);
 
 function applyPatchSlice(current = {}, patch = {}) {
   const next = { ...(current && typeof current === "object" ? current : {}) };
@@ -55,19 +64,31 @@ function applyPatchSlice(current = {}, patch = {}) {
 
 export function getStudioDefaultsFromRenderConfig(renderConfig = {}) {
   return {
-    visual: renderConfig.studio_visual && typeof renderConfig.studio_visual === "object"
-      ? renderConfig.studio_visual
-      : {},
-    production: renderConfig.studio_production && typeof renderConfig.studio_production === "object"
-      ? renderConfig.studio_production
-      : {},
+    visual:
+      renderConfig.studio_visual &&
+      typeof renderConfig.studio_visual === "object"
+        ? renderConfig.studio_visual
+        : {},
+    production:
+      renderConfig.studio_production &&
+      typeof renderConfig.studio_production === "object"
+        ? renderConfig.studio_production
+        : {},
   };
 }
 
 /** Mescla defaults globais por cima do config do projeto (global vence). */
-export function mergeGlobalStudioIntoProjectConfig(projectConfig = {}, renderConfig = {}) {
-  const { visual, production } = getStudioDefaultsFromRenderConfig(renderConfig);
-  const merged = { ...(projectConfig && typeof projectConfig === "object" ? projectConfig : {}) };
+export function mergeGlobalStudioIntoProjectConfig(
+  projectConfig = {},
+  renderConfig = {}
+) {
+  const { visual, production } =
+    getStudioDefaultsFromRenderConfig(renderConfig);
+  const merged = {
+    ...(projectConfig && typeof projectConfig === "object"
+      ? projectConfig
+      : {}),
+  };
 
   for (const key of VISUAL_CONFIG_KEYS) {
     if (Object.prototype.hasOwnProperty.call(visual, key)) {
@@ -82,18 +103,28 @@ export function mergeGlobalStudioIntoProjectConfig(projectConfig = {}, renderCon
   return merged;
 }
 
-export function mergeGlobalStudioIntoProjectConfigFromDir(projectConfig = {}, backendDir, loadRenderConfig) {
+export function mergeGlobalStudioIntoProjectConfigFromDir(
+  projectConfig = {},
+  backendDir,
+  loadRenderConfig
+) {
   const renderConfig = loadRenderConfig(backendDir);
   return mergeGlobalStudioIntoProjectConfig(projectConfig, renderConfig);
 }
 
-export function applyStudioDefaultsPatch(existingRenderConfig = {}, { visual, production } = {}) {
+export function applyStudioDefaultsPatch(
+  existingRenderConfig = {},
+  { visual, production } = {}
+) {
   const next = { ...existingRenderConfig };
   if (visual && typeof visual === "object") {
     next.studio_visual = applyPatchSlice(next.studio_visual, visual);
   }
   if (production && typeof production === "object") {
-    next.studio_production = applyPatchSlice(next.studio_production, production);
+    next.studio_production = applyPatchSlice(
+      next.studio_production,
+      production
+    );
   }
   return next;
 }

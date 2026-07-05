@@ -5,8 +5,14 @@
 
 import fs from "fs";
 import path from "path";
-import { buildOverlayOrchestrationPlan, detectNicheCategory } from "./overlayOrchestration.js";
-import { buildListicleVideoSeed, pickListicleLottieKey } from "./listicleLottieResolve.js";
+import {
+  buildOverlayOrchestrationPlan,
+  detectNicheCategory,
+} from "./overlayOrchestration.js";
+import {
+  buildListicleVideoSeed,
+  pickListicleLottieKey,
+} from "./listicleLottieResolve.js";
 import {
   stabilizeOverlayTimings,
   hasAiPlannedOverlays,
@@ -15,7 +21,10 @@ import {
   overlayTimingIssuesFromReport,
   resolveOverlaysForTimingCheck,
 } from "./overlayTiming.js";
-import { scoreSlideshowRisk, slideshowRiskToQualityIssues } from "./slideshowRisk.js";
+import {
+  scoreSlideshowRisk,
+  slideshowRiskToQualityIssues,
+} from "./slideshowRisk.js";
 
 export { stabilizeOverlayTimings };
 
@@ -115,28 +124,73 @@ export const DESIGN_PRESETS = {
 };
 
 export const GLOBAL_SFX_ALIASES = [
-  { target: "sfx_whoosh.mp3", sources: ["sfx_whoosh_transition.mp3", "sfx_whoosh.mp3"] },
+  {
+    target: "sfx_whoosh.mp3",
+    sources: ["sfx_whoosh_transition.mp3", "sfx_whoosh.mp3"],
+  },
   { target: "sfx_tick.mp3", sources: ["sfx_tick.mp3"] },
-  { target: "sfx_impact.mp3", sources: ["sfx_impact.mp3", "sfx_whoosh_transition.mp3"] },
-  { target: "sfx_riser.mp3", sources: ["sfx_riser.mp3", "sfx_whoosh_transition.mp3"] },
-  { target: "sfx_room_tone.mp3", sources: ["sfx_room_tone.mp3", "sfx_wind.mp3"] },
+  {
+    target: "sfx_impact.mp3",
+    sources: ["sfx_impact.mp3", "sfx_whoosh_transition.mp3"],
+  },
+  {
+    target: "sfx_riser.mp3",
+    sources: ["sfx_riser.mp3", "sfx_whoosh_transition.mp3"],
+  },
+  {
+    target: "sfx_room_tone.mp3",
+    sources: ["sfx_room_tone.mp3", "sfx_wind.mp3"],
+  },
 ];
 
 export const EPIDEMIC_MOOD_BY_CATEGORY = {
-  history: { bgm: "epic orchestral documentary ancient", sfx: "cinematic impact whoosh", label: "Épico Histórico" },
-  mystery: { bgm: "dark mystery suspense documentary", sfx: "eerie tension reveal", label: "Mistério Sombrio" },
-  nature: { bgm: "cinematic nature exploration ambient", sfx: "wind atmosphere transition", label: "Exploração Natural" },
-  tech: { bgm: "modern tech documentary electronic", sfx: "digital ui whoosh", label: "Tech Documentary" },
-  finance: { bgm: "corporate documentary confident", sfx: "money counter tick", label: "Corporativo Premium" },
-  industrial: { bgm: "industrial epic documentary", sfx: "mechanical impact", label: "Impacto Industrial" },
-  default: { bgm: "quirky documentary curious upbeat", sfx: "cinematic whoosh transition", label: "Curiosidades Documentary" },
+  history: {
+    bgm: "epic orchestral documentary ancient",
+    sfx: "cinematic impact whoosh",
+    label: "Épico Histórico",
+  },
+  mystery: {
+    bgm: "dark mystery suspense documentary",
+    sfx: "eerie tension reveal",
+    label: "Mistério Sombrio",
+  },
+  nature: {
+    bgm: "cinematic nature exploration ambient",
+    sfx: "wind atmosphere transition",
+    label: "Exploração Natural",
+  },
+  tech: {
+    bgm: "modern tech documentary electronic",
+    sfx: "digital ui whoosh",
+    label: "Tech Documentary",
+  },
+  finance: {
+    bgm: "corporate documentary confident",
+    sfx: "money counter tick",
+    label: "Corporativo Premium",
+  },
+  industrial: {
+    bgm: "industrial epic documentary",
+    sfx: "mechanical impact",
+    label: "Impacto Industrial",
+  },
+  default: {
+    bgm: "quirky documentary curious upbeat",
+    sfx: "cinematic whoosh transition",
+    label: "Curiosidades Documentary",
+  },
 };
 
-const HISTORY_NICHE_RE = /histor|arqueolog|antig|castelo|egito|inca|curios|roma|império|imperio|medieval|guerra|mito|listicle/i;
-const MYSTERY_NICHE_RE = /mistér|misterio|enigma|inexplic|paranormal|conspir|desaparec|assassinato|crime/i;
-const GEO_NICHE_RE = /geograf|deserto|amazon|terra|mapa|continente|oceano|viagem|buraco/i;
-const DATA_NICHE_RE = /dados|número|numero|estatíst|estatist|fato|ciência|ciencia|compar|ranking/i;
-const FINANCE_NICHE_RE = /finan|negoc|dinheiro|invest|economia|lucro|bolsa|cripto|empresa/i;
+const HISTORY_NICHE_RE =
+  /histor|arqueolog|antig|castelo|egito|inca|curios|roma|império|imperio|medieval|guerra|mito|listicle/i;
+const MYSTERY_NICHE_RE =
+  /mistér|misterio|enigma|inexplic|paranormal|conspir|desaparec|assassinato|crime/i;
+const GEO_NICHE_RE =
+  /geograf|deserto|amazon|terra|mapa|continente|oceano|viagem|buraco/i;
+const DATA_NICHE_RE =
+  /dados|número|numero|estatíst|estatist|fato|ciência|ciencia|compar|ranking/i;
+const FINANCE_NICHE_RE =
+  /finan|negoc|dinheiro|invest|economia|lucro|bolsa|cripto|empresa/i;
 
 function formatChapterTimestamp(sec) {
   const m = Math.floor(sec / 60);
@@ -144,18 +198,30 @@ function formatChapterTimestamp(sec) {
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-export function resolveListicleHudStyle(config = {}, storyboard = {}, rankCount = 0) {
+export function resolveListicleHudStyle(
+  config = {},
+  storyboard = {},
+  rankCount = 0
+) {
   const explicit = config.listicle_hud_style || storyboard?.listicle?.hud_style;
-  if (explicit === "compact" || explicit === "full" || explicit === "auto") return explicit;
+  if (explicit === "compact" || explicit === "full" || explicit === "auto")
+    return explicit;
   return rankCount > 8 ? "compact" : "full";
 }
 
-export function buildListicleYoutubeChapters(storyboard = {}, config = {}, timings = {}) {
+export function buildListicleYoutubeChapters(
+  storyboard = {},
+  config = {},
+  timings = {}
+) {
   if (!isListicleProject(config, storyboard)) return "";
   const starts = Array.isArray(timings.starts) ? timings.starts : [];
   if (!starts.length) return "";
 
-  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const { listItems, rankCount, rankOrder } = getListicleMeta(
+    storyboard,
+    config
+  );
   const lines = [];
 
   if (Number.isFinite(starts[0])) {
@@ -204,16 +270,30 @@ export function isListicleProject(config = {}, storyboard = {}) {
   const rankFromConfig = Number(config.rank_count);
   const rankFromStoryboard = Number(storyboard?.listicle?.rank_count);
   if (Number.isFinite(rankFromConfig) && rankFromConfig >= 3) return true;
-  if (Number.isFinite(rankFromStoryboard) && rankFromStoryboard >= 3) return true;
-  if (Array.isArray(storyboard?.list_items) && storyboard.list_items.length >= 3) return true;
+  if (Number.isFinite(rankFromStoryboard) && rankFromStoryboard >= 3)
+    return true;
+  if (
+    Array.isArray(storyboard?.list_items) &&
+    storyboard.list_items.length >= 3
+  )
+    return true;
   return false;
 }
 
-export function isDocumentaryHistoryNiche(niche = "", config = {}, storyboard = {}) {
-  const topic = String(storyboard?.listicle?.topic || config.list_topic || "").toLowerCase();
+export function isDocumentaryHistoryNiche(
+  niche = "",
+  config = {},
+  storyboard = {}
+) {
+  const topic = String(
+    storyboard?.listicle?.topic || config.list_topic || ""
+  ).toLowerCase();
   const n = String(niche || config.niche || "").toLowerCase();
-  return HISTORY_NICHE_RE.test(n) || HISTORY_NICHE_RE.test(topic)
-    || detectNicheCategory(niche) === "history";
+  return (
+    HISTORY_NICHE_RE.test(n) ||
+    HISTORY_NICHE_RE.test(topic) ||
+    detectNicheCategory(niche) === "history"
+  );
 }
 
 export function resolveDesignPreset(config = {}, storyboard = {}, niche = "") {
@@ -222,38 +302,56 @@ export function resolveDesignPreset(config = {}, storyboard = {}, niche = "") {
     return DESIGN_PRESETS[explicit];
   }
 
-  const topic = String(storyboard?.listicle?.topic || config.list_topic || "").toLowerCase();
+  const topic = String(
+    storyboard?.listicle?.topic || config.list_topic || ""
+  ).toLowerCase();
   const n = String(niche || config.niche || "").toLowerCase();
   const combined = `${n} ${topic}`;
 
   if (MYSTERY_NICHE_RE.test(combined)) return DOCUMENTARY_MYSTERY_PRESET;
-  if (GEO_NICHE_RE.test(combined) || detectNicheCategory(niche) === "nature") return DOCUMENTARY_GEOGRAPHY_PRESET;
-  if (FINANCE_NICHE_RE.test(combined) || detectNicheCategory(niche) === "finance") return DOCUMENTARY_FINANCE_PRESET;
-  if (isDocumentaryHistoryNiche(niche, config, storyboard)) return DOCUMENTARY_HISTORY_PRESET;
-  if (DATA_NICHE_RE.test(combined) || isListicleProject(config, storyboard)) return DOCUMENTARY_DATA_PRESET;
+  if (GEO_NICHE_RE.test(combined) || detectNicheCategory(niche) === "nature")
+    return DOCUMENTARY_GEOGRAPHY_PRESET;
+  if (
+    FINANCE_NICHE_RE.test(combined) ||
+    detectNicheCategory(niche) === "finance"
+  )
+    return DOCUMENTARY_FINANCE_PRESET;
+  if (isDocumentaryHistoryNiche(niche, config, storyboard))
+    return DOCUMENTARY_HISTORY_PRESET;
+  if (DATA_NICHE_RE.test(combined) || isListicleProject(config, storyboard))
+    return DOCUMENTARY_DATA_PRESET;
 
   return null;
 }
 
-export function applyDocumentaryHistoryPreset(config = {}, storyboard = {}, niche = "") {
+export function applyDocumentaryHistoryPreset(
+  config = {},
+  storyboard = {},
+  niche = ""
+) {
   const preset = resolveDesignPreset(config, storyboard, niche || config.niche);
   if (!preset) {
     return { config, storyboard, applied: false };
   }
 
-  const isShort = config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
+  const isShort =
+    config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
   const nextConfig = { ...config };
 
   if (!nextConfig.design_preset || nextConfig.design_preset === "auto") {
     nextConfig.design_preset = preset.id;
   }
   if (!nextConfig.caption_style || nextConfig.caption_style === "auto") {
-    nextConfig.caption_style = isShort ? preset.captionStyle.short : preset.captionStyle.long;
+    nextConfig.caption_style = isShort
+      ? preset.captionStyle.short
+      : preset.captionStyle.long;
   }
   if (!nextConfig.overlay_theme) nextConfig.overlay_theme = preset.theme;
   if (!nextConfig.accent_color) nextConfig.accent_color = preset.accentColor;
-  if (!nextConfig.secondary_color) nextConfig.secondary_color = preset.secondaryColor;
-  if (nextConfig.grain_overlay === undefined) nextConfig.grain_overlay = preset.grain;
+  if (!nextConfig.secondary_color)
+    nextConfig.secondary_color = preset.secondaryColor;
+  if (nextConfig.grain_overlay === undefined)
+    nextConfig.grain_overlay = preset.grain;
   if (nextConfig.vignette === undefined) nextConfig.vignette = preset.vignette;
   if (!nextConfig.font_title) nextConfig.font_title = preset.fontTitle;
   if (!nextConfig.font_body) nextConfig.font_body = preset.fontBody;
@@ -263,21 +361,40 @@ export function applyDocumentaryHistoryPreset(config = {}, storyboard = {}, nich
     design_preset: nextConfig.design_preset,
   };
 
-  return { config: nextConfig, storyboard: nextStoryboard, applied: true, preset };
+  return {
+    config: nextConfig,
+    storyboard: nextStoryboard,
+    applied: true,
+    preset,
+  };
 }
 
-export function getEpidemicMoodForNiche(niche = "", config = {}, storyboard = {}) {
+export function getEpidemicMoodForNiche(
+  niche = "",
+  config = {},
+  storyboard = {}
+) {
   const preset = resolveDesignPreset(config, storyboard, niche);
-  if (preset?.id === DOCUMENTARY_MYSTERY_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.mystery;
-  if (preset?.id === DOCUMENTARY_GEOGRAPHY_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.nature;
-  if (preset?.id === DOCUMENTARY_FINANCE_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.finance;
-  if (preset?.id === DOCUMENTARY_DATA_PRESET.id) return EPIDEMIC_MOOD_BY_CATEGORY.default;
+  if (preset?.id === DOCUMENTARY_MYSTERY_PRESET.id)
+    return EPIDEMIC_MOOD_BY_CATEGORY.mystery;
+  if (preset?.id === DOCUMENTARY_GEOGRAPHY_PRESET.id)
+    return EPIDEMIC_MOOD_BY_CATEGORY.nature;
+  if (preset?.id === DOCUMENTARY_FINANCE_PRESET.id)
+    return EPIDEMIC_MOOD_BY_CATEGORY.finance;
+  if (preset?.id === DOCUMENTARY_DATA_PRESET.id)
+    return EPIDEMIC_MOOD_BY_CATEGORY.default;
 
   const category = detectNicheCategory(niche);
-  return EPIDEMIC_MOOD_BY_CATEGORY[category] || EPIDEMIC_MOOD_BY_CATEGORY.default;
+  return (
+    EPIDEMIC_MOOD_BY_CATEGORY[category] || EPIDEMIC_MOOD_BY_CATEGORY.default
+  );
 }
 
-export function buildEpidemicMoodPrompt(niche = "", config = {}, storyboard = {}) {
+export function buildEpidemicMoodPrompt(
+  niche = "",
+  config = {},
+  storyboard = {}
+) {
   const mood = getEpidemicMoodForNiche(niche, config, storyboard);
   return `
 SONOPLASTIA EPIDEMIC SOUND (obrigatório em bgm_recommendations e strategy):
@@ -301,7 +418,10 @@ NARRAÇÃO CINEMATOGRÁFICA (obrigatório em "narrative_script_tagged"):
 }
 
 /** Trechos IA: remove (breath) e ênfase — pausas ficam em pause_after_ms, não em tags inline. */
-export function sanitizeNarrationChunkTaggedText(text = "", plainFallback = "") {
+export function sanitizeNarrationChunkTaggedText(
+  text = "",
+  plainFallback = ""
+) {
   let t = String(text || "").trim();
   if (!t) t = String(plainFallback || "").trim();
   t = t
@@ -327,7 +447,11 @@ export function stripTtsMarkersForPlainText(text = "") {
     .trim();
 }
 
-export function convertCinematicMarkersForTts(taggedScript = "", platform = "fish", options = {}) {
+export function convertCinematicMarkersForTts(
+  taggedScript = "",
+  platform = "fish",
+  options = {}
+) {
   const stripEmphasis = options.stripEmphasis === true;
   let text = String(taggedScript);
 
@@ -343,18 +467,46 @@ export function convertCinematicMarkersForTts(taggedScript = "", platform = "fis
   }
 
   text = text
-    .replace(/\[rápido\]/gi, platform === "eleven" ? "[fast]" : platform === "chatterbox" || platform === "turbo" ? "" : "[rápido]")
-    .replace(/\[lento\]/gi, platform === "eleven" ? "[slowly]" : platform === "chatterbox" || platform === "turbo" ? "" : "[lento]")
-    .replace(/\[pausa\]|\[pause\]/gi, platform === "fish"
-      ? "[pausa]"
-      : platform === "eleven"
-        ? "[pause]"
+    .replace(
+      /\[rápido\]/gi,
+      platform === "eleven"
+        ? "[fast]"
         : platform === "chatterbox" || platform === "turbo"
-          ? " ... "
-          : "(pause 600ms)")
-    .replace(/\(breath\)/gi, platform === "chatterbox" || platform === "turbo" ? " " : "(breath)")
-    .replace(/\(sigh\)/gi, platform === "chatterbox" || platform === "turbo" ? " " : "(sigh)")
-    .replace(/\(laughs?\)/gi, platform === "chatterbox" || platform === "turbo" ? " [chuckle] " : "(laughs)");
+          ? ""
+          : "[rápido]"
+    )
+    .replace(
+      /\[lento\]/gi,
+      platform === "eleven"
+        ? "[slowly]"
+        : platform === "chatterbox" || platform === "turbo"
+          ? ""
+          : "[lento]"
+    )
+    .replace(
+      /\[pausa\]|\[pause\]/gi,
+      platform === "fish"
+        ? "[pausa]"
+        : platform === "eleven"
+          ? "[pause]"
+          : platform === "chatterbox" || platform === "turbo"
+            ? " ... "
+            : "(pause 600ms)"
+    )
+    .replace(
+      /\(breath\)/gi,
+      platform === "chatterbox" || platform === "turbo" ? " " : "(breath)"
+    )
+    .replace(
+      /\(sigh\)/gi,
+      platform === "chatterbox" || platform === "turbo" ? " " : "(sigh)"
+    )
+    .replace(
+      /\(laughs?\)/gi,
+      platform === "chatterbox" || platform === "turbo"
+        ? " [chuckle] "
+        : "(laughs)"
+    );
 
   return text.replace(/\s+/g, " ").trim();
 }
@@ -380,21 +532,32 @@ export function ensureProjectSfxPack(projectDir) {
 }
 
 function getListicleMeta(storyboard = {}, config = {}) {
-  const listItems = Array.isArray(storyboard.list_items) ? storyboard.list_items : [];
-  const rankCount = Number(config.rank_count || storyboard.listicle?.rank_count || listItems.length || 0);
-  const rankOrder = config.rank_order || storyboard.listicle?.rank_order || "desc";
+  const listItems = Array.isArray(storyboard.list_items)
+    ? storyboard.list_items
+    : [];
+  const rankCount = Number(
+    config.rank_count ||
+      storyboard.listicle?.rank_count ||
+      listItems.length ||
+      0
+  );
+  const rankOrder =
+    config.rank_order || storyboard.listicle?.rank_order || "desc";
   return { listItems, rankCount, rankOrder };
 }
 
 export function resolveListicleContext(storyboard = {}, config = {}) {
   if (!isListicleProject(config, storyboard)) return null;
 
-  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const { listItems, rankCount, rankOrder } = getListicleMeta(
+    storyboard,
+    config
+  );
   const rawTopic = String(
-    storyboard?.listicle?.topic
-    || config.list_topic
-    || storyboard?.listicle_meta?.topic
-    || "",
+    storyboard?.listicle?.topic ||
+      config.list_topic ||
+      storyboard?.listicle_meta?.topic ||
+      ""
   ).trim();
 
   const items = listItems
@@ -414,7 +577,9 @@ export function resolveListicleContext(storyboard = {}, config = {}) {
   if (topic) {
     coreTopic = `Top ${effectiveRank} ${topic}`;
   } else {
-    const topLine = String(storyboard?.strategy?.hook || storyboard?.strategy?.title_main || "").trim();
+    const topLine = String(
+      storyboard?.strategy?.hook || storyboard?.strategy?.title_main || ""
+    ).trim();
     const topFromHook = topLine.match(/\btop\s+(\d+)\b[^.!?]{0,100}/i)?.[0];
     if (topFromHook) {
       coreTopic = sanitizeListicleTopic(topFromHook);
@@ -436,10 +601,17 @@ export function resolveListicleContext(storyboard = {}, config = {}) {
 }
 
 function sanitizeListicleTopic(text = "") {
-  return String(text || "").replace(/\s+/g, " ").trim().replace(/[.!?]+$/g, "");
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!?]+$/g, "");
 }
 
-export function buildOpenLoopIntroOverlay(storyboard = {}, config = {}, starts = []) {
+export function buildOpenLoopIntroOverlay(
+  storyboard = {},
+  config = {},
+  starts = []
+) {
   if (!isListicleProject(config, storyboard)) return null;
 
   const introStart = Number(starts[0]);
@@ -447,15 +619,17 @@ export function buildOpenLoopIntroOverlay(storyboard = {}, config = {}, starts =
 
   const { rankCount } = getListicleMeta(storyboard, config);
   const hook = String(
-    storyboard?.listicle?.controversy_hook
-    || storyboard?.strategy?.hook
-    || storyboard?.strategy?.title_main
-    || "",
+    storyboard?.listicle?.controversy_hook ||
+      storyboard?.strategy?.hook ||
+      storyboard?.strategy?.title_main ||
+      ""
   ).trim();
 
   const text = hook
     ? hook.slice(0, 52)
-    : (rankCount > 0 ? `O #1 vai surpreender — mas primeiro...` : "O que vem a seguir vai te surpreender");
+    : rankCount > 0
+      ? `O #1 vai surpreender — mas primeiro...`
+      : "O que vem a seguir vai te surpreender";
 
   const preset = resolveDesignPreset(config, storyboard, config.niche);
   return {
@@ -472,10 +646,17 @@ export function buildOpenLoopIntroOverlay(storyboard = {}, config = {}, starts =
   };
 }
 
-export function buildListicleStingerOverlays(storyboard = {}, config = {}, starts = []) {
+export function buildListicleStingerOverlays(
+  storyboard = {},
+  config = {},
+  starts = []
+) {
   if (!isListicleProject(config, storyboard)) return [];
 
-  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const { listItems, rankCount, rankOrder } = getListicleMeta(
+    storyboard,
+    config
+  );
   const startsList = Array.isArray(starts) ? starts : [];
   const preset = resolveDesignPreset(config, storyboard, config.niche);
   const accent = preset?.accentColor || config.accent_color || "#C5A880";
@@ -489,7 +670,10 @@ export function buildListicleStingerOverlays(storyboard = {}, config = {}, start
     }
   } else if (rankCount > 0) {
     for (let i = 0; i < rankCount; i++) {
-      itemBlocks.push({ block: i + 2, rank: rankOrder === "desc" ? rankCount - i : i + 1 });
+      itemBlocks.push({
+        block: i + 2,
+        rank: rankOrder === "desc" ? rankCount - i : i + 1,
+      });
     }
   }
 
@@ -528,10 +712,19 @@ function stripLegacyRankProgressOverlays(overlays = []) {
   });
 }
 
-export function buildListicleProgressOverlays(storyboard = {}, config = {}, starts = [], durations = [], projectSlug = "") {
+export function buildListicleProgressOverlays(
+  storyboard = {},
+  config = {},
+  starts = [],
+  durations = [],
+  projectSlug = ""
+) {
   if (!isListicleProject(config, storyboard)) return [];
 
-  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const { listItems, rankCount, rankOrder } = getListicleMeta(
+    storyboard,
+    config
+  );
   const startsList = Array.isArray(starts) ? starts : [];
   const durationsList = Array.isArray(durations) ? durations : [];
   const preset = resolveDesignPreset(config, storyboard, config.niche);
@@ -543,7 +736,11 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
       const block = Number(item.block);
       const rank = Number(item.rank);
       if (block > 1 && rank) {
-        itemBlocks.push({ block, rank, title: titleForListicleRank(listItems, rank) });
+        itemBlocks.push({
+          block,
+          rank,
+          title: titleForListicleRank(listItems, rank),
+        });
       }
     }
   } else if (rankCount > 0) {
@@ -594,34 +791,50 @@ export function buildListicleProgressOverlays(storyboard = {}, config = {}, star
     });
   }
 
-  const hudStyle = resolveListicleHudStyle(config, storyboard, itemBlocks.length);
+  const hudStyle = resolveListicleHudStyle(
+    config,
+    storyboard,
+    itemBlocks.length
+  );
 
-  return [{
-    id: "listicle-progress-hud",
-    type: "rank-progress",
-    start: hudStart,
-    duration: hudDuration,
-    props: {
-      total: itemBlocks.length,
-      rankOrder: rankOrder === "asc" ? "asc" : "desc",
-      accentColor: accent,
-      persistentHud: true,
-      fadeOnEntry: true,
-      hudStyle,
-      hudTheme: config.listicle_hud_theme || preset?.theme || "ancient",
-      fontTitle: preset?.fontTitle || "Cinzel",
-      secondaryColor: config.secondary_color || preset?.secondaryColor || accent,
-      thumbnailPalette: preset?.thumbnailPalette || [accent],
-      videoSeed,
-      segments,
+  return [
+    {
+      id: "listicle-progress-hud",
+      type: "rank-progress",
+      start: hudStart,
+      duration: hudDuration,
+      props: {
+        total: itemBlocks.length,
+        rankOrder: rankOrder === "asc" ? "asc" : "desc",
+        accentColor: accent,
+        persistentHud: true,
+        fadeOnEntry: true,
+        hudStyle,
+        hudTheme: config.listicle_hud_theme || preset?.theme || "ancient",
+        fontTitle: preset?.fontTitle || "Cinzel",
+        secondaryColor:
+          config.secondary_color || preset?.secondaryColor || accent,
+        thumbnailPalette: preset?.thumbnailPalette || [accent],
+        videoSeed,
+        segments,
+      },
     },
-  }];
+  ];
 }
 
-export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts = [], durations = [], projectSlug = "") {
+export function buildListicleRecapOverlay(
+  storyboard = {},
+  config = {},
+  starts = [],
+  durations = [],
+  projectSlug = ""
+) {
   if (!isListicleProject(config, storyboard)) return null;
 
-  const { listItems, rankCount, rankOrder } = getListicleMeta(storyboard, config);
+  const { listItems, rankCount, rankOrder } = getListicleMeta(
+    storyboard,
+    config
+  );
   const startsList = Array.isArray(starts) ? starts : [];
   const durationsList = Array.isArray(durations) ? durations : [];
   const outroIdx = Math.max(0, startsList.length - 1);
@@ -639,14 +852,14 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
 
   const recapLines = sortedItems.length
     ? sortedItems.slice(0, 3).map((it) => ({
-      rank: Number(it.rank),
-      title: String(it.title || it.name || "").trim() || `Item #${it.rank}`,
-      visualHook: String(it.visual_hook || it.hook || "").trim(),
-    }))
+        rank: Number(it.rank),
+        title: String(it.title || it.name || "").trim() || `Item #${it.rank}`,
+        visualHook: String(it.visual_hook || it.hook || "").trim(),
+      }))
     : Array.from({ length: Math.min(3, rankCount) }, (_, i) => {
-      const r = rankOrder === "desc" ? i + 1 : rankCount - i;
-      return { rank: r, title: `Item #${r}` };
-    });
+        const r = rankOrder === "desc" ? i + 1 : rankCount - i;
+        return { rank: r, title: `Item #${r}` };
+      });
 
   const outroDur = Number(durationsList[outroIdx]) || 6;
   const effectiveRankCount = rankCount || recapLines.length || 3;
@@ -670,28 +883,49 @@ export function buildListicleRecapOverlay(storyboard = {}, config = {}, starts =
   };
 }
 
-export function promoteSourceCardOverlays(overlays = [], config = {}, storyboard = {}) {
+export function promoteSourceCardOverlays(
+  overlays = [],
+  config = {},
+  storyboard = {}
+) {
   const preset = resolveDesignPreset(config, storyboard, config.niche);
   return (overlays || []).map((overlay) => {
     if (!overlay?.props) return overlay;
-    const source = String(overlay.props.source || overlay.props.citation || overlay.props.fonte || "").trim();
-    if (!source || overlay.type === "source-card" || isHudOverlay(overlay)) return overlay;
+    const source = String(
+      overlay.props.source ||
+        overlay.props.citation ||
+        overlay.props.fonte ||
+        ""
+    ).trim();
+    if (!source || overlay.type === "source-card" || isHudOverlay(overlay))
+      return overlay;
 
     return {
       ...overlay,
       type: "source-card",
       props: {
         source: source.slice(0, 80),
-        detail: String(overlay.props.detail || overlay.props.year || "").trim().slice(0, 40),
-        accentColor: overlay.props.accentColor || preset?.accentColor || "#C5A880",
+        detail: String(overlay.props.detail || overlay.props.year || "")
+          .trim()
+          .slice(0, 40),
+        accentColor:
+          overlay.props.accentColor || preset?.accentColor || "#C5A880",
         theme: overlay.props.theme || preset?.theme || "classic",
-        position: overlay.props.position === "bottom-right" ? "bottom-right" : "bottom-left",
+        position:
+          overlay.props.position === "bottom-right"
+            ? "bottom-right"
+            : "bottom-left",
       },
     };
   });
 }
 
-export function buildChapterStingerOverlays(config = {}, storyboard = {}, starts = [], durations = []) {
+export function buildChapterStingerOverlays(
+  config = {},
+  storyboard = {},
+  starts = [],
+  durations = []
+) {
   const isShort = isShortFormVideo(config);
   if (isShort) return [];
 
@@ -709,7 +943,9 @@ export function buildChapterStingerOverlays(config = {}, storyboard = {}, starts
     Math.max(2, Math.floor(blockCount * 0.33)),
     Math.max(3, Math.floor(blockCount * 0.66)),
   ];
-  const uniqueBlocks = [...new Set(pivotBlocks)].filter((b) => b >= 1 && b <= blockCount);
+  const uniqueBlocks = [...new Set(pivotBlocks)].filter(
+    (b) => b >= 1 && b <= blockCount
+  );
 
   const labels = ["Contexto", "Desenvolvimento", "Revelação"];
   const overlays = [];
@@ -738,13 +974,20 @@ export function buildChapterStingerOverlays(config = {}, storyboard = {}, starts
 }
 
 /** Remove kinetic "TOP N" / "#N —" no centro — ranking só via badge rank-progress no topo. */
-export function stripListicleCenterRankKinetics(overlays = [], config = {}, storyboard = {}) {
+export function stripListicleCenterRankKinetics(
+  overlays = [],
+  config = {},
+  storyboard = {}
+) {
   if (!isListicleProject(config, storyboard)) return overlays || [];
   return (overlays || []).filter((o) => {
     if (!o) return false;
     if (o.id === "listicle-intro-topn") return false;
     if (/^listicle-rank-\d+$/.test(String(o.id || ""))) return false;
-    if (o.type === "kinetic-text" && String(o.props?.position || "").toLowerCase() === "center") {
+    if (
+      o.type === "kinetic-text" &&
+      String(o.props?.position || "").toLowerCase() === "center"
+    ) {
       const text = String(o.props?.text || "").trim();
       if (/^TOP\s*\d+$/i.test(text)) return false;
       if (/^#\d+(\s*[—-]\s*)?/i.test(text)) return false;
@@ -770,18 +1013,30 @@ function mergeOverlays(base = [], additions = []) {
   return merged;
 }
 
-const LISTICLE_HUD_TYPES = new Set(["rank-progress", "listicle-stinger", "listicle-recap"]);
-const LISTICLE_BOTTOM_POSITIONS = ["bottom-right", "bottom-left", "bottom-center"];
+const LISTICLE_HUD_TYPES = new Set([
+  "rank-progress",
+  "listicle-stinger",
+  "listicle-recap",
+]);
+const LISTICLE_BOTTOM_POSITIONS = [
+  "bottom-right",
+  "bottom-left",
+  "bottom-center",
+];
 
 function isListicleHudOverlay(overlay) {
   if (!overlay) return false;
-  return LISTICLE_HUD_TYPES.has(overlay.type)
-    || String(overlay.id || "").startsWith("listicle-");
+  return (
+    LISTICLE_HUD_TYPES.has(overlay.type) ||
+    String(overlay.id || "").startsWith("listicle-")
+  );
 }
 
 function isShortFormVideo(config = {}) {
   const aspect = String(config.aspect_ratio || "").trim();
-  const format = String(config.video_format || config.format_type || "").toUpperCase();
+  const format = String(
+    config.video_format || config.format_type || ""
+  ).toUpperCase();
   return aspect === "9:16" || format === "SHORTS" || format === "SHORT";
 }
 
@@ -789,7 +1044,7 @@ function listicleHudSlot(overlay = {}) {
   const seed = String(overlay.id || overlay.type || "overlay");
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
     hash |= 0;
   }
   return Math.abs(hash);
@@ -805,14 +1060,21 @@ function relocateOverlayAwayFromListicleHud(overlay, { isShort = false } = {}) {
   const pool = isShort ? shortPool : longPool;
   const pick = pool[slot % pool.length];
 
-  if (next.type === "counter" || next.type === "timeline" || next.type === "bar-chart" || next.type === "geo-map" || next.type === "social-post") {
+  if (
+    next.type === "counter" ||
+    next.type === "timeline" ||
+    next.type === "bar-chart" ||
+    next.type === "geo-map" ||
+    next.type === "social-post"
+  ) {
     next.props.position = pick;
   } else if (next.type === "info-card") {
     next.props.position = pick === "bottom-center" ? "bottom-right" : pick;
   } else if (next.type === "kinetic-text") {
     next.props.position = "bottom";
   } else if (next.type === "lower-third") {
-    next.props.position = pick === "bottom-right" ? "bottom-center" : "bottom-left";
+    next.props.position =
+      pick === "bottom-right" ? "bottom-center" : "bottom-left";
   } else {
     next.props.position = pick;
   }
@@ -824,10 +1086,16 @@ function relocateOverlayAwayFromListicleHud(overlay, { isShort = false } = {}) {
   return next;
 }
 
-export function avoidListicleHudCollisions(overlays = [], config = {}, storyboard = {}) {
+export function avoidListicleHudCollisions(
+  overlays = [],
+  config = {},
+  storyboard = {}
+) {
   if (!isListicleProject(config, storyboard)) return overlays || [];
   const isShort = isShortFormVideo(config);
-  return (overlays || []).map((overlay) => relocateOverlayAwayFromListicleHud(overlay, { isShort }));
+  return (overlays || []).map((overlay) =>
+    relocateOverlayAwayFromListicleHud(overlay, { isShort })
+  );
 }
 
 const SHORTS_LISTICLE_STRIP_TYPES = new Set([
@@ -843,33 +1111,54 @@ function isShortsListicleNoiseOverlay(overlay = {}) {
   if (overlay.id === "listicle-recap") return false;
   if (overlay.id === "listicle-intro-topn") return true;
   if (/^listicle-rank-\d+$/.test(String(overlay.id || ""))) return true;
-  if (SHORTS_LISTICLE_STRIP_TYPES.has(overlay.type) && !isListicleHudOverlay(overlay)) return true;
-  if (/^listicle-(open-loop|rank-\d+)$/.test(String(overlay.id || ""))) return true;
+  if (
+    SHORTS_LISTICLE_STRIP_TYPES.has(overlay.type) &&
+    !isListicleHudOverlay(overlay)
+  )
+    return true;
+  if (/^listicle-(open-loop|rank-\d+)$/.test(String(overlay.id || "")))
+    return true;
   if (overlay.type === "listicle-stinger") return true;
   return false;
 }
 
-export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboard = {}, plan = {}) {
+export function pruneListicleOverlayDensity(
+  overlays = [],
+  config = {},
+  storyboard = {},
+  plan = {}
+) {
   if (!isListicleProject(config, storyboard) || !isShortFormVideo(config)) {
     return overlays || [];
   }
 
-  const maxTotal = Number(plan?.limits?.finalMaxTotal || plan?.limits?.maxTotal || 8);
-  let filtered = (overlays || []).filter((o) => !isShortsListicleNoiseOverlay(o));
+  const maxTotal = Number(
+    plan?.limits?.finalMaxTotal || plan?.limits?.maxTotal || 8
+  );
+  let filtered = (overlays || []).filter(
+    (o) => !isShortsListicleNoiseOverlay(o)
+  );
 
   const hud = filtered.filter(isListicleHudOverlay);
   let counters = filtered
     .filter((o) => !isListicleHudOverlay(o) && o.type === "counter")
-    .sort((a, b) => (Number(b.props?.value) || 0) - (Number(a.props?.value) || 0));
+    .sort(
+      (a, b) => (Number(b.props?.value) || 0) - (Number(a.props?.value) || 0)
+    );
 
-  const maxCounters = counters.length > 0 && Number(counters[counters.length - 1]?.start) > 50 ? 3 : 2;
+  const maxCounters =
+    counters.length > 0 && Number(counters[counters.length - 1]?.start) > 50
+      ? 3
+      : 2;
   const minCounterGap = 7;
 
   const keptCounters = [];
   for (const counter of counters) {
     if (keptCounters.length >= maxCounters) break;
     const start = Number(counter.start) || 0;
-    const tooClose = keptCounters.some((k) => Math.abs((Number(k.start) || 0) - start) < minCounterGap);
+    const tooClose = keptCounters.some(
+      (k) => Math.abs((Number(k.start) || 0) - start) < minCounterGap
+    );
     if (!tooClose) keptCounters.push(counter);
   }
 
@@ -882,30 +1171,51 @@ export function pruneListicleOverlayDensity(overlays = [], config = {}, storyboa
   }
 
   if (filtered.length < overlays.length) {
-    console.log(`[Listicle Shorts] ${overlays.length} → ${filtered.length} overlays (densidade reduzida)`);
+    console.log(
+      `[Listicle Shorts] ${overlays.length} → ${filtered.length} overlays (densidade reduzida)`
+    );
   }
 
   return filtered;
 }
 
-export function injectListicleRankOverlays(overlays = [], storyboard = {}, config = {}, starts = [], durations = [], projectDir = "") {
+export function injectListicleRankOverlays(
+  overlays = [],
+  storyboard = {},
+  config = {},
+  starts = [],
+  durations = [],
+  projectDir = ""
+) {
   if (!isListicleProject(config, storyboard)) return overlays || [];
 
   if (hasAiPlannedOverlays(storyboard)) {
-    console.log("[Listicle PRO] overlays_ai ativos — sem HUD/recap/stingers automáticos (só overlays IA).");
+    console.log(
+      "[Listicle PRO] overlays_ai ativos — sem HUD/recap/stingers automáticos (só overlays IA)."
+    );
     return avoidListicleHudCollisions(
       stripListicleCenterRankKinetics(overlays || [], config, storyboard),
       config,
-      storyboard,
+      storyboard
     );
   }
 
-  const projectSlug = projectDir ? path.basename(projectDir) : String(config.project_slug || "");
+  const projectSlug = projectDir
+    ? path.basename(projectDir)
+    : String(config.project_slug || "");
   const isShort = isShortFormVideo(config);
-  let base = stripLegacyRankProgressOverlays(stripListicleCenterRankKinetics(overlays, config, storyboard));
+  let base = stripLegacyRankProgressOverlays(
+    stripListicleCenterRankKinetics(overlays, config, storyboard)
+  );
   const batches = [
     buildListicleRankOverlays(storyboard, config, starts, durations),
-    buildListicleProgressOverlays(storyboard, config, starts, durations, projectSlug),
+    buildListicleProgressOverlays(
+      storyboard,
+      config,
+      starts,
+      durations,
+      projectSlug
+    ),
   ];
 
   if (!isShort) {
@@ -914,7 +1224,13 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
     if (openLoop) batches.push([openLoop]);
   }
 
-  const recap = buildListicleRecapOverlay(storyboard, config, starts, durations, projectSlug);
+  const recap = buildListicleRecapOverlay(
+    storyboard,
+    config,
+    starts,
+    durations,
+    projectSlug
+  );
   if (recap) batches.push([recap]);
 
   let merged = avoidListicleHudCollisions(base, config, storyboard);
@@ -927,7 +1243,9 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   merged = stripListicleCenterRankKinetics(merged, config, storyboard);
 
   if (added) {
-    console.log(`[Listicle PRO] ${added} overlays profissionais injetados${isShort ? " (modo Shorts minimal)" : ""}.`);
+    console.log(
+      `[Listicle PRO] ${added} overlays profissionais injetados${isShort ? " (modo Shorts minimal)" : ""}.`
+    );
   }
 
   const plan = buildOverlayOrchestrationPlan({
@@ -940,29 +1258,55 @@ export function injectListicleRankOverlays(overlays = [], storyboard = {}, confi
   merged = avoidListicleHudCollisions(merged, config, storyboard);
   merged = pruneListicleOverlayDensity(merged, config, storyboard, plan);
   const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
-  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard, totalDuration });
+  merged = stabilizeOverlayTimings(merged, {
+    starts,
+    durations,
+    plan,
+    config,
+    storyboard,
+    totalDuration,
+  });
   return merged;
 }
 
 export function filterOverlaysByVisualConfig(overlays = [], config = {}) {
   return (overlays || []).filter((overlay) => {
     if (!overlay) return false;
-    if (overlay.type === "social-post" && config.social_proof_cards === false) return false;
-    if (overlay.type === "geo-map" && config.geo_map_overlays === false) return false;
+    if (overlay.type === "social-post" && config.social_proof_cards === false)
+      return false;
+    if (overlay.type === "geo-map" && config.geo_map_overlays === false)
+      return false;
     return true;
   });
 }
 
-export function injectProLayoutOverlays(overlays = [], config = {}, storyboard = {}, starts = [], durations = [], plan = {}) {
+export function injectProLayoutOverlays(
+  overlays = [],
+  config = {},
+  storyboard = {},
+  starts = [],
+  durations = [],
+  plan = {}
+) {
   let merged = overlays || [];
   if (config.source_cards !== false) {
     merged = promoteSourceCardOverlays(merged, config, storyboard);
   }
   if (config.chapter_stingers !== false) {
-    merged = mergeOverlays(merged, buildChapterStingerOverlays(config, storyboard, starts, durations));
+    merged = mergeOverlays(
+      merged,
+      buildChapterStingerOverlays(config, storyboard, starts, durations)
+    );
   }
   const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
-  merged = stabilizeOverlayTimings(merged, { starts, durations, plan, config, storyboard, totalDuration });
+  merged = stabilizeOverlayTimings(merged, {
+    starts,
+    durations,
+    plan,
+    config,
+    storyboard,
+    totalDuration,
+  });
   return merged;
 }
 
@@ -977,18 +1321,24 @@ export function buildBgmDuckPoints(overlays = [], wordTranscripts = []) {
     const t = Number(overlay.start);
     if (!Number.isFinite(t)) continue;
     if (
-      overlay.type === "kinetic-text"
-      || overlay.type === "listicle-stinger"
-      || overlay.id?.startsWith("listicle-rank")
-      || overlay.id === "listicle-intro-topn"
+      overlay.type === "kinetic-text" ||
+      overlay.type === "listicle-stinger" ||
+      overlay.id?.startsWith("listicle-rank") ||
+      overlay.id === "listicle-intro-topn"
     ) {
       points.add(Math.max(0, t));
     }
 
-    if (overlay.id === "listicle-progress-hud" && Array.isArray(overlay.props?.segments)) {
-      const rank1Seg = overlay.props.segments.find((seg) => seg.mode === "item" && Number(seg.rank) === 1);
+    if (
+      overlay.id === "listicle-progress-hud" &&
+      Array.isArray(overlay.props?.segments)
+    ) {
+      const rank1Seg = overlay.props.segments.find(
+        (seg) => seg.mode === "item" && Number(seg.rank) === 1
+      );
       if (rank1Seg) {
-        const dramaticAt = Number(overlay.start) + Number(rank1Seg.at || 0) - 0.3;
+        const dramaticAt =
+          Number(overlay.start) + Number(rank1Seg.at || 0) - 0.3;
         if (Number.isFinite(dramaticAt)) points.add(Math.max(0, dramaticAt));
       }
     }
@@ -1024,12 +1374,14 @@ export function validateVideoQuality({
   orchestrationPlan = null,
 } = {}) {
   const issues = [];
-  const plan = orchestrationPlan || buildOverlayOrchestrationPlan({
-    config,
-    niche: config.niche || "Geral",
-    totalDuration: totalDuration || 60,
-    projectName: "check",
-  });
+  const plan =
+    orchestrationPlan ||
+    buildOverlayOrchestrationPlan({
+      config,
+      niche: config.niche || "Geral",
+      totalDuration: totalDuration || 60,
+      projectName: "check",
+    });
 
   const isShort = plan.format === "SHORT";
   const hookEnd = isShort ? 1.5 : 5;
@@ -1038,7 +1390,11 @@ export function validateVideoQuality({
     .sort((a, b) => a.start - b.start);
 
   for (const overlay of sorted) {
-    if (overlay.start < hookEnd && overlay.type !== "kinetic-text" && overlay.type !== "listicle-stinger") {
+    if (
+      overlay.start < hookEnd &&
+      overlay.type !== "kinetic-text" &&
+      overlay.type !== "listicle-stinger"
+    ) {
       issues.push({
         severity: isShort ? "error" : "warning",
         code: "hook_polluted",
@@ -1067,7 +1423,10 @@ export function validateVideoQuality({
   }
 
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].type === "lower-third" && sorted[i - 1].type === "lower-third") {
+    if (
+      sorted[i].type === "lower-third" &&
+      sorted[i - 1].type === "lower-third"
+    ) {
       issues.push({
         severity: "warning",
         code: "lt_repeat",
@@ -1080,9 +1439,10 @@ export function validateVideoQuality({
     if (prevHud && currHud) continue;
 
     const gap = sorted[i].start - sorted[i - 1].start;
-    const minGap = (prevHud || currHud) && isListicleProject(config, storyboard) && isShort
-      ? 0.5
-      : plan.limits.minGapSeconds;
+    const minGap =
+      (prevHud || currHud) && isListicleProject(config, storyboard) && isShort
+        ? 0.5
+        : plan.limits.minGapSeconds;
     if (gap < minGap) {
       issues.push({
         severity: "info",
@@ -1092,7 +1452,9 @@ export function validateVideoQuality({
     }
   }
 
-  const maxOverlaysBudget = Number(plan.limits.finalMaxTotal || plan.limits.maxTotal || 8);
+  const maxOverlaysBudget = Number(
+    plan.limits.finalMaxTotal || plan.limits.maxTotal || 8
+  );
   if (sorted.length > maxOverlaysBudget) {
     issues.push({
       severity: "error",
@@ -1102,14 +1464,21 @@ export function validateVideoQuality({
   }
 
   if (isListicleProject(config, storyboard)) {
-    const rankHudOverlays = sorted.filter((o) => o.type === "rank-progress"
-      && (o.id === "listicle-progress-hud" || /^listicle-progress-\d+$/.test(String(o.id || ""))));
-    const expected = Number(config.rank_count || storyboard.listicle?.rank_count || 0);
+    const rankHudOverlays = sorted.filter(
+      (o) =>
+        o.type === "rank-progress" &&
+        (o.id === "listicle-progress-hud" ||
+          /^listicle-progress-\d+$/.test(String(o.id || "")))
+    );
+    const expected = Number(
+      config.rank_count || storyboard.listicle?.rank_count || 0
+    );
     if (rankHudOverlays.length < Math.min(expected, 1)) {
       issues.push({
         severity: "warning",
         code: "listicle_no_rank",
-        message: "Listicle sem HUD de ranking (#N no topo) — badge persistente ausente",
+        message:
+          "Listicle sem HUD de ranking (#N no topo) — badge persistente ausente",
       });
     }
 
@@ -1137,7 +1506,9 @@ export function validateVideoQuality({
       const dur = Number(scene.duration);
       const sceneStart = Number(scene.start);
       if (!Number.isFinite(dur) || dur <= 12) continue;
-      const hasOverlayInScene = sorted.some((o) => o.start >= sceneStart && o.start < sceneStart + dur);
+      const hasOverlayInScene = sorted.some(
+        (o) => o.start >= sceneStart && o.start < sceneStart + dur
+      );
       if (!hasOverlayInScene) {
         issues.push({
           severity: "warning",
@@ -1162,7 +1533,10 @@ export function validateVideoQuality({
     }
   }
 
-  const hasBgm = Boolean(config.single_bgm || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length));
+  const hasBgm = Boolean(
+    config.single_bgm ||
+    (Array.isArray(config.bgm_mappings) && config.bgm_mappings.length)
+  );
   if (!hasBgm && !config.use_single_bgm) {
     issues.push({
       severity: "info",
@@ -1178,7 +1552,8 @@ export function validateVideoQuality({
       issues.push({
         severity: "warning",
         code: "weak_hook_visual",
-        message: "Primeira cena parece logo/placeholder — use o visual mais forte no gancho",
+        message:
+          "Primeira cena parece logo/placeholder — use o visual mais forte no gancho",
       });
     }
   }
@@ -1199,14 +1574,22 @@ export function validateVideoQuality({
 
   const slideshowRisk = scoreSlideshowRisk({
     overlays: sorted,
-    visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+    visualPrompts: Array.isArray(storyboard.visual_prompts)
+      ? storyboard.visual_prompts
+      : [],
     config,
   });
   issues.push(...slideshowRiskToQualityIssues(slideshowRisk));
 
   const errors = issues.filter((i) => i.severity === "error").length;
   const warnings = issues.filter((i) => i.severity === "warning").length;
-  let score = Math.max(0, 100 - errors * 25 - warnings * 8 - issues.filter((i) => i.severity === "info").length * 2);
+  let score = Math.max(
+    0,
+    100 -
+      errors * 25 -
+      warnings * 8 -
+      issues.filter((i) => i.severity === "info").length * 2
+  );
   if (slideshowRisk.verdict === "fail") score = Math.min(score, 65);
   else if (slideshowRisk.verdict === "revise") score = Math.min(score, 78);
   const hookPolluted = issues.some((i) => i.code === "hook_polluted");
@@ -1221,31 +1604,52 @@ export function validateVideoQuality({
     slideshow_risk: slideshowRisk,
     plan: {
       format: plan.format,
-      maxOverlays: Number(plan.limits.finalMaxTotal || plan.limits.maxTotal || 8),
+      maxOverlays: Number(
+        plan.limits.finalMaxTotal || plan.limits.maxTotal || 8
+      ),
       profile: plan.varietyLabel,
     },
     preset: resolveDesignPreset(config, storyboard, config.niche)?.id || null,
-    epidemicMood: getEpidemicMoodForNiche(config.niche, config, storyboard).label,
+    epidemicMood: getEpidemicMoodForNiche(config.niche, config, storyboard)
+      .label,
   };
 }
 
-export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts = [], config = {}) {
-  ensureProjectSfxPack(projectDir);
-
+export function augmentSfxTimelineForOverlays(
+  projectDir,
+  overlays = [],
+  starts = [],
+  config = {}
+) {
   const timelinePath = path.join(projectDir, "sfx_timeline.json");
   let timeline = { sfx_events: [] };
   if (fs.existsSync(timelinePath)) {
     try {
       timeline = JSON.parse(fs.readFileSync(timelinePath, "utf8"));
-    } catch { /* keep empty */ }
+    } catch {
+      /* keep empty */
+    }
   }
 
-  const events = Array.isArray(timeline.sfx_events) ? [...timeline.sfx_events] : [];
+  if (config.sfx_enabled === false) {
+    timeline.sfx_events = [];
+    fs.writeFileSync(timelinePath, JSON.stringify(timeline, null, 2), "utf8");
+    return timeline;
+  }
+
+  ensureProjectSfxPack(projectDir);
+
+  const events = Array.isArray(timeline.sfx_events)
+    ? [...timeline.sfx_events]
+    : [];
   if (config.overlay_sfx_sync === false) {
     return timeline;
   }
 
-  const hasAt = (time, file) => events.some((e) => Math.abs(Number(e.time) - time) < 0.35 && e.file === file);
+  const hasAt = (time, file) =>
+    events.some(
+      (e) => Math.abs(Number(e.time) - time) < 0.35 && e.file === file
+    );
 
   const sfxMul = Number.isFinite(Number(config.overlay_sfx_volume))
     ? Math.max(0.25, Math.min(1.5, Number(config.overlay_sfx_volume)))
@@ -1266,77 +1670,183 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
     const t = Number(overlay.start);
     if (!Number.isFinite(t)) continue;
 
-    if (overlay.type === "counter" && exists(files.tick) && !hasAt(t, files.tick)) {
+    if (
+      overlay.type === "counter" &&
+      exists(files.tick) &&
+      !hasAt(t, files.tick)
+    ) {
       events.push({ time: t, file: files.tick, volume: sfxVol(0.045) });
     }
 
-    if (overlay.type === "bar-chart" && exists(files.tick) && !hasAt(t + 0.05, files.tick)) {
+    if (
+      overlay.type === "bar-chart" &&
+      exists(files.tick) &&
+      !hasAt(t + 0.05, files.tick)
+    ) {
       events.push({ time: t + 0.05, file: files.tick, volume: sfxVol(0.04) });
     }
 
-    if (overlay.type === "kinetic-text" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.05), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.05), file: files.whoosh, volume: sfxVol(0.048) });
+    if (
+      overlay.type === "kinetic-text" &&
+      exists(files.whoosh) &&
+      !hasAt(Math.max(0, t - 0.05), files.whoosh)
+    ) {
+      events.push({
+        time: Math.max(0, t - 0.05),
+        file: files.whoosh,
+        volume: sfxVol(0.048),
+      });
       if (exists(files.impact) && !hasAt(t + 0.12, files.impact)) {
-        events.push({ time: t + 0.12, file: files.impact, volume: sfxVol(0.042) });
+        events.push({
+          time: t + 0.12,
+          file: files.impact,
+          volume: sfxVol(0.042),
+        });
       }
     }
 
-    if (overlay.type === "lower-third" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.08), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.08), file: files.whoosh, volume: sfxVol(0.032) });
+    if (
+      overlay.type === "lower-third" &&
+      exists(files.whoosh) &&
+      !hasAt(Math.max(0, t - 0.08), files.whoosh)
+    ) {
+      events.push({
+        time: Math.max(0, t - 0.08),
+        file: files.whoosh,
+        volume: sfxVol(0.032),
+      });
     }
 
-    if (overlay.type === "chapter-stinger" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.1), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: sfxVol(0.04) });
+    if (
+      overlay.type === "chapter-stinger" &&
+      exists(files.whoosh) &&
+      !hasAt(Math.max(0, t - 0.1), files.whoosh)
+    ) {
+      events.push({
+        time: Math.max(0, t - 0.1),
+        file: files.whoosh,
+        volume: sfxVol(0.04),
+      });
       if (exists(files.impact) && !hasAt(t + 0.15, files.impact)) {
-        events.push({ time: t + 0.15, file: files.impact, volume: sfxVol(0.038) });
+        events.push({
+          time: t + 0.15,
+          file: files.impact,
+          volume: sfxVol(0.038),
+        });
       }
     }
 
-    if (overlay.type === "source-card" && exists(files.tick) && !hasAt(t, files.tick)) {
+    if (
+      overlay.type === "source-card" &&
+      exists(files.tick) &&
+      !hasAt(t, files.tick)
+    ) {
       events.push({ time: t, file: files.tick, volume: sfxVol(0.03) });
     }
 
-    if (overlay.type === "social-post" && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.06), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.06), file: files.whoosh, volume: sfxVol(0.036) });
+    if (
+      overlay.type === "social-post" &&
+      exists(files.whoosh) &&
+      !hasAt(Math.max(0, t - 0.06), files.whoosh)
+    ) {
+      events.push({
+        time: Math.max(0, t - 0.06),
+        file: files.whoosh,
+        volume: sfxVol(0.036),
+      });
     }
 
-    if (overlay.type === "geo-map" && exists(files.tick) && !hasAt(t, files.tick)) {
+    if (
+      overlay.type === "geo-map" &&
+      exists(files.tick) &&
+      !hasAt(t, files.tick)
+    ) {
       events.push({ time: t, file: files.tick, volume: sfxVol(0.035) });
     }
 
-    if (overlay.type === "listicle-stinger" && exists(files.impact) && !hasAt(t, files.impact)) {
+    if (
+      overlay.type === "listicle-stinger" &&
+      exists(files.impact) &&
+      !hasAt(t, files.impact)
+    ) {
       events.push({ time: t, file: files.impact, volume: sfxVol(0.055) });
       if (exists(files.whoosh) && !hasAt(Math.max(0, t - 0.1), files.whoosh)) {
-        events.push({ time: Math.max(0, t - 0.1), file: files.whoosh, volume: sfxVol(0.04) });
+        events.push({
+          time: Math.max(0, t - 0.1),
+          file: files.whoosh,
+          volume: sfxVol(0.04),
+        });
       }
     }
 
-    if ((overlay.id?.startsWith("listicle-rank") || overlay.id === "listicle-intro-topn")
-      && exists(files.whoosh) && !hasAt(Math.max(0, t - 0.25), files.whoosh)) {
-      events.push({ time: Math.max(0, t - 0.25), file: files.whoosh, volume: sfxVol(0.04) });
+    if (
+      (overlay.id?.startsWith("listicle-rank") ||
+        overlay.id === "listicle-intro-topn") &&
+      exists(files.whoosh) &&
+      !hasAt(Math.max(0, t - 0.25), files.whoosh)
+    ) {
+      events.push({
+        time: Math.max(0, t - 0.25),
+        file: files.whoosh,
+        volume: sfxVol(0.04),
+      });
     }
 
-    if (overlay.id === "listicle-progress-hud" && Array.isArray(overlay.props?.segments)) {
+    if (
+      overlay.id === "listicle-progress-hud" &&
+      Array.isArray(overlay.props?.segments)
+    ) {
       for (const seg of overlay.props.segments) {
         if (seg.mode !== "item" || !seg.rank) continue;
         const tickAt = Number(overlay.start) + Number(seg.at || 0);
         if (!Number.isFinite(tickAt)) continue;
-        if (exists(files.whoosh) && !hasAt(Math.max(0, tickAt - 0.08), files.whoosh)) {
-          events.push({ time: Math.max(0, tickAt - 0.08), file: files.whoosh, volume: sfxVol(0.038) });
+        if (
+          exists(files.whoosh) &&
+          !hasAt(Math.max(0, tickAt - 0.08), files.whoosh)
+        ) {
+          events.push({
+            time: Math.max(0, tickAt - 0.08),
+            file: files.whoosh,
+            volume: sfxVol(0.038),
+          });
         }
         if (exists(files.tick) && !hasAt(tickAt, files.tick)) {
-          events.push({ time: tickAt, file: files.tick, volume: sfxVol(seg.rank === 1 ? 0.06 : 0.05) });
+          events.push({
+            time: tickAt,
+            file: files.tick,
+            volume: sfxVol(seg.rank === 1 ? 0.06 : 0.05),
+          });
         }
-        if (seg.rank === 1 && exists(files.impact) && !hasAt(tickAt + 0.08, files.impact)) {
-          events.push({ time: tickAt + 0.08, file: files.impact, volume: sfxVol(0.055) });
+        if (
+          seg.rank === 1 &&
+          exists(files.impact) &&
+          !hasAt(tickAt + 0.08, files.impact)
+        ) {
+          events.push({
+            time: tickAt + 0.08,
+            file: files.impact,
+            volume: sfxVol(0.055),
+          });
         }
-        if (seg.rank === 1 && exists(files.riser) && !hasAt(Math.max(0, tickAt - 0.35), files.riser)) {
-          events.push({ time: Math.max(0, tickAt - 0.35), file: files.riser, volume: sfxVol(0.035) });
+        if (
+          seg.rank === 1 &&
+          exists(files.riser) &&
+          !hasAt(Math.max(0, tickAt - 0.35), files.riser)
+        ) {
+          events.push({
+            time: Math.max(0, tickAt - 0.35),
+            file: files.riser,
+            volume: sfxVol(0.035),
+          });
         }
       }
     }
 
-    if (overlay.type === "listicle-recap" && exists(files.impact) && !hasAt(t, files.impact)) {
+    if (
+      overlay.type === "listicle-recap" &&
+      exists(files.impact) &&
+      !hasAt(t, files.impact)
+    ) {
       events.push({ time: t, file: files.impact, volume: sfxVol(0.04) });
     }
   }
@@ -1344,10 +1854,16 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
   const startsList = Array.isArray(starts) ? starts : [];
   if (exists(files.room) && startsList.length > 1) {
     for (let i = 0; i < startsList.length - 1; i++) {
-      const blockEnd = Number(startsList[i]) + (Number(startsList[i + 1]) - Number(startsList[i]));
+      const blockEnd =
+        Number(startsList[i]) +
+        (Number(startsList[i + 1]) - Number(startsList[i]));
       const gapStart = blockEnd - 0.3;
       if (!hasAt(gapStart, files.room)) {
-        events.push({ time: Math.max(0, gapStart), file: files.room, volume: sfxVol(0.025) });
+        events.push({
+          time: Math.max(0, gapStart),
+          file: files.room,
+          volume: sfxVol(0.025),
+        });
       }
     }
   }
@@ -1360,13 +1876,22 @@ export function augmentSfxTimelineForOverlays(projectDir, overlays = [], starts 
 export function truncatePropsForPreview(props, previewSeconds = 30) {
   const limit = Math.max(5, Number(previewSeconds) || 30);
   const scenes = (props.scenes || []).filter((s) => Number(s.start) < limit);
-  const captions = (props.captions || []).filter((c) => Number(c.startMs) < limit * 1000);
-  const overlays = (props.overlays || []).filter((o) => Number(o.start) < limit);
+  const captions = (props.captions || []).filter(
+    (c) => Number(c.startMs) < limit * 1000
+  );
+  const overlays = (props.overlays || []).filter(
+    (o) => Number(o.start) < limit
+  );
   const bgmTracks = (props.bgmTracks || []).map((t) => ({
     ...t,
-    duration: Math.min(Number(t.duration) || limit, limit - Number(t.start || 0)),
+    duration: Math.min(
+      Number(t.duration) || limit,
+      limit - Number(t.start || 0)
+    ),
   }));
-  const sfxTracks = (props.sfxTracks || []).filter((t) => Number(t.start) < limit);
+  const sfxTracks = (props.sfxTracks || []).filter(
+    (t) => Number(t.start) < limit
+  );
 
   return {
     ...props,
@@ -1376,7 +1901,10 @@ export function truncatePropsForPreview(props, previewSeconds = 30) {
     overlays,
     bgmTracks,
     sfxTracks,
-    narrationDuration: Math.min(Number(props.narrationDuration) || limit, limit),
+    narrationDuration: Math.min(
+      Number(props.narrationDuration) || limit,
+      limit
+    ),
     previewMode: true,
   };
 }
@@ -1384,11 +1912,17 @@ export function truncatePropsForPreview(props, previewSeconds = 30) {
 export function runVideoQualityCheck(projectDir, readProjectJson) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
-  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [], total_duration: 0 });
+  const timings = readProjectJson(projectDir, "block_timings.json", {
+    starts: [],
+    durations: [],
+    total_duration: 0,
+  });
 
-  const totalDuration = Number(timings.total_duration)
-    || (timings.starts?.length && timings.durations?.length
-      ? timings.starts[timings.starts.length - 1] + timings.durations[timings.durations.length - 1]
+  const totalDuration =
+    Number(timings.total_duration) ||
+    (timings.starts?.length && timings.durations?.length
+      ? timings.starts[timings.starts.length - 1] +
+        timings.durations[timings.durations.length - 1]
       : 60);
 
   const orchestrationPlan = buildOverlayOrchestrationPlan({
@@ -1399,14 +1933,25 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
   });
 
-  const hasRenderedOverlays = Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0;
-  const hasPlannedOverlays = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0;
+  const hasRenderedOverlays =
+    Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0;
+  const hasPlannedOverlays =
+    Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0;
 
   let overlays = resolveOverlaysForTimingCheck(storyboard, timings);
   overlays = avoidListicleHudCollisions(overlays, config, storyboard);
-  overlays = pruneListicleOverlayDensity(overlays, config, storyboard, orchestrationPlan);
+  overlays = pruneListicleOverlayDensity(
+    overlays,
+    config,
+    storyboard,
+    orchestrationPlan
+  );
 
-  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const wordTranscripts = readProjectJson(
+    projectDir,
+    "word_transcripts.json",
+    []
+  );
   const sceneStarts = {};
   const sceneDurations = {};
   if (Array.isArray(storyboard.visual_prompts)) {
@@ -1415,9 +1960,10 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
       const blockIdx = Math.max(0, Number(vp.block || 1) - 1);
       const blockStart = Number(timings.starts?.[blockIdx]);
       sceneStarts[sceneId] = Number.isFinite(blockStart) ? blockStart : 0;
-      sceneDurations[sceneId] = Number(vp.duration_seconds)
-        || Number(String(vp.duration || "").replace(/[^\d.]/g, ""))
-        || 5;
+      sceneDurations[sceneId] =
+        Number(vp.duration_seconds) ||
+        Number(String(vp.duration || "").replace(/[^\d.]/g, "")) ||
+        5;
     }
   }
 
@@ -1448,13 +1994,18 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
     ...(hasRenderedOverlays && storyboard.overlay_timing_report
       ? storyboard.overlay_timing_report
       : timingReport),
-    source: hasRenderedOverlays ? "rendered" : hasPlannedOverlays ? "planned" : "none",
+    source: hasRenderedOverlays
+      ? "rendered"
+      : hasPlannedOverlays
+        ? "planned"
+        : "none",
     plannedCount: hasPlannedOverlays ? storyboard.overlays_ai.length : 0,
   };
 
   const sampleApproved = Boolean(
-    storyboard.sample_approved_at
-    || (Array.isArray(storyboard.sample_renders) && storyboard.sample_renders.length > 0),
+    storyboard.sample_approved_at ||
+    (Array.isArray(storyboard.sample_renders) &&
+      storyboard.sample_renders.length > 0)
   );
 
   return {
@@ -1466,7 +2017,11 @@ export function runVideoQualityCheck(projectDir, readProjectJson) {
   };
 }
 
-export function resolveThumbnailPalette(config = {}, storyboard = {}, niche = "") {
+export function resolveThumbnailPalette(
+  config = {},
+  storyboard = {},
+  niche = ""
+) {
   const preset = resolveDesignPreset(config, storyboard, niche);
   if (preset?.thumbnailPalette?.length) return preset.thumbnailPalette;
   return ["#D4AF37", "#00E5FF", "#121214"];

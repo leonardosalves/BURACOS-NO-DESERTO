@@ -59,7 +59,8 @@ export interface ConfigData {
   accent_color?: string;
   secondary_color?: string;
   canvas_background?: string;
-  listicle_hud_theme?: "ancient" | "mysterious" | "nature" | "classic" | "tech" | "industrial";
+  listicle_hud_theme?:
+    "ancient" | "mysterious" | "nature" | "classic" | "tech" | "industrial";
   long_zoom_intensity?: "normal" | "aggressive" | "cinematic";
   overlay_intensity?: "light" | "normal" | "rich";
   project_music_volume?: number;
@@ -67,6 +68,7 @@ export interface ConfigData {
   overlay_max_duration?: number;
   bgm_duck_strength?: "light" | "normal" | "strong";
   overlay_sfx_volume?: number;
+  sfx_enabled?: boolean;
   content_mode?: string;
   use_single_bgm?: boolean;
   single_bgm?: string;
@@ -89,7 +91,11 @@ export interface WorkspaceStatus {
   has_soundtrack: boolean;
   has_highlight_clip: boolean;
   has_config: boolean;
-  block_timings?: { starts: number[]; durations: number[]; total_duration: number } | null;
+  block_timings?: {
+    starts: number[];
+    durations: number[];
+    total_duration: number;
+  } | null;
 }
 
 export interface OutputVideo {

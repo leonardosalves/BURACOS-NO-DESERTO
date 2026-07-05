@@ -464,6 +464,7 @@ import {
   getStudioDefaultsFromRenderConfig,
   isStudioConfigKey,
   mergeGlobalStudioIntoProjectConfig,
+  isSfxEnabled,
 } from "./globalStudioDefaults.js";
 import {
   ensureBrandCatalogMigrated,
@@ -5389,6 +5390,20 @@ function sanitizeProjectBlockTimings(projDir) {
 // Helper: Detect, search, download and map sound effects (SFX) based on storyboard keywords
 
 async function ensureProjectSfxTracks(projDir) {
+  const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
+  if (!isSfxEnabled(projectConfig)) {
+    console.log(
+      "[SFX Auto-Fetch] Efeitos sonoros desativados (sfx_enabled=false)."
+    );
+    const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
+    fs.writeFileSync(
+      sfxTimelinePath,
+      JSON.stringify({ sfx_events: [] }, null, 2),
+      "utf8"
+    );
+    return;
+  }
+
   const token = getEpidemicSoundKey(projDir) || "";
 
   ensureProjectSfxPack(projDir);
@@ -6095,11 +6110,17 @@ app.get("/api/render/:mode", async (req, res) => {
   // Pre-download and map SFX
 
   try {
-    sendLog(
-      "[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)..."
-    );
-
-    await ensureProjectSfxTracks(projDir);
+    const renderCfg = readProjectJson(projDir, "config_qanat.json", {});
+    if (!isSfxEnabled(renderCfg)) {
+      sendLog(
+        "[Dashboard] Efeitos sonoros (SFX) desativados — render sem SFX."
+      );
+    } else {
+      sendLog(
+        "[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)..."
+      );
+      await ensureProjectSfxTracks(projDir);
+    }
   } catch (err) {
     sendLog(`[SFX Auto-Fetch] Erro: ${err.message}`);
   }
@@ -6950,6 +6971,11 @@ function collectRemotionSfxTracks(
   projectSlug,
   totalDuration
 ) {
+  const projectConfig = readProjectJson(projectDir, "config_qanat.json", {});
+  if (!isSfxEnabled(projectConfig)) {
+    return [];
+  }
+
   const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", {
     sfx_events: [],
   });
