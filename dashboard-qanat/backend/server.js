@@ -16547,10 +16547,22 @@ app.post("/api/notebooklm/login", (_req, res) => {
         needsLogin: true,
       });
     }
+    const status =
+      result.started && !result.alreadyAuthenticated
+        ? {
+            available: false,
+            authenticated: false,
+            notebookCount: 0,
+            loginInProgress: true,
+            needsLogin: true,
+            message: result.message || "Aguardando login no navegador…",
+            dataDir: result.dataDir,
+          }
+        : getNotebooklmStatus(__dirname);
     res.json({
       success: true,
       ...result,
-      status: getNotebooklmStatus(__dirname),
+      status,
     });
   } catch (err) {
     res.status(500).json({

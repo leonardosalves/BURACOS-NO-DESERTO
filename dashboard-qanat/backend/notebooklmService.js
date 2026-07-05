@@ -2,14 +2,21 @@ import { spawn, spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-const QUERY_TIMEOUT_MS = Number(process.env.NOTEBOOKLM_QUERY_TIMEOUT_MS || 120000);
+const QUERY_TIMEOUT_MS = Number(
+  process.env.NOTEBOOKLM_QUERY_TIMEOUT_MS || 120000
+);
 
 function resolveNlmBin() {
   const fromEnv = String(process.env.NLM_BIN || "").trim();
   if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
   const localAppData = process.env.LOCALAPPDATA || process.env.HOME || "";
   if (localAppData) {
-    const winNlm = path.join(localAppData, ".local", "bin", process.platform === "win32" ? "nlm.exe" : "nlm");
+    const winNlm = path.join(
+      localAppData,
+      ".local",
+      "bin",
+      process.platform === "win32" ? "nlm.exe" : "nlm"
+    );
     if (fs.existsSync(winNlm)) return winNlm;
   }
   return "nlm";
@@ -93,27 +100,33 @@ function loadCache(backendDir) {
 }
 
 function saveCache(backendDir, cache) {
-  fs.writeFileSync(getCachePath(backendDir), JSON.stringify(cache, null, 2), "utf8");
+  fs.writeFileSync(
+    getCachePath(backendDir),
+    JSON.stringify(cache, null, 2),
+    "utf8"
+  );
 }
 
 function nicheKey(niche) {
-  return String(niche || "default")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48) || "default";
+  return (
+    String(niche || "default")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "default"
+  );
 }
 
 function isAuthError(message = "") {
   const lower = message.toLowerCase();
   return (
-    lower.includes("login")
-    || lower.includes("auth")
-    || lower.includes("profile")
-    || lower.includes("cookie")
-    || lower.includes("credential")
+    lower.includes("login") ||
+    lower.includes("auth") ||
+    lower.includes("profile") ||
+    lower.includes("cookie") ||
+    lower.includes("credential")
   );
 }
 
@@ -124,8 +137,28 @@ export function getNotebooklmLoginState() {
   };
 }
 
+function buildLoginPendingStatus(backendDir, message) {
+  return {
+    available: false,
+    authenticated: false,
+    notebookCount: 0,
+    loginInProgress: true,
+    needsLogin: true,
+    message: message || "Aguardando login no navegador…",
+    dataDir: resolveNotebooklmDataDir(backendDir),
+  };
+}
+
 /** Abre o navegador para login OAuth do NotebookLM (processo em background). */
 export function startNotebooklmLogin(backendDir) {
+  if (loginChild) {
+    return {
+      started: true,
+      alreadyRunning: true,
+      message: "Login já em andamento — conclua no navegador que abriu.",
+    };
+  }
+
   const current = getNotebooklmStatus(backendDir);
   if (current.authenticated) {
     return {
@@ -133,14 +166,6 @@ export function startNotebooklmLogin(backendDir) {
       alreadyAuthenticated: true,
       message: current.message,
       status: current,
-    };
-  }
-
-  if (loginChild) {
-    return {
-      started: true,
-      alreadyRunning: true,
-      message: "Login já em andamento — conclua no navegador que abriu.",
     };
   }
 
@@ -180,16 +205,25 @@ export function startNotebooklmLogin(backendDir) {
       started: false,
       error: missing
         ? `CLI nlm não encontrado (${NLM_BIN}). Instale o NotebookLM CLI ou defina NLM_BIN no ambiente do backend.`
-        : (err.message || "Falha ao iniciar login NotebookLM."),
+        : err.message || "Falha ao iniciar login NotebookLM.",
     };
   }
 }
 
 export function getNotebooklmStatus(backendDir) {
   const loginState = getNotebooklmLoginState();
+  if (loginState.inProgress) {
+    return buildLoginPendingStatus(
+      backendDir,
+      "Aguardando login no navegador…"
+    );
+  }
   try {
-    runNlm(["login", "--check"], { timeoutMs: 20000, backendDir });
-    const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000, backendDir });
+    runNlm(["login", "--check"], { timeoutMs: 12000, backendDir });
+    const listRaw = runNlm(["notebook", "list", "--json"], {
+      timeoutMs: 25000,
+      backendDir,
+    });
     const notebooks = parseJsonOutput(listRaw);
     const count = Array.isArray(notebooks) ? notebooks.length : 0;
     return {
@@ -197,9 +231,10 @@ export function getNotebooklmStatus(backendDir) {
       authenticated: true,
       notebookCount: count,
       loginInProgress: loginState.inProgress,
-      message: count > 0
-        ? `NotebookLM conectado (${count} notebook${count === 1 ? "" : "s"})`
-        : "NotebookLM conectado — pronto para pesquisa",
+      message:
+        count > 0
+          ? `NotebookLM conectado (${count} notebook${count === 1 ? "" : "s"})`
+          : "NotebookLM conectado — pronto para pesquisa",
       dataDir: resolveNotebooklmDataDir(backendDir),
     };
   } catch (err) {
@@ -210,9 +245,9 @@ export function getNotebooklmStatus(backendDir) {
       notebookCount: 0,
       loginInProgress: loginState.inProgress,
       message: auth
-        ? (loginState.inProgress
+        ? loginState.inProgress
           ? "Aguardando login no navegador…"
-          : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1")
+          : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1"
         : `NotebookLM indisponível: ${err.message}`,
       dataDir: resolveNotebooklmDataDir(backendDir),
       needsLogin: auth,
@@ -228,15 +263,25 @@ function findOrCreateNotebook(niche, backendDir) {
   const title = `Lumiera: ${String(niche).trim().slice(0, 72) || "Geral"}`;
 
   try {
-    const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000, backendDir });
+    const listRaw = runNlm(["notebook", "list", "--json"], {
+      timeoutMs: 25000,
+      backendDir,
+    });
     const notebooks = parseJsonOutput(listRaw) || [];
     if (Array.isArray(notebooks)) {
       const existing = notebooks.find((n) => {
         const t = String(n.title || "").toLowerCase();
-        return t.includes("lumiera") && t.includes(String(niche).trim().toLowerCase().slice(0, 24));
+        return (
+          t.includes("lumiera") &&
+          t.includes(String(niche).trim().toLowerCase().slice(0, 24))
+        );
       });
       if (existing?.id) {
-        cache.notebooks[key] = { id: existing.id, title: existing.title, reused: true };
+        cache.notebooks[key] = {
+          id: existing.id,
+          title: existing.title,
+          reused: true,
+        };
         saveCache(backendDir, cache);
         return existing.id;
       }
@@ -245,7 +290,10 @@ function findOrCreateNotebook(niche, backendDir) {
     /* continue to create */
   }
 
-  const createRaw = runNlm(["notebook", "create", title, "--json"], { timeoutMs: 30000, backendDir });
+  const createRaw = runNlm(["notebook", "create", title, "--json"], {
+    timeoutMs: 30000,
+    backendDir,
+  });
   const created = parseJsonOutput(createRaw);
   const id = created?.id || created?.notebook_id || createRaw.trim();
   if (!id) throw new Error("Falha ao criar notebook no NotebookLM.");
@@ -264,8 +312,17 @@ function addTextSource(notebookId, title, text, backendDir) {
 
   try {
     runNlm(
-      ["source", "add", notebookId, "--file", tmpFile, "--title", title.slice(0, 80), "--wait"],
-      { timeoutMs: 120000, backendDir },
+      [
+        "source",
+        "add",
+        notebookId,
+        "--file",
+        tmpFile,
+        "--title",
+        title.slice(0, 80),
+        "--wait",
+      ],
+      { timeoutMs: 120000, backendDir }
     );
   } finally {
     try {
@@ -283,20 +340,39 @@ function runOptionalFastResearch(notebookId, query, backendDir, mode = "fast") {
   const statusTimeout = researchMode === "deep" ? 320000 : 50000;
   try {
     const startRaw = runNlm(
-      ["research", "start", query, "--notebook-id", notebookId, "--mode", researchMode],
-      { timeoutMs: startTimeout, backendDir },
+      [
+        "research",
+        "start",
+        query,
+        "--notebook-id",
+        notebookId,
+        "--mode",
+        researchMode,
+      ],
+      { timeoutMs: startTimeout, backendDir }
     );
     const started = parseJsonOutput(startRaw);
     const taskId = started?.task_id || started?.id;
     if (!taskId) return false;
 
     const statusRaw = runNlm(
-      ["research", "status", notebookId, "--task-id", taskId, "--max-wait", maxWait],
-      { timeoutMs: statusTimeout, backendDir },
+      [
+        "research",
+        "status",
+        notebookId,
+        "--task-id",
+        taskId,
+        "--max-wait",
+        maxWait,
+      ],
+      { timeoutMs: statusTimeout, backendDir }
     );
     const status = parseJsonOutput(statusRaw);
     if (status?.status === "completed" || status?.state === "completed") {
-      runNlm(["research", "import", notebookId, taskId], { timeoutMs: 120000, backendDir });
+      runNlm(["research", "import", notebookId, taskId], {
+        timeoutMs: 120000,
+        backendDir,
+      });
       return true;
     }
   } catch {
@@ -306,24 +382,32 @@ function runOptionalFastResearch(notebookId, query, backendDir, mode = "fast") {
 }
 
 function queryNotebook(notebookId, question, backendDir) {
-  const raw = runNlm(
-    ["notebook", "query", notebookId, question, "--json"],
-    { timeoutMs: QUERY_TIMEOUT_MS, backendDir },
-  );
+  const raw = runNlm(["notebook", "query", notebookId, question, "--json"], {
+    timeoutMs: QUERY_TIMEOUT_MS,
+    backendDir,
+  });
   const parsed = parseJsonOutput(raw);
   if (parsed) {
     return (
-      parsed.answer
-      || parsed.response
-      || parsed.text
-      || parsed.message
-      || JSON.stringify(parsed)
+      parsed.answer ||
+      parsed.response ||
+      parsed.text ||
+      parsed.message ||
+      JSON.stringify(parsed)
     );
   }
   return raw;
 }
 
-function buildBriefText({ niche, format, idea, contentMode, rankCount, listTopic, rankOrder }) {
+function buildBriefText({
+  niche,
+  format,
+  idea,
+  contentMode,
+  rankCount,
+  listTopic,
+  rankOrder,
+}) {
   const lines = [
     `Nicho: ${niche}`,
     `Formato YouTube: ${format}`,
@@ -334,9 +418,12 @@ function buildBriefText({ niche, format, idea, contentMode, rankCount, listTopic
     lines.push(`Título: ${idea.title || ""}`);
     lines.push(`Promessa: ${idea.promise || ""}`);
     lines.push(`Emoção: ${idea.emotion || ""}`);
-    if (idea.hook || idea.hooks) lines.push(`Gancho: ${idea.hook || idea.hooks}`);
-    if (idea.listicle_angle) lines.push(`Ângulo listicle: ${idea.listicle_angle}`);
-    if (Array.isArray(idea.sample_items)) lines.push(`Itens sugeridos: ${idea.sample_items.join(", ")}`);
+    if (idea.hook || idea.hooks)
+      lines.push(`Gancho: ${idea.hook || idea.hooks}`);
+    if (idea.listicle_angle)
+      lines.push(`Ângulo listicle: ${idea.listicle_angle}`);
+    if (Array.isArray(idea.sample_items))
+      lines.push(`Itens sugeridos: ${idea.sample_items.join(", ")}`);
   }
 
   if (contentMode === "LISTICLE") {
@@ -369,7 +456,15 @@ Seja específico, cite detalhes das fontes, evite generalidades.`;
 Use detalhes concretos das fontes.`;
 }
 
-function buildScriptQuery({ niche, format, idea, contentMode, rankCount, listTopic, rankOrder }) {
+function buildScriptQuery({
+  niche,
+  format,
+  idea,
+  contentMode,
+  rankCount,
+  listTopic,
+  rankOrder,
+}) {
   const title = idea?.title || niche;
   const promise = idea?.promise || "";
 
@@ -433,9 +528,10 @@ function buildFallbackSummary({ niche, format, topic, purpose }) {
   return {
     available: false,
     topic: topic || niche,
-    summary: purpose === "script"
-      ? `Pesquisa sugerida para roteiro "${niche}" (${format}): explore fatos pouco conhecidos, perguntas frequentes do público, mitos vs realidade e dados numéricos específicos. Conecte cada bloco a uma curiosidade concreta e evite generalidades.`
-      : `Pesquisa sugerida para "${niche}" (${format}): tendências recentes, dores do público, curiosidades virais e ângulos pouco explorados por concorrentes.`,
+    summary:
+      purpose === "script"
+        ? `Pesquisa sugerida para roteiro "${niche}" (${format}): explore fatos pouco conhecidos, perguntas frequentes do público, mitos vs realidade e dados numéricos específicos. Conecte cada bloco a uma curiosidade concreta e evite generalidades.`
+        : `Pesquisa sugerida para "${niche}" (${format}): tendências recentes, dores do público, curiosidades virais e ângulos pouco explorados por concorrentes.`,
     sources: [],
     fallback: true,
     needsLogin: true,
@@ -468,29 +564,57 @@ async function runNotebooklmPipeline({
   const notebookExistsInCache = Boolean(cache.notebooks[key]);
 
   if (purpose !== "improve" || !notebookExistsInCache) {
-    const brief = buildBriefText({ niche, format, idea, contentMode, rankCount, listTopic, rankOrder });
+    const brief = buildBriefText({
+      niche,
+      format,
+      idea,
+      contentMode,
+      rankCount,
+      listTopic,
+      rankOrder,
+    });
     addTextSource(
       notebookId,
       `Brief Lumiera ${new Date().toISOString().slice(0, 16)}`,
       brief,
-      backendDir,
+      backendDir
     );
   }
 
   if (runResearch) {
-    const researchQuery = contentMode === "LISTICLE"
-      ? `melhores fatos e curiosidades sobre ${listTopic || niche} para vídeo top ${rankCount}`
-      : `fatos surpreendentes tendências e perguntas do público sobre ${niche}`;
-    runOptionalFastResearch(notebookId, researchQuery, backendDir, researchMode);
+    const researchQuery =
+      contentMode === "LISTICLE"
+        ? `melhores fatos e curiosidades sobre ${listTopic || niche} para vídeo top ${rankCount}`
+        : `fatos surpreendentes tendências e perguntas do público sobre ${niche}`;
+    runOptionalFastResearch(
+      notebookId,
+      researchQuery,
+      backendDir,
+      researchMode
+    );
   }
 
   let question;
   if (purpose === "improve") {
     question = buildImproveQuery({ niche, format, narrativeScript });
   } else if (purpose === "script") {
-    question = buildScriptQuery({ niche, format, idea, contentMode, rankCount, listTopic, rankOrder });
+    question = buildScriptQuery({
+      niche,
+      format,
+      idea,
+      contentMode,
+      rankCount,
+      listTopic,
+      rankOrder,
+    });
   } else {
-    question = buildIdeasQuery({ niche, format, contentMode, rankCount, listTopic });
+    question = buildIdeasQuery({
+      niche,
+      format,
+      contentMode,
+      rankCount,
+      listTopic,
+    });
   }
 
   const answer = queryNotebook(notebookId, question, backendDir);
@@ -498,7 +622,9 @@ async function runNotebooklmPipeline({
   return {
     available: true,
     topic: listTopic || idea?.title || niche,
-    summary: String(answer || "").trim().slice(0, 12000),
+    summary: String(answer || "")
+      .trim()
+      .slice(0, 12000),
     notebookId,
     sources: ["NotebookLM query"],
     fallback: false,
@@ -507,7 +633,8 @@ async function runNotebooklmPipeline({
 
 export async function fetchNotebooklmResearch(niche, format, options = {}) {
   const backendDir = options.backendDir;
-  if (!backendDir) return buildFallbackSummary({ niche, format, purpose: "ideas" });
+  if (!backendDir)
+    return buildFallbackSummary({ niche, format, purpose: "ideas" });
 
   try {
     return await runNotebooklmPipeline({
@@ -534,7 +661,12 @@ export async function fetchNotebooklmResearch(niche, format, options = {}) {
 
 export async function fetchNotebooklmScriptContext(params) {
   const { backendDir } = params;
-  if (!backendDir) return buildFallbackSummary({ niche: params.niche, format: params.format, purpose: "script" });
+  if (!backendDir)
+    return buildFallbackSummary({
+      niche: params.niche,
+      format: params.format,
+      purpose: "script",
+    });
 
   try {
     return await runNotebooklmPipeline({
@@ -545,7 +677,11 @@ export async function fetchNotebooklmScriptContext(params) {
   } catch (err) {
     console.warn("[NotebookLM] Script context failed:", err.message);
     return {
-      ...buildFallbackSummary({ niche: params.niche, format: params.format, purpose: "script" }),
+      ...buildFallbackSummary({
+        niche: params.niche,
+        format: params.format,
+        purpose: "script",
+      }),
       error: err.message,
     };
   }
@@ -553,7 +689,8 @@ export async function fetchNotebooklmScriptContext(params) {
 
 export async function fetchNotebooklmScriptImprovements(params) {
   const { backendDir, niche, format, narrativeScript } = params;
-  if (!backendDir) return buildFallbackSummary({ niche, format, purpose: "improve" });
+  if (!backendDir)
+    return buildFallbackSummary({ niche, format, purpose: "improve" });
 
   try {
     return await runNotebooklmPipeline({
@@ -573,9 +710,13 @@ export async function fetchNotebooklmScriptImprovements(params) {
   }
 }
 
-export function formatNotebooklmPromptBlock(research, label = "PESQUISA NOTEBOOKLM") {
+export function formatNotebooklmPromptBlock(
+  research,
+  label = "PESQUISA NOTEBOOKLM"
+) {
   if (!research?.summary) return "";
-  const source = research.available && !research.fallback ? "NotebookLM" : "fallback";
+  const source =
+    research.available && !research.fallback ? "NotebookLM" : "fallback";
   return `\n${label} (${source}):\n${research.summary}\n\nINSTRUÇÃO: Use os fatos acima para enriquecer o roteiro com detalhes verificáveis, ganchos fortes e open loops. Não invente dados que contradigam a pesquisa.\n`;
 }
 

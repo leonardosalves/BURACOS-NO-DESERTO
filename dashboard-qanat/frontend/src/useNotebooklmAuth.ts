@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
+import { useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 export type NotebooklmStatus = {
   available?: boolean;
@@ -11,18 +11,28 @@ export type NotebooklmStatus = {
   dataDir?: string;
 };
 
-const AUTO_LOGIN_SESSION_KEY = 'lumiera_nlm_auto_login_attempted';
-const STATUS_EVENT = 'lumiera-nlm-status';
+const AUTO_LOGIN_SESSION_KEY = "lumiera_nlm_auto_login_attempted";
+const STATUS_EVENT = "lumiera-nlm-status";
 
 function broadcastStatus(status: NotebooklmStatus) {
   window.dispatchEvent(new CustomEvent(STATUS_EVENT, { detail: status }));
 }
 
+async function parseJsonResponse<T>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchNotebooklmStatusApi(): Promise<NotebooklmStatus | null> {
   try {
-    const res = await fetch('/api/notebooklm/status');
+    const res = await fetch("/api/notebooklm/status");
     if (!res.ok) return null;
-    return res.json();
+    return (await parseJsonResponse<NotebooklmStatus>(res)) ?? null;
   } catch {
     return null;
   }
@@ -68,13 +78,16 @@ export function useNotebooklmAuth(opts?: {
         if (next?.authenticated) {
           clearPoll();
           setLoggingIn(false);
-          toast.success(next.message || 'NotebookLM conectado.');
+          toast.success(next.message || "NotebookLM conectado.");
           return;
         }
         if (Date.now() - started > timeout) {
           clearPoll();
           setLoggingIn(false);
-          toast('Login ainda pendente — conclua no navegador e clique em Atualizar.', { icon: '⏳' });
+          toast(
+            "Login ainda pendente — conclua no navegador e clique em Atualizar.",
+            { icon: "⏳" }
+          );
         }
       })();
     }, interval);
@@ -83,12 +96,14 @@ export function useNotebooklmAuth(opts?: {
   const login = useCallback(async () => {
     setLoggingIn(true);
     try {
-      const res = await fetch('/api/notebooklm/login', { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch("/api/notebooklm/login", { method: "POST" });
+      const data =
+        (await parseJsonResponse<Record<string, unknown>>(res)) ?? {};
       if (!res.ok) {
-        const fallback = res.status === 404
-          ? 'Rota de login ausente — reinicie o backend (porta 3005) com o código atual.'
-          : 'Falha ao iniciar login NotebookLM.';
+        const fallback =
+          res.status === 404
+            ? "Rota de login ausente — reinicie o backend (porta 3005) com o código atual."
+            : "Falha ao iniciar login NotebookLM.";
         toast.error(String(data.error || fallback), { duration: 8000 });
         setLoggingIn(false);
         return false;
@@ -98,18 +113,22 @@ export function useNotebooklmAuth(opts?: {
         setStatus(merged);
         broadcastStatus(merged);
         setLoggingIn(false);
-        toast.success(data.message || 'NotebookLM já conectado.');
+        toast.success(data.message || "NotebookLM já conectado.");
         return true;
       }
       if (data.status) {
         setStatus(data.status);
         broadcastStatus(data.status);
       }
-      toast.success(data.message || 'Abrindo navegador para login…', { duration: 8000 });
+      toast.success(data.message || "Abrindo navegador para login…", {
+        duration: 8000,
+      });
       startLoginPoll();
       return true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro de conexão ao iniciar login.');
+      toast.error(
+        err instanceof Error ? err.message : "Erro de conexão ao iniciar login."
+      );
       setLoggingIn(false);
       return false;
     }
@@ -139,7 +158,7 @@ export function useNotebooklmAuth(opts?: {
     if (sessionDone) return;
 
     autoAttemptedRef.current = true;
-    sessionStorage.setItem(AUTO_LOGIN_SESSION_KEY, '1');
+    sessionStorage.setItem(AUTO_LOGIN_SESSION_KEY, "1");
     void login();
   }, [opts?.autoLogin, status, login]);
 
