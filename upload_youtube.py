@@ -101,14 +101,27 @@ def update_video_metadata(access_token, video_id, title, description, tags=None,
         print(f"[ERROR] Falha ao atualizar metadados: {err_msg}")
         raise
 
-def build_description(description, chapters_text=""):
+def build_description(description, chapters_text="", is_short=False):
     base = (description or "").strip()
-    chapters = (chapters_text or "").strip()
-    if not chapters:
-        return base
-    if chapters in base:
-        return base
-    return f"{base}\n\n{chapters}".strip()
+    if is_short:
+        chapters = ""
+        if "#shorts" not in base.lower():
+            base = f"{base}\n\n#Shorts".strip() if base else "#Shorts"
+    else:
+        chapters = (chapters_text or "").strip()
+        if chapters and chapters not in base:
+            base = f"{base}\n\n{chapters}".strip()
+    return base
+
+
+def ensure_shorts_tags(tags, is_short=False):
+    if not is_short:
+        return tags
+    out = list(tags or [])
+    lower = {str(t).strip().lower() for t in out}
+    if "shorts" not in lower:
+        out.append("Shorts")
+    return out
 
 def initiate_resumable_upload(
     access_token,
@@ -327,10 +340,15 @@ def main():
         fix_video_id = str(sys.argv[3]).strip() if len(sys.argv) > 3 else fix_video_id
 
     fields = resolve_youtube_upload_fields(project_dir, proj_config)
+    is_short = str(fields.get("format") or "").upper() in ("SHORTS", "SHORT")
     title = fields["title"]
-    description = build_description(fields["description"], fields["chapters"])
+    description = build_description(
+        fields["description"],
+        fields["chapters"],
+        is_short=is_short,
+    )
     privacy = fields["privacy"]
-    tags = parse_tags(fields["tags_raw"])
+    tags = ensure_shorts_tags(parse_tags(fields["tags_raw"]), is_short=is_short)
     category_id = fields["category_id"]
     publish_at = fields["publish_at"]
     pinned_comment = fields["pinned_comment"]

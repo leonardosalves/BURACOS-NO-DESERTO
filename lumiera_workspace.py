@@ -1,6 +1,9 @@
 """Resolve Lumiera workspace and script paths for Desktop project folders."""
 import os
 
+# YouTube Shorts: vertical/square até 3 min (atualizado 2024)
+YOUTUBE_SHORTS_MAX_DURATION_S = 180.0
+
 
 def resolve_workspace(project_dir):
     """Find repo root with youtube_token.json / run_qanat_dashboard.bat."""
@@ -179,8 +182,11 @@ def resolve_youtube_upload_fields(project_dir, proj_config=None):
         or upload_meta.get("categoryId")
         or ("22" if (proj_config.get("video_format") == "SHORTS" or proj_config.get("aspect_ratio") == "9:16") else "27")
     )
-    fmt = (proj_config.get("video_format") or "").upper()
-    if fmt != "SHORTS" and os.path.join("videos curtos shorts") in project_dir.replace("\\", "/").lower():
+    fmt = (proj_config.get("video_format") or proj_config.get("format_type") or "").upper()
+    aspect = str(proj_config.get("aspect_ratio") or "").strip()
+    if fmt not in ("SHORTS", "SHORT") and aspect == "9:16":
+        fmt = "SHORTS"
+    if fmt not in ("SHORTS", "SHORT") and "videos curtos shorts" in project_dir.replace("\\", "/").lower():
         fmt = "SHORTS"
 
     return {
@@ -256,6 +262,48 @@ def resolve_platform_caption(project_dir, platform, proj_config=None):
             pass
 
     return os.path.basename(project_dir)
+
+
+def classify_upload_format(project_dir, specs=None, proj_config=None):
+    """
+    Classifica SHORTS vs vídeo longo para o pipeline de upload.
+    Prioridade: config do projeto → ffprobe → pasta do projeto → fallback.
+    """
+    if proj_config is None:
+        proj_config, _ = _load_project_config(project_dir)
+
+    aspect = str(proj_config.get("aspect_ratio") or "").strip()
+    fmt = str(proj_config.get("video_format") or proj_config.get("format_type") or "").upper()
+
+    if fmt in ("SHORTS", "SHORT") or aspect == "9:16":
+        return {"is_short": True, "source": "config", "aspect_label": "9:16"}
+    if fmt in ("LONGO", "LONG") or aspect == "16:9":
+        return {"is_short": False, "source": "config", "aspect_label": "16:9"}
+
+    width = height = 0
+    duration = 0.0
+    if specs:
+        width = int(specs.get("width") or 0)
+        height = int(specs.get("height") or 0)
+        duration = float(specs.get("duration") or 0)
+
+    if width > 0 and height > 0:
+        is_vertical = height > width
+        is_horizontal = width > height
+        if is_vertical and duration <= YOUTUBE_SHORTS_MAX_DURATION_S:
+            return {"is_short": True, "source": "ffprobe", "aspect_label": "9:16"}
+        if is_vertical:
+            return {"is_short": False, "source": "ffprobe", "aspect_label": "9:16 (longo)"}
+        if is_horizontal:
+            return {"is_short": False, "source": "ffprobe", "aspect_label": "16:9"}
+        if duration <= YOUTUBE_SHORTS_MAX_DURATION_S:
+            return {"is_short": True, "source": "ffprobe", "aspect_label": "1:1"}
+
+    path_lower = project_dir.replace("\\", "/").lower()
+    if "videos curtos shorts" in path_lower or "/shorts/" in path_lower:
+        return {"is_short": True, "source": "path", "aspect_label": "9:16"}
+
+    return {"is_short": False, "source": "fallback", "aspect_label": "16:9"}
 
 
 def ensure_upload_metadata_in_config(project_dir):

@@ -16,6 +16,8 @@ from lumiera_workspace import (
     resolve_project_dir,
     resolve_output_video,
     ensure_upload_metadata_in_config,
+    classify_upload_format,
+    YOUTUBE_SHORTS_MAX_DURATION_S,
 )
 
 def get_video_override():
@@ -114,27 +116,26 @@ def main():
         print(f"[INFO] Plataformas selecionadas pelo usuário: {', '.join(selected_platforms)}")
         
     specs = get_video_specs(video_path)
-    is_short = True
-    
+    classification = classify_upload_format(project_dir, specs)
+    is_short = classification["is_short"]
+
     if specs:
         duration = specs["duration"]
         width = specs["width"]
         height = specs["height"]
         print(f"[INFO] Especificações detectadas: {width}x{height} | Duração: {duration:.2f}s")
-        if height > width and duration <= 90.0:
-            is_short = True
-            print("[INFO] Classificação: Vídeo CURTO / SHORTS (9:16)")
+        if is_short:
+            print(f"[INFO] Classificação: Vídeo CURTO / SHORTS ({classification['aspect_label']}) — fonte: {classification['source']}")
         else:
-            is_short = False
-            print("[INFO] Classificação: Vídeo LONGO / HORIZONTAL (16:9)")
+            print(f"[INFO] Classificação: Vídeo LONGO ({classification['aspect_label']}) — fonte: {classification['source']}")
+        if height > width and duration > YOUTUBE_SHORTS_MAX_DURATION_S:
+            print(f"[AVISO] Vertical com {duration:.1f}s (> {int(YOUTUBE_SHORTS_MAX_DURATION_S)}s): YouTube não trata como Short.")
     else:
-        print("[WARNING] Não foi possível ler especificações. Inferindo tipo...")
-        if "videos curtos" in project_dir.lower() or "shorts" in project_dir.lower():
-            is_short = True
-            print("[INFO] Classificação Inferida: Vídeo CURTO / SHORTS")
+        print("[WARNING] Não foi possível ler especificações. Inferindo tipo pelo projeto/config...")
+        if is_short:
+            print(f"[INFO] Classificação Inferida: Vídeo CURTO / SHORTS ({classification['aspect_label']})")
         else:
-            is_short = False
-            print("[INFO] Classificação Inferida: Vídeo LONGO")
+            print(f"[INFO] Classificação Inferida: Vídeo LONGO ({classification['aspect_label']})")
 
     # Define tasks/queues based on format and user selection
     all_possible_tasks = []
