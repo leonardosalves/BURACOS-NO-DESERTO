@@ -15,6 +15,10 @@
       "env": {
         "NOTEBOOKLM_MCP_CLI_PATH": "C:\\Users\\Leo\\Documents\\VIDEOS PROFISSIONAIS\\LONGOS\\LUMIERA\\.notebooklm-data"
       }
+    },
+    "context7": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp"]
     }
   }
 }

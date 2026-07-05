@@ -11,9 +11,15 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "/vite.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/lumiera-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/lumiera.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon",
       "purpose": "any"
     }
   ]
