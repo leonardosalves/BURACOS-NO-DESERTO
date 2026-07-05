@@ -5,6 +5,10 @@ $script:LogDir = Join-Path $script:RepoRoot ".lumiera-logs"
 $script:NotebookLmData = Join-Path $script:RepoRoot ".notebooklm-data"
 $script:BackendPort = 3005
 $script:HealthUrl = "http://127.0.0.1:$($script:BackendPort)/api/health"
+$script:PidFile = Join-Path $script:LogDir "backend.pid"
+$script:RestartLockFile = Join-Path $script:LogDir "backend-restart.lock"
+$script:LastRestartFile = Join-Path $script:LogDir "backend-last-restart.txt"
+$script:NodeMaxOldSpaceMb = 4096
 
 function Ensure-LumieraLogDir {
     if (-not (Test-Path $script:LogDir)) {
@@ -19,13 +23,70 @@ function Write-LumieraLog {
     Add-Content -Path (Join-Path $script:LogDir "backend-watch.log") -Value $line -Encoding UTF8
 }
 
-function Test-LumieraBackendHealthy {
-    try {
-        $r = Invoke-WebRequest -Uri $script:HealthUrl -UseBasicParsing -TimeoutSec 3
-        return ($r.StatusCode -eq 200)
-    } catch {
-        return $false
+function Get-BackendListenerPid {
+    $conn = Get-NetTCPConnection -LocalPort $script:BackendPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($conn -and $conn.OwningProcess -and $conn.OwningProcess -ne 0) {
+        return [int]$conn.OwningProcess
     }
+    return $null
+}
+
+function Test-LumieraBackendHealthy {
+    param(
+        [int]$Retries = 3,
+        [int]$TimeoutSec = 8
+    )
+    for ($i = 1; $i -le $Retries; $i++) {
+        try {
+            $r = Invoke-WebRequest -Uri $script:HealthUrl -UseBasicParsing -TimeoutSec $TimeoutSec
+            if ($r.StatusCode -eq 200) {
+                return $true
+            }
+        } catch {
+            if ($i -lt $Retries) {
+                Start-Sleep -Milliseconds 400
+            }
+        }
+    }
+    return $false
+}
+
+function Wait-BackendPortFree {
+    param([int]$TimeoutSec = 25)
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Get-BackendListenerPid)) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 400
+    }
+    return (-not (Get-BackendListenerPid))
+}
+
+function Test-BackendRestartLock {
+    if (-not (Test-Path $script:RestartLockFile)) { return $false }
+    try {
+        $stamp = [datetime]::Parse((Get-Content $script:RestartLockFile -TotalCount 1 -ErrorAction Stop))
+        if (((Get-Date) - $stamp).TotalSeconds -lt 90) { return $true }
+        Remove-Item $script:RestartLockFile -Force -ErrorAction SilentlyContinue
+    } catch {
+        Remove-Item $script:RestartLockFile -Force -ErrorAction SilentlyContinue
+    }
+    return $false
+}
+
+function Set-BackendRestartLock {
+    Ensure-LumieraLogDir
+    Set-Content -Path $script:RestartLockFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
+}
+
+function Clear-BackendRestartLock {
+    Remove-Item $script:RestartLockFile -Force -ErrorAction SilentlyContinue
+}
+
+function Write-BackendPidFile([int]$Pid) {
+    Ensure-LumieraLogDir
+    Set-Content -Path $script:PidFile -Value $Pid -Encoding UTF8
 }
 
 function Resolve-NlmBin {
@@ -42,18 +103,29 @@ function Resolve-NlmBin {
 }
 
 function Stop-LumieraBackendOnPort {
+    $pids = @()
     $connections = Get-NetTCPConnection -LocalPort $script:BackendPort -State Listen -ErrorAction SilentlyContinue
     foreach ($conn in $connections) {
         $procId = $conn.OwningProcess
         if ($procId -and $procId -ne 0) {
-            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+            $pids += [int]$procId
         }
     }
-    if ($connections) { Start-Sleep -Seconds 1 }
+    foreach ($procId in ($pids | Select-Object -Unique)) {
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+    }
+    if ($pids.Count -gt 0) {
+        Write-LumieraLog ("Processo(s) encerrado(s) na porta {0}: {1}" -f $script:BackendPort, ($pids -join ", "))
+    }
+    [void](Wait-BackendPortFree -TimeoutSec 20)
+    Remove-Item $script:PidFile -Force -ErrorAction SilentlyContinue
 }
 
 function Start-LumieraBackendProcess {
-    param([switch]$ForceRestart)
+    param(
+        [switch]$ForceRestart,
+        [switch]$SkipDebounce
+    )
 
     Ensure-LumieraLogDir
     if (-not (Test-Path $script:NotebookLmData)) {
@@ -69,38 +141,89 @@ function Start-LumieraBackendProcess {
         }
     }
 
+    if (Test-BackendRestartLock) {
+        Write-LumieraLog "Reinicio ja em andamento (lock) - aguardando" "WARN"
+        $deadline = (Get-Date).AddSeconds(45)
+        while ((Get-Date) -lt $deadline) {
+            if (Test-LumieraBackendHealthy -Retries 1 -TimeoutSec 5) {
+                return $true
+            }
+            Start-Sleep -Milliseconds 800
+        }
+    }
+
     if (Test-LumieraBackendHealthy) {
         if (-not $ForceRestart) {
-            Write-LumieraLog "Backend já responde em $script:HealthUrl"
+            Write-LumieraLog "Backend ja responde em $script:HealthUrl"
+            $livePid = Get-BackendListenerPid
+            if ($livePid) { Write-BackendPidFile $livePid }
             return $true
         }
         Write-LumieraLog "Reiniciando backend (ForceRestart)" "WARN"
-        Stop-LumieraBackendOnPort
     } else {
-        Stop-LumieraBackendOnPort
-    }
-
-    $stdout = Join-Path $script:LogDir "backend-stdout.log"
-    $stderr = Join-Path $script:LogDir "backend-stderr.log"
-
-    Write-LumieraLog "Iniciando node server.js em $script:BackendDir"
-    Start-Process `
-        -FilePath "node" `
-        -ArgumentList "server.js" `
-        -WorkingDirectory $script:BackendDir `
-        -WindowStyle Hidden `
-        -RedirectStandardOutput $stdout `
-        -RedirectStandardError $stderr | Out-Null
-
-    $deadline = (Get-Date).AddSeconds(30)
-    while ((Get-Date) -lt $deadline) {
-        Start-Sleep -Milliseconds 500
-        if (Test-LumieraBackendHealthy) {
-            Write-LumieraLog "Backend OK - $script:HealthUrl"
-            return $true
+        $livePid = Get-BackendListenerPid
+        if ($livePid) {
+            Write-LumieraLog ("Porta {0} ocupada (PID {1}) mas health falhou - reiniciando" -f $script:BackendPort, $livePid) "WARN"
+        } else {
+            Write-LumieraLog "Backend offline - subindo processo" "WARN"
         }
     }
 
-    Write-LumieraLog "Backend nao respondeu em 30s - veja backend-stderr.log" "ERROR"
-    return $false
+    if (-not $SkipDebounce -and $ForceRestart -and (Test-Path $script:LastRestartFile)) {
+        try {
+            $last = [datetime]::Parse((Get-Content $script:LastRestartFile -TotalCount 1 -ErrorAction Stop))
+            if (((Get-Date) - $last).TotalSeconds -lt 15) {
+                Write-LumieraLog "Debounce: reinicio recente (<15s) - pulando" "WARN"
+                return (Test-LumieraBackendHealthy)
+            }
+        } catch { }
+    }
+
+    Set-BackendRestartLock
+    try {
+        Stop-LumieraBackendOnPort
+        if (-not (Wait-BackendPortFree -TimeoutSec 20)) {
+            Write-LumieraLog "Porta 3005 ainda ocupada apos stop" "ERROR"
+            return $false
+        }
+
+        $stdout = Join-Path $script:LogDir "backend-stdout.log"
+        $stderr = Join-Path $script:LogDir "backend-stderr.log"
+        $nodeArgs = @(
+            "--max-old-space-size=$($script:NodeMaxOldSpaceMb)",
+            "server.js"
+        )
+
+        Write-LumieraLog "Iniciando node server.js em $script:BackendDir"
+        $proc = Start-Process `
+            -FilePath "node" `
+            -ArgumentList $nodeArgs `
+            -WorkingDirectory $script:BackendDir `
+            -WindowStyle Hidden `
+            -RedirectStandardOutput $stdout `
+            -RedirectStandardError $stderr `
+            -PassThru
+
+        if ($proc -and $proc.Id) {
+            Write-BackendPidFile $proc.Id
+        }
+
+        Set-Content -Path $script:LastRestartFile -Value ((Get-Date).ToString("o")) -Encoding UTF8
+
+        $deadline = (Get-Date).AddSeconds(90)
+        while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Milliseconds 800
+            if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
+                $livePid = Get-BackendListenerPid
+                if ($livePid) { Write-BackendPidFile $livePid }
+                Write-LumieraLog "Backend OK - $script:HealthUrl"
+                return $true
+            }
+        }
+
+        Write-LumieraLog "Backend nao respondeu em 90s - veja backend-stderr.log" "ERROR"
+        return $false
+    } finally {
+        Clear-BackendRestartLock
+    }
 }

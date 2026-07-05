@@ -302,6 +302,22 @@
     box-shadow: 0 0 8px var(--dash-success);
   }
 
+  .dash-status-dot-offline {
+    background: var(--dash-warning);
+    box-shadow: 0 0 8px var(--dash-warning);
+    animation: dash-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes dash-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
   .dash-header-divider {
     @apply w-px h-4 mx-1;
     background: var(--dash-border);

@@ -552,6 +552,13 @@ const OPENROUTER_FREE_MODELS = [
 
 const app = express();
 
+process.on("uncaughtException", (err) => {
+  console.error("[Lumiera] uncaughtException (processo mantido):", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[Lumiera] unhandledRejection (processo mantido):", reason);
+});
+
 app.use(cors());
 
 if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
@@ -564,7 +571,14 @@ if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "lumiera-backend", ts: Date.now() });
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    ok: true,
+    service: "lumiera-backend",
+    ts: Date.now(),
+    uptime_sec: Math.floor(process.uptime()),
+    pid: process.pid,
+  });
 });
 
 // Catch malformed JSON syntax errors to prevent crashing
