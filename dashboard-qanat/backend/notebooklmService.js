@@ -1,9 +1,12 @@
-import { spawnSync } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
 const NLM_BIN = process.env.NLM_BIN || "nlm";
 const QUERY_TIMEOUT_MS = Number(process.env.NOTEBOOKLM_QUERY_TIMEOUT_MS || 120000);
+
+let loginChild = null;
+let loginStartedAt = null;
 
 function resolveNotebooklmDataDir(backendDir) {
   if (process.env.NOTEBOOKLM_MCP_CLI_PATH) {
@@ -102,7 +105,73 @@ function isAuthError(message = "") {
   );
 }
 
+export function getNotebooklmLoginState() {
+  return {
+    inProgress: Boolean(loginChild),
+    startedAt: loginStartedAt,
+  };
+}
+
+/** Abre o navegador para login OAuth do NotebookLM (processo em background). */
+export function startNotebooklmLogin(backendDir) {
+  const current = getNotebooklmStatus(backendDir);
+  if (current.authenticated) {
+    return {
+      started: false,
+      alreadyAuthenticated: true,
+      message: current.message,
+      status: current,
+    };
+  }
+
+  if (loginChild) {
+    return {
+      started: true,
+      alreadyRunning: true,
+      message: "Login já em andamento — conclua no navegador que abriu.",
+    };
+  }
+
+  const dataDir = resolveNotebooklmDataDir(backendDir);
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  try {
+    loginChild = spawn(NLM_BIN, ["login"], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: false,
+      env: {
+        ...process.env,
+        NOTEBOOKLM_MCP_CLI_PATH: dataDir,
+      },
+    });
+    loginChild.unref();
+    loginStartedAt = Date.now();
+    loginChild.on("exit", () => {
+      loginChild = null;
+    });
+    loginChild.on("error", (err) => {
+      console.warn("[NotebookLM] Login spawn error:", err.message);
+      loginChild = null;
+    });
+
+    return {
+      started: true,
+      message: "Navegador aberto — faça login na conta Google do NotebookLM.",
+      dataDir,
+    };
+  } catch (err) {
+    loginChild = null;
+    loginStartedAt = null;
+    return {
+      started: false,
+      error: err.message || "Falha ao iniciar login NotebookLM.",
+    };
+  }
+}
+
 export function getNotebooklmStatus(backendDir) {
+  const loginState = getNotebooklmLoginState();
   try {
     runNlm(["login", "--check"], { timeoutMs: 20000, backendDir });
     const listRaw = runNlm(["notebook", "list", "--json"], { timeoutMs: 25000, backendDir });
@@ -112,9 +181,11 @@ export function getNotebooklmStatus(backendDir) {
       available: true,
       authenticated: true,
       notebookCount: count,
+      loginInProgress: loginState.inProgress,
       message: count > 0
         ? `NotebookLM conectado (${count} notebook${count === 1 ? "" : "s"})`
         : "NotebookLM conectado — pronto para pesquisa",
+      dataDir: resolveNotebooklmDataDir(backendDir),
     };
   } catch (err) {
     const auth = isAuthError(err.message);
@@ -122,8 +193,11 @@ export function getNotebooklmStatus(backendDir) {
       available: false,
       authenticated: false,
       notebookCount: 0,
+      loginInProgress: loginState.inProgress,
       message: auth
-        ? "Sessão NotebookLM expirada ou pasta errada. Rode .\\nlm-login.ps1 na raiz do Lumiera (não precisa repetir a cada restart se a sessão estiver válida)."
+        ? (loginState.inProgress
+          ? "Aguardando login no navegador…"
+          : "Sessão NotebookLM expirada — clique em Conectar NotebookLM ou rode .\\nlm-login.ps1")
         : `NotebookLM indisponível: ${err.message}`,
       dataDir: resolveNotebooklmDataDir(backendDir),
       needsLogin: auth,

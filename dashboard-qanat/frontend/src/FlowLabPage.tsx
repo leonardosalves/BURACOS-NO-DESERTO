@@ -30,6 +30,7 @@ import {
   type FlowLabVpeMeta,
 } from './flowLabApi';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
+import { NotebookLmConnect } from './NotebookLmConnect';
 
 type Props = FlowLabAiContext & {
   hasApiKey: boolean;
@@ -77,19 +78,11 @@ export function FlowLabPage({
   const [wordTranscripts, setWordTranscripts] = useState<unknown[]>([]);
   const [fishVoiceLabel, setFishVoiceLabel] = useState<string | null>(null);
   const [useNotebooklm, setUseNotebooklm] = useState(readFlowLabNotebooklmPref);
-  const [notebooklmStatus, setNotebooklmStatus] = useState<{
-    authenticated?: boolean;
-    message?: string;
-  } | null>(null);
 
   const aiCtx: FlowLabAiContext = { geminiBrowserMode, aiProvider, resolveBrowserResponse };
 
   useEffect(() => {
     void resolveFlowLabFishVoice().then((v) => setFishVoiceLabel(v.label));
-    void fetch('/api/notebooklm/status')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setNotebooklmStatus(data); })
-      .catch(() => {});
   }, []);
 
   const handleNotebooklmToggle = (checked: boolean) => {
@@ -368,18 +361,7 @@ export function FlowLabPage({
             />
             <span className="text-xs text-violet-100 font-semibold">NotebookLM no roteiro e ideias</span>
           </label>
-          {notebooklmStatus && (
-            <span
-              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
-                notebooklmStatus.authenticated
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
-              }`}
-              title={notebooklmStatus.message}
-            >
-              {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Rode nlm login se falhar'}
-            </span>
-          )}
+          <NotebookLmConnect autoLogin={useNotebooklm} compact />
         </div>
 
         <div className="mb-4 space-y-1">

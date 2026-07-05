@@ -26,6 +26,7 @@ import { countScenesWithDirecting, countVideoIaScenes, sceneHasGeneratedVideo } 
 import { resolveScenePreviewAsset, SCENE_VIDEO_ACCEPT, detectUploadMediaType } from './assetPreviewUtils';
 import { TimelineClipPreview } from './TimelineClipPreview';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
+import { NotebookLmConnect } from './NotebookLmConnect';
 
 export type AppCreatorTabProps = {
   activeProject: string;
@@ -523,18 +524,7 @@ export function AppCreatorTab({
                               </span>
                             </span>
                           ) : null}
-                          {notebooklmStatus && (
-                            <span
-                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
-                                notebooklmStatus.authenticated
-                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
-                              }`}
-                              title={notebooklmStatus.message}
-                            >
-                              {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Execute nlm login'}
-                            </span>
-                          )}
+                          <NotebookLmConnect autoLogin={useNotebooklm} />
                         </div>
                       </div>
 
