@@ -147,6 +147,8 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
+import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
+import { markSocialPublishPosted } from "./socialPublishQueue.js";
 
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
@@ -1868,6 +1870,15 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
         } catch (err) {
           sendLog(`[PostUpload] ${err.message}`);
         }
+      }
+
+      try {
+        markSocialPublishPosted(WORKSPACE_DIR, {
+          projectSlug: path.basename(projDir),
+          videoFile: uploadVideo || undefined,
+        });
+      } catch (e) {
+        /* non-blocking */
       }
 
       res.write(
@@ -17207,6 +17218,11 @@ registerVideoResurrectorRoutes(app, {
   PROJECTS_ROOT,
   getApiKey,
   callGeminiWithRetry,
+});
+
+registerSocialPublishRoutes(app, {
+  WORKSPACE_DIR,
+  getProjectDir,
 });
 
 registerResearchRoutes(app, {
