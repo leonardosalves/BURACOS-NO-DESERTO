@@ -10,6 +10,8 @@ import { VisualSettings } from './VisualSettings';
 import { SettingsProduction } from './SettingsProduction';
 import { IntegrationSettings } from './IntegrationSettings';
 import type { ConfigData } from './appTypes';
+import type { ProductionConfig } from './productionConfig';
+import type { VisualConfig } from './VisualSettings';
 
 export type AppSettingsTabProps = {
   activeProject: string;
@@ -20,6 +22,7 @@ export type AppSettingsTabProps = {
   canvaClientSecret: string;
   config: ConfigData | null;
   epidemicKeyInput: string;
+  formatSelector: 'LONGO' | 'SHORTS';
   fetchUploadStatus: () => void | Promise<void>;
   geminiBrowserMode: boolean;
   geminiExtensionDiag: string;
@@ -34,7 +37,10 @@ export type AppSettingsTabProps = {
   globalFps: number;
   globalMusicVolume: number;
   globalRenderResolution: string;
+  globalStudioProduction: ProductionConfig;
+  globalStudioVisual: VisualConfig;
   globalUseRemotion: boolean;
+  saveGlobalStudioDefaults: (patch: { visual?: Record<string, unknown>; production?: Record<string, unknown> }) => Promise<unknown>;
   handleClearProjectRenderResolution: () => void | Promise<void>;
   handleRelinkYoutube: () => void | Promise<void>;
   handleSaveAiSettings: () => void | Promise<void>;
@@ -126,6 +132,7 @@ export function AppSettingsTab({
   canvaClientSecret,
   config,
   epidemicKeyInput,
+  formatSelector,
   fetchUploadStatus,
   geminiBrowserMode,
   geminiExtensionDiag,
@@ -140,7 +147,10 @@ export function AppSettingsTab({
   globalFps,
   globalMusicVolume,
   globalRenderResolution,
+  globalStudioProduction,
+  globalStudioVisual,
   globalUseRemotion,
+  saveGlobalStudioDefaults,
   handleClearProjectRenderResolution,
   handleRelinkYoutube,
   handleSaveAiSettings,
@@ -783,31 +793,22 @@ export function AppSettingsTab({
 
               {settingsSection === 'visual' && (
                 <VisualSettings
-                  config={config || {}}
-                  projectKey={activeProject}
-                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
+                  config={globalStudioVisual}
+                  projectKey="__global__"
+                  isShortFormat={formatSelector === 'SHORTS'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
-                  saving={savingVisualConfig || projectDataLoading}
+                  saving={savingVisualConfig}
                   onSave={async (draft) => {
-                    if (!activeProject || projectDataLoading) {
-                      toast.error('Aguarde o projeto carregar ou selecione um projeto na barra lateral.');
-                      return;
-                    }
                     setSavingVisualConfig(true);
                     try {
-                      const previousVisual = config || {};
-                      const patch = visualDraftToApiPatch(draft, previousVisual);
+                      const patch = visualDraftToApiPatch(draft, globalStudioVisual);
                       if (Object.keys(patch).length === 0) {
                         toast.success('Nenhuma alteração visual para salvar.');
                         return;
                       }
-                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
+                      const saved = await saveGlobalStudioDefaults({ visual: patch });
                       if (!saved) return;
-                      setConfig((prev) => ({
-                        ...(prev || {}),
-                        ...saved,
-                      }));
-                      toast.success('Configurações visuais salvas no projeto.');
+                      toast.success('Configurações visuais salvas globalmente (todos os projetos).');
                     } finally {
                       setSavingVisualConfig(false);
                     }
@@ -817,31 +818,22 @@ export function AppSettingsTab({
 
               {settingsSection === 'producao' && (
                 <SettingsProduction
-                  config={config || {}}
-                  projectKey={activeProject}
+                  config={globalStudioProduction}
+                  projectKey="__global__"
                   globalMusicVolume={globalMusicVolume}
-                  isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
-                  saving={savingProductionConfig || projectDataLoading}
+                  isShortFormat={formatSelector === 'SHORTS'}
+                  saving={savingProductionConfig}
                   onSave={async (draft) => {
-                    if (!activeProject || projectDataLoading) {
-                      toast.error('Aguarde o projeto carregar ou selecione um projeto na barra lateral.');
-                      return;
-                    }
                     setSavingProductionConfig(true);
                     try {
-                      const previousProduction = config || {};
-                      const patch = productionDraftToApiPatch(draft, previousProduction);
+                      const patch = productionDraftToApiPatch(draft, globalStudioProduction);
                       if (Object.keys(patch).length === 0) {
                         toast.success('Nenhuma alteração de produção para salvar.');
                         return;
                       }
-                      const saved = await saveConfigPatch(patch, { skipRefresh: true });
+                      const saved = await saveGlobalStudioDefaults({ production: patch });
                       if (!saved) return;
-                      setConfig((prev) => ({
-                        ...(prev || {}),
-                        ...saved,
-                      }));
-                      toast.success('Configurações de produção salvas no projeto.');
+                      toast.success('Configurações de produção salvas globalmente (todos os projetos).');
                     } finally {
                       setSavingProductionConfig(false);
                     }
