@@ -106,7 +106,7 @@ import type {
 } from './appTypes';
 import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from './appConstants';
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
-import { getSceneDurationSeconds, isWhisperTimelineReady } from './sceneSpeechDuration';
+import { getSceneDurationSeconds, isChunkedNarrationProject, isWhisperTimelineReady } from './sceneSpeechDuration';
 import { FACELESS_NICHE_PRESETS, canRunFacelessPipeline90 } from './facelessChannel';
 import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
 import { buildAppTabPropBundles } from './appTabPropBundles';
@@ -1791,6 +1791,9 @@ export default function App() {
   useEffect(() => {
     if (shouldAutoAlign && wordTranscripts.length > 0 && config && config.timeline_assets && status?.block_timings) {
       setShouldAutoAlign(false);
+      if (isChunkedNarrationProject(config, storyboardData ?? generatedScriptData, wordTranscripts)) {
+        return;
+      }
       setTimeout(() => {
         alignAllBlocksToSpeech();
       }, 200);
@@ -4073,6 +4076,10 @@ export default function App() {
   const alignAllBlocksToSpeech = () => {
 
     if (!config || !config.timeline_assets) return;
+
+    if (isChunkedNarrationProject(config, storyboardData, wordTranscripts)) {
+      return;
+    }
 
     if (!wordTranscripts || wordTranscripts.length === 0) {
 
@@ -6962,10 +6969,17 @@ export default function App() {
 
         setSyncingTimings(false);
 
-        setShouldAutoAlign(true);
+        const chunked = isChunkedNarrationProject(
+          config,
+          storyboardData ?? generatedScriptData,
+          wordTranscripts,
+        );
+        if (!chunked) setShouldAutoAlign(true);
         setCreatorStep(4);
         toast.success(
-          'Whisper concluído. Cada cena já tem os segundos da voz. No passo 4, coloque os assets manualmente e clique em Salvar Linha do Tempo.',
+          chunked
+            ? 'Whisper concluído. Timings por trecho preservados — envie os assets no passo 4 e salve a linha do tempo.'
+            : 'Whisper concluído. Cada cena já tem os segundos da voz. No passo 4, coloque os assets manualmente e clique em Salvar Linha do Tempo.',
           { duration: 7000 },
         );
 

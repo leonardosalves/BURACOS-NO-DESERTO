@@ -22,6 +22,7 @@ import {
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
 import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
+import { tightenTimelineRetentionDurations } from "./timelineSceneSync.js";
 
 
 export const NARRATION_CHUNKS_DIR = "narration_chunks";
@@ -345,7 +346,8 @@ export function syncTimelineFromChunkPlan({
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
 
       const text = String(chunk.text || "").trim();
-      const idx = resolveChunkAssetIndex(chunk, assets, ordinal);
+      // 1 trecho = 1 slot na ordem do bloco (evita colisão por scene_ref incorreto).
+      const idx = Math.min(ordinal, assets.length - 1);
       assets[idx] = {
         ...assets[idx],
         narration_segment: text,
@@ -445,23 +447,36 @@ export function applyChunkPlanToVisualPrompts(
   const chunkByScene = new Map(
     timed.map((c) => [String(c.scene_ref || "").trim(), c]),
   );
-  return (visualPrompts || []).map((vp, idx) => {
+  const sceneOrdinalInBlock = new Map();
+  const blockCounters = new Map();
+  for (const vp of visualPrompts || []) {
+    const blockKey = String(Number(vp?.block) || 1);
+    const ord = blockCounters.get(blockKey) ?? 0;
+    blockCounters.set(blockKey, ord + 1);
+    const sceneRef = String(vp?.scene || vp?.scene_ref || "").trim();
+    if (sceneRef) sceneOrdinalInBlock.set(`${blockKey}:${sceneRef}`, ord);
+  }
+
+  return (visualPrompts || []).map((vp) => {
     const sceneRef = String(vp?.scene || vp?.scene_ref || "").trim();
     const blockNum = Number(vp?.block) || 1;
     const chunk = sceneRef ? chunkByScene.get(sceneRef) : null;
 
     const blockKey = String(blockNum);
     const assets = timelineAssets[blockKey] || [];
-    const assetIdx = chunk
-      ? resolveChunkAssetIndex(chunk, assets, idx)
-      : Math.min(parseSceneRefIndex(sceneRef, idx), Math.max(assets.length - 1, 0));
+    const ordInBlock = sceneRef && sceneOrdinalInBlock.has(`${blockKey}:${sceneRef}`)
+      ? sceneOrdinalInBlock.get(`${blockKey}:${sceneRef}`)
+      : 0;
+    const assetIdx = Math.min(ordInBlock, Math.max(assets.length - 1, 0));
     const slot = assets[assetIdx];
 
     let next = { ...vp };
     if (chunk && Number.isFinite(Number(chunk.start_s)) && Number.isFinite(Number(chunk.end_s))) {
       const start = Number(chunk.start_s);
       const end = Number(chunk.end_s);
-      const dur = parseFloat(Math.max(0.5, end - start).toFixed(1));
+      const dur = slot?.synced_to_speech && Number.isFinite(Number(slot?.fixed))
+        ? Number(slot.fixed)
+        : parseFloat(Math.max(0.5, end - start).toFixed(1));
       next = {
         ...next,
         duration: `${dur} segundos`,
@@ -540,15 +555,16 @@ export function applyChunkedNarrationSyncToProject(projDir, {
   }
 
   const timings = buildBlockTimingsFromChunks(timedPlan.chunks);
+  const tightenedTimeline = tightenTimelineRetentionDurations(synced.timelineAssets, timings);
   const nextConfig = {
     ...config,
-    timeline_assets: synced.timelineAssets,
+    timeline_assets: tightenedTimeline,
     narration_mode: NARRATION_MODE_CHUNKED,
   };
   const visualPrompts = applyChunkPlanToVisualPrompts(
     synced.visualPrompts,
     timedPlan,
-    synced.timelineAssets,
+    tightenedTimeline,
   );
   const nextStoryboard = {
     ...storyboard,

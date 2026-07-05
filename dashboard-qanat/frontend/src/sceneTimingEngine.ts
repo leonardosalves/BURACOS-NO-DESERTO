@@ -296,24 +296,48 @@ export function buildBlockTimingModel(
   );
 
   const blockDuration = Math.max(MIN_SCENE_SECONDS, blockEnd - blockStart);
+  const nextBlockStart = status?.block_timings?.starts?.[blockNum];
+  const timingBlockEnd = Number.isFinite(nextBlockStart)
+    ? Number(nextBlockStart)
+    : blockEnd;
   const matchedAnchor = resolveBlockNarrationAnchor(ctx, blockNum, assets, flatWords);
   const narrationStart = matchedAnchor ?? blockWords[0]?.start ?? blockStart;
   const rawNarrationEnd = blockWords[blockWords.length - 1]?.end ?? blockEnd;
   const narrationEnd = Math.min(rawNarrationEnd, blockEnd);
   const speechDuration = Math.max(0, narrationEnd - narrationStart);
-  const sceneStarts = buildSpeechWeightedSceneBoundaries(
-    assets,
-    narrationStart,
-    narrationEnd,
+
+  const speechSynced = assets.some(
+    (a) => a.synced_to_speech === true && Number.isFinite(Number(a.audio_start)),
   );
 
+  const sceneStarts = speechSynced
+    ? (() => {
+        const starts = assets.map((a) => Number(a.audio_start));
+        const last = assets[assets.length - 1];
+        const lastEnd = Number.isFinite(Number(last?.speech_end))
+          ? Number(last.speech_end)
+          : starts[starts.length - 1]
+            + getAssetDurationSeconds(assets, assets.length - 1, blockDuration, timingBlockEnd);
+        return [...starts, lastEnd];
+      })()
+    : buildSpeechWeightedSceneBoundaries(assets, narrationStart, narrationEnd);
+
   const scenes: SceneTimingRow[] = assets.map((asset, idx) => {
-    const duration = getAssetDurationSeconds(assets, idx, blockDuration);
+    const duration = getAssetDurationSeconds(assets, idx, blockDuration, timingBlockEnd);
     const windowStart = sceneStarts[idx];
     const windowEnd = sceneStarts[idx + 1];
-    const sceneWords = assignWordsToScene(blockWords, sceneStarts, idx);
+    const sceneWords = speechSynced
+      ? blockWords.filter((w) => {
+          const mid = wordMidpoint(w);
+          const isLast = idx >= assets.length - 1;
+          if (mid < windowStart - 0.04) return false;
+          if (isLast) return mid <= windowEnd + 0.04;
+          return mid < windowEnd - 0.001;
+        })
+      : assignWordsToScene(blockWords, sceneStarts, idx);
 
     const assetPath = String(asset.asset || "").trim();
+    const syncedStart = Number(asset.audio_start);
     return {
       idx,
       duration,
@@ -324,7 +348,7 @@ export function buildBlockTimingModel(
       assetLabel: assetPath.split(/[/\\]/).pop() || `Cena ${idx + 1}`,
       assetPath,
       assetType: inferAssetType(asset),
-      audioStart: windowStart,
+      audioStart: Number.isFinite(syncedStart) ? syncedStart : windowStart,
     };
   });
 
