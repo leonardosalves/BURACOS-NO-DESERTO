@@ -37,6 +37,11 @@ OUTPUT/
 # Logs locais do watchdog Lumiera
 .lumiera-logs/
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Vendor clones (referência local, não versionar)
 .vendor/
 

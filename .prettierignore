@@ -6,3 +6,5 @@ coverage
 package-lock.json
 resurrector_metadata_cache
 .notebooklm-data
+test-results
+playwright-report
