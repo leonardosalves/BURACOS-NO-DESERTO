@@ -14,6 +14,8 @@ import { ChapterStinger, ChapterStingerProps } from "./ChapterStinger";
 import { SourceCard, SourceCardProps } from "./SourceCard";
 import { SocialPostCard, SocialPostCardProps } from "./SocialPostCard";
 import { GeoMapOverlay, GeoMapOverlayProps } from "./GeoMapOverlay";
+import { PictogramChart, PictogramChartProps } from "./PictogramChart";
+import { LocationIntro, LocationIntroProps } from "./LocationIntro";
 import { safeCustomStyle } from "./overlayStyleUtils";
 import { repairOverlayPropsEncoding } from "../textEncoding";
 
@@ -36,7 +38,9 @@ export type OverlayType =
   | "chapter-stinger"
   | "source-card"
   | "social-post"
-  | "geo-map";
+  | "geo-map"
+  | "pictogram-chart"
+  | "location-intro";
 
 export interface OverlayBase {
   /** Unique identifier */
@@ -114,6 +118,16 @@ export interface GeoMapOverlayItem extends OverlayBase {
   props: GeoMapOverlayProps;
 }
 
+export interface PictogramChartOverlay extends OverlayBase {
+  type: "pictogram-chart";
+  props: PictogramChartProps;
+}
+
+export interface LocationIntroOverlay extends OverlayBase {
+  type: "location-intro";
+  props: LocationIntroProps;
+}
+
 export type Overlay =
   | LowerThirdOverlay
   | CounterOverlay
@@ -127,26 +141,37 @@ export type Overlay =
   | ChapterStingerOverlay
   | SourceCardOverlay
   | SocialPostOverlay
-  | GeoMapOverlayItem;
+  | GeoMapOverlayItem
+  | PictogramChartOverlay
+  | LocationIntroOverlay;
 
 interface OverlayLayerProps {
   overlays: Overlay[];
 }
 
 function sanitizeOverlayProps<T extends Overlay["props"]>(raw: T): T {
-  const props = repairOverlayPropsEncoding({ ...(raw || {}) } as Record<string, unknown>) as T & {
+  const props = repairOverlayPropsEncoding({ ...(raw || {}) } as Record<
+    string,
+    unknown
+  >) as T & {
     customStyle?: unknown;
     style?: unknown;
   };
   if ("customStyle" in props) {
     const safe = safeCustomStyle(props.customStyle);
-    if (safe) props.customStyle = safe as T extends { customStyle?: infer C } ? C : never;
+    if (safe)
+      props.customStyle = safe as T extends { customStyle?: infer C }
+        ? C
+        : never;
     else delete props.customStyle;
   }
   return props;
 }
 
-const OverlayComponent: React.FC<{ overlay: Overlay; durationInFrames: number }> = ({ overlay, durationInFrames }) => {
+const OverlayComponent: React.FC<{
+  overlay: Overlay;
+  durationInFrames: number;
+}> = ({ overlay, durationInFrames }) => {
   const props = sanitizeOverlayProps(overlay.props || ({} as Overlay["props"]));
   switch (overlay.type) {
     case "lower-third":
@@ -154,12 +179,18 @@ const OverlayComponent: React.FC<{ overlay: Overlay; durationInFrames: number }>
     case "counter":
       return <InfoCounter {...props} />;
     case "bar-chart":
-      if (!Array.isArray((props as { items?: unknown[] }).items) || !(props as { items?: unknown[] }).items?.length) {
+      if (
+        !Array.isArray((props as { items?: unknown[] }).items) ||
+        !(props as { items?: unknown[] }).items?.length
+      ) {
         return null;
       }
       return <InfoBar {...props} durationInFrames={durationInFrames} />;
     case "timeline":
-      if (!Array.isArray((props as { events?: unknown[] }).events) || !(props as { events?: unknown[] }).events?.length) {
+      if (
+        !Array.isArray((props as { events?: unknown[] }).events) ||
+        !(props as { events?: unknown[] }).events?.length
+      ) {
         return null;
       }
       return <InfoTimeline {...props} />;
@@ -168,7 +199,13 @@ const OverlayComponent: React.FC<{ overlay: Overlay; durationInFrames: number }>
       const text = String(kt.text || "").trim();
       if (!text) return null;
       const animStyle = typeof kt.style === "string" ? kt.style : "slam";
-      return <KineticText {...kt} text={text} style={animStyle as KineticTextProps["style"]} />;
+      return (
+        <KineticText
+          {...kt}
+          text={text}
+          style={animStyle as KineticTextProps["style"]}
+        />
+      );
     }
     case "info-card":
       return <InfoCard {...overlay.props} />;
@@ -198,16 +235,33 @@ const OverlayComponent: React.FC<{ overlay: Overlay; durationInFrames: number }>
       if (!String(gm.location || "").trim()) return null;
       return <GeoMapOverlay {...gm} />;
     }
+    case "pictogram-chart": {
+      const pc = props as PictogramChartProps;
+      if (!String(pc.title || "").trim()) return null;
+      if (!Array.isArray(pc.segments) || pc.segments.length < 2) return null;
+      return <PictogramChart {...pc} />;
+    }
+    case "location-intro": {
+      const li = props as LocationIntroProps;
+      if (!String(li.location || "").trim()) return null;
+      return <LocationIntro {...li} />;
+    }
     default:
       return null;
   }
 };
 
 const overlayRenderPriority = (overlay: Overlay) => {
+  if (overlay.type === "location-intro" || overlay.type === "pictogram-chart")
+    return 110;
   if (overlay.type === "rank-progress") return 100;
   if (overlay.type === "chapter-stinger") return 95;
   if (overlay.type === "listicle-stinger") return 90;
-  if (overlay.id?.startsWith("listicle-rank") || overlay.id === "listicle-intro-topn") return 80;
+  if (
+    overlay.id?.startsWith("listicle-rank") ||
+    overlay.id === "listicle-intro-topn"
+  )
+    return 80;
   return 0;
 };
 
@@ -217,7 +271,7 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ overlays }) => {
   if (!overlays || overlays.length === 0) return null;
 
   const sortedOverlays = [...overlays].sort(
-    (a, b) => overlayRenderPriority(a) - overlayRenderPriority(b),
+    (a, b) => overlayRenderPriority(a) - overlayRenderPriority(b)
   );
 
   return (
@@ -225,7 +279,8 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ overlays }) => {
       {sortedOverlays.map((overlay) => {
         const startSec = Number(overlay.start);
         const durationSec = Number(overlay.duration);
-        if (!Number.isFinite(startSec) || !Number.isFinite(durationSec)) return null;
+        if (!Number.isFinite(startSec) || !Number.isFinite(durationSec))
+          return null;
         const fromFrame = Math.max(0, Math.round(startSec * fps));
         const durationInFrames = Math.max(1, Math.round(durationSec * fps));
 
@@ -236,7 +291,10 @@ export const OverlayLayer: React.FC<OverlayLayerProps> = ({ overlays }) => {
             durationInFrames={durationInFrames}
             premountFor={fps * 0.5}
           >
-            <OverlayComponent overlay={overlay} durationInFrames={durationInFrames} />
+            <OverlayComponent
+              overlay={overlay}
+              durationInFrames={durationInFrames}
+            />
           </Sequence>
         );
       })}

@@ -1065,6 +1065,8 @@ function relocateOverlayAwayFromListicleHud(overlay, { isShort = false } = {}) {
     next.type === "timeline" ||
     next.type === "bar-chart" ||
     next.type === "geo-map" ||
+    next.type === "location-intro" ||
+    next.type === "pictogram-chart" ||
     next.type === "social-post"
   ) {
     next.props.position = pick;
@@ -1275,6 +1277,12 @@ export function filterOverlaysByVisualConfig(overlays = [], config = {}) {
     if (overlay.type === "social-post" && config.social_proof_cards === false)
       return false;
     if (overlay.type === "geo-map" && config.geo_map_overlays === false)
+      return false;
+    if (
+      (overlay.type === "location-intro" ||
+        overlay.type === "pictogram-chart") &&
+      config.geo_map_overlays === false
+    )
       return false;
     return true;
   });
@@ -1757,11 +1765,23 @@ export function augmentSfxTimelineForOverlays(
     }
 
     if (
-      overlay.type === "geo-map" &&
+      (overlay.type === "geo-map" || overlay.type === "location-intro") &&
       exists(files.tick) &&
       !hasAt(t, files.tick)
     ) {
       events.push({ time: t, file: files.tick, volume: sfxVol(0.035) });
+    }
+
+    if (
+      overlay.type === "pictogram-chart" &&
+      exists(files.whoosh) &&
+      !hasAt(Math.max(0, t - 0.08), files.whoosh)
+    ) {
+      events.push({
+        time: Math.max(0, t - 0.08),
+        file: files.whoosh,
+        volume: sfxVol(0.03),
+      });
     }
 
     if (
