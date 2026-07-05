@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $StartScript = Join-Path $PSScriptRoot "start-lumiera.ps1"
-$IconPath = Join-Path $RepoRoot "assets\lumiera.ico"
+$IconPath = Join-Path $RepoRoot "dashboard-qanat\frontend\public\lumiera.ico"
 
 if (-not (Test-Path $StartScript)) {
     Write-Host "Nao encontrado: $StartScript" -ForegroundColor Red
