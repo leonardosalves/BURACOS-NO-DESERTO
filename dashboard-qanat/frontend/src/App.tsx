@@ -3174,7 +3174,7 @@ export default function App() {
 
           }
 
-        } else if (activeTab === 'editor' && storyboardData) {
+        } else if ((activeTab === 'editor' || activeTab === 'flow-studio') && storyboardData) {
 
           let targetSceneIndex = -1;
 
@@ -8063,6 +8063,7 @@ export default function App() {
     homeTabProps,
     workflowTabProps,
     sceneTimingTabProps,
+    flowStudioTabProps,
     terminalTabProps,
   } = buildAppTabPropBundles({
     activeBgmMode,
@@ -8560,6 +8561,7 @@ export default function App() {
             homeTabProps={homeTabProps}
             workflowTabProps={workflowTabProps}
             sceneTimingTabProps={sceneTimingTabProps}
+            flowStudioTabProps={flowStudioTabProps}
             terminalTabProps={terminalTabProps}
           />
         </Suspense>

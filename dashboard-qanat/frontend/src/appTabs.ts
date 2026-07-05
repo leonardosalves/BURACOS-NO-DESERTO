@@ -10,6 +10,7 @@ export type AppTab =
   | 'ai'
   | 'creator'
   | 'editor'
+  | 'flow-studio'
   | 'settings'
   | 'upload'
   | 'agents'
@@ -31,6 +32,7 @@ export const RESTORABLE_APP_TABS: AppTab[] = [
   'ai',
   'creator',
   'editor',
+  'flow-studio',
   'settings',
   'upload',
   'agents',
