@@ -1373,12 +1373,10 @@ app.post("/api/upload/youtube/save-credentials", (req, res) => {
       message: "Credenciais de API do YouTube salvas com sucesso!",
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao salvar credenciais do YouTube",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao salvar credenciais do YouTube",
+      details: err.message,
+    });
   }
 });
 
@@ -1386,11 +1384,9 @@ app.post("/api/upload/youtube/save-credentials", (req, res) => {
 app.post("/api/upload/instagram/save-credentials", (req, res) => {
   const { instagram_business_account_id, access_token } = req.body;
   if (!instagram_business_account_id || !access_token) {
-    return res
-      .status(400)
-      .json({
-        error: "ID da conta Business e Token de Acesso são obrigatórios",
-      });
+    return res.status(400).json({
+      error: "ID da conta Business e Token de Acesso são obrigatórios",
+    });
   }
   const secretsPath = path.join(WORKSPACE_DIR, "instagram_secrets.json");
   try {
@@ -1404,12 +1400,10 @@ app.post("/api/upload/instagram/save-credentials", (req, res) => {
       message: "Credenciais de API do Instagram salvas com sucesso!",
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao salvar credenciais do Instagram",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao salvar credenciais do Instagram",
+      details: err.message,
+    });
   }
 });
 
@@ -1502,12 +1496,10 @@ app.post("/api/canva/save-credentials", (req, res) => {
     });
     res.json({ success: true, message: "Credenciais do Canva salvas." });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao salvar credenciais do Canva",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao salvar credenciais do Canva",
+      details: err.message,
+    });
   }
 });
 
@@ -1778,12 +1770,10 @@ app.post("/api/upload/youtube/apply-metadata", (req, res) => {
     const errLine =
       log.split("\n").find((l) => /\[ERROR\]/i.test(l)) ||
       log.split("\n").pop();
-    res
-      .status(500)
-      .json({
-        error: errLine || `Falha ao aplicar metadados (código ${code})`,
-        log,
-      });
+    res.status(500).json({
+      error: errLine || `Falha ao aplicar metadados (código ${code})`,
+      log,
+    });
   });
 });
 
@@ -2193,12 +2183,10 @@ app.get("/api/projects/overlay-timing-verify", async (req, res) => {
       issues: overlayTimingIssuesFromReport(report),
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao verificar timing dos overlays",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao verificar timing dos overlays",
+      details: err.message,
+    });
   }
 });
 
@@ -2318,12 +2306,10 @@ app.get("/api/projects/video-quality", async (req, res) => {
     const preRenderAdvice = buildPreRenderAdvice(report, workflow);
     res.json({ ...report, workflow, preRenderAdvice, workshop });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao verificar qualidade do vídeo",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao verificar qualidade do vídeo",
+      details: err.message,
+    });
   }
 });
 
@@ -2551,12 +2537,10 @@ app.get("/api/studio-agents/consolidate/preview", (req, res) => {
     const preview = previewConsolidation(WORKSPACE_DIR);
     res.json(preview);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao pré-visualizar consolidação",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao pré-visualizar consolidação",
+      details: err.message,
+    });
   }
 });
 
@@ -3109,11 +3093,9 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
         overlayResearch
       );
       if (!prompt) {
-        return res
-          .status(400)
-          .json({
-            error: "Projeto sem blocos de narração para planejar overlays.",
-          });
+        return res.status(400).json({
+          error: "Projeto sem blocos de narração para planejar overlays.",
+        });
       }
 
       if (forceBrowser) {
@@ -3146,12 +3128,9 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
         projectDir: projDir,
       });
       if (!llmText) {
-        return res
-          .status(500)
-          .json({
-            error:
-              "Falha ao consultar Gemini API para overlays (Studio Agents).",
-          });
+        return res.status(500).json({
+          error: "Falha ao consultar Gemini API para overlays (Studio Agents).",
+        });
       }
     }
 
@@ -3237,12 +3216,10 @@ app.get("/api/projects/wizard-session", (req, res) => {
     const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
     res.json({ session, project: path.basename(projDir) });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao carregar sessão do wizard",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao carregar sessão do wizard",
+      details: err.message,
+    });
   }
 });
 
@@ -4050,23 +4027,19 @@ app.post("/api/music/mix", async (req, res) => {
       if (code === 0) {
         res.json({ success: true, log: stdout, prepLogs });
       } else {
-        res
-          .status(500)
-          .json({
-            error: "Erro na mixagem da trilha",
-            log: stdout,
-            details: stderr,
-            prepLogs,
-          });
+        res.status(500).json({
+          error: "Erro na mixagem da trilha",
+          log: stdout,
+          details: stderr,
+          prepLogs,
+        });
       }
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: err.message || "Falha ao preparar mixagem",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: err.message || "Falha ao preparar mixagem",
+      details: err.message,
+    });
   }
 });
 
@@ -4096,12 +4069,10 @@ app.get("/api/epidemic/search", async (req, res) => {
       res.json(results);
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao buscar na Epidemic Sound",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao buscar na Epidemic Sound",
+      details: err.message,
+    });
   }
 });
 
@@ -4208,12 +4179,10 @@ app.post("/api/epidemic/download", async (req, res) => {
       });
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao baixar arquivo da Epidemic Sound",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao baixar arquivo da Epidemic Sound",
+      details: err.message,
+    });
   }
 });
 
@@ -5048,12 +5017,10 @@ app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
 
     res.json({ success: true, logs });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro no processo de automação de trilha",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro no processo de automação de trilha",
+      details: err.message,
+    });
   }
 });
 
@@ -5778,11 +5745,9 @@ app.post("/api/render/plan-overlays", async (req, res) => {
         overlayResearch
       );
       if (!prompt) {
-        return res
-          .status(400)
-          .json({
-            error: "Projeto sem blocos de narração para planejar overlays.",
-          });
+        return res.status(400).json({
+          error: "Projeto sem blocos de narração para planejar overlays.",
+        });
       }
 
       if (forceBrowser) {
@@ -8583,12 +8548,39 @@ const NVIDIA_MODELS = [
 
 const INFERENCE_API_BASE = "https://api.inference.net/v1";
 
-const INFERENCE_MODELS = [
-  "google/gemma-3-27b-instruct/bf-16",
-  "qwen/qwen3-32b",
-  "meta-llama/llama-3.3-70b-instruct",
-  "deepseek/deepseek-v3",
+const DEFAULT_INFERENCE_MODEL = "google/gemma-3-27b-instruct/bf-16";
+
+const INFERENCE_MODEL_OPTIONS = [
+  {
+    id: "google/gemma-3-27b-instruct/bf-16",
+    label: "Gemma 3 27B Instruct",
+    hint: "Padrão Inference.net — bom equilíbrio velocidade/qualidade",
+  },
+  {
+    id: "qwen/qwen3-32b",
+    label: "Qwen3 32B",
+    hint: "Forte em raciocínio, código e instruções longas",
+  },
+  {
+    id: "meta-llama/llama-3.3-70b-instruct",
+    label: "Llama 3.3 70B Instruct",
+    hint: "Alto desempenho em tarefas de instrução",
+  },
+  {
+    id: "deepseek/deepseek-v3",
+    label: "DeepSeek V3",
+    hint: "Modelo avançado de raciocínio",
+  },
+  {
+    id: "mistralai/mistral-small-3.1-24b-instruct-2503",
+    label: "Mistral Small 3.1 24B",
+    hint: "Compacto e rápido para alto volume",
+  },
 ];
+
+const INFERENCE_MODEL_FALLBACKS = INFERENCE_MODEL_OPTIONS.map(
+  (option) => option.id
+);
 
 async function callNvidiaWithRetry(
   promptOrBody,
@@ -8710,8 +8702,7 @@ async function callInferenceWithRetry(
     bodyOverride
   );
   let lastError = null;
-  const modelList =
-    Array.isArray(models) && models.length ? models : INFERENCE_MODELS;
+  const modelList = getInferenceModelChain(projectDir, models);
 
   for (const model of modelList) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -8949,6 +8940,33 @@ function getGeminiModelChain(
   return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
 }
 
+function getInferenceModel(projectDir = WORKSPACE_DIR) {
+  const readModel = (configPath) => {
+    const config = readJsonFile(configPath);
+    const model = String(config?.inference_model || "").trim();
+    return INFERENCE_MODEL_FALLBACKS.includes(model) ? model : null;
+  };
+  return (
+    readModel(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    process.env.INFERENCE_MODEL ||
+    DEFAULT_INFERENCE_MODEL
+  );
+}
+
+function getInferenceModelChain(
+  projectDir = WORKSPACE_DIR,
+  overrideModels = null
+) {
+  if (Array.isArray(overrideModels) && overrideModels.length > 0) {
+    return [...new Set(overrideModels.filter(Boolean))];
+  }
+  const primary = getInferenceModel(projectDir);
+  return [...new Set([primary, ...INFERENCE_MODEL_FALLBACKS])];
+}
+
 async function callGeminiWithRetry(
   apiKey,
   promptOrBody,
@@ -8978,6 +8996,7 @@ async function callGeminiWithRetry(
       bodyOverride,
       projectDir: projDir,
       temperature,
+      models: models || getInferenceModelChain(projDir),
     });
   }
   if (provider === "openrouter") {
@@ -9538,7 +9557,7 @@ async function callStudioQuickLlm(
     provider === "nvidia"
       ? NVIDIA_MODELS.slice(0, 1)
       : provider === "inference"
-        ? INFERENCE_MODELS.slice(0, 1)
+        ? [getInferenceModel(projDir)]
         : provider === "xai"
           ? XAI_MODELS.slice(0, 1)
           : provider === "openrouter"
@@ -9731,14 +9750,12 @@ async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
 app.get("/api/ai/progress/:jobId", (req, res) => {
   const job = getJobProgress(req.params.jobId);
   if (!job) {
-    return res
-      .status(404)
-      .json({
-        error: "Job não encontrado",
-        percent: 0,
-        label: "Aguardando…",
-        phase: "unknown",
-      });
+    return res.status(404).json({
+      error: "Job não encontrado",
+      percent: 0,
+      label: "Aguardando…",
+      phase: "unknown",
+    });
   }
   res.json(job);
 });
@@ -9874,6 +9891,10 @@ app.get("/api/ai/settings", (req, res) => {
 
     gemini_model_options: GEMINI_MODEL_OPTIONS,
 
+    inference_model: getInferenceModel(projDir),
+
+    inference_model_options: INFERENCE_MODEL_OPTIONS,
+
     gemini_key_count: getApiKeys(projDir).length,
 
     has_xai_key: !!getXaiApiKey(projDir),
@@ -9900,6 +9921,7 @@ app.post("/api/ai/settings", (req, res) => {
   const {
     provider,
     gemini_model,
+    inference_model,
     gemini_key,
     gemini_keys,
     xai_key,
@@ -9928,6 +9950,13 @@ app.post("/api/ai/settings", (req, res) => {
         const normalizedModel = gemini_model.trim();
         if (GEMINI_MODEL_FALLBACKS.includes(normalizedModel)) {
           next.gemini_model = normalizedModel;
+        }
+      }
+
+      if (typeof inference_model === "string" && inference_model.trim()) {
+        const normalizedInferenceModel = inference_model.trim();
+        if (INFERENCE_MODEL_FALLBACKS.includes(normalizedInferenceModel)) {
+          next.inference_model = normalizedInferenceModel;
         }
       }
 
@@ -9980,6 +10009,8 @@ app.post("/api/ai/settings", (req, res) => {
       provider: getAiProvider(projDir),
       gemini_model: getGeminiModel(projDir),
       gemini_model_options: GEMINI_MODEL_OPTIONS,
+      inference_model: getInferenceModel(projDir),
+      inference_model_options: INFERENCE_MODEL_OPTIONS,
       gemini_key_count: getApiKeys(projDir).length,
       has_xai_key: !!getXaiApiKey(projDir),
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
@@ -9989,12 +10020,10 @@ app.post("/api/ai/settings", (req, res) => {
       gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao salvar configurações de IA",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao salvar configurações de IA",
+      details: err.message,
+    });
   }
 });
 
@@ -13032,11 +13061,9 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
     });
   } catch (err) {
     console.error("[Block Progress Titles]", err);
-    res
-      .status(500)
-      .json({
-        error: err.message || "Falha ao sincronizar títulos dos capítulos.",
-      });
+    res.status(500).json({
+      error: err.message || "Falha ao sincronizar títulos dos capítulos.",
+    });
   }
 });
 
@@ -13407,11 +13434,9 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     });
   } catch (err) {
     console.error("[Plan Narration Chunks]", err);
-    res
-      .status(500)
-      .json({
-        error: err.message || "Falha ao planejar narração por trechos.",
-      });
+    res.status(500).json({
+      error: err.message || "Falha ao planejar narração por trechos.",
+    });
   }
 });
 
@@ -13516,12 +13541,10 @@ app.post("/api/upload-narration", (req, res) => {
   });
 
   writeStream.on("error", (err) => {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao escrever arquivo de narração",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao escrever arquivo de narração",
+      details: err.message,
+    });
   });
 });
 
@@ -13584,22 +13607,18 @@ app.post("/api/upload-bgm", (req, res) => {
         file: safeFilename,
       });
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: "Erro ao atualizar configuração de trilhas",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao atualizar configuração de trilhas",
+        details: err.message,
+      });
     }
   });
 
   writeStream.on("error", (err) => {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao escrever arquivo de música",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao escrever arquivo de música",
+      details: err.message,
+    });
   });
 });
 
@@ -13705,22 +13724,18 @@ app.post("/api/upload-scene-asset", (req, res) => {
         asset: destFileName,
       });
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          error: "Erro ao salvar na configuração",
-          details: err.message,
-        });
+      res.status(500).json({
+        error: "Erro ao salvar na configuração",
+        details: err.message,
+      });
     }
   });
 
   writeStream.on("error", (err) => {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao escrever arquivo de mídia",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao escrever arquivo de mídia",
+      details: err.message,
+    });
   });
 });
 
@@ -13791,12 +13806,10 @@ app.get("/api/logo/status", (req, res) => {
       projectSelectedLogoId: projectConfig.selected_logo_id || null,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao obter status do logotipo",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao obter status do logotipo",
+      details: err.message,
+    });
   }
 });
 
@@ -13835,20 +13848,16 @@ app.post("/api/logo/upload", (req, res) => {
     });
 
     writeStream.on("error", (err) => {
-      res
-        .status(500)
-        .json({
-          error: "Erro ao salvar arquivo de logo",
-          details: err.message,
-        });
-    });
-  } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao inicializar upload do logotipo",
+      res.status(500).json({
+        error: "Erro ao salvar arquivo de logo",
         details: err.message,
       });
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: "Erro ao inicializar upload do logotipo",
+      details: err.message,
+    });
   }
 });
 
@@ -13888,12 +13897,10 @@ app.post("/api/brand/channels/reset-project", (req, res) => {
         : "Nenhum canal personalizado do projeto encontrado.",
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao redefinir canal do projeto",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao redefinir canal do projeto",
+      details: err.message,
+    });
   }
 });
 
@@ -13966,12 +13973,10 @@ app.get("/api/brand/catalog", (req, res) => {
         projectConfig.selected_youtube_channel_id || null,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao carregar catálogo de marca",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao carregar catálogo de marca",
+      details: err.message,
+    });
   }
 });
 
@@ -14292,12 +14297,10 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
 
     res.json({ success: true, script: parsedData.script, config: newConfig });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: "Erro ao gerar roteiro/configuração",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao gerar roteiro/configuração",
+      details: err.message,
+    });
   }
 });
 
@@ -14670,12 +14673,10 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
   } catch (err) {
     console.error("[IDEAS ENDPOINT ERROR]", err.message);
 
-    res
-      .status(500)
-      .json({
-        error: "Erro ao gerar ideias/diagnóstico",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao gerar ideias/diagnóstico",
+      details: err.message,
+    });
   }
 });
 
@@ -15032,12 +15033,10 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   if (!niche || !format || !idea || !project) {
     failJobProgress(progressJobId, "Dados obrigatórios ausentes.");
-    return res
-      .status(400)
-      .json({
-        error:
-          "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios.",
-      });
+    return res.status(400).json({
+      error:
+        "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios.",
+    });
   }
 
   const isListicle = contentMode === "LISTICLE";
@@ -15168,12 +15167,10 @@ app.post("/api/ai/creator/script", async (req, res) => {
         "utf8"
       );
     } catch (err) {
-      return activeRes
-        .status(500)
-        .json({
-          error: "Erro ao criar pasta do novo projeto",
-          details: err.message,
-        });
+      return activeRes.status(500).json({
+        error: "Erro ao criar pasta do novo projeto",
+        details: err.message,
+      });
     }
   }
 
@@ -15976,12 +15973,10 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const approvedNarration = String(storyboard.narrative_script || "").trim();
     if (!approvedNarration) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Não há narrative_script no storyboard para distribuir nas cenas.",
-        });
+      return res.status(400).json({
+        error:
+          "Não há narrative_script no storyboard para distribuir nas cenas.",
+      });
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
@@ -16070,12 +16065,10 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
-    res
-      .status(500)
-      .json({
-        error: "Erro ao reparar cenas do roteiro",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao reparar cenas do roteiro",
+      details: err.message,
+    });
   }
 });
 
@@ -16101,11 +16094,9 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       !Array.isArray(storyboard.visual_prompts) ||
       storyboard.visual_prompts.length === 0
     ) {
-      return res
-        .status(400)
-        .json({
-          error: "Não há visual_prompts no storyboard para reprocessar.",
-        });
+      return res.status(400).json({
+        error: "Não há visual_prompts no storyboard para reprocessar.",
+      });
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
@@ -16200,12 +16191,10 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
-    res
-      .status(500)
-      .json({
-        error: "Erro ao aprimorar prompts visuais",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao aprimorar prompts visuais",
+      details: err.message,
+    });
   }
 });
 
@@ -16283,12 +16272,10 @@ app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/compile-directing-briefs:", err);
-    res
-      .status(500)
-      .json({
-        error: "Erro ao compilar directing briefs",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao compilar directing briefs",
+      details: err.message,
+    });
   }
 });
 
@@ -16357,12 +16344,10 @@ app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
     });
   } catch (err) {
     console.error("Erro em /api/ai/creator/generate-seedance-t2v:", err);
-    res
-      .status(500)
-      .json({
-        error: "Erro ao gerar vídeo Seedance/LTX",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao gerar vídeo Seedance/LTX",
+      details: err.message,
+    });
   }
 });
 
@@ -16500,12 +16485,10 @@ app.post("/api/ai/creator/evaluate-checklist", async (req, res) => {
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/evaluate-checklist:", err);
-    res
-      .status(500)
-      .json({
-        error: "Erro ao avaliar checklist de qualidade",
-        details: err.message,
-      });
+    res.status(500).json({
+      error: "Erro ao avaliar checklist de qualidade",
+      details: err.message,
+    });
   }
 });
 
@@ -16708,11 +16691,9 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
 
   const narrativeScript = String(narrativeScriptRaw || "").trim();
   if (narrativeScript.length < 40) {
-    return res
-      .status(400)
-      .json({
-        error: "A narração precisa ter ao menos 40 caracteres para melhorar.",
-      });
+    return res.status(400).json({
+      error: "A narração precisa ter ao menos 40 caracteres para melhorar.",
+    });
   }
 
   const niche = String(nicheRaw || "documentário").trim();
@@ -18837,12 +18818,10 @@ Exemplo timeline:
     "",
     "BLOCOS (contexto apenas — NÃO copie estas frases nos overlays):",
     JSON.stringify(
-      blockPhrases
-        .slice(0, 14)
-        .map((bp) => ({
-          block: bp.block,
-          hint: String(bp.phrase || "").slice(0, 40) + "…",
-        })),
+      blockPhrases.slice(0, 14).map((bp) => ({
+        block: bp.block,
+        hint: String(bp.phrase || "").slice(0, 40) + "…",
+      })),
       null,
       2
     ),

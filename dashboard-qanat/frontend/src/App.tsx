@@ -316,6 +316,20 @@ export default function App() {
     },
   ]);
 
+  const [inferenceModel, setInferenceModel] = useState<string>(
+    "google/gemma-3-27b-instruct/bf-16"
+  );
+
+  const [inferenceModelOptions, setInferenceModelOptions] = useState<
+    Array<{ id: string; label: string; hint?: string }>
+  >([
+    {
+      id: "google/gemma-3-27b-instruct/bf-16",
+      label: "Gemma 3 27B Instruct",
+      hint: "Padrão Inference.net",
+    },
+  ]);
+
   const [hasXaiKey, setHasXaiKey] = useState<boolean>(false);
 
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState<boolean>(false);
@@ -1676,10 +1690,12 @@ export default function App() {
       };
     }
     if (aiProvider === "inference") {
+      const modelLabel =
+        inferenceModelOptions.find((option) => option.id === inferenceModel)
+          ?.label || inferenceModel;
       return {
         short: "Inference.net",
-        detail:
-          "Chamadas de IA via Inference.net (modelos open-source hospedados). Ative Gemini no Chrome para usar o navegador.",
+        detail: `Modelo: ${modelLabel}. Ative Gemini no Chrome para usar o navegador.`,
       };
     }
     if (geminiBrowserMode) {
@@ -1708,7 +1724,13 @@ export default function App() {
       short: "Gemini API",
       detail: "IA via Google AI Studio (chave API). Sem automação no Chrome.",
     };
-  }, [hasApiKey, aiProvider, geminiBrowserMode]);
+  }, [
+    hasApiKey,
+    aiProvider,
+    geminiBrowserMode,
+    inferenceModel,
+    inferenceModelOptions,
+  ]);
 
   const readApiError = async (res: Response, fallback: string) => {
     try {
@@ -2720,6 +2742,17 @@ export default function App() {
           settingsData.gemini_model_options.length > 0
         ) {
           setGeminiModelOptions(settingsData.gemini_model_options);
+        }
+
+        setInferenceModel(
+          settingsData.inference_model || "google/gemma-3-27b-instruct/bf-16"
+        );
+
+        if (
+          Array.isArray(settingsData.inference_model_options) &&
+          settingsData.inference_model_options.length > 0
+        ) {
+          setInferenceModelOptions(settingsData.inference_model_options);
         }
 
         setGeminiKeyCount(settingsData.gemini_key_count || 0);
@@ -5340,6 +5373,7 @@ export default function App() {
           provider: aiProvider,
 
           gemini_model: geminiModel,
+          inference_model: inferenceModel,
 
           gemini_keys: geminiKeysInput,
 
@@ -5365,6 +5399,15 @@ export default function App() {
           data.gemini_model_options.length > 0
         ) {
           setGeminiModelOptions(data.gemini_model_options);
+        }
+
+        if (data.inference_model) setInferenceModel(data.inference_model);
+
+        if (
+          Array.isArray(data.inference_model_options) &&
+          data.inference_model_options.length > 0
+        ) {
+          setInferenceModelOptions(data.inference_model_options);
         }
 
         setHasXaiKey(!!data.has_xai_key);
@@ -9093,6 +9136,8 @@ export default function App() {
     geminiKeysInput,
     geminiModel,
     geminiModelOptions,
+    inferenceModel,
+    inferenceModelOptions,
     generateYoutubeMetadata,
     generatedScriptData,
     generatingOverlays,
@@ -9293,6 +9338,7 @@ export default function App() {
     setGeminiExtensionTesting,
     setGeminiKeysInput,
     setGeminiModel,
+    setInferenceModel,
     setGlobalBlockGap,
     setGlobalDebugOverlay,
     setGlobalFps,
