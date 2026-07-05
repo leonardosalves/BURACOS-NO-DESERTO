@@ -1,0 +1,20 @@
+{
+  "name": "lumiera",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Lumiera monorepo — hooks e scripts de qualidade na raiz",
+  "scripts": {
+    "prepare": "husky",
+    "typecheck": "npm run typecheck --prefix dashboard-qanat/frontend",
+    "test": "npm run test --prefix dashboard-qanat/backend",
+    "lint": "npm run lint --prefix dashboard-qanat/frontend"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.5.3"
+  },
+  "lint-staged": {
+    "*": "prettier --ignore-unknown --write"
+  }
+}

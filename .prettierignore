@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+coverage
+*.min.js
+package-lock.json
+resurrector_metadata_cache
+.notebooklm-data

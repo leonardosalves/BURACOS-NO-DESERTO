@@ -1,4 +1,5 @@
 {
+  "_note": "NotebookLM foi unificado em .cursor/mcp.json — este arquivo é só referência legada.",
   "mcpServers": {
     "notebooklm-mcp": {
       "command": "notebooklm-mcp",
