@@ -34,6 +34,9 @@ OUTPUT/
 *.7z
 *.pdf
 
+# Logs locais do watchdog Lumiera
+.lumiera-logs/
+
 # Vendor clones (referência local, não versionar)
 .vendor/
 
