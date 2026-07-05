@@ -22,9 +22,22 @@ if ($Force) {
     $ok = Start-LumieraBackendProcess
 }
 
+if (-not $ok) {
+    Write-Host "Aguardando subida lenta do server.js (ate 60s)..." -ForegroundColor Yellow
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
+            $ok = $true
+            break
+        }
+        Start-Sleep -Seconds 2
+    }
+}
+
 if ($ok) {
     Write-Host "Backend OK em http://127.0.0.1:3005" -ForegroundColor Green
-} else {
-    Write-Host "Falha ao subir - veja .lumiera-logs\backend-stderr.log" -ForegroundColor Red
-    exit 1
+    exit 0
 }
+
+Write-Host "Falha ao subir - veja .lumiera-logs\backend-stderr.log" -ForegroundColor Red
+exit 1

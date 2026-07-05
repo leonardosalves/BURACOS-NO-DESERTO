@@ -143,9 +143,9 @@ function Start-LumieraBackendProcess {
 
     if (Test-BackendRestartLock) {
         Write-LumieraLog "Reinicio ja em andamento (lock) - aguardando" "WARN"
-        $deadline = (Get-Date).AddSeconds(45)
+        $deadline = (Get-Date).AddSeconds(120)
         while ((Get-Date) -lt $deadline) {
-            if (Test-LumieraBackendHealthy -Retries 1 -TimeoutSec 5) {
+            if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
                 return $true
             }
             Start-Sleep -Milliseconds 800
@@ -221,7 +221,21 @@ function Start-LumieraBackendProcess {
             }
         }
 
-        Write-LumieraLog "Backend nao respondeu em 90s - veja backend-stderr.log" "ERROR"
+        if (Get-BackendListenerPid) {
+            Write-LumieraLog "Processo na porta 3005 mas health lento - aguardando mais 60s" "WARN"
+            $extraDeadline = (Get-Date).AddSeconds(60)
+            while ((Get-Date) -lt $extraDeadline) {
+                Start-Sleep -Seconds 2
+                if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 10) {
+                    $livePid = Get-BackendListenerPid
+                    if ($livePid) { Write-BackendPidFile $livePid }
+                    Write-LumieraLog "Backend OK (subida lenta) - $script:HealthUrl"
+                    return $true
+                }
+            }
+        }
+
+        Write-LumieraLog "Backend nao respondeu a tempo - veja backend-stderr.log" "ERROR"
         return $false
     } finally {
         Clear-BackendRestartLock
