@@ -2,8 +2,20 @@ import { spawn, spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-const NLM_BIN = process.env.NLM_BIN || "nlm";
 const QUERY_TIMEOUT_MS = Number(process.env.NOTEBOOKLM_QUERY_TIMEOUT_MS || 120000);
+
+function resolveNlmBin() {
+  const fromEnv = String(process.env.NLM_BIN || "").trim();
+  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+  const localAppData = process.env.LOCALAPPDATA || process.env.HOME || "";
+  if (localAppData) {
+    const winNlm = path.join(localAppData, ".local", "bin", process.platform === "win32" ? "nlm.exe" : "nlm");
+    if (fs.existsSync(winNlm)) return winNlm;
+  }
+  return "nlm";
+}
+
+const NLM_BIN = resolveNlmBin();
 
 let loginChild = null;
 let loginStartedAt = null;
@@ -163,9 +175,12 @@ export function startNotebooklmLogin(backendDir) {
   } catch (err) {
     loginChild = null;
     loginStartedAt = null;
+    const missing = String(err.message || "").includes("ENOENT");
     return {
       started: false,
-      error: err.message || "Falha ao iniciar login NotebookLM.",
+      error: missing
+        ? `CLI nlm não encontrado (${NLM_BIN}). Instale o NotebookLM CLI ou defina NLM_BIN no ambiente do backend.`
+        : (err.message || "Falha ao iniciar login NotebookLM."),
     };
   }
 }

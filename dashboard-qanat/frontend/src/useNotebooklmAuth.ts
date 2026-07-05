@@ -86,7 +86,10 @@ export function useNotebooklmAuth(opts?: {
       const res = await fetch('/api/notebooklm/login', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error || 'Falha ao iniciar login NotebookLM.');
+        const fallback = res.status === 404
+          ? 'Rota de login ausente — reinicie o backend (porta 3005) com o código atual.'
+          : 'Falha ao iniciar login NotebookLM.';
+        toast.error(String(data.error || fallback), { duration: 8000 });
         setLoggingIn(false);
         return false;
       }
