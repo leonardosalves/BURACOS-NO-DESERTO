@@ -289,10 +289,12 @@ export default function App() {
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
   const [aiProvider, setAiProvider] = useState<
-    "gemini" | "xai" | "openrouter" | "nvidia"
+    "gemini" | "xai" | "openrouter" | "nvidia" | "inference"
   >("gemini");
   const [nvidiaKeyInput, setNvidiaKeyInput] = useState<string>("");
   const [hasNvidiaKey, setHasNvidiaKey] = useState<boolean>(false);
+  const [inferenceKeyInput, setInferenceKeyInput] = useState<string>("");
+  const [hasInferenceKey, setHasInferenceKey] = useState<boolean>(false);
 
   const [geminiKeysInput, setGeminiKeysInput] = useState<string>("");
 
@@ -1673,6 +1675,13 @@ export default function App() {
         detail: "Chamadas de IA via API OpenRouter.",
       };
     }
+    if (aiProvider === "inference") {
+      return {
+        short: "Inference.net",
+        detail:
+          "Chamadas de IA via Inference.net (modelos open-source hospedados). Ative Gemini no Chrome para usar o navegador.",
+      };
+    }
     if (geminiBrowserMode) {
       const via =
         aiProvider !== "gemini" ? ` (prioridade sobre ${aiProvider})` : "";
@@ -2719,6 +2728,7 @@ export default function App() {
 
         setHasOpenRouterKey(!!settingsData.has_openrouter_key);
         setHasNvidiaKey(!!settingsData.has_nvidia_key);
+        setHasInferenceKey(!!settingsData.has_inference_key);
 
         setHasEpidemicKey(!!settingsData.has_epidemic_key);
 
@@ -2731,7 +2741,9 @@ export default function App() {
             settingsData.provider === "openrouter" ||
             !!settingsData.has_openrouter_key ||
             settingsData.provider === "nvidia" ||
-            !!settingsData.has_nvidia_key
+            !!settingsData.has_nvidia_key ||
+            settingsData.provider === "inference" ||
+            !!settingsData.has_inference_key
         );
       }
 
@@ -5335,6 +5347,7 @@ export default function App() {
 
           openrouter_key: openrouterKeyInput,
           nvidia_key: nvidiaKeyInput,
+          inference_key: inferenceKeyInput,
 
           gemini_browser_mode: geminiBrowserMode,
         }),
@@ -5358,6 +5371,7 @@ export default function App() {
 
         setHasOpenRouterKey(!!data.has_openrouter_key);
         setHasNvidiaKey(!!data.has_nvidia_key);
+        setHasInferenceKey(!!data.has_inference_key);
 
         setHasEpidemicKey(!!data.has_epidemic_key);
 
@@ -5370,7 +5384,9 @@ export default function App() {
             data.provider === "openrouter" ||
             !!data.has_openrouter_key ||
             data.provider === "nvidia" ||
-            !!data.has_nvidia_key
+            !!data.has_nvidia_key ||
+            data.provider === "inference" ||
+            !!data.has_inference_key
         );
 
         setGeminiKeysInput("");
@@ -5379,6 +5395,7 @@ export default function App() {
 
         setOpenRouterKeyInput("");
         setNvidiaKeyInput("");
+        setInferenceKeyInput("");
 
         setEpidemicKeyInput("");
 
@@ -9153,6 +9170,7 @@ export default function App() {
     hasApiKey,
     hasEpidemicKey,
     hasNvidiaKey,
+    hasInferenceKey,
     hasOpenRouterKey,
     hasPexelsKey,
     hasPixabayKey,
@@ -9192,6 +9210,7 @@ export default function App() {
     notebooklmStatus,
     notebooklmSuggestions,
     nvidiaKeyInput,
+    inferenceKeyInput,
     openCanvaThumbnailDesigner,
     openCreatorTab,
     handleSelectProject,
@@ -9297,6 +9316,7 @@ export default function App() {
     setNewKeyword,
     setNicheInput,
     setNvidiaKeyInput,
+    setInferenceKeyInput,
     setOpenRouterKeyInput,
     setPendingOutputDelete,
     setPexelsKeyInput,

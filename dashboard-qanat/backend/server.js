@@ -2,7 +2,12 @@ import express from "express";
 import https from "https";
 
 import { buildGeminiKeyPool, shouldRotateGeminiKey } from "./geminiApiKeys.js";
-import { searchMusic, downloadMusicTrack, searchSoundEffects, downloadSoundEffect } from "./epidemicService.js";
+import {
+  searchMusic,
+  downloadMusicTrack,
+  searchSoundEffects,
+  downloadSoundEffect,
+} from "./epidemicService.js";
 import {
   buildOverlayOrchestrationPlan,
   buildOrchestrationPrompt,
@@ -155,7 +160,10 @@ import {
   testSupermemoryConnection,
 } from "./supermemoryClient.js";
 import { buildCompetitorLlmFns } from "./researchLlmHelpers.js";
-import { runDeepResearch, formatDeepResearchForIdeasPrompt } from "./deerFlowResearch.js";
+import {
+  runDeepResearch,
+  formatDeepResearchForIdeasPrompt,
+} from "./deerFlowResearch.js";
 import {
   getGeminiBrowserMode,
   buildBrowserChatPrompt,
@@ -174,7 +182,12 @@ import {
   GEMINI_BROWSER_INSTRUCTIONS,
   GEMINI_BROWSER_PENDING,
 } from "./geminiBrowser.js";
-import { analyzeSceneGaps, fetchStockForScenes, generateNarrationTts, runPublishPrep } from "./workflowTools.js";
+import {
+  analyzeSceneGaps,
+  fetchStockForScenes,
+  generateNarrationTts,
+  runPublishPrep,
+} from "./workflowTools.js";
 import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import {
   fetchNotebooklmResearch,
@@ -375,7 +388,11 @@ import {
   saveStudioAgentsConfig,
   shouldSkipAutoCapture,
 } from "./studioAgents.js";
-import { detectVideoFormat, getDefaultBlockTimings, VIDEO_FORMAT } from "./formatResolver.js";
+import {
+  detectVideoFormat,
+  getDefaultBlockTimings,
+  VIDEO_FORMAT,
+} from "./formatResolver.js";
 import { buildPreRenderAdvice } from "./preRenderAdvice.js";
 import { resolveObsidianNotesForNiche } from "./obsidianMemoryContext.js";
 import {
@@ -491,7 +508,11 @@ const PYTHON_PATH = "C:\\Users\\Leo\\AppData\\Local\\Python\\bin\\python.exe";
 
 // Desktop projects configuration
 
-const PROJECTS_ROOT = path.join(process.env.USERPROFILE || "C:\\Users\\Leo", "Desktop", "Lumiera Videos");
+const PROJECTS_ROOT = path.join(
+  process.env.USERPROFILE || "C:\\Users\\Leo",
+  "Desktop",
+  "Lumiera Videos"
+);
 
 const LONGS_DIR = path.join(PROJECTS_ROOT, "videos longos");
 
@@ -499,7 +520,8 @@ const SHORTS_DIR = path.join(PROJECTS_ROOT, "videos curtos shorts");
 
 // Auto-create directories on startup
 
-if (!fs.existsSync(PROJECTS_ROOT)) fs.mkdirSync(PROJECTS_ROOT, { recursive: true });
+if (!fs.existsSync(PROJECTS_ROOT))
+  fs.mkdirSync(PROJECTS_ROOT, { recursive: true });
 
 if (!fs.existsSync(LONGS_DIR)) fs.mkdirSync(LONGS_DIR, { recursive: true });
 
@@ -507,10 +529,10 @@ if (!fs.existsSync(SHORTS_DIR)) fs.mkdirSync(SHORTS_DIR, { recursive: true });
 
 // OpenRouter Settings
 
-const OPENROUTER_DEFAULT_KEY = "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";
+const OPENROUTER_DEFAULT_KEY =
+  "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";
 
 const OPENROUTER_FREE_MODELS = [
-
   "google/gemma-4-31b-it:free",
 
   "meta-llama/llama-3.3-70b-instruct:free",
@@ -519,8 +541,7 @@ const OPENROUTER_FREE_MODELS = [
 
   "nousresearch/hermes-3-llama-3.1-405b:free",
 
-  "qwen/qwen3-coder:free"
-
+  "qwen/qwen3-coder:free",
 ];
 
 const app = express();
@@ -528,7 +549,10 @@ const app = express();
 app.use(cors());
 
 if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
-  app.use("/lottie_assets", express.static(LOTTIE_ASSETS_DIR, { maxAge: "7d", fallthrough: true }));
+  app.use(
+    "/lottie_assets",
+    express.static(LOTTIE_ASSETS_DIR, { maxAge: "7d", fallthrough: true })
+  );
 }
 
 app.use(express.json());
@@ -539,9 +563,11 @@ app.get("/api/health", (_req, res) => {
 
 // Catch malformed JSON syntax errors to prevent crashing
 app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
     console.warn("[Body Parser Error] Malformed JSON received:", err.message);
-    return res.status(400).json({ error: "Malformed JSON payload: " + err.message });
+    return res
+      .status(400)
+      .json({ error: "Malformed JSON payload: " + err.message });
   }
   next(err);
 });
@@ -582,7 +608,8 @@ function resolveProjectDirFromName(rawProjName) {
       for (const item of fs.readdirSync(parent)) {
         const full = path.join(parent, item);
         try {
-          if (fs.statSync(full).isDirectory() && item.startsWith(prefix)) matches.push(full);
+          if (fs.statSync(full).isDirectory() && item.startsWith(prefix))
+            matches.push(full);
         } catch {
           /* skip */
         }
@@ -591,7 +618,9 @@ function resolveProjectDirFromName(rawProjName) {
     if (matches.length === 1) return matches[0];
   }
 
-  const slugParts = String(prefix || unique[0] || "").split("_").filter(Boolean);
+  const slugParts = String(prefix || unique[0] || "")
+    .split("_")
+    .filter(Boolean);
   if (slugParts.length >= 2) {
     const head = slugParts.slice(0, 2).join("_");
     const headMatches = [];
@@ -600,7 +629,10 @@ function resolveProjectDirFromName(rawProjName) {
       for (const item of fs.readdirSync(parent)) {
         const full = path.join(parent, item);
         try {
-          if (fs.statSync(full).isDirectory() && (item === head || item.startsWith(`${head}_`))) {
+          if (
+            fs.statSync(full).isDirectory() &&
+            (item === head || item.startsWith(`${head}_`))
+          ) {
             headMatches.push(full);
           }
         } catch {
@@ -615,23 +647,18 @@ function resolveProjectDirFromName(rawProjName) {
 }
 
 app.use("/api/projects-media", (req, res, next) => {
-
   const decodedUrl = decodeURIComponent(req.path);
 
   const parts = decodedUrl.split("/").filter(Boolean);
 
   if (parts.length === 0) {
-
     return res.status(404).end();
-
   }
 
   if (parts[0] === "ASSETS") {
-
     const fullFilePath = path.join(WORKSPACE_DIR, parts.join("/"));
 
     if (fs.existsSync(fullFilePath)) {
-
       const ext = path.extname(fullFilePath).toLowerCase();
       const mediaTypes = {
         ".mp4": "video/mp4",
@@ -646,11 +673,9 @@ app.use("/api/projects-media", (req, res, next) => {
       const mime = mediaTypes[ext];
       if (mime) res.type(mime);
       return res.sendFile(path.resolve(fullFilePath));
-
     }
 
     return res.status(404).json({ error: "Arquivo não encontrado." });
-
   }
 
   const projName = parts[0].replace(/ /g, "_");
@@ -658,9 +683,9 @@ app.use("/api/projects-media", (req, res, next) => {
   const projDir = resolveProjectDirFromName(projName);
 
   if (!projDir) {
-
-    return res.status(404).json({ error: `Projeto não encontrado: ${projName}` });
-
+    return res
+      .status(404)
+      .json({ error: `Projeto não encontrado: ${projName}` });
   }
 
   const fileSubpath = parts.slice(1).join("/");
@@ -668,7 +693,6 @@ app.use("/api/projects-media", (req, res, next) => {
   const fullFilePath = path.join(projDir, fileSubpath);
 
   if (fs.existsSync(fullFilePath)) {
-
     const ext = path.extname(fullFilePath).toLowerCase();
     const mediaTypes = {
       ".mp4": "video/mp4",
@@ -687,11 +711,9 @@ app.use("/api/projects-media", (req, res, next) => {
     const mime = mediaTypes[ext];
     if (mime) res.type(mime);
     return res.sendFile(path.resolve(fullFilePath));
-
   }
 
   return res.status(404).json({ error: "Arquivo de mídia não encontrado." });
-
 });
 
 // Helper: Resolve active project directory dynamically based on request parameters
@@ -716,7 +738,6 @@ function getProjectDir(req) {
 // Helper: Auto-copy missing or outdated timing and render template files to project folder on-demand
 
 function ensureFileExists(fileName, targetDir) {
-
   const targetPath = path.join(targetDir, fileName);
 
   const srcPath = path.join(WORKSPACE_DIR, fileName);
@@ -724,7 +745,6 @@ function ensureFileExists(fileName, targetDir) {
   if (!fs.existsSync(srcPath)) return;
 
   if (!fs.existsSync(targetPath)) {
-
     // File missing in project - copy from root
 
     fs.mkdirSync(targetDir, { recursive: true });
@@ -732,9 +752,7 @@ function ensureFileExists(fileName, targetDir) {
     fs.copyFileSync(srcPath, targetPath);
 
     console.log(`Copied template ${fileName} from root to ${targetDir}`);
-
   } else {
-
     // File exists - update if root version is newer
 
     const srcMtime = fs.statSync(srcPath).mtimeMs;
@@ -742,15 +760,13 @@ function ensureFileExists(fileName, targetDir) {
     const targetMtime = fs.statSync(targetPath).mtimeMs;
 
     if (srcMtime > targetMtime) {
-
       fs.copyFileSync(srcPath, targetPath);
 
-      console.log(`Updated ${fileName} in ${targetDir} (root version is newer)`);
-
+      console.log(
+        `Updated ${fileName} in ${targetDir} (root version is newer)`
+      );
     }
-
   }
-
 }
 
 const UPLOAD_SCRIPT_NAMES = [
@@ -777,19 +793,42 @@ function syncUploadScripts(targetDir) {
 app.get("/api/projects", (req, res) => {
   try {
     const projects = [];
-    
+
     const inferNiche = (itemName) => {
       const name = itemName.toLowerCase();
-      if (name.includes("romano") || name.includes("castelo") || name.includes("viking") || name.includes("inca") || name.includes("asteca") || name.includes("muralha") || name.includes("medieval") || name.includes("giram") || name.includes("fortes")) {
+      if (
+        name.includes("romano") ||
+        name.includes("castelo") ||
+        name.includes("viking") ||
+        name.includes("inca") ||
+        name.includes("asteca") ||
+        name.includes("muralha") ||
+        name.includes("medieval") ||
+        name.includes("giram") ||
+        name.includes("fortes")
+      ) {
         return "História";
       }
-      if (name.includes("computador") || name.includes("antikythera") || name.includes("tecnologia")) {
+      if (
+        name.includes("computador") ||
+        name.includes("antikythera") ||
+        name.includes("tecnologia")
+      ) {
         return "Tecnologia";
       }
-      if (name.includes("deserto") || name.includes("amazonia") || name.includes("ilhas") || name.includes("flutuantes")) {
+      if (
+        name.includes("deserto") ||
+        name.includes("amazonia") ||
+        name.includes("ilhas") ||
+        name.includes("flutuantes")
+      ) {
         return "Geografia";
       }
-      if (name.includes("financas") || name.includes("dinheiro") || name.includes("invest")) {
+      if (
+        name.includes("financas") ||
+        name.includes("dinheiro") ||
+        name.includes("invest")
+      ) {
         return "Finanças";
       }
       return "Curiosidades";
@@ -800,8 +839,21 @@ app.get("/api/projects", (req, res) => {
       const items = fs.readdirSync(dir);
       for (const item of items) {
         const fullPath = path.join(dir, item);
-        if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
-          if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
+        if (
+          fs.statSync(fullPath).isDirectory() &&
+          ![
+            "ASSETS",
+            "OUTPUT",
+            "node_modules",
+            "temp_clips",
+            "temp_clips_destacado",
+            ".git",
+          ].includes(item)
+        ) {
+          if (
+            fs.existsSync(path.join(fullPath, "build_video.py")) ||
+            item === "FINANCAS"
+          ) {
             let title = item;
             let niche = "Curiosidades";
 
@@ -815,7 +867,11 @@ app.get("/api/projects", (req, res) => {
                 } else {
                   niche = inferNiche(item);
                   cfg.niche = niche;
-                  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+                  fs.writeFileSync(
+                    configPath,
+                    JSON.stringify(cfg, null, 2),
+                    "utf8"
+                  );
                 }
               } catch (e) {}
             } else {
@@ -831,10 +887,17 @@ app.get("/api/projects", (req, res) => {
             }
 
             let modifiedAtMs = fs.statSync(fullPath).mtimeMs;
-            for (const trackFile of ["storyboard.json", "config_qanat.json", "narracao_mestra_premium.mp3"]) {
+            for (const trackFile of [
+              "storyboard.json",
+              "config_qanat.json",
+              "narracao_mestra_premium.mp3",
+            ]) {
               const trackPath = path.join(fullPath, trackFile);
               if (fs.existsSync(trackPath)) {
-                modifiedAtMs = Math.max(modifiedAtMs, fs.statSync(trackPath).mtimeMs);
+                modifiedAtMs = Math.max(
+                  modifiedAtMs,
+                  fs.statSync(trackPath).mtimeMs
+                );
               }
             }
             projects.push({
@@ -850,35 +913,26 @@ app.get("/api/projects", (req, res) => {
         }
       }
     };
-    
+
     scanDir(LONGS_DIR, "LONGO");
     scanDir(SHORTS_DIR, "SHORTS");
-    
+
     res.json(projects);
-
   } catch (e) {
-
     res.status(500).json({ error: e.message });
-
   }
-
 });
 
 // API: Create and template new project subfolder
 
 app.post("/api/projects/create", (req, res) => {
-
   const { name, format, niche } = req.body;
 
   if (!name || !name.trim()) {
-
     return res.status(400).json({ error: "Nome do projeto é obrigatório" });
-
   }
 
-  
-
-  const isShort = (format === "SHORTS");
+  const isShort = format === "SHORTS";
 
   const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
 
@@ -886,17 +940,12 @@ app.post("/api/projects/create", (req, res) => {
 
   const projDir = path.join(targetParentDir, safeName);
 
-  
-
   try {
-
     if (fs.existsSync(projDir)) {
-
-      return res.status(400).json({ error: "Já existe um projeto ou pasta com este nome" });
-
+      return res
+        .status(400)
+        .json({ error: "Já existe um projeto ou pasta com este nome" });
     }
-
-    
 
     // Create directories
 
@@ -930,8 +979,6 @@ app.post("/api/projects/create", (req, res) => {
 
     ensureFileExists("upload_kwai_playwright.py", projDir);
 
-    
-
     // Copy logo.png if it exists in root ASSETS folder
 
     const rootLogoPath = path.join(WORKSPACE_DIR, "ASSETS", "logo.png");
@@ -939,14 +986,10 @@ app.post("/api/projects/create", (req, res) => {
     const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
 
     if (fs.existsSync(rootLogoPath)) {
-
       fs.copyFileSync(rootLogoPath, destLogoPath);
 
       console.log(`Copied logo.png to new project ${safeName}`);
-
     }
-
-    
 
     // Copy config
 
@@ -955,11 +998,9 @@ app.post("/api/projects/create", (req, res) => {
     const defaultConfigDest = path.join(projDir, "config_qanat.json");
 
     if (fs.existsSync(defaultConfigSrc)) {
-
       fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
 
       try {
-
         const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
         const defaultDuration = isShort ? 40 : 120;
         const cfgWithDefaults = bootstrapNewProjectConfig(cfg, {
@@ -967,61 +1008,64 @@ app.post("/api/projects/create", (req, res) => {
           niche: niche || "Geral",
           defaultDuration,
         });
-        fs.writeFileSync(defaultConfigDest, JSON.stringify(cfgWithDefaults, null, 2), "utf8");
-
+        fs.writeFileSync(
+          defaultConfigDest,
+          JSON.stringify(cfgWithDefaults, null, 2),
+          "utf8"
+        );
       } catch (e) {}
-
     } else {
-
       const defaultDuration = isShort ? 40 : 120;
-      const cfg = bootstrapNewProjectConfig({}, {
-        isShort,
-        niche: niche || "Geral",
-        defaultDuration,
-      });
+      const cfg = bootstrapNewProjectConfig(
+        {},
+        {
+          isShort,
+          niche: niche || "Geral",
+          defaultDuration,
+        }
+      );
 
       fs.writeFileSync(defaultConfigDest, JSON.stringify(cfg, null, 2), "utf8");
-
     }
-
-    
 
     // Initialize timing files
 
-    const blockTimings = getDefaultBlockTimings(isShort ? VIDEO_FORMAT.SHORT : VIDEO_FORMAT.LONG);
-    fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify(blockTimings, null, 4), "utf8");
+    const blockTimings = getDefaultBlockTimings(
+      isShort ? VIDEO_FORMAT.SHORT : VIDEO_FORMAT.LONG
+    );
+    fs.writeFileSync(
+      path.join(projDir, "block_timings.json"),
+      JSON.stringify(blockTimings, null, 4),
+      "utf8"
+    );
 
-    
+    fs.writeFileSync(
+      path.join(projDir, "transcripts_readable.txt"),
+      "Bloco 1...\n",
+      "utf8"
+    );
 
-    fs.writeFileSync(path.join(projDir, "transcripts_readable.txt"), "Bloco 1...\n", "utf8");
-
-    
-
-    res.json({ success: true, message: `Projeto ${safeName} criado e estruturado com sucesso!` });
-
+    res.json({
+      success: true,
+      message: `Projeto ${safeName} criado e estruturado com sucesso!`,
+    });
   } catch (e) {
-
-    res.status(500).json({ error: "Erro ao criar projeto", details: e.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao criar projeto", details: e.message });
   }
-
 });
 
 // API: Delete project recursively
 
 app.post("/api/projects/delete", (req, res) => {
-
   const { name } = req.body;
 
   if (!name || !name.trim()) {
-
     return res.status(400).json({ error: "Nome do projeto é obrigatório" });
-
   }
 
   const safeName = name.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-
-  
 
   let projDir = path.join(WORKSPACE_DIR, safeName);
 
@@ -1030,23 +1074,14 @@ app.post("/api/projects/delete", (req, res) => {
   const candidateShort = path.join(SHORTS_DIR, safeName);
 
   if (fs.existsSync(candidateLong)) {
-
     projDir = candidateLong;
-
   } else if (fs.existsSync(candidateShort)) {
-
     projDir = candidateShort;
-
   }
 
-  
-
   try {
-
     if (!fs.existsSync(projDir)) {
-
       return res.status(404).json({ error: "Projeto não encontrado" });
-
     }
 
     const deletedPath = projDir;
@@ -1058,31 +1093,32 @@ app.post("/api/projects/delete", (req, res) => {
         projectPath: deletedPath,
       });
     } catch (cacheErr) {
-      console.warn("[projects/delete] Falha ao limpar cache YouTube:", cacheErr.message);
+      console.warn(
+        "[projects/delete] Falha ao limpar cache YouTube:",
+        cacheErr.message
+      );
     }
 
-    res.json({ success: true, message: `Projeto ${safeName} excluído com sucesso!` });
-
+    res.json({
+      success: true,
+      message: `Projeto ${safeName} excluído com sucesso!`,
+    });
   } catch (e) {
-
-    res.status(500).json({ error: "Erro ao excluir o projeto", details: e.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao excluir o projeto", details: e.message });
   }
-
 });
 
 // API: Check status of workspace files
 
 app.get("/api/status", (req, res) => {
-
   try {
-
     const projDir = getProjectDir(req);
 
     // Auto-sync template scripts when project is accessed
 
     if (projDir !== WORKSPACE_DIR) {
-
       ensureFileExists("build_video.py", projDir);
 
       ensureFileExists("build_video_destacado.py", projDir);
@@ -1092,7 +1128,6 @@ app.get("/api/status", (req, res) => {
       ensureFileExists("find_block_timings.py", projDir);
 
       ensureFileExists("align_transcripts.py", projDir);
-
     }
 
     const assetsDir = path.join(projDir, "ASSETS");
@@ -1100,37 +1135,27 @@ app.get("/api/status", (req, res) => {
     const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
 
     const countFiles = (dir) => {
-
       if (!fs.existsSync(dir)) return 0;
 
       let count = 0;
 
       const scan = (d) => {
-
         const items = fs.readdirSync(d);
 
         for (const item of items) {
-
           const p = path.join(d, item);
 
           if (fs.statSync(p).isDirectory()) {
-
             scan(p);
-
           } else {
-
             count++;
-
           }
-
         }
-
       };
 
       scan(dir);
 
       return count;
-
     };
 
     let blockTimings = null;
@@ -1138,122 +1163,124 @@ app.get("/api/status", (req, res) => {
     const timingsPath = path.join(projDir, "block_timings.json");
 
     if (fs.existsSync(timingsPath)) {
-
       try {
-
         blockTimings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
-
       } catch (e) {}
-
     }
 
     res.json({
-
       workspace: projDir,
 
       assets_count: countFiles(assetsDir),
 
-      has_narration: fs.existsSync(path.join(projDir, "narracao_mestra_premium.mp3")),
+      has_narration: fs.existsSync(
+        path.join(projDir, "narracao_mestra_premium.mp3")
+      ),
 
-      has_soundtrack: fs.existsSync(path.join(projDir, "trilha_documentario.mp3")),
+      has_soundtrack: fs.existsSync(
+        path.join(projDir, "trilha_documentario.mp3")
+      ),
 
-      has_highlight_clip: fs.existsSync(path.join(projDir, "clip_highlight.mp4")),
+      has_highlight_clip: fs.existsSync(
+        path.join(projDir, "clip_highlight.mp4")
+      ),
 
       has_config: fs.existsSync(path.join(projDir, "config_qanat.json")),
 
-      block_timings: blockTimings
-
+      block_timings: blockTimings,
     });
-
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
-
 });
 
 // API: Get central config
 
 app.get("/api/config", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const configPath = path.join(projDir, "config_qanat.json");
 
   if (!fs.existsSync(configPath)) {
-
     return res.status(404).json({ error: "config_qanat.json não encontrado" });
-
   }
 
   try {
-
     const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+    const timings = readProjectJson(projDir, "block_timings.json", {
+      total_duration: 0,
+    });
     let responseConfig = { ...data };
     const assetFiles = listProjectMediaAssets(projDir);
-    const { timeline, stripped } = sanitizeTimelineAssetsForProject(responseConfig.timeline_assets, { assetFiles });
+    const { timeline, stripped } = sanitizeTimelineAssetsForProject(
+      responseConfig.timeline_assets,
+      { assetFiles }
+    );
     if (stripped > 0) {
       responseConfig = { ...responseConfig, timeline_assets: timeline };
       try {
-        fs.writeFileSync(configPath, JSON.stringify(responseConfig, null, 2), "utf8");
-      } catch { /* leitura segue com timeline saneada */ }
+        fs.writeFileSync(
+          configPath,
+          JSON.stringify(responseConfig, null, 2),
+          "utf8"
+        );
+      } catch {
+        /* leitura segue com timeline saneada */
+      }
     }
-    const format = detectVideoFormat(responseConfig, Number(timings.total_duration) || 0);
+    const format = detectVideoFormat(
+      responseConfig,
+      Number(timings.total_duration) || 0
+    );
     const globalRender = loadRenderConfig(__dirname);
     const hintsSource = applyBgmProductionDefaults(
       responseConfig,
-      Number(timings.total_duration) || 0,
+      Number(timings.total_duration) || 0
     );
-    const mergedResponse = mergeGlobalStudioIntoProjectConfig(responseConfig, globalRender);
+    const mergedResponse = mergeGlobalStudioIntoProjectConfig(
+      responseConfig,
+      globalRender
+    );
 
     res.json({
       ...mergedResponse,
       _bgm_production_hints: getBgmProductionHints(
         format,
         hintsSource,
-        Number(globalRender?.musicVolume) || 0.15,
+        Number(globalRender?.musicVolume) || 0.15
       ),
     });
-
   } catch (err) {
-
     res.status(500).json({ error: "Erro ao ler config", details: err.message });
-
   }
-
 });
 
 // API: Update central config
 
 app.post("/api/config", (req, res) => {
-
   const rawProjName = req.query?.project || req.body?.project;
   if (!rawProjName) {
     return res.status(400).json({
-      error: "Projeto não informado. Selecione um projeto na barra lateral antes de salvar.",
+      error:
+        "Projeto não informado. Selecione um projeto na barra lateral antes de salvar.",
     });
   }
   const projDir = resolveProjectDirFromName(rawProjName);
   if (!projDir) {
-    return res.status(404).json({ error: `Projeto não encontrado: ${rawProjName}` });
+    return res
+      .status(404)
+      .json({ error: `Projeto não encontrado: ${rawProjName}` });
   }
 
   const configPath = path.join(projDir, "config_qanat.json");
 
   try {
-
     let existingConfig = {};
 
     if (fs.existsSync(configPath)) {
-
       try {
-
         existingConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
       } catch (e) {}
-
     }
 
     const mergedConfig = { ...existingConfig };
@@ -1264,19 +1291,35 @@ app.post("/api/config", (req, res) => {
       if (value === null) {
         deletedKeys.add(key);
         delete mergedConfig[key];
-      } else if (key === "upload_metadata" && value && typeof value === "object" && !Array.isArray(value)) {
-        const prevMeta = existingConfig.upload_metadata && typeof existingConfig.upload_metadata === "object"
-          ? existingConfig.upload_metadata
-          : {};
-        const nextYoutube = { ...(prevMeta.youtube || {}), ...(value.youtube || {}) };
-        if (!String(nextYoutube.chapters || "").trim() && String(prevMeta.youtube?.chapters || "").trim()) {
+      } else if (
+        key === "upload_metadata" &&
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
+        const prevMeta =
+          existingConfig.upload_metadata &&
+          typeof existingConfig.upload_metadata === "object"
+            ? existingConfig.upload_metadata
+            : {};
+        const nextYoutube = {
+          ...(prevMeta.youtube || {}),
+          ...(value.youtube || {}),
+        };
+        if (
+          !String(nextYoutube.chapters || "").trim() &&
+          String(prevMeta.youtube?.chapters || "").trim()
+        ) {
           nextYoutube.chapters = prevMeta.youtube.chapters;
         }
         mergedConfig.upload_metadata = {
           ...prevMeta,
           ...value,
           youtube: nextYoutube,
-          instagram: { ...(prevMeta.instagram || {}), ...(value.instagram || {}) },
+          instagram: {
+            ...(prevMeta.instagram || {}),
+            ...(value.instagram || {}),
+          },
           tiktok: { ...(prevMeta.tiktok || {}), ...(value.tiktok || {}) },
           kwai: { ...(prevMeta.kwai || {}), ...(value.kwai || {}) },
         };
@@ -1285,10 +1328,16 @@ app.post("/api/config", (req, res) => {
       }
     }
 
-    const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-    const finalConfig = applyBgmProductionDefaults(mergedConfig, Number(timings.total_duration) || 0, {
-      deletedKeys,
+    const timings = readProjectJson(projDir, "block_timings.json", {
+      total_duration: 0,
     });
+    const finalConfig = applyBgmProductionDefaults(
+      mergedConfig,
+      Number(timings.total_duration) || 0,
+      {
+        deletedKeys,
+      }
+    );
 
     fs.writeFileSync(configPath, JSON.stringify(finalConfig, null, 2), "utf8");
 
@@ -1297,27 +1346,39 @@ app.post("/api/config", (req, res) => {
       message: "config_qanat.json salvo com sucesso",
       config: finalConfig,
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao salvar config", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao salvar config", details: err.message });
   }
-
 });
 
 // POST /api/upload/youtube/save-credentials
 app.post("/api/upload/youtube/save-credentials", (req, res) => {
   const { client_id, client_secret } = req.body;
   if (!client_id || !client_secret) {
-    return res.status(400).json({ error: "Client ID e Client Secret são obrigatórios" });
+    return res
+      .status(400)
+      .json({ error: "Client ID e Client Secret são obrigatórios" });
   }
   const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
   try {
-    fs.writeFileSync(secretsPath, JSON.stringify({ client_id, client_secret }, null, 2), "utf8");
-    res.json({ success: true, message: "Credenciais de API do YouTube salvas com sucesso!" });
+    fs.writeFileSync(
+      secretsPath,
+      JSON.stringify({ client_id, client_secret }, null, 2),
+      "utf8"
+    );
+    res.json({
+      success: true,
+      message: "Credenciais de API do YouTube salvas com sucesso!",
+    });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar credenciais do YouTube", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao salvar credenciais do YouTube",
+        details: err.message,
+      });
   }
 });
 
@@ -1325,19 +1386,37 @@ app.post("/api/upload/youtube/save-credentials", (req, res) => {
 app.post("/api/upload/instagram/save-credentials", (req, res) => {
   const { instagram_business_account_id, access_token } = req.body;
   if (!instagram_business_account_id || !access_token) {
-    return res.status(400).json({ error: "ID da conta Business e Token de Acesso são obrigatórios" });
+    return res
+      .status(400)
+      .json({
+        error: "ID da conta Business e Token de Acesso são obrigatórios",
+      });
   }
   const secretsPath = path.join(WORKSPACE_DIR, "instagram_secrets.json");
   try {
-    fs.writeFileSync(secretsPath, JSON.stringify({ instagram_business_account_id, access_token }, null, 2), "utf8");
-    res.json({ success: true, message: "Credenciais de API do Instagram salvas com sucesso!" });
+    fs.writeFileSync(
+      secretsPath,
+      JSON.stringify({ instagram_business_account_id, access_token }, null, 2),
+      "utf8"
+    );
+    res.json({
+      success: true,
+      message: "Credenciais de API do Instagram salvas com sucesso!",
+    });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar credenciais do Instagram", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao salvar credenciais do Instagram",
+        details: err.message,
+      });
   }
 });
 
 function youtubeApiErrorPayload(err, fallback = "Erro na API do YouTube") {
-  const needsReauth = Boolean(err?.needsReauth || err?.code === "INSUFFICIENT_SCOPES");
+  const needsReauth = Boolean(
+    err?.needsReauth || err?.code === "INSUFFICIENT_SCOPES"
+  );
   return {
     error: needsReauth ? "Permissões do YouTube insuficientes" : fallback,
     details: err?.message || String(err),
@@ -1392,16 +1471,18 @@ app.get("/api/upload/status", async (req, res) => {
     },
     canva: canvaStatus,
     instagram: {
-      connected: fs.existsSync(igSecrets) || getInstagramConnectionStatus(WORKSPACE_DIR).connected,
+      connected:
+        fs.existsSync(igSecrets) ||
+        getInstagramConnectionStatus(WORKSPACE_DIR).connected,
       account_id: ig_account_id,
       oauthReady: getInstagramConnectionStatus(WORKSPACE_DIR).oauthReady,
     },
     tiktok: {
-      connected: fs.existsSync(ttCookies)
+      connected: fs.existsSync(ttCookies),
     },
     kwai: {
-      connected: fs.existsSync(kwCookies)
-    }
+      connected: fs.existsSync(kwCookies),
+    },
   });
 });
 
@@ -1409,13 +1490,24 @@ app.get("/api/upload/status", async (req, res) => {
 app.post("/api/canva/save-credentials", (req, res) => {
   const { client_id, client_secret, redirect_uri } = req.body || {};
   if (!client_id || !client_secret) {
-    return res.status(400).json({ error: "Client ID e Client Secret do Canva são obrigatórios." });
+    return res
+      .status(400)
+      .json({ error: "Client ID e Client Secret do Canva são obrigatórios." });
   }
   try {
-    saveCanvaCredentials(WORKSPACE_DIR, { client_id, client_secret, redirect_uri });
+    saveCanvaCredentials(WORKSPACE_DIR, {
+      client_id,
+      client_secret,
+      redirect_uri,
+    });
     res.json({ success: true, message: "Credenciais do Canva salvas." });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar credenciais do Canva", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao salvar credenciais do Canva",
+        details: err.message,
+      });
   }
 });
 
@@ -1467,7 +1559,9 @@ app.get("/api/upload/youtube/scopes-status", async (req, res) => {
     const status = await getYoutubeTokenScopes(WORKSPACE_DIR);
     res.json(status);
   } catch (err) {
-    res.status(500).json({ error: "Erro ao verificar escopos", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao verificar escopos", details: err.message });
   }
 });
 
@@ -1477,10 +1571,13 @@ app.post("/api/upload/youtube/reset-auth", (req, res) => {
     resetYoutubeAuth(WORKSPACE_DIR);
     res.json({
       success: true,
-      message: "Sessão do YouTube removida. Clique em Vincular Conta Google e autorize todas as permissões.",
+      message:
+        "Sessão do YouTube removida. Clique em Vincular Conta Google e autorize todas as permissões.",
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao resetar autenticação", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao resetar autenticação", details: err.message });
   }
 });
 
@@ -1488,7 +1585,9 @@ app.post("/api/upload/youtube/reset-auth", (req, res) => {
 app.get("/api/upload/youtube/auth-url", (req, res) => {
   const secretsPath = path.join(WORKSPACE_DIR, "youtube_client_secrets.json");
   if (!fs.existsSync(secretsPath)) {
-    return res.status(400).json({ error: "Credenciais do YouTube ausentes no servidor." });
+    return res
+      .status(400)
+      .json({ error: "Credenciais do YouTube ausentes no servidor." });
   }
   try {
     const secrets = JSON.parse(fs.readFileSync(secretsPath, "utf8"));
@@ -1496,7 +1595,9 @@ app.get("/api/upload/youtube/auth-url", (req, res) => {
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${secrets.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(getYoutubeScopeString())}&access_type=offline&prompt=consent`;
     res.json({ url: authUrl });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao gerar URL do YouTube", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao gerar URL do YouTube", details: err.message });
   }
 });
 
@@ -1521,12 +1622,16 @@ app.get("/api/upload/youtube/callback", async (req, res) => {
         client_id: secrets.client_id,
         client_secret: secrets.client_secret,
         redirect_uri: redirectUri,
-        grant_type: "authorization_code"
-      })
+        grant_type: "authorization_code",
+      }),
     });
     const tokens = await response.json();
     if (tokens.error) {
-      return res.status(400).send(`Erro ao obter tokens: ${tokens.error_description || tokens.error}`);
+      return res
+        .status(400)
+        .send(
+          `Erro ao obter tokens: ${tokens.error_description || tokens.error}`
+        );
     }
     const tokenPath = path.join(WORKSPACE_DIR, "youtube_token.json");
     const tokenPayload = {
@@ -1557,28 +1662,38 @@ app.post("/api/upload/launch-login", (req, res) => {
   if (!platform || !["tiktok", "kwai"].includes(platform.toLowerCase())) {
     return res.status(400).json({ error: "Plataforma inválida." });
   }
-  
+
   // Start capture_cookies.py in headful mode in background
   const cpScript = path.join(WORKSPACE_DIR, "capture_cookies.py");
   if (!fs.existsSync(cpScript)) {
-    return res.status(404).json({ error: "Script capture_cookies.py não encontrado." });
+    return res
+      .status(404)
+      .json({ error: "Script capture_cookies.py não encontrado." });
   }
-  
-  const child = spawn(PYTHON_PATH, ["capture_cookies.py", platform.toLowerCase()], {
-    cwd: WORKSPACE_DIR,
-    shell: true,
-    detached: true,
-    stdio: 'ignore'
-  });
+
+  const child = spawn(
+    PYTHON_PATH,
+    ["capture_cookies.py", platform.toLowerCase()],
+    {
+      cwd: WORKSPACE_DIR,
+      shell: true,
+      detached: true,
+      stdio: "ignore",
+    }
+  );
   child.unref();
-  
-  res.json({ success: true, message: `Navegador aberto na sua área de trabalho para login do ${platform.toUpperCase()}. Realize o login e feche-o para concluir.` });
+
+  res.json({
+    success: true,
+    message: `Navegador aberto na sua área de trabalho para login do ${platform.toUpperCase()}. Realize o login e feche-o para concluir.`,
+  });
 });
 
 // GET /api/upload/youtube/playlists — playlists do canal para seleção no upload
 app.get("/api/upload/youtube/playlists", async (req, res) => {
   try {
-    const { getYoutubeAccessToken } = await import("./youtubeTitleAnalytics.js");
+    const { getYoutubeAccessToken } =
+      await import("./youtubeTitleAnalytics.js");
     const accessToken = await getYoutubeAccessToken(WORKSPACE_DIR);
     const playlists = [];
     let pageToken = "";
@@ -1594,7 +1709,8 @@ app.get("/api/upload/youtube/playlists", async (req, res) => {
       const data = await apiRes.json();
       if (!apiRes.ok) {
         return res.status(apiRes.status).json({
-          error: data?.error?.message || "Falha ao listar playlists do YouTube.",
+          error:
+            data?.error?.message || "Falha ao listar playlists do YouTube.",
         });
       }
       for (const item of data.items || []) {
@@ -1621,10 +1737,14 @@ app.post("/api/upload/youtube/apply-metadata", (req, res) => {
     try {
       const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
       videoId = cfg?.upload_metadata?.youtube?.post_id || "";
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
   if (!videoId) {
-    return res.status(400).json({ error: "videoId ausente. Informe o ID do vídeo no YouTube." });
+    return res
+      .status(400)
+      .json({ error: "videoId ausente. Informe o ID do vídeo no YouTube." });
   }
 
   syncUploadScripts(projDir);
@@ -1644,15 +1764,26 @@ app.post("/api/upload/youtube/apply-metadata", (req, res) => {
 
   let stdout = "";
   let stderr = "";
-  child.stdout.on("data", (d) => { stdout += d.toString(); });
-  child.stderr.on("data", (d) => { stderr += d.toString(); });
+  child.stdout.on("data", (d) => {
+    stdout += d.toString();
+  });
+  child.stderr.on("data", (d) => {
+    stderr += d.toString();
+  });
   child.on("close", (code) => {
     const log = `${stdout}\n${stderr}`.trim();
     if (code === 0) {
       return res.json({ success: true, videoId, log });
     }
-    const errLine = log.split("\n").find((l) => /\[ERROR\]/i.test(l)) || log.split("\n").pop();
-    res.status(500).json({ error: errLine || `Falha ao aplicar metadados (código ${code})`, log });
+    const errLine =
+      log.split("\n").find((l) => /\[ERROR\]/i.test(l)) ||
+      log.split("\n").pop();
+    res
+      .status(500)
+      .json({
+        error: errLine || `Falha ao aplicar metadados (código ${code})`,
+        log,
+      });
   });
 });
 
@@ -1661,7 +1792,7 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
   const projDir = getProjectDir(req);
   const platforms = req.query.platforms || "";
   const uploadVideo = String(req.query.video || "").trim();
-  
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -1672,18 +1803,26 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
 
   const sendLog = (text) => {
     if (/\[ERROR\]|\[PIPELINE_ERROR\]/i.test(text)) {
-      lastPipelineError = String(text).replace(/^\[Error\]\s*/i, "").trim();
+      lastPipelineError = String(text)
+        .replace(/^\[Error\]\s*/i, "")
+        .trim();
     }
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
   };
 
-  sendLog(`[Pipeline] Iniciando Upload Automatizado com plataformas: ${platforms}...`);
+  sendLog(
+    `[Pipeline] Iniciando Upload Automatizado com plataformas: ${platforms}...`
+  );
   sendLog(`[Pipeline] Projeto: ${projDir}`);
   if (uploadVideo) sendLog(`[Pipeline] Vídeo selecionado: ${uploadVideo}`);
 
   syncUploadScripts(projDir);
 
-  const pipelineArgs = [path.join(projDir, "upload_pipeline.py"), projDir, platforms];
+  const pipelineArgs = [
+    path.join(projDir, "upload_pipeline.py"),
+    projDir,
+    platforms,
+  ];
   if (uploadVideo) pipelineArgs.push(uploadVideo);
 
   const child = spawn(PYTHON_PATH, pipelineArgs, {
@@ -1724,7 +1863,9 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
           const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
           videoId = cfg?.upload_metadata?.youtube?.post_id || null;
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
 
       let postUpload = null;
       if (videoId) {
@@ -1739,19 +1880,26 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
         }
       }
 
-      res.write(`data: ${JSON.stringify({
-        type: "complete",
-        message: "Processo de upload concluído!",
-        videoId,
-        postUpload,
-      })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({
+          type: "complete",
+          message: "Processo de upload concluído!",
+          videoId,
+          postUpload,
+        })}\n\n`
+      );
     } else {
-      const hint = lastPipelineError
-        || (code === 1 ? "Verifique: vídeo renderizado em OUTPUT/, OAuth YouTube em Configurações e metadados salvos." : "");
+      const hint =
+        lastPipelineError ||
+        (code === 1
+          ? "Verifique: vídeo renderizado em OUTPUT/, OAuth YouTube em Configurações e metadados salvos."
+          : "");
       const message = hint
         ? `Upload falhou: ${hint}`
         : `O processo encerrou com código ${code}`;
-      res.write(`data: ${JSON.stringify({ type: "error", message, code, detail: lastPipelineError || undefined })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({ type: "error", message, code, detail: lastPipelineError || undefined })}\n\n`
+      );
     }
     res.end();
   });
@@ -1760,65 +1908,57 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
 // API: List output videos
 
 app.get("/api/outputs", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const outputDir = path.join(projDir, "OUTPUT", "qanat_persa_video_final");
 
   if (!fs.existsSync(outputDir)) {
-
     return res.json([]);
-
   }
 
   try {
+    const files = fs
+      .readdirSync(outputDir)
 
-    const files = fs.readdirSync(outputDir)
+      .filter(
+        (f) => f.endsWith(".mp4") || f.endsWith(".mov") || f.endsWith(".webm")
+      )
 
-      .filter(f => f.endsWith(".mp4") || f.endsWith(".mov") || f.endsWith(".webm"))
-
-      .map(f => {
-
+      .map((f) => {
         const stats = fs.statSync(path.join(outputDir, f));
 
         return {
-
           name: f,
 
           sizeBytes: stats.size,
 
           modifiedAt: stats.mtime,
 
-          renderEngine: f.toLowerCase().startsWith("remotion_") ? "remotion" : "standard",
+          renderEngine: f.toLowerCase().startsWith("remotion_")
+            ? "remotion"
+            : "standard",
 
-          renderEngineLabel: f.toLowerCase().startsWith("remotion_") ? "Remotion" : "Renderizador Padrão"
-
+          renderEngineLabel: f.toLowerCase().startsWith("remotion_")
+            ? "Remotion"
+            : "Renderizador Padrão",
         };
-
       });
 
     res.json(files);
-
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
-
 });
 
 // API: Delete rendered video file
 
 app.post("/api/outputs/delete", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const { filename } = req.body;
 
   if (!filename) {
-
     return res.status(400).json({ error: "Nome do arquivo é obrigatório" });
-
   }
 
   const safeFilename = path.basename(filename);
@@ -1828,49 +1968,41 @@ app.post("/api/outputs/delete", (req, res) => {
   const filePath = path.join(outputDir, safeFilename);
 
   try {
-
     if (!fs.existsSync(filePath)) {
-
       return res.status(404).json({ error: "Arquivo não encontrado" });
-
     }
 
     fs.unlinkSync(filePath);
 
-    res.json({ success: true, message: `Vídeo ${safeFilename} excluído com sucesso!` });
-
+    res.json({
+      success: true,
+      message: `Vídeo ${safeFilename} excluído com sucesso!`,
+    });
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao excluir o arquivo", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao excluir o arquivo", details: err.message });
   }
-
 });
 
 // API: Get storyboard data
 
 app.get("/api/projects/storyboard", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const storyboardPath = path.join(projDir, "storyboard.json");
 
   if (!fs.existsSync(storyboardPath)) {
-
     const configPath = path.join(projDir, "config_qanat.json");
 
     let fallbackPrompts = [];
 
     if (fs.existsSync(configPath)) {
-
       try {
-
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
         if (config.block_phrases && Array.isArray(config.block_phrases)) {
-
           fallbackPrompts = config.block_phrases.map((bp, idx) => ({
-
             scene: `${bp.block}.1`,
 
             block: bp.block,
@@ -1883,19 +2015,22 @@ app.get("/api/projects/storyboard", (req, res) => {
 
             editor_notes: "Ken Burns zoom in",
 
-            stock_query: "cinematic"
-
+            stock_query: "cinematic",
           }));
-
         }
-
       } catch (e) {}
-
     }
 
     return res.json({
-
-      strategy: { title_main: "", title_variations: [], hook: "", target_audience: "", tone: "", pinned_comment: "", cta: "" },
+      strategy: {
+        title_main: "",
+        title_variations: [],
+        hook: "",
+        target_audience: "",
+        tone: "",
+        pinned_comment: "",
+        cta: "",
+      },
 
       narrative_script: "",
 
@@ -1903,45 +2038,57 @@ app.get("/api/projects/storyboard", (req, res) => {
 
       visual_prompts: fallbackPrompts,
 
-      checklist: { click_potential: 0, retention_potential: 0, comments_potential: 0, feedback: "" }
-
+      checklist: {
+        click_potential: 0,
+        retention_potential: 0,
+        comments_potential: 0,
+        feedback: "",
+      },
     });
-
   }
 
   try {
-
     const data = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
 
     // Auto-migrate: Bind assets from config.timeline_assets to storyboard scenes if not already bound
 
     const configPath = path.join(projDir, "config_qanat.json");
 
-    if (fs.existsSync(configPath) && data.visual_prompts && Array.isArray(data.visual_prompts)) {
-
+    if (
+      fs.existsSync(configPath) &&
+      data.visual_prompts &&
+      Array.isArray(data.visual_prompts)
+    ) {
       try {
-
         const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
         if (config.timeline_assets) {
-          const bound = bindStoryboardAssetsFromTimeline(data.visual_prompts, config.timeline_assets);
+          const bound = bindStoryboardAssetsFromTimeline(
+            data.visual_prompts,
+            config.timeline_assets
+          );
           if (bound.updated) {
             data.visual_prompts = bound.visualPrompts;
             try {
-              fs.writeFileSync(storyboardPath, JSON.stringify(data, null, 2), "utf8");
-              console.log(`[storyboard] Assets da timeline vinculados em ${path.basename(projDir)}`);
+              fs.writeFileSync(
+                storyboardPath,
+                JSON.stringify(data, null, 2),
+                "utf8"
+              );
+              console.log(
+                `[storyboard] Assets da timeline vinculados em ${path.basename(projDir)}`
+              );
             } catch (writeErr) {
-              console.warn("[storyboard] Falha ao persistir vínculo de assets:", writeErr.message);
+              console.warn(
+                "[storyboard] Falha ao persistir vínculo de assets:",
+                writeErr.message
+              );
             }
           }
         }
-
       } catch (e) {
-
         console.error("Migration error:", e);
-
       }
-
     }
 
     data.checklist = normalizeScriptChecklist(data.checklist);
@@ -1949,34 +2096,46 @@ app.get("/api/projects/storyboard", (req, res) => {
     if (hasMojibakeDeep(data)) {
       const repaired = repairStoryboardEncoding(data);
       try {
-        fs.writeFileSync(storyboardPath, JSON.stringify(repaired, null, 2), "utf8");
-        console.log(`[storyboard] Mojibake reparado em ${path.basename(projDir)}`);
+        fs.writeFileSync(
+          storyboardPath,
+          JSON.stringify(repaired, null, 2),
+          "utf8"
+        );
+        console.log(
+          `[storyboard] Mojibake reparado em ${path.basename(projDir)}`
+        );
       } catch (writeErr) {
-        console.warn("[storyboard] Falha ao persistir reparo de encoding:", writeErr.message);
+        console.warn(
+          "[storyboard] Falha ao persistir reparo de encoding:",
+          writeErr.message
+        );
       }
       res.json(repaired);
       return;
     }
 
     res.json(data);
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao carregar o storyboard", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao carregar o storyboard", details: err.message });
   }
-
 });
 
 function repairProjectOverlayTiming(projDir, { persist = true } = {}) {
   const config = readProjectJson(projDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projDir, "storyboard.json", {});
-  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+  const timings = readProjectJson(projDir, "block_timings.json", {
+    starts: [],
+    durations: [],
+  });
   const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
 
-  const totalDuration = Number(timings.total_duration)
-    || (timings.starts?.length && timings.durations?.length
-      ? Number(timings.starts[timings.starts.length - 1]) + Number(timings.durations[timings.durations.length - 1])
+  const totalDuration =
+    Number(timings.total_duration) ||
+    (timings.starts?.length && timings.durations?.length
+      ? Number(timings.starts[timings.starts.length - 1]) +
+        Number(timings.durations[timings.durations.length - 1])
       : 60);
 
   const orchestrationPlan = buildOverlayOrchestrationPlan({
@@ -1987,8 +2146,17 @@ function repairProjectOverlayTiming(projDir, { persist = true } = {}) {
     blockCount: Array.isArray(timings.starts) ? timings.starts.length : 0,
   });
 
-  const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
-  const { storyboard: nextStoryboard, report, repairedCount } = applyOverlayTimingRepair({
+  const sceneMaps = buildSceneTimingMaps(
+    null,
+    storyboard,
+    timings.starts || [],
+    timings.durations || []
+  );
+  const {
+    storyboard: nextStoryboard,
+    report,
+    repairedCount,
+  } = applyOverlayTimingRepair({
     storyboard,
     timings,
     wordTranscripts,
@@ -1998,7 +2166,11 @@ function repairProjectOverlayTiming(projDir, { persist = true } = {}) {
   });
 
   if (persist) {
-    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(nextStoryboard, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projDir, "storyboard.json"),
+      JSON.stringify(nextStoryboard, null, 2),
+      "utf8"
+    );
   }
 
   return { storyboard: nextStoryboard, report, repairedCount };
@@ -2009,7 +2181,9 @@ app.get("/api/projects/overlay-timing-verify", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const repair = req.query.repair === "1";
-    const { report, repairedCount } = repairProjectOverlayTiming(projDir, { persist: repair });
+    const { report, repairedCount } = repairProjectOverlayTiming(projDir, {
+      persist: repair,
+    });
 
     res.json({
       ok: report.ok,
@@ -2019,7 +2193,12 @@ app.get("/api/projects/overlay-timing-verify", async (req, res) => {
       issues: overlayTimingIssuesFromReport(report),
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao verificar timing dos overlays", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao verificar timing dos overlays",
+        details: err.message,
+      });
   }
 });
 
@@ -2028,7 +2207,10 @@ app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
   try {
     const projDir = getProjectDir(req);
     const fixId = String(req.body?.fixId || "repair_overlay_timing").trim();
-    const autoFixIds = new Set(["shift_hook_overlays", "repair_overlay_timing"]);
+    const autoFixIds = new Set([
+      "shift_hook_overlays",
+      "repair_overlay_timing",
+    ]);
 
     if (!autoFixIds.has(fixId)) {
       return res.status(400).json({
@@ -2039,17 +2221,22 @@ app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
       });
     }
 
-    const { repairedCount, report } = repairProjectOverlayTiming(projDir, { persist: true });
+    const { repairedCount, report } = repairProjectOverlayTiming(projDir, {
+      persist: true,
+    });
 
     await ensureListItemsInProject(projDir, {
       getApiKey,
-      callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projDir), prompt, opts),
-      parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projDir), label),
+      callGemini: (prompt, opts) =>
+        callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+      parseJson: (text, label) =>
+        parseAiJsonResponse(text, getApiKey(projDir), label),
       readProjectJson,
     });
     const qualityReport = runVideoQualityCheck(projDir, readProjectJson);
     const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-    const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+    const storyboard =
+      readJsonFile(path.join(projDir, "storyboard.json")) || {};
     const workflow = analyzeSceneGaps(projDir, { config, storyboard });
     const preRenderAdvice = buildPreRenderAdvice(qualityReport, workflow);
 
@@ -2061,12 +2248,15 @@ app.post("/api/projects/pre-render/auto-fix", async (req, res) => {
       ...qualityReport,
       workflow,
       preRenderAdvice,
-      message: repairedCount > 0
-        ? `${repairedCount} overlay(s) ajustado(s) automaticamente.`
-        : "Nenhum overlay precisou ser movido — atualize a análise.",
+      message:
+        repairedCount > 0
+          ? `${repairedCount} overlay(s) ajustado(s) automaticamente.`
+          : "Nenhum overlay precisou ser movido — atualize a análise.",
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro na correção automática", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro na correção automática", details: err.message });
   }
 });
 
@@ -2077,7 +2267,11 @@ app.post("/api/projects/sample-approve", (req, res) => {
     const storyboardPath = path.join(projDir, "storyboard.json");
     const storyboard = readJsonFile(storyboardPath) || {};
     storyboard.sample_approved_at = new Date().toISOString();
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
     res.json({ ok: true, sample_approved_at: storyboard.sample_approved_at });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2090,8 +2284,10 @@ app.get("/api/projects/video-quality", async (req, res) => {
     const projDir = getProjectDir(req);
     await ensureListItemsInProject(projDir, {
       getApiKey,
-      callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projDir), prompt, opts),
-      parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projDir), label),
+      callGemini: (prompt, opts) =>
+        callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+      parseJson: (text, label) =>
+        parseAiJsonResponse(text, getApiKey(projDir), label),
       readProjectJson,
     });
     const report = runVideoQualityCheck(projDir, readProjectJson);
@@ -2100,20 +2296,34 @@ app.get("/api/projects/video-quality", async (req, res) => {
     if (agentConfig.autoCaptureOnQualityCheck) {
       try {
         if (!shouldSkipAutoCapture(WORKSPACE_DIR, projDir, report)) {
-          const captureResult = captureQualityRun(WORKSPACE_DIR, projDir, report, "auto_quality");
+          const captureResult = captureQualityRun(
+            WORKSPACE_DIR,
+            projDir,
+            report,
+            "auto_quality"
+          );
           workshop = captureResult?.workshop || null;
         }
       } catch (captureErr) {
-        console.warn("[Studio Agents] Captura automática falhou:", captureErr.message);
+        console.warn(
+          "[Studio Agents] Captura automática falhou:",
+          captureErr.message
+        );
       }
     }
     const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-    const storyboard = readJsonFile(path.join(projDir, "storyboard.json")) || {};
+    const storyboard =
+      readJsonFile(path.join(projDir, "storyboard.json")) || {};
     const workflow = analyzeSceneGaps(projDir, { config, storyboard });
     const preRenderAdvice = buildPreRenderAdvice(report, workflow);
     res.json({ ...report, workflow, preRenderAdvice, workshop });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao verificar qualidade do vídeo", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao verificar qualidade do vídeo",
+        details: err.message,
+      });
   }
 });
 
@@ -2128,7 +2338,9 @@ app.get("/api/studio-agents/status", (req, res) => {
       skills: getSkillsRegistryStatus(WORKSPACE_DIR),
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar Studio Agents", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao carregar Studio Agents", details: err.message });
   }
 });
 
@@ -2136,7 +2348,9 @@ app.get("/api/studio-agents/obsidian/status", (req, res) => {
   try {
     res.json(getObsidianVaultStatus(WORKSPACE_DIR));
   } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar vault Obsidian", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao carregar vault Obsidian", details: err.message });
   }
 });
 
@@ -2147,7 +2361,9 @@ app.post("/api/studio-agents/obsidian/open", async (req, res) => {
     const result = await openInObsidian(WORKSPACE_DIR, file);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: "Erro ao abrir Obsidian", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao abrir Obsidian", details: err.message });
   }
 });
 
@@ -2155,7 +2371,9 @@ app.get("/api/studio-agents/obsidian/graph", (req, res) => {
   try {
     res.json(auditVaultGraph(WORKSPACE_DIR));
   } catch (err) {
-    res.status(500).json({ error: "Erro ao auditar grafo", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao auditar grafo", details: err.message });
   }
 });
 
@@ -2164,7 +2382,9 @@ app.post("/api/studio-agents/obsidian/repair-graph", (req, res) => {
     const result = repairVaultGraphLinks(WORKSPACE_DIR);
     res.json({ ok: true, ...result });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao reparar grafo", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao reparar grafo", details: err.message });
   }
 });
 
@@ -2176,12 +2396,15 @@ app.get("/api/studio-agents/skills", (req, res) => {
     res.json({
       skills: listSkills(WORKSPACE_DIR, {
         task: task || null,
-        format: format === "SHORTS" ? "SHORT" : format === "LONGO" ? "LONG" : format,
+        format:
+          format === "SHORTS" ? "SHORT" : format === "LONGO" ? "LONG" : format,
       }),
       bundles: listSkillBundles(WORKSPACE_DIR),
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao listar skills", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao listar skills", details: err.message });
   }
 });
 
@@ -2190,7 +2413,9 @@ app.get("/api/studio-agents/skills/:slug", (req, res) => {
     const ref = req.query.ref ? String(req.query.ref) : null;
     res.json(viewSkill(WORKSPACE_DIR, req.params.slug, ref));
   } catch (err) {
-    res.status(404).json({ error: "Skill não encontrada", details: err.message });
+    res
+      .status(404)
+      .json({ error: "Skill não encontrada", details: err.message });
   }
 });
 
@@ -2200,7 +2425,9 @@ app.get("/api/studio-agents/resolve-bundle", (req, res) => {
     const format = String(req.query.format || "SHORT");
     res.json(resolveBundlePreview(WORKSPACE_DIR, { task, format }));
   } catch (err) {
-    res.status(500).json({ error: "Erro ao resolver bundle", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao resolver bundle", details: err.message });
   }
 });
 
@@ -2217,7 +2444,9 @@ app.post("/api/studio-agents/skill-workshop/:id/apply", (req, res) => {
     const result = applyWorkshopProposalById(WORKSPACE_DIR, req.params.id);
     res.json({ ok: true, ...result });
   } catch (err) {
-    res.status(400).json({ error: "Falha ao aplicar proposta", details: err.message });
+    res
+      .status(400)
+      .json({ error: "Falha ao aplicar proposta", details: err.message });
   }
 });
 
@@ -2226,7 +2455,9 @@ app.post("/api/studio-agents/skill-workshop/:id/reject", (req, res) => {
     const result = rejectWorkshopProposal(WORKSPACE_DIR, req.params.id);
     res.json({ ok: true, ...result });
   } catch (err) {
-    res.status(400).json({ error: "Falha ao rejeitar proposta", details: err.message });
+    res
+      .status(400)
+      .json({ error: "Falha ao rejeitar proposta", details: err.message });
   }
 });
 
@@ -2235,7 +2466,12 @@ app.get("/api/studio-agents/learnings", (req, res) => {
     const niche = String(req.query.niche || "Geral");
     const task = String(req.query.task || "overlay");
     const format = String(req.query.format || "").toUpperCase() || null;
-    const resolvedFormat = format === "LONG" || format === "LONGO" ? "LONG" : format === "SHORT" || format === "SHORTS" ? "SHORT" : null;
+    const resolvedFormat =
+      format === "LONG" || format === "LONGO"
+        ? "LONG"
+        : format === "SHORT" || format === "SHORTS"
+          ? "SHORT"
+          : null;
     const obsidian = resolveObsidianNotesForNiche(WORKSPACE_DIR, niche, {
       task,
       format: resolvedFormat || "SHORT",
@@ -2252,7 +2488,9 @@ app.get("/api/studio-agents/learnings", (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar aprendizados", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao carregar aprendizados", details: err.message });
   }
 });
 
@@ -2265,7 +2503,9 @@ app.get("/api/studio-agents/code-map", (req, res) => {
     }
     res.json(LUMIERA_CODE_MAP);
   } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar code map", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao carregar code map", details: err.message });
   }
 });
 
@@ -2274,7 +2514,9 @@ app.post("/api/studio-agents/config", (req, res) => {
     const config = saveStudioAgentsConfig(WORKSPACE_DIR, req.body || {});
     res.json({ ok: true, config });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar configuração", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao salvar configuração", details: err.message });
   }
 });
 
@@ -2285,7 +2527,9 @@ app.post("/api/studio-agents/capture", async (req, res) => {
     const result = captureQualityRun(WORKSPACE_DIR, projDir, report, "capture");
     res.json({ ok: true, report, ...result });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao capturar execução", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao capturar execução", details: err.message });
   }
 });
 
@@ -2296,7 +2540,9 @@ app.post("/api/studio-agents/reflect", async (req, res) => {
     const result = reflectProject(WORKSPACE_DIR, projDir, report);
     res.json({ ok: true, report, ...result });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao refletir projeto", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao refletir projeto", details: err.message });
   }
 });
 
@@ -2305,7 +2551,12 @@ app.get("/api/studio-agents/consolidate/preview", (req, res) => {
     const preview = previewConsolidation(WORKSPACE_DIR);
     res.json(preview);
   } catch (err) {
-    res.status(500).json({ error: "Erro ao pré-visualizar consolidação", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao pré-visualizar consolidação",
+        details: err.message,
+      });
   }
 });
 
@@ -2314,7 +2565,9 @@ app.post("/api/studio-agents/consolidate", (req, res) => {
     const result = runConsolidation(WORKSPACE_DIR);
     res.json({ ok: true, ...result });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao consolidar memória", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao consolidar memória", details: err.message });
   }
 });
 
@@ -2339,13 +2592,16 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
 
     const requirementText = String(requirement || "").trim();
     if (!requirementText) {
-      return res.status(400).json({ error: "Descreva o que você quer produzir (requirement)." });
+      return res
+        .status(400)
+        .json({ error: "Descreva o que você quer produzir (requirement)." });
     }
 
-    const format = String(formatRaw || "SHORTS").toUpperCase() === "LONGO" ||
+    const format =
+      String(formatRaw || "SHORTS").toUpperCase() === "LONGO" ||
       String(formatRaw || "").toUpperCase() === "LONG"
-      ? "LONGO"
-      : "SHORTS";
+        ? "LONGO"
+        : "SHORTS";
 
     const browserText = extractBrowserResponse(req.body);
     const localPlan = planVideoAgentLocally(requirementText, { format, niche });
@@ -2355,7 +2611,11 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
     try {
       if (browserText) {
         const llmFn = async () => browserText;
-        plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+        plan = await planVideoAgentWithLlm(requirementText, {
+          format,
+          niche,
+          llmFn,
+        });
         plan.aiEnhanced = true;
         plan.source = "videoagent-lumiera-browser";
         aiEnhanced = true;
@@ -2373,7 +2633,11 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
           }
           return text;
         };
-        const enhanced = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+        const enhanced = await planVideoAgentWithLlm(requirementText, {
+          format,
+          niche,
+          llmFn,
+        });
         if (browserPending) return;
         if (enhanced?.lumieraActions?.length) {
           plan = enhanced;
@@ -2381,7 +2645,10 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
         }
       }
     } catch (llmErr) {
-      console.warn("[VideoAgentPlanner] IA falhou — plano local:", llmErr.message);
+      console.warn(
+        "[VideoAgentPlanner] IA falhou — plano local:",
+        llmErr.message
+      );
       plan = { ...localPlan, aiEnhanced: false, llmError: llmErr.message };
     }
 
@@ -2397,14 +2664,27 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
     }
 
     let editorialQueue = null;
-    if (enqueueQueue || /fila|editorial|concorrente|replicar/i.test(requirementText)) {
+    if (
+      enqueueQueue ||
+      /fila|editorial|concorrente|replicar/i.test(requirementText)
+    ) {
       try {
-        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const { enqueueEditorialIdeas } =
+          await import("./youtubeEditorialQueue.js");
         const title = requirementText.slice(0, 200);
         const enqueued = enqueueEditorialIdeas(
           WORKSPACE_DIR,
-          [{ title, hookPt: plan.reasoning?.slice(0, 300) || "", mechanic: "videoagent-plan" }],
-          { source: "videoagent-plan", format: format === "LONGO" ? "LONG" : "SHORTS" },
+          [
+            {
+              title,
+              hookPt: plan.reasoning?.slice(0, 300) || "",
+              mechanic: "videoagent-plan",
+            },
+          ],
+          {
+            source: "videoagent-plan",
+            format: format === "LONGO" ? "LONG" : "SHORTS",
+          }
         );
         editorialQueue = { enqueued: 1, total: enqueued.items.length };
       } catch (err) {
@@ -2414,7 +2694,14 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
 
     const suggestedTitle = extractVideoTitleFromRequirement(requirementText);
     if (!res.headersSent) {
-      res.json({ ok: true, plan, obsidian, editorialQueue, suggestedTitle, aiEnhanced });
+      res.json({
+        ok: true,
+        plan,
+        obsidian,
+        editorialQueue,
+        suggestedTitle,
+        aiEnhanced,
+      });
     }
   } catch (err) {
     console.error("[VideoAgentPlanner]", err.message);
@@ -2423,10 +2710,11 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
       const requirementText = String(req.body?.requirement || "").trim();
       if (requirementText) {
         const formatRaw = req.body?.format || "SHORTS";
-        const format = String(formatRaw).toUpperCase() === "LONGO" ||
+        const format =
+          String(formatRaw).toUpperCase() === "LONGO" ||
           String(formatRaw).toUpperCase() === "LONG"
-          ? "LONGO"
-          : "SHORTS";
+            ? "LONGO"
+            : "SHORTS";
         const niche = String(req.body?.niche || "");
         const plan = planVideoAgentLocally(requirementText, { format, niche });
         return res.json({
@@ -2439,9 +2727,14 @@ app.post("/api/ai/video-agent/plan", async (req, res) => {
         });
       }
     } catch (fallbackErr) {
-      console.error("[VideoAgentPlanner] fallback local falhou:", fallbackErr.message);
+      console.error(
+        "[VideoAgentPlanner] fallback local falhou:",
+        fallbackErr.message
+      );
     }
-    res.status(500).json({ error: "Falha ao planejar vídeo", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Falha ao planejar vídeo", details: err.message });
   }
 });
 
@@ -2459,13 +2752,16 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
 
     const requirementText = String(requirement || "").trim();
     if (!requirementText && !planIn?.lumieraActions?.length) {
-      return res.status(400).json({ error: "Descreva o pedido ou envie um plano." });
+      return res
+        .status(400)
+        .json({ error: "Descreva o pedido ou envie um plano." });
     }
 
-    const format = String(formatRaw || planIn?.format || "SHORTS").toUpperCase() === "LONGO" ||
-      String(formatRaw || "").toUpperCase() === "LONG"
-      ? "LONGO"
-      : "SHORTS";
+    const format =
+      String(formatRaw || planIn?.format || "SHORTS").toUpperCase() ===
+        "LONGO" || String(formatRaw || "").toUpperCase() === "LONG"
+        ? "LONGO"
+        : "SHORTS";
 
     let plan = planIn;
     if (!plan?.lumieraActions?.length) {
@@ -2474,7 +2770,11 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
         const browserText = extractBrowserResponse(req.body);
         if (browserText) {
           const llmFn = async () => browserText;
-          plan = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+          plan = await planVideoAgentWithLlm(requirementText, {
+            format,
+            niche,
+            llmFn,
+          });
         } else {
           let browserPending = false;
           const llmFn = async (prompt) => {
@@ -2489,7 +2789,11 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
             }
             return text;
           };
-          const enhanced = await planVideoAgentWithLlm(requirementText, { format, niche, llmFn });
+          const enhanced = await planVideoAgentWithLlm(requirementText, {
+            format,
+            niche,
+            llmFn,
+          });
           if (browserPending) return;
           plan = enhanced;
         }
@@ -2497,12 +2801,15 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       appendPlanToObsidian(WORKSPACE_DIR, plan);
     }
 
-    const wanted = Array.isArray(steps) && steps.length
-      ? steps
-      : (plan.lumieraActions || []).map((a) => a.action);
+    const wanted =
+      Array.isArray(steps) && steps.length
+        ? steps
+        : (plan.lumieraActions || []).map((a) => a.action);
 
     const results = [];
-    const suggestedTitle = extractVideoTitleFromRequirement(plan.requirement || requirementText);
+    const suggestedTitle = extractVideoTitleFromRequirement(
+      plan.requirement || requirementText
+    );
     const hookHint = plan.storyboardBeats?.[0]?.narrationHint || "";
     const fmtShort = format !== "LONGO";
 
@@ -2517,7 +2824,11 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       }
     };
 
-    const creatorSteps = ["creator_ideas", "creator_narration", "creator_script"];
+    const creatorSteps = [
+      "creator_ideas",
+      "creator_narration",
+      "creator_script",
+    ];
     if (creatorSteps.some((k) => wanted.includes(k))) {
       results.push({
         step: "creator_pipeline",
@@ -2530,19 +2841,24 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       });
     }
 
-    const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } = buildCompetitorLlmFns({
-      workspaceDir: WORKSPACE_DIR,
-      getAiProvider,
-      getApiKey,
-      getApiKeys,
-      getGeminiModel,
-      callGeminiWithRetry,
-      callNvidiaWithRetry,
-      NVIDIA_MODELS,
-    }, { useAi: req.body?.useAi !== false });
+    const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } =
+      buildCompetitorLlmFns(
+        {
+          workspaceDir: WORKSPACE_DIR,
+          getAiProvider,
+          getApiKey,
+          getApiKeys,
+          getGeminiModel,
+          callGeminiWithRetry,
+          callNvidiaWithRetry,
+          NVIDIA_MODELS,
+        },
+        { useAi: req.body?.useAi !== false }
+      );
 
     await runStep("agent_reach", async () => {
-      const { fetchAgentReachResearchForTopic } = await import("./agentReachService.js");
+      const { fetchAgentReachResearchForTopic } =
+        await import("./agentReachService.js");
       const topic = requirementText || plan.requirement || suggestedTitle;
       const research = await fetchAgentReachResearchForTopic({
         topic,
@@ -2550,14 +2866,21 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
         workspaceDir: WORKSPACE_DIR,
         numResults: 8,
       });
-      if (!research.available) throw new Error(research.message || "Agent Reach indisponível");
+      if (!research.available)
+        throw new Error(research.message || "Agent Reach indisponível");
       let editorialQueue = null;
       if (wanted.includes("editorial_queue")) {
-        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const { enqueueEditorialIdeas } =
+          await import("./youtubeEditorialQueue.js");
         const enqueued = enqueueEditorialIdeas(
           WORKSPACE_DIR,
-          [{ title: `Pesquisa: ${String(topic).slice(0, 72)}`, hookPt: research.summary.slice(0, 280) }],
-          { source: "agent-reach", format: fmtShort ? "SHORTS" : "LONGO" },
+          [
+            {
+              title: `Pesquisa: ${String(topic).slice(0, 72)}`,
+              hookPt: research.summary.slice(0, 280),
+            },
+          ],
+          { source: "agent-reach", format: fmtShort ? "SHORTS" : "LONGO" }
         );
         editorialQueue = { enqueued: 1, total: enqueued.items.length };
       }
@@ -2602,14 +2925,24 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
         repairJsonFn: competitorRepairFn,
       });
       let editorialQueue = null;
-      if (wanted.includes("editorial_queue") && report?.analysis?.derivedIdeas?.length) {
-        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+      if (
+        wanted.includes("editorial_queue") &&
+        report?.analysis?.derivedIdeas?.length
+      ) {
+        const { enqueueEditorialIdeas } =
+          await import("./youtubeEditorialQueue.js");
         const enqueued = enqueueEditorialIdeas(
           WORKSPACE_DIR,
           report.analysis.derivedIdeas,
-          { source: "videoagent-execute", format: fmtShort ? "SHORTS" : "LONGO" },
+          {
+            source: "videoagent-execute",
+            format: fmtShort ? "SHORTS" : "LONGO",
+          }
         );
-        editorialQueue = { enqueued: report.analysis.derivedIdeas.length, total: enqueued.items.length };
+        editorialQueue = {
+          enqueued: report.analysis.derivedIdeas.length,
+          total: enqueued.items.length,
+        };
       }
       return {
         derivedIdeas: report?.analysis?.derivedIdeas?.length || 0,
@@ -2618,49 +2951,91 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       };
     });
 
-    if (wanted.includes("editorial_queue") && !results.some((r) => r.step === "competitor_research" && r.editorialQueue)) {
+    if (
+      wanted.includes("editorial_queue") &&
+      !results.some((r) => r.step === "competitor_research" && r.editorialQueue)
+    ) {
       try {
-        const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+        const { enqueueEditorialIdeas } =
+          await import("./youtubeEditorialQueue.js");
         const enqueued = enqueueEditorialIdeas(
           WORKSPACE_DIR,
-          [{ title: suggestedTitle, hookPt: hookHint, mechanic: "videoagent-execute" }],
-          { source: "videoagent-execute", format: fmtShort ? "SHORTS" : "LONGO" },
+          [
+            {
+              title: suggestedTitle,
+              hookPt: hookHint,
+              mechanic: "videoagent-execute",
+            },
+          ],
+          {
+            source: "videoagent-execute",
+            format: fmtShort ? "SHORTS" : "LONGO",
+          }
         );
-        results.push({ step: "editorial_queue", status: "ok", total: enqueued.items.length });
+        results.push({
+          step: "editorial_queue",
+          status: "ok",
+          total: enqueued.items.length,
+        });
       } catch (err) {
-        results.push({ step: "editorial_queue", status: "error", error: err.message });
+        results.push({
+          step: "editorial_queue",
+          status: "error",
+          error: err.message,
+        });
       }
     }
 
     await runStep("top_winners", async () => {
-      const { generateTopWinnerIdeas } = await import("./youtubeEditorialQueue.js");
-      const report = await generateTopWinnerIdeas(WORKSPACE_DIR, PROJECTS_ROOT, {
-        niche: niche || plan.niche || "",
-        limit: 3,
-        llmFn: async (prompt) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-          maxRetries: 1,
-          temperature: 0.4,
-          projectDir: WORKSPACE_DIR,
-        }),
-      });
-      if (!report.ok) throw new Error(report.error || "Top winners indisponível");
-      return { variations: report.ideas?.length || 0, total: report.queueCount || 0 };
+      const { generateTopWinnerIdeas } =
+        await import("./youtubeEditorialQueue.js");
+      const report = await generateTopWinnerIdeas(
+        WORKSPACE_DIR,
+        PROJECTS_ROOT,
+        {
+          niche: niche || plan.niche || "",
+          limit: 3,
+          llmFn: async (prompt) =>
+            callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+              maxRetries: 1,
+              temperature: 0.4,
+              projectDir: WORKSPACE_DIR,
+            }),
+        }
+      );
+      if (!report.ok)
+        throw new Error(report.error || "Top winners indisponível");
+      return {
+        variations: report.ideas?.length || 0,
+        total: report.queueCount || 0,
+      };
     });
 
     await runStep("retention_cliff", async () => {
       const videoId = String(req.body?.videoId || "").trim();
       if (!videoId) {
-        return { skipped: true, message: "Informe videoId para análise de retenção" };
+        return {
+          skipped: true,
+          message: "Informe videoId para análise de retenção",
+        };
       }
       const report = await fetchRetentionCliffReport(WORKSPACE_DIR, videoId);
       return { cliffs: report?.cliffs?.length || 0 };
     });
 
     const deferred = [];
-    if (wanted.includes("overlay_plan")) deferred.push({ step: "overlay_plan", tab: "editor", api: "/api/studio-agents/plan-overlays" });
-    if (wanted.includes("youtube_metadata")) deferred.push({ step: "youtube_metadata", tab: "ai" });
-    if (wanted.includes("render_short") || wanted.includes("render_long")) deferred.push({ step: "render", tab: "status" });
-    if (wanted.includes("upload_youtube")) deferred.push({ step: "upload_youtube", tab: "upload" });
+    if (wanted.includes("overlay_plan"))
+      deferred.push({
+        step: "overlay_plan",
+        tab: "editor",
+        api: "/api/studio-agents/plan-overlays",
+      });
+    if (wanted.includes("youtube_metadata"))
+      deferred.push({ step: "youtube_metadata", tab: "ai" });
+    if (wanted.includes("render_short") || wanted.includes("render_long"))
+      deferred.push({ step: "render", tab: "status" });
+    if (wanted.includes("upload_youtube"))
+      deferred.push({ step: "upload_youtube", tab: "upload" });
 
     res.json({
       ok: true,
@@ -2668,11 +3043,16 @@ app.post("/api/ai/video-agent/execute", async (req, res) => {
       suggestedTitle,
       results,
       deferred,
-      creatorTrigger: results.find((r) => r.step === "creator_pipeline" && r.status === "pending_ui") || null,
+      creatorTrigger:
+        results.find(
+          (r) => r.step === "creator_pipeline" && r.status === "pending_ui"
+        ) || null,
     });
   } catch (err) {
     console.error("[VideoAgentExecute]", err.message);
-    res.status(500).json({ error: "Falha na execução VideoAgent", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Falha na execução VideoAgent", details: err.message });
   }
 });
 
@@ -2682,14 +3062,19 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     const useHyperframes = req.body?.hyperframes === true;
     const browserTextRaw = extractBrowserResponse(req.body);
     const browserText = browserTextRaw
-      ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
+      ? extractOverlayJsonPayload(browserTextRaw) || browserTextRaw
       : null;
-    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
-    const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
+    const forceBrowser =
+      req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const expectedPlanSession =
+      String(req.body?.plan_session_id || "").trim() || null;
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const timings = readProjectJson(projDir, "block_timings.json", {});
-    const projectFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+    const projectFormat = detectVideoFormat(
+      config,
+      Number(timings.total_duration) || 0
+    );
     const learningsAddendum = buildStudioAgentsPromptAddendum(WORKSPACE_DIR, {
       niche: config.niche || "Geral",
       task: "overlay",
@@ -2704,61 +3089,103 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
         niche: config.niche || "Geral",
         totalDuration: Number(timings.total_duration) || 0,
         projectName: path.basename(projDir),
-        blockCount: Array.isArray(config.block_phrases) ? config.block_phrases.length : 0,
+        blockCount: Array.isArray(config.block_phrases)
+          ? config.block_phrases.length
+          : 0,
       });
-      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR, {
-        orchestrationPlan: orchestrationForResearch,
-      });
+      const overlayResearch = await resolveOverlayResearchForPlanning(
+        projDir,
+        WORKSPACE_DIR,
+        {
+          orchestrationPlan: orchestrationForResearch,
+        }
+      );
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
       const prompt = buildCompactOverlayPlanningPrompt(
         projDir,
         useHyperframes,
         planSessionId,
         `${learningsAddendum || ""}${researchAddendum}`,
-        overlayResearch,
+        overlayResearch
       );
       if (!prompt) {
-        return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
+        return res
+          .status(400)
+          .json({
+            error: "Projeto sem blocos de narração para planejar overlays.",
+          });
       }
 
       if (forceBrowser) {
         const title = "Studio Agents · Planejar overlays (com memória)";
-        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
-        console.log(`[Studio Agents] Planejamento com memória — sessão ${planSessionId}.`);
-        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", {
+          taskType: "overlay",
+          responseFormat: "json",
+        });
+        console.log(
+          `[Studio Agents] Planejamento com memória — sessão ${planSessionId}.`
+        );
+        return res.json(
+          offerGeminiBrowserPayload({
+            title,
+            prompt: promptText,
+            planSessionId,
+          })
+        );
       }
 
       const apiKey = getApiKey(projDir);
       if (!apiKey) {
         return res.status(401).json({
-          error: "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+          error:
+            "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
         });
       }
-      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+      llmText = await callGeminiWithRetry(apiKey, prompt, {
+        temperature: 0.35,
+        projectDir: projDir,
+      });
       if (!llmText) {
-        return res.status(500).json({ error: "Falha ao consultar Gemini API para overlays (Studio Agents)." });
+        return res
+          .status(500)
+          .json({
+            error:
+              "Falha ao consultar Gemini API para overlays (Studio Agents).",
+          });
       }
     }
 
-    if (expectedPlanSession && !overlayPlanSessionMatches(llmText, expectedPlanSession)) {
+    if (
+      expectedPlanSession &&
+      !overlayPlanSessionMatches(llmText, expectedPlanSession)
+    ) {
       return res.status(422).json({
-        error: "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com.",
+        error:
+          "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com.",
         overlayCount: 0,
         staleResponse: true,
       });
     }
 
-    const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
-      llmText,
-      skipBrowserCache: true,
-      planningOnly: true,
-      agentMode: true,
-    });
+    const overlaysAi = await generateOverlaysWithAI(
+      projDir,
+      useHyperframes,
+      null,
+      {},
+      {
+        llmText,
+        skipBrowserCache: true,
+        planningOnly: true,
+        agentMode: true,
+      }
+    );
 
-    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const blockPhrases = Array.isArray(config.block_phrases)
+      ? config.block_phrases
+      : [];
     const cleanedAi = filterNarrationEchoOverlays(
       Array.isArray(overlaysAi) ? overlaysAi : [],
-      blockPhrases,
+      blockPhrases
     );
 
     if (cleanedAi.length === 0) {
@@ -2776,8 +3203,14 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
     storyboard.overlays_plan_token = planToken;
     storyboard.overlays_planned_by = "studio-agents";
     const cleanSb = repairStoryboardEncoding(storyboard);
-    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(cleanSb, null, 2), "utf8");
-    console.log(`[Studio Agents] ${cleanedAi.length} overlays planejados com memória do estúdio.`);
+    fs.writeFileSync(
+      path.join(projDir, "storyboard.json"),
+      JSON.stringify(cleanSb, null, 2),
+      "utf8"
+    );
+    console.log(
+      `[Studio Agents] ${cleanedAi.length} overlays planejados com memória do estúdio.`
+    );
 
     res.json({
       ok: true,
@@ -2787,7 +3220,9 @@ app.post("/api/studio-agents/plan-overlays", async (req, res) => {
       learningsApplied: Boolean(learningsAddendum),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message || "Falha no planejamento Studio Agents." });
+    res
+      .status(500)
+      .json({ error: err.message || "Falha no planejamento Studio Agents." });
   }
 });
 
@@ -2802,7 +3237,12 @@ app.get("/api/projects/wizard-session", (req, res) => {
     const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
     res.json({ session, project: path.basename(projDir) });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar sessão do wizard", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao carregar sessão do wizard",
+        details: err.message,
+      });
   }
 });
 
@@ -2818,10 +3258,16 @@ app.put("/api/projects/wizard-session", (req, res) => {
     if (fs.existsSync(sessionPath)) {
       try {
         existing = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }
-    const incomingAt = session.savedAt ? new Date(session.savedAt).getTime() : 0;
-    const existingAt = existing?.savedAt ? new Date(existing.savedAt).getTime() : 0;
+    const incomingAt = session.savedAt
+      ? new Date(session.savedAt).getTime()
+      : 0;
+    const existingAt = existing?.savedAt
+      ? new Date(existing.savedAt).getTime()
+      : 0;
     if (existing && incomingAt > 0 && existingAt > incomingAt) {
       return res.status(409).json({
         error: "Sessão mais recente já está no servidor.",
@@ -2837,7 +3283,9 @@ app.put("/api/projects/wizard-session", (req, res) => {
     fs.writeFileSync(sessionPath, JSON.stringify(payload, null, 2), "utf8");
     res.json({ ok: true, savedAt: payload.savedAt });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao salvar sessão do wizard", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao salvar sessão do wizard", details: err.message });
   }
 });
 
@@ -2848,22 +3296,21 @@ app.delete("/api/projects/wizard-session", (req, res) => {
     if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao limpar sessão do wizard", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao limpar sessão do wizard", details: err.message });
   }
 });
 
 // API: Save storyboard data
 
 app.post("/api/projects/storyboard", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const storyboardData = req.body;
 
   if (!storyboardData || !storyboardData.visual_prompts) {
-
     return res.status(400).json({ error: "Dados do storyboard inválidos." });
-
   }
 
   const storyboardPath = path.join(projDir, "storyboard.json");
@@ -2873,48 +3320,44 @@ app.post("/api/projects/storyboard", (req, res) => {
   const transcriptPath = path.join(projDir, "transcripts_readable.txt");
 
   try {
-
     const cleanStoryboardData = repairStoryboardEncoding(storyboardData);
-    fs.writeFileSync(storyboardPath, JSON.stringify(cleanStoryboardData, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(cleanStoryboardData, null, 2),
+      "utf8"
+    );
 
     const visualPrompts = storyboardData.visual_prompts || [];
 
-    const narrativeText = visualPrompts.map(vp => vp.narration_text || "").filter(Boolean).join("\n\n");
+    const narrativeText = visualPrompts
+      .map((vp) => vp.narration_text || "")
+      .filter(Boolean)
+      .join("\n\n");
 
     fs.writeFileSync(transcriptPath, narrativeText, "utf8");
 
     let config = {};
 
     if (fs.existsSync(configPath)) {
-
       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
     }
 
     const blockPhrasesMap = {};
 
-    visualPrompts.forEach(vp => {
-
+    visualPrompts.forEach((vp) => {
       if (vp.block && vp.narration_text) {
-
         if (!blockPhrasesMap[vp.block]) {
-
           blockPhrasesMap[vp.block] = [];
-
         }
 
         blockPhrasesMap[vp.block].push(vp.narration_text);
-
       }
-
     });
 
-    const blockPhrases = Object.keys(blockPhrasesMap).map(b => ({
-
+    const blockPhrases = Object.keys(blockPhrasesMap).map((b) => ({
       block: parseInt(b),
 
-      phrase: blockPhrasesMap[b].join(" ")
-
+      phrase: blockPhrasesMap[b].join(" "),
     }));
 
     config.block_phrases = blockPhrases;
@@ -2933,21 +3376,25 @@ app.post("/api/projects/storyboard", (req, res) => {
       const assetIdx = blockCounters[blockKey]++;
       const existing = (existingTimelineAssets[blockKey] || [])[assetIdx];
       const fromStoryboard = vp.asset && vp.asset.asset ? vp.asset : null;
-      nextTimelineAssets[blockKey][assetIdx] = mergeTimelineSlotFromStoryboard(existing, fromStoryboard);
+      nextTimelineAssets[blockKey][assetIdx] = mergeTimelineSlotFromStoryboard(
+        existing,
+        fromStoryboard
+      );
     });
 
     config.timeline_assets = nextTimelineAssets;
 
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
-    res.json({ success: true, message: "Roteiro e storyboard salvos com sucesso!" });
-
+    res.json({
+      success: true,
+      message: "Roteiro e storyboard salvos com sucesso!",
+    });
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao salvar o storyboard", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao salvar o storyboard", details: err.message });
   }
-
 });
 
 // API: Limpar cache temporário do Remotion (public/projects — cópias de assets para render)
@@ -2958,62 +3405,59 @@ app.post("/api/render/cleanup-public-cache", (req, res) => {
       ok: true,
       removed: result.removed,
       freedMb: result.freedMb,
-      message: result.removed > 0
-        ? `${result.removed} pasta(s) de cache removida(s), ~${result.freedMb} MB liberados.`
-        : "Nenhum cache antigo encontrado em public/projects.",
+      message:
+        result.removed > 0
+          ? `${result.removed} pasta(s) de cache removida(s), ~${result.freedMb} MB liberados.`
+          : "Nenhum cache antigo encontrado em public/projects.",
     });
   } catch (err) {
-    res.status(500).json({ error: "Falha ao limpar cache Remotion", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Falha ao limpar cache Remotion", details: err.message });
   }
 });
 
 // GET /api/render/config
 
 app.get("/api/render/config", (req, res) => {
-
   try {
-
     const data = ensureBrandCatalogMigrated(WORKSPACE_DIR, __dirname);
 
     res.json(data);
-
   } catch (err) {
-
     res.status(500).json({ error: "Erro ao ler configurações globais." });
-
   }
-
 });
 
 // POST /api/render/config
 
 app.post("/api/render/config", (req, res) => {
-
   const configData = req.body || {};
 
   try {
-
     const existing = loadRenderConfig(__dirname);
     const merged = {
       ...existing,
       ...configData,
       studio_visual: configData.studio_visual ?? existing.studio_visual,
-      studio_production: configData.studio_production ?? existing.studio_production,
+      studio_production:
+        configData.studio_production ?? existing.studio_production,
       brandLogos: configData.brandLogos ?? existing.brandLogos,
       youtubeChannels: configData.youtubeChannels ?? existing.youtubeChannels,
       selectedLogoId: configData.selectedLogoId ?? existing.selectedLogoId,
-      selectedYoutubeChannelId: configData.selectedYoutubeChannelId ?? existing.selectedYoutubeChannelId,
+      selectedYoutubeChannelId:
+        configData.selectedYoutubeChannelId ??
+        existing.selectedYoutubeChannelId,
     };
     saveRenderConfig(__dirname, merged);
 
-    res.json({ success: true, message: "Configurações globais salvas com sucesso." });
-
+    res.json({
+      success: true,
+      message: "Configurações globais salvas com sucesso.",
+    });
   } catch (err) {
-
     res.status(500).json({ error: "Erro ao salvar configurações globais." });
-
   }
-
 });
 
 // GET /api/settings/studio-defaults — Visual + Produção globais (todos os projetos)
@@ -3023,7 +3467,9 @@ app.get("/api/settings/studio-defaults", (req, res) => {
     const defaults = getStudioDefaultsFromRenderConfig(renderConfig);
     res.json(defaults);
   } catch (err) {
-    res.status(500).json({ error: err.message || "Erro ao ler defaults do estúdio." });
+    res
+      .status(500)
+      .json({ error: err.message || "Erro ao ler defaults do estúdio." });
   }
 });
 
@@ -3041,13 +3487,19 @@ app.post("/api/settings/studio-defaults", (req, res) => {
       ...saved,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message || "Erro ao salvar defaults do estúdio." });
+    res
+      .status(500)
+      .json({ error: err.message || "Erro ao salvar defaults do estúdio." });
   }
 });
 
 function getGlobalApiKeysStatus() {
   const cfg = loadRenderConfig(__dirname);
-  const epidemic = (cfg.epidemic_sound_key || process.env.EPIDEMIC_SOUND_API_KEY || "").trim();
+  const epidemic = (
+    cfg.epidemic_sound_key ||
+    process.env.EPIDEMIC_SOUND_API_KEY ||
+    ""
+  ).trim();
   return {
     has_epidemic_key: epidemic.length > 100,
     has_pexels_key: !!(cfg.pexels_api_key || "").trim(),
@@ -3087,7 +3539,10 @@ app.post("/api/settings/global-api-keys", (req, res) => {
     if (typeof supermemory_api_key === "string" && supermemory_api_key.trim()) {
       cfg.supermemory_api_key = supermemory_api_key.trim();
     }
-    if (typeof supermemory_base_url === "string" && supermemory_base_url.trim()) {
+    if (
+      typeof supermemory_base_url === "string" &&
+      supermemory_base_url.trim()
+    ) {
       cfg.supermemory_base_url = supermemory_base_url.trim().replace(/\/$/, "");
     }
     if (typeof supermemory_enabled === "boolean") {
@@ -3121,42 +3576,38 @@ app.post("/api/supermemory/test", async (req, res) => {
 // API: List background music tracks
 
 app.get("/api/music", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const files = listBgmMusicCandidates(projDir)
       .filter((f) => /\.(mp3|wav)$/i.test(f))
 
-      .map(f => {
-
+      .map((f) => {
         const stats = fs.statSync(path.join(projDir, f));
 
         return {
-
           name: f,
 
-          sizeBytes: stats.size
-
+          sizeBytes: stats.size,
         };
-
       });
 
     res.json(files);
-
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
-
 });
 
-const AUDIO_TRACK_EXTENSIONS = new Set([".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"]);
+const AUDIO_TRACK_EXTENSIONS = new Set([
+  ".mp3",
+  ".wav",
+  ".m4a",
+  ".aac",
+  ".flac",
+  ".ogg",
+]);
 
 const PROTECTED_AUDIO_FILES = new Set([
-
   "narracao_mestra_premium.mp3",
 
   "narracao_master.mp3",
@@ -3167,60 +3618,55 @@ const PROTECTED_AUDIO_FILES = new Set([
 
   "2.mp3",
 
-  "3.mp3"
-
+  "3.mp3",
 ]);
 
 function isDeletableBgmFile(fileName) {
-
   const safeName = path.basename(String(fileName || ""));
 
   return safeName && safeName === fileName && isBgmMusicCandidate(safeName);
-
 }
 
 function clearBgmReferences(projDir, removedNames) {
-
   const configPath = path.join(projDir, "config_qanat.json");
 
   const config = readJsonFile(configPath);
 
   if (!config) return;
 
-  const removed = new Set(removedNames.map(name => String(name).toLowerCase()));
+  const removed = new Set(
+    removedNames.map((name) => String(name).toLowerCase())
+  );
 
   let changed = false;
 
   if (Array.isArray(config.bgm_mappings)) {
-
-    const nextMappings = config.bgm_mappings.filter(mapping => !removed.has(String(mapping.file || "").toLowerCase()));
+    const nextMappings = config.bgm_mappings.filter(
+      (mapping) => !removed.has(String(mapping.file || "").toLowerCase())
+    );
 
     changed = changed || nextMappings.length !== config.bgm_mappings.length;
 
     config.bgm_mappings = nextMappings;
-
   }
 
-  if (config.single_bgm && removed.has(String(config.single_bgm).toLowerCase())) {
-
+  if (
+    config.single_bgm &&
+    removed.has(String(config.single_bgm).toLowerCase())
+  ) {
     config.single_bgm = "";
 
     config.use_single_bgm = false;
 
     changed = true;
-
   }
 
   if (changed) {
-
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-
   }
-
 }
 
 function clearAudioReferences(projDir, removedNames) {
-
   clearBgmReferences(projDir, removedNames);
 
   const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
@@ -3229,30 +3675,32 @@ function clearAudioReferences(projDir, removedNames) {
 
   if (!sfxTimeline || !Array.isArray(sfxTimeline.sfx_events)) return;
 
-  const removed = new Set(removedNames.map(name => String(name).toLowerCase()));
+  const removed = new Set(
+    removedNames.map((name) => String(name).toLowerCase())
+  );
 
-  const nextEvents = sfxTimeline.sfx_events.filter(event => !removed.has(String(event.file || "").toLowerCase()));
+  const nextEvents = sfxTimeline.sfx_events.filter(
+    (event) => !removed.has(String(event.file || "").toLowerCase())
+  );
 
   if (nextEvents.length !== sfxTimeline.sfx_events.length) {
-
     sfxTimeline.sfx_events = nextEvents;
 
-    fs.writeFileSync(sfxTimelinePath, JSON.stringify(sfxTimeline, null, 2), "utf8");
-
+    fs.writeFileSync(
+      sfxTimelinePath,
+      JSON.stringify(sfxTimeline, null, 2),
+      "utf8"
+    );
   }
-
 }
 
 function deleteProjectAudioFile(projDir, fileName) {
-
   if (!isDeletableBgmFile(fileName)) {
-
     const err = new Error("Arquivo de audio invalido ou protegido.");
 
     err.statusCode = 400;
 
     throw err;
-
   }
 
   const root = path.resolve(projDir);
@@ -3260,23 +3708,19 @@ function deleteProjectAudioFile(projDir, fileName) {
   const targetPath = path.resolve(projDir, fileName);
 
   if (!targetPath.startsWith(root + path.sep)) {
-
     const err = new Error("Caminho invalido.");
 
     err.statusCode = 400;
 
     throw err;
-
   }
 
   if (!fs.existsSync(targetPath)) {
-
     const err = new Error("Arquivo de audio nao encontrado.");
 
     err.statusCode = 404;
 
     throw err;
-
   }
 
   fs.unlinkSync(targetPath);
@@ -3284,104 +3728,77 @@ function deleteProjectAudioFile(projDir, fileName) {
   clearAudioReferences(projDir, [fileName]);
 
   return fileName;
-
 }
 
 // API: Delete one background music track
 
 app.delete("/api/music/:filename", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const deleted = deleteProjectAudioFile(projDir, req.params.filename);
 
     res.json({ success: true, deleted: [deleted] });
-
   } catch (err) {
-
     res.status(err.statusCode || 500).json({ error: err.message });
-
   }
-
 });
 
 app.post("/api/music/delete", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const deleted = deleteProjectAudioFile(projDir, req.body?.filename);
 
     res.json({ success: true, deleted: [deleted] });
-
   } catch (err) {
-
     res.status(err.statusCode || 500).json({ error: err.message });
-
   }
-
 });
 
 // API: Delete all user/downloaded background music tracks from the current project
 
 app.delete("/api/music", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const deleted = [];
 
     for (const fileName of fs.readdirSync(projDir)) {
-
       if (!isDeletableBgmFile(fileName)) continue;
 
       deleted.push(deleteProjectAudioFile(projDir, fileName));
-
     }
 
     res.json({ success: true, deleted });
-
   } catch (err) {
-
     res.status(err.statusCode || 500).json({ error: err.message });
-
   }
-
 });
 
 app.post("/api/music/delete-all", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const deleted = [];
 
     for (const fileName of fs.readdirSync(projDir)) {
-
       if (!isDeletableBgmFile(fileName)) continue;
 
       deleted.push(deleteProjectAudioFile(projDir, fileName));
-
     }
 
     res.json({ success: true, deleted });
-
   } catch (err) {
-
     res.status(err.statusCode || 500).json({ error: err.message });
-
   }
-
 });
 
 function listProjectMusicFiles(projDir) {
   try {
-    return fs.readdirSync(projDir).filter((fileName) => /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName));
+    return fs
+      .readdirSync(projDir)
+      .filter((fileName) => /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName));
   } catch (err) {
     return [];
   }
@@ -3397,26 +3814,40 @@ function refreshEmotionPlanTimings(projDir) {
   const plan = storyboard?.bgm_emotion_plan;
   if (!plan?.segments?.length) return { config, storyboard, logs };
 
-  const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-  const total = Number(timings.total_duration) || Number(plan.total_duration) || 0;
+  const timings = readProjectJson(projDir, "block_timings.json", {
+    total_duration: 0,
+  });
+  const total =
+    Number(timings.total_duration) || Number(plan.total_duration) || 0;
   const stitched = stitchEmotionSegmentsContinuous(plan.segments, total);
-  const harmonized = harmonizeEmotionSegments(stitched, config.niche || "", config);
+  const harmonized = harmonizeEmotionSegments(
+    stitched,
+    config.niche || "",
+    config
+  );
   storyboard.bgm_emotion_plan = {
     ...plan,
     segments: harmonized,
     segment_count: harmonized.length,
     total_duration: total || plan.total_duration,
   };
-  const synced = syncEmotionMappingsToPlan(storyboard.bgm_emotion_plan, config.bgm_emotion_mappings || []);
+  const synced = syncEmotionMappingsToPlan(
+    storyboard.bgm_emotion_plan,
+    config.bgm_emotion_mappings || []
+  );
   if (synced.length > 0) {
     config.bgm_emotion_mappings = synced;
     config.bgm_mode = "emotion";
   }
   fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-  logs.push(`Trilha emocional costurada: ${harmonized.length} segmento(s) com crossfade contínuo (sem silêncio).`);
+  logs.push(
+    `Trilha emocional costurada: ${harmonized.length} segmento(s) com crossfade contínuo (sem silêncio).`
+  );
   for (const seg of harmonized) {
-    logs.push(`  ${seg.id} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s (${seg.emotion}) fade ${seg.fade_in_s}/${seg.fade_out_s}s`);
+    logs.push(
+      `  ${seg.id} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s (${seg.emotion}) fade ${seg.fade_in_s}/${seg.fade_out_s}s`
+    );
   }
   return { config, storyboard, logs };
 }
@@ -3426,10 +3857,16 @@ async function prepareBgmBeforeMix(projDir) {
   const configPath = path.join(projDir, "config_qanat.json");
   let config = readProjectJson(projDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projDir, "storyboard.json", {});
-  const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-  const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const timings = readProjectJson(projDir, "block_timings.json", {
+    total_duration: 0,
+  });
+  const videoFormat = detectVideoFormat(
+    config,
+    Number(timings.total_duration) || 0
+  );
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
-  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
+  const fileExistsInProject = (fileName) =>
+    projectBgmFileExists(projDir, fileName);
 
   if (bgmMode !== "emotion") return logs;
 
@@ -3440,38 +3877,66 @@ async function prepareBgmBeforeMix(projDir) {
 
   const plan = storyboardRefreshed?.bgm_emotion_plan;
   const segments = plan?.segments || [];
-  let mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
-  const missing = segmentsNeedingBgmDownload(segments, mappings, fileExistsInProject);
+  let mappings = Array.isArray(config.bgm_emotion_mappings)
+    ? config.bgm_emotion_mappings
+    : [];
+  const missing = segmentsNeedingBgmDownload(
+    segments,
+    mappings,
+    fileExistsInProject
+  );
 
   if (segments.length === 0) {
-    logs.push("AVISO: Plano emocional ausente — use 'Planejar trilhas por emoção (IA)' antes de regenerar.");
+    logs.push(
+      "AVISO: Plano emocional ausente — use 'Planejar trilhas por emoção (IA)' antes de regenerar."
+    );
     return logs;
   }
 
   if (missing.length > 0) {
-    logs.push(`Preparando ${missing.length} segmento(s) emocional(is) sem trilha...`);
+    logs.push(
+      `Preparando ${missing.length} segmento(s) emocional(is) sem trilha...`
+    );
     try {
       const token = getEpidemicSoundKey(projDir) || "";
-      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO", { force: false });
+      const autoLogs = await runAutoSoundtrackLogic(
+        projDir,
+        token,
+        config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO",
+        { force: false }
+      );
       for (const line of autoLogs || []) logs.push(line);
       config = readProjectJson(projDir, "config_qanat.json", {});
-      mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
+      mappings = Array.isArray(config.bgm_emotion_mappings)
+        ? config.bgm_emotion_mappings
+        : [];
     } catch (err) {
       logs.push(`Sonoplastia automática falhou: ${err.message}`);
     }
   }
 
-  const stillMissing = segmentsNeedingBgmDownload(segments, mappings, fileExistsInProject);
+  const stillMissing = segmentsNeedingBgmDownload(
+    segments,
+    mappings,
+    fileExistsInProject
+  );
   if (stillMissing.length > 0) {
-    const localMappings = buildEmotionMappingsFromLocalFiles(segments, listBgmMusicCandidates(projDir));
+    const localMappings = buildEmotionMappingsFromLocalFiles(
+      segments,
+      listBgmMusicCandidates(projDir)
+    );
     if (localMappings.length > 0) {
       config.bgm_emotion_mappings = localMappings;
       config.bgm_mode = "emotion";
       config.use_single_bgm = false;
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      logs.push(`Mapeadas ${localMappings.length} trilha(s) local(is) aos segmentos emocionais.`);
+      logs.push(
+        `Mapeadas ${localMappings.length} trilha(s) local(is) aos segmentos emocionais.`
+      );
     } else {
-      logs.push("AVISO: Nenhum arquivo de trilha encontrado no projeto para os segmentos emocionais.");
+      logs.push(
+        "AVISO: Nenhum arquivo de trilha encontrado no projeto para os segmentos emocionais."
+      );
     }
   }
 
@@ -3479,15 +3944,27 @@ async function prepareBgmBeforeMix(projDir) {
 }
 
 function validateBgmReadyForMix(projDir, config, storyboard) {
-  const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-  const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const timings = readProjectJson(projDir, "block_timings.json", {
+    total_duration: 0,
+  });
+  const videoFormat = detectVideoFormat(
+    config,
+    Number(timings.total_duration) || 0
+  );
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
-  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
+  const fileExistsInProject = (fileName) =>
+    projectBgmFileExists(projDir, fileName);
 
   if (bgmMode === "emotion") {
     const segments = storyboard?.bgm_emotion_plan?.segments || [];
-    const mappings = Array.isArray(config.bgm_emotion_mappings) ? config.bgm_emotion_mappings : [];
-    const missing = segmentsNeedingBgmDownload(segments, mappings, fileExistsInProject);
+    const mappings = Array.isArray(config.bgm_emotion_mappings)
+      ? config.bgm_emotion_mappings
+      : [];
+    const missing = segmentsNeedingBgmDownload(
+      segments,
+      mappings,
+      fileExistsInProject
+    );
     if (!segments.length) {
       return "Planeje as trilhas por emoção (IA) antes de regenerar, ou selecione arquivos em cada segmento.";
     }
@@ -3513,7 +3990,11 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
   }
 
   const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
-  const missingBlocks = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings || [], fileExistsInProject);
+  const missingBlocks = blocksNeedingBgmDownload(
+    blockNumbers,
+    config.bgm_mappings || [],
+    fileExistsInProject
+  );
   if (missingBlocks.length === blockNumbers.length) {
     return "Nenhuma trilha mapeada por bloco. Selecione arquivos ou use Sonoplastia IA.";
   }
@@ -3523,7 +4004,6 @@ function validateBgmReadyForMix(projDir, config, storyboard) {
 // API: Mix soundtrack (runs mix_bgm.py)
 
 app.post("/api/music/mix", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   ensureFileExists("mix_bgm.py", projDir);
@@ -3531,9 +4011,7 @@ app.post("/api/music/mix", async (req, res) => {
   const scriptPath = path.join(projDir, "mix_bgm.py");
 
   if (!fs.existsSync(scriptPath)) {
-
     return res.status(404).json({ error: "mix_bgm.py não encontrado" });
-
   }
 
   try {
@@ -3549,13 +4027,11 @@ app.post("/api/music/mix", async (req, res) => {
     }
 
     const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-
       cwd: projDir,
 
       shell: true,
 
       env: { ...process.env, PYTHONUNBUFFERED: "1" },
-
     });
 
     let stdout = "";
@@ -3563,40 +4039,40 @@ app.post("/api/music/mix", async (req, res) => {
     let stderr = "";
 
     child.stdout.on("data", (data) => {
-
       stdout += data.toString();
-
     });
 
     child.stderr.on("data", (data) => {
-
       stderr += data.toString();
-
     });
 
     child.on("close", (code) => {
-
       if (code === 0) {
-
         res.json({ success: true, log: stdout, prepLogs });
-
       } else {
-
-        res.status(500).json({ error: "Erro na mixagem da trilha", log: stdout, details: stderr, prepLogs });
-
+        res
+          .status(500)
+          .json({
+            error: "Erro na mixagem da trilha",
+            log: stdout,
+            details: stderr,
+            prepLogs,
+          });
       }
-
     });
   } catch (err) {
-    res.status(500).json({ error: err.message || "Falha ao preparar mixagem", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: err.message || "Falha ao preparar mixagem",
+        details: err.message,
+      });
   }
-
 });
 
 // API: Search music/SFX on Epidemic Sound MCP
 
 app.get("/api/epidemic/search", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const token = getEpidemicSoundKey(projDir) || "";
@@ -3604,39 +4080,34 @@ app.get("/api/epidemic/search", async (req, res) => {
   const { query, type } = req.query;
 
   if (!query) {
-
-    return res.status(400).json({ error: "O termo de busca (query) é obrigatório." });
-
+    return res
+      .status(400)
+      .json({ error: "O termo de busca (query) é obrigatório." });
   }
 
   try {
-
     if (type === "sfx") {
-
       const results = await searchSoundEffects(token, query);
 
       res.json(results);
-
     } else {
-
       const results = await searchMusic(token, query);
 
       res.json(results);
-
     }
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao buscar na Epidemic Sound", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao buscar na Epidemic Sound",
+        details: err.message,
+      });
   }
-
 });
 
 // API: Download track/SFX and auto-map
 
 app.post("/api/epidemic/download", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const token = getEpidemicSoundKey(projDir) || "";
@@ -3644,17 +4115,15 @@ app.post("/api/epidemic/download", async (req, res) => {
   const { id, type, title, block, previewUrl } = req.body;
 
   if (!id || !type) {
-
-    return res.status(400).json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
-
+    return res
+      .status(400)
+      .json({ error: "Parâmetros 'id' e 'type' são obrigatórios." });
   }
 
   try {
-
     const safeTitle = (title || `audio_${id}`).replace(/[^a-zA-Z0-9_-]/g, "_");
 
     if (type === "sfx") {
-
       // Save SFX directly to project ASSETS folder
 
       const assetsDir = path.join(projDir, "ASSETS");
@@ -3667,10 +4136,13 @@ app.post("/api/epidemic/download", async (req, res) => {
 
       await downloadSoundEffect(token, id, destPath, previewUrl);
 
-      res.json({ success: true, filename, type: "sfx", message: `Efeito sonoro baixado e salvo em ASSETS/${filename}` });
-
+      res.json({
+        success: true,
+        filename,
+        type: "sfx",
+        message: `Efeito sonoro baixado e salvo em ASSETS/${filename}`,
+      });
     } else {
-
       // Save BGM directly to project folder
 
       const filename = `ES_${safeTitle}.mp3`;
@@ -3686,199 +4158,190 @@ app.post("/api/epidemic/download", async (req, res) => {
       let config = readJsonFile(configPath) || {};
 
       if (block !== undefined && block > 0) {
-
         // Map BGM to specific block
 
         if (!Array.isArray(config.bgm_mappings)) {
-
           config.bgm_mappings = [];
-
         }
 
         // Remove existing mapping for this block if any
 
-        config.bgm_mappings = config.bgm_mappings.filter(item => Number(item.block) !== Number(block));
+        config.bgm_mappings = config.bgm_mappings.filter(
+          (item) => Number(item.block) !== Number(block)
+        );
 
         config.bgm_mappings.push({
-
           block: Number(block),
 
-          file: filename
-
+          file: filename,
         });
 
         config.bgm_mappings.sort((a, b) => a.block - b.block);
 
         config.use_single_bgm = false;
 
-        console.log(`[Epidemic MCP] Auto-mapped BGM ${filename} to block ${block}`);
-
+        console.log(
+          `[Epidemic MCP] Auto-mapped BGM ${filename} to block ${block}`
+        );
       } else {
-
         // Map BGM as single BGM
 
         config.single_bgm = filename;
 
         config.use_single_bgm = true;
 
-        console.log(`[Epidemic MCP] Auto-mapped BGM ${filename} as single soundtrack`);
-
+        console.log(
+          `[Epidemic MCP] Auto-mapped BGM ${filename} as single soundtrack`
+        );
       }
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
       res.json({
-
         success: true,
 
         filename,
 
         type: "bgm",
 
-        message: `Música baixada e mapeada com sucesso: ${filename}`
-
+        message: `Música baixada e mapeada com sucesso: ${filename}`,
       });
-
     }
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao baixar arquivo da Epidemic Sound", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao baixar arquivo da Epidemic Sound",
+        details: err.message,
+      });
   }
-
 });
 
 // Helper: Translate Portuguese query terms to English and sanitize for Epidemic Sound search
 
 function translateOrCleanQuery(query) {
-
   if (!query) return "cinematic mystery";
 
   let q = query.toLowerCase();
 
   const translations = {
+    misterioso: "mysterious",
 
-    "misterioso": "mysterious",
+    misteriosa: "mysterious",
 
-    "misteriosa": "mysterious",
+    mistério: "mystery",
 
-    "mistério": "mystery",
+    misterio: "mystery",
 
-    "misterio": "mystery",
+    tensão: "tension",
 
-    "tensão": "tension",
+    tensao: "tension",
 
-    "tensao": "tension",
+    triste: "sad",
 
-    "triste": "sad",
+    tristeza: "sadness",
 
-    "tristeza": "sadness",
+    alegre: "happy",
 
-    "alegre": "happy",
+    feliz: "happy",
 
-    "feliz": "happy",
+    épico: "epic",
 
-    "épico": "epic",
+    epico: "epic",
 
-    "epico": "epic",
+    épica: "epic",
 
-    "épica": "epic",
+    epica: "epic",
 
-    "epica": "epic",
+    ação: "action",
 
-    "ação": "action",
+    acao: "action",
 
-    "acao": "action",
+    documentário: "documentary",
 
-    "documentário": "documentary",
+    documentario: "documentary",
 
-    "documentario": "documentary",
+    sombrio: "dark",
 
-    "sombrio": "dark",
+    sombria: "dark",
 
-    "sombria": "dark",
+    escuro: "dark",
 
-    "escuro": "dark",
+    leve: "light",
 
-    "leve": "light",
+    suave: "soft",
 
-    "suave": "soft",
+    rápido: "fast",
 
-    "rápido": "fast",
+    rapido: "fast",
 
-    "rapido": "fast",
+    lento: "slow",
 
-    "lento": "slow",
+    percussão: "percussion",
 
-    "percussão": "percussion",
+    percussao: "percussion",
 
-    "percussao": "percussion",
+    bateria: "drums",
 
-    "bateria": "drums",
+    cordas: "strings",
 
-    "cordas": "strings",
+    piano: "piano",
 
-    "piano": "piano",
+    flauta: "flute",
 
-    "flauta": "flute",
+    suspeito: "suspense",
 
-    "suspeito": "suspense",
+    suspense: "suspense",
 
-    "suspense": "suspense",
+    dramático: "dramatic",
 
-    "dramático": "dramatic",
+    dramatico: "dramatic",
 
-    "dramatico": "dramatic",
+    dramática: "dramatic",
 
-    "dramática": "dramatic",
+    dramatica: "dramatic",
 
-    "dramatica": "dramatic",
+    urgente: "urgent",
 
-    "urgente": "urgent",
+    urgência: "urgent",
 
-    "urgência": "urgent",
+    urgencia: "urgent",
 
-    "urgencia": "urgent",
+    clímax: "climax",
 
-    "clímax": "climax",
+    climax: "climax",
 
-    "climax": "climax",
+    final: "ending",
 
-    "final": "ending",
+    fechamento: "outro",
 
-    "fechamento": "outro",
+    abertura: "intro",
 
-    "abertura": "intro",
+    introdução: "intro",
 
-    "introdução": "intro",
+    introducao: "intro",
 
-    "introducao": "intro",
+    crescente: "building",
 
-    "crescente": "building",
+    esferas: "spheres",
 
-    "esferas": "spheres",
+    bronze: "bronze",
 
-    "bronze": "bronze",
+    vento: "wind",
 
-    "vento": "wind",
+    deserto: "desert",
 
-    "deserto": "desert",
+    areias: "sand",
 
-    "areias": "sand",
+    antigo: "ancient",
 
-    "antigo": "ancient",
-
-    "antiga": "ancient"
-
+    antiga: "ancient",
   };
 
   for (const [pt, en] of Object.entries(translations)) {
-
     const regex = new RegExp(`\\b${pt}\\b`, "g");
 
     q = q.replace(regex, en);
-
   }
 
   q = q.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ");
@@ -3886,13 +4349,10 @@ function translateOrCleanQuery(query) {
   q = q.replace(/\s+/g, " ").trim();
 
   return q;
-
 }
 
 function normalizeAudioChoiceKey(value) {
-
   return String(value || "")
-
     .toLowerCase()
 
     .replace(/^es_/, "")
@@ -3902,46 +4362,75 @@ function normalizeAudioChoiceKey(value) {
     .replace(/[^a-z0-9]+/g, " ")
 
     .trim();
-
 }
 
 function makeEpidemicFilename(title) {
-
   return `ES_${String(title || "track").replace(/[^a-zA-Z0-9_-]/g, "_")}.mp3`;
-
 }
 
 /** Resolve BGM for Remotion when config.bgm_mappings is empty but audio files exist on disk. */
-function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboard = {}) {
-  if (config?.use_single_bgm && config?.single_bgm && findProjectFileLocal(projectDir, config.single_bgm)) {
-    return { mode: "single", single_bgm: config.single_bgm, mappings: [], source: "config_single" };
+function resolveBgmMappingsForRender(
+  projectDir,
+  config,
+  blockNumbers,
+  storyboard = {}
+) {
+  if (
+    config?.use_single_bgm &&
+    config?.single_bgm &&
+    findProjectFileLocal(projectDir, config.single_bgm)
+  ) {
+    return {
+      mode: "single",
+      single_bgm: config.single_bgm,
+      mappings: [],
+      source: "config_single",
+    };
   }
 
-  const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
-  const videoFormat = detectVideoFormat(config, Number(timings.total_duration) || 0);
+  const timings = readProjectJson(projectDir, "block_timings.json", {
+    total_duration: 0,
+  });
+  const videoFormat = detectVideoFormat(
+    config,
+    Number(timings.total_duration) || 0
+  );
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
 
   if (bgmMode === "emotion") {
-    const fileExistsLocal = (fileName) => projectBgmFileExists(projectDir, fileName);
+    const fileExistsLocal = (fileName) =>
+      projectBgmFileExists(projectDir, fileName);
     let emotionMappings = Array.isArray(config?.bgm_emotion_mappings)
-      ? config.bgm_emotion_mappings.filter((m) => m?.file && fileExistsLocal(m.file))
+      ? config.bgm_emotion_mappings.filter(
+          (m) => m?.file && fileExistsLocal(m.file)
+        )
       : [];
 
     if (emotionMappings.length === 0) {
       const segments = storyboard?.bgm_emotion_plan?.segments || [];
-      const built = buildEmotionMappingsFromLocalFiles(segments, listBgmMusicCandidates(projectDir))
-        .filter((m) => m?.file && fileExistsLocal(m.file));
+      const built = buildEmotionMappingsFromLocalFiles(
+        segments,
+        listBgmMusicCandidates(projectDir)
+      ).filter((m) => m?.file && fileExistsLocal(m.file));
       if (built.length > 0) {
         emotionMappings = built;
-        console.log(`[Remotion BGM] Emoção: ${built.length} trilha(s) resolvidas a partir de arquivos locais.`);
+        console.log(
+          `[Remotion BGM] Emoção: ${built.length} trilha(s) resolvidas a partir de arquivos locais.`
+        );
       }
     }
 
     if (emotionMappings.length > 0) {
-      return { mode: "emotion", mappings: emotionMappings, source: "emotion_mappings" };
+      return {
+        mode: "emotion",
+        mappings: emotionMappings,
+        source: "emotion_mappings",
+      };
     }
 
-    console.warn("[Remotion BGM] Modo emoção ativo mas sem trilhas válidas — não usar fallback 1.mp3/trilha_documentario.");
+    console.warn(
+      "[Remotion BGM] Modo emoção ativo mas sem trilhas válidas — não usar fallback 1.mp3/trilha_documentario."
+    );
     return { mode: "none", mappings: [], source: "emotion_unmapped" };
   }
 
@@ -3950,7 +4439,10 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
   }
 
   const configured = Array.isArray(config?.bgm_mappings)
-    ? config.bgm_mappings.filter((mapping) => mapping?.file && findProjectFileLocal(projectDir, mapping.file))
+    ? config.bgm_mappings.filter(
+        (mapping) =>
+          mapping?.file && findProjectFileLocal(projectDir, mapping.file)
+      )
     : [];
 
   if (configured.length > 0) {
@@ -3965,8 +4457,14 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
     }
   }
   if (numberedMappings.length > 0) {
-    console.log(`[Remotion BGM] Auto-mapeadas ${numberedMappings.length} trilhas numeradas (N.mp3) por bloco.`);
-    return { mode: "blocks", mappings: numberedMappings, source: "numbered_files" };
+    console.log(
+      `[Remotion BGM] Auto-mapeadas ${numberedMappings.length} trilhas numeradas (N.mp3) por bloco.`
+    );
+    return {
+      mode: "blocks",
+      mappings: numberedMappings,
+      source: "numbered_files",
+    };
   }
 
   const esFiles = listBgmMusicCandidates(projectDir)
@@ -3978,76 +4476,68 @@ function resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboar
       block,
       file: esFiles[Math.min(index, esFiles.length - 1)],
     }));
-    console.log(`[Remotion BGM] Auto-distribuídas ${esFiles.length} faixas ES_* em ${blockNumbers.length} blocos.`);
+    console.log(
+      `[Remotion BGM] Auto-distribuídas ${esFiles.length} faixas ES_* em ${blockNumbers.length} blocos.`
+    );
     return { mode: "blocks", mappings: distributed, source: "es_files" };
   }
 
   if (findProjectFileLocal(projectDir, "trilha_documentario.mp3")) {
-    console.log("[Remotion BGM] Usando trilha_documentario.mp3 como trilha única (mix_bgm.py).");
-    return { mode: "single", single_bgm: "trilha_documentario.mp3", mappings: [], source: "mixed_master" };
+    console.log(
+      "[Remotion BGM] Usando trilha_documentario.mp3 como trilha única (mix_bgm.py)."
+    );
+    return {
+      mode: "single",
+      single_bgm: "trilha_documentario.mp3",
+      mappings: [],
+      source: "mixed_master",
+    };
   }
 
-  console.warn("[Remotion BGM] Nenhuma trilha encontrada — render sairá sem BGM.");
+  console.warn(
+    "[Remotion BGM] Nenhuma trilha encontrada — render sairá sem BGM."
+  );
   return { mode: "none", mappings: [], source: "none" };
 }
 
 function collectExistingAutoBgmKeys(projDir, config) {
-
   const keys = new Set();
 
   try {
-
     for (const fileName of fs.readdirSync(projDir)) {
-
       if (/^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName)) {
-
         keys.add(normalizeAudioChoiceKey(fileName));
-
       }
-
     }
-
   } catch (err) {}
 
   if (config?.single_bgm) {
-
     keys.add(normalizeAudioChoiceKey(config.single_bgm));
-
   }
 
   if (Array.isArray(config?.bgm_mappings)) {
-
     for (const mapping of config.bgm_mappings) {
-
       if (mapping?.file) keys.add(normalizeAudioChoiceKey(mapping.file));
-
     }
-
   }
 
   if (Array.isArray(config?.bgm_emotion_mappings)) {
-
     for (const mapping of config.bgm_emotion_mappings) {
-
       if (mapping?.file) keys.add(normalizeAudioChoiceKey(mapping.file));
-
     }
-
   }
 
   return keys;
-
 }
 
 function deleteGeneratedBgmCycleFiles(projDir) {
-
   const deleted = [];
 
   try {
-
     for (const fileName of fs.readdirSync(projDir)) {
-
-      const isGeneratedBgm = /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName) || fileName === "trilha_documentario.mp3";
+      const isGeneratedBgm =
+        /^ES_.*\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(fileName) ||
+        fileName === "trilha_documentario.mp3";
 
       if (!isGeneratedBgm) continue;
 
@@ -4058,19 +4548,14 @@ function deleteGeneratedBgmCycleFiles(projDir) {
       fs.unlinkSync(targetPath);
 
       deleted.push(fileName);
-
     }
-
   } catch (err) {}
 
   return deleted;
-
 }
 
 function pickFreshTrack(tracks, usedKeys, excludedKeys, block) {
-
   const candidates = (tracks || []).filter((track) => {
-
     const titleKey = normalizeAudioChoiceKey(track.title);
 
     const fileKey = normalizeAudioChoiceKey(makeEpidemicFilename(track.title));
@@ -4078,41 +4563,34 @@ function pickFreshTrack(tracks, usedKeys, excludedKeys, block) {
     const idKey = String(track.id || "").toLowerCase();
 
     return (
-
       titleKey &&
-
       !usedKeys.has(titleKey) &&
-
       !usedKeys.has(fileKey) &&
-
       !usedKeys.has(idKey) &&
-
       !excludedKeys.has(titleKey) &&
-
       !excludedKeys.has(fileKey) &&
-
       !excludedKeys.has(idKey)
-
     );
-
   });
 
   if (candidates.length === 0) return null;
 
   // Do not always take position 0; the Epidemic API often returns the same safe top results.
 
-  const rotatedIndex = Math.min(candidates.length - 1, Math.abs(Number(block) || 1) % Math.min(candidates.length, 4));
+  const rotatedIndex = Math.min(
+    candidates.length - 1,
+    Math.abs(Number(block) || 1) % Math.min(candidates.length, 4)
+  );
 
   return candidates[rotatedIndex];
-
 }
 
 // Helper: Run automated soundtrack selection and download logic
 
 async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
-
   const { force = false } = options;
-  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
+  const fileExistsInProject = (fileName) =>
+    projectBgmFileExists(projDir, fileName);
 
   const bgmSuggestionsPath = path.join(projDir, "storyboard.json");
 
@@ -4123,10 +4601,14 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
   const logs = [];
 
   if (force) {
-    logs.push("Sonoplastia forçada: ignorando trilhas de outros projetos e baixando novas faixas.");
+    logs.push(
+      "Sonoplastia forçada: ignorando trilhas de outros projetos e baixando novas faixas."
+    );
     const removed = deleteGeneratedBgmCycleFiles(projDir);
     if (removed.length > 0) {
-      logs.push(`Removidas ${removed.length} BGM antiga(s) deste projeto antes do novo ciclo.`);
+      logs.push(
+        `Removidas ${removed.length} BGM antiga(s) deste projeto antes do novo ciclo.`
+      );
     }
     config.bgm_mappings = [];
     config.bgm_emotion_mappings = [];
@@ -4136,73 +4618,93 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
     if (Array.isArray(config.bgm_mappings)) {
       const before = config.bgm_mappings.length;
       config.bgm_mappings = config.bgm_mappings.filter(
-        (m) => m?.file && fileExistsInProject(m.file),
+        (m) => m?.file && fileExistsInProject(m.file)
       );
       const pruned = before - config.bgm_mappings.length;
       if (pruned > 0) {
-        logs.push(`Removidos ${pruned} mapeamento(s) de bloco sem arquivo neste projeto.`);
+        logs.push(
+          `Removidos ${pruned} mapeamento(s) de bloco sem arquivo neste projeto.`
+        );
       }
     }
     if (Array.isArray(config.bgm_emotion_mappings)) {
       const before = config.bgm_emotion_mappings.length;
       config.bgm_emotion_mappings = config.bgm_emotion_mappings.filter(
-        (m) => m?.file && fileExistsInProject(m.file),
+        (m) => m?.file && fileExistsInProject(m.file)
       );
       const pruned = before - config.bgm_emotion_mappings.length;
       if (pruned > 0) {
-        logs.push(`Removidos ${pruned} mapeamento(s) emocionais sem arquivo neste projeto.`);
+        logs.push(
+          `Removidos ${pruned} mapeamento(s) emocionais sem arquivo neste projeto.`
+        );
       }
     }
     if (config.single_bgm && !fileExistsInProject(config.single_bgm)) {
       config.single_bgm = "";
       config.use_single_bgm = false;
-      logs.push("Trilha única anterior não existe neste projeto — será buscada novamente.");
+      logs.push(
+        "Trilha única anterior não existe neste projeto — será buscada novamente."
+      );
     }
   }
 
   if (!fs.existsSync(bgmSuggestionsPath)) {
-
-    logs.push("storyboard.json ausente. Download automatico de BGM ignorado para evitar trilha generica fora de contexto.");
+    logs.push(
+      "storyboard.json ausente. Download automatico de BGM ignorado para evitar trilha generica fora de contexto."
+    );
 
     return logs;
-
   }
 
   const storyboard = JSON.parse(fs.readFileSync(bgmSuggestionsPath, "utf8"));
 
-  const previousAutoBgmKeys = force ? new Set() : collectExistingAutoBgmKeys(projDir, config);
+  const previousAutoBgmKeys = force
+    ? new Set()
+    : collectExistingAutoBgmKeys(projDir, config);
 
-  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
-  const totalDuration = Number(timings.total_duration)
-    || (timings.durations || []).reduce(
-      (max, d, i) => Math.max(max, (Number(timings.starts?.[i]) || 0) + Number(d)),
-      0,
+  const timings = readProjectJson(projDir, "block_timings.json", {
+    starts: [],
+    durations: [],
+  });
+  const totalDuration =
+    Number(timings.total_duration) ||
+    (timings.durations || []).reduce(
+      (max, d, i) =>
+        Math.max(max, (Number(timings.starts?.[i]) || 0) + Number(d)),
+      0
     );
-  const videoFormat = mode === "SHORTS" ? "SHORT" : detectVideoFormat(config, totalDuration);
+  const videoFormat =
+    mode === "SHORTS" ? "SHORT" : detectVideoFormat(config, totalDuration);
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
 
   if (bgmMode === "single") {
-
-    let rawSearchTheme = storyboard.strategy?.search_theme || storyboard.strategy?.bgm_search_theme || storyboard.bgm_recommendations?.[0]?.search_theme || "";
+    let rawSearchTheme =
+      storyboard.strategy?.search_theme ||
+      storyboard.strategy?.bgm_search_theme ||
+      storyboard.bgm_recommendations?.[0]?.search_theme ||
+      "";
 
     if (!String(rawSearchTheme).trim()) {
       const mood = getEpidemicMoodForNiche(config.niche, config, storyboard);
       rawSearchTheme = mood.bgm;
-      logs.push(`Tema BGM inferido pelo nicho (${mood.label}): "${rawSearchTheme}"`);
+      logs.push(
+        `Tema BGM inferido pelo nicho (${mood.label}): "${rawSearchTheme}"`
+      );
     }
 
     const searchTheme = translateOrCleanQuery(rawSearchTheme);
 
-    logs.push(`Buscando trilha única para o tema: "${searchTheme}" (original: "${rawSearchTheme}")...`);
+    logs.push(
+      `Buscando trilha única para o tema: "${searchTheme}" (original: "${rawSearchTheme}")...`
+    );
 
     try {
-
       const removed = deleteGeneratedBgmCycleFiles(projDir);
 
       if (removed.length > 0) {
-
-        logs.push(`Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher uma nova trilha.`);
-
+        logs.push(
+          `Removendo ${removed.length} BGM automÃ¡ticas antigas antes de escolher uma nova trilha.`
+        );
       }
 
       let tracks = await searchMusic(token, searchTheme);
@@ -4210,7 +4712,6 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
       const track = pickFreshTrack(tracks, new Set(), previousAutoBgmKeys, 1);
 
       if (track) {
-
         const filename = makeEpidemicFilename(track.title);
 
         const destPath = path.join(projDir, filename);
@@ -4226,23 +4727,16 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
         logs.push(`Sucesso! Trilha única mapeada: ${filename}`);
-
       } else {
-
         logs.push(`Nenhuma música encontrada para o tema "${searchTheme}".`);
-
       }
-
     } catch (err) {
-
       logs.push(`Erro ao buscar/baixar trilha única: ${err.message}`);
 
       throw err;
-
     }
 
     return logs;
-
   }
 
   const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
@@ -4251,217 +4745,301 @@ async function runAutoSoundtrackLogic(projDir, token, mode, options = {}) {
   const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
 
   if (bgmMode === "emotion") {
-      config.bgm_mode = "emotion";
-      config.use_single_bgm = false;
-      config.single_bgm = "";
-      if (!Array.isArray(config.bgm_emotion_mappings)) config.bgm_emotion_mappings = [];
-
-      let plan = storyboard.bgm_emotion_plan;
-      if (!plan?.segments?.length) {
-        const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
-        plan = buildBgmEmotionPlan({
-          config,
-          storyboard,
-          blockRanges,
-          wordTranscripts,
-          totalDuration,
-          nicheMood,
-        });
-        storyboard.bgm_emotion_plan = plan;
-        logs.push(`Plano emocional heurístico: ${plan.segments.length} segmento(s).`);
-      }
-
-      const segmentsToFill = segmentsNeedingBgmDownload(plan.segments, config.bgm_emotion_mappings, fileExistsInProject);
-
-      if (segmentsToFill.length === 0) {
-        logs.push("Todos os segmentos emocionais já possuem trilha no disco.");
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-        fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
-        return logs;
-      }
-
-      if (segmentsToFill.length === plan.segments.length) {
-        const removed = deleteGeneratedBgmCycleFiles(projDir);
-        if (removed.length > 0) {
-          logs.push(`Removendo ${removed.length} BGM antigas antes do plano emocional.`);
-        }
-        config.bgm_emotion_mappings = [];
-      }
-
-      for (const line of formatEmotionPlanLog(plan)) logs.push(line);
-
-      const usedTracks = new Set();
-
-      for (const seg of segmentsToFill) {
-        const searchTheme = translateOrCleanQuery(seg.search_theme || nicheMood?.bgm || "cinematic documentary");
-        logs.push(`[${seg.id}] ${seg.emotion} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s → "${searchTheme}"`);
-
-        try {
-          const tracks = await searchMusic(token, searchTheme);
-          const track = pickFreshTrack(tracks, usedTracks, previousAutoBgmKeys, seg.id);
-          if (track) {
-            usedTracks.add(String(track.id || "").toLowerCase());
-            usedTracks.add(normalizeAudioChoiceKey(track.title));
-            const filename = makeEpidemicFilename(track.title);
-            const destPath = path.join(projDir, filename);
-            logs.push(`[${seg.id}] Baixando: "${track.title}" → ${filename}`);
-            await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
-
-            config.bgm_emotion_mappings = config.bgm_emotion_mappings.filter((m) => m.segment_id !== seg.id);
-            config.bgm_emotion_mappings.push({
-              segment_id: seg.id,
-              file: filename,
-              start: seg.start,
-              duration: seg.end - seg.start,
-              emotion: seg.emotion,
-              climax_mode: seg.climax_mode,
-              duck_strength: seg.duck_strength,
-              search_theme: seg.search_theme,
-            });
-            logs.push(`[${seg.id}] Mapeada: ${filename} (entrada ${seg.climax_mode})`);
-          } else {
-            logs.push(`[${seg.id}] Nenhuma música para "${searchTheme}".`);
-          }
-        } catch (e) {
-          logs.push(`[${seg.id}] Erro: ${e.message}`);
-        }
-      }
-
-      config.bgm_emotion_mappings.sort((a, b) => Number(a.start) - Number(b.start));
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
-      logs.push(`Sonoplastia emocional: ${config.bgm_emotion_mappings.length} segmento(s) com trilha.`);
-      return logs;
-  }
-
-  const sonoplastiaPlan = buildBlockSonoplastiaPlan({
-      config,
-      storyboard,
-      blockNumbers,
-      blockRanges,
-      wordTranscripts,
-      nicheMood,
-    });
-
-    const suggestions = Array.isArray(storyboard.bgm_recommendations) ? storyboard.bgm_recommendations : [];
-    if (!Array.isArray(config.bgm_mappings)) config.bgm_mappings = [];
-
-    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExistsInProject);
-
-    if (blocksToFill.length === 0) {
-      logs.push("Todos os blocos já possuem trilha mapeada no disco.");
-      return logs;
-    }
-
-    const suggestionByBlock = new Map();
-    for (const [sugIndex, sug] of suggestions.entries()) {
-      const block = Number(sug.block || sug.bloco || 0) || (sugIndex + 1);
-      suggestionByBlock.set(block, sug);
-    }
-
-    const fullSonoplastiaRun = suggestions.length === 0
-      || suggestions.every((sug) => !String(sug?.search_theme || sug?.searchTheme || "").trim());
-
-    if (fullSonoplastiaRun) {
-      logs.push(`Sonoplastia IA: baixando ${blocksToFill.length} trilha(s) por mood da narração...`);
-      for (const line of formatSonoplastiaLog(sonoplastiaPlan)) logs.push(line);
-    } else {
-      logs.push(`Processando ${blocksToFill.length} bloco(s) com tema Epidemic + sonoplastia...`);
-    }
-
-    if (fullSonoplastiaRun && blocksToFill.length === blockNumbers.length) {
-      const removed = deleteGeneratedBgmCycleFiles(projDir);
-      if (removed.length > 0) {
-        logs.push(`Removendo ${removed.length} BGM automáticas antigas antes de escolher novas trilhas.`);
-      }
-      config.bgm_mappings = [];
-    }
-
+    config.bgm_mode = "emotion";
     config.use_single_bgm = false;
     config.single_bgm = "";
+    if (!Array.isArray(config.bgm_emotion_mappings))
+      config.bgm_emotion_mappings = [];
+
+    let plan = storyboard.bgm_emotion_plan;
+    if (!plan?.segments?.length) {
+      const sceneMaps = buildSceneTimingMaps(
+        null,
+        storyboard,
+        timings.starts || [],
+        timings.durations || []
+      );
+      plan = buildBgmEmotionPlan({
+        config,
+        storyboard,
+        blockRanges,
+        wordTranscripts,
+        totalDuration,
+        nicheMood,
+      });
+      storyboard.bgm_emotion_plan = plan;
+      logs.push(
+        `Plano emocional heurístico: ${plan.segments.length} segmento(s).`
+      );
+    }
+
+    const segmentsToFill = segmentsNeedingBgmDownload(
+      plan.segments,
+      config.bgm_emotion_mappings,
+      fileExistsInProject
+    );
+
+    if (segmentsToFill.length === 0) {
+      logs.push("Todos os segmentos emocionais já possuem trilha no disco.");
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      fs.writeFileSync(
+        bgmSuggestionsPath,
+        JSON.stringify(storyboard, null, 2),
+        "utf8"
+      );
+      return logs;
+    }
+
+    if (segmentsToFill.length === plan.segments.length) {
+      const removed = deleteGeneratedBgmCycleFiles(projDir);
+      if (removed.length > 0) {
+        logs.push(
+          `Removendo ${removed.length} BGM antigas antes do plano emocional.`
+        );
+      }
+      config.bgm_emotion_mappings = [];
+    }
+
+    for (const line of formatEmotionPlanLog(plan)) logs.push(line);
 
     const usedTracks = new Set();
-    if (!Array.isArray(storyboard.bgm_recommendations)) storyboard.bgm_recommendations = [];
 
-    for (const block of blocksToFill) {
-      const sug = suggestionByBlock.get(block) || null;
-      const planEntry = sonoplastiaPlan.get(block);
-      const rawSearchTheme = resolveBlockSearchTheme(block, sonoplastiaPlan, sug, nicheMood);
-      const searchTheme = translateOrCleanQuery(rawSearchTheme);
-
+    for (const seg of segmentsToFill) {
+      const searchTheme = translateOrCleanQuery(
+        seg.search_theme || nicheMood?.bgm || "cinematic documentary"
+      );
       logs.push(
-        `[Bloco ${block}] mood=${planEntry?.mood || "neutral"} pace=${planEntry?.pace || "normal"}`
-        + ` → busca Epidemic: "${searchTheme}"`,
+        `[${seg.id}] ${seg.emotion} ${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s → "${searchTheme}"`
       );
 
       try {
         const tracks = await searchMusic(token, searchTheme);
-        const track = pickFreshTrack(tracks, usedTracks, previousAutoBgmKeys, block);
-
+        const track = pickFreshTrack(
+          tracks,
+          usedTracks,
+          previousAutoBgmKeys,
+          seg.id
+        );
         if (track) {
           usedTracks.add(String(track.id || "").toLowerCase());
           usedTracks.add(normalizeAudioChoiceKey(track.title));
-          usedTracks.add(normalizeAudioChoiceKey(makeEpidemicFilename(track.title)));
-
           const filename = makeEpidemicFilename(track.title);
           const destPath = path.join(projDir, filename);
-
-          logs.push(`[Bloco ${block}] Baixando: "${track.title}" → ${filename}`);
-
+          logs.push(`[${seg.id}] Baixando: "${track.title}" → ${filename}`);
           await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
 
-          config.bgm_mappings = config.bgm_mappings.filter((item) => Number(item.block) !== block);
-          config.bgm_mappings.push({
-            block,
+          config.bgm_emotion_mappings = config.bgm_emotion_mappings.filter(
+            (m) => m.segment_id !== seg.id
+          );
+          config.bgm_emotion_mappings.push({
+            segment_id: seg.id,
             file: filename,
-            mood: planEntry?.mood,
-            climaxMode: planEntry?.climaxMode,
-            search_theme: rawSearchTheme,
+            start: seg.start,
+            duration: seg.end - seg.start,
+            emotion: seg.emotion,
+            climax_mode: seg.climax_mode,
+            duck_strength: seg.duck_strength,
+            search_theme: seg.search_theme,
           });
-
-          const recIdx = storyboard.bgm_recommendations.findIndex((r) => Number(r?.block) === block);
-          const recPayload = {
-            block,
-            scope: "block",
-            recommendation: planEntry?.phrasePreview || sug?.recommendation || "",
-            search_theme: rawSearchTheme,
-            mood: planEntry?.mood,
-            climaxMode: planEntry?.climaxMode,
-          };
-          if (recIdx >= 0) storyboard.bgm_recommendations[recIdx] = { ...storyboard.bgm_recommendations[recIdx], ...recPayload };
-          else storyboard.bgm_recommendations.push(recPayload);
-
-          logs.push(`[Bloco ${block}] Mapeada: ${filename} (entrada ${planEntry?.climaxMode || "peak"})`);
+          logs.push(
+            `[${seg.id}] Mapeada: ${filename} (entrada ${seg.climax_mode})`
+          );
         } else {
-          logs.push(`[Bloco ${block}] Nenhuma música encontrada para "${searchTheme}".`);
+          logs.push(`[${seg.id}] Nenhuma música para "${searchTheme}".`);
         }
       } catch (e) {
-        logs.push(`[Bloco ${block}] Erro: ${e.message}`);
+        logs.push(`[${seg.id}] Erro: ${e.message}`);
       }
     }
 
-    config.bgm_mappings.sort((a, b) => a.block - b.block);
-    storyboard.bgm_recommendations.sort((a, b) => Number(a.block) - Number(b.block));
-
+    config.bgm_emotion_mappings.sort(
+      (a, b) => Number(a.start) - Number(b.start)
+    );
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-    fs.writeFileSync(bgmSuggestionsPath, JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      bgmSuggestionsPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
+    logs.push(
+      `Sonoplastia emocional: ${config.bgm_emotion_mappings.length} segmento(s) com trilha.`
+    );
+    return logs;
+  }
 
-  logs.push(`Sonoplastia concluída: ${config.bgm_mappings.length} bloco(s) com trilha.`);
+  const sonoplastiaPlan = buildBlockSonoplastiaPlan({
+    config,
+    storyboard,
+    blockNumbers,
+    blockRanges,
+    wordTranscripts,
+    nicheMood,
+  });
+
+  const suggestions = Array.isArray(storyboard.bgm_recommendations)
+    ? storyboard.bgm_recommendations
+    : [];
+  if (!Array.isArray(config.bgm_mappings)) config.bgm_mappings = [];
+
+  const blocksToFill = blocksNeedingBgmDownload(
+    blockNumbers,
+    config.bgm_mappings,
+    fileExistsInProject
+  );
+
+  if (blocksToFill.length === 0) {
+    logs.push("Todos os blocos já possuem trilha mapeada no disco.");
+    return logs;
+  }
+
+  const suggestionByBlock = new Map();
+  for (const [sugIndex, sug] of suggestions.entries()) {
+    const block = Number(sug.block || sug.bloco || 0) || sugIndex + 1;
+    suggestionByBlock.set(block, sug);
+  }
+
+  const fullSonoplastiaRun =
+    suggestions.length === 0 ||
+    suggestions.every(
+      (sug) => !String(sug?.search_theme || sug?.searchTheme || "").trim()
+    );
+
+  if (fullSonoplastiaRun) {
+    logs.push(
+      `Sonoplastia IA: baixando ${blocksToFill.length} trilha(s) por mood da narração...`
+    );
+    for (const line of formatSonoplastiaLog(sonoplastiaPlan)) logs.push(line);
+  } else {
+    logs.push(
+      `Processando ${blocksToFill.length} bloco(s) com tema Epidemic + sonoplastia...`
+    );
+  }
+
+  if (fullSonoplastiaRun && blocksToFill.length === blockNumbers.length) {
+    const removed = deleteGeneratedBgmCycleFiles(projDir);
+    if (removed.length > 0) {
+      logs.push(
+        `Removendo ${removed.length} BGM automáticas antigas antes de escolher novas trilhas.`
+      );
+    }
+    config.bgm_mappings = [];
+  }
+
+  config.use_single_bgm = false;
+  config.single_bgm = "";
+
+  const usedTracks = new Set();
+  if (!Array.isArray(storyboard.bgm_recommendations))
+    storyboard.bgm_recommendations = [];
+
+  for (const block of blocksToFill) {
+    const sug = suggestionByBlock.get(block) || null;
+    const planEntry = sonoplastiaPlan.get(block);
+    const rawSearchTheme = resolveBlockSearchTheme(
+      block,
+      sonoplastiaPlan,
+      sug,
+      nicheMood
+    );
+    const searchTheme = translateOrCleanQuery(rawSearchTheme);
+
+    logs.push(
+      `[Bloco ${block}] mood=${planEntry?.mood || "neutral"} pace=${planEntry?.pace || "normal"}` +
+        ` → busca Epidemic: "${searchTheme}"`
+    );
+
+    try {
+      const tracks = await searchMusic(token, searchTheme);
+      const track = pickFreshTrack(
+        tracks,
+        usedTracks,
+        previousAutoBgmKeys,
+        block
+      );
+
+      if (track) {
+        usedTracks.add(String(track.id || "").toLowerCase());
+        usedTracks.add(normalizeAudioChoiceKey(track.title));
+        usedTracks.add(
+          normalizeAudioChoiceKey(makeEpidemicFilename(track.title))
+        );
+
+        const filename = makeEpidemicFilename(track.title);
+        const destPath = path.join(projDir, filename);
+
+        logs.push(`[Bloco ${block}] Baixando: "${track.title}" → ${filename}`);
+
+        await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
+
+        config.bgm_mappings = config.bgm_mappings.filter(
+          (item) => Number(item.block) !== block
+        );
+        config.bgm_mappings.push({
+          block,
+          file: filename,
+          mood: planEntry?.mood,
+          climaxMode: planEntry?.climaxMode,
+          search_theme: rawSearchTheme,
+        });
+
+        const recIdx = storyboard.bgm_recommendations.findIndex(
+          (r) => Number(r?.block) === block
+        );
+        const recPayload = {
+          block,
+          scope: "block",
+          recommendation: planEntry?.phrasePreview || sug?.recommendation || "",
+          search_theme: rawSearchTheme,
+          mood: planEntry?.mood,
+          climaxMode: planEntry?.climaxMode,
+        };
+        if (recIdx >= 0)
+          storyboard.bgm_recommendations[recIdx] = {
+            ...storyboard.bgm_recommendations[recIdx],
+            ...recPayload,
+          };
+        else storyboard.bgm_recommendations.push(recPayload);
+
+        logs.push(
+          `[Bloco ${block}] Mapeada: ${filename} (entrada ${planEntry?.climaxMode || "peak"})`
+        );
+      } else {
+        logs.push(
+          `[Bloco ${block}] Nenhuma música encontrada para "${searchTheme}".`
+        );
+      }
+    } catch (e) {
+      logs.push(`[Bloco ${block}] Erro: ${e.message}`);
+    }
+  }
+
+  config.bgm_mappings.sort((a, b) => a.block - b.block);
+  storyboard.bgm_recommendations.sort(
+    (a, b) => Number(a.block) - Number(b.block)
+  );
+
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+  fs.writeFileSync(
+    bgmSuggestionsPath,
+    JSON.stringify(storyboard, null, 2),
+    "utf8"
+  );
+
+  logs.push(
+    `Sonoplastia concluída: ${config.bgm_mappings.length} bloco(s) com trilha.`
+  );
 
   return logs;
-
 }
 
 // API: Auto-soundtrack project blocks using AI recommendations search themes
 
 app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const token = getEpidemicSoundKey(projDir) || "";
 
   try {
-
     const { mode, force } = req.body;
 
     const logs = await runAutoSoundtrackLogic(projDir, token, mode, {
@@ -4469,19 +5047,19 @@ app.post("/api/epidemic/auto-soundtrack", async (req, res) => {
     });
 
     res.json({ success: true, logs });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro no processo de automação de trilha", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro no processo de automação de trilha",
+        details: err.message,
+      });
   }
-
 });
 
 // Helper: Ensure all mapped BGM files are downloaded from Epidemic Sound before rendering
 
 async function ensureProjectBgmTracks(projDir) {
-
   const token = getEpidemicSoundKey(projDir) || "";
 
   const configPath = path.join(projDir, "config_qanat.json");
@@ -4491,19 +5069,19 @@ async function ensureProjectBgmTracks(projDir) {
   let config = {};
 
   try {
-
     config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
   } catch (e) {
-
     return;
-
   }
 
   const storyboard = readProjectJson(projDir, "storyboard.json", {});
-  const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+  const timings = readProjectJson(projDir, "block_timings.json", {
+    starts: [],
+    durations: [],
+  });
   const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
-  const fileExistsInProject = (fileName) => projectBgmFileExists(projDir, fileName);
+  const fileExistsInProject = (fileName) =>
+    projectBgmFileExists(projDir, fileName);
   const totalDuration = Number(timings.total_duration) || 0;
   const videoFormat = detectVideoFormat(config, totalDuration);
   const bgmMode = resolveBgmMode(config, storyboard, videoFormat);
@@ -4516,18 +5094,31 @@ async function ensureProjectBgmTracks(projDir) {
     const segmentsToFill = segmentsNeedingBgmDownload(
       segments,
       config.bgm_emotion_mappings || [],
-      fileExistsInProject,
+      fileExistsInProject
     );
-    const hasMappings = Array.isArray(config.bgm_emotion_mappings)
-      && config.bgm_emotion_mappings.some((m) => m?.file && fileExistsInProject(m.file));
+    const hasMappings =
+      Array.isArray(config.bgm_emotion_mappings) &&
+      config.bgm_emotion_mappings.some(
+        (m) => m?.file && fileExistsInProject(m.file)
+      );
     needsAutoFetch = !hasMappings || segmentsToFill.length > 0;
     autoFetchReason = !hasMappings
       ? "sem trilhas emocionais mapeadas"
       : `${segmentsToFill.length} segmento(s) sem arquivo`;
   } else {
-    const blocksToFill = blocksNeedingBgmDownload(blockNumbers, config.bgm_mappings, fileExistsInProject);
-    const hasMappings = (config.use_single_bgm && config.single_bgm && fileExistsInProject(config.single_bgm))
-      || (Array.isArray(config.bgm_mappings) && config.bgm_mappings.some((m) => m?.file && fileExistsInProject(m.file)));
+    const blocksToFill = blocksNeedingBgmDownload(
+      blockNumbers,
+      config.bgm_mappings,
+      fileExistsInProject
+    );
+    const hasMappings =
+      (config.use_single_bgm &&
+        config.single_bgm &&
+        fileExistsInProject(config.single_bgm)) ||
+      (Array.isArray(config.bgm_mappings) &&
+        config.bgm_mappings.some(
+          (m) => m?.file && fileExistsInProject(m.file)
+        ));
     needsAutoFetch = !hasMappings || blocksToFill.length > 0;
     autoFetchReason = !hasMappings
       ? "sem trilhas mapeadas"
@@ -4535,140 +5126,137 @@ async function ensureProjectBgmTracks(projDir) {
   }
 
   if (needsAutoFetch) {
-    console.log(`[BGM Auto-Fetch] Sonoplastia automática (${autoFetchReason})...`);
+    console.log(
+      `[BGM Auto-Fetch] Sonoplastia automática (${autoFetchReason})...`
+    );
 
     try {
-      const autoLogs = await runAutoSoundtrackLogic(projDir, token, config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO", { force: false });
-      for (const line of autoLogs || []) console.log(`[BGM Auto-Fetch] ${line}`);
+      const autoLogs = await runAutoSoundtrackLogic(
+        projDir,
+        token,
+        config.aspect_ratio === "9:16" ? "SHORTS" : "LONGO",
+        { force: false }
+      );
+      for (const line of autoLogs || [])
+        console.log(`[BGM Auto-Fetch] ${line}`);
       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     } catch (err) {
-      console.error("[BGM Auto-Fetch] Falha na sonoplastia automática pré-render:", err.message);
+      console.error(
+        "[BGM Auto-Fetch] Falha na sonoplastia automática pré-render:",
+        err.message
+      );
     }
   }
 
   const filesToDownload = [];
 
   if (config.use_single_bgm && config.single_bgm) {
-
     filesToDownload.push(config.single_bgm);
-
-  } else if (bgmMode === "emotion" && Array.isArray(config.bgm_emotion_mappings)) {
-
+  } else if (
+    bgmMode === "emotion" &&
+    Array.isArray(config.bgm_emotion_mappings)
+  ) {
     for (const m of config.bgm_emotion_mappings) {
-
       if (m.file) filesToDownload.push(m.file);
-
     }
-
   } else if (Array.isArray(config.bgm_mappings)) {
-
     for (const m of config.bgm_mappings) {
-
       if (m.file) filesToDownload.push(m.file);
-
     }
-
   }
 
   for (const filename of filesToDownload) {
-
     const destPath = path.join(projDir, filename);
 
     if (!fs.existsSync(destPath)) {
-
-      console.log(`[BGM Auto-Fetch] Arquivo ${filename} ausente. Tentando baixar do Epidemic Sound...`);
+      console.log(
+        `[BGM Auto-Fetch] Arquivo ${filename} ausente. Tentando baixar do Epidemic Sound...`
+      );
 
       let cleanTitle = filename;
 
       if (cleanTitle.startsWith("ES_")) {
-
         cleanTitle = cleanTitle.substring(3);
-
       }
 
       if (cleanTitle.endsWith(".mp3")) {
-
         cleanTitle = cleanTitle.substring(0, cleanTitle.length - 4);
-
       }
 
       cleanTitle = cleanTitle.replace(/_/g, " ").trim();
 
       try {
-
         const tracks = await searchMusic(token, cleanTitle);
 
         if (tracks.length > 0) {
-
           const track = tracks[0];
 
-          console.log(`[BGM Auto-Fetch] Baixando "${track.title}" para ${filename}...`);
+          console.log(
+            `[BGM Auto-Fetch] Baixando "${track.title}" para ${filename}...`
+          );
 
           await downloadMusicTrack(token, track.id, destPath, track.previewUrl);
-
         }
-
       } catch (err) {
-
-        console.error(`[BGM Auto-Fetch] Falha ao baixar ${filename}:`, err.message);
-
+        console.error(
+          `[BGM Auto-Fetch] Falha ao baixar ${filename}:`,
+          err.message
+        );
       }
-
     }
-
   }
-
 }
 
 function sanitizeProjectBlockTimings(projDir) {
-
   const timingsPath = path.join(projDir, "block_timings.json");
 
   if (!fs.existsSync(timingsPath)) {
-
     return { changed: false, message: "" };
-
   }
 
   let timings;
 
   try {
-
     timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
-
   } catch (err) {
-
-    return { changed: false, message: `block_timings.json invalido: ${err.message}` };
-
+    return {
+      changed: false,
+      message: `block_timings.json invalido: ${err.message}`,
+    };
   }
 
-  const starts = Array.isArray(timings.starts) ? timings.starts.map(Number) : [];
+  const starts = Array.isArray(timings.starts)
+    ? timings.starts.map(Number)
+    : [];
 
-  const durations = Array.isArray(timings.durations) ? timings.durations.map(Number) : [];
+  const durations = Array.isArray(timings.durations)
+    ? timings.durations.map(Number)
+    : [];
 
   const blockCount = Math.max(starts.length, durations.length);
 
   if (blockCount === 0) {
-
     return { changed: false, message: "" };
-
   }
 
   const totalFromFile = Number(timings.total_duration);
 
-  const finitePositiveDurations = durations.filter(value => Number.isFinite(value) && value > 0.25);
+  const finitePositiveDurations = durations.filter(
+    (value) => Number.isFinite(value) && value > 0.25
+  );
 
   const fallbackDuration = finitePositiveDurations.length
-
-    ? finitePositiveDurations.reduce((sum, value) => sum + value, 0) / finitePositiveDurations.length
-
+    ? finitePositiveDurations.reduce((sum, value) => sum + value, 0) /
+      finitePositiveDurations.length
     : 8;
 
-  const totalDuration = Number.isFinite(totalFromFile) && totalFromFile > 0
-
-    ? totalFromFile
-
-    : Math.max(1, finitePositiveDurations.reduce((sum, value) => sum + value, 0));
+  const totalDuration =
+    Number.isFinite(totalFromFile) && totalFromFile > 0
+      ? totalFromFile
+      : Math.max(
+          1,
+          finitePositiveDurations.reduce((sum, value) => sum + value, 0)
+        );
 
   let maxSeenStart = -Infinity;
 
@@ -4677,53 +5265,54 @@ function sanitizeProjectBlockTimings(projDir) {
   const sanitizedDurations = [];
 
   for (let i = 0; i < blockCount; i++) {
-
     const start = starts[i];
 
     const duration = durations[i];
 
-    const startIsOutOfOrder = Number.isFinite(start) && start + 0.05 < maxSeenStart;
+    const startIsOutOfOrder =
+      Number.isFinite(start) && start + 0.05 < maxSeenStart;
 
     const durationIsInvalid = !Number.isFinite(duration) || duration <= 0.25;
 
-    const durationIsSuspicious = Number.isFinite(duration) && blockCount > 3 && duration > totalDuration * 0.4;
+    const durationIsSuspicious =
+      Number.isFinite(duration) &&
+      blockCount > 3 &&
+      duration > totalDuration * 0.4;
 
     if (Number.isFinite(start) && start > maxSeenStart) {
-
       maxSeenStart = start;
-
     }
 
     if (startIsOutOfOrder || durationIsInvalid || durationIsSuspicious) {
-
       unreliable.push(i);
 
       sanitizedDurations[i] = null;
-
     } else {
-
       sanitizedDurations[i] = duration;
-
     }
-
   }
 
   if (unreliable.length === 0) {
-
     return { changed: false, message: "" };
-
   }
 
-  const reliableTotal = sanitizedDurations.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  const reliableTotal = sanitizedDurations.reduce(
+    (sum, value) => sum + (Number.isFinite(value) ? value : 0),
+    0
+  );
 
-  const remaining = Math.max(unreliable.length * 1, totalDuration - reliableTotal);
+  const remaining = Math.max(
+    unreliable.length * 1,
+    totalDuration - reliableTotal
+  );
 
-  const replacementDuration = Math.max(1, remaining / unreliable.length || fallbackDuration);
+  const replacementDuration = Math.max(
+    1,
+    remaining / unreliable.length || fallbackDuration
+  );
 
   for (const index of unreliable) {
-
     sanitizedDurations[index] = replacementDuration;
-
   }
 
   const sanitizedStarts = [];
@@ -4731,43 +5320,37 @@ function sanitizeProjectBlockTimings(projDir) {
   let cursor = 0;
 
   for (let i = 0; i < blockCount; i++) {
-
     sanitizedStarts.push(Number(cursor.toFixed(3)));
 
-    sanitizedDurations[i] = Number(Math.max(0.5, sanitizedDurations[i]).toFixed(3));
+    sanitizedDurations[i] = Number(
+      Math.max(0.5, sanitizedDurations[i]).toFixed(3)
+    );
 
     cursor += sanitizedDurations[i];
-
   }
 
   const sanitized = {
-
     ...timings,
 
     starts: sanitizedStarts,
 
     durations: sanitizedDurations,
 
-    total_duration: Number(cursor.toFixed(3))
-
+    total_duration: Number(cursor.toFixed(3)),
   };
 
   fs.writeFileSync(timingsPath, JSON.stringify(sanitized, null, 2), "utf8");
 
   return {
-
     changed: true,
 
-    message: `block_timings corrigido: ${unreliable.length} bloco(s) com tempo invalido ou fora de ordem.`
-
+    message: `block_timings corrigido: ${unreliable.length} bloco(s) com tempo invalido ou fora de ordem.`,
   };
-
 }
 
 // Helper: Detect, search, download and map sound effects (SFX) based on storyboard keywords
 
 async function ensureProjectSfxTracks(projDir) {
-
   const token = getEpidemicSoundKey(projDir) || "";
 
   ensureProjectSfxPack(projDir);
@@ -4786,7 +5369,12 @@ async function ensureProjectSfxTracks(projDir) {
       const sfxs = await searchSoundEffects(token, pack.term);
       if (sfxs && sfxs.length > 0) {
         console.log(`[SFX Pack] Baixando ${pack.file} (${sfxs[0].title})...`);
-        await downloadSoundEffect(token, sfxs[0].id, packPath, sfxs[0].previewUrl);
+        await downloadSoundEffect(
+          token,
+          sfxs[0].id,
+          packPath,
+          sfxs[0].previewUrl
+        );
       }
     } catch (err) {
       console.warn(`[SFX Pack] Falha ao baixar ${pack.file}:`, err.message);
@@ -4798,11 +5386,11 @@ async function ensureProjectSfxTracks(projDir) {
   const timingsPath = path.join(projDir, "block_timings.json");
 
   if (!fs.existsSync(storyboardPath) || !fs.existsSync(timingsPath)) {
-
-    console.log("[SFX Auto-Fetch] storyboard.json ou block_timings.json ausente. Pulando SFX.");
+    console.log(
+      "[SFX Auto-Fetch] storyboard.json ou block_timings.json ausente. Pulando SFX."
+    );
 
     return;
-
   }
 
   let storyboard = {};
@@ -4810,17 +5398,13 @@ async function ensureProjectSfxTracks(projDir) {
   let timings = {};
 
   try {
-
     storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
 
     timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
-
   } catch (e) {
-
     console.error("[SFX Auto-Fetch] Erro ao ler arquivos:", e.message);
 
     return;
-
   }
 
   const starts = [0.0].concat(timings.starts || []);
@@ -4836,37 +5420,40 @@ async function ensureProjectSfxTracks(projDir) {
   const whooshPath = path.join(projDir, whooshFile);
 
   if (!fs.existsSync(whooshPath)) {
-
     try {
-
       console.log("[SFX Auto-Fetch] Buscando transição whoosh...");
 
-      const sfxs = await searchSoundEffects(token, "cinematic whoosh transition");
+      const sfxs = await searchSoundEffects(
+        token,
+        "cinematic whoosh transition"
+      );
 
       if (sfxs && sfxs.length > 0) {
+        console.log(
+          `[SFX Auto-Fetch] Baixando ${sfxs[0].title} para transições...`
+        );
 
-        console.log(`[SFX Auto-Fetch] Baixando ${sfxs[0].title} para transições...`);
-
-        await downloadSoundEffect(token, sfxs[0].id, whooshPath, sfxs[0].previewUrl);
-
+        await downloadSoundEffect(
+          token,
+          sfxs[0].id,
+          whooshPath,
+          sfxs[0].previewUrl
+        );
       }
-
     } catch (err) {
-
-      console.error("[SFX Auto-Fetch] Falha ao baixar transição whoosh:", err.message);
-
+      console.error(
+        "[SFX Auto-Fetch] Falha ao baixar transição whoosh:",
+        err.message
+      );
     }
-
   }
 
   // Map whoosh transitions (peaks at start of each block transition, starting from block 2)
 
   if (fs.existsSync(whooshPath)) {
-
     let lastWhooshTime = -999.0;
 
     for (let i = 1; i < starts.length; i++) {
-
       const blockTime = starts[i];
 
       const targetTime = Math.max(0, blockTime - 1.0);
@@ -4874,49 +5461,95 @@ async function ensureProjectSfxTracks(projDir) {
       // Enforce a minimum cooldown of 6.0 seconds between transitions
 
       if (targetTime - lastWhooshTime >= 6.0) {
-
         sfxEvents.push({
-
           time: targetTime,
 
           file: whooshFile,
 
-          volume: 0.06 // Highly subtle volume (was 0.18)
-
+          volume: 0.06, // Highly subtle volume (was 0.18)
         });
 
         lastWhooshTime = targetTime;
-
       } else {
-
-        console.log(`[SFX Auto-Fetch] Ignorando transição do bloco ${i + 1} devido a proximidade temporal (cooldown de 6.0s)`);
-
+        console.log(
+          `[SFX Auto-Fetch] Ignorando transição do bloco ${i + 1} devido a proximidade temporal (cooldown de 6.0s)`
+        );
       }
-
     }
-
   }
 
   // 2. Thematic SFX mapping rules with optimized low volumes (reduced by half/more)
 
   const sfxRules = [
+    {
+      keywords: ["terremoto", "tremor", "sismo", "chão tremer", "earthquake"],
+      term: "earthquake rumble",
+      file: "sfx_earthquake.mp3",
+      volume: 0.08,
+    },
 
-    { keywords: ["terremoto", "tremor", "sismo", "chão tremer", "earthquake"], term: "earthquake rumble", file: "sfx_earthquake.mp3", volume: 0.08 },
+    {
+      keywords: ["vento", "sopro", "wind", "tempestade", "deserto", "oasis"],
+      term: "desert wind loop",
+      file: "sfx_wind.mp3",
+      volume: 0.04,
+    },
 
-    { keywords: ["vento", "sopro", "wind", "tempestade", "deserto", "oasis"], term: "desert wind loop", file: "sfx_wind.mp3", volume: 0.04 },
+    {
+      keywords: [
+        "metal",
+        "bronze",
+        "vaso",
+        "jarro",
+        "dragões de bronze",
+        "metal ball",
+      ],
+      term: "metal resonance drop",
+      file: "sfx_metal_drop.mp3",
+      volume: 0.06,
+    },
 
-    { keywords: ["metal", "bronze", "vaso", "jarro", "dragões de bronze", "metal ball"], term: "metal resonance drop", file: "sfx_metal_drop.mp3", volume: 0.06 },
+    {
+      keywords: ["dragão", "dragao", "dragon"],
+      term: "creature growl roar",
+      file: "sfx_dragon.mp3",
+      volume: 0.06,
+    },
 
-    { keywords: ["dragão", "dragao", "dragon"], term: "creature growl roar", file: "sfx_dragon.mp3", volume: 0.06 },
+    {
+      keywords: ["sapo", "toad", "frog"],
+      term: "frog croak",
+      file: "sfx_frog.mp3",
+      volume: 0.05,
+    },
 
-    { keywords: ["sapo", "toad", "frog"], term: "frog croak", file: "sfx_frog.mp3", volume: 0.05 },
+    {
+      keywords: ["cavalo", "horse", "galope", "mensageiro"],
+      term: "horse gallop fast",
+      file: "sfx_horse.mp3",
+      volume: 0.05,
+    },
 
-    { keywords: ["cavalo", "horse", "galope", "mensageiro"], term: "horse gallop fast", file: "sfx_horse.mp3", volume: 0.05 },
+    {
+      keywords: ["rir", "riram", "oficiais riram", "laugh", "laughing"],
+      term: "man chuckle laugh",
+      file: "sfx_laugh.mp3",
+      volume: 0.04,
+    },
 
-    { keywords: ["rir", "riram", "oficiais riram", "laugh", "laughing"], term: "man chuckle laugh", file: "sfx_laugh.mp3", volume: 0.04 },
-
-    { keywords: ["caiu", "queda", "queda da esfera", "impact", "fall", "impacto"], term: "heavy impact hit", file: "sfx_impact.mp3", volume: 0.07 }
-
+    {
+      keywords: [
+        "caiu",
+        "queda",
+        "queda da esfera",
+        "impact",
+        "fall",
+        "impacto",
+      ],
+      term: "heavy impact hit",
+      file: "sfx_impact.mp3",
+      volume: 0.07,
+    },
   ];
 
   // Scan visual prompts for keywords
@@ -4924,102 +5557,111 @@ async function ensureProjectSfxTracks(projDir) {
   let lastThematicSfxTime = -999.0;
 
   for (const vp of visualPrompts) {
-
     const blockNum = Number(vp.block || 1);
 
     if (blockNum > starts.length) continue;
 
     const blockStart = starts[blockNum - 1];
 
-    const contextText = `${vp.narration_text || ""} ${vp.prompt || ""} ${vp.editor_notes || ""}`.toLowerCase();
+    const contextText =
+      `${vp.narration_text || ""} ${vp.prompt || ""} ${vp.editor_notes || ""}`.toLowerCase();
 
     for (const rule of sfxRules) {
-
-      const matches = rule.keywords.some(kw => contextText.includes(kw));
+      const matches = rule.keywords.some((kw) => contextText.includes(kw));
 
       if (matches) {
-
         const destPath = path.join(projDir, rule.file);
 
         if (!fs.existsSync(destPath)) {
-
           try {
-
-            console.log(`[SFX Auto-Fetch] Bloco ${blockNum} combina com "${rule.term}". Buscando SFX...`);
+            console.log(
+              `[SFX Auto-Fetch] Bloco ${blockNum} combina com "${rule.term}". Buscando SFX...`
+            );
 
             const sfxs = await searchSoundEffects(token, rule.term);
 
             if (sfxs && sfxs.length > 0) {
+              console.log(
+                `[SFX Auto-Fetch] Baixando ${sfxs[0].title} para ${rule.file}...`
+              );
 
-              console.log(`[SFX Auto-Fetch] Baixando ${sfxs[0].title} para ${rule.file}...`);
-
-              await downloadSoundEffect(token, sfxs[0].id, destPath, sfxs[0].previewUrl);
-
+              await downloadSoundEffect(
+                token,
+                sfxs[0].id,
+                destPath,
+                sfxs[0].previewUrl
+              );
             }
-
           } catch (err) {
-
-            console.error(`[SFX Auto-Fetch] Falha ao baixar SFX para ${rule.term}:`, err.message);
-
+            console.error(
+              `[SFX Auto-Fetch] Falha ao baixar SFX para ${rule.term}:`,
+              err.message
+            );
           }
-
         }
 
         if (fs.existsSync(destPath)) {
-
           // Prevent overlapping: 8s cooldown with other thematic, and 3s distance from any whoosh
 
-          const tooCloseToOtherThematic = Math.abs(blockStart - lastThematicSfxTime) < 8.0;
+          const tooCloseToOtherThematic =
+            Math.abs(blockStart - lastThematicSfxTime) < 8.0;
 
-          const tooCloseToWhoosh = sfxEvents.some(evt => evt.file === whooshFile && Math.abs(evt.time - blockStart) < 3.0);
+          const tooCloseToWhoosh = sfxEvents.some(
+            (evt) =>
+              evt.file === whooshFile && Math.abs(evt.time - blockStart) < 3.0
+          );
 
           if (!tooCloseToOtherThematic && !tooCloseToWhoosh) {
-
             sfxEvents.push({
-
               time: blockStart,
 
               file: rule.file,
 
-              volume: rule.volume
-
+              volume: rule.volume,
             });
 
             lastThematicSfxTime = blockStart;
 
-            console.log(`[SFX Auto-Fetch] Bloco ${blockNum} sonoplastia mapeada: ${rule.file} em ${blockStart}s (vol=${rule.volume})`);
-
+            console.log(
+              `[SFX Auto-Fetch] Bloco ${blockNum} sonoplastia mapeada: ${rule.file} em ${blockStart}s (vol=${rule.volume})`
+            );
           } else {
-
-            console.log(`[SFX Auto-Fetch] Ignorando SFX temático ${rule.file} no bloco ${blockNum} para evitar sobreposição ou alta frequência (cooldown)`);
-
+            console.log(
+              `[SFX Auto-Fetch] Ignorando SFX temático ${rule.file} no bloco ${blockNum} para evitar sobreposição ou alta frequência (cooldown)`
+            );
           }
-
         }
 
         break; // Max 1 thematic SFX per block
-
       }
-
     }
-
-  }  // Write map to sfx_timeline.json
+  } // Write map to sfx_timeline.json
 
   const sfxTimelinePath = path.join(projDir, "sfx_timeline.json");
 
-  fs.writeFileSync(sfxTimelinePath, JSON.stringify({ sfx_events: sfxEvents }, null, 2), "utf8");
+  fs.writeFileSync(
+    sfxTimelinePath,
+    JSON.stringify({ sfx_events: sfxEvents }, null, 2),
+    "utf8"
+  );
 
-  console.log(`[SFX Auto-Fetch] Timeline de sonoplastia salva em ${sfxTimelinePath} com ${sfxEvents.length} eventos.`);
-
+  console.log(
+    `[SFX Auto-Fetch] Timeline de sonoplastia salva em ${sfxTimelinePath} com ${sfxEvents.length} eventos.`
+  );
 }
 
 // Planeja overlays via Gemini no Chrome (obrigatório quando gemini_browser_mode) ou API
 function countProjectPlannedOverlays(storyboard = {}) {
-  if (Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0) {
+  if (
+    Array.isArray(storyboard.overlays_ai) &&
+    storyboard.overlays_ai.length > 0
+  ) {
     return storyboard.overlays_ai.length;
   }
   if (Array.isArray(storyboard.overlays) && storyboard.overlays.length > 0) {
-    return storyboard.overlays.filter((o) => o && o.id && !String(o.id).startsWith("sys-")).length;
+    return storyboard.overlays.filter(
+      (o) => o && o.id && !String(o.id).startsWith("sys-")
+    ).length;
   }
   return 0;
 }
@@ -5034,7 +5676,9 @@ function overlayPlanSessionMatches(llmText, expectedSessionId) {
   if (text.includes(expectedSessionId)) return true;
   // Gemini frequentemente omite plan_session — aceita JSON novo com overlays válidos.
   if (/"overlays"\s*:\s*\[[\s\S]*?\{/.test(text) && text.length > 400) {
-    console.warn("[Plan Overlays] plan_session ausente na resposta — aceitando JSON com overlays.");
+    console.warn(
+      "[Plan Overlays] plan_session ausente na resposta — aceitando JSON com overlays."
+    );
     return true;
   }
   return false;
@@ -5049,11 +5693,15 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     // Check if overlays were already planned — skip AI if they exist
     if (!forceRegenerate) {
       const existingSb = readProjectJson(projDir, "storyboard.json", {});
-      const existingOverlays = Array.isArray(existingSb.overlays_ai) && existingSb.overlays_ai.length > 0
-        ? existingSb.overlays_ai
-        : (Array.isArray(existingSb.overlays) && existingSb.overlays.length > 0
-          ? existingSb.overlays.filter(o => o && o.id && !String(o.id).startsWith("sys-"))
-          : []);
+      const existingOverlays =
+        Array.isArray(existingSb.overlays_ai) &&
+        existingSb.overlays_ai.length > 0
+          ? existingSb.overlays_ai
+          : Array.isArray(existingSb.overlays) && existingSb.overlays.length > 0
+            ? existingSb.overlays.filter(
+                (o) => o && o.id && !String(o.id).startsWith("sys-")
+              )
+            : [];
 
       if (existingOverlays.length > 0) {
         const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -5061,8 +5709,14 @@ app.post("/api/render/plan-overlays", async (req, res) => {
         existingSb.overlays_ai = JSON.parse(JSON.stringify(existingOverlays));
         existingSb.overlays_plan_token = planToken;
         existingSb.overlays_planned_at = plannedAt;
-        fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(existingSb, null, 2), "utf8");
-        console.log(`[Plan Overlays] Overlays já existem (${existingOverlays.length} itens, token=${planToken}) — pulando chamada à IA.`);
+        fs.writeFileSync(
+          path.join(projDir, "storyboard.json"),
+          JSON.stringify(existingSb, null, 2),
+          "utf8"
+        );
+        console.log(
+          `[Plan Overlays] Overlays já existem (${existingOverlays.length} itens, token=${planToken}) — pulando chamada à IA.`
+        );
         return res.json({
           success: true,
           overlayCount: existingOverlays.length,
@@ -5078,82 +5732,144 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
     const browserTextRaw = extractBrowserResponse(req.body);
     const browserText = browserTextRaw
-      ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw)
+      ? extractOverlayJsonPayload(browserTextRaw) || browserTextRaw
       : null;
-    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
-    const expectedPlanSession = String(req.body?.plan_session_id || "").trim() || null;
+    const forceBrowser =
+      req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const expectedPlanSession =
+      String(req.body?.plan_session_id || "").trim() || null;
 
     let llmText = browserText;
     if (!llmText) {
       const planSessionId = createOverlayPlanSessionId();
-      const configForResearch = readProjectJson(projDir, "config_qanat.json", {});
-      const timingsForResearch = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
+      const configForResearch = readProjectJson(
+        projDir,
+        "config_qanat.json",
+        {}
+      );
+      const timingsForResearch = readProjectJson(
+        projDir,
+        "block_timings.json",
+        { total_duration: 0 }
+      );
       const orchestrationForResearch = buildOverlayOrchestrationPlan({
         config: configForResearch,
         niche: configForResearch.niche || "Geral",
         totalDuration: Number(timingsForResearch.total_duration) || 0,
         projectName: path.basename(projDir),
-        blockCount: Array.isArray(configForResearch.block_phrases) ? configForResearch.block_phrases.length : 0,
+        blockCount: Array.isArray(configForResearch.block_phrases)
+          ? configForResearch.block_phrases.length
+          : 0,
       });
-      const overlayResearch = await resolveOverlayResearchForPlanning(projDir, WORKSPACE_DIR, {
-        forceRefresh: forceRegenerate,
-        orchestrationPlan: orchestrationForResearch,
-      });
+      const overlayResearch = await resolveOverlayResearchForPlanning(
+        projDir,
+        WORKSPACE_DIR,
+        {
+          forceRefresh: forceRegenerate,
+          orchestrationPlan: orchestrationForResearch,
+        }
+      );
       const researchAddendum = buildOverlayResearchPromptBlock(overlayResearch);
-      const prompt = buildCompactOverlayPlanningPrompt(projDir, useHyperframes, planSessionId, researchAddendum, overlayResearch);
+      const prompt = buildCompactOverlayPlanningPrompt(
+        projDir,
+        useHyperframes,
+        planSessionId,
+        researchAddendum,
+        overlayResearch
+      );
       if (!prompt) {
-        return res.status(400).json({ error: "Projeto sem blocos de narração para planejar overlays." });
+        return res
+          .status(400)
+          .json({
+            error: "Projeto sem blocos de narração para planejar overlays.",
+          });
       }
 
       if (forceBrowser) {
-        const title = useHyperframes ? "Planejar overlays HyperFrames AI" : "Planejar overlays do vídeo";
-        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "overlay", responseFormat: "json" });
-        console.log(`[Plan Overlays] Aguardando resposta do Gemini no Chrome (sessão ${planSessionId}).`);
-        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText, planSessionId }));
+        const title = useHyperframes
+          ? "Planejar overlays HyperFrames AI"
+          : "Planejar overlays do vídeo";
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", {
+          taskType: "overlay",
+          responseFormat: "json",
+        });
+        console.log(
+          `[Plan Overlays] Aguardando resposta do Gemini no Chrome (sessão ${planSessionId}).`
+        );
+        return res.json(
+          offerGeminiBrowserPayload({
+            title,
+            prompt: promptText,
+            planSessionId,
+          })
+        );
       }
 
       const apiKey = getApiKey(projDir);
       if (!apiKey) {
         return res.status(401).json({
-          error: "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+          error:
+            "Sem chave API. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
         });
       }
-      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.35, projectDir: projDir });
+      llmText = await callGeminiWithRetry(apiKey, prompt, {
+        temperature: 0.35,
+        projectDir: projDir,
+      });
       if (!llmText) {
-        return res.status(500).json({ error: "Falha ao consultar Gemini API para overlays." });
+        return res
+          .status(500)
+          .json({ error: "Falha ao consultar Gemini API para overlays." });
       }
     }
 
-    if (expectedPlanSession && !overlayPlanSessionMatches(llmText, expectedPlanSession)) {
-      console.warn(`[Plan Overlays] Sessão inválida — esperado ${expectedPlanSession}, resposta rejeitada (provável JSON antigo do Chrome).`);
+    if (
+      expectedPlanSession &&
+      !overlayPlanSessionMatches(llmText, expectedPlanSession)
+    ) {
+      console.warn(
+        `[Plan Overlays] Sessão inválida — esperado ${expectedPlanSession}, resposta rejeitada (provável JSON antigo do Chrome).`
+      );
       return res.status(422).json({
-        error: "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com e tente o render de novo.",
+        error:
+          "Resposta do Gemini desatualizada. Aguarde a nova resposta na aba gemini.google.com e tente o render de novo.",
         overlayCount: 0,
         staleResponse: true,
       });
     }
 
-    const overlaysAi = await generateOverlaysWithAI(projDir, useHyperframes, null, {}, {
-      llmText,
-      skipBrowserCache: true,
-      planningOnly: true,
-    });
+    const overlaysAi = await generateOverlaysWithAI(
+      projDir,
+      useHyperframes,
+      null,
+      {},
+      {
+        llmText,
+        skipBrowserCache: true,
+        planningOnly: true,
+      }
+    );
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
-    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const blockPhrases = Array.isArray(config.block_phrases)
+      ? config.block_phrases
+      : [];
     const cleanedAi = filterNarrationEchoOverlays(
       Array.isArray(overlaysAi) ? overlaysAi : [],
-      blockPhrases,
+      blockPhrases
     );
 
     const rawCount = Array.isArray(overlaysAi) ? overlaysAi.length : 0;
-    console.log(`[Plan Overlays] Gemini retornou ${rawCount} overlay(s); após validação: ${cleanedAi.length}.`);
+    console.log(
+      `[Plan Overlays] Gemini retornou ${rawCount} overlay(s); após validação: ${cleanedAi.length}.`
+    );
 
     if (cleanedAi.length === 0) {
       return res.status(422).json({
-        error: rawCount > 0
-          ? "Gemini respondeu, mas os overlays foram descartados (formato inválido ou texto igual à narração). Tente novamente no Chrome."
-          : "Gemini não retornou JSON de overlays. Confira a aba gemini.google.com e tente de novo.",
+        error:
+          rawCount > 0
+            ? "Gemini respondeu, mas os overlays foram descartados (formato inválido ou texto igual à narração). Tente novamente no Chrome."
+            : "Gemini não retornou JSON de overlays. Confira a aba gemini.google.com e tente de novo.",
         overlayCount: 0,
         rawCount,
       });
@@ -5161,26 +5877,38 @@ app.post("/api/render/plan-overlays", async (req, res) => {
 
     const planToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    storyboard.overlays_ai = repairOverlaysEncoding(JSON.parse(JSON.stringify(cleanedAi)));
+    storyboard.overlays_ai = repairOverlaysEncoding(
+      JSON.parse(JSON.stringify(cleanedAi))
+    );
     storyboard.overlays_hyperframes = useHyperframes;
     storyboard.overlays_planned_at = new Date().toISOString();
     storyboard.overlays_plan_token = planToken;
     const overlayResearchMeta = storyboard.overlays_research || null;
 
-    const timingsForPlan = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const timingsForPlan = readProjectJson(projDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
     const configForPlan = readProjectJson(projDir, "config_qanat.json", {});
-    const wordTranscriptsPlan = readProjectJson(projDir, "word_transcripts.json", []);
-    const totalDurPlan = Number(timingsForPlan.total_duration)
-      || (timingsForPlan.starts?.length && timingsForPlan.durations?.length
-        ? Number(timingsForPlan.starts[timingsForPlan.starts.length - 1])
-          + Number(timingsForPlan.durations[timingsForPlan.durations.length - 1])
+    const wordTranscriptsPlan = readProjectJson(
+      projDir,
+      "word_transcripts.json",
+      []
+    );
+    const totalDurPlan =
+      Number(timingsForPlan.total_duration) ||
+      (timingsForPlan.starts?.length && timingsForPlan.durations?.length
+        ? Number(timingsForPlan.starts[timingsForPlan.starts.length - 1]) +
+          Number(timingsForPlan.durations[timingsForPlan.durations.length - 1])
         : 48);
     const planForTiming = buildOverlayOrchestrationPlan({
       config: configForPlan,
       niche: configForPlan.niche || "Geral",
       totalDuration: totalDurPlan,
       projectName: path.basename(projDir),
-      blockCount: Array.isArray(timingsForPlan.starts) ? timingsForPlan.starts.length : 0,
+      blockCount: Array.isArray(timingsForPlan.starts)
+        ? timingsForPlan.starts.length
+        : 0,
     });
 
     // Align and finalize planned overlays immediately
@@ -5193,9 +5921,9 @@ app.post("/api/render/plan-overlays", async (req, res) => {
           timingsForPlan.starts || [],
           timingsForPlan.durations || [],
           wordTranscriptsPlan,
-          configForPlan,
-        ),
-      ),
+          configForPlan
+        )
+      )
     );
 
     const finalized = finalizeProjectOverlays(
@@ -5206,29 +5934,49 @@ app.post("/api/render/plan-overlays", async (req, res) => {
       timingsForPlan.starts || [],
       timingsForPlan.durations || [],
       planForTiming,
-      totalDurPlan,
+      totalDurPlan
     );
 
     storyboard.overlays = finalized;
 
-    const sceneMapsPlan = buildSceneTimingMaps(null, storyboard, timingsForPlan.starts || [], timingsForPlan.durations || []);
-    const preparedForTiming = resolveOverlaysForTimingCheck(storyboard, timingsForPlan);
-    const { report: planTimingReport } = verifyAndRepairAiOverlayTiming(preparedForTiming, {
-      starts: timingsForPlan.starts || [],
-      durations: timingsForPlan.durations || [],
-      sceneStarts: sceneMapsPlan.sceneStarts,
-      sceneDurations: sceneMapsPlan.sceneDurations,
-      wordTranscripts: wordTranscriptsPlan,
-      totalDuration: totalDurPlan,
-      plan: planForTiming,
-      repair: false,
-    });
-    storyboard.overlay_timing_report = { ...planTimingReport, source: "planned" };
+    const sceneMapsPlan = buildSceneTimingMaps(
+      null,
+      storyboard,
+      timingsForPlan.starts || [],
+      timingsForPlan.durations || []
+    );
+    const preparedForTiming = resolveOverlaysForTimingCheck(
+      storyboard,
+      timingsForPlan
+    );
+    const { report: planTimingReport } = verifyAndRepairAiOverlayTiming(
+      preparedForTiming,
+      {
+        starts: timingsForPlan.starts || [],
+        durations: timingsForPlan.durations || [],
+        sceneStarts: sceneMapsPlan.sceneStarts,
+        sceneDurations: sceneMapsPlan.sceneDurations,
+        wordTranscripts: wordTranscriptsPlan,
+        totalDuration: totalDurPlan,
+        plan: planForTiming,
+        repair: false,
+      }
+    );
+    storyboard.overlay_timing_report = {
+      ...planTimingReport,
+      source: "planned",
+    };
 
     const cleanSbPlan = repairStoryboardEncoding(storyboard);
-    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(cleanSbPlan, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projDir, "storyboard.json"),
+      JSON.stringify(cleanSbPlan, null, 2),
+      "utf8"
+    );
 
-    console.log(`[Plan Overlays] Concluído: ${cleanedAi.length} overlays, token=${planToken}`);
+    console.log(
+      `[Plan Overlays] Concluído: ${cleanedAi.length} overlays, token=${planToken}`
+    );
 
     res.json({
       success: true,
@@ -5251,14 +5999,15 @@ app.post("/api/render/plan-overlays", async (req, res) => {
     });
   } catch (err) {
     console.error("[Plan Overlays]", err);
-    res.status(500).json({ error: err.message || "Falha ao planejar overlays." });
+    res
+      .status(500)
+      .json({ error: err.message || "Falha ao planejar overlays." });
   }
 });
 
 // API: Render videos streaming logs via Server-Sent Events (SSE)
 
 app.get("/api/render/:mode", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const mode = req.params.mode; // 'standard' or 'highlighted'
@@ -5278,65 +6027,50 @@ app.get("/api/render/:mode", async (req, res) => {
   // Heartbeat to keep connection alive during long renders/downloads
 
   const heartbeat = setInterval(() => {
-
     res.write(":\n\n");
-
   }, 15000);
 
   const cleanup = () => {
-
     clearInterval(heartbeat);
-
   };
 
   req.on("close", cleanup);
 
   const sendLog = (text) => {
-
     res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
-
   };
 
   const timingSanitization = sanitizeProjectBlockTimings(projDir);
 
   if (timingSanitization.message) {
-
     sendLog(`[Dashboard] ${timingSanitization.message}`);
-
   }
 
   // Pre-download missing BGM files from Epidemic Sound
 
   try {
-
     sendLog("[Dashboard] Verificando trilhas sonoras de fundo (BGM)...");
 
     await ensureProjectBgmTracks(projDir);
-
   } catch (err) {
-
     sendLog(`[BGM Auto-Fetch] Erro: ${err.message}`);
-
   }
 
   // Pre-download and map SFX
 
   try {
-
-    sendLog("[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)...");
+    sendLog(
+      "[Dashboard] Analisando roteiro para download de efeitos sonoros (SFX)..."
+    );
 
     await ensureProjectSfxTracks(projDir);
-
   } catch (err) {
-
     sendLog(`[SFX Auto-Fetch] Erro: ${err.message}`);
-
   }
 
   // Mix soundtrack
 
   try {
-
     const mixPrepLogs = await prepareBgmBeforeMix(projDir);
     for (const line of mixPrepLogs || []) sendLog(`[BGM Prep] ${line}`);
 
@@ -5345,107 +6079,121 @@ app.get("/api/render/:mode", async (req, res) => {
     ensureFileExists("mix_bgm.py", projDir);
 
     await new Promise((resolve) => {
-
       const mixProcess = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-
         cwd: projDir,
 
-        shell: true
-
+        shell: true,
       });
 
       mixProcess.stdout.on("data", (data) => {
-
         const lines = data.toString().split("\n");
 
         for (const line of lines) {
-
           const cleanLine = line.trim();
 
           if (cleanLine) sendLog(`[BGM Mixer] ${cleanLine}`);
-
         }
-
       });
 
       mixProcess.on("close", (code) => {
-
         if (code === 0) {
-
           sendLog("[BGM Mixer] Trilha final trilha_documentario.mp3 gerada!");
-
         } else {
-
-          sendLog("[BGM Mixer] Aviso: O mixador de BGM retornou código não-zero.");
-
+          sendLog(
+            "[BGM Mixer] Aviso: O mixador de BGM retornou código não-zero."
+          );
         }
 
         resolve();
-
       });
-
     });
-
   } catch (err) {
-
     sendLog(`[BGM Mixer] Erro: ${err.message}`);
-
   }
 
   if (mode === "remotion" || mode === "remotion-pro") {
-
     let child = null;
 
     try {
-
       if (req.query.require_overlay_plan === "1") {
         const storyboardGate = readProjectJson(projDir, "storyboard.json", {});
         const plannedAt = storyboardGate.overlays_planned_at
           ? new Date(storyboardGate.overlays_planned_at).getTime()
           : 0;
-        const planAgeMs = plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
+        const planAgeMs =
+          plannedAt > 0 ? Date.now() - plannedAt : Number.POSITIVE_INFINITY;
         const overlayCount = countProjectPlannedOverlays(storyboardGate);
         const reqToken = String(req.query.overlay_plan_token || "").trim();
-        const savedToken = String(storyboardGate.overlays_plan_token || "").trim();
+        const savedToken = String(
+          storyboardGate.overlays_plan_token || ""
+        ).trim();
         let tokenOk = reqToken && savedToken && reqToken === savedToken;
         const planMaxAgeMs = 30 * 60 * 1000;
 
         if (!tokenOk && reqToken && overlayCount >= 1) {
           storyboardGate.overlays_plan_token = reqToken;
           storyboardGate.overlays_planned_at = new Date().toISOString();
-          if (!Array.isArray(storyboardGate.overlays_ai) || !storyboardGate.overlays_ai.length) {
+          if (
+            !Array.isArray(storyboardGate.overlays_ai) ||
+            !storyboardGate.overlays_ai.length
+          ) {
             const fallback = countProjectPlannedOverlays(storyboardGate);
             if (fallback > 0 && Array.isArray(storyboardGate.overlays)) {
-              storyboardGate.overlays_ai = JSON.parse(JSON.stringify(
-                storyboardGate.overlays.filter((o) => o && o.id && !String(o.id).startsWith("sys-")),
-              ));
+              storyboardGate.overlays_ai = JSON.parse(
+                JSON.stringify(
+                  storyboardGate.overlays.filter(
+                    (o) => o && o.id && !String(o.id).startsWith("sys-")
+                  )
+                )
+              );
             }
           }
-          fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboardGate, null, 2), "utf8");
+          fs.writeFileSync(
+            path.join(projDir, "storyboard.json"),
+            JSON.stringify(storyboardGate, null, 2),
+            "utf8"
+          );
           tokenOk = true;
-          sendLog("[Remotion] Token de overlays sincronizado com o storyboard.");
+          sendLog(
+            "[Remotion] Token de overlays sincronizado com o storyboard."
+          );
         }
 
         if (overlayCount < 1 || planAgeMs > planMaxAgeMs || !tokenOk) {
-          sendLog("=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ===");
+          sendLog(
+            "=== ERRO: Planejamento de overlays obrigatório não concluído nesta sessão. ==="
+          );
           if (overlayCount < 1) {
-            sendLog("[Remotion] Nenhum overlay no storyboard. Clique em «Gerar overlays IA» ou aguarde o Gemini no Chrome.");
+            sendLog(
+              "[Remotion] Nenhum overlay no storyboard. Clique em «Gerar overlays IA» ou aguarde o Gemini no Chrome."
+            );
           } else if (!tokenOk) {
-            sendLog("[Remotion] Token de planejamento inválido — clique Render de novo após o Gemini concluir.");
+            sendLog(
+              "[Remotion] Token de planejamento inválido — clique Render de novo após o Gemini concluir."
+            );
           } else {
-            sendLog("[Remotion] Planejamento expirou (>30 min). Gere overlays novamente antes do render.");
+            sendLog(
+              "[Remotion] Planejamento expirou (>30 min). Gere overlays novamente antes do render."
+            );
           }
-          res.write(`data: ${JSON.stringify({ type: "failed", code: 2, reason: "overlay_plan_gate" })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({ type: "failed", code: 2, reason: "overlay_plan_gate" })}\n\n`
+          );
           res.end();
           cleanup();
           return;
         }
-        sendLog(`[Remotion] Overlays planejados validados (${overlayCount} itens, token OK, ${Math.round(planAgeMs / 1000)}s atrás).`);
+        sendLog(
+          `[Remotion] Overlays planejados validados (${overlayCount} itens, token OK, ${Math.round(planAgeMs / 1000)}s atrás).`
+        );
       }
 
-      sendLog("[Remotion] Preparando linha do tempo, assets, narração e legendas...");
+      sendLog(
+        "[Remotion] Preparando linha do tempo, assets, narração e legendas..."
+      );
 
-      const isProres = req.query.prores === "1" || req.query.transparent === "1";
+      const isProres =
+        req.query.prores === "1" || req.query.transparent === "1";
       const useHyperframes = req.query.hyperframes === "1";
       const isSample = req.query.sample === "1";
       const previewSecs = isSample
@@ -5453,49 +6201,75 @@ app.get("/api/render/:mode", async (req, res) => {
         : Math.min(60, Math.max(0, Number(req.query.preview) || 0));
       const resolution = resolveRenderResolution(req);
       if (isSample) {
-        sendLog(`[Remotion] Modo amostra OpenMontage: ${previewSecs}s (gancho + 1 cena).`);
+        sendLog(
+          `[Remotion] Modo amostra OpenMontage: ${previewSecs}s (gancho + 1 cena).`
+        );
       }
       if (useHyperframes) {
         sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
       }
-      const renderPlan = await prepareRemotionRender(projDir, isProres, useHyperframes, {
-        previewDuration: previewSecs > 0 ? previewSecs : undefined,
-        resolution,
-        sampleRender: isSample,
-      });
+      const renderPlan = await prepareRemotionRender(
+        projDir,
+        isProres,
+        useHyperframes,
+        {
+          previewDuration: previewSecs > 0 ? previewSecs : undefined,
+          resolution,
+          sampleRender: isSample,
+        }
+      );
       if (resolution === "2k") {
         sendLog("[Remotion] Resolução 2K ativada (2560×1440 ou 1440×2560).");
       }
 
       sendLog(`[PROGRESSO] 10%`);
 
-      sendLog(`[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`);
+      sendLog(
+        `[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`
+      );
 
-      const infoCount = renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
+      const infoCount =
+        renderPlan.informativeOverlayCount ?? renderPlan.overlayCount ?? 0;
       const totalOv = renderPlan.overlayCount ?? 0;
-      sendLog(`[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`);
+      sendLog(
+        `[Remotion] ${infoCount} overlays informativos na timeline${totalOv !== infoCount ? ` (${totalOv} no total com HUD/sistema)` : ""}.`
+      );
       const timingReport = renderPlan.overlayTimingReport;
       if (timingReport?.entries?.length) {
         for (const entry of timingReport.entries) {
-          const icon = entry.status === "ok" ? "✓" : entry.status === "repaired" ? "↻" : "!";
+          const icon =
+            entry.status === "ok"
+              ? "✓"
+              : entry.status === "repaired"
+                ? "↻"
+                : "!";
           sendLog(
-            `[Overlays Timing] ${icon} ${entry.id} @ ${entry.startSec?.toFixed(1)}s`
-            + `${entry.plannedScene ? ` (cena ${entry.plannedScene})` : ""}`
-            + ` — ${entry.message || entry.status}`,
+            `[Overlays Timing] ${icon} ${entry.id} @ ${entry.startSec?.toFixed(1)}s` +
+              `${entry.plannedScene ? ` (cena ${entry.plannedScene})` : ""}` +
+              ` — ${entry.message || entry.status}`
           );
         }
       }
 
-      sendLog(`[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`);
+      sendLog(
+        `[Remotion] ${renderPlan.sfxCount || 0} efeitos sonoros mapeados.`
+      );
 
-      sendLog(`[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM — modo ${renderPlan.bgmMode || "none"} (${renderPlan.bgmSource || "none"}).`);
+      sendLog(
+        `[Remotion] ${renderPlan.bgmTrackCount || 0} faixas BGM — modo ${renderPlan.bgmMode || "none"} (${renderPlan.bgmSource || "none"}).`
+      );
       if (Array.isArray(renderPlan.bgmTrackSummary)) {
         for (const line of renderPlan.bgmTrackSummary) {
           sendLog(`[Remotion BGM] ${line}`);
         }
       }
-      if (renderPlan.bgmMode === "emotion" && (renderPlan.bgmTrackCount || 0) === 0) {
-        sendLog("[Remotion BGM] AVISO: modo emoção sem faixas no render — verifique mapeamentos na aba Trilha BGM.");
+      if (
+        renderPlan.bgmMode === "emotion" &&
+        (renderPlan.bgmTrackCount || 0) === 0
+      ) {
+        sendLog(
+          "[Remotion BGM] AVISO: modo emoção sem faixas no render — verifique mapeamentos na aba Trilha BGM."
+        );
       }
       if (Array.isArray(renderPlan.sonoplastiaLog)) {
         for (const line of renderPlan.sonoplastiaLog) {
@@ -5503,10 +6277,13 @@ app.get("/api/render/:mode", async (req, res) => {
         }
       }
 
-      sendLog(`[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`);
+      sendLog(
+        `[Remotion] Duração estimada: ${renderPlan.totalDuration.toFixed(1)}s`
+      );
 
       const remotionTimeoutMs = 180000;
-      const heavyRender = resolution === "2k" || (renderPlan.totalDuration || 0) > 60;
+      const heavyRender =
+        resolution === "2k" || (renderPlan.totalDuration || 0) > 60;
 
       const remotionArgs = [
         "remotion",
@@ -5524,32 +6301,32 @@ app.get("/api/render/:mode", async (req, res) => {
 
       if (heavyRender) {
         remotionArgs.push("--concurrency", "4");
-        sendLog(`[Remotion] Timeout ${remotionTimeoutMs / 1000}s, concurrency=4 (render pesado).`);
+        sendLog(
+          `[Remotion] Timeout ${remotionTimeoutMs / 1000}s, concurrency=4 (render pesado).`
+        );
       } else {
         sendLog(`[Remotion] Timeout ${remotionTimeoutMs / 1000}s.`);
       }
 
       if (previewSecs > 0) {
         remotionArgs.push("--frames", String(Math.ceil(previewSecs * 30)));
-        sendLog(`[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`);
+        sendLog(
+          `[Remotion] Preview de ${previewSecs}s (${Math.ceil(previewSecs * 30)} frames)`
+        );
       }
 
       child = spawn("npx", remotionArgs, {
-
         cwd: REMOTION_DIR,
 
         shell: true,
 
-        env: { ...process.env }
-
+        env: { ...process.env },
       });
 
       child.stdout.on("data", (data) => {
-
         const text = data.toString().trim();
 
         if (text) {
-
           const lines = text.split(/\r?\n/);
 
           for (const line of lines) {
@@ -5557,7 +6334,10 @@ app.get("/api/render/:mode", async (req, res) => {
 
             const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
             if (progressMatch) {
-              const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
+              const pct = Math.min(
+                99,
+                Math.max(10, Math.round(Number(progressMatch[1])))
+              );
               sendLog(`[PROGRESSO] ${pct}%`);
             }
 
@@ -5566,22 +6346,21 @@ app.get("/api/render/:mode", async (req, res) => {
               const renderedFrames = parseInt(remotionMatch[1], 10);
               const totalFrames = parseInt(remotionMatch[2], 10);
               if (totalFrames > 0) {
-                const pct = Math.min(99, Math.max(10, Math.round((renderedFrames / totalFrames) * 100)));
+                const pct = Math.min(
+                  99,
+                  Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
+                );
                 sendLog(`[PROGRESSO] ${pct}%`);
               }
             }
           }
-
         }
-
       });
 
       child.stderr.on("data", (data) => {
-
         const text = data.toString().trim();
 
         if (text) {
-
           const lines = text.split(/\r?\n/);
 
           for (const line of lines) {
@@ -5589,7 +6368,10 @@ app.get("/api/render/:mode", async (req, res) => {
 
             const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
             if (progressMatch) {
-              const pct = Math.min(99, Math.max(10, Math.round(Number(progressMatch[1]))));
+              const pct = Math.min(
+                99,
+                Math.max(10, Math.round(Number(progressMatch[1])))
+              );
               sendLog(`[PROGRESSO] ${pct}%`);
             }
 
@@ -5598,69 +6380,60 @@ app.get("/api/render/:mode", async (req, res) => {
               const renderedFrames = parseInt(remotionMatch[1], 10);
               const totalFrames = parseInt(remotionMatch[2], 10);
               if (totalFrames > 0) {
-                const pct = Math.min(99, Math.max(10, Math.round((renderedFrames / totalFrames) * 100)));
+                const pct = Math.min(
+                  99,
+                  Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
+                );
                 sendLog(`[PROGRESSO] ${pct}%`);
               }
             }
           }
-
         }
-
       });
 
       child.on("close", (code) => {
-
         if (code === 0) {
-
           sendLog("[PROGRESSO] 100%");
 
           sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
 
           const postClean = purgeRemotionPublicProjectCache();
           if (postClean.freedMb > 0) {
-            sendLog(`[Remotion] Cache temporário removido (~${postClean.freedMb} MB liberados).`);
+            sendLog(
+              `[Remotion] Cache temporário removido (~${postClean.freedMb} MB liberados).`
+            );
           }
 
           res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
-
         } else {
-
           res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
-
         }
         cleanup();
         res.end();
-
       });
-
     } catch (err) {
-
       sendLog(`[ERRO] ${err.message}`);
 
       res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
       cleanup();
       res.end();
-
     }
 
     req.on("close", () => {
-
       if (child) child.kill();
-
     });
 
     return;
-
   }
 
-  const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+  const scriptName =
+    mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
 
   ensureFileExists(scriptName, projDir);
 
   const scriptPath = path.join(projDir, scriptName);
 
   if (!fs.existsSync(scriptPath)) {
-
     sendLog(`[ERRO] ${scriptName} não encontrado no workspace`);
 
     res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
@@ -5668,7 +6441,6 @@ app.get("/api/render/:mode", async (req, res) => {
     res.end();
 
     return;
-
   }
 
   let runScriptName = scriptName;
@@ -5676,15 +6448,12 @@ app.get("/api/render/:mode", async (req, res) => {
   let tempScriptPath = null;
 
   if (withoutImpactTitles) {
-
     const sourceCode = fs.readFileSync(scriptPath, "utf8");
 
     const patchedCode = sourceCode.replace(
-
       /_raw_impacts\s*=\s*_config\.get\(['"]impact_texts['"],\s*\[\]\)/,
 
       "_raw_impacts = []"
-
     );
 
     runScriptName = `.render_sem_titulos_${scriptName}`;
@@ -5692,14 +6461,14 @@ app.get("/api/render/:mode", async (req, res) => {
     tempScriptPath = path.join(projDir, runScriptName);
 
     fs.writeFileSync(tempScriptPath, patchedCode, "utf8");
-
   }
 
   const resolution = resolveRenderResolution(req);
-  sendLog(`[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`);
+  sendLog(
+    `[Dashboard] Iniciando script de renderização: ${scriptName}${withoutImpactTitles ? " (sem títulos grandes)" : ""}${resolution === "2k" ? " [2K]" : ""}...`
+  );
 
   const child = spawn(PYTHON_PATH, [runScriptName], {
-
     cwd: projDir,
 
     shell: true,
@@ -5709,97 +6478,67 @@ app.get("/api/render/:mode", async (req, res) => {
       PYTHONUNBUFFERED: "1",
       LUMIERA_RENDER_RESOLUTION: resolution,
     },
-
   });
 
   child.stdout.on("data", (data) => {
-
     const text = data.toString().trim();
 
     if (text) {
-
       const lines = text.split(/\r?\n/);
 
       for (const line of lines) {
-
         sendLog(line);
-
       }
-
     }
-
   });
 
   child.stderr.on("data", (data) => {
-
     const text = data.toString().trim();
 
     if (text) {
-
       const lines = text.split(/\r?\n/);
 
       for (const line of lines) {
-
         sendLog(`[ERRO] ${line}`);
-
       }
-
     }
-
   });
 
   child.on("close", (code) => {
-
     if (tempScriptPath && fs.existsSync(tempScriptPath)) {
-
-      try { fs.unlinkSync(tempScriptPath); } catch (e) {}
-
+      try {
+        fs.unlinkSync(tempScriptPath);
+      } catch (e) {}
     }
 
     if (code === 0) {
-
       res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
-
     } else {
-
       res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
-
     }
     cleanup();
     res.end();
-
   });
 
   req.on("close", () => {
-
     child.kill();
-
   });
-
 });
 
 // Helper: Get configured API key
 
 function readJsonFile(filePath) {
-
   if (!fs.existsSync(filePath)) return null;
 
   try {
-
     return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-
   } catch (e) {
-
     return null;
-
   }
-
 }
 
 function safeProjectSlug(projectDir) {
-
   return path.basename(projectDir).replace(/[^a-zA-Z0-9_-]/g, "_") || "default";
-
 }
 
 function remotionPublicProjectsRoot() {
@@ -5813,7 +6552,11 @@ function remotionDirSizeBytes(dir) {
     const entryPath = path.join(dir, entry.name);
     if (entry.isDirectory()) total += remotionDirSizeBytes(entryPath);
     else if (entry.isFile()) {
-      try { total += fs.statSync(entryPath).size; } catch { /* ignore */ }
+      try {
+        total += fs.statSync(entryPath).size;
+      } catch {
+        /* ignore */
+      }
     }
   }
   return total;
@@ -5846,41 +6589,38 @@ function purgeRemotionPublicProjectCache(keepSlug = null) {
 }
 
 function readProjectJson(projectDir, fileName, fallback = {}) {
-
   const filePath = path.join(projectDir, fileName);
 
   if (!fs.existsSync(filePath)) return fallback;
 
   try {
-
-    const data = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+    const data = JSON.parse(
+      fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")
+    );
 
     if (fileName === "storyboard.json") {
       return repairStoryboardEncoding(data);
     }
 
     if (fileName === "config_qanat.json") {
-      return mergeGlobalStudioIntoProjectConfig(data, loadRenderConfig(__dirname));
+      return mergeGlobalStudioIntoProjectConfig(
+        data,
+        loadRenderConfig(__dirname)
+      );
     }
 
     return data;
-
   } catch (e) {
-
     return fallback;
-
   }
-
 }
 
 function findProjectFile(projectDir, fileName) {
-
   if (!fileName) return null;
 
   const safeName = path.basename(fileName);
 
   const candidates = [
-
     path.join(projectDir, safeName),
 
     path.join(projectDir, "ASSETS", safeName),
@@ -5892,15 +6632,12 @@ function findProjectFile(projectDir, fileName) {
     path.join(projectDir, "ASSETS", "audio", safeName),
 
     path.join(projectDir, "MUSICAS", safeName),
-
   ];
 
   // Fallback to workspace root directory if not found in project folder
 
   if (projectDir !== WORKSPACE_DIR) {
-
     candidates.push(
-
       path.join(WORKSPACE_DIR, safeName),
 
       path.join(WORKSPACE_DIR, "ASSETS", safeName),
@@ -5910,17 +6647,13 @@ function findProjectFile(projectDir, fileName) {
       path.join(WORKSPACE_DIR, "ASSETS", "videos", safeName),
 
       path.join(WORKSPACE_DIR, "ASSETS", "audio", safeName)
-
     );
-
   }
 
-  return candidates.find(candidate => fs.existsSync(candidate)) || null;
-
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
 function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
-
   if (!sourcePath || !fs.existsSync(sourcePath)) return null;
 
   fs.mkdirSync(targetDir, { recursive: true });
@@ -5936,13 +6669,10 @@ function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
   fs.copyFileSync(sourcePath, destPath);
 
   return destName;
-
 }
 
 function getAudioDuration(filePath) {
-
   try {
-
     if (!filePath || !fs.existsSync(filePath)) return 0;
 
     const cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`;
@@ -5952,38 +6682,32 @@ function getAudioDuration(filePath) {
     const dur = parseFloat(output);
 
     return Number.isFinite(dur) ? dur : 0;
-
   } catch (e) {
-
     console.error("Error getting audio duration:", e.message);
 
     return 0;
-
   }
-
 }
 
 function parseDurationSeconds(value, fallback) {
-
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
   if (typeof value === "string") {
-
     const match = value.replace(",", ".").match(/[\d.]+/);
 
     if (match) return Number(match[0]);
-
   }
 
   return fallback;
-
 }
 
 function normalizeWordTranscriptEnds(wordTranscripts) {
   if (!Array.isArray(wordTranscripts)) return [];
   return wordTranscripts.map((segment) => {
     const segmentStart = Number(segment?.start_time || 0);
-    const words = Array.isArray(segment?.words) ? segment.words.map((w) => ({ ...w })) : [];
+    const words = Array.isArray(segment?.words)
+      ? segment.words.map((w) => ({ ...w }))
+      : [];
     for (let i = 0; i < words.length; i++) {
       const relStart = Number(words[i]?.start || 0);
       let relEnd = Number(words[i]?.end || relStart + 0.4);
@@ -6005,19 +6729,16 @@ function normalizeWordTranscriptEnds(wordTranscripts) {
 }
 
 function captionsFromWordTranscripts(wordTranscripts) {
-
   const captions = [];
 
   const normalized = normalizeWordTranscriptEnds(wordTranscripts);
 
   for (const segment of normalized) {
-
     const segmentStart = Number(segment?.start_time || 0);
 
     if (!Array.isArray(segment?.words)) continue;
 
     for (let i = 0; i < segment.words.length; i++) {
-
       const word = segment.words[i];
 
       const start = segmentStart + Number(word?.start || 0);
@@ -6025,13 +6746,13 @@ function captionsFromWordTranscripts(wordTranscripts) {
       let end = segmentStart + Number(word?.end || word?.start || 0.4);
 
       if (i < segment.words.length - 1) {
-        end = segmentStart + Number(segment.words[i + 1]?.start || word?.end || 0);
+        end =
+          segmentStart + Number(segment.words[i + 1]?.start || word?.end || 0);
       }
 
       end = Math.min(end, start + 1.5);
 
       captions.push({
-
         text: String(word?.word || "").trimStart(),
 
         startMs: Math.max(0, Math.round(start * 1000)),
@@ -6041,25 +6762,22 @@ function captionsFromWordTranscripts(wordTranscripts) {
         timestampMs: Math.max(0, Math.round(start * 1000)),
 
         confidence: null,
-
       });
-
     }
-
   }
 
-  return captions.filter(caption => caption.text.trim());
-
+  return captions.filter((caption) => caption.text.trim());
 }
 
 function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
-
-  const maxMs = Math.max(1000, Math.round((Number(maxDurationSeconds) || 0) * 1000));
+  const maxMs = Math.max(
+    1000,
+    Math.round((Number(maxDurationSeconds) || 0) * 1000)
+  );
 
   const sorted = (Array.isArray(captions) ? captions : [])
 
     .map((caption) => ({
-
       ...caption,
 
       text: String(caption?.text || "").trimStart(),
@@ -6067,27 +6785,32 @@ function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
       startMs: Math.max(0, Number(caption?.startMs || 0)),
 
       endMs: Math.max(0, Number(caption?.endMs || 0)),
-
     }))
 
-    .filter((caption) => caption.text.trim() && Number.isFinite(caption.startMs) && caption.startMs < maxMs)
+    .filter(
+      (caption) =>
+        caption.text.trim() &&
+        Number.isFinite(caption.startMs) &&
+        caption.startMs < maxMs
+    )
 
     .sort((a, b) => a.startMs - b.startMs);
 
   return sorted.map((caption, index) => {
-
     const nextStart = sorted[index + 1]?.startMs;
 
-    const naturalEnd = caption.endMs > caption.startMs ? caption.endMs : caption.startMs + 420;
+    const naturalEnd =
+      caption.endMs > caption.startMs ? caption.endMs : caption.startMs + 420;
 
     const maxWordEnd = caption.startMs + 900;
 
-    const nextLimitedEnd = Number.isFinite(nextStart) ? Math.max(caption.startMs + 120, nextStart - 40) : maxMs;
+    const nextLimitedEnd = Number.isFinite(nextStart)
+      ? Math.max(caption.startMs + 120, nextStart - 40)
+      : maxMs;
 
     const endMs = Math.min(naturalEnd, maxWordEnd, nextLimitedEnd, maxMs);
 
     return {
-
       ...caption,
 
       startMs: Math.round(caption.startMs),
@@ -6095,31 +6818,26 @@ function sanitizeCaptionsForRemotion(captions, maxDurationSeconds) {
       endMs: Math.round(Math.max(caption.startMs + 120, endMs)),
 
       timestampMs: Math.round(caption.startMs),
-
     };
-
   });
-
 }
 
 function fallbackCaptionsFromScenes(scenes) {
-
   const captions = [];
 
   for (const scene of scenes) {
-
-    const words = String(scene.narrationText || "").split(/\s+/).filter(Boolean);
+    const words = String(scene.narrationText || "")
+      .split(/\s+/)
+      .filter(Boolean);
 
     if (words.length === 0) continue;
 
     const step = Math.max(180, (scene.duration * 1000) / words.length);
 
     words.forEach((word, index) => {
-
-      const startMs = Math.round((scene.start * 1000) + (index * step));
+      const startMs = Math.round(scene.start * 1000 + index * step);
 
       captions.push({
-
         text: index === 0 ? word : ` ${word}`,
 
         startMs,
@@ -6129,63 +6847,71 @@ function fallbackCaptionsFromScenes(scenes) {
         timestampMs: startMs,
 
         confidence: null,
-
       });
-
     });
-
   }
 
   return captions;
-
 }
 
-function collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration) {
+function collectRemotionSfxTracks(
+  projectDir,
+  publicProjectDir,
+  projectSlug,
+  totalDuration
+) {
+  const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", {
+    sfx_events: [],
+  });
 
-  const sfxTimeline = readProjectJson(projectDir, "sfx_timeline.json", { sfx_events: [] });
-
-  const events = Array.isArray(sfxTimeline.sfx_events) ? sfxTimeline.sfx_events : [];
+  const events = Array.isArray(sfxTimeline.sfx_events)
+    ? sfxTimeline.sfx_events
+    : [];
 
   const tracks = [];
 
   for (const [index, event] of events.entries()) {
-
     const start = Math.max(0, Number(event?.time || 0));
 
     if (!Number.isFinite(start) || start >= totalDuration) continue;
 
     const source = findProjectFile(projectDir, event?.file);
 
-    const copied = copyRemotionAsset(source, publicProjectDir, `sfx_${index + 1}_`);
+    const copied = copyRemotionAsset(
+      source,
+      publicProjectDir,
+      `sfx_${index + 1}_`
+    );
 
     if (!copied) continue;
 
     const rawVolume = Number(event?.volume);
 
     tracks.push({
-
       file: `projects/${projectSlug}/${copied}`,
 
       start,
 
       duration: Math.max(0.3, Math.min(6, totalDuration - start)),
 
-      volume: Math.min(0.12, Math.max(0.025, Number.isFinite(rawVolume) ? rawVolume * 0.45 : 0.06)),
-
+      volume: Math.min(
+        0.12,
+        Math.max(0.025, Number.isFinite(rawVolume) ? rawVolume * 0.45 : 0.06)
+      ),
     });
-
   }
 
   return tracks;
-
 }
 
 function normalizeYoutubeChannelUrl(rawUrl) {
   const trimmed = String(rawUrl || "").trim();
   if (!trimmed) return "";
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://"))
+    return trimmed;
   if (trimmed.startsWith("@")) return `https://www.youtube.com/${trimmed}`;
-  if (trimmed.includes("youtube.com")) return `https://${trimmed.replace(/^https?:\/\//, "")}`;
+  if (trimmed.includes("youtube.com"))
+    return `https://${trimmed.replace(/^https?:\/\//, "")}`;
   return trimmed;
 }
 
@@ -6209,15 +6935,20 @@ async function scrapeYoutubeChannelFromUrl(channelUrl) {
   const html = await new Promise((resolve, reject) => {
     const options = {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
       },
     };
-    https.get(url, options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => { data += chunk; });
-      res.on("end", () => resolve(data));
-    }).on("error", (err) => reject(err));
+    https
+      .get(url, options, (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => resolve(data));
+      })
+      .on("error", (err) => reject(err));
   });
 
   let channelName = "";
@@ -6229,31 +6960,42 @@ async function scrapeYoutubeChannelFromUrl(channelUrl) {
   if (avatarMatch) avatarUrl = avatarMatch[1];
 
   let subCount = "";
-  const subMatch1 = html.match(/"accessibilityLabel"\s*:\s*"([^"]+ (?:inscritos|subscribers|seguidores))"/i);
+  const subMatch1 = html.match(
+    /"accessibilityLabel"\s*:\s*"([^"]+ (?:inscritos|subscribers|seguidores))"/i
+  );
   if (subMatch1) {
     subCount = subMatch1[1];
   } else {
-    const subMatch2 = html.match(/"metadataParts"\s*:\s*\[\s*\{\s*"text"\s*:\s*\{\s*"content"\s*:\s*"([^"]+)"/);
+    const subMatch2 = html.match(
+      /"metadataParts"\s*:\s*\[\s*\{\s*"text"\s*:\s*\{\s*"content"\s*:\s*"([^"]+)"/
+    );
     if (subMatch2) subCount = subMatch2[1];
   }
 
   return { channelName, subscriberCount: subCount, avatarUrl };
 }
 
-async function downloadChannelAvatar(avatarUrl, publicProjectDir, projectSlug, cacheKey) {
+async function downloadChannelAvatar(
+  avatarUrl,
+  publicProjectDir,
+  projectSlug,
+  cacheKey
+) {
   if (!avatarUrl) return null;
   const avatarFileName = `youtube_avatar_${cacheKey}.jpg`;
   const destPath = path.join(publicProjectDir, avatarFileName);
   await new Promise((resolve, reject) => {
-    https.get(avatarUrl, (res) => {
-      const fileStream = fs.createWriteStream(destPath);
-      res.pipe(fileStream);
-      fileStream.on("finish", () => {
-        fileStream.close();
-        resolve();
-      });
-      fileStream.on("error", reject);
-    }).on("error", reject);
+    https
+      .get(avatarUrl, (res) => {
+        const fileStream = fs.createWriteStream(destPath);
+        res.pipe(fileStream);
+        fileStream.on("finish", () => {
+          fileStream.close();
+          resolve();
+        });
+        fileStream.on("error", reject);
+      })
+      .on("error", reject);
   });
   return `projects/${projectSlug}/${avatarFileName}`;
 }
@@ -6267,9 +7009,15 @@ function findCachedYoutubeAvatar(projectDir, workspaceDir, cacheKey) {
   return candidates.find((p) => fs.existsSync(p)) || null;
 }
 
-async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig = {}) {
+async function resolveYoutubeChannelInfo(
+  projectDir,
+  publicProjectDir,
+  projectSlug,
+  globalConfig = {}
+) {
   const settings = readYoutubeChannelSettings(projectDir, globalConfig);
-  const fallbackUrl = "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA";
+  const fallbackUrl =
+    "https://www.youtube.com/channel/UCYYcyky9A8fob3t6TlIENYA";
   const channelUrl = settings.channelUrl || fallbackUrl;
   const cacheKey = youtubeAvatarCacheKey(settings.channelId, channelUrl);
 
@@ -6280,12 +7028,22 @@ async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSl
     console.error("[YouTube Channel] Erro ao buscar dados do canal:", e);
   }
 
-  const channelName = settings.channelName || scraped?.channelName || "Canal do YouTube";
-  const subscriberCount = settings.subscriberCount || scraped?.subscriberCount || "";
+  const channelName =
+    settings.channelName || scraped?.channelName || "Canal do YouTube";
+  const subscriberCount =
+    settings.subscriberCount || scraped?.subscriberCount || "";
 
-  const cachedAvatar = findCachedYoutubeAvatar(projectDir, WORKSPACE_DIR, cacheKey);
+  const cachedAvatar = findCachedYoutubeAvatar(
+    projectDir,
+    WORKSPACE_DIR,
+    cacheKey
+  );
   if (cachedAvatar) {
-    const copied = copyRemotionAsset(cachedAvatar, publicProjectDir, "yt_avatar_");
+    const copied = copyRemotionAsset(
+      cachedAvatar,
+      publicProjectDir,
+      "yt_avatar_"
+    );
     if (copied) {
       return {
         channelName,
@@ -6299,20 +7057,30 @@ async function resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSl
     if (scraped?.avatarUrl) {
       const workspaceAssets = path.join(WORKSPACE_DIR, "ASSETS");
       fs.mkdirSync(workspaceAssets, { recursive: true });
-      const workspaceCachePath = path.join(workspaceAssets, `youtube_avatar_${cacheKey}.jpg`);
+      const workspaceCachePath = path.join(
+        workspaceAssets,
+        `youtube_avatar_${cacheKey}.jpg`
+      );
       await new Promise((resolve, reject) => {
-        https.get(scraped.avatarUrl, (res) => {
-          const fileStream = fs.createWriteStream(workspaceCachePath);
-          res.pipe(fileStream);
-          fileStream.on("finish", () => {
-            fileStream.close();
-            resolve();
-          });
-          fileStream.on("error", reject);
-        }).on("error", reject);
+        https
+          .get(scraped.avatarUrl, (res) => {
+            const fileStream = fs.createWriteStream(workspaceCachePath);
+            res.pipe(fileStream);
+            fileStream.on("finish", () => {
+              fileStream.close();
+              resolve();
+            });
+            fileStream.on("error", reject);
+          })
+          .on("error", reject);
       });
 
-      const localAvatarPath = await downloadChannelAvatar(scraped.avatarUrl, publicProjectDir, projectSlug, cacheKey);
+      const localAvatarPath = await downloadChannelAvatar(
+        scraped.avatarUrl,
+        publicProjectDir,
+        projectSlug,
+        cacheKey
+      );
       return {
         channelName,
         subscriberCount,
@@ -6337,7 +7105,10 @@ function resolveRenderResolution(req) {
   try {
     const projDir = getProjectDir(req);
     const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
-    if (projectConfig.render_resolution === "2k" || projectConfig.render_resolution === "1080p") {
+    if (
+      projectConfig.render_resolution === "2k" ||
+      projectConfig.render_resolution === "1080p"
+    ) {
       return projectConfig.render_resolution;
     }
   } catch {
@@ -6359,7 +7130,7 @@ function logOverlayTimingAndConflicts(overlays, starts, durations) {
   console.log("========================================================");
 
   const sorted = [...overlays]
-    .filter(o => o && typeof o.start === "number" && Number.isFinite(o.start))
+    .filter((o) => o && typeof o.start === "number" && Number.isFinite(o.start))
     .sort((a, b) => a.start - b.start);
 
   const activeIntervals = [];
@@ -6368,7 +7139,10 @@ function logOverlayTimingAndConflicts(overlays, starts, durations) {
     const start = Number(overlay.start);
     const duration = Number(overlay.duration) || 4;
     const end = start + duration;
-    const isSystem = ["hud", "retention-hook", "mid-video-cta", "youtube-sub"].includes(overlay.type) || String(overlay.id).includes("hud");
+    const isSystem =
+      ["hud", "retention-hook", "mid-video-cta", "youtube-sub"].includes(
+        overlay.type
+      ) || String(overlay.id).includes("hud");
 
     const label = `[${overlay.type.toUpperCase()}] "${overlay.props?.title || overlay.props?.text || overlay.id}"`;
     const timeRangeStr = `${start.toFixed(2)}s - ${end.toFixed(2)}s (dur: ${duration.toFixed(1)}s)`;
@@ -6381,7 +7155,7 @@ function logOverlayTimingAndConflicts(overlays, starts, durations) {
         label,
         start,
         end,
-        overlay
+        overlay,
       });
     }
   }
@@ -6396,41 +7170,60 @@ function logOverlayTimingAndConflicts(overlays, starts, durations) {
       const a = activeIntervals[i];
       const b = activeIntervals[j];
 
-      const overlap = Math.max(0, Math.min(a.end, b.end) - Math.max(a.start, b.start));
+      const overlap = Math.max(
+        0,
+        Math.min(a.end, b.end) - Math.max(a.start, b.start)
+      );
       if (overlap > 0.05) {
         collisionCount++;
         console.warn(`[WARNING] CONFLITO DETECTADO!`);
-        console.warn(`  - Overlay A: ${a.label} (${a.start.toFixed(2)}s - ${a.end.toFixed(2)}s)`);
-        console.warn(`  - Overlay B: ${b.label} (${b.start.toFixed(2)}s - ${b.end.toFixed(2)}s)`);
-        console.warn(`  - Sobreposição: ${overlap.toFixed(2)} segundos concorrentes na tela.`);
+        console.warn(
+          `  - Overlay A: ${a.label} (${a.start.toFixed(2)}s - ${a.end.toFixed(2)}s)`
+        );
+        console.warn(
+          `  - Overlay B: ${b.label} (${b.start.toFixed(2)}s - ${b.end.toFixed(2)}s)`
+        );
+        console.warn(
+          `  - Sobreposição: ${overlap.toFixed(2)} segundos concorrentes na tela.`
+        );
       }
     }
   }
 
   if (collisionCount === 0) {
-    console.log("✅ Excelente: Nenhum conflito de exibição simultânea detectado!");
+    console.log(
+      "✅ Excelente: Nenhum conflito de exibição simultânea detectado!"
+    );
   } else {
-    console.warn(`⚠️ Atenção: Detectados ${collisionCount} conflitos de sobreposição temporal entre overlays informativos.`);
+    console.warn(
+      `⚠️ Atenção: Detectados ${collisionCount} conflitos de sobreposição temporal entre overlays informativos.`
+    );
   }
   console.log("========================================================\n");
 }
 
-async function prepareRemotionRender(projectDir, isProres = false, useHyperframes = false, options = {}) {
-
+async function prepareRemotionRender(
+  projectDir,
+  isProres = false,
+  useHyperframes = false,
+  options = {}
+) {
   // Load global render config
 
   const globalConfigPath = path.join(__dirname, "render_config_global.json");
 
-  let globalConfig = { fps: 30, blockGapSeconds: 1.0, musicVolume: 0.15, useRemotionByDefault: true, debugOverlay: false };
+  let globalConfig = {
+    fps: 30,
+    blockGapSeconds: 1.0,
+    musicVolume: 0.15,
+    useRemotionByDefault: true,
+    debugOverlay: false,
+  };
 
   if (fs.existsSync(globalConfigPath)) {
-
     try {
-
       globalConfig = JSON.parse(fs.readFileSync(globalConfigPath, "utf8"));
-
     } catch (e) {}
-
   }
 
   let config = readProjectJson(projectDir, "config_qanat.json", {});
@@ -6439,42 +7232,66 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   try {
     const refreshed = refreshEmotionPlanTimings(projectDir);
-    for (const line of refreshed.logs || []) console.log(`[Remotion BGM Prep] ${line}`);
+    for (const line of refreshed.logs || [])
+      console.log(`[Remotion BGM Prep] ${line}`);
     config = refreshed.config;
     storyboard = refreshed.storyboard;
     const prepLogs = await prepareBgmBeforeMix(projectDir);
-    for (const line of prepLogs || []) console.log(`[Remotion BGM Prep] ${line}`);
+    for (const line of prepLogs || [])
+      console.log(`[Remotion BGM Prep] ${line}`);
     config = readProjectJson(projectDir, "config_qanat.json", {});
     storyboard = readProjectJson(projectDir, "storyboard.json", {});
   } catch (prepErr) {
-    console.warn("[Remotion BGM Prep] Falha ao preparar trilhas emocionais:", prepErr.message);
+    console.warn(
+      "[Remotion BGM Prep] Falha ao preparar trilhas emocionais:",
+      prepErr.message
+    );
   }
 
-  const presetResult = applyDocumentaryHistoryPreset(config, storyboard, config.niche);
+  const presetResult = applyDocumentaryHistoryPreset(
+    config,
+    storyboard,
+    config.niche
+  );
   if (presetResult.applied) {
     config = presetResult.config;
     storyboard = presetResult.storyboard;
     try {
-      fs.writeFileSync(path.join(projectDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
-      console.log("[Remotion] Preset Documentário História aplicado ao projeto.");
+      fs.writeFileSync(
+        path.join(projectDir, "config_qanat.json"),
+        JSON.stringify(config, null, 2),
+        "utf8"
+      );
+      console.log(
+        "[Remotion] Preset Documentário História aplicado ao projeto."
+      );
     } catch (e) {
       console.warn("[Remotion] Falha ao salvar preset no config:", e.message);
     }
   }
 
-  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
+  const timings = readProjectJson(projectDir, "block_timings.json", {
+    starts: [],
+    durations: [],
+  });
 
-  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const wordTranscripts = readProjectJson(
+    projectDir,
+    "word_transcripts.json",
+    []
+  );
   const flatTranscriptWords = flattenWordTranscripts(wordTranscripts);
 
-  const isChunkedNarration = config.narration_mode === NARRATION_MODE_CHUNKED
-    || timings.source === "narration_chunks"
-    || (Array.isArray(wordTranscripts) && wordTranscripts.some((s) => s.chunk_id));
+  const isChunkedNarration =
+    config.narration_mode === NARRATION_MODE_CHUNKED ||
+    timings.source === "narration_chunks" ||
+    (Array.isArray(wordTranscripts) && wordTranscripts.some((s) => s.chunk_id));
 
   if (flatTranscriptWords.length > 0 && config.timeline_assets) {
     // Verificar se o usuario ja sincronizou assets — se sim, respeitar os valores salvos
     const anyBlockSynced = Object.values(config.timeline_assets).some(
-      assets => Array.isArray(assets) && assets.some(a => a.synced_to_speech)
+      (assets) =>
+        Array.isArray(assets) && assets.some((a) => a.synced_to_speech)
     );
 
     if (!anyBlockSynced) {
@@ -6483,28 +7300,42 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       const hasChunkPlan = isChunkedNarration && chunkPlan?.chunks?.length > 0;
 
       if (hasChunkPlan) {
-        const timedPlan = { ...chunkPlan, chunks: computeChunkTimeline(chunkPlan.chunks) };
+        const timedPlan = {
+          ...chunkPlan,
+          chunks: computeChunkTimeline(chunkPlan.chunks),
+        };
         const synced = syncTimelineFromChunkPlan({
           timelineAssets: config.timeline_assets,
           chunkPlan: timedPlan,
-          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
+          visualPrompts: Array.isArray(storyboard.visual_prompts)
+            ? storyboard.visual_prompts
+            : [],
         });
         nextTimelineAssets = realignTimelineAssetsToSpeech({
           timelineAssets: synced.timelineAssets,
           blockTimings: timings,
           flatTranscriptWords,
           wordTranscripts,
-          visualPrompts: synced.visualPrompts || storyboard.visual_prompts || [],
-          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          visualPrompts:
+            synced.visualPrompts || storyboard.visual_prompts || [],
+          blockPhrases: Array.isArray(config.block_phrases)
+            ? config.block_phrases
+            : [],
           preserveExplicitFixed: false,
         });
-        console.log("[Remotion] timeline_assets sincronizados pelo plano de trechos (1 cena = 1 trecho).");
+        console.log(
+          "[Remotion] timeline_assets sincronizados pelo plano de trechos (1 cena = 1 trecho)."
+        );
       } else if (isChunkedNarration) {
         nextTimelineAssets = bootstrapTimelineSlotsFromWhisper({
           timelineAssets: config.timeline_assets,
           wordTranscripts,
-          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          visualPrompts: Array.isArray(storyboard.visual_prompts)
+            ? storyboard.visual_prompts
+            : [],
+          blockPhrases: Array.isArray(config.block_phrases)
+            ? config.block_phrases
+            : [],
           flatTranscriptWords,
         });
         nextTimelineAssets = realignTimelineAssetsToSpeech({
@@ -6512,51 +7343,75 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           blockTimings: timings,
           flatTranscriptWords,
           wordTranscripts,
-          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          visualPrompts: Array.isArray(storyboard.visual_prompts)
+            ? storyboard.visual_prompts
+            : [],
+          blockPhrases: Array.isArray(config.block_phrases)
+            ? config.block_phrases
+            : [],
           preserveExplicitFixed: false,
         });
-        console.log("[Remotion] timeline_assets ancorados aos segmentos de narração por trechos.");
+        console.log(
+          "[Remotion] timeline_assets ancorados aos segmentos de narração por trechos."
+        );
       } else {
         nextTimelineAssets = realignTimelineAssetsToSpeech({
           timelineAssets: config.timeline_assets,
           blockTimings: timings,
           flatTranscriptWords,
           wordTranscripts,
-          visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-          blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+          visualPrompts: Array.isArray(storyboard.visual_prompts)
+            ? storyboard.visual_prompts
+            : [],
+          blockPhrases: Array.isArray(config.block_phrases)
+            ? config.block_phrases
+            : [],
           preserveExplicitFixed: false,
         });
-        console.log("[Remotion] timeline_assets realinhados aos block_timings antes do render.");
+        console.log(
+          "[Remotion] timeline_assets realinhados aos block_timings antes do render."
+        );
       }
-      config.timeline_assets = tightenTimelineRetentionDurations(nextTimelineAssets, timings);
+      config.timeline_assets = tightenTimelineRetentionDurations(
+        nextTimelineAssets,
+        timings
+      );
       try {
         fs.writeFileSync(
           path.join(projectDir, "config_qanat.json"),
           JSON.stringify(config, null, 2),
-          "utf8",
+          "utf8"
         );
       } catch (e) {
-        console.warn("[Remotion] Falha ao salvar timeline realinhada:", e.message);
+        console.warn(
+          "[Remotion] Falha ao salvar timeline realinhada:",
+          e.message
+        );
       }
     } else {
-      console.log("[Remotion] timeline_assets ja sincronizados pelo usuario — preservando valores salvos.");
+      console.log(
+        "[Remotion] timeline_assets ja sincronizados pelo usuario — preservando valores salvos."
+      );
     }
   }
 
   const projectSlug = safeProjectSlug(projectDir);
 
-  const publicProjectDir = path.join(REMOTION_PUBLIC_DIR, "projects", projectSlug);
+  const publicProjectDir = path.join(
+    REMOTION_PUBLIC_DIR,
+    "projects",
+    projectSlug
+  );
 
   if (!publicProjectDir.startsWith(remotionPublicProjectsRoot())) {
-
     throw new Error("Caminho Remotion inválido.");
-
   }
 
   const cacheClean = purgeRemotionPublicProjectCache();
   if (cacheClean.removed > 0) {
-    console.log(`[Remotion Cache] ${cacheClean.removed} cache(s) antigo(s) removido(s) — ~${cacheClean.freedMb} MB liberados`);
+    console.log(
+      `[Remotion Cache] ${cacheClean.removed} cache(s) antigo(s) removido(s) — ~${cacheClean.freedMb} MB liberados`
+    );
   }
 
   fs.rmSync(publicProjectDir, { recursive: true, force: true });
@@ -6565,41 +7420,48 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
   const timelineAssets = config.timeline_assets || {};
 
-  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
   const syncContext = {
     visualPrompts,
-    blockPhrases: Array.isArray(config.block_phrases) ? config.block_phrases : [],
+    blockPhrases: Array.isArray(config.block_phrases)
+      ? config.block_phrases
+      : [],
     timelineAssets,
   };
 
   const promptByBlock = new Map();
 
   for (const prompt of visualPrompts) {
-
     const block = Number(prompt?.block || 1);
 
     if (!promptByBlock.has(block)) promptByBlock.set(block, []);
 
     promptByBlock.get(block).push(prompt);
-
   }
 
-  const blockNumbers = [...new Set([
+  const blockNumbers = [
+    ...new Set([
+      ...Object.keys(timelineAssets).map(Number).filter(Boolean),
 
-    ...Object.keys(timelineAssets).map(Number).filter(Boolean),
+      ...visualPrompts
+        .map((prompt) => Number(prompt?.block || 0))
+        .filter(Boolean),
 
-    ...visualPrompts.map(prompt => Number(prompt?.block || 0)).filter(Boolean),
-
-    ...(Array.isArray(config.block_phrases) ? config.block_phrases.map(item => Number(item?.block || 0)).filter(Boolean) : []),
-
-  ])].sort((a, b) => a - b);
+      ...(Array.isArray(config.block_phrases)
+        ? config.block_phrases
+            .map((item) => Number(item?.block || 0))
+            .filter(Boolean)
+        : []),
+    ]),
+  ].sort((a, b) => a - b);
 
   const scenes = [];
 
   let runningStart = 0;
 
   for (const block of blockNumbers) {
-
     const blockIndex = Math.max(0, block - 1);
 
     const blockStart = Number(timings.starts?.[blockIndex]);
@@ -6608,50 +7470,64 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
 
     const start = Number.isFinite(blockStart) ? blockStart : runningStart;
 
-    const duration = Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : 8;
+    const duration =
+      Number.isFinite(blockDuration) && blockDuration > 0 ? blockDuration : 8;
 
-    const mappedAssets = Array.isArray(timelineAssets[String(block)]) ? timelineAssets[String(block)] : [];
+    const mappedAssets = Array.isArray(timelineAssets[String(block)])
+      ? timelineAssets[String(block)]
+      : [];
 
     const prompts = promptByBlock.get(block) || [];
 
     let nextBlockStartForSync = null;
     const currentBlockIdxInList = blockNumbers.indexOf(block);
-    if (currentBlockIdxInList !== -1 && currentBlockIdxInList < blockNumbers.length - 1) {
+    if (
+      currentBlockIdxInList !== -1 &&
+      currentBlockIdxInList < blockNumbers.length - 1
+    ) {
       const nextBlock = blockNumbers[currentBlockIdxInList + 1];
       const nextBlockIndex = Math.max(0, nextBlock - 1);
       const nextBlockStartVal = Number(timings.starts?.[nextBlockIndex]);
-      if (Number.isFinite(nextBlockStartVal)) nextBlockStartForSync = nextBlockStartVal;
+      if (Number.isFinite(nextBlockStartVal))
+        nextBlockStartForSync = nextBlockStartVal;
     }
-    const blockEndForSync = nextBlockStartForSync ?? (start + duration);
+    const blockEndForSync = nextBlockStartForSync ?? start + duration;
 
     const blockSceneTimings = buildBlockSceneTimings(
       block,
       mappedAssets,
       duration,
       flatTranscriptWords,
-      { ...syncContext, blockStart: start, blockEnd: blockEndForSync },
+      { ...syncContext, blockStart: start, blockEnd: blockEndForSync }
     );
 
-    const hasExplicitSync = blockHasExplicitSync(mappedAssets, { blockStart: start, blockEnd: blockEndForSync });
+    const hasExplicitSync = blockHasExplicitSync(mappedAssets, {
+      blockStart: start,
+      blockEnd: blockEndForSync,
+    });
 
     const blockSceneStartIdx = scenes.length;
 
     if (mappedAssets.length > 0) {
-
       blockSceneTimings.forEach((timing, index) => {
-
         const item = timing.asset;
 
         const sourcePath = findProjectFile(projectDir, item?.asset);
 
-        const copiedName = copyRemotionAsset(sourcePath, publicProjectDir, `b${block}_${index + 1}_`);
+        const copiedName = copyRemotionAsset(
+          sourcePath,
+          publicProjectDir,
+          `b${block}_${index + 1}_`
+        );
 
         if (!copiedName) return;
 
         const sceneDuration = timing.duration;
 
         const prompt = prompts[index] || prompts[0] || {};
-        const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
+        const sceneId = prompt?.scene
+          ? String(prompt.scene).trim()
+          : `${block}.${index + 1}`;
 
         const clipVolume = Number.isFinite(Number(item?.volume))
           ? Math.min(1, Math.max(0, Number(item.volume)))
@@ -6661,7 +7537,6 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           : 1;
 
         scenes.push({
-
           block,
 
           scene_id: sceneId,
@@ -6683,22 +7558,21 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           volume: clipVolume,
 
           playback_rate: clipRate,
-
         });
-
       });
-
     } else {
-
       let localStart = start;
 
       prompts.forEach((prompt, index) => {
-
-        const sceneDuration = parseDurationSeconds(prompt?.duration, Math.max(2, duration / Math.max(1, prompts.length)));
-        const sceneId = prompt?.scene ? String(prompt.scene).trim() : `${block}.${index + 1}`;
+        const sceneDuration = parseDurationSeconds(
+          prompt?.duration,
+          Math.max(2, duration / Math.max(1, prompts.length))
+        );
+        const sceneId = prompt?.scene
+          ? String(prompt.scene).trim()
+          : `${block}.${index + 1}`;
 
         scenes.push({
-
           block,
 
           scene_id: sceneId,
@@ -6714,13 +7588,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           narrationText: prompt?.narration_text || "",
 
           editorNotes: prompt?.editor_notes || storyboard.editing_map || "",
-
         });
 
         localStart += sceneDuration;
-
       });
-
     }
 
     // Extend the last scene of this block if there is a gap before the next block
@@ -6730,79 +7601,91 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     const nextBlockStart = nextBlockStartForSync;
 
     if (
-      !blockUsesSequentialFixedLayout(mappedAssets)
-      && !hasExplicitSync
-      && nextBlockStart !== null
-      && blockSceneEndIdx > blockSceneStartIdx
+      !blockUsesSequentialFixedLayout(mappedAssets) &&
+      !hasExplicitSync &&
+      nextBlockStart !== null &&
+      blockSceneEndIdx > blockSceneStartIdx
     ) {
-
       const lastSceneOfBlock = scenes[blockSceneEndIdx - 1];
 
       if (!lastSceneOfBlock.durationLocked) {
         const sceneEndTime = lastSceneOfBlock.start + lastSceneOfBlock.duration;
 
         if (nextBlockStart > sceneEndTime) {
-
           const gap = nextBlockStart - sceneEndTime;
 
           lastSceneOfBlock.duration += gap;
-
         }
       }
-
     }
 
     runningStart = Math.max(runningStart, start + duration);
-
   }
 
-  let validScenes = scenes.filter(scene => scene.asset);
+  let validScenes = scenes.filter((scene) => scene.asset);
 
   if (validScenes.length === 0) {
-
-    throw new Error("Nenhum asset mapeado encontrado na linha do tempo para renderizar via Remotion.");
-
+    throw new Error(
+      "Nenhum asset mapeado encontrado na linha do tempo para renderizar via Remotion."
+    );
   }
 
-  const narrationSource = findProjectFile(projectDir, "narracao_mestra_premium.mp3");
+  const narrationSource = findProjectFile(
+    projectDir,
+    "narracao_mestra_premium.mp3"
+  );
 
-  const narration = copyRemotionAsset(narrationSource, publicProjectDir, "narration_");
+  const narration = copyRemotionAsset(
+    narrationSource,
+    publicProjectDir,
+    "narration_"
+  );
 
-  const narrationDuration = narrationSource ? getAudioDuration(narrationSource) : 0;
+  const narrationDuration = narrationSource
+    ? getAudioDuration(narrationSource)
+    : 0;
 
   const coverageEnd = Math.max(
     Number(timings.total_duration || 0),
     narrationDuration,
     ...validScenes.map((scene) => scene.start + scene.duration),
-    1,
+    1
   );
   validScenes = fillSceneTimelineGaps(validScenes, coverageEnd);
 
   const totalDurationBeforeLogo = Math.max(
-
     Number(timings.total_duration || 0),
 
-    ...validScenes.map(scene => scene.start + scene.duration),
+    ...validScenes.map((scene) => scene.start + scene.duration),
 
     narrationDuration,
 
     1
-
   );
 
   const globalConfigForLogo = loadRenderConfig(__dirname);
-  const projectConfigForLogo = readProjectJson(projectDir, "config_qanat.json", {});
-  const logoSource = resolveLogoFilePath(WORKSPACE_DIR, projectDir, globalConfigForLogo, projectConfigForLogo)
-    || findProjectFile(projectDir, "logo.png");
+  const projectConfigForLogo = readProjectJson(
+    projectDir,
+    "config_qanat.json",
+    {}
+  );
+  const logoSource =
+    resolveLogoFilePath(
+      WORKSPACE_DIR,
+      projectDir,
+      globalConfigForLogo,
+      projectConfigForLogo
+    ) || findProjectFile(projectDir, "logo.png");
 
   if (logoSource) {
-
-    const copiedLogo = copyRemotionAsset(logoSource, publicProjectDir, "logo_final_");
+    const copiedLogo = copyRemotionAsset(
+      logoSource,
+      publicProjectDir,
+      "logo_final_"
+    );
 
     if (copiedLogo) {
-
       validScenes.push({
-
         block: blockNumbers.length + 1,
 
         asset: `projects/${projectSlug}/${copiedLogo}`,
@@ -6816,41 +7699,44 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         narrationText: "",
 
         editorNotes: "zoom in, logo final da marca",
-
       });
-
     }
-
   }
 
   const totalDuration = Math.max(
-
     Number(timings.total_duration || 0),
 
-    ...validScenes.map(scene => scene.start + scene.duration),
+    ...validScenes.map((scene) => scene.start + scene.duration),
 
     narrationDuration,
 
     1
-
   );
 
   const blockRanges = blockNumbers.map((block) => {
-
     const blockIndex = Math.max(0, block - 1);
 
     const blockStart = Number(timings.starts?.[blockIndex]);
 
     const blockDuration = Number(timings.durations?.[blockIndex]);
 
-    const scenesForBlock = validScenes.filter(scene => scene.block === block);
+    const scenesForBlock = validScenes.filter((scene) => scene.block === block);
 
-    const start = Number.isFinite(blockStart) ? blockStart : Math.min(...scenesForBlock.map(scene => scene.start));
+    const start = Number.isFinite(blockStart)
+      ? blockStart
+      : Math.min(...scenesForBlock.map((scene) => scene.start));
 
-    const duration = Number.isFinite(blockDuration) ? blockDuration : Math.max(...scenesForBlock.map(scene => scene.start + scene.duration)) - start;
+    const duration = Number.isFinite(blockDuration)
+      ? blockDuration
+      : Math.max(
+          ...scenesForBlock.map((scene) => scene.start + scene.duration)
+        ) - start;
 
-    return { block, start: Number.isFinite(start) ? start : 0, duration: Number.isFinite(duration) ? duration : totalDuration };
-
+    return {
+      block,
+      start: Number.isFinite(start) ? start : 0,
+      duration: Number.isFinite(duration) ? duration : totalDuration,
+    };
   });
 
   const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
@@ -6866,26 +7752,29 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     console.log(line);
   }
 
-  const bgmPlan = resolveBgmMappingsForRender(projectDir, config, blockNumbers, storyboard);
+  const bgmPlan = resolveBgmMappingsForRender(
+    projectDir,
+    config,
+    blockNumbers,
+    storyboard
+  );
   const bgmTracks = [];
 
   if (bgmPlan.mode === "single" && bgmPlan.single_bgm) {
-
     const source = findProjectFile(projectDir, bgmPlan.single_bgm);
 
     const copied = copyRemotionAsset(source, publicProjectDir, "bgm_single_");
 
     if (copied) {
-
       let startFrom = 0;
 
       try {
-
         const pythonPath = PYTHON_PATH || "python";
 
         const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
 
-        const singleClimaxMode = sonoplastiaPlan.get(blockNumbers[0])?.climaxMode || "rise";
+        const singleClimaxMode =
+          sonoplastiaPlan.get(blockNumbers[0])?.climaxMode || "rise";
         const detectCmd = `"${pythonPath}" "${scriptPath}" --detect-climax "${source}" ${totalDuration} ${singleClimaxMode}`;
 
         const output = execSync(detectCmd, { encoding: "utf8" }).trim();
@@ -6897,42 +7786,43 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         const parsed = parseFloat(lastLine);
 
         if (Number.isFinite(parsed)) {
-
           startFrom = parsed;
 
-          console.log(`[Remotion] BGM única: offset ${startFrom}s (modo ${singleClimaxMode})`);
-
+          console.log(
+            `[Remotion] BGM única: offset ${startFrom}s (modo ${singleClimaxMode})`
+          );
         }
-
       } catch (e) {
-
         console.error("Error detecting BGM climax for Remotion:", e);
-
       }
 
-      bgmTracks.push({ block: 0, file: `projects/${projectSlug}/${copied}`, start: 0, duration: totalDuration, startFrom });
-
+      bgmTracks.push({
+        block: 0,
+        file: `projects/${projectSlug}/${copied}`,
+        start: 0,
+        duration: totalDuration,
+        startFrom,
+      });
     }
-
   } else if (bgmPlan.mode === "blocks" && Array.isArray(bgmPlan.mappings)) {
-
     for (const mapping of bgmPlan.mappings) {
-
       const block = Number(mapping?.block || 0);
 
-      const range = blockRanges.find(item => item.block === block);
+      const range = blockRanges.find((item) => item.block === block);
 
       const source = findProjectFile(projectDir, mapping?.file);
 
-      const copied = copyRemotionAsset(source, publicProjectDir, `bgm_b${block}_`);
+      const copied = copyRemotionAsset(
+        source,
+        publicProjectDir,
+        `bgm_b${block}_`
+      );
 
       if (copied && range) {
-
         const blockSonoplastia = sonoplastiaPlan.get(block);
         let startFrom = 0;
 
         try {
-
           const pythonPath = PYTHON_PATH || "python";
 
           const scriptPath = path.join(WORKSPACE_DIR, "mix_bgm.py");
@@ -6949,19 +7839,14 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           const parsed = parseFloat(lastLine);
 
           if (Number.isFinite(parsed)) {
-
             startFrom = parsed;
 
             console.log(
-              `[Remotion] BGM bloco ${block}: offset ${startFrom}s (modo ${climaxMode}, mood ${blockSonoplastia?.mood || "neutral"})`,
+              `[Remotion] BGM bloco ${block}: offset ${startFrom}s (modo ${climaxMode}, mood ${blockSonoplastia?.mood || "neutral"})`
             );
-
           }
-
         } catch (e) {
-
           console.error(`Error detecting climax for block ${block}:`, e);
-
         }
 
         bgmTracks.push({
@@ -6974,31 +7859,36 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           mood: blockSonoplastia?.mood || "neutral",
           climaxMode: blockSonoplastia?.climaxMode || "peak",
         });
-
       }
-
     }
-
   } else if (bgmPlan.mode === "emotion" && Array.isArray(bgmPlan.mappings)) {
-
     const emotionSegments = storyboard?.bgm_emotion_plan?.segments || [];
-    const segmentById = new Map(emotionSegments.map((seg) => [String(seg.id), seg]));
+    const segmentById = new Map(
+      emotionSegments.map((seg) => [String(seg.id), seg])
+    );
 
     for (const mapping of bgmPlan.mappings) {
       const segmentId = String(mapping?.segment_id || mapping?.id || "");
       const segMeta = segmentById.get(segmentId) || {};
       const start = Number(mapping?.start ?? segMeta.start ?? 0);
       const duration = Number(
-        mapping?.duration
-        ?? (Number.isFinite(segMeta.end) && Number.isFinite(segMeta.start) ? segMeta.end - segMeta.start : 0)
-        ?? Math.max(0, totalDuration - start),
+        mapping?.duration ??
+          (Number.isFinite(segMeta.end) && Number.isFinite(segMeta.start)
+            ? segMeta.end - segMeta.start
+            : 0) ??
+          Math.max(0, totalDuration - start)
       );
       const source = findProjectFile(projectDir, mapping?.file);
-      const copied = copyRemotionAsset(source, publicProjectDir, `bgm_${segmentId || "seg"}_`);
+      const copied = copyRemotionAsset(
+        source,
+        publicProjectDir,
+        `bgm_${segmentId || "seg"}_`
+      );
       if (!copied || duration <= 0) continue;
 
       const climaxMode = mapping?.climax_mode || segMeta.climax_mode || "rise";
-      const duckStrength = mapping?.duck_strength || segMeta.duck_strength || "normal";
+      const duckStrength =
+        mapping?.duck_strength || segMeta.duck_strength || "normal";
       const emotion = mapping?.emotion || segMeta.emotion || "neutral";
       let startFrom = 0;
 
@@ -7012,10 +7902,15 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         const parsed = parseFloat(lastLine);
         if (Number.isFinite(parsed)) {
           startFrom = parsed;
-          console.log(`[Remotion] BGM emoção ${segmentId}: offset ${startFrom}s (modo ${climaxMode}, ${emotion})`);
+          console.log(
+            `[Remotion] BGM emoção ${segmentId}: offset ${startFrom}s (modo ${climaxMode}, ${emotion})`
+          );
         }
       } catch (e) {
-        console.error(`Error detecting climax for emotion segment ${segmentId}:`, e);
+        console.error(
+          `Error detecting climax for emotion segment ${segmentId}:`,
+          e
+        );
       }
 
       bgmTracks.push({
@@ -7032,51 +7927,71 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
         fadeOutS: Number(mapping?.fade_out_s ?? segMeta.fade_out_s) || 4,
       });
     }
-
   }
 
   // Keep the last BGM from running past its own block into unrelated narration.
 
   if (bgmTracks.length > 0) {
-
     const lastBgm = bgmTracks[bgmTracks.length - 1];
 
-    lastBgm.duration = Math.max(0.5, Math.min(lastBgm.duration, totalDuration - lastBgm.start));
-
+    lastBgm.duration = Math.max(
+      0.5,
+      Math.min(lastBgm.duration, totalDuration - lastBgm.start)
+    );
   }
 
-  const sfxTracks = collectRemotionSfxTracks(projectDir, publicProjectDir, projectSlug, totalDuration);
+  const sfxTracks = collectRemotionSfxTracks(
+    projectDir,
+    publicProjectDir,
+    projectSlug,
+    totalDuration
+  );
   const bgmDuckPoints = buildBgmDuckPoints([], wordTranscripts);
 
   let youtubeChannelInfo = null;
   try {
-    youtubeChannelInfo = await resolveYoutubeChannelInfo(projectDir, publicProjectDir, projectSlug, globalConfig);
+    youtubeChannelInfo = await resolveYoutubeChannelInfo(
+      projectDir,
+      publicProjectDir,
+      projectSlug,
+      globalConfig
+    );
   } catch (e) {
-    console.warn("[Remotion] Falha ao resolver YouTube channel info:", e.message);
+    console.warn(
+      "[Remotion] Falha ao resolver YouTube channel info:",
+      e.message
+    );
   }
 
   const captions = captionsFromWordTranscripts(wordTranscripts);
 
-  const rawCaptions = captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
+  const rawCaptions =
+    captions.length > 0 ? captions : fallbackCaptionsFromScenes(validScenes);
 
-  const finalCaptions = sanitizeCaptionsForRemotion(rawCaptions, narrationDuration || totalDuration);
+  const finalCaptions = sanitizeCaptionsForRemotion(
+    rawCaptions,
+    narrationDuration || totalDuration
+  );
 
   const format = config.aspect_ratio === "16:9" ? "16:9" : "9:16";
 
   // Load planned overlays from storyboard.json instead of generating via AI during render
   const freshSb = readProjectJson(projectDir, "storyboard.json", {});
-  const plannedRaw = Array.isArray(freshSb.overlays_ai) && freshSb.overlays_ai.length > 0
-    ? freshSb.overlays_ai
-    : (Array.isArray(freshSb.overlays) && freshSb.overlays.length > 0
-      ? stripSystemInjectedOverlays(freshSb.overlays)
-      : []);
+  const plannedRaw =
+    Array.isArray(freshSb.overlays_ai) && freshSb.overlays_ai.length > 0
+      ? freshSb.overlays_ai
+      : Array.isArray(freshSb.overlays) && freshSb.overlays.length > 0
+        ? stripSystemInjectedOverlays(freshSb.overlays)
+        : [];
 
   let overlays = [];
   if (plannedRaw.length > 0) {
-    console.log(`[Remotion Render] Alinhando ${plannedRaw.length} overlays informativos com a linha do tempo física.`);
+    console.log(
+      `[Remotion Render] Alinhando ${plannedRaw.length} overlays informativos com a linha do tempo física.`
+    );
     const starts = Array.isArray(timings.starts) ? timings.starts : [];
     const durations = Array.isArray(timings.durations) ? timings.durations : [];
-    
+
     // Alinha os overlays com os tempos físicos das cenas
     const realigned = repairOverlaysEncoding(
       normalizeGeminiOverlayPayload(
@@ -7087,9 +8002,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
           starts,
           durations,
           wordTranscripts,
-          config,
-        ),
-      ),
+          config
+        )
+      )
     );
 
     const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
@@ -7098,7 +8013,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       totalDuration,
       projectName: path.basename(projectDir),
       sceneCount: validScenes.length,
-      blockCount: Array.isArray(config.block_phrases) ? config.block_phrases.length : 0,
+      blockCount: Array.isArray(config.block_phrases)
+        ? config.block_phrases.length
+        : 0,
     });
 
     overlays = finalizeProjectOverlays(
@@ -7109,23 +8026,34 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
       starts,
       durations,
       orchestrationPlanEarly,
-      totalDuration,
+      totalDuration
     );
   } else {
-    console.log("[Remotion Render] Nenhum overlay planejado encontrado no storyboard.json.");
+    console.log(
+      "[Remotion Render] Nenhum overlay planejado encontrado no storyboard.json."
+    );
   }
 
   // Update storyboard overlays with aligned rendering overlays
   storyboard.overlays = overlays;
-  storyboard.quality_report = freshSb.quality_report || storyboard.quality_report;
+  storyboard.quality_report =
+    freshSb.quality_report || storyboard.quality_report;
   try {
-    fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projectDir, "storyboard.json"),
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
   } catch (e) {
     console.error("Error writing storyboard overlays:", e);
   }
 
   // Analyze and log overlay exhibition times and detect any concurrent conflict
-  logOverlayTimingAndConflicts(overlays, timings.starts || [], timings.durations || []);
+  logOverlayTimingAndConflicts(
+    overlays,
+    timings.starts || [],
+    timings.durations || []
+  );
 
   const resolution = options.resolution === "2k" ? "2k" : "1080p";
   const captionSettings = resolveCaptionRenderSettings(config, format);
@@ -7142,7 +8070,11 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     bgmTracks,
     sfxTracks,
     editingMap: storyboard.editing_map || storyboard.hyperframe_prompt || "",
-    musicVolume: resolveMusicVolumeForRender(config, format, globalConfig.musicVolume),
+    musicVolume: resolveMusicVolumeForRender(
+      config,
+      format,
+      globalConfig.musicVolume
+    ),
     debugOverlay: globalConfig.debugOverlay,
     overlays,
     youtubeChannelInfo,
@@ -7151,16 +8083,27 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     captionMode: captionSettings.captionMode,
     captionEffect: captionSettings.captionEffect,
     designPreset: config.design_preset || null,
-    grainOverlay: config.grain_overlay === true || (config.grain_overlay !== false && format === "9:16"),
+    grainOverlay:
+      config.grain_overlay === true ||
+      (config.grain_overlay !== false && format === "9:16"),
     vignette: config.vignette !== false,
     showProgressBar: format === "16:9" && config.progress_bar !== false,
     blockProgressBar: (() => {
       const bar = resolveBlockProgressBarForRender(projectDir, readProjectJson);
       if (!bar || bar.showChannelLogo !== true) return bar;
-      const logoSource = resolveLogoFilePath(WORKSPACE_DIR, projectDir, globalConfigForLogo, projectConfigForLogo)
-        || findProjectFile(projectDir, "logo.png");
+      const logoSource =
+        resolveLogoFilePath(
+          WORKSPACE_DIR,
+          projectDir,
+          globalConfigForLogo,
+          projectConfigForLogo
+        ) || findProjectFile(projectDir, "logo.png");
       if (!logoSource) return bar;
-      const copied = copyRemotionAsset(logoSource, publicProjectDir, "bar_logo_");
+      const copied = copyRemotionAsset(
+        logoSource,
+        publicProjectDir,
+        "bar_logo_"
+      );
       if (!copied) return bar;
       return { ...bar, channelLogoSrc: `projects/${projectSlug}/${copied}` };
     })(),
@@ -7174,7 +8117,10 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     shortsEdgeGlow: config.shorts_edge_glow === true,
     shortsCaptionBgmPulse: captionSettings.shortsCaptionBgmPulse,
     shortsPortalTransition: config.shorts_portal_transition !== false,
-    shortsPortalEvery: Math.max(3, Math.min(5, Number(config.shorts_portal_every) || 4)),
+    shortsPortalEvery: Math.max(
+      3,
+      Math.min(5, Number(config.shorts_portal_every) || 4)
+    ),
     bgmDuckPoints,
     canvasBackground: config.canvas_background || "#050506",
   };
@@ -7207,7 +8153,9 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     const at = new Date().toISOString();
     sb.sample_version = version;
     sb.sample_last_render_at = at;
-    sb.sample_renders = Array.isArray(sb.sample_renders) ? sb.sample_renders : [];
+    sb.sample_renders = Array.isArray(sb.sample_renders)
+      ? sb.sample_renders
+      : [];
     sb.sample_renders.push({
       version,
       file: `ASSETS/sample/sample_v${version}.${fileExt}`,
@@ -7234,20 +8182,20 @@ async function prepareRemotionRender(projectDir, isProres = false, useHyperframe
     informativeOverlayCount: Array.isArray(overlays)
       ? overlays.filter(isInformativeOverlay).length
       : 0,
-    overlayTimingReport: freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
+    overlayTimingReport:
+      freshSb.overlay_timing_report || storyboard.overlay_timing_report || null,
     bgmTrackCount: bgmTracks.length,
     bgmSource: bgmPlan.source,
     bgmMode: bgmPlan.mode,
-    bgmTrackSummary: bgmTracks.map((track) => (
-      `${track.segmentId || `bloco-${track.block}`}: ${path.basename(track.file)} @${Number(track.start).toFixed(1)}s (${Number(track.duration).toFixed(1)}s)`
-    )),
+    bgmTrackSummary: bgmTracks.map(
+      (track) =>
+        `${track.segmentId || `bloco-${track.block}`}: ${path.basename(track.file)} @${Number(track.start).toFixed(1)}s (${Number(track.duration).toFixed(1)}s)`
+    ),
     sonoplastiaLog: formatSonoplastiaLog(sonoplastiaPlan),
   };
-
 }
 
 function getMediaTypeFromName(fileName) {
-
   const ext = path.extname(fileName).toLowerCase();
 
   if ([".mp4", ".mov", ".webm", ".mkv"].includes(ext)) return "video";
@@ -7255,11 +8203,9 @@ function getMediaTypeFromName(fileName) {
   if (ext === ".svg") return "svg";
 
   return "image";
-
 }
 
 function listProjectMediaAssets(projectDir) {
-
   const assetsDir = path.join(projectDir, "ASSETS");
 
   const assetFiles = [];
@@ -7267,51 +8213,51 @@ function listProjectMediaAssets(projectDir) {
   if (!fs.existsSync(assetsDir)) return assetFiles;
 
   const scan = (dir) => {
-
     const items = fs.readdirSync(dir);
 
     for (const item of items) {
-
       const fullPath = path.join(dir, item);
 
       if (fs.statSync(fullPath).isDirectory()) {
-
         scan(fullPath);
-
       } else {
-
         const rel = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
 
         const ext = path.extname(rel).toLowerCase();
 
-        if (rel.toLowerCase() === "logo.png" || path.basename(rel).toLowerCase() === "logo.png") {
-
+        if (
+          rel.toLowerCase() === "logo.png" ||
+          path.basename(rel).toLowerCase() === "logo.png"
+        ) {
           continue;
-
         }
 
-        if ([".mp4", ".mov", ".webm", ".mkv", ".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(ext)) {
-
+        if (
+          [
+            ".mp4",
+            ".mov",
+            ".webm",
+            ".mkv",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+            ".svg",
+          ].includes(ext)
+        ) {
           assetFiles.push({
-
             rel,
 
-            mtime: fs.statSync(fullPath).mtimeMs
-
+            mtime: fs.statSync(fullPath).mtimeMs,
           });
-
         }
-
       }
-
     }
-
   };
 
   scan(assetsDir);
 
   const getAssetSortKey = (filename, mtime) => {
-
     const baseName = path.basename(filename);
 
     // Matches 12 to 14 digit timestamps e.g. 202606231437
@@ -7319,59 +8265,51 @@ function listProjectMediaAssets(projectDir) {
     const match = baseName.match(/_?(\d{12,14})(?=\.[a-zA-Z0-9]+$)/);
 
     if (match) {
-
       return { timestamp: Number(match[1]), mtime };
-
     }
 
     const fallbackMatch = baseName.match(/(\d{8,14})/);
 
     if (fallbackMatch) {
-
       return { timestamp: Number(fallbackMatch[1]), mtime };
-
     }
 
     return { timestamp: 0, mtime };
-
   };
 
   return assetFiles
 
     .sort((a, b) => {
-
       const keyA = getAssetSortKey(a.rel, a.mtime);
 
       const keyB = getAssetSortKey(b.rel, b.mtime);
 
       if (keyA.timestamp > 0 && keyB.timestamp > 0) {
-
         if (keyA.timestamp !== keyB.timestamp) {
-
           return keyA.timestamp - keyB.timestamp;
-
         }
-
       }
 
       return keyA.mtime - keyB.mtime;
-
     })
 
-    .map(x => x.rel);
-
+    .map((x) => x.rel);
 }
 
 function syncStoryboardAssetsFromTimeline(projDir) {
   const configPath = path.join(projDir, "config_qanat.json");
   const storyboardPath = path.join(projDir, "storyboard.json");
-  if (!fs.existsSync(configPath) || !fs.existsSync(storyboardPath)) return false;
+  if (!fs.existsSync(configPath) || !fs.existsSync(storyboardPath))
+    return false;
 
   const config = readProjectJson(projDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projDir, "storyboard.json", {});
   if (!Array.isArray(storyboard.visual_prompts)) return false;
 
-  const bound = bindStoryboardAssetsFromTimeline(storyboard.visual_prompts, config.timeline_assets || {});
+  const bound = bindStoryboardAssetsFromTimeline(
+    storyboard.visual_prompts,
+    config.timeline_assets || {}
+  );
   if (!bound.updated) return false;
 
   storyboard.visual_prompts = bound.visualPrompts;
@@ -7380,15 +8318,24 @@ function syncStoryboardAssetsFromTimeline(projDir) {
   return true;
 }
 
-function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffset = null } = {}) {
+function buildTimelineFromStoryboard(
+  projectDir,
+  { remapping = false, rotateOffset = null } = {}
+) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
-  const timings = readProjectJson(projectDir, "block_timings.json", { durations: [] });
+  const timings = readProjectJson(projectDir, "block_timings.json", {
+    durations: [],
+  });
   const assetFiles = listProjectMediaAssets(projectDir);
-  const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const visualPrompts = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
 
   if (assetFiles.length === 0) {
-    console.log("[Timeline] Nenhum arquivo de mídia encontrado em ASSETS. Mapeando apenas os prompts visuais como placeholders.");
+    console.log(
+      "[Timeline] Nenhum arquivo de mídia encontrado em ASSETS. Mapeando apenas os prompts visuais como placeholders."
+    );
   }
 
   const promptsByBlock = new Map();
@@ -7400,15 +8347,19 @@ function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffs
 
   let blocks = [...promptsByBlock.keys()].sort((a, b) => a - b);
   if (blocks.length === 0) {
-    const totalBlocks = Array.isArray(config.block_phrases) && config.block_phrases.length > 0
-      ? config.block_phrases.length
-      : 12;
+    const totalBlocks =
+      Array.isArray(config.block_phrases) && config.block_phrases.length > 0
+        ? config.block_phrases.length
+        : 12;
     blocks = Array.from({ length: totalBlocks }, (_, index) => index + 1);
   }
 
-  const offset = rotateOffset !== null
-    ? Number(rotateOffset) || 0
-    : (remapping ? Number(config.timeline_map_epoch || 0) : 0);
+  const offset =
+    rotateOffset !== null
+      ? Number(rotateOffset) || 0
+      : remapping
+        ? Number(config.timeline_map_epoch || 0)
+        : 0;
   const mapped = buildTimelineAssetMap({
     blocks,
     promptsByBlock,
@@ -7429,15 +8380,12 @@ function buildTimelineFromStoryboard(projectDir, { remapping = false, rotateOffs
 }
 
 function getOpenRouterApiKey(projectDir = WORKSPACE_DIR) {
-
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
 
   const readConfigKey = (configPath) => {
-
     const config = readJsonFile(configPath);
 
     return config?.openrouter_api_key || null;
-
   };
 
   const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
@@ -7445,81 +8393,71 @@ function getOpenRouterApiKey(projectDir = WORKSPACE_DIR) {
   if (projectKey) return projectKey;
 
   if (projectDir !== WORKSPACE_DIR) {
-
-    const rootKey = readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+    const rootKey = readConfigKey(
+      path.join(WORKSPACE_DIR, "config_qanat.json")
+    );
 
     if (rootKey) return rootKey;
-
   }
 
   return OPENROUTER_DEFAULT_KEY;
-
 }
 
 function convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride) {
-
   const messages = [];
 
   if (bodyOverride?.systemInstruction?.parts?.[0]?.text) {
-
     messages.push({
-
       role: "system",
 
-      content: bodyOverride.systemInstruction.parts[0].text
-
+      content: bodyOverride.systemInstruction.parts[0].text,
     });
-
   } else if (bodyOverride?.system_instruction?.parts?.[0]?.text) {
-
     messages.push({
-
       role: "system",
 
-      content: bodyOverride.system_instruction.parts[0].text
-
+      content: bodyOverride.system_instruction.parts[0].text,
     });
-
   }
 
   if (bodyOverride?.contents && Array.isArray(bodyOverride.contents)) {
-
     for (const item of bodyOverride.contents) {
-
       const role = item.role === "model" ? "assistant" : "user";
 
       const content = item.parts?.[0]?.text || "";
 
       messages.push({ role, content });
-
     }
-
   } else if (promptOrBody) {
-
     messages.push({
-
       role: "user",
 
-      content: promptOrBody
-
+      content: promptOrBody,
     });
-
   }
 
   return messages;
-
 }
 
-async function callOpenRouterWithRetry(promptOrBody, { maxRetries = 2, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
-
+async function callOpenRouterWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 2,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+  } = {}
+) {
   const apiKey = getOpenRouterApiKey(projectDir);
 
-  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
 
   let lastError = null;
 
   for (const model of OPENROUTER_FREE_MODELS) {
-
     console.log("\n==================================================");
 
     console.log(`[OpenRouter] ATIVO - TENTANDO MODELO: ${model}`);
@@ -7527,47 +8465,52 @@ async function callOpenRouterWithRetry(promptOrBody, { maxRetries = 2, bodyOverr
     console.log("==================================================");
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-
       try {
+        const response = await fetch(
+          "https://openrouter.ai/api/v1/chat/completions",
+          {
+            method: "POST",
 
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            headers: {
+              "Content-Type": "application/json",
 
-          method: "POST",
+              Authorization: `Bearer ${apiKey}`,
 
-          headers: {
+              "HTTP-Referer":
+                "https://github.com/leonardosalves/BURACOS-NO-DESERTO",
 
-            "Content-Type": "application/json",
+              "X-Title": "Lumiera Cinematic Studio",
+            },
 
-            "Authorization": `Bearer ${apiKey}`,
-
-            "HTTP-Referer": "https://github.com/leonardosalves/BURACOS-NO-DESERTO",
-
-            "X-Title": "Lumiera Cinematic Studio"
-
-          },
-
-          body: JSON.stringify({ model: model, messages: messages, ...(temperature !== null ? { temperature } : {}) })
-
-        });
+            body: JSON.stringify({
+              model: model,
+              messages: messages,
+              ...(temperature !== null ? { temperature } : {}),
+            }),
+          }
+        );
 
         if (response.ok) {
-
           const result = await response.json();
 
           let responseText = result.choices?.[0]?.message?.content || "";
 
-          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+          responseText = responseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
           console.log("\n==================================================");
 
           console.log(`[OpenRouter] SUCESSO - MODELO EM USO: ${model}`);
 
-          console.log(`[OpenRouter] Sucesso na tentativa ${attempt} do modelo ${model}`);
+          console.log(
+            `[OpenRouter] Sucesso na tentativa ${attempt} do modelo ${model}`
+          );
 
           console.log("==================================================");
 
           return responseText;
-
         }
 
         const errData = await response.json().catch(() => ({}));
@@ -7576,42 +8519,58 @@ async function callOpenRouterWithRetry(promptOrBody, { maxRetries = 2, bodyOverr
 
         const status = response.status;
 
-        console.warn(`[OpenRouter] Erro ${status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
+        console.warn(
+          `[OpenRouter] Erro ${status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`
+        );
 
         lastError = new Error(`OpenRouter [${model}]: ${errMsg}`);
 
-        const isQuotaOrRateLimit = (status === 429 || status === 403 || status === 402 || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("credit"));
+        const isQuotaOrRateLimit =
+          status === 429 ||
+          status === 403 ||
+          status === 402 ||
+          errMsg.toLowerCase().includes("quota") ||
+          errMsg.toLowerCase().includes("credit");
 
-        const isUnavailableOrNotFound = (status === 404 || status === 400 || status === 401 || errMsg.toLowerCase().includes("unavailable") || errMsg.toLowerCase().includes("no endpoints found"));
+        const isUnavailableOrNotFound =
+          status === 404 ||
+          status === 400 ||
+          status === 401 ||
+          errMsg.toLowerCase().includes("unavailable") ||
+          errMsg.toLowerCase().includes("no endpoints found");
 
         if (isQuotaOrRateLimit || isUnavailableOrNotFound) {
-
-          console.warn(`[OpenRouter] Erro crítico/limite/indisponibilidade detectado para ${model} (${status}: ${errMsg}). Rotacionando imediatamente...`);
+          console.warn(
+            `[OpenRouter] Erro crítico/limite/indisponibilidade detectado para ${model} (${status}: ${errMsg}). Rotacionando imediatamente...`
+          );
 
           break;
-
         }
 
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
 
-        await new Promise(r => setTimeout(r, delay));
-
+        await new Promise((r) => setTimeout(r, delay));
       } catch (err) {
-
-        console.error(`[OpenRouter] Exceção na tentativa ${attempt} para ${model}:`, err.message);
+        console.error(
+          `[OpenRouter] Exceção na tentativa ${attempt} para ${model}:`,
+          err.message
+        );
 
         lastError = err;
-
       }
-
     }
 
-    console.warn(`[OpenRouter] Todas as tentativas falharam para o modelo ${model}. Tentando o proximo...`);
-
+    console.warn(
+      `[OpenRouter] Todas as tentativas falharam para o modelo ${model}. Tentando o proximo...`
+    );
   }
 
-  throw lastError || new Error("Todos os modelos OpenRouter livres falharam após múltiplas tentativas.");
-
+  throw (
+    lastError ||
+    new Error(
+      "Todos os modelos OpenRouter livres falharam após múltiplas tentativas."
+    )
+  );
 }
 
 const NVIDIA_MODELS = [
@@ -7619,34 +8578,158 @@ const NVIDIA_MODELS = [
   "qwen/qwen3.5-397b-a17b",
   "moonshotai/kimi-k2.6",
   "zhipuai/glm-5.1",
-  "deepseek/deepseek-v4-flash"
+  "deepseek/deepseek-v4-flash",
 ];
 
-async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null, models = null } = {}) {
+const INFERENCE_API_BASE = "https://api.inference.net/v1";
+
+const INFERENCE_MODELS = [
+  "google/gemma-3-27b-instruct/bf-16",
+  "qwen/qwen3-32b",
+  "meta-llama/llama-3.3-70b-instruct",
+  "deepseek/deepseek-v3",
+];
+
+async function callNvidiaWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+  } = {}
+) {
   const apiKey = getNvidiaApiKey(projectDir);
   if (!apiKey) {
     throw new Error("Chave de API da NVIDIA não configurada.");
   }
-  
-  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
   let lastError = null;
-  const modelList = Array.isArray(models) && models.length ? models : NVIDIA_MODELS;
-  
+  const modelList =
+    Array.isArray(models) && models.length ? models : NVIDIA_MODELS;
+
   for (const model of modelList) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[NVIDIA API] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`);
-        const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        console.log(
+          `[NVIDIA API] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`
+        );
+        const response = await fetch(
+          "https://integrate.api.nvidia.com/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: messages,
+              ...(temperature !== null ? { temperature } : {}),
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          const msg = result.choices?.[0]?.message || {};
+          let responseText = typeof msg.content === "string" ? msg.content : "";
+          if (!responseText && Array.isArray(msg.content)) {
+            responseText = msg.content
+              .map((part) => part?.text || part?.content || "")
+              .join("\n");
+          }
+          if (!responseText) {
+            responseText = msg.reasoning_content || msg.reasoning || "";
+          }
+          responseText = responseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          if (responseText) {
+            console.log(
+              `[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt} (${responseText.length} chars)`
+            );
+            return responseText;
+          }
+          console.warn(
+            `[NVIDIA API] ${model} retornou vazio na tentativa ${attempt}/${maxRetries}`
+          );
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error?.message || response.statusText;
+        lastError = new Error(`${model}: ${errMsg}`);
+        console.warn(
+          `[NVIDIA API] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`
+        );
+
+        if (response.status === 503 || response.status === 429) {
+          const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        break; // Don't retry if it's a 400/401/403/etc. error
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[NVIDIA API] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+  }
+  throw (
+    lastError ||
+    new Error("Falha ao chamar NVIDIA API após múltiplas tentativas.")
+  );
+}
+
+async function callInferenceWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+    models = null,
+  } = {}
+) {
+  const apiKey = getInferenceApiKey(projectDir);
+  if (!apiKey) {
+    throw new Error("Chave de API da Inference.net não configurada.");
+  }
+
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
+  let lastError = null;
+  const modelList =
+    Array.isArray(models) && models.length ? models : INFERENCE_MODELS;
+
+  for (const model of modelList) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `[Inference.net] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`
+        );
+        const response = await fetch(`${INFERENCE_API_BASE}/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: model,
-            messages: messages,
-            ...(temperature !== null ? { temperature } : {})
-          })
+            model,
+            messages,
+            ...(temperature !== null ? { temperature } : {}),
+          }),
         });
 
         if (response.ok) {
@@ -7654,95 +8737,139 @@ async function callNvidiaWithRetry(promptOrBody, { maxRetries = 3, bodyOverride 
           const msg = result.choices?.[0]?.message || {};
           let responseText = typeof msg.content === "string" ? msg.content : "";
           if (!responseText && Array.isArray(msg.content)) {
-            responseText = msg.content.map((part) => part?.text || part?.content || "").join("\n");
+            responseText = msg.content
+              .map((part) => part?.text || part?.content || "")
+              .join("\n");
           }
-          if (!responseText) {
-            responseText = msg.reasoning_content || msg.reasoning || "";
-          }
-          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+          responseText = responseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
           if (responseText) {
-            console.log(`[NVIDIA API] Sucesso com modelo=${model} na tentativa ${attempt} (${responseText.length} chars)`);
+            console.log(
+              `[Inference.net] Sucesso com modelo=${model} na tentativa ${attempt} (${responseText.length} chars)`
+            );
             return responseText;
           }
-          console.warn(`[NVIDIA API] ${model} retornou vazio na tentativa ${attempt}/${maxRetries}`);
+          console.warn(
+            `[Inference.net] ${model} retornou vazio na tentativa ${attempt}/${maxRetries}`
+          );
         }
 
         const errData = await response.json().catch(() => ({}));
         const errMsg = errData.error?.message || response.statusText;
         lastError = new Error(`${model}: ${errMsg}`);
-        console.warn(`[NVIDIA API] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
-        
+        console.warn(
+          `[Inference.net] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`
+        );
+
         if (response.status === 503 || response.status === 429) {
           const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
-          await new Promise(r => setTimeout(r, delay));
+          await new Promise((r) => setTimeout(r, delay));
           continue;
         }
-        break; // Don't retry if it's a 400/401/403/etc. error
+        break;
       } catch (err) {
         lastError = err;
-        console.warn(`[NVIDIA API] Erro na tentativa ${attempt} para ${model}: ${err.message}`);
-        await new Promise(r => setTimeout(r, 1000 * attempt));
+        console.warn(
+          `[Inference.net] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
   }
-  throw lastError || new Error("Falha ao chamar NVIDIA API após múltiplas tentativas.");
+  throw (
+    lastError ||
+    new Error("Falha ao chamar Inference.net após múltiplas tentativas.")
+  );
 }
 
-const XAI_MODELS = ["grok-2-1212", "grok-2-latest", "grok-beta", "grok-2", "grok-4.3"];
+const XAI_MODELS = [
+  "grok-2-1212",
+  "grok-2-latest",
+  "grok-beta",
+  "grok-2",
+  "grok-4.3",
+];
 
-async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = null, projectDir = WORKSPACE_DIR, temperature = null } = {}) {
+async function callXaiWithRetry(
+  promptOrBody,
+  {
+    maxRetries = 3,
+    bodyOverride = null,
+    projectDir = WORKSPACE_DIR,
+    temperature = null,
+  } = {}
+) {
   const apiKey = getXaiApiKey(projectDir);
   if (!apiKey) {
     throw new Error("Chave de API da xAI/Grok não configurada.");
   }
-  
-  const messages = convertGeminiToOpenRouterMessages(promptOrBody, bodyOverride);
+
+  const messages = convertGeminiToOpenRouterMessages(
+    promptOrBody,
+    bodyOverride
+  );
   let lastError = null;
-  
+
   for (const model of XAI_MODELS) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[xAI/Grok] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`);
+        console.log(
+          `[xAI/Grok] Tentando modelo: ${model} (Tentativa ${attempt}/${maxRetries})`
+        );
         const response = await fetch("https://api.x.ai/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model: model,
             messages: messages,
-            ...(temperature !== null ? { temperature } : {})
-          })
+            ...(temperature !== null ? { temperature } : {}),
+          }),
         });
 
         if (response.ok) {
           const result = await response.json();
           let responseText = result.choices?.[0]?.message?.content || "";
-          responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-          console.log(`[xAI/Grok] Sucesso com modelo=${model} na tentativa ${attempt}`);
+          responseText = responseText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+          console.log(
+            `[xAI/Grok] Sucesso com modelo=${model} na tentativa ${attempt}`
+          );
           return responseText;
         }
 
         const errData = await response.json().catch(() => ({}));
         const errMsg = errData.error?.message || response.statusText;
         lastError = new Error(`${model}: ${errMsg}`);
-        console.warn(`[xAI/Grok] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`);
-        
+        console.warn(
+          `[xAI/Grok] ${response.status} de ${model} (tentativa ${attempt}/${maxRetries}): ${errMsg}`
+        );
+
         if (response.status === 503 || response.status === 429) {
           const delay = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
-          await new Promise(r => setTimeout(r, delay));
+          await new Promise((r) => setTimeout(r, delay));
           continue;
         }
         break; // Don't retry if it's a 400/401/403/etc. error
       } catch (err) {
         lastError = err;
-        console.warn(`[xAI/Grok] Erro na tentativa ${attempt} para ${model}: ${err.message}`);
-        await new Promise(r => setTimeout(r, 1000 * attempt));
+        console.warn(
+          `[xAI/Grok] Erro na tentativa ${attempt} para ${model}: ${err.message}`
+        );
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
   }
-  throw lastError || new Error("Falha ao chamar xAI/Grok após múltiplas tentativas.");
+  throw (
+    lastError ||
+    new Error("Falha ao chamar xAI/Grok após múltiplas tentativas.")
+  );
 }
 
 // Gemini API call with automatic retry and model fallback for 503/429 errors
@@ -7750,12 +8877,36 @@ async function callXaiWithRetry(promptOrBody, { maxRetries = 3, bodyOverride = n
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 const GEMINI_MODEL_OPTIONS = [
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Rápido, gratuito no AI Studio, contexto 1M" },
-  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite", hint: "Mais barato/rápido, alto volume" },
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Raciocínio avançado" },
-  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", hint: "Fallback estável" },
-  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", hint: "Mais recente, multimodal" },
-  { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", hint: "Leve e econômico" },
+  {
+    id: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    hint: "Rápido, gratuito no AI Studio, contexto 1M",
+  },
+  {
+    id: "gemini-2.5-flash-lite",
+    label: "Gemini 2.5 Flash-Lite",
+    hint: "Mais barato/rápido, alto volume",
+  },
+  {
+    id: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    hint: "Raciocínio avançado",
+  },
+  {
+    id: "gemini-2.0-flash",
+    label: "Gemini 2.0 Flash",
+    hint: "Fallback estável",
+  },
+  {
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash",
+    hint: "Mais recente, multimodal",
+  },
+  {
+    id: "gemini-3.1-flash-lite",
+    label: "Gemini 3.1 Flash-Lite",
+    hint: "Leve e econômico",
+  },
 ];
 
 const GEMINI_MODEL_FALLBACKS = [
@@ -7779,13 +8930,18 @@ function getGeminiModel(projectDir = WORKSPACE_DIR) {
   };
   return (
     readModel(path.join(projectDir, "config_qanat.json")) ||
-    (projectDir !== WORKSPACE_DIR ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json")) : null) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readModel(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
     process.env.GEMINI_MODEL ||
     DEFAULT_GEMINI_MODEL
   );
 }
 
-function getGeminiModelChain(projectDir = WORKSPACE_DIR, overrideModels = null) {
+function getGeminiModelChain(
+  projectDir = WORKSPACE_DIR,
+  overrideModels = null
+) {
   if (Array.isArray(overrideModels) && overrideModels.length > 0) {
     return [...new Set(overrideModels.filter(Boolean))];
   }
@@ -7793,18 +8949,52 @@ function getGeminiModelChain(projectDir = WORKSPACE_DIR, overrideModels = null) 
   return [...new Set([primary, ...GEMINI_MODEL_FALLBACKS])];
 }
 
-async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, models = null, bodyOverride = null, temperature = null, projectDir = null, forceProvider = null } = {}) {
+async function callGeminiWithRetry(
+  apiKey,
+  promptOrBody,
+  {
+    maxRetries = 4,
+    models = null,
+    bodyOverride = null,
+    temperature = null,
+    projectDir = null,
+    forceProvider = null,
+  } = {}
+) {
   const projDir = projectDir || global.lastActiveProjectDir || WORKSPACE_DIR;
   const modelChain = getGeminiModelChain(projDir, models);
   const provider = forceProvider || getAiProvider(projDir);
   if (provider === "nvidia") {
-    return await callNvidiaWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
+    return await callNvidiaWithRetry(promptOrBody, {
+      maxRetries,
+      bodyOverride,
+      projectDir: projDir,
+      temperature,
+    });
+  }
+  if (provider === "inference") {
+    return await callInferenceWithRetry(promptOrBody, {
+      maxRetries,
+      bodyOverride,
+      projectDir: projDir,
+      temperature,
+    });
   }
   if (provider === "openrouter") {
-    return await callOpenRouterWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
+    return await callOpenRouterWithRetry(promptOrBody, {
+      maxRetries,
+      bodyOverride,
+      projectDir: projDir,
+      temperature,
+    });
   }
   if (provider === "xai") {
-    return await callXaiWithRetry(promptOrBody, { maxRetries, bodyOverride, projectDir: projDir, temperature });
+    return await callXaiWithRetry(promptOrBody, {
+      maxRetries,
+      bodyOverride,
+      projectDir: projDir,
+      temperature,
+    });
   }
 
   const keyPool = buildGeminiKeyPool(apiKey, getApiKeys(projDir));
@@ -7813,7 +9003,9 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
     throw new Error("Nenhuma chave de API do Gemini configurada.");
   }
 
-  console.log(`[Gemini] Pool: ${keyPool.length} chave(s) | modelos: ${modelChain.join(" → ")}`);
+  console.log(
+    `[Gemini] Pool: ${keyPool.length} chave(s) | modelos: ${modelChain.join(" → ")}`
+  );
 
   let lastError = null;
 
@@ -7830,23 +9022,33 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
         try {
           const requestBody = bodyOverride || {
             contents: [{ role: "user", parts: [{ text: promptOrBody }] }],
-            ...(temperature !== null ? { generationConfig: { temperature } } : {}),
+            ...(temperature !== null
+              ? { generationConfig: { temperature } }
+              : {}),
           };
-          console.log(`[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`);
+          console.log(
+            `[Gemini] modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}/${maxRetries}`
+          );
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(requestBody),
-            },
+            }
           );
 
           if (response.ok) {
             const result = await response.json();
-            let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-            console.log(`[Gemini] Sucesso modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}`);
+            let responseText =
+              result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            responseText = responseText
+              .replace(/```json/g, "")
+              .replace(/```/g, "")
+              .trim();
+            console.log(
+              `[Gemini] Sucesso modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...) tentativa ${attempt}`
+            );
             return responseText;
           }
 
@@ -7854,17 +9056,23 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
           const errMsg = errData.error?.message || response.statusText;
           const status = response.status;
 
-          console.warn(`[Gemini] HTTP ${status} modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...): ${errMsg}`);
+          console.warn(
+            `[Gemini] HTTP ${status} modelo=${model} chave=${keyLabel} (${currentKey.substring(0, 10)}...): ${errMsg}`
+          );
           lastError = new Error(`${model}: ${errMsg}`);
 
           if (shouldRotateGeminiKey(status)) {
-            console.warn(`[Gemini] ${status} na chave ${keyLabel} — próxima chave antes de trocar modelo`);
+            console.warn(
+              `[Gemini] ${status} na chave ${keyLabel} — próxima chave antes de trocar modelo`
+            );
             break;
           }
           break;
         } catch (err) {
           lastError = err;
-          console.warn(`[Gemini] Erro de rede modelo=${model} chave=${keyLabel} tentativa ${attempt}/${maxRetries}: ${err.message}`);
+          console.warn(
+            `[Gemini] Erro de rede modelo=${model} chave=${keyLabel} tentativa ${attempt}/${maxRetries}: ${err.message}`
+          );
           if (attempt >= maxRetries) break;
           await new Promise((r) => setTimeout(r, 1000 * attempt));
           continue;
@@ -7874,23 +9082,38 @@ async function callGeminiWithRetry(apiKey, promptOrBody, { maxRetries = 4, model
 
     const nextModel = modelChain[modelIdx + 1];
     if (nextModel) {
-      console.warn(`[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas → tentando ${nextModel}`);
+      console.warn(
+        `[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas → tentando ${nextModel}`
+      );
     } else {
-      console.warn(`[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas — sem mais modelos na cadeia`);
+      console.warn(
+        `[Gemini] Modelo ${model}: ${keysAttempted}/${keyPool.length} chave(s) esgotadas — sem mais modelos na cadeia`
+      );
     }
   }
-  throw lastError || new Error("Todos os modelos Gemini falharam após múltiplas tentativas.");
+  throw (
+    lastError ||
+    new Error("Todos os modelos Gemini falharam após múltiplas tentativas.")
+  );
 }
 
 function extractJsonCandidate(text) {
-
-  const raw = String(text || "").replace(/^\uFEFF/, "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const raw = String(text || "")
+    .replace(/^\uFEFF/, "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
 
   const firstObject = raw.indexOf("{");
 
   const firstArray = raw.indexOf("[");
 
-  const start = firstObject === -1 ? firstArray : firstArray === -1 ? firstObject : Math.min(firstObject, firstArray);
+  const start =
+    firstObject === -1
+      ? firstArray
+      : firstArray === -1
+        ? firstObject
+        : Math.min(firstObject, firstArray);
 
   if (start === -1) return raw;
 
@@ -7903,91 +9126,69 @@ function extractJsonCandidate(text) {
   let escaped = false;
 
   for (let i = start + 1; i < raw.length; i++) {
-
     const ch = raw[i];
 
     if (inString) {
-
       if (escaped) {
-
         escaped = false;
-
       } else if (ch === "\\") {
-
         escaped = true;
-
       } else if (ch === '"') {
-
         inString = false;
-
       }
 
       continue;
-
     }
 
     if (ch === '"') {
-
       inString = true;
-
     } else if (ch === "{" || ch === "[") {
-
       stack.push(ch === "{" ? "}" : "]");
-
     } else if (ch === "}" || ch === "]") {
-
       if (ch !== stack.pop()) break;
 
       if (stack.length === 0) return raw.slice(start, i + 1);
-
     }
-
   }
 
   const fallback = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
 
   return fallback ? fallback[0] : raw;
-
 }
 
 function parseJsonCandidate(text) {
-
   const candidate = extractJsonCandidate(text);
 
   const variants = [
-
     candidate,
 
     candidate.replace(/,\s*([}\]])/g, "$1"),
 
-    candidate.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/,\s*([}\]])/g, "$1")
-
+    candidate
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/,\s*([}\]])/g, "$1"),
   ];
 
   let lastError;
 
   for (const variant of variants) {
-
     try {
-
       return JSON.parse(variant);
-
     } catch (err) {
-
       lastError = err;
-
     }
-
   }
 
   throw lastError;
-
 }
 
 function parseJsonLocally(responseText) {
   const variants = [
     responseText,
-    String(responseText || "").replace(/^\uFEFF/, "").trim(),
+    String(responseText || "")
+      .replace(/^\uFEFF/, "")
+      .trim(),
     extractJsonCandidate(responseText),
   ];
   const seen = new Set();
@@ -7999,7 +9200,10 @@ function parseJsonLocally(responseText) {
     const attempts = [
       candidate,
       candidate.replace(/,\s*([}\]])/g, "$1"),
-      candidate.replace(/[""]/g, '"').replace(/['']/g, "'").replace(/,\s*([}\]])/g, "$1"),
+      candidate
+        .replace(/[""]/g, '"')
+        .replace(/['']/g, "'")
+        .replace(/,\s*([}\]])/g, "$1"),
       candidate.replace(/'/g, '"').replace(/,\s*([}\]])/g, "$1"),
     ];
     for (const variant of attempts) {
@@ -8013,19 +9217,25 @@ function parseJsonLocally(responseText) {
   throw lastError || new Error("JSON inválido");
 }
 
-async function parseAiJsonResponse(responseText, apiKey, contextLabel = "resposta da IA") {
+async function parseAiJsonResponse(
+  responseText,
+  apiKey,
+  contextLabel = "resposta da IA"
+) {
   try {
     return parseJsonLocally(responseText);
   } catch (firstError) {
     if (!apiKey) {
       const salvaged = salvageScriptJson(responseText);
       if (salvaged) {
-        console.warn(`[parseAiJson] ${contextLabel}: JSON recuperado via salvage (modo navegador).`);
+        console.warn(
+          `[parseAiJson] ${contextLabel}: JSON recuperado via salvage (modo navegador).`
+        );
         return salvaged;
       }
       throw new Error(
-        `${contextLabel}: resposta do Gemini não veio em JSON válido. `
-        + "Tente de novo ou desative o modo navegador e use a API.",
+        `${contextLabel}: resposta do Gemini não veio em JSON válido. ` +
+          "Tente de novo ou desative o modo navegador e use a API."
       );
     }
 
@@ -8033,7 +9243,10 @@ async function parseAiJsonResponse(responseText, apiKey, contextLabel = "respost
     const repairPrompt = `Corrija o texto abaixo para JSON 100% valido. Preserve todos os dados e textos originais, apenas corrija sintaxe JSON, aspas internas, virgulas e escapes. Retorne APENAS o JSON corrigido, sem markdown.\n\n${candidate}`;
 
     try {
-      const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, { maxRetries: 2, models: ["gemini-1.5-flash", "gemini-2.0-flash"] });
+      const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, {
+        maxRetries: 2,
+        models: ["gemini-1.5-flash", "gemini-2.0-flash"],
+      });
       return parseJsonLocally(repairedText);
     } catch (repairError) {
       repairError.message = `${contextLabel}: ${firstError.message}`;
@@ -8043,35 +9256,23 @@ async function parseAiJsonResponse(responseText, apiKey, contextLabel = "respost
 }
 
 function normalizeApiKeys(...values) {
-
   const keys = [];
 
   for (const value of values) {
-
     if (Array.isArray(value)) {
-
       keys.push(...value);
-
     } else if (typeof value === "string" && value.includes(",")) {
-
       keys.push(...value.split(","));
-
     } else if (value) {
-
       keys.push(value);
-
     }
-
   }
 
-  return [...new Set(keys.map(key => String(key).trim()).filter(Boolean))];
-
+  return [...new Set(keys.map((key) => String(key).trim()).filter(Boolean))];
 }
 
 function getApiKeys(projectDir = WORKSPACE_DIR) {
-
   const keys = normalizeApiKeys(
-
     process.env.GEMINI_API_KEYS,
 
     process.env.GOOGLE_API_KEYS,
@@ -8079,47 +9280,45 @@ function getApiKeys(projectDir = WORKSPACE_DIR) {
     process.env.GEMINI_API_KEY,
 
     process.env.GOOGLE_API_KEY
-
   );
 
   const appendConfigKeys = (configPath) => {
-
     const config = readJsonFile(configPath);
 
     if (config) {
-
-      keys.push(...normalizeApiKeys(config.gemini_api_keys, config.google_api_keys, config.gemini_api_key, config.google_api_key));
-
+      keys.push(
+        ...normalizeApiKeys(
+          config.gemini_api_keys,
+          config.google_api_keys,
+          config.gemini_api_key,
+          config.google_api_key
+        )
+      );
     }
-
   };
 
   appendConfigKeys(path.join(projectDir, "config_qanat.json"));
 
   if (projectDir !== WORKSPACE_DIR) {
-
     appendConfigKeys(path.join(WORKSPACE_DIR, "config_qanat.json"));
-
   }
 
   return [...new Set(keys)];
-
 }
 
 function getApiKey(projectDir = WORKSPACE_DIR) {
-
   const provider = getAiProvider(projectDir);
 
   if (provider === "xai") {
-
     return getXaiApiKey(projectDir);
-
   }
 
   if (provider === "openrouter") {
-
     return getOpenRouterApiKey(projectDir);
+  }
 
+  if (provider === "inference") {
+    return getInferenceApiKey(projectDir);
   }
 
   const keys = getApiKeys(projectDir);
@@ -8137,41 +9336,31 @@ function getApiKey(projectDir = WORKSPACE_DIR) {
   const projectConfig = readJsonFile(configPath);
 
   if (projectConfig?.gemini_api_key) {
-
     return projectConfig.gemini_api_key;
-
   }
 
   // Fallback to workspace root
 
   if (projectDir !== WORKSPACE_DIR) {
-
     const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
 
     const rootConfig = readJsonFile(rootConfigPath);
 
     if (rootConfig?.gemini_api_key) {
-
       return rootConfig.gemini_api_key;
-
     }
-
   }
 
   return null;
-
 }
 
 function getXaiApiKey(projectDir = WORKSPACE_DIR) {
-
   if (process.env.XAI_API_KEY) return process.env.XAI_API_KEY;
 
   const readConfigKey = (configPath) => {
-
     const config = readJsonFile(configPath);
 
     return config?.xai_api_key || config?.grok_api_key || null;
-
   };
 
   const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
@@ -8179,13 +9368,10 @@ function getXaiApiKey(projectDir = WORKSPACE_DIR) {
   if (projectKey) return projectKey;
 
   if (projectDir !== WORKSPACE_DIR) {
-
     return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
-
   }
 
   return null;
-
 }
 
 function getNvidiaApiKey(projectDir = WORKSPACE_DIR) {
@@ -8205,22 +9391,37 @@ function getNvidiaApiKey(projectDir = WORKSPACE_DIR) {
   return null;
 }
 
+function getInferenceApiKey(projectDir = WORKSPACE_DIR) {
+  if (process.env.INFERENCE_API_KEY) return process.env.INFERENCE_API_KEY;
+
+  const readConfigKey = (configPath) => {
+    const config = readJsonFile(configPath);
+    return config?.inference_api_key || null;
+  };
+
+  const projectKey = readConfigKey(path.join(projectDir, "config_qanat.json"));
+  if (projectKey) return projectKey;
+
+  if (projectDir !== WORKSPACE_DIR) {
+    return readConfigKey(path.join(WORKSPACE_DIR, "config_qanat.json"));
+  }
+  return null;
+}
+
 function getAiProvider(projectDir = WORKSPACE_DIR) {
-
   const readProvider = (configPath) => {
-
     const config = readJsonFile(configPath);
 
     return config?.ai_provider || config?.metadata_provider || null;
-
   };
 
-  return readProvider(path.join(projectDir, "config_qanat.json")) ||
-
-    (projectDir !== WORKSPACE_DIR ? readProvider(path.join(WORKSPACE_DIR, "config_qanat.json")) : null) ||
-
-    "gemini";
-
+  return (
+    readProvider(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readProvider(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : null) ||
+    "gemini"
+  );
 }
 
 function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
@@ -8229,8 +9430,10 @@ function isGeminiBrowserModeEnabled(projectDir = WORKSPACE_DIR) {
     return getGeminiBrowserMode(config);
   };
   return (
-    readMode(path.join(projectDir, "config_qanat.json"))
-    || (projectDir !== WORKSPACE_DIR ? readMode(path.join(WORKSPACE_DIR, "config_qanat.json")) : false)
+    readMode(path.join(projectDir, "config_qanat.json")) ||
+    (projectDir !== WORKSPACE_DIR
+      ? readMode(path.join(WORKSPACE_DIR, "config_qanat.json"))
+      : false)
   );
 }
 
@@ -8243,12 +9446,17 @@ function shouldOfferGeminiBrowser(projectDir = WORKSPACE_DIR) {
  * Ponto único: API Gemini ou modo navegador (extensão / copiar-colar).
  * Retorna texto da IA, ou null se já respondeu com needs_browser.
  */
-async function callGeminiLlm(req, res, projDir, {
-  title = "Consulta IA Lumiera",
-  prompt = null,
-  bodyOverride = null,
-  temperature = null,
-} = {}) {
+async function callGeminiLlm(
+  req,
+  res,
+  projDir,
+  {
+    title = "Consulta IA Lumiera",
+    prompt = null,
+    bodyOverride = null,
+    temperature = null,
+  } = {}
+) {
   const browserText = extractBrowserResponse(req.body);
   if (browserText) return browserText;
 
@@ -8271,11 +9479,22 @@ async function callGeminiLlm(req, res, projDir, {
       return null;
     }
   }
+  if (provider === "inference") {
+    const apiKey = getInferenceApiKey(projDir);
+    if (!apiKey) {
+      res.status(401).json({
+        error:
+          "Chave de API da Inference.net não configurada nas configurações.",
+      });
+      return null;
+    }
+  }
   if (provider === "gemini") {
     const apiKey = getApiKey(projDir);
     if (!apiKey) {
       res.status(401).json({
-        error: "Chave de API não configurada. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
+        error:
+          "Chave de API não configurada. Ative Gemini no Chrome nas configurações ou adicione uma chave.",
       });
       return null;
     }
@@ -8292,18 +9511,19 @@ async function callGeminiLlm(req, res, projDir, {
  * LLM rápido para Studio (comentários): 1 tentativa no provider ativo,
  * fallback Gemini API, depois modo navegador se habilitado.
  */
-async function callStudioQuickLlm(req, res, projDir, {
-  title = "Consulta IA Lumiera",
-  prompt,
-  temperature = 0.7,
-} = {}) {
+async function callStudioQuickLlm(
+  req,
+  res,
+  projDir,
+  { title = "Consulta IA Lumiera", prompt, temperature = 0.7 } = {}
+) {
   const browserText = extractBrowserResponse(req.body);
   if (browserText) return String(browserText).trim();
 
   const failures = [];
   const run = async (label, fn) => {
     try {
-      const text = String(await fn() || "").trim();
+      const text = String((await fn()) || "").trim();
       if (text) return text;
       failures.push(`${label}: resposta vazia`);
     } catch (err) {
@@ -8314,101 +9534,127 @@ async function callStudioQuickLlm(req, res, projDir, {
   };
 
   const provider = getAiProvider(projDir);
-  const quickModels = provider === "nvidia"
-    ? NVIDIA_MODELS.slice(0, 1)
-    : provider === "xai"
-      ? XAI_MODELS.slice(0, 1)
-      : provider === "openrouter"
-        ? null
-        : [getGeminiModel(projDir), "gemini-2.5-flash"];
+  const quickModels =
+    provider === "nvidia"
+      ? NVIDIA_MODELS.slice(0, 1)
+      : provider === "inference"
+        ? INFERENCE_MODELS.slice(0, 1)
+        : provider === "xai"
+          ? XAI_MODELS.slice(0, 1)
+          : provider === "openrouter"
+            ? null
+            : [getGeminiModel(projDir), "gemini-2.5-flash"];
 
-  const text = await run(provider, () => callGeminiWithRetry(getApiKey(projDir), prompt, {
-    maxRetries: 1,
-    models: quickModels,
-    temperature,
-    projectDir: projDir,
-  }));
+  const text = await run(provider, () =>
+    callGeminiWithRetry(getApiKey(projDir), prompt, {
+      maxRetries: 1,
+      models: quickModels,
+      temperature,
+      projectDir: projDir,
+    })
+  );
 
   if (!text && isGeminiBrowserModeEnabled(projDir)) {
     const browserOpts = resolveBrowserPromptOpts(title, String(prompt ?? ""));
-    const promptText = buildBrowserTaskPrompt(title, String(prompt ?? ""), "", browserOpts);
+    const promptText = buildBrowserTaskPrompt(
+      title,
+      String(prompt ?? ""),
+      "",
+      browserOpts
+    );
     res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
     return null;
   }
 
   if (!text) {
-    throw new Error(failures[0] || "IA indisponível. Verifique Integrações ou ative Gemini no Chrome.");
+    throw new Error(
+      failures[0] ||
+        "IA indisponível. Verifique Integrações ou ative Gemini no Chrome."
+    );
   }
   return text;
 }
 
 function getEpidemicSoundKey(projectDir = WORKSPACE_DIR) {
-
   const globalCfg = loadRenderConfig(__dirname);
 
-  if (globalCfg?.epidemic_sound_key && globalCfg.epidemic_sound_key.trim().length > 100) {
-
+  if (
+    globalCfg?.epidemic_sound_key &&
+    globalCfg.epidemic_sound_key.trim().length > 100
+  ) {
     return globalCfg.epidemic_sound_key.trim();
-
   }
 
   const config = readJsonFile(path.join(projectDir, "config_qanat.json"));
 
-  if (config?.epidemic_sound_key && config.epidemic_sound_key.trim().length > 100) {
-
+  if (
+    config?.epidemic_sound_key &&
+    config.epidemic_sound_key.trim().length > 100
+  ) {
     return config.epidemic_sound_key.trim();
-
   }
 
   if (projectDir !== WORKSPACE_DIR) {
+    const rootConfig = readJsonFile(
+      path.join(WORKSPACE_DIR, "config_qanat.json")
+    );
 
-    const rootConfig = readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json"));
-
-    if (rootConfig?.epidemic_sound_key && rootConfig.epidemic_sound_key.trim().length > 100) {
-
+    if (
+      rootConfig?.epidemic_sound_key &&
+      rootConfig.epidemic_sound_key.trim().length > 100
+    ) {
       return rootConfig.epidemic_sound_key.trim();
-
     }
-
   }
 
-  if (process.env.EPIDEMIC_SOUND_API_KEY && process.env.EPIDEMIC_SOUND_API_KEY.trim().length > 100) {
-
+  if (
+    process.env.EPIDEMIC_SOUND_API_KEY &&
+    process.env.EPIDEMIC_SOUND_API_KEY.trim().length > 100
+  ) {
     return process.env.EPIDEMIC_SOUND_API_KEY.trim();
-
   }
 
   return null;
-
 }
 
 async function generateMetadataWithNvidia(prompt, apiKey, format = "LONG") {
-  const formatLabel = format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
-  
+  const formatLabel =
+    format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
+
   let lastError = null;
   for (const model of NVIDIA_MODELS) {
     try {
       console.log(`[NVIDIA API - Metadata] Tentando modelo: ${model}`);
-      const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            { role: "system", content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.` },
-            { role: "user", content: prompt }
-          ]
-        })
-      });
+      const response = await fetch(
+        "https://integrate.api.nvidia.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              {
+                role: "system",
+                content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.`,
+              },
+              { role: "user", content: prompt },
+            ],
+          }),
+        }
+      );
 
       if (!response.ok) {
         let errData = {};
-        try { errData = await response.json(); } catch (e) {}
+        try {
+          errData = await response.json();
+        } catch (e) {}
         const errMsg = errData.error?.message || response.statusText;
-        console.warn(`[NVIDIA API - Metadata] Erro ${response.status} de ${model}: ${errMsg}`);
+        console.warn(
+          `[NVIDIA API - Metadata] Erro ${response.status} de ${model}: ${errMsg}`
+        );
         lastError = new Error(`Erro da NVIDIA [${model}]: ${errMsg}`);
         continue;
       }
@@ -8420,63 +9666,64 @@ async function generateMetadataWithNvidia(prompt, apiKey, format = "LONG") {
         return responseText;
       }
     } catch (err) {
-      console.warn(`[NVIDIA API - Metadata] Exceção com ${model}: ${err.message}`);
+      console.warn(
+        `[NVIDIA API - Metadata] Exceção com ${model}: ${err.message}`
+      );
       lastError = err;
     }
   }
-  throw lastError || new Error("Falha ao gerar metadados com NVIDIA API após tentar todos os modelos.");
+  throw (
+    lastError ||
+    new Error(
+      "Falha ao gerar metadados com NVIDIA API após tentar todos os modelos."
+    )
+  );
 }
 
 async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
-
-  const formatLabel = format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
+  const formatLabel =
+    format === "SHORT" ? "YouTube Shorts" : "vídeos longos do YouTube";
 
   const response = await fetch("https://api.x.ai/v1/chat/completions", {
-
     method: "POST",
 
     headers: {
-
       "Content-Type": "application/json",
 
-      "Authorization": `Bearer ${apiKey}`
-
+      Authorization: `Bearer ${apiKey}`,
     },
 
     body: JSON.stringify({
-
       model: "grok-4.3",
 
       messages: [
+        {
+          role: "system",
+          content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.`,
+        },
 
-        { role: "system", content: `Você é um especialista em SEO e CTR para ${formatLabel}. Retorne apenas o markdown solicitado, com headers exatos.` },
-
-        { role: "user", content: prompt }
-
-      ]
-
-    })
-
+        { role: "user", content: prompt },
+      ],
+    }),
   });
 
   if (!response.ok) {
-
     let errData = {};
 
     try {
-
       errData = await response.json();
-
     } catch (e) {}
 
-    throw new Error(errData.error?.message || `Erro da xAI: ${response.statusText}`);
-
+    throw new Error(
+      errData.error?.message || `Erro da xAI: ${response.statusText}`
+    );
   }
 
   const result = await response.json();
 
-  return result.choices?.[0]?.message?.content || "Erro ao gerar metadados com Grok.";
-
+  return (
+    result.choices?.[0]?.message?.content || "Erro ao gerar metadados com Grok."
+  );
 }
 
 // API: Check if Gemini API key exists
@@ -8484,7 +9731,14 @@ async function generateMetadataWithXai(prompt, apiKey, format = "LONG") {
 app.get("/api/ai/progress/:jobId", (req, res) => {
   const job = getJobProgress(req.params.jobId);
   if (!job) {
-    return res.status(404).json({ error: "Job não encontrado", percent: 0, label: "Aguardando…", phase: "unknown" });
+    return res
+      .status(404)
+      .json({
+        error: "Job não encontrado",
+        percent: 0,
+        label: "Aguardando…",
+        phase: "unknown",
+      });
   }
   res.json(job);
 });
@@ -8503,33 +9757,41 @@ app.post("/api/ai/progress/:jobId", (req, res) => {
 });
 
 app.get("/api/ai/key-status", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const provider = getAiProvider(projDir);
 
   if (provider === "openrouter") {
+    return res.json({
+      has_key: !!getOpenRouterApiKey(projDir),
+      provider: "openrouter",
+    });
+  }
 
-    return res.json({ has_key: !!getOpenRouterApiKey(projDir), provider: "openrouter" });
-
+  if (provider === "inference") {
+    return res.json({
+      has_key: !!getInferenceApiKey(projDir),
+      provider: "inference",
+    });
   }
 
   if (provider === "xai") {
-
     return res.json({ has_key: !!getXaiApiKey(projDir), provider: "xai" });
-
   }
 
   if (provider === "gemini" && isGeminiBrowserModeEnabled(projDir)) {
-    return res.json({ has_key: true, provider: "gemini", browser_mode: true, key_count: 0 });
+    return res.json({
+      has_key: true,
+      provider: "gemini",
+      browser_mode: true,
+      key_count: 0,
+    });
   }
 
   const configuredKeys = getApiKeys(projDir);
 
   if (configuredKeys.length > 0) {
-
     return res.json({ has_key: true, key_count: configuredKeys.length });
-
   }
 
   const configPath = path.join(projDir, "config_qanat.json");
@@ -8537,59 +9799,41 @@ app.get("/api/ai/key-status", (req, res) => {
   let hasKey = !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_API_KEY;
 
   if (!hasKey && fs.existsSync(configPath)) {
-
     try {
-
       const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
       if (config.gemini_api_key) {
-
         hasKey = true;
-
       }
-
     } catch (e) {}
-
   }
 
   // Try fallback to root config
 
   if (!hasKey && projDir !== WORKSPACE_DIR) {
-
     const rootConfigPath = path.join(WORKSPACE_DIR, "config_qanat.json");
 
     if (fs.existsSync(rootConfigPath)) {
-
       try {
-
         const config = JSON.parse(fs.readFileSync(rootConfigPath, "utf8"));
 
         if (config.gemini_api_key) {
-
           hasKey = true;
-
         }
-
       } catch (e) {}
-
     }
-
   }
 
   res.json({ has_key: hasKey });
-
 });
 
 // API: Save Gemini API key to config_qanat.json
 
 app.post("/api/ai/save-key", (req, res) => {
-
   const { key } = req.body;
 
   if (!key) {
-
     return res.status(400).json({ error: "Chave de API não fornecida" });
-
   }
 
   const projDir = getProjectDir(req);
@@ -8597,37 +9841,33 @@ app.post("/api/ai/save-key", (req, res) => {
   const configPath = path.join(projDir, "config_qanat.json");
 
   try {
-
     let config = {};
 
     if (fs.existsSync(configPath)) {
-
       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
     }
 
     config.gemini_api_key = key;
 
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
 
-    res.json({ success: true, message: "Chave de API salva com sucesso no config_qanat.json" });
-
+    res.json({
+      success: true,
+      message: "Chave de API salva com sucesso no config_qanat.json",
+    });
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao salvar a chave", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao salvar a chave", details: err.message });
   }
-
 });
 
 app.get("/api/ai/settings", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const config = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
 
   res.json({
-
     provider: getAiProvider(projDir),
 
     gemini_model: getGeminiModel(projDir),
@@ -8640,19 +9880,17 @@ app.get("/api/ai/settings", (req, res) => {
 
     has_openrouter_key: !!getOpenRouterApiKey(projDir),
     has_nvidia_key: !!getNvidiaApiKey(projDir),
+    has_inference_key: !!getInferenceApiKey(projDir),
 
     has_epidemic_key: true,
 
     gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
-
   });
-
 });
 
 app.post("/api/ai/settings", (req, res) => {
-
   const projDir = getProjectDir(req);
-  
+
   // Salva no arquivo global do workspace e opcionalmente no projeto ativo
   const configPaths = [path.join(WORKSPACE_DIR, "config_qanat.json")];
   if (projDir !== WORKSPACE_DIR) {
@@ -8667,6 +9905,7 @@ app.post("/api/ai/settings", (req, res) => {
     xai_key,
     openrouter_key,
     nvidia_key,
+    inference_key,
     epidemic_sound_key,
     gemini_browser_mode,
   } = req.body || {};
@@ -8675,7 +9914,13 @@ app.post("/api/ai/settings", (req, res) => {
     const applyAiSettings = (config = {}) => {
       const next = { ...config };
 
-      if (provider === "gemini" || provider === "xai" || provider === "openrouter" || provider === "nvidia") {
+      if (
+        provider === "gemini" ||
+        provider === "xai" ||
+        provider === "openrouter" ||
+        provider === "nvidia" ||
+        provider === "inference"
+      ) {
         next.ai_provider = provider;
       }
 
@@ -8694,7 +9939,9 @@ app.post("/api/ai/settings", (req, res) => {
 
       if (typeof xai_key === "string" && xai_key.trim()) {
         const trimmedXaiKey = xai_key.trim();
-        next.xai_api_key = trimmedXaiKey.startsWith("xai-") ? trimmedXaiKey : `xai-${trimmedXaiKey}`;
+        next.xai_api_key = trimmedXaiKey.startsWith("xai-")
+          ? trimmedXaiKey
+          : `xai-${trimmedXaiKey}`;
       }
 
       if (typeof openrouter_key === "string" && openrouter_key.trim()) {
@@ -8703,6 +9950,10 @@ app.post("/api/ai/settings", (req, res) => {
 
       if (typeof nvidia_key === "string" && nvidia_key.trim()) {
         next.nvidia_api_key = nvidia_key.trim();
+      }
+
+      if (typeof inference_key === "string" && inference_key.trim()) {
+        next.inference_api_key = inference_key.trim();
       }
 
       if (typeof epidemic_sound_key === "string") {
@@ -8717,7 +9968,8 @@ app.post("/api/ai/settings", (req, res) => {
     };
 
     for (const configPath of configPaths) {
-      const isWorkspaceConfig = configPath === path.join(WORKSPACE_DIR, "config_qanat.json");
+      const isWorkspaceConfig =
+        configPath === path.join(WORKSPACE_DIR, "config_qanat.json");
       if (!fs.existsSync(configPath) && !isWorkspaceConfig) continue;
       const config = applyAiSettings(readJsonFile(configPath) || {});
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
@@ -8732,22 +9984,23 @@ app.post("/api/ai/settings", (req, res) => {
       has_xai_key: !!getXaiApiKey(projDir),
       has_openrouter_key: !!getOpenRouterApiKey(projDir),
       has_nvidia_key: !!getNvidiaApiKey(projDir),
+      has_inference_key: !!getInferenceApiKey(projDir),
       has_epidemic_key: true,
       gemini_browser_mode: isGeminiBrowserModeEnabled(projDir),
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao salvar configurações de IA", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao salvar configurações de IA",
+        details: err.message,
+      });
   }
-
 });
 
 // Helper: Generate system instructions with workspace script context
 
 function getProjectContext(projectDir) {
-
   const configPath = path.join(projectDir, "config_qanat.json");
 
   const timingsPath = path.join(projectDir, "block_timings.json");
@@ -8763,50 +10016,57 @@ function getProjectContext(projectDir) {
   let bgmRecommendations = [];
 
   if (fs.existsSync(configPath)) {
-
-    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    } catch (e) {}
   }
 
-  if (config.gemini_api_key) { config = { ...config }; delete config.gemini_api_key; }
+  if (config.gemini_api_key) {
+    config = { ...config };
+    delete config.gemini_api_key;
+  }
 
   if (fs.existsSync(timingsPath)) {
-
-    try { timings = JSON.parse(fs.readFileSync(timingsPath, "utf8")); } catch (e) {}
-
+    try {
+      timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+    } catch (e) {}
   }
 
   if (fs.existsSync(transcriptPath)) {
-
-    try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
-
+    try {
+      transcript = fs.readFileSync(transcriptPath, "utf8");
+    } catch (e) {}
   }
 
   const storyboardPath = path.join(projectDir, "storyboard.json");
 
   if (fs.existsSync(storyboardPath)) {
-
     try {
-
       const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
 
       bgmRecommendations = storyboard.bgm_recommendations || [];
-
     } catch (e) {}
-
   }
 
   const assetsDir = path.join(projectDir, "ASSETS");
 
   let assetsList = [];
 
-  if (fs.existsSync(assetsDir)) { try { assetsList = fs.readdirSync(assetsDir).filter(f => !f.startsWith('.')); } catch(e) {} }
+  if (fs.existsSync(assetsDir)) {
+    try {
+      assetsList = fs.readdirSync(assetsDir).filter((f) => !f.startsWith("."));
+    } catch (e) {}
+  }
 
   const musicDir = path.join(projectDir, "MUSICAS");
 
   let musicList = [];
 
-  if (fs.existsSync(musicDir)) { try { musicList = fs.readdirSync(musicDir).filter(f => f.endsWith('.mp3')); } catch(e) {} }
+  if (fs.existsSync(musicDir)) {
+    try {
+      musicList = fs.readdirSync(musicDir).filter((f) => f.endsWith(".mp3"));
+    } catch (e) {}
+  }
 
   const projectName = path.basename(projectDir);
 
@@ -8822,9 +10082,9 @@ DADOS DO PROJETO:
 
 3. Roteiro: ${transcript || "(vazio)"}
 
-4. Assets: ${assetsList.length > 0 ? assetsList.join(', ') : '(vazio)'}
+4. Assets: ${assetsList.length > 0 ? assetsList.join(", ") : "(vazio)"}
 
-5. Musicas: ${musicList.length > 0 ? musicList.join(', ') : '(nenhuma)'}
+5. Musicas: ${musicList.length > 0 ? musicList.join(", ") : "(nenhuma)"}
 
 6. Recomendações de Trilha BGM por Bloco da IA: ${JSON.stringify(bgmRecommendations, null, 2)}
 
@@ -8875,30 +10135,26 @@ REGRAS:
 4. Autonomia total para modificar qualquer parte do projeto.
 
 5. Sem bloco de acao para perguntas sem mudancas.`;
-
 }
 
 // API: Chat assistant
 
 app.post("/api/ai/chat", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const { messages, browser_response } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
-
     return res.status(400).json({ error: "Mensagens inválidas ou vazias" });
-
   }
 
   try {
-
     let systemInstruction = getProjectContext(projDir);
     let supermemoryMeta = null;
 
     if (isSupermemoryEnabled(__dirname)) {
-      const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";
+      const lastUserMsg =
+        [...messages].reverse().find((m) => m.role === "user")?.content || "";
       const mem = await fetchMemoryContext(__dirname, projDir, lastUserMsg);
       if (mem?.contextBlock) {
         systemInstruction += `\n\n${mem.contextBlock}`;
@@ -8908,24 +10164,18 @@ app.post("/api/ai/chat", async (req, res) => {
       }
     }
 
-    const formattedContents = messages.map(msg => ({
-
+    const formattedContents = messages.map((msg) => ({
       role: msg.role === "assistant" ? "model" : "user",
 
-      parts: [{ text: msg.content }]
-
+      parts: [{ text: msg.content }],
     }));
 
     const chatBody = {
-
       contents: formattedContents,
 
       systemInstruction: {
-
-        parts: [{ text: systemInstruction }]
-
-      }
-
+        parts: [{ text: systemInstruction }],
+      },
     };
 
     const responseText = await callGeminiLlm(req, res, projDir, {
@@ -8935,257 +10185,321 @@ app.post("/api/ai/chat", async (req, res) => {
     if (responseText == null) return;
 
     if (isSupermemoryEnabled(__dirname) && responseText) {
-      persistConversation(__dirname, projDir, messages, responseText).catch((err) => {
-        console.warn("[supermemory] persistConversation:", err.message);
-      });
+      persistConversation(__dirname, projDir, messages, responseText).catch(
+        (err) => {
+          console.warn("[supermemory] persistConversation:", err.message);
+        }
+      );
     }
 
     res.json({
       text: responseText || "Desculpe, não consegui obter uma resposta.",
       supermemory: supermemoryMeta,
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao consultar IA", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao consultar IA", details: err.message });
   }
-
 });
 
 // API: Execute AI agent actions
 
 app.post("/api/ai/execute-action", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const { actions } = req.body;
 
   if (!actions || !Array.isArray(actions)) {
-
     return res.status(400).json({ error: "No actions provided" });
-
   }
 
   const results = [];
 
   try {
+    for (const action of actions) {
+      try {
+        switch (action.type) {
+          case "update_config": {
+            const configPath = path.join(projDir, "config_qanat.json");
 
-  for (const action of actions) {
+            let config = {};
 
-    try {
+            if (fs.existsSync(configPath)) {
+              try {
+                config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+              } catch (e) {}
+            }
 
-      switch (action.type) {
+            config[action.field] = action.value;
 
-        case "update_config": {
+            fs.writeFileSync(
+              configPath,
+              JSON.stringify(config, null, 2),
+              "utf8"
+            );
 
-          const configPath = path.join(projDir, "config_qanat.json");
-
-          let config = {};
-
-          if (fs.existsSync(configPath)) {
-
-            try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch(e) {}
-
-          }
-
-          config[action.field] = action.value;
-
-          fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-
-          results.push({ type: action.type, field: action.field, status: "ok" });
-
-          break;
-
-        }
-
-        case "trigger_render": {
-          const renderMode = action.render_type || "remotion-pro";
-          results.push({
-            type: action.type,
-            status: "ok",
-            message: `Render ${renderMode} pronto para iniciar`,
-            render_mode: renderMode,
-            render_url: `/api/render/${renderMode}?project=${encodeURIComponent(path.basename(projDir))}`,
-          });
-          break;
-        }
-
-        case "trigger_mix": {
-          ensureFileExists("mix_bgm.py", projDir);
-          const mixScript = path.join(projDir, "mix_bgm.py");
-          if (!fs.existsSync(mixScript)) {
-            results.push({ type: action.type, status: "error", message: "mix_bgm.py não encontrado" });
-            break;
-          }
-          await new Promise((resolve, reject) => {
-            const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
-              cwd: projDir,
-              shell: true,
-              env: { ...process.env, PYTHONUNBUFFERED: "1" },
+            results.push({
+              type: action.type,
+              field: action.field,
+              status: "ok",
             });
-            let stderr = "";
-            child.stderr.on("data", (d) => { stderr += d.toString(); });
-            child.on("close", (code) => {
-              if (code === 0) resolve();
-              else reject(new Error(stderr || `Mix falhou (code ${code})`));
+
+            break;
+          }
+
+          case "trigger_render": {
+            const renderMode = action.render_type || "remotion-pro";
+            results.push({
+              type: action.type,
+              status: "ok",
+              message: `Render ${renderMode} pronto para iniciar`,
+              render_mode: renderMode,
+              render_url: `/api/render/${renderMode}?project=${encodeURIComponent(path.basename(projDir))}`,
             });
-          });
-          results.push({ type: action.type, status: "ok", message: "Mix BGM concluído" });
-          break;
-        }
-
-        case "navigate_tab": {
-
-          results.push({ type: action.type, tab: action.tab, status: "ok" });
-
-          break;
-
-        }
-
-        case "trigger_sync": {
-          if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
-            results.push({ type: action.type, status: "error", message: "find_block_timings.py não encontrado" });
             break;
           }
-          await new Promise((resolve, reject) => {
-            const child = spawn(PYTHON_PATH, ["find_block_timings.py"], { cwd: projDir, shell: true, env: buildPythonSpawnEnv() });
-            child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Sync exit ${code}`))));
-          });
-          results.push({ type: action.type, status: "ok", message: "Sincronização concluída" });
-          break;
-        }
 
-        case "trigger_auto_map": {
-          const configPath = path.join(projDir, "config_qanat.json");
-          let cfg = readJsonFile(configPath) || {};
-          const mapEpoch = Number(cfg.timeline_map_epoch || 0);
-          const mapped = buildTimelineFromStoryboard(projDir, { remapping: true, rotateOffset: mapEpoch });
-          cfg.timeline_assets = mapped.timelineAssets;
-          cfg.timeline_map_epoch = mapEpoch + 1;
-          fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
-          results.push({ type: action.type, status: "ok", asset_count: mapped.assetCount });
-          break;
-        }
-
-        case "trigger_stock_fetch": {
-          const stockResult = await fetchStockForScenes(projDir, { workspaceDir: WORKSPACE_DIR });
-          results.push({
-            type: action.type,
-            status: stockResult.success ? "ok" : "error",
-            fetched: stockResult.fetched?.length || 0,
-            message: stockResult.error || `${stockResult.fetched?.length || 0} arquivos baixados`,
-          });
-          break;
-        }
-
-        case "trigger_tts": {
-          const ttsResult = await generateNarrationTts(projDir, {
-            voice: action.voice,
-            rate: action.rate,
-            pitch: action.pitch,
-            speed: action.speed,
-            platform: action.engine || action.platform || "kokoro",
-            workspaceDir: WORKSPACE_DIR,
-          });
-          results.push({ type: action.type, status: "ok", file: ttsResult.file });
-          break;
-        }
-
-        case "trigger_publish_prep": {
-          if (!workflowApi?.generateYoutubeMetadataForProject) {
-            results.push({ type: action.type, status: "error", message: "Workflow API não inicializada" });
+          case "trigger_mix": {
+            ensureFileExists("mix_bgm.py", projDir);
+            const mixScript = path.join(projDir, "mix_bgm.py");
+            if (!fs.existsSync(mixScript)) {
+              results.push({
+                type: action.type,
+                status: "error",
+                message: "mix_bgm.py não encontrado",
+              });
+              break;
+            }
+            await new Promise((resolve, reject) => {
+              const child = spawn(PYTHON_PATH, ["mix_bgm.py"], {
+                cwd: projDir,
+                shell: true,
+                env: { ...process.env, PYTHONUNBUFFERED: "1" },
+              });
+              let stderr = "";
+              child.stderr.on("data", (d) => {
+                stderr += d.toString();
+              });
+              child.on("close", (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(stderr || `Mix falhou (code ${code})`));
+              });
+            });
+            results.push({
+              type: action.type,
+              status: "ok",
+              message: "Mix BGM concluído",
+            });
             break;
           }
-          const prep = await runPublishPrep(projDir, {
-            generateMetadata: (dir) => workflowApi.generateYoutubeMetadataForProject(dir, { req, res }),
-            generateThumbnails: async (dir, metadata) => generateYoutubeThumbnailImages({
-              projectDir: dir,
-              projectName: path.basename(dir),
-              thumbnails: metadata?.parsed?.thumbnails || [],
-              format: metadata?.format || "LONG",
-              palette: metadata?.palette || [],
-            }),
-          });
-          results.push({ type: action.type, status: "ok", prepared: true, thumbnails: prep.thumbnails?.length || 0 });
-          break;
-        }
 
-        case "trigger_apply_bgm": {
-          const token = getEpidemicSoundKey(projDir) || "";
-          const cfg = readJsonFile(path.join(projDir, "config_qanat.json")) || {};
-          const mode = cfg.aspect_ratio === "9:16" || cfg.video_format === "SHORTS" ? "SHORTS" : "LONGO";
-          const logs = await runAutoSoundtrackLogic(projDir, token, mode);
-          results.push({ type: action.type, status: "ok", logs: logs.slice(-3) });
-          break;
-        }
+          case "navigate_tab": {
+            results.push({ type: action.type, tab: action.tab, status: "ok" });
 
-        case "run_pipeline_step": {
-          if (!workflowApi?.buildCreatorPipelineHandlers) {
-            results.push({ type: action.type, status: "error", message: "Workflow API não inicializada" });
             break;
           }
-          const handlers = workflowApi.buildCreatorPipelineHandlers();
-          const stepId = action.step || action.stepId;
-          if (!handlers[stepId]) {
-            results.push({ type: action.type, status: "error", message: `Step desconhecido: ${stepId}` });
+
+          case "trigger_sync": {
+            if (!fs.existsSync(path.join(projDir, "find_block_timings.py"))) {
+              results.push({
+                type: action.type,
+                status: "error",
+                message: "find_block_timings.py não encontrado",
+              });
+              break;
+            }
+            await new Promise((resolve, reject) => {
+              const child = spawn(PYTHON_PATH, ["find_block_timings.py"], {
+                cwd: projDir,
+                shell: true,
+                env: buildPythonSpawnEnv(),
+              });
+              child.on("close", (code) =>
+                code === 0 ? resolve() : reject(new Error(`Sync exit ${code}`))
+              );
+            });
+            results.push({
+              type: action.type,
+              status: "ok",
+              message: "Sincronização concluída",
+            });
             break;
           }
-          await handlers[stepId](projDir, () => {});
-          results.push({ type: action.type, status: "ok", step: stepId });
-          break;
+
+          case "trigger_auto_map": {
+            const configPath = path.join(projDir, "config_qanat.json");
+            let cfg = readJsonFile(configPath) || {};
+            const mapEpoch = Number(cfg.timeline_map_epoch || 0);
+            const mapped = buildTimelineFromStoryboard(projDir, {
+              remapping: true,
+              rotateOffset: mapEpoch,
+            });
+            cfg.timeline_assets = mapped.timelineAssets;
+            cfg.timeline_map_epoch = mapEpoch + 1;
+            fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+            results.push({
+              type: action.type,
+              status: "ok",
+              asset_count: mapped.assetCount,
+            });
+            break;
+          }
+
+          case "trigger_stock_fetch": {
+            const stockResult = await fetchStockForScenes(projDir, {
+              workspaceDir: WORKSPACE_DIR,
+            });
+            results.push({
+              type: action.type,
+              status: stockResult.success ? "ok" : "error",
+              fetched: stockResult.fetched?.length || 0,
+              message:
+                stockResult.error ||
+                `${stockResult.fetched?.length || 0} arquivos baixados`,
+            });
+            break;
+          }
+
+          case "trigger_tts": {
+            const ttsResult = await generateNarrationTts(projDir, {
+              voice: action.voice,
+              rate: action.rate,
+              pitch: action.pitch,
+              speed: action.speed,
+              platform: action.engine || action.platform || "kokoro",
+              workspaceDir: WORKSPACE_DIR,
+            });
+            results.push({
+              type: action.type,
+              status: "ok",
+              file: ttsResult.file,
+            });
+            break;
+          }
+
+          case "trigger_publish_prep": {
+            if (!workflowApi?.generateYoutubeMetadataForProject) {
+              results.push({
+                type: action.type,
+                status: "error",
+                message: "Workflow API não inicializada",
+              });
+              break;
+            }
+            const prep = await runPublishPrep(projDir, {
+              generateMetadata: (dir) =>
+                workflowApi.generateYoutubeMetadataForProject(dir, {
+                  req,
+                  res,
+                }),
+              generateThumbnails: async (dir, metadata) =>
+                generateYoutubeThumbnailImages({
+                  projectDir: dir,
+                  projectName: path.basename(dir),
+                  thumbnails: metadata?.parsed?.thumbnails || [],
+                  format: metadata?.format || "LONG",
+                  palette: metadata?.palette || [],
+                }),
+            });
+            results.push({
+              type: action.type,
+              status: "ok",
+              prepared: true,
+              thumbnails: prep.thumbnails?.length || 0,
+            });
+            break;
+          }
+
+          case "trigger_apply_bgm": {
+            const token = getEpidemicSoundKey(projDir) || "";
+            const cfg =
+              readJsonFile(path.join(projDir, "config_qanat.json")) || {};
+            const mode =
+              cfg.aspect_ratio === "9:16" || cfg.video_format === "SHORTS"
+                ? "SHORTS"
+                : "LONGO";
+            const logs = await runAutoSoundtrackLogic(projDir, token, mode);
+            results.push({
+              type: action.type,
+              status: "ok",
+              logs: logs.slice(-3),
+            });
+            break;
+          }
+
+          case "run_pipeline_step": {
+            if (!workflowApi?.buildCreatorPipelineHandlers) {
+              results.push({
+                type: action.type,
+                status: "error",
+                message: "Workflow API não inicializada",
+              });
+              break;
+            }
+            const handlers = workflowApi.buildCreatorPipelineHandlers();
+            const stepId = action.step || action.stepId;
+            if (!handlers[stepId]) {
+              results.push({
+                type: action.type,
+                status: "error",
+                message: `Step desconhecido: ${stepId}`,
+              });
+              break;
+            }
+            await handlers[stepId](projDir, () => {});
+            results.push({ type: action.type, status: "ok", step: stepId });
+            break;
+          }
+
+          case "show_message": {
+            results.push({
+              type: action.type,
+              message: action.message,
+              status: "ok",
+            });
+
+            break;
+          }
+
+          default:
+            results.push({
+              type: action.type,
+              status: "error",
+              message: "Unknown action type",
+            });
         }
-
-        case "show_message": {
-
-          results.push({ type: action.type, message: action.message, status: "ok" });
-
-          break;
-
-        }
-
-        default:
-
-          results.push({ type: action.type, status: "error", message: "Unknown action type" });
-
+      } catch (err) {
+        if (err?.geminiBrowserPending) throw err;
+        results.push({
+          type: action.type,
+          status: "error",
+          message: err.message,
+        });
       }
-
-    } catch (err) {
-      if (err?.geminiBrowserPending) throw err;
-      results.push({ type: action.type, status: "error", message: err.message });
     }
 
-  }
-
-  res.json({ results });
-
+    res.json({ results });
   } catch (err) {
     if (err?.geminiBrowserPending) return;
     res.status(500).json({ error: err.message });
   }
-
 });
 
 // API: Generate YouTube Metadata (SEO Titles, Description, Tags, Chapters)
 
 function buildProjectTranscript({ transcript, config, storyboard }) {
-
   const candidates = [];
 
   if (typeof storyboard?.narrative_script === "string") {
-
     const narrative = storyboard.narrative_script.trim();
 
     if (narrative.length > 80) {
-
       candidates.push({ text: narrative, priority: 100 });
-
     }
-
   }
 
   if (Array.isArray(storyboard?.visual_prompts)) {
-
     const fromPrompts = storyboard.visual_prompts
 
       .map((item) => item?.narration_text)
@@ -9197,27 +10511,19 @@ function buildProjectTranscript({ transcript, config, storyboard }) {
       .trim();
 
     if (fromPrompts.length > 120) {
-
       candidates.push({ text: fromPrompts, priority: 90 });
-
     }
-
   }
 
   if (typeof transcript === "string") {
-
     const fileTranscript = transcript.trim();
 
     if (fileTranscript.length > 120) {
-
       candidates.push({ text: fileTranscript, priority: 70 });
-
     }
-
   }
 
   if (Array.isArray(config?.block_phrases)) {
-
     const fromBlocks = config.block_phrases
 
       .map((item) => item?.phrase)
@@ -9229,17 +10535,15 @@ function buildProjectTranscript({ transcript, config, storyboard }) {
       .trim();
 
     if (fromBlocks.length > 120) {
-
       candidates.push({ text: fromBlocks, priority: 50 });
-
     }
-
   }
 
-  candidates.sort((a, b) => b.priority - a.priority || b.text.length - a.text.length);
+  candidates.sort(
+    (a, b) => b.priority - a.priority || b.text.length - a.text.length
+  );
 
   return candidates[0]?.text || "";
-
 }
 
 function loadProjectMetadataInputs(projDir) {
@@ -9251,13 +10555,19 @@ function loadProjectMetadataInputs(projDir) {
   let transcript = "";
 
   if (fs.existsSync(configPath)) {
-    try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (_) {}
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    } catch (_) {}
   }
   if (fs.existsSync(storyboardPath)) {
-    try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (_) {}
+    try {
+      storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+    } catch (_) {}
   }
   if (fs.existsSync(transcriptPath)) {
-    try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (_) {}
+    try {
+      transcript = fs.readFileSync(transcriptPath, "utf8");
+    } catch (_) {}
   }
 
   transcript = buildProjectTranscript({ transcript, config, storyboard });
@@ -9285,17 +10595,27 @@ function reprocessYoutubeMetadataCache(cache = {}, projDir) {
   };
 }
 
-async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboard, config = {}, apiKey }) {
+async function enhanceYoutubeTitlesMetadata(
+  text,
+  { transcript, format, storyboard, config = {}, apiKey }
+) {
   const facts = extractTitleFacts({ transcript, storyboard, config });
   let parsed = parseYoutubeMetadataMarkdown(text);
   parsed = applyTitleQualityToParsed(parsed, { format, facts });
 
   if (facts.listicle?.isListicle) {
-    console.log(`[YouTube Metadata] Listicle Top ${facts.listicle.rankCount} — título #1: ${parsed.recommendedTitle || "?"}`);
+    console.log(
+      `[YouTube Metadata] Listicle Top ${facts.listicle.rankCount} — título #1: ${parsed.recommendedTitle || "?"}`
+    );
   }
 
-  const lacksRelevance = titlesLackRelevance(parsed.titles || [], transcript, facts);
-  const shouldRepair = titlesNeedRepair(parsed.titles || [], format, facts) || lacksRelevance;
+  const lacksRelevance = titlesLackRelevance(
+    parsed.titles || [],
+    transcript,
+    facts
+  );
+  const shouldRepair =
+    titlesNeedRepair(parsed.titles || [], format, facts) || lacksRelevance;
 
   if (apiKey && shouldRepair) {
     try {
@@ -9310,21 +10630,30 @@ async function enhanceYoutubeTitlesMetadata(text, { transcript, format, storyboa
         maxRetries: 2,
         models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
       });
-      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos"));
+      const repaired = normalizeKeys(
+        await parseAiJsonResponse(repairText, apiKey, "Refino titulos")
+      );
       parsed = mergeRepairedTitles(parsed, repaired);
       parsed = applyTitleQualityToParsed(parsed, { format, facts });
-      console.log(`[YouTube Metadata] Refino de títulos aplicado (${lacksRelevance ? "baixa relevância ao roteiro" : "scores baixos"}).`);
+      console.log(
+        `[YouTube Metadata] Refino de títulos aplicado (${lacksRelevance ? "baixa relevância ao roteiro" : "scores baixos"}).`
+      );
     } catch (err) {
       console.warn("[YouTube Metadata] Refino de títulos falhou:", err.message);
     }
   } else if (!shouldRepair) {
-    console.log("[YouTube Metadata] Títulos com score OK — refino IA ignorado.");
+    console.log(
+      "[YouTube Metadata] Títulos com score OK — refino IA ignorado."
+    );
   }
 
   return parsed;
 }
 
-async function ensureScriptChecklist(parsedData, { format, niche, ideaTitle, apiKey }) {
+async function ensureScriptChecklist(
+  parsedData,
+  { format, niche, ideaTitle, apiKey }
+) {
   if (!isChecklistEmpty(parsedData?.checklist)) {
     parsedData.checklist = normalizeScriptChecklist(parsedData.checklist);
     return parsedData;
@@ -9349,7 +10678,9 @@ async function ensureScriptChecklist(parsedData, { format, niche, ideaTitle, api
       maxRetries: 2,
       models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
     });
-    const evaluated = normalizeKeys(await parseAiJsonResponse(evalText, apiKey, "Checklist qualidade"));
+    const evaluated = normalizeKeys(
+      await parseAiJsonResponse(evalText, apiKey, "Checklist qualidade")
+    );
     if (!isChecklistEmpty(evaluated?.checklist)) {
       parsedData.checklist = normalizeScriptChecklist(evaluated.checklist);
       console.log("[Creator Script] Checklist de qualidade avaliado pela IA.");
@@ -9363,7 +10694,10 @@ async function ensureScriptChecklist(parsedData, { format, niche, ideaTitle, api
   return parsedData;
 }
 
-async function enhanceCreatorStrategyTitles(parsedData, { transcript, format, apiKey, ideaTitle }) {
+async function enhanceCreatorStrategyTitles(
+  parsedData,
+  { transcript, format, apiKey, ideaTitle }
+) {
   const fmt = format === "SHORTS" ? "SHORT" : "LONG";
   const facts = extractTitleFacts({
     transcript: parsedData.narrative_script || transcript,
@@ -9396,7 +10730,9 @@ async function enhanceCreatorStrategyTitles(parsedData, { transcript, format, ap
         maxRetries: 2,
         models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
       });
-      const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Refino titulos strategy"));
+      const repaired = normalizeKeys(
+        await parseAiJsonResponse(repairText, apiKey, "Refino titulos strategy")
+      );
       strategy = mergeRepairedStrategyTitles(strategy, repaired);
       strategy = enhanceStrategyTitles(strategy, {
         transcript: parsedData.narrative_script || transcript,
@@ -9420,7 +10756,6 @@ async function enhanceCreatorStrategyTitles(parsedData, { transcript, format, ap
 }
 
 app.post("/api/ai/optimize-youtube", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const apiKeys = getApiKeys(projDir);
@@ -9432,14 +10767,19 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
   const openrouterKey = getOpenRouterApiKey(projDir);
 
   const nvidiaKey = getNvidiaApiKey(projDir);
-  if (apiKeys.length === 0 && !xaiKey && !(aiProvider === "openrouter" && openrouterKey) && !(aiProvider === "nvidia" && nvidiaKey) && !shouldOfferGeminiBrowser(projDir)) {
-
+  const inferenceKey = getInferenceApiKey(projDir);
+  if (
+    apiKeys.length === 0 &&
+    !xaiKey &&
+    !(aiProvider === "openrouter" && openrouterKey) &&
+    !(aiProvider === "nvidia" && nvidiaKey) &&
+    !(aiProvider === "inference" && inferenceKey) &&
+    !shouldOfferGeminiBrowser(projDir)
+  ) {
     return res.status(401).json({ error: "Nenhuma chave de IA configurada." });
-
   }
 
   try {
-
     const configPath = path.join(projDir, "config_qanat.json");
 
     const timingsPath = path.join(projDir, "block_timings.json");
@@ -9453,21 +10793,21 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
     let transcript = "";
 
     if (fs.existsSync(configPath)) {
-
-      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-
+      try {
+        config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      } catch (e) {}
     }
 
     if (fs.existsSync(timingsPath)) {
-
-      try { timings = JSON.parse(fs.readFileSync(timingsPath, "utf8")); } catch (e) {}
-
+      try {
+        timings = JSON.parse(fs.readFileSync(timingsPath, "utf8"));
+      } catch (e) {}
     }
 
     if (fs.existsSync(transcriptPath)) {
-
-      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
-
+      try {
+        transcript = fs.readFileSync(transcriptPath, "utf8");
+      } catch (e) {}
     }
 
     // Load storyboard for extra context
@@ -9477,23 +10817,20 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
     const storyboardPath = path.join(projDir, "storyboard.json");
 
     if (fs.existsSync(storyboardPath)) {
-
-      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
-
+      try {
+        storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      } catch (e) {}
     }
 
     transcript = buildProjectTranscript({ transcript, config, storyboard });
 
     if (!transcript) {
-
       return res.status(400).json({
-
         error: "Roteiro não encontrado para este projeto.",
 
-        details: "Crie ou carregue transcripts_readable.txt, storyboard.json com narrative_script/visual_prompts, ou config_qanat.json com block_phrases."
-
+        details:
+          "Crie ou carregue transcripts_readable.txt, storyboard.json com narrative_script/visual_prompts, ou config_qanat.json com block_phrases.",
       });
-
     }
 
     const projectName = path.basename(projDir);
@@ -9505,7 +10842,15 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       projectName,
     });
 
-    const { format, niche, totalDuration, chaptersText, category, profile, rpmHint } = metadataCtx;
+    const {
+      format,
+      niche,
+      totalDuration,
+      chaptersText,
+      category,
+      profile,
+      rpmHint,
+    } = metadataCtx;
 
     let prompt = buildYoutubeMetadataPrompt({
       transcript,
@@ -9552,22 +10897,29 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       try {
         fs.writeFileSync(
           path.join(projDir, "youtube_metadata_cache.json"),
-          JSON.stringify({
-            generatedAt: new Date().toISOString(),
-            pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
-            format,
-            niche,
-            category,
-            profile: payload.profile,
-            rpm: rpmHint.rpm,
-            palette: rpmHint.palette,
-            parsed,
-            text,
-          }, null, 2),
-          "utf8",
+          JSON.stringify(
+            {
+              generatedAt: new Date().toISOString(),
+              pipelineVersion: YOUTUBE_METADATA_PIPELINE_VERSION,
+              format,
+              niche,
+              category,
+              profile: payload.profile,
+              rpm: rpmHint.rpm,
+              palette: rpmHint.palette,
+              parsed,
+              text,
+            },
+            null,
+            2
+          ),
+          "utf8"
         );
       } catch (cacheErr) {
-        console.warn("[YouTube Metadata] Falha ao salvar cache:", cacheErr.message);
+        console.warn(
+          "[YouTube Metadata] Falha ao salvar cache:",
+          cacheErr.message
+        );
       }
 
       return res.json(payload);
@@ -9575,47 +10927,63 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     const errors = [];
     const browserTextRaw = extractBrowserResponse(req.body);
-    const browserText = browserTextRaw ? normalizeMetadataMarkdown(browserTextRaw) : "";
-    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const browserText = browserTextRaw
+      ? normalizeMetadataMarkdown(browserTextRaw)
+      : "";
+    const forceBrowser =
+      req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
 
     if (browserText && forceBrowser) {
       if (looksLikeLumieraPrompt(browserText)) {
-        console.warn("[YouTube Metadata] browser_response é o prompt — não a resposta do Gemini.");
+        console.warn(
+          "[YouTube Metadata] browser_response é o prompt — não a resposta do Gemini."
+        );
         return res.status(422).json({
-          error: "Capturou o prompt em vez da resposta. Aguarde o Gemini terminar em gemini.google.com e tente de novo.",
+          error:
+            "Capturou o prompt em vez da resposta. Aguarde o Gemini terminar em gemini.google.com e tente de novo.",
           staleResponse: true,
         });
       }
       if (looksLikeOverlayJsonResponse(browserText)) {
-        console.warn("[YouTube Metadata] Resposta de overlays rejeitada no fluxo de metadados.");
+        console.warn(
+          "[YouTube Metadata] Resposta de overlays rejeitada no fluxo de metadados."
+        );
         return res.status(422).json({
-          error: "Resposta antiga de overlays detectada. Aguarde os metadados na aba gemini.google.com e tente de novo.",
+          error:
+            "Resposta antiga de overlays detectada. Aguarde os metadados na aba gemini.google.com e tente de novo.",
           staleResponse: true,
         });
       }
       if (!isMetadataBrowserResponseReady(browserText)) {
-        console.warn("[YouTube Metadata] browser_response incompleto ou inválido.");
+        console.warn(
+          "[YouTube Metadata] browser_response incompleto ou inválido."
+        );
         return res.status(422).json({
-          error: "Resposta do Gemini incompleta. Aguarde ## TÍTULOS na aba gemini.google.com e tente de novo.",
+          error:
+            "Resposta do Gemini incompleta. Aguarde ## TÍTULOS na aba gemini.google.com e tente de novo.",
           staleResponse: true,
         });
       }
     }
 
     if (aiProvider === "nvidia" && nvidiaKey && !forceBrowser) {
-
-      const responseText = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+      const responseText = await generateMetadataWithNvidia(
+        prompt,
+        nvidiaKey,
+        format
+      );
 
       return await respondWithMetadata(responseText, { provider: "nvidia" });
-
     }
 
     if (aiProvider === "xai" && xaiKey && !forceBrowser) {
-
-      const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
+      const responseText = await generateMetadataWithXai(
+        prompt,
+        xaiKey,
+        format
+      );
 
       return await respondWithMetadata(responseText, { provider: "xai" });
-
     }
 
     let responseText = browserText;
@@ -9623,39 +10991,53 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
     if (!responseText && forceBrowser) {
       const metadataSessionId = createMetadataSessionId();
       const promptWithSession = `${prompt}\n\n[LUMIERA] Na primeira linha da resposta, inclua exatamente: LUMIERA_METADATA_SESSION:${metadataSessionId}`;
-      const promptText = buildBrowserTaskPrompt("Metadados YouTube", promptWithSession, "", {
-        taskType: "metadata",
-        responseFormat: "markdown",
-      });
-      console.log(`[YouTube Metadata] Aguardando Gemini no Chrome (sessão ${metadataSessionId}).`);
-      return res.json(offerGeminiBrowserPayload({
-        title: "Metadados YouTube",
-        prompt: promptText,
-        metadataSessionId,
-      }));
+      const promptText = buildBrowserTaskPrompt(
+        "Metadados YouTube",
+        promptWithSession,
+        "",
+        {
+          taskType: "metadata",
+          responseFormat: "markdown",
+        }
+      );
+      console.log(
+        `[YouTube Metadata] Aguardando Gemini no Chrome (sessão ${metadataSessionId}).`
+      );
+      return res.json(
+        offerGeminiBrowserPayload({
+          title: "Metadados YouTube",
+          prompt: promptText,
+          metadataSessionId,
+        })
+      );
     }
 
     if (!responseText) {
       try {
-
         responseText = await callGeminiLlm(req, res, projDir, {
           title: "Metadados YouTube",
           prompt,
           temperature: 0.55,
         });
         if (responseText == null) return;
-
       } catch (geminiErr) {
-
-        errors.push({ status: 503, message: geminiErr.message, quotaExceeded: true });
-
+        errors.push({
+          status: 503,
+          message: geminiErr.message,
+          quotaExceeded: true,
+        });
       }
     }
 
     if (responseText) {
-      if (forceBrowser && browserText && looksLikeFallbackMetadata(responseText)) {
+      if (
+        forceBrowser &&
+        browserText &&
+        looksLikeFallbackMetadata(responseText)
+      ) {
         return res.status(422).json({
-          error: "Metadados genéricos detectados — Gemini no Chrome não concluiu. Tente de novo.",
+          error:
+            "Metadados genéricos detectados — Gemini no Chrome não concluiu. Tente de novo.",
           staleResponse: true,
         });
       }
@@ -9667,52 +11049,53 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
 
     if (forceBrowser) {
       return res.status(422).json({
-        error: "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
+        error:
+          "Gemini no Chrome não retornou metadados válidos. Deixe gemini.google.com aberto e tente de novo.",
       });
     }
 
     if (nvidiaKey) {
-
       try {
-
-        const responseText = await generateMetadataWithNvidia(prompt, nvidiaKey, format);
+        const responseText = await generateMetadataWithNvidia(
+          prompt,
+          nvidiaKey,
+          format
+        );
 
         return await respondWithMetadata(responseText, {
-
           provider: "nvidia",
 
-          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei NVIDIA API como fallback.`
-
+          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei NVIDIA API como fallback.`,
         });
-
       } catch (err) {
-
-        errors.push({ status: "nvidia", message: err.message, quotaExceeded: false });
-
+        errors.push({
+          status: "nvidia",
+          message: err.message,
+          quotaExceeded: false,
+        });
       }
-
     }
 
     if (xaiKey) {
-
       try {
-
-        const responseText = await generateMetadataWithXai(prompt, xaiKey, format);
+        const responseText = await generateMetadataWithXai(
+          prompt,
+          xaiKey,
+          format
+        );
 
         return await respondWithMetadata(responseText, {
-
           provider: "xai",
 
-          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei Grok/xAI como fallback.`
-
+          warning: `As ${apiKeys.length} chaves Gemini falharam. Usei Grok/xAI como fallback.`,
         });
-
       } catch (err) {
-
-        errors.push({ status: "xai", message: err.message, quotaExceeded: false });
-
+        errors.push({
+          status: "xai",
+          message: err.message,
+          quotaExceeded: false,
+        });
       }
-
     }
 
     const fallbackText = buildFallbackYoutubeMetadata({
@@ -9727,28 +11110,23 @@ app.post("/api/ai/optimize-youtube", async (req, res) => {
       rpmHint,
     });
 
-    const quotaErrors = errors.filter(error => error.quotaExceeded).length;
+    const quotaErrors = errors.filter((error) => error.quotaExceeded).length;
 
     return await respondWithMetadata(fallbackText, {
-
       fallback: true,
 
       tried_keys: apiKeys.length,
 
-      warning: quotaErrors === apiKeys.length
-
-        ? `Todas as ${apiKeys.length} chaves cadastradas atingiram limite temporário. Usei metadados locais por enquanto.`
-
-        : `Não consegui gerar com Gemini usando as ${apiKeys.length} chaves cadastradas. Usei metadados locais por enquanto.`
-
+      warning:
+        quotaErrors === apiKeys.length
+          ? `Todas as ${apiKeys.length} chaves cadastradas atingiram limite temporário. Usei metadados locais por enquanto.`
+          : `Não consegui gerar com Gemini usando as ${apiKeys.length} chaves cadastradas. Usei metadados locais por enquanto.`,
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao otimizar metadados", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao otimizar metadados", details: err.message });
   }
-
 });
 
 app.get("/api/ai/youtube-metadata-cache", (req, res) => {
@@ -9761,16 +11139,26 @@ app.get("/api/ai/youtube-metadata-cache", (req, res) => {
 
   try {
     const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
-    const needsReprocess = Number(cache.pipelineVersion) < YOUTUBE_METADATA_PIPELINE_VERSION
-      || !cache.reprocessedAt
-      || (!cache.parsed?.description && /DESCRI[ÇC][ÃA]O/i.test(cache.text || ""));
-    const reprocessed = needsReprocess ? reprocessYoutubeMetadataCache(cache, projDir) : cache;
+    const needsReprocess =
+      Number(cache.pipelineVersion) < YOUTUBE_METADATA_PIPELINE_VERSION ||
+      !cache.reprocessedAt ||
+      (!cache.parsed?.description && /DESCRI[ÇC][ÃA]O/i.test(cache.text || ""));
+    const reprocessed = needsReprocess
+      ? reprocessYoutubeMetadataCache(cache, projDir)
+      : cache;
 
     if (needsReprocess && reprocessed?.parsed) {
       try {
-        fs.writeFileSync(cachePath, JSON.stringify(reprocessed, null, 2), "utf8");
+        fs.writeFileSync(
+          cachePath,
+          JSON.stringify(reprocessed, null, 2),
+          "utf8"
+        );
       } catch (writeErr) {
-        console.warn("[YouTube Metadata] Falha ao atualizar cache reprocessado:", writeErr.message);
+        console.warn(
+          "[YouTube Metadata] Falha ao atualizar cache reprocessado:",
+          writeErr.message
+        );
       }
     }
 
@@ -9780,14 +11168,21 @@ app.get("/api/ai/youtube-metadata-cache", (req, res) => {
       cacheReprocessed: needsReprocess,
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao ler cache de metadados", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao ler cache de metadados", details: err.message });
   }
 });
 
 app.get("/api/ai/youtube-thumbnails", (req, res) => {
   const projDir = getProjectDir(req);
   const projectName = path.basename(projDir);
-  const manifestPath = path.join(projDir, "ASSETS", "youtube_thumbnails", "manifest.json");
+  const manifestPath = path.join(
+    projDir,
+    "ASSETS",
+    "youtube_thumbnails",
+    "manifest.json"
+  );
 
   if (!fs.existsSync(manifestPath)) {
     return res.json({ thumbnails: [] });
@@ -9797,11 +11192,15 @@ app.get("/api/ai/youtube-thumbnails", (req, res) => {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     const thumbnails = (manifest.variants || []).map((item) => ({
       ...item,
-      url: item.url || `/api/projects-media/${encodeURIComponent(projectName)}/ASSETS/${item.fileName}`,
+      url:
+        item.url ||
+        `/api/projects-media/${encodeURIComponent(projectName)}/ASSETS/${item.fileName}`,
     }));
     res.json({ ...manifest, thumbnails });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao ler thumbnails geradas", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao ler thumbnails geradas", details: err.message });
   }
 });
 
@@ -9817,19 +11216,21 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
     const cachePath = path.join(projDir, "youtube_metadata_cache.json");
     let cache = null;
     if (fs.existsSync(cachePath)) {
-      try { cache = JSON.parse(fs.readFileSync(cachePath, "utf8")); } catch (e) {}
+      try {
+        cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+      } catch (e) {}
     }
 
     if ((!thumbnails || thumbnails.length === 0) && cache) {
       thumbnails = cache?.parsed?.thumbnails || [];
       format = format || cache?.format;
-      palette = palette.length ? palette : (cache?.palette || []);
+      palette = palette.length ? palette : cache?.palette || [];
     }
 
     if ((!thumbnails || thumbnails.length === 0) && cache?.text) {
       const reparsed = parseYoutubeMetadataMarkdown(cache.text);
       thumbnails = reparsed.thumbnails || [];
-      palette = palette.length ? palette : (cache?.palette || []);
+      palette = palette.length ? palette : cache?.palette || [];
     }
 
     if (req.body?.metadataText) {
@@ -9840,14 +11241,22 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
       }
     }
 
-    if (Array.isArray(thumbnails) && thumbnails.length > 0 && thumbnails.length < 3) {
-      thumbnails = ensureThumbnailVariants({ thumbnails, titles: cache?.parsed?.titles || [] }, palette);
+    if (
+      Array.isArray(thumbnails) &&
+      thumbnails.length > 0 &&
+      thumbnails.length < 3
+    ) {
+      thumbnails = ensureThumbnailVariants(
+        { thumbnails, titles: cache?.parsed?.titles || [] },
+        palette
+      );
     }
 
     if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
       return res.status(400).json({
         error: "Nenhuma variante A/B encontrada.",
-        details: "Gere os metadados do YouTube primeiro. Se já gerou, clique em 'Gerar Metadados' novamente para atualizar o cache.",
+        details:
+          "Gere os metadados do YouTube primeiro. Se já gerou, clique em 'Gerar Metadados' novamente para atualizar o cache.",
       });
     }
 
@@ -9856,18 +11265,32 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
     const configPath = path.join(projDir, "config_qanat.json");
     const storyboardPath = path.join(projDir, "storyboard.json");
     if (fs.existsSync(configPath)) {
-      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+      try {
+        config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      } catch (e) {}
     }
     if (fs.existsSync(storyboardPath)) {
-      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+      try {
+        storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      } catch (e) {}
     }
 
     if (!palette.length) {
       palette = resolveThumbnailPalette(config, storyboard, config.niche);
     }
 
-    const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
-    const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
+    const metadataCtx = resolveYoutubeMetadataContext({
+      config,
+      timings: {},
+      storyboard,
+      projectName,
+    });
+    const resolvedFormat =
+      format === "SHORT"
+        ? "SHORT"
+        : format === "LONG"
+          ? "LONG"
+          : metadataCtx.format;
 
     const result = await generateYoutubeThumbnailImages({
       projectDir: projDir,
@@ -9879,14 +11302,18 @@ app.post("/api/ai/generate-youtube-thumbnails", async (req, res) => {
       config,
     });
 
-    const parsed = parseYoutubeMetadataMarkdown(cache?.text || req.body?.metadataText || "");
+    const parsed = parseYoutubeMetadataMarkdown(
+      cache?.text || req.body?.metadataText || ""
+    );
     if (!parsed.thumbnails?.length) {
       parsed.thumbnails = ensureThumbnailVariants(parsed, palette);
     }
 
     res.json({ ...result, parsed: { thumbnails: parsed.thumbnails } });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao gerar thumbnails", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao gerar thumbnails", details: err.message });
   }
 });
 
@@ -9902,13 +11329,15 @@ app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
     const cachePath = path.join(projDir, "youtube_metadata_cache.json");
     let cache = null;
     if (fs.existsSync(cachePath)) {
-      try { cache = JSON.parse(fs.readFileSync(cachePath, "utf8")); } catch (e) {}
+      try {
+        cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+      } catch (e) {}
     }
 
     if ((!thumbnails || thumbnails.length === 0) && cache) {
       thumbnails = cache?.parsed?.thumbnails || [];
       format = format || cache?.format;
-      palette = palette.length ? palette : (cache?.palette || []);
+      palette = palette.length ? palette : cache?.palette || [];
     }
 
     if (req.body?.metadataText) {
@@ -9931,14 +11360,28 @@ app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
     const configPath = path.join(projDir, "config_qanat.json");
     const storyboardPath = path.join(projDir, "storyboard.json");
     if (fs.existsSync(configPath)) {
-      try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
+      try {
+        config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      } catch (e) {}
     }
     if (fs.existsSync(storyboardPath)) {
-      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
+      try {
+        storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      } catch (e) {}
     }
 
-    const metadataCtx = resolveYoutubeMetadataContext({ config, timings: {}, storyboard, projectName });
-    const resolvedFormat = format === "SHORT" ? "SHORT" : (format === "LONG" ? "LONG" : metadataCtx.format);
+    const metadataCtx = resolveYoutubeMetadataContext({
+      config,
+      timings: {},
+      storyboard,
+      projectName,
+    });
+    const resolvedFormat =
+      format === "SHORT"
+        ? "SHORT"
+        : format === "LONG"
+          ? "LONG"
+          : metadataCtx.format;
 
     const result = await generateCanvaThumbnailImages({
       workspaceDir: WORKSPACE_DIR,
@@ -9957,19 +11400,30 @@ app.post("/api/ai/generate-canva-thumbnails", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: "Erro ao gerar capas no Canva", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao gerar capas no Canva", details: err.message });
   }
 });
 
 function youtubeChannelForceRefresh(req) {
-  return String(req.query?.refresh || "") === "1" || String(req.query?.force || "") === "1";
+  return (
+    String(req.query?.refresh || "") === "1" ||
+    String(req.query?.force || "") === "1"
+  );
 }
 
 app.get("/api/youtube/channel/summary", async (req, res) => {
   const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
   const limit = Math.min(Math.max(Number(req.query?.limit) || 25, 1), 50);
-  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
-  const maxProjects = Math.min(Math.max(Number(req.query?.maxProjects) || 12, 1), 20);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+    100000
+  );
+  const maxProjects = Math.min(
+    Math.max(Number(req.query?.maxProjects) || 12, 1),
+    20
+  );
   try {
     const summary = await fetchChannelSummary(WORKSPACE_DIR, PROJECTS_ROOT, {
       days,
@@ -9980,7 +11434,10 @@ app.get("/api/youtube/channel/summary", async (req, res) => {
     });
     res.json(summary);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar resumo do canal");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar resumo do canal"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -9992,7 +11449,10 @@ app.get("/api/youtube/channel/overview", async (req, res) => {
     });
     res.json(overview);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar visão geral do canal");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar visão geral do canal"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10009,14 +11469,23 @@ app.get("/api/youtube/channel/videos", async (req, res) => {
     });
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos do canal");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar vídeos do canal"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.get("/api/youtube/channel/alerts", async (req, res) => {
-  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
-  const maxProjects = Math.min(Math.max(Number(req.query?.maxProjects) || 12, 1), 20);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+    100000
+  );
+  const maxProjects = Math.min(
+    Math.max(Number(req.query?.maxProjects) || 12, 1),
+    20
+  );
   try {
     const report = await fetchChannelAlerts(WORKSPACE_DIR, PROJECTS_ROOT, {
       views48hThreshold,
@@ -10025,7 +11494,10 @@ app.get("/api/youtube/channel/alerts", async (req, res) => {
     });
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar alertas do canal");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar alertas do canal"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10038,7 +11510,10 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
   const allowedFilters = new Set(["all", "unanswered"]);
   const resolvedFilter = allowedFilters.has(filter) ? filter : "all";
   try {
-    const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+    const views48hThreshold = Math.min(
+      Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+      100000
+    );
     const report = await fetchChannelComments(WORKSPACE_DIR, {
       limit,
       filter: resolvedFilter,
@@ -10050,7 +11525,10 @@ app.get("/api/youtube/channel/comments", async (req, res) => {
     });
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar comentários do canal");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar comentários do canal"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10068,28 +11546,42 @@ app.put("/api/youtube/channel/settings", (req, res) => {
     const templates = req.body?.replyTemplates;
     if (templates) updateReplyTemplates(WORKSPACE_DIR, templates);
     const patch = {};
-    if (req.body?.weeklyReportEmail !== undefined) patch.weeklyReportEmail = String(req.body.weeklyReportEmail || "").trim();
-    if (req.body?.dailyReportEmail !== undefined) patch.dailyReportEmail = String(req.body.dailyReportEmail || "").trim();
-    if (req.body?.autoReplyRules) patch.autoReplyRules = req.body.autoReplyRules;
+    if (req.body?.weeklyReportEmail !== undefined)
+      patch.weeklyReportEmail = String(req.body.weeklyReportEmail || "").trim();
+    if (req.body?.dailyReportEmail !== undefined)
+      patch.dailyReportEmail = String(req.body.dailyReportEmail || "").trim();
+    if (req.body?.autoReplyRules)
+      patch.autoReplyRules = req.body.autoReplyRules;
     if (req.body?.webhooks) patch.webhooks = req.body.webhooks;
     if (req.body?.projectGoals) patch.projectGoals = req.body.projectGoals;
     if (req.body?.defaultProjectGoalViews48h !== undefined) {
-      patch.defaultProjectGoalViews48h = Number(req.body.defaultProjectGoalViews48h) || 100;
+      patch.defaultProjectGoalViews48h =
+        Number(req.body.defaultProjectGoalViews48h) || 100;
     }
-    if (req.body?.selectedChannelId !== undefined) patch.selectedChannelId = String(req.body.selectedChannelId || "").trim();
-    if (req.body?.slaHours !== undefined) patch.slaHours = Math.min(Math.max(Number(req.body.slaHours) || 24, 1), 168);
-    if (req.body?.autoQueueEnabled !== undefined) patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
+    if (req.body?.selectedChannelId !== undefined)
+      patch.selectedChannelId = String(req.body.selectedChannelId || "").trim();
+    if (req.body?.slaHours !== undefined)
+      patch.slaHours = Math.min(
+        Math.max(Number(req.body.slaHours) || 24, 1),
+        168
+      );
+    if (req.body?.autoQueueEnabled !== undefined)
+      patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
     if (req.body?.smtp !== undefined) {
       const smtp = req.body.smtp;
-      patch.smtp = smtp && typeof smtp === "object" ? {
-        host: String(smtp.host || "").trim(),
-        port: Number(smtp.port) || 587,
-        user: String(smtp.user || "").trim(),
-        pass: String(smtp.pass || "").trim(),
-        from: String(smtp.from || smtp.user || "").trim(),
-      } : null;
+      patch.smtp =
+        smtp && typeof smtp === "object"
+          ? {
+              host: String(smtp.host || "").trim(),
+              port: Number(smtp.port) || 587,
+              user: String(smtp.user || "").trim(),
+              pass: String(smtp.pass || "").trim(),
+              from: String(smtp.from || smtp.user || "").trim(),
+            }
+          : null;
     }
-    if (Object.keys(patch).length) saveExtendedStudioSettings(WORKSPACE_DIR, patch);
+    if (Object.keys(patch).length)
+      saveExtendedStudioSettings(WORKSPACE_DIR, patch);
     res.json(getExtendedStudioSettings(WORKSPACE_DIR));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -10155,18 +11647,29 @@ app.get("/api/youtube/channel/reach", async (req, res) => {
 });
 
 app.get("/api/youtube/channel/weekly-report", async (req, res) => {
-  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+    100000
+  );
   try {
-    const report = await generateWeeklyReport(WORKSPACE_DIR, PROJECTS_ROOT, { views48hThreshold });
+    const report = await generateWeeklyReport(WORKSPACE_DIR, PROJECTS_ROOT, {
+      views48hThreshold,
+    });
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao gerar relatório semanal");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao gerar relatório semanal"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.post("/api/youtube/channel/weekly-report/send", async (req, res) => {
-  const views48hThreshold = Math.min(Math.max(Number(req.body?.viewsThreshold) || 100, 1), 100000);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.body?.viewsThreshold) || 100, 1),
+    100000
+  );
   try {
     const result = await sendWeeklyReportEmail(WORKSPACE_DIR, PROJECTS_ROOT, {
       views48hThreshold,
@@ -10180,26 +11683,42 @@ app.post("/api/youtube/channel/weekly-report/send", async (req, res) => {
 
 app.get("/api/youtube/channel/project-snapshot", async (req, res) => {
   const projectName = String(req.query?.project || "").trim();
-  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+    100000
+  );
   if (!projectName) {
     return res.status(400).json({ error: "Parâmetro project é obrigatório." });
   }
   try {
-    const snapshot = await fetchProjectYoutubeSnapshot(WORKSPACE_DIR, PROJECTS_ROOT, projectName, {
-      views48hThreshold,
-    });
+    const snapshot = await fetchProjectYoutubeSnapshot(
+      WORKSPACE_DIR,
+      PROJECTS_ROOT,
+      projectName,
+      {
+        views48hThreshold,
+      }
+    );
     res.json(snapshot);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar snapshot do projeto");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar snapshot do projeto"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.post("/api/youtube/channel/comments/reply", async (req, res) => {
-  const parentId = String(req.body?.parentId || req.body?.commentId || "").trim();
+  const parentId = String(
+    req.body?.parentId || req.body?.commentId || ""
+  ).trim();
   const text = String(req.body?.text || "").trim();
   try {
-    const result = await replyToChannelComment(WORKSPACE_DIR, { parentId, text });
+    const result = await replyToChannelComment(WORKSPACE_DIR, {
+      parentId,
+      text,
+    });
     appendReplyHistory(WORKSPACE_DIR, {
       commentId: parentId,
       threadId: String(req.body?.threadId || "").trim(),
@@ -10225,7 +11744,10 @@ app.get("/api/youtube/channel/video/:videoId/detail", async (req, res) => {
     });
     res.json(detail);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar detalhe do vídeo");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar detalhe do vídeo"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10233,23 +11755,36 @@ app.get("/api/youtube/channel/video/:videoId/detail", async (req, res) => {
 app.get("/api/youtube/channel/lumiera-videos", async (req, res) => {
   const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
   try {
-    const report = await fetchLumieraVideosReport(WORKSPACE_DIR, PROJECTS_ROOT, {
-      days,
-      forceRefresh: youtubeChannelForceRefresh(req),
-    });
+    const report = await fetchLumieraVideosReport(
+      WORKSPACE_DIR,
+      PROJECTS_ROOT,
+      {
+        days,
+        forceRefresh: youtubeChannelForceRefresh(req),
+      }
+    );
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar vídeos Lumiera");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar vídeos Lumiera"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.get("/api/youtube/channel/title-experiments", async (req, res) => {
   try {
-    const report = await fetchChannelTitleExperiments(WORKSPACE_DIR, PROJECTS_ROOT);
+    const report = await fetchChannelTitleExperiments(
+      WORKSPACE_DIR,
+      PROJECTS_ROOT
+    );
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao listar testes A/B de título");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao listar testes A/B de título"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10265,7 +11800,11 @@ app.get("/api/youtube/channel/list", async (req, res) => {
 
 app.post("/api/youtube/channel/comments/bulk-reply", async (req, res) => {
   try {
-    res.json(await bulkReplyComments(WORKSPACE_DIR, { replies: req.body?.replies || [] }));
+    res.json(
+      await bulkReplyComments(WORKSPACE_DIR, {
+        replies: req.body?.replies || [],
+      })
+    );
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro no envio em lote");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
@@ -10274,10 +11813,12 @@ app.post("/api/youtube/channel/comments/bulk-reply", async (req, res) => {
 
 app.post("/api/youtube/channel/comments/pin", async (req, res) => {
   try {
-    res.json(await pinVideoComment(WORKSPACE_DIR, {
-      videoId: String(req.body?.videoId || "").trim(),
-      text: String(req.body?.text || "").trim(),
-    }));
+    res.json(
+      await pinVideoComment(WORKSPACE_DIR, {
+        videoId: String(req.body?.videoId || "").trim(),
+        text: String(req.body?.text || "").trim(),
+      })
+    );
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao fixar comentário");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
@@ -10317,12 +11858,21 @@ app.get("/api/youtube/channel/comments/ideas", async (req, res) => {
       projectsRoot: PROJECTS_ROOT,
       enrich: false,
     });
-    const { generateCommentIdeas: genIdeas } = await import("./youtubeStudioAdvanced.js");
-    res.json(await genIdeas(
-      commentsReport.comments || [],
-      niche,
-      useAi ? (prompt, opts) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, { ...opts, projectDir: WORKSPACE_DIR }) : null,
-    ));
+    const { generateCommentIdeas: genIdeas } =
+      await import("./youtubeStudioAdvanced.js");
+    res.json(
+      await genIdeas(
+        commentsReport.comments || [],
+        niche,
+        useAi
+          ? (prompt, opts) =>
+              callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+                ...opts,
+                projectDir: WORKSPACE_DIR,
+              })
+          : null
+      )
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -10330,23 +11880,35 @@ app.get("/api/youtube/channel/comments/ideas", async (req, res) => {
 
 app.post("/api/youtube/channel/competitor-research", async (req, res) => {
   const niche = String(req.body?.niche || "").trim();
-  const format = String(req.body?.format || "SHORT").toUpperCase() === "LONG" ? "LONG" : "SHORT";
-  const maxCompetitors = Math.min(Math.max(Number(req.body?.maxCompetitors) || 5, 1), 10);
-  const seedChannels = Array.isArray(req.body?.seedChannels) ? req.body.seedChannels : [];
+  const format =
+    String(req.body?.format || "SHORT").toUpperCase() === "LONG"
+      ? "LONG"
+      : "SHORT";
+  const maxCompetitors = Math.min(
+    Math.max(Number(req.body?.maxCompetitors) || 5, 1),
+    10
+  );
+  const seedChannels = Array.isArray(req.body?.seedChannels)
+    ? req.body.seedChannels
+    : [];
   const useAi = req.body?.useAi !== false;
 
   try {
     const LLM_TIMEOUT_MS = 90000;
-    const withTimeout = (promise, label) => Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)), LLM_TIMEOUT_MS);
-      }),
-    ]);
+    const withTimeout = (promise, label) =>
+      Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error(`${label} timeout ${LLM_TIMEOUT_MS}ms`)),
+            LLM_TIMEOUT_MS
+          );
+        }),
+      ]);
 
     const tryCompetitorLlm = async (label, fn) => {
       try {
-        const text = String(await withTimeout(fn(), label) || "").trim();
+        const text = String((await withTimeout(fn(), label)) || "").trim();
         if (text) return text;
         console.warn(`[CompetitorResearch] ${label}: resposta vazia`);
       } catch (err) {
@@ -10361,20 +11923,24 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
 
           if (getAiProvider(WORKSPACE_DIR) === "nvidia") {
             for (const model of NVIDIA_MODELS.slice(0, 4)) {
-              text = await tryCompetitorLlm(`nvidia-${model}`, () => callNvidiaWithRetry(prompt, {
-                maxRetries: 1,
-                models: [model],
-                temperature: 0.2,
-                projectDir: WORKSPACE_DIR,
-              }));
+              text = await tryCompetitorLlm(`nvidia-${model}`, () =>
+                callNvidiaWithRetry(prompt, {
+                  maxRetries: 1,
+                  models: [model],
+                  temperature: 0.2,
+                  projectDir: WORKSPACE_DIR,
+                })
+              );
               if (text) break;
             }
           } else {
-            text = await tryCompetitorLlm("provider", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-              maxRetries: 1,
-              temperature: 0.2,
-              projectDir: WORKSPACE_DIR,
-            }));
+            text = await tryCompetitorLlm("provider", () =>
+              callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+                maxRetries: 1,
+                temperature: 0.2,
+                projectDir: WORKSPACE_DIR,
+              })
+            );
           }
 
           return text;
@@ -10385,23 +11951,31 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
       ? async (candidate) => {
           const repairPrompt = `Corrija o JSON abaixo para sintaxe 100% válida. Preserve todos os textos. Retorne APENAS o JSON, sem markdown.\n\n${candidate}`;
           let text = null;
-          for (const model of ["qwen/qwen3.5-397b-a17b", "moonshotai/kimi-k2.6", "deepseek/deepseek-v4-flash"]) {
-            text = await tryCompetitorLlm(`json-repair-${model}`, () => callNvidiaWithRetry(repairPrompt, {
-              maxRetries: 1,
-              models: [model],
-              temperature: 0,
-              projectDir: WORKSPACE_DIR,
-            }));
+          for (const model of [
+            "qwen/qwen3.5-397b-a17b",
+            "moonshotai/kimi-k2.6",
+            "deepseek/deepseek-v4-flash",
+          ]) {
+            text = await tryCompetitorLlm(`json-repair-${model}`, () =>
+              callNvidiaWithRetry(repairPrompt, {
+                maxRetries: 1,
+                models: [model],
+                temperature: 0,
+                projectDir: WORKSPACE_DIR,
+              })
+            );
             if (text) break;
           }
           if (!text) {
-            text = await tryCompetitorLlm("json-repair-gemini", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), repairPrompt, {
-              maxRetries: 1,
-              models: ["gemini-2.0-flash"],
-              temperature: 0,
-              projectDir: WORKSPACE_DIR,
-              forceProvider: "gemini",
-            }));
+            text = await tryCompetitorLlm("json-repair-gemini", () =>
+              callGeminiWithRetry(getApiKey(WORKSPACE_DIR), repairPrompt, {
+                maxRetries: 1,
+                models: ["gemini-2.0-flash"],
+                temperature: 0,
+                projectDir: WORKSPACE_DIR,
+                forceProvider: "gemini",
+              })
+            );
           }
           return text;
         }
@@ -10417,26 +11991,34 @@ app.post("/api/youtube/channel/competitor-research", async (req, res) => {
       repairJsonFn,
     });
     try {
-      const { enqueueEditorialIdeas } = await import("./youtubeEditorialQueue.js");
+      const { enqueueEditorialIdeas } =
+        await import("./youtubeEditorialQueue.js");
       const enqueued = enqueueEditorialIdeas(
         WORKSPACE_DIR,
         report.analysis?.derivedIdeas || [],
-        { source: "competitor-research", format },
+        { source: "competitor-research", format }
       );
-      report.editorialQueue = { enqueued: (report.analysis?.derivedIdeas || []).length, total: enqueued.items.length };
+      report.editorialQueue = {
+        enqueued: (report.analysis?.derivedIdeas || []).length,
+        total: enqueued.items.length,
+      };
     } catch (err) {
       console.warn("[CompetitorResearch] Fila editorial:", err.message);
     }
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro na pesquisa de concorrentes");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro na pesquisa de concorrentes"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.get("/api/youtube/channel/editorial-queue", async (_req, res) => {
   try {
-    const { repairCorruptedClipFactoryQueue } = await import("./youtubeEditorialQueue.js");
+    const { repairCorruptedClipFactoryQueue } =
+      await import("./youtubeEditorialQueue.js");
     res.json(repairCorruptedClipFactoryQueue(WORKSPACE_DIR, LONGS_DIR));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -10445,9 +12027,14 @@ app.get("/api/youtube/channel/editorial-queue", async (_req, res) => {
 
 app.patch("/api/youtube/channel/editorial-queue/:id", async (req, res) => {
   try {
-    const { updateEditorialItemStatus } = await import("./youtubeEditorialQueue.js");
+    const { updateEditorialItemStatus } =
+      await import("./youtubeEditorialQueue.js");
     const status = String(req.body?.status || "").trim();
-    const result = updateEditorialItemStatus(WORKSPACE_DIR, req.params.id, status);
+    const result = updateEditorialItemStatus(
+      WORKSPACE_DIR,
+      req.params.id,
+      status
+    );
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -10471,14 +12058,17 @@ app.post("/api/youtube/channel/top-winners", async (req, res) => {
   const useAi = req.body?.useAi !== false;
 
   try {
-    const { generateTopWinnerIdeas } = await import("./youtubeEditorialQueue.js");
-    const config = readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
+    const { generateTopWinnerIdeas } =
+      await import("./youtubeEditorialQueue.js");
+    const config =
+      readJsonFile(path.join(WORKSPACE_DIR, "config_qanat.json")) || {};
     const llmFn = useAi
-      ? async (prompt) => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-        maxRetries: 1,
-        temperature: 0.4,
-        projectDir: WORKSPACE_DIR,
-      })
+      ? async (prompt) =>
+          callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+            maxRetries: 1,
+            temperature: 0.4,
+            projectDir: WORKSPACE_DIR,
+          })
       : null;
 
     const result = await generateTopWinnerIdeas(WORKSPACE_DIR, PROJECTS_ROOT, {
@@ -10490,14 +12080,20 @@ app.post("/api/youtube/channel/top-winners", async (req, res) => {
     if (!result.ok) return res.status(404).json(result);
     res.json(result);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao gerar ideias dos top vídeos");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao gerar ideias dos top vídeos"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.get("/api/youtube/channel/export.csv", async (req, res) => {
   const type = String(req.query?.type || "comments");
-  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+    100000
+  );
   try {
     if (type === "videos") {
       const [videos, lumiera] = await Promise.all([
@@ -10509,7 +12105,10 @@ app.get("/api/youtube/channel/export.csv", async (req, res) => {
         ...(lumiera.videos || []).map((v) => ({ ...v, videoFormat: v.format })),
       ]);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", 'attachment; filename="youtube-videos.csv"');
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="youtube-videos.csv"'
+      );
       return res.send(csv);
     }
     const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
@@ -10520,7 +12119,10 @@ app.get("/api/youtube/channel/export.csv", async (req, res) => {
       enrich: true,
     });
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", 'attachment; filename="youtube-comments.csv"');
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="youtube-comments.csv"'
+    );
     res.send(commentsToCsv(commentsReport.comments || []));
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao exportar CSV");
@@ -10530,24 +12132,45 @@ app.get("/api/youtube/channel/export.csv", async (req, res) => {
 
 app.get("/api/youtube/channel/response-stats", async (req, res) => {
   try {
-    const { assertTitleTestScopes, getYoutubeAccessToken } = await import("./youtubeTitleAnalytics.js");
+    const { assertTitleTestScopes, getYoutubeAccessToken } =
+      await import("./youtubeTitleAnalytics.js");
     await assertTitleTestScopes(WORKSPACE_DIR);
     const accessToken = await getYoutubeAccessToken(WORKSPACE_DIR);
-    const channelData = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then((r) => r.json());
+    const channelData = await fetch(
+      "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    ).then((r) => r.json());
     const ch = channelData?.items?.[0];
-    res.json(await computeChannelResponseStats(accessToken, ch?.id, ch?.snippet?.title || "", ch?.snippet?.customUrl || ""));
+    res.json(
+      await computeChannelResponseStats(
+        accessToken,
+        ch?.id,
+        ch?.snippet?.title || "",
+        ch?.snippet?.customUrl || ""
+      )
+    );
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro nas estatísticas de resposta");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro nas estatísticas de resposta"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
 app.get("/api/youtube/channel/daily-report", async (req, res) => {
-  const views48hThreshold = Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000);
+  const views48hThreshold = Math.min(
+    Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+    100000
+  );
   try {
-    res.json(await generateDailyReport(WORKSPACE_DIR, PROJECTS_ROOT, { views48hThreshold }));
+    res.json(
+      await generateDailyReport(WORKSPACE_DIR, PROJECTS_ROOT, {
+        views48hThreshold,
+      })
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -10557,7 +12180,12 @@ app.post("/api/youtube/channel/webhooks/test", async (req, res) => {
   try {
     const settings = getExtendedStudioSettings(WORKSPACE_DIR);
     const webhooks = { ...settings.webhooks, ...(req.body?.webhooks || {}) };
-    res.json({ results: await sendWebhookNotification(webhooks, req.body?.message || "Teste Lumiera — Canal YouTube") });
+    res.json({
+      results: await sendWebhookNotification(
+        webhooks,
+        req.body?.message || "Teste Lumiera — Canal YouTube"
+      ),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -10566,9 +12194,17 @@ app.post("/api/youtube/channel/webhooks/test", async (req, res) => {
 app.get("/api/youtube/channel/post-publish-checklist", async (req, res) => {
   const projectName = String(req.query?.project || "").trim();
   const videoId = String(req.query?.videoId || "").trim();
-  if (!projectName) return res.status(400).json({ error: "project é obrigatório." });
+  if (!projectName)
+    return res.status(400).json({ error: "project é obrigatório." });
   try {
-    res.json(await getPostPublishChecklist(WORKSPACE_DIR, PROJECTS_ROOT, projectName, videoId));
+    res.json(
+      await getPostPublishChecklist(
+        WORKSPACE_DIR,
+        PROJECTS_ROOT,
+        projectName,
+        videoId
+      )
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -10577,11 +12213,21 @@ app.get("/api/youtube/channel/post-publish-checklist", async (req, res) => {
 app.post("/api/youtube/channel/post-publish-checklist", async (req, res) => {
   const projectName = String(req.body?.project || "").trim();
   const itemId = String(req.body?.itemId || "").trim();
-  if (!projectName || !itemId) return res.status(400).json({ error: "project e itemId obrigatórios." });
+  if (!projectName || !itemId)
+    return res.status(400).json({ error: "project e itemId obrigatórios." });
   try {
-    const { collectLumieraPublishedVideos } = await import("./youtubeChannelAnalytics.js");
-    const entry = collectLumieraPublishedVideos(PROJECTS_ROOT).find((p) => p.projectName === projectName);
-    res.json(savePostPublishChecklistItem(entry?.projectPath, itemId, req.body?.done !== false));
+    const { collectLumieraPublishedVideos } =
+      await import("./youtubeChannelAnalytics.js");
+    const entry = collectLumieraPublishedVideos(PROJECTS_ROOT).find(
+      (p) => p.projectName === projectName
+    );
+    res.json(
+      savePostPublishChecklistItem(
+        entry?.projectPath,
+        itemId,
+        req.body?.done !== false
+      )
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -10594,12 +12240,23 @@ app.get("/api/youtube/channel/pro/dashboard", async (req, res) => {
       limit,
       filter: "unanswered",
       projectsRoot: PROJECTS_ROOT,
-      views48hThreshold: Math.min(Math.max(Number(req.query?.viewsThreshold) || 100, 1), 100000),
+      views48hThreshold: Math.min(
+        Math.max(Number(req.query?.viewsThreshold) || 100, 1),
+        100000
+      ),
     });
-    buildApprovalQueueFromComments(WORKSPACE_DIR, commentsReport.comments || []);
-    res.json(await fetchProDashboard(WORKSPACE_DIR, commentsReport.comments || []));
+    buildApprovalQueueFromComments(
+      WORKSPACE_DIR,
+      commentsReport.comments || []
+    );
+    res.json(
+      await fetchProDashboard(WORKSPACE_DIR, commentsReport.comments || [])
+    );
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao carregar dashboard Pro");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao carregar dashboard Pro"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10612,39 +12269,71 @@ app.post("/api/youtube/channel/pro/approval-queue/build", async (req, res) => {
       filter: "unanswered",
       projectsRoot: PROJECTS_ROOT,
     });
-    res.json(buildApprovalQueueFromComments(WORKSPACE_DIR, commentsReport.comments || []));
+    res.json(
+      buildApprovalQueueFromComments(
+        WORKSPACE_DIR,
+        commentsReport.comments || []
+      )
+    );
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao montar fila de aprovação");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao montar fila de aprovação"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
-app.post("/api/youtube/channel/pro/approval-queue/:itemId/approve", (req, res) => {
-  try {
-    res.json({ success: true, item: updateQueueItem(WORKSPACE_DIR, req.params.itemId, { status: "approved" }) });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+app.post(
+  "/api/youtube/channel/pro/approval-queue/:itemId/approve",
+  (req, res) => {
+    try {
+      res.json({
+        success: true,
+        item: updateQueueItem(WORKSPACE_DIR, req.params.itemId, {
+          status: "approved",
+        }),
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
-app.post("/api/youtube/channel/pro/approval-queue/:itemId/reject", (req, res) => {
-  try {
-    res.json({ success: true, item: updateQueueItem(WORKSPACE_DIR, req.params.itemId, { status: "rejected" }) });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+app.post(
+  "/api/youtube/channel/pro/approval-queue/:itemId/reject",
+  (req, res) => {
+    try {
+      res.json({
+        success: true,
+        item: updateQueueItem(WORKSPACE_DIR, req.params.itemId, {
+          status: "rejected",
+        }),
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   }
-});
+);
 
-app.post("/api/youtube/channel/pro/approval-queue/:itemId/send", async (req, res) => {
-  try {
-    res.json(await sendQueueItem(WORKSPACE_DIR, req.params.itemId, {
-      text: String(req.body?.text || "").trim(),
-    }));
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao enviar resposta da fila");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
+app.post(
+  "/api/youtube/channel/pro/approval-queue/:itemId/send",
+  async (req, res) => {
+    try {
+      res.json(
+        await sendQueueItem(WORKSPACE_DIR, req.params.itemId, {
+          text: String(req.body?.text || "").trim(),
+        })
+      );
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao enviar resposta da fila"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
   }
-});
+);
 
 app.get("/api/youtube/channel/pro/reply-history", (req, res) => {
   try {
@@ -10659,25 +12348,41 @@ app.get("/api/youtube/channel/pro/reply-history", (req, res) => {
 app.get("/api/youtube/channel/pro/seo-mining", async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query?.limit) || 40, 5), 50);
   try {
-    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, { limit, filter: "all" });
-    res.json({ opportunities: mineSeoKeywords(commentsReport.comments || [], { limit: 16 }) });
+    const commentsReport = await fetchChannelComments(WORKSPACE_DIR, {
+      limit,
+      filter: "all",
+    });
+    res.json({
+      opportunities: mineSeoKeywords(commentsReport.comments || [], {
+        limit: 16,
+      }),
+    });
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro na mineração SEO");
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
 
-app.get("/api/youtube/channel/video/:videoId/retention-cliff", async (req, res) => {
-  const videoId = String(req.params?.videoId || "").trim();
-  const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
-  if (!videoId) return res.status(400).json({ error: "videoId obrigatório." });
-  try {
-    res.json(await fetchRetentionCliffReport(WORKSPACE_DIR, videoId, { days }));
-  } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao analisar penhasco de retenção");
-    res.status(payload.needsReauth ? 403 : 500).json(payload);
+app.get(
+  "/api/youtube/channel/video/:videoId/retention-cliff",
+  async (req, res) => {
+    const videoId = String(req.params?.videoId || "").trim();
+    const days = Math.min(Math.max(Number(req.query?.days) || 28, 1), 90);
+    if (!videoId)
+      return res.status(400).json({ error: "videoId obrigatório." });
+    try {
+      res.json(
+        await fetchRetentionCliffReport(WORKSPACE_DIR, videoId, { days })
+      );
+    } catch (err) {
+      const payload = youtubeApiErrorPayload(
+        err,
+        "Erro ao analisar penhasco de retenção"
+      );
+      res.status(payload.needsReauth ? 403 : 500).json(payload);
+    }
   }
-});
+);
 
 app.get("/api/youtube/channel/pro/heatmap", async (req, res) => {
   const days = Math.min(Math.max(Number(req.query?.days) || 28, 7), 90);
@@ -10699,7 +12404,13 @@ app.get("/api/youtube/channel/pro/pre-upload-checklist", (req, res) => {
 
 app.post("/api/youtube/channel/pro/pre-upload-checklist", (req, res) => {
   try {
-    res.json(togglePreUploadItem(WORKSPACE_DIR, String(req.body?.itemId || "").trim(), req.body?.done !== false));
+    res.json(
+      togglePreUploadItem(
+        WORKSPACE_DIR,
+        String(req.body?.itemId || "").trim(),
+        req.body?.done !== false
+      )
+    );
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -10731,8 +12442,11 @@ app.delete("/api/youtube/channel/pro/notes/:noteId", (req, res) => {
 
 app.put("/api/youtube/channel/pro/sla", (req, res) => {
   try {
-    const patch = { slaHours: Math.min(Math.max(Number(req.body?.slaHours) || 24, 1), 168) };
-    if (req.body?.autoQueueEnabled !== undefined) patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
+    const patch = {
+      slaHours: Math.min(Math.max(Number(req.body?.slaHours) || 24, 1), 168),
+    };
+    if (req.body?.autoQueueEnabled !== undefined)
+      patch.autoQueueEnabled = Boolean(req.body.autoQueueEnabled);
     saveProSettings(WORKSPACE_DIR, patch);
     res.json(getProSettings(WORKSPACE_DIR));
   } catch (err) {
@@ -10774,12 +12488,20 @@ app.post("/api/youtube/title-experiment/start", async (req, res) => {
     let applied = null;
     if (req.body?.applyFirst !== false && experiment.variants?.length) {
       try {
-        applied = await applyTitleVariant(WORKSPACE_DIR, projDir, experiment.variants[0].id);
+        applied = await applyTitleVariant(
+          WORKSPACE_DIR,
+          projDir,
+          experiment.variants[0].id
+        );
       } catch (applyErr) {
         applied = { error: applyErr.message };
       }
     }
-    res.json({ success: true, experiment: applied?.experiment || experiment, appliedFirst: applied });
+    res.json({
+      success: true,
+      experiment: applied?.experiment || experiment,
+      appliedFirst: applied,
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -10857,7 +12579,10 @@ app.post("/api/youtube/title-experiment/apply-first", async (req, res) => {
     const result = await applyTitleVariant(WORKSPACE_DIR, projDir, firstId);
     res.json({ success: true, ...result });
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao aplicar primeiro título");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao aplicar primeiro título"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10932,7 +12657,11 @@ app.post("/api/youtube/thumbnail-experiment/apply", async (req, res) => {
     return res.status(400).json({ error: "variantId é obrigatório." });
   }
   try {
-    const result = await applyThumbnailVariant(WORKSPACE_DIR, projDir, variantId);
+    const result = await applyThumbnailVariant(
+      WORKSPACE_DIR,
+      projDir,
+      variantId
+    );
     res.json({ success: true, ...result });
   } catch (err) {
     const payload = youtubeApiErrorPayload(err, "Erro ao aplicar thumbnail");
@@ -10946,7 +12675,10 @@ app.get("/api/youtube/thumbnail-experiment/analytics", async (req, res) => {
     const report = await getThumbnailExperimentReport(WORKSPACE_DIR, projDir);
     res.json(report);
   } catch (err) {
-    const payload = youtubeApiErrorPayload(err, "Erro ao buscar analytics de thumbnail");
+    const payload = youtubeApiErrorPayload(
+      err,
+      "Erro ao buscar analytics de thumbnail"
+    );
     res.status(payload.needsReauth ? 403 : 500).json(payload);
   }
 });
@@ -10954,7 +12686,10 @@ app.get("/api/youtube/thumbnail-experiment/analytics", async (req, res) => {
 app.get("/api/pipeline/run", async (req, res) => {
   const projDir = getProjectDir(req);
   const stepsParam = req.query?.steps || "mix,upload";
-  const steps = String(stepsParam).split(",").map((s) => s.trim()).filter(Boolean);
+  const steps = String(stepsParam)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -10999,27 +12734,43 @@ app.get("/api/pipeline/run", async (req, res) => {
             format: cache.format || "LONG",
             palette: cache.palette || [],
           });
-          log(`[Pipeline] ${result.thumbnails?.length || 0} thumbnails geradas.`);
+          log(
+            `[Pipeline] ${result.thumbnails?.length || 0} thumbnails geradas.`
+          );
         },
         render: async (dir, log, mode) => {
           ensureFileExists("build_video.py", dir);
-          const scriptName = mode === "highlighted" ? "build_video_destacado.py" : "build_video.py";
+          const scriptName =
+            mode === "highlighted"
+              ? "build_video_destacado.py"
+              : "build_video.py";
           if (mode === "remotion" || mode === "remotion-pro") {
-            log(`[Pipeline] Render ${mode} — use a aba Render para concluir (passo pesado).`);
+            log(
+              `[Pipeline] Render ${mode} — use a aba Render para concluir (passo pesado).`
+            );
             return;
           }
           await new Promise((resolve, reject) => {
-            const child = spawn(PYTHON_PATH, [scriptName], { cwd: dir, shell: true });
+            const child = spawn(PYTHON_PATH, [scriptName], {
+              cwd: dir,
+              shell: true,
+            });
             child.stdout.on("data", (d) => log(d.toString().trim()));
-            child.stderr.on("data", (d) => log(`[stderr] ${d.toString().trim()}`));
-            child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Render exit ${code}`))));
+            child.stderr.on("data", (d) =>
+              log(`[stderr] ${d.toString().trim()}`)
+            );
+            child.on("close", (code) =>
+              code === 0 ? resolve() : reject(new Error(`Render exit ${code}`))
+            );
           });
         },
       },
     });
     res.write(`data: ${JSON.stringify({ type: "complete", results })}\n\n`);
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`
+    );
   }
   res.end();
 });
@@ -11027,7 +12778,9 @@ app.get("/api/pipeline/run", async (req, res) => {
 app.post("/api/upload/instagram/save-app", (req, res) => {
   const { app_id, app_secret } = req.body;
   if (!app_id || !app_secret) {
-    return res.status(400).json({ error: "App ID e App Secret são obrigatórios." });
+    return res
+      .status(400)
+      .json({ error: "App ID e App Secret são obrigatórios." });
   }
   try {
     saveInstagramAppCredentials(WORKSPACE_DIR, { app_id, app_secret });
@@ -11055,7 +12808,9 @@ app.get("/api/upload/instagram/callback", async (req, res) => {
   try {
     const redirectUri = `${LUMIERA_BACKEND_BASE}/api/upload/instagram/callback`;
     await exchangeInstagramCode(WORKSPACE_DIR, code, redirectUri);
-    res.send("<html><body><h2>Instagram conectado!</h2><p>Feche esta aba e volte ao Lumiera.</p></body></html>");
+    res.send(
+      "<html><body><h2>Instagram conectado!</h2><p>Feche esta aba e volte ao Lumiera.</p></body></html>"
+    );
   } catch (err) {
     res.status(500).send(`Erro: ${err.message}`);
   }
@@ -11067,15 +12822,25 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
   const projDir = getProjectDir(req);
   try {
     const config = readProjectJson(projDir, "config_qanat.json", {});
-    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
-    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const timings = readProjectJson(projDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
+    const blockPhrases = Array.isArray(config.block_phrases)
+      ? config.block_phrases
+      : [];
     if (!blockPhrases.length) {
       return res.status(400).json({ error: "Projeto sem blocos de narração." });
     }
 
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
-    const chaptersText = resolveChaptersTextForProject(projDir, readProjectJson);
+    const visualPrompts = Array.isArray(storyboard.visual_prompts)
+      ? storyboard.visual_prompts
+      : [];
+    const chaptersText = resolveChaptersTextForProject(
+      projDir,
+      readProjectJson
+    );
     const raw = config.block_progress_bar || {};
     const markers = buildDefaultBlockProgressMarkers({
       blockPhrases,
@@ -11090,8 +12855,11 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
     });
 
     const browserTextRaw = extractBrowserResponse(req.body);
-    const browserText = browserTextRaw ? (extractOverlayJsonPayload(browserTextRaw) || browserTextRaw) : null;
-    const forceBrowser = req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
+    const browserText = browserTextRaw
+      ? extractOverlayJsonPayload(browserTextRaw) || browserTextRaw
+      : null;
+    const forceBrowser =
+      req.body?.require_browser === true || shouldOfferGeminiBrowser(projDir);
 
     let llmText = browserText;
     if (!llmText) {
@@ -11102,32 +12870,49 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
 
       if (forceBrowser) {
         const title = "Sugerir ícones da barra de progresso";
-        const promptText = buildBrowserTaskPrompt(title, prompt, "", { taskType: "json", responseFormat: "json" });
-        return res.json(offerGeminiBrowserPayload({ title, prompt: promptText }));
+        const promptText = buildBrowserTaskPrompt(title, prompt, "", {
+          taskType: "json",
+          responseFormat: "json",
+        });
+        return res.json(
+          offerGeminiBrowserPayload({ title, prompt: promptText })
+        );
       }
 
       const apiKey = getApiKey(projDir);
       if (!apiKey) {
         return res.status(401).json({
-          error: "Sem chave API. Ative Gemini no Chrome ou configure uma chave.",
+          error:
+            "Sem chave API. Ative Gemini no Chrome ou configure uma chave.",
         });
       }
-      llmText = await callGeminiWithRetry(apiKey, prompt, { temperature: 0.25, projectDir: projDir });
+      llmText = await callGeminiWithRetry(apiKey, prompt, {
+        temperature: 0.25,
+        projectDir: projDir,
+      });
     }
 
-    const parsed = await parseAiJsonResponse(llmText, getApiKey(projDir), "ícones barra de progresso");
+    const parsed = await parseAiJsonResponse(
+      llmText,
+      getApiKey(projDir),
+      "ícones barra de progresso"
+    );
     const aiBlocks = Array.isArray(parsed?.blocks) ? parsed.blocks : [];
-    const merged = mergeAiBlockProgressIcons(markers, aiBlocks, { niche: config.niche || "Geral" });
+    const merged = mergeAiBlockProgressIcons(markers, aiBlocks, {
+      niche: config.niche || "Geral",
+    });
 
     const nextConfig = {
       ...raw,
       enabled: raw.enabled === true,
       design: normalizeBlockProgressDesign(raw.design),
-      iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
+      iconSize:
+        Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
       defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
       showBlockTitles: raw.showBlockTitles === true,
       titleFont: raw.titleFont || "inter",
-      titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
+      titleFontSize:
+        Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
       titleColor: String(raw.titleColor || "#FFFFFF"),
       blocks: merged,
       icons_suggested_at: new Date().toISOString(),
@@ -11135,9 +12920,15 @@ app.post("/api/ai/suggest-block-progress-icons", async (req, res) => {
     };
 
     config.block_progress_bar = nextConfig;
-    fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projDir, "config_qanat.json"),
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
 
-    console.log(`[Block Progress] IA sugeriu ícones para ${merged.length} bloco(s).`);
+    console.log(
+      `[Block Progress] IA sugeriu ícones para ${merged.length} bloco(s).`
+    );
     res.json({
       success: true,
       blocks: merged,
@@ -11153,15 +12944,25 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
   const projDir = getProjectDir(req);
   try {
     const config = readProjectJson(projDir, "config_qanat.json", {});
-    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const timings = readProjectJson(projDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    const visualPrompts = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
-    const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+    const visualPrompts = Array.isArray(storyboard.visual_prompts)
+      ? storyboard.visual_prompts
+      : [];
+    const blockPhrases = Array.isArray(config.block_phrases)
+      ? config.block_phrases
+      : [];
     if (!blockPhrases.length) {
       return res.status(400).json({ error: "Projeto sem blocos de narração." });
     }
 
-    const chaptersText = resolveChaptersTextForProject(projDir, readProjectJson);
+    const chaptersText = resolveChaptersTextForProject(
+      projDir,
+      readProjectJson
+    );
     const raw = config.block_progress_bar || {};
     const markers = buildDefaultBlockProgressMarkers({
       blockPhrases,
@@ -11187,7 +12988,7 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
     });
     const merged = mergeAiBlockProgressTitles(
       existingMarkers,
-      markers.map((m) => ({ block: m.block, title: m.title })),
+      markers.map((m) => ({ block: m.block, title: m.title }))
     );
     const updatedCount = merged.reduce((count, block, idx) => {
       const prev = existingMarkers[idx];
@@ -11200,11 +13001,13 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
       ...raw,
       enabled: raw.enabled === true,
       design: normalizeBlockProgressDesign(raw.design),
-      iconSize: Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
+      iconSize:
+        Number(raw.iconSize) || (config.aspect_ratio === "9:16" ? 16 : 22),
       defaultIconStyle: raw.defaultIconStyle === "svg" ? "svg" : "lottie",
       showBlockTitles: raw.showBlockTitles !== false,
       titleFont: raw.titleFont || "inter",
-      titleFontSize: Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
+      titleFontSize:
+        Number(raw.titleFontSize) || (config.aspect_ratio === "9:16" ? 9 : 10),
       titleColor: String(raw.titleColor || "#FFFFFF"),
       blocks: merged,
       titles_synced_at: new Date().toISOString(),
@@ -11212,9 +13015,15 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
     };
 
     config.block_progress_bar = nextConfig;
-    fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projDir, "config_qanat.json"),
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
 
-    console.log(`[Block Progress] Títulos sincronizados dos capítulos: ${updatedCount} atualizado(s), ${merged.length} bloco(s).`);
+    console.log(
+      `[Block Progress] Títulos sincronizados dos capítulos: ${updatedCount} atualizado(s), ${merged.length} bloco(s).`
+    );
     res.json({
       success: true,
       blocks: merged,
@@ -11223,16 +13032,18 @@ app.post("/api/ai/suggest-block-progress-titles", async (req, res) => {
     });
   } catch (err) {
     console.error("[Block Progress Titles]", err);
-    res.status(500).json({ error: err.message || "Falha ao sincronizar títulos dos capítulos." });
+    res
+      .status(500)
+      .json({
+        error: err.message || "Falha ao sincronizar títulos dos capítulos.",
+      });
   }
 });
 
 app.post("/api/ai/suggest-bgm", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const { mode } = req.body; // 'LONGO' or 'SHORTS'
 
     // Get storyboard for context
@@ -11242,9 +13053,9 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
     const storyboardPath = path.join(projDir, "storyboard.json");
 
     if (fs.existsSync(storyboardPath)) {
-
-      try { storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8")); } catch (e) {}
-
+      try {
+        storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      } catch (e) {}
     }
 
     // Get transcript for context
@@ -11254,9 +13065,9 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
     const transcriptPath = path.join(projDir, "transcripts_readable.txt");
 
     if (fs.existsSync(transcriptPath)) {
-
-      try { transcript = fs.readFileSync(transcriptPath, "utf8"); } catch (e) {}
-
+      try {
+        transcript = fs.readFileSync(transcriptPath, "utf8");
+      } catch (e) {}
     }
 
     // Build block summaries from storyboard
@@ -11264,25 +13075,21 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
     let blockSummaries = "";
 
     if (storyboard.visual_prompts) {
-
       const blocks = {};
 
-      storyboard.visual_prompts.forEach(vp => {
-
+      storyboard.visual_prompts.forEach((vp) => {
         const b = vp.block;
 
         if (!blocks[b]) blocks[b] = [];
 
         blocks[b].push(vp.narration_text || "");
-
       });
 
-      Object.keys(blocks).sort((a,b) => a-b).forEach(b => {
-
-        blockSummaries += `Bloco ${b}: ${blocks[b].join(" ").substring(0, 200)}...\n`;
-
-      });
-
+      Object.keys(blocks)
+        .sort((a, b) => a - b)
+        .forEach((b) => {
+          blockSummaries += `Bloco ${b}: ${blocks[b].join(" ").substring(0, 200)}...\n`;
+        });
     }
 
     const musicListStr = "";
@@ -11290,7 +13097,6 @@ app.post("/api/ai/suggest-bgm", async (req, res) => {
     let bgmPrompt;
 
     if (mode === "SHORTS") {
-
       bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora. Analise o roteiro do vídeo curto (Shorts) abaixo e escolha A MELHOR trilha sonora entre os arquivos disponíveis.
 
 Arquivos de música disponíveis:
@@ -11304,9 +13110,7 @@ ${transcript || blockSummaries}
 Responda APENAS com um JSON válido no formato:
 
 {"file": "nome_exato_do_arquivo.mp3", "reason": "explicação breve de por que esta trilha combina"}`;
-
     } else {
-
       bgmPrompt = `Você é um editor de vídeo especialista em trilha sonora para documentários. Analise o tom emocional de cada bloco do roteiro e sugira a melhor trilha sonora para CADA bloco.
 
 Arquivos de música disponíveis:
@@ -11328,12 +13132,11 @@ Regras:
 Responda APENAS com um JSON válido no formato:
 
 {"suggestions": [{"block": 1, "file": "nome_exato.mp3", "reason": "breve"}, ...]}`;
-
     }
 
-    bgmPrompt = mode === "SHORTS"
-
-      ? `Voce e um editor de video especialista em trilha sonora. Analise o roteiro do video curto (Shorts) abaixo e recomende apenas a IDEIA de trilha sonora ideal para o video inteiro.
+    bgmPrompt =
+      mode === "SHORTS"
+        ? `Voce e um editor de video especialista em trilha sonora. Analise o roteiro do video curto (Shorts) abaixo e recomende apenas a IDEIA de trilha sonora ideal para o video inteiro.
 
 Roteiro:
 
@@ -11350,8 +13153,7 @@ Importante:
 Responda APENAS com um JSON valido no formato:
 
 {"mode": "SHORTS", "recommendation": "descricao da ideia de trilha para o video inteiro", "search_theme": "3 a 5 palavras-chave em ingles para busca (ex: cinematic mystery dark tension)", "reason": "explicacao breve", "manual_note": "Escolha manualmente uma faixa em Trilha Unica."}`
-
-      : `Voce e um editor de video especialista em trilha sonora para documentarios. Analise o tom emocional de cada bloco do roteiro e recomende apenas a IDEIA de trilha sonora ideal para CADA bloco.
+        : `Voce e um editor de video especialista em trilha sonora para documentarios. Analise o tom emocional de cada bloco do roteiro e recomende apenas a IDEIA de trilha sonora ideal para CADA bloco.
 
 Resumo por bloco:
 
@@ -11377,35 +13179,55 @@ Responda APENAS com um JSON valido no formato:
     });
     if (responseText == null) return;
 
-    const parsed = await parseAiJsonResponse(responseText, extractBrowserResponse(req.body) ? null : getApiKey(projDir), "Sugestao de BGM");
+    const parsed = await parseAiJsonResponse(
+      responseText,
+      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+      "Sugestao de BGM"
+    );
 
     res.json(parsed);
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao sugerir BGM", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao sugerir BGM", details: err.message });
   }
-
 });
 
 app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
     const config = readProjectJson(projDir, "config_qanat.json", {});
-    const timings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
-    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
-    const blockNumbers = collectProjectBlockNumbers(config, storyboard, timings);
+    const timings = readProjectJson(projDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
+    const wordTranscripts = readProjectJson(
+      projDir,
+      "word_transcripts.json",
+      []
+    );
+    const blockNumbers = collectProjectBlockNumbers(
+      config,
+      storyboard,
+      timings
+    );
     const blockRanges = buildProjectBlockRanges(blockNumbers, timings);
-    const totalDuration = Number(timings.total_duration)
-      || blockRanges.reduce((max, range) => Math.max(max, range.start + range.duration), 0)
-      || 120;
+    const totalDuration =
+      Number(timings.total_duration) ||
+      blockRanges.reduce(
+        (max, range) => Math.max(max, range.start + range.duration),
+        0
+      ) ||
+      120;
     const nicheMood = getEpidemicMoodForNiche(config.niche, config, storyboard);
-    const sceneMaps = buildSceneTimingMaps(null, storyboard, timings.starts || [], timings.durations || []);
+    const sceneMaps = buildSceneTimingMaps(
+      null,
+      storyboard,
+      timings.starts || [],
+      timings.durations || []
+    );
 
     const prompt = buildBgmEmotionPlanPrompt({
       narrativeScript: storyboard.narrative_script || "",
@@ -11425,7 +13247,7 @@ app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
     const parsed = await parseAiJsonResponse(
       responseText,
       extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Plano BGM por emoção",
+      "Plano BGM por emoção"
     );
     const aiSegments = parseAiEmotionPlanResponse(parsed);
     const plan = buildBgmEmotionPlan({
@@ -11442,24 +13264,31 @@ app.post("/api/ai/plan-bgm-emotions", async (req, res) => {
     config.bgm_mode = "emotion";
     config.use_single_bgm = false;
     config.single_bgm = "";
-    if (!Array.isArray(config.bgm_emotion_mappings)) config.bgm_emotion_mappings = [];
+    if (!Array.isArray(config.bgm_emotion_mappings))
+      config.bgm_emotion_mappings = [];
 
-    fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
-    fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(config, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projDir, "storyboard.json"),
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
+    fs.writeFileSync(
+      path.join(projDir, "config_qanat.json"),
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
 
     res.json({
       success: true,
       plan,
       logs: formatEmotionPlanLog(plan),
     });
-
   } catch (err) {
-
     console.error("[Plan BGM Emotions]", err);
-    res.status(500).json({ error: err.message || "Falha ao planejar trilhas por emoção." });
-
+    res
+      .status(500)
+      .json({ error: err.message || "Falha ao planejar trilhas por emoção." });
   }
-
 });
 
 app.get("/api/narration/chunks", (req, res) => {
@@ -11481,20 +13310,28 @@ app.post("/api/narration/chunks", (req, res) => {
   try {
     const { plan, mode } = req.body || {};
     if (!plan || !Array.isArray(plan.chunks)) {
-      return res.status(400).json({ error: "Plano inválido — chunks[] obrigatório." });
+      return res
+        .status(400)
+        .json({ error: "Plano inválido — chunks[] obrigatório." });
     }
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const storyboard = readProjectJson(projDir, "storyboard.json", {});
-    const normalized = normalizeNarrationChunkPlan({
-      ...plan,
-      chunks: plan.chunks,
-      default_voice: plan.default_voice,
-      planned_at: plan.planned_at || new Date().toISOString(),
-      source: plan.source || "manual",
-    }, { storyboard, config });
+    const normalized = normalizeNarrationChunkPlan(
+      {
+        ...plan,
+        chunks: plan.chunks,
+        default_voice: plan.default_voice,
+        planned_at: plan.planned_at || new Date().toISOString(),
+        source: plan.source || "manual",
+      },
+      { storyboard, config }
+    );
     const saved = persistChunkPlanToProject(projDir, normalized, {
       ...config,
-      narration_mode: mode === NARRATION_MODE_MASTER ? NARRATION_MODE_MASTER : NARRATION_MODE_CHUNKED,
+      narration_mode:
+        mode === NARRATION_MODE_MASTER
+          ? NARRATION_MODE_MASTER
+          : NARRATION_MODE_CHUNKED,
     });
     res.json({ success: true, plan: normalized, config: saved.config });
   } catch (err) {
@@ -11515,13 +13352,21 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
         config,
         defaultVoice: defaultVoice || {},
       });
-      persistChunkPlanToProject(projDir, plan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
-      return res.json({ success: true, plan, logs: formatNarrationChunkPlanLog(plan), source: "heuristic" });
+      persistChunkPlanToProject(projDir, plan, {
+        ...config,
+        narration_mode: NARRATION_MODE_CHUNKED,
+      });
+      return res.json({
+        success: true,
+        plan,
+        logs: formatNarrationChunkPlanLog(plan),
+        source: "heuristic",
+      });
     }
 
     const blockPhrases = Array.isArray(config.block_phrases)
       ? config.block_phrases
-      : (storyboard.technical_config?.block_phrases || []);
+      : storyboard.technical_config?.block_phrases || [];
 
     const prompt = buildNarrationChunkPlanPrompt({
       narrativeScript: storyboard.narrative_script || "",
@@ -11540,7 +13385,7 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     const parsed = await parseAiJsonResponse(
       responseText,
       extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Plano de narração por trechos",
+      "Plano de narração por trechos"
     );
     const aiChunks = parseAiNarrationChunkResponse(parsed);
     const plan = buildNarrationChunkPlan({
@@ -11549,7 +13394,10 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
       config,
       defaultVoice: defaultVoice || {},
     });
-    persistChunkPlanToProject(projDir, plan, { ...config, narration_mode: NARRATION_MODE_CHUNKED });
+    persistChunkPlanToProject(projDir, plan, {
+      ...config,
+      narration_mode: NARRATION_MODE_CHUNKED,
+    });
 
     res.json({
       success: true,
@@ -11559,96 +13407,85 @@ app.post("/api/ai/plan-narration-chunks", async (req, res) => {
     });
   } catch (err) {
     console.error("[Plan Narration Chunks]", err);
-    res.status(500).json({ error: err.message || "Falha ao planejar narração por trechos." });
+    res
+      .status(500)
+      .json({
+        error: err.message || "Falha ao planejar narração por trechos.",
+      });
   }
 });
 
 // API: List available assets inside ASSETS/ folder
 
 app.get("/api/assets/list", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const assetsDir = path.join(projDir, "ASSETS");
 
   if (!fs.existsSync(assetsDir)) {
-
     return res.json([]);
-
   }
 
   try {
-
     const scanDir = (dir) => {
-
       let results = [];
 
       const items = fs.readdirSync(dir);
 
       for (const item of items) {
-
         const fullPath = path.join(dir, item);
 
         const stats = fs.statSync(fullPath);
 
         if (stats.isDirectory()) {
-
           results = results.concat(scanDir(fullPath));
-
         } else {
-
-          const relPath = path.relative(assetsDir, fullPath).replace(/\\/g, "/");
+          const relPath = path
+            .relative(assetsDir, fullPath)
+            .replace(/\\/g, "/");
 
           // Categorize media types
 
           let type = "other";
 
-          if (relPath.endsWith(".mp4") || relPath.endsWith(".mov") || relPath.endsWith(".webm")) {
-
+          if (
+            relPath.endsWith(".mp4") ||
+            relPath.endsWith(".mov") ||
+            relPath.endsWith(".webm")
+          ) {
             type = "video";
-
-          } else if (relPath.endsWith(".png") || relPath.endsWith(".jpeg") || relPath.endsWith(".jpg")) {
-
+          } else if (
+            relPath.endsWith(".png") ||
+            relPath.endsWith(".jpeg") ||
+            relPath.endsWith(".jpg")
+          ) {
             type = "image";
-
           } else if (relPath.endsWith(".svg")) {
-
             type = "svg";
-
           }
 
           results.push({
-
             name: relPath,
 
             sizeBytes: stats.size,
 
-            type: type
-
+            type: type,
           });
-
         }
-
       }
 
       return results;
-
     };
 
     res.json(scanDir(assetsDir));
-
   } catch (err) {
-
     res.status(500).json({ error: err.message });
-
   }
-
 });
 
 // API: Binary stream upload for narration audio file
 
 app.post("/api/upload-narration", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const narrationFile = path.join(projDir, "narracao_mestra_premium.mp3");
@@ -11658,49 +13495,47 @@ app.post("/api/upload-narration", (req, res) => {
   req.pipe(writeStream);
 
   writeStream.on("finish", () => {
-
     const staleFiles = ["word_transcripts.json", "block_timings.json"];
 
     for (const fname of staleFiles) {
-
       const stalePath = path.join(projDir, fname);
 
       if (fs.existsSync(stalePath)) {
-
-        try { fs.unlinkSync(stalePath); } catch (_) {}
-
+        try {
+          fs.unlinkSync(stalePath);
+        } catch (_) {}
       }
-
     }
 
     res.json({
       success: true,
       needs_resync: true,
-      message: "Narração enviada! Rode a sincronização Whisper para atualizar timings e legendas.",
+      message:
+        "Narração enviada! Rode a sincronização Whisper para atualizar timings e legendas.",
     });
-
   });
 
   writeStream.on("error", (err) => {
-
-    res.status(500).json({ error: "Erro ao escrever arquivo de narração", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao escrever arquivo de narração",
+        details: err.message,
+      });
   });
-
 });
 
 // API: Binary stream upload for background music
 
 app.post("/api/upload-bgm", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const { block, filename } = req.query;
 
   if (!filename) {
-
-    return res.status(400).json({ error: "O parâmetro filename é obrigatório." });
-
+    return res
+      .status(400)
+      .json({ error: "O parâmetro filename é obrigatório." });
   }
 
   const safeFilename = path.basename(filename);
@@ -11712,95 +13547,86 @@ app.post("/api/upload-bgm", (req, res) => {
   req.pipe(writeStream);
 
   writeStream.on("finish", () => {
-
     try {
-
       if (block) {
-
         const configPath = path.join(projDir, "config_qanat.json");
 
         let config = {};
 
         if (fs.existsSync(configPath)) {
-
           config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
         }
 
         if (!config.bgm_mappings) {
-
           config.bgm_mappings = [];
-
         }
 
         const blockNum = parseInt(block, 10);
 
-        const existingIdx = config.bgm_mappings.findIndex(m => m.block === blockNum);
+        const existingIdx = config.bgm_mappings.findIndex(
+          (m) => m.block === blockNum
+        );
 
         if (existingIdx !== -1) {
-
           config.bgm_mappings[existingIdx].file = safeFilename;
-
         } else {
-
           config.bgm_mappings.push({ block: blockNum, file: safeFilename });
-
         }
 
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-
       }
 
       res.json({
-
         success: true,
 
         message: `Música ${safeFilename} enviada com sucesso!`,
 
-        file: safeFilename
-
+        file: safeFilename,
       });
-
     } catch (err) {
-
-      res.status(500).json({ error: "Erro ao atualizar configuração de trilhas", details: err.message });
-
+      res
+        .status(500)
+        .json({
+          error: "Erro ao atualizar configuração de trilhas",
+          details: err.message,
+        });
     }
-
   });
 
   writeStream.on("error", (err) => {
-
-    res.status(500).json({ error: "Erro ao escrever arquivo de música", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao escrever arquivo de música",
+        details: err.message,
+      });
   });
-
 });
 
 // API: Binary stream upload for specific scene asset (saved in ASSETS/cena_scene.ext and updated in config)
 
 app.post("/api/upload-scene-asset", (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const { scene, type, filename, idx } = req.query;
 
   if (!scene || !type || !filename) {
-
-    return res.status(400).json({ error: "Parâmetros scene, type e filename são obrigatórios." });
-
+    return res
+      .status(400)
+      .json({ error: "Parâmetros scene, type e filename são obrigatórios." });
   }
 
-  const ext = path.extname(filename).toLowerCase() || (type === "video" ? ".mp4" : ".png");
+  const ext =
+    path.extname(filename).toLowerCase() ||
+    (type === "video" ? ".mp4" : ".png");
   const videoExts = new Set([".mp4", ".webm", ".mov", ".m4v", ".mkv"]);
-  const resolvedType = videoExts.has(ext) || type === "video" ? "video" : "image";
+  const resolvedType =
+    videoExts.has(ext) || type === "video" ? "video" : "image";
 
   const assetsDir = path.join(projDir, "ASSETS");
 
   if (!fs.existsSync(assetsDir)) {
-
     fs.mkdirSync(assetsDir, { recursive: true });
-
   }
 
   const safeFilename = path.basename(filename).replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -11814,47 +13640,34 @@ app.post("/api/upload-scene-asset", (req, res) => {
   req.pipe(writeStream);
 
   writeStream.on("finish", () => {
-
     const configPath = path.join(projDir, "config_qanat.json");
 
     try {
-
       let config = {};
 
       if (fs.existsSync(configPath)) {
-
         config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-
       }
 
       if (!config.timeline_assets) {
-
         config.timeline_assets = {};
-
       }
 
       const assetItem = {
-
         asset: destFileName,
 
         type: resolvedType,
-
       };
 
       if (resolvedType === "video") {
-
-        assetItem.fixed = 8.00;
-
+        assetItem.fixed = 8.0;
       }
 
       if (idx !== undefined) {
-
         const blockKey = String(scene);
 
         if (!config.timeline_assets[blockKey]) {
-
           config.timeline_assets[blockKey] = [];
-
         }
 
         const assetIdx = parseInt(idx, 10);
@@ -11865,17 +13678,13 @@ app.post("/api/upload-scene-asset", (req, res) => {
           user_locked: true,
           manual_asset: true,
         };
-
       } else {
-
         // Extract block number (integer part) from scene number (e.g. "6" from "6.3")
 
         const blockKey = String(Math.floor(parseFloat(scene)));
 
         if (!config.timeline_assets[blockKey]) {
-
           config.timeline_assets[blockKey] = [];
-
         }
 
         config.timeline_assets[blockKey].push({
@@ -11883,44 +13692,42 @@ app.post("/api/upload-scene-asset", (req, res) => {
           user_locked: true,
           manual_asset: true,
         });
-
       }
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
       syncStoryboardAssetsFromTimeline(projDir);
 
       res.json({
-
         success: true,
 
         message: `Arquivo ${destFileName} salvo e vinculado ao Bloco/Cena ${scene} com sucesso!`,
 
-        asset: destFileName
-
+        asset: destFileName,
       });
-
     } catch (err) {
-
-      res.status(500).json({ error: "Erro ao salvar na configuração", details: err.message });
-
+      res
+        .status(500)
+        .json({
+          error: "Erro ao salvar na configuração",
+          details: err.message,
+        });
     }
-
   });
 
   writeStream.on("error", (err) => {
-
-    res.status(500).json({ error: "Erro ao escrever arquivo de mídia", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao escrever arquivo de mídia",
+        details: err.message,
+      });
   });
-
 });
 
 // API: Logo endpoints (Status, Upload, Reset)
 
 app.get("/api/logo/status", (req, res) => {
-
   try {
-
     const projDir = getProjectDir(req);
 
     const activeProject = req.query.project;
@@ -11938,63 +13745,63 @@ app.get("/api/logo/status", (req, res) => {
     let projectLogoPath = null;
 
     if (activeProject) {
-
       if (fs.existsSync(localLogoAssets)) {
-
         hasProjectLogo = true;
 
         projectLogoPath = `/api/projects-media/${encodeURIComponent(activeProject)}/ASSETS/logo.png`;
-
       } else if (fs.existsSync(localLogoRoot)) {
-
         hasProjectLogo = true;
 
         projectLogoPath = `/api/projects-media/${encodeURIComponent(activeProject)}/logo.png`;
-
       }
-
     }
 
-    const resolvedPath = resolveLogoFilePath(WORKSPACE_DIR, projDir, globalConfig, projectConfig);
+    const resolvedPath = resolveLogoFilePath(
+      WORKSPACE_DIR,
+      projDir,
+      globalConfig,
+      projectConfig
+    );
     const activeCatalogLogo = catalog.activeLogo;
-    const projectLogoId = projectConfig.selected_logo_id || projectConfig.selectedLogoId;
+    const projectLogoId =
+      projectConfig.selected_logo_id || projectConfig.selectedLogoId;
     const usesProjectCatalogLogo = Boolean(projectLogoId);
-    const usesLegacyProjectLogo = hasProjectLogo && !usesProjectCatalogLogo
-      && !globalConfig.selectedLogoId;
-    const currentLogoUrl = usesLegacyProjectLogo && projectLogoPath
-      ? projectLogoPath
-      : (projectLogoId
-        ? (catalog.logos.find((l) => l.id === projectLogoId)?.url || activeCatalogLogo?.url)
-        : activeCatalogLogo?.url) || `/api/projects-media/ASSETS/logo.png`;
+    const usesLegacyProjectLogo =
+      hasProjectLogo && !usesProjectCatalogLogo && !globalConfig.selectedLogoId;
+    const currentLogoUrl =
+      usesLegacyProjectLogo && projectLogoPath
+        ? projectLogoPath
+        : (projectLogoId
+            ? catalog.logos.find((l) => l.id === projectLogoId)?.url ||
+              activeCatalogLogo?.url
+            : activeCatalogLogo?.url) || `/api/projects-media/ASSETS/logo.png`;
 
     res.json({
-
       hasProjectLogo,
 
       projectLogoUrl: projectLogoPath,
 
-      globalLogoUrl: activeCatalogLogo?.url || `/api/projects-media/ASSETS/logo.png`,
+      globalLogoUrl:
+        activeCatalogLogo?.url || `/api/projects-media/ASSETS/logo.png`,
 
       currentLogoUrl,
 
       catalog,
 
       projectSelectedLogoId: projectConfig.selected_logo_id || null,
-
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao obter status do logotipo", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao obter status do logotipo",
+        details: err.message,
+      });
   }
-
 });
 
 app.post("/api/logo/upload", (req, res) => {
-
   try {
-
     const projDir = getProjectDir(req);
 
     const isGlobal = req.query.global === "true";
@@ -12002,29 +13809,21 @@ app.post("/api/logo/upload", (req, res) => {
     let targetPath;
 
     if (isGlobal) {
-
       const globalAssetsDir = path.join(WORKSPACE_DIR, "ASSETS");
 
       if (!fs.existsSync(globalAssetsDir)) {
-
         fs.mkdirSync(globalAssetsDir, { recursive: true });
-
       }
 
       targetPath = path.join(globalAssetsDir, "logo.png");
-
     } else {
-
       const assetsDir = path.join(projDir, "ASSETS");
 
       if (!fs.existsSync(assetsDir)) {
-
         fs.mkdirSync(assetsDir, { recursive: true });
-
       }
 
       targetPath = path.join(assetsDir, "logo.png");
-
     }
 
     const writeStream = fs.createWriteStream(targetPath);
@@ -12032,23 +13831,25 @@ app.post("/api/logo/upload", (req, res) => {
     req.pipe(writeStream);
 
     writeStream.on("finish", () => {
-
       res.json({ success: true, message: "Logo salvo com sucesso!" });
-
     });
 
     writeStream.on("error", (err) => {
-
-      res.status(500).json({ error: "Erro ao salvar arquivo de logo", details: err.message });
-
+      res
+        .status(500)
+        .json({
+          error: "Erro ao salvar arquivo de logo",
+          details: err.message,
+        });
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao inicializar upload do logotipo", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao inicializar upload do logotipo",
+        details: err.message,
+      });
   }
-
 });
 
 app.post("/api/brand/channels/reset-project", (req, res) => {
@@ -12071,7 +13872,11 @@ app.post("/api/brand/channels/reset-project", (req, res) => {
     }
 
     if (cleared) {
-      fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2), "utf8");
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify(projectConfig, null, 2),
+        "utf8"
+      );
     }
 
     clearYoutubeAvatarCaches(WORKSPACE_DIR, projDir);
@@ -12083,22 +13888,23 @@ app.post("/api/brand/channels/reset-project", (req, res) => {
         : "Nenhum canal personalizado do projeto encontrado.",
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao redefinir canal do projeto", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao redefinir canal do projeto",
+        details: err.message,
+      });
   }
 });
 
 app.post("/api/logo/reset", (req, res) => {
-
   try {
-
     const projDir = getProjectDir(req);
 
     const activeProject = req.query.project;
 
     if (!activeProject) {
-
       return res.status(400).json({ error: "Projeto ativo não especificado." });
-
     }
 
     const localLogoAssets = path.join(projDir, "ASSETS", "logo.png");
@@ -12108,43 +13914,41 @@ app.post("/api/logo/reset", (req, res) => {
     let deleted = false;
 
     if (fs.existsSync(localLogoAssets)) {
-
       fs.unlinkSync(localLogoAssets);
 
       deleted = true;
-
     }
 
     if (fs.existsSync(localLogoRoot)) {
-
       fs.unlinkSync(localLogoRoot);
 
       deleted = true;
-
     }
 
     const configPath = path.join(projDir, "config_qanat.json");
     const projectConfig = readProjectJson(projDir, "config_qanat.json", {});
     if (projectConfig.selected_logo_id) {
       delete projectConfig.selected_logo_id;
-      fs.writeFileSync(configPath, JSON.stringify(projectConfig, null, 2), "utf8");
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify(projectConfig, null, 2),
+        "utf8"
+      );
       deleted = true;
     }
 
     res.json({
-
       success: true,
 
-      message: deleted ? "Logo do projeto removido. Usando logo global." : "Nenhum logo de projeto personalizado encontrado."
-
+      message: deleted
+        ? "Logo do projeto removido. Usando logo global."
+        : "Nenhum logo de projeto personalizado encontrado.",
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao redefinir logotipo", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao redefinir logotipo", details: err.message });
   }
-
 });
 
 // API: Brand catalog — multiple logos and YouTube channels
@@ -12158,16 +13962,24 @@ app.get("/api/brand/catalog", (req, res) => {
       logos: listBrandLogos(WORKSPACE_DIR, __dirname),
       channels: listYoutubeChannelsFromConfig(globalConfig),
       projectSelectedLogoId: projectConfig.selected_logo_id || null,
-      projectSelectedChannelId: projectConfig.selected_youtube_channel_id || null,
+      projectSelectedChannelId:
+        projectConfig.selected_youtube_channel_id || null,
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao carregar catálogo de marca", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao carregar catálogo de marca",
+        details: err.message,
+      });
   }
 });
 
 app.post("/api/brand/logos/upload", (req, res) => {
   try {
-    const name = String(req.query.name || req.headers["x-logo-name"] || "Novo Logo").trim();
+    const name = String(
+      req.query.name || req.headers["x-logo-name"] || "Novo Logo"
+    ).trim();
     const logosDir = getLogosDir(WORKSPACE_DIR);
     fs.mkdirSync(logosDir, { recursive: true });
     const tempPath = path.join(logosDir, `_upload_${Date.now()}.png`);
@@ -12175,18 +13987,29 @@ app.post("/api/brand/logos/upload", (req, res) => {
     req.pipe(writeStream);
     writeStream.on("finish", () => {
       try {
-        const result = addBrandLogo(WORKSPACE_DIR, __dirname, { name, sourcePath: tempPath });
-        res.json({ success: true, ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+        const result = addBrandLogo(WORKSPACE_DIR, __dirname, {
+          name,
+          sourcePath: tempPath,
+        });
+        res.json({
+          success: true,
+          ...result,
+          catalog: listBrandLogos(WORKSPACE_DIR, __dirname),
+        });
       } catch (err) {
         if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
         res.status(500).json({ error: err.message });
       }
     });
     writeStream.on("error", (err) => {
-      res.status(500).json({ error: "Erro ao salvar logo", details: err.message });
+      res
+        .status(500)
+        .json({ error: "Erro ao salvar logo", details: err.message });
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro no upload de logo", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro no upload de logo", details: err.message });
   }
 });
 
@@ -12218,7 +14041,12 @@ app.post("/api/brand/logos/select", (req, res) => {
     }
 
     const result = selectBrandLogo(__dirname, id);
-    res.json({ success: true, scope: "global", ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+    res.json({
+      success: true,
+      scope: "global",
+      ...result,
+      catalog: listBrandLogos(WORKSPACE_DIR, __dirname),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -12227,7 +14055,11 @@ app.post("/api/brand/logos/select", (req, res) => {
 app.delete("/api/brand/logos/:id", (req, res) => {
   try {
     const result = deleteBrandLogo(WORKSPACE_DIR, __dirname, req.params.id);
-    res.json({ success: true, ...result, catalog: listBrandLogos(WORKSPACE_DIR, __dirname) });
+    res.json({
+      success: true,
+      ...result,
+      catalog: listBrandLogos(WORKSPACE_DIR, __dirname),
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -12236,7 +14068,12 @@ app.delete("/api/brand/logos/:id", (req, res) => {
 app.post("/api/brand/channels", (req, res) => {
   try {
     const { label, channelUrl, channelName, subscriberCount } = req.body || {};
-    const result = addYoutubeChannel(__dirname, { label, channelUrl, channelName, subscriberCount });
+    const result = addYoutubeChannel(__dirname, {
+      label,
+      channelUrl,
+      channelName,
+      subscriberCount,
+    });
     const globalConfig = loadRenderConfig(__dirname);
     res.json({
       success: true,
@@ -12250,7 +14087,11 @@ app.post("/api/brand/channels", (req, res) => {
 
 app.put("/api/brand/channels/:id", (req, res) => {
   try {
-    const entry = updateYoutubeChannel(__dirname, req.params.id, req.body || {});
+    const entry = updateYoutubeChannel(
+      __dirname,
+      req.params.id,
+      req.body || {}
+    );
     const globalConfig = loadRenderConfig(__dirname);
     res.json({
       success: true,
@@ -12265,7 +14106,8 @@ app.put("/api/brand/channels/:id", (req, res) => {
 app.post("/api/brand/channels/select", (req, res) => {
   try {
     const { id, scope = "global" } = req.body || {};
-    if (!id) return res.status(400).json({ error: "id do canal é obrigatório" });
+    if (!id)
+      return res.status(400).json({ error: "id do canal é obrigatório" });
 
     if (scope === "project") {
       const projDir = getProjectDir(req);
@@ -12274,7 +14116,11 @@ app.post("/api/brand/channels/select", (req, res) => {
       config.selected_youtube_channel_id = id;
       delete config.youtube_channel;
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      return res.json({ success: true, scope: "project", selectedYoutubeChannelId: id });
+      return res.json({
+        success: true,
+        scope: "project",
+        selectedYoutubeChannelId: id,
+      });
     }
 
     const result = selectYoutubeChannel(__dirname, id);
@@ -12306,15 +14152,12 @@ app.delete("/api/brand/channels/:id", (req, res) => {
 });
 
 app.post("/api/ai/generate-creator-script", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const { prompt, useNotebooklm } = req.body;
 
   if (!prompt) {
-
     return res.status(400).json({ error: "Prompt/Tema não fornecido" });
-
   }
 
   let notebooklmContext = "";
@@ -12326,7 +14169,10 @@ app.post("/api/ai/generate-creator-script", async (req, res) => {
         format: "LONGO",
         idea: { title: prompt, promise: prompt, emotion: "Curiosidade" },
       });
-      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA NOTEBOOKLM");
+      notebooklmContext = formatNotebooklmPromptBlock(
+        research,
+        "PESQUISA NOTEBOOKLM"
+      );
     } catch (e) {
       notebooklmContext = "";
     }
@@ -12400,7 +14246,6 @@ Você deve responder com um objeto JSON válido contendo exatamente as seguintes
 Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`json ou explicações antes ou depois. Responda apenas com o JSON estruturado.`;
 
   try {
-
     const responseText = await callGeminiLlm(req, res, projDir, {
       title: "Roteiro Creator (12 blocos)",
       prompt: promptSystem,
@@ -12410,7 +14255,7 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
     const parsedData = await parseAiJsonResponse(
       responseText,
       extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Roteiro/configuracao",
+      "Roteiro/configuracao"
     );
 
     // Save script to transcripts_readable.txt
@@ -12426,13 +14271,12 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
     let currentConfig = {};
 
     if (fs.existsSync(configPath)) {
-
-      try { currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-
+      try {
+        currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      } catch (e) {}
     }
 
     const newConfig = {
-
       gemini_api_key: currentConfig.gemini_api_key,
 
       highlight_keywords: parsedData.highlight_keywords,
@@ -12441,90 +14285,84 @@ Retorne APENAS o JSON puro. Não insira blocos de código com markdown \`\`\`jso
 
       impact_texts: parsedData.impact_texts,
 
-      block_phrases: parsedData.block_phrases
-
+      block_phrases: parsedData.block_phrases,
     };
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
 
     res.json({ success: true, script: parsedData.script, config: newConfig });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao gerar roteiro/configuração", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao gerar roteiro/configuração",
+        details: err.message,
+      });
   }
-
 });
 
 function getExistingProjectsMetadata() {
-
   const projects = [];
 
   try {
-
     const scanDir = (dir, format) => {
-
       if (!fs.existsSync(dir)) return;
 
       const items = fs.readdirSync(dir);
 
       for (const item of items) {
-
         const fullPath = path.join(dir, item);
 
         try {
-
-          if (fs.statSync(fullPath).isDirectory() && !["ASSETS", "OUTPUT", "node_modules", "temp_clips", "temp_clips_destacado", ".git"].includes(item)) {
-
-            if (fs.existsSync(path.join(fullPath, "build_video.py")) || item === "FINANCAS") {
-
+          if (
+            fs.statSync(fullPath).isDirectory() &&
+            ![
+              "ASSETS",
+              "OUTPUT",
+              "node_modules",
+              "temp_clips",
+              "temp_clips_destacado",
+              ".git",
+            ].includes(item)
+          ) {
+            if (
+              fs.existsSync(path.join(fullPath, "build_video.py")) ||
+              item === "FINANCAS"
+            ) {
               let title = item;
 
               const storyboardPath = path.join(fullPath, "storyboard.json");
 
               if (fs.existsSync(storyboardPath)) {
-
                 try {
-
-                  const sb = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+                  const sb = JSON.parse(
+                    fs.readFileSync(storyboardPath, "utf8")
+                  );
 
                   if (sb.strategy?.title_main) title = sb.strategy.title_main;
-
                 } catch (e) {}
-
               }
 
               projects.push({ name: item, title, format });
-
             }
-
           }
-
         } catch (err) {}
-
       }
-
     };
 
     scanDir(LONGS_DIR, "LONGO");
 
     scanDir(SHORTS_DIR, "SHORTS");
-
   } catch (e) {
-
     console.error("Error reading existing projects metadata:", e);
-
   }
 
   return projects;
-
 }
 
 // API: SCRIPT MASTER Step 1 - Generate Research & 10 Ideas
 
 app.post("/api/ai/creator/ideas", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   const browserText = extractBrowserResponse(req.body);
@@ -12543,9 +14381,7 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   } = req.body;
 
   if (!niche || !format) {
-
     return res.status(400).json({ error: "Nicho e Formato são obrigatórios." });
-
   }
 
   const isListicle = contentMode === "LISTICLE";
@@ -12555,7 +14391,9 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   const generationSeed = makeIdeasGenerationSeed();
 
   const previousIdeas = Array.isArray(excludeIdeas)
-    ? excludeIdeas.map((i) => String(i?.title || i || "").trim()).filter(Boolean)
+    ? excludeIdeas
+        .map((i) => String(i?.title || i || "").trim())
+        .filter(Boolean)
     : [];
   const historyTopics = loadIdeasHistory(WORKSPACE_DIR, nicheClean);
   const projectTopics = collectProjectTopics(PROJECTS_ROOT);
@@ -12566,7 +14404,10 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
   });
   const explorationAxes = buildIdeasExplorationAxes(generationSeed);
   const exclusionAddendum = buildIdeasExclusionAddendum(excludeTopics);
-  const diversityHint = explorationAxes.split("\n").filter((l) => /^\d+\./.test(l)).join(" | ");
+  const diversityHint = explorationAxes
+    .split("\n")
+    .filter((l) => /^\d+\./.test(l))
+    .join(" | ");
 
   const skipResearch = browserText || shouldOfferGeminiBrowser(projDir);
   const researchTopic = isListicle ? listicleTopic : nicheClean;
@@ -12577,22 +14418,29 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
 
   if (useDeepResearch !== false && !skipResearch) {
     try {
-      const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } = buildCompetitorLlmFns({
-        workspaceDir: WORKSPACE_DIR,
-        getAiProvider,
-        getApiKey,
-        getApiKeys,
-        getGeminiModel,
-        callGeminiWithRetry,
-        callNvidiaWithRetry,
-        NVIDIA_MODELS,
-      }, { useAi: true });
+      const { llmFn: competitorLlmFn, repairJsonFn: competitorRepairFn } =
+        buildCompetitorLlmFns(
+          {
+            workspaceDir: WORKSPACE_DIR,
+            getAiProvider,
+            getApiKey,
+            getApiKeys,
+            getGeminiModel,
+            callGeminiWithRetry,
+            callNvidiaWithRetry,
+            NVIDIA_MODELS,
+          },
+          { useAi: true }
+        );
 
-      const deepLegs = useNotebooklm !== false
-        ? ["web", "exa", "competitors", "notebooklm"]
-        : ["web", "exa", "competitors"];
+      const deepLegs =
+        useNotebooklm !== false
+          ? ["web", "exa", "competitors", "notebooklm"]
+          : ["web", "exa", "competitors"];
 
-      console.log(`[IDEAS] DeerFlow — nicho="${nicheClean}" legs=${deepLegs.join(",")}`);
+      console.log(
+        `[IDEAS] DeerFlow — nicho="${nicheClean}" legs=${deepLegs.join(",")}`
+      );
       const deep = await runDeepResearch(WORKSPACE_DIR, {
         topic: researchTopic,
         niche: nicheClean,
@@ -12610,7 +14458,11 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
       });
 
       if (deep.ok) {
-        deepResearchContext = formatDeepResearchForIdeasPrompt(deep.report, deep.plan, deep.artifacts);
+        deepResearchContext = formatDeepResearchForIdeasPrompt(
+          deep.report,
+          deep.plan,
+          deep.artifacts
+        );
         deepResearchMeta = {
           factCount: deep.report?.factCount || 0,
           derivedIdeas: deep.report?.derivedIdeas?.length || 0,
@@ -12625,7 +14477,10 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
         };
       }
     } catch (err) {
-      console.warn("[IDEAS] DeerFlow falhou — fallback pesquisa rápida:", err.message);
+      console.warn(
+        "[IDEAS] DeerFlow falhou — fallback pesquisa rápida:",
+        err.message
+      );
     }
   }
 
@@ -12642,7 +14497,10 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
           listTopic: listicleTopic,
           rankOrder: rankOrder || "desc",
         });
-        notebooklmContext = formatNotebooklmPromptBlock(research, "CONTEXTO DE PESQUISA");
+        notebooklmContext = formatNotebooklmPromptBlock(
+          research,
+          "CONTEXTO DE PESQUISA"
+        );
       } catch {
         notebooklmContext = "";
       }
@@ -12659,7 +14517,10 @@ app.post("/api/ai/creator/ideas", async (req, res) => {
         diversityHint,
         excludeTopics,
       });
-      webResearchContext = formatWebResearchPromptBlock(webResearch, "PESQUISA WEB");
+      webResearchContext = formatWebResearchPromptBlock(
+        webResearch,
+        "PESQUISA WEB"
+      );
     } catch {
       webResearchContext = "";
     }
@@ -12768,7 +14629,6 @@ Responda APENAS com um objeto JSON válido, sem explicações extras, sem blocos
   });
 
   try {
-
     const fullPrompt = `${promptSystem}
 
 [ID da Geração: ${generationSeed}]
@@ -12789,7 +14649,7 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
     const parsedData = await parseAiJsonResponse(
       responseText,
       getApiKey(projDir),
-      "Ideias e diagnostico",
+      "Ideias e diagnostico"
     );
 
     if (Array.isArray(parsedData?.ideas) && parsedData.ideas.length) {
@@ -12807,28 +14667,30 @@ ${isListicle ? `MODO: LISTICLE / TOP ${listicleRank}\nTEMA DA LISTA: ${listicleT
         usedNotebooklm: Boolean(notebooklmContext),
       },
     });
-
   } catch (err) {
-
     console.error("[IDEAS ENDPOINT ERROR]", err.message);
 
-    res.status(500).json({ error: "Erro ao gerar ideias/diagnóstico", details: err.message });
-
+    res
+      .status(500)
+      .json({
+        error: "Erro ao gerar ideias/diagnóstico",
+        details: err.message,
+      });
   }
-
 });
 
 // API: LISTICLE — Sugerir rankings interessantes para um nicho
 
 app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
-
   const projDir = getProjectDir(req);
   const browserText = extractBrowserResponse(req.body);
 
   const { niche, format = "LONGO", useNotebooklm } = req.body;
 
   if (!niche || !String(niche).trim()) {
-    return res.status(400).json({ error: "Informe o nicho para sugerir rankings." });
+    return res
+      .status(400)
+      .json({ error: "Informe o nicho para sugerir rankings." });
   }
 
   const nicheClean = String(niche).trim();
@@ -12841,7 +14703,10 @@ app.post("/api/ai/creator/listicle-ideas", async (req, res) => {
         backendDir: __dirname,
         contentMode: "LISTICLE",
       });
-      notebooklmContext = formatNotebooklmPromptBlock(research, "PESQUISA DE MERCADO");
+      notebooklmContext = formatNotebooklmPromptBlock(
+        research,
+        "PESQUISA DE MERCADO"
+      );
     } catch (e) {
       notebooklmContext = "";
     }
@@ -12865,46 +14730,59 @@ ${notebooklmContext}
     const raw = await parseAiJsonResponse(
       responseText,
       extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Ranking ideas",
+      "Ranking ideas"
     );
     const parsed = normalizeListicleIdeasResponse(raw, { format });
 
     if (!parsed.ranking_ideas?.length) {
-      console.warn("[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:", Object.keys(raw || {}));
+      console.warn(
+        "[LISTICLE IDEAS] Resposta sem ranking_ideas. Chaves recebidas:",
+        Object.keys(raw || {})
+      );
       return res.status(502).json({
-        error: "A IA não retornou rankings válidos. Tente novamente ou mude o nicho.",
+        error:
+          "A IA não retornou rankings válidos. Tente novamente ou mude o nicho.",
         details: `Chaves na resposta: ${Object.keys(raw || {}).join(", ") || "nenhuma"}`,
         raw_preview: JSON.stringify(raw).slice(0, 500),
       });
     }
 
-    console.log(`[LISTICLE IDEAS] ${parsed.ranking_ideas.length} rankings para nicho "${nicheClean}"`);
+    console.log(
+      `[LISTICLE IDEAS] ${parsed.ranking_ideas.length} rankings para nicho "${nicheClean}"`
+    );
     res.json(parsed);
   } catch (err) {
     console.error("[LISTICLE IDEAS ERROR]", err.message);
-    res.status(500).json({ error: "Erro ao sugerir rankings", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao sugerir rankings", details: err.message });
   }
 });
 
 function normalizeKeys(data) {
-
   if (!data || typeof data !== "object") return data;
 
   const normalized = {};
 
   // Strategy
 
-  const strategyKey = Object.keys(data).find(k => k.toLowerCase() === "strategy" || k.toLowerCase() === "estrategia");
+  const strategyKey = Object.keys(data).find(
+    (k) => k.toLowerCase() === "strategy" || k.toLowerCase() === "estrategia"
+  );
 
   if (strategyKey && typeof data[strategyKey] === "object") {
-
     const s = data[strategyKey];
 
     normalized.strategy = {
+      title_main:
+        s.title_main || s.titulo_principal || s.tituloMain || s.title || "",
 
-      title_main: s.title_main || s.titulo_principal || s.tituloMain || s.title || "",
-
-      title_variations: s.title_variations || s.variacoes_titulo || s.variacoes || s.variations || [],
+      title_variations:
+        s.title_variations ||
+        s.variacoes_titulo ||
+        s.variacoes ||
+        s.variations ||
+        [],
 
       hook: s.hook || s.gancho || "",
 
@@ -12914,105 +14792,168 @@ function normalizeKeys(data) {
 
       pinned_comment: s.pinned_comment || s.comentario_fixado || "",
 
-      cta: s.cta || ""
-
+      cta: s.cta || "",
     };
-
   } else {
-
-    normalized.strategy = { title_main: "", title_variations: [], hook: "", target_audience: "", tone: "", pinned_comment: "", cta: "" };
-
+    normalized.strategy = {
+      title_main: "",
+      title_variations: [],
+      hook: "",
+      target_audience: "",
+      tone: "",
+      pinned_comment: "",
+      cta: "",
+    };
   }
 
   // Narrative script
 
-  const scriptKey = Object.keys(data).find(k => k.toLowerCase() === "narrative_script" || k.toLowerCase() === "roteiro_narrativo" || k.toLowerCase() === "roteiro");
+  const scriptKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "narrative_script" ||
+      k.toLowerCase() === "roteiro_narrativo" ||
+      k.toLowerCase() === "roteiro"
+  );
 
-  normalized.narrative_script = data[scriptKey] || data.script || data.narrativeScript || "";
+  normalized.narrative_script =
+    data[scriptKey] || data.script || data.narrativeScript || "";
 
   // Visual prompts
 
-  const promptsKey = Object.keys(data).find(k => k.toLowerCase() === "visual_prompts" || k.toLowerCase() === "prompts_visuais" || k.toLowerCase() === "prompts");
+  const promptsKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "visual_prompts" ||
+      k.toLowerCase() === "prompts_visuais" ||
+      k.toLowerCase() === "prompts"
+  );
 
   const rawPrompts = data[promptsKey] || [];
 
-  normalized.visual_prompts = (Array.isArray(rawPrompts) ? rawPrompts : []).map((vp, index) => ({
+  normalized.visual_prompts = (Array.isArray(rawPrompts) ? rawPrompts : []).map(
+    (vp, index) => ({
+      scene: vp.scene || vp.cena || index + 1,
 
-    scene: vp.scene || vp.cena || (index + 1),
+      block:
+        parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ||
+        Math.floor(index / 2) + 1,
 
-    block: parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) || Math.floor(index / 2) + 1,
+      narration_text:
+        vp.narration_text ||
+        vp.narration_excerpt ||
+        vp.trecho_narracao ||
+        vp.narracao ||
+        vp.texto_narracao ||
+        vp.narration ||
+        vp.script_segment ||
+        "",
 
-    narration_text: vp.narration_text || vp.narration_excerpt || vp.trecho_narracao || vp.narracao || vp.texto_narracao || vp.narration || vp.script_segment || "",
+      function: vp.function || vp.funcao || "",
 
-    function: vp.function || vp.funcao || "",
+      duration: vp.duration_from_whisper
+        ? vp.duration ||
+          (vp.duration_seconds != null
+            ? `${vp.duration_seconds} segundos`
+            : undefined)
+        : undefined,
 
-    duration: vp.duration_from_whisper
-      ? (vp.duration || (vp.duration_seconds != null ? `${vp.duration_seconds} segundos` : undefined))
-      : undefined,
+      duration_seconds: vp.duration_from_whisper
+        ? vp.duration_seconds
+        : undefined,
 
-    duration_seconds: vp.duration_from_whisper ? vp.duration_seconds : undefined,
+      duration_from_whisper: vp.duration_from_whisper === true,
 
-    duration_from_whisper: vp.duration_from_whisper === true,
+      type: vp.type || vp.tipo || "imagem IA 2k",
 
-    type: vp.type || vp.tipo || "imagem IA 2k",
+      aspect_ratio:
+        vp.aspect_ratio ||
+        vp.aspectRatio ||
+        vp.formato ||
+        vp.proporcao ||
+        "16:9",
 
-    aspect_ratio: vp.aspect_ratio || vp.aspectRatio || vp.formato || vp.proporcao || "16:9",
+      prompt:
+        vp.prompt ||
+        vp.visual_prompt ||
+        vp.image_prompt ||
+        vp.prompt_visual ||
+        "",
 
-    prompt: vp.prompt || vp.visual_prompt || vp.image_prompt || vp.prompt_visual || "",
+      text_overlay:
+        vp.text_overlay ||
+        vp.textOverlay ||
+        vp.texto_tela ||
+        vp.textoTela ||
+        vp.texto ||
+        "",
 
-    text_overlay: vp.text_overlay || vp.textOverlay || vp.texto_tela || vp.textoTela || vp.texto || "",
+      editor_notes:
+        vp.editor_notes ||
+        vp.editorNotes ||
+        vp.observacao_edicao ||
+        vp.observacao ||
+        "",
 
-    editor_notes: vp.editor_notes || vp.editorNotes || vp.observacao_edicao || vp.observacao || "",
-
-    stock_query: vp.stock_query || vp.stockQuery || vp.busca_termo || ""
-
-  }));
+      stock_query: vp.stock_query || vp.stockQuery || vp.busca_termo || "",
+    })
+  );
 
   // Editing map
 
-  const mapKey = Object.keys(data).find(k => k.toLowerCase() === "editing_map" || k.toLowerCase() === "mapa_edicao" || k.toLowerCase() === "mapa");
+  const mapKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "editing_map" ||
+      k.toLowerCase() === "mapa_edicao" ||
+      k.toLowerCase() === "mapa"
+  );
 
   normalized.editing_map = data[mapKey] || "";
 
   // Hyperframe prompt
 
-  const hfKey = Object.keys(data).find(k => k.toLowerCase() === "hyperframe_prompt" || k.toLowerCase() === "prompt_hyperframe" || k.toLowerCase() === "prompt_final");
+  const hfKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "hyperframe_prompt" ||
+      k.toLowerCase() === "prompt_hyperframe" ||
+      k.toLowerCase() === "prompt_final"
+  );
 
   normalized.hyperframe_prompt = data[hfKey] || "";
 
   // BGM recommendations
 
-  const bgmRecKey = Object.keys(data).find(k => k.toLowerCase() === "bgm_recommendations" || k.toLowerCase() === "bgm_recommendations_list" || k.toLowerCase() === "recomendacoes_trilha" || k.toLowerCase() === "recomendacoes_bgm");
+  const bgmRecKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "bgm_recommendations" ||
+      k.toLowerCase() === "bgm_recommendations_list" ||
+      k.toLowerCase() === "recomendacoes_trilha" ||
+      k.toLowerCase() === "recomendacoes_bgm"
+  );
 
   if (bgmRecKey && Array.isArray(data[bgmRecKey])) {
-
     normalized.bgm_recommendations = data[bgmRecKey].map((r, index) => {
-
-      const blockNum = Number(r.block || r.bloco || 0) || (index + 1);
+      const blockNum = Number(r.block || r.bloco || 0) || index + 1;
 
       return {
-
         block: blockNum,
 
         scope: r.scope || r.escopo || "block",
 
-        recommendation: r.recommendation || r.recomendacao || r.indicacao || r.sugestao || "",
+        recommendation:
+          r.recommendation || r.recomendacao || r.indicacao || r.sugestao || "",
 
         search_theme: r.search_theme || r.searchTheme || r.tema_busca || "",
-
       };
-
     });
-
   } else {
-
     normalized.bgm_recommendations = [];
-
   }
 
   // Checklist
 
-  const checkKey = Object.keys(data).find(k => k.toLowerCase() === "checklist" || k.toLowerCase() === "lista_qualidade");
+  const checkKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "checklist" || k.toLowerCase() === "lista_qualidade"
+  );
 
   if (checkKey && typeof data[checkKey] === "object") {
     normalized.checklist = normalizeScriptChecklist(data[checkKey]);
@@ -13022,42 +14963,56 @@ function normalizeKeys(data) {
 
   // Technical config
 
-  const techKey = Object.keys(data).find(k => k.toLowerCase() === "technical_config" || k.toLowerCase() === "config_tecnica" || k.toLowerCase() === "configuracao_tecnica");
+  const techKey = Object.keys(data).find(
+    (k) =>
+      k.toLowerCase() === "technical_config" ||
+      k.toLowerCase() === "config_tecnica" ||
+      k.toLowerCase() === "configuracao_tecnica"
+  );
 
   if (techKey && typeof data[techKey] === "object") {
-
     const t = data[techKey];
 
     normalized.technical_config = {
-
       script: t.script || t.roteiro || "",
 
       block_phrases: t.block_phrases || t.frases_bloco || t.blockPhrases || [],
 
       impact_texts: t.impact_texts || t.textos_impacto || t.impactTexts || [],
 
-      highlight_keywords: t.highlight_keywords || t.palavras_chave || t.highlightKeywords || [],
+      highlight_keywords:
+        t.highlight_keywords || t.palavras_chave || t.highlightKeywords || [],
 
-      bgm_mappings: t.bgm_mappings || t.mapeamento_trilhas || t.bgmMappings || []
-
+      bgm_mappings:
+        t.bgm_mappings || t.mapeamento_trilhas || t.bgmMappings || [],
     };
-
   } else {
-
-    normalized.technical_config = { script: "", block_phrases: [], impact_texts: [], highlight_keywords: [], bgm_mappings: [] };
-
+    normalized.technical_config = {
+      script: "",
+      block_phrases: [],
+      impact_texts: [],
+      highlight_keywords: [],
+      bgm_mappings: [],
+    };
   }
 
   return normalized;
-
 }
 
 // API: SCRIPT MASTER Step 2 - Generate Strategy, Complete Script, and technical mappings
 
 app.post("/api/ai/creator/script", async (req, res) => {
-
   const {
-    niche, format, idea, project, contentMode, rankCount, rankOrder, listTopic, listicleHudStyle, useNotebooklm,
+    niche,
+    format,
+    idea,
+    project,
+    contentMode,
+    rankCount,
+    rankOrder,
+    listTopic,
+    listicleHudStyle,
+    useNotebooklm,
     phase = "full",
     approvedNarration: approvedNarrationRaw,
     approvedNarrationTagged: approvedNarrationTaggedRaw,
@@ -13066,16 +15021,23 @@ app.post("/api/ai/creator/script", async (req, res) => {
   } = req.body;
   const scriptPhase = phase === "narration" ? "narration" : "full";
   const approvedNarration = String(approvedNarrationRaw || "").trim();
-  const approvedNarrationTagged = String(approvedNarrationTaggedRaw || "").trim();
+  const approvedNarrationTagged = String(
+    approvedNarrationTaggedRaw || ""
+  ).trim();
   const progressJobId = normalizeJobId(req.body?.progress_job_id);
   const report = createProgressReporter(progressJobId);
-  const phaseTitle = scriptPhase === "narration" ? "Narração" : "Roteiro completo";
+  const phaseTitle =
+    scriptPhase === "narration" ? "Narração" : "Roteiro completo";
   report("prepare", `${phaseTitle}: validando projeto…`, 4);
 
   if (!niche || !format || !idea || !project) {
     failJobProgress(progressJobId, "Dados obrigatórios ausentes.");
-    return res.status(400).json({ error: "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios." });
-
+    return res
+      .status(400)
+      .json({
+        error:
+          "Nicho, formato, ideia selecionada e nome do projeto são obrigatórios.",
+      });
   }
 
   const isListicle = contentMode === "LISTICLE";
@@ -13083,22 +15045,33 @@ app.post("/api/ai/creator/script", async (req, res) => {
   const listicleTopic = String(listTopic || idea.title || niche).trim();
   const listicleBlockCount = isListicle
     ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-    : (format === "SHORTS" ? 5 : 12);
+    : format === "SHORTS"
+      ? 5
+      : 12;
 
   const safeProjectName = project.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
 
-  const isShort = (format === "SHORTS");
+  const isShort = format === "SHORTS";
 
   const targetParentDir = isShort ? SHORTS_DIR : LONGS_DIR;
 
   const projDir = path.join(targetParentDir, safeProjectName);
 
   const settingsDir = getProjectDir(req);
-  const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json")) ? projDir : settingsDir;
+  const llmDir = fs.existsSync(path.join(projDir, "config_qanat.json"))
+    ? projDir
+    : settingsDir;
 
-  if (!extractBrowserResponse(req.body) && !shouldOfferGeminiBrowser(settingsDir) && !getApiKey(projDir) && !getApiKey(settingsDir)) {
+  if (
+    !extractBrowserResponse(req.body) &&
+    !shouldOfferGeminiBrowser(settingsDir) &&
+    !getApiKey(projDir) &&
+    !getApiKey(settingsDir)
+  ) {
     failJobProgress(progressJobId, "Chave de API não configurada.");
-    return res.status(401).json({ error: "Chave de API do Google AI Studio não configurada." });
+    return res
+      .status(401)
+      .json({ error: "Chave de API do Google AI Studio não configurada." });
   }
 
   let activeRes = res;
@@ -13112,9 +15085,7 @@ app.post("/api/ai/creator/script", async (req, res) => {
   // Automatically create and template project directory on-the-fly if it doesn't exist
 
   if (!fs.existsSync(projDir)) {
-
     try {
-
       fs.mkdirSync(projDir, { recursive: true });
 
       fs.mkdirSync(path.join(projDir, "ASSETS"), { recursive: true });
@@ -13140,11 +15111,9 @@ app.post("/api/ai/creator/script", async (req, res) => {
       const destLogoPath = path.join(projDir, "ASSETS", "logo.png");
 
       if (fs.existsSync(rootLogoPath)) {
-
         fs.copyFileSync(rootLogoPath, destLogoPath);
 
         console.log(`Copied logo.png to new project ${safeProjectName}`);
-
       }
 
       const defaultConfigSrc = path.join(WORKSPACE_DIR, "config_qanat.json");
@@ -13152,46 +15121,65 @@ app.post("/api/ai/creator/script", async (req, res) => {
       const defaultConfigDest = path.join(projDir, "config_qanat.json");
 
       if (fs.existsSync(defaultConfigSrc)) {
-
         fs.copyFileSync(defaultConfigSrc, defaultConfigDest);
 
         try {
-
           const cfg = JSON.parse(fs.readFileSync(defaultConfigDest, "utf8"));
           const boot = bootstrapNewProjectConfig(cfg, {
             isShort: format === "SHORTS" || format === "SHORT",
             niche: niche || "Geral",
-            defaultDuration: isListicle ? listicleBlockCount * 50 : (format === "SHORTS" ? 40 : 120),
+            defaultDuration: isListicle
+              ? listicleBlockCount * 50
+              : format === "SHORTS"
+                ? 40
+                : 120,
           });
-          fs.writeFileSync(defaultConfigDest, JSON.stringify(boot, null, 2), "utf8");
-
+          fs.writeFileSync(
+            defaultConfigDest,
+            JSON.stringify(boot, null, 2),
+            "utf8"
+          );
         } catch (e) {}
-
       }
 
       const blockEstimate = isListicle ? 50 : 10;
-      const timingStarts = Array.from({ length: listicleBlockCount }, (_, i) => i * blockEstimate);
-      const timingDurations = Array.from({ length: listicleBlockCount }, () => blockEstimate);
-      fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify({
+      const timingStarts = Array.from(
+        { length: listicleBlockCount },
+        (_, i) => i * blockEstimate
+      );
+      const timingDurations = Array.from(
+        { length: listicleBlockCount },
+        () => blockEstimate
+      );
+      fs.writeFileSync(
+        path.join(projDir, "block_timings.json"),
+        JSON.stringify(
+          {
+            starts: timingStarts,
 
-        starts: timingStarts,
+            durations: timingDurations,
 
-        durations: timingDurations,
-
-        total_duration: timingStarts[timingStarts.length - 1] + blockEstimate
-
-      }, null, 4), "utf8");
-
+            total_duration:
+              timingStarts[timingStarts.length - 1] + blockEstimate,
+          },
+          null,
+          4
+        ),
+        "utf8"
+      );
     } catch (err) {
-
-      return activeRes.status(500).json({ error: "Erro ao criar pasta do novo projeto", details: err.message });
-
+      return activeRes
+        .status(500)
+        .json({
+          error: "Erro ao criar pasta do novo projeto",
+          details: err.message,
+        });
     }
-
   }
 
   const browserTextEarly = extractBrowserResponse(req.body);
-  const skipNotebooklmScript = browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
+  const skipNotebooklmScript =
+    browserTextEarly || shouldOfferGeminiBrowser(settingsDir);
 
   let notebooklmContext = "";
   let notebooklmResearch = null;
@@ -13209,11 +15197,17 @@ app.post("/api/ai/creator/script", async (req, res) => {
         listTopic: listicleTopic,
         rankOrder: rankOrder || "desc",
       });
-      notebooklmContext = formatNotebooklmPromptBlock(notebooklmResearch, "PESQUISA NOTEBOOKLM PARA ROTEIRO");
+      notebooklmContext = formatNotebooklmPromptBlock(
+        notebooklmResearch,
+        "PESQUISA NOTEBOOKLM PARA ROTEIRO"
+      );
       if (notebooklmResearch.available) {
         console.log("[NotebookLM] Contexto de roteiro obtido com sucesso.");
       } else {
-        console.warn("[NotebookLM] Usando fallback de pesquisa:", notebooklmResearch.message || "sem login");
+        console.warn(
+          "[NotebookLM] Usando fallback de pesquisa:",
+          notebooklmResearch.message || "sem login"
+        );
       }
     } catch (err) {
       console.warn("[NotebookLM] Falha ao enriquecer roteiro:", err.message);
@@ -13222,24 +15216,31 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
   let webResearchContext = "";
   let webResearchMeta = null;
-  const researchTopic = isListicle ? listicleTopic : (idea.title || niche);
-  const prefetchedReach = agentReachResearchRaw && typeof agentReachResearchRaw === "object"
-    ? agentReachResearchRaw
-    : null;
+  const researchTopic = isListicle ? listicleTopic : idea.title || niche;
+  const prefetchedReach =
+    agentReachResearchRaw && typeof agentReachResearchRaw === "object"
+      ? agentReachResearchRaw
+      : null;
   if (prefetchedReach?.summary || prefetchedReach?.facts?.length) {
     webResearchMeta = {
       available: true,
       summary: String(prefetchedReach.summary || "").slice(0, 12000),
-      facts: Array.isArray(prefetchedReach.facts) ? prefetchedReach.facts.map(String).filter(Boolean) : [],
-      sources: Array.isArray(prefetchedReach.sources) ? prefetchedReach.sources : [],
+      facts: Array.isArray(prefetchedReach.facts)
+        ? prefetchedReach.facts.map(String).filter(Boolean)
+        : [],
+      sources: Array.isArray(prefetchedReach.sources)
+        ? prefetchedReach.sources
+        : [],
       via: prefetchedReach.via || "agent-reach-panel",
       fallback: false,
     };
     webResearchContext = formatWebResearchPromptBlock(
       webResearchMeta,
-      "PESQUISA WEB (AGENT REACH — SUA BUSCA)",
+      "PESQUISA WEB (AGENT REACH — SUA BUSCA)"
     );
-    console.log(`[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`);
+    console.log(
+      `[WebResearch] Usando pesquisa Agent Reach do painel: ${webResearchMeta.sources?.length || 0} fontes.`
+    );
   } else if (!webResearchContext) {
     report("web_research", "Pesquisando fatos na web…", 26);
     try {
@@ -13252,9 +15253,14 @@ app.post("/api/ai/creator/script", async (req, res) => {
         getApiKeys: () => getApiKeys(llmDir),
         workspaceDir: WORKSPACE_DIR,
       });
-      webResearchContext = formatWebResearchPromptBlock(webResearchMeta, "PESQUISA WEB (FONTES REAIS)");
+      webResearchContext = formatWebResearchPromptBlock(
+        webResearchMeta,
+        "PESQUISA WEB (FONTES REAIS)"
+      );
       if (webResearchMeta.available) {
-        console.log(`[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`);
+        console.log(
+          `[WebResearch] ${webResearchMeta.facts?.length || 0} fatos, ${webResearchMeta.sources?.length || 0} fontes.`
+        );
       }
     } catch (err) {
       console.warn("[WebResearch] Falha:", err.message);
@@ -13274,7 +15280,9 @@ app.post("/api/ai/creator/script", async (req, res) => {
     }
   }
   const existingStrategy =
-    existingStrategyRaw && typeof existingStrategyRaw === "object" && Object.keys(existingStrategyRaw).length
+    existingStrategyRaw &&
+    typeof existingStrategyRaw === "object" &&
+    Object.keys(existingStrategyRaw).length
       ? existingStrategyRaw
       : phase1Strategy;
 
@@ -13290,11 +15298,17 @@ app.post("/api/ai/creator/script", async (req, res) => {
     notebooklmContext,
     webResearchContext,
     cinematicNarrationRules: buildCinematicNarrationRules(),
-    titleCraftRules: buildTitleCraftRules(format === "SHORTS" ? "SHORT" : "LONG"),
+    titleCraftRules: buildTitleCraftRules(
+      format === "SHORTS" ? "SHORT" : "LONG"
+    ),
     epidemicMoodPrompt: buildEpidemicMoodPrompt(
       niche,
-      { niche, content_mode: isListicle ? "LISTICLE" : undefined, list_topic: listicleTopic },
-      { listicle: { topic: listicleTopic } },
+      {
+        niche,
+        content_mode: isListicle ? "LISTICLE" : undefined,
+        list_topic: listicleTopic,
+      },
+      { listicle: { topic: listicleTopic } }
     ),
     approvedNarration,
     approvedNarrationTagged,
@@ -13326,10 +15340,13 @@ app.post("/api/ai/creator/script", async (req, res) => {
       scriptPhase === "narration"
         ? "Gerando narração com IA…"
         : "Gerando roteiro técnico com IA…",
-      shouldOfferGeminiBrowser(settingsDir) ? 48 : 52,
+      shouldOfferGeminiBrowser(settingsDir) ? 48 : 52
     );
     responseText = await callGeminiLlm(req, activeRes, llmDir, {
-      title: scriptPhase === "narration" ? "Gerar narração Creator" : "Gerar roteiro Creator",
+      title:
+        scriptPhase === "narration"
+          ? "Gerar narração Creator"
+          : "Gerar roteiro Creator",
       prompt: promptSystem,
       temperature: isListicle ? 0.75 : 0.85,
     });
@@ -13345,12 +15362,18 @@ app.post("/api/ai/creator/script", async (req, res) => {
       rawData = await parseAiJsonResponse(
         responseText,
         isBrowserResponse ? null : apiKey,
-        "Roteiro e estrategia",
+        "Roteiro e estrategia"
       );
     } catch (parseErr) {
-      if ((scriptPhase === "narration" && isBrowserResponse) || (scriptPhase === "full" && approvedNarration)) {
+      if (
+        (scriptPhase === "narration" && isBrowserResponse) ||
+        (scriptPhase === "full" && approvedNarration)
+      ) {
         rawData = salvageScriptJson(responseText) || {};
-        console.warn("[Creator Script] JSON inválido — salvage/fallback:", parseErr.message);
+        console.warn(
+          "[Creator Script] JSON inválido — salvage/fallback:",
+          parseErr.message
+        );
         if (!Object.keys(rawData).length) {
           throw parseErr;
         }
@@ -13363,26 +15386,39 @@ app.post("/api/ai/creator/script", async (req, res) => {
     if (scriptPhase === "narration" && isBrowserResponse) {
       parsedData = applyScriptTextQuality(
         normalizeKeys(enrichBrowserNarrationParsed(parsedData, responseText)),
-        format,
+        format
       );
     }
     if (scriptPhase === "full" && isBrowserResponse) {
       parsedData = applyScriptTextQuality(
-        normalizeKeys(enrichBrowserVisualPromptsParsed(parsedData, responseText)),
-        format,
+        normalizeKeys(
+          enrichBrowserVisualPromptsParsed(parsedData, responseText)
+        ),
+        format
       );
     }
 
     const vpRepairOpts = { blockCount: listicleBlockCount, format };
-    const preserveBrowserVisualPrompts = scriptPhase === "full"
-      && isBrowserResponse
-      && browserVisualPromptsUsable(parsedData.visual_prompts, vpRepairOpts);
+    const preserveBrowserVisualPrompts =
+      scriptPhase === "full" &&
+      isBrowserResponse &&
+      browserVisualPromptsUsable(parsedData.visual_prompts, vpRepairOpts);
     if (preserveBrowserVisualPrompts) {
-      console.log("[Creator Script] Modo navegador fase 2 — preservando visual_prompts do Gemini Browser.");
+      console.log(
+        "[Creator Script] Modo navegador fase 2 — preservando visual_prompts do Gemini Browser."
+      );
     }
 
-    if (scriptPhase === "full" && approvedNarration && existingStrategy && Object.keys(existingStrategy).length) {
-      parsedData.strategy = { ...existingStrategy, ...(parsedData.strategy || {}) };
+    if (
+      scriptPhase === "full" &&
+      approvedNarration &&
+      existingStrategy &&
+      Object.keys(existingStrategy).length
+    ) {
+      parsedData.strategy = {
+        ...existingStrategy,
+        ...(parsedData.strategy || {}),
+      };
     }
 
     if (isListicle && !parsedData.listicle) {
@@ -13393,32 +15429,45 @@ app.post("/api/ai/creator/script", async (req, res) => {
         topic: listicleTopic,
         hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
           ? listicleHudStyle
-          : (listicleRank > 8 ? "compact" : "full"),
+          : listicleRank > 8
+            ? "compact"
+            : "full",
       };
     } else if (isListicle && parsedData.listicle) {
-      parsedData.listicle.hud_style = ["compact", "full", "auto"].includes(listicleHudStyle)
+      parsedData.listicle.hud_style = ["compact", "full", "auto"].includes(
+        listicleHudStyle
+      )
         ? listicleHudStyle
-        : (parsedData.listicle.hud_style || (listicleRank > 8 ? "compact" : "full"));
+        : parsedData.listicle.hud_style ||
+          (listicleRank > 8 ? "compact" : "full");
     }
 
     if (scriptPhase === "narration") {
       const extracted = extractNarrativeScriptFromRaw(responseText);
-      if (extracted.length > String(parsedData.narrative_script || "").trim().length) {
+      if (
+        extracted.length >
+        String(parsedData.narrative_script || "").trim().length
+      ) {
         parsedData.narrative_script = extracted;
       }
-      const narrationLen = String(parsedData.narrative_script || "").trim().length;
+      const narrationLen = String(parsedData.narrative_script || "").trim()
+        .length;
       if (isBrowserResponse && narrationLen < 40 && responseText.length < 400) {
         failJobProgress(progressJobId, "Resposta do Gemini incompleta.");
         return activeRes.status(422).json({
-          error: "Resposta do Gemini incompleta — o chat não terminou de responder.",
+          error:
+            "Resposta do Gemini incompleta — o chat não terminou de responder.",
           details: `Narração capturada com apenas ${narrationLen} caracteres (${responseText.length} chars brutos). Use Capturar do Gemini no Lumiera.`,
           hint: "Recarregue a extensão Lumiera Gemini Bridge (v2.0.0+) com gemini.google.com aberto.",
         });
       }
 
-      const skipPostProcess = isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
+      const skipPostProcess =
+        isBrowserResponse || shouldOfferGeminiBrowser(settingsDir);
       if (skipPostProcess) {
-        console.log("[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração.");
+        console.log(
+          "[Creator Script] Modo navegador — pulando humanização/enriquecimento extra na fase narração."
+        );
       }
       try {
         if (skipPostProcess) throw new Error("skip_humanize");
@@ -13438,12 +15487,19 @@ app.post("/api/ai/creator/script", async (req, res) => {
           maxRetries: 2,
           models: ["gemini-2.0-flash", "gemini-1.5-flash"],
         });
-        const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao narracao"));
+        const repaired = normalizeKeys(
+          await parseAiJsonResponse(repairText, apiKey, "Humanizacao narracao")
+        );
         parsedData = mergeHumanizedNarration(parsedData, repaired, format);
-        console.log("[Creator Script] Humanização da narração (fase 1) aplicada.");
+        console.log(
+          "[Creator Script] Humanização da narração (fase 1) aplicada."
+        );
       } catch (repairErr) {
         if (repairErr.message !== "skip_humanize") {
-          console.warn("[Creator Script] Humanização da narração falhou, usando rascunho:", repairErr.message);
+          console.warn(
+            "[Creator Script] Humanização da narração falhou, usando rascunho:",
+            repairErr.message
+          );
         }
       }
 
@@ -13452,21 +15508,30 @@ app.post("/api/ai/creator/script", async (req, res) => {
       let notebooklmEnriched = false;
       let notebooklmEnrichSummary = "";
       if (
-        !skipPostProcess
-        && useNotebooklm !== false
-        && notebooklmResearch?.available
-        && String(parsedData.narrative_script || "").trim().length >= 40
+        !skipPostProcess &&
+        useNotebooklm !== false &&
+        notebooklmResearch?.available &&
+        String(parsedData.narrative_script || "").trim().length >= 40
       ) {
         try {
-          report("notebooklm_enrich", "Enriquecendo narração com NotebookLM…", 82);
-          console.log("[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)...");
+          report(
+            "notebooklm_enrich",
+            "Enriquecendo narração com NotebookLM…",
+            82
+          );
+          console.log(
+            "[NotebookLM] Enriquecendo narração do wizard (pós-rascunho)..."
+          );
           const improveResearch = await fetchNotebooklmScriptImprovements({
             backendDir: __dirname,
             niche,
             format,
             narrativeScript: parsedData.narrative_script,
           });
-          const enrichBlock = formatNotebooklmPromptBlock(improveResearch, "ENRIQUECIMENTO NOTEBOOKLM");
+          const enrichBlock = formatNotebooklmPromptBlock(
+            improveResearch,
+            "ENRIQUECIMENTO NOTEBOOKLM"
+          );
           notebooklmEnrichSummary = improveResearch.summary || "";
           const enrichPrompt = buildNotebooklmNarrationEnrichPrompt({
             niche,
@@ -13483,13 +15548,24 @@ app.post("/api/ai/creator/script", async (req, res) => {
             maxRetries: 2,
             models: ["gemini-2.0-flash", "gemini-1.5-flash"],
           });
-          const enriched = normalizeKeys(await parseAiJsonResponse(enrichText, apiKey, "Enriquecimento narracao NLM"));
+          const enriched = normalizeKeys(
+            await parseAiJsonResponse(
+              enrichText,
+              apiKey,
+              "Enriquecimento narracao NLM"
+            )
+          );
           parsedData = mergeEnrichedNarration(parsedData, enriched, format);
           parsedData = normalizeNarrationBlocks(parsedData, listicleBlockCount);
           notebooklmEnriched = true;
-          console.log("[Creator Script] Narração enriquecida com NotebookLM na fase 1.");
+          console.log(
+            "[Creator Script] Narração enriquecida com NotebookLM na fase 1."
+          );
         } catch (enrichErr) {
-          console.warn("[Creator Script] Enriquecimento NotebookLM na narração falhou:", enrichErr.message);
+          console.warn(
+            "[Creator Script] Enriquecimento NotebookLM na narração falhou:",
+            enrichErr.message
+          );
         }
       }
 
@@ -13497,8 +15573,12 @@ app.post("/api/ai/creator/script", async (req, res) => {
       let existingStoryboard = {};
       if (fs.existsSync(storyboardPath)) {
         try {
-          existingStoryboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
-        } catch (e) { /* ignore corrupt file */ }
+          existingStoryboard = JSON.parse(
+            fs.readFileSync(storyboardPath, "utf8")
+          );
+        } catch (e) {
+          /* ignore corrupt file */
+        }
       }
       const partialStoryboard = {
         strategy: parsedData.strategy || {},
@@ -13507,14 +15587,20 @@ app.post("/api/ai/creator/script", async (req, res) => {
         technical_config: parsedData.technical_config || undefined,
         research_sources: webResearchMeta?.sources || [],
         notebooklm_enriched: notebooklmEnriched,
-        notebooklm_enriched_at: notebooklmEnriched ? new Date().toISOString() : undefined,
+        notebooklm_enriched_at: notebooklmEnriched
+          ? new Date().toISOString()
+          : undefined,
         _creator_phase: "narration_pending",
       };
       report("save", "Salvando narração no projeto…", 94);
       fs.writeFileSync(
         storyboardPath,
-        JSON.stringify({ ...existingStoryboard, ...partialStoryboard }, null, 2),
-        "utf8",
+        JSON.stringify(
+          { ...existingStoryboard, ...partialStoryboard },
+          null,
+          2
+        ),
+        "utf8"
       );
       return activeRes.json({
         phase: "narration",
@@ -13524,7 +15610,9 @@ app.post("/api/ai/creator/script", async (req, res) => {
         narrative_script_tagged: partialStoryboard.narrative_script_tagged,
         technical_config: partialStoryboard.technical_config,
         notebooklm_enriched: notebooklmEnriched,
-        notebooklm_summary: notebooklmEnrichSummary ? notebooklmEnrichSummary.slice(0, 500) : undefined,
+        notebooklm_summary: notebooklmEnrichSummary
+          ? notebooklmEnrichSummary.slice(0, 500)
+          : undefined,
       });
     }
 
@@ -13537,7 +15625,10 @@ app.post("/api/ai/creator/script", async (req, res) => {
         parsedData.narrative_script_tagged = approvedNarration;
       }
 
-      if (!preserveBrowserVisualPrompts && needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
+      if (
+        !preserveBrowserVisualPrompts &&
+        needsVisualPromptsRepair(parsedData, vpRepairOpts)
+      ) {
         try {
           const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
             approvedNarration,
@@ -13550,18 +15641,34 @@ app.post("/api/ai/creator/script", async (req, res) => {
             ideaTitle: idea.title,
             existingPrompts: parsedData.visual_prompts || [],
           });
-          const vpRepairText = await callGeminiWithRetry(apiKey, vpRepairPrompt, {
-            temperature: 0.6,
-            maxRetries: 2,
-            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
-          });
-          const vpRepaired = normalizeKeys(await parseAiJsonResponse(vpRepairText, apiKey, "Visual prompts fase 2"));
+          const vpRepairText = await callGeminiWithRetry(
+            apiKey,
+            vpRepairPrompt,
+            {
+              temperature: 0.6,
+              maxRetries: 2,
+              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+            }
+          );
+          const vpRepaired = normalizeKeys(
+            await parseAiJsonResponse(
+              vpRepairText,
+              apiKey,
+              "Visual prompts fase 2"
+            )
+          );
           parsedData = mergeVisualPromptsRepair(parsedData, vpRepaired);
           parsedData.narrative_script = approvedNarration;
-          if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
-          console.log(`[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`);
+          if (approvedNarrationTagged)
+            parsedData.narrative_script_tagged = approvedNarrationTagged;
+          console.log(
+            `[Creator Script] visual_prompts reparados na fase 2 (${parsedData.visual_prompts?.length || 0} cenas).`
+          );
         } catch (vpRepairErr) {
-          console.warn("[Creator Script] Falha ao reparar visual_prompts na fase 2:", vpRepairErr.message);
+          console.warn(
+            "[Creator Script] Falha ao reparar visual_prompts na fase 2:",
+            vpRepairErr.message
+          );
         }
       }
 
@@ -13572,42 +15679,68 @@ app.post("/api/ai/creator/script", async (req, res) => {
         skipPromptEnrichment: preserveBrowserVisualPrompts,
       });
 
-      if (!preserveBrowserVisualPrompts && needsVisualPromptsRepair(parsedData, vpRepairOpts)) {
-        const deterministic = buildDeterministicVisualPromptsFromNarration(approvedNarration, {
-          blockCount: listicleBlockCount,
-          format,
-          ideaTitle: idea.title,
-        });
+      if (
+        !preserveBrowserVisualPrompts &&
+        needsVisualPromptsRepair(parsedData, vpRepairOpts)
+      ) {
+        const deterministic = buildDeterministicVisualPromptsFromNarration(
+          approvedNarration,
+          {
+            blockCount: listicleBlockCount,
+            format,
+            ideaTitle: idea.title,
+          }
+        );
         if (deterministic.length) {
           // Try AI-based batch prompt generation before using static glossary fallback
           try {
-            const batchPrompt = buildBatchScenePromptsAiRequest(deterministic, { ideaTitle: idea.title });
+            const batchPrompt = buildBatchScenePromptsAiRequest(deterministic, {
+              ideaTitle: idea.title,
+            });
             const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
               temperature: 0.7,
               maxRetries: 2,
               models: ["gemini-2.0-flash", "gemini-1.5-flash"],
             });
-            const batchParsed = await parseAiJsonResponse(batchText, apiKey, "Batch scene prompts");
-            const aiEnhanced = applyBatchScenePromptsAiResponse(deterministic, Array.isArray(batchParsed) ? batchParsed : batchParsed?.scenes || []);
+            const batchParsed = await parseAiJsonResponse(
+              batchText,
+              apiKey,
+              "Batch scene prompts"
+            );
+            const aiEnhanced = applyBatchScenePromptsAiResponse(
+              deterministic,
+              Array.isArray(batchParsed)
+                ? batchParsed
+                : batchParsed?.scenes || []
+            );
             parsedData.visual_prompts = aiEnhanced;
-            console.log(`[Creator Script] visual_prompts fallback IA batch (${aiEnhanced.length} cenas com prompts cinematográficos).`);
+            console.log(
+              `[Creator Script] visual_prompts fallback IA batch (${aiEnhanced.length} cenas com prompts cinematográficos).`
+            );
           } catch (batchErr) {
-            console.warn("[Creator Script] Fallback IA batch falhou, usando determinístico:", batchErr.message);
+            console.warn(
+              "[Creator Script] Fallback IA batch falhou, usando determinístico:",
+              batchErr.message
+            );
             parsedData.visual_prompts = deterministic;
           }
           parsedData.narrative_script = approvedNarration;
-          if (approvedNarrationTagged) parsedData.narrative_script_tagged = approvedNarrationTagged;
+          if (approvedNarrationTagged)
+            parsedData.narrative_script_tagged = approvedNarrationTagged;
           if (!parsedData.technical_config?.script) {
             parsedData.technical_config = {
               ...(parsedData.technical_config || {}),
               script: approvedNarration,
               block_phrases: parsedData.technical_config?.block_phrases || [],
               impact_texts: parsedData.technical_config?.impact_texts || [],
-              highlight_keywords: parsedData.technical_config?.highlight_keywords || [],
+              highlight_keywords:
+                parsedData.technical_config?.highlight_keywords || [],
               bgm_mappings: parsedData.technical_config?.bgm_mappings || [],
             };
           }
-          console.log(`[Creator Script] visual_prompts fallback final (${parsedData.visual_prompts.length} cenas).`);
+          console.log(
+            `[Creator Script] visual_prompts fallback final (${parsedData.visual_prompts.length} cenas).`
+          );
         }
       }
     } else {
@@ -13624,11 +15757,18 @@ app.post("/api/ai/creator/script", async (req, res) => {
           maxRetries: 2,
           models: ["gemini-2.0-flash", "gemini-1.5-flash"],
         });
-        const repaired = normalizeKeys(await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro"));
+        const repaired = normalizeKeys(
+          await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro")
+        );
         parsedData = mergeHumanizedScript(parsedData, repaired, format);
-        console.log("[Creator Script] Passagem de humanização/clareza aplicada.");
+        console.log(
+          "[Creator Script] Passagem de humanização/clareza aplicada."
+        );
       } catch (repairErr) {
-        console.warn("[Creator Script] Humanização secundária falhou, usando rascunho:", repairErr.message);
+        console.warn(
+          "[Creator Script] Humanização secundária falhou, usando rascunho:",
+          repairErr.message
+        );
       }
     }
 
@@ -13665,18 +15805,29 @@ app.post("/api/ai/creator/script", async (req, res) => {
       };
       if (needsListItemsRepair(repairConfig, parsedData)) {
         try {
-          const repaired = await repairListItemsWithAI(parsedData, repairConfig, {
-            apiKey,
-            callGemini: (prompt, opts) => callGeminiWithRetry(apiKey, prompt, opts),
-            parseJson: (text, label) => parseAiJsonResponse(text, apiKey, label),
-            format,
-          });
+          const repaired = await repairListItemsWithAI(
+            parsedData,
+            repairConfig,
+            {
+              apiKey,
+              callGemini: (prompt, opts) =>
+                callGeminiWithRetry(apiKey, prompt, opts),
+              parseJson: (text, label) =>
+                parseAiJsonResponse(text, apiKey, label),
+              format,
+            }
+          );
           if (repaired.repaired) {
             parsedData = repaired.storyboard;
-            console.log(`[Creator Script] list_items reparado pela IA (${repaired.count} itens).`);
+            console.log(
+              `[Creator Script] list_items reparado pela IA (${repaired.count} itens).`
+            );
           }
         } catch (repairListErr) {
-          console.warn("[Creator Script] Falha ao reparar list_items:", repairListErr.message);
+          console.warn(
+            "[Creator Script] Falha ao reparar list_items:",
+            repairListErr.message
+          );
         }
       }
     }
@@ -13689,7 +15840,11 @@ app.post("/api/ai/creator/script", async (req, res) => {
 
     const storyboardPath = path.join(projDir, "storyboard.json");
 
-    fs.writeFileSync(storyboardPath, JSON.stringify(parsedData, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(parsedData, null, 2),
+      "utf8"
+    );
 
     // Save technical configurations to active project directory
 
@@ -13698,13 +15853,9 @@ app.post("/api/ai/creator/script", async (req, res) => {
     let scriptText = parsedData.technical_config?.script;
 
     if (Array.isArray(scriptText)) {
-
       scriptText = scriptText.join("\n\n");
-
     } else if (typeof scriptText !== "string") {
-
       scriptText = String(scriptText || "");
-
     }
 
     fs.writeFileSync(transcriptPath, scriptText, "utf8");
@@ -13714,9 +15865,9 @@ app.post("/api/ai/creator/script", async (req, res) => {
     let currentConfig = {};
 
     if (fs.existsSync(configPath)) {
-
-      try { currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch (e) {}
-
+      try {
+        currentConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      } catch (e) {}
     }
 
     // Wizard: timeline vazia — B-roll só após o usuário mapear no passo manual ou Workflow → auto-map.
@@ -13725,32 +15876,54 @@ app.post("/api/ai/creator/script", async (req, res) => {
     let newConfig = {
       ...currentConfig,
       niche: niche || currentConfig.niche || "Geral",
-      highlight_keywords: parsedData.technical_config?.highlight_keywords || currentConfig.highlight_keywords || [],
-      impact_texts: parsedData.technical_config?.impact_texts || currentConfig.impact_texts || [],
-      block_phrases: parsedData.technical_config?.block_phrases || currentConfig.block_phrases || [],
+      highlight_keywords:
+        parsedData.technical_config?.highlight_keywords ||
+        currentConfig.highlight_keywords ||
+        [],
+      impact_texts:
+        parsedData.technical_config?.impact_texts ||
+        currentConfig.impact_texts ||
+        [],
+      block_phrases:
+        parsedData.technical_config?.block_phrases ||
+        currentConfig.block_phrases ||
+        [],
       timeline_assets: timelineAssets,
       aspect_ratio: isShort ? "9:16" : "16:9",
       video_format: format,
-      ...(isListicle ? {
-        content_mode: "LISTICLE",
-        rank_count: listicleRank,
-        rank_order: rankOrder === "asc" ? "asc" : "desc",
-        list_topic: listicleTopic,
-        listicle_hud_style: ["compact", "full", "auto"].includes(listicleHudStyle)
-          ? listicleHudStyle
-          : (listicleRank > 8 ? "compact" : "full"),
-      } : {}),
+      ...(isListicle
+        ? {
+            content_mode: "LISTICLE",
+            rank_count: listicleRank,
+            rank_order: rankOrder === "asc" ? "asc" : "desc",
+            list_topic: listicleTopic,
+            listicle_hud_style: ["compact", "full", "auto"].includes(
+              listicleHudStyle
+            )
+              ? listicleHudStyle
+              : listicleRank > 8
+                ? "compact"
+                : "full",
+          }
+        : {}),
     };
 
-    const presetApplied = applyDocumentaryHistoryPreset(newConfig, parsedData, newConfig.niche);
+    const presetApplied = applyDocumentaryHistoryPreset(
+      newConfig,
+      parsedData,
+      newConfig.niche
+    );
     if (presetApplied.applied) {
       newConfig = presetApplied.config;
-      console.log("[Creator Script] Preset Documentário História aplicado ao config.");
+      console.log(
+        "[Creator Script] Preset Documentário História aplicado ao config."
+      );
     }
 
-    const estDuration = Number(parsedData?.technical_config?.estimated_duration)
-      || Number(currentConfig?.estimated_duration)
-      || 0;
+    const estDuration =
+      Number(parsedData?.technical_config?.estimated_duration) ||
+      Number(currentConfig?.estimated_duration) ||
+      0;
     newConfig = applyBgmProductionDefaults(newConfig, estDuration);
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf8");
@@ -13758,16 +15931,15 @@ app.post("/api/ai/creator/script", async (req, res) => {
     report("save", "Finalizando roteiro…", 96);
 
     activeRes.json(parsedData);
-
   } catch (err) {
-
     failJobProgress(progressJobId, err.message);
     console.error("Erro no endpoint /api/ai/creator/script:", err);
 
     if (responseText) {
-
-      console.error("Raw responseText returned from Gemini was:\n", responseText);
-
+      console.error(
+        "Raw responseText returned from Gemini was:\n",
+        responseText
+      );
     }
 
     if (!progressJobId || activeRes === res) {
@@ -13788,32 +15960,42 @@ app.post("/api/ai/creator/script", async (req, res) => {
         awaitingBrowser: false,
       });
     }
-
   }
-
 });
 
 app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+    return res
+      .status(404)
+      .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const approvedNarration = String(storyboard.narrative_script || "").trim();
     if (!approvedNarration) {
-      return res.status(400).json({ error: "Não há narrative_script no storyboard para distribuir nas cenas." });
+      return res
+        .status(400)
+        .json({
+          error:
+            "Não há narrative_script no storyboard para distribuir nas cenas.",
+        });
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
-    const isListicle = config.content_mode === "LISTICLE" || storyboard.listicle?.content_mode === "LISTICLE";
+    const isListicle =
+      config.content_mode === "LISTICLE" ||
+      storyboard.listicle?.content_mode === "LISTICLE";
     const format = config.video_format || "LONGO";
-    const listicleRank = config.rank_count || storyboard.listicle?.rank_count || 3;
+    const listicleRank =
+      config.rank_count || storyboard.listicle?.rank_count || 3;
     const blockCount = isListicle
       ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-      : (format === "SHORTS" ? 5 : 12);
+      : format === "SHORTS"
+        ? 5
+        : 12;
 
     const vpRepairPrompt = buildVisualPromptsFromNarrationPrompt({
       approvedNarration,
@@ -13833,11 +16015,13 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
     });
     if (vpRepairText == null) return;
 
-    const vpRepaired = normalizeKeys(await parseAiJsonResponse(
-      vpRepairText,
-      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Repair visual prompts",
-    ));
+    const vpRepaired = normalizeKeys(
+      await parseAiJsonResponse(
+        vpRepairText,
+        extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+        "Repair visual prompts"
+      )
+    );
     storyboard = mergeVisualPromptsRepair(storyboard, vpRepaired);
     storyboard.narrative_script = approvedNarration;
     storyboard = normalizeVisualPromptBlocks(storyboard, {
@@ -13846,12 +16030,20 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
       ideaTitle: config.niche || storyboard.strategy?.title_main || "Vídeo",
     });
 
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
 
     let scriptText = storyboard.technical_config?.script;
     if (Array.isArray(scriptText)) scriptText = scriptText.join("\n\n");
     if (typeof scriptText === "string" && scriptText.trim()) {
-      fs.writeFileSync(path.join(projDir, "transcripts_readable.txt"), scriptText, "utf8");
+      fs.writeFileSync(
+        path.join(projDir, "transcripts_readable.txt"),
+        scriptText,
+        "utf8"
+      );
     }
 
     if (storyboard.technical_config?.block_phrases?.length) {
@@ -13862,16 +16054,28 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
         currentConfig.impact_texts = storyboard.technical_config.impact_texts;
       }
       if (storyboard.technical_config.highlight_keywords) {
-        currentConfig.highlight_keywords = storyboard.technical_config.highlight_keywords;
+        currentConfig.highlight_keywords =
+          storyboard.technical_config.highlight_keywords;
       }
-      fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2), "utf8");
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify(currentConfig, null, 2),
+        "utf8"
+      );
     }
 
-    console.log(`[Creator Repair] visual_prompts reparados (${storyboard.visual_prompts?.length || 0} cenas).`);
+    console.log(
+      `[Creator Repair] visual_prompts reparados (${storyboard.visual_prompts?.length || 0} cenas).`
+    );
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/repair-visual-prompts:", err);
-    res.status(500).json({ error: "Erro ao reparar cenas do roteiro", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao reparar cenas do roteiro",
+        details: err.message,
+      });
   }
 });
 
@@ -13880,31 +16084,47 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+    return res
+      .status(404)
+      .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const narrative = String(storyboard.narrative_script || "").trim();
     if (!narrative) {
-      return res.status(400).json({ error: "Não há narrative_script no storyboard." });
+      return res
+        .status(400)
+        .json({ error: "Não há narrative_script no storyboard." });
     }
-    if (!Array.isArray(storyboard.visual_prompts) || storyboard.visual_prompts.length === 0) {
-      return res.status(400).json({ error: "Não há visual_prompts no storyboard para reprocessar." });
+    if (
+      !Array.isArray(storyboard.visual_prompts) ||
+      storyboard.visual_prompts.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({
+          error: "Não há visual_prompts no storyboard para reprocessar.",
+        });
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
     const format = config.video_format || "LONGO";
-    const isListicle = config.content_mode === "LISTICLE" || storyboard.listicle?.content_mode === "LISTICLE";
-    const listicleRank = config.rank_count || storyboard.listicle?.rank_count || 0;
-    const rankOrder = config.rank_order || storyboard.listicle?.rank_order || "desc";
+    const isListicle =
+      config.content_mode === "LISTICLE" ||
+      storyboard.listicle?.content_mode === "LISTICLE";
+    const listicleRank =
+      config.rank_count || storyboard.listicle?.rank_count || 0;
+    const rankOrder =
+      config.rank_order || storyboard.listicle?.rank_order || "desc";
 
-    const { systemPrompt, userPrompt, detectedNiche } = buildVisualPromptEngineerRequest(storyboard, {
-      format,
-      isListicle,
-      listicleRank,
-      rankOrder,
-    });
+    const { systemPrompt, userPrompt, detectedNiche } =
+      buildVisualPromptEngineerRequest(storyboard, {
+        format,
+        isListicle,
+        listicleRank,
+        rankOrder,
+      });
 
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
@@ -13916,13 +16136,18 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
     if (responseText == null) return;
 
     const isBrowserResponse = !!extractBrowserResponse(req.body);
-    const parsed = normalizeKeys(await parseAiJsonResponse(
-      responseText,
-      isBrowserResponse ? null : (getApiKey(projDir) || getApiKey(settingsDir)),
-      "Visual Prompt Engineer PRO",
-    ));
+    const parsed = normalizeKeys(
+      await parseAiJsonResponse(
+        responseText,
+        isBrowserResponse ? null : getApiKey(projDir) || getApiKey(settingsDir),
+        "Visual Prompt Engineer PRO"
+      )
+    );
 
-    if (Array.isArray(parsed.visual_prompts) && parsed.visual_prompts.length > 0) {
+    if (
+      Array.isArray(parsed.visual_prompts) &&
+      parsed.visual_prompts.length > 0
+    ) {
       storyboard.visual_prompts = parsed.visual_prompts;
     }
     storyboard.narrative_script = narrative;
@@ -13940,11 +16165,17 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
     const vps = storyboard.visual_prompts || [];
     const expectedBlocks = isListicle
       ? resolveListicleBlockCount({ rankCount: listicleRank, format })
-      : (format === "SHORTS" ? 5 : 12);
+      : format === "SHORTS"
+        ? 5
+        : 12;
     // Normalize block numbers
     storyboard.visual_prompts = vps.map((vp, index) => {
-      const block = parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena)
-        ?? Math.min(expectedBlocks, Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1);
+      const block =
+        parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
+        Math.min(
+          expectedBlocks,
+          Math.floor((index * expectedBlocks) / Math.max(vps.length, 1)) + 1
+        );
       const sceneStr = String(vp.scene ?? vp.cena ?? "").trim();
       const sceneInBlock = sceneStr.match(new RegExp(`^${block}\\.\\d+$`));
       return {
@@ -13954,16 +16185,27 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       };
     });
     storyboard.visual_prompts = sanitizeVisualPromptDurations(
-      enforceShortsVideoSceneMix(storyboard.visual_prompts, { format }),
+      enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
     );
 
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
 
-    console.log(`[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`);
+    console.log(
+      `[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`
+    );
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
-    res.status(500).json({ error: "Erro ao aprimorar prompts visuais", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao aprimorar prompts visuais",
+        details: err.message,
+      });
   }
 });
 
@@ -13972,17 +16214,26 @@ app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+    return res
+      .status(404)
+      .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const narrative = String(storyboard.narrative_script || "").trim();
     if (!narrative) {
-      return res.status(400).json({ error: "Não há narrative_script no storyboard." });
+      return res
+        .status(400)
+        .json({ error: "Não há narrative_script no storyboard." });
     }
-    if (!Array.isArray(storyboard.visual_prompts) || storyboard.visual_prompts.length === 0) {
-      return res.status(400).json({ error: "Não há visual_prompts no storyboard." });
+    if (
+      !Array.isArray(storyboard.visual_prompts) ||
+      storyboard.visual_prompts.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Não há visual_prompts no storyboard." });
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
@@ -13992,10 +16243,11 @@ app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
       ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
       : null;
 
-    const { systemPrompt, userPrompt, detectedNiche } = buildSeedanceDirectingRequest(storyboard, {
-      format,
-      sceneIndices,
-    });
+    const { systemPrompt, userPrompt, detectedNiche } =
+      buildSeedanceDirectingRequest(storyboard, {
+        format,
+        sceneIndices,
+      });
 
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
     const responseText = await callGeminiLlm(req, res, projDir, {
@@ -14006,23 +16258,37 @@ app.post("/api/ai/creator/compile-directing-briefs", async (req, res) => {
     if (responseText == null) return;
 
     const isBrowserResponse = !!extractBrowserResponse(req.body);
-    const parsed = normalizeKeys(await parseAiJsonResponse(
-      responseText,
-      isBrowserResponse ? null : (getApiKey(projDir) || getApiKey(settingsDir)),
-      "Seedance Directing",
-    ));
+    const parsed = normalizeKeys(
+      await parseAiJsonResponse(
+        responseText,
+        isBrowserResponse ? null : getApiKey(projDir) || getApiKey(settingsDir),
+        "Seedance Directing"
+      )
+    );
 
     storyboard = applySeedanceDirectingResponse(storyboard, parsed);
     storyboard.narrative_script = narrative;
 
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
 
-    const count = sceneIndices?.length || storyboard.visual_prompts?.length || 0;
-    console.log(`[Seedance Directing] briefs compilados (${count} cenas, nicho: ${detectedNiche}).`);
+    const count =
+      sceneIndices?.length || storyboard.visual_prompts?.length || 0;
+    console.log(
+      `[Seedance Directing] briefs compilados (${count} cenas, nicho: ${detectedNiche}).`
+    );
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/compile-directing-briefs:", err);
-    res.status(500).json({ error: "Erro ao compilar directing briefs", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao compilar directing briefs",
+        details: err.message,
+      });
   }
 });
 
@@ -14031,7 +16297,9 @@ app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+    return res
+      .status(404)
+      .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
@@ -14041,14 +16309,18 @@ app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
     const sceneIndices = Array.isArray(rawIndices)
       ? rawIndices.map((n) => Number(n)).filter((n) => Number.isFinite(n))
       : null;
-    const provider = String(req.body?.provider || "ltx").toLowerCase() === "seedance" ? "seedance" : "ltx";
+    const provider =
+      String(req.body?.provider || "ltx").toLowerCase() === "seedance"
+        ? "seedance"
+        : "ltx";
     const wait = Boolean(req.body?.wait);
 
     if (provider === "seedance") {
       const apiCfg = loadSeedanceApiConfig(projDir);
       if (!apiCfg.enabled) {
         return res.status(400).json({
-          error: "API Seedance desabilitada. Use provider: 'ltx' ou ative seedance_api.enabled em config_qanat.json.",
+          error:
+            "API Seedance desabilitada. Use provider: 'ltx' ou ative seedance_api.enabled em config_qanat.json.",
         });
       }
     }
@@ -14063,11 +16335,19 @@ app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
     });
 
     if (wait) {
-      fs.writeFileSync(storyboardPath, JSON.stringify(result.storyboard, null, 2), "utf8");
+      fs.writeFileSync(
+        storyboardPath,
+        JSON.stringify(result.storyboard, null, 2),
+        "utf8"
+      );
     }
 
-    const videoSceneCount = listVideoIaSceneIndices(storyboard.visual_prompts || []).length;
-    console.log(`[Seedance T2V] ${result.jobs.length} job(s) enfileirado(s) — provider: ${provider}, vídeo IA total: ${videoSceneCount}`);
+    const videoSceneCount = listVideoIaSceneIndices(
+      storyboard.visual_prompts || []
+    ).length;
+    console.log(
+      `[Seedance T2V] ${result.jobs.length} job(s) enfileirado(s) — provider: ${provider}, vídeo IA total: ${videoSceneCount}`
+    );
     res.json({
       provider,
       waited: wait,
@@ -14077,7 +16357,12 @@ app.post("/api/ai/creator/generate-seedance-t2v", async (req, res) => {
     });
   } catch (err) {
     console.error("Erro em /api/ai/creator/generate-seedance-t2v:", err);
-    res.status(500).json({ error: "Erro ao gerar vídeo Seedance/LTX", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao gerar vídeo Seedance/LTX",
+        details: err.message,
+      });
   }
 });
 
@@ -14085,13 +16370,18 @@ app.post("/api/ai/creator/attach-seedance-t2v", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+    return res
+      .status(404)
+      .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
-    const promptId = String(req.body?.prompt_id || req.body?.promptId || "").trim();
+    const promptId = String(
+      req.body?.prompt_id || req.body?.promptId || ""
+    ).trim();
     const sceneIndex = Number(req.body?.scene_index ?? req.body?.sceneIndex);
-    if (!promptId) return res.status(400).json({ error: "prompt_id obrigatório." });
+    if (!promptId)
+      return res.status(400).json({ error: "prompt_id obrigatório." });
     if (!Number.isFinite(sceneIndex) || sceneIndex < 0) {
       return res.status(400).json({ error: "scene_index inválido." });
     }
@@ -14099,7 +16389,13 @@ app.post("/api/ai/creator/attach-seedance-t2v", async (req, res) => {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const config = readProjectJson(projDir, "config_qanat.json", {});
 
-    const result = await attachSeedanceT2vOutput(projDir, storyboard, config, sceneIndex, promptId);
+    const result = await attachSeedanceT2vOutput(
+      projDir,
+      storyboard,
+      config,
+      sceneIndex,
+      promptId
+    );
     if (!result.ready) {
       return res.json({
         ready: false,
@@ -14115,12 +16411,18 @@ app.post("/api/ai/creator/attach-seedance-t2v", async (req, res) => {
       config: result.config,
       blockKey: result.blockKey,
       assetIdx: result.assetIdx,
-      compiled_prompt: buildSeedanceT2vPrompt(result.storyboard.visual_prompts?.[sceneIndex]),
-      is_video_ia: isVideoIaScene(result.storyboard.visual_prompts?.[sceneIndex]),
+      compiled_prompt: buildSeedanceT2vPrompt(
+        result.storyboard.visual_prompts?.[sceneIndex]
+      ),
+      is_video_ia: isVideoIaScene(
+        result.storyboard.visual_prompts?.[sceneIndex]
+      ),
     });
   } catch (err) {
     console.error("Erro em /api/ai/creator/attach-seedance-t2v:", err);
-    res.status(500).json({ error: "Erro ao vincular vídeo gerado", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao vincular vídeo gerado", details: err.message });
   }
 });
 
@@ -14150,14 +16452,18 @@ app.post("/api/ai/creator/evaluate-checklist", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "Storyboard não encontrado para este projeto." });
+    return res
+      .status(404)
+      .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
   try {
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const approvedNarration = String(storyboard.narrative_script || "").trim();
     if (!approvedNarration) {
-      return res.status(400).json({ error: "Não há narração no storyboard para avaliar." });
+      return res
+        .status(400)
+        .json({ error: "Não há narração no storyboard para avaliar." });
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
@@ -14177,18 +16483,29 @@ app.post("/api/ai/creator/evaluate-checklist", async (req, res) => {
     });
     if (evalText == null) return;
 
-    const evaluated = normalizeKeys(await parseAiJsonResponse(
-      evalText,
-      extractBrowserResponse(req.body) ? null : apiKey,
-      "Checklist qualidade",
-    ));
+    const evaluated = normalizeKeys(
+      await parseAiJsonResponse(
+        evalText,
+        extractBrowserResponse(req.body) ? null : apiKey,
+        "Checklist qualidade"
+      )
+    );
     storyboard.checklist = normalizeScriptChecklist(evaluated?.checklist);
 
-    fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      storyboardPath,
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
     res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/evaluate-checklist:", err);
-    res.status(500).json({ error: "Erro ao avaliar checklist de qualidade", details: err.message });
+    res
+      .status(500)
+      .json({
+        error: "Erro ao avaliar checklist de qualidade",
+        details: err.message,
+      });
   }
 });
 
@@ -14240,24 +16557,33 @@ app.post("/api/notebooklm/login", (_req, res) => {
 app.post("/api/notebooklm/improve-script", async (req, res) => {
   const projDir = getProjectDir(req);
 
-  const { niche: nicheBody, format: formatBody, useNotebooklm } = req.body || {};
+  const {
+    niche: nicheBody,
+    format: formatBody,
+    useNotebooklm,
+  } = req.body || {};
   const storyboardPath = path.join(projDir, "storyboard.json");
 
   if (!fs.existsSync(storyboardPath)) {
-    return res.status(404).json({ error: "storyboard.json não encontrado neste projeto." });
+    return res
+      .status(404)
+      .json({ error: "storyboard.json não encontrado neste projeto." });
   }
 
   let storyboard;
   try {
     storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
   } catch (err) {
-    return res.status(500).json({ error: "Erro ao ler storyboard.json", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Erro ao ler storyboard.json", details: err.message });
   }
 
   const narrativeScript = buildProjectTranscript({ storyboard });
   if (!narrativeScript || narrativeScript.length < 80) {
     return res.status(400).json({
-      error: "Roteiro muito curto ou ausente. Gere ou edite a narração antes de enriquecer.",
+      error:
+        "Roteiro muito curto ou ausente. Gere ou edite a narração antes de enriquecer.",
     });
   }
 
@@ -14272,16 +16598,18 @@ app.post("/api/notebooklm/improve-script", async (req, res) => {
   }
 
   const niche = String(
-    nicheBody
-    || storyboard?.strategy?.title_main
-    || storyboard?.listicle?.topic
-    || projectConfig.niche
-    || "documentário",
+    nicheBody ||
+      storyboard?.strategy?.title_main ||
+      storyboard?.listicle?.topic ||
+      projectConfig.niche ||
+      "documentário"
   ).trim();
   const format = formatBody === "SHORTS" ? "SHORTS" : "LONGO";
   const blockCount = Array.isArray(storyboard?.technical_config?.block_phrases)
     ? storyboard.technical_config.block_phrases.length
-    : (format === "SHORTS" ? 5 : 12);
+    : format === "SHORTS"
+      ? 5
+      : 12;
 
   let notebooklmResearch = null;
   let notebooklmBlock = "";
@@ -14295,16 +16623,21 @@ app.post("/api/notebooklm/improve-script", async (req, res) => {
         format,
         narrativeScript,
       });
-      notebooklmBlock = formatNotebooklmPromptBlock(notebooklmResearch, "SUGESTÕES NOTEBOOKLM");
+      notebooklmBlock = formatNotebooklmPromptBlock(
+        notebooklmResearch,
+        "SUGESTÕES NOTEBOOKLM"
+      );
       if (!notebooklmBlock) {
-        notebooklmBlock = "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+        notebooklmBlock =
+          "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
       }
     } catch (err) {
       console.warn("[NotebookLM] Melhoria de roteiro falhou:", err.message);
       notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
     }
   } else {
-    notebooklmBlock = "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+    notebooklmBlock =
+      "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
   }
 
   try {
@@ -14323,11 +16656,13 @@ app.post("/api/notebooklm/improve-script", async (req, res) => {
     });
     if (responseText == null) return;
 
-    const repaired = normalizeKeys(await parseAiJsonResponse(
-      responseText,
-      extractBrowserResponse(req.body) ? null : getApiKey(projDir),
-      "Enriquecer roteiro",
-    ));
+    const repaired = normalizeKeys(
+      await parseAiJsonResponse(
+        responseText,
+        extractBrowserResponse(req.body) ? null : getApiKey(projDir),
+        "Enriquecer roteiro"
+      )
+    );
     const improved = mergeHumanizedScript(storyboard, repaired, format);
 
     fs.writeFileSync(storyboardPath, JSON.stringify(improved, null, 2), "utf8");
@@ -14351,7 +16686,9 @@ app.post("/api/notebooklm/improve-script", async (req, res) => {
     });
   } catch (err) {
     console.error("[NotebookLM] Erro ao aplicar melhorias:", err);
-    return res.status(500).json({ error: "Erro ao enriquecer roteiro", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Erro ao enriquecer roteiro", details: err.message });
   }
 });
 
@@ -14371,7 +16708,11 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
 
   const narrativeScript = String(narrativeScriptRaw || "").trim();
   if (narrativeScript.length < 40) {
-    return res.status(400).json({ error: "A narração precisa ter ao menos 40 caracteres para melhorar." });
+    return res
+      .status(400)
+      .json({
+        error: "A narração precisa ter ao menos 40 caracteres para melhorar.",
+      });
   }
 
   const niche = String(nicheRaw || "documentário").trim();
@@ -14387,29 +16728,37 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
 
   if (useNotebooklm !== false) {
     try {
-      console.log("[NotebookLM] Analisando draft de narração para melhorias (wizard)...");
+      console.log(
+        "[NotebookLM] Analisando draft de narração para melhorias (wizard)..."
+      );
       notebooklmResearch = await fetchNotebooklmScriptImprovements({
         backendDir: __dirname,
         niche,
         format,
         narrativeScript,
       });
-      notebooklmBlock = formatNotebooklmPromptBlock(notebooklmResearch, "SUGESTÕES NOTEBOOKLM");
+      notebooklmBlock = formatNotebooklmPromptBlock(
+        notebooklmResearch,
+        "SUGESTÕES NOTEBOOKLM"
+      );
       if (!notebooklmBlock) {
-        notebooklmBlock = "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
+        notebooklmBlock =
+          "\n(Sem pesquisa NotebookLM disponível — aplique melhorias de clareza e retenção com base no roteiro.)\n";
       }
     } catch (err) {
       console.warn("[NotebookLM] Melhoria de draft falhou:", err.message);
       notebooklmBlock = `\n(Pesquisa NotebookLM indisponível: ${err.message})\n`;
     }
   } else {
-    notebooklmBlock = "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
+    notebooklmBlock =
+      "\n(NotebookLM desativado — melhore clareza, ganchos e naturalidade com base no roteiro.)\n";
   }
 
   try {
     const rawScript = {
       narrative_script: narrativeScript,
-      narrative_script_tagged: String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
+      narrative_script_tagged:
+        String(narrativeScriptTaggedRaw || "").trim() || narrativeScript,
     };
 
     const improvePrompt = buildNotebooklmNarrationEnrichPrompt({
@@ -14436,11 +16785,14 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
       rawData = await parseAiJsonResponse(
         responseText,
         isBrowserResponse ? null : getApiKey(projDir),
-        "Melhorar narração draft",
+        "Melhorar narração draft"
       );
     } catch (parseErr) {
       rawData = salvageScriptJson(responseText) || {};
-      console.warn("[NotebookLM] JSON inválido ao melhorar draft — salvage/fallback:", parseErr.message);
+      console.warn(
+        "[NotebookLM] JSON inválido ao melhorar draft — salvage/fallback:",
+        parseErr.message
+      );
       if (!Object.keys(rawData).length) {
         throw parseErr;
       }
@@ -14450,20 +16802,25 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
 
     console.log("[NotebookLM] Draft de narração melhorado com sucesso!");
 
-    const notebooklmEnriched = Boolean(notebooklmResearch?.available && !notebooklmResearch?.fallback);
+    const notebooklmEnriched = Boolean(
+      notebooklmResearch?.available && !notebooklmResearch?.fallback
+    );
     let notebooklmReason = "pesquisa_ok";
     if (useNotebooklm === false) {
       notebooklmReason = "disabled";
     } else if (!notebooklmResearch) {
       notebooklmReason = "unavailable";
     } else if (notebooklmResearch.fallback || !notebooklmResearch.available) {
-      notebooklmReason = notebooklmResearch.needsLogin ? "needs_login" : "fallback";
+      notebooklmReason = notebooklmResearch.needsLogin
+        ? "needs_login"
+        : "fallback";
     }
 
     return res.json({
       success: true,
       narrative_script: parsed.narrative_script || narrativeScript,
-      narrative_script_tagged: parsed.narrative_script_tagged || parsed.narrative_script || "",
+      narrative_script_tagged:
+        parsed.narrative_script_tagged || parsed.narrative_script || "",
       strategy: parsed.strategy || null,
       technical_config: parsed.technical_config || null,
       notebooklm_enriched: notebooklmEnriched,
@@ -14472,18 +16829,18 @@ app.post("/api/notebooklm/improve-narration-draft", async (req, res) => {
     });
   } catch (err) {
     console.error("[NotebookLM] Erro ao melhorar draft de narração:", err);
-    return res.status(500).json({ error: "Erro ao melhorar narração", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Erro ao melhorar narração", details: err.message });
   }
 });
 
 // API: Automap available files in ASSETS to script narrative blocks using Gemini
 
 app.post("/api/ai/auto-map-assets", async (req, res) => {
-
   const projDir = getProjectDir(req);
 
   try {
-
     const autoConfigPath = path.join(projDir, "config_qanat.json");
     let autoConfig = {};
     if (fs.existsSync(autoConfigPath)) {
@@ -14492,9 +16849,8 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
 
     const mapEpoch = Number(autoConfig.timeline_map_epoch || 0);
     // Versões antigas incrementavam epoch antes do map: 1º auto-map rotacionava o pool em +1.
-    const rotateOffset = (
-      mapEpoch === 1 && !autoConfig.timeline_map_epoch_v2
-    ) ? 0 : mapEpoch;
+    const rotateOffset =
+      mapEpoch === 1 && !autoConfig.timeline_map_epoch_v2 ? 0 : mapEpoch;
     const mapped = buildTimelineFromStoryboard(projDir, {
       remapping: true,
       rotateOffset,
@@ -14509,7 +16865,9 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
     const mergedTimeline = { ...mapped.timelineAssets };
     for (const blockKey of Object.keys(mergedTimeline)) {
       const blockNum = Number(blockKey);
-      const blockScenes = visualPromptsForMap.filter((vp) => Number(vp?.block) === blockNum);
+      const blockScenes = visualPromptsForMap.filter(
+        (vp) => Number(vp?.block) === blockNum
+      );
       mergedTimeline[blockKey] = mergedTimeline[blockKey].map((asset, idx) => {
         const prev = (existingTimeline[blockKey] || [])[idx];
         const entry = { ...asset };
@@ -14517,7 +16875,9 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
         delete entry.speech_end;
         delete entry.synced_to_speech;
         const sceneText = String(
-          blockScenes[idx]?.narration_text || blockScenes[idx]?.narration_excerpt || "",
+          blockScenes[idx]?.narration_text ||
+            blockScenes[idx]?.narration_excerpt ||
+            ""
         ).trim();
         if (sceneText) entry.narration_segment = sceneText;
         if (!prev) return entry;
@@ -14527,7 +16887,11 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
           entry.manual_asset = true;
           if (prev.type) entry.type = prev.type;
         }
-        if (prev.fixed_locked && prev.fixed !== undefined && prev.fixed !== null) {
+        if (
+          prev.fixed_locked &&
+          prev.fixed !== undefined &&
+          prev.fixed !== null
+        ) {
           entry.fixed = prev.fixed;
           entry.fixed_locked = true;
         } else if (prev.fixed !== undefined && prev.fixed !== null) {
@@ -14539,15 +16903,26 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
     const sanitized = sanitizeFullTimelineAssets(mergedTimeline, assetFiles);
     autoConfig.timeline_assets = sanitized.timeline;
     if (sanitized.replaced > 0) {
-      mapped.warnings.push(`${sanitized.replaced} duplicata(s) removida(s) após merge.`);
+      mapped.warnings.push(
+        `${sanitized.replaced} duplicata(s) removida(s) após merge.`
+      );
     }
 
-    const wordTranscripts = readProjectJson(projDir, "word_transcripts.json", []);
+    const wordTranscripts = readProjectJson(
+      projDir,
+      "word_transcripts.json",
+      []
+    );
     const flatWords = flattenWordTranscripts(wordTranscripts);
-    const blockTimings = readProjectJson(projDir, "block_timings.json", { starts: [], durations: [] });
+    const blockTimings = readProjectJson(projDir, "block_timings.json", {
+      starts: [],
+      durations: [],
+    });
     const alignContext = {
       visualPrompts: visualPromptsForMap,
-      blockPhrases: Array.isArray(autoConfig.block_phrases) ? autoConfig.block_phrases : [],
+      blockPhrases: Array.isArray(autoConfig.block_phrases)
+        ? autoConfig.block_phrases
+        : [],
     };
 
     if (flatWords.length > 0) {
@@ -14564,7 +16939,7 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
         fs.writeFileSync(
           path.join(projDir, "block_timings.json"),
           JSON.stringify(synced.blockTimings, null, 2),
-          "utf8",
+          "utf8"
         );
       }
     }
@@ -14572,11 +16947,14 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
     autoConfig.timeline_map_epoch = mapEpoch + 1;
     autoConfig.timeline_map_epoch_v2 = true;
 
-    fs.writeFileSync(autoConfigPath, JSON.stringify(autoConfig, null, 2), "utf8");
+    fs.writeFileSync(
+      autoConfigPath,
+      JSON.stringify(autoConfig, null, 2),
+      "utf8"
+    );
     syncStoryboardAssetsFromTimeline(projDir);
 
     return res.json({
-
       success: true,
 
       timeline_assets: autoConfig.timeline_assets,
@@ -14584,168 +16962,142 @@ app.post("/api/ai/auto-map-assets", async (req, res) => {
       asset_count: mapped.assetCount,
 
       warnings: mapped.warnings,
-
     });
-
   } catch (err) {
-
-    res.status(500).json({ error: "Erro ao mapear assets", details: err.message });
-
+    res
+      .status(500)
+      .json({ error: "Erro ao mapear assets", details: err.message });
   }
-
 });
 
 // API: Run dynamic whisper transcription sync sequentially
 
 app.get("/api/sync-timings", (req, res) => {
+  const projDir = getProjectDir(req);
 
-const projDir = getProjectDir(req);
+  res.setHeader("Content-Type", "text/event-stream");
 
-res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
 
-res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
-res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
 
-res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
 
-res.flushHeaders();
+  // Heartbeat to keep connection alive during long sync runs
 
-// Heartbeat to keep connection alive during long sync runs
+  const heartbeat = setInterval(() => {
+    res.write(":\n\n");
+  }, 15000);
 
-const heartbeat = setInterval(() => {
+  let activeChild = null;
 
-  res.write(":\n\n");
+  const cleanup = () => {
+    clearInterval(heartbeat);
 
-}, 15000);
+    if (activeChild) {
+      try {
+        activeChild.kill();
+      } catch (e) {}
+    }
+  };
 
-let activeChild = null;
+  req.on("close", cleanup);
 
-const cleanup = () => {
+  const sendLog = (text) => {
+    res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+  };
 
-  clearInterval(heartbeat);
+  sendLog(
+    "[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição..."
+  );
 
-  if (activeChild) {
-
-    try { activeChild.kill(); } catch (e) {}
-
+  const narrationMp3 = path.join(projDir, "narracao_mestra_premium.mp3");
+  if (!fs.existsSync(narrationMp3)) {
+    sendLog(
+      "[ERRO] narracao_mestra_premium.mp3 não encontrado. Gere a narração (TTS) antes de sincronizar."
+    );
+    res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+    res.end();
+    cleanup();
+    return;
   }
 
-};
+  sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
 
-req.on("close", cleanup);
+  ensureFileExists("find_block_timings.py", projDir);
 
-const sendLog = (text) => {
+  ensureFileExists("align_transcripts.py", projDir);
 
-  res.write(`data: ${JSON.stringify({ type: "log", text })}\n\n`);
+  const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
+    cwd: projDir,
 
-};
+    shell: true,
 
-sendLog("[Dashboard] Iniciando Sincronização e Alinhamento por Transcrição...");
+    env: buildPythonSpawnEnv(),
+  });
 
-const narrationMp3 = path.join(projDir, "narracao_mestra_premium.mp3");
-if (!fs.existsSync(narrationMp3)) {
-  sendLog("[ERRO] narracao_mestra_premium.mp3 não encontrado. Gere a narração (TTS) antes de sincronizar.");
-  res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
-  res.end();
-  cleanup();
-  return;
-}
-
-sendLog("[1/2] Executando análise do Whisper (find_block_timings.py)...");
-
-ensureFileExists("find_block_timings.py", projDir);
-
-ensureFileExists("align_transcripts.py", projDir);
-
-const child1 = spawn(PYTHON_PATH, ["find_block_timings.py"], {
-
-  cwd: projDir,
-
-  shell: true,
-
-  env: buildPythonSpawnEnv(),
-
-});
-
-activeChild = child1;
+  activeChild = child1;
 
   child1.stdout.on("data", (data) => {
-
     const text = data.toString().trim();
 
     if (text) {
-
-      text.split(/\r?\n/).forEach(line => sendLog(line));
-
+      text.split(/\r?\n/).forEach((line) => sendLog(line));
     }
-
   });
 
   child1.stderr.on("data", (data) => {
-
     const text = data.toString().trim();
 
     if (text) {
-
-      text.split(/\r?\n/).forEach(line => sendLog(`[ERRO Whisper] ${line}`));
-
+      text.split(/\r?\n/).forEach((line) => sendLog(`[ERRO Whisper] ${line}`));
     }
-
   });
 
   child1.on("close", (code1) => {
-
     if (code1 !== 0) {
-
       res.write(`data: ${JSON.stringify({ type: "failed", code: code1 })}\n\n`);
 
       res.end();
 
       return;
-
     }
 
-    sendLog("\n[2/2] Gerando banco de palavras e alinhamento (align_transcripts.py)...");
+    sendLog(
+      "\n[2/2] Gerando banco de palavras e alinhamento (align_transcripts.py)..."
+    );
 
     const child2 = spawn(PYTHON_PATH, ["align_transcripts.py"], {
-
       cwd: projDir,
 
       shell: true,
 
       env: buildPythonSpawnEnv(),
-
     });
 
     activeChild = child2;
 
     child2.stdout.on("data", (data) => {
-
       const text = data.toString().trim();
 
       if (text) {
-
-        text.split(/\r?\n/).forEach(line => sendLog(line));
-
+        text.split(/\r?\n/).forEach((line) => sendLog(line));
       }
-
     });
 
     child2.stderr.on("data", (data) => {
-
       const text = data.toString().trim();
 
       if (text) {
-
-        text.split(/\r?\n/).forEach(line => sendLog(`[ERRO Alinhador] ${line}`));
-
+        text
+          .split(/\r?\n/)
+          .forEach((line) => sendLog(`[ERRO Alinhador] ${line}`));
       }
-
     });
 
     child2.on("close", (code2) => {
-
       activeChild = null;
 
       if (code2 === 0) {
@@ -14759,7 +17111,9 @@ activeChild = child1;
             const storyboard = fs.existsSync(storyboardPath)
               ? JSON.parse(fs.readFileSync(storyboardPath, "utf8"))
               : {};
-            const wordTranscripts = JSON.parse(fs.readFileSync(wordsPath, "utf8"));
+            const wordTranscripts = JSON.parse(
+              fs.readFileSync(wordsPath, "utf8")
+            );
             const flatWords = flattenWordTranscripts(wordTranscripts);
             if (flatWords.length) {
               const chunkedApplied = applyChunkedTimelineAfterWhisper(projDir, {
@@ -14769,7 +17123,9 @@ activeChild = child1;
                 flatWords,
               });
               if (chunkedApplied) {
-                sendLog("[Pipeline] Narração por trechos: timings e timeline restaurados pelo plano de chunks.");
+                sendLog(
+                  "[Pipeline] Narração por trechos: timings e timeline restaurados pelo plano de chunks."
+                );
               } else {
                 const synced = syncProjectTimelineAfterWhisper({
                   timelineAssets: cfg.timeline_assets || {},
@@ -14778,47 +17134,69 @@ activeChild = child1;
                     : { starts: [], durations: [] },
                   wordTranscripts,
                   flatTranscriptWords: flatWords,
-                  visualPrompts: Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [],
-                  blockPhrases: Array.isArray(cfg.block_phrases) ? cfg.block_phrases : [],
+                  visualPrompts: Array.isArray(storyboard.visual_prompts)
+                    ? storyboard.visual_prompts
+                    : [],
+                  blockPhrases: Array.isArray(cfg.block_phrases)
+                    ? cfg.block_phrases
+                    : [],
                   preserveExplicitFixed: false,
                 });
                 cfg.timeline_assets = synced.timelineAssets;
-                fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
+                fs.writeFileSync(
+                  configPath,
+                  JSON.stringify(cfg, null, 2),
+                  "utf8"
+                );
                 if (synced.blockTimings?.starts?.length) {
-                  fs.writeFileSync(timingsPath, JSON.stringify(synced.blockTimings, null, 2), "utf8");
+                  fs.writeFileSync(
+                    timingsPath,
+                    JSON.stringify(synced.blockTimings, null, 2),
+                    "utf8"
+                  );
                 }
                 if (fs.existsSync(storyboardPath)) {
-                  const storyboardNext = applyWhisperDurationsToStoryboard(storyboard, wordTranscripts, {
-                    flatTranscriptWords: flatWords,
-                    blockTimings: synced.blockTimings,
-                  });
-                  fs.writeFileSync(storyboardPath, JSON.stringify(storyboardNext, null, 2), "utf8");
+                  const storyboardNext = applyWhisperDurationsToStoryboard(
+                    storyboard,
+                    wordTranscripts,
+                    {
+                      flatTranscriptWords: flatWords,
+                      blockTimings: synced.blockTimings,
+                    }
+                  );
+                  fs.writeFileSync(
+                    storyboardPath,
+                    JSON.stringify(storyboardNext, null, 2),
+                    "utf8"
+                  );
                 }
-                sendLog("[Pipeline] Slots da timeline criados com segundos da voz (Whisper). Coloque os assets manualmente e salve.");
+                sendLog(
+                  "[Pipeline] Slots da timeline criados com segundos da voz (Whisper). Coloque os assets manualmente e salve."
+                );
               }
             }
           }
         } catch (syncErr) {
-          sendLog(`[AVISO] Falha ao sincronizar timeline pós-Whisper: ${syncErr.message}`);
+          sendLog(
+            `[AVISO] Falha ao sincronizar timeline pós-Whisper: ${syncErr.message}`
+          );
         }
 
-        res.write(`data: ${JSON.stringify({ type: "complete", code: code2 })}\n\n`);
-
+        res.write(
+          `data: ${JSON.stringify({ type: "complete", code: code2 })}\n\n`
+        );
       } else {
-
-        res.write(`data: ${JSON.stringify({ type: "failed", code: code2 })}\n\n`);
-
+        res.write(
+          `data: ${JSON.stringify({ type: "failed", code: code2 })}\n\n`
+        );
       }
 
       cleanup();
 
       res.end();
-
     });
-
-    });
-
-    });
+  });
+});
 
 let workflowApi = null;
 workflowApi = registerWorkflowRoutes(app, {
@@ -14884,15 +17262,11 @@ registerAgentReachRoutes(app, {
 const frontendDist = path.join(__dirname, "../frontend/dist");
 
 if (fs.existsSync(frontendDist)) {
-
   app.use(express.static(frontendDist));
 
   app.get("*", (req, res) => {
-
     res.sendFile(path.join(frontendDist, "index.html"));
-
   });
-
 }
 
 const PORT = 3005;
@@ -14902,23 +17276,34 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   try {
     const nlm = getNotebooklmStatus(__dirname);
     if (nlm.authenticated) {
-      console.log(`[NotebookLM] ${nlm.message} (${nlm.dataDir || ".notebooklm-data"})`);
+      console.log(
+        `[NotebookLM] ${nlm.message} (${nlm.dataDir || ".notebooklm-data"})`
+      );
     } else {
       console.warn(`[NotebookLM] ${nlm.message}`);
     }
   } catch (e) {
     console.warn("[NotebookLM] status check failed:", e.message);
   }
-  startTitleRotationScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
-  startYoutubeWeeklyReportScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
-  startYoutubeDailyReportScheduler({ workspaceDir: WORKSPACE_DIR, projectsRoot: PROJECTS_ROOT });
+  startTitleRotationScheduler({
+    workspaceDir: WORKSPACE_DIR,
+    projectsRoot: PROJECTS_ROOT,
+  });
+  startYoutubeWeeklyReportScheduler({
+    workspaceDir: WORKSPACE_DIR,
+    projectsRoot: PROJECTS_ROOT,
+  });
+  startYoutubeDailyReportScheduler({
+    workspaceDir: WORKSPACE_DIR,
+    projectsRoot: PROJECTS_ROOT,
+  });
 });
 
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(
       `\n[ERRO] Porta ${PORT} já está em uso — o backend já está rodando.\n` +
-      `       Feche a janela anterior ou execute run_qanat_dashboard.bat (ele libera a porta automaticamente).\n`,
+        `       Feche a janela anterior ou execute run_qanat_dashboard.bat (ele libera a porta automaticamente).\n`
     );
     process.exit(1);
   }
@@ -14940,7 +17325,10 @@ function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
     }
   }
 
-  if (Object.keys(sceneStarts).length === 0 && Array.isArray(storyboard?.visual_prompts)) {
+  if (
+    Object.keys(sceneStarts).length === 0 &&
+    Array.isArray(storyboard?.visual_prompts)
+  ) {
     const blockAccumulator = {};
     let cumulativeTime = 0;
     for (const vp of storyboard.visual_prompts) {
@@ -14948,7 +17336,10 @@ function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
       const blockNum = Number(vp.block || 1);
       const blockIdx = Math.max(0, blockNum - 1);
       const blockStart = Number(starts[blockIdx]);
-      const dur = Number(vp.duration_seconds) || Number(String(vp.duration || "").replace(/[^\d.]/g, "")) || 5;
+      const dur =
+        Number(vp.duration_seconds) ||
+        Number(String(vp.duration || "").replace(/[^\d.]/g, "")) ||
+        5;
 
       let start;
       if (Number.isFinite(blockStart)) {
@@ -14976,7 +17367,10 @@ function extractOverlayKeywords(overlay) {
     overlay?.props?.title,
     overlay?.props?.subtitle,
     overlay?.props?.description,
-  ].filter(Boolean).join(" ").toLowerCase();
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   return text
     .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, " ")
@@ -14986,7 +17380,12 @@ function extractOverlayKeywords(overlay) {
     .slice(0, 6);
 }
 
-function findKeywordTimeInRange(wordTranscripts, keywords, rangeStart, rangeEnd) {
+function findKeywordTimeInRange(
+  wordTranscripts,
+  keywords,
+  rangeStart,
+  rangeEnd
+) {
   if (!Array.isArray(wordTranscripts) || keywords.length === 0) return null;
 
   for (const segment of wordTranscripts) {
@@ -14997,7 +17396,9 @@ function findKeywordTimeInRange(wordTranscripts, keywords, rangeStart, rangeEnd)
       const absStart = segStart + Number(wordEntry.start || 0);
       if (absStart < rangeStart || absStart > rangeEnd) continue;
 
-      const cleanWord = String(wordEntry.word || "").toLowerCase().replace(/[^\wáàâãéèêíìîóòôõúùûç]/gi, "");
+      const cleanWord = String(wordEntry.word || "")
+        .toLowerCase()
+        .replace(/[^\wáàâãéèêíìîóòôõúùûç]/gi, "");
       if (!cleanWord) continue;
 
       for (const keyword of keywords) {
@@ -15012,7 +17413,9 @@ function findKeywordTimeInRange(wordTranscripts, keywords, rangeStart, rangeEnd)
 }
 
 function isLikelySceneId(rawString) {
-  const m = String(rawString ?? "").trim().match(/^(\d+)\.(\d+)$/);
+  const m = String(rawString ?? "")
+    .trim()
+    .match(/^(\d+)\.(\d+)$/);
   if (!m) return false;
   const block = Number(m[1]);
   const scene = Number(m[2]);
@@ -15045,7 +17448,8 @@ function extractExplicitBlockFromOverlayId(overlayId) {
 }
 
 function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
-  const rawStart = overlay.start ?? overlay.scene ?? overlay.scene_ref ?? overlay.block;
+  const rawStart =
+    overlay.start ?? overlay.scene ?? overlay.scene_ref ?? overlay.block;
   const rawString = String(rawStart ?? "").trim();
 
   if (overlay.scene_ref && sceneStarts[overlay.scene_ref] !== undefined) {
@@ -15055,7 +17459,9 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
   // If scene_ref exists but doesn't match exactly, find any scene in the same block
   if (overlay.scene_ref && isLikelySceneId(overlay.scene_ref)) {
     const refBlock = String(overlay.scene_ref).split(".")[0];
-    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${refBlock}.`));
+    const blockScene = Object.keys(sceneStarts).find((sceneId) =>
+      sceneId.startsWith(`${refBlock}.`)
+    );
     if (blockScene) return blockScene;
   }
 
@@ -15070,24 +17476,34 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
     }
     // Find any scene in the same block
     const block = rawString.split(".")[0];
-    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${block}.`));
+    const blockScene = Object.keys(sceneStarts).find((sceneId) =>
+      sceneId.startsWith(`${block}.`)
+    );
     if (blockScene) return blockScene;
     return rawString;
   }
 
   if (Number.isFinite(Number(rawStart))) {
-    return findSceneIdForAbsoluteTime(Number(rawStart), sceneStarts, sceneDurations);
+    return findSceneIdForAbsoluteTime(
+      Number(rawStart),
+      sceneStarts,
+      sceneDurations
+    );
   }
 
   const idBlockNum = extractExplicitBlockFromOverlayId(overlay.id);
   if (idBlockNum > 0) {
-    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${idBlockNum}.`));
+    const blockScene = Object.keys(sceneStarts).find((sceneId) =>
+      sceneId.startsWith(`${idBlockNum}.`)
+    );
     if (blockScene) return blockScene;
   }
 
   const blockFromOverlay = Number(overlay.block || overlay.props?.block || 0);
   if (blockFromOverlay > 0) {
-    const blockScene = Object.keys(sceneStarts).find((sceneId) => sceneId.startsWith(`${blockFromOverlay}.`));
+    const blockScene = Object.keys(sceneStarts).find((sceneId) =>
+      sceneId.startsWith(`${blockFromOverlay}.`)
+    );
     if (blockScene) return blockScene;
   }
 
@@ -15095,8 +17511,14 @@ function resolveOverlaySceneId(overlay, sceneStarts, sceneDurations) {
 }
 
 function narrationWordOverlapRatio(overlayText = "", phrase = "") {
-  const oWords = String(overlayText).toLowerCase().split(/\s+/).filter((w) => w.length > 2);
-  const pWords = String(phrase).toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const oWords = String(overlayText)
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+  const pWords = String(phrase)
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   if (!oWords.length || !pWords.length) return 0;
   const matches = oWords.filter((w) => pWords.includes(w)).length;
   return matches / oWords.length;
@@ -15109,13 +17531,26 @@ function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
     if (!overlay) return false;
     const id = String(overlay.id || "");
     if (/^lt-block-\d+$/.test(id)) {
-      console.log(`[Overlays] Removido echo de narração (fallback legado): ${id}`);
+      console.log(
+        `[Overlays] Removido echo de narração (fallback legado): ${id}`
+      );
       return false;
     }
 
-    if (overlay.type === "counter" && Number(overlay.props?.value) > 0) return true;
-    if (overlay.type === "bar-chart" && Array.isArray(overlay.props?.items) && overlay.props.items.length) return true;
-    if (overlay.type === "timeline" && Array.isArray(overlay.props?.events) && overlay.props.events.length) return true;
+    if (overlay.type === "counter" && Number(overlay.props?.value) > 0)
+      return true;
+    if (
+      overlay.type === "bar-chart" &&
+      Array.isArray(overlay.props?.items) &&
+      overlay.props.items.length
+    )
+      return true;
+    if (
+      overlay.type === "timeline" &&
+      Array.isArray(overlay.props?.events) &&
+      overlay.props.events.length
+    )
+      return true;
 
     const overlayText = [
       overlay.props?.title,
@@ -15144,13 +17579,24 @@ function filterNarrationEchoOverlays(overlays = [], blockPhrases = []) {
       const phraseHead5 = phrase.split(" ").slice(0, 5).join(" ");
       const overlayHead5 = overlayText.split(" ").slice(0, 5).join(" ");
 
-      if (phraseHead5.length >= 12 && overlayHead5.length >= 12 && phraseHead5 === overlayHead5) {
-        console.log(`[Overlays] Removido overlay com início idêntico à narração: ${id}`);
+      if (
+        phraseHead5.length >= 12 &&
+        overlayHead5.length >= 12 &&
+        phraseHead5 === overlayHead5
+      ) {
+        console.log(
+          `[Overlays] Removido overlay com início idêntico à narração: ${id}`
+        );
         return false;
       }
 
-      if (overlayText.length >= 20 && narrationWordOverlapRatio(overlayText, phrase) >= 0.9) {
-        console.log(`[Overlays] Removido overlay com >90% palavras da narração: ${id}`);
+      if (
+        overlayText.length >= 20 &&
+        narrationWordOverlapRatio(overlayText, phrase) >= 0.9
+      ) {
+        console.log(
+          `[Overlays] Removido overlay com >90% palavras da narração: ${id}`
+        );
         return false;
       }
     }
@@ -15204,19 +17650,32 @@ function repairOverlayPropsForRemotion(overlay) {
   if (overlay.type === "timeline") {
     let events = p.events;
     if (typeof events === "string") {
-      try { events = JSON.parse(events); } catch { events = []; }
+      try {
+        events = JSON.parse(events);
+      } catch {
+        events = [];
+      }
     }
     if (!Array.isArray(events)) events = [];
-    events = events.map((ev) => ({
-      year: String(ev?.year || ev?.date || ev?.label || ev?.time || "—"),
-      description: String(ev?.description || ev?.desc || ev?.text || ev?.title || ""),
-      highlight: Boolean(ev?.highlight),
-    })).filter((ev) => ev.year || ev.description);
+    events = events
+      .map((ev) => ({
+        year: String(ev?.year || ev?.date || ev?.label || ev?.time || "—"),
+        description: String(
+          ev?.description || ev?.desc || ev?.text || ev?.title || ""
+        ),
+        highlight: Boolean(ev?.highlight),
+      }))
+      .filter((ev) => ev.year || ev.description);
 
     if (events.length < 2) {
-      const subtitle = events.map((ev) => ev.description).filter(Boolean).join(" · ");
+      const subtitle = events
+        .map((ev) => ev.description)
+        .filter(Boolean)
+        .join(" · ");
       if (p.title || subtitle) {
-        console.log(`[Overlays] Timeline ${overlay.id} incompleto — convertido para lower-third.`);
+        console.log(
+          `[Overlays] Timeline ${overlay.id} incompleto — convertido para lower-third.`
+        );
         overlay.type = "lower-third";
         overlay.props = {
           title: String(p.title || events[0]?.year || "LINHA DO TEMPO"),
@@ -15241,16 +17700,21 @@ function repairOverlayPropsForRemotion(overlay) {
   if (overlay.type === "bar-chart") {
     let items = p.items;
     if (!Array.isArray(items)) items = [];
-    items = items.map((it) => ({
-      label: String(it?.label || it?.name || "—"),
-      value: Number(it?.value) || 0,
-      displayValue: it?.displayValue != null ? String(it.displayValue) : undefined,
-      color: it?.color,
-    })).filter((it) => it.label && it.value > 0);
+    items = items
+      .map((it) => ({
+        label: String(it?.label || it?.name || "—"),
+        value: Number(it?.value) || 0,
+        displayValue:
+          it?.displayValue != null ? String(it.displayValue) : undefined,
+        color: it?.color,
+      }))
+      .filter((it) => it.label && it.value > 0);
 
     if (items.length < 2) {
       if (items.length === 1) {
-        console.log(`[Overlays] Bar-chart ${overlay.id} com 1 item — convertido para counter.`);
+        console.log(
+          `[Overlays] Bar-chart ${overlay.id} com 1 item — convertido para counter.`
+        );
         overlay.type = "counter";
         overlay.props = {
           value: items[0].value,
@@ -15288,8 +17752,16 @@ function repairOverlayPropsForRemotion(overlay) {
     const subtitle = String(p.subtitle || "").trim();
     const fallback = String(p.text || p.label || "").trim();
     const resolved = title || subtitle || fallback;
-    if (!resolved || isPlaceholderInformativeOverlay({ ...overlay, props: { ...p, title: resolved } })) {
-      console.log(`[Overlays] Lower-third ${overlay.id} placeholder (${resolved || "vazio"}) — removido.`);
+    if (
+      !resolved ||
+      isPlaceholderInformativeOverlay({
+        ...overlay,
+        props: { ...p, title: resolved },
+      })
+    ) {
+      console.log(
+        `[Overlays] Lower-third ${overlay.id} placeholder (${resolved || "vazio"}) — removido.`
+      );
       return null;
     }
     p.title = title || resolved;
@@ -15303,10 +17775,16 @@ function repairOverlayPropsForRemotion(overlay) {
       console.log(`[Overlays] Kinetic-text ${overlay.id} vazio — removido.`);
       return null;
     }
-    if (Array.isArray(p.style) || (p.style != null && typeof p.style !== "string")) {
+    if (
+      Array.isArray(p.style) ||
+      (p.style != null && typeof p.style !== "string")
+    ) {
       p.style = "slam";
     }
-  } else if (Array.isArray(p.style) || (p.style != null && typeof p.style === "object")) {
+  } else if (
+    Array.isArray(p.style) ||
+    (p.style != null && typeof p.style === "object")
+  ) {
     delete p.style;
   }
 
@@ -15322,7 +17800,7 @@ function tokenizeOverlayBriefingText(text = "") {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^\w\s]/g, " ")
       .split(/\s+/)
-      .filter((w) => w.length > 3),
+      .filter((w) => w.length > 3)
   );
 }
 
@@ -15342,7 +17820,10 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
   let bestFact = "";
   let bestScore = 0;
   for (const fact of facts) {
-    const score = overlayBriefingTokenOverlap(overlayTokens, tokenizeOverlayBriefingText(fact));
+    const score = overlayBriefingTokenOverlap(
+      overlayTokens,
+      tokenizeOverlayBriefingText(fact)
+    );
     if (score > bestScore) {
       bestScore = score;
       bestFact = fact;
@@ -15364,7 +17845,10 @@ function matchOverlayResearchFact(overlayText = "", overlayResearch = {}) {
     let bestSrcScore = 0;
     for (const src of sources) {
       const title = String(src.title || src.url || "");
-      const score = overlayBriefingTokenOverlap(factTokens, tokenizeOverlayBriefingText(title));
+      const score = overlayBriefingTokenOverlap(
+        factTokens,
+        tokenizeOverlayBriefingText(title)
+      );
       if (score > bestSrcScore) {
         bestSrcScore = score;
         bestSrc = src;
@@ -15391,7 +17875,11 @@ function overlayTextBlobForBriefing(overlay = {}) {
     .join(" ");
 }
 
-function ensureOverlayAiMeta(overlay, overlayResearch = {}, sceneContext = null) {
+function ensureOverlayAiMeta(
+  overlay,
+  overlayResearch = {},
+  sceneContext = null
+) {
   if (!overlay.ai_meta || typeof overlay.ai_meta !== "object") {
     overlay.ai_meta = {};
   }
@@ -15400,16 +17888,22 @@ function ensureOverlayAiMeta(overlay, overlayResearch = {}, sceneContext = null)
   const sceneId = String(overlay.scene_ref || overlay.start || "").trim();
 
   if (!meta.suggested_type) meta.suggested_type = overlay.type;
-  if (!meta.suggested_variant && props.variant) meta.suggested_variant = props.variant;
+  if (!meta.suggested_variant && props.variant)
+    meta.suggested_variant = props.variant;
   if (!meta.suggested_theme && props.theme) meta.suggested_theme = props.theme;
-  if (!meta.suggested_icon && props.iconType) meta.suggested_icon = props.iconType;
-  if (!meta.suggested_position && props.position) meta.suggested_position = props.position;
+  if (!meta.suggested_icon && props.iconType)
+    meta.suggested_icon = props.iconType;
+  if (!meta.suggested_position && props.position)
+    meta.suggested_position = props.position;
 
   if (!meta.research_query && overlayResearch.query) {
     meta.research_query = overlayResearch.query;
   }
   if (!meta.research_fact && overlayResearch.facts?.length) {
-    const match = matchOverlayResearchFact(overlayTextBlobForBriefing(overlay), overlayResearch);
+    const match = matchOverlayResearchFact(
+      overlayTextBlobForBriefing(overlay),
+      overlayResearch
+    );
     if (match.fact) {
       meta.research_fact = match.fact;
       if (match.source) meta.research_source = match.source;
@@ -15426,7 +17920,10 @@ function ensureOverlayAiMeta(overlay, overlayResearch = {}, sceneContext = null)
     if (props.title) parts.push(`título "${props.title}"`);
     if (props.subtitle) parts.push(`subtítulo "${props.subtitle}"`);
     if (props.label) parts.push(`rótulo "${props.label}"`);
-    if (props.value != null) parts.push(`valor ${props.value}${props.suffix ? ` ${props.suffix}` : ""}`);
+    if (props.value != null)
+      parts.push(
+        `valor ${props.value}${props.suffix ? ` ${props.suffix}` : ""}`
+      );
     if (parts.length) {
       meta.content_summary = `Overlay informativo com ${parts.join(", ")}.`;
     }
@@ -15435,66 +17932,99 @@ function ensureOverlayAiMeta(overlay, overlayResearch = {}, sceneContext = null)
 }
 
 function persistOverlayPlanejamento(projectDir, planejamento = []) {
-  if (!projectDir || !Array.isArray(planejamento) || !planejamento.length) return;
+  if (!projectDir || !Array.isArray(planejamento) || !planejamento.length)
+    return;
   try {
     const sbPath = path.join(projectDir, "storyboard.json");
     const sb = readProjectJson(projectDir, "storyboard.json", {});
     sb.overlays_planejamento = planejamento;
     fs.writeFileSync(sbPath, JSON.stringify(sb, null, 2), "utf8");
   } catch (err) {
-    console.warn("[Overlays] Falha ao salvar overlays_planejamento:", err.message);
+    console.warn(
+      "[Overlays] Falha ao salvar overlays_planejamento:",
+      err.message
+    );
   }
 }
 
 function normalizeGeminiOverlayPayload(overlays = []) {
   if (!Array.isArray(overlays)) return [];
 
-  return overlays.map((raw, index) => {
-    const overlay = { ...(raw || {}) };
-    if (raw?.ai_meta && typeof raw.ai_meta === "object") {
-      overlay.ai_meta = { ...raw.ai_meta };
-    }
-    if (!overlay.id) overlay.id = `ai-overlay-${index + 1}`;
-    if (!overlay.type && overlay.overlay_type) overlay.type = overlay.overlay_type;
-    if (!overlay.props || typeof overlay.props !== "object") overlay.props = {};
-
-    const flatText = overlay.text || overlay.label || overlay.title || overlay.caption;
-    if (flatText) {
-      if (overlay.type === "kinetic-text" && !overlay.props.text) overlay.props.text = String(flatText);
-      else if (overlay.type === "counter") {
-        if (!overlay.props.label) overlay.props.label = String(flatText);
-      } else if (!overlay.props.title) {
-        overlay.props.title = String(flatText);
+  return overlays
+    .map((raw, index) => {
+      const overlay = { ...(raw || {}) };
+      if (raw?.ai_meta && typeof raw.ai_meta === "object") {
+        overlay.ai_meta = { ...raw.ai_meta };
       }
-    }
+      if (!overlay.id) overlay.id = `ai-overlay-${index + 1}`;
+      if (!overlay.type && overlay.overlay_type)
+        overlay.type = overlay.overlay_type;
+      if (!overlay.props || typeof overlay.props !== "object")
+        overlay.props = {};
 
-    for (const key of ["position", "iconType", "variant", "accentColor", "theme", "customStyle", "value", "suffix", "items", "events"]) {
-      if (overlay[key] != null && overlay.props[key] == null) overlay.props[key] = overlay[key];
-    }
-
-    if (overlay.end != null && overlay.duration == null) {
-      const startNum = Number(overlay.start);
-      const endNum = Number(overlay.end);
-      if (Number.isFinite(startNum) && Number.isFinite(endNum) && endNum > startNum) {
-        overlay.duration = endNum - startNum;
+      const flatText =
+        overlay.text || overlay.label || overlay.title || overlay.caption;
+      if (flatText) {
+        if (overlay.type === "kinetic-text" && !overlay.props.text)
+          overlay.props.text = String(flatText);
+        else if (overlay.type === "counter") {
+          if (!overlay.props.label) overlay.props.label = String(flatText);
+        } else if (!overlay.props.title) {
+          overlay.props.title = String(flatText);
+        }
       }
-    }
-    if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
-      overlay.duration = 4;
-    }
 
-    if (!GEMINI_OVERLAY_TYPES.has(overlay.type)) {
-      if (overlay.props?.events?.length) overlay.type = "timeline";
-      else if (overlay.props?.items?.length) overlay.type = "bar-chart";
-      else if (overlay.props?.value != null) overlay.type = "counter";
-      else if (overlay.props?.text) overlay.type = "kinetic-text";
-      else overlay.type = "lower-third";
-    }
+      for (const key of [
+        "position",
+        "iconType",
+        "variant",
+        "accentColor",
+        "theme",
+        "customStyle",
+        "value",
+        "suffix",
+        "items",
+        "events",
+      ]) {
+        if (overlay[key] != null && overlay.props[key] == null)
+          overlay.props[key] = overlay[key];
+      }
 
-    return overlay;
-  })
+      if (overlay.end != null && overlay.duration == null) {
+        const startNum = Number(overlay.start);
+        const endNum = Number(overlay.end);
+        if (
+          Number.isFinite(startNum) &&
+          Number.isFinite(endNum) &&
+          endNum > startNum
+        ) {
+          overlay.duration = endNum - startNum;
+        }
+      }
+      if (
+        !Number.isFinite(Number(overlay.duration)) ||
+        Number(overlay.duration) <= 0
+      ) {
+        overlay.duration = 4;
+      }
+
+      if (!GEMINI_OVERLAY_TYPES.has(overlay.type)) {
+        if (overlay.props?.events?.length) overlay.type = "timeline";
+        else if (overlay.props?.items?.length) overlay.type = "bar-chart";
+        else if (overlay.props?.value != null) overlay.type = "counter";
+        else if (overlay.props?.text) overlay.type = "kinetic-text";
+        else overlay.type = "lower-third";
+      }
+
+      return overlay;
+    })
     .map((overlay) => repairOverlayPropsForRemotion(overlay))
-    .filter((o) => o && GEMINI_OVERLAY_TYPES.has(o.type) && !isPlaceholderInformativeOverlay(o));
+    .filter(
+      (o) =>
+        o &&
+        GEMINI_OVERLAY_TYPES.has(o.type) &&
+        !isPlaceholderInformativeOverlay(o)
+    );
 }
 
 function stripSystemInjectedOverlays(overlays = []) {
@@ -15502,21 +18032,39 @@ function stripSystemInjectedOverlays(overlays = []) {
     if (!overlay) return false;
     const id = String(overlay.id || "");
     if (/^listicle-rank-\d+$/.test(id)) return false;
-    if (id === "listicle-recap" || id === "listicle-intro-topn" || id === "listicle-open-loop") return false;
-    if (overlay.type === "rank-progress" || overlay.type === "listicle-stinger" || overlay.type === "listicle-recap") {
+    if (
+      id === "listicle-recap" ||
+      id === "listicle-intro-topn" ||
+      id === "listicle-open-loop"
+    )
+      return false;
+    if (
+      overlay.type === "rank-progress" ||
+      overlay.type === "listicle-stinger" ||
+      overlay.type === "listicle-recap"
+    ) {
       return false;
     }
     return true;
   });
 }
 
-function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts, durations, config = {}, storyboard = {}) {
+function resolveOverlayDurationForBlock(
+  overlay,
+  overlayStart,
+  blockIdx,
+  starts,
+  durations,
+  config = {},
+  storyboard = {}
+) {
   if (isManualOverlayTiming(overlay)) {
     return Math.max(1, Number(overlay.duration) || 4);
   }
   const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
-  const isListicle = config?.content_mode === "LISTICLE"
-    || storyboard?.listicle?.content_mode === "LISTICLE";
+  const isListicle =
+    config?.content_mode === "LISTICLE" ||
+    storyboard?.listicle?.content_mode === "LISTICLE";
   const totalDuration = durations.reduce((a, b) => a + (Number(b) || 0), 0);
   if (blockEnd > blockStart) {
     return computeOverlayDisplayDuration(overlay, {
@@ -15531,12 +18079,23 @@ function resolveOverlayDurationForBlock(overlay, overlayStart, blockIdx, starts,
   return Math.max(3.5, Number(overlay.duration) || 4);
 }
 
-function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [], durations = [], config = {}, storyboard = {}) {
+function ensureNumericOverlayStarts(
+  parsedOverlays,
+  sceneStarts = {},
+  starts = [],
+  durations = [],
+  config = {},
+  storyboard = {}
+) {
   for (let i = 0; i < parsedOverlays.length; i++) {
     const overlay = parsedOverlays[i];
     if (isManualOverlayTiming(overlay)) {
-      if (Number.isFinite(Number(overlay.start))) overlay.start = Number(overlay.start);
-      if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+      if (Number.isFinite(Number(overlay.start)))
+        overlay.start = Number(overlay.start);
+      if (
+        !Number.isFinite(Number(overlay.duration)) ||
+        Number(overlay.duration) <= 0
+      ) {
         overlay.duration = 4;
       }
       continue;
@@ -15547,7 +18106,15 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
     if (Number.isFinite(Number(raw)) && !isLikelySceneId(rawStr)) {
       overlay.start = Number(raw);
       const blockIdx = extractBlockIndex(overlay, overlay.scene_ref);
-      overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+      overlay.duration = resolveOverlayDurationForBlock(
+        overlay,
+        overlay.start,
+        blockIdx,
+        starts,
+        durations,
+        config,
+        storyboard
+      );
       continue;
     }
 
@@ -15556,7 +18123,15 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
         const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
         overlay.start = Number(sceneStarts[rawStr]) + 0.5;
         overlay.scene_ref = rawStr;
-        overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+        overlay.duration = resolveOverlayDurationForBlock(
+          overlay,
+          overlay.start,
+          blockIdx,
+          starts,
+          durations,
+          config,
+          storyboard
+        );
         continue;
       }
       const blockIdx = Math.max(0, Number(rawStr.split(".")[0]) - 1);
@@ -15564,56 +18139,126 @@ function ensureNumericOverlayStarts(parsedOverlays, sceneStarts = {}, starts = [
       if (Number.isFinite(blockStart)) {
         overlay.start = blockStart + 0.5;
         overlay.scene_ref = rawStr;
-        overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
+        overlay.duration = resolveOverlayDurationForBlock(
+          overlay,
+          overlay.start,
+          blockIdx,
+          starts,
+          durations,
+          config,
+          storyboard
+        );
         continue;
       }
     }
 
     const explicitBlock = extractExplicitBlockFromOverlayId(overlay.id);
-    const blockIdx = explicitBlock > 0
-      ? Math.max(0, explicitBlock - 1)
-      : Math.min(i, Math.max(0, starts.length - 1));
+    const blockIdx =
+      explicitBlock > 0
+        ? Math.max(0, explicitBlock - 1)
+        : Math.min(i, Math.max(0, starts.length - 1));
     const blockStart = Number(starts[blockIdx]);
-    overlay.start = Number.isFinite(blockStart) ? blockStart + 0.5 : Math.max(0, i * 5);
-    overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
-    console.log(`[Overlays] Fallback numérico para ${overlay.id}: start=${overlay.start}s`);
+    overlay.start = Number.isFinite(blockStart)
+      ? blockStart + 0.5
+      : Math.max(0, i * 5);
+    overlay.duration = resolveOverlayDurationForBlock(
+      overlay,
+      overlay.start,
+      blockIdx,
+      starts,
+      durations,
+      config,
+      storyboard
+    );
+    console.log(
+      `[Overlays] Fallback numérico para ${overlay.id}: start=${overlay.start}s`
+    );
   }
 
   return parsedOverlays;
 }
 
-function realignPlannedOverlays(plannedRaw, actualScenes, storyboard, starts, durations, wordTranscripts = [], config = {}) {
+function realignPlannedOverlays(
+  plannedRaw,
+  actualScenes,
+  storyboard,
+  starts,
+  durations,
+  wordTranscripts = [],
+  config = {}
+) {
   const cloned = JSON.parse(JSON.stringify(plannedRaw));
-  alignOverlayTimings(cloned, actualScenes, storyboard, starts, durations, wordTranscripts, config);
+  alignOverlayTimings(
+    cloned,
+    actualScenes,
+    storyboard,
+    starts,
+    durations,
+    wordTranscripts,
+    config
+  );
   return cloned;
 }
 
-function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts = [], config = {}) {
-  const { sceneStarts, sceneDurations, sceneNarration } = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
-  const isListicle = config?.content_mode === "LISTICLE"
-    || storyboard?.listicle?.content_mode === "LISTICLE";
+function alignOverlayTimings(
+  parsedOverlays,
+  actualScenes,
+  storyboard,
+  starts,
+  durations,
+  wordTranscripts = [],
+  config = {}
+) {
+  const { sceneStarts, sceneDurations, sceneNarration } = buildSceneTimingMaps(
+    actualScenes,
+    storyboard,
+    starts,
+    durations
+  );
+  const isListicle =
+    config?.content_mode === "LISTICLE" ||
+    storyboard?.listicle?.content_mode === "LISTICLE";
 
   for (let i = 0; i < parsedOverlays.length; i++) {
     const overlay = parsedOverlays[i];
     if (isManualOverlayTiming(overlay)) {
       const rawNum = Number(overlay.start);
       if (Number.isFinite(rawNum) && rawNum >= 0) overlay.start = rawNum;
-      if (!Number.isFinite(Number(overlay.duration)) || Number(overlay.duration) <= 0) {
+      if (
+        !Number.isFinite(Number(overlay.duration)) ||
+        Number(overlay.duration) <= 0
+      ) {
         overlay.duration = 4;
       }
-      console.log(`[Overlays Post-Process] Overlay ${overlay.id} timing manual: start=${overlay.start}s, duration=${overlay.duration}s`);
+      console.log(
+        `[Overlays Post-Process] Overlay ${overlay.id} timing manual: start=${overlay.start}s, duration=${overlay.duration}s`
+      );
       continue;
     }
     const rawSceneRef = String(overlay.start ?? overlay.scene ?? "").trim();
-    const resolvedSceneId = resolveOverlaySceneId(overlay, sceneStarts, sceneDurations);
+    const resolvedSceneId = resolveOverlaySceneId(
+      overlay,
+      sceneStarts,
+      sceneDurations
+    );
 
     if (!resolvedSceneId || sceneStarts[resolvedSceneId] === undefined) {
       const rawNum = Number(overlay.start);
-      if (Number.isFinite(rawNum) && rawNum >= 0 && !isLikelySceneId(rawSceneRef)) {
+      if (
+        Number.isFinite(rawNum) &&
+        rawNum >= 0 &&
+        !isLikelySceneId(rawSceneRef)
+      ) {
         overlay.start = rawNum;
-        const sceneFromTime = findSceneIdForAbsoluteTime(rawNum, sceneStarts, sceneDurations);
+        const sceneFromTime = findSceneIdForAbsoluteTime(
+          rawNum,
+          sceneStarts,
+          sceneDurations
+        );
         if (sceneFromTime) overlay.scene_ref = sceneFromTime;
-        console.log(`[Overlays Post-Process] Overlay ${overlay.id} mantém tempo absoluto: start=${overlay.start}s`);
+        console.log(
+          `[Overlays Post-Process] Overlay ${overlay.id} mantém tempo absoluto: start=${overlay.start}s`
+        );
         continue;
       }
 
@@ -15624,8 +18269,18 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
         if (Number.isFinite(blockStart)) {
           overlay.start = blockStart + 0.5;
           overlay.scene_ref = rawSceneRef;
-          overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
-          console.log(`[Overlays Post-Process] Fallback por scene_id ${rawSceneRef}: start=${overlay.start}s`);
+          overlay.duration = resolveOverlayDurationForBlock(
+            overlay,
+            overlay.start,
+            blockIdx,
+            starts,
+            durations,
+            config,
+            storyboard
+          );
+          console.log(
+            `[Overlays Post-Process] Fallback por scene_id ${rawSceneRef}: start=${overlay.start}s`
+          );
           continue;
         }
       }
@@ -15636,8 +18291,18 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
         const blockStart = Number(starts[blockIdx]);
         if (Number.isFinite(blockStart)) {
           overlay.start = blockStart + 0.5;
-          overlay.duration = resolveOverlayDurationForBlock(overlay, overlay.start, blockIdx, starts, durations, config, storyboard);
-          console.log(`[Overlays Post-Process] Fallback por bloco ${blockNum}: start=${overlay.start}s`);
+          overlay.duration = resolveOverlayDurationForBlock(
+            overlay,
+            overlay.start,
+            blockIdx,
+            starts,
+            durations,
+            config,
+            storyboard
+          );
+          console.log(
+            `[Overlays Post-Process] Fallback por bloco ${blockNum}: start=${overlay.start}s`
+          );
         }
       }
       continue;
@@ -15645,15 +18310,22 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
 
     const sceneStartSec = sceneStarts[resolvedSceneId];
     const sceneDur = sceneDurations[resolvedSceneId] || 4;
-    const blockIdx = Math.max(0, Number(String(resolvedSceneId).split(".")[0]) - 1);
-    const { blockStart, blockEnd } = getBlockTiming(blockIdx, starts, durations);
+    const blockIdx = Math.max(
+      0,
+      Number(String(resolvedSceneId).split(".")[0]) - 1
+    );
+    const { blockStart, blockEnd } = getBlockTiming(
+      blockIdx,
+      starts,
+      durations
+    );
     const siblingCount = parsedOverlays.slice(0, i).filter((ov) => {
       const ovScene = String(ov.start ?? ov.scene ?? "").trim();
       return ovScene === rawSceneRef || ovScene === resolvedSceneId;
     }).length;
 
     const minSiblingGap = isListicle ? 8 : 5;
-    let start = sceneStartSec + 0.5 + (siblingCount * minSiblingGap);
+    let start = sceneStartSec + 0.5 + siblingCount * minSiblingGap;
 
     const keywords = extractOverlayKeywords(overlay);
     const narrationKeywords = String(sceneNarration[resolvedSceneId] || "")
@@ -15671,16 +18343,26 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
     );
 
     if (keywordTime !== null) {
-      const blockLimit = blockEnd > blockStart ? blockEnd - 1.5 : sceneStartSec + sceneDur - 1;
+      const blockLimit =
+        blockEnd > blockStart ? blockEnd - 1.5 : sceneStartSec + sceneDur - 1;
       start = Math.min(keywordTime + 0.15, blockLimit);
     }
 
     const plannedAbs = Number(overlay.start);
-    const blockLimitEnd = blockEnd > blockStart ? blockEnd : sceneStartSec + sceneDur;
-    if (Number.isFinite(plannedAbs) && plannedAbs >= blockStart && plannedAbs <= blockLimitEnd && !isLikelySceneId(rawSceneRef)) {
+    const blockLimitEnd =
+      blockEnd > blockStart ? blockEnd : sceneStartSec + sceneDur;
+    if (
+      Number.isFinite(plannedAbs) &&
+      plannedAbs >= blockStart &&
+      plannedAbs <= blockLimitEnd &&
+      !isLikelySceneId(rawSceneRef)
+    ) {
       overlay.start = plannedAbs;
     } else {
-      overlay.start = Math.max(blockStart > 0 ? blockStart + 0.35 : sceneStartSec, start);
+      overlay.start = Math.max(
+        blockStart > 0 ? blockStart + 0.35 : sceneStartSec,
+        start
+      );
     }
     overlay.scene_ref = resolvedSceneId;
     overlay.duration = computeOverlayDisplayDuration(overlay, {
@@ -15691,14 +18373,25 @@ function alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, d
       isListicle,
     });
 
-    console.log(`[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s (bloco ${blockIdx + 1})`);
+    console.log(
+      `[Overlays Post-Process] Overlay ${overlay.id} → cena ${resolvedSceneId}: start=${overlay.start}s, duration=${overlay.duration}s (bloco ${blockIdx + 1})`
+    );
   }
 
-  ensureNumericOverlayStarts(parsedOverlays, sceneStarts, starts, durations, config, storyboard);
+  ensureNumericOverlayStarts(
+    parsedOverlays,
+    sceneStarts,
+    starts,
+    durations,
+    config,
+    storyboard
+  );
 
-  const totalDur = durations.reduce((a, b) => a + (Number(b) || 0), 0)
-    || (starts.length && durations.length
-      ? Number(starts[starts.length - 1]) + Number(durations[durations.length - 1])
+  const totalDur =
+    durations.reduce((a, b) => a + (Number(b) || 0), 0) ||
+    (starts.length && durations.length
+      ? Number(starts[starts.length - 1]) +
+        Number(durations[durations.length - 1])
       : 0);
   const plan = buildOverlayOrchestrationPlan({
     config,
@@ -15729,18 +18422,20 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
   const gapSetting = config.overlay_min_gap || "normal";
   let minGap;
   if (gapSetting === "tight") {
-    minGap = isShort ? (isListicle ? 8 : 4) : (isListicle ? 9 : 12);
+    minGap = isShort ? (isListicle ? 8 : 4) : isListicle ? 9 : 12;
   } else if (gapSetting === "relaxed") {
-    minGap = isShort ? (isListicle ? 14 : 8) : (isListicle ? 16 : 26);
+    minGap = isShort ? (isListicle ? 14 : 8) : isListicle ? 16 : 26;
   } else {
     // "normal" default
     minGap = isShort ? 4 : 5;
   }
-  console.log(`[Last-Mile Resolver] Gap mínimo entre overlays: ${minGap}s (config: ${gapSetting})`);
+  console.log(
+    `[Last-Mile Resolver] Gap mínimo entre overlays: ${minGap}s (config: ${gapSetting})`
+  );
 
   // Filter informative overlays and system ones (e.g. HUD, retention, etc.)
   const informative = overlays.filter(isInformativeOverlay);
-  const system = overlays.filter(o => !isInformativeOverlay(o));
+  const system = overlays.filter((o) => !isInformativeOverlay(o));
 
   // Sort them chronologically by start time
   informative.sort((a, b) => a.start - b.start);
@@ -15752,7 +18447,9 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
   for (const overlay of informative) {
     let start = Number(overlay.start);
     let duration = Number(overlay.duration) || 4;
-    const currentSceneRef = overlay.scene_ref ? String(overlay.scene_ref).trim() : null;
+    const currentSceneRef = overlay.scene_ref
+      ? String(overlay.scene_ref).trim()
+      : null;
 
     if (isManualOverlayTiming(overlay)) {
       resolved.push(overlay);
@@ -15763,20 +18460,26 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
 
     // Rule: NEVER show two overlays on the same scene (scene_ref match check)
     if (currentSceneRef && lastSceneRef === currentSceneRef) {
-      console.log(`[Last-Mile Resolver] Removido overlay ${overlay.id} porque compartilha a mesma cena (${currentSceneRef}) com o anterior.`);
+      console.log(
+        `[Last-Mile Resolver] Removido overlay ${overlay.id} porque compartilha a mesma cena (${currentSceneRef}) com o anterior.`
+      );
       continue;
     }
 
     // Check overlap with the last accepted informative overlay using config gap
     if (start < lastEnd + minGap) {
-      console.log(`[Last-Mile Resolver] Conflito detectado para overlay ${overlay.id} (start: ${start.toFixed(2)}s) com o fim do anterior em ${lastEnd.toFixed(2)}s. Gap necessário: ${minGap}s.`);
+      console.log(
+        `[Last-Mile Resolver] Conflito detectado para overlay ${overlay.id} (start: ${start.toFixed(2)}s) com o fim do anterior em ${lastEnd.toFixed(2)}s. Gap necessário: ${minGap}s.`
+      );
 
       // Try pushing start time of this overlay forward, if it leaves a readable chunk
       const pushedStart = lastEnd + minGap;
       if (pushedStart + 2.5 <= start + duration) {
-        console.log(`  -> Empurrando início de ${overlay.id} de ${start.toFixed(2)}s para ${pushedStart.toFixed(2)}s`);
+        console.log(
+          `  -> Empurrando início de ${overlay.id} de ${start.toFixed(2)}s para ${pushedStart.toFixed(2)}s`
+        );
         start = pushedStart;
-        duration = Math.max(2.5, (start + duration) - pushedStart);
+        duration = Math.max(2.5, start + duration - pushedStart);
       } else {
         // Enforce sequence logic: try reducing the duration of the previous overlay instead
         const prev = resolved[resolved.length - 1];
@@ -15784,12 +18487,16 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
           const maxPrevEnd = start - 0.5;
           const newPrevDur = maxPrevEnd - prev.start;
           if (newPrevDur >= 2.5) {
-            console.log(`  -> Encurtando overlay anterior ${prev.id} de ${prev.duration.toFixed(2)}s para ${newPrevDur.toFixed(2)}s (acabando em ${maxPrevEnd.toFixed(2)}s)`);
+            console.log(
+              `  -> Encurtando overlay anterior ${prev.id} de ${prev.duration.toFixed(2)}s para ${newPrevDur.toFixed(2)}s (acabando em ${maxPrevEnd.toFixed(2)}s)`
+            );
             prev.duration = newPrevDur;
             lastEnd = prev.start + prev.duration;
           } else {
             // Remove the current overlay to prevent double overlays / screen cluttering
-            console.log(`  -> Ignorando overlay ${overlay.id} totalmente para evitar colisão na tela.`);
+            console.log(
+              `  -> Ignorando overlay ${overlay.id} totalmente para evitar colisão na tela.`
+            );
             continue;
           }
         } else {
@@ -15808,21 +18515,58 @@ function resolveLastMileOverlayCollisions(overlays, config = {}) {
   return [...resolved, ...system];
 }
 
-function finalizeProjectOverlays(projectDir, overlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration) {
+function finalizeProjectOverlays(
+  projectDir,
+  overlays,
+  config,
+  storyboard,
+  starts,
+  durations,
+  orchestrationPlan,
+  totalDuration
+) {
   let result = filterOverlaysByVisualConfig(overlays, config);
   const aiOverlayMode = hasAiPlannedOverlays(storyboard);
   if (!aiOverlayMode) {
-    result = injectProLayoutOverlays(result, config, storyboard, starts, durations, orchestrationPlan);
+    result = injectProLayoutOverlays(
+      result,
+      config,
+      storyboard,
+      starts,
+      durations,
+      orchestrationPlan
+    );
   }
-  result = injectListicleRankOverlays(result, storyboard, config, starts, durations, projectDir);
+  result = injectListicleRankOverlays(
+    result,
+    storyboard,
+    config,
+    starts,
+    durations,
+    projectDir
+  );
   if (!aiOverlayMode) {
-    result = injectRetentionOverlays(projectDir, result, starts, durations, config, storyboard);
+    result = injectRetentionOverlays(
+      projectDir,
+      result,
+      starts,
+      durations,
+      config,
+      storyboard
+    );
   }
   if (aiOverlayMode) {
-    result = result.filter((o) => !isHudOverlay(o) && !isPlaceholderInformativeOverlay(o));
+    result = result.filter(
+      (o) => !isHudOverlay(o) && !isPlaceholderInformativeOverlay(o)
+    );
   }
   result = avoidListicleHudCollisions(result, config, storyboard);
-  result = pruneListicleOverlayDensity(result, config, storyboard, orchestrationPlan);
+  result = pruneListicleOverlayDensity(
+    result,
+    config,
+    storyboard,
+    orchestrationPlan
+  );
   result = stabilizeOverlayTimings(result, {
     starts,
     durations,
@@ -15834,10 +18578,14 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
 
   const informativeOnly = result.filter(isInformativeOverlay);
   const systemOnly = result.filter((o) => !isInformativeOverlay(o));
-  const enforcedInformative = enforceOverlayOrchestration(informativeOnly, orchestrationPlan, {
-    starts,
-    durations,
-  });
+  const enforcedInformative = enforceOverlayOrchestration(
+    informativeOnly,
+    orchestrationPlan,
+    {
+      starts,
+      durations,
+    }
+  );
   result = [...enforcedInformative, ...systemOnly];
   result = stabilizeOverlayTimings(result, {
     starts,
@@ -15848,7 +18596,11 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     totalDuration,
   });
 
-  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const wordTranscripts = readProjectJson(
+    projectDir,
+    "word_transcripts.json",
+    []
+  );
   const sceneMaps = buildSceneTimingMaps(null, storyboard, starts, durations);
   const timingVerified = verifyAndRepairAiOverlayTiming(result, {
     starts,
@@ -15871,7 +18623,7 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
   {
     const isShortVideo = config.aspect_ratio !== "16:9" || totalDuration < 120;
     const informative = result.filter(isInformativeOverlay);
-    const system = result.filter(o => !isInformativeOverlay(o));
+    const system = result.filter((o) => !isInformativeOverlay(o));
 
     let maxAllowed;
     if (isShortVideo) {
@@ -15886,8 +18638,14 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
       informative.sort((a, b) => a.start - b.start);
       const kept = informative.slice(0, maxAllowed);
       const removed = informative.slice(maxAllowed);
-      removed.forEach(o => console.log(`[Overlay Cap] Removido overlay ${o.id} — limite absoluto: ${maxAllowed} (${isShortVideo ? 'SHORT' : 'LONG'})`));
-      console.log(`[Overlay Cap] ${informative.length} → ${kept.length} overlays (limite: ${maxAllowed} para ${isShortVideo ? 'Shorts' : `vídeo de ${Math.floor(totalDuration/60)}min`})`);
+      removed.forEach((o) =>
+        console.log(
+          `[Overlay Cap] Removido overlay ${o.id} — limite absoluto: ${maxAllowed} (${isShortVideo ? "SHORT" : "LONG"})`
+        )
+      );
+      console.log(
+        `[Overlay Cap] ${informative.length} → ${kept.length} overlays (limite: ${maxAllowed} para ${isShortVideo ? "Shorts" : `vídeo de ${Math.floor(totalDuration / 60)}min`})`
+      );
       result = [...kept, ...system];
     }
   }
@@ -15912,14 +18670,22 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
     overlay_timing: timingVerified.report,
   };
   try {
-    fs.writeFileSync(path.join(projectDir, "storyboard.json"), JSON.stringify(storyboard, null, 2), "utf8");
+    fs.writeFileSync(
+      path.join(projectDir, "storyboard.json"),
+      JSON.stringify(storyboard, null, 2),
+      "utf8"
+    );
   } catch (e) {
     console.warn("[Quality] Falha ao salvar quality_report:", e.message);
   }
 
   if (quality.issues.length) {
-    console.log(`[Quality] Score ${quality.score}/100 — ${quality.issues.length} observação(ões):`);
-    quality.issues.forEach((i) => console.log(`  [${i.severity}] ${i.message}`));
+    console.log(
+      `[Quality] Score ${quality.score}/100 — ${quality.issues.length} observação(ões):`
+    );
+    quality.issues.forEach((i) =>
+      console.log(`  [${i.severity}] ${i.message}`)
+    );
   } else {
     console.log(`[Quality] Score ${quality.score}/100 — sem observações.`);
   }
@@ -15928,7 +18694,13 @@ function finalizeProjectOverlays(projectDir, overlays, config, storyboard, start
 }
 
 function readHyperframesSkillExcerpt(maxChars = 2800) {
-  const skillPath = path.join(WORKSPACE_DIR, ".agents", "skills", "hyperframes", "SKILL.md");
+  const skillPath = path.join(
+    WORKSPACE_DIR,
+    ".agents",
+    "skills",
+    "hyperframes",
+    "SKILL.md"
+  );
   if (!fs.existsSync(skillPath)) return "";
   try {
     let raw = fs.readFileSync(skillPath, "utf8");
@@ -15948,21 +18720,31 @@ function buildCompactOverlayPlanningPrompt(
   useHyperframes = true,
   planSessionId = null,
   agentLearningsAddendum = "",
-  overlayResearch = null,
+  overlayResearch = null
 ) {
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   const storyboard = readProjectJson(projectDir, "storyboard.json", {});
-  const timings = readProjectJson(projectDir, "block_timings.json", { total_duration: 0 });
-  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const timings = readProjectJson(projectDir, "block_timings.json", {
+    total_duration: 0,
+  });
+  const blockPhrases = Array.isArray(config.block_phrases)
+    ? config.block_phrases
+    : [];
   if (!blockPhrases.length) return null;
 
   const niche = config.niche || "Geral";
-  const isListicle = config.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
-  const isShort = config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
+  const isListicle =
+    config.content_mode === "LISTICLE" ||
+    storyboard?.listicle?.content_mode === "LISTICLE";
+  const isShort =
+    config.aspect_ratio === "9:16" || config.video_format === "SHORTS";
   const scenes = (storyboard.visual_prompts || []).slice(0, 36).map((vp) => ({
     scene_id: String(vp.scene || `${vp.block || 1}.1`),
     block: vp.block,
-    context_hint: String(vp.prompt || vp.visual_description || "").slice(0, 100),
+    context_hint: String(vp.prompt || vp.visual_description || "").slice(
+      0,
+      100
+    ),
   }));
 
   const orchestrationPlan = buildOverlayOrchestrationPlan({
@@ -15975,31 +18757,39 @@ function buildCompactOverlayPlanningPrompt(
   });
   const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
   const hfGuide = useHyperframes ? readHyperframesSkillExcerpt(7500) : "";
-  const hfRefs = useHyperframes && Array.isArray(orchestrationPlan.hyperframesRefs)
-    ? orchestrationPlan.hyperframesRefs.map((r) => `- ${r}`).join("\n")
-    : "";
+  const hfRefs =
+    useHyperframes && Array.isArray(orchestrationPlan.hyperframesRefs)
+      ? orchestrationPlan.hyperframesRefs.map((r) => `- ${r}`).join("\n")
+      : "";
 
-  const maxOverlays = orchestrationPlan.limits?.maxTotal || (isListicle && isShort ? 2 : isShort ? 2 : 10);
+  const maxOverlays =
+    orchestrationPlan.limits?.maxTotal ||
+    (isListicle && isShort ? 2 : isShort ? 2 : 10);
   const minGap = orchestrationPlan.limits?.minGapSeconds || (isShort ? 12 : 55);
   const selectedBlockNums = overlayResearch?.selectedBlocks?.length
     ? overlayResearch.selectedBlocks
     : (overlayResearch?.blocks || []).map((b) => b.block).filter(Boolean);
-  const blockTopicLines = (overlayResearch?.blockTopics || blockPhrases.map((bp) => ({
-    block: bp.block,
-    primaryTopic: String(bp.phrase || "").slice(0, 80),
-    suggestedType: "lower-third",
-    overlayScore: 0,
-  })))
+  const blockTopicLines = (
+    overlayResearch?.blockTopics ||
+    blockPhrases.map((bp) => ({
+      block: bp.block,
+      primaryTopic: String(bp.phrase || "").slice(0, 80),
+      suggestedType: "lower-third",
+      overlayScore: 0,
+    }))
+  )
     .map((bt) => {
       const selected = selectedBlockNums.includes(bt.block);
       return `- Bloco ${bt.block}${selected ? " [SELECIONADO PARA OVERLAY]" : ""}: assunto="${bt.primaryTopic}" | tipo sugerido=${bt.suggestedType} | score=${bt.overlayScore}`;
     })
     .join("\n");
-  const listicleRules = isListicle && isShort
-    ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
-    : "";
+  const listicleRules =
+    isListicle && isShort
+      ? "LISTICLE SHORT: só counters (máx 2), posição bottom-left/right. Sem lower-third/kinetic-text."
+      : "";
 
-  const hyperframesSchema = useHyperframes ? `
+  const hyperframesSchema = useHyperframes
+    ? `
 SCHEMA OBRIGATÓRIO (HyperFrames → Remotion):
 Cada overlay DEVE ter: id, type, start (scene_id), duration, props.
 - timeline: props.events = array com MÍNIMO 2 itens {year, description}
@@ -16008,11 +18798,14 @@ Cada overlay DEVE ter: id, type, start (scene_id), duration, props.
 - lower-third: props.title, props.subtitle, props.variant, props.iconType, props.position
 Exemplo timeline:
 {"id":"tl-1","type":"timeline","start":"2.1","duration":6,"props":{"title":"CRONOLOGIA","events":[{"year":"221 a.C.","description":"Unificação da China"},{"year":"206 a.C.","description":"Grande Muralha"}],"accentColor":"#D4AF37","orientation":"horizontal","iconType":"history"}}
-` : "";
+`
+    : "";
 
   return [
     `Você é diretor de overlays cinematográficos para vídeo YouTube (nicho: "${niche}").`,
-    useHyperframes ? "MODO HYPERFRAMES AI ORQUESTRADO — siga o catálogo e o plano de orquestração abaixo." : "",
+    useHyperframes
+      ? "MODO HYPERFRAMES AI ORQUESTRADO — siga o catálogo e o plano de orquestração abaixo."
+      : "",
     "OBJETIVO: enriquecer o vídeo com dados visuais NOVOS — NUNCA repetir, resumir ou parafrasear a narração falada.",
     listicleRules,
     useHyperframes
@@ -16044,16 +18837,29 @@ Exemplo timeline:
     "",
     "BLOCOS (contexto apenas — NÃO copie estas frases nos overlays):",
     JSON.stringify(
-      blockPhrases.slice(0, 14).map((bp) => ({ block: bp.block, hint: String(bp.phrase || "").slice(0, 40) + "…" })),
+      blockPhrases
+        .slice(0, 14)
+        .map((bp) => ({
+          block: bp.block,
+          hint: String(bp.phrase || "").slice(0, 40) + "…",
+        })),
       null,
-      2,
+      2
     ),
     agentLearningsAddendum || "",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 // AI-driven overlay planning for Remotion PRO using Gemini API
-async function generateOverlaysWithAI(projectDir, useHyperframes = false, actualScenes = null, renderContext = {}, options = {}) {
+async function generateOverlaysWithAI(
+  projectDir,
+  useHyperframes = false,
+  actualScenes = null,
+  renderContext = {},
+  options = {}
+) {
   const {
     llmText: injectedLlmText = null,
     skipBrowserCache = false,
@@ -16062,17 +18868,28 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   } = options;
   await ensureListItemsInProject(projectDir, {
     getApiKey,
-    callGemini: (prompt, opts) => callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
-    parseJson: (text, label) => parseAiJsonResponse(text, getApiKey(projectDir), label),
+    callGemini: (prompt, opts) =>
+      callGeminiWithRetry(getApiKey(projectDir), prompt, opts),
+    parseJson: (text, label) =>
+      parseAiJsonResponse(text, getApiKey(projectDir), label),
     readProjectJson,
   });
 
   const config = readProjectJson(projectDir, "config_qanat.json", {});
   let storyboard = readProjectJson(projectDir, "storyboard.json", {});
-  const timings = readProjectJson(projectDir, "block_timings.json", { starts: [], durations: [] });
-  const wordTranscripts = readProjectJson(projectDir, "word_transcripts.json", []);
+  const timings = readProjectJson(projectDir, "block_timings.json", {
+    starts: [],
+    durations: [],
+  });
+  const wordTranscripts = readProjectJson(
+    projectDir,
+    "word_transcripts.json",
+    []
+  );
 
-  const blockPhrases = Array.isArray(config.block_phrases) ? config.block_phrases : [];
+  const blockPhrases = Array.isArray(config.block_phrases)
+    ? config.block_phrases
+    : [];
   const starts = Array.isArray(timings.starts) ? timings.starts : [];
   const durations = Array.isArray(timings.durations) ? timings.durations : [];
   const apiKey = getApiKey(projectDir);
@@ -16080,7 +18897,10 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
   const orchestrationPlanEarly = buildOverlayOrchestrationPlan({
     config,
     niche: config.niche || "Geral",
-    totalDuration: Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+    totalDuration:
+      Number(renderContext.totalDuration) ||
+      Number(timings.total_duration) ||
+      0,
     projectName: renderContext.projectName || path.basename(projectDir),
     sceneCount: Array.isArray(actualScenes) ? actualScenes.length : 0,
     blockCount: blockPhrases.length,
@@ -16097,30 +18917,38 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
       starts,
       durations,
       orchestrationPlanEarly,
-      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0
     );
   }
 
-  const plannedRaw = Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0
-    ? storyboard.overlays_ai
-    : (
-      storyboard.overlays_planned_at
-      && Array.isArray(storyboard.overlays)
-      && storyboard.overlays.length > 0
+  const plannedRaw =
+    Array.isArray(storyboard.overlays_ai) && storyboard.overlays_ai.length > 0
+      ? storyboard.overlays_ai
+      : storyboard.overlays_planned_at &&
+          Array.isArray(storyboard.overlays) &&
+          storyboard.overlays.length > 0
         ? stripSystemInjectedOverlays(storyboard.overlays)
-        : null
-    );
+        : null;
   const plannedSource = plannedRaw
     ? filterNarrationEchoOverlays(plannedRaw, blockPhrases)
     : null;
 
   const plannedHyperframes = storyboard.overlays_hyperframes === true;
   if (useHyperframes !== plannedHyperframes && plannedSource?.length) {
-    console.log(`[Overlays] Modo HyperFrames (${useHyperframes}) difere do planejamento (${plannedHyperframes}) — reutilizando com reparo.`);
+    console.log(
+      `[Overlays] Modo HyperFrames (${useHyperframes}) difere do planejamento (${plannedHyperframes}) — reutilizando com reparo.`
+    );
   }
 
-  if (!skipBrowserCache && !injectedLlmText && plannedSource && plannedSource.length > 0) {
-    console.log(`[Overlays] Reutilizando ${plannedSource.length} overlays planejados${useHyperframes ? " [HyperFrames]" : ""} (re-alinhando com timeline de render).`);
+  if (
+    !skipBrowserCache &&
+    !injectedLlmText &&
+    plannedSource &&
+    plannedSource.length > 0
+  ) {
+    console.log(
+      `[Overlays] Reutilizando ${plannedSource.length} overlays planejados${useHyperframes ? " [HyperFrames]" : ""} (re-alinhando com timeline de render).`
+    );
     let realigned = repairOverlaysEncoding(
       normalizeGeminiOverlayPayload(
         realignPlannedOverlays(
@@ -16130,19 +18958,30 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
           starts,
           durations,
           wordTranscripts,
-          config,
-        ),
-      ),
+          config
+        )
+      )
     );
-    const plannedSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
-    const plannedTotalDur = Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
+    const plannedSceneMaps = buildSceneTimingMaps(
+      actualScenes,
+      storyboard,
+      starts,
+      durations
+    );
+    const plannedTotalDur =
+      Number(renderContext.totalDuration) ||
+      Number(timings.total_duration) ||
+      0;
     realigned = redistributeInformativeOverlayStarts(
       realigned,
       orchestrationPlanEarly,
       plannedTotalDur,
-      { starts, durations, sceneStarts: plannedSceneMaps.sceneStarts },
+      { starts, durations, sceneStarts: plannedSceneMaps.sceneStarts }
     );
-    realigned = enforceOverlayOrchestration(realigned, orchestrationPlanEarly, { starts, durations });
+    realigned = enforceOverlayOrchestration(realigned, orchestrationPlanEarly, {
+      starts,
+      durations,
+    });
     realigned = stabilizeOverlayTimings(realigned, {
       starts,
       durations,
@@ -16159,12 +18998,14 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
       starts,
       durations,
       orchestrationPlanEarly,
-      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0
     );
   }
 
   if (!injectedLlmText && !apiKey && !shouldOfferGeminiBrowser(projectDir)) {
-    console.log("[Overlays] Sem chave API — overlays de IA indisponíveis (narração não será repetida).");
+    console.log(
+      "[Overlays] Sem chave API — overlays de IA indisponíveis (narração não será repetida)."
+    );
     if (planningOnly) return [];
     return finalizeProjectOverlays(
       projectDir,
@@ -16174,12 +19015,18 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
       starts,
       durations,
       orchestrationPlanEarly,
-      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0
     );
   }
 
-  if (!injectedLlmText && shouldOfferGeminiBrowser(projectDir) && !(plannedSource && plannedSource.length > 0)) {
-    console.log("[Overlays] Gemini Chrome sem planejamento prévio — render sem overlays de narração.");
+  if (
+    !injectedLlmText &&
+    shouldOfferGeminiBrowser(projectDir) &&
+    !(plannedSource && plannedSource.length > 0)
+  ) {
+    console.log(
+      "[Overlays] Gemini Chrome sem planejamento prévio — render sem overlays de narração."
+    );
     if (planningOnly) return [];
     return finalizeProjectOverlays(
       projectDir,
@@ -16189,7 +19036,7 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
       starts,
       durations,
       orchestrationPlanEarly,
-      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0,
+      Number(renderContext.totalDuration) || Number(timings.total_duration) || 0
     );
   }
 
@@ -16197,15 +19044,18 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     const idx = Number(bp.block || 1) - 1;
     return {
       block: bp.block,
-      start: starts[idx] || (idx * 15),
+      start: starts[idx] || idx * 15,
       duration: durations[idx] || 15,
       narration: bp.phrase || "",
     };
   });
 
-  const highlightKeywords = Array.isArray(config.highlight_keywords) ? config.highlight_keywords : [];
+  const highlightKeywords = Array.isArray(config.highlight_keywords)
+    ? config.highlight_keywords
+    : [];
   const niche = config.niche || "Geral";
-  const totalDuration = Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
+  const totalDuration =
+    Number(renderContext.totalDuration) || Number(timings.total_duration) || 0;
   const projectName = renderContext.projectName || path.basename(projectDir);
 
   const orchestrationPlan = buildOverlayOrchestrationPlan({
@@ -16217,9 +19067,12 @@ async function generateOverlaysWithAI(projectDir, useHyperframes = false, actual
     blockCount: blockPhrases.length,
   });
   const orchestrationPrompt = buildOrchestrationPrompt(orchestrationPlan);
-  const isListicleOverlay = config.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
-  const listicleShortsOverlayRules = isListicleOverlay && orchestrationPlan.format === "SHORT"
-    ? `
+  const isListicleOverlay =
+    config.content_mode === "LISTICLE" ||
+    storyboard?.listicle?.content_mode === "LISTICLE";
+  const listicleShortsOverlayRules =
+    isListicleOverlay && orchestrationPlan.format === "SHORT"
+      ? `
 MODO LISTICLE SHORTS (CRÍTICO — leia antes de gerar overlays):
 - O sistema JÁ injeta automaticamente: badge #N persistente no topo durante cada item e recap no final. PROIBIDO kinetic-text central "TOP N" ou "#N — título".
 - Você deve gerar NO MÁXIMO ${orchestrationPlan.limits.maxTotal} overlays do tipo "counter" APENAS.
@@ -16228,28 +19081,37 @@ MODO LISTICLE SHORTS (CRÍTICO — leia antes de gerar overlays):
 - Cada counter = 1 número impactante que NÃO está na narração (ex: alcance em metros, toneladas).
 - Posição obrigatória: "bottom-left" ou "bottom-right".
 `
-    : "";
-  console.log(`[Orchestration] Formato: ${orchestrationPlan.format} | Perfil: ${orchestrationPlan.varietyLabel} | Máx overlays: ${orchestrationPlan.limits.maxTotal}${isListicleOverlay ? " | LISTICLE" : ""}`);
+      : "";
+  console.log(
+    `[Orchestration] Formato: ${orchestrationPlan.format} | Perfil: ${orchestrationPlan.varietyLabel} | Máx overlays: ${orchestrationPlan.limits.maxTotal}${isListicleOverlay ? " | LISTICLE" : ""}`
+  );
 
-  const scenesContext = Array.isArray(actualScenes) && actualScenes.length > 0
-    ? actualScenes.map((scene) => ({
-        scene_id: String(scene.scene_id || `${scene.block}.1`).trim(),
-        block: scene.block,
-        start_seconds: Number(scene.start) || 0,
-        duration_seconds: Number(scene.duration) || 4,
-        narration_text: scene.narrationText || "",
-      }))
-    : (storyboard.visual_prompts || []).map((vp) => ({
-        scene_id: String(vp.scene || `${vp.block || 1}.1`).trim(),
-        block: vp.block,
-        duration_seconds: vp.duration_seconds || 5,
-        visual_description: vp.prompt || "",
-        narration_text: vp.narration_text || "",
-      }));
+  const scenesContext =
+    Array.isArray(actualScenes) && actualScenes.length > 0
+      ? actualScenes.map((scene) => ({
+          scene_id: String(scene.scene_id || `${scene.block}.1`).trim(),
+          block: scene.block,
+          start_seconds: Number(scene.start) || 0,
+          duration_seconds: Number(scene.duration) || 4,
+          narration_text: scene.narrationText || "",
+        }))
+      : (storyboard.visual_prompts || []).map((vp) => ({
+          scene_id: String(vp.scene || `${vp.block || 1}.1`).trim(),
+          block: vp.block,
+          duration_seconds: vp.duration_seconds || 5,
+          visual_description: vp.prompt || "",
+          narration_text: vp.narration_text || "",
+        }));
 
   let skillPrompt = "";
   if (useHyperframes) {
-    const skillPath = path.join(WORKSPACE_DIR, ".agents", "skills", "hyperframes", "SKILL.md");
+    const skillPath = path.join(
+      WORKSPACE_DIR,
+      ".agents",
+      "skills",
+      "hyperframes",
+      "SKILL.md"
+    );
     if (fs.existsSync(skillPath)) {
       try {
         const rawContent = fs.readFileSync(skillPath, "utf8");
@@ -16294,19 +19156,26 @@ Retorne um objeto JSON contendo exatamente esta estrutura:
 ${orchestrationPrompt}
 ${listicleShortsOverlayRules}
 
-${useHyperframes ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
+${
+  useHyperframes
+    ? `ATENÇÃO - MODO ORQUESTRADOR HYPERFRAMES AI ATIVADO:
 Você deve projetar os overlays usando as regras, templates e o catálogo de alta conversão do HyperFrames.
 Utilize as especificações, formatos e exemplos descritos no manual de design a seguir para estruturar as "props" e os objetos de "customStyle" (incluindo cores, raios de borda, glows de sombra e fontes):
 
-${skillPrompt || `1. Para "customStyle", você deve configurar as cores de fundo, bordas e sombras neon livremente de acordo com a variante e tema.
+${
+  skillPrompt ||
+  `1. Para "customStyle", você deve configurar as cores de fundo, bordas e sombras neon livremente de acordo com a variante e tema.
 2. Diversifique ao máximo os 17 ícones animados ("iconType") conforme o contexto! Não repita os mesmos em sequência.
 3. VOCÊ PODE E DEVE CRIAR DIVERSOS FORMATOS DO CATÁLOGO HYPERFRAMES:
    - "tiktok-comment", "reddit-post", "instagram-comment" (use o tipo "info-card" com variante "glass" ou "minimal", avatar e títulos de autor como "r/HojeEuAprendi • p/u/User" ou "@username").
    - "lt-soft-pill" (use o tipo "lower-third" com variante "glass" e cantos muito arredondados "40px", gradientes suaves, e o iconType do Lottie correspondente!).
    - "lt-accent-underline" (use o tipo "lower-third" com variante "accent-underline" para o título ser sublinhado por uma linha colorida neon grossa).
    - "step-by-step-sequence" (use o tipo "timeline" em modo horizontal ou vertical para ilustrar sequências de processos com realces).
-   - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).`}
-` : ""}
+   - "key-facts-highlights" (use o tipo "info-card" formatado com quebras de linha e bullets no texto).`
+}
+`
+    : ""
+}
 
 REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
 1. SIGA O PLANO DE ORQUESTRAÇÃO ACIMA — ele define o orçamento exato de overlays para este vídeo. Não exceda os limites.${isListicleOverlay && orchestrationPlan.format === "SHORT" ? " Em LISTICLE SHORTS, gere poucos counters — o HUD de ranking já cobre a identidade visual." : " Use os componentes disponíveis dentro do orçamento."}
@@ -16480,13 +19349,19 @@ Estrutura JSON Exigida:
     });
     if (studioAddendum) {
       systemPrompt += studioAddendum;
-      console.log("[Studio Agents] Memória + skills bundle injetados no prompt de overlays.");
+      console.log(
+        "[Studio Agents] Memória + skills bundle injetados no prompt de overlays."
+      );
     }
   }
 
-  const overlayResearch = await resolveOverlayResearchForPlanning(projectDir, WORKSPACE_DIR, {
-    orchestrationPlan,
-  });
+  const overlayResearch = await resolveOverlayResearchForPlanning(
+    projectDir,
+    WORKSPACE_DIR,
+    {
+      orchestrationPlan,
+    }
+  );
   const overlayResearchBlock = buildOverlayResearchPromptBlock(overlayResearch);
   if (overlayResearchBlock) {
     systemPrompt += overlayResearchBlock;
@@ -16504,17 +19379,29 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
     let rawResponse = injectedLlmText;
     if (!rawResponse) {
       const requestBody = {
-        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
+          },
+        ],
         generationConfig: {
           responseMimeType: "application/json",
         },
       };
-      rawResponse = await callGeminiWithRetry(apiKey, null, { bodyOverride: requestBody });
+      rawResponse = await callGeminiWithRetry(apiKey, null, {
+        bodyOverride: requestBody,
+      });
     }
 
-    let cleaned = extractOverlayJsonPayload(rawResponse) || String(rawResponse || "").trim();
+    let cleaned =
+      extractOverlayJsonPayload(rawResponse) ||
+      String(rawResponse || "").trim();
     if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/g, "").trim();
+      cleaned = cleaned
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/g, "")
+        .trim();
     }
     if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
       cleaned = extractOverlayJsonPayload(cleaned) || cleaned;
@@ -16530,8 +19417,10 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         parsedOverlays = resultObj.overlays;
         if (resultObj.planejamento) {
           overlayPlanejamento = resultObj.planejamento;
-          console.log("[Overlays Planning] Plano detalhado executado pela IA para este vídeo:");
-          resultObj.planejamento.forEach(p => console.log(`  - ${p}`));
+          console.log(
+            "[Overlays Planning] Plano detalhado executado pela IA para este vídeo:"
+          );
+          resultObj.planejamento.forEach((p) => console.log(`  - ${p}`));
           persistOverlayPlanejamento(projectDir, overlayPlanejamento);
         }
       } else if (resultObj?.data && Array.isArray(resultObj.data.overlays)) {
@@ -16539,21 +19428,33 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       } else if (resultObj && typeof resultObj === "object") {
         const arrayKey = Object.keys(resultObj).find((key) => {
           const val = resultObj[key];
-          return Array.isArray(val) && val.length > 0 && val[0] && (val[0].type || val[0].text || val[0].props);
+          return (
+            Array.isArray(val) &&
+            val.length > 0 &&
+            val[0] &&
+            (val[0].type || val[0].text || val[0].props)
+          );
         });
         if (arrayKey) {
           parsedOverlays = resultObj[arrayKey];
           console.log(`[Overlays] JSON extraído do campo "${arrayKey}".`);
         } else {
-          console.warn("[Overlays] Formato inesperado do Gemini — sem array de overlays.");
+          console.warn(
+            "[Overlays] Formato inesperado do Gemini — sem array de overlays."
+          );
           parsedOverlays = [];
         }
       } else {
         parsedOverlays = [];
       }
     } catch (parseErr) {
-      console.error("[Overlays] Erro ao parsear JSON principal, tentando extração balanceada:", parseErr);
-      const recovered = extractOverlayJsonPayload(cleaned) || extractOverlayJsonPayload(rawResponse);
+      console.error(
+        "[Overlays] Erro ao parsear JSON principal, tentando extração balanceada:",
+        parseErr
+      );
+      const recovered =
+        extractOverlayJsonPayload(cleaned) ||
+        extractOverlayJsonPayload(rawResponse);
       if (!recovered) throw parseErr;
       const resultObj = JSON.parse(recovered);
       if (Array.isArray(resultObj)) {
@@ -16569,18 +19470,38 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
     }
     if (Array.isArray(parsedOverlays)) {
-      parsedOverlays = repairStoryboardEncoding(normalizeGeminiOverlayPayload(parsedOverlays));
-      console.log(`[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares (mojibake reparado).`);
+      parsedOverlays = repairStoryboardEncoding(
+        normalizeGeminiOverlayPayload(parsedOverlays)
+      );
+      console.log(
+        `[Overlays] IA gerou com sucesso ${parsedOverlays.length} overlays complementares (mojibake reparado).`
+      );
 
-      alignOverlayTimings(parsedOverlays, actualScenes, storyboard, starts, durations, wordTranscripts, config);
+      alignOverlayTimings(
+        parsedOverlays,
+        actualScenes,
+        storyboard,
+        starts,
+        durations,
+        wordTranscripts,
+        config
+      );
 
-      const isTech = niche.toLowerCase().includes("tecnologia") || niche.toLowerCase().includes("programacao") || niche.toLowerCase().includes("computador") || niche.toLowerCase().includes("ciber") || niche.toLowerCase().includes("software");
-      const orchProfile = VARIETY_PROFILES.find((p) => p.id === orchestrationPlan.varietyProfile) || VARIETY_PROFILES[0];
+      const isTech =
+        niche.toLowerCase().includes("tecnologia") ||
+        niche.toLowerCase().includes("programacao") ||
+        niche.toLowerCase().includes("computador") ||
+        niche.toLowerCase().includes("ciber") ||
+        niche.toLowerCase().includes("software");
+      const orchProfile =
+        VARIETY_PROFILES.find(
+          (p) => p.id === orchestrationPlan.varietyProfile
+        ) || VARIETY_PROFILES[0];
       const variants = ["glass", "minimal", "accent", "floating"];
       const positions = orchProfile.positions;
       const lotties = orchProfile.lotties;
       const ltVariants = orchProfile.lowerThirdVariants;
-      
+
       let variantIdx = 0;
       let posIdx = 0;
       let lottieIdx = 0;
@@ -16589,20 +19510,25 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         const overlay = parsedOverlays[i];
         if (!overlay.props) overlay.props = {};
         const sceneId = String(overlay.scene_ref || overlay.start || "").trim();
-        const sceneCtx = scenesContext.find((s) => String(s.scene_id || s.scene) === sceneId) || null;
+        const sceneCtx =
+          scenesContext.find(
+            (s) => String(s.scene_id || s.scene) === sceneId
+          ) || null;
         ensureOverlayAiMeta(overlay, overlayResearch, sceneCtx);
 
         // 0. Converte info-cards temáticos para lower-thirds (Tirar cards temáticos e colocar lower thirds)
         if (overlay.type === "info-card") {
-          console.log(`[Overlays Post-Process] Convertendo info-card temático (${overlay.props.title}) para lower-third.`);
+          console.log(
+            `[Overlays Post-Process] Convertendo info-card temático (${overlay.props.title}) para lower-third.`
+          );
           overlay.type = "lower-third";
           overlay.props.subtitle = overlay.props.description || "";
           delete overlay.props.description;
-          
+
           // Ajusta a posição para ser compatível com lower-third
           const pos = overlay.props.position || "bottom-left";
           if (pos.includes("right")) {
-            overlay.props.position = "bottom-center"; 
+            overlay.props.position = "bottom-center";
           } else if (pos.includes("top")) {
             overlay.props.position = "top-left";
           } else {
@@ -16613,9 +19539,41 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         // 1. Corrigir vazamento de código de programação em vídeos que não são de tecnologia
         if (!isTech) {
           let hasCodeContent = false;
-          const codeKeywords = ["import", "const ", "let ", "var ", "console.log", "npm run", ".js", ".ts", ".py", ".json", ".cpp", ".h", ".cs", ".sh", "function ", "void ", "class ", "public ", "private ", "struct ", "def ", "return ", "import {", "<pre", "<code>"];
-          
-          const textToCheck = ((overlay.props.title || "") + " " + (overlay.props.description || "") + " " + (overlay.props.subtitle || "")).toLowerCase();
+          const codeKeywords = [
+            "import",
+            "const ",
+            "let ",
+            "var ",
+            "console.log",
+            "npm run",
+            ".js",
+            ".ts",
+            ".py",
+            ".json",
+            ".cpp",
+            ".h",
+            ".cs",
+            ".sh",
+            "function ",
+            "void ",
+            "class ",
+            "public ",
+            "private ",
+            "struct ",
+            "def ",
+            "return ",
+            "import {",
+            "<pre",
+            "<code>",
+          ];
+
+          const textToCheck = (
+            (overlay.props.title || "") +
+            " " +
+            (overlay.props.description || "") +
+            " " +
+            (overlay.props.subtitle || "")
+          ).toLowerCase();
           for (const kw of codeKeywords) {
             if (textToCheck.includes(kw)) {
               hasCodeContent = true;
@@ -16624,21 +19582,31 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
           }
 
           if (hasCodeContent || overlay.props.theme === "tech") {
-            console.log(`[Overlays Post-Process] Convertendo card de código detectado incorretamente para o nicho ${niche}`);
+            console.log(
+              `[Overlays Post-Process] Convertendo card de código detectado incorretamente para o nicho ${niche}`
+            );
             overlay.props.theme = "classic";
             overlay.props.variant = "glass";
-            
+
             let title = overlay.props.title || "";
             title = title.replace(/\.(js|ts|py|sh|json|cpp|h|cs)$/i, "");
             title = title.replace(/[📄⚡⚙️📡🔴🟡🟢~#$]+/g, "");
             title = title.trim();
-            if (!title || title.toLowerCase().includes("bash") || title.toLowerCase().includes("git") || title.toLowerCase().includes("terminal") || title.toLowerCase().includes("code") || title.toLowerCase().includes("sweep")) {
+            if (
+              !title ||
+              title.toLowerCase().includes("bash") ||
+              title.toLowerCase().includes("git") ||
+              title.toLowerCase().includes("terminal") ||
+              title.toLowerCase().includes("code") ||
+              title.toLowerCase().includes("sweep")
+            ) {
               title = "INFORMAÇÃO";
             }
             overlay.props.title = title.toUpperCase();
 
             // Recupera e limpa a descrição original ou subtítulo
-            let desc = overlay.props.description || overlay.props.subtitle || "";
+            let desc =
+              overlay.props.description || overlay.props.subtitle || "";
             desc = desc.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "$1");
             desc = desc.replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, "$1");
             desc = desc.replace(/const\s+\w+\s*=[\s\S]*?;/g, "");
@@ -16649,11 +19617,13 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
             if (!desc || desc.length < 5) {
               // Usa uma descrição complementar limpa de alta conversão sem nenhuma relação com o roteiro falado
               if (overlay.props.theme === "ancient") {
-                desc = "Detalhes e engenharia antiga com curiosidades importantes.";
+                desc =
+                  "Detalhes e engenharia antiga com curiosidades importantes.";
               } else if (overlay.props.theme === "nature") {
                 desc = "Aspectos geográficos e dados sobre a região analisada.";
               } else if (overlay.props.theme === "industrial") {
-                desc = "Propriedades físicas dos materiais e técnicas estruturais.";
+                desc =
+                  "Propriedades físicas dos materiais e técnicas estruturais.";
               } else if (overlay.props.theme === "mysterious") {
                 desc = "Teorias, enigmas e hipóteses do período histórico.";
               } else {
@@ -16666,13 +19636,13 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
                 desc = words.slice(0, 12).join(" ") + "...";
               }
             }
-            
+
             if (overlay.type === "lower-third") {
               overlay.props.subtitle = desc;
             } else {
               overlay.props.description = desc;
             }
-            
+
             if (overlay.props.customStyle) {
               delete overlay.props.customStyle.fontFamilyTitle;
               delete overlay.props.customStyle.fontFamilyDesc;
@@ -16687,29 +19657,54 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
           variantIdx++;
         } else if (overlay.type === "info-card") {
           const cardVariants = ["glass", "minimal", "accent", "floating"];
-          overlay.props.variant = cardVariants[variantIdx % cardVariants.length];
+          overlay.props.variant =
+            cardVariants[variantIdx % cardVariants.length];
           variantIdx++;
         } else {
           overlay.props.variant = variants[variantIdx % variants.length];
           variantIdx++;
         }
-        
+
         overlay.props.position = positions[posIdx % positions.length];
         posIdx++;
-        
-        if (overlay.type === "info-card" || overlay.type === "counter" || overlay.type === "bar-chart" || overlay.type === "lower-third") {
+
+        if (
+          overlay.type === "info-card" ||
+          overlay.type === "counter" ||
+          overlay.type === "bar-chart" ||
+          overlay.type === "lower-third"
+        ) {
           overlay.props.iconType = lotties[lottieIdx % lotties.length];
           lottieIdx++;
         }
 
         // Mapeia temas baseados no nicho
         const cleanNiche = niche.toLowerCase();
-        if (!overlay.props.theme || (overlay.props.theme === "tech" && !isTech)) {
-          if (cleanNiche.includes("historia") || cleanNiche.includes("arqueologia") || cleanNiche.includes("inca") || cleanNiche.includes("egito") || cleanNiche.includes("antigo") || cleanNiche.includes("castelo")) {
+        if (
+          !overlay.props.theme ||
+          (overlay.props.theme === "tech" && !isTech)
+        ) {
+          if (
+            cleanNiche.includes("historia") ||
+            cleanNiche.includes("arqueologia") ||
+            cleanNiche.includes("inca") ||
+            cleanNiche.includes("egito") ||
+            cleanNiche.includes("antigo") ||
+            cleanNiche.includes("castelo")
+          ) {
             overlay.props.theme = "ancient";
-          } else if (cleanNiche.includes("deserto") || cleanNiche.includes("natureza") || cleanNiche.includes("geografia") || cleanNiche.includes("amazonia")) {
+          } else if (
+            cleanNiche.includes("deserto") ||
+            cleanNiche.includes("natureza") ||
+            cleanNiche.includes("geografia") ||
+            cleanNiche.includes("amazonia")
+          ) {
             overlay.props.theme = "nature";
-          } else if (cleanNiche.includes("militar") || cleanNiche.includes("guerra") || cleanNiche.includes("industrial")) {
+          } else if (
+            cleanNiche.includes("militar") ||
+            cleanNiche.includes("guerra") ||
+            cleanNiche.includes("industrial")
+          ) {
             overlay.props.theme = "industrial";
           } else {
             overlay.props.theme = "classic";
@@ -16719,11 +19714,12 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         // Injeta customStyle decorativo e vibrante correspondente ao tema
         if (!overlay.props.customStyle) overlay.props.customStyle = {};
         const accent = overlay.props.accentColor || "#D4AF37";
-        
+
         if (overlay.props.theme === "ancient") {
           overlay.props.customStyle = {
             ...overlay.props.customStyle,
-            background: "linear-gradient(135deg, rgba(22, 14, 8, 0.97) 0%, rgba(42, 28, 16, 0.94) 100%)",
+            background:
+              "linear-gradient(135deg, rgba(22, 14, 8, 0.97) 0%, rgba(42, 28, 16, 0.94) 100%)",
             border: `2px double ${accent}`,
             borderRadius: "16px 2px",
             boxShadow: `0 10px 40px ${accent}30`,
@@ -16733,7 +19729,8 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         } else if (overlay.props.theme === "nature") {
           overlay.props.customStyle = {
             ...overlay.props.customStyle,
-            background: "linear-gradient(135deg, rgba(8, 20, 12, 0.96) 0%, rgba(16, 40, 24, 0.92) 100%)",
+            background:
+              "linear-gradient(135deg, rgba(8, 20, 12, 0.96) 0%, rgba(16, 40, 24, 0.92) 100%)",
             border: `1.5px solid ${accent}60`,
             borderRadius: "24px 4px",
             boxShadow: `0 10px 30px ${accent}25`,
@@ -16743,7 +19740,8 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         } else if (overlay.props.theme === "industrial") {
           overlay.props.customStyle = {
             ...overlay.props.customStyle,
-            background: "linear-gradient(135deg, rgba(12, 12, 14, 0.98) 0%, rgba(26, 26, 30, 0.95) 100%)",
+            background:
+              "linear-gradient(135deg, rgba(12, 12, 14, 0.98) 0%, rgba(26, 26, 30, 0.95) 100%)",
             borderLeft: `5px solid ${accent}`,
             borderRadius: "0px",
             boxShadow: "0 8px 30px rgba(0,0,0,0.8)",
@@ -16753,7 +19751,8 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         } else if (overlay.props.theme === "mysterious") {
           overlay.props.customStyle = {
             ...overlay.props.customStyle,
-            background: "linear-gradient(135deg, rgba(10, 5, 18, 0.97) 0%, rgba(24, 12, 40, 0.94) 100%)",
+            background:
+              "linear-gradient(135deg, rgba(10, 5, 18, 0.97) 0%, rgba(24, 12, 40, 0.94) 100%)",
             border: `1px solid ${accent}40`,
             borderRadius: "14px",
             boxShadow: `0 12px 36px ${accent}35, inset 0 0 15px rgba(255,255,255,0.02)`,
@@ -16774,33 +19773,60 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
         }
 
         // Detect if the AI duplicated the narration script inside the overlay text, and rewrite/remove it
-        const currentBlockNum = Number(overlay.id.replace(/[^\d]/g, "")) || i + 1;
-        const currentBlockCtx = blockContexts.find(bc => Number(bc.block) === currentBlockNum) || blockContexts[i] || blockContexts[0];
+        const currentBlockNum =
+          Number(overlay.id.replace(/[^\d]/g, "")) || i + 1;
+        const currentBlockCtx =
+          blockContexts.find((bc) => Number(bc.block) === currentBlockNum) ||
+          blockContexts[i] ||
+          blockContexts[0];
         if (currentBlockCtx && currentBlockCtx.narration) {
-          const cleanNarr = currentBlockCtx.narration.toLowerCase().replace(/[^\w\s]/g, "").trim();
-          
+          const cleanNarr = currentBlockCtx.narration
+            .toLowerCase()
+            .replace(/[^\w\s]/g, "")
+            .trim();
+
           if (overlay.props.description) {
-            const cleanDesc = overlay.props.description.toLowerCase().replace(/[^\w\s]/g, "").trim();
-            if (cleanNarr.includes(cleanDesc) || cleanDesc.includes(cleanNarr) || (cleanDesc.length > 30 && cleanNarr.substring(0, 30) === cleanDesc.substring(0, 30))) {
-              console.log(`[Overlays Post-Process] Duplicação de narração detectada na descrição do overlay ${overlay.id}. Substituindo por curiosidade complementar.`);
+            const cleanDesc = overlay.props.description
+              .toLowerCase()
+              .replace(/[^\w\s]/g, "")
+              .trim();
+            if (
+              cleanNarr.includes(cleanDesc) ||
+              cleanDesc.includes(cleanNarr) ||
+              (cleanDesc.length > 30 &&
+                cleanNarr.substring(0, 30) === cleanDesc.substring(0, 30))
+            ) {
+              console.log(
+                `[Overlays Post-Process] Duplicação de narração detectada na descrição do overlay ${overlay.id}. Substituindo por curiosidade complementar.`
+              );
               if (overlay.props.theme === "ancient") {
-                overlay.props.description = "Aspectos históricos e engenharia clássica do período.";
+                overlay.props.description =
+                  "Aspectos históricos e engenharia clássica do período.";
               } else if (overlay.props.theme === "nature") {
-                overlay.props.description = "Fatores ambientais e especificações da geografia local.";
+                overlay.props.description =
+                  "Fatores ambientais e especificações da geografia local.";
               } else if (overlay.props.theme === "industrial") {
-                overlay.props.description = "Propriedades físicas dos materiais e técnicas estruturais.";
+                overlay.props.description =
+                  "Propriedades físicas dos materiais e técnicas estruturais.";
               } else if (overlay.props.theme === "mysterious") {
-                overlay.props.description = "Mistérios intrigantes, segredos e teorias propostas.";
+                overlay.props.description =
+                  "Mistérios intrigantes, segredos e teorias propostas.";
               } else {
-                overlay.props.description = "Dados de engenharia e informações técnicas adicionais.";
+                overlay.props.description =
+                  "Dados de engenharia e informações técnicas adicionais.";
               }
             }
           }
-          
+
           if (overlay.props.subtitle) {
-            const cleanSub = overlay.props.subtitle.toLowerCase().replace(/[^\w\s]/g, "").trim();
+            const cleanSub = overlay.props.subtitle
+              .toLowerCase()
+              .replace(/[^\w\s]/g, "")
+              .trim();
             if (cleanNarr.includes(cleanSub) || cleanSub.includes(cleanNarr)) {
-              console.log(`[Overlays Post-Process] Duplicação de narração detectada no subtítulo do overlay ${overlay.id}. Removendo subtítulo.`);
+              console.log(
+                `[Overlays Post-Process] Duplicação de narração detectada no subtítulo do overlay ${overlay.id}. Removendo subtítulo.`
+              );
               overlay.props.subtitle = "";
             }
           }
@@ -16819,18 +19845,29 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
             overlay.props.subtitle = words.slice(0, 12).join(" ") + "...";
           }
         }
-
       }
 
-      parsedOverlays = filterNarrationEchoOverlays(parsedOverlays, blockPhrases);
-      const genSceneMaps = buildSceneTimingMaps(actualScenes, storyboard, starts, durations);
+      parsedOverlays = filterNarrationEchoOverlays(
+        parsedOverlays,
+        blockPhrases
+      );
+      const genSceneMaps = buildSceneTimingMaps(
+        actualScenes,
+        storyboard,
+        starts,
+        durations
+      );
       parsedOverlays = redistributeInformativeOverlayStarts(
         parsedOverlays,
         orchestrationPlan,
         totalDuration,
-        { starts, durations, sceneStarts: genSceneMaps.sceneStarts },
+        { starts, durations, sceneStarts: genSceneMaps.sceneStarts }
       );
-      parsedOverlays = enforceOverlayOrchestration(parsedOverlays, orchestrationPlan, { starts, durations });
+      parsedOverlays = enforceOverlayOrchestration(
+        parsedOverlays,
+        orchestrationPlan,
+        { starts, durations }
+      );
       parsedOverlays = stabilizeOverlayTimings(parsedOverlays, {
         starts,
         durations,
@@ -16845,7 +19882,14 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
       }
 
       return finalizeProjectOverlays(
-        projectDir, parsedOverlays, config, storyboard, starts, durations, orchestrationPlan, totalDuration,
+        projectDir,
+        parsedOverlays,
+        config,
+        storyboard,
+        starts,
+        durations,
+        orchestrationPlan,
+        totalDuration
       );
     }
   } catch (err) {
@@ -16864,11 +19908,18 @@ Gere o plano de planejamento e overlays seguindo rigorosamente as regras. Associ
     starts,
     durations,
     orchestrationPlan,
-    totalDuration,
+    totalDuration
   );
 }
 
-function injectRetentionOverlays(projectDir, overlays, starts, durations, config = {}, storyboard = {}) {
+function injectRetentionOverlays(
+  projectDir,
+  overlays,
+  starts,
+  durations,
+  config = {},
+  storyboard = {}
+) {
   const cachePath = path.join(projectDir, "youtube_metadata_cache.json");
   if (!fs.existsSync(cachePath)) return overlays;
   let cache;
@@ -16881,7 +19932,9 @@ function injectRetentionOverlays(projectDir, overlays, starts, durations, config
   const hook = cache?.parsed?.retentionHook || cache?.parsed?.hook;
   const cta = cache?.parsed?.midVideoCta;
   const result = Array.isArray(overlays) ? [...overlays] : [];
-  const isListicle = config?.content_mode === "LISTICLE" || storyboard?.listicle?.content_mode === "LISTICLE";
+  const isListicle =
+    config?.content_mode === "LISTICLE" ||
+    storyboard?.listicle?.content_mode === "LISTICLE";
   const hookPosition = isListicle ? "bottom-left" : "center";
 
   if (hook) {
