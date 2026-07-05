@@ -795,7 +795,7 @@ export function AppSettingsTab({
                     }
                     setSavingVisualConfig(true);
                     try {
-                      const previousVisual = pickVisualConfig(config || {});
+                      const previousVisual = config || {};
                       const patch = visualDraftToApiPatch(draft, previousVisual);
                       if (Object.keys(patch).length === 0) {
                         toast.success('Nenhuma alteração visual para salvar.');
@@ -829,7 +829,7 @@ export function AppSettingsTab({
                     }
                     setSavingProductionConfig(true);
                     try {
-                      const previousProduction = pickProductionConfig(config || {});
+                      const previousProduction = config || {};
                       const patch = productionDraftToApiPatch(draft, previousProduction);
                       if (Object.keys(patch).length === 0) {
                         toast.success('Nenhuma alteração de produção para salvar.');

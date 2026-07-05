@@ -5,6 +5,7 @@ import { SectionHeader } from './SectionHeader';
 import {
   applyProductionPatch,
   pickProductionConfig,
+  pickProductionConfigFromDisk,
   type BgmDuckStrength,
   type OverlayIntensity,
   type OverlayMinGap,
@@ -56,13 +57,13 @@ export function SettingsProduction({
 }: Props) {
   const [draft, setDraft] = useState<ProductionConfig>(() => pickProductionConfig(config));
   const productionFingerprint = useMemo(
-    () => JSON.stringify(pickProductionConfig(config)),
+    () => JSON.stringify(pickProductionConfigFromDisk(config)),
     [config],
   );
 
   useEffect(() => {
     setDraft(pickProductionConfig(config));
-  }, [projectKey, productionFingerprint, config]);
+  }, [projectKey, productionFingerprint]);
 
   const intensity = draft.overlay_intensity || 'normal';
   const gap = draft.overlay_min_gap || 'normal';

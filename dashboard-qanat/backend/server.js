@@ -1184,23 +1184,27 @@ app.get("/api/config", (req, res) => {
 
     const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
     const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-    let normalized = applyBgmProductionDefaults(data, Number(timings.total_duration) || 0);
+    let responseConfig = { ...data };
     const assetFiles = listProjectMediaAssets(projDir);
-    const { timeline, stripped } = sanitizeTimelineAssetsForProject(normalized.timeline_assets, { assetFiles });
+    const { timeline, stripped } = sanitizeTimelineAssetsForProject(responseConfig.timeline_assets, { assetFiles });
     if (stripped > 0) {
-      normalized = { ...normalized, timeline_assets: timeline };
+      responseConfig = { ...responseConfig, timeline_assets: timeline };
       try {
-        fs.writeFileSync(configPath, JSON.stringify(normalized, null, 2), "utf8");
+        fs.writeFileSync(configPath, JSON.stringify(responseConfig, null, 2), "utf8");
       } catch { /* leitura segue com timeline saneada */ }
     }
-    const format = detectVideoFormat(normalized, Number(timings.total_duration) || 0);
+    const format = detectVideoFormat(responseConfig, Number(timings.total_duration) || 0);
     const globalRender = loadRenderConfig(__dirname);
+    const hintsSource = applyBgmProductionDefaults(
+      responseConfig,
+      Number(timings.total_duration) || 0,
+    );
 
     res.json({
-      ...normalized,
+      ...responseConfig,
       _bgm_production_hints: getBgmProductionHints(
         format,
-        normalized,
+        hintsSource,
         Number(globalRender?.musicVolume) || 0.15,
       ),
     });
@@ -1217,7 +1221,16 @@ app.get("/api/config", (req, res) => {
 
 app.post("/api/config", (req, res) => {
 
-  const projDir = getProjectDir(req);
+  const rawProjName = req.query?.project || req.body?.project;
+  if (!rawProjName) {
+    return res.status(400).json({
+      error: "Projeto não informado. Selecione um projeto na barra lateral antes de salvar.",
+    });
+  }
+  const projDir = resolveProjectDirFromName(rawProjName);
+  if (!projDir) {
+    return res.status(404).json({ error: `Projeto não encontrado: ${rawProjName}` });
+  }
 
   const configPath = path.join(projDir, "config_qanat.json");
 

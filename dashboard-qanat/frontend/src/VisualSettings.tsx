@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, Palette, Save, Smartphone, Tv } from 'lucide-react';
-import { applyVisualPatch, pickVisualConfig } from './visualConfig';
+import { applyVisualPatch, pickVisualConfig, pickVisualConfigFromDisk } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
 import { SectionHeader } from './SectionHeader';
 import { CaptionPreview } from './CaptionPreview';
@@ -297,13 +297,13 @@ export function VisualSettings({
 }: Props) {
   const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
   const visualFingerprint = useMemo(
-    () => JSON.stringify(pickVisualConfig(config)),
+    () => JSON.stringify(pickVisualConfigFromDisk(config)),
     [config],
   );
 
   useEffect(() => {
     setDraft(pickVisualConfig(config));
-  }, [projectKey, visualFingerprint, config]);
+  }, [projectKey, visualFingerprint]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));
