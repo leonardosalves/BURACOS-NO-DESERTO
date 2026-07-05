@@ -1,8 +1,11 @@
 # Skills do Lumiera
+
 > 🔗 [[MEMORIA-LUMIERA]] · [[AGENTS]] · [[MEMORY]]
-Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.
-Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
+> Índice das skills em `.agents/skills/`. Cada pasta tem um atalho com nome legível no grafo.
+> Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
+
 ## Catálogo
+
 - [[skills/ad-concept-generator|ad concept generator]] — doc: [[skills/ad-concept-generator/SKILL]]
 - [[skills/agent-reach|agent reach]] — doc: [[skills/agent-reach/SKILL]]
 - [[skills/ai-ugc-ads|ai ugc ads]] — doc: [[skills/ai-ugc-ads/SKILL]]
@@ -31,6 +34,7 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/loop-me|loop me]] — doc: [[skills/loop-me/SKILL]]
 - [[skills/lumiera-ops|lumiera ops]] — doc: [[skills/lumiera-ops/SKILL]]
 - [[skills/lumiera-seedance-directing|lumiera seedance directing]] — doc: [[skills/lumiera-seedance-directing/SKILL]]
+- [[skills/markdown-converter|markdown converter]] — doc: [[skills/markdown-converter/SKILL]]
 - [[skills/mcp-builder|mcp builder]] — doc: [[skills/mcp-builder/SKILL]]
 - [[skills/migrate-to-shoehorn|migrate to shoehorn]] — doc: [[skills/migrate-to-shoehorn/SKILL]]
 - [[skills/obsidian-vault|obsidian vault]] — doc: [[skills/obsidian-vault/SKILL]]
@@ -58,6 +62,8 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/speckit-specify|speckit specify]] — doc: [[skills/speckit-specify/SKILL]]
 - [[skills/speckit-tasks|speckit tasks]] — doc: [[skills/speckit-tasks/SKILL]]
 - [[skills/studio-agents-hermes|studio agents hermes]] — doc: [[skills/studio-agents-hermes/SKILL]]
+- [[skills/summarize-cli|summarize cli]] — doc: [[skills/summarize-cli/SKILL]]
+- [[skills/tavily-search-pro|tavily search pro]] — doc: [[skills/tavily-search-pro/SKILL]]
 - [[skills/tdd|tdd]] — doc: [[skills/tdd/SKILL]]
 - [[skills/teach|teach]] — doc: [[skills/teach/SKILL]]
 - [[skills/to-issues|to issues]] — doc: [[skills/to-issues/SKILL]]
@@ -66,6 +72,7 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/ubiquitous-language|ubiquitous language]] — doc: [[skills/ubiquitous-language/SKILL]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]] — doc: [[skills/ugc-scriptwriter/SKILL]]
 - [[skills/video-marketing|video marketing]] — doc: [[skills/video-marketing/SKILL]]
+- [[skills/video-understanding|video understanding]] — doc: [[skills/video-understanding/SKILL]]
 - [[skills/viral-captions-and-ctas|viral captions and ctas]] — doc: [[skills/viral-captions-and-ctas/SKILL]]
 - [[skills/viral-hooks|viral hooks]] — doc: [[skills/viral-hooks/SKILL]]
 - [[skills/viral-short-form|Viral Short Form]] — doc: [[skills/viral-short-form/SKILL]]
@@ -80,6 +87,8 @@ Hub: [[MEMORIA-LUMIERA]] · Agentes: [[AGENTS]] · Memória: [[MEMORY]]
 - [[skills/writing-shape|writing shape]] — doc: [[skills/writing-shape/SKILL]]
 - [[skills/youtube-seo|youtube seo]] — doc: [[skills/youtube-seo/SKILL]]
 - [[skills/youtube-thumbnail|youtube thumbnail]] — doc: [[skills/youtube-thumbnail/SKILL]]
+
 ## Por que vários arquivos SKILL?
+
 Cada skill vive em `skills/<nome>/SKILL.md`. No grafo, use os atalhos acima (`skills/hyperframes`, etc.) — todos aparecem ligados a este índice.
-atualizado: 2026-07-04T04:08:56.151Z
+atualizado: 2026-07-05T16:37:13.610Z

@@ -4,14 +4,17 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 **Grafo:** toda nota deve ligar a este hub — o Lumiera repara automaticamente ao abrir Studio Agents.
 
 ## Navegação rápida
+
 - [[MEMORY]] — regras globais do estúdio
 - [[AGENTS]] — documentação dos agentes
 - [[SKILLS]] — índice das skills (HyperFrames, viral, UGC, etc.)
 - [[memory/agent-frameworks-reference]] · [[memory/google-gemini-sdk-reference]] · [[memory/google-research-reference]]
+- [[memory/cocoloop-skills-curated]] · [[memory/cocoloop-skills-rejected]]
 - [[memory/lumiera-code-map]] · [[memory/videoagent-lumiera]]
 - [[skill-bundles/BUNDLES|Skill bundles (Hermes)]]
 
 ## Skills
+
 - [[skills/ad-concept-generator|ad concept generator]]
 - [[skills/agent-reach|agent reach]] · [[skills/agent-reach/REFERENCES|refs]]
 - [[skills/ai-ugc-ads|ai ugc ads]]
@@ -39,6 +42,8 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/improve-codebase-architecture|improve codebase architecture]] · [[skills/improve-codebase-architecture/REFERENCES|refs]]
 - [[skills/loop-me|loop me]]
 - [[skills/lumiera-ops|lumiera ops]]
+- [[skills/lumiera-seedance-directing|lumiera seedance directing]]
+- [[skills/markdown-converter|markdown converter]]
 - [[skills/mcp-builder|mcp builder]] · [[skills/mcp-builder/REFERENCES|refs]]
 - [[skills/migrate-to-shoehorn|migrate to shoehorn]]
 - [[skills/obsidian-vault|obsidian vault]]
@@ -66,6 +71,8 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/speckit-specify|speckit specify]]
 - [[skills/speckit-tasks|speckit tasks]]
 - [[skills/studio-agents-hermes|studio agents hermes]]
+- [[skills/summarize-cli|summarize cli]]
+- [[skills/tavily-search-pro|tavily search pro]]
 - [[skills/tdd|tdd]] · [[skills/tdd/REFERENCES|refs]]
 - [[skills/teach|teach]] · [[skills/teach/REFERENCES|refs]]
 - [[skills/to-issues|to issues]]
@@ -74,11 +81,13 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/ubiquitous-language|ubiquitous language]]
 - [[skills/ugc-scriptwriter|UGC Scriptwriter]]
 - [[skills/video-marketing|video marketing]]
+- [[skills/video-understanding|video understanding]]
 - [[skills/viral-captions-and-ctas|viral captions and ctas]] · [[skills/viral-captions-and-ctas/REFERENCES|refs]]
 - [[skills/viral-hooks|viral hooks]]
 - [[skills/viral-short-form|Viral Short Form]] · [[skills/viral-short-form/REFERENCES|refs]]
 - [[skills/viral-short-form-ideas|viral short form ideas]] · [[skills/viral-short-form-ideas/REFERENCES|refs]]
 - [[skills/viral-youtube-shorts|viral youtube shorts]]
+- [[skills/visual-prompt-engineer|visual prompt engineer]]
 - [[skills/webapp-testing|webapp testing]]
 - [[skills/wizard|wizard]]
 - [[skills/writing-beats|writing beats]]
@@ -89,14 +98,23 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[skills/youtube-thumbnail|youtube thumbnail]]
 
 ## Memória por nicho
+
 - [[memory/agent-frameworks-reference]]
+- [[memory/comparacao-engenharia-moderna-x-antiga-origem]]
+- [[memory/cocoloop-skills-curated]]
+- [[memory/cocoloop-skills-rejected]]
 - [[memory/competitor-intelligence]]
+- [[memory/curiosidade-engenharia]]
 - [[memory/curiosidades-e-fatos-surpreendentes]]
 - [[memory/curiosidades-e-objetos-do-cotidiano]]
 - [[memory/curiosidades]]
 - [[memory/customized]]
+- [[memory/deep-research-reports]]
+- [[memory/engenharia-antiga-curiosidade]]
+- [[memory/engenharia-antiga-curioso]]
 - [[memory/engenharia-antiga]]
 - [[memory/engenharia-curiosidade]]
+- [[memory/engenharia-medieval]]
 - [[memory/engenharia]]
 - [[memory/geral]]
 - [[memory/google-gemini-sdk-reference]]
@@ -108,17 +126,23 @@ Hub da memória do **Lumiera Studio Agents**. Edite aqui ou use o dashboard — 
 - [[memory/videoagent-lumiera]]
 
 ## Logs recentes
+
+- [[agent_runs/2026-07-05]]
+- [[agent_runs/2026-07-04]]
+- [[agent_runs/2026-07-03]]
 - [[agent_runs/2026-07-02]]
 - [[agent_runs/2026-07-01]]
 - [[agent_runs/2026-06-30]]
 
 ## Regras por formato
+
 - Shorts: gancho 1.5s, pattern interrupt 8–12s, legendas ≤8 palavras
 - Longos: gancho 5s, gap 18s, BGM por bloco, chapter stingers
 
 ## Dica
+
 Use o grafo do Obsidian (`Ctrl+G`) para ver padrões promovidos e candidatos por tema.
 Padrões com prefixo `SHORT/` ou `LONG/` na categoria aplicam só àquele formato.
 No grafo, prefira os nós `hyperframes`, `viral-short-form` (atalhos) — não só "SKILL".
 
-atualizado: 2026-07-02T05:24:19.956Z
+atualizado: 2026-07-05T16:37:13.608Z
