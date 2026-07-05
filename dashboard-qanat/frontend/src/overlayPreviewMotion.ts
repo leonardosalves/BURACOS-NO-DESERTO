@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 const PREVIEW_FPS = 30;
 const FADE_FRAMES = 14;
@@ -18,7 +18,7 @@ export type OverlayPreviewMotion = {
 export function interpolateClamped(
   frame: number,
   input: [number, number],
-  output: [number, number],
+  output: [number, number]
 ): number {
   const [i0, i1] = input;
   const [o0, o1] = output;
@@ -39,26 +39,37 @@ export function previewSpring(frame: number, durationFrames = 20): number {
 export function computeOverlayPreviewMotion(
   frame: number,
   totalFrames: number,
-  overlayType: string,
-): Pick<OverlayPreviewMotion, 'opacity' | 'scale' | 'slideX' | 'slideY' | 'lineProgress'> {
+  overlayType: string
+): Pick<
+  OverlayPreviewMotion,
+  "opacity" | "scale" | "slideX" | "slideY" | "lineProgress"
+> {
   const fadeIn = interpolateClamped(frame, [0, FADE_FRAMES], [0, 1]);
-  const fadeOut = interpolateClamped(frame, [totalFrames - FADE_FRAMES, totalFrames], [1, 0]);
+  const fadeOut = interpolateClamped(
+    frame,
+    [totalFrames - FADE_FRAMES, totalFrames],
+    [1, 0]
+  );
   const opacity = Math.min(fadeIn, fadeOut);
 
   const enterScale = previewSpring(frame, 20);
   const lineProgress = interpolateClamped(
     frame,
     [8, Math.min(totalFrames * 0.6, 50)],
-    [0, 100],
+    [0, 100]
   );
 
   switch (overlayType) {
-    case 'lower-third':
-    case 'source-card':
-    case 'social-post': {
+    case "lower-third":
+    case "source-card":
+    case "social-post": {
       const slideIn = interpolateClamped(frame, [0, 18], [-28, 0]);
       const outStart = Math.max(0, totalFrames - 16);
-      const slideOut = interpolateClamped(frame, [outStart, totalFrames], [0, 28]);
+      const slideOut = interpolateClamped(
+        frame,
+        [outStart, totalFrames],
+        [0, 28]
+      );
       return {
         opacity,
         scale: 1,
@@ -67,7 +78,7 @@ export function computeOverlayPreviewMotion(
         lineProgress,
       };
     }
-    case 'kinetic-text': {
+    case "kinetic-text": {
       const slam = interpolateClamped(frame, [0, 10], [1.35, 1]);
       return {
         opacity,
@@ -77,9 +88,11 @@ export function computeOverlayPreviewMotion(
         lineProgress,
       };
     }
-    case 'geo-map':
-    case 'chapter-stinger':
-    case 'listicle-recap':
+    case "geo-map":
+    case "location-intro":
+    case "pictogram-chart":
+    case "chapter-stinger":
+    case "listicle-recap":
       return {
         opacity,
         scale: 0.92 + enterScale * 0.08,
@@ -87,7 +100,7 @@ export function computeOverlayPreviewMotion(
         slideY: 0,
         lineProgress,
       };
-    case 'listicle-stinger':
+    case "listicle-stinger":
       return {
         opacity: 1,
         scale: 1,
@@ -95,7 +108,7 @@ export function computeOverlayPreviewMotion(
         slideY: 0,
         lineProgress,
       };
-    case 'rank-progress':
+    case "rank-progress":
       return {
         opacity: interpolateClamped(frame, [0, 10], [0, 1]) * fadeOut,
         scale: enterScale,
@@ -103,10 +116,10 @@ export function computeOverlayPreviewMotion(
         slideY: interpolateClamped(frame, [0, 12], [10, 0]),
         lineProgress,
       };
-    case 'timeline':
-    case 'counter':
-    case 'info-card':
-    case 'bar-chart':
+    case "timeline":
+    case "counter":
+    case "info-card":
+    case "bar-chart":
     default:
       return {
         opacity,
@@ -119,7 +132,7 @@ export function computeOverlayPreviewMotion(
 }
 
 export function overlayMotionTransform(
-  motion: Pick<OverlayPreviewMotion, 'scale' | 'slideX' | 'slideY'>,
+  motion: Pick<OverlayPreviewMotion, "scale" | "slideX" | "slideY">
 ): string {
   const parts: string[] = [];
   if (motion.slideX || motion.slideY) {
@@ -128,15 +141,18 @@ export function overlayMotionTransform(
   if (motion.scale !== 1) {
     parts.push(`scale(${motion.scale})`);
   }
-  return parts.length ? parts.join(' ') : 'none';
+  return parts.length ? parts.join(" ") : "none";
 }
 
 export function useOverlayPreviewMotion(
   durationSeconds: number,
   overlayType: string,
-  playing = true,
+  playing = true
 ): OverlayPreviewMotion {
-  const totalFrames = Math.max(PREVIEW_FPS * 2, Math.round(Math.max(2, durationSeconds) * PREVIEW_FPS));
+  const totalFrames = Math.max(
+    PREVIEW_FPS * 2,
+    Math.round(Math.max(2, durationSeconds) * PREVIEW_FPS)
+  );
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {

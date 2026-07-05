@@ -17818,6 +17818,8 @@ const GEMINI_OVERLAY_TYPES = new Set([
   "source-card",
   "social-post",
   "geo-map",
+  "pictogram-chart",
+  "location-intro",
 ]);
 
 function sanitizeCustomStyle(value) {
@@ -17935,6 +17937,59 @@ function repairOverlayPropsForRemotion(overlay) {
     }
     p.items = items;
     if (!p.title) p.title = "COMPARAÇÃO";
+  }
+
+  if (overlay.type === "pictogram-chart") {
+    let segments = p.segments;
+    if (!Array.isArray(segments)) segments = [];
+    segments = segments
+      .map((seg, i) => ({
+        label: String(seg?.label || seg?.name || `Item ${i + 1}`),
+        value: Number(seg?.value) || 0,
+        color: seg?.color,
+      }))
+      .filter((seg) => seg.label && seg.value > 0);
+
+    if (segments.length < 2) {
+      if (segments.length === 1) {
+        console.log(
+          `[Overlays] Pictogram-chart ${overlay.id} com 1 segmento — convertido para counter.`
+        );
+        overlay.type = "counter";
+        overlay.props = {
+          value: segments[0].value,
+          label: segments[0].label,
+          suffix: "%",
+          accentColor: p.accentColor || "#111111",
+          position: p.position || "center",
+          theme: p.theme || "minimal",
+          customStyle: p.customStyle,
+        };
+        return overlay;
+      }
+      console.log(
+        `[Overlays] Pictogram-chart ${overlay.id} sem segmentos — removido.`
+      );
+      return null;
+    }
+    p.segments = segments;
+    if (!p.title) p.title = "COMPARAÇÃO GLOBAL";
+    if (!p.icon) p.icon = "dot";
+  }
+
+  if (overlay.type === "location-intro") {
+    const location = String(p.location || p.title || "").trim();
+    if (!location) {
+      console.log(
+        `[Overlays] Location-intro ${overlay.id} sem local — removido.`
+      );
+      return null;
+    }
+    p.location = location;
+    if (!p.region && p.subtitle) p.region = String(p.subtitle);
+    if (!p.country && p.region && !p.subtitle) p.country = String(p.region);
+    if (!p.variant) p.variant = "satellite";
+    if (!p.accentColor) p.accentColor = "#FFFFFF";
   }
 
   if (overlay.type === "counter") {
@@ -18997,6 +19052,8 @@ SCHEMA OBRIGATÓRIO (HyperFrames → Remotion):
 Cada overlay DEVE ter: id, type, start (scene_id), duration, props.
 - timeline: props.events = array com MÍNIMO 2 itens {year, description}
 - bar-chart: props.items = array com MÍNIMO 2 itens {label, value, displayValue?, color?}
+- pictogram-chart: props.title, props.segments = array com MÍNIMO 2 {label, value (%), color?}, props.icon ("ship"|"building"|"factory"|"person"|"dot"), props.source e scaleLabel opcionais
+- location-intro: props.location, props.region, props.country, props.variant ("satellite"|"map"|"minimal"), props.backgroundImage opcional
 - counter: props.value (número), props.label, props.suffix opcional
 - lower-third: props.title, props.subtitle, props.variant, props.iconType, props.position
 Exemplo timeline:
@@ -19388,6 +19445,9 @@ REGRAS CRÍTICAS DE MODERAÇÃO E DESIGN:
    - "lower-third": nomes, definições, contexto (variantes: glass, bild, accent-underline, bold-block, clean-bar, soft-pill, color-block, dark-card, kicker-name, mask-reveal, side-rule, stack-bars, youtube-bar, news-ticker)
    - "counter": números, estatísticas, datas (com suffix e formatNumber)
    - "bar-chart": comparações visuais (2-4 itens)
+   - "pictogram-chart": infográfico full-screen com grid de ícones coloridos por % (estilo jornalismo de dados / shipbuilding chart)
+   - "location-intro": intro full-screen estilo satélite ao citar cidade/país (zoom + nome do local)
+   - "geo-map": card compacto com pin para menções rápidas de local
    - "timeline": sequências, processos, linha do tempo (horizontal em longos, vertical em shorts)
 4. RELEVÂNCIA E RESTRIÇÃO DE NICHO ESTREITA:
    - Se o nicho do vídeo atual for diferente de "Tecnologia" ou "Programação" (como é o caso de "História", "Geografia", "Finanças", "Curiosidades", etc. e o atual é "${niche}"), VOCÊ É TERMINANTEMENTE PROIBIDO de gerar qualquer overlay que contenha códigos de programação, código fonte, terminais de comando, imports de bibliotecas (como 'geo-eng' ou '.js'), mockups do VS Code, syntax highlighting ou o tipo "macos-bash-terminal", "vscode-code-highlight", "git-diff-showcase", "hacker-matrix-terminal", "code-highlight-sweep". Esses layouts de código e programação irritam o usuário e quebram a imersão em vídeos comuns! Use apenas layouts de postagens comuns (Reddit, TikTok bubble, Instagram comment), pílulas, infográficos, fatos-chave, etc.
