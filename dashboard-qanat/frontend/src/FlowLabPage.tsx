@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { FlowStudioPage } from './FlowStudioPage';
-import { FLOW_LAB_PROJECT } from './flowLabConstants';
+import { FLOW_LAB_NOTEBOOKLM_STORAGE_KEY, FLOW_LAB_PROJECT } from './flowLabConstants';
 import {
   deleteFlowLabSandbox,
   fetchFlowLabConfig,
@@ -42,6 +42,16 @@ function parseAvoidTopics(raw: string): string[] {
     .filter(Boolean);
 }
 
+function readFlowLabNotebooklmPref(): boolean {
+  try {
+    const raw = localStorage.getItem(FLOW_LAB_NOTEBOOKLM_STORAGE_KEY);
+    if (raw === '0' || raw === 'false') return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 export function FlowLabPage({
   geminiBrowserMode,
   aiProvider,
@@ -66,12 +76,30 @@ export function FlowLabPage({
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
   const [wordTranscripts, setWordTranscripts] = useState<unknown[]>([]);
   const [fishVoiceLabel, setFishVoiceLabel] = useState<string | null>(null);
+  const [useNotebooklm, setUseNotebooklm] = useState(readFlowLabNotebooklmPref);
+  const [notebooklmStatus, setNotebooklmStatus] = useState<{
+    authenticated?: boolean;
+    message?: string;
+  } | null>(null);
 
   const aiCtx: FlowLabAiContext = { geminiBrowserMode, aiProvider, resolveBrowserResponse };
 
   useEffect(() => {
     void resolveFlowLabFishVoice().then((v) => setFishVoiceLabel(v.label));
+    void fetch('/api/notebooklm/status')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setNotebooklmStatus(data); })
+      .catch(() => {});
   }, []);
+
+  const handleNotebooklmToggle = (checked: boolean) => {
+    setUseNotebooklm(checked);
+    try {
+      localStorage.setItem(FLOW_LAB_NOTEBOOKLM_STORAGE_KEY, checked ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  };
 
   const excludeTitles = useMemo(() => {
     const manual = parseAvoidTopics(avoidTopics);
@@ -127,6 +155,7 @@ export function FlowLabPage({
         format,
         excludeTitles: forceVariety ? excludeTitles : parseAvoidTopics(avoidTopics),
         forceVariety,
+        useNotebooklm,
       });
       if (!result.ok || !result.data) {
         toast.error(result.error || 'Falha ao gerar ideias.');
@@ -165,7 +194,7 @@ export function FlowLabPage({
     try {
       const result = await generateFlowLabPipeline(
         aiCtx,
-        { idea, format, niche: niche.trim() || title.trim() || 'Geral' },
+        { idea, format, niche: niche.trim() || title.trim() || 'Geral', useNotebooklm },
         setPipelineStep,
       );
       if (!result.ok || !result.storyboard) {
@@ -329,6 +358,30 @@ export function FlowLabPage({
           </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={useNotebooklm}
+              onChange={(e) => handleNotebooklmToggle(e.target.checked)}
+              className="w-4 h-4 rounded border-violet-500/40 bg-zinc-900 text-violet-500 focus:ring-violet-500/30"
+            />
+            <span className="text-xs text-violet-100 font-semibold">NotebookLM no roteiro e ideias</span>
+          </label>
+          {notebooklmStatus && (
+            <span
+              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${
+                notebooklmStatus.authenticated
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+              }`}
+              title={notebooklmStatus.message}
+            >
+              {notebooklmStatus.authenticated ? 'NotebookLM conectado' : 'Rode nlm login se falhar'}
+            </span>
+          )}
+        </div>
+
         <div className="mb-4 space-y-1">
           <label className="text-[10px] uppercase tracking-wider text-[var(--dash-muted)]">
             Assuntos a evitar (opcional — um titulo por linha)
@@ -426,7 +479,8 @@ export function FlowLabPage({
         </div>
 
         <p className="text-[10px] text-[var(--dash-muted)] mt-3 leading-relaxed">
-          Fluxo: tema → <strong className="text-violet-300">aprovar ideia</strong> → roteiro →{' '}
+          Fluxo: tema → <strong className="text-violet-300">aprovar ideia</strong> → roteiro
+          {useNotebooklm ? <> com <strong className="text-violet-300">NotebookLM</strong></> : null} →{' '}
           <strong className="text-violet-300">narração Fish Speech S2</strong>
           {fishVoiceLabel ? ` (${fishVoiceLabel})` : ''} → Whisper mede segundos/cena → VPE → copiar no Flow com{' '}
           <strong className="text-emerald-400/90">~Xs voz</strong> em cada card.

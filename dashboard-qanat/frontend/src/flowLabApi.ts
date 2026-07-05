@@ -72,6 +72,7 @@ export async function generateFlowLabIdeas(
     format: 'LONGO' | 'SHORTS';
     excludeTitles?: string[];
     forceVariety?: boolean;
+    useNotebooklm?: boolean;
   },
 ): Promise<{ ok: boolean; data?: FlowLabIdeasResult; error?: string }> {
   const niche = opts.niche.trim();
@@ -89,7 +90,7 @@ export async function generateFlowLabIdeas(
         niche,
         format: opts.format,
         project: FLOW_LAB_PROJECT,
-        useNotebooklm: false,
+        useNotebooklm: opts.useNotebooklm !== false,
         useDeepResearch: true,
         forceVariety: Boolean(opts.forceVariety),
         excludeIdeas,
@@ -359,7 +360,7 @@ async function runFlowLabNarrationTtsAndWhisper(
 
 export async function generateFlowLabPipeline(
   ctx: FlowLabAiContext,
-  opts: { idea: FlowLabIdea; format: 'LONGO' | 'SHORTS'; niche: string },
+  opts: { idea: FlowLabIdea; format: 'LONGO' | 'SHORTS'; niche: string; useNotebooklm?: boolean },
   onStep?: (step: string) => void,
 ): Promise<{
   ok: boolean;
@@ -384,10 +385,10 @@ export async function generateFlowLabPipeline(
     format: formatApi,
     idea: opts.idea,
     project: FLOW_LAB_PROJECT,
-    useNotebooklm: false,
+    useNotebooklm: opts.useNotebooklm !== false,
   };
 
-  onStep?.('Gerando narracao...');
+  onStep?.(opts.useNotebooklm !== false ? 'Gerando narracao (NotebookLM)...' : 'Gerando narracao...');
   const narr = await fetchCreatorScriptAi(
     projectUrl('/api/ai/creator/script'),
     {
@@ -405,7 +406,7 @@ export async function generateFlowLabPipeline(
     return { ok: false, error: 'Narracao muito curta — tente de novo.' };
   }
 
-  onStep?.('Gerando roteiro e cenas...');
+  onStep?.(opts.useNotebooklm !== false ? 'Gerando roteiro e cenas (NotebookLM)...' : 'Gerando roteiro e cenas...');
   const full = await fetchCreatorScriptAi(
     projectUrl('/api/ai/creator/script'),
     {
