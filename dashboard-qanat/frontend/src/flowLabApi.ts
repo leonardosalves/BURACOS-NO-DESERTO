@@ -1,11 +1,11 @@
-import { createProgressJobId, waitForAiJobDone } from './aiJobProgressClient';
-import { fetchCreatorScriptAi, fetchGeminiAi } from './geminiAiFetch';
-import type { ConfigData, WorkspaceStatus } from './appTypes';
+import { createProgressJobId, waitForAiJobDone } from "./aiJobProgressClient";
+import { fetchCreatorScriptAi, fetchGeminiAi } from "./geminiAiFetch";
+import type { ConfigData, WorkspaceStatus } from "./appTypes";
 import {
   FLOW_LAB_FISH_VOICE_HINT,
   FLOW_LAB_FISH_VOICE_STORAGE_KEY,
   FLOW_LAB_PROJECT,
-} from './flowLabConstants';
+} from "./flowLabConstants";
 
 export type FlowLabAiContext = {
   geminiBrowserMode: boolean;
@@ -14,7 +14,7 @@ export type FlowLabAiContext = {
 };
 
 function projectUrl(path: string): string {
-  const sep = path.includes('?') ? '&' : '?';
+  const sep = path.includes("?") ? "&" : "?";
   return `${path}${sep}project=${encodeURIComponent(FLOW_LAB_PROJECT)}`;
 }
 
@@ -49,19 +49,22 @@ export type FlowLabIdeasResult = {
   };
 };
 
-export async function deleteFlowLabSandbox(): Promise<{ ok: boolean; error?: string }> {
+export async function deleteFlowLabSandbox(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
   try {
-    const res = await fetch('/api/projects/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/projects/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: FLOW_LAB_PROJECT }),
     });
     const data = await res.json();
     if (res.ok) return { ok: true };
     if (res.status === 404) return { ok: true };
-    return { ok: false, error: data.error || 'Erro ao excluir sandbox' };
+    return { ok: false, error: data.error || "Erro ao excluir sandbox" };
   } catch {
-    return { ok: false, error: 'Falha de conexao ao excluir sandbox.' };
+    return { ok: false, error: "Falha de conexao ao excluir sandbox." };
   }
 }
 
@@ -69,11 +72,11 @@ export async function generateFlowLabIdeas(
   ctx: FlowLabAiContext,
   opts: {
     niche: string;
-    format: 'LONGO' | 'SHORTS';
+    format: "LONGO" | "SHORTS";
     excludeTitles?: string[];
     forceVariety?: boolean;
     useNotebooklm?: boolean;
-  },
+  }
 ): Promise<{ ok: boolean; data?: FlowLabIdeasResult; error?: string }> {
   const niche = opts.niche.trim();
   const excludeIdeas = (opts.excludeTitles || [])
@@ -82,10 +85,10 @@ export async function generateFlowLabIdeas(
     .map((title) => ({ title }));
 
   const res = await fetchGeminiAi(
-    projectUrl('/api/ai/creator/ideas'),
+    projectUrl("/api/ai/creator/ideas"),
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         niche,
         format: opts.format,
@@ -96,19 +99,23 @@ export async function generateFlowLabIdeas(
         excludeIdeas,
       }),
     },
-    ctx,
+    ctx
   );
 
   if (!res.ok || res.data.needs_browser) {
     return {
       ok: false,
-      error: (res.data.error as string) || 'Geracao de ideias pendente no Gemini ou falhou.',
+      error:
+        (res.data.error as string) ||
+        "Geracao de ideias pendente no Gemini ou falhou.",
     };
   }
 
-  const ideas = Array.isArray(res.data.ideas) ? res.data.ideas as FlowLabIdea[] : [];
+  const ideas = Array.isArray(res.data.ideas)
+    ? (res.data.ideas as FlowLabIdea[])
+    : [];
   if (!ideas.length) {
-    return { ok: false, error: 'Nenhuma ideia retornada — tente outro tema.' };
+    return { ok: false, error: "Nenhuma ideia retornada — tente outro tema." };
   }
 
   return {
@@ -117,17 +124,19 @@ export async function generateFlowLabIdeas(
       ideas,
       best_idea_index: Number(res.data.best_idea_index ?? 0),
       best_idea_reason: res.data.best_idea_reason as string | undefined,
-      diagnostic: res.data.diagnostic as FlowLabIdeasResult['diagnostic'],
-      _ideas_meta: res.data._ideas_meta as FlowLabIdeasResult['_ideas_meta'],
+      diagnostic: res.data.diagnostic as FlowLabIdeasResult["diagnostic"],
+      _ideas_meta: res.data._ideas_meta as FlowLabIdeasResult["_ideas_meta"],
     },
   };
 }
 
-export async function saveFlowLabStoryboard(storyboard: Record<string, unknown>): Promise<boolean> {
+export async function saveFlowLabStoryboard(
+  storyboard: Record<string, unknown>
+): Promise<boolean> {
   try {
-    const res = await fetch(projectUrl('/api/projects/storyboard'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch(projectUrl("/api/projects/storyboard"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(storyboard),
     });
     return res.ok;
@@ -136,15 +145,18 @@ export async function saveFlowLabStoryboard(storyboard: Record<string, unknown>)
   }
 }
 
-async function syncFlowLabFormat(format: 'LONGO' | 'SHORTS', niche: string): Promise<void> {
+async function syncFlowLabFormat(
+  format: "LONGO" | "SHORTS",
+  niche: string
+): Promise<void> {
   try {
-    await fetch(projectUrl('/api/config'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch(projectUrl("/api/config"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        aspect_ratio: format === 'SHORTS' ? '9:16' : '16:9',
+        aspect_ratio: format === "SHORTS" ? "9:16" : "16:9",
         video_format: format,
-        niche: niche.trim() || 'Geral',
+        niche: niche.trim() || "Geral",
       }),
     });
   } catch {
@@ -153,17 +165,17 @@ async function syncFlowLabFormat(format: 'LONGO' | 'SHORTS', niche: string): Pro
 }
 
 export async function ensureFlowLabProject(
-  format: 'LONGO' | 'SHORTS',
-  niche: string,
+  format: "LONGO" | "SHORTS",
+  niche: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch('/api/projects/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/projects/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: FLOW_LAB_PROJECT,
         format,
-        niche: niche.trim() || 'Geral',
+        niche: niche.trim() || "Geral",
       }),
     });
     const data = await res.json();
@@ -171,39 +183,53 @@ export async function ensureFlowLabProject(
       await syncFlowLabFormat(format, niche);
       return { ok: true };
     }
-    if (res.status === 400 && String(data.error || '').includes('Já existe')) {
+    if (res.status === 400 && String(data.error || "").includes("Já existe")) {
       await syncFlowLabFormat(format, niche);
       return { ok: true };
     }
-    return { ok: false, error: data.error || 'Erro ao preparar sandbox' };
+    return { ok: false, error: data.error || "Erro ao preparar sandbox" };
   } catch {
-    return { ok: false, error: 'Falha de conexao ao criar sandbox.' };
+    return { ok: false, error: "Falha de conexao ao criar sandbox." };
   }
 }
 
 /** Engenharia Visual PRO — le storyboard do disco e reprocessa todos os prompts. */
 export async function runFlowLabVisualPro(
-  ctx: FlowLabAiContext,
-): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; meta?: FlowLabVpeMeta; error?: string }> {
-  const vpe = await fetchGeminiAi(
-    projectUrl('/api/ai/creator/enhance-visual-prompts'),
+  ctx: FlowLabAiContext
+): Promise<{
+  ok: boolean;
+  storyboard?: Record<string, unknown>;
+  meta?: FlowLabVpeMeta;
+  error?: string;
+}> {
+  const { createProgressJobId } = await import("./aiJobProgressClient");
+  const { fetchAsyncAiJob } = await import("./geminiAiFetch");
+  const progressJobId = createProgressJobId();
+  const vpe = await fetchAsyncAiJob(
+    projectUrl("/api/ai/creator/enhance-visual-prompts"),
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: FLOW_LAB_PROJECT }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project: FLOW_LAB_PROJECT,
+        progress_job_id: progressJobId,
+      }),
     },
-    ctx,
+    { ...ctx, progressJobId, timeoutMs: 480_000 }
   );
 
   if (!vpe.ok || vpe.data.needs_browser) {
     return {
       ok: false,
-      error: (vpe.data.error as string) || 'Engenharia Visual PRO pendente no Gemini ou falhou.',
+      error:
+        (vpe.data.error as string) ||
+        "Engenharia Visual PRO pendente no Gemini ou falhou.",
     };
   }
 
   const storyboard = vpe.data as Record<string, unknown>;
-  const checklist = storyboard._vpe_checklist as { quality_score?: number; nicho_detectado?: string } | undefined;
+  const checklist = storyboard._vpe_checklist as
+    { quality_score?: number; nicho_detectado?: string } | undefined;
   return {
     ok: true,
     storyboard,
@@ -218,38 +244,55 @@ export async function runFlowLabVisualPro(
 type FishVoiceOption = { id: string; label?: string };
 
 /** Resolve voz Fish Speech — prioridade: localStorage > Valentino > default do config/API. */
-export async function resolveFlowLabFishVoice(): Promise<{ voiceId: string; label: string }> {
-  const stored = typeof localStorage !== 'undefined'
-    ? localStorage.getItem(FLOW_LAB_FISH_VOICE_STORAGE_KEY)?.trim()
-    : '';
+export async function resolveFlowLabFishVoice(): Promise<{
+  voiceId: string;
+  label: string;
+}> {
+  const stored =
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem(FLOW_LAB_FISH_VOICE_STORAGE_KEY)?.trim()
+      : "";
   if (stored) return { voiceId: stored, label: stored };
 
   try {
-    const res = await fetch('/api/tts/voices');
+    const res = await fetch("/api/tts/voices");
     if (res.ok) {
       const data = await res.json();
-      const fish = (data.engines || []).find((e: { id?: string }) => e.id === 'fish');
-      const voices: FishVoiceOption[] = Array.isArray(fish?.voices) ? fish.voices : [];
+      const fish = (data.engines || []).find(
+        (e: { id?: string }) => e.id === "fish"
+      );
+      const voices: FishVoiceOption[] = Array.isArray(fish?.voices)
+        ? fish.voices
+        : [];
       const hint = FLOW_LAB_FISH_VOICE_HINT.toLowerCase();
       const valentino = voices.find((v) => {
-        const blob = `${v.label || ''} ${v.id || ''}`.toLowerCase();
+        const blob = `${v.label || ""} ${v.id || ""}`.toLowerCase();
         return blob.includes(hint);
       });
       if (valentino?.id) {
-        return { voiceId: valentino.id, label: valentino.label || valentino.id };
+        return {
+          voiceId: valentino.id,
+          label: valentino.label || valentino.id,
+        };
       }
       if (fish?.defaultVoice) {
-        return { voiceId: String(fish.defaultVoice), label: String(fish.defaultVoice) };
+        return {
+          voiceId: String(fish.defaultVoice),
+          label: String(fish.defaultVoice),
+        };
       }
       if (voices[0]?.id) {
-        return { voiceId: voices[0].id, label: voices[0].label || voices[0].id };
+        return {
+          voiceId: voices[0].id,
+          label: voices[0].label || voices[0].id,
+        };
       }
     }
   } catch {
     /* fallback abaixo */
   }
 
-  return { voiceId: '__default__', label: 'Fish Speech S2 (padrao)' };
+  return { voiceId: "__default__", label: "Fish Speech S2 (padrao)" };
 }
 
 export function setFlowLabFishVoicePreference(voiceId: string) {
@@ -263,7 +306,7 @@ export function setFlowLabFishVoicePreference(voiceId: string) {
 
 export async function fetchFlowLabStatus(): Promise<WorkspaceStatus | null> {
   try {
-    const res = await fetch(projectUrl('/api/status'));
+    const res = await fetch(projectUrl("/api/status"));
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -283,39 +326,50 @@ export async function fetchFlowLabWordTranscripts(): Promise<unknown[]> {
   }
 }
 
-async function planFlowLabNarrationChunks(fishVoiceId: string): Promise<{ ok: boolean; error?: string }> {
+async function planFlowLabNarrationChunks(
+  fishVoiceId: string
+): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(projectUrl('/api/ai/plan-narration-chunks'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch(projectUrl("/api/ai/plan-narration-chunks"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         useHeuristic: true,
-        defaultVoice: { engine: 'fish', voice: fishVoiceId },
+        defaultVoice: { engine: "fish", voice: fishVoiceId },
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return { ok: false, error: data.error || 'Falha ao planejar trechos de narração.' };
+    if (!res.ok)
+      return {
+        ok: false,
+        error: data.error || "Falha ao planejar trechos de narração.",
+      };
     return { ok: true };
   } catch {
-    return { ok: false, error: 'Falha de conexao ao planejar trechos.' };
+    return { ok: false, error: "Falha de conexao ao planejar trechos." };
   }
 }
 
 async function runFlowLabNarrationTtsAndWhisper(
   fishVoiceId: string,
-  onStep?: (step: string) => void,
-): Promise<{ ok: boolean; whisperSynced?: boolean; whisperError?: string; error?: string }> {
+  onStep?: (step: string) => void
+): Promise<{
+  ok: boolean;
+  whisperSynced?: boolean;
+  whisperError?: string;
+  error?: string;
+}> {
   const progressJobId = createProgressJobId();
-  onStep?.('Narração Fish Speech S2 (Valentino)...');
+  onStep?.("Narração Fish Speech S2 (Valentino)...");
 
   try {
-    const res = await fetch(projectUrl('/api/tts/generate-narration-chunks'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch(projectUrl("/api/tts/generate-narration-chunks"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chunk_ids: null,
-        default_voice: { engine: 'fish', voice: fishVoiceId },
-        engine: 'fish',
+        default_voice: { engine: "fish", voice: fishVoiceId },
+        engine: "fish",
         voice: fishVoiceId,
         use_tagged: true,
         sync_whisper: true,
@@ -325,12 +379,12 @@ async function runFlowLabNarrationTtsAndWhisper(
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return { ok: false, error: data.error || 'TTS Fish Speech falhou.' };
+      return { ok: false, error: data.error || "TTS Fish Speech falhou." };
     }
 
     if (data.started && data.jobId) {
-      onStep?.('Whisper: medindo segundos por cena...');
-      const result = await waitForAiJobDone(String(data.jobId)) as {
+      onStep?.("Whisper: medindo segundos por cena...");
+      const result = (await waitForAiJobDone(String(data.jobId))) as {
         error?: string;
         whisper_synced?: boolean;
         whisper_error?: string | null;
@@ -353,30 +407,40 @@ async function runFlowLabNarrationTtsAndWhisper(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : 'Falha na narração Fish Speech.',
+      error:
+        err instanceof Error ? err.message : "Falha na narração Fish Speech.",
     };
   }
 }
 
 export async function generateFlowLabPipeline(
   ctx: FlowLabAiContext,
-  opts: { idea: FlowLabIdea; format: 'LONGO' | 'SHORTS'; niche: string; useNotebooklm?: boolean },
-  onStep?: (step: string) => void,
+  opts: {
+    idea: FlowLabIdea;
+    format: "LONGO" | "SHORTS";
+    niche: string;
+    useNotebooklm?: boolean;
+  },
+  onStep?: (step: string) => void
 ): Promise<{
   ok: boolean;
   storyboard?: Record<string, unknown>;
   vpe?: FlowLabVpeMeta;
-  narration?: { fishVoice: string; whisperSynced?: boolean; whisperError?: string };
+  narration?: {
+    fishVoice: string;
+    whisperSynced?: boolean;
+    whisperError?: string;
+  };
   error?: string;
 }> {
   const formatApi = opts.format;
-  const niche = opts.niche.trim() || 'Geral';
-  const ideaTitle = String(opts.idea.title || '').trim();
+  const niche = opts.niche.trim() || "Geral";
+  const ideaTitle = String(opts.idea.title || "").trim();
   if (!ideaTitle) {
-    return { ok: false, error: 'Ideia sem titulo — selecione ou gere outra.' };
+    return { ok: false, error: "Ideia sem titulo — selecione ou gere outra." };
   }
 
-  onStep?.('Preparando sandbox...');
+  onStep?.("Preparando sandbox...");
   const proj = await ensureFlowLabProject(opts.format, niche);
   if (!proj.ok) return { ok: false, error: proj.error };
 
@@ -388,74 +452,102 @@ export async function generateFlowLabPipeline(
     useNotebooklm: opts.useNotebooklm !== false,
   };
 
-  onStep?.(opts.useNotebooklm !== false ? 'Gerando narracao (NotebookLM)...' : 'Gerando narracao...');
+  onStep?.(
+    opts.useNotebooklm !== false
+      ? "Gerando narracao (NotebookLM)..."
+      : "Gerando narracao..."
+  );
   const narr = await fetchCreatorScriptAi(
-    projectUrl('/api/ai/creator/script'),
+    projectUrl("/api/ai/creator/script"),
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...baseBody, phase: 'narration' }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...baseBody, phase: "narration" }),
     },
-    ctx,
+    ctx
   );
   if (!narr.ok || narr.data.needs_browser) {
-    return { ok: false, error: narr.data.error as string || 'Narracao pendente no Gemini Chrome ou falhou.' };
+    return {
+      ok: false,
+      error:
+        (narr.data.error as string) ||
+        "Narracao pendente no Gemini Chrome ou falhou.",
+    };
   }
-  const narrative = String(narr.data.narrative_script || '').trim();
+  const narrative = String(narr.data.narrative_script || "").trim();
   if (narrative.length < 80) {
-    return { ok: false, error: 'Narracao muito curta — tente de novo.' };
+    return { ok: false, error: "Narracao muito curta — tente de novo." };
   }
 
-  onStep?.(opts.useNotebooklm !== false ? 'Gerando roteiro e cenas (NotebookLM)...' : 'Gerando roteiro e cenas...');
+  onStep?.(
+    opts.useNotebooklm !== false
+      ? "Gerando roteiro e cenas (NotebookLM)..."
+      : "Gerando roteiro e cenas..."
+  );
   const full = await fetchCreatorScriptAi(
-    projectUrl('/api/ai/creator/script'),
+    projectUrl("/api/ai/creator/script"),
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...baseBody,
-        phase: 'full',
+        phase: "full",
         approvedNarration: narrative,
         approvedNarrationTagged: narr.data.narrative_script_tagged || undefined,
       }),
     },
-    ctx,
+    ctx
   );
   if (!full.ok || full.data.needs_browser) {
-    return { ok: false, error: full.data.error as string || 'Roteiro pendente no Gemini Chrome ou falhou.' };
+    return {
+      ok: false,
+      error:
+        (full.data.error as string) ||
+        "Roteiro pendente no Gemini Chrome ou falhou.",
+    };
   }
 
   const draftStoryboard = full.data as Record<string, unknown>;
   await saveFlowLabStoryboard(draftStoryboard);
 
   const fishVoice = await resolveFlowLabFishVoice();
-  if (fishVoice.voiceId && fishVoice.voiceId !== '__default__') {
+  if (fishVoice.voiceId && fishVoice.voiceId !== "__default__") {
     setFlowLabFishVoicePreference(fishVoice.voiceId);
   }
 
-  onStep?.('Planejando trechos por cena...');
+  onStep?.("Planejando trechos por cena...");
   const chunkPlan = await planFlowLabNarrationChunks(fishVoice.voiceId);
   if (!chunkPlan.ok) {
-    return { ok: false, error: chunkPlan.error || 'Falha ao planejar narração por cena.' };
+    return {
+      ok: false,
+      error: chunkPlan.error || "Falha ao planejar narração por cena.",
+    };
   }
 
-  const narrAudio = await runFlowLabNarrationTtsAndWhisper(fishVoice.voiceId, onStep);
+  const narrAudio = await runFlowLabNarrationTtsAndWhisper(
+    fishVoice.voiceId,
+    onStep
+  );
   if (!narrAudio.ok) {
     return {
       ok: false,
-      error: narrAudio.error || 'Narração Fish Speech falhou. Verifique fish_speech.api_key no config.',
+      error:
+        narrAudio.error ||
+        "Narração Fish Speech falhou. Verifique fish_speech.api_key no config.",
     };
   }
   if (!narrAudio.whisperSynced && narrAudio.whisperError) {
     onStep?.(`Whisper incompleto: ${narrAudio.whisperError}`);
   }
 
-  onStep?.('Engenharia Visual PRO...');
+  onStep?.("Engenharia Visual PRO...");
   const vpeResult = await runFlowLabVisualPro(ctx);
   if (!vpeResult.ok || !vpeResult.storyboard) {
     return {
       ok: false,
-      error: vpeResult.error || 'Engenharia Visual PRO falhou. Os prompts brutos nao foram liberados.',
+      error:
+        vpeResult.error ||
+        "Engenharia Visual PRO falhou. Os prompts brutos nao foram liberados.",
     };
   }
 
@@ -472,9 +564,12 @@ export async function generateFlowLabPipeline(
   };
 }
 
-export async function fetchFlowLabStoryboard(): Promise<Record<string, unknown> | null> {
+export async function fetchFlowLabStoryboard(): Promise<Record<
+  string,
+  unknown
+> | null> {
   try {
-    const res = await fetch(projectUrl('/api/projects/storyboard'));
+    const res = await fetch(projectUrl("/api/projects/storyboard"));
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -484,7 +579,7 @@ export async function fetchFlowLabStoryboard(): Promise<Record<string, unknown> 
 
 export async function fetchFlowLabConfig(): Promise<ConfigData | null> {
   try {
-    const res = await fetch(projectUrl('/api/config'));
+    const res = await fetch(projectUrl("/api/config"));
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -498,24 +593,28 @@ export function flowLabAssetUrl(fileName: string): string {
 
 export async function uploadFlowLabSceneAsset(
   blockNum: number,
-  type: 'video' | 'image',
+  type: "video" | "image",
   file: File,
   assetIdx: number,
-  storyboard: { visual_prompts?: any[] },
-): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; error?: string }> {
+  storyboard: { visual_prompts?: any[] }
+): Promise<{
+  ok: boolean;
+  storyboard?: Record<string, unknown>;
+  error?: string;
+}> {
   const idxParam = `&idx=${assetIdx}`;
   const res = await fetch(
     projectUrl(
-      `/api/upload-scene-asset?scene=${blockNum}&type=${type}&filename=${encodeURIComponent(file.name)}${idxParam}`,
+      `/api/upload-scene-asset?scene=${blockNum}&type=${type}&filename=${encodeURIComponent(file.name)}${idxParam}`
     ),
     {
-      method: 'POST',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
       body: file,
-    },
+    }
   );
   const data = await res.json();
-  if (!res.ok) return { ok: false, error: data.error || 'Upload falhou' };
+  if (!res.ok) return { ok: false, error: data.error || "Upload falhou" };
 
   const nextPrompts = [...(storyboard.visual_prompts || [])];
   let targetSceneIndex = -1;
@@ -532,7 +631,10 @@ export async function uploadFlowLabSceneAsset(
   if (targetSceneIndex !== -1) {
     const scene = nextPrompts[targetSceneIndex];
     const durRaw = scene?.duration_seconds ?? scene?.duration;
-    const durNum = typeof durRaw === 'number' ? durRaw : Number.parseFloat(String(durRaw || ''));
+    const durNum =
+      typeof durRaw === "number"
+        ? durRaw
+        : Number.parseFloat(String(durRaw || ""));
     const videoFixed = Number.isFinite(durNum) && durNum > 0 ? durNum : 8.0;
     nextPrompts[targetSceneIndex] = {
       ...scene,
@@ -541,14 +643,14 @@ export async function uploadFlowLabSceneAsset(
         type,
         user_locked: true,
         manual_asset: true,
-        ...(type === 'video' ? { fixed: videoFixed } : {}),
+        ...(type === "video" ? { fixed: videoFixed } : {}),
       },
     };
   }
   const nextStoryboard = { ...storyboard, visual_prompts: nextPrompts };
-  await fetch(projectUrl('/api/projects/storyboard'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  await fetch(projectUrl("/api/projects/storyboard"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(nextStoryboard),
   });
   return { ok: true, storyboard: nextStoryboard };

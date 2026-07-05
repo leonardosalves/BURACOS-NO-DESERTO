@@ -405,6 +405,7 @@ import {
   createProgressJobResponse,
   createProgressReporter,
   finishJobProgress,
+  finishJobProgressWithResult,
   failJobProgress,
   getJobProgress,
   normalizeJobId,
@@ -16114,27 +16115,42 @@ app.post("/api/ai/creator/repair-visual-prompts", async (req, res) => {
 app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
   const projDir = getProjectDir(req);
   const storyboardPath = path.join(projDir, "storyboard.json");
+  const progressJobId = normalizeJobId(req.body?.progress_job_id);
+  const report = createProgressReporter(progressJobId);
+
   if (!fs.existsSync(storyboardPath)) {
+    if (progressJobId)
+      failJobProgress(progressJobId, "Storyboard não encontrado.");
     return res
       .status(404)
       .json({ error: "Storyboard não encontrado para este projeto." });
   }
 
+  let activeRes = res;
+  if (progressJobId) {
+    res.json({ started: true, jobId: progressJobId });
+    activeRes = createProgressJobResponse(progressJobId);
+  }
+
   try {
+    report("vpe_prepare", "Engenharia Visual PRO: carregando storyboard…", 6);
+
     let storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
     const narrative = String(storyboard.narrative_script || "").trim();
     if (!narrative) {
-      return res
-        .status(400)
-        .json({ error: "Não há narrative_script no storyboard." });
+      const msg = "Não há narrative_script no storyboard.";
+      if (progressJobId) failJobProgress(progressJobId, msg);
+      else if (!res.headersSent) return res.status(400).json({ error: msg });
+      return;
     }
     if (
       !Array.isArray(storyboard.visual_prompts) ||
       storyboard.visual_prompts.length === 0
     ) {
-      return res.status(400).json({
-        error: "Não há visual_prompts no storyboard para reprocessar.",
-      });
+      const msg = "Não há visual_prompts no storyboard para reprocessar.";
+      if (progressJobId) failJobProgress(progressJobId, msg);
+      else if (!res.headersSent) return res.status(400).json({ error: msg });
+      return;
     }
 
     const config = readProjectJson(projDir, "config_qanat.json", {});
@@ -16156,19 +16172,26 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       });
 
     const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+    const sceneCount = storyboard.visual_prompts.length;
+    const geminiKeys = getApiKeys(projDir);
+    const apiKey = geminiKeys[0] || getApiKey(projDir);
 
-    const responseText = await callGeminiLlm(req, res, projDir, {
+    report("vpe_llm", `Gemini reprocessando ${sceneCount} cena(s)…`, 22);
+
+    const responseText = await callGeminiLlm(req, activeRes, projDir, {
       title: "✨ Engenharia Visual PRO",
       prompt: fullPrompt,
       temperature: 0.7,
     });
     if (responseText == null) return;
 
+    report("vpe_parse", "Validando JSON e aplicando engenharia visual…", 68);
+
     const isBrowserResponse = !!extractBrowserResponse(req.body);
     const parsed = normalizeKeys(
       await parseAiJsonResponse(
         responseText,
-        isBrowserResponse ? null : getApiKey(projDir) || getApiKey(settingsDir),
+        isBrowserResponse ? null : apiKey,
         "Visual Prompt Engineer PRO"
       )
     );
@@ -16178,10 +16201,13 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       parsed.visual_prompts.length > 0
     ) {
       storyboard.visual_prompts = parsed.visual_prompts;
+    } else {
+      throw new Error(
+        "Gemini não retornou visual_prompts válidos. Tente de novo."
+      );
     }
     storyboard.narrative_script = narrative;
 
-    // Persist checklist and style notes
     if (parsed.checklist) {
       storyboard._vpe_checklist = parsed.checklist;
     }
@@ -16189,15 +16215,12 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       storyboard._vpe_style_notes = parsed.style_adaptation_notes;
     }
 
-    // VPE PRO: prompts já são de alta qualidade — NÃO passar por enrichVisualPromptsSpecificity
-    // Apenas normalizar blocos/cenas e aplicar mix de vídeo/imagem para Shorts
     const vps = storyboard.visual_prompts || [];
     const expectedBlocks = isListicle
       ? resolveListicleBlockCount({ rankCount: listicleRank, format })
       : format === "SHORTS"
         ? 5
         : 12;
-    // Normalize block numbers
     storyboard.visual_prompts = vps.map((vp, index) => {
       const block =
         parseBlockNumber(vp.block ?? vp.bloco, vp.scene ?? vp.cena) ??
@@ -16217,6 +16240,8 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
       enforceShortsVideoSceneMix(storyboard.visual_prompts, { format })
     );
 
+    report("vpe_save", "Salvando storyboard aprimorado…", 92);
+
     fs.writeFileSync(
       storyboardPath,
       JSON.stringify(storyboard, null, 2),
@@ -16226,13 +16251,29 @@ app.post("/api/ai/creator/enhance-visual-prompts", async (req, res) => {
     console.log(
       `[VPE PRO] visual_prompts enhanced (${storyboard.visual_prompts?.length || 0} cenas, nicho: ${detectedNiche}, score: ${parsed.checklist?.quality_score || "N/A"}).`
     );
-    res.json(storyboard);
+
+    if (progressJobId) {
+      finishJobProgressWithResult(
+        progressJobId,
+        storyboard,
+        `Engenharia Visual PRO — ${storyboard.visual_prompts.length} cenas`
+      );
+      return;
+    }
+
+    if (!res.headersSent) res.json(storyboard);
   } catch (err) {
     console.error("Erro em /api/ai/creator/enhance-visual-prompts:", err);
-    res.status(500).json({
-      error: "Erro ao aprimorar prompts visuais",
-      details: err.message,
-    });
+    if (progressJobId) {
+      failJobProgress(progressJobId, err.message);
+      return;
+    }
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "Erro ao aprimorar prompts visuais",
+        details: err.message,
+      });
+    }
   }
 });
 
