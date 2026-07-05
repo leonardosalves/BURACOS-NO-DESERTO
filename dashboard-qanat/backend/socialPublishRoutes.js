@@ -6,12 +6,33 @@ import {
   markSocialPublishPosted,
   removeSocialPublishItem,
   getSocialPublishQueueSummary,
+  getSocialPublishItem,
   updateSocialPublishItem,
 } from "./socialPublishQueue.js";
+import {
+  getDueScheduledItems,
+  getSocialPublishSchedulerStatus,
+  publishSocialQueueItem,
+} from "./socialPublishRunner.js";
 import { getYoutubeTokenScopes } from "./youtubeTitleAnalytics.js";
 
 export function registerSocialPublishRoutes(app, deps) {
-  const { WORKSPACE_DIR, getProjectDir } = deps;
+  const {
+    WORKSPACE_DIR,
+    getProjectDir,
+    resolveProjectDir,
+    PYTHON_PATH,
+    syncUploadScripts,
+    runPostUploadHooks,
+  } = deps;
+
+  const publishDeps = {
+    resolveProjectDir,
+    pythonPath: PYTHON_PATH,
+    workspaceDir: WORKSPACE_DIR,
+    syncUploadScripts,
+    runPostUploadHooks,
+  };
 
   app.get("/api/social/health", async (req, res) => {
     try {
@@ -114,6 +135,68 @@ export function registerSocialPublishRoutes(app, deps) {
       });
     } catch (err) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/social/scheduler/status", (req, res) => {
+    try {
+      const due = getDueScheduledItems(WORKSPACE_DIR);
+      res.json({
+        ...getSocialPublishSchedulerStatus(),
+        dueCount: due.length,
+        dueItems: due.map((item) => ({
+          id: item.id,
+          projectSlug: item.projectSlug,
+          scheduledAt: item.scheduledAt,
+        })),
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/social/queue/:id/schedule", (req, res) => {
+    try {
+      const item = getSocialPublishItem(WORKSPACE_DIR, req.params.id);
+      if (!item) {
+        return res.status(404).json({ error: "Item da fila não encontrado." });
+      }
+      const scheduledAt = req.body?.scheduledAt;
+      if (!scheduledAt) {
+        return res.status(400).json({ error: "Informe scheduledAt (ISO)." });
+      }
+      const when = new Date(scheduledAt);
+      if (Number.isNaN(when.getTime())) {
+        return res.status(400).json({ error: "Data/hora inválida." });
+      }
+      if (when.getTime() <= Date.now() + 60_000) {
+        return res
+          .status(400)
+          .json({ error: "Agende pelo menos 1 minuto no futuro." });
+      }
+      const result = updateSocialPublishItem(WORKSPACE_DIR, req.params.id, {
+        status: "scheduled",
+        scheduledAt: when.toISOString(),
+        lastError: null,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/social/queue/:id/publish", async (req, res) => {
+    try {
+      const result = await publishSocialQueueItem(
+        WORKSPACE_DIR,
+        req.params.id,
+        publishDeps
+      );
+      const queue = loadSocialPublishQueue(WORKSPACE_DIR);
+      res.json({ success: true, ...result, queue });
+    } catch (err) {
+      const queue = loadSocialPublishQueue(WORKSPACE_DIR);
+      res.status(400).json({ error: err.message, queue });
     }
   });
 }

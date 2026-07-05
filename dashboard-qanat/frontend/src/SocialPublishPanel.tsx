@@ -5,8 +5,10 @@ import {
   Calendar,
   CheckCircle2,
   ClipboardList,
+  Clock,
   Loader2,
   RefreshCw,
+  Rocket,
   Stethoscope,
   Trash2,
 } from "lucide-react";
@@ -30,6 +32,7 @@ type QueueItem = {
   scheduledAt: string | null;
   createdAt: string;
   notes?: string;
+  lastError?: string | null;
 };
 
 export type SocialPublishPanelProps = {
@@ -65,6 +68,13 @@ function statusIcon(status: string) {
   return "text-red-400";
 }
 
+function defaultScheduleValue() {
+  const d = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  d.setMinutes(0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function SocialPublishPanel({
   activeProject,
   getProjectUrl,
@@ -75,6 +85,11 @@ export function SocialPublishPanel({
 }: SocialPublishPanelProps) {
   const [healthLoading, setHealthLoading] = useState(false);
   const [queueLoading, setQueueLoading] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [scheduleDrafts, setScheduleDrafts] = useState<Record<string, string>>(
+    {}
+  );
+  const [schedulerDue, setSchedulerDue] = useState(0);
   const [health, setHealth] = useState<{
     overall: string;
     checks: HealthCheck[];
@@ -105,11 +120,18 @@ export function SocialPublishPanel({
   const refreshQueue = useCallback(async () => {
     setQueueLoading(true);
     try {
-      const res = await fetch("/api/social/queue");
-      const data = await res.json();
-      if (res.ok) {
+      const [queueRes, schedRes] = await Promise.all([
+        fetch("/api/social/queue"),
+        fetch("/api/social/scheduler/status"),
+      ]);
+      const data = await queueRes.json();
+      if (queueRes.ok) {
         setQueueItems(Array.isArray(data.items) ? data.items : []);
         setSummary(data.summary || {});
+      }
+      if (schedRes.ok) {
+        const sched = await schedRes.json();
+        setSchedulerDue(Number(sched.dueCount) || 0);
       }
     } catch {
       /* silent on background refresh */
@@ -121,6 +143,8 @@ export function SocialPublishPanel({
   useEffect(() => {
     void refreshHealth();
     void refreshQueue();
+    const interval = setInterval(() => void refreshQueue(), 45_000);
+    return () => clearInterval(interval);
   }, [refreshHealth, refreshQueue]);
 
   const enqueueCurrent = async () => {
@@ -175,6 +199,65 @@ export function SocialPublishPanel({
     }
   };
 
+  const scheduleItem = async (id: string) => {
+    const raw = scheduleDrafts[id] || defaultScheduleValue();
+    const when = new Date(raw);
+    if (Number.isNaN(when.getTime())) {
+      toast.error("Data/hora inválida.");
+      return;
+    }
+    if (when.getTime() <= Date.now() + 60_000) {
+      toast.error("Agende pelo menos 1 minuto no futuro.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/social/queue/${id}/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledAt: when.toISOString() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQueueItems(data.queue?.items || []);
+        toast.success(
+          `Agendado para ${when.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+        );
+      } else toast.error(data.error || "Erro ao agendar.");
+    } catch {
+      toast.error("Falha de conexão.");
+    }
+  };
+
+  const publishItem = async (item: QueueItem) => {
+    setPublishingId(item.id);
+    const toastId = toast.loading(
+      `Publicando ${item.projectSlug}… (pode levar alguns minutos)`
+    );
+    try {
+      const res = await fetch(`/api/social/queue/${item.id}/publish`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setQueueItems(data.queue?.items || []);
+        toast.success(
+          data.videoId
+            ? `Publicado! YouTube: ${data.videoId}`
+            : "Upload concluído.",
+          { id: toastId }
+        );
+      } else {
+        setQueueItems(data.queue?.items || queueItems);
+        toast.error(data.error || "Falha na publicação.", { id: toastId });
+      }
+    } catch {
+      toast.error("Falha de conexão durante publicação.", { id: toastId });
+    } finally {
+      setPublishingId(null);
+      void refreshQueue();
+    }
+  };
+
   const removeItem = async (id: string) => {
     try {
       const res = await fetch(`/api/social/queue/${id}`, { method: "DELETE" });
@@ -194,6 +277,9 @@ export function SocialPublishPanel({
       : health?.overall === "warn"
         ? "text-amber-400"
         : "text-red-400";
+
+  const canPublish = (status: string) =>
+    ["pending", "scheduled", "failed"].includes(status);
 
   return (
     <div className="space-y-4">
@@ -275,12 +361,18 @@ export function SocialPublishPanel({
           <div className="flex items-center gap-2 text-[9px] text-zinc-500">
             <Activity className="w-3 h-3" />
             {summary.pending || 0} pendente(s)
+            {schedulerDue > 0 && (
+              <span className="text-sky-400 flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                {schedulerDue} no horário
+              </span>
+            )}
           </div>
         </div>
 
         <p className="text-[10px] text-zinc-500 leading-relaxed">
-          Após render, enfileire o vídeo para revisar antes de publicar em
-          múltiplas redes. Inspirado no fluxo do AutoSocial.
+          Enfileire após o render, agende com data/hora ou publique direto da
+          fila. O agendador roda automaticamente no backend (a cada 60s).
         </p>
 
         <button
@@ -299,7 +391,7 @@ export function SocialPublishPanel({
         ) : queueItems.length === 0 ? (
           <p className="text-[10px] text-zinc-600 italic">Fila vazia.</p>
         ) : (
-          <ul className="space-y-2 max-h-64 overflow-y-auto">
+          <ul className="space-y-2 max-h-80 overflow-y-auto">
             {queueItems.slice(0, 12).map((item) => (
               <li
                 key={item.id}
@@ -329,6 +421,11 @@ export function SocialPublishPanel({
                     </span>
                   )}
                 </p>
+                {item.lastError && item.status === "failed" && (
+                  <p className="text-[9px] text-red-400/90 leading-snug">
+                    {item.lastError}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-1">
                   {item.status === "review" && (
                     <button
@@ -341,6 +438,21 @@ export function SocialPublishPanel({
                       Aprovar
                     </button>
                   )}
+                  {canPublish(item.status) && (
+                    <button
+                      type="button"
+                      disabled={publishingId === item.id}
+                      onClick={() => void publishItem(item)}
+                      className="text-[8px] font-bold px-2 py-1 rounded border border-gold-500/40 text-gold-300 hover:bg-gold-500/10 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {publishingId === item.id ? (
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                      ) : (
+                        <Rocket className="w-2.5 h-2.5" />
+                      )}
+                      Publicar agora
+                    </button>
+                  )}
                   {item.status === "pending" && (
                     <button
                       type="button"
@@ -351,6 +463,30 @@ export function SocialPublishPanel({
                     >
                       Revisar
                     </button>
+                  )}
+                  {["pending", "failed"].includes(item.status) && (
+                    <div className="flex items-center gap-1 w-full mt-1">
+                      <input
+                        type="datetime-local"
+                        value={
+                          scheduleDrafts[item.id] || defaultScheduleValue()
+                        }
+                        onChange={(e) =>
+                          setScheduleDrafts((prev) => ({
+                            ...prev,
+                            [item.id]: e.target.value,
+                          }))
+                        }
+                        className="flex-1 min-w-0 text-[9px] bg-zinc-900 border border-zinc-700 rounded px-1.5 py-1 text-zinc-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void scheduleItem(item.id)}
+                        className="text-[8px] font-bold px-2 py-1 rounded border border-sky-500/30 text-sky-300 hover:bg-sky-500/10 shrink-0"
+                      >
+                        Agendar
+                      </button>
+                    </div>
                   )}
                   {!["posted", "dismissed"].includes(item.status) && (
                     <button
