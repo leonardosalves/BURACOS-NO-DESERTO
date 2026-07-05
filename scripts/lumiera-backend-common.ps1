@@ -28,12 +28,25 @@ function Test-LumieraBackendHealthy {
     }
 }
 
+function Resolve-NlmBin {
+    if ($env:NLM_BIN -and (Test-Path -LiteralPath $env:NLM_BIN)) {
+        return $env:NLM_BIN
+    }
+    $localNlm = Join-Path $env:LOCALAPPDATA ".local\bin\nlm.exe"
+    if (Test-Path -LiteralPath $localNlm) {
+        return $localNlm
+    }
+    $cmd = Get-Command nlm -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) { return $cmd.Source }
+    return $null
+}
+
 function Stop-LumieraBackendOnPort {
     $connections = Get-NetTCPConnection -LocalPort $script:BackendPort -State Listen -ErrorAction SilentlyContinue
     foreach ($conn in $connections) {
-        $pid = $conn.OwningProcess
-        if ($pid -and $pid -ne 0) {
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        $procId = $conn.OwningProcess
+        if ($procId -and $procId -ne 0) {
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
         }
     }
     if ($connections) { Start-Sleep -Seconds 1 }
@@ -47,6 +60,14 @@ function Start-LumieraBackendProcess {
         New-Item -ItemType Directory -Path $script:NotebookLmData -Force | Out-Null
     }
     $env:NOTEBOOKLM_MCP_CLI_PATH = $script:NotebookLmData
+    $nlmBin = Resolve-NlmBin
+    if ($nlmBin) {
+        $env:NLM_BIN = $nlmBin
+        $localBin = Split-Path -Parent $nlmBin
+        if ($localBin -and ($env:Path -notlike "*$localBin*")) {
+            $env:Path = "$localBin;$env:Path"
+        }
+    }
 
     if (Test-LumieraBackendHealthy) {
         if (-not $ForceRestart) {
