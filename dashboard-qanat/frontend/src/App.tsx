@@ -35,7 +35,9 @@ import {
   productionDraftToApiPatch,
   stripConfigApiMetadata,
   type BgmProductionHints,
+  type ProductionConfig,
 } from './productionConfig';
+import type { VisualConfig } from './VisualSettings';
 import type { YoutubeChannelAlerts } from './YoutubeStudioPanel';
 import { useResurrectorScheduler } from './useResurrectorScheduler';
 
@@ -618,6 +620,56 @@ export default function App() {
   const [savingVisualConfig, setSavingVisualConfig] = useState<boolean>(false);
   const [savingBlockProgressBar, setSavingBlockProgressBar] = useState<boolean>(false);
   const [savingProductionConfig, setSavingProductionConfig] = useState<boolean>(false);
+  const [globalStudioVisual, setGlobalStudioVisual] = useState<VisualConfig>({});
+  const [globalStudioProduction, setGlobalStudioProduction] = useState<ProductionConfig>({});
+
+  const fetchGlobalStudioDefaults = async () => {
+    try {
+      const res = await fetch('/api/settings/studio-defaults');
+      if (!res.ok) return;
+      const data = await res.json();
+      setGlobalStudioVisual(pickVisualConfig(data.visual || {}));
+      setGlobalStudioProduction(pickProductionConfig(data.production || {}));
+    } catch (err) {
+      console.error('Error fetching global studio defaults:', err);
+    }
+  };
+
+  const mergeStudioDefaultsIntoConfig = useCallback((visual: VisualConfig, production: ProductionConfig) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+      for (const [key, value] of Object.entries(visual)) {
+        if (value === undefined) delete (next as Record<string, unknown>)[key];
+        else (next as Record<string, unknown>)[key] = value;
+      }
+      for (const [key, value] of Object.entries(production)) {
+        if (value === undefined) delete (next as Record<string, unknown>)[key];
+        else (next as Record<string, unknown>)[key] = value;
+      }
+      return next;
+    });
+  }, []);
+
+  const saveGlobalStudioDefaults = async (patch: { visual?: Record<string, unknown>; production?: Record<string, unknown> }) => {
+    const res = await fetch('/api/settings/studio-defaults', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast.error((err as { error?: string }).error || 'Erro ao salvar configurações globais.');
+      return null;
+    }
+    const data = await res.json();
+    const visual = pickVisualConfig(data.visual || {});
+    const production = pickProductionConfig(data.production || {});
+    setGlobalStudioVisual(visual);
+    setGlobalStudioProduction(production);
+    mergeStudioDefaultsIntoConfig(visual, production);
+    return data;
+  };
 
   const fetchGlobalRenderConfig = async () => {
 
@@ -650,6 +702,9 @@ export default function App() {
         setSelectedLogoId(data.selectedLogoId || null);
         setYoutubeChannels(Array.isArray(data.youtubeChannels) ? data.youtubeChannels : []);
         setSelectedChannelId(data.selectedYoutubeChannelId || null);
+
+        setGlobalStudioVisual(pickVisualConfig(data.studio_visual || {}));
+        setGlobalStudioProduction(pickProductionConfig(data.studio_production || {}));
 
       }
 
@@ -1790,6 +1845,7 @@ export default function App() {
     if (activeTab === 'settings') {
       fetchUploadStatus();
       fetchWorkflowKeysStatus();
+      void fetchGlobalStudioDefaults();
     }
   }, [activeTab, activeProject]);
 
@@ -8096,7 +8152,10 @@ export default function App() {
     globalFps,
     globalMusicVolume,
     globalRenderResolution,
+    globalStudioProduction,
+    globalStudioVisual,
     globalUseRemotion,
+    saveGlobalStudioDefaults,
     handleApplyTitleVariant,
     handleApproveNarrationAndGenerateScript,
     handleAutoSoundtrack,

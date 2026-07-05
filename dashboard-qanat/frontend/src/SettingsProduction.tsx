@@ -77,12 +77,12 @@ export function SettingsProduction({
     <div className="glass-panel p-4 sm:p-6 rounded-3xl space-y-5 min-w-0">
       <div className="border-b border-[var(--dash-border)] pb-4">
         <SectionHeader
-          title="PRODUÇÃO DO PROJETO"
+          title="PRODUÇÃO DO ESTÚDIO"
           helpId="settings-producao"
           icon={<Clapperboard className="w-4 h-4 text-[var(--dash-primary)]" />}
           subtitle={(
             <>
-              Mix de áudio, ritmo de overlays e orçamento da IA — salvo em <span className="text-zinc-300">config_qanat.json</span> por projeto.
+              Mix de áudio, ritmo de overlays e orçamento da IA — configuração global aplicada a todos os projetos.
             </>
           )}
         />
@@ -167,11 +167,11 @@ export function SettingsProduction({
           <div className="space-y-3">
             <div className="flex justify-between items-center gap-2">
               <SettingLabel
-                helpTitle="Volume BGM do projeto"
-                help={`Substitui o volume global (${Math.round(globalMusicVolume * 100)}%) só neste projeto. Útil quando a narração é mais baixa ou a trilha precisa de mais presença.`}
+                helpTitle="Volume da trilha"
+                help={`Volume padrão da trilha em todos os projetos. Sem valor definido aqui, usa o volume de renderização global (${Math.round(globalMusicVolume * 100)}%).`}
                 align="start"
               >
-                Volume da trilha (este projeto)
+                Volume da trilha (estúdio)
               </SettingLabel>
               <span className="text-xs text-white font-mono font-bold shrink-0">
                 {(effectiveVol * 100).toFixed(0)}%
@@ -196,7 +196,7 @@ export function SettingsProduction({
               Usar global ({Math.round(globalMusicVolume * 100)}%)
             </button>
             <p className="text-[9px] text-[var(--dash-muted)] leading-relaxed">
-              Este slider define o volume da trilha no render deste projeto. Sem valor aqui, usa o global ({Math.round(globalMusicVolume * 100)}%).
+              Define o volume da trilha em todos os renders. Sem valor aqui, usa o volume de renderização ({Math.round(globalMusicVolume * 100)}%).
             </p>
           </div>
 
@@ -274,7 +274,7 @@ export function SettingsProduction({
           className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
-          {saving ? 'Salvando...' : 'Salvar Produção do Projeto'}
+          {saving ? 'Salvando...' : 'Salvar Produção Global'}
         </button>
       </div>
     </div>

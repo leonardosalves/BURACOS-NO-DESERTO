@@ -346,7 +346,7 @@ export function VisualSettings({
           icon={<Palette className="w-4 h-4 text-[var(--dash-primary)]" />}
           subtitle={(
             <>
-              Ajustes por projeto. Passe o mouse ou toque no <span className="text-[var(--dash-primary)]">?</span> ao lado de cada item para entender o efeito.
+              Configuração global do estúdio — vale para todos os projetos. Passe o mouse ou toque no <span className="text-[var(--dash-primary)]">?</span> ao lado de cada item para entender o efeito.
             </>
           )}
         />
@@ -693,8 +693,7 @@ export function VisualSettings({
 
       <p className="text-[9px] text-zinc-500 border border-[var(--dash-border)] rounded-xl px-3 py-2 bg-[var(--dash-bg)]">
         A <strong className="text-zinc-300">barra de progresso por blocos</strong> (ícones + design) fica na aba{' '}
-        <strong className="text-zinc-300">Editor</strong> do projeto — cada vídeo tem sua própria configuração em{' '}
-        <code className="text-violet-300/90">config_qanat.json</code>.
+        <strong className="text-zinc-300">Editor</strong> — é a única opção visual que continua por projeto.
       </p>
 
       <div className="flex justify-end border-t border-[var(--dash-border)] pt-4">
@@ -705,7 +704,7 @@ export function VisualSettings({
           className="dash-btn-primary text-xs px-5 py-2.5 flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
-          {saving ? 'Salvando...' : 'Salvar Visual do Projeto'}
+          {saving ? 'Salvando...' : 'Salvar Visual Global'}
         </button>
       </div>
     </div>

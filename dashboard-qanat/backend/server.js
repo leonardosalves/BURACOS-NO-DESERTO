@@ -424,6 +424,12 @@ import {
   ensureListItemsInProject,
 } from "./listicleRepair.js";
 import {
+  applyStudioDefaultsPatch,
+  getStudioDefaultsFromRenderConfig,
+  isStudioConfigKey,
+  mergeGlobalStudioIntoProjectConfig,
+} from "./globalStudioDefaults.js";
+import {
   ensureBrandCatalogMigrated,
   loadRenderConfig,
   saveRenderConfig,
@@ -1199,9 +1205,10 @@ app.get("/api/config", (req, res) => {
       responseConfig,
       Number(timings.total_duration) || 0,
     );
+    const mergedResponse = mergeGlobalStudioIntoProjectConfig(responseConfig, globalRender);
 
     res.json({
-      ...responseConfig,
+      ...mergedResponse,
       _bgm_production_hints: getBgmProductionHints(
         format,
         hintsSource,
@@ -1252,6 +1259,7 @@ app.post("/api/config", (req, res) => {
     const deletedKeys = new Set();
     for (const [key, value] of Object.entries(req.body || {})) {
       if (key.startsWith("_")) continue;
+      if (isStudioConfigKey(key)) continue;
       if (value === null) {
         deletedKeys.add(key);
         delete mergedConfig[key];
@@ -2988,6 +2996,8 @@ app.post("/api/render/config", (req, res) => {
     const merged = {
       ...existing,
       ...configData,
+      studio_visual: configData.studio_visual ?? existing.studio_visual,
+      studio_production: configData.studio_production ?? existing.studio_production,
       brandLogos: configData.brandLogos ?? existing.brandLogos,
       youtubeChannels: configData.youtubeChannels ?? existing.youtubeChannels,
       selectedLogoId: configData.selectedLogoId ?? existing.selectedLogoId,
@@ -3003,6 +3013,35 @@ app.post("/api/render/config", (req, res) => {
 
   }
 
+});
+
+// GET /api/settings/studio-defaults — Visual + Produção globais (todos os projetos)
+app.get("/api/settings/studio-defaults", (req, res) => {
+  try {
+    const renderConfig = loadRenderConfig(__dirname);
+    const defaults = getStudioDefaultsFromRenderConfig(renderConfig);
+    res.json(defaults);
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erro ao ler defaults do estúdio." });
+  }
+});
+
+// POST /api/settings/studio-defaults — patch visual/production (null remove chave)
+app.post("/api/settings/studio-defaults", (req, res) => {
+  try {
+    const { visual, production } = req.body || {};
+    const existing = loadRenderConfig(__dirname);
+    const merged = applyStudioDefaultsPatch(existing, { visual, production });
+    saveRenderConfig(__dirname, merged);
+    const saved = getStudioDefaultsFromRenderConfig(merged);
+    res.json({
+      success: true,
+      message: "Configurações globais de Visual/Produção salvas.",
+      ...saved,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erro ao salvar defaults do estúdio." });
+  }
 });
 
 function getGlobalApiKeysStatus() {
@@ -5817,6 +5856,10 @@ function readProjectJson(projectDir, fileName, fallback = {}) {
 
     if (fileName === "storyboard.json") {
       return repairStoryboardEncoding(data);
+    }
+
+    if (fileName === "config_qanat.json") {
+      return mergeGlobalStudioIntoProjectConfig(data, loadRenderConfig(__dirname));
     }
 
     return data;
