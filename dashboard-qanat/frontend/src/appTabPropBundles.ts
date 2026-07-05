@@ -1,21 +1,27 @@
-import type { AppCreatorTabProps } from './AppCreatorTab';
-import type { AppAiTabProps } from './AppAiTab';
-import type { AppUploadTabProps } from './AppUploadTab';
-import type { AppEditorTabProps } from './AppEditorTab';
-import type { AppSettingsTabProps } from './AppSettingsTab';
-import type { AppStatusTabProps } from './AppStatusTab';
-import type { AppTimelineTabProps } from './AppTimelineTab';
-import type { AppMusicTabPanelProps } from './AppMusicTabPanel';
-import type { AppHomeTabProps } from './AppHomeTab';
-import type { AppWorkflowTabProps } from './AppWorkflowTab';
-import type { AppSceneTimingTabProps } from './AppSceneTimingTab';
-import type { AppTerminalTabProps } from './AppTerminalTab';
+import type { AppCreatorTabProps } from "./AppCreatorTab";
+import type { AppAiTabProps } from "./AppAiTab";
+import type { AppUploadTabProps } from "./AppUploadTab";
+import type { AppEditorTabProps } from "./AppEditorTab";
+import type { AppSettingsTabProps } from "./AppSettingsTab";
+import type { AppStatusTabProps } from "./AppStatusTab";
+import type { AppTimelineTabProps } from "./AppTimelineTab";
+import type { AppMusicTabPanelProps } from "./AppMusicTabPanel";
+import type { AppHomeTabProps } from "./AppHomeTab";
+import type { AppWorkflowTabProps } from "./AppWorkflowTab";
+import type { AppSceneTimingTabProps } from "./AppSceneTimingTab";
+import type { AppTerminalTabProps } from "./AppTerminalTab";
 
-import type { AppTab } from './appTabs';
-import type { ConfigData, MusicFile, OutputVideo, VideoQualityReport, WorkspaceStatus } from './appTypes';
-import type { ProjectListItem } from './ProjectsLibraryPanel';
-import type { YoutubeChannelAlerts } from './YoutubeStudioPanel';
-import type React from 'react';
+import type { AppTab } from "./appTabs";
+import type {
+  ConfigData,
+  MusicFile,
+  OutputVideo,
+  VideoQualityReport,
+  WorkspaceStatus,
+} from "./appTypes";
+import type { ProjectListItem } from "./ProjectsLibraryPanel";
+import type { YoutubeChannelAlerts } from "./YoutubeStudioPanel";
+import type React from "react";
 
 /** Union of values App passes into tab prop bundles (extras + tab prop fields). */
 export type AppTabPropContext = Record<string, unknown> & {
@@ -33,6 +39,7 @@ export type AppTabPropContext = Record<string, unknown> & {
   rendering: boolean;
   saveTimelinePatch: (cfg: ConfigData) => void | Promise<void>;
   setActiveTab: (tab: AppTab) => void;
+  handleSelectProject: (name: string) => void;
   setLogs: React.Dispatch<React.SetStateAction<string[]>>;
   status: WorkspaceStatus | null;
   storyboardData: unknown;
@@ -58,7 +65,9 @@ export type AppTabPropBundles = {
   terminalTabProps: AppTerminalTabProps;
 };
 
-export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundles {
+export function buildAppTabPropBundles(
+  ctx: AppTabPropContext
+): AppTabPropBundles {
   const creatorTabProps: AppCreatorTabProps = {
     activeProject: ctx.activeProject,
     applyFacelessPreset: ctx.applyFacelessPreset,
@@ -96,7 +105,8 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     getAssetUrl: ctx.getAssetUrl,
     getMusicUrl: ctx.getMusicUrl,
     getProjectUrl: ctx.getProjectUrl,
-    handleApproveNarrationAndGenerateScript: ctx.handleApproveNarrationAndGenerateScript,
+    handleApproveNarrationAndGenerateScript:
+      ctx.handleApproveNarrationAndGenerateScript,
     handleCaptureGeminiNarration: ctx.handleCaptureGeminiNarration,
     handleDrag: ctx.handleDrag,
     handleDrop: ctx.handleDrop,
@@ -116,8 +126,10 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     handleGenerateListicleScript: ctx.handleGenerateListicleScript,
     handleGenerateNarration: ctx.handleGenerateNarration,
     handleGenerateNarrationFromImport: ctx.handleGenerateNarrationFromImport,
-    handleGenerateYoutubeThumbnailImages: ctx.handleGenerateYoutubeThumbnailImages,
-    handleNotebooklmImproveNarrationDraft: ctx.handleNotebooklmImproveNarrationDraft,
+    handleGenerateYoutubeThumbnailImages:
+      ctx.handleGenerateYoutubeThumbnailImages,
+    handleNotebooklmImproveNarrationDraft:
+      ctx.handleNotebooklmImproveNarrationDraft,
     handleRemoveSceneAsset: ctx.handleRemoveSceneAsset,
     handleSaveConfig: ctx.handleSaveConfig,
     handleSuggestListicleRankings: ctx.handleSuggestListicleRankings,
@@ -222,7 +234,8 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     handleApplyTitleVariant: ctx.handleApplyTitleVariant,
     handleGenerateCanvaThumbnails: ctx.handleGenerateCanvaThumbnails,
     handleGenerateYoutubeMetadata: ctx.handleGenerateYoutubeMetadata,
-    handleGenerateYoutubeThumbnailImages: ctx.handleGenerateYoutubeThumbnailImages,
+    handleGenerateYoutubeThumbnailImages:
+      ctx.handleGenerateYoutubeThumbnailImages,
     handleRelinkYoutube: ctx.handleRelinkYoutube,
     handleSendChatMessage: ctx.handleSendChatMessage,
     handleStartTitleExperiment: ctx.handleStartTitleExperiment,
@@ -259,7 +272,8 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     config: ctx.config,
     getProjectUrl: ctx.getProjectUrl,
     handleFixYoutubeMetadata: ctx.handleFixYoutubeMetadata,
-    handleGenerateYoutubeThumbnailImages: ctx.handleGenerateYoutubeThumbnailImages,
+    handleGenerateYoutubeThumbnailImages:
+      ctx.handleGenerateYoutubeThumbnailImages,
     handlePostUploadComplete: ctx.handlePostUploadComplete,
     igCaption: ctx.igCaption,
     setIgCaption: ctx.setIgCaption,
@@ -570,6 +584,7 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     renderPercent: ctx.renderProgress?.percent,
     openCreatorTab: ctx.openCreatorTab,
     setActiveTab: ctx.setActiveTab,
+    onSelectProject: ctx.handleSelectProject,
   };
 
   const workflowTabProps: AppWorkflowTabProps = {

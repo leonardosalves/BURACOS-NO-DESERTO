@@ -41,7 +41,12 @@
     min-width: 0;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     overflow-wrap: break-word;
     word-break: normal;
   }
@@ -68,7 +73,10 @@
     letter-spacing: 0.01em;
   }
 
-  button, input, textarea, select {
+  button,
+  input,
+  textarea,
+  select {
     font-family: inherit;
   }
 }
@@ -103,7 +111,9 @@
     width: var(--dash-sidebar-width);
     background-color: var(--dash-card);
     box-shadow: 0 1px 15px rgba(255, 255, 255, 0.05);
-    transition: width 0.3s ease, transform 0.3s ease;
+    transition:
+      width 0.3s ease,
+      transform 0.3s ease;
   }
 
   .dash-sidebar-collapsed .dash-sidebar {
@@ -189,7 +199,7 @@
   }
 
   .dash-sidebar-item::before {
-    content: '';
+    content: "";
     @apply absolute left-0 top-1 bottom-1 w-[3px] rounded-r opacity-0 transition-opacity;
     background: var(--dash-primary);
   }
@@ -480,6 +490,130 @@
     @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0;
   }
 
+  .lumiera-home-command-aside {
+    @apply items-stretch;
+  }
+
+  .lumiera-home-metric {
+    @apply flex flex-col items-center justify-center px-4 py-3 rounded-lg min-w-[88px];
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid var(--dash-border-soft);
+  }
+
+  .lumiera-home-metric-value {
+    @apply text-lg font-bold text-white leading-none;
+  }
+
+  .lumiera-home-metric-label {
+    @apply text-[9px] uppercase tracking-wider text-dash-muted mt-1.5;
+  }
+
+  .lumiera-home-pipeline-strip {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .lumiera-home-pipeline-chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition;
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--dash-border-soft);
+    color: var(--dash-muted);
+  }
+
+  .lumiera-home-pipeline-chip:hover {
+    border-color: rgba(130, 128, 253, 0.35);
+    color: #fff;
+  }
+
+  .lumiera-home-pipeline-chip.is-done {
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #a7f3d0;
+  }
+
+  .lumiera-home-pipeline-dot {
+    @apply w-1.5 h-1.5 rounded-full bg-emerald-400;
+  }
+
+  .lumiera-home-quick-grid {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-0;
+  }
+
+  .lumiera-home-quick {
+    @apply flex items-center gap-2.5 p-3 rounded-lg border text-left transition min-w-0;
+    background: var(--dash-card);
+    border-color: var(--dash-border-soft);
+  }
+
+  .lumiera-home-quick:hover {
+    background: var(--dash-card-hover);
+    border-color: rgba(130, 128, 253, 0.3);
+  }
+
+  .lumiera-home-quick-icon {
+    @apply w-8 h-8 rounded-lg flex items-center justify-center shrink-0;
+    background: rgba(130, 128, 253, 0.12);
+    color: var(--dash-primary);
+  }
+
+  .lumiera-home-quick-label {
+    @apply text-[11px] font-bold text-white truncate;
+  }
+
+  .lumiera-home-split {
+    @apply grid grid-cols-1 xl:grid-cols-[minmax(260px,1fr)_2fr] gap-4 min-w-0;
+  }
+
+  .lumiera-home-recent-list {
+    @apply flex flex-col gap-1.5 min-w-0;
+  }
+
+  .lumiera-home-recent-item {
+    @apply w-full flex items-center gap-2.5 p-2.5 rounded-lg border text-left transition;
+    border-color: transparent;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .lumiera-home-recent-item:hover {
+    background: var(--dash-card-hover);
+    border-color: var(--dash-border-soft);
+  }
+
+  .lumiera-home-recent-item.is-active {
+    border-color: rgba(130, 128, 253, 0.4);
+    background: rgba(130, 128, 253, 0.08);
+  }
+
+  .lumiera-home-recent-icon {
+    @apply w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-dash-muted;
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .lumiera-home-studio-row {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .lumiera-home-studio-chip {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px] font-semibold text-dash-muted transition;
+    border-color: var(--dash-border-soft);
+    background: var(--dash-card);
+  }
+
+  .lumiera-home-studio-chip:hover {
+    color: #fff;
+    border-color: rgba(130, 128, 253, 0.35);
+  }
+
+  .dash-todo-row {
+    @apply flex items-center gap-3 w-full min-w-0;
+  }
+
+  .dash-todo-row.is-clickable {
+    @apply cursor-pointer rounded-md -mx-1 px-1 py-0.5 transition;
+  }
+
+  .dash-todo-row.is-clickable:hover {
+    background: rgba(130, 128, 253, 0.08);
+  }
+
   .dash-dashboard-grid {
     @apply grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 min-w-0;
   }
@@ -535,7 +669,11 @@
 
   .dash-progress-fill {
     @apply h-full rounded-full transition-all duration-500;
-    background: linear-gradient(90deg, var(--dash-primary-dark), var(--dash-primary));
+    background: linear-gradient(
+      90deg,
+      var(--dash-primary-dark),
+      var(--dash-primary)
+    );
   }
 
   .dash-bar-chart {
@@ -551,7 +689,11 @@
   }
 
   .dash-bar-long {
-    background: linear-gradient(180deg, var(--dash-primary), var(--dash-primary-dark));
+    background: linear-gradient(
+      180deg,
+      var(--dash-primary),
+      var(--dash-primary-dark)
+    );
   }
 
   .dash-bar-short {
@@ -687,7 +829,8 @@
   }
 
   .dash-shell .hover\:from-gold-600:hover {
-    --tw-gradient-from: var(--dash-primary-dark) var(--tw-gradient-from-position);
+    --tw-gradient-from: var(--dash-primary-dark)
+      var(--tw-gradient-from-position);
   }
 
   .dash-shell .hover\:to-amber-600:hover {
@@ -873,8 +1016,15 @@
   }
 
   @keyframes caption-preview-pulse-keyframes {
-    0%, 100% { transform: scale(1.08); filter: brightness(1); }
-    50% { transform: scale(1.14); filter: brightness(1.15); }
+    0%,
+    100% {
+      transform: scale(1.08);
+      filter: brightness(1);
+    }
+    50% {
+      transform: scale(1.14);
+      filter: brightness(1.15);
+    }
   }
 
   .caption-preview-pulse {
@@ -902,7 +1052,7 @@
   }
 
   .caption-preview-scanlines::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -1502,7 +1652,11 @@
   }
 
   .dash-ui-progress-primary {
-    background: linear-gradient(90deg, var(--dash-primary-dark), var(--dash-primary));
+    background: linear-gradient(
+      90deg,
+      var(--dash-primary-dark),
+      var(--dash-primary)
+    );
   }
 
   .dash-ui-progress-success {
@@ -2020,7 +2174,11 @@
 
   .lumiera-project-bar {
     @apply shrink-0 px-4 sm:px-6 py-3 min-w-0 border-b;
-    background: linear-gradient(180deg, var(--dash-card) 0%, rgba(12, 16, 24, 0.96) 100%);
+    background: linear-gradient(
+      180deg,
+      var(--dash-card) 0%,
+      rgba(12, 16, 24, 0.96) 100%
+    );
     border-color: var(--dash-border);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   }
@@ -2064,7 +2222,9 @@
   .glass-panel-glow {
     background: var(--dash-card);
     border: 1px solid rgba(130, 128, 253, 0.16);
-    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(130, 128, 253, 0.06);
+    box-shadow:
+      0 1px 12px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(130, 128, 253, 0.06);
     border-radius: 7px;
     min-width: 0;
   }
@@ -2259,7 +2419,9 @@
     @apply rounded-lg px-3.5 py-3;
     background: var(--dash-card);
     border: 1px solid var(--dash-border);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(130, 128, 253, 0.08);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(130, 128, 253, 0.08);
   }
 
   .dash-help-tip-arrow {
@@ -2290,8 +2452,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -2370,72 +2538,182 @@
 
 /* Overlay preview — animated SVG icons */
 @keyframes overlay-svg-spin-keyframes {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @keyframes overlay-svg-pulse-keyframes {
-  0%, 100% { transform: scale(0.92); opacity: 0.85; }
-  50% { transform: scale(1.06); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
 }
 @keyframes overlay-svg-flicker-keyframes {
-  0%, 100% { transform: scale(0.95); opacity: 0.9; }
-  50% { transform: scale(1.04); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
 }
 @keyframes overlay-svg-orbit-keyframes {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @keyframes overlay-svg-flip-keyframes {
-  0%, 88% { transform: rotate(0deg); }
-  100% { transform: rotate(180deg); }
+  0%,
+  88% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(180deg);
+  }
 }
 @keyframes overlay-svg-sway-keyframes {
-  0%, 100% { transform: rotate(-6deg); }
-  50% { transform: rotate(8deg); }
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
 }
 @keyframes overlay-svg-blink-keyframes {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 @keyframes overlay-svg-wiggle-keyframes {
-  0%, 100% { transform: rotate(-12deg); }
-  50% { transform: rotate(12deg); }
+  0%,
+  100% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(12deg);
+  }
 }
 @keyframes overlay-svg-glow-keyframes {
-  0%, 100% { opacity: 0.45; filter: drop-shadow(0 0 0 transparent); }
-  50% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); }
+  0%,
+  100% {
+    opacity: 0.45;
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px currentColor);
+  }
 }
 @keyframes overlay-svg-float-keyframes {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 @keyframes overlay-svg-flip-y-keyframes {
-  0% { transform: rotateY(0deg); }
-  100% { transform: rotateY(360deg); }
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
 }
 @keyframes overlay-svg-cross-keyframes {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08) rotate(3deg); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08) rotate(3deg);
+  }
 }
 @keyframes overlay-svg-bar-keyframes {
-  0%, 100% { transform: scaleY(0.85); }
-  50% { transform: scaleY(1.1); }
+  0%,
+  100% {
+    transform: scaleY(0.85);
+  }
+  50% {
+    transform: scaleY(1.1);
+  }
 }
 
-.overlay-svg-spin { animation: overlay-svg-spin-keyframes 4s linear infinite; transform-origin: center; }
-.overlay-svg-spin-slow { animation: overlay-svg-spin-keyframes 10s linear infinite; transform-origin: center; }
-.overlay-svg-pulse { animation: overlay-svg-pulse-keyframes 2s ease-in-out infinite; transform-origin: center; }
-.overlay-svg-flicker { animation: overlay-svg-flicker-keyframes 1.2s ease-in-out infinite; transform-origin: center bottom; }
-.overlay-svg-orbit { animation: overlay-svg-orbit-keyframes 4s linear infinite; transform-origin: center; }
-.overlay-svg-flip { animation: overlay-svg-flip-keyframes 4s ease-in-out infinite; transform-origin: center; }
-.overlay-svg-sway { animation: overlay-svg-sway-keyframes 3s ease-in-out infinite; transform-origin: left bottom; }
-.overlay-svg-blink { animation: overlay-svg-blink-keyframes 1.2s ease-in-out infinite; }
-.overlay-svg-wiggle { animation: overlay-svg-wiggle-keyframes 2.5s ease-in-out infinite; transform-origin: center; }
-.overlay-svg-glow { animation: overlay-svg-glow-keyframes 2s ease-in-out infinite; }
-.overlay-svg-float { animation: overlay-svg-float-keyframes 2.2s ease-in-out infinite; transform-origin: center; }
-.overlay-svg-flip-y { animation: overlay-svg-flip-y-keyframes 3s linear infinite; transform-origin: center; }
-.overlay-svg-cross { animation: overlay-svg-cross-keyframes 1s ease-in-out infinite; transform-origin: center; }
-.overlay-svg-bar1 { animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite; transform-origin: bottom; }
-.overlay-svg-bar2 { animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite 0.2s; transform-origin: bottom; }
-.overlay-svg-bar3 { animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite 0.4s; transform-origin: bottom; }
+.overlay-svg-spin {
+  animation: overlay-svg-spin-keyframes 4s linear infinite;
+  transform-origin: center;
+}
+.overlay-svg-spin-slow {
+  animation: overlay-svg-spin-keyframes 10s linear infinite;
+  transform-origin: center;
+}
+.overlay-svg-pulse {
+  animation: overlay-svg-pulse-keyframes 2s ease-in-out infinite;
+  transform-origin: center;
+}
+.overlay-svg-flicker {
+  animation: overlay-svg-flicker-keyframes 1.2s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.overlay-svg-orbit {
+  animation: overlay-svg-orbit-keyframes 4s linear infinite;
+  transform-origin: center;
+}
+.overlay-svg-flip {
+  animation: overlay-svg-flip-keyframes 4s ease-in-out infinite;
+  transform-origin: center;
+}
+.overlay-svg-sway {
+  animation: overlay-svg-sway-keyframes 3s ease-in-out infinite;
+  transform-origin: left bottom;
+}
+.overlay-svg-blink {
+  animation: overlay-svg-blink-keyframes 1.2s ease-in-out infinite;
+}
+.overlay-svg-wiggle {
+  animation: overlay-svg-wiggle-keyframes 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+.overlay-svg-glow {
+  animation: overlay-svg-glow-keyframes 2s ease-in-out infinite;
+}
+.overlay-svg-float {
+  animation: overlay-svg-float-keyframes 2.2s ease-in-out infinite;
+  transform-origin: center;
+}
+.overlay-svg-flip-y {
+  animation: overlay-svg-flip-y-keyframes 3s linear infinite;
+  transform-origin: center;
+}
+.overlay-svg-cross {
+  animation: overlay-svg-cross-keyframes 1s ease-in-out infinite;
+  transform-origin: center;
+}
+.overlay-svg-bar1 {
+  animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite;
+  transform-origin: bottom;
+}
+.overlay-svg-bar2 {
+  animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite 0.2s;
+  transform-origin: bottom;
+}
+.overlay-svg-bar3 {
+  animation: overlay-svg-bar-keyframes 1.4s ease-in-out infinite 0.4s;
+  transform-origin: bottom;
+}
 
 .overlay-variant-swatch {
   @apply relative shrink-0 overflow-hidden rounded-lg border cursor-pointer transition;
@@ -2444,7 +2722,8 @@
 }
 .overlay-variant-swatch--active {
   border-color: var(--dash-primary-light);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dash-primary-light) 40%, transparent);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--dash-primary-light) 40%, transparent);
 }
 .overlay-variant-swatch--idle {
   @apply border-[var(--dash-border)] hover:border-[rgba(130,128,253,0.35)];
