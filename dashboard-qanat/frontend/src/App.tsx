@@ -3357,7 +3357,10 @@ export default function App() {
         fetchData();
       }
       if (serverConfig && typeof serverConfig === 'object' && Object.keys(serverConfig).length > 0) {
-        return serverConfig as ConfigData;
+        return stripConfigApiMetadata(serverConfig as ConfigData);
+      }
+      if (res.ok) {
+        toast.error('Servidor não devolveu a configuração salva — tente novamente.');
       }
       return null;
     } catch (err) {

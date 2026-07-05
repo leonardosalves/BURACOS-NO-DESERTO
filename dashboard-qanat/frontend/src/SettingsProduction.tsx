@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Clapperboard, Save } from 'lucide-react';
 import { SettingLabel } from './SettingHelpTip';
 import { SectionHeader } from './SectionHeader';
@@ -55,10 +55,14 @@ export function SettingsProduction({
   onSave,
 }: Props) {
   const [draft, setDraft] = useState<ProductionConfig>(() => pickProductionConfig(config));
+  const productionFingerprint = useMemo(
+    () => JSON.stringify(pickProductionConfig(config)),
+    [config],
+  );
 
   useEffect(() => {
     setDraft(pickProductionConfig(config));
-  }, [projectKey]);
+  }, [projectKey, productionFingerprint, config]);
 
   const intensity = draft.overlay_intensity || 'normal';
   const gap = draft.overlay_min_gap || 'normal';
