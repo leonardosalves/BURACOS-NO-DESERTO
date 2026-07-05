@@ -2410,14 +2410,21 @@ export default function App() {
 
   useEffect(() => {
     fetchYoutubeChannelAlerts();
+
+    const tick = () => {
+      // Only poll if the document is visible to save resources
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchYoutubeChannelAlerts();
+    };
+
     let timer = window.setInterval(
-      fetchYoutubeChannelAlerts,
+      tick,
       getYoutubePollIntervalMs()
     );
     const onPollChange = () => {
       window.clearInterval(timer);
       timer = window.setInterval(
-        fetchYoutubeChannelAlerts,
+        tick,
         getYoutubePollIntervalMs()
       );
     };
