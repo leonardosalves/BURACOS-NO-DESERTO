@@ -12,18 +12,165 @@ import {
   sanitizeNarrationChunkTaggedText,
   stripTtsMarkersForPlainText,
 } from "./videoProEnhancements.js";
-import { synthesizeKokoroNarration, KOKORO_DEFAULT_VOICE, KOKORO_DEFAULT_SPEED } from "./kokoroTts.js";
-import { fetchFishSpeechAudio, loadFishSpeechConfig, applyFishOptionOverrides } from "./fishSpeechTts.js";
-import { loadVoiceboxConfig, synthesizeVoiceboxNarration } from "./voiceboxTts.js";
-import { loadGptSovitsConfig, synthesizeGptSovitsNarration } from "./gptSovitsTts.js";
+import {
+  synthesizeKokoroNarration,
+  KOKORO_DEFAULT_VOICE,
+  KOKORO_DEFAULT_SPEED,
+} from "./kokoroTts.js";
+import {
+  fetchFishSpeechAudio,
+  loadFishSpeechConfig,
+  applyFishOptionOverrides,
+} from "./fishSpeechTts.js";
+import {
+  loadVoiceboxConfig,
+  synthesizeVoiceboxNarration,
+} from "./voiceboxTts.js";
+import {
+  loadGptSovitsConfig,
+  synthesizeGptSovitsNarration,
+} from "./gptSovitsTts.js";
 import {
   loadChatterboxConfig,
   synthesizeChatterboxNarration,
   CHATTERBOX_DEFAULT_VOICE,
 } from "./chatterboxTts.js";
 import { flattenWordTranscripts } from "../shared/wordTranscripts.js";
+import { cleanText, matchWords } from "../shared/narrationMatch.js";
 import { tightenTimelineRetentionDurations } from "./timelineSceneSync.js";
 
+const MAX_WHISPER_WORD_DURATION_S = 2.5;
+const MAX_WHISPER_INTER_WORD_GAP_S = 1.2;
+const MIN_WHISPER_TOKEN_COVERAGE = 0.72;
+
+function tokenizePlainNarration(text = "") {
+  return stripTtsMarkersForPlainText(text).split(/\s+/).filter(Boolean);
+}
+
+/** Tempos relativos ao start_time do segmento (formato align_transcripts / Whisper). */
+export function synthesizeWordEntriesForDuration(plainText = "", duration = 0) {
+  const plain = stripTtsMarkersForPlainText(plainText);
+  const words = tokenizePlainNarration(plain);
+  const safeDuration = Math.max(0.05, Number(duration) || 0);
+  if (!words.length) return [];
+
+  const weights = words.map((w) =>
+    Math.max(1, w.replace(/[^\wáéíóúâêîôûãõç]/gi, "").length)
+  );
+  const totalWeight =
+    weights.reduce((sum, w) => sum + w, 0) || words.length || 1;
+  let relT = 0;
+  return words.map((word, wi) => {
+    const wordDur = safeDuration * (weights[wi] / totalWeight);
+    const wStart = relT;
+    const wEnd = relT + wordDur;
+    relT = wEnd;
+    return {
+      word: wi === 0 ? word : ` ${word}`,
+      start: Number(wStart.toFixed(3)),
+      end: Number(wEnd.toFixed(3)),
+    };
+  });
+}
+
+function countSequentialTokenMatches(expectedTokens = [], whisperTokens = []) {
+  let matched = 0;
+  let wi = 0;
+  for (const expected of expectedTokens) {
+    while (
+      wi < whisperTokens.length &&
+      !matchWords(expected, whisperTokens[wi])
+    ) {
+      wi += 1;
+    }
+    if (wi >= whisperTokens.length) break;
+    matched += 1;
+    wi += 1;
+  }
+  return matched;
+}
+
+/** Detecta timestamps Whisper corrompidos (palavra única com vários segundos, texto truncado, etc.). */
+export function assessWhisperWordQuality(
+  plainText = "",
+  wordEntries = [],
+  duration = 0
+) {
+  const expectedTokens = cleanText(plainText);
+  const whisperTokens = (wordEntries || []).map(
+    (w) => cleanText(String(w.word || "")).pop() || ""
+  );
+  const safeDuration = Math.max(0.05, Number(duration) || 0);
+
+  if (!expectedTokens.length || !whisperTokens.length) {
+    return {
+      ok: false,
+      reason: "empty",
+      coverage: 0,
+      matched: 0,
+      expected: expectedTokens.length,
+    };
+  }
+
+  const matched = countSequentialTokenMatches(expectedTokens, whisperTokens);
+  const coverage = matched / expectedTokens.length;
+
+  let maxWordDuration = 0;
+  let maxGap = 0;
+  for (let i = 0; i < wordEntries.length; i += 1) {
+    const start = Number(wordEntries[i]?.start) || 0;
+    const end = Number(wordEntries[i]?.end) || start;
+    maxWordDuration = Math.max(maxWordDuration, Math.max(0, end - start));
+    if (i > 0) {
+      const prevEnd = Number(wordEntries[i - 1]?.end) || 0;
+      maxGap = Math.max(maxGap, Math.max(0, start - prevEnd));
+    }
+  }
+
+  const lastEnd = Number(wordEntries[wordEntries.length - 1]?.end) || 0;
+  const trailingSilence = Math.max(0, safeDuration - lastEnd);
+  const countRatio = whisperTokens.length / expectedTokens.length;
+
+  const ok =
+    coverage >= MIN_WHISPER_TOKEN_COVERAGE &&
+    countRatio >= 0.6 &&
+    maxWordDuration <= MAX_WHISPER_WORD_DURATION_S &&
+    maxGap <= MAX_WHISPER_INTER_WORD_GAP_S &&
+    trailingSilence <= 1.25 &&
+    lastEnd <= safeDuration + 0.2;
+
+  return {
+    ok,
+    coverage,
+    matched,
+    expected: expectedTokens.length,
+    whisperCount: whisperTokens.length,
+    maxWordDuration,
+    maxGap,
+    trailingSilence,
+    lastEnd,
+  };
+}
+
+function clampWordEntriesToDuration(wordEntries = [], duration = 0) {
+  const safeDuration = Math.max(0.05, Number(duration) || 0);
+  return (wordEntries || []).map((entry, index, list) => {
+    const start = Math.max(0, Math.min(safeDuration, Number(entry.start) || 0));
+    let end = Math.max(start + 0.05, Number(entry.end) || start + 0.15);
+    end = Math.min(end, start + MAX_WHISPER_WORD_DURATION_S);
+    if (index < list.length - 1) {
+      const nextStart = Math.max(0, Number(list[index + 1]?.start) || end);
+      end = Math.min(end, Math.max(start + 0.05, nextStart - 0.02));
+    } else {
+      end = Math.min(end, safeDuration);
+    }
+    return {
+      ...entry,
+      start: Number(start.toFixed(3)),
+      end: Number(end.toFixed(3)),
+    };
+  });
+}
 
 export const NARRATION_CHUNKS_DIR = "narration_chunks";
 export const NARRATION_MASTER_FILENAME = "narracao_mestra_premium.mp3";
@@ -35,8 +182,9 @@ export function isChunkedNarrationProject(config = {}, storyboard = {}) {
   const plan = storyboard?.narration_chunk_plan;
   const chunks = Array.isArray(plan?.chunks) ? plan.chunks : [];
   return (
-    (config.narration_mode === NARRATION_MODE_CHUNKED || plan?.mode === NARRATION_MODE_CHUNKED)
-    && chunks.some((c) => String(c.text || "").trim().length >= 2)
+    (config.narration_mode === NARRATION_MODE_CHUNKED ||
+      plan?.mode === NARRATION_MODE_CHUNKED) &&
+    chunks.some((c) => String(c.text || "").trim().length >= 2)
   );
 }
 
@@ -50,11 +198,17 @@ function clampPauseMs(value, fallback = 400) {
 }
 
 function normalizeVoiceRef(raw = {}, fallback = {}) {
-  const engine = String(raw.engine || raw.platform || fallback.engine || "kokoro").toLowerCase();
+  const engine = String(
+    raw.engine || raw.platform || fallback.engine || "kokoro"
+  ).toLowerCase();
   return {
     engine: engine === "gpt-sovits" ? "gptsovits" : engine,
-    voice: String(raw.voice || raw.voice_id || fallback.voice || KOKORO_DEFAULT_VOICE),
-    speed: Number.isFinite(Number(raw.speed)) ? Number(raw.speed) : (fallback.speed ?? KOKORO_DEFAULT_SPEED),
+    voice: String(
+      raw.voice || raw.voice_id || fallback.voice || KOKORO_DEFAULT_VOICE
+    ),
+    speed: Number.isFinite(Number(raw.speed))
+      ? Number(raw.speed)
+      : (fallback.speed ?? KOKORO_DEFAULT_SPEED),
     rate: raw.rate || fallback.rate || "+0%",
     pitch: raw.pitch || fallback.pitch || "+0Hz",
   };
@@ -71,14 +225,19 @@ export function buildHeuristicNarrationChunks({
   config = {},
   defaultVoice = {},
 } = {}) {
-  const scenes = Array.isArray(storyboard.visual_prompts) ? storyboard.visual_prompts : [];
+  const scenes = Array.isArray(storyboard.visual_prompts)
+    ? storyboard.visual_prompts
+    : [];
   const blockPhrases = Array.isArray(config.block_phrases)
     ? config.block_phrases
-    : (Array.isArray(storyboard.technical_config?.block_phrases)
+    : Array.isArray(storyboard.technical_config?.block_phrases)
       ? storyboard.technical_config.block_phrases
-      : []);
+      : [];
   const phraseByBlock = new Map(
-    blockPhrases.map((bp) => [Number(bp.block) || 0, String(bp.phrase || "").trim()]),
+    blockPhrases.map((bp) => [
+      Number(bp.block) || 0,
+      String(bp.phrase || "").trim(),
+    ])
   );
   const voice = normalizeVoiceRef(defaultVoice);
   const chunks = [];
@@ -87,13 +246,16 @@ export function buildHeuristicNarrationChunks({
   for (let i = 0; i < scenes.length; i += 1) {
     const scene = scenes[i];
     const block = Number(scene.block) || 1;
-    const sceneRef = String(scene.scene || scene.scene_ref || `${block}.${i + 1}`);
+    const sceneRef = String(
+      scene.scene || scene.scene_ref || `${block}.${i + 1}`
+    );
     const text = String(scene.narration_text || "").trim();
     if (!text) continue;
 
-    const pauseAfter = prevBlock != null && block !== prevBlock
-      ? DEFAULT_PAUSE_BETWEEN_BLOCKS_MS
-      : DEFAULT_PAUSE_BETWEEN_SCENES_MS;
+    const pauseAfter =
+      prevBlock != null && block !== prevBlock
+        ? DEFAULT_PAUSE_BETWEEN_BLOCKS_MS
+        : DEFAULT_PAUSE_BETWEEN_SCENES_MS;
 
     chunks.push({
       id: `chunk-${String(chunks.length + 1).padStart(2, "0")}`,
@@ -102,7 +264,10 @@ export function buildHeuristicNarrationChunks({
       text,
       text_tagged: text,
       pause_after_ms: i === scenes.length - 1 ? 0 : pauseAfter,
-      pause_reason: block !== prevBlock && prevBlock != null ? "virada de bloco" : "respiro entre cenas",
+      pause_reason:
+        block !== prevBlock && prevBlock != null
+          ? "virada de bloco"
+          : "respiro entre cenas",
       block_phrase: phraseByBlock.get(block) || "",
       voice: { ...voice },
       audio_file: null,
@@ -114,7 +279,10 @@ export function buildHeuristicNarrationChunks({
     prevBlock = block;
   }
 
-  return normalizeNarrationChunkPlan({ chunks, default_voice: voice }, { storyboard, config });
+  return normalizeNarrationChunkPlan(
+    { chunks, default_voice: voice },
+    { storyboard, config }
+  );
 }
 
 export function buildNarrationChunkPlanPrompt({
@@ -136,7 +304,9 @@ export function buildNarrationChunkPlanPrompt({
 Nicho: ${niche} — tom documental natural, ritmo de respiração entre ideias.
 
 NARRAÇÃO COMPLETA:
-${String(narrativeScript || "").trim().slice(0, 12000)}
+${String(narrativeScript || "")
+  .trim()
+  .slice(0, 12000)}
 
 CENAS (visual_prompts — use como mapa principal):
 ${JSON.stringify(sceneLines, null, 2)}
@@ -172,31 +342,43 @@ Retorne APENAS JSON:
 export function parseAiNarrationChunkResponse(parsed = {}) {
   const raw = parsed.chunks || parsed.narration_chunks || parsed.segments || [];
   if (!Array.isArray(raw)) return [];
-  return raw.map((c, idx) => ({
-    id: String(c.id || `chunk-${String(idx + 1).padStart(2, "0")}`),
-    block: Number(c.block) || 1,
-    scene_ref: String(c.scene_ref || c.scene || c.sceneRef || `${Number(c.block) || 1}.${idx + 1}`),
-    text: String(c.text || "").trim(),
-    text_tagged: sanitizeNarrationChunkTaggedText(
-      c.text_tagged || c.textTagged || c.text || "",
-      c.text || "",
-    ),
-    pause_after_ms: clampPauseMs(c.pause_after_ms ?? c.pauseAfterMs, DEFAULT_PAUSE_BETWEEN_SCENES_MS),
-    pause_reason: String(c.pause_reason || c.pauseReason || "").trim() || undefined,
-    voice: c.voice || null,
-    audio_file: null,
-    duration_s: null,
-    start_s: null,
-    end_s: null,
-    status: "planned",
-  })).filter((c) => c.text.length >= 2);
+  return raw
+    .map((c, idx) => ({
+      id: String(c.id || `chunk-${String(idx + 1).padStart(2, "0")}`),
+      block: Number(c.block) || 1,
+      scene_ref: String(
+        c.scene_ref ||
+          c.scene ||
+          c.sceneRef ||
+          `${Number(c.block) || 1}.${idx + 1}`
+      ),
+      text: String(c.text || "").trim(),
+      text_tagged: sanitizeNarrationChunkTaggedText(
+        c.text_tagged || c.textTagged || c.text || "",
+        c.text || ""
+      ),
+      pause_after_ms: clampPauseMs(
+        c.pause_after_ms ?? c.pauseAfterMs,
+        DEFAULT_PAUSE_BETWEEN_SCENES_MS
+      ),
+      pause_reason:
+        String(c.pause_reason || c.pauseReason || "").trim() || undefined,
+      voice: c.voice || null,
+      audio_file: null,
+      duration_s: null,
+      start_s: null,
+      end_s: null,
+      status: "planned",
+    }))
+    .filter((c) => c.text.length >= 2);
 }
 
 export function computeChunkTimeline(chunks = []) {
   let cursor = 0;
   return (chunks || []).map((chunk, idx, arr) => {
     const duration = Number(chunk.duration_s) || 0;
-    const pauseMs = idx < arr.length - 1 ? clampPauseMs(chunk.pause_after_ms, 0) : 0;
+    const pauseMs =
+      idx < arr.length - 1 ? clampPauseMs(chunk.pause_after_ms, 0) : 0;
     if (duration <= 0) {
       return { ...chunk, start_s: null, end_s: null, pause_after_ms: pauseMs };
     }
@@ -212,41 +394,61 @@ export function computeChunkTimeline(chunks = []) {
   });
 }
 
-export function normalizeNarrationChunkPlan(plan = {}, { storyboard = {}, config = {} } = {}) {
+export function normalizeNarrationChunkPlan(
+  plan = {},
+  { storyboard = {}, config = {} } = {}
+) {
   const defaultVoice = normalizeVoiceRef(
     plan.default_voice || config.narration_default_voice || {},
-    { engine: "kokoro", voice: KOKORO_DEFAULT_VOICE, speed: KOKORO_DEFAULT_SPEED },
+    {
+      engine: "kokoro",
+      voice: KOKORO_DEFAULT_VOICE,
+      speed: KOKORO_DEFAULT_SPEED,
+    }
   );
   let chunks = Array.isArray(plan.chunks) ? plan.chunks : [];
-  chunks = chunks.map((c, idx) => {
-    const voice = normalizeVoiceRef(c.voice || {}, defaultVoice);
-    const id = String(c.id || `chunk-${String(idx + 1).padStart(2, "0")}`);
-    return {
-      id,
-      block: Number(c.block) || 1,
-      scene_ref: String(c.scene_ref || c.scene || `${Number(c.block) || 1}.${idx + 1}`),
-      text: String(c.text || "").trim(),
-      text_tagged: sanitizeNarrationChunkTaggedText(c.text_tagged || c.text || "", c.text || ""),
-      pause_after_ms: clampPauseMs(c.pause_after_ms, idx === chunks.length - 1 ? 0 : DEFAULT_PAUSE_BETWEEN_SCENES_MS),
-      pause_reason: c.pause_reason || undefined,
-      block_phrase: c.block_phrase || undefined,
-      voice,
-      audio_file: c.audio_file || chunkAudioRelativePath(id),
-      duration_s: Number.isFinite(Number(c.duration_s)) ? Number(c.duration_s) : null,
-      start_s: Number.isFinite(Number(c.start_s)) ? Number(c.start_s) : null,
-      end_s: Number.isFinite(Number(c.end_s)) ? Number(c.end_s) : null,
-      status: c.status || (c.audio_file ? "generated" : "planned"),
-    };
-  }).filter((c) => c.text.length >= 2);
+  chunks = chunks
+    .map((c, idx) => {
+      const voice = normalizeVoiceRef(c.voice || {}, defaultVoice);
+      const id = String(c.id || `chunk-${String(idx + 1).padStart(2, "0")}`);
+      return {
+        id,
+        block: Number(c.block) || 1,
+        scene_ref: String(
+          c.scene_ref || c.scene || `${Number(c.block) || 1}.${idx + 1}`
+        ),
+        text: String(c.text || "").trim(),
+        text_tagged: sanitizeNarrationChunkTaggedText(
+          c.text_tagged || c.text || "",
+          c.text || ""
+        ),
+        pause_after_ms: clampPauseMs(
+          c.pause_after_ms,
+          idx === chunks.length - 1 ? 0 : DEFAULT_PAUSE_BETWEEN_SCENES_MS
+        ),
+        pause_reason: c.pause_reason || undefined,
+        block_phrase: c.block_phrase || undefined,
+        voice,
+        audio_file: c.audio_file || chunkAudioRelativePath(id),
+        duration_s: Number.isFinite(Number(c.duration_s))
+          ? Number(c.duration_s)
+          : null,
+        start_s: Number.isFinite(Number(c.start_s)) ? Number(c.start_s) : null,
+        end_s: Number.isFinite(Number(c.end_s)) ? Number(c.end_s) : null,
+        status: c.status || (c.audio_file ? "generated" : "planned"),
+      };
+    })
+    .filter((c) => c.text.length >= 2);
 
   const withAudio = chunks.filter((c) => Number(c.duration_s) > 0);
-  const timed = withAudio.length === chunks.length && withAudio.length > 0
-    ? computeChunkTimeline(chunks)
-    : chunks;
+  const timed =
+    withAudio.length === chunks.length && withAudio.length > 0
+      ? computeChunkTimeline(chunks)
+      : chunks;
 
   const totalDuration = timed.length
-    ? (timed[timed.length - 1].end_s || 0)
-      + (timed[timed.length - 1].pause_after_ms || 0) / 1000
+    ? (timed[timed.length - 1].end_s || 0) +
+      (timed[timed.length - 1].pause_after_ms || 0) / 1000
     : 0;
 
   return {
@@ -258,15 +460,17 @@ export function normalizeNarrationChunkPlan(plan = {}, { storyboard = {}, config
     total_duration: Number(totalDuration.toFixed(3)) || null,
     chunks: timed,
     source: plan.source || "normalized",
-    narrative_script_snapshot: String(storyboard.narrative_script || "").slice(0, 500) || undefined,
+    narrative_script_snapshot:
+      String(storyboard.narrative_script || "").slice(0, 500) || undefined,
   };
 }
 
 export function buildBlockTimingsFromChunks(chunks = []) {
   const list = Array.isArray(chunks) ? chunks : [];
   const needsTimeline = list.some(
-    (c) => Number(c.duration_s) > 0
-      && (!Number.isFinite(Number(c.start_s)) || !Number.isFinite(Number(c.end_s))),
+    (c) =>
+      Number(c.duration_s) > 0 &&
+      (!Number.isFinite(Number(c.start_s)) || !Number.isFinite(Number(c.end_s)))
   );
   const resolved = needsTimeline ? computeChunkTimeline(list) : list;
 
@@ -287,8 +491,13 @@ export function buildBlockTimingsFromChunks(chunks = []) {
   }
   const blocks = [...byBlock.values()].sort((a, b) => a.block - b.block);
   const starts = blocks.map((b) => Number(b.start.toFixed(3)));
-  const durations = blocks.map((b) => Number(Math.max(0.1, b.end - b.start).toFixed(3)));
-  const total = durations.reduce((sum, d, i) => Math.max(sum, starts[i] + d), 0);
+  const durations = blocks.map((b) =>
+    Number(Math.max(0.1, b.end - b.start).toFixed(3))
+  );
+  const total = durations.reduce(
+    (sum, d, i) => Math.max(sum, starts[i] + d),
+    0
+  );
   return {
     starts,
     durations,
@@ -298,7 +507,9 @@ export function buildBlockTimingsFromChunks(chunks = []) {
 }
 
 function parseSceneRefIndex(sceneRef = "", fallback = 0) {
-  const parts = String(sceneRef || "").trim().split(".");
+  const parts = String(sceneRef || "")
+    .trim()
+    .split(".");
   const sub = Number(parts[1]);
   if (Number.isFinite(sub) && sub >= 1) return sub - 1;
   return fallback;
@@ -323,7 +534,10 @@ export function syncTimelineFromChunkPlan({
 } = {}) {
   const timed = computeChunkTimeline(chunkPlan?.chunks || []);
   if (!timed.length) {
-    return { timelineAssets: { ...timelineAssets }, visualPrompts: [...(visualPrompts || [])] };
+    return {
+      timelineAssets: { ...timelineAssets },
+      visualPrompts: [...(visualPrompts || [])],
+    };
   }
 
   const out = { ...timelineAssets };
@@ -340,7 +554,9 @@ export function syncTimelineFromChunkPlan({
     const blockKey = String(blockNum);
     const assets = [...(out[blockKey] || [])];
     const sorted = [...blockChunks].sort(
-      (a, b) => Number(a.start_s) - Number(b.start_s) || String(a.scene_ref).localeCompare(String(b.scene_ref)),
+      (a, b) =>
+        Number(a.start_s) - Number(b.start_s) ||
+        String(a.scene_ref).localeCompare(String(b.scene_ref))
     );
 
     while (assets.length < sorted.length) {
@@ -350,7 +566,8 @@ export function syncTimelineFromChunkPlan({
     sorted.forEach((chunk, ordinal) => {
       const start = Number(chunk.start_s);
       const end = Number(chunk.end_s);
-      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+        return;
 
       const text = String(chunk.text || "").trim();
       // 1 trecho = 1 slot na ordem do bloco (evita colisão por scene_ref incorreto).
@@ -367,7 +584,9 @@ export function syncTimelineFromChunkPlan({
       };
 
       const sceneRef = String(chunk.scene_ref || `${blockNum}.${idx + 1}`);
-      const vpIdx = nextPrompts.findIndex((vp) => String(vp?.scene || "").trim() === sceneRef);
+      const vpIdx = nextPrompts.findIndex(
+        (vp) => String(vp?.scene || "").trim() === sceneRef
+      );
       if (vpIdx >= 0 && text) {
         nextPrompts[vpIdx] = { ...nextPrompts[vpIdx], narration_text: text };
       } else if (text) {
@@ -390,7 +609,10 @@ export function syncTimelineFromChunkPlan({
 /**
  * Reconstrói word_transcripts com 1 segmento por trecho — evita Whisper colapsar várias cenas em 1 bloco.
  */
-export function mergeWhisperTranscriptsWithChunkPlan(chunkPlan = {}, flatWords = []) {
+export function mergeWhisperTranscriptsWithChunkPlan(
+  chunkPlan = {},
+  flatWords = []
+) {
   const timed = computeChunkTimeline(chunkPlan?.chunks || []);
   if (!timed.length) return [];
 
@@ -401,24 +623,28 @@ export function mergeWhisperTranscriptsWithChunkPlan(chunkPlan = {}, flatWords =
     const text = String(chunk.text || "").trim();
     const plain = stripTtsMarkersForPlainText(text);
     const wordsInWindow = (flatWords || []).filter(
-      (w) => Number(w.start) >= start - 0.08 && Number(w.start) < end + 0.12,
+      (w) => Number(w.start) >= start - 0.08 && Number(w.start) < end + 0.12
     );
 
     let wordEntries;
     if (wordsInWindow.length >= 2) {
-      wordEntries = wordsInWindow.map((w) => ({
-        word: String(w.word || "").startsWith(" ") ? String(w.word) : ` ${String(w.word || "").trim()}`,
+      const whisperRelative = wordsInWindow.map((w) => ({
+        word: String(w.word || "").startsWith(" ")
+          ? String(w.word)
+          : ` ${String(w.word || "").trim()}`,
         start: Math.max(0, Number(w.start) - start),
         end: Math.max(0.05, Number(w.end) - start),
       }));
+      const quality = assessWhisperWordQuality(
+        plain,
+        whisperRelative,
+        duration
+      );
+      wordEntries = quality.ok
+        ? clampWordEntriesToDuration(whisperRelative, duration)
+        : synthesizeWordEntriesForDuration(plain, duration);
     } else {
-      const tokens = plain.split(/\s+/).filter(Boolean);
-      const step = duration / Math.max(tokens.length, 1);
-      wordEntries = tokens.map((word, wi) => ({
-        word: wi === 0 ? word : ` ${word}`,
-        start: Number((wi * step).toFixed(3)),
-        end: Number(((wi + 1) * step).toFixed(3)),
-      }));
+      wordEntries = synthesizeWordEntriesForDuration(plain, duration);
     }
 
     return {
@@ -444,15 +670,19 @@ export function mergeWhisperTranscriptsWithChunkPlan(chunkPlan = {}, flatWords =
 export function applyChunkPlanToVisualPrompts(
   visualPrompts = [],
   chunkPlan = {},
-  timelineAssets = {},
+  timelineAssets = {}
 ) {
   const rawChunks = chunkPlan?.chunks || [];
-  const timed = rawChunks.length
-    && rawChunks.every((c) => Number.isFinite(Number(c.start_s)) && Number.isFinite(Number(c.end_s)))
-    ? rawChunks
-    : computeChunkTimeline(rawChunks);
+  const timed =
+    rawChunks.length &&
+    rawChunks.every(
+      (c) =>
+        Number.isFinite(Number(c.start_s)) && Number.isFinite(Number(c.end_s))
+    )
+      ? rawChunks
+      : computeChunkTimeline(rawChunks);
   const chunkByScene = new Map(
-    timed.map((c) => [String(c.scene_ref || "").trim(), c]),
+    timed.map((c) => [String(c.scene_ref || "").trim(), c])
   );
   const sceneOrdinalInBlock = new Map();
   const blockCounters = new Map();
@@ -471,19 +701,25 @@ export function applyChunkPlanToVisualPrompts(
 
     const blockKey = String(blockNum);
     const assets = timelineAssets[blockKey] || [];
-    const ordInBlock = sceneRef && sceneOrdinalInBlock.has(`${blockKey}:${sceneRef}`)
-      ? sceneOrdinalInBlock.get(`${blockKey}:${sceneRef}`)
-      : 0;
+    const ordInBlock =
+      sceneRef && sceneOrdinalInBlock.has(`${blockKey}:${sceneRef}`)
+        ? sceneOrdinalInBlock.get(`${blockKey}:${sceneRef}`)
+        : 0;
     const assetIdx = Math.min(ordInBlock, Math.max(assets.length - 1, 0));
     const slot = assets[assetIdx];
 
     let next = { ...vp };
-    if (chunk && Number.isFinite(Number(chunk.start_s)) && Number.isFinite(Number(chunk.end_s))) {
+    if (
+      chunk &&
+      Number.isFinite(Number(chunk.start_s)) &&
+      Number.isFinite(Number(chunk.end_s))
+    ) {
       const start = Number(chunk.start_s);
       const end = Number(chunk.end_s);
-      const dur = slot?.synced_to_speech && Number.isFinite(Number(slot?.fixed))
-        ? Number(slot.fixed)
-        : parseFloat(Math.max(0.5, end - start).toFixed(1));
+      const dur =
+        slot?.synced_to_speech && Number.isFinite(Number(slot?.fixed))
+          ? Number(slot.fixed)
+          : parseFloat(Math.max(0.5, end - start).toFixed(1));
       next = {
         ...next,
         duration: `${dur} segundos`,
@@ -491,7 +727,9 @@ export function applyChunkPlanToVisualPrompts(
         duration_from_whisper: true,
         speech_start: parseFloat(start.toFixed(3)),
         speech_end: parseFloat(end.toFixed(3)),
-        narration_text: String(chunk.text || next.narration_text || "").trim() || next.narration_text,
+        narration_text:
+          String(chunk.text || next.narration_text || "").trim() ||
+          next.narration_text,
       };
     }
     if (slot?.asset) {
@@ -506,18 +744,23 @@ export function applyChunkPlanToVisualPrompts(
   });
 }
 
-export function applyChunkedTimelineAfterWhisper(projDir, {
-  config = {},
-  storyboard = {},
-  wordTranscripts = [],
-  flatWords = [],
-} = {}) {
+export function applyChunkedTimelineAfterWhisper(
+  projDir,
+  { config = {}, storyboard = {}, wordTranscripts = [], flatWords = [] } = {}
+) {
   const chunkPlan = storyboard?.narration_chunk_plan;
-  if (!isChunkedNarrationProject(config, storyboard) || !chunkPlan?.chunks?.length) {
+  if (
+    !isChunkedNarrationProject(config, storyboard) ||
+    !chunkPlan?.chunks?.length
+  ) {
     return null;
   }
   const timedChunks = computeChunkTimeline(chunkPlan.chunks);
-  if (!timedChunks.some((c) => Number(c.duration_s) > 0 && Number.isFinite(Number(c.start_s)))) {
+  if (
+    !timedChunks.some(
+      (c) => Number(c.duration_s) > 0 && Number.isFinite(Number(c.start_s))
+    )
+  ) {
     return null;
   }
   return applyChunkedNarrationSyncToProject(projDir, {
@@ -529,13 +772,16 @@ export function applyChunkedTimelineAfterWhisper(projDir, {
   });
 }
 
-export function applyChunkedNarrationSyncToProject(projDir, {
-  chunkPlan,
-  config = {},
-  storyboard = {},
-  whisperTranscripts = null,
-  flatWords = [],
-} = {}) {
+export function applyChunkedNarrationSyncToProject(
+  projDir,
+  {
+    chunkPlan,
+    config = {},
+    storyboard = {},
+    whisperTranscripts = null,
+    flatWords = [],
+  } = {}
+) {
   if (!chunkPlan?.chunks?.length) {
     return { config, storyboard, timings: null, transcripts: null };
   }
@@ -554,15 +800,18 @@ export function applyChunkedNarrationSyncToProject(projDir, {
   let transcripts = buildWordTranscriptsFromChunks(timedPlan.chunks);
   const flat = flatWords?.length
     ? flatWords
-    : (Array.isArray(whisperTranscripts) && whisperTranscripts.length
+    : Array.isArray(whisperTranscripts) && whisperTranscripts.length
       ? flattenWordTranscripts(whisperTranscripts)
-      : []);
+      : [];
   if (flat.length) {
     transcripts = mergeWhisperTranscriptsWithChunkPlan(timedPlan, flat);
   }
 
   const timings = buildBlockTimingsFromChunks(timedPlan.chunks);
-  const tightenedTimeline = tightenTimelineRetentionDurations(synced.timelineAssets, timings);
+  const tightenedTimeline = tightenTimelineRetentionDurations(
+    synced.timelineAssets,
+    timings
+  );
   const nextConfig = {
     ...config,
     timeline_assets: tightenedTimeline,
@@ -571,7 +820,7 @@ export function applyChunkedNarrationSyncToProject(projDir, {
   const visualPrompts = applyChunkPlanToVisualPrompts(
     synced.visualPrompts,
     timedPlan,
-    tightenedTimeline,
+    tightenedTimeline
   );
   const nextStoryboard = {
     ...storyboard,
@@ -579,12 +828,33 @@ export function applyChunkedNarrationSyncToProject(projDir, {
     narration_chunk_plan: timedPlan,
   };
 
-  fs.writeFileSync(path.join(projDir, "config_qanat.json"), JSON.stringify(nextConfig, null, 2), "utf8");
-  fs.writeFileSync(path.join(projDir, "storyboard.json"), JSON.stringify(nextStoryboard, null, 2), "utf8");
-  fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify(timings, null, 2), "utf8");
-  fs.writeFileSync(path.join(projDir, "word_transcripts.json"), JSON.stringify(transcripts, null, 2), "utf8");
+  fs.writeFileSync(
+    path.join(projDir, "config_qanat.json"),
+    JSON.stringify(nextConfig, null, 2),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(projDir, "storyboard.json"),
+    JSON.stringify(nextStoryboard, null, 2),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(projDir, "block_timings.json"),
+    JSON.stringify(timings, null, 2),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(projDir, "word_transcripts.json"),
+    JSON.stringify(transcripts, null, 2),
+    "utf8"
+  );
 
-  return { config: nextConfig, storyboard: nextStoryboard, timings, transcripts };
+  return {
+    config: nextConfig,
+    storyboard: nextStoryboard,
+    timings,
+    transcripts,
+  };
 }
 
 export function buildWordTranscriptsFromChunks(chunks = []) {
@@ -592,19 +862,10 @@ export function buildWordTranscriptsFromChunks(chunks = []) {
     const start = Number(chunk.start_s) || 0;
     const duration = Math.max(0.05, (Number(chunk.end_s) || start) - start);
     const end = start + duration;
-    const plain = stripTtsMarkersForPlainText(chunk.text || chunk.text_tagged || "");
-    const words = plain.split(/\s+/).filter(Boolean);
-    const weights = words.map((w) => Math.max(1, w.replace(/[^\wáéíóúâêîôûãõç]/gi, "").length));
-    const totalWeight = weights.reduce((sum, w) => sum + w, 0) || words.length || 1;
-    // Tempos relativos ao start_time do segmento (mesmo formato do align_transcripts.py / Whisper).
-    let relT = 0;
-    const wordEntries = words.map((word, wi) => {
-      const wordDur = duration * (weights[wi] / totalWeight);
-      const wStart = relT;
-      const wEnd = relT + wordDur;
-      relT = wEnd;
-      return { word: ` ${word}`, start: Number(wStart.toFixed(3)), end: Number(wEnd.toFixed(3)) };
-    });
+    const plain = stripTtsMarkersForPlainText(
+      chunk.text || chunk.text_tagged || ""
+    );
+    const wordEntries = synthesizeWordEntriesForDuration(plain, duration);
     return {
       index: idx + 1,
       block: Number(chunk.block) || 1,
@@ -627,12 +888,15 @@ export function buildNarrationChunkPlan({
   defaultVoice = {},
 } = {}) {
   if (aiChunks.length > 0) {
-    return normalizeNarrationChunkPlan({
-      chunks: aiChunks,
-      default_voice: defaultVoice,
-      source: "ai",
-      planned_at: new Date().toISOString(),
-    }, { storyboard, config });
+    return normalizeNarrationChunkPlan(
+      {
+        chunks: aiChunks,
+        default_voice: defaultVoice,
+        source: "ai",
+        planned_at: new Date().toISOString(),
+      },
+      { storyboard, config }
+    );
   }
   return buildHeuristicNarrationChunks({ storyboard, config, defaultVoice });
 }
@@ -641,12 +905,13 @@ export function formatNarrationChunkPlanLog(plan = {}) {
   const lines = [`Plano de narração: ${plan.chunk_count || 0} trecho(s).`];
   for (const c of plan.chunks || []) {
     lines.push(
-      `  ${c.id} bloco ${c.block} · ${c.scene_ref} · pausa ${c.pause_after_ms}ms`
-      + ` · ${c.voice?.engine}/${c.voice?.voice}`
-      + (c.duration_s ? ` · ${c.duration_s.toFixed(1)}s` : ""),
+      `  ${c.id} bloco ${c.block} · ${c.scene_ref} · pausa ${c.pause_after_ms}ms` +
+        ` · ${c.voice?.engine}/${c.voice?.voice}` +
+        (c.duration_s ? ` · ${c.duration_s.toFixed(1)}s` : "")
     );
   }
-  if (plan.total_duration) lines.push(`Duração total estimada: ${plan.total_duration.toFixed(1)}s`);
+  if (plan.total_duration)
+    lines.push(`Duração total estimada: ${plan.total_duration.toFixed(1)}s`);
   return lines;
 }
 
@@ -654,7 +919,10 @@ function runFfmpeg(args, onLog = () => {}) {
   const ff = getFfmpegStatus();
   if (!ff.binary) throw new Error("ffmpeg não encontrado no PATH.");
   return new Promise((resolve, reject) => {
-    const child = spawn(ff.binary, args, { shell: false, env: buildPythonSpawnEnv() });
+    const child = spawn(ff.binary, args, {
+      shell: false,
+      env: buildPythonSpawnEnv(),
+    });
     let stderr = "";
     child.stderr.on("data", (d) => {
       const msg = d.toString();
@@ -674,12 +942,23 @@ export async function probeAudioDuration(filePath) {
   if (!ff.binary || !filePath || !fs.existsSync(filePath)) return 0;
   const ffprobe = ff.binary.replace(/ffmpeg(\.exe)?$/i, "ffprobe$1");
   return new Promise((resolve) => {
-    const child = spawn(ffprobe, [
-      "-v", "error", "-show_entries", "format=duration",
-      "-of", "default=noprint_wrappers=1:nokey=1", filePath,
-    ], { shell: false });
+    const child = spawn(
+      ffprobe,
+      [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        filePath,
+      ],
+      { shell: false }
+    );
     let out = "";
-    child.stdout.on("data", (d) => { out += d.toString(); });
+    child.stdout.on("data", (d) => {
+      out += d.toString();
+    });
     child.on("close", () => {
       const dur = parseFloat(out.trim());
       resolve(Number.isFinite(dur) ? dur : 0);
@@ -691,21 +970,35 @@ export async function probeAudioDuration(filePath) {
 async function generateSilenceMp3(outPath, durationSec) {
   const dur = Math.max(0.05, Number(durationSec) || 0.1);
   await runFfmpeg([
-    "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-    "-t", String(dur), "-q:a", "9", "-acodec", "libmp3lame", outPath,
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    "anullsrc=r=44100:cl=mono",
+    "-t",
+    String(dur),
+    "-q:a",
+    "9",
+    "-acodec",
+    "libmp3lame",
+    outPath,
   ]);
 }
 
-export async function synthesizeNarrationChunkAudio(text, voiceRef, {
-  outputPath,
-  workDir,
-  workspaceDir,
-  projDir,
-  useTagged = true,
-  taggedText = "",
-  stripEmphasis = true,
-  onLog = () => {},
-} = {}) {
+export async function synthesizeNarrationChunkAudio(
+  text,
+  voiceRef,
+  {
+    outputPath,
+    workDir,
+    workspaceDir,
+    projDir,
+    useTagged = true,
+    taggedText = "",
+    stripEmphasis = true,
+    onLog = () => {},
+  } = {}
+) {
   const voice = normalizeVoiceRef(voiceRef);
   const plain = String(text || "").trim();
   if (plain.length < 2) throw new Error("Trecho vazio.");
@@ -720,7 +1013,11 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
       workDir: workDir || path.dirname(outputPath),
       onLog,
     });
-    return { engine: "kokoro", voice: result.voice, durationSeconds: result.durationSeconds };
+    return {
+      engine: "kokoro",
+      voice: result.voice,
+      durationSeconds: result.durationSeconds,
+    };
   }
 
   if (engine === "edge") {
@@ -730,7 +1027,10 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
     } catch {
       throw new Error("edge-tts-universal não instalado.");
     }
-    const tts = new EdgeTTS(plain, voice.voice || "pt-BR-AntonioNeural", { rate: voice.rate, pitch: voice.pitch });
+    const tts = new EdgeTTS(plain, voice.voice || "pt-BR-AntonioNeural", {
+      rate: voice.rate,
+      pitch: voice.pitch,
+    });
     const result = await tts.synthesize();
     fs.writeFileSync(outputPath, Buffer.from(await result.audio.arrayBuffer()));
     const durationSeconds = await probeAudioDuration(outputPath);
@@ -738,12 +1038,20 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
   }
 
   if (engine === "chatterbox" || engine === "chatterbox-tts") {
-    const cbConfig = loadChatterboxConfig({ workspaceDir, projectDir: projDir });
-    const tagPlatform = String(voice.voice).includes("turbo") ? "turbo" : "chatterbox";
+    const cbConfig = loadChatterboxConfig({
+      workspaceDir,
+      projectDir: projDir,
+    });
+    const tagPlatform = String(voice.voice).includes("turbo")
+      ? "turbo"
+      : "chatterbox";
     const tagged = sanitizedTagged;
-    const textForTts = useTagged && tagged.length > 2
-      ? convertCinematicMarkersForTts(tagged, tagPlatform, { stripEmphasis: true })
-      : plain;
+    const textForTts =
+      useTagged && tagged.length > 2
+        ? convertCinematicMarkersForTts(tagged, tagPlatform, {
+            stripEmphasis: true,
+          })
+        : plain;
     const result = await synthesizeChatterboxNarration(textForTts, {
       voice: voice.voice || CHATTERBOX_DEFAULT_VOICE,
       outputPath,
@@ -751,15 +1059,23 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
       config: cbConfig,
       onLog,
     });
-    return { engine: "chatterbox", voice: result.voice, durationSeconds: result.durationSeconds };
+    return {
+      engine: "chatterbox",
+      voice: result.voice,
+      durationSeconds: result.durationSeconds,
+    };
   }
 
   if (engine === "fish" || engine === "fish-speech") {
-    const fishConfig = loadFishSpeechConfig({ workspaceDir, projectDir: projDir });
+    const fishConfig = loadFishSpeechConfig({
+      workspaceDir,
+      projectDir: projDir,
+    });
     const tagged = sanitizedTagged;
-    const textForTts = useTagged && tagged.length > 2
-      ? convertCinematicMarkersForTts(tagged, "fish", { stripEmphasis: true })
-      : plain;
+    const textForTts =
+      useTagged && tagged.length > 2
+        ? convertCinematicMarkersForTts(tagged, "fish", { stripEmphasis: true })
+        : plain;
     const result = await fetchFishSpeechAudio(textForTts, {
       referenceId: voice.voice,
       config: fishConfig,
@@ -797,16 +1113,26 @@ export async function synthesizeNarrationChunkAudio(text, voiceRef, {
   throw new Error(`Motor TTS não suportado para trechos: ${engine}`);
 }
 
-export async function assembleNarrationChunksToMaster(projDir, plan, { onLog = () => {} } = {}) {
+export async function assembleNarrationChunksToMaster(
+  projDir,
+  plan,
+  { onLog = () => {} } = {}
+) {
   const chunks = plan?.chunks || [];
   if (!allNarrationChunksHaveAudio(plan, projDir)) {
-    throw new Error("Montagem master exige todos os trechos com áudio — gere os trechos faltantes antes.");
+    throw new Error(
+      "Montagem master exige todos os trechos com áudio — gere os trechos faltantes antes."
+    );
   }
   const generated = chunks.filter((c) => {
-    const rel = String(c.audio_file || chunkAudioRelativePath(c.id)).replace(/\\/g, "/");
+    const rel = String(c.audio_file || chunkAudioRelativePath(c.id)).replace(
+      /\\/g,
+      "/"
+    );
     return fs.existsSync(path.join(projDir, rel));
   });
-  if (!generated.length) throw new Error("Nenhum trecho com áudio gerado para montar.");
+  if (!generated.length)
+    throw new Error("Nenhum trecho com áudio gerado para montar.");
 
   const workDir = path.join(projDir, NARRATION_CHUNKS_DIR, "_assemble");
   fs.mkdirSync(workDir, { recursive: true });
@@ -831,11 +1157,26 @@ export async function assembleNarrationChunksToMaster(projDir, plan, { onLog = (
   fs.writeFileSync(listPath, listBody, "utf8");
 
   const masterPath = path.join(projDir, NARRATION_MASTER_FILENAME);
-  onLog(`Montando ${generated.length} trecho(s) + pausas → ${NARRATION_MASTER_FILENAME}`);
-  await runFfmpeg([
-    "-y", "-f", "concat", "-safe", "0", "-i", listPath,
-    "-acodec", "libmp3lame", "-q:a", "2", masterPath,
-  ], onLog);
+  onLog(
+    `Montando ${generated.length} trecho(s) + pausas → ${NARRATION_MASTER_FILENAME}`
+  );
+  await runFfmpeg(
+    [
+      "-y",
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      listPath,
+      "-acodec",
+      "libmp3lame",
+      "-q:a",
+      "2",
+      masterPath,
+    ],
+    onLog
+  );
 
   return masterPath;
 }
@@ -849,9 +1190,10 @@ export function persistChunkPlanToProject(projDir, plan, config = {}) {
   storyboard.narration_chunk_plan = plan;
   fs.writeFileSync(storyboardPath, JSON.stringify(storyboard, null, 2), "utf8");
 
-  const narrationMode = config.narration_mode === NARRATION_MODE_MASTER
-    ? NARRATION_MODE_MASTER
-    : (config.narration_mode || NARRATION_MODE_CHUNKED);
+  const narrationMode =
+    config.narration_mode === NARRATION_MODE_MASTER
+      ? NARRATION_MODE_MASTER
+      : config.narration_mode || NARRATION_MODE_CHUNKED;
   const cfg = { ...config, narration_mode: narrationMode };
   fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf8");
   return { storyboard, config: cfg };
@@ -860,8 +1202,16 @@ export function persistChunkPlanToProject(projDir, plan, config = {}) {
 export function writeTimingsFromChunkPlan(projDir, plan) {
   const timings = buildBlockTimingsFromChunks(plan.chunks);
   const transcripts = buildWordTranscriptsFromChunks(plan.chunks);
-  fs.writeFileSync(path.join(projDir, "block_timings.json"), JSON.stringify(timings, null, 2), "utf8");
-  fs.writeFileSync(path.join(projDir, "word_transcripts.json"), JSON.stringify(transcripts, null, 2), "utf8");
+  fs.writeFileSync(
+    path.join(projDir, "block_timings.json"),
+    JSON.stringify(timings, null, 2),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(projDir, "word_transcripts.json"),
+    JSON.stringify(transcripts, null, 2),
+    "utf8"
+  );
   return { timings, transcripts };
 }
 
@@ -879,30 +1229,37 @@ export function allNarrationChunksHaveAudio(plan, projDir) {
   const chunks = plan?.chunks || [];
   if (!chunks.length) return false;
   return chunks.every((c) => {
-    const rel = String(c.audio_file || chunkAudioRelativePath(c.id)).replace(/\\/g, "/");
+    const rel = String(c.audio_file || chunkAudioRelativePath(c.id)).replace(
+      /\\/g,
+      "/"
+    );
     return fs.existsSync(path.join(projDir, rel));
   });
 }
 
-export async function generateNarrationChunksTts(projDir, {
-  plan,
-  chunkIds = null,
-  defaultVoice = {},
-  workspaceDir = null,
-  useTagged = true,
-  stripEmphasis = true,
-  assembleMaster = true,
-  onLog = () => {},
-  onProgress = () => {},
-} = {}) {
+export async function generateNarrationChunksTts(
+  projDir,
+  {
+    plan,
+    chunkIds = null,
+    defaultVoice = {},
+    workspaceDir = null,
+    useTagged = true,
+    stripEmphasis = true,
+    assembleMaster = true,
+    onLog = () => {},
+    onProgress = () => {},
+  } = {}
+) {
   if (!plan?.chunks?.length) throw new Error("Plano de trechos vazio.");
 
   const chunksDir = path.join(projDir, NARRATION_CHUNKS_DIR);
   fs.mkdirSync(chunksDir, { recursive: true });
 
-  const idSet = Array.isArray(chunkIds) && chunkIds.length
-    ? new Set(chunkIds.map(String))
-    : null;
+  const idSet =
+    Array.isArray(chunkIds) && chunkIds.length
+      ? new Set(chunkIds.map(String))
+      : null;
 
   const updatedChunks = [...plan.chunks];
   const targets = updatedChunks
@@ -917,11 +1274,16 @@ export async function generateNarrationChunksTts(projDir, {
     const { c, idx } = targets[i];
     const pct = Math.round(((i + 1) / targets.length) * 85);
     onProgress("tts", `TTS ${c.id} (${i + 1}/${targets.length})…`, pct);
-    onLog(`[Chunks] TTS ${c.id} bloco ${c.block} (${c.voice?.engine}/${c.voice?.voice})`);
+    onLog(
+      `[Chunks] TTS ${c.id} bloco ${c.block} (${c.voice?.engine}/${c.voice?.voice})`
+    );
 
     const rel = chunkAudioRelativePath(c.id);
     const outPath = path.join(projDir, rel);
-    const voice = normalizeVoiceRef(c.voice || {}, normalizeVoiceRef(defaultVoice, plan.default_voice));
+    const voice = normalizeVoiceRef(
+      c.voice || {},
+      normalizeVoiceRef(defaultVoice, plan.default_voice)
+    );
 
     const result = await synthesizeNarrationChunkAudio(c.text, voice, {
       outputPath: outPath,
@@ -934,7 +1296,8 @@ export async function generateNarrationChunksTts(projDir, {
       onLog,
     });
 
-    const duration = Number(result.durationSeconds) || await probeAudioDuration(outPath);
+    const duration =
+      Number(result.durationSeconds) || (await probeAudioDuration(outPath));
     updatedChunks[idx] = {
       ...c,
       voice,
@@ -944,14 +1307,20 @@ export async function generateNarrationChunksTts(projDir, {
     };
   }
 
-  let nextPlan = normalizeNarrationChunkPlan({ ...plan, chunks: updatedChunks }, {});
+  let nextPlan = normalizeNarrationChunkPlan(
+    { ...plan, chunks: updatedChunks },
+    {}
+  );
 
   const readyForMaster = allNarrationChunksHaveAudio(nextPlan, projDir);
   if (readyForMaster) {
-    nextPlan = normalizeNarrationChunkPlan({
-      ...nextPlan,
-      chunks: computeChunkTimeline(nextPlan.chunks),
-    }, {});
+    nextPlan = normalizeNarrationChunkPlan(
+      {
+        ...nextPlan,
+        chunks: computeChunkTimeline(nextPlan.chunks),
+      },
+      {}
+    );
   }
 
   if (assembleMaster && readyForMaster) {
@@ -961,7 +1330,11 @@ export async function generateNarrationChunksTts(projDir, {
     onProgress("done", "Narração por trechos concluída.", 100);
   } else if (assembleMaster) {
     onLog("[Chunks] Montagem master adiada — ainda faltam trechos sem áudio.");
-    onProgress("done", "Trecho(s) gerado(s). Gere todos para montar o master.", 100);
+    onProgress(
+      "done",
+      "Trecho(s) gerado(s). Gere todos para montar o master.",
+      100
+    );
   }
 
   return nextPlan;
