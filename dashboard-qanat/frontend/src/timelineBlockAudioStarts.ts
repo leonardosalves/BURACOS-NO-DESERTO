@@ -111,7 +111,8 @@ export function enrichTimelineAudioStarts<T extends { timeline_assets?: Record<s
     const assets = timelineAssets[blockKey];
     if (!assets?.length) return;
     const speechSynced = assets.some((a) => a.synced_to_speech);
-    if (options?.force || !speechSynced) {
+    // Nunca sobrescrever timings de trecho/Whisper — force:true quebrava narração por partes.
+    if (!speechSynced) {
       timelineAssets[blockKey] = recalculateBlock(blockKey, assets);
     }
   });

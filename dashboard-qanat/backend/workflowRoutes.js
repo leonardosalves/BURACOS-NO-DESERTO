@@ -65,6 +65,7 @@ import {
   formatNarrationChunkPlanLog,
   applyChunkedNarrationSyncToProject,
   applyChunkedTimelineAfterWhisper,
+  isChunkedNarrationProject,
   NARRATION_MODE_CHUNKED,
 } from "./narrationChunks.js";
 import {
@@ -840,6 +841,44 @@ export function registerWorkflowRoutes(app, deps) {
     } catch (err) {
       if (progressJobId) failJobProgress(progressJobId, err.message);
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/narration-chunks/resync-timeline", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const storyboardPath = path.join(projDir, "storyboard.json");
+      const configPath = path.join(projDir, "config_qanat.json");
+      const storyboard = JSON.parse(fs.readFileSync(storyboardPath, "utf8"));
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (!isChunkedNarrationProject(config, storyboard)) {
+        return res.status(400).json({ error: "Projeto não usa narração por trechos." });
+      }
+      const plan = storyboard.narration_chunk_plan;
+      if (!plan?.chunks?.length) {
+        return res.status(400).json({ error: "Plano de trechos ausente." });
+      }
+      let whisperTranscripts = null;
+      let flatWords = [];
+      const wtPath = path.join(projDir, "word_transcripts.json");
+      if (fs.existsSync(wtPath)) {
+        whisperTranscripts = JSON.parse(fs.readFileSync(wtPath, "utf8"));
+        flatWords = flattenWordTranscripts(whisperTranscripts);
+      }
+      const applied = applyChunkedNarrationSyncToProject(projDir, {
+        chunkPlan: plan,
+        config,
+        storyboard,
+        whisperTranscripts,
+        flatWords,
+      });
+      res.json({
+        success: true,
+        message: "Timeline re-sincronizada pelos trechos de narração.",
+        timings: applied.timings,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err?.message || String(err) });
     }
   });
 
