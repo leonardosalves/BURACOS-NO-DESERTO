@@ -182,6 +182,7 @@ import {
   fetchNotebooklmScriptImprovements,
   formatNotebooklmPromptBlock,
   getNotebooklmStatus,
+  startNotebooklmLogin,
   buildNotebooklmImproveApplyPrompt,
   buildNotebooklmNarrationEnrichPrompt,
 } from "./notebooklmService.js";
@@ -14200,6 +14201,37 @@ app.get("/api/notebooklm/status", (_req, res) => {
       authenticated: false,
       notebookCount: 0,
       message: err.message,
+      needsLogin: true,
+    });
+  }
+});
+
+app.post("/api/notebooklm/login", (_req, res) => {
+  try {
+    const result = startNotebooklmLogin(__dirname);
+    if (result.alreadyAuthenticated) {
+      return res.json({
+        success: true,
+        alreadyAuthenticated: true,
+        ...result.status,
+      });
+    }
+    if (result.error) {
+      return res.status(500).json({
+        success: false,
+        error: result.error,
+        needsLogin: true,
+      });
+    }
+    res.json({
+      success: true,
+      ...result,
+      status: getNotebooklmStatus(__dirname),
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message || "Falha ao iniciar login NotebookLM",
       needsLogin: true,
     });
   }

@@ -2626,10 +2626,21 @@ export default function App() {
   }, [activeProject]);
 
   useEffect(() => {
-    if (activeTab === 'creator' || activeTab === 'editor') {
+    if (activeTab === 'creator' || activeTab === 'editor' || activeTab === 'flow-lab') {
       fetchNotebooklmStatus();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    const onNlmStatus = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail === 'object') {
+        setNotebooklmStatus(detail);
+      }
+    };
+    window.addEventListener('lumiera-nlm-status', onNlmStatus);
+    return () => window.removeEventListener('lumiera-nlm-status', onNlmStatus);
+  }, []);
 
   useEffect(() => {
     if (activeTab !== 'creator') return;
