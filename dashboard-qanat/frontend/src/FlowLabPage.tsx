@@ -29,6 +29,7 @@ import {
   type FlowLabIdeasResult,
   type FlowLabVpeMeta,
 } from './flowLabApi';
+import { mergeStoryboardWithTimelineAssets } from './assetPreviewUtils';
 import type { ConfigData, WorkspaceStatus } from './appTypes';
 import { NotebookLmConnect } from './NotebookLmConnect';
 
@@ -111,7 +112,8 @@ export function FlowLabPage({
     const hasPrompts = Array.isArray(prompts) && prompts.length > 0;
     setSandboxExists(hasPrompts);
     if (hasPrompts) {
-      setStoryboard(sb as typeof storyboard);
+      const merged = mergeStoryboardWithTimelineAssets(sb, cfg?.timeline_assets) as typeof storyboard;
+      setStoryboard(merged);
       const checklist = sb?._vpe_checklist as { quality_score?: number; nicho_detectado?: string } | undefined;
       setVpeMeta(checklist ? {
         enhanced: true,
@@ -294,11 +296,11 @@ export function FlowLabPage({
       return;
     }
     if (result.storyboard) {
-      setStoryboard(result.storyboard);
       const cfg = await fetchFlowLabConfig();
       if (cfg) setConfig(cfg);
+      const merged = mergeStoryboardWithTimelineAssets(result.storyboard, cfg?.timeline_assets);
+      setStoryboard(merged as typeof storyboard);
     }
-    toast.success('Asset vinculado a cena.');
   };
 
   const selectedIdea = selectedIdeaIndex >= 0 ? ideasData?.ideas[selectedIdeaIndex] : null;

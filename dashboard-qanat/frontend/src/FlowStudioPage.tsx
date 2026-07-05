@@ -6,6 +6,7 @@ import {
   ClipboardCopy,
   ExternalLink,
   Film,
+  Loader2,
   Upload,
   Sparkles,
 } from 'lucide-react';
@@ -81,6 +82,9 @@ function SceneCard({
   onUpload,
   getAssetUrl,
   uploading,
+  aspectRatio,
+  justUploaded,
+  pendingPreviewUrl,
 }: {
   row: FlowSceneRow;
   checks: FlowQualityChecks;
@@ -90,11 +94,25 @@ function SceneCard({
   onUpload: (file: File) => void;
   getAssetUrl: (fileName: string) => string;
   uploading: boolean;
+  aspectRatio: string;
+  justUploaded?: boolean;
+  pendingPreviewUrl?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const copyId = `flow-${row.index}`;
   const allChecks = checks.composition && checks.ratio && checks.noArtifacts;
   const canUpload = !row.hasAsset && (row.hasAsset || allChecks || true);
+  const showSent = row.hasAsset && !uploading;
+
+  const previewAsset = row.hasAsset && row.asset
+    ? row.asset
+    : pendingPreviewUrl
+      ? {
+          asset: pendingPreviewUrl,
+          type: row.isVideo ? 'video' : 'image',
+        }
+      : null;
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -104,17 +122,23 @@ function SceneCard({
 
   return (
     <article
+      id={`flow-scene-${row.index}`}
       className={`glass-panel rounded-2xl border transition ${
-        row.hasAsset
-          ? 'border-emerald-500/25'
-          : 'border-[var(--dash-border)]'
-      }`}
+        showSent
+          ? 'border-emerald-500/40 bg-emerald-500/[0.04] shadow-lg shadow-emerald-500/5'
+          : uploading
+            ? 'border-violet-500/35'
+            : 'border-[var(--dash-border)]'
+      } ${justUploaded ? 'ring-2 ring-emerald-400/50 ring-offset-2 ring-offset-[var(--dash-bg)]' : ''}`}
     >
       <div className="p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-sm font-bold text-white">Cena {row.sceneNum}</span>
+              {showSent && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden />}
+              <span className={`font-mono text-sm font-bold ${showSent ? 'text-emerald-100' : 'text-white'}`}>
+                Cena {row.sceneNum}
+              </span>
               <span className="text-[10px] px-2 py-0.5 rounded-md border border-[var(--dash-border)] text-[var(--dash-muted)]">
                 Bloco {row.blockNum}
               </span>
@@ -141,12 +165,14 @@ function SceneCard({
           </div>
           <span
             className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-              row.hasAsset
-                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                : 'bg-zinc-800/80 text-zinc-500 border border-zinc-700'
+              uploading
+                ? 'bg-violet-500/15 text-violet-200 border border-violet-500/30'
+                : showSent
+                  ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40'
+                  : 'bg-zinc-800/80 text-zinc-500 border border-zinc-700'
             }`}
           >
-            {row.hasAsset ? 'No Lumiera' : 'Pendente'}
+            {uploading ? 'Enviando…' : showSent ? 'Asset enviado' : 'Pendente'}
           </span>
         </div>
 
@@ -216,20 +242,58 @@ function SceneCard({
           </div>
         )}
 
-        {row.hasAsset && row.asset ? (
-          <div className="flex gap-3 items-start rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-            <div className="w-32 shrink-0">
+        {(showSent || uploading || pendingPreviewUrl) && previewAsset ? (
+          <div className="space-y-3 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-3 sm:p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Enviando asset…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Asset enviado — preview
+                  </>
+                )}
+              </p>
+              {showSent && row.asset?.asset && (
+                <p className="text-[10px] text-zinc-400 font-mono truncate max-w-[220px]" title={row.asset.asset}>
+                  {row.asset.asset}
+                </p>
+              )}
+            </div>
+            <div className="max-w-md mx-auto w-full">
               <TimelineClipPreview
-                asset={row.asset}
-                getAssetUrl={getAssetUrl}
+                asset={previewAsset}
+                getAssetUrl={(path) => (path.startsWith('blob:') ? path : getAssetUrl(path))}
+                aspectRatio={aspectRatio}
                 clipDuration={row.durationSeconds ?? 4}
-                compact
               />
             </div>
-            <div className="min-w-0 text-xs space-y-1">
-              <p className="text-emerald-300 font-semibold">Asset vinculado</p>
-              <p className="text-zinc-400 font-mono truncate" title={row.asset.asset}>{row.asset.asset}</p>
-            </div>
+            {showSent && (
+              <>
+                <input
+                  ref={replaceInputRef}
+                  type="file"
+                  accept={row.isVideo ? SCENE_VIDEO_ACCEPT : 'image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp'}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onUpload(file);
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => replaceInputRef.current?.click()}
+                  className="dash-btn-secondary text-[10px] px-3 py-1.5 w-full sm:w-auto"
+                >
+                  Trocar arquivo desta cena
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div
@@ -259,7 +323,7 @@ function SceneCard({
               onClick={() => inputRef.current?.click()}
               className="dash-btn-primary text-xs px-4 py-2"
             >
-              {uploading ? 'Enviando…' : 'Enviar para esta cena'}
+              Enviar para esta cena
             </button>
           </div>
         )}
@@ -279,12 +343,16 @@ export function FlowStudioPage({
   onOpenCreator,
   standalone = false,
 }: Props) {
-  const [filter, setFilter] = useState<FilterMode>('pending');
+  const [filter, setFilter] = useState<FilterMode>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [lastUploadedKey, setLastUploadedKey] = useState<string | null>(null);
+  const [pendingPreviews, setPendingPreviews] = useState<Record<string, string>>({});
   const [checksMap, setChecksMap] = useState<Record<string, FlowQualityChecks>>(() =>
     loadFlowChecks(activeProject),
   );
+
+  const aspectRatio = config?.aspect_ratio === '9:16' ? '9:16' : '16:9';
 
   const scenes = useMemo(
     () =>
@@ -328,12 +396,29 @@ export function FlowStudioPage({
 
   const handleUpload = async (row: FlowSceneRow, file: File) => {
     const key = flowSceneKey(row);
+    const blobUrl = URL.createObjectURL(file);
+    setPendingPreviews((prev) => ({ ...prev, [key]: blobUrl }));
     setUploadingKey(key);
     try {
       const type = detectUploadMediaType(file, row.isVideo);
       await onUpload(row.blockNum, type, file, row.assetIdx);
+      setFilter('all');
+      setLastUploadedKey(key);
+      window.setTimeout(() => {
+        document.getElementById(`flow-scene-${row.index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+      window.setTimeout(() => setLastUploadedKey((prev) => (prev === key ? null : prev)), 6000);
+      toast.success(`Cena ${row.sceneNum} · Bloco ${row.blockNum} — asset enviado e marcado.`);
     } finally {
       setUploadingKey(null);
+      setPendingPreviews((prev) => {
+        const next = { ...prev };
+        if (next[key]) {
+          URL.revokeObjectURL(next[key]);
+          delete next[key];
+        }
+        return next;
+      });
     }
   };
 
@@ -416,7 +501,7 @@ export function FlowStudioPage({
           <div className="flex flex-wrap items-center gap-4 pt-1">
             <div className="flex-1 min-w-[200px]">
               <div className="flex justify-between text-[10px] text-[var(--dash-muted)] mb-1">
-                <span>Progresso do projeto</span>
+                <span>Assets enviados</span>
                 <span className="font-mono text-white">
                   {doneCount}/{scenes.length} cenas
                 </span>
@@ -430,9 +515,9 @@ export function FlowStudioPage({
             </div>
             <div className="flex gap-1 p-1 rounded-xl bg-zinc-950/80 border border-[var(--dash-border)]">
               {([
-                ['pending', 'Pendentes'],
                 ['all', 'Todas'],
-                ['done', 'Prontas'],
+                ['pending', 'Pendentes'],
+                ['done', 'Enviadas'],
               ] as const).map(([id, label]) => (
                 <button
                   key={id}
@@ -469,6 +554,9 @@ export function FlowStudioPage({
               onUpload={(file) => handleUpload(row, file)}
               getAssetUrl={getAssetUrl}
               uploading={uploadingKey === key}
+              aspectRatio={aspectRatio}
+              justUploaded={lastUploadedKey === key}
+              pendingPreviewUrl={pendingPreviews[key]}
             />
           );
         })}
