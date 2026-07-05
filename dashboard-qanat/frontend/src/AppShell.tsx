@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Bot,
+  Clapperboard,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -36,6 +37,7 @@ type GlobalNavItem = {
 
 const STUDIO_NAV: GlobalNavItem[] = [
   { id: 'agents', label: 'Studio Agents', icon: Bot, helpId: 'tab-agents' },
+  { id: 'flow-lab', label: 'Flow Lab', icon: Clapperboard, helpId: 'tab-flow-lab', accent: 'amber' },
   { id: 'youtube-studio', label: 'Canal YouTube', icon: Youtube, helpId: 'tab-youtube-studio', accent: 'youtube' },
   { id: 'video-resurrector', label: 'Ressuscitador', icon: Zap, helpId: 'tab-video-resurrector', accent: 'amber' },
   { id: 'agent-reach', label: 'Pesquisa Web', icon: Globe, helpId: 'tab-agent-reach', accent: 'sky' },
