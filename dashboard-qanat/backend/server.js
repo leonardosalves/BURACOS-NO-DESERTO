@@ -412,6 +412,17 @@ import {
   setJobProgress,
 } from "./aiJobProgress.js";
 import {
+  appendRenderJobLog,
+  countActiveRenderJobs,
+  createRenderJob,
+  createRenderJobId,
+  failRenderJob,
+  finishRenderJob,
+  getActiveRenderJobForProject,
+  getRenderJob,
+  updateRenderJob,
+} from "./renderJobProgress.js";
+import {
   getObsidianVaultStatus,
   openInObsidian,
   ensureObsidianVault,
@@ -564,6 +575,7 @@ process.on("unhandledRejection", (reason) => {
 app.get("/api/health", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Connection", "close");
+  const renderActive = countActiveRenderJobs();
   res.status(200).send(
     JSON.stringify({
       ok: true,
@@ -571,8 +583,24 @@ app.get("/api/health", (_req, res) => {
       ts: Date.now(),
       uptime_sec: Math.floor(process.uptime()),
       pid: process.pid,
+      render_active: renderActive,
+      busy: renderActive > 0,
     })
   );
+});
+
+app.get("/api/render/progress/:jobId", (req, res) => {
+  const job = getRenderJob(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({ error: "Job de render não encontrado." });
+  }
+  res.json(job);
+});
+
+app.get("/api/render/active", (req, res) => {
+  const projectName = String(req.query.project || "").trim();
+  const job = projectName ? getActiveRenderJobForProject(projectName) : null;
+  res.json({ job: job || null });
 });
 
 app.use(cors());
@@ -6121,6 +6149,29 @@ app.get("/api/render/:mode", async (req, res) => {
 
   if (mode === "remotion" || mode === "remotion-pro") {
     let child = null;
+    const renderProjectName = path.basename(projDir);
+    const renderJobId = createRenderJobId(renderProjectName);
+    createRenderJob({
+      jobId: renderJobId,
+      projectName: renderProjectName,
+      projDir,
+      mode,
+    });
+    res.write(
+      `data: ${JSON.stringify({ type: "job", jobId: renderJobId })}\n\n`
+    );
+
+    const trackRenderProgress = (text) => {
+      appendRenderJobLog(renderJobId, text);
+      const pctMatch = String(text).match(/\[PROGRESSO\] (\d+)%/);
+      if (pctMatch) {
+        updateRenderJob(renderJobId, {
+          status: "rendering",
+          percent: parseInt(pctMatch[1], 10),
+          phase: "Renderizando…",
+        });
+      }
+    };
 
     try {
       if (req.query.require_overlay_plan === "1") {
@@ -6216,6 +6267,12 @@ app.get("/api/render/:mode", async (req, res) => {
       if (useHyperframes) {
         sendLog("[Remotion] Modo HyperFrames AI orquestrado ativo.");
       }
+      updateRenderJob(renderJobId, {
+        status: "preparing",
+        phase: "Preparando timeline e assets…",
+        percent: 3,
+      });
+
       const renderPlan = await prepareRemotionRender(
         projDir,
         isProres,
@@ -6231,6 +6288,13 @@ app.get("/api/render/:mode", async (req, res) => {
       }
 
       sendLog(`[PROGRESSO] 10%`);
+      trackRenderProgress("[PROGRESSO] 10%");
+      updateRenderJob(renderJobId, {
+        status: "rendering",
+        outputPath: renderPlan.outputPath,
+        phase: "Iniciando Remotion…",
+        percent: 10,
+      });
 
       sendLog(
         `[Remotion] ${renderPlan.sceneCount} cenas e ${renderPlan.captionCount} legendas prontas.`
@@ -6331,6 +6395,45 @@ app.get("/api/render/:mode", async (req, res) => {
         env: { ...process.env },
       });
 
+      if (child?.pid) {
+        updateRenderJob(renderJobId, {
+          childPid: child.pid,
+          status: "rendering",
+          phase: "Renderizando frames…",
+        });
+      }
+
+      const emitRemotionLine = (line) => {
+        sendLog(`[Remotion] ${line}`);
+        trackRenderProgress(`[Remotion] ${line}`);
+
+        const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
+        if (progressMatch) {
+          const pct = Math.min(
+            99,
+            Math.max(10, Math.round(Number(progressMatch[1])))
+          );
+          const progressLine = `[PROGRESSO] ${pct}%`;
+          sendLog(progressLine);
+          trackRenderProgress(progressLine);
+        }
+
+        const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
+        if (remotionMatch) {
+          const renderedFrames = parseInt(remotionMatch[1], 10);
+          const totalFrames = parseInt(remotionMatch[2], 10);
+          if (totalFrames > 0) {
+            const pct = Math.min(
+              99,
+              Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
+            );
+            const progressLine = `[PROGRESSO] ${pct}%`;
+            sendLog(progressLine);
+            trackRenderProgress(progressLine);
+          }
+        }
+      };
+
       child.stdout.on("data", (data) => {
         const text = data.toString().trim();
 
@@ -6338,29 +6441,7 @@ app.get("/api/render/:mode", async (req, res) => {
           const lines = text.split(/\r?\n/);
 
           for (const line of lines) {
-            sendLog(`[Remotion] ${line}`);
-
-            const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
-            if (progressMatch) {
-              const pct = Math.min(
-                99,
-                Math.max(10, Math.round(Number(progressMatch[1])))
-              );
-              sendLog(`[PROGRESSO] ${pct}%`);
-            }
-
-            const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
-            if (remotionMatch) {
-              const renderedFrames = parseInt(remotionMatch[1], 10);
-              const totalFrames = parseInt(remotionMatch[2], 10);
-              if (totalFrames > 0) {
-                const pct = Math.min(
-                  99,
-                  Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
-                );
-                sendLog(`[PROGRESSO] ${pct}%`);
-              }
-            }
+            emitRemotionLine(line);
           }
         }
       });
@@ -6372,29 +6453,7 @@ app.get("/api/render/:mode", async (req, res) => {
           const lines = text.split(/\r?\n/);
 
           for (const line of lines) {
-            sendLog(`[Remotion] ${line}`);
-
-            const progressMatch = line.match(/(\d+(?:\.\d+)?)%/);
-            if (progressMatch) {
-              const pct = Math.min(
-                99,
-                Math.max(10, Math.round(Number(progressMatch[1])))
-              );
-              sendLog(`[PROGRESSO] ${pct}%`);
-            }
-
-            const remotionMatch = line.match(/Rendered\s+(\d+)\/(\d+)/i);
-            if (remotionMatch) {
-              const renderedFrames = parseInt(remotionMatch[1], 10);
-              const totalFrames = parseInt(remotionMatch[2], 10);
-              if (totalFrames > 0) {
-                const pct = Math.min(
-                  99,
-                  Math.max(10, Math.round((renderedFrames / totalFrames) * 100))
-                );
-                sendLog(`[PROGRESSO] ${pct}%`);
-              }
-            }
+            emitRemotionLine(line);
           }
         }
       });
@@ -6402,6 +6461,11 @@ app.get("/api/render/:mode", async (req, res) => {
       child.on("close", (code) => {
         if (code === 0) {
           sendLog("[PROGRESSO] 100%");
+          trackRenderProgress("[PROGRESSO] 100%");
+          finishRenderJob(renderJobId, {
+            outputPath: renderPlan.outputPath,
+            phase: "Concluído!",
+          });
 
           sendLog(`[Remotion] Arquivo final: ${renderPlan.outputPath}`);
 
@@ -6412,23 +6476,41 @@ app.get("/api/render/:mode", async (req, res) => {
             );
           }
 
-          res.write(`data: ${JSON.stringify({ type: "complete", code })}\n\n`);
+          if (!res.writableEnded) {
+            res.write(
+              `data: ${JSON.stringify({ type: "complete", code })}\n\n`
+            );
+            cleanup();
+            res.end();
+          }
         } else {
-          res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+          failRenderJob(renderJobId, `Remotion exit ${code}`);
+          if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ type: "failed", code })}\n\n`);
+            cleanup();
+            res.end();
+          }
         }
-        cleanup();
-        res.end();
       });
     } catch (err) {
       sendLog(`[ERRO] ${err.message}`);
+      failRenderJob(renderJobId, err.message);
 
-      res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
-      cleanup();
-      res.end();
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ type: "failed", code: 1 })}\n\n`);
+        cleanup();
+        res.end();
+      }
     }
 
     req.on("close", () => {
-      if (child) child.kill();
+      cleanup();
+      if (child) {
+        appendRenderJobLog(
+          renderJobId,
+          "[Dashboard] Cliente desconectou — render segue ativo em segundo plano."
+        );
+      }
     });
 
     return;
@@ -6529,7 +6611,7 @@ app.get("/api/render/:mode", async (req, res) => {
   });
 
   req.on("close", () => {
-    child.kill();
+    cleanup();
   });
 });
 

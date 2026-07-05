@@ -1,7 +1,7 @@
 # Vigia o backend Lumiera — SOBE se cair, NUNCA mata processo ocupado (render/Gemini).
 param(
     [int]$CheckIntervalSec = 45,
-    [int]$BusyFailBeforeKill = 24,
+    [int]$BusyFailBeforeKill = 80,
     [int]$GraceAfterStartSec = 120
 )
 
@@ -37,6 +37,13 @@ while ($true) {
         ) "WARN"
 
         if ($consecutiveBusyFails -ge $BusyFailBeforeKill) {
+            if (Test-ActiveLumieraRender) {
+                Write-LumieraLog (
+                    "Render ativo — reinicio forcado bloqueado (PID $livePid ocupado)"
+                ) "WARN"
+                $consecutiveBusyFails = [math]::Max(0, $BusyFailBeforeKill - 6)
+                continue
+            }
             Write-LumieraLog (
                 "PID $livePid sem health por muito tempo - reinicio forcado"
             ) "ERROR"

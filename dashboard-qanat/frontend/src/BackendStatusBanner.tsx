@@ -27,7 +27,8 @@ export function BackendStatusBanner({
         )}
         <span className="leading-snug">
           Backend ocupado ou reiniciando (porta 3005). Durante render/Gemini a
-          resposta pode demorar — aguarde, não feche o programa.
+          resposta pode demorar — o vídeo continua renderizando em segundo
+          plano; aguarde, não feche o programa.
         </span>
       </div>
       {onRetry ? (
