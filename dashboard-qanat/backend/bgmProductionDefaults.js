@@ -55,7 +55,8 @@ export function isLongFormat(config = {}, totalDuration = 0) {
 }
 
 /** Aplica defaults de produção de áudio sem sobrescrever escolhas explícitas do usuário. */
-export function applyBgmProductionDefaults(config = {}, totalDuration = 0) {
+export function applyBgmProductionDefaults(config = {}, totalDuration = 0, opts = {}) {
+  const deletedKeys = opts.deletedKeys instanceof Set ? opts.deletedKeys : new Set();
   const out = { ...config };
   const long = isLongFormat(out, totalDuration);
   const defs = long ? BGM_PRODUCTION_DEFAULTS.LONG : BGM_PRODUCTION_DEFAULTS.SHORT;
@@ -73,7 +74,9 @@ export function applyBgmProductionDefaults(config = {}, totalDuration = 0) {
     out.use_single_bgm = defs.use_single_bgm;
   }
 
-  if (!out.bgm_duck_strength) out.bgm_duck_strength = defs.bgm_duck_strength;
+  if (!out.bgm_duck_strength && !deletedKeys.has("bgm_duck_strength")) {
+    out.bgm_duck_strength = defs.bgm_duck_strength;
+  }
 
   return out;
 }

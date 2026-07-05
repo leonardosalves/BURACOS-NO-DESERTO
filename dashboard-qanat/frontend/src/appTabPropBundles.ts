@@ -405,6 +405,7 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     pickVisualConfig: ctx.pickVisualConfig,
     pixabayKeyInput: ctx.pixabayKeyInput,
     productionDraftToApiPatch: ctx.productionDraftToApiPatch,
+    projectDataLoading: ctx.projectDataLoading,
     projectRenderResolution: ctx.projectRenderResolution,
     refreshGeminiExtensionStatus: ctx.refreshGeminiExtensionStatus,
     resolutionConfigScope: ctx.resolutionConfigScope,

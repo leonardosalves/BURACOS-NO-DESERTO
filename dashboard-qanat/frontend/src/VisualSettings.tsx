@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, Palette, Save, Smartphone, Tv } from 'lucide-react';
 import { applyVisualPatch, pickVisualConfig } from './visualConfig';
 import { SettingHelpTip, SettingLabel } from './SettingHelpTip';
@@ -296,10 +296,14 @@ export function VisualSettings({
   onSave,
 }: Props) {
   const [draft, setDraft] = useState<VisualConfig>(() => pickVisualConfig(config));
+  const visualFingerprint = useMemo(
+    () => JSON.stringify(pickVisualConfig(config)),
+    [config],
+  );
 
   useEffect(() => {
     setDraft(pickVisualConfig(config));
-  }, [projectKey, config]);
+  }, [projectKey, visualFingerprint, config]);
 
   const patchDraft = (patch: Partial<VisualConfig>) => {
     setDraft((prev) => applyVisualPatch(prev, patch));

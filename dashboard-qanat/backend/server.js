@@ -1236,9 +1236,11 @@ app.post("/api/config", (req, res) => {
     }
 
     const mergedConfig = { ...existingConfig };
+    const deletedKeys = new Set();
     for (const [key, value] of Object.entries(req.body || {})) {
       if (key.startsWith("_")) continue;
       if (value === null) {
+        deletedKeys.add(key);
         delete mergedConfig[key];
       } else if (key === "upload_metadata" && value && typeof value === "object" && !Array.isArray(value)) {
         const prevMeta = existingConfig.upload_metadata && typeof existingConfig.upload_metadata === "object"
@@ -1262,7 +1264,9 @@ app.post("/api/config", (req, res) => {
     }
 
     const timings = readProjectJson(projDir, "block_timings.json", { total_duration: 0 });
-    const finalConfig = applyBgmProductionDefaults(mergedConfig, Number(timings.total_duration) || 0);
+    const finalConfig = applyBgmProductionDefaults(mergedConfig, Number(timings.total_duration) || 0, {
+      deletedKeys,
+    });
 
     fs.writeFileSync(configPath, JSON.stringify(finalConfig, null, 2), "utf8");
 

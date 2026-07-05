@@ -60,6 +60,7 @@ export type AppSettingsTabProps = {
   pickVisualConfig: (cfg: ConfigData) => any;
   pixabayKeyInput: string;
   productionDraftToApiPatch: (draft: any) => any;
+  projectDataLoading: boolean;
   projectRenderResolution: string;
   refreshGeminiExtensionStatus: () => Promise<any>;
   resolutionConfigScope: 'global' | 'project';
@@ -165,6 +166,7 @@ export function AppSettingsTab({
   pickVisualConfig,
   pixabayKeyInput,
   productionDraftToApiPatch,
+  projectDataLoading,
   projectRenderResolution,
   refreshGeminiExtensionStatus,
   resolutionConfigScope,
@@ -785,8 +787,12 @@ export function AppSettingsTab({
                   projectKey={activeProject}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
                   isListicle={config?.content_mode === 'LISTICLE' || Number((config as { rank_count?: number })?.rank_count) >= 3}
-                  saving={savingVisualConfig}
+                  saving={savingVisualConfig || projectDataLoading}
                   onSave={async (draft) => {
+                    if (!activeProject || projectDataLoading) {
+                      toast.error('Aguarde o projeto carregar ou selecione um projeto na barra lateral.');
+                      return;
+                    }
                     setSavingVisualConfig(true);
                     try {
                       const previousVisual = pickVisualConfig(config || {});
@@ -797,11 +803,10 @@ export function AppSettingsTab({
                       }
                       const saved = await saveConfigPatch(patch, { skipRefresh: true });
                       if (!saved) return;
-                      setConfig((prev) => applyVisualPatchToConfig(
-                        (prev || {}) as ConfigData,
-                        draft,
-                        previousVisual,
-                      ));
+                      setConfig((prev) => ({
+                        ...(prev || {}),
+                        ...saved,
+                      }));
                       toast.success('Configurações visuais salvas no projeto.');
                     } finally {
                       setSavingVisualConfig(false);
@@ -816,8 +821,12 @@ export function AppSettingsTab({
                   projectKey={activeProject}
                   globalMusicVolume={globalMusicVolume}
                   isShortFormat={(config?.aspect_ratio || (formatSelector === 'SHORTS' ? '9:16' : '16:9')) === '9:16'}
-                  saving={savingProductionConfig}
+                  saving={savingProductionConfig || projectDataLoading}
                   onSave={async (draft) => {
+                    if (!activeProject || projectDataLoading) {
+                      toast.error('Aguarde o projeto carregar ou selecione um projeto na barra lateral.');
+                      return;
+                    }
                     setSavingProductionConfig(true);
                     try {
                       const previousProduction = pickProductionConfig(config || {});
@@ -828,11 +837,10 @@ export function AppSettingsTab({
                       }
                       const saved = await saveConfigPatch(patch, { skipRefresh: true });
                       if (!saved) return;
-                      setConfig((prev) => applyProductionPatchToConfig(
-                        (prev || {}) as ConfigData,
-                        draft,
-                        previousProduction,
-                      ));
+                      setConfig((prev) => ({
+                        ...(prev || {}),
+                        ...saved,
+                      }));
                       toast.success('Configurações de produção salvas no projeto.');
                     } finally {
                       setSavingProductionConfig(false);
