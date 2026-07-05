@@ -181,6 +181,11 @@ export default function App() {
   const [ytPinnedComment, setYtPinnedComment] = useState<string>('');
   const [ytPublishAt, setYtPublishAt] = useState<string>('');
   const [ytCategoryId, setYtCategoryId] = useState<string>('27');
+  const [ytDefaultLanguage, setYtDefaultLanguage] = useState<string>('pt-BR');
+  const [ytContainsSyntheticMedia, setYtContainsSyntheticMedia] = useState<boolean>(true);
+  const [ytPlaylistId, setYtPlaylistId] = useState<string>('');
+  const [ytPlaylists, setYtPlaylists] = useState<Array<{ id: string; title: string; itemCount?: number }>>([]);
+  const [ytPlaylistsLoading, setYtPlaylistsLoading] = useState<boolean>(false);
   const [ytThumbnailPath, setYtThumbnailPath] = useState<string>('');
   const [ytThumbnailVariant, setYtThumbnailVariant] = useState<string>('');
   const [titleRetention, setTitleRetention] = useState<{ velocity?: { views48h?: number }; retention?: { points?: unknown[] } } | null>(null);
@@ -2138,6 +2143,13 @@ export default function App() {
         setYtPinnedComment(meta.youtube?.pinned_comment || meta.youtube?.pinnedComment || '');
         setYtPublishAt(meta.youtube?.publish_at || meta.youtube?.publishAt || '');
         setYtCategoryId(meta.youtube?.category_id || meta.youtube?.categoryId || '27');
+        setYtDefaultLanguage(
+          meta.youtube?.default_language
+          || meta.youtube?.default_audio_language
+          || 'pt-BR',
+        );
+        setYtContainsSyntheticMedia(meta.youtube?.contains_synthetic_media !== false);
+        setYtPlaylistId(meta.youtube?.playlist_id || meta.youtube?.playlistId || '');
         setYtThumbnailPath(meta.youtube?.thumbnail || '');
         setYtThumbnailVariant(meta.youtube?.thumbnail_variant || '');
         if (meta.youtube?.post_id) setTitleExperimentVideoId(meta.youtube.post_id);
@@ -5213,6 +5225,10 @@ export default function App() {
         pinned_comment: String(ytOverride.pinned_comment ?? ytPinnedComment).trim(),
         category_id: String(ytOverride.category_id ?? ytCategoryId).trim() || '27',
         publish_at: (ytOverride.publish_at as string | undefined) ?? (ytPublishAt.trim() || undefined),
+        default_language: (ytOverride.default_language as string | undefined) ?? ytDefaultLanguage,
+        default_audio_language: (ytOverride.default_audio_language as string | undefined) ?? ytDefaultLanguage,
+        contains_synthetic_media: (ytOverride.contains_synthetic_media as boolean | undefined) ?? ytContainsSyntheticMedia,
+        playlist_id: (ytOverride.playlist_id as string | undefined) ?? (ytPlaylistId.trim() || undefined),
         thumbnail: (ytOverride.thumbnail as string | undefined) ?? (ytThumbnailPath || undefined),
         thumbnail_variant: (ytOverride.thumbnail_variant as string | undefined) ?? (ytThumbnailVariant || undefined),
       },
@@ -5381,6 +5397,31 @@ export default function App() {
       }
     } catch {
       toast.error('Erro de conexão ao corrigir metadados.');
+    }
+  };
+
+  const fetchYoutubePlaylists = async () => {
+    if (!uploadStatus?.youtube?.connected) {
+      toast.error('Conecte o YouTube em Configurações → Integrações antes de listar playlists.');
+      return;
+    }
+    setYtPlaylistsLoading(true);
+    try {
+      const res = await fetch(getProjectUrl('/api/upload/youtube/playlists'));
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Falha ao carregar playlists do YouTube.');
+        return;
+      }
+      const list = Array.isArray(data.playlists) ? data.playlists : [];
+      setYtPlaylists(list);
+      if (list.length === 0) {
+        toast('Nenhuma playlist encontrada no canal.');
+      }
+    } catch {
+      toast.error('Erro de conexão ao carregar playlists.');
+    } finally {
+      setYtPlaylistsLoading(false);
     }
   };
 
@@ -8029,6 +8070,7 @@ export default function App() {
     fetchTitleExperiment,
     fetchTitleExperimentAnalytics,
     fetchUploadStatus,
+    fetchYoutubePlaylists,
     fetchVideoQuality,
     formatSelector,
     geminiBrowserMode,
@@ -8293,6 +8335,9 @@ export default function App() {
     setVideoFileDurations,
     setXaiKeyInput,
     setYtCategoryId,
+    setYtContainsSyntheticMedia,
+    setYtDefaultLanguage,
+    setYtPlaylistId,
     setYtChapters,
     setYtClientId,
     setYtClientSecret,
@@ -8354,6 +8399,11 @@ export default function App() {
     youtubeThumbnailsGenerated,
     youtubeThumbnailsLoading,
     ytCategoryId,
+    ytContainsSyntheticMedia,
+    ytDefaultLanguage,
+    ytPlaylistId,
+    ytPlaylists,
+    ytPlaylistsLoading,
     ytChapters,
     ytClientId,
     ytClientSecret,

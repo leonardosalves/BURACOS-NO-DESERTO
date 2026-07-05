@@ -1553,6 +1553,43 @@ app.post("/api/upload/launch-login", (req, res) => {
   res.json({ success: true, message: `Navegador aberto na sua área de trabalho para login do ${platform.toUpperCase()}. Realize o login e feche-o para concluir.` });
 });
 
+// GET /api/upload/youtube/playlists — playlists do canal para seleção no upload
+app.get("/api/upload/youtube/playlists", async (req, res) => {
+  try {
+    const { getYoutubeAccessToken } = await import("./youtubeTitleAnalytics.js");
+    const accessToken = await getYoutubeAccessToken(WORKSPACE_DIR);
+    const playlists = [];
+    let pageToken = "";
+    do {
+      const url = new URL("https://www.googleapis.com/youtube/v3/playlists");
+      url.searchParams.set("part", "snippet,contentDetails");
+      url.searchParams.set("mine", "true");
+      url.searchParams.set("maxResults", "50");
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const apiRes = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await apiRes.json();
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({
+          error: data?.error?.message || "Falha ao listar playlists do YouTube.",
+        });
+      }
+      for (const item of data.items || []) {
+        playlists.push({
+          id: item.id,
+          title: item.snippet?.title || item.id,
+          itemCount: Number(item.contentDetails?.itemCount || 0),
+        });
+      }
+      pageToken = data.nextPageToken || "";
+    } while (pageToken && playlists.length < 200);
+    res.json({ playlists });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erro ao listar playlists." });
+  }
+});
+
 // POST /api/upload/youtube/apply-metadata — corrige título/descrição/tags de vídeo já enviado
 app.post("/api/upload/youtube/apply-metadata", (req, res) => {
   const projDir = getProjectDir(req);

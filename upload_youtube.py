@@ -70,18 +70,35 @@ def parse_tags(raw):
         return []
     return [t.strip() for t in str(raw).replace(";", ",").split(",") if t.strip()]
 
-def update_video_metadata(access_token, video_id, title, description, tags=None, category_id="22", default_language="pt"):
+def update_video_metadata(
+    access_token,
+    video_id,
+    title,
+    description,
+    tags=None,
+    category_id="22",
+    default_language="pt-BR",
+    default_audio_language="pt-BR",
+    contains_synthetic_media=True,
+):
     print(f"[INFO] Atualizando metadados do vídeo {video_id} no YouTube...")
-    url = "https://www.googleapis.com/youtube/v3/videos?part=snippet"
+    url = "https://www.googleapis.com/youtube/v3/videos?part=snippet,status"
     snippet = {
         "title": title[:100],
         "description": description or "",
         "categoryId": str(category_id or "22"),
         "defaultLanguage": default_language,
+        "defaultAudioLanguage": default_audio_language,
     }
     if tags:
         snippet["tags"] = tags[:30]
-    body = {"id": video_id, "snippet": snippet}
+    body = {
+        "id": video_id,
+        "snippet": snippet,
+        "status": {
+            "containsSyntheticMedia": bool(contains_synthetic_media),
+        },
+    }
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode("utf-8"),
@@ -123,6 +140,44 @@ def ensure_shorts_tags(tags, is_short=False):
         out.append("Shorts")
     return out
 
+def add_video_to_playlist(access_token, playlist_id, video_id):
+    playlist_id = str(playlist_id or "").strip()
+    if not playlist_id or not video_id:
+        return False
+    print(f"[INFO] Adicionando vídeo à playlist {playlist_id}...")
+    url = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet"
+    body = {
+        "snippet": {
+            "playlistId": playlist_id,
+            "resourceId": {
+                "kind": "youtube#video",
+                "videoId": video_id,
+            },
+        },
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json; charset=UTF-8",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req) as response:
+            response.read()
+            print("[SUCESSO] Vídeo adicionado à playlist.")
+            return True
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8")
+        print(f"[AVISO] Falha ao adicionar à playlist (vídeo já está no ar): {err_msg}")
+        return False
+    except Exception as e:
+        print(f"[AVISO] Erro ao adicionar à playlist: {e}")
+        return False
+
+
 def initiate_resumable_upload(
     access_token,
     video_path,
@@ -132,7 +187,9 @@ def initiate_resumable_upload(
     tags=None,
     category_id="22",
     publish_at=None,
-    default_language="pt",
+    default_language="pt-BR",
+    default_audio_language="pt-BR",
+    contains_synthetic_media=True,
 ):
     print("[INFO] Iniciando upload resumível no YouTube...")
     file_size = os.path.getsize(video_path)
@@ -150,6 +207,7 @@ def initiate_resumable_upload(
         "description": description,
         "categoryId": str(category_id or "22"),
         "defaultLanguage": default_language,
+        "defaultAudioLanguage": default_audio_language,
     }
     if tags:
         snippet["tags"] = tags[:30]
@@ -157,6 +215,7 @@ def initiate_resumable_upload(
     status = {
         "privacyStatus": privacy_status,
         "selfDeclaredMadeForKids": False,
+        "containsSyntheticMedia": bool(contains_synthetic_media),
     }
 
     if publish_at:
@@ -353,6 +412,9 @@ def main():
     publish_at = fields["publish_at"]
     pinned_comment = fields["pinned_comment"]
     default_language = fields["default_language"]
+    default_audio_language = fields.get("default_audio_language") or default_language
+    contains_synthetic_media = bool(fields.get("contains_synthetic_media", True))
+    playlist_id = str(fields.get("playlist_id") or "").strip()
     upload_meta = (proj_config.get("upload_metadata") or {}).get("youtube") or {}
 
     if not title or title.lower() == "unknown":
@@ -369,10 +431,14 @@ def main():
                 tags=tags,
                 category_id=category_id,
                 default_language=default_language,
+                default_audio_language=default_audio_language,
+                contains_synthetic_media=contains_synthetic_media,
             )
             thumb_path = resolve_thumbnail_path(project_dir, {**upload_meta, "thumbnail": fields.get("thumbnail")})
             if thumb_path:
                 set_video_thumbnail(access_token, fix_video_id, thumb_path)
+            if playlist_id:
+                add_video_to_playlist(access_token, playlist_id, fix_video_id)
             if pinned_comment:
                 post_pinned_comment(access_token, fix_video_id, pinned_comment)
             if "upload_metadata" not in proj_config:
@@ -403,6 +469,9 @@ def main():
         print(f"[INFO] Tags: {', '.join(tags[:8])}{'...' if len(tags) > 8 else ''}")
     if publish_at:
         print(f"[INFO] Agendado para: {publish_at}")
+    print(f"[INFO] Idioma: {default_language} | Uso de IA declarado: {'Sim' if contains_synthetic_media else 'Não'}")
+    if playlist_id:
+        print(f"[INFO] Playlist alvo: {playlist_id}")
 
     if "upload_metadata" not in proj_config:
         proj_config["upload_metadata"] = {}
@@ -423,6 +492,8 @@ def main():
             category_id=category_id,
             publish_at=publish_at,
             default_language=default_language,
+            default_audio_language=default_audio_language,
+            contains_synthetic_media=contains_synthetic_media,
         )
         result = upload_file_chunks(upload_url, video_path)
         video_id = result.get("id")
@@ -435,6 +506,8 @@ def main():
                 set_video_thumbnail(access_token, video_id, thumb_path)
             else:
                 print("[INFO] Nenhuma thumbnail selecionada em upload_metadata.youtube.thumbnail")
+            if playlist_id:
+                add_video_to_playlist(access_token, playlist_id, video_id)
             # Comentário fixo: postUploadService (Node) após o pipeline — evita duplicata
             proj_config["upload_metadata"]["youtube"]["status"] = "success"
             proj_config["upload_metadata"]["youtube"]["post_id"] = video_id
