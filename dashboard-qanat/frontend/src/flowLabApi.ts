@@ -19,6 +19,104 @@ export type FlowLabVpeMeta = {
   enhanced: boolean;
 };
 
+export type FlowLabIdea = {
+  title?: string;
+  promise?: string;
+  emotion?: string;
+  hook?: string;
+  hooks?: string;
+  blocks?: Array<{ block?: number; content?: string }>;
+  best_format?: string;
+};
+
+export type FlowLabIdeasResult = {
+  ideas: FlowLabIdea[];
+  best_idea_index: number;
+  best_idea_reason?: string;
+  diagnostic?: {
+    looking_for?: string;
+    pain_points?: string;
+    strong_angle?: string;
+  };
+  _ideas_meta?: {
+    usedDeepResearch?: boolean;
+    excludedCount?: number;
+  };
+};
+
+export async function deleteFlowLabSandbox(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch('/api/projects/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: FLOW_LAB_PROJECT }),
+    });
+    const data = await res.json();
+    if (res.ok) return { ok: true };
+    if (res.status === 404) return { ok: true };
+    return { ok: false, error: data.error || 'Erro ao excluir sandbox' };
+  } catch {
+    return { ok: false, error: 'Falha de conexao ao excluir sandbox.' };
+  }
+}
+
+export async function generateFlowLabIdeas(
+  ctx: FlowLabAiContext,
+  opts: {
+    niche: string;
+    format: 'LONGO' | 'SHORTS';
+    excludeTitles?: string[];
+    forceVariety?: boolean;
+  },
+): Promise<{ ok: boolean; data?: FlowLabIdeasResult; error?: string }> {
+  const niche = opts.niche.trim();
+  const excludeIdeas = (opts.excludeTitles || [])
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((title) => ({ title }));
+
+  const res = await fetchGeminiAi(
+    projectUrl('/api/ai/creator/ideas'),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        niche,
+        format: opts.format,
+        project: FLOW_LAB_PROJECT,
+        useNotebooklm: false,
+        useDeepResearch: true,
+        forceVariety: Boolean(opts.forceVariety),
+        excludeIdeas,
+      }),
+    },
+    ctx,
+  );
+
+  if (!res.ok || res.data.needs_browser) {
+    return {
+      ok: false,
+      error: (res.data.error as string) || 'Geracao de ideias pendente no Gemini ou falhou.',
+    };
+  }
+
+  const ideas = Array.isArray(res.data.ideas) ? res.data.ideas as FlowLabIdea[] : [];
+  if (!ideas.length) {
+    return { ok: false, error: 'Nenhuma ideia retornada — tente outro tema.' };
+  }
+
+  return {
+    ok: true,
+    data: {
+      ideas,
+      best_idea_index: Number(res.data.best_idea_index ?? 0),
+      best_idea_reason: res.data.best_idea_reason as string | undefined,
+      diagnostic: res.data.diagnostic as FlowLabIdeasResult['diagnostic'],
+      _ideas_meta: res.data._ideas_meta as FlowLabIdeasResult['_ideas_meta'],
+    },
+  };
+}
+
 export async function saveFlowLabStoryboard(storyboard: Record<string, unknown>): Promise<boolean> {
   try {
     const res = await fetch(projectUrl('/api/projects/storyboard'), {
@@ -111,26 +209,17 @@ export async function runFlowLabVisualPro(
   };
 }
 
-function buildIdeaPayload(title: string) {
-  const t = title.trim();
-  return {
-    title: t,
-    promise: t,
-    emotion: 'Curiosity / Wonder',
-    hook: t,
-    hooks: t,
-    blocks: [{ block: 1, content: t }],
-    isCustom: true,
-  };
-}
-
 export async function generateFlowLabPipeline(
   ctx: FlowLabAiContext,
-  opts: { title: string; format: 'LONGO' | 'SHORTS'; niche: string },
+  opts: { idea: FlowLabIdea; format: 'LONGO' | 'SHORTS'; niche: string },
   onStep?: (step: string) => void,
 ): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; vpe?: FlowLabVpeMeta; error?: string }> {
   const formatApi = opts.format;
   const niche = opts.niche.trim() || 'Geral';
+  const ideaTitle = String(opts.idea.title || '').trim();
+  if (!ideaTitle) {
+    return { ok: false, error: 'Ideia sem titulo — selecione ou gere outra.' };
+  }
 
   onStep?.('Preparando sandbox...');
   const proj = await ensureFlowLabProject(opts.format, niche);
@@ -139,7 +228,7 @@ export async function generateFlowLabPipeline(
   const baseBody = {
     niche,
     format: formatApi,
-    idea: buildIdeaPayload(opts.title),
+    idea: opts.idea,
     project: FLOW_LAB_PROJECT,
     useNotebooklm: false,
   };
