@@ -13,19 +13,39 @@ export const LUMIERA_CODE_MAP = {
     agents: ".agents/ (skills, memory, bundles)",
   },
   entryPoints: [
-    { path: "dashboard-qanat/backend/server.js", role: "Monólito API — Creator, render, Studio Agents, YouTube" },
-    { path: "dashboard-qanat/frontend/src/App.tsx", role: "UI principal — tabs Creator, Timeline, Workflow, Studio" },
-    { path: "dashboard-qanat/backend/skillsRegistry.js", role: "Bundles Hermes + injectStudioAgentsContext" },
-    { path: "dashboard-qanat/backend/agentMemory.js", role: "Memória procedural — capture/promote learnings" },
-    { path: "dashboard-qanat/backend/videoAgentPlanner.js", role: "VideoAgent → intents Lumiera" },
+    {
+      path: "dashboard-qanat/backend/server.js",
+      role: "Monólito API — Creator, render, Studio Agents, YouTube",
+    },
+    {
+      path: "dashboard-qanat/frontend/src/App.tsx",
+      role: "UI principal — tabs Creator, Timeline, Workflow, Studio",
+    },
+    {
+      path: "dashboard-qanat/backend/skillsRegistry.js",
+      role: "Bundles Hermes + injectStudioAgentsContext",
+    },
+    {
+      path: "dashboard-qanat/backend/agentMemory.js",
+      role: "Memória procedural — capture/promote learnings",
+    },
+    {
+      path: "dashboard-qanat/backend/videoAgentPlanner.js",
+      role: "VideoAgent → intents Lumiera",
+    },
   ],
   apiGroups: [
     {
       prefix: "/api/studio-agents",
       files: ["server.js"],
       routes: [
-        "GET status", "GET skills", "GET skills/:slug?ref=", "GET learnings",
-        "POST plan-overlays", "POST capture", "GET code-map",
+        "GET status",
+        "GET skills",
+        "GET skills/:slug?ref=",
+        "GET learnings",
+        "POST plan-overlays",
+        "POST capture",
+        "GET code-map",
       ],
     },
     {
@@ -41,7 +61,12 @@ export const LUMIERA_CODE_MAP = {
     {
       prefix: "/api/workflow",
       files: ["workflowRoutes.js"],
-      routes: ["POST clip-factory", "POST analyze-reference", "GET capability-menu"],
+      routes: [
+        "POST clip-factory",
+        "POST analyze-reference",
+        "POST /api/research/analyze-reference-video",
+        "GET capability-menu",
+      ],
     },
     {
       prefix: "/api/projects",
@@ -53,13 +78,28 @@ export const LUMIERA_CODE_MAP = {
       files: ["server.js"],
       routes: ["GET editorial-queue", "PATCH editorial-queue/:id"],
     },
-
   ],
   promptInjection: [
-    { fn: "injectStudioAgentsContext", file: "skillsRegistry.js", tasks: ["ideas", "script", "metadata", "overlay"] },
-    { fn: "buildLearningsPromptAddendum", file: "agentMemory.js", cap: "12 learnings" },
-    { fn: "buildSkillsPromptAddendum", file: "skillsRegistry.js", cap: "1200 chars/skill" },
-    { fn: "compressTranscriptForPrompt", file: "lumieraContextCompress.js", note: "metadados/SEO" },
+    {
+      fn: "injectStudioAgentsContext",
+      file: "skillsRegistry.js",
+      tasks: ["ideas", "script", "metadata", "overlay"],
+    },
+    {
+      fn: "buildLearningsPromptAddendum",
+      file: "agentMemory.js",
+      cap: "12 learnings",
+    },
+    {
+      fn: "buildSkillsPromptAddendum",
+      file: "skillsRegistry.js",
+      cap: "1200 chars/skill",
+    },
+    {
+      fn: "compressTranscriptForPrompt",
+      file: "lumieraContextCompress.js",
+      note: "metadados/SEO",
+    },
   ],
   tokenTips: [
     "Prefira GET /api/studio-agents/code-map antes de varrer server.js inteiro.",
@@ -81,7 +121,9 @@ export function getCompactCodeMapText() {
     ...m.apiGroups.map((g) => `- ${g.prefix} → ${g.routes.join(", ")}`),
     "",
     "## Prompt injection",
-    ...m.promptInjection.map((p) => `- ${p.fn} (${p.file})${p.tasks ? ` [${p.tasks.join(", ")}]` : ""}`),
+    ...m.promptInjection.map(
+      (p) => `- ${p.fn} (${p.file})${p.tasks ? ` [${p.tasks.join(", ")}]` : ""}`
+    ),
     "",
     "## Dicas",
     ...m.tokenTips.map((t) => `- ${t}`),

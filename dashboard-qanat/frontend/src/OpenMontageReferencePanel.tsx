@@ -1,10 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import { Clapperboard, Link2, Loader2, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { SectionHeader } from './SectionHeader';
-import { SettingHelpTip } from './SettingHelpTip';
-import type { GeminiBrowserRequest } from './geminiAiFetch';
-import { buildOpenMontageCreatorOutline, type CreatorApplyIdeaOptions } from './creatorEditorialImport';
+import React, { useCallback, useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import {
+  Clapperboard,
+  Link2,
+  Loader2,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
+import { SettingHelpTip } from "./SettingHelpTip";
+import type { GeminiBrowserRequest } from "./geminiAiFetch";
+import {
+  buildOpenMontageCreatorOutline,
+  type CreatorApplyIdeaOptions,
+} from "./creatorEditorialImport";
 
 type CapabilityItem = {
   id: string;
@@ -42,54 +52,81 @@ type ReferenceBrief = {
   _fallback?: boolean;
 };
 
+type VideoUnderstanding = {
+  summary?: string;
+  visual_description?: string;
+  hook_first_3s?: string;
+  pacing?: string;
+  what_works_for_retention?: string[];
+  lumiera_takeaways?: string[];
+  multimodal?: boolean;
+};
+
 type PostAiFn = (
   path: string,
-  init?: RequestInit,
-) => Promise<{ ok: boolean; status: number; data: GeminiBrowserRequest & Record<string, unknown> }>;
+  init?: RequestInit
+) => Promise<{
+  ok: boolean;
+  status: number;
+  data: GeminiBrowserRequest & Record<string, unknown>;
+}>;
 
 type OpenMontageReferencePanelProps = {
   projectNiche?: string;
-  projectFormat: 'SHORT' | 'LONG';
+  projectFormat: "SHORT" | "LONG";
   getProjectUrl: (endpoint: string) => string;
   postAi: PostAiFn;
   onApplyRequirement?: (text: string) => void;
-  onApplyCreator?: (title: string, hook: string, options?: CreatorApplyIdeaOptions) => void;
+  onApplyCreator?: (
+    title: string,
+    hook: string,
+    options?: CreatorApplyIdeaOptions
+  ) => void;
 };
 
 export function OpenMontageReferencePanel({
-  projectNiche = 'Geral',
+  projectNiche = "Geral",
   projectFormat,
   getProjectUrl,
   postAi,
   onApplyRequirement,
   onApplyCreator,
 }: OpenMontageReferencePanelProps) {
-  const [referenceUrl, setReferenceUrl] = useState('');
-  const [topic, setTopic] = useState('');
-  const [busy, setBusy] = useState<'analyze' | 'capability' | null>(null);
+  const [referenceUrl, setReferenceUrl] = useState("");
+  const [topic, setTopic] = useState("");
+  const [busy, setBusy] = useState<"analyze" | "capability" | null>(null);
   const [capability, setCapability] = useState<{
     summary?: { ready: number; total: number; coverage: number };
     categories?: CapabilityCategory[];
     recommendation?: string;
   } | null>(null);
   const [brief, setBrief] = useState<ReferenceBrief | null>(null);
-  const [metadata, setMetadata] = useState<{ title?: string; author?: string; thumbnail?: string } | null>(
-    null,
-  );
+  const [metadata, setMetadata] = useState<{
+    title?: string;
+    author?: string;
+    thumbnail?: string;
+  } | null>(null);
   const [aiEnhanced, setAiEnhanced] = useState(false);
-  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
+  const [videoUnderstanding, setVideoUnderstanding] =
+    useState<VideoUnderstanding | null>(null);
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(
+    null
+  );
 
-  const apiFormat = projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO';
+  const apiFormat = projectFormat === "SHORT" ? "SHORTS" : "LONGO";
 
   const loadCapability = useCallback(async () => {
-    setBusy('capability');
+    setBusy("capability");
     try {
-      const res = await fetch(getProjectUrl('/api/workflow/capability-menu'));
+      const res = await fetch(getProjectUrl("/api/workflow/capability-menu"));
       const data = await res.json();
-      if (!res.ok) throw new Error(String(data.error || 'Falha ao carregar capacidades'));
+      if (!res.ok)
+        throw new Error(String(data.error || "Falha ao carregar capacidades"));
       setCapability(data);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro no capability menu');
+      toast.error(
+        err instanceof Error ? err.message : "Erro no capability menu"
+      );
     } finally {
       setBusy(null);
     }
@@ -102,38 +139,87 @@ export function OpenMontageReferencePanel({
   const runAnalyze = async () => {
     const url = referenceUrl.trim();
     if (!url) {
-      toast.error('Cole a URL do vídeo de referência');
+      toast.error("Cole a URL do vídeo de referência");
       return;
     }
 
-    setBusy('analyze');
+    setBusy("analyze");
     setBrief(null);
     setMetadata(null);
+    setVideoUnderstanding(null);
     setSelectedConceptId(null);
 
     try {
-      const { ok, data } = await postAi('/api/workflow/analyze-reference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/research/analyze-reference-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url,
           format: apiFormat,
           niche: projectNiche,
           topic: topic.trim() || undefined,
-          useAi: true,
+          persist: true,
         }),
       });
+      const data = (await res.json()) as Record<string, unknown>;
 
-      if (!ok) throw new Error(String(data.error || 'Falha na análise'));
+      if (!res.ok) {
+        const { ok, data: fallback } = await postAi(
+          "/api/workflow/analyze-reference",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url,
+              format: apiFormat,
+              niche: projectNiche,
+              topic: topic.trim() || undefined,
+              useAi: true,
+            }),
+          }
+        );
+        if (!ok) {
+          throw new Error(
+            String(
+              data.error || fallback.error || "Falha na análise multimodal"
+            )
+          );
+        }
+        const nextBrief = (fallback.brief as ReferenceBrief) || null;
+        setBrief(nextBrief);
+        setMetadata((fallback.metadata as typeof metadata) || null);
+        setAiEnhanced(Boolean(fallback.aiEnhanced));
+        setSelectedConceptId(
+          nextBrief?.recommended_concept || nextBrief?.concepts?.[0]?.id || null
+        );
+        toast(
+          "Análise clássica (sem vídeo) — configure Gemini para multimodal PRO."
+        );
+        return;
+      }
 
       const nextBrief = (data.brief as ReferenceBrief) || null;
       setBrief(nextBrief);
       setMetadata((data.metadata as typeof metadata) || null);
+      setVideoUnderstanding(
+        (data.videoUnderstanding as VideoUnderstanding) || null
+      );
       setAiEnhanced(Boolean(data.aiEnhanced));
-      setSelectedConceptId(nextBrief?.recommended_concept || nextBrief?.concepts?.[0]?.id || null);
-      toast.success(data.aiEnhanced ? 'Brief completo com IA' : 'Brief heurístico — ative Gemini para mais detalhe');
+      setSelectedConceptId(
+        nextBrief?.recommended_concept || nextBrief?.concepts?.[0]?.id || null
+      );
+      const multimodal = Boolean(
+        (data.videoUnderstanding as VideoUnderstanding)?.multimodal
+      );
+      toast.success(
+        multimodal
+          ? "Análise PRO — vídeo assistido + conceitos"
+          : "Análise com legendas/metadados + conceitos"
+      );
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao analisar referência');
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao analisar referência"
+      );
     } finally {
       setBusy(null);
     }
@@ -142,25 +228,26 @@ export function OpenMontageReferencePanel({
   const applyToVideoAgent = () => {
     const text = brief?.lumiera_requirement?.trim();
     if (!text) {
-      toast.error('Brief sem lumiera_requirement');
+      toast.error("Brief sem lumiera_requirement");
       return;
     }
     onApplyRequirement?.(text);
-    toast.success('Pedido copiado para o VideoAgent');
+    toast.success("Pedido copiado para o VideoAgent");
   };
 
   const activeConcept =
-    brief?.concepts?.find((c) => c.id === selectedConceptId)
-    || brief?.concepts?.find((c) => c.id === brief.recommended_concept)
-    || brief?.concepts?.[0];
+    brief?.concepts?.find((c) => c.id === selectedConceptId) ||
+    brief?.concepts?.find((c) => c.id === brief.recommended_concept) ||
+    brief?.concepts?.[0];
 
   const applyToCreator = () => {
     const title = activeConcept?.title?.trim() || brief?.creator_title?.trim();
     if (!title) {
-      toast.error('Brief sem título de conceito');
+      toast.error("Brief sem título de conceito");
       return;
     }
-    const hook = brief?.creator_hook?.trim() || brief?.hook_technique?.trim() || title;
+    const hook =
+      brief?.creator_hook?.trim() || brief?.hook_technique?.trim() || title;
     const omPayload = {
       brief: brief!,
       conceptId: activeConcept?.id || selectedConceptId || undefined,
@@ -169,16 +256,17 @@ export function OpenMontageReferencePanel({
     };
     const outline = buildOpenMontageCreatorOutline(omPayload);
     onApplyCreator?.(title, hook, {
-      format: projectFormat === 'SHORT' ? 'SHORTS' : 'LONGO',
-      mechanic: 'openmontage-reference',
+      format: projectFormat === "SHORT" ? "SHORTS" : "LONGO",
+      mechanic: "openmontage-reference",
       whyWorks: outline,
       openMontage: omPayload,
     });
-    toast.success(`Creator preparado — conceito ${activeConcept?.id || 'A'}`);
+    toast.success(`Creator preparado — conceito ${activeConcept?.id || "A"}`);
   };
 
   const recommended =
-    brief?.concepts?.find((c) => c.id === brief.recommended_concept) || brief?.concepts?.[0];
+    brief?.concepts?.find((c) => c.id === brief.recommended_concept) ||
+    brief?.concepts?.[0];
 
   return (
     <div className="glass-panel p-6 rounded-2xl space-y-4 border border-cyan-500/15">
@@ -186,29 +274,31 @@ export function OpenMontageReferencePanel({
         title="Inspirado em vídeo — OpenMontage"
         helpId="agents-openmontage"
         icon={<Clapperboard className="w-4 h-4 text-cyan-400 shrink-0" />}
-        subtitle="Cole uma URL (YouTube, Shorts, TikTok, Reels). O Lumiera analisa estrutura, gancho e propõe 2–3 conceitos diferenciados — padrão OpenMontage adaptado."
+        subtitle="Cole uma URL (YouTube, Shorts, TikTok, Reels). Análise multimodal PRO (Gemini vê o vídeo) + brief OpenMontage com 2–3 conceitos diferenciados."
       />
 
       <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
         <SettingHelpTip title="Capability envelope">
-          Mostra o que seu estúdio já pode produzir (TTS, stock, Remotion, ComfyUI, NotebookLM). Igual ao preflight do OpenMontage — gaps aparecem em vermelho.
+          Mostra o que seu estúdio já pode produzir (TTS, stock, Remotion,
+          ComfyUI, NotebookLM). Igual ao preflight do OpenMontage — gaps
+          aparecem em vermelho.
         </SettingHelpTip>
         {capability?.summary ? (
           <span>
-            Capacidades:{' '}
+            Capacidades:{" "}
             <span className="text-cyan-300 tabular-nums">
               {capability.summary.ready}/{capability.summary.total}
-            </span>{' '}
+            </span>{" "}
             ({capability.summary.coverage}%)
           </span>
         ) : null}
         <button
           type="button"
           onClick={loadCapability}
-          disabled={busy === 'capability'}
+          disabled={busy === "capability"}
           className="text-cyan-400 hover:text-cyan-300 underline-offset-2 hover:underline disabled:opacity-50"
         >
-          {busy === 'capability' ? 'Atualizando…' : 'Atualizar'}
+          {busy === "capability" ? "Atualizando…" : "Atualizar"}
         </button>
       </div>
 
@@ -220,8 +310,8 @@ export function OpenMontageReferencePanel({
                 key={`${cat.id}-${item.id}`}
                 className={`text-[10px] px-2 py-1.5 rounded-lg border flex items-center gap-1.5 ${
                   item.ready
-                    ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200/80'
-                    : 'border-amber-500/20 bg-amber-500/5 text-amber-200/70'
+                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-200/80"
+                    : "border-amber-500/20 bg-amber-500/5 text-amber-200/70"
                 }`}
                 title={item.hint || item.label}
               >
@@ -232,7 +322,7 @@ export function OpenMontageReferencePanel({
                 )}
                 <span className="truncate">{item.label}</span>
               </div>
-            )),
+            ))
           )}
         </div>
       ) : null}
@@ -264,12 +354,14 @@ export function OpenMontageReferencePanel({
         onClick={runAnalyze}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-sky-500/10 border border-cyan-500/40 text-xs font-bold text-cyan-300 hover:from-cyan-500/30 transition disabled:opacity-50"
       >
-        {busy === 'analyze' ? (
+        {busy === "analyze" ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
           <Sparkles className="w-3.5 h-3.5" />
         )}
-        {busy === 'analyze' ? 'Analisando referência…' : 'Analisar e gerar conceitos'}
+        {busy === "analyze"
+          ? "Analisando vídeo (multimodal)…"
+          : "Analisar PRO e gerar conceitos"}
       </button>
 
       {metadata?.thumbnail ? (
@@ -280,22 +372,60 @@ export function OpenMontageReferencePanel({
             className="w-24 h-14 object-cover rounded-lg border border-zinc-800"
           />
           <div className="min-w-0 text-xs">
-            <p className="text-zinc-200 font-medium line-clamp-2">{metadata.title || 'Referência'}</p>
+            <p className="text-zinc-200 font-medium line-clamp-2">
+              {metadata.title || "Referência"}
+            </p>
             {metadata.author ? (
-              <p className="text-zinc-500 text-[10px] mt-0.5">{metadata.author}</p>
+              <p className="text-zinc-500 text-[10px] mt-0.5">
+                {metadata.author}
+              </p>
             ) : null}
-            {aiEnhanced ? (
-              <span className="text-[10px] text-cyan-400">IA · 5 aspectos + conceitos</span>
+            {videoUnderstanding?.multimodal ? (
+              <span className="text-[10px] text-cyan-400">
+                Multimodal · vídeo assistido
+              </span>
+            ) : aiEnhanced ? (
+              <span className="text-[10px] text-cyan-400">
+                IA · 5 aspectos + conceitos
+              </span>
             ) : brief?._fallback ? (
-              <span className="text-[10px] text-amber-400">Heurístico — configure Gemini</span>
+              <span className="text-[10px] text-amber-400">
+                Heurístico — configure Gemini
+              </span>
             ) : null}
           </div>
         </div>
       ) : null}
 
+      {videoUnderstanding?.summary ? (
+        <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3 space-y-1.5 text-[11px]">
+          <p className="text-sky-300/90 font-bold text-[10px] uppercase tracking-wide">
+            Entendimento do vídeo
+          </p>
+          <p className="text-zinc-400 leading-relaxed">
+            {videoUnderstanding.summary}
+          </p>
+          {videoUnderstanding.hook_first_3s ? (
+            <p className="text-zinc-500">
+              <span className="text-zinc-600">Gancho 3s: </span>
+              {videoUnderstanding.hook_first_3s}
+            </p>
+          ) : null}
+          {(videoUnderstanding.what_works_for_retention || []).length > 0 ? (
+            <ul className="text-zinc-500 list-disc pl-4 space-y-0.5">
+              {videoUnderstanding.what_works_for_retention?.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
       {brief ? (
         <div className="space-y-3 border-t border-zinc-800 pt-4 animate-fade-in">
-          <p className="text-xs text-zinc-400 leading-relaxed">{brief.content_summary}</p>
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            {brief.content_summary}
+          </p>
           {brief.style_profile ? (
             <p className="text-[11px] text-zinc-500">
               <span className="text-zinc-600">Estilo: </span>
@@ -314,7 +444,9 @@ export function OpenMontageReferencePanel({
               <p className="text-[10px] uppercase tracking-widest text-cyan-400/90 font-bold">
                 Recomendado — Opção {recommended.id}
               </p>
-              <p className="text-sm font-bold text-zinc-200 mt-1">{recommended.title}</p>
+              <p className="text-sm font-bold text-zinc-200 mt-1">
+                {recommended.title}
+              </p>
               <p className="text-[10px] text-zinc-500 mt-1">
                 <span className="text-emerald-400/80">Mantém: </span>
                 {recommended.inspired_by}
@@ -329,7 +461,8 @@ export function OpenMontageReferencePanel({
           {(brief.concepts || []).length > 0 ? (
             <ul className="space-y-1.5 max-h-36 overflow-y-auto">
               {brief.concepts?.map((c) => {
-                const selected = (selectedConceptId || recommended?.id) === c.id;
+                const selected =
+                  (selectedConceptId || recommended?.id) === c.id;
                 return (
                   <li key={c.id}>
                     <button
@@ -337,11 +470,12 @@ export function OpenMontageReferencePanel({
                       onClick={() => setSelectedConceptId(c.id)}
                       className={`w-full text-left text-[10px] px-2 py-1.5 rounded-lg border transition ${
                         selected
-                          ? 'border-cyan-500/40 bg-cyan-500/10 text-zinc-200'
-                          : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                          ? "border-cyan-500/40 bg-cyan-500/10 text-zinc-200"
+                          : "border-zinc-800 text-zinc-500 hover:border-zinc-700"
                       }`}
                     >
-                      <span className="text-cyan-400/70 font-mono">{c.id}</span> {c.title}
+                      <span className="text-cyan-400/70 font-mono">{c.id}</span>{" "}
+                      {c.title}
                     </button>
                   </li>
                 );

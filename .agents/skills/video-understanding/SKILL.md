@@ -48,10 +48,31 @@ uv run scripts/analyze_video.py "https://www.tiktok.com/..." -q "Qual é o ganch
 
 YouTube: análise direta (sem download). Outras plataformas: yt-dlp + Gemini File API.
 
+## API Lumiera (nativa)
+
+```http
+POST /api/research/analyze-reference-video
+{
+  "url": "https://www.youtube.com/watch?v=...",
+  "format": "SHORTS",
+  "niche": "Engenharia",
+  "topic": "twist opcional",
+  "question": "pergunta opcional sobre o vídeo",
+  "persist": true,
+  "understandingOnly": false
+}
+```
+
+- `understandingOnly: true` — só `videoUnderstanding` (sem brief OpenMontage)
+- `persist: true` — append em `.agents/memory/video-reference-analyses.md`
+- Pipeline completo: multimodal Gemini + brief [[skills/openmontage-reference-video]] enriquecido
+
+UI: painel **Inspirado em vídeo** (Studio Agents / Creator) — análise PRO multimodal.
+
 ## Workflow Lumiera
 
-1. Usuário cola URL → rodar `analyze_video.py` ou pedir análise ao agente
-2. Salvar resumo em `.agents/memory/competitor-intelligence.md` ou nota Obsidian do nicho
+1. Usuário cola URL → `POST /api/research/analyze-reference-video` (ou CLI upstream)
+2. Salvar resumo em `.agents/memory/video-reference-analyses.md` (`persist: true`)
 3. Cruzar com [[skills/deer-flow-research]] se precisar fatos verificáveis além do vídeo
 4. Gerar roteiro com [[skills/ugc-scriptwriter]] + twist (nunca cópia)
 
