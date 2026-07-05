@@ -32,6 +32,8 @@ export type AppSettingsTabProps = {
   geminiKeysInput: string;
   geminiModel: string;
   geminiModelOptions: Array<{ id: string; label: string; hint?: string }>;
+  inferenceModel: string;
+  inferenceModelOptions: Array<{ id: string; label: string; hint?: string }>;
   globalBlockGap: number;
   globalDebugOverlay: boolean;
   globalFps: number;
@@ -94,6 +96,7 @@ export type AppSettingsTabProps = {
   setGeminiExtensionTesting: (v: boolean) => void;
   setGeminiKeysInput: (v: string) => void;
   setGeminiModel: (v: string) => void;
+  setInferenceModel: (v: string) => void;
   setGlobalBlockGap: (v: number) => void;
   setGlobalDebugOverlay: (v: boolean) => void;
   setGlobalFps: (v: number) => void;
@@ -151,6 +154,8 @@ export function AppSettingsTab({
   geminiKeysInput,
   geminiModel,
   geminiModelOptions,
+  inferenceModel,
+  inferenceModelOptions,
   globalBlockGap,
   globalDebugOverlay,
   globalFps,
@@ -207,6 +212,7 @@ export function AppSettingsTab({
   setGeminiExtensionTesting,
   setGeminiKeysInput,
   setGeminiModel,
+  setInferenceModel,
   setGlobalBlockGap,
   setGlobalDebugOverlay,
   setGlobalFps,
@@ -541,6 +547,41 @@ export function AppSettingsTab({
                     (rápido, contexto 1M).
                   </p>
                 </div>
+
+                {aiProvider === "inference" && (
+                  <div className="space-y-2">
+                    <SettingLabel
+                      helpTitle="Modelo Inference.net"
+                      help="Modelo hospedado na Inference.net usado nas chamadas de IA. Se falhar, o sistema tenta os outros modelos da lista como fallback."
+                      align="start"
+                    >
+                      Modelo Inference.net
+                    </SettingLabel>
+
+                    <select
+                      value={inferenceModel}
+                      onChange={(e) => setInferenceModel(e.target.value)}
+                      className="dash-select"
+                    >
+                      {inferenceModelOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      {inferenceModelOptions.find(
+                        (option) => option.id === inferenceModel
+                      )?.hint ||
+                        "Modelo open-source hospedado em inference.net."}{" "}
+                      ID:{" "}
+                      <span className="text-zinc-300 font-mono text-[9px]">
+                        {inferenceModel}
+                      </span>
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <SettingLabel
