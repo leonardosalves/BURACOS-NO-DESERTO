@@ -16,9 +16,12 @@ import { FLOW_LAB_PROJECT } from './flowLabConstants';
 import {
   deleteFlowLabSandbox,
   fetchFlowLabConfig,
+  fetchFlowLabStatus,
   fetchFlowLabStoryboard,
+  fetchFlowLabWordTranscripts,
   generateFlowLabIdeas,
   generateFlowLabPipeline,
+  resolveFlowLabFishVoice,
   runFlowLabVisualPro,
   uploadFlowLabSceneAsset,
   flowLabAssetUrl,
@@ -26,7 +29,7 @@ import {
   type FlowLabIdeasResult,
   type FlowLabVpeMeta,
 } from './flowLabApi';
-import type { ConfigData } from './appTypes';
+import type { ConfigData, WorkspaceStatus } from './appTypes';
 
 type Props = FlowLabAiContext & {
   hasApiKey: boolean;
@@ -60,8 +63,15 @@ export function FlowLabPage({
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [vpeMeta, setVpeMeta] = useState<FlowLabVpeMeta | null>(null);
   const [sandboxExists, setSandboxExists] = useState(false);
+  const [status, setStatus] = useState<WorkspaceStatus | null>(null);
+  const [wordTranscripts, setWordTranscripts] = useState<unknown[]>([]);
+  const [fishVoiceLabel, setFishVoiceLabel] = useState<string | null>(null);
 
   const aiCtx: FlowLabAiContext = { geminiBrowserMode, aiProvider, resolveBrowserResponse };
+
+  useEffect(() => {
+    void resolveFlowLabFishVoice().then((v) => setFishVoiceLabel(v.label));
+  }, []);
 
   const excludeTitles = useMemo(() => {
     const manual = parseAvoidTopics(avoidTopics);
@@ -70,7 +80,12 @@ export function FlowLabPage({
   }, [avoidTopics, ideasData]);
 
   const reloadSandbox = useCallback(async () => {
-    const [sb, cfg] = await Promise.all([fetchFlowLabStoryboard(), fetchFlowLabConfig()]);
+    const [sb, cfg, st, wt] = await Promise.all([
+      fetchFlowLabStoryboard(),
+      fetchFlowLabConfig(),
+      fetchFlowLabStatus(),
+      fetchFlowLabWordTranscripts(),
+    ]);
     const prompts = sb?.visual_prompts;
     const hasPrompts = Array.isArray(prompts) && prompts.length > 0;
     setSandboxExists(hasPrompts);
@@ -87,6 +102,8 @@ export function FlowLabPage({
       setVpeMeta(null);
     }
     if (cfg) setConfig(cfg);
+    setStatus(st);
+    setWordTranscripts(wt);
   }, []);
 
   useEffect(() => {
@@ -160,13 +177,18 @@ export function FlowLabPage({
       setVpeMeta(result.vpe || { enhanced: true });
       setIdeasData(null);
       setSelectedIdeaIndex(-1);
-      const cfg = await fetchFlowLabConfig();
-      if (cfg) setConfig(cfg);
+      await reloadSandbox();
       const n = (result.storyboard.visual_prompts as unknown[])?.length || 0;
       const score = result.vpe?.qualityScore;
+      const voice = result.narration?.fishVoice;
+      const whisperOk = result.narration?.whisperSynced;
       toast.success(
-        `Ideia aprovada — ${n} cenas${score != null ? ` · VPE ${score}` : ''}. Copie no Flow e suba os arquivos.`,
+        `Pronto — ${n} cenas${score != null ? ` · VPE ${score}` : ''}${voice ? ` · voz ${voice}` : ''}${whisperOk ? ' · segundos por cena (Whisper)' : ''}. Copie no Flow com a duração indicada.`,
+        { duration: 6000 },
       );
+      if (result.narration?.whisperError) {
+        toast(`Whisper: ${result.narration.whisperError}`, { icon: '⚠️', duration: 7000 });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro no pipeline.');
     } finally {
@@ -201,6 +223,8 @@ export function FlowLabPage({
       setIdeasData(null);
       setSelectedIdeaIndex(-1);
       setSandboxExists(false);
+      setStatus(null);
+      setWordTranscripts([]);
       toast.success('Sandbox excluido. Gere novas ideias quando quiser.');
     } finally {
       setBusy(false);
@@ -402,7 +426,10 @@ export function FlowLabPage({
         </div>
 
         <p className="text-[10px] text-[var(--dash-muted)] mt-3 leading-relaxed">
-          Fluxo: tema → <strong className="text-violet-300">aprovar ideia</strong> → narracao → roteiro → Engenharia Visual PRO → copiar prompts no Flow.
+          Fluxo: tema → <strong className="text-violet-300">aprovar ideia</strong> → roteiro →{' '}
+          <strong className="text-violet-300">narração Fish Speech S2</strong>
+          {fishVoiceLabel ? ` (${fishVoiceLabel})` : ''} → Whisper mede segundos/cena → VPE → copiar no Flow com{' '}
+          <strong className="text-emerald-400/90">~Xs voz</strong> em cada card.
           Use &quot;Assuntos a evitar&quot; para bloquear videos que voce ja publicou.
         </p>
       </div>
@@ -483,8 +510,8 @@ export function FlowLabPage({
         activeProject={FLOW_LAB_PROJECT}
         config={config}
         storyboardData={storyboard}
-        status={null}
-        wordTranscripts={[]}
+        status={status}
+        wordTranscripts={wordTranscripts}
         getAssetUrl={flowLabAssetUrl}
         onUpload={handleUpload}
         standalone

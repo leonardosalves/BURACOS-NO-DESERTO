@@ -127,9 +127,13 @@ function SceneCard({
               >
                 {row.isVideo ? 'Vídeo' : 'Imagem'}
               </span>
-              {row.durationSeconds != null && (
-                <span className="text-[10px] font-mono text-emerald-400">~{row.durationSeconds}s voz</span>
-              )}
+              {row.durationSeconds != null ? (
+                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-md">
+                  {row.durationSeconds}s no Flow
+                </span>
+              ) : row.isVideo ? (
+                <span className="text-[10px] text-amber-400/80">duracao apos Whisper</span>
+              ) : null}
             </div>
             <p className="text-[10px] text-[var(--dash-muted)] font-mono truncate" title={row.suggestedFilename}>
               Salvar no Flow como: <span className="text-zinc-300">{row.suggestedFilename}</span>
@@ -359,6 +363,25 @@ export function FlowStudioPage({
           Prompts refinados pela Engenharia Visual PRO (score {storyboardData._vpe_checklist.quality_score}) — seguros para copiar no Flow.
         </p>
       )}
+      {(() => {
+        const withDur = scenes.filter((s) => s.durationSeconds != null).length;
+        if (!scenes.length) return null;
+        if (withDur > 0) {
+          return (
+            <p className="text-[10px] text-emerald-300/90 px-3 py-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10">
+              Whisper mediu a voz: {withDur}/{scenes.length} cenas com segundos exatos — use o badge verde ao gerar cada clip no Flow.
+            </p>
+          );
+        }
+        if (standalone) {
+          return (
+            <p className="text-[10px] text-amber-300/90 px-3 py-2 rounded-xl border border-amber-500/25 bg-amber-500/10">
+              Sem segundos por cena ainda. Aprove uma ideia e aguarde o pipeline (Fish Speech + Whisper) terminar.
+            </p>
+          );
+        }
+        return null;
+      })()}
 
       <div className="glass-panel rounded-3xl p-5 sm:p-6 border border-[var(--dash-border)] overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-amber-500/5 pointer-events-none" />
@@ -375,8 +398,8 @@ export function FlowStudioPage({
 
           <ol className="grid sm:grid-cols-3 gap-3 text-[11px]">
             {[
-              { step: '1', title: 'Copiar', body: 'Briefing ou prompt da cena' },
-              { step: '2', title: 'Gerar no Flow', body: 'Com seus créditos — você aprova a qualidade' },
+              { step: '1', title: 'Copiar', body: 'Prompt + duração em segundos (~Xs no Flow)' },
+              { step: '2', title: 'Gerar no Flow', body: 'Clip com a duração da voz (Whisper)' },
               { step: '3', title: 'Subir aqui', body: 'Arraste o arquivo na cena certa' },
             ].map((item) => (
               <li
