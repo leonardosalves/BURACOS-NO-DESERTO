@@ -141,6 +141,35 @@ export function getSceneDurationFromChunkPlan(
   return Number.isFinite(dur) && dur > 0 ? parseFloat(dur.toFixed(1)) : null;
 }
 
+/** Detecta timeline corrompida (durações somadas >> bloco ou audio_start block-relative). */
+export function chunkedTimelineNeedsRepair(
+  config?: { timeline_assets?: Record<string, Array<{ fixed?: number; audio_start?: number; synced_to_speech?: boolean }>> } | null,
+  status?: { block_timings?: { starts?: number[]; durations?: number[] } },
+): boolean {
+  const durations = status?.block_timings?.durations || [];
+  const starts = status?.block_timings?.starts || [];
+  const assetsByBlock = config?.timeline_assets || {};
+  for (const blockKey of Object.keys(assetsByBlock)) {
+    const blockNum = parseInt(blockKey, 10);
+    if (!Number.isFinite(blockNum) || blockNum < 1) continue;
+    const blockAssets = assetsByBlock[blockKey] || [];
+    if (!blockAssets.some((a) => a.synced_to_speech)) continue;
+    const blockDur = Number(durations[blockNum - 1]);
+    if (Number.isFinite(blockDur) && blockDur > 0) {
+      const sumFixed = blockAssets.reduce((acc, a) => acc + (Number(a.fixed) || 0), 0);
+      if (sumFixed > blockDur * 1.35) return true;
+    }
+    const blockStart = Number(starts[blockNum - 1]);
+    const assetStarts = blockAssets
+      .map((a) => Number(a.audio_start))
+      .filter((n) => Number.isFinite(n));
+    if (Number.isFinite(blockStart) && blockStart > 0.5 && assetStarts.length) {
+      if (Math.max(...assetStarts) < blockStart - 0.25) return true;
+    }
+  }
+  return false;
+}
+
 export const getSceneDurationSeconds = (
   scene: any,
   wordTranscripts?: any[],

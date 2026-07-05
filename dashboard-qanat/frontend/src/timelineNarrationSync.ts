@@ -262,6 +262,69 @@ export function collectBlockWordsFromTranscriptSegments(
   return out.sort((a, b) => a.start - b.start);
 }
 
+/** 1 segmento Whisper/chunk = 1 asset — evita misturar palavras por janela de tempo errada. */
+export function collectAssetWordsFromTranscriptSegments(
+  wordTranscripts: TranscriptSegment[],
+  blockNum: number,
+  asset: TimelineAsset | undefined,
+  assetIdx: number,
+): BlockNarrationWord[] {
+  if (!Array.isArray(wordTranscripts)) return [];
+  const segs = wordTranscripts
+    .filter((s) => Number(s.block) === blockNum)
+    .sort((a, b) => Number(a.index) - Number(b.index) || Number(a.start_time) - Number(b.start_time));
+
+  const chunkId = String(asset?.chunk_id || "").trim();
+  let seg = chunkId
+    ? segs.find((s) => String(s.chunk_id || "") === chunkId)
+    : undefined;
+  if (!seg && segs.length > 0) {
+    seg = segs[Math.min(Math.max(assetIdx, 0), segs.length - 1)];
+  }
+  if (!seg?.words?.length) return [];
+
+  const segStart = Number(seg.start_time) || 0;
+  const segDuration = Number(seg.duration) || Math.max(0.5, (Number(seg.end_time) || segStart) - segStart);
+
+  return (seg.words || [])
+    .map((w) => {
+      let wStart = Number(w.start);
+      let wEnd = Number(w.end);
+      if (wStart <= segDuration + 0.5) {
+        wStart += segStart;
+        wEnd += segStart;
+      }
+      const token = String(w.word || "").trim();
+      return {
+        word: repairMojibake(token),
+        start: wStart,
+        end: wEnd,
+      };
+    })
+    .filter((w) => w.word.length > 0);
+}
+
+export function transcriptsUseChunkSegments(wordTranscripts: TranscriptSegment[]): boolean {
+  return Array.isArray(wordTranscripts)
+    && wordTranscripts.some((s) => String(s.chunk_id || "").trim().length > 0);
+}
+
+/** Converte audio_start block-relative (0-based) para tempo global na narração master. */
+export function resolveGlobalAudioTime(
+  value: number,
+  blockStart: number,
+  blockAssets: TimelineAsset[],
+): number {
+  if (!Number.isFinite(value)) return value;
+  if (!Number.isFinite(blockStart) || blockStart <= 0.05) return value;
+  const starts = blockAssets
+    .map((a) => Number(a.audio_start))
+    .filter((n) => Number.isFinite(n));
+  if (!starts.length) return value;
+  if (Math.max(...starts) < blockStart - 0.25) return blockStart + value;
+  return value;
+}
+
 /** Alinha palavras do roteiro/storyboard aos timestamps do Whisper (mesma lógica do App.tsx). */
 export function mapStoryboardWordsWithTiming(
   narrationText: string,

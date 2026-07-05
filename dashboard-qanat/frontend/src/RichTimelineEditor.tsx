@@ -794,6 +794,10 @@ export function RichTimelineEditor({
 
                                                 ))
 
+                                              ) : staticNarration ? (
+
+                                                <span className="text-zinc-300">{staticNarration}</span>
+
                                               ) : hasDynamic && displayWords.length === 0 ? (
 
                                                 <span className="text-zinc-600 italic text-[9px]">

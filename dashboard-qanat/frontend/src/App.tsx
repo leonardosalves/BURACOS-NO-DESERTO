@@ -106,7 +106,12 @@ import type {
 } from './appTypes';
 import { PROJECT_WORKSPACE_TABS, RECENT_PROJECTS_KEY, RENDER_MODE_LABELS } from './appConstants';
 import { parseCreatorBlockNumber, countCreatorUniqueBlocks, getBlockTimingSummary } from './creatorTimingUtils';
-import { getSceneDurationSeconds, isChunkedNarrationProject, isWhisperTimelineReady } from './sceneSpeechDuration';
+import {
+  chunkedTimelineNeedsRepair,
+  getSceneDurationSeconds,
+  isChunkedNarrationProject,
+  isWhisperTimelineReady,
+} from './sceneSpeechDuration';
 import { FACELESS_NICHE_PRESETS, canRunFacelessPipeline90 } from './facelessChannel';
 import { buildThumbnailBrief, normalizeYoutubeMetadataDisplay } from './youtubeMetadataDisplay';
 import { buildAppTabPropBundles } from './appTabPropBundles';
@@ -575,6 +580,7 @@ export default function App() {
   );
 
   const saveStoryboardTimeoutRef = useRef<any | null>(null);
+  const chunkTimelineResyncAttemptedRef = useRef<Set<string>>(new Set());
   const storyboardDirtyRef = useRef(false);
   const storyboardFetchGenRef = useRef(0);
   const wizardRestoreCompleteRef = useRef(false);
@@ -1799,6 +1805,27 @@ export default function App() {
       }, 200);
     }
   }, [wordTranscripts, shouldAutoAlign, config, status]);
+
+  useEffect(() => {
+    if (!activeProject || !config?.timeline_assets) return;
+    if (!isChunkedNarrationProject(config, storyboardData ?? generatedScriptData, wordTranscripts)) return;
+    if (!chunkedTimelineNeedsRepair(config, status)) return;
+    if (chunkTimelineResyncAttemptedRef.current.has(activeProject)) return;
+    chunkTimelineResyncAttemptedRef.current.add(activeProject);
+
+    (async () => {
+      try {
+        const res = await fetch(getProjectUrl('/api/narration-chunks/resync-timeline'), { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          await fetchData();
+          toast.success(data.message || 'Timeline re-sincronizada pelos trechos.');
+        }
+      } catch {
+        chunkTimelineResyncAttemptedRef.current.delete(activeProject);
+      }
+    })();
+  }, [activeProject, config, storyboardData, generatedScriptData, status, wordTranscripts, getProjectUrl]);
 
   useEffect(() => {
     const hasChunkPlan = !!(storyboardData?.narration_chunk_plan?.chunks?.length);
@@ -3464,7 +3491,7 @@ export default function App() {
 
     }
 
-    if (field === 'fixed') {
+    if (field === 'fixed' && !blockAssets.some((a: any) => a.synced_to_speech)) {
       blockAssets = recalculateBlockAudioStarts(blockKey, blockAssets, index);
     }
 
@@ -3894,6 +3921,13 @@ export default function App() {
       blockNarrationWordsCache,
       timelineAssets: config?.timeline_assets || {},
       getAssetDuration,
+      wordTranscripts,
+      blockStarts: status?.block_timings?.starts,
+      preferChunkSegments: isChunkedNarrationProject(
+        config,
+        storyboardData ?? generatedScriptData,
+        wordTranscripts,
+      ),
     });
 
 
