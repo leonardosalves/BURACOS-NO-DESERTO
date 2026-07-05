@@ -13,6 +13,41 @@ function projectUrl(path: string): string {
   return `${path}${sep}project=${encodeURIComponent(FLOW_LAB_PROJECT)}`;
 }
 
+export type FlowLabVpeMeta = {
+  qualityScore?: number;
+  nicheDetected?: string;
+  enhanced: boolean;
+};
+
+export async function saveFlowLabStoryboard(storyboard: Record<string, unknown>): Promise<boolean> {
+  try {
+    const res = await fetch(projectUrl('/api/projects/storyboard'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(storyboard),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function syncFlowLabFormat(format: 'LONGO' | 'SHORTS', niche: string): Promise<void> {
+  try {
+    await fetch(projectUrl('/api/config'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aspect_ratio: format === 'SHORTS' ? '9:16' : '16:9',
+        video_format: format,
+        niche: niche.trim() || 'Geral',
+      }),
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 export async function ensureFlowLabProject(
   format: 'LONGO' | 'SHORTS',
   niche: string,
@@ -28,12 +63,52 @@ export async function ensureFlowLabProject(
       }),
     });
     const data = await res.json();
-    if (res.ok) return { ok: true };
-    if (res.status === 400 && String(data.error || '').includes('Já existe')) return { ok: true };
+    if (res.ok) {
+      await syncFlowLabFormat(format, niche);
+      return { ok: true };
+    }
+    if (res.status === 400 && String(data.error || '').includes('Já existe')) {
+      await syncFlowLabFormat(format, niche);
+      return { ok: true };
+    }
     return { ok: false, error: data.error || 'Erro ao preparar sandbox' };
   } catch {
     return { ok: false, error: 'Falha de conexao ao criar sandbox.' };
   }
+}
+
+/** Engenharia Visual PRO — le storyboard do disco e reprocessa todos os prompts. */
+export async function runFlowLabVisualPro(
+  ctx: FlowLabAiContext,
+): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; meta?: FlowLabVpeMeta; error?: string }> {
+  const vpe = await fetchGeminiAi(
+    projectUrl('/api/ai/creator/enhance-visual-prompts'),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: FLOW_LAB_PROJECT }),
+    },
+    ctx,
+  );
+
+  if (!vpe.ok || vpe.data.needs_browser) {
+    return {
+      ok: false,
+      error: (vpe.data.error as string) || 'Engenharia Visual PRO pendente no Gemini ou falhou.',
+    };
+  }
+
+  const storyboard = vpe.data as Record<string, unknown>;
+  const checklist = storyboard._vpe_checklist as { quality_score?: number; nicho_detectado?: string } | undefined;
+  return {
+    ok: true,
+    storyboard,
+    meta: {
+      enhanced: true,
+      qualityScore: checklist?.quality_score,
+      nicheDetected: checklist?.nicho_detectado,
+    },
+  };
 }
 
 function buildIdeaPayload(title: string) {
@@ -53,7 +128,7 @@ export async function generateFlowLabPipeline(
   ctx: FlowLabAiContext,
   opts: { title: string; format: 'LONGO' | 'SHORTS'; niche: string },
   onStep?: (step: string) => void,
-): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; error?: string }> {
+): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; vpe?: FlowLabVpeMeta; error?: string }> {
   const formatApi = opts.format;
   const niche = opts.niche.trim() || 'Geral';
 
@@ -106,25 +181,19 @@ export async function generateFlowLabPipeline(
     return { ok: false, error: full.data.error as string || 'Roteiro pendente no Gemini Chrome ou falhou.' };
   }
 
-  onStep?.('Engenharia visual dos prompts...');
-  const vpe = await fetchGeminiAi(
-    projectUrl('/api/ai/creator/enhance-visual-prompts'),
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: FLOW_LAB_PROJECT }),
-    },
-    ctx,
-  );
-  const storyboard = (vpe.ok && !vpe.data.needs_browser ? vpe.data : full.data) as Record<string, unknown>;
+  const draftStoryboard = full.data as Record<string, unknown>;
+  await saveFlowLabStoryboard(draftStoryboard);
 
-  await fetch(projectUrl('/api/projects/storyboard'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(storyboard),
-  });
+  onStep?.('Engenharia Visual PRO...');
+  const vpeResult = await runFlowLabVisualPro(ctx);
+  if (!vpeResult.ok || !vpeResult.storyboard) {
+    return {
+      ok: false,
+      error: vpeResult.error || 'Engenharia Visual PRO falhou. Os prompts brutos nao foram liberados.',
+    };
+  }
 
-  return { ok: true, storyboard };
+  return { ok: true, storyboard: vpeResult.storyboard, vpe: vpeResult.meta };
 }
 
 export async function fetchFlowLabStoryboard(): Promise<Record<string, unknown> | null> {
