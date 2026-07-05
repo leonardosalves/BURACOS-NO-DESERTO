@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 import {
   CheckCircle2,
   Circle,
@@ -6,10 +6,10 @@ import {
   FolderOpen,
   PartyPopper,
   Plus,
-} from 'lucide-react';
-import type { ProjectListItem } from './ProjectsLibraryPanel';
-import { DashminAnalyticsChart } from './DashminAnalyticsChart';
-import { DashCardMenu } from './dashmin/ui';
+} from "lucide-react";
+import type { ProjectListItem } from "./ProjectsLibraryPanel";
+import { DashminAnalyticsChart } from "./DashminAnalyticsChart";
+import { DashCardMenu } from "./dashmin/ui";
 
 type WorkspaceStatusLike = {
   has_narration?: boolean;
@@ -23,7 +23,7 @@ type TodoItem = {
   id: string;
   label: string;
   done: boolean;
-  priority: 'urgent' | 'normal' | 'low';
+  priority: "urgent" | "normal" | "low";
   tag: string;
 };
 
@@ -36,12 +36,13 @@ type DashminDashboardProps = {
   onOpenWorkflow: () => void;
   onOpenCreator: () => void;
   onOpenProjects: () => void;
+  onTodoNavigate?: Partial<Record<string, () => void>>;
 };
 
-function priorityClass(priority: TodoItem['priority']) {
-  if (priority === 'urgent') return 'dash-tag-urgent';
-  if (priority === 'normal') return 'dash-tag-normal';
-  return 'dash-tag-low';
+function priorityClass(priority: TodoItem["priority"]) {
+  if (priority === "urgent") return "dash-tag-urgent";
+  if (priority === "normal") return "dash-tag-normal";
+  return "dash-tag-low";
 }
 
 export function DashminDashboard({
@@ -53,37 +54,38 @@ export function DashminDashboard({
   onOpenWorkflow,
   onOpenCreator,
   onOpenProjects,
+  onTodoNavigate,
 }: DashminDashboardProps) {
   const todoItems = useMemo<TodoItem[]>(() => {
     const s = status;
     return [
       {
-        id: 'config',
-        label: 'Configuração do projeto carregada',
+        id: "config",
+        label: "Configuração do projeto carregada",
         done: Boolean(s?.has_config),
-        priority: 'normal',
-        tag: 'Setup',
+        priority: "normal",
+        tag: "Setup",
       },
       {
-        id: 'narration',
-        label: 'Narração e timings sincronizados',
+        id: "narration",
+        label: "Narração e timings sincronizados",
         done: Boolean(s?.has_narration),
-        priority: 'urgent',
-        tag: 'Workflow',
+        priority: "urgent",
+        tag: "Workflow",
       },
       {
-        id: 'bgm',
-        label: 'Trilha BGM definida',
+        id: "bgm",
+        label: "Trilha BGM definida",
         done: Boolean(s?.has_soundtrack),
-        priority: 'normal',
-        tag: 'Música',
+        priority: "normal",
+        tag: "Música",
       },
       {
-        id: 'render',
-        label: 'Vídeo renderizado no OUTPUT',
+        id: "render",
+        label: "Vídeo renderizado no OUTPUT",
         done: outputCount > 0,
-        priority: 'urgent',
-        tag: 'Render',
+        priority: "urgent",
+        tag: "Render",
       },
     ];
   }, [status, outputCount]);
@@ -94,9 +96,9 @@ export function DashminDashboard({
 
   const congratsMessage =
     videoQualityScore != null && videoQualityScore >= 80
-      ? 'Pipeline com alta qualidade — pronto para render PRO.'
+      ? "Pipeline com alta qualidade — pronto para render PRO."
       : doneCount === todoItems.length
-        ? 'Todas as etapas do projeto ativo foram concluídas.'
+        ? "Todas as etapas do projeto ativo foram concluídas."
         : `${doneCount} de ${todoItems.length} etapas prontas no projeto ativo.`;
 
   return (
@@ -114,9 +116,15 @@ export function DashminDashboard({
           </div>
         </div>
         <div className="dash-progress-track">
-          <div className="dash-progress-fill" style={{ width: `${progressPct}%` }} />
+          <div
+            className="dash-progress-fill"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
-        <p className="text-[11px] text-dash-muted mt-2 truncate" title={activeProject}>
+        <p
+          className="text-[11px] text-dash-muted mt-2 truncate"
+          title={activeProject}
+        >
           Projeto: <strong className="text-white">{activeProject}</strong>
         </p>
       </div>
@@ -129,9 +137,9 @@ export function DashminDashboard({
           </div>
           <DashCardMenu
             items={[
-              { id: 'daily', label: 'Diário' },
-              { id: 'monthly', label: 'Mensal' },
-              { id: 'sort', label: 'Ordenar' },
+              { id: "daily", label: "Diário" },
+              { id: "monthly", label: "Mensal" },
+              { id: "sort", label: "Ordenar" },
             ]}
           />
         </div>
@@ -145,32 +153,67 @@ export function DashminDashboard({
             <h3 className="dash-card-title text-base">Lista de tarefas</h3>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className="dash-icon-btn" onClick={onOpenWorkflow} title="Abrir Workflow">
+            <button
+              type="button"
+              className="dash-icon-btn"
+              onClick={onOpenWorkflow}
+              title="Abrir Workflow"
+            >
               <Plus className="w-4 h-4" />
             </button>
             <DashCardMenu
               items={[
-                { id: 'today', label: 'Hoje' },
-                { id: 'week', label: 'Esta semana' },
-                { id: 'all', label: 'Todas' },
+                { id: "today", label: "Hoje" },
+                { id: "week", label: "Esta semana" },
+                { id: "all", label: "Todas" },
               ]}
             />
           </div>
         </div>
         <ul className="dash-todo-list">
-          {todoItems.map((item) => (
-            <li key={item.id} className={`dash-todo-item ${item.done ? 'done' : ''}`}>
-              <span className="dash-todo-check">
-                {item.done ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="dash-todo-text">{item.label}</p>
-                <span className={`dash-todo-tag ${priorityClass(item.priority)}`}>{item.tag}</span>
-              </div>
-            </li>
-          ))}
+          {todoItems.map((item) => {
+            const go = onTodoNavigate?.[item.id];
+            const Row = go && !item.done ? "button" : "div";
+            return (
+              <li
+                key={item.id}
+                className={`dash-todo-item ${item.done ? "done" : ""}`}
+              >
+                <Row
+                  type={Row === "button" ? "button" : undefined}
+                  className={`dash-todo-row ${go && !item.done ? "is-clickable" : ""}`}
+                  onClick={go && !item.done ? go : undefined}
+                >
+                  <span className="dash-todo-check">
+                    {item.done ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      <Circle className="w-4 h-4" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="dash-todo-text">{item.label}</p>
+                    <span
+                      className={`dash-todo-tag ${priorityClass(item.priority)}`}
+                    >
+                      {item.tag}
+                    </span>
+                  </div>
+                  {go && !item.done ? (
+                    <span className="text-[10px] text-dash-primary shrink-0">
+                      Ir →
+                    </span>
+                  ) : null}
+                </Row>
+              </li>
+            );
+          })}
         </ul>
-        <button type="button" className="dash-link-btn mt-3" onClick={onOpenWorkflow}>
+        <button
+          type="button"
+          className="dash-link-btn mt-3"
+          onClick={onOpenWorkflow}
+        >
           Abrir Workflow e Tarefas →
         </button>
       </div>
@@ -185,7 +228,14 @@ export function DashminDashboard({
         </div>
         <div className="dash-storage-ring">
           <svg viewBox="0 0 120 120" className="w-28 h-28 mx-auto">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="#1a2230" strokeWidth="10" />
+            <circle
+              cx="60"
+              cy="60"
+              r="52"
+              fill="none"
+              stroke="#1a2230"
+              strokeWidth="10"
+            />
             <circle
               cx="60"
               cy="60"
@@ -197,10 +247,20 @@ export function DashminDashboard({
               strokeDasharray={`${storagePct * 3.27} 327`}
               transform="rotate(-90 60 60)"
             />
-            <text x="60" y="58" textAnchor="middle" className="fill-white text-xl font-bold">
+            <text
+              x="60"
+              y="58"
+              textAnchor="middle"
+              className="fill-white text-xl font-bold"
+            >
               {storagePct}%
             </text>
-            <text x="60" y="74" textAnchor="middle" className="fill-dash-muted text-[9px]">
+            <text
+              x="60"
+              y="74"
+              textAnchor="middle"
+              className="fill-dash-muted text-[9px]"
+            >
               usado
             </text>
           </svg>
@@ -209,11 +269,19 @@ export function DashminDashboard({
           {projects.length} projeto(s) na biblioteca
         </p>
         <div className="flex flex-col gap-2 mt-4">
-          <button type="button" className="dash-btn-primary w-full text-xs" onClick={onOpenProjects}>
+          <button
+            type="button"
+            className="dash-btn-primary w-full text-xs"
+            onClick={onOpenProjects}
+          >
             <FolderOpen className="w-3.5 h-3.5" />
             Ver biblioteca
           </button>
-          <button type="button" className="dash-btn-ghost w-full text-xs" onClick={onOpenCreator}>
+          <button
+            type="button"
+            className="dash-btn-ghost w-full text-xs"
+            onClick={onOpenCreator}
+          >
             Novo projeto com IA
           </button>
         </div>
