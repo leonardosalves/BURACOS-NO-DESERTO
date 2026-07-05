@@ -1,18 +1,75 @@
 /**
  * Progresso de jobs de IA — polling pelo frontend (toast + barra %).
+ * Persiste em .lumiera-logs/ai-jobs para sobreviver a reinícios do backend.
  */
 
-const jobs = new Map();
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const JOBS_DIR = path.join(__dirname, "..", "..", ".lumiera-logs", "ai-jobs");
 const TTL_MS = 10 * 60 * 1000;
+
+const jobs = new Map();
 
 function now() {
   return Date.now();
 }
 
+function ensureJobsDir() {
+  fs.mkdirSync(JOBS_DIR, { recursive: true });
+}
+
+function jobFilePath(jobId) {
+  return path.join(JOBS_DIR, `${jobId}.json`);
+}
+
+function readJobFromDisk(jobId) {
+  try {
+    const raw = fs.readFileSync(jobFilePath(jobId), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function writeJobToDisk(job) {
+  if (!job?.jobId) return;
+  try {
+    ensureJobsDir();
+    fs.writeFileSync(jobFilePath(job.jobId), JSON.stringify(job), "utf8");
+  } catch (err) {
+    console.warn("[AiJobProgress] Falha ao persistir job:", err.message);
+  }
+}
+
+function deleteJobFromDisk(jobId) {
+  try {
+    fs.unlinkSync(jobFilePath(jobId));
+  } catch {
+    /* optional */
+  }
+}
+
 function cleanupStale() {
   const cutoff = now() - TTL_MS;
   for (const [id, job] of jobs.entries()) {
-    if (job.updatedAt < cutoff) jobs.delete(id);
+    if (job.updatedAt < cutoff) {
+      jobs.delete(id);
+      deleteJobFromDisk(id);
+    }
+  }
+  try {
+    ensureJobsDir();
+    for (const file of fs.readdirSync(JOBS_DIR)) {
+      if (!file.endsWith(".json")) continue;
+      const full = path.join(JOBS_DIR, file);
+      const stat = fs.statSync(full);
+      if (stat.mtimeMs < cutoff) fs.unlinkSync(full);
+    }
+  } catch {
+    /* optional */
   }
 }
 
@@ -25,38 +82,58 @@ export function setJobProgress(jobId, patch = {}) {
   const id = normalizeJobId(jobId);
   if (!id) return null;
   cleanupStale();
-  const prev = jobs.get(id) || {
-    jobId: id,
-    phase: "start",
-    label: "Iniciando…",
-    percent: 0,
-    detail: "",
-    done: false,
-    error: null,
-    createdAt: now(),
-  };
+  const prev = jobs.get(id) ||
+    readJobFromDisk(id) || {
+      jobId: id,
+      phase: "start",
+      label: "Iniciando…",
+      percent: 0,
+      detail: "",
+      done: false,
+      error: null,
+      createdAt: now(),
+    };
   const next = {
     ...prev,
     ...patch,
     jobId: id,
     updatedAt: now(),
-    percent: Math.max(0, Math.min(100, Number(patch.percent ?? prev.percent) || 0)),
+    percent: Math.max(
+      0,
+      Math.min(100, Number(patch.percent ?? prev.percent) || 0)
+    ),
   };
   jobs.set(id, next);
+  writeJobToDisk(next);
   return next;
 }
 
 export function getJobProgress(jobId) {
   const id = normalizeJobId(jobId);
   if (!id) return null;
-  return jobs.get(id) || null;
+  if (jobs.has(id)) return jobs.get(id);
+  const disk = readJobFromDisk(id);
+  if (disk) {
+    jobs.set(id, disk);
+    return disk;
+  }
+  return null;
 }
 
 export function finishJobProgress(jobId, label = "Concluído") {
-  return setJobProgress(jobId, { phase: "done", label, percent: 100, done: true });
+  return setJobProgress(jobId, {
+    phase: "done",
+    label,
+    percent: 100,
+    done: true,
+  });
 }
 
-export function finishJobProgressWithResult(jobId, result = {}, label = "Concluído") {
+export function finishJobProgressWithResult(
+  jobId,
+  result = {},
+  label = "Concluído"
+) {
   return setJobProgress(jobId, {
     phase: "done",
     label,
@@ -67,7 +144,11 @@ export function finishJobProgressWithResult(jobId, result = {}, label = "Conclu�
   });
 }
 
-export function setJobAwaitingBrowser(jobId, payload, label = "Aguardando Gemini no Chrome…") {
+export function setJobAwaitingBrowser(
+  jobId,
+  payload,
+  label = "Aguardando Gemini no Chrome…"
+) {
   return setJobProgress(jobId, {
     phase: "needs_browser",
     label,
@@ -97,12 +178,17 @@ export function createProgressJobResponse(jobId) {
       if (statusCode >= 400 || payload?.error) {
         const errMsg = String(payload?.error || payload?.details || "Erro");
         failJobProgress(jobId, errMsg);
-        setJobProgress(jobId, { result: payload, done: true, awaitingBrowser: false });
+        setJobProgress(jobId, {
+          result: payload,
+          done: true,
+          awaitingBrowser: false,
+        });
         return;
       }
-      const label = payload?.phase === "narration"
-        ? "Narração pronta para revisão"
-        : "Roteiro completo";
+      const label =
+        payload?.phase === "narration"
+          ? "Narração pronta para revisão"
+          : "Roteiro completo";
       finishJobProgressWithResult(jobId, payload, label);
     },
   };
