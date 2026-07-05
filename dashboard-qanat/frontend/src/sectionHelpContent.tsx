@@ -41,6 +41,15 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
+  'tab-flow-studio': {
+    title: 'Flow Studio',
+    body: (
+      <>
+        Ponte entre o <strong>Google Flow</strong> (sem API) e o Lumiera: copie o briefing de cada cena, gere com seus créditos, revise a qualidade e arraste o arquivo na cena certa.
+        O progresso mostra quantas cenas já têm mídia vinculada.
+      </>
+    ),
+  },
   'timeline-opencut': {
     title: 'Barra OpenCut',
     body: (

@@ -10,6 +10,7 @@ import type { AppHomeTabProps } from './AppHomeTab';
 import type { AppWorkflowTabProps } from './AppWorkflowTab';
 import type { AppSceneTimingTabProps } from './AppSceneTimingTab';
 import type { AppTerminalTabProps } from './AppTerminalTab';
+import type { AppFlowStudioTabProps } from './AppFlowStudioTab';
 import type { AppTab } from './appTabs';
 import type { ConfigData, MusicFile, OutputVideo, VideoQualityReport, WorkspaceStatus } from './appTypes';
 import type { ProjectListItem } from './ProjectsLibraryPanel';
@@ -54,6 +55,7 @@ export type AppTabPropBundles = {
   homeTabProps: AppHomeTabProps;
   workflowTabProps: AppWorkflowTabProps;
   sceneTimingTabProps: AppSceneTimingTabProps;
+  flowStudioTabProps: AppFlowStudioTabProps;
   terminalTabProps: AppTerminalTabProps;
 };
 
@@ -594,6 +596,17 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     saveTimelinePatch: ctx.saveTimelinePatch,
   };
 
+  const flowStudioTabProps: AppFlowStudioTabProps = {
+    activeProject: ctx.activeProject,
+    config: ctx.config,
+    storyboardData: ctx.storyboardData as AppFlowStudioTabProps['storyboardData'],
+    status: ctx.status,
+    wordTranscripts: ctx.wordTranscripts as unknown[],
+    getAssetUrl: ctx.getAssetUrl as AppFlowStudioTabProps['getAssetUrl'],
+    handleUploadSceneAsset: ctx.handleUploadSceneAsset as AppFlowStudioTabProps['handleUploadSceneAsset'],
+    setActiveTab: ctx.setActiveTab,
+  };
+
   const terminalTabProps: AppTerminalTabProps = {
     activeProject: ctx.activeProject,
     logs: ctx.logs,
@@ -613,6 +626,7 @@ export function buildAppTabPropBundles(ctx: AppTabPropContext): AppTabPropBundle
     homeTabProps,
     workflowTabProps,
     sceneTimingTabProps,
+    flowStudioTabProps,
     terminalTabProps,
   };
 }

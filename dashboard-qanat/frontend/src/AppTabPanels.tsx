@@ -39,6 +39,7 @@ const AppSettingsTab = lazy(() => import('./AppSettingsTab').then((m) => ({ defa
 const AppHomeTab = lazy(() => import('./AppHomeTab').then((m) => ({ default: m.AppHomeTab })));
 const AppWorkflowTab = lazy(() => import('./AppWorkflowTab').then((m) => ({ default: m.AppWorkflowTab })));
 const AppSceneTimingTab = lazy(() => import('./AppSceneTimingTab').then((m) => ({ default: m.AppSceneTimingTab })));
+const AppFlowStudioTab = lazy(() => import('./AppFlowStudioTab').then((m) => ({ default: m.AppFlowStudioTab })));
 const AppTerminalTab = lazy(() => import('./AppTerminalTab').then((m) => ({ default: m.AppTerminalTab })));
 const AppMusicTabPanel = lazy(() => import('./AppMusicTabPanel').then((m) => ({ default: m.AppMusicTabPanel })));
 
@@ -121,6 +122,7 @@ export function AppTabPanels({
   homeTabProps,
   workflowTabProps,
   sceneTimingTabProps,
+  flowStudioTabProps,
   terminalTabProps,
 }: AppTabPanelsProps) {
   return (
@@ -157,6 +159,14 @@ export function AppTabPanels({
             <TabErrorBoundary tabName="Timing de cenas">
               <Suspense fallback={<TabPanelFallback label="Carregando timing..." />}>
                 <AppSceneTimingTab {...sceneTimingTabProps} />
+              </Suspense>
+            </TabErrorBoundary>
+          )}
+
+          {activeTab === 'flow-studio' && (
+            <TabErrorBoundary tabName="Flow Studio">
+              <Suspense fallback={<TabPanelFallback label="Carregando Flow Studio..." />}>
+                <AppFlowStudioTab {...flowStudioTabProps} />
               </Suspense>
             </TabErrorBoundary>
           )}

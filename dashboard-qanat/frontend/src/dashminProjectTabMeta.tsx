@@ -1,11 +1,12 @@
 import type { ElementType } from 'react';
-import { Clock, Layers, Music, Settings, Share2, Sparkles, Terminal, Tv, Wand2 } from 'lucide-react';
+import { Clapperboard, Clock, Layers, Music, Settings, Share2, Sparkles, Terminal, Tv, Wand2 } from 'lucide-react';
 
 export type DashProjectTabId =
   | 'status'
   | 'workflow'
   | 'timeline'
   | 'scene-timing'
+  | 'flow-studio'
   | 'music'
   | 'ai'
   | 'upload'
@@ -43,6 +44,12 @@ export const DASH_PROJECT_TAB_META: Record<DashProjectTabId, DashProjectTabMeta>
     title: 'Editor de Timing',
     subtitle: 'Duração das cenas sincronizada com a narração — por bloco, sem confusão.',
     icon: Clock,
+  },
+  'flow-studio': {
+    id: 'flow-studio',
+    title: 'Flow Studio',
+    subtitle: 'Copie prompts, gere no Google Flow e suba os vídeos/imagens cena a cena.',
+    icon: Clapperboard,
   },
   music: {
     id: 'music',
