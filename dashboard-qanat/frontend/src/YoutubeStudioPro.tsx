@@ -264,7 +264,7 @@ export function YoutubeStudioPro({
       });
       const res = await fetch(`/api/youtube/channel/pro/dashboard?${params}`, { cache: 'no-store' });
       const data = await res.json();
-      if (!res.ok && res.status !== 403) throw new Error(data.error || 'Falha ao carregar Pro');
+      if (!res.ok && res.status !== 403) throw new Error(data.details || data.error || 'Falha ao carregar Pro');
       setDashboard(data);
       if (data.slaHours) setSlaHours(data.slaHours);
     } catch (err) {

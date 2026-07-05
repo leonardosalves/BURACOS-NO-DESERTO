@@ -284,6 +284,23 @@ async function youtubeDataGet(accessToken, path, params = {}) {
   return data;
 }
 
+/** YouTube Data API aceita no máximo 50 IDs por chamada em videos.list. */
+async function fetchVideoSnippetMapByIds(accessToken, videoIds = [], part = "snippet") {
+  const titleById = new Map();
+  const unique = [...new Set((videoIds || []).map((id) => String(id || "").trim()).filter(Boolean))];
+  for (let i = 0; i < unique.length; i += 50) {
+    const chunk = unique.slice(i, i + 50);
+    const videosData = await youtubeDataGet(accessToken, "videos", {
+      part,
+      id: chunk.join(","),
+    });
+    for (const video of videosData?.items || []) {
+      titleById.set(video.id, video?.snippet || {});
+    }
+  }
+  return titleById;
+}
+
 async function queryYoutubeAnalytics(accessToken, params) {
   const res = await fetch(
     `https://youtubeanalytics.googleapis.com/v2/reports?${params.toString()}`,
@@ -692,16 +709,10 @@ export async function fetchChannelComments(workspaceDir, {
     ...new Set(mapped.filter((item) => item.videoId && !item.videoTitle).map((item) => item.videoId)),
   ];
   if (missingTitleIds.length > 0) {
-    const videosData = await youtubeDataGet(accessToken, "videos", {
-      part: "snippet",
-      id: missingTitleIds.join(","),
-    });
-    const titleById = new Map(
-      (videosData?.items || []).map((video) => [video.id, video?.snippet?.title || ""]),
-    );
+    const snippetById = await fetchVideoSnippetMapByIds(accessToken, missingTitleIds);
     mapped.forEach((item) => {
       if (!item.videoTitle && item.videoId) {
-        item.videoTitle = titleById.get(item.videoId) || "";
+        item.videoTitle = snippetById.get(item.videoId)?.title || "";
       }
     });
   }
