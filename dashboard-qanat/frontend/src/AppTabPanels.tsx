@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import toast from 'react-hot-toast';
 import {
   Bot,
+  Clapperboard,
   Cloud,
   Globe,
   TrendingUp,
@@ -39,8 +40,8 @@ const AppSettingsTab = lazy(() => import('./AppSettingsTab').then((m) => ({ defa
 const AppHomeTab = lazy(() => import('./AppHomeTab').then((m) => ({ default: m.AppHomeTab })));
 const AppWorkflowTab = lazy(() => import('./AppWorkflowTab').then((m) => ({ default: m.AppWorkflowTab })));
 const AppSceneTimingTab = lazy(() => import('./AppSceneTimingTab').then((m) => ({ default: m.AppSceneTimingTab })));
-const AppFlowStudioTab = lazy(() => import('./AppFlowStudioTab').then((m) => ({ default: m.AppFlowStudioTab })));
 const AppTerminalTab = lazy(() => import('./AppTerminalTab').then((m) => ({ default: m.AppTerminalTab })));
+const FlowLabPage = lazy(() => import('./FlowLabPage').then((m) => ({ default: m.FlowLabPage })));
 const AppMusicTabPanel = lazy(() => import('./AppMusicTabPanel').then((m) => ({ default: m.AppMusicTabPanel })));
 
 type ResurrectorAlert = {
@@ -79,6 +80,7 @@ export type AppGlobalStudioPanelsProps = {
   setNewProjectFormat: (format: 'LONGO' | 'SHORTS') => void;
   setNewProjectNiche: (niche: string) => void;
   setShowCreateModal: (open: boolean) => void;
+  hasApiKey: boolean;
 };
 
 export type AppTabPanelsProps = AppTabPropBundles &
@@ -111,6 +113,7 @@ export function AppTabPanels({
   setNewProjectFormat,
   setNewProjectNiche,
   setShowCreateModal,
+  hasApiKey,
   creatorTabProps,
   aiTabProps,
   uploadTabProps,
@@ -122,7 +125,6 @@ export function AppTabPanels({
   homeTabProps,
   workflowTabProps,
   sceneTimingTabProps,
-  flowStudioTabProps,
   terminalTabProps,
 }: AppTabPanelsProps) {
   return (
@@ -163,11 +165,23 @@ export function AppTabPanels({
             </TabErrorBoundary>
           )}
 
-          {activeTab === 'flow-studio' && (
-            <TabErrorBoundary tabName="Flow Studio">
-              <Suspense fallback={<TabPanelFallback label="Carregando Flow Studio..." />}>
-                <AppFlowStudioTab {...flowStudioTabProps} />
-              </Suspense>
+          {activeTab === 'flow-lab' && (
+            <TabErrorBoundary tabName="Flow Lab">
+              <DashminPageLayout
+                title="Flow Lab"
+                subtitle="Teste global: IA gera roteiro e prompts; voce gera no Google Flow e faz upload."
+                breadcrumb={['Dashboard', 'Estudio', 'Flow Lab']}
+                icon={<Clapperboard className="w-5 h-5 text-amber-300" />}
+              >
+                <Suspense fallback={<TabPanelFallback label="Carregando Flow Lab..." />}>
+                  <FlowLabPage
+                    geminiBrowserMode={geminiBrowserMode}
+                    aiProvider={aiProvider}
+                    resolveBrowserResponse={resolveBrowserResponse}
+                    hasApiKey={hasApiKey}
+                  />
+                </Suspense>
+              </DashminPageLayout>
             </TabErrorBoundary>
           )}
 

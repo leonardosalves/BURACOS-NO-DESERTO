@@ -41,12 +41,12 @@ export const SECTION_HELP: Record<string, SectionHelpEntry> = {
       </>
     ),
   },
-  'tab-flow-studio': {
-    title: 'Flow Studio',
+  'tab-flow-lab': {
+    title: 'Flow Lab',
     body: (
       <>
-        Ponte entre o <strong>Google Flow</strong> (sem API) e o Lumiera: copie o briefing de cada cena, gere com seus créditos, revise a qualidade e arraste o arquivo na cena certa.
-        O progresso mostra quantas cenas já têm mídia vinculada.
+        Laboratorio <strong>global</strong> (nao precisa abrir projeto): a IA gera narracao, roteiro e prompts no sandbox <code>flow_lab</code>.
+        Voce gera imagem/video no <strong>Google Flow</strong> com seus creditos, revisa e faz upload cena a cena.
       </>
     ),
   },

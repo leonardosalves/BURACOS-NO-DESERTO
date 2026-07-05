@@ -43,6 +43,8 @@ type Props = {
     assetIdx: number,
   ) => void | Promise<void>;
   onOpenCreator?: () => void;
+  /** Modo global Flow Lab — sem exigir projeto na barra lateral */
+  standalone?: boolean;
 };
 
 function QualityToggle({
@@ -271,6 +273,7 @@ export function FlowStudioPage({
   getAssetUrl,
   onUpload,
   onOpenCreator,
+  standalone = false,
 }: Props) {
   const [filter, setFilter] = useState<FilterMode>('pending');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -334,11 +337,13 @@ export function FlowStudioPage({
     return (
       <div className="glass-panel p-10 rounded-3xl text-center max-w-lg mx-auto space-y-4">
         <Film className="w-10 h-10 mx-auto text-[var(--dash-muted)]" />
-        <h3 className="text-lg font-bold text-white">Nenhuma cena no storyboard</h3>
+        <h3 className="text-lg font-bold text-white">Nenhuma cena ainda</h3>
         <p className="text-sm text-[var(--dash-muted)] leading-relaxed">
-          Gere o roteiro no Creator primeiro. Depois volte aqui para copiar os prompts no Google Flow e subir os arquivos.
+          {standalone
+            ? 'Use o botao acima para a IA gerar roteiro e prompts. Depois copie cada cena no Google Flow e suba os arquivos aqui.'
+            : 'Gere o roteiro no Creator primeiro, ou use o Flow Lab global no menu Estudio.'}
         </p>
-        {onOpenCreator && (
+        {!standalone && onOpenCreator && (
           <button type="button" onClick={onOpenCreator} className="dash-btn-primary text-sm px-5 py-2.5">
             Ir para o Creator
           </button>
