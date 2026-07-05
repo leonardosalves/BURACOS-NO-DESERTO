@@ -83,8 +83,23 @@ export const isWhisperTimelineReady = (
   && wordTranscripts.length > 0
   && (status?.block_timings?.starts?.length ?? 0) > 0;
 
+export function isChunkedNarrationProject(
+  config?: { narration_mode?: string } | null,
+  storyboard?: { narration_chunk_plan?: ChunkPlanLike } | null,
+  wordTranscripts?: Array<{ chunk_id?: string }> | null,
+): boolean {
+  const plan = storyboard?.narration_chunk_plan;
+  const chunks = plan?.chunks;
+  const hasPlan = Array.isArray(chunks) && chunks.some((c) => String(c?.text || "").trim().length >= 2);
+  if (config?.narration_mode === "chunked" || plan?.mode === "chunked") return hasPlan;
+  if (Array.isArray(wordTranscripts) && wordTranscripts.some((s) => s?.chunk_id)) return hasPlan;
+  return false;
+}
+
 type ChunkPlanLike = {
+  mode?: string;
   chunks?: Array<{
+    text?: string;
     scene_ref?: string;
     block?: number;
     duration_s?: number;
