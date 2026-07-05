@@ -71,6 +71,16 @@ type PostAiFn = (
   data: GeminiBrowserRequest & Record<string, unknown>;
 }>;
 
+async function parseJsonResponse<T>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 type OpenMontageReferencePanelProps = {
   projectNiche?: string;
   projectFormat: "SHORT" | "LONG";
@@ -149,51 +159,77 @@ export function OpenMontageReferencePanel({
     setVideoUnderstanding(null);
     setSelectedConceptId(null);
 
+    const applyClassicFallback = async (
+      reason?: string,
+      partial?: Record<string, unknown> | null
+    ) => {
+      const { ok, data: fallback } = await postAi(
+        "/api/workflow/analyze-reference",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url,
+            format: apiFormat,
+            niche: projectNiche,
+            topic: topic.trim() || undefined,
+            useAi: true,
+          }),
+        }
+      );
+      if (!ok) {
+        throw new Error(
+          String(
+            partial?.error ||
+              fallback.error ||
+              reason ||
+              "Falha na análise de referência"
+          )
+        );
+      }
+      const nextBrief = (fallback.brief as ReferenceBrief) || null;
+      setBrief(nextBrief);
+      setMetadata((fallback.metadata as typeof metadata) || null);
+      setAiEnhanced(Boolean(fallback.aiEnhanced));
+      setSelectedConceptId(
+        nextBrief?.recommended_concept || nextBrief?.concepts?.[0]?.id || null
+      );
+      toast(
+        reason ||
+          "Análise clássica (sem vídeo) — configure Gemini para multimodal PRO."
+      );
+    };
+
     try {
-      const res = await fetch("/api/research/analyze-reference-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          format: apiFormat,
-          niche: projectNiche,
-          topic: topic.trim() || undefined,
-          persist: true,
-        }),
-      });
-      const data = (await res.json()) as Record<string, unknown>;
+      const res = await fetch(
+        getProjectUrl("/api/research/analyze-reference-video"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url,
+            format: apiFormat,
+            niche: projectNiche,
+            topic: topic.trim() || undefined,
+            persist: true,
+          }),
+        }
+      );
+      const data = await parseJsonResponse<Record<string, unknown>>(res);
+
+      if (!data) {
+        await applyClassicFallback(
+          res.ok
+            ? "Resposta vazia do servidor — usando análise clássica."
+            : `Servidor indisponível (${res.status || "sem conexão"}) — usando análise clássica.`
+        );
+        return;
+      }
 
       if (!res.ok) {
-        const { ok, data: fallback } = await postAi(
-          "/api/workflow/analyze-reference",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              url,
-              format: apiFormat,
-              niche: projectNiche,
-              topic: topic.trim() || undefined,
-              useAi: true,
-            }),
-          }
-        );
-        if (!ok) {
-          throw new Error(
-            String(
-              data.error || fallback.error || "Falha na análise multimodal"
-            )
-          );
-        }
-        const nextBrief = (fallback.brief as ReferenceBrief) || null;
-        setBrief(nextBrief);
-        setMetadata((fallback.metadata as typeof metadata) || null);
-        setAiEnhanced(Boolean(fallback.aiEnhanced));
-        setSelectedConceptId(
-          nextBrief?.recommended_concept || nextBrief?.concepts?.[0]?.id || null
-        );
-        toast(
-          "Análise clássica (sem vídeo) — configure Gemini para multimodal PRO."
+        await applyClassicFallback(
+          "Análise multimodal indisponível — usando análise clássica.",
+          data
         );
         return;
       }

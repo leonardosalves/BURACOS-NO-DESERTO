@@ -314,7 +314,7 @@ export async function analyzeVideoUnderstanding({
             { text: prompt },
             {
               fileData: {
-                mimeType: "video/*",
+                mimeType: "video/mp4",
                 fileUri: parsed.canonicalUrl,
               },
             },
@@ -472,15 +472,18 @@ export async function runAnalyzeReferenceVideoDeep(opts = {}) {
     workspaceDir,
   });
 
+  const understanding = video.ok ? video.understanding : null;
   if (!video.ok) {
-    return video;
+    console.warn(
+      "[VideoUnderstanding] Multimodal falhou, seguindo com brief clássico:",
+      video.error
+    );
   }
 
   const llmFn = async (basePrompt) => {
-    const prompt = buildEnrichedReferencePrompt(
-      basePrompt,
-      video.understanding
-    );
+    const prompt = understanding
+      ? buildEnrichedReferencePrompt(basePrompt, understanding)
+      : basePrompt;
     return callGeminiWithRetry(apiKey, prompt, {
       models: getGeminiModel
         ? [getGeminiModel(workspaceDir), ...VIDEO_GEMINI_MODELS]
@@ -497,26 +500,49 @@ export async function runAnalyzeReferenceVideoDeep(opts = {}) {
     format,
     niche,
     topic,
-    llmFn,
+    llmFn: apiKey ? llmFn : null,
   });
+
+  if (!reference.ok) {
+    if (!video.ok) {
+      return {
+        ok: false,
+        error:
+          reference.error || video.error || "Falha na análise de referência",
+        parsed: video.parsed,
+        metadata: video.metadata,
+      };
+    }
+    return {
+      ok: false,
+      error: reference.error || "Falha ao gerar brief OpenMontage",
+      parsed: video.parsed,
+      metadata: video.metadata,
+      videoUnderstanding: understanding,
+    };
+  }
 
   const result = {
     ok: true,
-    source: "Lumiera video-understanding + OpenMontage reference",
-    parsed: video.parsed,
-    metadata: video.metadata,
-    videoUnderstanding: video.understanding,
-    ytContext: video.ytContext,
+    source: understanding
+      ? "Lumiera video-understanding + OpenMontage reference"
+      : "OpenMontage reference (fallback sem multimodal)",
+    parsed: video.parsed || reference.parsed,
+    metadata: video.metadata || reference.metadata,
+    videoUnderstanding: understanding,
+    ytContext: video.ytContext || null,
     brief: reference.brief,
     aiEnhanced: reference.aiEnhanced,
     promptHint: reference.promptHint,
+    videoUnderstandingSkipped: !understanding,
+    videoUnderstandingError: video.ok ? undefined : video.error,
   };
 
-  if (persist) {
+  if (persist && understanding) {
     result.obsidian = appendVideoReferenceAnalysis(workspaceDir, {
       parsed: video.parsed,
       metadata: video.metadata,
-      understanding: video.understanding,
+      understanding,
       brief: reference.brief,
     });
   }
