@@ -9,7 +9,7 @@ export function useBackendHealth(pollMs = 10_000) {
   const check = useCallback(async () => {
     setChecking(true);
     try {
-      const ok = await pingBackendHealth(5000);
+      const ok = await pingBackendHealth(25_000);
       setOnline(ok);
       setLastCheck(Date.now());
       return ok;
@@ -25,7 +25,7 @@ export function useBackendHealth(pollMs = 10_000) {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      const ok = await pingBackendHealth(5000);
+      const ok = await pingBackendHealth(25_000);
       if (!cancelled) {
         setOnline(ok);
         setLastCheck(Date.now());

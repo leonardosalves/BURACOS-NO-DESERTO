@@ -560,6 +560,21 @@ process.on("unhandledRejection", (reason) => {
   console.error("[Lumiera] unhandledRejection (processo mantido):", reason);
 });
 
+// Health ultra-leve — registrado ANTES de middlewares pesados (watchdog nao mata processo ocupado)
+app.get("/api/health", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Connection", "close");
+  res.status(200).send(
+    JSON.stringify({
+      ok: true,
+      service: "lumiera-backend",
+      ts: Date.now(),
+      uptime_sec: Math.floor(process.uptime()),
+      pid: process.pid,
+    })
+  );
+});
+
 app.use(cors());
 
 if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
@@ -570,17 +585,6 @@ if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
 }
 
 app.use(express.json());
-
-app.get("/api/health", (_req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.json({
-    ok: true,
-    service: "lumiera-backend",
-    ts: Date.now(),
-    uptime_sec: Math.floor(process.uptime()),
-    pid: process.pid,
-  });
-});
 
 // Catch malformed JSON syntax errors to prevent crashing
 app.use((err, req, res, next) => {

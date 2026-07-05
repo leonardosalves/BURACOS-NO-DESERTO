@@ -34,7 +34,7 @@ function Get-BackendListenerPid {
 function Test-LumieraBackendHealthy {
     param(
         [int]$Retries = 3,
-        [int]$TimeoutSec = 8
+        [int]$TimeoutSec = 20
     )
     for ($i = 1; $i -le $Retries; $i++) {
         try {
@@ -152,36 +152,53 @@ function Start-LumieraBackendProcess {
         }
     }
 
-    if (Test-LumieraBackendHealthy) {
+    $livePid = Get-BackendListenerPid
+    $healthy = Test-LumieraBackendHealthy
+
+    if ($healthy) {
         if (-not $ForceRestart) {
             Write-LumieraLog "Backend ja responde em $script:HealthUrl"
-            $livePid = Get-BackendListenerPid
             if ($livePid) { Write-BackendPidFile $livePid }
             return $true
         }
         Write-LumieraLog "Reiniciando backend (ForceRestart)" "WARN"
+    } elseif ($livePid -and -not $ForceRestart) {
+        Write-LumieraLog (
+            "Backend ocupado (PID $livePid) - health lento, mantendo processo ativo"
+        ) "WARN"
+        Write-BackendPidFile $livePid
+        return $true
+    } elseif (-not $livePid) {
+        Write-LumieraLog "Backend offline - subindo processo" "WARN"
     } else {
-        $livePid = Get-BackendListenerPid
-        if ($livePid) {
-            Write-LumieraLog ("Porta {0} ocupada (PID {1}) mas health falhou - reiniciando" -f $script:BackendPort, $livePid) "WARN"
-        } else {
-            Write-LumieraLog "Backend offline - subindo processo" "WARN"
-        }
+        Write-LumieraLog ("ForceRestart: encerrando PID $livePid na porta $script:BackendPort") "WARN"
     }
 
-    if (-not $SkipDebounce -and $ForceRestart -and (Test-Path $script:LastRestartFile)) {
+    if (-not $ForceRestart) {
+        if ($livePid) {
+            Write-BackendPidFile $livePid
+            return $true
+        }
+        Set-BackendRestartLock
+    } elseif (-not $SkipDebounce -and (Test-Path $script:LastRestartFile)) {
         try {
             $last = [datetime]::Parse((Get-Content $script:LastRestartFile -TotalCount 1 -ErrorAction Stop))
-            if (((Get-Date) - $last).TotalSeconds -lt 15) {
-                Write-LumieraLog "Debounce: reinicio recente (<15s) - pulando" "WARN"
-                return (Test-LumieraBackendHealthy)
+            if (((Get-Date) - $last).TotalSeconds -lt 60) {
+                Write-LumieraLog "Debounce ForceRestart: reinicio recente (<60s) - aguardando" "WARN"
+                $deadline = (Get-Date).AddSeconds(90)
+                while ((Get-Date) -lt $deadline) {
+                    if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 15) { return $true }
+                    Start-Sleep -Seconds 2
+                }
             }
         } catch { }
     }
 
     Set-BackendRestartLock
     try {
-        Stop-LumieraBackendOnPort
+        if ($ForceRestart -or -not $livePid) {
+            Stop-LumieraBackendOnPort
+        }
         if (-not (Wait-BackendPortFree -TimeoutSec 20)) {
             Write-LumieraLog "Porta 3005 ainda ocupada apos stop" "ERROR"
             return $false
@@ -213,7 +230,7 @@ function Start-LumieraBackendProcess {
         $deadline = (Get-Date).AddSeconds(90)
         while ((Get-Date) -lt $deadline) {
             Start-Sleep -Milliseconds 800
-            if (Test-LumieraBackendHealthy -Retries 2 -TimeoutSec 8) {
+            if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 20) {
                 $livePid = Get-BackendListenerPid
                 if ($livePid) { Write-BackendPidFile $livePid }
                 Write-LumieraLog "Backend OK - $script:HealthUrl"
@@ -222,11 +239,11 @@ function Start-LumieraBackendProcess {
         }
 
         if (Get-BackendListenerPid) {
-            Write-LumieraLog "Processo na porta 3005 mas health lento - aguardando mais 60s" "WARN"
-            $extraDeadline = (Get-Date).AddSeconds(60)
+            Write-LumieraLog "Processo na porta 3005 mas health lento - aguardando mais 120s" "WARN"
+            $extraDeadline = (Get-Date).AddSeconds(120)
             while ((Get-Date) -lt $extraDeadline) {
-                Start-Sleep -Seconds 2
-                if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 10) {
+                Start-Sleep -Seconds 3
+                if (Test-LumieraBackendHealthy -Retries 3 -TimeoutSec 20) {
                     $livePid = Get-BackendListenerPid
                     if ($livePid) { Write-BackendPidFile $livePid }
                     Write-LumieraLog "Backend OK (subida lenta) - $script:HealthUrl"

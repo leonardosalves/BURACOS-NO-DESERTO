@@ -26,8 +26,8 @@ export function BackendStatusBanner({
           <ServerCrash className="w-4 h-4 shrink-0 text-amber-300" />
         )}
         <span className="leading-snug">
-          Backend reiniciando (porta 3005). O watchdog sobe automaticamente —
-          suas ações serão retentadas quando possível.
+          Backend ocupado ou reiniciando (porta 3005). Durante render/Gemini a
+          resposta pode demorar — aguarde, não feche o programa.
         </span>
       </div>
       {onRetry ? (
