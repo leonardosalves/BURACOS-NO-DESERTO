@@ -111,12 +111,26 @@ type ChunkPlanLike = {
 export function getSceneDurationFromChunkPlan(
   scene: any,
   chunkPlan?: ChunkPlanLike | null,
+  sceneIdxInBlock = 0,
 ): number | null {
+  const chunks = chunkPlan?.chunks;
+  if (!chunks?.length) return null;
+
   const sceneRef = String(scene?.scene ?? scene?.scene_ref ?? "").trim();
-  if (!sceneRef || !chunkPlan?.chunks?.length) return null;
-  const chunk = chunkPlan.chunks.find(
-    (c) => String(c.scene_ref || "").trim() === sceneRef,
-  );
+  const block = Number(scene?.block) || 1;
+  let chunk = sceneRef
+    ? chunks.find((c) => String(c.scene_ref || "").trim() === sceneRef)
+    : undefined;
+
+  if (!chunk) {
+    const inBlock = chunks
+      .filter((c) => Number(c.block) === block)
+      .sort(
+        (a, b) => Number(a.start_s ?? 0) - Number(b.start_s ?? 0)
+          || String(a.scene_ref || "").localeCompare(String(b.scene_ref || "")),
+      );
+    chunk = inBlock[sceneIdxInBlock];
+  }
   if (!chunk) return null;
   const start = Number(chunk.start_s);
   const end = Number(chunk.end_s);
@@ -136,7 +150,7 @@ export const getSceneDurationSeconds = (
   scenesInBlock?: any[],
   chunkPlan?: ChunkPlanLike | null,
 ) => {
-  const fromChunks = getSceneDurationFromChunkPlan(scene, chunkPlan);
+  const fromChunks = getSceneDurationFromChunkPlan(scene, chunkPlan, sceneIdxInBlock);
   if (fromChunks != null) return fromChunks;
 
   if (wordTranscripts && blockNum != null && sceneIdxInBlock != null) {

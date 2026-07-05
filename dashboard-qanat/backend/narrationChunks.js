@@ -263,8 +263,15 @@ export function normalizeNarrationChunkPlan(plan = {}, { storyboard = {}, config
 }
 
 export function buildBlockTimingsFromChunks(chunks = []) {
+  const list = Array.isArray(chunks) ? chunks : [];
+  const needsTimeline = list.some(
+    (c) => Number(c.duration_s) > 0
+      && (!Number.isFinite(Number(c.start_s)) || !Number.isFinite(Number(c.end_s))),
+  );
+  const resolved = needsTimeline ? computeChunkTimeline(list) : list;
+
   const byBlock = new Map();
-  for (const chunk of chunks) {
+  for (const chunk of resolved) {
     const block = Number(chunk.block) || 1;
     const start = Number(chunk.start_s) || 0;
     const end = Number(chunk.end_s) || start;
