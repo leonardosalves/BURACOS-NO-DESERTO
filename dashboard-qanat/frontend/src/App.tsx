@@ -17,7 +17,11 @@ import {
 } from "./taggedNarration";
 
 import { useGeminiBrowserBridge } from "./GeminiBrowserBridge";
-import { fetchCreatorScriptAi, fetchGeminiAi } from "./geminiAiFetch";
+import {
+  fetchAsyncAiJob,
+  fetchCreatorScriptAi,
+  fetchGeminiAi,
+} from "./geminiAiFetch";
 import { AiJobProgressBar } from "./AiJobProgressBar";
 import {
   createProgressJobId,
@@ -7938,15 +7942,25 @@ export default function App() {
     }
     setCreatorLoading(true);
     setCreatorLoadingMode("full");
+    const progressJobId = createProgressJobId();
+    startAiJobProgress(progressJobId, "✨ Engenharia Visual PRO");
     try {
-      const { ok, data } = await postAi(
-        "/api/ai/creator/enhance-visual-prompts",
+      const { ok, data } = await fetchAsyncAiJob(
+        getProjectUrl("/api/ai/creator/enhance-visual-prompts"),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             project: projectName.trim().replace(/[^a-zA-Z0-9_-]/g, "_"),
+            progress_job_id: progressJobId,
           }),
+        },
+        {
+          geminiBrowserMode,
+          aiProvider,
+          resolveBrowserResponse,
+          progressJobId,
+          timeoutMs: 480_000,
         }
       );
       if (ok && !data.needs_browser) {
@@ -7954,16 +7968,21 @@ export default function App() {
         await saveCreatorStoryboard(data);
         const score = data._vpe_checklist?.quality_score;
         const niche = data._vpe_checklist?.nicho_detectado || "";
+        stopAiJobProgress(true);
         toast.success(
           `✨ Engenharia Visual PRO concluída — ${data.visual_prompts?.length || 0} cenas${score ? ` · Score: ${score}` : ""}${niche ? ` · Nicho: ${niche}` : ""}`
         );
       } else {
-        toast.error(
-          data.error || data.details || "Erro ao aprimorar prompts visuais."
-        );
+        const errMsg =
+          data.error || data.details || "Erro ao aprimorar prompts visuais.";
+        stopAiJobProgress(false, String(errMsg));
       }
-    } catch (err: any) {
-      toast.error(err.message || "Falha ao aprimorar prompts visuais.");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Falha ao aprimorar prompts visuais.";
+      stopAiJobProgress(false, msg);
     } finally {
       setCreatorLoading(false);
       setCreatorLoadingMode("idle");
