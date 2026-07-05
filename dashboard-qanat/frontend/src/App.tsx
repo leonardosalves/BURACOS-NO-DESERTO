@@ -6588,7 +6588,10 @@ export default function App() {
     try {
       const res = await fetch("/api/notebooklm/status");
       if (res.ok) {
-        setNotebooklmStatus(await res.json());
+        const text = await res.text();
+        if (text.trim()) {
+          setNotebooklmStatus(JSON.parse(text));
+        }
       }
     } catch {
       setNotebooklmStatus({
