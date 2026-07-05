@@ -44,6 +44,15 @@ export type AppUploadTabProps = {
   uploading: boolean;
   setYtCategoryId: (v: string) => void;
   ytCategoryId: string;
+  setYtContainsSyntheticMedia: (v: boolean) => void;
+  ytContainsSyntheticMedia: boolean;
+  setYtDefaultLanguage: (v: string) => void;
+  ytDefaultLanguage: string;
+  setYtPlaylistId: (v: string) => void;
+  ytPlaylistId: string;
+  ytPlaylists: Array<{ id: string; title: string; itemCount?: number }>;
+  ytPlaylistsLoading: boolean;
+  fetchYoutubePlaylists: () => void | Promise<void>;
   setYtChapters: (v: string) => void;
   ytChapters: string;
   setYtDescription: (v: string) => void;
@@ -101,6 +110,15 @@ export function AppUploadTab({
   uploading,
   setYtCategoryId,
   ytCategoryId,
+  setYtContainsSyntheticMedia,
+  ytContainsSyntheticMedia,
+  setYtDefaultLanguage,
+  ytDefaultLanguage,
+  setYtPlaylistId,
+  ytPlaylistId,
+  ytPlaylists,
+  ytPlaylistsLoading,
+  fetchYoutubePlaylists,
   setYtChapters,
   ytChapters,
   setYtDescription,
@@ -242,6 +260,65 @@ export function AppUploadTab({
                             onChange={(e) => setYtPinnedComment(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white text-xs resize-none"
                           />
+                        </div>
+                        <div className="space-y-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                          <p className="text-[10px] text-zinc-300 font-bold">YouTube Studio — padrões de publicação</p>
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={ytContainsSyntheticMedia}
+                              onChange={(e) => setYtContainsSyntheticMedia(e.target.checked)}
+                              className="mt-0.5 w-4 h-4 accent-amber-500 bg-zinc-950 border-zinc-800 rounded"
+                            />
+                            <span className="text-[10px] text-zinc-300 leading-relaxed">
+                              <strong className="text-amber-200/90">Uso de IA: Sim</strong> — declarar conteúdo sintético/alterado
+                              (simulação realista, narração IA, imagens geradas). Desmarque só se o vídeo for 100% original sem IA.
+                            </span>
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="space-y-2">
+                              <label className="ui-micro-label text-gray-500 block text-balance-safe">Idioma do vídeo</label>
+                              <select
+                                value={ytDefaultLanguage}
+                                onChange={(e) => setYtDefaultLanguage(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white font-sans text-xs"
+                              >
+                                <option value="pt-BR">Português (Brasil)</option>
+                                <option value="pt">Português</option>
+                                <option value="en">Inglês</option>
+                                <option value="es">Espanhol</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <label className="ui-micro-label text-gray-500 block text-balance-safe">Playlist</label>
+                                <button
+                                  type="button"
+                                  onClick={() => { void fetchYoutubePlaylists(); }}
+                                  disabled={ytPlaylistsLoading || !uploadStatus.youtube?.connected}
+                                  className="text-[9px] font-bold text-zinc-400 hover:text-white disabled:opacity-40"
+                                >
+                                  {ytPlaylistsLoading ? 'Carregando...' : 'Atualizar'}
+                                </button>
+                              </div>
+                              <select
+                                value={ytPlaylistId}
+                                onChange={(e) => setYtPlaylistId(e.target.value)}
+                                disabled={!uploadStatus.youtube?.connected}
+                                className="w-full bg-zinc-950 border border-zinc-850 focus:border-gold-500 focus:outline-none rounded-xl px-4 py-2 text-white font-sans text-xs disabled:opacity-50"
+                              >
+                                <option value="">Nenhuma (não adicionar)</option>
+                                {ytPlaylistId && !ytPlaylists.some((p) => p.id === ytPlaylistId) && (
+                                  <option value={ytPlaylistId}>Playlist salva ({ytPlaylistId.slice(0, 12)}…)</option>
+                                )}
+                                {ytPlaylists.map((pl) => (
+                                  <option key={pl.id} value={pl.id}>
+                                    {pl.title}{pl.itemCount != null ? ` (${pl.itemCount})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-2">

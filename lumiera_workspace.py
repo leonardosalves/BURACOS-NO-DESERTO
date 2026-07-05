@@ -189,6 +189,21 @@ def resolve_youtube_upload_fields(project_dir, proj_config=None):
     if fmt not in ("SHORTS", "SHORT") and "videos curtos shorts" in project_dir.replace("\\", "/").lower():
         fmt = "SHORTS"
 
+    def _truthy_default(val, default=True):
+        if val is None:
+            return default
+        if isinstance(val, bool):
+            return val
+        return str(val).strip().lower() not in ("false", "0", "no", "nao", "não", "nao")
+
+    default_lang = upload_meta.get("default_language") or upload_meta.get("defaultLanguage") or "pt-BR"
+    default_audio = (
+        upload_meta.get("default_audio_language")
+        or upload_meta.get("defaultAudioLanguage")
+        or default_lang
+    )
+    playlist_id = _clean_upload_text(upload_meta.get("playlist_id") or upload_meta.get("playlistId"))
+
     return {
         "title": title[:100],
         "description": description,
@@ -198,7 +213,10 @@ def resolve_youtube_upload_fields(project_dir, proj_config=None):
         "publish_at": upload_meta.get("publish_at") or upload_meta.get("publishAt"),
         "chapters": chapters,
         "pinned_comment": pinned,
-        "default_language": upload_meta.get("default_language") or "pt",
+        "default_language": default_lang,
+        "default_audio_language": default_audio,
+        "contains_synthetic_media": _truthy_default(upload_meta.get("contains_synthetic_media"), True),
+        "playlist_id": playlist_id,
         "thumbnail": upload_meta.get("thumbnail") or upload_meta.get("thumbnail_path"),
         "format": fmt,
     }
