@@ -1,6 +1,11 @@
+import { createProgressJobId, waitForAiJobDone } from './aiJobProgressClient';
 import { fetchCreatorScriptAi, fetchGeminiAi } from './geminiAiFetch';
-import type { ConfigData } from './appTypes';
-import { FLOW_LAB_PROJECT } from './flowLabConstants';
+import type { ConfigData, WorkspaceStatus } from './appTypes';
+import {
+  FLOW_LAB_FISH_VOICE_HINT,
+  FLOW_LAB_FISH_VOICE_STORAGE_KEY,
+  FLOW_LAB_PROJECT,
+} from './flowLabConstants';
 
 export type FlowLabAiContext = {
   geminiBrowserMode: boolean;
@@ -209,11 +214,160 @@ export async function runFlowLabVisualPro(
   };
 }
 
+type FishVoiceOption = { id: string; label?: string };
+
+/** Resolve voz Fish Speech — prioridade: localStorage > Valentino > default do config/API. */
+export async function resolveFlowLabFishVoice(): Promise<{ voiceId: string; label: string }> {
+  const stored = typeof localStorage !== 'undefined'
+    ? localStorage.getItem(FLOW_LAB_FISH_VOICE_STORAGE_KEY)?.trim()
+    : '';
+  if (stored) return { voiceId: stored, label: stored };
+
+  try {
+    const res = await fetch('/api/tts/voices');
+    if (res.ok) {
+      const data = await res.json();
+      const fish = (data.engines || []).find((e: { id?: string }) => e.id === 'fish');
+      const voices: FishVoiceOption[] = Array.isArray(fish?.voices) ? fish.voices : [];
+      const hint = FLOW_LAB_FISH_VOICE_HINT.toLowerCase();
+      const valentino = voices.find((v) => {
+        const blob = `${v.label || ''} ${v.id || ''}`.toLowerCase();
+        return blob.includes(hint);
+      });
+      if (valentino?.id) {
+        return { voiceId: valentino.id, label: valentino.label || valentino.id };
+      }
+      if (fish?.defaultVoice) {
+        return { voiceId: String(fish.defaultVoice), label: String(fish.defaultVoice) };
+      }
+      if (voices[0]?.id) {
+        return { voiceId: voices[0].id, label: voices[0].label || voices[0].id };
+      }
+    }
+  } catch {
+    /* fallback abaixo */
+  }
+
+  return { voiceId: '__default__', label: 'Fish Speech S2 (padrao)' };
+}
+
+export function setFlowLabFishVoicePreference(voiceId: string) {
+  const id = voiceId.trim();
+  if (!id) {
+    localStorage.removeItem(FLOW_LAB_FISH_VOICE_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(FLOW_LAB_FISH_VOICE_STORAGE_KEY, id);
+}
+
+export async function fetchFlowLabStatus(): Promise<WorkspaceStatus | null> {
+  try {
+    const res = await fetch(projectUrl('/api/status'));
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchFlowLabWordTranscripts(): Promise<unknown[]> {
+  try {
+    const url = `/api/projects-media/${encodeURIComponent(FLOW_LAB_PROJECT)}/word_transcripts.json`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+async function planFlowLabNarrationChunks(fishVoiceId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(projectUrl('/api/ai/plan-narration-chunks'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        useHeuristic: true,
+        defaultVoice: { engine: 'fish', voice: fishVoiceId },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error || 'Falha ao planejar trechos de narração.' };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Falha de conexao ao planejar trechos.' };
+  }
+}
+
+async function runFlowLabNarrationTtsAndWhisper(
+  fishVoiceId: string,
+  onStep?: (step: string) => void,
+): Promise<{ ok: boolean; whisperSynced?: boolean; whisperError?: string; error?: string }> {
+  const progressJobId = createProgressJobId();
+  onStep?.('Narração Fish Speech S2 (Valentino)...');
+
+  try {
+    const res = await fetch(projectUrl('/api/tts/generate-narration-chunks'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chunk_ids: null,
+        default_voice: { engine: 'fish', voice: fishVoiceId },
+        engine: 'fish',
+        voice: fishVoiceId,
+        use_tagged: true,
+        sync_whisper: true,
+        assemble_master: true,
+        progress_job_id: progressJobId,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data.error || 'TTS Fish Speech falhou.' };
+    }
+
+    if (data.started && data.jobId) {
+      onStep?.('Whisper: medindo segundos por cena...');
+      const result = await waitForAiJobDone(String(data.jobId)) as {
+        error?: string;
+        whisper_synced?: boolean;
+        whisper_error?: string | null;
+      };
+      if (result.error) {
+        return { ok: false, error: result.error };
+      }
+      return {
+        ok: true,
+        whisperSynced: Boolean(result.whisper_synced),
+        whisperError: result.whisper_error || undefined,
+      };
+    }
+
+    return {
+      ok: true,
+      whisperSynced: Boolean(data.whisper_synced),
+      whisperError: data.whisper_error || undefined,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha na narração Fish Speech.',
+    };
+  }
+}
+
 export async function generateFlowLabPipeline(
   ctx: FlowLabAiContext,
   opts: { idea: FlowLabIdea; format: 'LONGO' | 'SHORTS'; niche: string },
   onStep?: (step: string) => void,
-): Promise<{ ok: boolean; storyboard?: Record<string, unknown>; vpe?: FlowLabVpeMeta; error?: string }> {
+): Promise<{
+  ok: boolean;
+  storyboard?: Record<string, unknown>;
+  vpe?: FlowLabVpeMeta;
+  narration?: { fishVoice: string; whisperSynced?: boolean; whisperError?: string };
+  error?: string;
+}> {
   const formatApi = opts.format;
   const niche = opts.niche.trim() || 'Geral';
   const ideaTitle = String(opts.idea.title || '').trim();
@@ -273,6 +427,28 @@ export async function generateFlowLabPipeline(
   const draftStoryboard = full.data as Record<string, unknown>;
   await saveFlowLabStoryboard(draftStoryboard);
 
+  const fishVoice = await resolveFlowLabFishVoice();
+  if (fishVoice.voiceId && fishVoice.voiceId !== '__default__') {
+    setFlowLabFishVoicePreference(fishVoice.voiceId);
+  }
+
+  onStep?.('Planejando trechos por cena...');
+  const chunkPlan = await planFlowLabNarrationChunks(fishVoice.voiceId);
+  if (!chunkPlan.ok) {
+    return { ok: false, error: chunkPlan.error || 'Falha ao planejar narração por cena.' };
+  }
+
+  const narrAudio = await runFlowLabNarrationTtsAndWhisper(fishVoice.voiceId, onStep);
+  if (!narrAudio.ok) {
+    return {
+      ok: false,
+      error: narrAudio.error || 'Narração Fish Speech falhou. Verifique fish_speech.api_key no config.',
+    };
+  }
+  if (!narrAudio.whisperSynced && narrAudio.whisperError) {
+    onStep?.(`Whisper incompleto: ${narrAudio.whisperError}`);
+  }
+
   onStep?.('Engenharia Visual PRO...');
   const vpeResult = await runFlowLabVisualPro(ctx);
   if (!vpeResult.ok || !vpeResult.storyboard) {
@@ -282,7 +458,17 @@ export async function generateFlowLabPipeline(
     };
   }
 
-  return { ok: true, storyboard: vpeResult.storyboard, vpe: vpeResult.meta };
+  const storyboard = await fetchFlowLabStoryboard();
+  return {
+    ok: true,
+    storyboard: storyboard || vpeResult.storyboard,
+    vpe: vpeResult.meta,
+    narration: {
+      fishVoice: fishVoice.label,
+      whisperSynced: narrAudio.whisperSynced,
+      whisperError: narrAudio.whisperError,
+    },
+  };
 }
 
 export async function fetchFlowLabStoryboard(): Promise<Record<string, unknown> | null> {
@@ -343,14 +529,18 @@ export async function uploadFlowLabSceneAsset(
     }
   }
   if (targetSceneIndex !== -1) {
+    const scene = nextPrompts[targetSceneIndex];
+    const durRaw = scene?.duration_seconds ?? scene?.duration;
+    const durNum = typeof durRaw === 'number' ? durRaw : Number.parseFloat(String(durRaw || ''));
+    const videoFixed = Number.isFinite(durNum) && durNum > 0 ? durNum : 8.0;
     nextPrompts[targetSceneIndex] = {
-      ...nextPrompts[targetSceneIndex],
+      ...scene,
       asset: {
         asset: data.asset,
         type,
         user_locked: true,
         manual_asset: true,
-        ...(type === 'video' ? { fixed: 8.0 } : {}),
+        ...(type === 'video' ? { fixed: videoFixed } : {}),
       },
     };
   }
