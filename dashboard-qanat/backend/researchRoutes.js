@@ -109,12 +109,12 @@ export function registerResearchRoutes(app, deps) {
       const persist = req.body?.persist === true;
       const understandingOnly = req.body?.understandingOnly === true;
 
-      const apiKey = getApiKey(WORKSPACE_DIR);
       const geminiKeys = getApiKeys(WORKSPACE_DIR);
-      if (!apiKey && !geminiKeys.length) {
+      const apiKey = geminiKeys[0] || null;
+      if (!apiKey) {
         return res.status(400).json({
           error:
-            "Configure chave Gemini em Configurações → IA para análise multimodal.",
+            "Configure chave Gemini em Configurações → IA para análise multimodal (provider atual não é Gemini).",
         });
       }
 
