@@ -148,7 +148,11 @@ import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
-import { markSocialPublishPosted } from "./socialPublishQueue.js";
+import {
+  markSocialPublishPosted,
+  markSocialPublishFailed,
+} from "./socialPublishQueue.js";
+import { startSocialPublishScheduler } from "./socialPublishRunner.js";
 
 import { registerResearchRoutes } from "./researchRoutes.js";
 import { registerTimesfmRoutes } from "./timesfmRoutes.js";
@@ -1898,6 +1902,15 @@ app.get("/api/projects/upload-pipeline", (req, res) => {
       const message = hint
         ? `Upload falhou: ${hint}`
         : `O processo encerrou com código ${code}`;
+      try {
+        markSocialPublishFailed(WORKSPACE_DIR, {
+          projectSlug: path.basename(projDir),
+          videoFile: uploadVideo || undefined,
+          error: message,
+        });
+      } catch (e) {
+        /* non-blocking */
+      }
       res.write(
         `data: ${JSON.stringify({ type: "error", message, code, detail: lastPipelineError || undefined })}\n\n`
       );
@@ -17223,6 +17236,10 @@ registerVideoResurrectorRoutes(app, {
 registerSocialPublishRoutes(app, {
   WORKSPACE_DIR,
   getProjectDir,
+  resolveProjectDir: resolveProjectDirFromName,
+  PYTHON_PATH,
+  syncUploadScripts,
+  runPostUploadHooks,
 });
 
 registerResearchRoutes(app, {
@@ -17285,6 +17302,16 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   startTitleRotationScheduler({
     workspaceDir: WORKSPACE_DIR,
     projectsRoot: PROJECTS_ROOT,
+  });
+  startSocialPublishScheduler({
+    workspaceDir: WORKSPACE_DIR,
+    deps: {
+      resolveProjectDir: resolveProjectDirFromName,
+      pythonPath: PYTHON_PATH,
+      workspaceDir: WORKSPACE_DIR,
+      syncUploadScripts,
+      runPostUploadHooks,
+    },
   });
   startYoutubeWeeklyReportScheduler({
     workspaceDir: WORKSPACE_DIR,

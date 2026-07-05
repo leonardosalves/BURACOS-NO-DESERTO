@@ -169,6 +169,38 @@ export function removeSocialPublishItem(workspaceDir, id) {
   return loadSocialPublishQueue(workspaceDir);
 }
 
+export function markSocialPublishFailed(
+  workspaceDir,
+  { projectSlug, videoFile, error = "Upload falhou." } = {}
+) {
+  if (!projectSlug) return null;
+  const { items } = loadSocialPublishQueue(workspaceDir);
+  let changed = false;
+  const next = items.map((item) => {
+    if (
+      item.projectSlug === projectSlug &&
+      (!videoFile || item.videoFile === videoFile) &&
+      ["pending", "review", "scheduled"].includes(item.status)
+    ) {
+      changed = true;
+      return {
+        ...item,
+        status: "failed",
+        lastError: String(error || "Upload falhou.").trim(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return item;
+  });
+  if (changed) saveSocialPublishQueue(workspaceDir, next);
+  return changed ? loadSocialPublishQueue(workspaceDir) : null;
+}
+
+export function getSocialPublishItem(workspaceDir, id) {
+  const { items } = loadSocialPublishQueue(workspaceDir);
+  return items.find((item) => item.id === id) || null;
+}
+
 export function markSocialPublishPosted(
   workspaceDir,
   { projectSlug, videoFile } = {}
