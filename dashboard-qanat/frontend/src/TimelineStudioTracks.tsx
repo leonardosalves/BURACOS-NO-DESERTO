@@ -1,4 +1,10 @@
-import React, { useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   clipsOnTrack,
   formatStudioTime,
@@ -6,6 +12,7 @@ import {
   type StudioTrack,
   type TimelineStudioState,
 } from "./timelineStudioTypes";
+import { isClipEditable, moveClip, resizeClip } from "./timelineStudioClipOps";
 
 type Props = {
   studio: TimelineStudioState;
@@ -13,6 +20,15 @@ type Props = {
   onSelectClip: (id: string | null) => void;
   onPlayheadChange: (sec: number) => void;
   onZoomChange: (zoom: number) => void;
+  onClipsChange: (clips: StudioClip[]) => void;
+};
+
+type DragState = {
+  clipId: string;
+  type: "move" | "resize-left" | "resize-right";
+  initialX: number;
+  initialStart: number;
+  initialDuration: number;
 };
 
 const RULER_HEIGHT = 28;
@@ -23,8 +39,10 @@ export function TimelineStudioTracks({
   onSelectClip,
   onPlayheadChange,
   onZoomChange,
+  onClipsChange,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<DragState | null>(null);
   const pps = (studio.pixelsPerSecond || 40) * studio.zoom;
   const totalDur = studio.totalDuration || 120;
   const timelineWidth = Math.max(totalDur * pps + 120, 800);
@@ -45,12 +63,77 @@ export function TimelineStudioTracks({
     return items;
   }, [totalDur, studio.zoom]);
 
+  const handleDragMove = useCallback(
+    (e: MouseEvent) => {
+      if (!dragging) return;
+      const deltaX = e.clientX - dragging.initialX;
+      const deltaSec = deltaX / pps;
+
+      if (dragging.type === "move") {
+        const next = moveClip(
+          studio.clips,
+          dragging.clipId,
+          dragging.initialStart + deltaSec,
+          totalDur
+        );
+        onClipsChange(next);
+        return;
+      }
+
+      const edge = dragging.type === "resize-left" ? "left" : "right";
+      const next = resizeClip(
+        studio.clips,
+        dragging.clipId,
+        edge,
+        deltaSec,
+        totalDur
+      );
+      onClipsChange(next);
+    },
+    [dragging, onClipsChange, pps, studio.clips, totalDur]
+  );
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => handleDragMove(e);
+    const onUp = () => setDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [dragging, handleDragMove]);
+
+  const startDrag = (
+    e: React.MouseEvent,
+    clip: StudioClip,
+    type: DragState["type"]
+  ) => {
+    if (!isClipEditable(clip)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onSelectClip(clip.id);
+    setDragging({
+      clipId: clip.id,
+      type,
+      initialX: e.clientX,
+      initialStart: clip.start,
+      initialDuration: clip.duration,
+    });
+  };
+
   return (
     <div className="flex flex-col rounded-2xl border border-zinc-800/80 bg-zinc-950/90 overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60 bg-zinc-900/40">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-          Timeline multi-trilha
-        </span>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            Timeline multi-trilha
+          </span>
+          <span className="text-[9px] text-zinc-600">
+            Arraste clips · redimensione pelas bordas · Delete remove
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-zinc-500 font-mono">
             {formatStudioTime(studio.playhead)} / {formatStudioTime(totalDur)}
@@ -103,8 +186,10 @@ export function TimelineStudioTracks({
               timelineWidth={timelineWidth}
               selectedClipId={selectedClipId}
               playhead={studio.playhead}
+              isDragging={dragging !== null}
               onSelectClip={onSelectClip}
               onPlayheadChange={onPlayheadChange}
+              onStartDrag={startDrag}
             />
           ))}
         </div>
@@ -120,8 +205,10 @@ function TrackRow({
   timelineWidth,
   selectedClipId,
   playhead,
+  isDragging,
   onSelectClip,
   onPlayheadChange,
+  onStartDrag,
 }: {
   track: StudioTrack;
   clips: StudioClip[];
@@ -129,8 +216,14 @@ function TrackRow({
   timelineWidth: number;
   selectedClipId: string | null;
   playhead: number;
+  isDragging: boolean;
   onSelectClip: (id: string | null) => void;
   onPlayheadChange: (sec: number) => void;
+  onStartDrag: (
+    e: React.MouseEvent,
+    clip: StudioClip,
+    type: DragState["type"]
+  ) => void;
 }) {
   const h = track.height || 36;
   const color = track.color || "#64748b";
@@ -170,18 +263,17 @@ function TrackRow({
           const selected = selectedClipId === clip.id;
           const active =
             playhead >= clip.start && playhead < clip.start + clip.duration;
+          const editable = isClipEditable(clip);
+          const showHandles = editable && (selected || width > 20);
+
           return (
-            <button
+            <div
               key={clip.id}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectClip(clip.id);
-                onPlayheadChange(clip.start);
-              }}
-              className={`absolute top-1 bottom-1 rounded-md px-1.5 text-left overflow-hidden border transition ${
+              className={`absolute top-1 bottom-1 rounded-md overflow-hidden border transition group ${
                 selected ? "ring-2 ring-gold-400/80 z-10" : ""
-              } ${active ? "opacity-100" : "opacity-85 hover:opacity-100"}`}
+              } ${active ? "opacity-100" : "opacity-85 hover:opacity-100"} ${
+                isDragging ? "select-none" : ""
+              }`}
               style={{
                 left,
                 width,
@@ -190,18 +282,49 @@ function TrackRow({
               }}
               title={`${clip.label || clip.id} · ${formatStudioTime(clip.start)}`}
             >
-              <span
-                className="block text-[8px] font-bold truncate"
-                style={{ color: clip.color || color }}
+              {showHandles ? (
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1.5 bg-white/20 hover:bg-gold-400/60 cursor-ew-resize z-20"
+                  onMouseDown={(e) => onStartDrag(e, clip, "resize-left")}
+                />
+              ) : null}
+
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  if (editable) onStartDrag(e, clip, "move");
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectClip(clip.id);
+                  onPlayheadChange(clip.start);
+                }}
+                className={`w-full h-full px-1.5 text-left overflow-hidden ${
+                  editable
+                    ? "cursor-grab active:cursor-grabbing"
+                    : "cursor-pointer"
+                }`}
               >
-                {track.type === "captions"
-                  ? String(clip.props?.text || clip.label || "…").slice(0, 24)
-                  : clip.label ||
-                    clip.templateId ||
-                    clip.source?.split("/").pop() ||
-                    "clip"}
-              </span>
-            </button>
+                <span
+                  className="block text-[8px] font-bold truncate pointer-events-none"
+                  style={{ color: clip.color || color }}
+                >
+                  {track.type === "captions"
+                    ? String(clip.props?.text || clip.label || "…").slice(0, 24)
+                    : clip.label ||
+                      clip.templateId ||
+                      clip.source?.split("/").pop() ||
+                      "clip"}
+                </span>
+              </button>
+
+              {showHandles ? (
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-1.5 bg-white/20 hover:bg-gold-400/60 cursor-ew-resize z-20"
+                  onMouseDown={(e) => onStartDrag(e, clip, "resize-right")}
+                />
+              ) : null}
+            </div>
           );
         })}
       </div>
