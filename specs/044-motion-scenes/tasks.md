@@ -8,3 +8,5 @@
 - [x] T6 — migrate `motion_scenes` em `timelineStudioMigration`
 - [x] T7 — testes unitários heurística PT-BR
 - [x] T8 — botão Timeline Studio + LocationIntro zoom_from/zoom_to
+- [x] T9 — satelliteMapService (Esri/Mapbox) + dual-image zoom LocationIntro
+- [ ] T10 — LLM enrichment (Fase 3)

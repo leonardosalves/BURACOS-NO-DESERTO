@@ -619,7 +619,87 @@ export function OverlayPreview({
           }
         );
 
-      case "location-intro":
+      case "location-intro": {
+        const bgWide = String(props.backgroundImageWide || "");
+        const bgTight = String(props.backgroundImage || "");
+        const subtitle = [props.region, props.country]
+          .filter(Boolean)
+          .join(" · ");
+        if (embedded && (bgWide || bgTight)) {
+          const progress =
+            scrubSeconds != null
+              ? Math.min(
+                  1,
+                  Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
+                )
+              : 0.45;
+          const wideOpacity = 1 - progress * 0.85;
+          const tightOpacity = Math.min(
+            1,
+            Math.max(0, (progress - 0.2) * 1.25)
+          );
+          const zoom = 1 + progress * 0.1;
+          return (
+            <div className="absolute inset-0 overflow-hidden">
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "center center",
+                }}
+              >
+                {bgWide ? (
+                  <img
+                    src={bgWide}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ opacity: wideOpacity }}
+                  />
+                ) : null}
+                {bgTight ? (
+                  <img
+                    src={bgTight}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ opacity: bgWide ? tightOpacity : 1 }}
+                  />
+                ) : null}
+              </div>
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.5) 100%)",
+                }}
+              />
+              <div
+                className="absolute inset-x-0 bottom-[12%] text-center px-4"
+                style={{ opacity: motion.opacity }}
+              >
+                <p
+                  className="font-black text-white"
+                  style={{
+                    fontSize: metrics.fontSizeTitle,
+                    textShadow: legibilityShadow,
+                  }}
+                >
+                  {String(props.location || "Local")}
+                </p>
+                {subtitle ? (
+                  <p
+                    className="text-zinc-300 uppercase tracking-widest mt-1"
+                    style={{
+                      fontSize: metrics.fontSizeSubtitle,
+                      textShadow: legibilityShadow,
+                    }}
+                  >
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          );
+        }
         return motionShell(
           <>
             <div
@@ -653,6 +733,7 @@ export function OverlayPreview({
             textAlign: "center" as const,
           }
         );
+      }
 
       case "pictogram-chart":
         return motionShell(

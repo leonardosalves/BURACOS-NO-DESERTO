@@ -192,8 +192,8 @@ export function buildPropsForTemplate(
         country: place.country,
         variant: "satellite",
         accentColor: "#FFFFFF",
-        zoom_from: 4,
-        zoom_to: 12,
+        zoom_from: 8,
+        zoom_to: 14,
         map_style: "satellite",
       };
     }

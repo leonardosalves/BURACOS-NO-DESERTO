@@ -6904,6 +6904,47 @@ function copyRemotionAsset(sourcePath, targetDir, prefix = "") {
   return destName;
 }
 
+function resolveProjectAssetPath(projectDir, relPath) {
+  const rel = String(relPath || "")
+    .trim()
+    .replace(/\\/g, "/");
+  if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
+    return null;
+  }
+  const direct = path.join(projectDir, rel);
+  if (fs.existsSync(direct)) return direct;
+  return (
+    findProjectFile(projectDir, rel) ||
+    findProjectFile(projectDir, path.basename(rel))
+  );
+}
+
+function copyOverlayMediaPropsForRemotion(
+  overlay,
+  { projectDir, publicProjectDir, projectSlug }
+) {
+  if (!overlay?.props) return overlay;
+  const p = overlay.props;
+  const overlayKey = String(overlay.id || overlay.type || "ov").replace(
+    /[^a-zA-Z0-9_-]/g,
+    "_"
+  );
+  for (const key of ["backgroundImage", "backgroundImageWide"]) {
+    const rel = String(p[key] || "").trim();
+    if (!rel || /^https?:\/\//i.test(rel) || rel.startsWith("projects/")) {
+      continue;
+    }
+    const source = resolveProjectAssetPath(projectDir, rel);
+    const copied = copyRemotionAsset(
+      source,
+      publicProjectDir,
+      `${overlayKey}_${key}_`
+    );
+    if (copied) p[key] = `projects/${projectSlug}/${copied}`;
+  }
+  return overlay;
+}
+
 function getAudioDuration(filePath) {
   try {
     if (!filePath || !fs.existsSync(filePath)) return 0;
@@ -8275,9 +8316,14 @@ async function prepareRemotionRender(
         ? stripSystemInjectedOverlays(freshSb.overlays)
         : [];
 
+  const overlayMediaCtx = { projectDir, publicProjectDir, projectSlug };
+
   let overlays = [];
   if (useStudioRender) {
     overlays = buildOverlaysFromStudio(timelineStudio)
+      .map((overlay) =>
+        copyOverlayMediaPropsForRemotion(overlay, overlayMediaCtx)
+      )
       .map((overlay) => repairOverlayPropsForRemotion(overlay))
       .filter(Boolean);
     console.log(
@@ -8331,6 +8377,10 @@ async function prepareRemotionRender(
       "[Remotion Render] Nenhum overlay planejado encontrado no storyboard.json."
     );
   }
+
+  overlays = overlays.map((overlay) =>
+    copyOverlayMediaPropsForRemotion(overlay, overlayMediaCtx)
+  );
 
   if (!useStudioRender) {
     // Update storyboard overlays with aligned rendering overlays
@@ -17776,7 +17826,10 @@ registerTimelineStudioRoutes(app, {
     callGeminiWithRetry(getApiKey(projDir), prompt, opts),
 });
 
-registerMotionSceneRoutes(app, { getProjectDir });
+registerMotionSceneRoutes(app, {
+  getProjectDir,
+  workspaceDir: WORKSPACE_DIR,
+});
 
 registerVideoResurrectorRoutes(app, {
   WORKSPACE_DIR,
