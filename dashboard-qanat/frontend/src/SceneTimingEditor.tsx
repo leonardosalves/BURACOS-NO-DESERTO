@@ -171,9 +171,14 @@ export function SceneTimingEditor({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const playEndRef = useRef<number | null>(null);
+  const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Playhead states
   const [currentTime, setCurrentTime] = useState(0);
+
+  // Waveform data: array of peak amplitudes (0–1) covering the entire audio
+  const [waveformPeaks, setWaveformPeaks] = useState<Float32Array | null>(null);
+  const [audioDuration, setAudioDuration] = useState(0);
 
   useEffect(() => {
     setDraft(structuredClone(config?.timeline_assets || {}));
@@ -272,6 +277,91 @@ export function SceneTimingEditor({
   }, [getMediaUrl, stopPlayback, blockModel]);
 
   useEffect(() => () => stopPlayback(), [stopPlayback]);
+
+  // ── Extract real waveform peaks from the narration audio file ──
+  useEffect(() => {
+    if (!hasNarration) return;
+    const url = getMediaUrl("narracao_mestra_premium.mp3");
+    if (!url) return;
+
+    let cancelled = false;
+    const ctx = new (
+      window.AudioContext || (window as any).webkitAudioContext
+    )();
+
+    fetch(url)
+      .then((r) => r.arrayBuffer())
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((decoded) => {
+        if (cancelled) return;
+        setAudioDuration(decoded.duration);
+
+        // Downsample to ~800 peaks (enough for any timeline width)
+        const rawData = decoded.getChannelData(0);
+        const numBars = 800;
+        const samplesPerBar = Math.floor(rawData.length / numBars);
+        const peaks = new Float32Array(numBars);
+        for (let i = 0; i < numBars; i++) {
+          let max = 0;
+          const offset = i * samplesPerBar;
+          for (let j = 0; j < samplesPerBar; j++) {
+            const v = Math.abs(rawData[offset + j]);
+            if (v > max) max = v;
+          }
+          peaks[i] = max;
+        }
+        setWaveformPeaks(peaks);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      ctx.close().catch(() => {});
+    };
+  }, [hasNarration, getMediaUrl]);
+
+  // ── Render waveform to canvas when peaks/block change ──
+  useEffect(() => {
+    const canvas = waveformCanvasRef.current;
+    if (!canvas || !waveformPeaks || !blockModel || audioDuration <= 0) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width;
+    const H = rect.height;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Compute which slice of the global peaks corresponds to this block
+    const blockStartFrac = blockModel.narrationStart / audioDuration;
+    const blockEndFrac = blockModel.narrationEnd / audioDuration;
+    const peakStart = Math.floor(blockStartFrac * waveformPeaks.length);
+    const peakEnd = Math.ceil(blockEndFrac * waveformPeaks.length);
+    const blockPeaks = waveformPeaks.slice(peakStart, peakEnd);
+
+    if (blockPeaks.length === 0) return;
+
+    const barWidth = W / blockPeaks.length;
+    const centerY = H / 2;
+
+    // Draw each bar mirrored around center
+    for (let i = 0; i < blockPeaks.length; i++) {
+      const amp = blockPeaks[i];
+      const barH = Math.max(1, amp * H * 0.9);
+      const x = i * barWidth;
+
+      // Gradient-like color based on amplitude
+      const alpha = 0.4 + amp * 0.6;
+      ctx.fillStyle = `rgba(217, 70, 239, ${alpha})`; // fuchsia
+      ctx.fillRect(x, centerY - barH / 2, Math.max(barWidth - 0.5, 0.5), barH);
+    }
+  }, [waveformPeaks, blockModel, audioDuration]);
 
   const playScene = useCallback(
     (blockKey: string, sceneIdx: number, start: number, end: number) => {
@@ -985,31 +1075,23 @@ export function SceneTimingEditor({
                   </div>
                   <div className="flex-1 relative h-8 bg-zinc-950/20 overflow-hidden">
                     {hasNarration && (
-                      <div
-                        className="absolute top-1 bottom-1 rounded-[4px] overflow-hidden"
-                        style={{ left: "0%", width: "100%" }}
-                      >
-                        {/* Voiceover waveform simulation */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600/60 via-fuchsia-500/50 to-fuchsia-600/60 rounded-[4px] border border-fuchsia-500/30" />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-[8px] font-bold text-fuchsia-200/80 uppercase tracking-wider">
-                            Voiceover
-                          </span>
-                        </div>
-                        {/* Simulated waveform bars */}
-                        <div className="absolute inset-0 flex items-center gap-px px-1 pointer-events-none opacity-30">
-                          {Array.from({ length: 60 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className="bg-fuchsia-200 rounded-full"
-                              style={{
-                                width: "1px",
-                                height: `${20 + Math.sin(i * 0.7) * 15 + Math.cos(i * 1.3) * 10}%`,
-                                minHeight: "2px",
-                              }}
-                            />
-                          ))}
-                        </div>
+                      <div className="absolute top-0.5 bottom-0.5 left-0 right-0 rounded-[4px] overflow-hidden border border-fuchsia-500/20">
+                        {/* Subtle background tint */}
+                        <div className="absolute inset-0 bg-fuchsia-950/30 rounded-[4px]" />
+                        {/* Real waveform canvas */}
+                        <canvas
+                          ref={waveformCanvasRef}
+                          className="absolute inset-0 w-full h-full"
+                          style={{ imageRendering: "pixelated" }}
+                        />
+                        {/* Label when no waveform data yet */}
+                        {!waveformPeaks && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="text-[8px] font-bold text-fuchsia-200/50 uppercase tracking-wider animate-pulse">
+                              Carregando waveform…
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
