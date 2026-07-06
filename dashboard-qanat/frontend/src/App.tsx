@@ -7677,6 +7677,57 @@ export default function App() {
     hookPt?: string,
     options?: CreatorApplyIdeaOptions
   ) => {
+    const isPioneer =
+      options?.mechanic === "pioneer-niche" || Boolean(options?.pioneerMeta);
+
+    // Se for nicho pioneiro e ainda não tivermos a estruturação de blocos expandida pela IA
+    if (isPioneer && !options?.blocks) {
+      setCreatorLoading(true);
+      setCreatorLoadingMode("full");
+      const toastId = toast.loading(
+        "IA estruturando roteiro a partir da tendência..."
+      );
+      try {
+        const format = options?.format || "SHORTS";
+        const res = await fetch("/api/trends/expand-pioneer-idea", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            macroNiche: options?.pioneerMeta?.macroNiche || "",
+            label: title,
+            angle: options?.pioneerMeta?.angle || hookPt || "",
+            format,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erro na expansão da ideia");
+
+        toast.success("Roteiro estruturado com sucesso!", { id: toastId });
+
+        // Chama recursivamente com as informações expandidas
+        void handleApplyYoutubeStudioIdea(title, hookPt, {
+          ...options,
+          customTitle: data.title,
+          customHook: data.hook,
+          customPromise: data.promise,
+          blocks: data.blocks,
+        });
+        return;
+      } catch (err: any) {
+        console.error("Falha ao expandir ideia de tendência:", err);
+        toast.error(
+          `Falha ao estruturar com IA: ${err.message || "Erro desconhecido"}. Usando dados básicos...`,
+          {
+            id: toastId,
+          }
+        );
+        // Continua com o fluxo de fallback abaixo
+      } finally {
+        setCreatorLoading(false);
+        setCreatorLoadingMode("idle");
+      }
+    }
+
     const autoRun = options?.autoRun === true;
     const om = options?.openMontage;
     const omConcept = om?.brief
@@ -7690,8 +7741,6 @@ export default function App() {
       hookPt,
       om?.brief?.creator_hook || omConcept?.title || safeTitle
     );
-    const isPioneer =
-      options?.mechanic === "pioneer-niche" || Boolean(options?.pioneerMeta);
     const pioneerSeed = isPioneer
       ? resolvePioneerCreatorSeed(
           safeTitle,
@@ -7718,12 +7767,14 @@ export default function App() {
       : options?.whyWorks?.trim() || undefined;
     const niche = (config?.niche || nicheInput || "Geral").trim() || "Geral";
     const format = options?.format || "SHORTS";
-    const projectSlug = slugCreatorProjectFromTitle(hook || cleaned);
+    const projectSlug = slugCreatorProjectFromTitle(
+      options?.customTitle || hook || cleaned
+    );
     const sourceProject = parseEditorialSourceProject(options?.source);
     const mechanicBlock = options?.mechanic?.match(/clip-factory-bloco-(\d+)/);
     const importData: EditorialIdeaImport = {
-      title: cleaned,
-      hookPt: hook,
+      title: options?.customTitle || cleaned,
+      hookPt: options?.customHook || hook,
       format,
       editorialItemId: options?.editorialItemId,
       mechanic:
@@ -7755,13 +7806,30 @@ export default function App() {
     setActiveTab("creator");
     setCreatorStep(1);
     setIdeationTab("custom");
-    setCustomTitle(hook || cleaned);
-    setCustomHooks(hook);
-    setCustomOutline(resolveEditorialImportOutline(importData));
+    setCustomTitle(options?.customTitle || hook || cleaned);
+    setCustomHooks(options?.customHook || hook);
+    setCustomOutline(
+      options?.customPromise || resolveEditorialImportOutline(importData)
+    );
     setNicheInput((prev) => prev || niche);
     setFormatSelector(format);
     setCreatorProjectName(projectSlug);
     setEditorialIdeaImport(importData);
+
+    // Configurar blocos da estrutura
+    if (options?.blocks && options.blocks.length > 0) {
+      setCustomBlocks(options.blocks);
+    } else {
+      const defaultBlockCount = format === "SHORTS" ? 3 : 5;
+      const initialBlocks = Array.from(
+        { length: defaultBlockCount },
+        (_, i) => ({
+          block: i + 1,
+          content: "",
+        })
+      );
+      setCustomBlocks(initialBlocks);
+    }
 
     if (options?.editorialItemId) {
       fetch(`/api/youtube/channel/editorial-queue/${options.editorialItemId}`, {
