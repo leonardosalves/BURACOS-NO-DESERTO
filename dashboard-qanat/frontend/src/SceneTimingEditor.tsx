@@ -330,6 +330,8 @@ export function SceneTimingEditor({
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    // Guard: canvas not yet laid out
+    if (rect.width === 0 || rect.height === 0) return;
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
@@ -338,12 +340,18 @@ export function SceneTimingEditor({
 
     ctx.clearRect(0, 0, W, H);
 
-    // Compute which slice of the global peaks corresponds to this block
+    // *** KEY FIX: use totalDuration as the window (same as Legendas/Cenas tracks)
+    // so each pixel column in the waveform maps to the same time as every other track.
+    // narrationEnd may differ from narrationStart + totalDuration — always use totalDuration.
+    const windowEnd = blockModel.narrationStart + blockModel.totalDuration;
     const blockStartFrac = blockModel.narrationStart / audioDuration;
-    const blockEndFrac = blockModel.narrationEnd / audioDuration;
+    const blockEndFrac = windowEnd / audioDuration;
     const peakStart = Math.floor(blockStartFrac * waveformPeaks.length);
     const peakEnd = Math.ceil(blockEndFrac * waveformPeaks.length);
-    const blockPeaks = waveformPeaks.slice(peakStart, peakEnd);
+    const blockPeaks = waveformPeaks.slice(
+      Math.max(0, peakStart),
+      Math.min(waveformPeaks.length, peakEnd)
+    );
 
     if (blockPeaks.length === 0) return;
 
@@ -983,7 +991,7 @@ export function SceneTimingEditor({
                       Cenas
                     </span>
                   </div>
-                  <div className="flex-1 relative h-14 overflow-hidden">
+                  <div className="flex-1 relative h-20 overflow-hidden">
                     {blockModel.scenes.map((scene, idx) => {
                       const widthPct =
                         blockModel.totalDuration > 0
@@ -1073,7 +1081,7 @@ export function SceneTimingEditor({
                       Narração
                     </span>
                   </div>
-                  <div className="flex-1 relative h-8 bg-zinc-950/20 overflow-hidden">
+                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden">
                     {hasNarration && (
                       <div className="absolute top-0.5 bottom-0.5 left-0 right-0 rounded-[4px] overflow-hidden border border-fuchsia-500/20">
                         {/* Subtle background tint */}
@@ -1140,7 +1148,7 @@ export function SceneTimingEditor({
                       Overlays
                     </span>
                   </div>
-                  <div className="flex-1 relative h-9 bg-zinc-950/20 overflow-hidden flex items-center px-0.5">
+                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden flex items-center px-0.5">
                     {activeBlockOverlays.map((ot) => {
                       const fullIdx = draftOverlays.findIndex((x) => x === ot);
                       if (fullIdx === -1) return null;
@@ -1153,7 +1161,7 @@ export function SceneTimingEditor({
                       return (
                         <div
                           key={fullIdx}
-                          className="absolute h-7 rounded-md border border-cyan-500/40 bg-cyan-950/30 text-white flex items-center justify-between z-10 overflow-hidden shadow-md"
+                          className="absolute h-10 rounded-md border border-cyan-500/40 bg-cyan-950/30 text-white flex items-center justify-between z-10 overflow-hidden shadow-md"
                           style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                         >
                           {/* Left resize handle */}
@@ -1221,133 +1229,6 @@ export function SceneTimingEditor({
                   <div className="w-2.5 h-2.5 bg-red-500 rounded-full absolute -top-0.5 -left-[5px] border border-white/30 shadow-md" />
                 </div>
               </div>
-            </div>
-
-            {/* AI OVERLAYS / HYPERFRAMES EDITOR PANEL */}
-            <div className="ste-timeline-wrap glass-panel p-5 rounded-xl space-y-3.5">
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold-500 flex items-center gap-1.5">
-                  🎨 Overlays de Texto IA (HyperFrames)
-                </span>
-                <span className="text-[9px] text-zinc-500 font-mono uppercase">
-                  {activeBlockOverlays.length} Overlay(s) Ativo(s)
-                </span>
-              </div>
-
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
-                {activeBlockOverlays.length === 0 ? (
-                  <p className="text-zinc-500 text-xs py-4 text-center italic border border-dashed border-zinc-900 rounded-xl">
-                    Nenhum overlay de texto para este bloco.
-                  </p>
-                ) : (
-                  activeBlockOverlays.map((ot, idx) => {
-                    const textVal = ot.props?.label || ot.props?.text || "";
-                    const relativeStart = Math.max(
-                      0,
-                      ot.start - blockModel.narrationStart
-                    );
-                    return (
-                      <div
-                        key={idx}
-                        className="flex flex-col md:flex-row gap-3 p-3 bg-zinc-900/30 border border-zinc-900 rounded-2xl items-end justify-between hover:border-zinc-850 transition"
-                      >
-                        <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div className="md:col-span-2">
-                            <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
-                              Texto do Overlay ({ot.type})
-                            </label>
-                            <input
-                              type="text"
-                              value={textVal}
-                              onChange={(e) =>
-                                updateOverlayText(idx, e.target.value)
-                              }
-                              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-gold-500 transition"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <div>
-                              <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
-                                Início (s)
-                              </label>
-                              <input
-                                type="number"
-                                step={0.1}
-                                min={0}
-                                value={parseFloat(relativeStart.toFixed(2))}
-                                onChange={(e) => {
-                                  const absStart =
-                                    blockModel.narrationStart +
-                                    Number(e.target.value);
-                                  updateOverlayField(
-                                    idx,
-                                    "start",
-                                    parseFloat(absStart.toFixed(3))
-                                  );
-                                }}
-                                className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
-                                Duração (s)
-                              </label>
-                              <input
-                                type="number"
-                                step={0.1}
-                                min={0.2}
-                                value={ot.duration}
-                                onChange={(e) =>
-                                  updateOverlayField(
-                                    idx,
-                                    "duration",
-                                    Number(e.target.value)
-                                  )
-                                }
-                                className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCurrentTime(relativeStart);
-                              if (audioRef.current && playingKey !== null) {
-                                audioRef.current.currentTime =
-                                  blockModel.narrationStart + relativeStart;
-                              }
-                            }}
-                            className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[10px] rounded-xl text-gold-500 hover:text-gold-400 font-bold transition flex items-center gap-1 cursor-pointer"
-                            title="Seek na linha do tempo"
-                          >
-                            Seek
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteOverlay(idx)}
-                            className="p-1.5 bg-zinc-950 hover:bg-red-950/40 border border-zinc-850 hover:border-red-900 text-zinc-500 hover:text-red-400 rounded-xl transition cursor-pointer"
-                            title="Excluir overlay"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={addOverlay}
-                className="w-full py-2 bg-zinc-950 hover:bg-zinc-900 border border-dashed border-zinc-900 hover:border-zinc-800 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-4 h-4 text-gold-500" />
-                Adicionar Novo Overlay de Texto
-              </button>
             </div>
 
             <div className="ste-scenes grid gap-3">
