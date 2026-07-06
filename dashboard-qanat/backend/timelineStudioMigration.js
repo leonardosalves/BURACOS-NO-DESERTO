@@ -9,6 +9,7 @@ import {
   resolveStudioBgmSource,
   upsertMusicClipInStudio,
 } from "../shared/timelineStudioMusic.js";
+import { motionScenesToOverlayClips } from "./motionScenePlanner.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -165,7 +166,7 @@ function migrateOverlayClips(storyboard = {}) {
     Array.isArray(storyboard.overlays) && storyboard.overlays.length
       ? storyboard.overlays
       : storyboard.overlays_ai || [];
-  return overlays
+  const legacy = overlays
     .filter((o) => o && o.type)
     .map((o, i) => ({
       id: String(o.id || `overlay-${i + 1}`),
@@ -180,6 +181,9 @@ function migrateOverlayClips(storyboard = {}) {
       color: "#00897B",
       legacyOverlay: true,
     }));
+
+  const motion = motionScenesToOverlayClips(storyboard.motion_scenes || []);
+  return [...legacy, ...motion];
 }
 
 function migrateCaptionClips(wordTranscripts = []) {

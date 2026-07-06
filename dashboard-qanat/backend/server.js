@@ -147,6 +147,7 @@ import {
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
 import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
+import { registerMotionSceneRoutes } from "./motionSceneRoutes.js";
 import {
   loadStudioForRender,
   shouldUseStudioForRender,
@@ -17774,6 +17775,8 @@ registerTimelineStudioRoutes(app, {
   callGemini: (projDir, prompt, opts) =>
     callGeminiWithRetry(getApiKey(projDir), prompt, opts),
 });
+
+registerMotionSceneRoutes(app, { getProjectDir });
 
 registerVideoResurrectorRoutes(app, {
   WORKSPACE_DIR,
