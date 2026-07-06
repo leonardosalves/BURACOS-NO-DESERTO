@@ -27,18 +27,18 @@ const PIONEER_STRATEGY_RE = [
   /farsa\s+do\s+mercado/i,
 ];
 
-export function isPioneerStrategyText(text = ''): boolean {
-  const t = String(text || '').trim();
+export function isPioneerStrategyText(text = ""): boolean {
+  const t = String(text || "").trim();
   if (!t) return false;
   return PIONEER_STRATEGY_RE.some((re) => re.test(t));
 }
 
 function firstNonStrategyText(...candidates: (string | undefined)[]): string {
   for (const raw of candidates) {
-    const s = String(raw || '').trim();
+    const s = String(raw || "").trim();
     if (s && !isPioneerStrategyText(s)) return s;
   }
-  return '';
+  return "";
 }
 
 /** Garante título/gancho sobre o TEMA do vídeo, nunca sobre saturação/gap. */
@@ -46,17 +46,20 @@ export function resolvePioneerCreatorSeed(
   title: string,
   hook: string,
   pioneerMeta?: PioneerNicheMeta | null,
-  whyWorks?: string,
+  whyWorks?: string
 ): { title: string; hook: string } {
   const meta = pioneerMeta || {};
   const contentTitle = firstNonStrategyText(
     meta.angle,
     title,
     hook,
-    meta.formatPattern && meta.macroNiche ? `${meta.macroNiche}: ${meta.formatPattern}` : '',
-    meta.macroNiche,
+    meta.formatPattern && meta.macroNiche
+      ? `${meta.macroNiche}: ${meta.formatPattern}`
+      : "",
+    meta.macroNiche
   );
-  const contentHook = firstNonStrategyText(meta.angle, hook, title, contentTitle) || contentTitle;
+  const contentHook =
+    firstNonStrategyText(meta.angle, hook, title, contentTitle) || contentTitle;
   return {
     title: contentTitle.slice(0, 240),
     hook: contentHook.slice(0, 500),
@@ -89,7 +92,7 @@ export type OpenMontageBrief = {
 };
 
 export type CreatorApplyIdeaOptions = {
-  format?: 'LONGO' | 'SHORTS';
+  format?: "LONGO" | "SHORTS";
   /** Só gera narração automaticamente se true (padrão: página preparada). */
   autoRun?: boolean;
   editorialItemId?: string;
@@ -107,6 +110,10 @@ export type CreatorApplyIdeaOptions = {
     referenceUrl?: string;
     referenceTitle?: string;
   };
+  customTitle?: string;
+  customHook?: string;
+  customPromise?: string;
+  blocks?: Array<{ block: number; content: string }>;
 };
 
 export type OpenMontageImportPayload = {
@@ -119,7 +126,7 @@ export type OpenMontageImportPayload = {
 export type EditorialIdeaImport = {
   title: string;
   hookPt: string;
-  format: 'LONGO' | 'SHORTS';
+  format: "LONGO" | "SHORTS";
   editorialItemId?: string;
   mechanic?: string;
   whyWorks?: string;
@@ -135,50 +142,62 @@ export type EditorialIdeaImport = {
 
 export function buildPioneerCreatorOutline(
   meta: PioneerNicheMeta,
-  whyWorks?: string,
+  whyWorks?: string
 ): string {
   const lines: string[] = [
     'TEMA DO VÍDEO (conteúdo real para o espectador — NÃO fale sobre "nicho virgem", saturação de mercado, gap de pontos ou como achar nichos no YouTube):',
   ];
   if (meta.macroNiche) lines.push(`Macro-nicho: ${meta.macroNiche}`);
   if (meta.angle) lines.push(`Ângulo / assunto: ${meta.angle}`);
-  if (meta.formatPattern) lines.push(`Estrutura do vídeo: ${meta.formatPattern}`);
-  if (meta.youtubeSearchQuery) lines.push(`Referência de pesquisa: ${meta.youtubeSearchQuery}`);
+  if (meta.formatPattern)
+    lines.push(`Estrutura do vídeo: ${meta.formatPattern}`);
+  if (meta.youtubeSearchQuery)
+    lines.push(`Referência de pesquisa: ${meta.youtubeSearchQuery}`);
   if (whyWorks) {
-    lines.push('', 'Contexto estratégico (só para o roteirista — NÃO transforme isso no tema do vídeo):', whyWorks);
+    lines.push(
+      "",
+      "Contexto estratégico (só para o roteirista — NÃO transforme isso no tema do vídeo):",
+      whyWorks
+    );
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
-export function parseEditorialSourceProject(source?: string): string | undefined {
-  const raw = String(source || '').trim();
+export function parseEditorialSourceProject(
+  source?: string
+): string | undefined {
+  const raw = String(source || "").trim();
   if (!raw) return undefined;
-  const idx = raw.indexOf(':');
+  const idx = raw.indexOf(":");
   return idx >= 0 ? raw.slice(idx + 1).trim() : raw;
 }
 
-export function buildAgentReachResearchOutline(research?: AgentReachResearchPayload | null): string {
-  if (!research?.summary && !(research?.facts?.length)) return '';
-  const lines: string[] = ['PESQUISA WEB (Agent Reach) — use estes fatos na narração:'];
+export function buildAgentReachResearchOutline(
+  research?: AgentReachResearchPayload | null
+): string {
+  if (!research?.summary && !research?.facts?.length) return "";
+  const lines: string[] = [
+    "PESQUISA WEB (Agent Reach) — use estes fatos na narração:",
+  ];
   if (research.query) lines.push(`Tema pesquisado: ${research.query}`);
   if (research.facts?.length) {
-    lines.push('', 'Fatos encontrados:');
+    lines.push("", "Fatos encontrados:");
     research.facts.slice(0, 8).forEach((f) => lines.push(`• ${f}`));
   } else if (research.summary) {
-    lines.push('', research.summary.slice(0, 3500));
+    lines.push("", research.summary.slice(0, 3500));
   }
   if (research.sources?.length) {
-    lines.push('', 'Fontes:');
+    lines.push("", "Fontes:");
     research.sources.slice(0, 6).forEach((s, i) => {
-      lines.push(`${i + 1}. ${s.title || s.url}${s.url ? ` — ${s.url}` : ''}`);
+      lines.push(`${i + 1}. ${s.title || s.url}${s.url ? ` — ${s.url}` : ""}`);
     });
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 export function resolveOpenMontageConcept(
   brief: OpenMontageBrief,
-  conceptId?: string,
+  conceptId?: string
 ): OpenMontageConcept | undefined {
   const concepts = brief.concepts || [];
   if (!concepts.length) return undefined;
@@ -198,40 +217,46 @@ export function buildOpenMontageCreatorOutline(opts: {
   const { brief, conceptId, referenceUrl, referenceTitle } = opts;
   const concept = resolveOpenMontageConcept(brief, conceptId);
   const lines: string[] = [
-    'BRIEF OPENMONTAGE — vídeo inspirado em referência (NÃO copiar; manter estrutura com twist criativo):',
+    "BRIEF OPENMONTAGE — vídeo inspirado em referência (NÃO copiar; manter estrutura com twist criativo):",
   ];
 
   if (referenceUrl) {
-    lines.push(`Referência: ${referenceTitle ? `"${referenceTitle}" — ` : ''}${referenceUrl}`);
+    lines.push(
+      `Referência: ${referenceTitle ? `"${referenceTitle}" — ` : ""}${referenceUrl}`
+    );
   }
-  if (brief.content_summary) lines.push('', 'Resumo do referência:', brief.content_summary);
+  if (brief.content_summary)
+    lines.push("", "Resumo do referência:", brief.content_summary);
   if (concept) {
     lines.push(
-      '',
+      "",
       `Conceito escolhido (${concept.id}): ${concept.title}`,
       `Mantém do referência: ${concept.inspired_by}`,
-      `Twist criativo: ${concept.creative_twist}`,
+      `Twist criativo: ${concept.creative_twist}`
     );
     if (concept.visual_plan) lines.push(`Plano visual: ${concept.visual_plan}`);
     if (concept.audio_plan) lines.push(`Plano de áudio: ${concept.audio_plan}`);
-    if (concept.duration_sec) lines.push(`Duração alvo: ~${concept.duration_sec}s`);
+    if (concept.duration_sec)
+      lines.push(`Duração alvo: ~${concept.duration_sec}s`);
   }
-  if (brief.style_profile) lines.push('', `Estilo / pacing: ${brief.style_profile}`);
-  if (brief.hook_technique) lines.push(`Técnica de gancho: ${brief.hook_technique}`);
+  if (brief.style_profile)
+    lines.push("", `Estilo / pacing: ${brief.style_profile}`);
+  if (brief.hook_technique)
+    lines.push(`Técnica de gancho: ${brief.hook_technique}`);
   if (brief.what_works?.length) {
-    lines.push('', 'O que funciona no referência:');
+    lines.push("", "O que funciona no referência:");
     brief.what_works.forEach((w) => lines.push(`• ${w}`));
   }
   if (brief.structure?.pacing || brief.structure?.estimated_duration_sec) {
     lines.push(
-      '',
-      `Estrutura: pacing ${brief.structure.pacing || 'medium'}, ~${brief.structure.estimated_duration_sec || '?'}s`,
+      "",
+      `Estrutura: pacing ${brief.structure.pacing || "medium"}, ~${brief.structure.estimated_duration_sec || "?"}s`
     );
   }
   if (brief.motion_profile?.dominant) {
     const risk = brief.motion_profile.slideshow_risk
       ? ` · risco slideshow: ${brief.motion_profile.slideshow_risk}`
-      : '';
+      : "";
     lines.push(`Motion: ${brief.motion_profile.dominant}${risk}`);
   }
   if (brief.five_aspects) {
@@ -244,35 +269,39 @@ export function buildOpenMontageCreatorOutline(opts: {
       fa.camera && `Camera: ${fa.camera}`,
     ].filter(Boolean);
     if (aspectLines.length) {
-      lines.push('', '5 aspectos (shots):');
+      lines.push("", "5 aspectos (shots):");
       aspectLines.forEach((a) => lines.push(`• ${a}`));
     }
   }
   if (brief.lumiera_requirement) {
-    lines.push('', 'Requisito Lumiera (roteiro deve cumprir):', brief.lumiera_requirement);
+    lines.push(
+      "",
+      "Requisito Lumiera (roteiro deve cumprir):",
+      brief.lumiera_requirement
+    );
   }
   lines.push(
-    '',
-    'Instrução ao roteirista: preserve o pacing e o gancho do referência, mas o assunto e o twist devem ser claramente diferenciados.',
+    "",
+    "Instrução ao roteirista: preserve o pacing e o gancho do referência, mas o assunto e o twist devem ser claramente diferenciados."
   );
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /** Monta outline do Creator a partir do import (inclui reidratação OpenMontage). */
 export function resolveEditorialImportOutline(
   importData: Pick<
     EditorialIdeaImport,
-    | 'whyWorks'
-    | 'mechanic'
-    | 'sourceProject'
-    | 'sourceBlock'
-    | 'agentReachResearch'
-    | 'pioneerMeta'
-    | 'openMontageOutline'
-    | 'openMontage'
-  >,
+    | "whyWorks"
+    | "mechanic"
+    | "sourceProject"
+    | "sourceBlock"
+    | "agentReachResearch"
+    | "pioneerMeta"
+    | "openMontageOutline"
+    | "openMontage"
+  >
 ): string {
-  let openMontageOutline = importData.openMontageOutline?.trim() || '';
+  let openMontageOutline = importData.openMontageOutline?.trim() || "";
   if (!openMontageOutline && importData.openMontage?.brief) {
     openMontageOutline = buildOpenMontageCreatorOutline({
       brief: importData.openMontage.brief,
@@ -290,56 +319,79 @@ export function resolveEditorialImportOutline(
 export function buildEditorialImportOutline(
   importData: Pick<
     EditorialIdeaImport,
-    'whyWorks' | 'mechanic' | 'sourceProject' | 'sourceBlock' | 'agentReachResearch' | 'pioneerMeta'
+    | "whyWorks"
+    | "mechanic"
+    | "sourceProject"
+    | "sourceBlock"
+    | "agentReachResearch"
+    | "pioneerMeta"
   > & {
     openMontageOutline?: string;
-  },
+  }
 ): string {
   const parts: string[] = [];
   if (importData.openMontageOutline) parts.push(importData.openMontageOutline);
-  const researchBlock = buildAgentReachResearchOutline(importData.agentReachResearch);
+  const researchBlock = buildAgentReachResearchOutline(
+    importData.agentReachResearch
+  );
   if (researchBlock) parts.push(researchBlock);
   const hasPioneerMeta = Boolean(
-    importData.pioneerMeta?.angle
-    || importData.pioneerMeta?.macroNiche
-    || importData.pioneerMeta?.formatPattern,
+    importData.pioneerMeta?.angle ||
+    importData.pioneerMeta?.macroNiche ||
+    importData.pioneerMeta?.formatPattern
   );
-  if ((importData.mechanic === 'pioneer-niche' || hasPioneerMeta) && importData.pioneerMeta) {
-    parts.push(buildPioneerCreatorOutline(importData.pioneerMeta, importData.whyWorks));
-  } else if (importData.whyWorks && !isPioneerStrategyText(importData.whyWorks)) {
-    parts.push(importData.whyWorks);
-  } else if (importData.whyWorks && isPioneerStrategyText(importData.whyWorks)) {
+  if (
+    (importData.mechanic === "pioneer-niche" || hasPioneerMeta) &&
+    importData.pioneerMeta
+  ) {
     parts.push(
-      'TEMA DO VÍDEO: use o título/gancho como assunto real. Contexto estratégico (NÃO vire isso no roteiro):',
-      importData.whyWorks,
+      buildPioneerCreatorOutline(importData.pioneerMeta, importData.whyWorks)
+    );
+  } else if (
+    importData.whyWorks &&
+    !isPioneerStrategyText(importData.whyWorks)
+  ) {
+    parts.push(importData.whyWorks);
+  } else if (
+    importData.whyWorks &&
+    isPioneerStrategyText(importData.whyWorks)
+  ) {
+    parts.push(
+      "TEMA DO VÍDEO: use o título/gancho como assunto real. Contexto estratégico (NÃO vire isso no roteiro):",
+      importData.whyWorks
     );
   }
   if (importData.mechanic) parts.push(`Mecânica: ${importData.mechanic}`);
   if (importData.sourceProject) {
-    const blockHint = importData.sourceBlock ? ` · bloco ${importData.sourceBlock}` : '';
+    const blockHint = importData.sourceBlock
+      ? ` · bloco ${importData.sourceBlock}`
+      : "";
     parts.push(`Origem: ${importData.sourceProject}${blockHint}`);
   }
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }
 
 export function isClipFactorySource(source?: string): boolean {
-  return String(source || '').startsWith('clip-factory:');
+  return String(source || "").startsWith("clip-factory:");
 }
 
 /** Normaliza texto vindo da fila — evita [object Object] no Creator. */
-export function coerceCreatorTextField(value: unknown, fallback = ''): string {
-  if (value == null) return String(fallback || '').trim();
-  if (typeof value === 'string') {
+export function coerceCreatorTextField(value: unknown, fallback = ""): string {
+  if (value == null) return String(fallback || "").trim();
+  if (typeof value === "string") {
     const s = value.trim();
-    if (!s || s.includes('[object Object]')) return String(fallback || '').trim();
+    if (!s || s.includes("[object Object]"))
+      return String(fallback || "").trim();
     return s;
   }
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    const nested = obj.phrase ?? obj.text ?? obj.hook ?? obj.title ?? obj.angle ?? '';
+    const nested =
+      obj.phrase ?? obj.text ?? obj.hook ?? obj.title ?? obj.angle ?? "";
     return coerceCreatorTextField(nested, fallback);
   }
   const s = String(value).trim();
-  if (!s || s === '[object Object]' || s.includes('[object Object]')) return String(fallback || '').trim();
+  if (!s || s === "[object Object]" || s.includes("[object Object]"))
+    return String(fallback || "").trim();
   return s;
 }

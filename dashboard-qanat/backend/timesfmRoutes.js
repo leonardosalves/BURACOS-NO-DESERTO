@@ -27,7 +27,7 @@ function buildPioneerLlmFn(deps) {
   return async (prompt) => {
     const tryCall = async (label, fn) => {
       try {
-        const text = String(await fn() || "").trim();
+        const text = String((await fn()) || "").trim();
         if (text) return text;
       } catch (err) {
         console.warn(`[PioneerNiche] ${label}:`, err.message);
@@ -37,21 +37,25 @@ function buildPioneerLlmFn(deps) {
 
     if (getAiProvider?.(WORKSPACE_DIR) === "nvidia" && callNvidiaWithRetry) {
       for (const model of (NVIDIA_MODELS || []).slice(0, 3)) {
-        const text = await tryCall(`nvidia-${model}`, () => callNvidiaWithRetry(prompt, {
-          maxRetries: 1,
-          models: [model],
-          temperature: 0.25,
-          projectDir: WORKSPACE_DIR,
-        }));
+        const text = await tryCall(`nvidia-${model}`, () =>
+          callNvidiaWithRetry(prompt, {
+            maxRetries: 1,
+            models: [model],
+            temperature: 0.25,
+            projectDir: WORKSPACE_DIR,
+          })
+        );
         if (text) return text;
       }
     }
 
-    const text = await tryCall("gemini", () => callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
-      maxRetries: 1,
-      temperature: 0.25,
-      projectDir: WORKSPACE_DIR,
-    }));
+    const text = await tryCall("gemini", () =>
+      callGeminiWithRetry(getApiKey(WORKSPACE_DIR), prompt, {
+        maxRetries: 1,
+        temperature: 0.25,
+        projectDir: WORKSPACE_DIR,
+      })
+    );
     return text;
   };
 }
@@ -72,8 +76,11 @@ export function registerTimesfmRoutes(app, deps) {
   app.post("/api/trends/pioneer-niches", async (req, res) => {
     try {
       const formatRaw = String(req.body?.format || "SHORTS").toUpperCase();
-      const format = ["SHORT", "SHORTS", "LONG", "LONGO"].includes(formatRaw) ? formatRaw : "SHORTS";
-      const discoveryMode = req.body?.discoveryMode === "chosen" ? "chosen" : "virgin";
+      const format = ["SHORT", "SHORTS", "LONG", "LONGO"].includes(formatRaw)
+        ? formatRaw
+        : "SHORTS";
+      const discoveryMode =
+        req.body?.discoveryMode === "chosen" ? "chosen" : "virgin";
       const result = await discoverPioneerNiches(WORKSPACE_DIR, {
         niche: String(req.body?.niche || "").trim(),
         format,
@@ -85,7 +92,13 @@ export function registerTimesfmRoutes(app, deps) {
       if (!result.ok) return res.status(400).json(result);
       res.json(result);
     } catch (err) {
-      res.status(500).json({ ok: false, error: "Falha na descoberta de nichos pioneiros", details: err.message });
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error: "Falha na descoberta de nichos pioneiros",
+          details: err.message,
+        });
     }
   });
 
@@ -110,8 +123,11 @@ export function registerTimesfmRoutes(app, deps) {
   app.post("/api/trends/saved", (req, res) => {
     try {
       const saveType = req.body?.type === "scan" ? "scan" : "niche";
-      const discoveryMode = req.body?.discoveryMode === "chosen" ? "chosen" : "virgin";
-      const nicheFilter = String(req.body?.nicheFilter || req.body?.niche || "").trim();
+      const discoveryMode =
+        req.body?.discoveryMode === "chosen" ? "chosen" : "virgin";
+      const nicheFilter = String(
+        req.body?.nicheFilter || req.body?.niche || ""
+      ).trim();
       const format = String(req.body?.format || "SHORTS").toUpperCase();
 
       if (saveType === "scan") {
@@ -135,7 +151,13 @@ export function registerTimesfmRoutes(app, deps) {
       });
       res.json(result);
     } catch (err) {
-      res.status(500).json({ ok: false, error: "Falha ao salvar resultado", details: err.message });
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error: "Falha ao salvar resultado",
+          details: err.message,
+        });
     }
   });
 
@@ -152,7 +174,9 @@ export function registerTimesfmRoutes(app, deps) {
   app.post("/api/trends/forecast", async (req, res) => {
     try {
       const formatRaw = String(req.body?.format || "all").toUpperCase();
-      const format = ["SHORT", "SHORTS", "LONG", "LONGO", "ALL"].includes(formatRaw)
+      const format = ["SHORT", "SHORTS", "LONG", "LONGO", "ALL"].includes(
+        formatRaw
+      )
         ? formatRaw
         : "all";
 
@@ -166,14 +190,101 @@ export function registerTimesfmRoutes(app, deps) {
         enqueueIdeas: req.body?.enqueueIdeas === true,
         niche: String(req.body?.niche || "").trim(),
         discoverPioneers: req.body?.discoverPioneers === true,
-        discoveryMode: req.body?.discoveryMode === "chosen" ? "chosen" : "virgin",
+        discoveryMode:
+          req.body?.discoveryMode === "chosen" ? "chosen" : "virgin",
         pioneerLlmFn: req.body?.discoverPioneers === true ? pioneerLlmFn : null,
       });
 
       if (!result.ok) return res.status(400).json(result);
       res.json(result);
     } catch (err) {
-      res.status(500).json({ ok: false, error: "Falha na previsão de tendências", details: err.message });
+      res
+        .status(500)
+        .json({
+          ok: false,
+          error: "Falha na previsão de tendências",
+          details: err.message,
+        });
+    }
+  });
+
+  app.post("/api/trends/expand-pioneer-idea", async (req, res) => {
+    try {
+      if (!pioneerLlmFn) {
+        return res.status(400).json({
+          ok: false,
+          error: "IA não configurada ou sem chave de API ativa.",
+        });
+      }
+
+      const { macroNiche, label, angle, audience, videoConcept, format } =
+        req.body;
+      const isShorts = String(format || "").toUpperCase() !== "LONGO";
+      const targetFormat = isShorts ? "SHORTS" : "LONGO";
+
+      const prompt = `You are an expert YouTube content strategist.
+Given the following YouTube video trend/niche idea:
+- Macro Niche: ${macroNiche || "General"}
+- Topic: ${label || "General Topic"}
+- Angle/Idea: ${angle || "Interesting facts"}
+- Target Audience: ${audience || "General Audience"}
+- Video Concept: ${videoConcept || "Interactive explanation"}
+- Format: ${targetFormat}
+
+Your goal is to expand this idea into a structured video outline.
+All returned fields MUST be in English.
+1. "title": A highly catchy, high-CTR video title (in English, max 90 chars).
+2. "hook": A powerful retention hook candidates/phrases (in English). It should NOT be the same as the title. It should grab attention immediately (e.g. "We've been lied to about...").
+3. "promise": A general base script outline / promise of the video (in English, 2-3 sentences max).
+4. "blocks": A list of sequential script blocks.
+   - If the format is SHORTS, you MUST generate exactly between 3 and 5 blocks.
+   - If the format is LONGO, you MUST generate exactly between 5 and 8 blocks.
+   - Each block must have a number ("block": integer) and a concise description of what should be covered ("content": string in English).
+
+Respond STRICTLY in valid JSON format. Do not write any conversational text before or after the JSON.
+JSON format structure:
+{
+  "title": "...",
+  "hook": "...",
+  "promise": "...",
+  "blocks": [
+    { "block": 1, "content": "..." },
+    { "block": 2, "content": "..." }
+  ]
+}`;
+
+      const rawResponse = await pioneerLlmFn(prompt);
+      if (!rawResponse) {
+        throw new Error("Resposta vazia da IA.");
+      }
+
+      let cleaned = rawResponse.trim();
+      if (cleaned.startsWith("```")) {
+        cleaned = cleaned
+          .replace(/^```(json)?/, "")
+          .replace(/```$/, "")
+          .trim();
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (err) {
+        console.error("Falha ao analisar JSON retornado da expansão:", cleaned);
+        throw new Error(
+          "O modelo de IA não retornou um JSON válido. Tente novamente."
+        );
+      }
+
+      res.json({
+        ok: true,
+        title: parsed.title || angle || label,
+        hook: parsed.hook || angle || label,
+        promise: parsed.promise || label,
+        blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
     }
   });
 }
