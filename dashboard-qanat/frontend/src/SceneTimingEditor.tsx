@@ -110,7 +110,6 @@ function SceneAssetPreview({
           className="ste-asset-media"
           muted
           playsInline
-          autoPlay
           preload="metadata"
         />
         <span className="ste-asset-badge">
@@ -294,6 +293,25 @@ export function SceneTimingEditor({
     },
     [playingKey, stopPlayback]
   );
+
+  const isPlayheadPlaying = playingKey !== null;
+
+  const handlePreviewPlayToggle = useCallback(() => {
+    if (isPlayheadPlaying) {
+      stopPlayback();
+      return;
+    }
+    if (!blockModel) return;
+    const el = audioRef.current;
+    if (!el) return;
+
+    // Play the entire block from current position to end
+    const absStart = blockModel.narrationStart + currentTime;
+    setPlayingKey(`preview-${activeBlock}`);
+    playEndRef.current = blockModel.narrationEnd;
+    el.currentTime = absStart;
+    void el.play().catch(() => stopPlayback());
+  }, [isPlayheadPlaying, stopPlayback, blockModel, currentTime, activeBlock]);
 
   const handleDurationChange = (sceneIdx: number, value: number) => {
     const assets = draft[activeBlock] || [];
@@ -1226,8 +1244,8 @@ export function SceneTimingEditor({
                       key={activeSceneInPreview.assetPath}
                       src={getAssetUrl(activeSceneInPreview.assetPath)}
                       className="w-full h-full object-cover"
-                      autoPlay
                       muted
+                      preload="metadata"
                     />
                   ) : (
                     <img
@@ -1246,20 +1264,22 @@ export function SceneTimingEditor({
               {/* Subtitles Overlay / Simulated Component */}
               {activeOverlayInPreview && (
                 <>
-                  <div className="ste-overlay-wrapper absolute inset-0 pointer-events-none z-20">
-                    <OverlayPreview
-                      overlay={activeOverlayInPreview}
-                      aspectRatio={config?.aspect_ratio || "9:16"}
-                      accentColor={
-                        activeOverlayInPreview.props?.accentColor || "#FF3D00"
-                      }
-                      compact={true}
-                    />
-                  </div>
-                  {/* Fallback label at the bottom with high contrast opacity */}
+                  {playingKey !== null ? (
+                    <div className="ste-overlay-wrapper absolute inset-0 pointer-events-none z-20">
+                      <OverlayPreview
+                        overlay={activeOverlayInPreview}
+                        aspectRatio={config?.aspect_ratio || "9:16"}
+                        accentColor={
+                          activeOverlayInPreview.props?.accentColor || "#FF3D00"
+                        }
+                        compact={true}
+                      />
+                    </div>
+                  ) : null}
+                  {/* Static label visible always when overlay is in range */}
                   <div className="absolute bottom-6 left-2 right-2 text-center z-10 pointer-events-none">
                     <span
-                      className="font-sans font-extrabold uppercase text-[10px] md:text-xs text-yellow-500 tracking-wider leading-relaxed opacity-40"
+                      className={`font-sans font-extrabold uppercase text-[10px] md:text-xs text-yellow-500 tracking-wider leading-relaxed ${playingKey !== null ? "opacity-40" : "opacity-90"}`}
                       style={{
                         textShadow:
                           "1px 1px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000",
