@@ -1493,10 +1493,27 @@ export function buildNarrationOnlyPrompt({
     listicleBlockCount,
   });
 
+  const userBlockCount =
+    Array.isArray(idea?.blocks) && idea.blocks.length > 0
+      ? idea.blocks.length
+      : format === "SHORTS"
+        ? 4
+        : 8;
+
+  const isPioneerNiche =
+    idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
+  // Para pioneer-niche, o NotebookLM pode ter dados de projetos anteriores.
+  // Usamos o contexto apenas como guia de estilo/humanização, não como fonte de fatos.
+  const nlmBlock = notebooklmContext
+    ? isPioneerNiche
+      ? `\n[ESTILO/HUMANIZAÇÃO — use apenas como referência de tom e fluência, NÃO como fonte de fatos. Os fatos devem vir exclusivamente do tema descrito acima]:\n${notebooklmContext}\n`
+      : notebooklmContext
+    : "";
+
   return `Você é o "Lumiera Script Master" (Roteirista Profissional para YouTube).
 
 ${ideaHeader}
-${notebooklmContext}${webResearchContext}
+${nlmBlock}${webResearchContext}
 
 FASE 1 — APENAS NARRAÇÃO (o usuário revisará e aprovará antes dos blocos visuais):
 
@@ -1530,8 +1547,8 @@ REGRAS DESTA FASE:
     isListicle
       ? `Estruture em ${listicleBlockCount} blocos (intro + ${listicleRank} itens + outro). ${format === "SHORTS" && listicleRank <= 3 ? "Top 3 Short: máximo ~90 palavras, 1 fato forte por item." : ""}`
       : format === "SHORTS"
-        ? "30-50 segundos, ~80-130 palavras, 5 blocos lógicos."
-        : `10-20 minutos, 1500-3000 palavras, ${format === "SHORTS" ? 5 : 12} blocos lógicos.`
+        ? `SHORTS: use EXATAMENTE ${userBlockCount} blocos. Narração TOTAL: 80-130 palavras. Cada bloco = 1 a 3 frases curtas (máx. 12 palavras cada). NÃO ultrapasse 130 palavras. NÃO invente fatos fora do tema descrito acima.`
+        : `LONGO: use EXATAMENTE ${userBlockCount} blocos. 10-20 minutos, 1500-3000 palavras. Explore profundamente o tema.`
   }
 - Escreva BLOCO A BLOCO primeiro (frases curtas, 1 ideia por bloco), depois una em narrative_script.
 - Se houver pesquisa NotebookLM acima, priorize fatos verificáveis dela — estilo documental brasileiro enxuto.

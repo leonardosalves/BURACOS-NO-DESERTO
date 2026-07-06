@@ -7144,7 +7144,11 @@ export default function App() {
     }
 
     return {
-      niche: isCustom ? "Customized" : nicheInput.trim(),
+      niche: isCustom
+        ? editorialIdeaImport?.pioneerMeta?.macroNiche?.trim() ||
+          nicheInput.trim() ||
+          "Customized"
+        : nicheInput.trim(),
       format: formatSelector,
       idea: isCustom
         ? {
