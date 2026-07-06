@@ -353,14 +353,14 @@ export function TimelineStudio({
       </div>
 
       <div
-        className={`grid gap-3 min-h-[320px] ${
+        className={`grid gap-3 min-h-[360px] ${
           isVertical
-            ? "grid-cols-1 lg:grid-cols-[220px_1fr_240px]"
-            : "grid-cols-1 lg:grid-cols-[240px_1fr_260px]"
+            ? "grid-cols-1 lg:grid-cols-[minmax(170px,200px)_minmax(0,1.35fr)_minmax(170px,220px)]"
+            : "grid-cols-1 lg:grid-cols-[minmax(190px,220px)_minmax(0,2fr)_minmax(190px,240px)]"
         }`}
-        style={{ minHeight: isVertical ? 360 : 400 }}
+        style={{ minHeight: isVertical ? 440 : 560 }}
       >
-        <div className="min-h-[200px] lg:min-h-0 lg:h-[min(52vh,480px)]">
+        <div className="min-h-[180px] lg:min-h-0 lg:h-[min(58vh,540px)]">
           <StockMediaPanel
             videoClips={videoClips}
             getAssetUrl={getAssetUrl}
@@ -370,7 +370,7 @@ export function TimelineStudio({
             onStockClipAdded={addClipToStudio}
           />
         </div>
-        <div className="min-h-[220px] lg:min-h-0 lg:h-[min(52vh,480px)]">
+        <div className="min-h-[300px] lg:min-h-0 lg:h-[min(74vh,780px)]">
           <TimelineStudioPreview
             studio={studio}
             getAssetUrl={getAssetUrl}
@@ -379,7 +379,7 @@ export function TimelineStudio({
             onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
           />
         </div>
-        <div className="min-h-[200px] lg:min-h-0 lg:h-[min(52vh,480px)]">
+        <div className="min-h-[180px] lg:min-h-0 lg:h-[min(58vh,540px)]">
           <AskLumieraPanel
             playhead={studio.playhead}
             nichePack={studio.niche_pack}

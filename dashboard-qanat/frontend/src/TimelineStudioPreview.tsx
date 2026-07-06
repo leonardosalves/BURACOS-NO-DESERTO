@@ -258,9 +258,21 @@ export function TimelineStudioPreview({
     videoRef.current?.pause();
   }, [studio.playhead, playing, voiceSrc, syncVideoToTime]);
 
-  const frameClass = isVertical
-    ? "h-full w-auto max-w-full"
-    : "w-full h-auto max-h-full";
+  const frameStyle: React.CSSProperties = isVertical
+    ? {
+        aspectRatio: "9 / 16",
+        height: "100%",
+        width: "auto",
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }
+    : {
+        aspectRatio: "16 / 9",
+        width: "100%",
+        height: "auto",
+        maxWidth: "100%",
+        maxHeight: "100%",
+      };
 
   return (
     <div className="flex flex-col h-full min-h-0 rounded-2xl border border-zinc-800/80 bg-black overflow-hidden">
@@ -278,13 +290,10 @@ export function TimelineStudioPreview({
         </span>
       </div>
 
-      <div className="flex-1 flex items-center justify-center min-h-0 p-2 bg-zinc-950">
+      <div className="flex-1 flex items-center justify-center min-h-0 p-1 bg-zinc-950">
         <div
-          className={`relative overflow-hidden rounded-lg border border-zinc-800 bg-black ${frameClass}`}
-          style={{
-            aspectRatio: isVertical ? "9 / 16" : "16 / 9",
-            containerType: "size",
-          }}
+          className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black shadow-lg shadow-black/40"
+          style={{ ...frameStyle, containerType: "size" }}
         >
           {assetSrc ? (
             isVideo ? (
