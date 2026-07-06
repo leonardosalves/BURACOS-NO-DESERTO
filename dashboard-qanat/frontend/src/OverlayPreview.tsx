@@ -48,6 +48,12 @@ type Props = {
   className?: string;
   /** Duração do overlay no vídeo — alimenta animação de entrada/saída. */
   durationSeconds?: number;
+  /** Segundos dentro do overlay (scrub da timeline) — congela animação nesse frame. */
+  scrubSeconds?: number;
+  /** Controle externo de play da animação do overlay (timeline studio). */
+  timelinePlaying?: boolean;
+  /** Oculta chrome do preview (botões, meta) — uso embutido na timeline. */
+  embedded?: boolean;
   /** Clique no preview para escolher posição (grade 3×3). */
   onPositionSelect?: (positionId: string) => void;
 };
@@ -84,9 +90,18 @@ export function OverlayPreview({
   compact = false,
   className = "",
   durationSeconds = 6,
+  scrubSeconds,
+  timelinePlaying,
+  embedded = false,
   onPositionSelect,
 }: Props) {
   const [playing, setPlaying] = useState(true);
+  const animPlaying =
+    timelinePlaying != null ? timelinePlaying : scrubSeconds == null && playing;
+  const scrubFrame =
+    scrubSeconds != null
+      ? Math.round(Math.max(0, Math.min(durationSeconds, scrubSeconds)) * 30)
+      : null;
   const isShort = aspectRatio === "9:16";
   const format = isShort ? "short" : "long";
   const metrics = getOverlayPreviewMetrics(format);
@@ -99,7 +114,8 @@ export function OverlayPreview({
   const motion = useOverlayPreviewMotion(
     durationSeconds,
     overlay.type,
-    playing
+    animPlaying,
+    scrubFrame
   );
   const legibilityShadow =
     "0 1px 3px rgba(0,0,0,0.9), 0 2px 12px rgba(0,0,0,0.65)";
@@ -825,6 +841,21 @@ export function OverlayPreview({
       : null,
   ].filter(Boolean);
 
+  if (embedded) {
+    return (
+      <div className={`tss-embedded-overlay w-full h-full ${className}`.trim()}>
+        <div
+          className="overlay-preview-frame relative overflow-hidden w-full h-full"
+          style={{ aspectRatio: isShort ? "9 / 16" : "16 / 9" }}
+        >
+          <div className="absolute inset-0 z-10 pointer-events-none">
+            {renderOverlayContent()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`space-y-1.5 min-w-0 ${overlayPreviewFrameClass(format)} ${className}`.trim()}
@@ -833,19 +864,21 @@ export function OverlayPreview({
         <p className="text-[9px] text-[var(--dash-muted)] uppercase tracking-wider min-w-0 truncate">
           Preview em escala real · {previewMetaLabel}
         </p>
-        <button
-          type="button"
-          onClick={() => setPlaying((p) => !p)}
-          className="dash-btn-ghost text-[8px] px-2 py-0.5 flex items-center gap-1 shrink-0"
-          title="Reproduz animação de entrada e saída"
-        >
-          {playing ? (
-            <Pause className="w-3 h-3" />
-          ) : (
-            <Play className="w-3 h-3" />
-          )}
-          {playing ? "Pausar" : "Animar"}
-        </button>
+        {timelinePlaying == null ? (
+          <button
+            type="button"
+            onClick={() => setPlaying((p) => !p)}
+            className="dash-btn-ghost text-[8px] px-2 py-0.5 flex items-center gap-1 shrink-0"
+            title="Reproduz animação de entrada e saída"
+          >
+            {playing ? (
+              <Pause className="w-3 h-3" />
+            ) : (
+              <Play className="w-3 h-3" />
+            )}
+            {playing ? "Pausar" : "Animar"}
+          </button>
+        ) : null}
       </div>
       <div
         className="overlay-preview-frame relative overflow-hidden rounded-2xl border border-[var(--dash-border)] bg-zinc-950 w-full"

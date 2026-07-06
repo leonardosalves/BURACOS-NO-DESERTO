@@ -40,6 +40,7 @@ export function TimelineStudio({
   syncingTimings,
   generatingOverlays,
   getAssetUrl,
+  getMusicUrl,
   getProjectUrl,
   handleAutoMapAssets,
   handleGenerateAiOverlays,
@@ -373,7 +374,9 @@ export function TimelineStudio({
           <TimelineStudioPreview
             studio={studio}
             getAssetUrl={getAssetUrl}
+            getMusicUrl={getMusicUrl}
             aspectRatio={aspectRatio}
+            onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
           />
         </div>
         <div className="min-h-[200px] lg:min-h-0 lg:h-[min(52vh,480px)]">
