@@ -15534,11 +15534,7 @@ app.post(
       idea?.pioneerNiche === true || Boolean(idea?.pioneerMeta);
     let notebooklmContext = "";
     let notebooklmResearch = null;
-    if (
-      useNotebooklm !== false &&
-      !skipNotebooklmScript &&
-      !isPioneerFromIdea
-    ) {
+    if (useNotebooklm !== false && !skipNotebooklmScript) {
       report("notebooklm", "Consultando NotebookLM…", 18);
       try {
         console.log("[NotebookLM] Enriquecendo roteiro com pesquisa...");
