@@ -339,7 +339,11 @@ export function TimelineStudio({
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ persist: true }),
+                    body: JSON.stringify({
+                      persist: true,
+                      use_llm: true,
+                      fetch_satellite: true,
+                    }),
                   }
                 );
                 if (!planRes.ok) throw new Error(await planRes.text());

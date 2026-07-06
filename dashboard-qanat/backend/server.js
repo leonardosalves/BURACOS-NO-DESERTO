@@ -17829,6 +17829,10 @@ registerTimelineStudioRoutes(app, {
 registerMotionSceneRoutes(app, {
   getProjectDir,
   workspaceDir: WORKSPACE_DIR,
+  callGemini: (projDir, prompt, opts) =>
+    callGeminiWithRetry(getApiKey(projDir), prompt, opts),
+  getApiKey,
+  parseAiJson: parseAiJsonResponse,
 });
 
 registerVideoResurrectorRoutes(app, {

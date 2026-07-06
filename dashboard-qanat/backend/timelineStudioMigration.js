@@ -183,7 +183,21 @@ function migrateOverlayClips(storyboard = {}) {
     }));
 
   const motion = motionScenesToOverlayClips(storyboard.motion_scenes || []);
-  return [...legacy, ...motion];
+  const dedupedMotion = motion.filter((mc) => {
+    const mcKey = `${mc.templateId}::${mc.start.toFixed(1)}`;
+    return !legacy.some((lc) => {
+      const lcKey = `${lc.templateId}::${lc.start.toFixed(1)}`;
+      if (lcKey === mcKey) return true;
+      if (
+        lc.templateId === mc.templateId &&
+        Math.abs(lc.start - mc.start) < 2
+      ) {
+        return true;
+      }
+      return false;
+    });
+  });
+  return [...legacy, ...dedupedMotion];
 }
 
 function migrateCaptionClips(wordTranscripts = []) {

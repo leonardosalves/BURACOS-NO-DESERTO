@@ -10,6 +10,10 @@ import {
 } from "./motionScenePlanner.js";
 import { enrichMotionScenesWithSatellite } from "./satelliteMapService.js";
 import {
+  dedupeMotionScenesAgainstOverlays,
+  enrichMotionScenesWithLlm,
+} from "./motionSceneLlmEnrichment.js";
+import {
   loadTimelineStudio,
   saveTimelineStudio,
 } from "./timelineStudioMigration.js";
@@ -28,13 +32,14 @@ function readJsonSafe(filePath, fallback = {}) {
 
 export function registerMotionSceneRoutes(
   app,
-  { getProjectDir, workspaceDir }
+  { getProjectDir, workspaceDir, callGemini, getApiKey, parseAiJson }
 ) {
   app.post("/api/ai/creator/plan-motion-scenes", async (req, res) => {
     try {
       const projDir = getProjectDir(req);
       const persist = req.body?.persist !== false;
       const fetchSatellite = req.body?.fetch_satellite !== false;
+      const useLlm = req.body?.use_llm !== false;
       const storyboard = readJsonSafe(
         path.join(projDir, "storyboard.json"),
         {}
@@ -54,6 +59,33 @@ export function registerMotionSceneRoutes(
         config,
         blockTimings
       );
+
+      let llmMeta = null;
+      if (useLlm) {
+        const llmResult = await enrichMotionScenesWithLlm(plan, {
+          storyboard,
+          config,
+          overlaysAi: storyboard.overlays_ai || [],
+          callGemini,
+          getApiKey,
+          projDir,
+          parseAiJson,
+        });
+        plan = llmResult.plan;
+        llmMeta = llmResult.llm;
+      }
+
+      const deduped = dedupeMotionScenesAgainstOverlays(
+        plan.motion_scenes,
+        storyboard.overlays_ai || []
+      );
+      if (deduped.removed.length) {
+        plan = {
+          ...plan,
+          motion_scenes: deduped.scenes,
+          dedupe_removed: deduped.removed,
+        };
+      }
 
       let satelliteMeta = null;
       if (fetchSatellite && plan.motion_scenes.length > 0) {
@@ -78,6 +110,9 @@ export function registerMotionSceneRoutes(
             planner_version: plan.planner_version,
             source: plan.source,
             niche_pack: plan.niche_pack,
+            llm: llmMeta,
+            dedupe_removed:
+              plan.dedupe_removed || llmMeta?.dedupe_removed || [],
             satellite: satelliteMeta,
           },
         };
@@ -92,6 +127,7 @@ export function registerMotionSceneRoutes(
         ok: true,
         count: plan.motion_scenes.length,
         ...plan,
+        llm: llmMeta,
         satellite: satelliteMeta,
         persisted: persist,
       });
