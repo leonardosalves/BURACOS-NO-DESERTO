@@ -87,6 +87,41 @@ describe("motionSceneLlmEnrichment", () => {
     assert.equal(plan.motion_scenes[0].props.suffix, "%");
   });
 
+  it("applyLlmEnrichmentToPlan ignora cenas extras do LLM", () => {
+    const heuristic = {
+      motion_scenes: [
+        {
+          id: "ms-3.2",
+          scene_ref: "3.2",
+          template_id: "location-intro",
+          start_hint: 35.7,
+          props: { location: "Palmanova" },
+        },
+      ],
+      source: "heuristic",
+    };
+    const llm = {
+      motion_scenes: [
+        {
+          id: "ms-3.2",
+          template_id: "location-intro",
+          start_hint: 35.7,
+          props: { location: "Palmanova", fly_mode: "earth_descent" },
+        },
+        {
+          id: "ms-extra",
+          template_id: "kinetic-text",
+          start_hint: 0,
+          props: { text: "CHOCANTE" },
+        },
+      ],
+    };
+    const plan = applyLlmEnrichmentToPlan(heuristic, llm, { config: {} });
+    assert.equal(plan.motion_scenes.length, 1);
+    assert.equal(plan.motion_scenes[0].id, "ms-3.2");
+    assert.equal(plan.motion_scenes[0].props.fly_mode, "earth_descent");
+  });
+
   it("buildMotionSceneEnrichmentPrompt inclui overlays_ai", () => {
     const prompt = buildMotionSceneEnrichmentPrompt({
       heuristicPlan: {
