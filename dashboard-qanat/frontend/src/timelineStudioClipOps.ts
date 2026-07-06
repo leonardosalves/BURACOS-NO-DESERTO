@@ -108,3 +108,10 @@ export function deleteClip(clips: StudioClip[], clipId: string): StudioClip[] {
   if (!clip || !isClipEditable(clip)) return clips;
   return clips.filter((c) => c.id !== clipId);
 }
+
+export function appendClip(
+  clips: StudioClip[],
+  clip: StudioClip
+): StudioClip[] {
+  return [...clips, clip];
+}
