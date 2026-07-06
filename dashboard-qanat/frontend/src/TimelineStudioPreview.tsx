@@ -73,8 +73,14 @@ export function TimelineStudioPreview({
   const playheadRef = useRef(studio.playhead);
   const rafRef = useRef(0);
 
-  playheadRef.current = studio.playhead;
   const totalDur = studio.totalDuration || 120;
+
+  // Só sincroniza o ref com o estado quando pausado — durante play o RAF/áudio é a fonte
+  useEffect(() => {
+    if (!playing) {
+      playheadRef.current = studio.playhead;
+    }
+  }, [studio.playhead, playing]);
 
   const videoClip = activeVideoAt(studio.clips, studio.playhead);
   const caption = activeCaptionAt(studio.clips, studio.playhead);
@@ -110,46 +116,73 @@ export function TimelineStudioPreview({
     audioRef.current?.pause();
   }, []);
 
+  const advancePlayhead = useCallback(
+    (t: number) => {
+      const next = Math.min(totalDur, Math.max(0, t));
+      if (next < playheadRef.current - 0.02) return;
+      playheadRef.current = next;
+      onPlayheadChange(next);
+      if (next >= totalDur - 0.02) stopPlayback();
+    },
+    [onPlayheadChange, stopPlayback, totalDur]
+  );
+
   const togglePlay = useCallback(() => {
     if (playing) {
       stopPlayback();
       return;
     }
     if (studio.playhead >= totalDur - 0.05) {
-      onPlayheadChange(0);
       playheadRef.current = 0;
+      onPlayheadChange(0);
+    } else {
+      playheadRef.current = studio.playhead;
     }
     setPlaying(true);
   }, [onPlayheadChange, playing, stopPlayback, studio.playhead, totalDur]);
 
   useEffect(() => {
     if (!playing) return undefined;
+
+    const narration = audioRef.current;
+    const hasNarration = Boolean(voiceClip?.source && narration);
+
+    if (hasNarration && narration) {
+      narration.currentTime = playheadRef.current;
+      const onTimeUpdate = () => advancePlayhead(narration.currentTime);
+      narration.addEventListener("timeupdate", onTimeUpdate);
+      void narration.play().catch(() => {});
+      return () => {
+        narration.removeEventListener("timeupdate", onTimeUpdate);
+        narration.pause();
+      };
+    }
+
     let last = performance.now();
     const tick = (now: number) => {
-      const dt = (now - last) / 1000;
+      const dt = Math.max(0, (now - last) / 1000);
       last = now;
-      const next = Math.min(totalDur, playheadRef.current + dt);
-      playheadRef.current = next;
-      onPlayheadChange(next);
-      if (next >= totalDur - 0.02) {
-        stopPlayback();
-        return;
+      advancePlayhead(playheadRef.current + dt);
+      if (playheadRef.current < totalDur - 0.02) {
+        rafRef.current = requestAnimationFrame(tick);
       }
-      rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [onPlayheadChange, playing, stopPlayback, totalDur]);
+  }, [advancePlayhead, playing, totalDur, voiceClip?.source]);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !videoClip || !isVideo) return;
     const local = Math.max(0, studio.playhead - videoClip.start);
-    if (Math.abs(v.currentTime - local) > 0.12) {
-      try {
-        v.currentTime = local;
-      } catch {
-        /* ignore seek errors */
+    const drift = v.currentTime - local;
+    if (!playing || drift < -0.12 || drift > 0.3) {
+      if (Math.abs(drift) > 0.08) {
+        try {
+          v.currentTime = local;
+        } catch {
+          /* ignore seek errors */
+        }
       }
     }
     if (playing) {
@@ -160,6 +193,7 @@ export function TimelineStudioPreview({
   }, [studio.playhead, playing, videoClip, isVideo]);
 
   useEffect(() => {
+    if (playing) return;
     const a = audioRef.current;
     if (!a || !voiceClip?.source) return;
     if (Math.abs(a.currentTime - studio.playhead) > 0.12) {
@@ -169,11 +203,7 @@ export function TimelineStudioPreview({
         /* ignore */
       }
     }
-    if (playing) {
-      void a.play().catch(() => {});
-    } else {
-      a.pause();
-    }
+    a.pause();
   }, [studio.playhead, playing, voiceClip?.source]);
 
   const voiceSrc = voiceClip?.source
@@ -265,6 +295,7 @@ export function TimelineStudioPreview({
                   accentColor={String(draft.props?.accentColor || "#D4AF37")}
                   durationSeconds={clip.duration}
                   scrubSeconds={Math.max(0, localSec)}
+                  timelinePlaying={playing}
                   embedded
                 />
               </div>
