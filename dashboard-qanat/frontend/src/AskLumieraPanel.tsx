@@ -26,7 +26,7 @@ export function AskLumieraPanel({
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      text: "Sou o assistente da timeline. Na Fase 4 vou inserir overlays, buscar stock e aplicar pacotes de nicho. Por agora, use os clips migrados e ajuste o playhead.",
+      text: "Sou o assistente da timeline. Arraste e redimensione clips, edite legendas no inspetor. Na Fase 4 vou inserir overlays, buscar stock e aplicar pacotes de nicho via IA.",
     },
   ]);
 

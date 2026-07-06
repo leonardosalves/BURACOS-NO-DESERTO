@@ -4,9 +4,21 @@ import { AlertTriangle, Bot, RefreshCw, Save, Sparkles } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import { AskLumieraPanel } from "./AskLumieraPanel";
 import { StockMediaPanel } from "./StockMediaPanel";
+import { TimelineStudioClipInspector } from "./TimelineStudioClipInspector";
 import { TimelineStudioPreview } from "./TimelineStudioPreview";
 import { TimelineStudioTracks } from "./TimelineStudioTracks";
-import { clipsOnTrack, type TimelineStudioState } from "./timelineStudioTypes";
+import {
+  computeTotalDuration,
+  deleteClip,
+  findClip,
+  updateCaptionText,
+  updateClipInList,
+} from "./timelineStudioClipOps";
+import {
+  clipsOnTrack,
+  type StudioClip,
+  type TimelineStudioState,
+} from "./timelineStudioTypes";
 import type { RichTimelineEditorProps } from "./RichTimelineEditor";
 
 export type TimelineStudioProps = RichTimelineEditorProps;
@@ -80,6 +92,54 @@ export function TimelineStudio({
   const updateStudio = (patch: Partial<TimelineStudioState>) => {
     setStudio((prev) => (prev ? { ...prev, ...patch } : prev));
   };
+
+  const handleClipsChange = useCallback((clips: StudioClip[]) => {
+    setStudio((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        clips,
+        totalDuration: computeTotalDuration(clips, prev.totalDuration || 120),
+      };
+    });
+  }, []);
+
+  const selectedClip = useMemo(
+    () =>
+      selectedClipId && studio ? findClip(studio.clips, selectedClipId) : null,
+    [selectedClipId, studio]
+  );
+
+  const selectedTrack = useMemo(
+    () =>
+      selectedClip && studio
+        ? studio.tracks.find((t) => t.id === selectedClip.trackId)
+        : undefined,
+    [selectedClip, studio]
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selectedClipId || !studio) return;
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+      const next = deleteClip(studio.clips, selectedClipId);
+      if (next.length === studio.clips.length) return;
+      handleClipsChange(next);
+      setSelectedClipId(null);
+      toast.success("Clip removido");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleClipsChange, selectedClipId, studio]);
 
   const videoClips = useMemo(
     () => (studio ? clipsOnTrack(studio.clips, "video") : []),
@@ -260,7 +320,31 @@ export function TimelineStudio({
         onSelectClip={setSelectedClipId}
         onPlayheadChange={(sec) => updateStudio({ playhead: sec })}
         onZoomChange={(zoom) => updateStudio({ zoom })}
+        onClipsChange={handleClipsChange}
       />
+
+      {selectedClip ? (
+        <TimelineStudioClipInspector
+          clip={selectedClip}
+          track={selectedTrack}
+          onClose={() => setSelectedClipId(null)}
+          onUpdate={(patch) => {
+            handleClipsChange(
+              updateClipInList(studio.clips, selectedClip.id, patch)
+            );
+          }}
+          onCaptionText={(text) => {
+            handleClipsChange(
+              updateCaptionText(studio.clips, selectedClip.id, text)
+            );
+          }}
+          onDelete={() => {
+            handleClipsChange(deleteClip(studio.clips, selectedClip.id));
+            setSelectedClipId(null);
+            toast.success("Clip removido");
+          }}
+        />
+      ) : null}
 
       {storyboardData && status?.has_narration && !wordTranscripts?.length ? (
         <p className="text-[10px] text-zinc-600 text-center">
