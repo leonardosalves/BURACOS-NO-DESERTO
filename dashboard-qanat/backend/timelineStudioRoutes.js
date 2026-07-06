@@ -3,7 +3,6 @@
  */
 
 import {
-  loadTimelineStudio,
   saveTimelineStudio,
   migrateLegacyToTimelineStudio,
 } from "./timelineStudioMigration.js";
@@ -56,7 +55,8 @@ export function registerTimelineStudioRoutes(
   app.get("/api/timeline-studio", (req, res) => {
     try {
       const projDir = getProjectDir(req);
-      const { studio: rawStudio, migrated } = loadTimelineStudio(projDir);
+      const { studio: rawStudio, migrated } =
+        migrateLegacyToTimelineStudio(projDir);
       const studio = syncStudioMusicFromConfig(rawStudio, projDir);
       const musicChanged =
         JSON.stringify(musicClipSnapshot(rawStudio)) !==
