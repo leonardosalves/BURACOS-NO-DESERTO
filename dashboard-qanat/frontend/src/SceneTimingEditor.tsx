@@ -107,7 +107,6 @@ function SceneAssetPreview({
           className="ste-asset-media"
           muted
           playsInline
-          loop
           autoPlay
           preload="metadata"
         />
@@ -235,7 +234,7 @@ export function SceneTimingEditor({
 
   // Audio lifecycle & real-time timeupdate listener
   useEffect(() => {
-    audioRef.current = new Audio(getMediaUrl("narration.mp3"));
+    audioRef.current = new Audio(getMediaUrl("narracao_mestra_premium.mp3"));
     const el = audioRef.current;
 
     const onTime = () => {
@@ -1033,7 +1032,6 @@ export function SceneTimingEditor({
                       className="w-full h-full object-cover"
                       autoPlay
                       muted
-                      loop
                     />
                   ) : (
                     <img
