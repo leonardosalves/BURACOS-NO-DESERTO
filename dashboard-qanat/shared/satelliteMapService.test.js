@@ -5,6 +5,10 @@ import {
   resolveKnownCoordinates,
   buildMapboxStaticUrl,
   buildEsriExportUrl,
+  classifyPlaceType,
+  buildZoomSequence,
+  EARTH_DESCENT_ZOOMS,
+  CITY_OUTLINE_ZOOMS,
 } from "../backend/satelliteMapService.js";
 
 describe("satelliteMapService", () => {
@@ -30,5 +34,31 @@ describe("satelliteMapService", () => {
     const url = buildEsriExportUrl(45.9, 13.31, 10);
     assert.match(url, /World_Imagery/);
     assert.match(url, /format=jpg/);
+  });
+
+  it("classifyPlaceType detecta POI por fortaleza", () => {
+    const c = classifyPlaceType("a fortaleza estelar de Palmanova", {
+      location: "Palmanova",
+    });
+    assert.equal(c.place_type, "poi");
+    assert.equal(c.fly_mode, "earth_descent");
+  });
+
+  it("classifyPlaceType detecta cidade", () => {
+    const c = classifyPlaceType("na cidade de Roma", { location: "Roma" });
+    assert.equal(c.place_type, "city");
+    assert.equal(c.fly_mode, "city_outline");
+  });
+
+  it("buildZoomSequence retorna keyframes corretos", () => {
+    assert.deepEqual(
+      buildZoomSequence("earth_descent", 8, 14),
+      EARTH_DESCENT_ZOOMS
+    );
+    assert.deepEqual(
+      buildZoomSequence("city_outline", 8, 14),
+      CITY_OUTLINE_ZOOMS
+    );
+    assert.deepEqual(buildZoomSequence("simple", 8, 14), [8, 14]);
   });
 });
