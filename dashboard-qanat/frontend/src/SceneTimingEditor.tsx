@@ -157,13 +157,14 @@ export function SceneTimingEditor({
   const [syncing, setSyncing] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [draggingDivider, setDraggingDivider] = useState<number | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const playEndRef = useRef<number | null>(null);
 
-  // Playhead and Real-time preview player state
+  // Playhead states
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPlayheadPlaying, setIsPlayheadPlaying] = useState(false);
+  const [isVisualPlaying, setIsVisualPlaying] = useState(false);
 
   useEffect(() => {
     setDraft(structuredClone(config?.timeline_assets || {}));
@@ -218,21 +219,53 @@ export function SceneTimingEditor({
     flatWords.length > 0 && Boolean(status?.block_timings?.starts?.length);
   const hasNarration = Boolean(status?.has_narration);
 
-  // Reset playhead when active block changes
+  // Stop playback callback
+  const stopPlayback = useCallback(() => {
+    audioRef.current?.pause();
+    setPlayingKey(null);
+    playEndRef.current = null;
+  }, []);
+
+  // Sync playhead state when active block changes
   useEffect(() => {
     setCurrentTime(0);
-    setIsPlayheadPlaying(false);
-  }, [activeBlock]);
+    setIsVisualPlaying(false);
+    stopPlayback();
+  }, [activeBlock, stopPlayback]);
 
-  // Real-time Preview Player Simulation
+  // Audio lifecycle & real-time timeupdate listener
+  useEffect(() => {
+    audioRef.current = new Audio(getMediaUrl("narration.mp3"));
+    const el = audioRef.current;
+
+    const onTime = () => {
+      if (playEndRef.current !== null && el.currentTime >= playEndRef.current) {
+        stopPlayback();
+        if (blockModel) {
+          setCurrentTime(blockModel.narrationEnd - blockModel.narrationStart);
+        }
+      } else if (blockModel) {
+        const relTime = el.currentTime - blockModel.narrationStart;
+        setCurrentTime(Math.max(0, relTime));
+      }
+    };
+
+    el.addEventListener("timeupdate", onTime);
+    return () => {
+      el.pause();
+      el.removeEventListener("timeupdate", onTime);
+    };
+  }, [getMediaUrl, stopPlayback, blockModel]);
+
+  // Fallback visual simulation loop when there is no narration
   useEffect(() => {
     let interval: any;
-    if (isPlayheadPlaying && blockModel) {
+    if (isVisualPlaying && !hasNarration && blockModel) {
       interval = setInterval(() => {
         setCurrentTime((prev) => {
           const next = prev + 0.1;
           if (next >= blockModel.totalDuration) {
-            setIsPlayheadPlaying(false);
+            setIsVisualPlaying(false);
             return blockModel.totalDuration;
           }
           return next;
@@ -240,13 +273,7 @@ export function SceneTimingEditor({
       }, 100);
     }
     return () => clearInterval(interval);
-  }, [isPlayheadPlaying, blockModel]);
-
-  const stopPlayback = useCallback(() => {
-    audioRef.current?.pause();
-    setPlayingKey(null);
-    playEndRef.current = null;
-  }, []);
+  }, [isVisualPlaying, hasNarration, blockModel]);
 
   useEffect(() => () => stopPlayback(), [stopPlayback]);
 
@@ -258,32 +285,18 @@ export function SceneTimingEditor({
         return;
       }
 
-      if (!audioRef.current) {
-        audioRef.current = new Audio(getMediaUrl("narration.mp3"));
-      }
+      const el = audioRef.current;
+      if (!el) return;
 
       stopPlayback();
       setPlayingKey(key);
       playEndRef.current = end;
 
-      audioRef.current.currentTime = start;
-      void audioRef.current.play().catch(() => stopPlayback());
+      el.currentTime = start;
+      void el.play().catch(() => stopPlayback());
     },
-    [playingKey, stopPlayback, getMediaUrl]
+    [playingKey, stopPlayback]
   );
-
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-
-    const onTime = () => {
-      if (playEndRef.current !== null && el.currentTime >= playEndRef.current) {
-        stopPlayback();
-      }
-    };
-    el.addEventListener("timeupdate", onTime);
-    return () => el.removeEventListener("timeupdate", onTime);
-  }, [stopPlayback]);
 
   const handleDurationChange = (sceneIdx: number, value: number) => {
     const assets = draft[activeBlock] || [];
@@ -458,7 +471,7 @@ export function SceneTimingEditor({
 
   // Find active scene and overlay at current player playhead
   const activeSceneInPreview = useMemo(() => {
-    if (!blockModel) return null;
+    if (!blockModel || !blockModel.scenes.length) return null;
     let acc = 0;
     for (const scene of blockModel.scenes) {
       if (currentTime >= acc && currentTime <= acc + scene.duration) {
@@ -466,7 +479,8 @@ export function SceneTimingEditor({
       }
       acc += scene.duration;
     }
-    return blockModel.scenes[blockModel.scenes.length - 1] || null;
+    // Freeze last scene frame if playhead goes past the end
+    return blockModel.scenes[blockModel.scenes.length - 1];
   }, [blockModel, currentTime]);
 
   const activeOverlayInPreview = useMemo(() => {
@@ -474,6 +488,37 @@ export function SceneTimingEditor({
       (ot) => currentTime >= ot.start_offset && currentTime <= ot.end_offset
     );
   }, [activeBlockOverlays, currentTime]);
+
+  // Preview Play/Pause click handler (drives the audio narration playback)
+  const handlePreviewPlayToggle = () => {
+    if (!blockModel) return;
+
+    if (playingKey !== null) {
+      stopPlayback();
+    } else {
+      if (hasNarration) {
+        const startAbs = blockModel.narrationStart + currentTime;
+        const endAbs = blockModel.narrationEnd;
+        if (startAbs < endAbs) {
+          playScene(activeBlock, 999, startAbs, endAbs);
+        } else {
+          // Play from beginning if playhead is at the end
+          playScene(
+            activeBlock,
+            999,
+            blockModel.narrationStart,
+            blockModel.narrationEnd
+          );
+        }
+      } else {
+        // Visual-only simulation fallback
+        if (currentTime >= blockModel.totalDuration) {
+          setCurrentTime(0);
+        }
+        setIsVisualPlaying(!isVisualPlaying);
+      }
+    }
+  };
 
   if (!activeProject) {
     return (
@@ -491,6 +536,8 @@ export function SceneTimingEditor({
       </div>
     );
   }
+
+  const isPlayheadPlaying = playingKey !== null || isVisualPlaying;
 
   return (
     <div className="ste-root space-y-5 font-sans">
@@ -553,10 +600,7 @@ export function SceneTimingEditor({
             <button
               key={key}
               type="button"
-              onClick={() => {
-                stopPlayback();
-                setActiveBlock(key);
-              }}
+              onClick={active ? undefined : () => setActiveBlock(key)}
               className={`ste-block-tab ${active ? "ste-block-tab--active" : ""}`}
             >
               Bloco {key}
@@ -630,7 +674,24 @@ export function SceneTimingEditor({
 
               <div
                 ref={timelineRef}
-                className="ste-timeline-track relative h-28 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800"
+                onClick={(e) => {
+                  if (draggingDivider !== null || !timelineRef.current) return;
+                  const rect = timelineRef.current.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const newRelativeTime = Math.max(
+                    0,
+                    Math.min(
+                      (clickX / rect.width) * blockModel.totalDuration,
+                      blockModel.totalDuration
+                    )
+                  );
+                  setCurrentTime(newRelativeTime);
+                  if (audioRef.current && playingKey !== null) {
+                    audioRef.current.currentTime =
+                      blockModel.narrationStart + newRelativeTime;
+                  }
+                }}
+                className="ste-timeline-track relative h-28 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 cursor-col-resize"
               >
                 {blockModel.scenes.map((scene, idx) => {
                   const widthPct =
@@ -647,7 +708,7 @@ export function SceneTimingEditor({
                   return (
                     <div
                       key={scene.idx}
-                      className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden"
+                      className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden pointer-events-none"
                       style={{
                         left: `${leftPct}%`,
                         width: `${widthPct}%`,
@@ -700,7 +761,10 @@ export function SceneTimingEditor({
                       type="button"
                       className="ste-timeline-divider"
                       style={{ left: `calc(${leftPct}% - 6px)` }}
-                      onMouseDown={() => setDraggingDivider(idx)}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        setDraggingDivider(idx);
+                      }}
                       aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
                     />
                   );
@@ -799,7 +863,13 @@ export function SceneTimingEditor({
                       <div className="flex gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={() => setCurrentTime(ot.start_offset)}
+                          onClick={() => {
+                            setCurrentTime(ot.start_offset);
+                            if (audioRef.current && playingKey !== null) {
+                              audioRef.current.currentTime =
+                                blockModel.narrationStart + ot.start_offset;
+                            }
+                          }}
                           className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[10px] rounded-xl text-gold-500 hover:text-gold-400 font-bold transition flex items-center gap-1 cursor-pointer"
                           title="Seek na linha do tempo"
                         >
@@ -914,7 +984,7 @@ export function SceneTimingEditor({
                           {" · "}
                           {scene.words.length} palavras
                           <span
-                            className="text-zinc-650 ml-1"
+                            className="text-zinc-655 ml-1"
                             title="Duração visual do asset"
                           >
                             (asset {scene.duration.toFixed(1)}s)
@@ -1003,7 +1073,12 @@ export function SceneTimingEditor({
                   const rect = e.currentTarget.getBoundingClientRect();
                   const clickX = e.clientX - rect.left;
                   const pct = clickX / rect.width;
-                  setCurrentTime(pct * blockModel.totalDuration);
+                  const newRelativeTime = pct * blockModel.totalDuration;
+                  setCurrentTime(newRelativeTime);
+                  if (audioRef.current && playingKey !== null) {
+                    audioRef.current.currentTime =
+                      blockModel.narrationStart + newRelativeTime;
+                  }
                 }}
               >
                 <div
@@ -1018,8 +1093,8 @@ export function SceneTimingEditor({
               <div className="flex justify-between items-center mt-3">
                 <button
                   type="button"
-                  onClick={() => setIsPlayheadPlaying(!isPlayheadPlaying)}
-                  className={`p-2 rounded-full flex items-center justify-center transition shadow-md ${
+                  onClick={handlePreviewPlayToggle}
+                  className={`p-2 rounded-full flex items-center justify-center transition shadow-md cursor-pointer ${
                     isPlayheadPlaying
                       ? "bg-gold-500 text-zinc-950 hover:bg-gold-600"
                       : "bg-zinc-900 hover:bg-zinc-800 text-white"
