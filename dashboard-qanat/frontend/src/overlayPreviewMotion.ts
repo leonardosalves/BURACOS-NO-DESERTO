@@ -147,7 +147,8 @@ export function overlayMotionTransform(
 export function useOverlayPreviewMotion(
   durationSeconds: number,
   overlayType: string,
-  playing = true
+  playing = true,
+  externalFrame?: number | null
 ): OverlayPreviewMotion {
   const totalFrames = Math.max(
     PREVIEW_FPS * 2,
@@ -156,6 +157,12 @@ export function useOverlayPreviewMotion(
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
+    if (externalFrame != null) {
+      setFrame(
+        Math.max(0, Math.min(totalFrames - 1, Math.round(externalFrame)))
+      );
+      return undefined;
+    }
     if (!playing) return undefined;
     const loopMs = (totalFrames / PREVIEW_FPS) * 1000;
     const started = performance.now();
@@ -167,7 +174,7 @@ export function useOverlayPreviewMotion(
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, totalFrames]);
+  }, [playing, totalFrames, externalFrame]);
 
   const derived = computeOverlayPreviewMotion(frame, totalFrames, overlayType);
 
