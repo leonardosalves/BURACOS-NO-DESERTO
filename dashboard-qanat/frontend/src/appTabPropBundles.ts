@@ -25,6 +25,7 @@ import type React from "react";
 
 /** Union of values App passes into tab prop bundles (extras + tab prop fields). */
 export type AppTabPropContext = Record<string, unknown> & {
+  [key: string]: any;
   activeProject: string;
   activeTab: AppTab;
   brandPanelProps: Record<string, unknown>;

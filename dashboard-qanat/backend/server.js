@@ -574,6 +574,7 @@ const OPENROUTER_FREE_MODELS = [
 ];
 
 const app = express();
+app.disable("x-powered-by");
 
 // --- Crash log persistente (sobrevive a restarts) ---
 const CRASH_LOG_PATH = path.join(
@@ -662,6 +663,14 @@ app.get("/api/render/active", (req, res) => {
 });
 
 app.use(cors());
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader(
+    "Cache-Control",
+    req.path.startsWith("/api/") ? "no-store" : "public"
+  );
+  next();
+});
 
 if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
   app.use(
@@ -670,7 +679,8 @@ if (fs.existsSync(LOTTIE_ASSETS_DIR)) {
   );
 }
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb", strict: true }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Catch malformed JSON syntax errors to prevent crashing
 app.use((err, req, res, next) => {
@@ -17871,6 +17881,11 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   });
 });
 
+server.requestTimeout = 15 * 60 * 1000;
+server.headersTimeout = 65 * 1000;
+server.keepAliveTimeout = 10 * 1000;
+server.maxRequestsPerSocket = 500;
+
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(
@@ -17881,6 +17896,26 @@ server.on("error", (err) => {
   }
   throw err;
 });
+
+function shutdownGracefully(signal) {
+  console.log(
+    `[Lumiera] ${signal} recebido. Encerrando backend com segurança...`
+  );
+  server.close((err) => {
+    if (err) {
+      console.error("[Lumiera] Erro ao encerrar servidor:", err);
+      process.exit(1);
+    }
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.warn("[Lumiera] Shutdown demorou demais; finalizando processo.");
+    process.exit(1);
+  }, 10_000).unref();
+}
+
+process.once("SIGINT", () => shutdownGracefully("SIGINT"));
+process.once("SIGTERM", () => shutdownGracefully("SIGTERM"));
 
 function buildSceneTimingMaps(actualScenes, storyboard, starts, durations) {
   const sceneStarts = {};

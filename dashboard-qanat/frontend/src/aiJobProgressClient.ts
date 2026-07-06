@@ -44,7 +44,9 @@ export function subscribeAiJobProgress(
 ) {
   listeners.add(fn);
   fn(current);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
 export function getAiJobProgressState() {
