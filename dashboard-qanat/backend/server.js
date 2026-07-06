@@ -9508,7 +9508,7 @@ async function parseAiJsonResponse(
     try {
       const repairedText = await callGeminiWithRetry(apiKey, repairPrompt, {
         maxRetries: 2,
-        models: ["gemini-1.5-flash", "gemini-2.0-flash"],
+        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
       });
       return parseJsonLocally(repairedText);
     } catch (repairError) {
@@ -10920,7 +10920,7 @@ async function enhanceYoutubeTitlesMetadata(
       const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
         temperature: 0.4,
         maxRetries: 2,
-        models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
       });
       const repaired = normalizeKeys(
         await parseAiJsonResponse(repairText, apiKey, "Refino titulos")
@@ -10968,7 +10968,7 @@ async function ensureScriptChecklist(
     const evalText = await callGeminiWithRetry(apiKey, evalPrompt, {
       temperature: 0.35,
       maxRetries: 2,
-      models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+      models: ["gemini-2.5-flash", "gemini-2.0-flash"],
     });
     const evaluated = normalizeKeys(
       await parseAiJsonResponse(evalText, apiKey, "Checklist qualidade")
@@ -11020,7 +11020,7 @@ async function enhanceCreatorStrategyTitles(
       const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
         temperature: 0.4,
         maxRetries: 2,
-        models: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"],
+        models: ["gemini-2.5-flash", "gemini-2.0-flash"],
       });
       const repaired = normalizeKeys(
         await parseAiJsonResponse(repairText, apiKey, "Refino titulos strategy")
@@ -15842,7 +15842,7 @@ app.post(
           const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
             temperature: 0.55,
             maxRetries: 2,
-            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+            models: ["gemini-2.5-flash", "gemini-2.0-flash"],
           });
           const repaired = normalizeKeys(
             await parseAiJsonResponse(
@@ -15907,7 +15907,7 @@ app.post(
             const enrichText = await callGeminiWithRetry(apiKey, enrichPrompt, {
               temperature: 0.55,
               maxRetries: 2,
-              models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+              models: ["gemini-2.5-flash", "gemini-2.0-flash"],
             });
             const enriched = normalizeKeys(
               await parseAiJsonResponse(
@@ -16011,7 +16011,7 @@ app.post(
               {
                 temperature: 0.6,
                 maxRetries: 2,
-                models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+                models: ["gemini-2.5-flash", "gemini-2.0-flash"],
               }
             );
             const vpRepaired = normalizeKeys(
@@ -16067,7 +16067,7 @@ app.post(
               const batchText = await callGeminiWithRetry(apiKey, batchPrompt, {
                 temperature: 0.7,
                 maxRetries: 2,
-                models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+                models: ["gemini-2.5-flash", "gemini-2.0-flash"],
               });
               const batchParsed = await parseAiJsonResponse(
                 batchText,
@@ -16122,7 +16122,7 @@ app.post(
           const repairText = await callGeminiWithRetry(apiKey, repairPrompt, {
             temperature: 0.55,
             maxRetries: 2,
-            models: ["gemini-2.0-flash", "gemini-1.5-flash"],
+            models: ["gemini-2.5-flash", "gemini-2.0-flash"],
           });
           const repaired = normalizeKeys(
             await parseAiJsonResponse(repairText, apiKey, "Humanizacao roteiro")

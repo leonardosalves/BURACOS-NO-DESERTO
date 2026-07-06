@@ -2,10 +2,14 @@
  * Pesquisa web com Agent Reach (Exa) + Gemini Google Search grounding.
  */
 
-import { fetchAgentReachResearchForTopic, mergeWebResearch } from "./agentReachService.js";
+import {
+  fetchAgentReachResearchForTopic,
+  mergeWebResearch,
+} from "./agentReachService.js";
 
 function extractGroundingSources(candidate = {}) {
-  const meta = candidate?.groundingMetadata || candidate?.grounding_metadata || {};
+  const meta =
+    candidate?.groundingMetadata || candidate?.grounding_metadata || {};
   const chunks = meta.groundingChunks || meta.grounding_chunks || [];
   const out = [];
   const seen = new Set();
@@ -17,18 +21,29 @@ function extractGroundingSources(candidate = {}) {
     if (!uri || seen.has(uri)) continue;
     seen.add(uri);
     out.push({
-      title: String(title || uri).trim().slice(0, 200),
+      title: String(title || uri)
+        .trim()
+        .slice(0, 200),
       url: String(uri).trim(),
     });
   }
 
   const supports = meta.groundingSupports || meta.grounding_supports || [];
   for (const s of supports) {
-    const idx = Number(s?.groundingChunkIndices?.[0] ?? s?.grounding_chunk_indices?.[0]);
-    if (Number.isFinite(idx) && chunks[idx]?.web?.uri && !seen.has(chunks[idx].web.uri)) {
+    const idx = Number(
+      s?.groundingChunkIndices?.[0] ?? s?.grounding_chunk_indices?.[0]
+    );
+    if (
+      Number.isFinite(idx) &&
+      chunks[idx]?.web?.uri &&
+      !seen.has(chunks[idx].web.uri)
+    ) {
       seen.add(chunks[idx].web.uri);
       out.push({
-        title: String(chunks[idx].web.title || chunks[idx].web.uri).slice(0, 200),
+        title: String(chunks[idx].web.title || chunks[idx].web.uri).slice(
+          0,
+          200
+        ),
         url: chunks[idx].web.uri,
       });
     }
@@ -38,7 +53,10 @@ function extractGroundingSources(candidate = {}) {
 }
 
 function parseResearchJson(text = "") {
-  const raw = String(text || "").replace(/```json/gi, "").replace(/```/g, "").trim();
+  const raw = String(text || "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const start = raw.indexOf("{");
   if (start < 0) return null;
   try {
@@ -60,7 +78,13 @@ export async function fetchWebResearchForTopic({
 } = {}) {
   const query = String(topic || niche).trim();
   if (!query) {
-    return { available: false, summary: "", sources: [], facts: [], message: "Tema vazio" };
+    return {
+      available: false,
+      summary: "",
+      sources: [],
+      facts: [],
+      message: "Tema vazio",
+    };
   }
 
   let agentReach = { available: false, summary: "", sources: [], facts: [] };
@@ -73,7 +97,9 @@ export async function fetchWebResearchForTopic({
         numResults: 6,
       });
       if (agentReach.available) {
-        console.log(`[WebResearch] Agent Reach: ${agentReach.sources?.length || 0} fontes.`);
+        console.log(
+          `[WebResearch] Agent Reach: ${agentReach.sources?.length || 0} fontes.`
+        );
       }
     } catch (err) {
       console.warn("[WebResearch] Agent Reach falhou:", err.message);
@@ -94,7 +120,10 @@ export async function fetchWebResearchForTopic({
   }
 
   const excludeBlock = (excludeTopics || []).length
-    ? `\nNÃO inclua fatos sobre estes assuntos já saturados no canal:\n${excludeTopics.slice(0, 20).map((t) => `- ${t}`).join("\n")}`
+    ? `\nNÃO inclua fatos sobre estes assuntos já saturados no canal:\n${excludeTopics
+        .slice(0, 20)
+        .map((t) => `- ${t}`)
+        .join("\n")}`
     : "";
 
   const diversityBlock = diversityHint
@@ -126,7 +155,7 @@ Regras:
 - Evite generalidades tipo "é muito importante" ou "mudou o mundo" sem prova.
 - Não repita os clichês de curiosidades (concreto romano, Torre Eiffel no verão, Vasa, Canal do Panamá, sonda NASA, etc.) a menos que o nicho seja exclusivamente sobre um deles.`;
 
-  const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
   let lastErr = null;
 
   for (const model of models) {
@@ -144,7 +173,7 @@ Regras:
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
-          },
+          }
         );
 
         if (!res.ok) {
@@ -156,14 +185,20 @@ Regras:
 
         const data = await res.json();
         const candidate = data.candidates?.[0] || {};
-        const text = candidate.content?.parts?.map((p) => p.text || "").join("\n") || "";
+        const text =
+          candidate.content?.parts?.map((p) => p.text || "").join("\n") || "";
         const sources = extractGroundingSources(candidate);
         const parsed = parseResearchJson(text) || {};
 
-        const facts = Array.isArray(parsed.facts) ? parsed.facts.map(String).filter(Boolean) : [];
-        const angles = Array.isArray(parsed.angles) ? parsed.angles.map(String).filter(Boolean) : [];
-        const summary = String(parsed.summary || "").trim()
-          || [facts.slice(0, 5).join(" "), ...angles].filter(Boolean).join(" ");
+        const facts = Array.isArray(parsed.facts)
+          ? parsed.facts.map(String).filter(Boolean)
+          : [];
+        const angles = Array.isArray(parsed.angles)
+          ? parsed.angles.map(String).filter(Boolean)
+          : [];
+        const summary =
+          String(parsed.summary || "").trim() ||
+          [facts.slice(0, 5).join(" "), ...angles].filter(Boolean).join(" ");
 
         if (!summary && facts.length === 0) {
           lastErr = new Error("Pesquisa web sem fatos utilizáveis");
@@ -187,7 +222,10 @@ Regras:
     }
   }
 
-  console.warn("[WebResearch] Gemini falhou:", lastErr?.message || "desconhecido");
+  console.warn(
+    "[WebResearch] Gemini falhou:",
+    lastErr?.message || "desconhecido"
+  );
   if (agentReach.available) return agentReach;
 
   return {
@@ -200,15 +238,21 @@ Regras:
   };
 }
 
-export function formatWebResearchPromptBlock(research = {}, label = "PESQUISA WEB (FONTES REAIS)") {
-  if (!research?.summary && !(research?.facts?.length)) return "";
+export function formatWebResearchPromptBlock(
+  research = {},
+  label = "PESQUISA WEB (FONTES REAIS)"
+) {
+  if (!research?.summary && !research?.facts?.length) return "";
 
   const sourceLines = (research.sources || [])
     .slice(0, 8)
     .map((s, i) => `${i + 1}. ${s.title} — ${s.url}`)
     .join("\n");
 
-  const factLines = (research.facts || []).slice(0, 8).map((f) => `• ${f}`).join("\n");
+  const factLines = (research.facts || [])
+    .slice(0, 8)
+    .map((f) => `• ${f}`)
+    .join("\n");
 
   return `
 ${label}:
