@@ -618,27 +618,6 @@ export function SceneTimingEditor({
     );
   }, [draftOverlays, blockModel, currentTime]);
 
-  const handlePreviewPlayToggle = () => {
-    if (!blockModel) return;
-
-    if (playingKey !== null) {
-      stopPlayback();
-    } else {
-      const startAbs = blockModel.narrationStart + currentTime;
-      const endAbs = blockModel.narrationEnd;
-      if (startAbs < endAbs) {
-        playScene(activeBlock, 999, startAbs, endAbs);
-      } else {
-        playScene(
-          activeBlock,
-          999,
-          blockModel.narrationStart,
-          blockModel.narrationEnd
-        );
-      }
-    }
-  };
-
   if (!activeProject) {
     return (
       <div className="ste-empty glass-panel p-8 rounded-2xl text-center text-zinc-400">
@@ -655,8 +634,6 @@ export function SceneTimingEditor({
       </div>
     );
   }
-
-  const isPlayheadPlaying = playingKey !== null;
 
   return (
     <div className="ste-root space-y-5 font-sans">
@@ -778,19 +755,41 @@ export function SceneTimingEditor({
               </div>
             </div>
 
-            <div className="ste-timeline-wrap glass-panel p-5 rounded-xl relative">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                  Linha do bloco
-                </span>
-                {hasNarration && (
-                  <span className="text-[10px] text-zinc-650 flex items-center gap-1">
-                    <Volume2 className="w-3 h-3" /> Arraste as cenas ou os
-                    overlays para ajustar o tempo
+            <div className="ste-timeline-wrap glass-panel rounded-xl relative overflow-hidden">
+              {/* NLE Track Header / Time ruler */}
+              <div className="flex border-b border-zinc-800">
+                <div className="w-[88px] shrink-0 bg-zinc-950/60 border-r border-zinc-800 flex items-center justify-center py-1">
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-600">
+                    Faixas
                   </span>
-                )}
+                </div>
+                <div className="flex-1 relative h-5 bg-zinc-950/40">
+                  {/* Time ticks */}
+                  {Array.from({
+                    length: Math.ceil(blockModel.totalDuration) + 1,
+                  }).map((_, i) => {
+                    const pct =
+                      blockModel.totalDuration > 0
+                        ? (i / blockModel.totalDuration) * 100
+                        : 0;
+                    if (pct > 100) return null;
+                    return (
+                      <div
+                        key={i}
+                        className="absolute top-0 bottom-0 flex flex-col items-center"
+                        style={{ left: `${pct}%` }}
+                      >
+                        <div className="w-px h-full bg-zinc-800/60" />
+                        <span className="absolute top-0.5 text-[7px] font-mono text-zinc-600 -translate-x-1/2 select-none">
+                          {i}s
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* All tracks container — single ref for click-to-seek */}
               <div
                 ref={timelineRef}
                 onClick={(e) => {
@@ -800,12 +799,17 @@ export function SceneTimingEditor({
                     !timelineRef.current
                   )
                     return;
-                  const rect = timelineRef.current.getBoundingClientRect();
-                  const clickX = e.clientX - rect.left;
+                  const tracksArea = timelineRef.current;
+                  // Find the clips area (skip label column)
+                  const rect = tracksArea.getBoundingClientRect();
+                  const labelWidth = 88;
+                  const clipsWidth = rect.width - labelWidth;
+                  const clickX = e.clientX - rect.left - labelWidth;
+                  if (clickX < 0) return;
                   const newRelativeTime = Math.max(
                     0,
                     Math.min(
-                      (clickX / rect.width) * blockModel.totalDuration,
+                      (clickX / clipsWidth) * blockModel.totalDuration,
                       blockModel.totalDuration
                     )
                   );
@@ -815,172 +819,324 @@ export function SceneTimingEditor({
                       blockModel.narrationStart + newRelativeTime;
                   }
                 }}
-                className="ste-timeline-track relative h-40 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 flex flex-col cursor-col-resize select-none"
+                className="relative cursor-col-resize select-none"
               >
-                {/* ROW 1: Assets (B-Roll) */}
-                <div className="relative h-24 border-b border-zinc-900 overflow-hidden flex-shrink-0">
-                  {blockModel.scenes.map((scene, idx) => {
-                    const widthPct =
-                      blockModel.totalDuration > 0
-                        ? (scene.duration / blockModel.totalDuration) * 100
-                        : 100 / blockModel.scenes.length;
-                    const leftPct = blockModel.scenes
-                      .slice(0, idx)
-                      .reduce(
-                        (a, s) =>
-                          a + (s.duration / blockModel.totalDuration) * 100,
-                        0
+                {/* ── TRACK 1: LEGENDAS ── */}
+                <div className="flex border-b border-zinc-900/60">
+                  <div className="w-[88px] shrink-0 bg-zinc-950/50 border-r border-zinc-800 flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[10px]">🗣</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      Legendas
+                    </span>
+                  </div>
+                  <div className="flex-1 relative h-7 bg-zinc-950/20 overflow-hidden">
+                    {(() => {
+                      // Group words into subtitle segments (groups of ~3-5 words that fit within this block)
+                      const blockStart = blockModel.narrationStart;
+                      const blockEnd = blockModel.narrationEnd;
+                      const blockDur = blockModel.totalDuration;
+                      const wordsInBlock = flatWords.filter(
+                        (w) => w.start >= blockStart && w.end <= blockEnd
                       );
-                    return (
-                      <div
-                        key={scene.idx}
-                        className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden pointer-events-none"
-                        style={{
-                          left: `${leftPct}%`,
-                          width: `${widthPct}%`,
-                          borderRight:
-                            idx < blockModel.scenes.length - 1
-                              ? "2px solid rgba(0,0,0,0.5)"
-                              : undefined,
-                        }}
-                        title={scene.assetLabel}
-                      >
+
+                      // Cluster into groups of 3–5 words
+                      const clusters: {
+                        text: string;
+                        start: number;
+                        end: number;
+                      }[] = [];
+                      let i = 0;
+                      while (i < wordsInBlock.length) {
+                        const groupSize = Math.min(4, wordsInBlock.length - i);
+                        const group = wordsInBlock.slice(i, i + groupSize);
+                        clusters.push({
+                          text: group.map((w) => w.word).join(" "),
+                          start: group[0].start - blockStart,
+                          end: group[group.length - 1].end - blockStart,
+                        });
+                        i += groupSize;
+                      }
+
+                      return clusters.map((c, ci) => {
+                        const leftPct =
+                          blockDur > 0 ? (c.start / blockDur) * 100 : 0;
+                        const widthPct =
+                          blockDur > 0
+                            ? ((c.end - c.start) / blockDur) * 100
+                            : 0;
+                        return (
+                          <div
+                            key={ci}
+                            className="absolute top-1 bottom-1 bg-zinc-800/60 border border-zinc-700/40 rounded-[4px] flex items-center px-1.5 overflow-hidden"
+                            style={{
+                              left: `${leftPct}%`,
+                              width: `${Math.max(widthPct, 0.5)}%`,
+                            }}
+                            title={c.text}
+                          >
+                            <span className="text-[8px] text-zinc-300 truncate font-medium leading-none">
+                              Aa {c.text.substring(0, 18)}
+                              {c.text.length > 18 ? "…" : ""}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                {/* ── TRACK 2: CENAS / B-ROLL ── */}
+                <div className="flex border-b border-zinc-900/60">
+                  <div className="w-[88px] shrink-0 bg-zinc-950/50 border-r border-zinc-800 flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[10px]">🎬</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      Cenas
+                    </span>
+                  </div>
+                  <div className="flex-1 relative h-14 overflow-hidden">
+                    {blockModel.scenes.map((scene, idx) => {
+                      const widthPct =
+                        blockModel.totalDuration > 0
+                          ? (scene.duration / blockModel.totalDuration) * 100
+                          : 100 / blockModel.scenes.length;
+                      const leftPct = blockModel.scenes
+                        .slice(0, idx)
+                        .reduce(
+                          (a, s) =>
+                            a + (s.duration / blockModel.totalDuration) * 100,
+                          0
+                        );
+                      return (
                         <div
-                          className="ste-timeline-seg-tint absolute inset-0 z-[1]"
+                          key={scene.idx}
+                          className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden pointer-events-none"
                           style={{
-                            background: SCENE_COLORS[idx % SCENE_COLORS.length],
+                            left: `${leftPct}%`,
+                            width: `${widthPct}%`,
+                            borderRight:
+                              idx < blockModel.scenes.length - 1
+                                ? "2px solid rgba(0,0,0,0.5)"
+                                : undefined,
                           }}
+                          title={scene.assetLabel}
+                        >
+                          <div
+                            className="ste-timeline-seg-tint absolute inset-0 z-[1]"
+                            style={{
+                              background:
+                                SCENE_COLORS[idx % SCENE_COLORS.length],
+                            }}
+                          />
+                          <div className="ste-timeline-seg-media absolute inset-0 z-0">
+                            <SceneAssetPreview
+                              scene={scene}
+                              getAssetUrl={getAssetUrl}
+                              variant="strip"
+                            />
+                          </div>
+                          <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-0.5 bg-gradient-to-t from-black/85 to-transparent">
+                            <span
+                              className="text-[8px] text-zinc-300 truncate max-w-[70%]"
+                              title={scene.assetLabel}
+                            >
+                              {scene.assetLabel}
+                            </span>
+                            <span className="text-[9px] font-mono font-bold text-white shrink-0">
+                              {scene.duration.toFixed(1)}s
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Scene dividers (draggable) */}
+                    {blockModel.scenes.slice(0, -1).map((_, idx) => {
+                      const leftPct = blockModel.scenes
+                        .slice(0, idx + 1)
+                        .reduce(
+                          (a, s) =>
+                            a + (s.duration / blockModel.totalDuration) * 100,
+                          0
+                        );
+                      return (
+                        <button
+                          key={`div-${idx}`}
+                          type="button"
+                          className="ste-timeline-divider"
+                          style={{ left: `calc(${leftPct}% - 6px)` }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDraggingDivider(idx);
+                          }}
+                          aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
                         />
-                        <div className="ste-timeline-seg-media absolute inset-0 z-0">
-                          <SceneAssetPreview
-                            scene={scene}
-                            getAssetUrl={getAssetUrl}
-                            variant="strip"
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── TRACK 3: NARRAÇÃO / VOICEOVER ── */}
+                <div className="flex border-b border-zinc-900/60">
+                  <div className="w-[88px] shrink-0 bg-zinc-950/50 border-r border-zinc-800 flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[10px]">🎙</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      Narração
+                    </span>
+                  </div>
+                  <div className="flex-1 relative h-8 bg-zinc-950/20 overflow-hidden">
+                    {hasNarration && (
+                      <div
+                        className="absolute top-1 bottom-1 rounded-[4px] overflow-hidden"
+                        style={{ left: "0%", width: "100%" }}
+                      >
+                        {/* Voiceover waveform simulation */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600/60 via-fuchsia-500/50 to-fuchsia-600/60 rounded-[4px] border border-fuchsia-500/30" />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[8px] font-bold text-fuchsia-200/80 uppercase tracking-wider">
+                            Voiceover
+                          </span>
+                        </div>
+                        {/* Simulated waveform bars */}
+                        <div className="absolute inset-0 flex items-center gap-px px-1 pointer-events-none opacity-30">
+                          {Array.from({ length: 60 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className="bg-fuchsia-200 rounded-full"
+                              style={{
+                                width: "1px",
+                                height: `${20 + Math.sin(i * 0.7) * 15 + Math.cos(i * 1.3) * 10}%`,
+                                minHeight: "2px",
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── TRACK 4: EFEITOS / SFX ── */}
+                <div className="flex border-b border-zinc-900/60">
+                  <div className="w-[88px] shrink-0 bg-zinc-950/50 border-r border-zinc-800 flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[10px]">🔊</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      Efeitos
+                    </span>
+                  </div>
+                  <div className="flex-1 relative h-7 bg-zinc-950/20 overflow-hidden">
+                    {/* SFX clips placeholder — future integration with sfx_mappings */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[8px] text-zinc-700 italic select-none">
+                        Efeitos sonoros
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── TRACK 5: TEMPLATES ── */}
+                <div className="flex border-b border-zinc-900/60">
+                  <div className="w-[88px] shrink-0 bg-zinc-950/50 border-r border-zinc-800 flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[10px]">📐</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      Templates
+                    </span>
+                  </div>
+                  <div className="flex-1 relative h-7 bg-zinc-950/20 overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[8px] text-zinc-700 italic select-none">
+                        Elementos de template
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── TRACK 6: OVERLAYS ── */}
+                <div className="flex">
+                  <div className="w-[88px] shrink-0 bg-zinc-950/50 border-r border-zinc-800 flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[10px]">✨</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                      Overlays
+                    </span>
+                  </div>
+                  <div className="flex-1 relative h-9 bg-zinc-950/20 overflow-hidden flex items-center px-0.5">
+                    {activeBlockOverlays.map((ot) => {
+                      const fullIdx = draftOverlays.findIndex((x) => x === ot);
+                      if (fullIdx === -1) return null;
+                      const leftPct =
+                        (Math.max(0, ot.start - blockModel.narrationStart) /
+                          blockModel.totalDuration) *
+                        100;
+                      const widthPct =
+                        (ot.duration / blockModel.totalDuration) * 100;
+                      return (
+                        <div
+                          key={fullIdx}
+                          className="absolute h-7 rounded-md border border-cyan-500/40 bg-cyan-950/30 text-white flex items-center justify-between z-10 overflow-hidden shadow-md"
+                          style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                        >
+                          {/* Left resize handle */}
+                          <div
+                            className="w-1.5 h-full bg-cyan-500/30 hover:bg-cyan-400 cursor-ew-resize shrink-0 transition"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setDraggingOverlay({
+                                type: "resize-left",
+                                overlayIndex: fullIdx,
+                                initialX: e.clientX,
+                                initialStart: ot.start,
+                                initialEnd: ot.start + ot.duration,
+                              });
+                            }}
+                          />
+                          {/* Middle content / slide handle */}
+                          <div
+                            className="flex-1 min-w-0 px-1.5 py-0.5 flex flex-col justify-center cursor-grab active:cursor-grabbing h-full"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setDraggingOverlay({
+                                type: "slide",
+                                overlayIndex: fullIdx,
+                                initialX: e.clientX,
+                                initialStart: ot.start,
+                                initialEnd: ot.start + ot.duration,
+                              });
+                            }}
+                          >
+                            <span className="text-[8px] font-extrabold uppercase tracking-wide text-cyan-400 leading-none mb-0.5 truncate">
+                              {ot.type}
+                            </span>
+                            <span className="text-[8px] font-medium truncate text-zinc-300 leading-none">
+                              {ot.props?.label || ot.props?.text || ""}
+                            </span>
+                          </div>
+                          {/* Right resize handle */}
+                          <div
+                            className="w-1.5 h-full bg-cyan-500/30 hover:bg-cyan-400 cursor-ew-resize shrink-0 transition"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setDraggingOverlay({
+                                type: "resize-right",
+                                overlayIndex: fullIdx,
+                                initialX: e.clientX,
+                                initialStart: ot.start,
+                                initialEnd: ot.start + ot.duration,
+                              });
+                            }}
                           />
                         </div>
-                        <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-1 bg-gradient-to-t from-black/85 to-transparent">
-                          <span
-                            className="text-[9px] text-zinc-300 truncate max-w-[70%]"
-                            title={scene.assetLabel}
-                          >
-                            {scene.assetLabel}
-                          </span>
-                          <span className="text-[10px] font-mono font-bold text-white shrink-0">
-                            {scene.duration.toFixed(1)}s
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {blockModel.scenes.slice(0, -1).map((_, idx) => {
-                    const leftPct = blockModel.scenes
-                      .slice(0, idx + 1)
-                      .reduce(
-                        (a, s) =>
-                          a + (s.duration / blockModel.totalDuration) * 100,
-                        0
                       );
-                    return (
-                      <button
-                        key={`div-${idx}`}
-                        type="button"
-                        className="ste-timeline-divider"
-                        style={{ left: `calc(${leftPct}% - 6px)` }}
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          setDraggingDivider(idx);
-                        }}
-                        aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
-                      />
-                    );
-                  })}
+                    })}
+                  </div>
                 </div>
 
-                {/* ROW 2: AI Overlays Track */}
-                <div className="relative h-16 bg-zinc-950/45 flex items-center px-1">
-                  {activeBlockOverlays.map((ot) => {
-                    const fullIdx = draftOverlays.findIndex((x) => x === ot);
-                    if (fullIdx === -1) return null;
-                    const leftPct =
-                      (Math.max(0, ot.start - blockModel.narrationStart) /
-                        blockModel.totalDuration) *
-                      100;
-                    const widthPct =
-                      (ot.duration / blockModel.totalDuration) * 100;
-                    return (
-                      <div
-                        key={fullIdx}
-                        className="absolute h-9 rounded-lg border border-cyan-500/40 bg-cyan-950/30 text-white flex items-center justify-between z-10 overflow-hidden shadow-md"
-                        style={{
-                          left: `${leftPct}%`,
-                          width: `${widthPct}%`,
-                        }}
-                      >
-                        {/* Left resize handle */}
-                        <div
-                          className="w-1.5 h-full bg-cyan-500/30 hover:bg-cyan-400 cursor-ew-resize shrink-0 transition"
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            setDraggingOverlay({
-                              type: "resize-left",
-                              overlayIndex: fullIdx,
-                              initialX: e.clientX,
-                              initialStart: ot.start,
-                              initialEnd: ot.start + ot.duration,
-                            });
-                          }}
-                        />
-
-                        {/* Middle content / slide handle */}
-                        <div
-                          className="flex-1 min-w-0 px-2 py-0.5 flex flex-col justify-center cursor-grab active:cursor-grabbing h-full"
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            setDraggingOverlay({
-                              type: "slide",
-                              overlayIndex: fullIdx,
-                              initialX: e.clientX,
-                              initialStart: ot.start,
-                              initialEnd: ot.start + ot.duration,
-                            });
-                          }}
-                        >
-                          <span className="text-[9px] font-extrabold uppercase tracking-wide text-cyan-400 leading-none mb-0.5 truncate">
-                            {ot.type}
-                          </span>
-                          <span className="text-[9px] font-medium truncate text-zinc-300 leading-none">
-                            {ot.props?.label || ot.props?.text || ""}
-                          </span>
-                        </div>
-
-                        {/* Right resize handle */}
-                        <div
-                          className="w-1.5 h-full bg-cyan-500/30 hover:bg-cyan-400 cursor-ew-resize shrink-0 transition"
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            setDraggingOverlay({
-                              type: "resize-right",
-                              overlayIndex: fullIdx,
-                              initialX: e.clientX,
-                              initialStart: ot.start,
-                              initialEnd: ot.start + ot.duration,
-                            });
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Red playhead marker line synced to preview time */}
+                {/* ── VERTICAL PLAYHEAD (spans all tracks) ── */}
                 <div
-                  className="absolute top-0 bottom-0 w-[1.5px] bg-red-500 z-20 pointer-events-none"
+                  className="absolute top-0 bottom-0 w-[1.5px] bg-red-500 z-30 pointer-events-none"
                   style={{
-                    left: `${(currentTime / blockModel.totalDuration) * 100}%`,
+                    left: `${88 + (currentTime / blockModel.totalDuration) * (timelineRef.current ? timelineRef.current.getBoundingClientRect().width - 88 : 0)}px`,
                   }}
                 >
-                  <div className="w-2 h-2 bg-red-500 rounded-full absolute -top-0.5 -left-[3.5px] border border-white/20" />
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full absolute -top-0.5 -left-[5px] border border-white/30 shadow-md" />
                 </div>
               </div>
             </div>
