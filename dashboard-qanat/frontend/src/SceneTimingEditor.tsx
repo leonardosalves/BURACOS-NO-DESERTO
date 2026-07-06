@@ -991,7 +991,7 @@ export function SceneTimingEditor({
                       Legendas
                     </span>
                   </div>
-                  <div className="flex-1 relative h-7 bg-zinc-950/20 overflow-hidden">
+                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden">
                     {(() => {
                       // Group words into subtitle segments (groups of ~3-5 words that fit within this block)
                       const blockStart = blockModel.narrationStart;
@@ -1171,7 +1171,7 @@ export function SceneTimingEditor({
                       Narração
                     </span>
                   </div>
-                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden">
+                  <div className="flex-1 relative h-16 bg-zinc-950/20 overflow-hidden">
                     {hasNarration && (
                       <div className="absolute top-0.5 bottom-0.5 left-0 right-0 rounded-[4px] overflow-hidden border border-fuchsia-500/20">
                         {/* Subtle background tint */}
@@ -1203,7 +1203,7 @@ export function SceneTimingEditor({
                       Efeitos
                     </span>
                   </div>
-                  <div className="flex-1 relative h-7 bg-zinc-950/20 overflow-hidden">
+                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden">
                     {/* SFX clips placeholder — future integration with sfx_mappings */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[8px] text-zinc-700 italic select-none">
@@ -1221,7 +1221,7 @@ export function SceneTimingEditor({
                       Templates
                     </span>
                   </div>
-                  <div className="flex-1 relative h-7 bg-zinc-950/20 overflow-hidden">
+                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[8px] text-zinc-700 italic select-none">
                         Elementos de template
@@ -1238,7 +1238,7 @@ export function SceneTimingEditor({
                       Overlays
                     </span>
                   </div>
-                  <div className="flex-1 relative h-12 bg-zinc-950/20 overflow-hidden flex items-center px-0.5">
+                  <div className="flex-1 relative h-14 bg-zinc-950/20 overflow-hidden flex items-center px-0.5">
                     {activeBlockOverlays.map((ot) => {
                       const fullIdx = draftOverlays.findIndex((x) => x === ot);
                       if (fullIdx === -1) return null;
@@ -1319,110 +1319,6 @@ export function SceneTimingEditor({
                   <div className="w-2.5 h-2.5 bg-red-500 rounded-full absolute -top-0.5 -left-[5px] border border-white/30 shadow-md" />
                 </div>
               </div>
-            </div>
-
-            <div className="ste-scenes grid gap-3">
-              {blockModel.scenes.map((scene) => {
-                const playId = `${activeBlock}-${scene.idx}`;
-                const isPlaying = playingKey === playId;
-                return (
-                  <article
-                    key={scene.idx}
-                    className="ste-scene glass-panel p-4 rounded-xl border border-zinc-800/80"
-                  >
-                    <div className="flex flex-wrap items-start gap-4 mb-3">
-                      <SceneAssetPreview
-                        scene={scene}
-                        getAssetUrl={getAssetUrl}
-                        variant="card"
-                      />
-                      <div className="flex-1 min-w-0 flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">
-                            Cena {scene.idx + 1}
-                          </p>
-                          <p
-                            className="text-xs text-zinc-400 font-mono truncate max-w-[280px]"
-                            title={scene.assetLabel}
-                          >
-                            {scene.assetLabel}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-2 text-xs text-zinc-400">
-                            Duração
-                            <input
-                              type="number"
-                              min={0.5}
-                              step={0.1}
-                              value={scene.duration}
-                              onChange={(e) =>
-                                handleDurationChange(
-                                  scene.idx,
-                                  Number(e.target.value)
-                                )
-                              }
-                              className="ste-duration-input font-bold text-white border border-zinc-800 rounded-lg px-2 py-1 bg-zinc-950 focus:outline-none"
-                            />
-                            <span>s</span>
-                          </label>
-                          {hasNarration && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const { start, end } = getScenePlaybackWindow(
-                                  scene,
-                                  blockModel.narrationEnd
-                                );
-                                playScene(activeBlock, scene.idx, start, end);
-                              }}
-                              className={`ste-play-btn ${isPlaying ? "ste-play-btn--active" : ""}`}
-                              title="Ouvir narração desta cena"
-                            >
-                              {isPlaying ? (
-                                <Pause className="w-4 h-4" />
-                              ) : (
-                                <Play className="w-4 h-4" />
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="ste-narration-box">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/80">
-                          Narração nesta janela
-                        </span>
-                        <span className="font-mono text-[10px] text-zinc-500">
-                          {(() => {
-                            const { start, end } = getScenePlaybackWindow(
-                              scene,
-                              blockModel.narrationEnd
-                            );
-                            return `${formatTimelineClock(start)} – ${formatTimelineClock(end)}`;
-                          })()}
-                          {" · "}
-                          {scene.words.length} palavras
-                          <span
-                            className="text-zinc-655 ml-1"
-                            title="Duração visual do asset"
-                          >
-                            (asset {scene.duration.toFixed(1)}s)
-                          </span>
-                        </span>
-                      </div>
-                      <p
-                        className={`text-sm leading-relaxed ${scene.narrationText ? "text-zinc-200" : "text-zinc-600 italic"}`}
-                      >
-                        {scene.narrationText ||
-                          "Nenhuma palavra nesta janela — aumente a duração ou ajuste o divisor."}
-                      </p>
-                    </div>
-                  </article>
-                );
-              })}
             </div>
           </div>
 
