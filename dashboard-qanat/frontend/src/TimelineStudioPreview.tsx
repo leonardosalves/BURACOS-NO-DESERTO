@@ -26,6 +26,7 @@ type Props = {
 };
 
 const FULLSCREEN_OVERLAYS = new Set(["pictogram-chart", "location-intro"]);
+const UI_PUBLISH_MS = 100;
 
 function resolveMediaUrl(
   source: string,
@@ -59,6 +60,14 @@ function clipToOverlayDraft(clip: StudioClip): OverlayDraft {
   };
 }
 
+function isVideoClip(clip: StudioClip | null | undefined): boolean {
+  if (!clip) return false;
+  return (
+    clip.props?.type === "video" ||
+    /\.(mp4|webm|mov|m4v)$/i.test(String(clip.source || ""))
+  );
+}
+
 export function TimelineStudioPreview({
   studio,
   getAssetUrl,
@@ -68,23 +77,38 @@ export function TimelineStudioPreview({
 }: Props) {
   const isVertical = aspectRatio === "9:16";
   const [playing, setPlaying] = useState(false);
+  const [livePlayhead, setLivePlayhead] = useState(studio.playhead);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playheadRef = useRef(studio.playhead);
+  const playingRef = useRef(false);
   const rafRef = useRef(0);
+  const lastPublishRef = useRef(0);
+  const onPlayheadChangeRef = useRef(onPlayheadChange);
+  const clipsRef = useRef(studio.clips);
+  const totalDurRef = useRef(studio.totalDuration || 120);
+
+  onPlayheadChangeRef.current = onPlayheadChange;
+  clipsRef.current = studio.clips;
+  totalDurRef.current = studio.totalDuration || 120;
 
   const totalDur = studio.totalDuration || 120;
+  const displayPlayhead = playing ? livePlayhead : studio.playhead;
 
-  // Só sincroniza o ref com o estado quando pausado — durante play o RAF/áudio é a fonte
+  const voiceClip = clipsOnTrack(studio.clips, "voice")[0];
+  const voiceSrc = voiceClip?.source
+    ? resolveMediaUrl(voiceClip.source, getAssetUrl, getMusicUrl)
+    : null;
+
   useEffect(() => {
     if (!playing) {
       playheadRef.current = studio.playhead;
+      setLivePlayhead(studio.playhead);
     }
   }, [studio.playhead, playing]);
 
-  const videoClip = activeVideoAt(studio.clips, studio.playhead);
-  const caption = activeCaptionAt(studio.clips, studio.playhead);
-  const voiceClip = clipsOnTrack(studio.clips, "voice")[0];
+  const videoClip = activeVideoAt(studio.clips, displayPlayhead);
+  const caption = activeCaptionAt(studio.clips, displayPlayhead);
 
   const activeOverlays = useMemo(
     () =>
@@ -92,123 +116,147 @@ export function TimelineStudioPreview({
         .filter(
           (c) =>
             c.trackId === "overlays" &&
-            studio.playhead >= c.start &&
-            studio.playhead < c.start + c.duration
+            displayPlayhead >= c.start &&
+            displayPlayhead < c.start + c.duration
         )
         .sort((a, b) => {
           const pri = (id: string) => (FULLSCREEN_OVERLAYS.has(id) ? 1 : 0);
           return pri(String(a.templateId)) - pri(String(b.templateId));
         }),
-    [studio.clips, studio.playhead]
+    [studio.clips, displayPlayhead]
   );
 
   const assetSrc = videoClip?.source
     ? resolveMediaUrl(videoClip.source, getAssetUrl, getMusicUrl)
     : null;
-  const isVideo =
-    videoClip?.props?.type === "video" ||
-    /\.(mp4|webm|mov)$/i.test(String(videoClip?.source || ""));
+  const isVideo = isVideoClip(videoClip);
+
+  const publishPlayhead = useCallback((t: number, force = false) => {
+    const total = totalDurRef.current;
+    const next = Math.min(total, Math.max(0, t));
+    if (!force && next < playheadRef.current - 0.02) return next;
+    playheadRef.current = next;
+
+    const now = performance.now();
+    if (force || now - lastPublishRef.current >= UI_PUBLISH_MS) {
+      lastPublishRef.current = now;
+      setLivePlayhead(next);
+      onPlayheadChangeRef.current(next);
+    }
+    return next;
+  }, []);
 
   const stopPlayback = useCallback(() => {
+    playingRef.current = false;
     setPlaying(false);
     cancelAnimationFrame(rafRef.current);
     videoRef.current?.pause();
     audioRef.current?.pause();
+    publishPlayhead(playheadRef.current, true);
+  }, [publishPlayhead]);
+
+  const syncVideoToTime = useCallback((globalSec: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const clip = activeVideoAt(clipsRef.current, globalSec);
+    if (!clip || !isVideoClip(clip)) return;
+    const local = Math.max(0, globalSec - clip.start);
+    if (Math.abs(v.currentTime - local) > 0.2) {
+      try {
+        v.currentTime = local;
+      } catch {
+        /* ignore seek errors */
+      }
+    }
+    if (playingRef.current) {
+      void v.play().catch(() => {});
+    }
   }, []);
 
-  const advancePlayhead = useCallback(
-    (t: number) => {
-      const next = Math.min(totalDur, Math.max(0, t));
-      if (next < playheadRef.current - 0.02) return;
-      playheadRef.current = next;
-      onPlayheadChange(next);
-      if (next >= totalDur - 0.02) stopPlayback();
-    },
-    [onPlayheadChange, stopPlayback, totalDur]
-  );
-
   const togglePlay = useCallback(() => {
-    if (playing) {
+    if (playingRef.current) {
       stopPlayback();
       return;
     }
     if (studio.playhead >= totalDur - 0.05) {
       playheadRef.current = 0;
-      onPlayheadChange(0);
+      setLivePlayhead(0);
+      onPlayheadChangeRef.current(0);
     } else {
       playheadRef.current = studio.playhead;
+      setLivePlayhead(studio.playhead);
     }
+    playingRef.current = true;
     setPlaying(true);
-  }, [onPlayheadChange, playing, stopPlayback, studio.playhead, totalDur]);
+  }, [stopPlayback, studio.playhead, totalDur]);
 
+  // Motor de playback — depende só de playing + voiceSrc para não reiniciar a cada frame
   useEffect(() => {
     if (!playing) return undefined;
 
     const narration = audioRef.current;
-    const hasNarration = Boolean(voiceClip?.source && narration);
+    const hasVoice = Boolean(voiceSrc && narration);
 
-    if (hasNarration && narration) {
+    if (hasVoice && narration) {
       narration.currentTime = playheadRef.current;
-      const onTimeUpdate = () => advancePlayhead(narration.currentTime);
-      narration.addEventListener("timeupdate", onTimeUpdate);
       void narration.play().catch(() => {});
-      return () => {
-        narration.removeEventListener("timeupdate", onTimeUpdate);
-        narration.pause();
-      };
     }
 
     let last = performance.now();
+
     const tick = (now: number) => {
-      const dt = Math.max(0, (now - last) / 1000);
-      last = now;
-      advancePlayhead(playheadRef.current + dt);
-      if (playheadRef.current < totalDur - 0.02) {
-        rafRef.current = requestAnimationFrame(tick);
+      if (!playingRef.current) return;
+
+      const total = totalDurRef.current;
+      let t = playheadRef.current;
+
+      if (hasVoice && narration && !narration.paused) {
+        t = narration.currentTime;
+      } else {
+        const dt = Math.max(0, (now - last) / 1000);
+        last = now;
+        t = playheadRef.current + dt;
       }
+
+      publishPlayhead(t);
+      syncVideoToTime(playheadRef.current);
+
+      if (playheadRef.current >= total - 0.02) {
+        stopPlayback();
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
     };
+
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [advancePlayhead, playing, totalDur, voiceClip?.source]);
 
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [playing, voiceSrc, publishPlayhead, stopPlayback, syncVideoToTime]);
+
+  // Troca de clip de vídeo durante play
   useEffect(() => {
-    const v = videoRef.current;
-    if (!v || !videoClip || !isVideo) return;
-    const local = Math.max(0, studio.playhead - videoClip.start);
-    const drift = v.currentTime - local;
-    if (!playing || drift < -0.12 || drift > 0.3) {
-      if (Math.abs(drift) > 0.08) {
-        try {
-          v.currentTime = local;
-        } catch {
-          /* ignore seek errors */
-        }
-      }
-    }
-    if (playing) {
-      void v.play().catch(() => {});
-    } else {
-      v.pause();
-    }
-  }, [studio.playhead, playing, videoClip, isVideo]);
+    if (!playing || !isVideo) return;
+    syncVideoToTime(playheadRef.current);
+  }, [assetSrc, playing, isVideo, syncVideoToTime]);
 
+  // Pausado: alinha mídia ao scrub manual
   useEffect(() => {
     if (playing) return;
     const a = audioRef.current;
-    if (!a || !voiceClip?.source) return;
-    if (Math.abs(a.currentTime - studio.playhead) > 0.12) {
+    if (a && voiceSrc && Math.abs(a.currentTime - studio.playhead) > 0.1) {
       try {
         a.currentTime = studio.playhead;
       } catch {
         /* ignore */
       }
     }
-    a.pause();
-  }, [studio.playhead, playing, voiceClip?.source]);
-
-  const voiceSrc = voiceClip?.source
-    ? resolveMediaUrl(voiceClip.source, getAssetUrl, getMusicUrl)
-    : null;
+    a?.pause();
+    syncVideoToTime(studio.playhead);
+    videoRef.current?.pause();
+  }, [studio.playhead, playing, voiceSrc, syncVideoToTime]);
 
   const frameClass = isVertical
     ? "h-full w-auto max-w-full"
@@ -226,7 +274,7 @@ export function TimelineStudioPreview({
           </span>
         </div>
         <span className="text-[10px] font-mono text-gold-400/90">
-          {formatStudioTime(studio.playhead)}
+          {formatStudioTime(displayPlayhead)}
         </span>
       </div>
 
@@ -270,6 +318,7 @@ export function TimelineStudioPreview({
           {voiceSrc ? (
             <audio
               ref={audioRef}
+              key={voiceSrc}
               src={voiceSrc}
               preload="auto"
               className="hidden"
@@ -278,7 +327,7 @@ export function TimelineStudioPreview({
 
           {activeOverlays.map((clip) => {
             const draft = clipToOverlayDraft(clip);
-            const localSec = studio.playhead - clip.start;
+            const localSec = displayPlayhead - clip.start;
             const isFullscreen = FULLSCREEN_OVERLAYS.has(
               String(clip.templateId)
             );
@@ -295,7 +344,7 @@ export function TimelineStudioPreview({
                   accentColor={String(draft.props?.accentColor || "#D4AF37")}
                   durationSeconds={clip.duration}
                   scrubSeconds={Math.max(0, localSec)}
-                  timelinePlaying={playing}
+                  timelinePlaying={false}
                   embedded
                 />
               </div>
@@ -326,13 +375,15 @@ export function TimelineStudioPreview({
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
             const sec = Math.max(0, Math.min(totalDur, pct * totalDur));
+            playheadRef.current = sec;
+            setLivePlayhead(sec);
             onPlayheadChange(sec);
-            if (playing) stopPlayback();
+            if (playingRef.current) stopPlayback();
           }}
         >
           <div
             className="absolute top-0 bottom-0 left-0 bg-gold-500"
-            style={{ width: `${(studio.playhead / totalDur) * 100}%` }}
+            style={{ width: `${(displayPlayhead / totalDur) * 100}%` }}
           />
         </div>
 
@@ -356,7 +407,7 @@ export function TimelineStudioPreview({
 
           <span className="text-[10px] font-mono text-zinc-400">
             <span className="text-white font-bold">
-              {formatStudioTime(studio.playhead)}
+              {formatStudioTime(displayPlayhead)}
             </span>
             <span className="text-zinc-600 mx-1">/</span>
             {formatStudioTime(totalDur)}
