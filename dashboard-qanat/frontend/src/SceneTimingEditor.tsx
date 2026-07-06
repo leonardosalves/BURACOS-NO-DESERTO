@@ -174,7 +174,6 @@ export function SceneTimingEditor({
 
   // Playhead states
   const [currentTime, setCurrentTime] = useState(0);
-  const [isVisualPlaying, setIsVisualPlaying] = useState(false);
 
   useEffect(() => {
     setDraft(structuredClone(config?.timeline_assets || {}));
@@ -245,7 +244,6 @@ export function SceneTimingEditor({
   // Sync playhead state when active block changes
   useEffect(() => {
     setCurrentTime(0);
-    setIsVisualPlaying(false);
     stopPlayback();
   }, [activeBlock, stopPlayback]);
 
@@ -272,24 +270,6 @@ export function SceneTimingEditor({
       el.removeEventListener("timeupdate", onTime);
     };
   }, [getMediaUrl, stopPlayback, blockModel]);
-
-  // Fallback visual simulation loop when there is no narration
-  useEffect(() => {
-    let interval: any;
-    if (isVisualPlaying && !hasNarration && blockModel) {
-      interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          const next = prev + 0.1;
-          if (next >= blockModel.totalDuration) {
-            setIsVisualPlaying(false);
-            return blockModel.totalDuration;
-          }
-          return next;
-        });
-      }, 100);
-    }
-    return () => clearInterval(interval);
-  }, [isVisualPlaying, hasNarration, blockModel]);
 
   useEffect(() => () => stopPlayback(), [stopPlayback]);
 
@@ -625,24 +605,17 @@ export function SceneTimingEditor({
     if (playingKey !== null) {
       stopPlayback();
     } else {
-      if (hasNarration) {
-        const startAbs = blockModel.narrationStart + currentTime;
-        const endAbs = blockModel.narrationEnd;
-        if (startAbs < endAbs) {
-          playScene(activeBlock, 999, startAbs, endAbs);
-        } else {
-          playScene(
-            activeBlock,
-            999,
-            blockModel.narrationStart,
-            blockModel.narrationEnd
-          );
-        }
+      const startAbs = blockModel.narrationStart + currentTime;
+      const endAbs = blockModel.narrationEnd;
+      if (startAbs < endAbs) {
+        playScene(activeBlock, 999, startAbs, endAbs);
       } else {
-        if (currentTime >= blockModel.totalDuration) {
-          setCurrentTime(0);
-        }
-        setIsVisualPlaying(!isVisualPlaying);
+        playScene(
+          activeBlock,
+          999,
+          blockModel.narrationStart,
+          blockModel.narrationEnd
+        );
       }
     }
   };
@@ -664,7 +637,7 @@ export function SceneTimingEditor({
     );
   }
 
-  const isPlayheadPlaying = playingKey !== null || isVisualPlaying;
+  const isPlayheadPlaying = playingKey !== null;
 
   return (
     <div className="ste-root space-y-5 font-sans">
