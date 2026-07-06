@@ -15,6 +15,11 @@ export interface LocationIntroProps {
   accentColor?: string;
   backgroundImage?: string;
   variant?: "satellite" | "map" | "minimal";
+  /** Nível de zoom inicial (estilo Google Earth) — default 4 */
+  zoom_from?: number;
+  /** Nível de zoom final — default 12 */
+  zoom_to?: number;
+  map_style?: string;
 }
 
 const SatelliteTerrain: React.FC = () => (
@@ -100,6 +105,8 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   accentColor = "#FFFFFF",
   backgroundImage = "",
   variant = "satellite",
+  zoom_from = 4,
+  zoom_to = 12,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
@@ -118,7 +125,9 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const zoom = interpolate(frame, [0, durationInFrames], [1.18, 1.02], {
+  const zoomStart = 1 + Math.min(0.35, Number(zoom_from) / 28);
+  const zoomEnd = 1 + Math.min(0.55, Number(zoom_to) / 22);
+  const zoom = interpolate(frame, [0, durationInFrames], [zoomStart, zoomEnd], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.25, 0.1, 0.25, 1),

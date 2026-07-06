@@ -58,6 +58,7 @@ export function TimelineStudio({
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [stockSearchTrigger, setStockSearchTrigger] =
     useState<StockSearchTrigger | null>(null);
+  const [planningMotion, setPlanningMotion] = useState(false);
 
   const loadStudio = useCallback(async () => {
     if (!activeProject) return;
@@ -326,6 +327,50 @@ export function TimelineStudio({
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-emerald-400 cursor-pointer disabled:opacity-50 flex items-center gap-1"
           >
             <Bot className="w-3 h-3" /> Overlays IA
+          </button>
+          <button
+            type="button"
+            disabled={planningMotion}
+            onClick={async () => {
+              setPlanningMotion(true);
+              try {
+                const planRes = await fetch(
+                  getProjectUrl("/api/ai/creator/plan-motion-scenes"),
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ persist: true }),
+                  }
+                );
+                if (!planRes.ok) throw new Error(await planRes.text());
+                const planData = await planRes.json();
+                const syncRes = await fetch(
+                  getProjectUrl("/api/timeline-studio/motion-scenes/sync"),
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: "{}",
+                  }
+                );
+                if (!syncRes.ok) throw new Error(await syncRes.text());
+                const syncData = await syncRes.json();
+                setStudio(syncData.studio as TimelineStudioState);
+                toast.success(
+                  `${planData.count} cena(s) Remotion planejada(s) e sincronizadas`
+                );
+              } catch (err) {
+                toast.error(`Motion scenes: ${(err as Error).message}`);
+              } finally {
+                setPlanningMotion(false);
+              }
+            }}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-300 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            title="Detecta dados, mapas e curiosidades no roteiro e insere templates Remotion"
+          >
+            <Sparkles
+              className={`w-3 h-3 ${planningMotion ? "animate-spin" : ""}`}
+            />
+            {planningMotion ? "Planejando…" : "Cenas Remotion"}
           </button>
           <button
             type="button"

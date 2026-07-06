@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test ../shared/narrationMatch.test.js ../shared/montagePipeline.test.js ../shared/timelineAudioStarts.test.js ../shared/timelineNarration.test.js ../shared/narrationChunksSync.test.js"
+    "test": "node --test ../shared/narrationMatch.test.js ../shared/montagePipeline.test.js ../shared/timelineAudioStarts.test.js ../shared/timelineNarration.test.js ../shared/narrationChunksSync.test.js ../shared/motionScenePlanner.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
