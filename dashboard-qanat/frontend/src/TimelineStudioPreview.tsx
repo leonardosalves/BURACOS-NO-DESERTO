@@ -48,16 +48,27 @@ function resolveMediaUrl(
   return getAssetUrl(assetName);
 }
 
-function clipToOverlayDraft(clip: StudioClip): OverlayDraft {
+function clipToOverlayDraft(
+  clip: StudioClip,
+  getAssetUrl: (fileName: string) => string,
+  getMusicUrl?: (fileName: string) => string
+): OverlayDraft {
   const type = String(
     clip.templateId || clip.props?.overlayType || "lower-third"
   );
+  const props = { ...(clip.props || {}) };
+  for (const key of ["backgroundImage", "backgroundImageWide"] as const) {
+    const val = props[key];
+    if (typeof val === "string" && val.trim()) {
+      props[key] = resolveMediaUrl(val, getAssetUrl, getMusicUrl);
+    }
+  }
   return {
     id: clip.id,
     type,
     start: clip.start,
     duration: clip.duration,
-    props: { ...(clip.props || {}) },
+    props,
   };
 }
 
@@ -401,7 +412,7 @@ export function TimelineStudioPreview({
           ) : null}
 
           {activeOverlays.map((clip) => {
-            const draft = clipToOverlayDraft(clip);
+            const draft = clipToOverlayDraft(clip, getAssetUrl, getMusicUrl);
             const localSec = displayPlayhead - clip.start;
             const isFullscreen = FULLSCREEN_OVERLAYS.has(
               String(clip.templateId)

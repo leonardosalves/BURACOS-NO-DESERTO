@@ -3,10 +3,18 @@ import {
   AbsoluteFill,
   Img,
   interpolate,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
   Easing,
 } from "remotion";
+
+function resolveMapImageSrc(src?: string): string {
+  const s = String(src || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  return staticFile(s.replace(/\\/g, "/"));
+}
 
 export interface LocationIntroProps {
   location: string;
@@ -14,6 +22,8 @@ export interface LocationIntroProps {
   country?: string;
   accentColor?: string;
   backgroundImage?: string;
+  /** Imagem mais aberta (zoom out) — crossfade durante a descida */
+  backgroundImageWide?: string;
   variant?: "satellite" | "map" | "minimal";
   /** Nível de zoom inicial (estilo Google Earth) — default 4 */
   zoom_from?: number;
@@ -104,9 +114,10 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
   country = "",
   accentColor = "#FFFFFF",
   backgroundImage = "",
+  backgroundImageWide = "",
   variant = "satellite",
-  zoom_from = 4,
-  zoom_to = 12,
+  zoom_from = 8,
+  zoom_to = 14,
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
@@ -125,13 +136,38 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
     { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
   );
 
-  const zoomStart = 1 + Math.min(0.35, Number(zoom_from) / 28);
-  const zoomEnd = 1 + Math.min(0.55, Number(zoom_to) / 22);
+  const mapImageWide = resolveMapImageSrc(backgroundImageWide);
+  const mapImageTight = resolveMapImageSrc(backgroundImage);
+  const hasDualSatellite = Boolean(mapImageWide && mapImageTight);
+  const zoomStart = hasDualSatellite
+    ? 1.02
+    : 1 + Math.min(0.35, Number(zoom_from) / 28);
+  const zoomEnd = hasDualSatellite
+    ? 1.12
+    : 1 + Math.min(0.55, Number(zoom_to) / 22);
   const zoom = interpolate(frame, [0, durationInFrames], [zoomStart, zoomEnd], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.25, 0.1, 0.25, 1),
   });
+
+  const wideOpacity = hasDualSatellite
+    ? interpolate(frame, [0, durationInFrames * 0.72], [1, 0], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      })
+    : 0;
+  const tightOpacity = hasDualSatellite
+    ? interpolate(
+        frame,
+        [durationInFrames * 0.22, durationInFrames * 0.82],
+        [0, 1],
+        {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+        }
+      )
+    : 1;
 
   const panX = interpolate(frame, [0, durationInFrames], [2, -1.5], {
     extrapolateLeft: "clamp",
@@ -173,9 +209,34 @@ export const LocationIntro: React.FC<LocationIntroProps> = ({
           transform: `scale(${zoom}) translate(${panX}%, ${panY}%)`,
         }}
       >
-        {backgroundImage && variant !== "minimal" ? (
+        {hasDualSatellite && variant !== "minimal" ? (
+          <>
+            <Img
+              src={mapImageWide}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: wideOpacity,
+              }}
+            />
+            <Img
+              src={mapImageTight}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                opacity: tightOpacity,
+              }}
+            />
+          </>
+        ) : mapImageTight && variant !== "minimal" ? (
           <Img
-            src={backgroundImage}
+            src={mapImageTight}
             style={{
               width: "100%",
               height: "100%",

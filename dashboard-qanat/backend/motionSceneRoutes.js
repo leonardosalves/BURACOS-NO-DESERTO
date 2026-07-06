@@ -8,6 +8,7 @@ import {
   planMotionScenesFromStoryboard,
   syncMotionScenesToStudio,
 } from "./motionScenePlanner.js";
+import { enrichMotionScenesWithSatellite } from "./satelliteMapService.js";
 import {
   loadTimelineStudio,
   saveTimelineStudio,
@@ -25,26 +26,48 @@ function readJsonSafe(filePath, fallback = {}) {
   return fallback;
 }
 
-export function registerMotionSceneRoutes(app, { getProjectDir }) {
-  app.post("/api/ai/creator/plan-motion-scenes", (req, res) => {
+export function registerMotionSceneRoutes(
+  app,
+  { getProjectDir, workspaceDir }
+) {
+  app.post("/api/ai/creator/plan-motion-scenes", async (req, res) => {
     try {
       const projDir = getProjectDir(req);
       const persist = req.body?.persist !== false;
+      const fetchSatellite = req.body?.fetch_satellite !== false;
       const storyboard = readJsonSafe(
         path.join(projDir, "storyboard.json"),
         {}
       );
       const config = readJsonSafe(path.join(projDir, "config_qanat.json"), {});
+      const workspaceConfig = readJsonSafe(
+        path.join(workspaceDir, "config_qanat.json"),
+        {}
+      );
       const blockTimings = readJsonSafe(
         path.join(projDir, "block_timings.json"),
         {}
       );
 
-      const plan = planMotionScenesFromStoryboard(
+      let plan = planMotionScenesFromStoryboard(
         storyboard,
         config,
         blockTimings
       );
+
+      let satelliteMeta = null;
+      if (fetchSatellite && plan.motion_scenes.length > 0) {
+        const enriched = await enrichMotionScenesWithSatellite(
+          projDir,
+          plan.motion_scenes,
+          { config, workspaceConfig }
+        );
+        plan = { ...plan, motion_scenes: enriched.motion_scenes };
+        satelliteMeta = {
+          enriched: enriched.enriched,
+          results: enriched.results,
+        };
+      }
 
       if (persist) {
         const nextStoryboard = {
@@ -55,6 +78,7 @@ export function registerMotionSceneRoutes(app, { getProjectDir }) {
             planner_version: plan.planner_version,
             source: plan.source,
             niche_pack: plan.niche_pack,
+            satellite: satelliteMeta,
           },
         };
         fs.writeFileSync(
@@ -68,8 +92,54 @@ export function registerMotionSceneRoutes(app, { getProjectDir }) {
         ok: true,
         count: plan.motion_scenes.length,
         ...plan,
+        satellite: satelliteMeta,
         persisted: persist,
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/ai/creator/motion-scenes/satellite", async (req, res) => {
+    try {
+      const projDir = getProjectDir(req);
+      const config = readJsonSafe(path.join(projDir, "config_qanat.json"), {});
+      const workspaceConfig = readJsonSafe(
+        path.join(workspaceDir, "config_qanat.json"),
+        {}
+      );
+      const storyboard = readJsonSafe(
+        path.join(projDir, "storyboard.json"),
+        {}
+      );
+      const motionScenes =
+        req.body?.motion_scenes || storyboard.motion_scenes || [];
+
+      const enriched = await enrichMotionScenesWithSatellite(
+        projDir,
+        motionScenes,
+        { config, workspaceConfig }
+      );
+
+      const nextStoryboard = {
+        ...storyboard,
+        motion_scenes: enriched.motion_scenes,
+        motion_scenes_meta: {
+          ...(storyboard.motion_scenes_meta || {}),
+          satellite: {
+            enriched: enriched.enriched,
+            results: enriched.results,
+            at: new Date().toISOString(),
+          },
+        },
+      };
+      fs.writeFileSync(
+        path.join(projDir, "storyboard.json"),
+        JSON.stringify(nextStoryboard, null, 2),
+        "utf8"
+      );
+
+      res.json({ ok: true, ...enriched });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
