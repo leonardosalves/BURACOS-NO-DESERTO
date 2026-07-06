@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import path from "path";
+import { tightenStudioTimelineClips } from "../shared/timelineStudioTighten.js";
 
 const STUDIO_FILENAME = "timeline_studio.json";
 const NARRATION_FILES = [
@@ -311,6 +312,9 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
   const music = migrateMusicClip(config, projDir);
   if (music) clips.push(music);
 
+  const sortedClips = clips.sort((a, b) => a.start - b.start);
+  const { clips: tightenedClips } = tightenStudioTimelineClips(sortedClips);
+
   const format = config.aspect_ratio === "9:16" ? "9:16" : "16:9";
   const studio = {
     version: 1,
@@ -320,8 +324,8 @@ export function migrateLegacyToTimelineStudio(projDir, { force = false } = {}) {
     zoom: 1,
     pixelsPerSecond: format === "9:16" ? 48 : 40,
     tracks: defaultTracks(),
-    clips: clips.sort((a, b) => a.start - b.start),
-    totalDuration: resolveTotalDuration(blockTimings, clips),
+    clips: tightenedClips,
+    totalDuration: resolveTotalDuration(blockTimings, tightenedClips),
     migratedAt: new Date().toISOString(),
     migratedFrom: [
       "timeline_assets",

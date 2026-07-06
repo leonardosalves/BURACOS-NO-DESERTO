@@ -12,6 +12,7 @@ import {
   computeTotalDuration,
   deleteClip,
   findClip,
+  tightenStudioTimelineClips,
   updateCaptionText,
   updateClipInList,
 } from "./timelineStudioClipOps";
@@ -310,6 +311,24 @@ export function TimelineStudio({
             className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-emerald-400 cursor-pointer disabled:opacity-50 flex items-center gap-1"
           >
             <Bot className="w-3 h-3" /> Overlays IA
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const { clips: tightened, closed } = tightenStudioTimelineClips(
+                studio.clips
+              );
+              if (closed === 0) {
+                toast("Nenhum gap curto para fechar nesta timeline");
+                return;
+              }
+              handleClipsChange(tightened);
+              toast.success(`${closed} gap(s) fechado(s) entre clips`);
+            }}
+            className="text-[10px] font-bold px-3 py-1.5 rounded-lg border border-zinc-700 text-sky-400 cursor-pointer"
+            title="Estende clips até o próximo — remove vazios entre B-roll e palavras Whisper"
+          >
+            Fechar gaps
           </button>
           <button
             type="button"

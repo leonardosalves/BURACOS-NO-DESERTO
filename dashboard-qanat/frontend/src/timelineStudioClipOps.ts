@@ -115,3 +115,67 @@ export function appendClip(
 ): StudioClip[] {
   return [...clips, clip];
 }
+
+const MIN_GAP_SEC = 0.02;
+
+function isDurationLocked(clip: StudioClip): boolean {
+  return Boolean(clip.locked || clip.durationLocked);
+}
+
+export function tightenTrackGaps(
+  clips: StudioClip[],
+  trackId: string,
+  options: { maxGap?: number } = {}
+): { clips: StudioClip[]; closed: number } {
+  const maxGap = Number.isFinite(options.maxGap)
+    ? (options.maxGap as number)
+    : Infinity;
+  const sorted = clips
+    .filter((c) => c.trackId === trackId)
+    .sort((a, b) => a.start - b.start);
+
+  const patches = new Map<string, Partial<StudioClip>>();
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const curr = sorted[i];
+    const next = sorted[i + 1];
+    if (isDurationLocked(curr)) continue;
+
+    const currEnd = curr.start + curr.duration;
+    const gap = next.start - currEnd;
+    if (gap > MIN_GAP_SEC && gap <= maxGap) {
+      patches.set(curr.id, { duration: curr.duration + gap });
+    }
+  }
+
+  if (!patches.size) return { clips, closed: 0 };
+
+  let closed = 0;
+  const nextClips = clips.map((c) => {
+    const patch = patches.get(c.id);
+    if (!patch) return c;
+    closed += 1;
+    return { ...c, ...patch };
+  });
+
+  return { clips: nextClips, closed };
+}
+
+/** Vídeo: sem gaps. Legendas: só pausas curtas entre palavras. */
+export function tightenStudioTimelineClips(clips: StudioClip[]): {
+  clips: StudioClip[];
+  closed: number;
+} {
+  let result = [...clips];
+  let closed = 0;
+
+  const video = tightenTrackGaps(result, "video", { maxGap: Infinity });
+  result = video.clips;
+  closed += video.closed;
+
+  const caps = tightenTrackGaps(result, "captions", { maxGap: 1.5 });
+  result = caps.clips;
+  closed += caps.closed;
+
+  return { clips: result, closed };
+}
