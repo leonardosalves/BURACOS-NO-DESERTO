@@ -156,6 +156,13 @@ export function SceneTimingEditor({
   const [syncing, setSyncing] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [draggingDivider, setDraggingDivider] = useState<number | null>(null);
+  const [draggingOverlay, setDraggingOverlay] = useState<{
+    type: "slide" | "resize-left" | "resize-right";
+    overlayIndex: number;
+    initialX: number;
+    initialStart: number;
+    initialEnd: number;
+  } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -342,6 +349,72 @@ export function SceneTimingEditor({
       window.removeEventListener("mouseup", onUp);
     };
   }, [draggingDivider, handleDividerDrag]);
+
+  const handleOverlayDragMove = useCallback(
+    (e: MouseEvent) => {
+      if (!draggingOverlay || !timelineRef.current || !blockModel) return;
+      const rect = timelineRef.current.getBoundingClientRect();
+      const clientX = e.clientX;
+      const deltaX = clientX - draggingOverlay.initialX;
+      const deltaTime = (deltaX / rect.width) * blockModel.totalDuration;
+
+      const targetIdx = draggingOverlay.overlayIndex;
+      const originalOt = draftImpactTexts[targetIdx];
+      if (!originalOt) return;
+
+      let newStart = originalOt.start_offset;
+      let newEnd = originalOt.end_offset;
+
+      if (draggingOverlay.type === "slide") {
+        const duration =
+          draggingOverlay.initialEnd - draggingOverlay.initialStart;
+        newStart = draggingOverlay.initialStart + deltaTime;
+        newStart = Math.max(
+          0,
+          Math.min(newStart, blockModel.totalDuration - duration)
+        );
+        newEnd = newStart + duration;
+      } else if (draggingOverlay.type === "resize-left") {
+        newStart = draggingOverlay.initialStart + deltaTime;
+        newStart = Math.max(
+          0,
+          Math.min(newStart, draggingOverlay.initialEnd - 0.2)
+        );
+      } else if (draggingOverlay.type === "resize-right") {
+        newEnd = draggingOverlay.initialEnd + deltaTime;
+        newEnd = Math.max(
+          draggingOverlay.initialStart + 0.2,
+          Math.min(newEnd, blockModel.totalDuration)
+        );
+      }
+
+      const updated = draftImpactTexts.map((ot, idx) => {
+        if (idx === targetIdx) {
+          return {
+            ...ot,
+            start_offset: parseFloat(newStart.toFixed(2)),
+            end_offset: parseFloat(newEnd.toFixed(2)),
+          };
+        }
+        return ot;
+      });
+      setDraftImpactTexts(updated);
+    },
+    [draggingOverlay, blockModel, draftImpactTexts]
+  );
+
+  useEffect(() => {
+    if (!draggingOverlay) return;
+    const onMove = (e: MouseEvent) => handleOverlayDragMove(e);
+    const onUp = () => setDraggingOverlay(null);
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [draggingOverlay, handleOverlayDragMove]);
 
   const handleSyncBlock = async () => {
     if (!hasTranscript) {
@@ -674,7 +747,12 @@ export function SceneTimingEditor({
               <div
                 ref={timelineRef}
                 onClick={(e) => {
-                  if (draggingDivider !== null || !timelineRef.current) return;
+                  if (
+                    draggingDivider !== null ||
+                    draggingOverlay !== null ||
+                    !timelineRef.current
+                  )
+                    return;
                   const rect = timelineRef.current.getBoundingClientRect();
                   const clickX = e.clientX - rect.left;
                   const newRelativeTime = Math.max(
@@ -690,88 +768,167 @@ export function SceneTimingEditor({
                       blockModel.narrationStart + newRelativeTime;
                   }
                 }}
-                className="ste-timeline-track relative h-28 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 cursor-col-resize"
+                className="ste-timeline-track relative h-40 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 flex flex-col cursor-col-resize select-none"
               >
-                {blockModel.scenes.map((scene, idx) => {
-                  const widthPct =
-                    blockModel.totalDuration > 0
-                      ? (scene.duration / blockModel.totalDuration) * 100
-                      : 100 / blockModel.scenes.length;
-                  const leftPct = blockModel.scenes
-                    .slice(0, idx)
-                    .reduce(
-                      (a, s) =>
-                        a + (s.duration / blockModel.totalDuration) * 100,
-                      0
-                    );
-                  return (
-                    <div
-                      key={scene.idx}
-                      className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden pointer-events-none"
-                      style={{
-                        left: `${leftPct}%`,
-                        width: `${widthPct}%`,
-                        borderRight:
-                          idx < blockModel.scenes.length - 1
-                            ? "2px solid rgba(0,0,0,0.5)"
-                            : undefined,
-                      }}
-                      title={scene.assetLabel}
-                    >
+                {/* ROW 1: Assets (B-Roll) */}
+                <div className="relative h-24 border-b border-zinc-900 overflow-hidden flex-shrink-0">
+                  {blockModel.scenes.map((scene, idx) => {
+                    const widthPct =
+                      blockModel.totalDuration > 0
+                        ? (scene.duration / blockModel.totalDuration) * 100
+                        : 100 / blockModel.scenes.length;
+                    const leftPct = blockModel.scenes
+                      .slice(0, idx)
+                      .reduce(
+                        (a, s) =>
+                          a + (s.duration / blockModel.totalDuration) * 100,
+                        0
+                      );
+                    return (
                       <div
-                        className="ste-timeline-seg-tint absolute inset-0 z-[1]"
+                        key={scene.idx}
+                        className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden pointer-events-none"
                         style={{
-                          background: SCENE_COLORS[idx % SCENE_COLORS.length],
+                          left: `${leftPct}%`,
+                          width: `${widthPct}%`,
+                          borderRight:
+                            idx < blockModel.scenes.length - 1
+                              ? "2px solid rgba(0,0,0,0.5)"
+                              : undefined,
                         }}
+                        title={scene.assetLabel}
+                      >
+                        <div
+                          className="ste-timeline-seg-tint absolute inset-0 z-[1]"
+                          style={{
+                            background: SCENE_COLORS[idx % SCENE_COLORS.length],
+                          }}
+                        />
+                        <div className="ste-timeline-seg-media absolute inset-0 z-0">
+                          <SceneAssetPreview
+                            scene={scene}
+                            getAssetUrl={getAssetUrl}
+                            variant="strip"
+                          />
+                        </div>
+                        <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-1 bg-gradient-to-t from-black/85 to-transparent">
+                          <span
+                            className="text-[9px] text-zinc-300 truncate max-w-[70%]"
+                            title={scene.assetLabel}
+                          >
+                            {scene.assetLabel}
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-white shrink-0">
+                            {scene.duration.toFixed(1)}s
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {blockModel.scenes.slice(0, -1).map((_, idx) => {
+                    const leftPct = blockModel.scenes
+                      .slice(0, idx + 1)
+                      .reduce(
+                        (a, s) =>
+                          a + (s.duration / blockModel.totalDuration) * 100,
+                        0
+                      );
+                    return (
+                      <button
+                        key={`div-${idx}`}
+                        type="button"
+                        className="ste-timeline-divider"
+                        style={{ left: `calc(${leftPct}% - 6px)` }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setDraggingDivider(idx);
+                        }}
+                        aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
                       />
-                      <div className="ste-timeline-seg-media absolute inset-0 z-0">
-                        <SceneAssetPreview
-                          scene={scene}
-                          getAssetUrl={getAssetUrl}
-                          variant="strip"
+                    );
+                  })}
+                </div>
+
+                {/* ROW 2: AI Overlays Track */}
+                <div className="relative h-16 bg-zinc-950/45 flex items-center px-1">
+                  {activeBlockOverlays.map((ot) => {
+                    const fullIdx = draftImpactTexts.findIndex((x) => x === ot);
+                    if (fullIdx === -1) return null;
+                    const leftPct =
+                      (ot.start_offset / blockModel.totalDuration) * 100;
+                    const widthPct =
+                      ((ot.end_offset - ot.start_offset) /
+                        blockModel.totalDuration) *
+                      100;
+                    return (
+                      <div
+                        key={fullIdx}
+                        className="absolute h-9 rounded-lg border border-cyan-500/40 bg-cyan-950/30 text-white flex items-center justify-between z-10 overflow-hidden shadow-md"
+                        style={{
+                          left: `${leftPct}%`,
+                          width: `${widthPct}%`,
+                        }}
+                      >
+                        {/* Left resize handle */}
+                        <div
+                          className="w-1.5 h-full bg-cyan-500/30 hover:bg-cyan-400 cursor-ew-resize shrink-0 transition"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDraggingOverlay({
+                              type: "resize-left",
+                              overlayIndex: fullIdx,
+                              initialX: e.clientX,
+                              initialStart: ot.start_offset,
+                              initialEnd: ot.end_offset,
+                            });
+                          }}
+                        />
+
+                        {/* Middle content / slide handle */}
+                        <div
+                          className="flex-1 min-w-0 px-2 py-0.5 flex flex-col justify-center cursor-grab active:cursor-grabbing h-full"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDraggingOverlay({
+                              type: "slide",
+                              overlayIndex: fullIdx,
+                              initialX: e.clientX,
+                              initialStart: ot.start_offset,
+                              initialEnd: ot.end_offset,
+                            });
+                          }}
+                        >
+                          <span className="text-[9px] font-extrabold uppercase tracking-wide text-cyan-400 leading-none mb-0.5 truncate">
+                            Overlay
+                          </span>
+                          <span className="text-[9px] font-medium truncate text-zinc-300 leading-none">
+                            {ot.text}
+                          </span>
+                        </div>
+
+                        {/* Right resize handle */}
+                        <div
+                          className="w-1.5 h-full bg-cyan-500/30 hover:bg-cyan-400 cursor-ew-resize shrink-0 transition"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDraggingOverlay({
+                              type: "resize-right",
+                              overlayIndex: fullIdx,
+                              initialX: e.clientX,
+                              initialStart: ot.start_offset,
+                              initialEnd: ot.end_offset,
+                            });
+                          }}
                         />
                       </div>
-                      <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-1 bg-gradient-to-t from-black/85 to-transparent">
-                        <span
-                          className="text-[9px] text-zinc-300 truncate max-w-[70%]"
-                          title={scene.assetLabel}
-                        >
-                          {scene.assetLabel}
-                        </span>
-                        <span className="text-[10px] font-mono font-bold text-white shrink-0">
-                          {scene.duration.toFixed(1)}s
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {blockModel.scenes.slice(0, -1).map((_, idx) => {
-                  const leftPct = blockModel.scenes
-                    .slice(0, idx + 1)
-                    .reduce(
-                      (a, s) =>
-                        a + (s.duration / blockModel.totalDuration) * 100,
-                      0
                     );
-                  return (
-                    <button
-                      key={`div-${idx}`}
-                      type="button"
-                      className="ste-timeline-divider"
-                      style={{ left: `calc(${leftPct}% - 6px)` }}
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        setDraggingDivider(idx);
-                      }}
-                      aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
-                    />
-                  );
-                })}
+                  })}
+                </div>
 
                 {/* Red playhead marker line synced to preview time */}
                 <div
-                  className="absolute top-0 bottom-0 w-[1.5px] bg-red-500 z-10 pointer-events-none"
+                  className="absolute top-0 bottom-0 w-[1.5px] bg-red-500 z-20 pointer-events-none"
                   style={{
                     left: `${(currentTime / blockModel.totalDuration) * 100}%`,
                   }}
