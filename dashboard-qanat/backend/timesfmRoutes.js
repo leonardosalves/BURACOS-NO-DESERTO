@@ -92,13 +92,11 @@ export function registerTimesfmRoutes(app, deps) {
       if (!result.ok) return res.status(400).json(result);
       res.json(result);
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          ok: false,
-          error: "Falha na descoberta de nichos pioneiros",
-          details: err.message,
-        });
+      res.status(500).json({
+        ok: false,
+        error: "Falha na descoberta de nichos pioneiros",
+        details: err.message,
+      });
     }
   });
 
@@ -151,13 +149,11 @@ export function registerTimesfmRoutes(app, deps) {
       });
       res.json(result);
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          ok: false,
-          error: "Falha ao salvar resultado",
-          details: err.message,
-        });
+      res.status(500).json({
+        ok: false,
+        error: "Falha ao salvar resultado",
+        details: err.message,
+      });
     }
   });
 
@@ -198,13 +194,11 @@ export function registerTimesfmRoutes(app, deps) {
       if (!result.ok) return res.status(400).json(result);
       res.json(result);
     } catch (err) {
-      res
-        .status(500)
-        .json({
-          ok: false,
-          error: "Falha na previsão de tendências",
-          details: err.message,
-        });
+      res.status(500).json({
+        ok: false,
+        error: "Falha na previsão de tendências",
+        details: err.message,
+      });
     }
   });
 
@@ -217,29 +211,63 @@ export function registerTimesfmRoutes(app, deps) {
         });
       }
 
-      const { macroNiche, label, angle, audience, videoConcept, format } =
-        req.body;
+      const {
+        macroNiche,
+        label,
+        angle,
+        format,
+        firstVideoIdea,
+        firstVideoHook,
+        demandAnalysis,
+        contentPillars,
+        competitionLevel,
+        whyPioneer,
+        nicheLabel,
+      } = req.body;
+
       const isShorts = String(format || "").toUpperCase() !== "LONGO";
       const targetFormat = isShorts ? "SHORTS" : "LONGO";
+      const blockCount = isShorts ? "3 to 4" : "5 to 8";
+
+      // Monta contexto rico da pesquisa de tendências
+      const researchContext = [
+        demandAnalysis ? `DEMAND ANALYSIS: ${demandAnalysis}` : "",
+        angle ? `SPECIFIC ANGLE: ${angle}` : "",
+        firstVideoIdea ? `SUGGESTED FIRST VIDEO IDEA: ${firstVideoIdea}` : "",
+        firstVideoHook ? `SUGGESTED HOOK: ${firstVideoHook}` : "",
+        whyPioneer ? `WHY THIS IS A PIONEER OPPORTUNITY: ${whyPioneer}` : "",
+        competitionLevel ? `COMPETITION LEVEL: ${competitionLevel}` : "",
+        Array.isArray(contentPillars) && contentPillars.length > 0
+          ? `CONTENT PILLARS:\n${contentPillars.map((p, i) => `  ${i + 1}. ${p}`).join("\n")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
 
       const prompt = `You are an expert YouTube content strategist.
-Given the following YouTube video trend/niche idea:
-- Macro Niche: ${macroNiche || "General"}
-- Topic: ${label || "General Topic"}
-- Angle/Idea: ${angle || "Interesting facts"}
-- Target Audience: ${audience || "General Audience"}
-- Video Concept: ${videoConcept || "Interactive explanation"}
-- Format: ${targetFormat}
+You have received the following RESEARCH DATA from a YouTube trend radar tool about a real, validated opportunity:
 
-Your goal is to expand this idea into a structured video outline.
+NICHE: ${nicheLabel || macroNiche || label}
+MACRO NICHE: ${macroNiche || "General"}
+TOPIC/LABEL: ${label || nicheLabel || "General Topic"}
+VIDEO FORMAT: ${targetFormat}
+
+=== TREND RESEARCH DATA ===
+${researchContext || `Angle: ${angle || "Interesting facts about the topic"}`}
+===========================
+
+Based on this SPECIFIC trend research data above, expand into a structured video outline.
+The content MUST be directly related to and inspired by the research data provided — do NOT generate generic content.
 All returned fields MUST be in English.
-1. "title": A highly catchy, high-CTR video title (in English, max 90 chars).
-2. "hook": A powerful retention hook candidates/phrases (in English). It should NOT be the same as the title. It should grab attention immediately (e.g. "We've been lied to about...").
-3. "promise": A general base script outline / promise of the video (in English, 2-3 sentences max).
+
+1. "title": A highly catchy, high-CTR video title (in English, max 90 chars). Base it on the specific angle/first video idea from the research.
+2. "hook": A powerful retention hook (in English). It should NOT be the same as the title. Base it on the suggested hook from the research if available. It should grab attention immediately (e.g. "We've been lied to about...", "You've been looking at maps wrong...").
+3. "promise": A general base script outline / promise of the video (in English, 2-3 sentences). Must reflect the specific demand analysis and angle from the research.
 4. "blocks": A list of sequential script blocks.
-   - If the format is SHORTS, you MUST generate exactly between 3 and 5 blocks.
+   - If the format is SHORTS, you MUST generate exactly between 3 and 4 blocks.
    - If the format is LONGO, you MUST generate exactly between 5 and 8 blocks.
    - Each block must have a number ("block": integer) and a concise description of what should be covered ("content": string in English).
+   - The blocks should follow the content pillars and angle from the research data.
 
 Respond STRICTLY in valid JSON format. Do not write any conversational text before or after the JSON.
 JSON format structure:

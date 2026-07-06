@@ -7695,8 +7695,21 @@ export default function App() {
           body: JSON.stringify({
             macroNiche: options?.pioneerMeta?.macroNiche || "",
             label: title,
-            angle: options?.pioneerMeta?.angle || hookPt || "",
+            angle:
+              options?.pioneerMeta?.specificAngle ||
+              options?.pioneerMeta?.angle ||
+              hookPt ||
+              "",
             format,
+            // Dados ricos da pesquisa de tendências
+            firstVideoIdea: options?.pioneerMeta?.firstVideoIdea || "",
+            firstVideoHook: options?.pioneerMeta?.firstVideoHook || "",
+            demandAnalysis: options?.pioneerMeta?.demandAnalysis || "",
+            contentPillars: options?.pioneerMeta?.contentPillars || [],
+            competitionLevel: options?.pioneerMeta?.competitionLevel || "",
+            whyPioneer:
+              options?.pioneerMeta?.whyPioneer || options?.whyWorks || "",
+            nicheLabel: options?.pioneerMeta?.nicheLabel || title,
           }),
         });
         const data = await res.json();
@@ -7817,8 +7830,29 @@ export default function App() {
     setEditorialIdeaImport(importData);
 
     // Configurar blocos da estrutura
+    const maxBlocksForFormat = format === "SHORTS" ? 4 : 8;
+    const minBlocksForFormat = format === "SHORTS" ? 3 : 5;
     if (options?.blocks && options.blocks.length > 0) {
-      setCustomBlocks(options.blocks);
+      // Garante que os blocos respeitam o limite do formato
+      const clamped = options.blocks
+        .slice(0, maxBlocksForFormat)
+        .map((b: { block: number; content: string }, i: number) => ({
+          ...b,
+          block: i + 1,
+        }));
+      // Se vier menos do que o mínimo, completa com blocos vazios
+      if (clamped.length < minBlocksForFormat) {
+        const extra = Array.from(
+          { length: minBlocksForFormat - clamped.length },
+          (_, i) => ({
+            block: clamped.length + i + 1,
+            content: "",
+          })
+        );
+        setCustomBlocks([...clamped, ...extra]);
+      } else {
+        setCustomBlocks(clamped);
+      }
     } else {
       const defaultBlockCount = format === "SHORTS" ? 3 : 5;
       const initialBlocks = Array.from(
