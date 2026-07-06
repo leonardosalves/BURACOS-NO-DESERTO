@@ -156,9 +156,9 @@ import {
 } from "./youtubeMetadataDisplay";
 import { buildAppTabPropBundles } from "./appTabPropBundles";
 import { AppOverlays } from "./AppOverlays";
-const RichTimelineEditor = lazy(() =>
-  import("./RichTimelineEditor").then((m) => ({
-    default: m.RichTimelineEditor,
+const TimelineStudio = lazy(() =>
+  import("./TimelineStudio").then((m) => ({
+    default: m.TimelineStudio,
   }))
 );
 const AppTabPanels = lazy(() =>
@@ -9248,8 +9248,10 @@ export default function App() {
   }) => {
     if (!config) return null;
     return (
-      <Suspense fallback={<TabPanelFallback label="Carregando timeline..." />}>
-        <RichTimelineEditor
+      <Suspense
+        fallback={<TabPanelFallback label="Carregando Timeline Studio..." />}
+      >
+        <TimelineStudio
           hideAutoMap={options?.hideAutoMap === true}
           wizardManualMode={options?.wizardManualMode === true}
           config={config}

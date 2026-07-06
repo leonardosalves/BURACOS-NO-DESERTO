@@ -146,6 +146,7 @@ import {
 } from "./thumbnailExperiment.js";
 import { runFullPipeline } from "./pipelineOrchestrator.js";
 import { registerWorkflowRoutes } from "./workflowRoutes.js";
+import { registerTimelineStudioRoutes } from "./timelineStudioRoutes.js";
 import { registerVideoResurrectorRoutes } from "./videoResurrectorRoutes.js";
 import { registerSocialPublishRoutes } from "./socialPublishRoutes.js";
 import {
@@ -17677,6 +17678,8 @@ workflowApi = registerWorkflowRoutes(app, {
   runAutoSoundtrackLogic,
   readJsonFile,
 });
+
+registerTimelineStudioRoutes(app, { getProjectDir });
 
 registerVideoResurrectorRoutes(app, {
   WORKSPACE_DIR,
