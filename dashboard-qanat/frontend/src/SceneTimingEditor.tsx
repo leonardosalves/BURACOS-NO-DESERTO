@@ -872,7 +872,7 @@ export function SceneTimingEditor({
         <div className="flex flex-col lg:flex-row gap-5">
           {/* COLUMN 1: Scene & Overlays details */}
           <div className="flex-1 min-w-0 space-y-5">
-            <div className="ste-summary glass-panel p-4 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="ste-summary glass-panel p-4 rounded-xl grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
                   Fala do bloco (áudio)
@@ -894,6 +894,35 @@ export function SceneTimingEditor({
                 </p>
               </div>
               <div>
+                {/* Duração real renderizada = totalDuration - (N-1) × 0.4s de overlap */}
+                {(() => {
+                  const nScenes = blockModel.scenes.length;
+                  const transitionOverlap = Math.max(0, nScenes - 1) * 0.4;
+                  const renderedDuration = Math.max(
+                    0,
+                    blockModel.totalDuration - transitionOverlap
+                  );
+                  const diff = renderedDuration - blockModel.speechDuration;
+                  const ok = Math.abs(diff) < 0.5;
+                  return (
+                    <>
+                      <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1 flex items-center gap-1">
+                        Renderizado (−{transitionOverlap.toFixed(1)}s trans.)
+                      </p>
+                      <p
+                        className={`font-mono flex items-center gap-1 ${ok ? "text-emerald-400" : Math.abs(diff) < 1.5 ? "text-amber-300" : "text-red-400"}`}
+                      >
+                        {renderedDuration.toFixed(1)}s
+                        <span className="text-[9px] text-zinc-500 ml-1">
+                          ({diff > 0 ? "+" : ""}
+                          {diff.toFixed(1)}s vs áudio)
+                        </span>
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+              <div>
                 <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
                   Palavras
                 </p>
@@ -903,6 +932,7 @@ export function SceneTimingEditor({
                 <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
                   Cobertura
                 </p>
+
                 <p
                   className={`font-mono flex items-center gap-1.5 ${blockModel.coveragePercent >= 95 ? "text-emerald-400" : "text-amber-300"}`}
                 >
