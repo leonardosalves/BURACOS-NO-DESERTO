@@ -9,6 +9,15 @@ import crypto from "crypto";
 
 const NOMINATIM_UA = "LumieraVideoStudio/1.0 (motion-scenes-satellite)";
 
+/** POI específico → descida estilo Google Earth; cidade → contorno administrativo. */
+const POI_KEYWORDS =
+  /\b(forte|fortaleza|castelo|ponte|monumento|edif[ií]cio|torre|templo|pir[aâ]mide|est[aá]tua|museu|pal[aá]cio|bas[ií]lica|catedral|memorial|ru[ií]na|aqueduto|viaduto|est[aá]dio|arena|obelisco|farol|porto|aeroporto)\b/i;
+const CITY_KEYWORDS =
+  /\b(cidade|munic[ií]pio|capital|regi[aã]o|estado|prov[ií]ncia|pa[ií]s|continente|metr[oó]pole|distrito|comuna|vilarejo|vila)\b/i;
+
+export const EARTH_DESCENT_ZOOMS = [3, 5, 8, 11, 14, 17];
+export const CITY_OUTLINE_ZOOMS = [9, 12];
+
 /** Coordenadas conhecidas — evita geocoding em projetos de engenharia/mapa. */
 export const KNOWN_COORDINATES = [
   {
@@ -74,6 +83,87 @@ export function bboxFromCenter(lat, lng, zoom, widthPx = 1280, heightPx = 720) {
     minLat: lat - latDelta,
     maxLng: lng + lngDelta,
     maxLat: lat + latDelta,
+  };
+}
+
+export function classifyPlaceType(text = "", place = {}) {
+  const t = String(text || "");
+  const loc = String(place.location || place.label || "").toLowerCase();
+
+  if (
+    POI_KEYWORDS.test(t) ||
+    /\b(fort|castel|ponte|torre|pirâmide|piramide)\b/i.test(loc)
+  ) {
+    return { place_type: "poi", fly_mode: "earth_descent" };
+  }
+  if (CITY_KEYWORDS.test(t)) {
+    return { place_type: "city", fly_mode: "city_outline" };
+  }
+  if (/\b(fort|castel|bridge|tower)\b/i.test(loc)) {
+    return { place_type: "poi", fly_mode: "earth_descent" };
+  }
+  return { place_type: "city", fly_mode: "city_outline" };
+}
+
+export function buildZoomSequence(flyMode, zoomFrom, zoomTo) {
+  if (flyMode === "earth_descent") {
+    return [...EARTH_DESCENT_ZOOMS];
+  }
+  if (flyMode === "city_outline") {
+    return [...CITY_OUTLINE_ZOOMS];
+  }
+  return [Number(zoomFrom) || 8, Number(zoomTo) || 14];
+}
+
+function simplifyRing(ring, maxPoints = 120) {
+  if (!Array.isArray(ring) || ring.length < 3) return [];
+  if (ring.length <= maxPoints) return ring;
+  const step = Math.ceil(ring.length / maxPoints);
+  const out = [];
+  for (let i = 0; i < ring.length; i += step) out.push(ring[i]);
+  if (out[0] !== ring[ring.length - 1]) out.push(ring[ring.length - 1]);
+  return out;
+}
+
+function extractBoundaryRings(geojson) {
+  if (!geojson?.type) return [];
+  if (geojson.type === "Polygon") {
+    const ring = simplifyRing(geojson.coordinates?.[0]);
+    return ring.length >= 3 ? [ring] : [];
+  }
+  if (geojson.type === "MultiPolygon") {
+    return (geojson.coordinates || [])
+      .map((poly) => simplifyRing(poly?.[0]))
+      .filter((ring) => ring.length >= 3);
+  }
+  return [];
+}
+
+export async function fetchPlaceBoundary(query = "", { lat, lng } = {}) {
+  const q = String(query || "").trim();
+  if (!q || q.length < 2) return null;
+
+  const url =
+    `https://nominatim.openstreetmap.org/search?format=json&limit=1` +
+    `&polygon_geojson=1&q=${encodeURIComponent(q)}`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": NOMINATIM_UA, Accept: "application/json" },
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  const hit = Array.isArray(rows) ? rows[0] : null;
+  const rings = extractBoundaryRings(hit?.geojson);
+  if (!rings.length) return null;
+
+  return {
+    type: rings.length === 1 ? "Polygon" : "MultiPolygon",
+    coordinates: rings.length === 1 ? [rings[0]] : rings.map((ring) => [ring]),
+    center: {
+      lat: Number(hit?.lat) || lat,
+      lng: Number(hit?.lon) || lng,
+    },
+    label: String(hit?.display_name || q).split(",")[0],
+    source: "nominatim",
   };
 }
 
@@ -177,8 +267,14 @@ function assetRelPath(fileName) {
   return `ASSETS/satellite/${fileName}`;
 }
 
+function buildTileUrl(token, lat, lng, zoom) {
+  return token
+    ? buildMapboxStaticUrl(lng, lat, zoom, token)
+    : buildEsriExportUrl(lat, lng, zoom);
+}
+
 /**
- * Baixa imagens wide + tight e retorna paths relativos ao projeto.
+ * Baixa tiles satélite (multi-zoom Earth fly ou contorno de cidade) e retorna paths.
  */
 export async function fetchSatelliteAssetsForScene(
   projDir,
@@ -191,6 +287,11 @@ export async function fetchSatelliteAssetsForScene(
   const query = [props.location, props.region, props.country]
     .filter(Boolean)
     .join(", ");
+
+  const classification =
+    props.fly_mode && props.place_type
+      ? { fly_mode: props.fly_mode, place_type: props.place_type }
+      : classifyPlaceType(scene?.narration_text || "", props);
 
   let coords = resolveKnownCoordinates(scene?.narration_text || "", props);
   if (!coords) {
@@ -205,20 +306,54 @@ export async function fetchSatelliteAssetsForScene(
     String(scene.id || "scene")
       .replace(/[^a-zA-Z0-9_-]/g, "_")
       .slice(0, 40) || crypto.randomBytes(4).toString("hex");
-  const wideName = `${sceneKey}-z${zoomFrom}.jpg`;
-  const tightName = `${sceneKey}-z${zoomTo}.jpg`;
-  const widePath = path.join(projDir, assetRelPath(wideName));
-  const tightPath = path.join(projDir, assetRelPath(tightName));
 
-  const wideUrl = token
-    ? buildMapboxStaticUrl(coords.lng, coords.lat, zoomFrom, token)
-    : buildEsriExportUrl(coords.lat, coords.lng, zoomFrom);
-  const tightUrl = token
-    ? buildMapboxStaticUrl(coords.lng, coords.lat, zoomTo, token)
-    : buildEsriExportUrl(coords.lat, coords.lng, zoomTo);
+  const zoomLevels = buildZoomSequence(
+    classification.fly_mode,
+    zoomFrom,
+    zoomTo
+  );
 
-  await downloadImageToFile(wideUrl, widePath);
-  await downloadImageToFile(tightUrl, tightPath);
+  const zoomKeyframes = [];
+  for (const zoom of zoomLevels) {
+    const fileName = `${sceneKey}-z${zoom}.jpg`;
+    const destPath = path.join(projDir, assetRelPath(fileName));
+    const url = buildTileUrl(token, coords.lat, coords.lng, zoom);
+    await downloadImageToFile(url, destPath);
+    zoomKeyframes.push({
+      zoom,
+      image: assetRelPath(fileName),
+    });
+    if (zoomLevels.length > 2) {
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+
+  const wideFrame = zoomKeyframes[0];
+  const tightFrame = zoomKeyframes[zoomKeyframes.length - 1];
+
+  let boundaryGeoJson = null;
+  let boundaryPath = null;
+  if (classification.fly_mode === "city_outline") {
+    try {
+      boundaryGeoJson = await fetchPlaceBoundary(query, {
+        lat: coords.lat,
+        lng: coords.lng,
+      });
+      if (boundaryGeoJson) {
+        const boundaryName = `${sceneKey}-boundary.json`;
+        boundaryPath = path.join(projDir, assetRelPath(boundaryName));
+        fs.mkdirSync(path.dirname(boundaryPath), { recursive: true });
+        fs.writeFileSync(
+          boundaryPath,
+          JSON.stringify(boundaryGeoJson, null, 2),
+          "utf8"
+        );
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+    } catch {
+      /* boundary opcional */
+    }
+  }
 
   return {
     ok: true,
@@ -226,10 +361,18 @@ export async function fetchSatelliteAssetsForScene(
     lng: coords.lng,
     geocode_source: coords.source,
     map_provider: token ? "mapbox" : "esri",
-    backgroundImage: assetRelPath(tightName),
-    backgroundImageWide: assetRelPath(wideName),
-    widePath,
-    tightPath,
+    place_type: classification.place_type,
+    fly_mode: classification.fly_mode,
+    zoom_keyframes: zoomKeyframes,
+    boundaryGeoJson: boundaryPath
+      ? assetRelPath(`${sceneKey}-boundary.json`)
+      : "",
+    backgroundImage: tightFrame?.image || "",
+    backgroundImageWide: wideFrame?.image || "",
+    zoom_from: wideFrame?.zoom ?? zoomFrom,
+    zoom_to: tightFrame?.zoom ?? zoomTo,
+    widePath: wideFrame ? path.join(projDir, wideFrame.image) : null,
+    tightPath: tightFrame ? path.join(projDir, tightFrame.image) : null,
   };
 }
 
@@ -262,6 +405,12 @@ export async function enrichMotionScenesWithSatellite(
         lng: fetched.lng,
         backgroundImage: fetched.backgroundImage,
         backgroundImageWide: fetched.backgroundImageWide,
+        zoom_keyframes: fetched.zoom_keyframes,
+        zoom_from: fetched.zoom_from,
+        zoom_to: fetched.zoom_to,
+        fly_mode: fetched.fly_mode,
+        place_type: fetched.place_type,
+        boundaryGeoJson: fetched.boundaryGeoJson || "",
         map_provider: fetched.map_provider,
         geocode_source: fetched.geocode_source,
       };

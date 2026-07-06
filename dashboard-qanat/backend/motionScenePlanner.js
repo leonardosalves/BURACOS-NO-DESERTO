@@ -11,6 +11,7 @@ import {
 } from "../shared/motionSceneCatalog.js";
 import { resolvePackByAlias } from "./timelineStudioNichePacks.js";
 import { detectNicheCategory } from "./overlayOrchestration.js";
+import { classifyPlaceType } from "./satelliteMapService.js";
 
 const YEAR_RE = /\b(1\d{3}|20\d{2})\b/;
 const YEAR_GLOBAL_RE = /\b(1\d{3}|20\d{2})\b/g;
@@ -187,14 +188,19 @@ export function buildPropsForTemplate(
       };
     case "location-intro": {
       const place = resolvePlace(t);
+      const { place_type, fly_mode } = classifyPlaceType(t, place);
+      const zoomFrom = fly_mode === "earth_descent" ? 3 : 9;
+      const zoomTo = fly_mode === "earth_descent" ? 17 : 12;
       return {
         location: place.location,
         region: place.region,
         country: place.country,
         variant: "satellite",
         accentColor: "#FFFFFF",
-        zoom_from: 8,
-        zoom_to: 14,
+        place_type,
+        fly_mode,
+        zoom_from: zoomFrom,
+        zoom_to: zoomTo,
         map_style: "satellite",
       };
     }

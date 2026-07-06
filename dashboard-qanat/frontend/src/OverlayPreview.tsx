@@ -622,10 +622,14 @@ export function OverlayPreview({
       case "location-intro": {
         const bgWide = String(props.backgroundImageWide || "");
         const bgTight = String(props.backgroundImage || "");
+        const flyMode = String(props.fly_mode || "simple");
+        const keyframes = Array.isArray(props.zoom_keyframes)
+          ? props.zoom_keyframes.filter((k: { image?: string }) => k?.image)
+          : [];
         const subtitle = [props.region, props.country]
           .filter(Boolean)
           .join(" · ");
-        if (embedded && (bgWide || bgTight)) {
+        if (embedded && (keyframes.length > 0 || bgWide || bgTight)) {
           const progress =
             scrubSeconds != null
               ? Math.min(
@@ -633,12 +637,25 @@ export function OverlayPreview({
                   Math.max(0, scrubSeconds / Math.max(durationSeconds, 0.1))
                 )
               : 0.45;
-          const wideOpacity = 1 - progress * 0.85;
-          const tightOpacity = Math.min(
-            1,
-            Math.max(0, (progress - 0.2) * 1.25)
+          const frames =
+            keyframes.length > 0
+              ? keyframes
+              : [
+                  bgWide ? { zoom: props.zoom_from || 8, image: bgWide } : null,
+                  bgTight
+                    ? { zoom: props.zoom_to || 14, image: bgTight }
+                    : null,
+                ].filter(Boolean);
+          const seg = 1 / Math.max(frames.length - 1, 1);
+          const idx = Math.min(
+            frames.length - 2,
+            Math.max(0, Math.floor(progress / seg))
           );
-          const zoom = 1 + progress * 0.1;
+          const localT = (progress - idx * seg) / Math.max(seg, 0.001);
+          const zoom =
+            flyMode === "earth_descent"
+              ? 1 + progress * 0.22
+              : 1 + progress * 0.1;
           return (
             <div className="absolute inset-0 overflow-hidden">
               <div
@@ -648,23 +665,34 @@ export function OverlayPreview({
                   transformOrigin: "center center",
                 }}
               >
-                {bgWide ? (
-                  <img
-                    src={bgWide}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ opacity: wideOpacity }}
-                  />
-                ) : null}
-                {bgTight ? (
-                  <img
-                    src={bgTight}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ opacity: bgWide ? tightOpacity : 1 }}
-                  />
-                ) : null}
+                {frames.map((kf, i) => {
+                  const src = String((kf as { image?: string })?.image || "");
+                  if (!src) return null;
+                  let opacity = 0;
+                  if (frames.length === 1) opacity = 1;
+                  else if (i === idx) opacity = 1 - localT;
+                  else if (i === idx + 1) opacity = localT;
+                  if (opacity <= 0.02) return null;
+                  return (
+                    <img
+                      key={`${src}-${i}`}
+                      src={src}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ opacity }}
+                    />
+                  );
+                })}
               </div>
+              {flyMode === "city_outline" ? (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    boxShadow: `inset 0 0 0 3px ${accentColor}88`,
+                    opacity: Math.min(1, progress * 1.4),
+                  }}
+                />
+              ) : null}
               <div
                 className="absolute inset-0"
                 style={{
