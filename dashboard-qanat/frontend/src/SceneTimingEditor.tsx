@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AlertTriangle,
   Check,
@@ -10,6 +16,8 @@ import {
   Save,
   Sparkles,
   Volume2,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
 import {
@@ -25,22 +33,48 @@ import {
   type BlockTimingModel,
   type SceneTimingRow,
 } from "./sceneTimingEngine";
-import type { BlockTimingStatus, NarrationSyncContext, TimelineAsset } from "./timelineNarrationSync";
+import type {
+  BlockTimingStatus,
+  NarrationSyncContext,
+  TimelineAsset,
+} from "./timelineNarrationSync";
 
 type ConfigSlice = {
   timeline_assets?: Record<string, TimelineAsset[]>;
   block_phrases?: { block: number; phrase: string }[];
+  impact_texts?: Array<{
+    block: number;
+    start_offset: number;
+    end_offset: number;
+    text: string;
+  }>;
+  aspect_ratio?: "16:9" | "9:16";
+  canvas_background?: string;
 };
 
 type Props = {
   activeProject: string;
   config: ConfigSlice | null;
   status?: BlockTimingStatus & { has_narration?: boolean };
-  storyboard?: { visual_prompts?: Array<{ block?: number; narration_text?: string; narration_excerpt?: string }> };
+  storyboard?: {
+    visual_prompts?: Array<{
+      block?: number;
+      narration_text?: string;
+      narration_excerpt?: string;
+    }>;
+  };
   wordTranscripts: any[];
   getMediaUrl: (file: string) => string;
   getAssetUrl: (fileName: string) => string;
-  onSave: (timelineAssets: Record<string, TimelineAsset[]>) => Promise<void>;
+  onSave: (
+    timelineAssets: Record<string, TimelineAsset[]>,
+    impactTexts: Array<{
+      block: number;
+      start_offset: number;
+      end_offset: number;
+      text: string;
+    }>
+  ) => Promise<void>;
   toast: (msg: string) => void;
 };
 
@@ -60,7 +94,7 @@ function SceneAssetPreview({
     return (
       <div className={`ste-asset-empty ste-asset-empty--${variant}`}>
         <ImageIcon className="w-5 h-5 opacity-40" />
-        <span className="text-[9px] text-zinc-600">Sem mídia</span>
+        <span className="text-[9px] text-zinc-650">Sem mídia</span>
       </div>
     );
   }
@@ -86,18 +120,23 @@ function SceneAssetPreview({
 
   return (
     <div className={`ste-asset-preview ste-asset-preview--${variant}`}>
-      <img src={url} alt={scene.assetLabel} className="ste-asset-media" loading="lazy" />
+      <img
+        src={url}
+        alt={scene.assetLabel}
+        className="ste-asset-media"
+        loading="lazy"
+      />
     </div>
   );
 }
 
 const SCENE_COLORS = [
-  "rgba(56, 189, 248, 0.55)",
-  "rgba(129, 140, 248, 0.55)",
-  "rgba(52, 211, 153, 0.55)",
-  "rgba(251, 191, 36, 0.55)",
-  "rgba(244, 114, 182, 0.55)",
-  "rgba(167, 139, 250, 0.55)",
+  "rgba(56, 189, 248, 0.4)",
+  "rgba(129, 140, 248, 0.4)",
+  "rgba(52, 211, 153, 0.4)",
+  "rgba(251, 191, 36, 0.4)",
+  "rgba(244, 114, 182, 0.4)",
+  "rgba(167, 139, 250, 0.4)",
 ];
 
 export function SceneTimingEditor({
@@ -112,6 +151,7 @@ export function SceneTimingEditor({
   toast,
 }: Props) {
   const [draft, setDraft] = useState<Record<string, TimelineAsset[]>>({});
+  const [draftImpactTexts, setDraftImpactTexts] = useState<any[]>([]);
   const [activeBlock, setActiveBlock] = useState("1");
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -121,15 +161,23 @@ export function SceneTimingEditor({
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const playEndRef = useRef<number | null>(null);
 
+  // Playhead and Real-time preview player state
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlayheadPlaying, setIsPlayheadPlaying] = useState(false);
+
   useEffect(() => {
     setDraft(structuredClone(config?.timeline_assets || {}));
-  }, [config?.timeline_assets, activeProject]);
+    setDraftImpactTexts(structuredClone(config?.impact_texts || []));
+  }, [config?.timeline_assets, config?.impact_texts, activeProject]);
 
-  const flatWords = useMemo(() => flattenTranscriptWords(wordTranscripts), [wordTranscripts]);
+  const flatWords = useMemo(
+    () => flattenTranscriptWords(wordTranscripts),
+    [wordTranscripts]
+  );
 
   const blockKeys = useMemo(
     () => Object.keys(draft).sort((a, b) => Number(a) - Number(b)),
-    [draft],
+    [draft]
   );
 
   useEffect(() => {
@@ -150,17 +198,49 @@ export function SceneTimingEditor({
         return getAssetDurationSeconds(assets, index, blockDur);
       },
     }),
-    [config, draft, storyboard, status],
+    [config, draft, storyboard, status]
   );
 
   const blockModel = useMemo((): BlockTimingModel | null => {
     const assets = draft[activeBlock];
     if (!assets?.length) return null;
-    return buildBlockTimingModel(activeBlock, assets, flatWords, status, syncCtx, wordTranscripts);
+    return buildBlockTimingModel(
+      activeBlock,
+      assets,
+      flatWords,
+      status,
+      syncCtx,
+      wordTranscripts
+    );
   }, [activeBlock, draft, flatWords, status, syncCtx]);
 
-  const hasTranscript = flatWords.length > 0 && Boolean(status?.block_timings?.starts?.length);
+  const hasTranscript =
+    flatWords.length > 0 && Boolean(status?.block_timings?.starts?.length);
   const hasNarration = Boolean(status?.has_narration);
+
+  // Reset playhead when active block changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setIsPlayheadPlaying(false);
+  }, [activeBlock]);
+
+  // Real-time Preview Player Simulation
+  useEffect(() => {
+    let interval: any;
+    if (isPlayheadPlaying && blockModel) {
+      interval = setInterval(() => {
+        setCurrentTime((prev) => {
+          const next = prev + 0.1;
+          if (next >= blockModel.totalDuration) {
+            setIsPlayheadPlaying(false);
+            return blockModel.totalDuration;
+          }
+          return next;
+        });
+      }, 100);
+    }
+    return () => clearInterval(interval);
+  }, [isPlayheadPlaying, blockModel]);
 
   const stopPlayback = useCallback(() => {
     audioRef.current?.pause();
@@ -178,65 +258,69 @@ export function SceneTimingEditor({
         return;
       }
 
-      stopPlayback();
-      const audio = audioRef.current || new Audio();
-      audioRef.current = audio;
-      const url = getMediaUrl("narracao_mestra_premium.mp3");
-      audio.src = url;
-      audio.currentTime = start;
-      playEndRef.current = end + 0.15;
-
-      const onTime = () => {
-        if (playEndRef.current != null && audio.currentTime >= playEndRef.current) {
-          stopPlayback();
-        }
-      };
-
-      audio.ontimeupdate = onTime;
-      audio.onended = () => stopPlayback();
-      audio.play()
-        .then(() => setPlayingKey(key))
-        .catch(() => toast("Não foi possível reproduzir a narração."));
-    },
-    [getMediaUrl, playingKey, stopPlayback, toast],
-  );
-
-  const updateBlockAssets = useCallback((blockKey: string, assets: TimelineAsset[]) => {
-    setDraft((prev) => ({ ...prev, [blockKey]: assets }));
-  }, []);
-
-  const handleDurationChange = (sceneIdx: number, value: number) => {
-    const assets = draft[activeBlock];
-    if (!assets) return;
-    updateBlockAssets(activeBlock, setSceneDuration(assets, sceneIdx, value));
-  };
-
-  const handleDividerDrag = useCallback(
-    (clientX: number, dividerIdx: number) => {
-      const el = timelineRef.current;
-      const assets = draft[activeBlock];
-      const model = blockModel;
-      if (!el || !assets || !model || dividerIdx >= assets.length - 1) return;
-
-      const rect = el.getBoundingClientRect();
-      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      const targetLeftSum = ratio * model.totalDuration;
-      let acc = 0;
-      let desiredLeft = model.scenes[dividerIdx].duration;
-      for (let i = 0; i <= dividerIdx; i++) {
-        acc += model.scenes[i].duration;
+      if (!audioRef.current) {
+        audioRef.current = new Audio(getMediaUrl("narration.mp3"));
       }
-      const delta = targetLeftSum - acc;
-      const blockDur = model.blockEnd - model.blockStart;
-      updateBlockAssets(activeBlock, resizeScenePair(assets, dividerIdx, delta, blockDur));
+
+      stopPlayback();
+      setPlayingKey(key);
+      playEndRef.current = end;
+
+      audioRef.current.currentTime = start;
+      void audioRef.current.play().catch(() => stopPlayback());
     },
-    [activeBlock, blockModel, draft, updateBlockAssets],
+    [playingKey, stopPlayback, getMediaUrl]
   );
 
   useEffect(() => {
-    if (draggingDivider == null) return;
+    const el = audioRef.current;
+    if (!el) return;
 
-    const onMove = (e: MouseEvent) => handleDividerDrag(e.clientX, draggingDivider);
+    const onTime = () => {
+      if (playEndRef.current !== null && el.currentTime >= playEndRef.current) {
+        stopPlayback();
+      }
+    };
+    el.addEventListener("timeupdate", onTime);
+    return () => el.removeEventListener("timeupdate", onTime);
+  }, [stopPlayback]);
+
+  const handleDurationChange = (sceneIdx: number, value: number) => {
+    const assets = draft[activeBlock] || [];
+    const updated = setSceneDuration(assets, sceneIdx, Math.max(0.5, value));
+    updateBlockAssets(activeBlock, updated);
+  };
+
+  const updateBlockAssets = (blockKey: string, assets: TimelineAsset[]) => {
+    const next = { ...draft, [blockKey]: assets };
+    setDraft(next);
+  };
+
+  const handleDividerDrag = useCallback(
+    (e: MouseEvent) => {
+      if (draggingDivider === null || !timelineRef.current || !blockModel)
+        return;
+      const rect = timelineRef.current.getBoundingClientRect();
+      const clientX = e.clientX;
+      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      const pct = x / rect.width;
+      const targetTime = pct * blockModel.totalDuration;
+
+      const assets = draft[activeBlock] || [];
+      const updated = resizeScenePair(
+        assets,
+        draggingDivider,
+        targetTime,
+        blockModel.totalDuration
+      );
+      updateBlockAssets(activeBlock, updated);
+    },
+    [draggingDivider, blockModel, activeBlock, draft]
+  );
+
+  useEffect(() => {
+    if (draggingDivider === null) return;
+    const onMove = (e: MouseEvent) => handleDividerDrag(e);
     const onUp = () => setDraggingDivider(null);
 
     window.addEventListener("mousemove", onMove);
@@ -260,17 +344,29 @@ export function SceneTimingEditor({
         assets,
         flatWords,
         status,
-        storyboard,
+        storyboard
       );
       if (aligned === 0) {
         toast("Nenhuma cena alinhada — confira textos no storyboard.");
         return;
       }
-      const model = buildBlockTimingModel(activeBlock, synced, flatWords, status, {
-        ...syncCtx,
-        config: { ...syncCtx.config, timeline_assets: { ...draft, [activeBlock]: synced } },
-      }, wordTranscripts);
-      const withStarts = model ? applyAudioStartsFromScenes(synced, model) : synced;
+      const model = buildBlockTimingModel(
+        activeBlock,
+        synced,
+        flatWords,
+        status,
+        {
+          ...syncCtx,
+          config: {
+            ...syncCtx.config,
+            timeline_assets: { ...draft, [activeBlock]: synced },
+          },
+        },
+        wordTranscripts
+      );
+      const withStarts = model
+        ? applyAudioStartsFromScenes(synced, model)
+        : synced;
       updateBlockAssets(activeBlock, withStarts);
       toast(`${aligned} cena(s) sincronizada(s) com a voz.`);
     } finally {
@@ -285,23 +381,99 @@ export function SceneTimingEditor({
       for (const blockKey of Object.keys(enriched)) {
         const assets = enriched[blockKey];
         if (!assets?.length) continue;
-        const model = buildBlockTimingModel(blockKey, assets, flatWords, status, {
-          ...syncCtx,
-          config: { ...syncCtx.config, timeline_assets: enriched },
-        }, wordTranscripts);
+        const model = buildBlockTimingModel(
+          blockKey,
+          assets,
+          flatWords,
+          status,
+          {
+            ...syncCtx,
+            config: { ...syncCtx.config, timeline_assets: enriched },
+          },
+          wordTranscripts
+        );
         if (model) {
           enriched[blockKey] = applyAudioStartsFromScenes(assets, model);
         }
       }
-      await onSave(enriched);
+      await onSave(enriched, draftImpactTexts);
       setDraft(enriched);
-      toast("Timing das cenas salvo.");
+      toast("Timing das cenas e overlays salvos.");
     } catch {
       toast("Erro ao salvar.");
     } finally {
       setSaving(false);
     }
   };
+
+  // AI Overlays (Impact Text) helpers
+  const activeBlockOverlays = useMemo(() => {
+    return draftImpactTexts.filter((ot) => ot.block === Number(activeBlock));
+  }, [draftImpactTexts, activeBlock]);
+
+  const updateOverlayField = (
+    indexInActive: number,
+    field: string,
+    value: any
+  ) => {
+    let count = 0;
+    const nextImpactTexts = draftImpactTexts.map((ot) => {
+      if (ot.block === Number(activeBlock)) {
+        if (count === indexInActive) {
+          return { ...ot, [field]: value };
+        }
+        count++;
+      }
+      return ot;
+    });
+    setDraftImpactTexts(nextImpactTexts);
+  };
+
+  const deleteOverlay = (indexInActive: number) => {
+    let count = 0;
+    const nextImpactTexts = draftImpactTexts.filter((ot) => {
+      if (ot.block === Number(activeBlock)) {
+        if (count === indexInActive) {
+          count++;
+          return false;
+        }
+        count++;
+      }
+      return true;
+    });
+    setDraftImpactTexts(nextImpactTexts);
+    toast("Overlay removido.");
+  };
+
+  const addOverlay = () => {
+    const newOverlay = {
+      block: Number(activeBlock),
+      start_offset: 0,
+      end_offset: Math.min(3, blockModel?.totalDuration || 5),
+      text: "TEXTO DO OVERLAY",
+    };
+    setDraftImpactTexts([...draftImpactTexts, newOverlay]);
+    toast("Overlay adicionado.");
+  };
+
+  // Find active scene and overlay at current player playhead
+  const activeSceneInPreview = useMemo(() => {
+    if (!blockModel) return null;
+    let acc = 0;
+    for (const scene of blockModel.scenes) {
+      if (currentTime >= acc && currentTime <= acc + scene.duration) {
+        return scene;
+      }
+      acc += scene.duration;
+    }
+    return blockModel.scenes[blockModel.scenes.length - 1] || null;
+  }, [blockModel, currentTime]);
+
+  const activeOverlayInPreview = useMemo(() => {
+    return activeBlockOverlays.find(
+      (ot) => currentTime >= ot.start_offset && currentTime <= ot.end_offset
+    );
+  }, [activeBlockOverlays, currentTime]);
 
   if (!activeProject) {
     return (
@@ -314,7 +486,8 @@ export function SceneTimingEditor({
   if (!blockKeys.length) {
     return (
       <div className="ste-empty glass-panel p-8 rounded-2xl text-center text-zinc-400">
-        Este projeto não tem cenas na timeline. Use o Editor ou Workflow para mapear mídias primeiro.
+        Este projeto não tem cenas na timeline. Use o Editor ou Workflow para
+        mapear mídias primeiro.
       </div>
     );
   }
@@ -331,18 +504,30 @@ export function SceneTimingEditor({
               onClick={handleSyncBlock}
               disabled={syncing || !hasTranscript}
               className="ste-btn ste-btn-sync"
-              title={hasTranscript ? "Alinha duração ao trecho falado de cada cena" : "Transcrição ausente"}
+              title={
+                hasTranscript
+                  ? "Alinha duração ao trecho falado de cada cena"
+                  : "Transcrição ausente"
+              }
             >
-              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {syncing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
               Sincronizar bloco com a voz
             </button>
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="ste-btn ste-btn-save"
+              className="ste-btn ste-btn-save cursor-pointer"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
               Salvar timing
             </button>
           </div>
@@ -353,7 +538,9 @@ export function SceneTimingEditor({
         <div className="ste-warn flex items-start gap-3 p-4 rounded-xl border border-amber-900/40 bg-amber-950/20 text-amber-200/90 text-sm">
           <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
           <p>
-            Transcrição Whisper não carregada. Vá em <strong>Workflow → Sincronizar Whisper</strong> para ver a narração sincronizada com o áudio.
+            Transcrição Whisper não carregada. Vá em{" "}
+            <strong>Workflow → Sincronizar Whisper</strong> para ver a narração
+            sincronizada com o áudio.
           </p>
         </div>
       )}
@@ -366,7 +553,10 @@ export function SceneTimingEditor({
             <button
               key={key}
               type="button"
-              onClick={() => { stopPlayback(); setActiveBlock(key); }}
+              onClick={() => {
+                stopPlayback();
+                setActiveBlock(key);
+              }}
               className={`ste-block-tab ${active ? "ste-block-tab--active" : ""}`}
             >
               Bloco {key}
@@ -377,170 +567,482 @@ export function SceneTimingEditor({
       </div>
 
       {blockModel && (
-        <>
-          <div className="ste-summary glass-panel p-4 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Fala do bloco (áudio)</p>
-              <p className="font-mono text-cyan-300">
-                {formatTimelineClock(blockModel.narrationStart)} → {formatTimelineClock(blockModel.narrationEnd)}
-                <span className="text-zinc-500 text-[10px] ml-1">({blockModel.speechDuration.toFixed(1)}s)</span>
-              </p>
+        <div className="flex flex-col lg:flex-row gap-5">
+          {/* COLUMN 1: Scene & Overlays details */}
+          <div className="flex-1 min-w-0 space-y-5">
+            <div className="ste-summary glass-panel p-4 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+                  Fala do bloco (áudio)
+                </p>
+                <p className="font-mono text-cyan-300">
+                  {formatTimelineClock(blockModel.narrationStart)} →{" "}
+                  {formatTimelineClock(blockModel.narrationEnd)}
+                  <span className="text-zinc-500 text-[10px] ml-1">
+                    ({blockModel.speechDuration.toFixed(1)}s)
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+                  Duração visual (cenas)
+                </p>
+                <p className="font-mono text-white">
+                  {blockModel.totalDuration.toFixed(1)}s
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+                  Palavras
+                </p>
+                <p className="font-mono text-white">{blockModel.totalWords}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+                  Cobertura
+                </p>
+                <p
+                  className={`font-mono flex items-center gap-1.5 ${blockModel.coveragePercent >= 95 ? "text-emerald-400" : "text-amber-300"}`}
+                >
+                  {blockModel.coveragePercent >= 95 ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  )}
+                  {blockModel.coveredWords}/{blockModel.totalWords} (
+                  {blockModel.coveragePercent}%)
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Duração visual (cenas)</p>
-              <p className="font-mono text-white">{blockModel.totalDuration.toFixed(1)}s</p>
+
+            <div className="ste-timeline-wrap glass-panel p-5 rounded-xl relative">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  Linha do bloco
+                </span>
+                {hasNarration && (
+                  <span className="text-[10px] text-zinc-650 flex items-center gap-1">
+                    <Volume2 className="w-3 h-3" /> Arraste os divisores para
+                    redistribuir tempo
+                  </span>
+                )}
+              </div>
+
+              <div
+                ref={timelineRef}
+                className="ste-timeline-track relative h-28 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800"
+              >
+                {blockModel.scenes.map((scene, idx) => {
+                  const widthPct =
+                    blockModel.totalDuration > 0
+                      ? (scene.duration / blockModel.totalDuration) * 100
+                      : 100 / blockModel.scenes.length;
+                  const leftPct = blockModel.scenes
+                    .slice(0, idx)
+                    .reduce(
+                      (a, s) =>
+                        a + (s.duration / blockModel.totalDuration) * 100,
+                      0
+                    );
+                  return (
+                    <div
+                      key={scene.idx}
+                      className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden"
+                      style={{
+                        left: `${leftPct}%`,
+                        width: `${widthPct}%`,
+                        borderRight:
+                          idx < blockModel.scenes.length - 1
+                            ? "2px solid rgba(0,0,0,0.5)"
+                            : undefined,
+                      }}
+                      title={scene.assetLabel}
+                    >
+                      <div
+                        className="ste-timeline-seg-tint absolute inset-0 z-[1]"
+                        style={{
+                          background: SCENE_COLORS[idx % SCENE_COLORS.length],
+                        }}
+                      />
+                      <div className="ste-timeline-seg-media absolute inset-0 z-0">
+                        <SceneAssetPreview
+                          scene={scene}
+                          getAssetUrl={getAssetUrl}
+                          variant="strip"
+                        />
+                      </div>
+                      <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-1 bg-gradient-to-t from-black/85 to-transparent">
+                        <span
+                          className="text-[9px] text-zinc-300 truncate max-w-[70%]"
+                          title={scene.assetLabel}
+                        >
+                          {scene.assetLabel}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-white shrink-0">
+                          {scene.duration.toFixed(1)}s
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {blockModel.scenes.slice(0, -1).map((_, idx) => {
+                  const leftPct = blockModel.scenes
+                    .slice(0, idx + 1)
+                    .reduce(
+                      (a, s) =>
+                        a + (s.duration / blockModel.totalDuration) * 100,
+                      0
+                    );
+                  return (
+                    <button
+                      key={`div-${idx}`}
+                      type="button"
+                      className="ste-timeline-divider"
+                      style={{ left: `calc(${leftPct}% - 6px)` }}
+                      onMouseDown={() => setDraggingDivider(idx)}
+                      aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
+                    />
+                  );
+                })}
+
+                {/* Red playhead marker line synced to preview time */}
+                <div
+                  className="absolute top-0 bottom-0 w-[1.5px] bg-red-500 z-10 pointer-events-none"
+                  style={{
+                    left: `${(currentTime / blockModel.totalDuration) * 100}%`,
+                  }}
+                >
+                  <div className="w-2 h-2 bg-red-500 rounded-full absolute -top-0.5 -left-[3.5px] border border-white/20" />
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Palavras</p>
-              <p className="font-mono text-white">{blockModel.totalWords}</p>
+
+            {/* AI OVERLAYS / IMPACT TEXT EDITOR PANEL */}
+            <div className="ste-timeline-wrap glass-panel p-5 rounded-xl space-y-3.5">
+              <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold-500 flex items-center gap-1.5">
+                  🎨 Overlays de Texto IA
+                </span>
+                <span className="text-[9px] text-zinc-500 font-mono uppercase">
+                  {activeBlockOverlays.length} Overlay(s) Ativo(s)
+                </span>
+              </div>
+
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800">
+                {activeBlockOverlays.length === 0 ? (
+                  <p className="text-zinc-500 text-xs py-4 text-center italic border border-dashed border-zinc-900 rounded-xl">
+                    Nenhum overlay de texto para este bloco.
+                  </p>
+                ) : (
+                  activeBlockOverlays.map((ot, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col md:flex-row gap-3 p-3 bg-zinc-900/30 border border-zinc-900 rounded-2xl items-end justify-between hover:border-zinc-850 transition"
+                    >
+                      <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
+                            Texto do Overlay
+                          </label>
+                          <input
+                            type="text"
+                            value={ot.text}
+                            onChange={(e) =>
+                              updateOverlayField(idx, "text", e.target.value)
+                            }
+                            className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-gold-500 transition"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <div>
+                            <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
+                              Início (s)
+                            </label>
+                            <input
+                              type="number"
+                              step={0.1}
+                              min={0}
+                              value={ot.start_offset}
+                              onChange={(e) =>
+                                updateOverlayField(
+                                  idx,
+                                  "start_offset",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase text-zinc-500 font-bold block mb-1">
+                              Fim (s)
+                            </label>
+                            <input
+                              type="number"
+                              step={0.1}
+                              min={0}
+                              value={ot.end_offset}
+                              onChange={(e) =>
+                                updateOverlayField(
+                                  idx,
+                                  "end_offset",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="w-full bg-zinc-950 border border-zinc-900 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none transition"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentTime(ot.start_offset)}
+                          className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[10px] rounded-xl text-gold-500 hover:text-gold-400 font-bold transition flex items-center gap-1 cursor-pointer"
+                          title="Seek na linha do tempo"
+                        >
+                          Seek
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteOverlay(idx)}
+                          className="p-1.5 bg-zinc-950 hover:bg-red-950/40 border border-zinc-850 hover:border-red-900 text-zinc-500 hover:text-red-400 rounded-xl transition cursor-pointer"
+                          title="Excluir overlay"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={addOverlay}
+                className="w-full py-2 bg-zinc-950 hover:bg-zinc-900 border border-dashed border-zinc-900 hover:border-zinc-800 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-gold-500" />
+                Adicionar Novo Overlay de Texto
+              </button>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Cobertura</p>
-              <p className={`font-mono flex items-center gap-1.5 ${blockModel.coveragePercent >= 95 ? "text-emerald-400" : "text-amber-300"}`}>
-                {blockModel.coveragePercent >= 95 ? <Check className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                {blockModel.coveredWords}/{blockModel.totalWords} ({blockModel.coveragePercent}%)
-              </p>
+
+            <div className="ste-scenes grid gap-3">
+              {blockModel.scenes.map((scene) => {
+                const playId = `${activeBlock}-${scene.idx}`;
+                const isPlaying = playingKey === playId;
+                return (
+                  <article
+                    key={scene.idx}
+                    className="ste-scene glass-panel p-4 rounded-xl border border-zinc-800/80"
+                  >
+                    <div className="flex flex-wrap items-start gap-4 mb-3">
+                      <SceneAssetPreview
+                        scene={scene}
+                        getAssetUrl={getAssetUrl}
+                        variant="card"
+                      />
+                      <div className="flex-1 min-w-0 flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">
+                            Cena {scene.idx + 1}
+                          </p>
+                          <p
+                            className="text-xs text-zinc-400 font-mono truncate max-w-[280px]"
+                            title={scene.assetLabel}
+                          >
+                            {scene.assetLabel}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 text-xs text-zinc-400">
+                            Duração
+                            <input
+                              type="number"
+                              min={0.5}
+                              step={0.1}
+                              value={scene.duration}
+                              onChange={(e) =>
+                                handleDurationChange(
+                                  scene.idx,
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="ste-duration-input font-bold text-white border border-zinc-800 rounded-lg px-2 py-1 bg-zinc-950 focus:outline-none"
+                            />
+                            <span>s</span>
+                          </label>
+                          {hasNarration && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const { start, end } = getScenePlaybackWindow(
+                                  scene,
+                                  blockModel.narrationEnd
+                                );
+                                playScene(activeBlock, scene.idx, start, end);
+                              }}
+                              className={`ste-play-btn ${isPlaying ? "ste-play-btn--active" : ""}`}
+                              title="Ouvir narração desta cena"
+                            >
+                              {isPlaying ? (
+                                <Pause className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="ste-narration-box">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/80">
+                          Narração nesta janela
+                        </span>
+                        <span className="font-mono text-[10px] text-zinc-500">
+                          {(() => {
+                            const { start, end } = getScenePlaybackWindow(
+                              scene,
+                              blockModel.narrationEnd
+                            );
+                            return `${formatTimelineClock(start)} – ${formatTimelineClock(end)}`;
+                          })()}
+                          {" · "}
+                          {scene.words.length} palavras
+                          <span
+                            className="text-zinc-650 ml-1"
+                            title="Duração visual do asset"
+                          >
+                            (asset {scene.duration.toFixed(1)}s)
+                          </span>
+                        </span>
+                      </div>
+                      <p
+                        className={`text-sm leading-relaxed ${scene.narrationText ? "text-zinc-200" : "text-zinc-600 italic"}`}
+                      >
+                        {scene.narrationText ||
+                          "Nenhuma palavra nesta janela — aumente a duração ou ajuste o divisor."}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
 
-          <div className="ste-timeline-wrap glass-panel p-5 rounded-xl">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Linha do bloco</span>
-              {hasNarration && (
-                <span className="text-[10px] text-zinc-600 flex items-center gap-1">
-                  <Volume2 className="w-3 h-3" /> Arraste os divisores para redistribuir tempo
-                </span>
+          {/* COLUMN 2: Real-time active block player preview */}
+          <div className="lg:w-80 shrink-0 sticky top-4 flex flex-col gap-4 bg-zinc-950 border border-zinc-900 rounded-2xl p-4 self-start shadow-2xl backdrop-blur-md">
+            <div className="flex justify-between items-center pb-2 border-b border-zinc-900">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold-500">
+                Prévia do Bloco
+              </span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-gold-400">
+                LIVE PLAYBACK
+              </span>
+            </div>
+
+            {/* Preview Box Frame (Aspect-ratio aware) */}
+            <div
+              className={`relative flex items-center justify-center bg-[#050506] rounded-xl overflow-hidden border border-zinc-900 shadow-inner ${
+                config?.aspect_ratio === "9:16"
+                  ? "h-96 aspect-[9/16] mx-auto"
+                  : "w-full aspect-video"
+              }`}
+            >
+              {/* Asset display */}
+              {activeSceneInPreview ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {activeSceneInPreview.assetType === "video" ? (
+                    <video
+                      key={activeSceneInPreview.assetPath}
+                      src={getAssetUrl(activeSceneInPreview.assetPath)}
+                      className="w-full h-full object-cover"
+                      autoPlay
+                      muted
+                      loop
+                    />
+                  ) : (
+                    <img
+                      src={getAssetUrl(activeSceneInPreview.assetPath)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="text-[10px] text-zinc-650 italic">
+                  Sem mídia
+                </div>
+              )}
+
+              {/* Subtitles Overlay (capitalized, outline shadow) */}
+              {activeOverlayInPreview && (
+                <div className="absolute bottom-6 left-2 right-2 text-center z-10 pointer-events-none">
+                  <span
+                    className="font-sans font-extrabold uppercase text-xs md:text-sm text-yellow-500 tracking-wider leading-relaxed"
+                    style={{
+                      textShadow:
+                        "1.5px 1.5px 0px #000, -1.5px -1.5px 0px #000, 1.5px -1.5px 0px #000, -1.5px 1.5px 0px #000, 2px 2px 4px rgba(0,0,0,0.9)",
+                    }}
+                  >
+                    {activeOverlayInPreview.text}
+                  </span>
+                </div>
               )}
             </div>
 
-            <div ref={timelineRef} className="ste-timeline-track relative h-28 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800">
-              {blockModel.scenes.map((scene, idx) => {
-                const widthPct = blockModel.totalDuration > 0
-                  ? (scene.duration / blockModel.totalDuration) * 100
-                  : 100 / blockModel.scenes.length;
-                const leftPct = blockModel.scenes
-                  .slice(0, idx)
-                  .reduce((a, s) => a + (s.duration / blockModel.totalDuration) * 100, 0);
-                return (
-                  <div
-                    key={scene.idx}
-                    className="ste-timeline-seg absolute top-0 bottom-0 overflow-hidden"
-                    style={{
-                      left: `${leftPct}%`,
-                      width: `${widthPct}%`,
-                      borderRight: idx < blockModel.scenes.length - 1 ? "2px solid rgba(0,0,0,0.5)" : undefined,
-                    }}
-                    title={scene.assetLabel}
-                  >
-                    <div
-                      className="ste-timeline-seg-tint absolute inset-0 z-[1]"
-                      style={{ background: SCENE_COLORS[idx % SCENE_COLORS.length] }}
-                    />
-                    <div className="ste-timeline-seg-media absolute inset-0 z-0">
-                      <SceneAssetPreview scene={scene} getAssetUrl={getAssetUrl} variant="strip" />
-                    </div>
-                    <div className="ste-timeline-seg-label absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-1 px-1.5 py-1 bg-gradient-to-t from-black/85 to-transparent">
-                      <span className="text-[9px] text-zinc-300 truncate max-w-[70%]" title={scene.assetLabel}>
-                        {scene.assetLabel}
-                      </span>
-                      <span className="text-[10px] font-mono font-bold text-white shrink-0">
-                        {scene.duration.toFixed(1)}s
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Playhead control seek bar */}
+            <div>
+              <div
+                className="relative h-1.5 bg-zinc-850 rounded-full cursor-pointer overflow-hidden shadow-inner"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const pct = clickX / rect.width;
+                  setCurrentTime(pct * blockModel.totalDuration);
+                }}
+              >
+                <div
+                  className="absolute top-0 bottom-0 bg-gold-500 left-0"
+                  style={{
+                    width: `${(currentTime / blockModel.totalDuration) * 100}%`,
+                  }}
+                />
+              </div>
 
-              {blockModel.scenes.slice(0, -1).map((_, idx) => {
-                const leftPct = blockModel.scenes
-                  .slice(0, idx + 1)
-                  .reduce((a, s) => a + (s.duration / blockModel.totalDuration) * 100, 0);
-                return (
-                  <button
-                    key={`div-${idx}`}
-                    type="button"
-                    className="ste-timeline-divider"
-                    style={{ left: `calc(${leftPct}% - 6px)` }}
-                    onMouseDown={() => setDraggingDivider(idx)}
-                    aria-label={`Ajustar divisão entre cena ${idx + 1} e ${idx + 2}`}
-                  />
-                );
-              })}
+              {/* Control buttons & timings */}
+              <div className="flex justify-between items-center mt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPlayheadPlaying(!isPlayheadPlaying)}
+                  className={`p-2 rounded-full flex items-center justify-center transition shadow-md ${
+                    isPlayheadPlaying
+                      ? "bg-gold-500 text-zinc-950 hover:bg-gold-600"
+                      : "bg-zinc-900 hover:bg-zinc-800 text-white"
+                  }`}
+                >
+                  {isPlayheadPlaying ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 ml-0.5 fill-white" />
+                  )}
+                </button>
+
+                <div className="font-mono text-[10px] text-zinc-400">
+                  <span className="text-white font-bold">
+                    {currentTime.toFixed(1)}s
+                  </span>
+                  <span className="text-zinc-650 mx-1">/</span>
+                  <span>{blockModel.totalDuration.toFixed(1)}s</span>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="ste-scenes grid gap-3">
-            {blockModel.scenes.map((scene) => {
-              const playId = `${activeBlock}-${scene.idx}`;
-              const isPlaying = playingKey === playId;
-              return (
-                <article key={scene.idx} className="ste-scene glass-panel p-4 rounded-xl border border-zinc-800/80">
-                  <div className="flex flex-wrap items-start gap-4 mb-3">
-                    <SceneAssetPreview scene={scene} getAssetUrl={getAssetUrl} variant="card" />
-                    <div className="flex-1 min-w-0 flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-0.5">
-                        Cena {scene.idx + 1}
-                      </p>
-                      <p className="text-xs text-zinc-400 font-mono truncate max-w-[280px]" title={scene.assetLabel}>
-                        {scene.assetLabel}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-2 text-xs text-zinc-400">
-                        Duração
-                        <input
-                          type="number"
-                          min={0.5}
-                          step={0.1}
-                          value={scene.duration}
-                          onChange={(e) => handleDurationChange(scene.idx, Number(e.target.value))}
-                          className="ste-duration-input"
-                        />
-                        <span>s</span>
-                      </label>
-                      {hasNarration && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const { start, end } = getScenePlaybackWindow(scene, blockModel.narrationEnd);
-                            playScene(activeBlock, scene.idx, start, end);
-                          }}
-                          className={`ste-play-btn ${isPlaying ? "ste-play-btn--active" : ""}`}
-                          title="Ouvir narração desta cena"
-                        >
-                          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </button>
-                      )}
-                    </div>
-                    </div>
-                  </div>
-
-                  <div className="ste-narration-box">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-500/80">
-                        Narração nesta janela
-                      </span>
-                      <span className="font-mono text-[10px] text-zinc-500">
-                        {(() => {
-                          const { start, end } = getScenePlaybackWindow(scene, blockModel.narrationEnd);
-                          return `${formatTimelineClock(start)} – ${formatTimelineClock(end)}`;
-                        })()}
-                        {" · "}{scene.words.length} palavras
-                        <span className="text-zinc-600 ml-1" title="Duração visual do asset">
-                          (asset {scene.duration.toFixed(1)}s)
-                        </span>
-                      </span>
-                    </div>
-                    <p className={`text-sm leading-relaxed ${scene.narrationText ? "text-zinc-200" : "text-zinc-600 italic"}`}>
-                      {scene.narrationText || "Nenhuma palavra nesta janela — aumente a duração ou ajuste o divisor."}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
