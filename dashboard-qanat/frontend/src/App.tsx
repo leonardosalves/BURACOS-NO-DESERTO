@@ -6741,11 +6741,21 @@ export default function App() {
         ideationTab === "listicle"
           ? listNiche.trim() || listTopic.trim()
           : ideationTab === "custom"
-            ? "Customized"
+            ? editorialIdeaImport?.pioneerMeta?.macroNiche?.trim() ||
+              nicheInput.trim() ||
+              "Customized"
             : nicheInput.trim();
 
+      const userDefinedBlockCount = customBlocks.filter(
+        (b) => b.content.trim() !== ""
+      ).length;
       const blockCount =
-        narrationBlockPhrases.length || (formatSelector === "SHORTS" ? 5 : 12);
+        narrationBlockPhrases.length ||
+        (userDefinedBlockCount > 0
+          ? userDefinedBlockCount
+          : formatSelector === "SHORTS"
+            ? 4
+            : 8);
 
       const { ok, data } = await postAi(
         "/api/notebooklm/improve-narration-draft",
