@@ -12,7 +12,7 @@ type Props = {
 
 const SUGGESTIONS = [
   "Adiciona um pictograma de população aqui",
-  "Busca stock de floresta no Pexels",
+  "Busca stock de floresta no Pexels (painel Stock)",
   "Aplica pacote Jornalismo de Dados",
   "Ajusta legendas deste trecho",
 ];

@@ -8,6 +8,7 @@ import { TimelineStudioClipInspector } from "./TimelineStudioClipInspector";
 import { TimelineStudioPreview } from "./TimelineStudioPreview";
 import { TimelineStudioTracks } from "./TimelineStudioTracks";
 import {
+  appendClip,
   computeTotalDuration,
   deleteClip,
   findClip,
@@ -297,7 +298,17 @@ export function TimelineStudio({
         style={{ minHeight: isVertical ? 360 : 400 }}
       >
         <div className="min-h-[200px] lg:min-h-0 lg:h-[min(52vh,480px)]">
-          <StockMediaPanel videoClips={videoClips} getAssetUrl={getAssetUrl} />
+          <StockMediaPanel
+            videoClips={videoClips}
+            getAssetUrl={getAssetUrl}
+            getProjectUrl={getProjectUrl}
+            playhead={studio.playhead}
+            onStockClipAdded={(clip) => {
+              handleClipsChange(appendClip(studio.clips, clip));
+              setSelectedClipId(clip.id);
+              updateStudio({ playhead: clip.start });
+            }}
+          />
         </div>
         <div className="min-h-[220px] lg:min-h-0 lg:h-[min(52vh,480px)]">
           <TimelineStudioPreview
