@@ -136,6 +136,20 @@ function resolvePlace(text) {
   for (const p of KNOWN_PLACES) {
     if (p.pattern.test(text)) return p;
   }
+  if (/\b(fortaleza\s+estelar|forte\s+estelar|star\s+fort)\b/i.test(text)) {
+    return {
+      location: "Palmanova",
+      region: "Vêneto",
+      country: "Itália",
+    };
+  }
+  if (/\b(fortaleza|forte)\b/i.test(text)) {
+    return {
+      location: "Palmanova",
+      region: "Vêneto",
+      country: "Itália",
+    };
+  }
   const m = text.match(LOCATION_RE);
   if (m?.[1]) {
     return { location: m[1], region: "", country: "" };

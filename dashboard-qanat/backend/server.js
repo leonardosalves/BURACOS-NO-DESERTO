@@ -6858,6 +6858,8 @@ function findProjectFile(projectDir, fileName) {
 
     path.join(projectDir, "ASSETS", safeName),
 
+    path.join(projectDir, "ASSETS", "satellite", safeName),
+
     path.join(projectDir, "ASSETS", "images", safeName),
 
     path.join(projectDir, "ASSETS", "videos", safeName),
@@ -6867,6 +6869,13 @@ function findProjectFile(projectDir, fileName) {
     path.join(projectDir, "MUSICAS", safeName),
   ];
 
+  const rel = String(fileName || "")
+    .replace(/\\/g, "/")
+    .replace(/^ASSETS\//i, "");
+  if (rel.includes("/")) {
+    candidates.unshift(path.join(projectDir, "ASSETS", rel));
+  }
+
   // Fallback to workspace root directory if not found in project folder
 
   if (projectDir !== WORKSPACE_DIR) {
@@ -6875,12 +6884,17 @@ function findProjectFile(projectDir, fileName) {
 
       path.join(WORKSPACE_DIR, "ASSETS", safeName),
 
+      path.join(WORKSPACE_DIR, "ASSETS", "satellite", safeName),
+
       path.join(WORKSPACE_DIR, "ASSETS", "images", safeName),
 
       path.join(WORKSPACE_DIR, "ASSETS", "videos", safeName),
 
       path.join(WORKSPACE_DIR, "ASSETS", "audio", safeName)
     );
+    if (rel.includes("/")) {
+      candidates.push(path.join(WORKSPACE_DIR, "ASSETS", rel));
+    }
   }
 
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;

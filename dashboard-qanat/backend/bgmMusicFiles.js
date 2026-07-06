@@ -55,14 +55,21 @@ export function findProjectFileLocal(projDir, fileName = "") {
   if (!projDir || !fileName) return null;
   const safeName = path.basename(String(fileName).trim());
   if (!safeName) return null;
+  const rel = String(fileName || "")
+    .replace(/\\/g, "/")
+    .replace(/^ASSETS\//i, "");
   const candidates = [
     path.join(projDir, safeName),
     path.join(projDir, "ASSETS", safeName),
+    path.join(projDir, "ASSETS", "satellite", safeName),
     path.join(projDir, "ASSETS", "images", safeName),
     path.join(projDir, "ASSETS", "videos", safeName),
     path.join(projDir, "ASSETS", "audio", safeName),
     path.join(projDir, "MUSICAS", safeName),
   ];
+  if (rel.includes("/")) {
+    candidates.unshift(path.join(projDir, "ASSETS", rel));
+  }
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 

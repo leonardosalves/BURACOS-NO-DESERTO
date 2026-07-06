@@ -21,6 +21,8 @@ function resolveMapImageSrc(src?: string): string {
   const s = String(src || "").trim();
   if (!s) return "";
   if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("/api/")) return s;
+  if (s.startsWith("projects/")) return staticFile(s.replace(/\\/g, "/"));
   return staticFile(s.replace(/\\/g, "/"));
 }
 
